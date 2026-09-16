@@ -4,21 +4,21 @@
 		<template id="v3.life.music.reply.taste.0001" act="life.music.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я слушаю разное, но чаще возвращаюсь к мелодичному року и соулу." />
 		<template id="v3.life.music.reply.taste.0002" act="life.music.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Жанр не так важен, если у песни есть характер." />
 		<template id="v3.life.music.reply.taste.0003" act="life.music.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Старый джаз мне не надоедает: каждый раз слышу новую деталь." />
-		<template id="v3.life.music.reply.taste.0004" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Тебе бы понравился этот низкий голос, в нём много спокойствия." />
-		<template id="v3.life.music.reply.taste.0005" act="life.music.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой плейлист разнообразнее, но мериться вкусом скучно." />
+		<template id="v3.life.music.reply.taste.0004" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Низкий голос может понравиться тем, кто ищет в музыке спокойствие." />
+		<template id="v3.life.music.reply.taste.0005" act="life.music.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Разнообразный плейлист не делает вкус автоматически лучше." />
 		<template id="v3.life.music.reply.taste.0006" act="life.music.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не включай тяжёлую музыку без предупреждения." />
 		<template id="v3.life.music.reply.taste.0007" act="life.music.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твоё мнение о моих песнях меня не интересует." />
 		<template id="v3.life.music.reply.taste.0008" act="life.music.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Инструментальная музыка хороша, когда мелодия умеет говорить сама." />
 		<template id="v3.life.music.reply.taste.0009" act="life.music.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Живой звук люблю за шероховатости, которых нет в студийной записи." />
-		<template id="v3.life.music.reply.taste.0010" act="life.music.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сейчас у меня на повторе короткая песня с отличной басовой линией." />
-		<template id="v3.life.music.reply.taste.0011" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давай вечером послушаем альбом целиком, без телефонов." />
-		<template id="v3.life.music.reply.taste.0012" act="life.music.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты пропускаешь лучшие вступления, потому что вечно торопишься." />
+		<template id="v3.life.music.reply.taste.0010" act="life.music.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Короткая песня с сильной басовой линией легко попадает на повтор." />
+		<template id="v3.life.music.reply.taste.0011" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Альбом интересно послушать целиком и без телефонов, если вечер действительно свободен." />
+		<template id="v3.life.music.reply.taste.0012" act="life.music.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Лучшие вступления легко пропустить в спешке, но чужую вечную привычку выдумывать не стоит." />
 		<template id="v3.life.music.reply.taste.0013" act="life.music.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не называй шумом музыку, которую просто не понимаешь." />
 		<template id="v3.life.music.reply.taste.0014" act="life.music.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Выключи колонки и оставь свои насмешки при себе." />
 		<template id="v3.life.music.reply.taste.0015" act="life.music.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Старые альбомы слушаю по порядку: там важна драматургия." />
 		<template id="v3.life.music.reply.taste.0016" act="life.music.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Есть артист из детства, чей голос мгновенно возвращает летние каникулы." />
 		<template id="v3.life.music.reply.taste.0017" act="life.music.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хороший кавер должен предложить новый взгляд, а не копировать оригинал." />
-		<template id="v3.life.music.reply.taste.0018" act="life.music.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я помню, как ты впервые поставил мне эту песню." />
+		<template id="v3.life.music.reply.taste.0018" act="life.music.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если песня связана с хорошим воспоминанием, она обычно цепляет сильнее." />
 		<template id="v3.life.music.reply.taste.0019" act="life.music.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Текст у твоего фаворита громкий, а мелодия всё равно сильнее." />
 		<template id="v3.life.music.reply.taste.0020" act="life.music.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не спорь со мной о словах, которых ты даже не разобрал." />
 		<template id="v3.life.music.reply.taste.0021" act="life.music.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ещё раз оскорбишь любимую группу — разговор закончен." />
@@ -39,7 +39,7 @@
 		<template id="v3.life.music.reply.taste.0036" act="life.music.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Акустические версии люблю, если они раскрывают голос, а не просто замедляют темп." />
 		<template id="v3.life.music.reply.taste.0037" act="life.music.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Самый памятный концерт был маленьким: музыканты стояли почти рядом." />
 		<template id="v3.life.music.reply.taste.0038" act="life.music.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Есть популярная группа, чьи песни оставляют меня совершенно равнодушным." />
-		<template id="v3.life.music.reply.taste.0039" act="life.music.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Нашу песню я знаю наизусть, даже паузы перед припевом." />
+		<template id="v3.life.music.reply.taste.0039" act="life.music.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Особенную песню легко выучить наизусть, но общей она становится только из реальной истории." />
 		<template id="v3.life.music.reply.taste.0040" act="life.music.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Новый релиз твоего любимца слабее предыдущего, хотя ты вряд ли признаешь." />
 		<template id="v3.life.music.reply.taste.0041" act="life.music.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не включай один и тот же припев в пятый раз." />
 		<template id="v3.life.music.reply.taste.0042" act="life.music.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="От твоего фестивального шума у меня уже болит голова." />
@@ -67,7 +67,7 @@
 		<template id="v3.life.music.reply.taste.0064" act="life.music.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Минималистичная аранжировка требует точности: спрятаться музыканту негде." />
 		<template id="v3.life.music.reply.taste.0065" act="life.music.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="С летом у меня связана песня с лёгкой гитарой и шумом дороги." />
 		<template id="v3.life.music.reply.taste.0066" act="life.music.taste.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Идеальный припев хочется подпеть уже со второго раза, но он не раздражает после десятого." />
-		<template id="v3.life.music.reply.taste.0067" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давай включим нашу летнюю подборку и откроем окна." />
+		<template id="v3.life.music.reply.taste.0067" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Летняя подборка и открытые окна хорошо сочетаются, если погода позволяет." />
 		<template id="v3.life.music.reply.taste.0068" act="life.music.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твой припев липкий, мой хотя бы не приходится забывать насильно." />
 		<template id="v3.life.music.reply.taste.0069" act="life.music.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не пой громче исполнителя мне прямо в ухо." />
 		<template id="v3.life.music.reply.taste.0070" act="life.music.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ещё одна попытка перекричать музыку — и уйдёшь слушать один." />
@@ -155,7 +155,7 @@
 		<template id="v3.life.music.reply.taste.0152" act="life.music.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мы оба знаем этот припев, так что можно не притворяться серьёзными." />
 		<template id="v3.life.music.reply.taste.0153" act="life.music.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мой хит прожил десять лет, посмотрим на твой через месяц." />
 		<template id="v3.life.music.reply.taste.0154" act="life.music.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не стыди людей за музыку, которая приносит им радость." />
-		<template id="v3.life.music.reply.taste.0155" act="life.music.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Убери своё высокомерие подальше от нашей вечеринки." />
+		<template id="v3.life.music.reply.taste.0155" act="life.music.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Высокомерие портит вечеринку независимо от того, кому она принадлежит." />
 		<template id="v3.life.music.reply.taste.0156" act="life.music.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Метал мне нравится за масштаб и дисциплину, а не только за громкость." />
 		<template id="v3.life.music.reply.taste.0157" act="life.music.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Тяжёлая гитара звучит убедительнее, когда в аранжировке есть воздух." />
 		<template id="v3.life.music.reply.taste.0158" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Резкий вокал требует контроля не меньше чистого пения." />
@@ -166,7 +166,7 @@
 		<template id="v3.life.music.reply.taste.0163" act="life.music.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Фолк интересен живыми историями и узнаваемыми местными интонациями." />
 		<template id="v3.life.music.reply.taste.0164" act="life.music.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Народный инструмент может дать знакомой песне новый характер." />
 		<template id="v3.life.music.reply.taste.0165" act="life.music.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я люблю записи, где слышна комната и присутствие музыкантов." />
-		<template id="v3.life.music.reply.taste.0166" act="life.music.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Эту старую песню пела моя семья; давай не перебивать её разговорами." />
+		<template id="v3.life.music.reply.taste.0166" act="life.music.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Старая семейная песня заслуживает тишины, если собеседник сам рассказал её историю." />
 		<template id="v3.life.music.reply.taste.0167" act="life.music.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Моя версия ближе к традиции, твоя хотя бы смело её меняет." />
 		<template id="v3.life.music.reply.taste.0168" act="life.music.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не пародируй чужой акцент ради смеха." />
 		<template id="v3.life.music.reply.taste.0169" act="life.music.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твои насмешки над чужой культурой отвратительны." />
@@ -200,21 +200,21 @@
 		<template id="v3.life.music.reply.taste.0197" act="life.music.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твои насмешки ничего не изменят: эта мелодия останется важной." />
 		<template id="v3.life.music.reply.taste.0198" act="life.music.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне нравится музыка, которую хочется переслушать внимательнее." />
 		<template id="v3.life.music.reply.taste.0199" act="life.music.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хороший вкус для меня — любопытство, а не список разрешённых жанров." />
-		<template id="v3.life.music.reply.taste.0200" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сохраню рекомендацию и отвечу после настоящего прослушивания." />
+		<template id="v3.life.music.reply.taste.0200" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="На рекомендацию честнее отвечать после настоящего прослушивания." />
 		<template id="v3.life.music.reply.listening.0001" act="life.music.listening.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="В наушниках слышно больше деталей, а колонки лучше заполняют комнату." />
-		<template id="v3.life.music.reply.listening.0002" act="life.music.listening.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Во время работы включаю спокойную инструментальную музыку без резких смен." />
-		<template id="v3.life.music.reply.listening.0003" act="life.music.listening.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Читать могу только под очень тихий фон." />
-		<template id="v3.life.music.reply.listening.0004" act="life.music.listening.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Перед сном поставим один короткий альбом и уберём телефоны." />
-		<template id="v3.life.music.reply.listening.0005" act="life.music.listening.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Моя комфортная громкость ниже твоей концертной привычки." />
-		<template id="v3.life.music.reply.listening.0006" act="life.music.listening.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не прибавляй звук на моей колонке без спроса." />
+		<template id="v3.life.music.reply.listening.0002" act="life.music.listening.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Во время работы спокойная инструментальная музыка часто отвлекает меньше резких треков." />
+		<template id="v3.life.music.reply.listening.0003" act="life.music.listening.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для чтения многим подходит только очень тихий фон." />
+		<template id="v3.life.music.reply.listening.0004" act="life.music.listening.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Перед сном можно включить короткий альбом и убрать телефоны, если все согласны." />
+		<template id="v3.life.music.reply.listening.0005" act="life.music.listening.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Комфортная громкость у людей различается, и это лучше обсудить прямо." />
+		<template id="v3.life.music.reply.listening.0006" act="life.music.listening.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Громкость чужой колонки нельзя менять без разрешения владельца." />
 		<template id="v3.life.music.reply.listening.0007" act="life.music.listening.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Выключи музыку немедленно, людям вокруг уже мешает." />
-		<template id="v3.life.music.reply.listening.0008" act="life.music.listening.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="На прогулку беру наушники, но на переходах всегда снимаю один." />
+		<template id="v3.life.music.reply.listening.0008" act="life.music.listening.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="На прогулке безопаснее снимать один наушник на переходах." />
 		<template id="v3.life.music.reply.listening.0009" act="life.music.listening.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если задача сложная, слова начинают отвлекать от текста." />
-		<template id="v3.life.music.reply.listening.0010" act="life.music.listening.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Утром мне подходит мягкий ритм, а не громкий будильник с припевом." />
-		<template id="v3.life.music.reply.listening.0011" act="life.music.listening.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Когда готовим вместе, я ставлю знакомые песни, которым можно подпевать." />
-		<template id="v3.life.music.reply.listening.0012" act="life.music.listening.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твоё радио шипит сильнее, чем играет." />
+		<template id="v3.life.music.reply.listening.0010" act="life.music.listening.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Утром мягкий ритм обычно приятнее громкого будильника с припевом." />
+		<template id="v3.life.music.reply.listening.0011" act="life.music.listening.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Во время совместной готовки знакомым песням легко подпевать." />
+		<template id="v3.life.music.reply.listening.0012" act="life.music.listening.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если радио шипит сильнее музыки, сначала стоит поправить приём." />
 		<template id="v3.life.music.reply.listening.0013" act="life.music.listening.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не включай музыку в машине так громко, что не слышно дороги." />
-		<template id="v3.life.music.reply.listening.0014" act="life.music.listening.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="С такой громкостью я никуда с тобой не поеду." />
+		<template id="v3.life.music.reply.listening.0014" act="life.music.listening.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="При опасной громкости в машине разумно отказаться от поездки." />
 		<template id="v3.life.music.reply.listening.0015" act="life.music.listening.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="В полной тишине работаю быстрее, если мысли уже перегружены." />
 		<template id="v3.life.music.reply.listening.0016" act="life.music.listening.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Плейлисты обновляю понемногу, удаляя то, что всегда пропускаю." />
 		<template id="v3.life.music.reply.listening.0017" act="life.music.listening.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для спорта держу отдельную подборку с ровным темпом." />
@@ -289,7 +289,7 @@
 		<template id="v3.life.music.reply.listening.0086" act="life.music.listening.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Текст песни проверяю, когда слышу интересную строку или сомневаюсь в словах." />
 		<template id="v3.life.music.reply.listening.0087" act="life.music.listening.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="В конце дня у меня бывает один спокойный альбом и приглушённый свет." />
 		<template id="v3.life.music.reply.listening.0088" act="life.music.listening.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Новые песни слушаю не обязательно в минуту релиза, а когда есть внимание." />
-		<template id="v3.life.music.reply.listening.0089" act="life.music.listening.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В нашей компании музыку выбирает тот, кто слышит остальных." />
+		<template id="v3.life.music.reply.listening.0089" act="life.music.listening.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В компании музыку лучше выбирать с учётом остальных, если компания действительно собралась." />
 		<template id="v3.life.music.reply.listening.0090" act="life.music.listening.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сегодня твоя очередь вести плейлист, я доверюсь тебе." />
 		<template id="v3.life.music.reply.listening.0091" act="life.music.listening.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты снова захватил колонку, будто остальных здесь нет." />
 		<template id="v3.life.music.reply.listening.0092" act="life.music.listening.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не ставь провокационный трек только ради чужой реакции." />
@@ -333,13 +333,13 @@
 		<template id="v3.life.music.reply.listening.0130" act="life.music.listening.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После яркого блока ставлю знакомый трек, чтобы люди перевели дух." />
 		<template id="v3.life.music.reply.listening.0131" act="life.music.listening.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Запросы гостей принимаю, но не обещаю включить всё немедленно." />
 		<template id="v3.life.music.reply.listening.0132" act="life.music.listening.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты соберёшь желания, а я выстрою их в нормальную очередь." />
-		<template id="v3.life.music.reply.listening.0133" act="life.music.listening.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Моя смена оживила комнату, твоя хотя бы дала всем передышку." />
+		<template id="v3.life.music.reply.listening.0133" act="life.music.listening.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Одна смена трека может оживить комнату, другая — дать передышку; владельцев лучше не выдумывать." />
 		<template id="v3.life.music.reply.listening.0134" act="life.music.listening.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не ставь оскорбительную песню ради одного человека." />
 		<template id="v3.life.music.reply.listening.0135" act="life.music.listening.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твоё намеренное унижение гостя закончило вечеринку." />
 		<template id="v3.life.music.reply.listening.0136" act="life.music.listening.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Для сна выбираю записи без внезапной рекламы и скачков громкости." />
 		<template id="v3.life.music.reply.listening.0137" act="life.music.listening.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Таймер нужен, чтобы звук не продолжался после засыпания." />
 		<template id="v3.life.music.reply.listening.0138" act="life.music.listening.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Наушники в постели мне мешают, поэтому использую тихую колонку." />
-		<template id="v3.life.music.reply.listening.0139" act="life.music.listening.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я поставлю дождь на фоне, если тебе так спокойнее." />
+		<template id="v3.life.music.reply.listening.0139" act="life.music.listening.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Звук дождя можно включить самому, если он действительно успокаивает." />
 		<template id="v3.life.music.reply.listening.0140" act="life.music.listening.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты уснул первым и теперь утверждаешь, что альбом был скучным." />
 		<template id="v3.life.music.reply.listening.0141" act="life.music.listening.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не включай следующий выпуск автоматически." />
 		<template id="v3.life.music.reply.listening.0142" act="life.music.listening.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Разбудишь меня рекламой ещё раз — устройство останется за дверью." />
@@ -367,7 +367,7 @@
 		<template id="v3.life.music.reply.listening.0164" act="life.music.listening.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Общий плейлист работает, когда никто не удаляет чужое молча." />
 		<template id="v3.life.music.reply.listening.0165" act="life.music.listening.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Добавляю по несколько песен, чтобы один вкус не захватил всю очередь." />
 		<template id="v3.life.music.reply.listening.0166" act="life.music.listening.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Перед событием проверяю явные тексты и резкие перепады громкости." />
-		<template id="v3.life.music.reply.listening.0167" act="life.music.listening.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давай подпишем наши добавления и не будем ссориться из-за порядка." />
+		<template id="v3.life.music.reply.listening.0167" act="life.music.listening.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Добавления в общий список полезно подписывать, чтобы не спорить о порядке." />
 		<template id="v3.life.music.reply.listening.0168" act="life.music.listening.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Моих треков меньше, зато их никто не пропускает." />
 		<template id="v3.life.music.reply.listening.0169" act="life.music.listening.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не поднимай свою песню наверх каждый час." />
 		<template id="v3.life.music.reply.listening.0170" act="life.music.listening.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сотри провокационную запись или выйди из общего списка." />
@@ -381,7 +381,7 @@
 		<template id="v3.life.music.reply.listening.0178" act="life.music.listening.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Во время еды музыку держу на уровне, который не заставляет повышать голос." />
 		<template id="v3.life.music.reply.listening.0179" act="life.music.listening.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Инструментальный фон меньше вмешивается в разговор." />
 		<template id="v3.life.music.reply.listening.0180" act="life.music.listening.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если стол большой, лучше одна дальняя колонка, чем телефон рядом с тарелками." />
-		<template id="v3.life.music.reply.listening.0181" act="life.music.listening.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Поставь нашу спокойную подборку, пока я несу горячее." />
+		<template id="v3.life.music.reply.listening.0181" act="life.music.listening.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Спокойная подборка уместна во время еды, если она нравится присутствующим." />
 		<template id="v3.life.music.reply.listening.0182" act="life.music.listening.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мой выбор мягче, твой хотя бы понравился гостям." />
 		<template id="v3.life.music.reply.listening.0183" act="life.music.listening.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не клади телефон среди блюд ради более громкого звука." />
 		<template id="v3.life.music.reply.listening.0184" act="life.music.listening.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Выключи этот шум или покинь стол." />
@@ -401,20 +401,20 @@
 		<template id="v3.life.music.reply.listening.0198" act="life.music.listening.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Хватит использовать звук, чтобы мешать мне думать." />
 		<template id="v3.life.music.reply.listening.0199" act="life.music.listening.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Сегодня слушаю внимательно: один альбом, без перемешивания и уведомлений." />
 		<template id="v3.life.music.reply.listening.0200" act="life.music.listening.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Когда сторона закончится, сделаю короткую паузу перед продолжением." />
-		<template id="v3.life.music.reply.mood.0001" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Настроение мне поднимают песни с лёгким ритмом и доброй самоиронией." />
-		<template id="v3.life.music.reply.mood.0002" act="life.music.mood.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Когда грустно, я выбираю спокойный голос, который не требует веселиться." />
-		<template id="v3.life.music.reply.mood.0003" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Есть фортепианная пьеса, после которой дыхание становится ровнее." />
-		<template id="v3.life.music.reply.mood.0004" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Перед сложным делом включим тот энергичный трек, который оба знаем." />
-		<template id="v3.life.music.reply.mood.0005" act="life.music.mood.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Моя бодрая песня действует быстрее твоих мотивационных речей." />
+		<template id="v3.life.music.reply.mood.0001" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Песни с лёгким ритмом и самоиронией многим поднимают настроение." />
+		<template id="v3.life.music.reply.mood.0002" act="life.music.mood.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="При грусти спокойный голос иногда поддерживает, не требуя немедленно веселиться." />
+		<template id="v3.life.music.reply.mood.0003" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Спокойная фортепианная пьеса может выровнять дыхание." />
+		<template id="v3.life.music.reply.mood.0004" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Перед сложным делом энергичный знакомый трек может помочь собраться." />
+		<template id="v3.life.music.reply.mood.0005" act="life.music.mood.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Бодрая песня иногда действует быстрее мотивационной речи." />
 		<template id="v3.life.music.reply.mood.0006" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не пытайся лечить моё настроение навязанным плейлистом." />
 		<template id="v3.life.music.reply.mood.0007" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Выключи веселье на полную громкость и оставь меня в покое." />
 		<template id="v3.life.music.reply.mood.0008" act="life.music.mood.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="В плохой день весёлая музыка помогает, только если не отрицает саму грусть." />
-		<template id="v3.life.music.reply.mood.0009" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Злость выпускаю под быстрый ритм на прогулке или тренировке." />
-		<template id="v3.life.music.reply.mood.0010" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Старая мелодия с радио мгновенно возвращает меня в школьные годы." />
-		<template id="v3.life.music.reply.mood.0011" act="life.music.mood.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Эта песня связана с тобой, поэтому я всегда дослушиваю её до конца." />
-		<template id="v3.life.music.reply.mood.0012" act="life.music.mood.reply" band="TENSE" register="CASUAL" profanity="NONE" text="У тебя ностальгия громче, у меня воспоминания точнее." />
+		<template id="v3.life.music.reply.mood.0009" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Быстрый ритм на прогулке или тренировке помогает выпустить злость без срыва на людях." />
+		<template id="v3.life.music.reply.mood.0010" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Старая мелодия с радио способна вернуть в школьные годы тех, у кого есть такая память." />
+		<template id="v3.life.music.reply.mood.0011" act="life.music.mood.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Песня, связанная с человеком, часто дослушивается до конца — если такая связь реальна." />
+		<template id="v3.life.music.reply.mood.0012" act="life.music.mood.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ностальгия и воспоминания у каждого звучат по-своему." />
 		<template id="v3.life.music.reply.mood.0013" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не включай ту композицию без предупреждения." />
-		<template id="v3.life.music.reply.mood.0014" act="life.music.mood.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты прекрасно знаешь, почему я не хочу это слышать." />
+		<template id="v3.life.music.reply.mood.0014" act="life.music.mood.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если трек неприятен, причину можно назвать прямо, не приписывая собеседнику знание." />
 		<template id="v3.life.music.reply.mood.0015" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Когда хочется тишины, выбираю редкие звуки без явного ритма." />
 		<template id="v3.life.music.reply.mood.0016" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Музыка может довести меня до слёз одним точным поворотом мелодии." />
 		<template id="v3.life.music.reply.mood.0017" act="life.music.mood.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Для сосредоточения подходит ровная электроника без вокала." />
@@ -428,7 +428,7 @@
 		<template id="v3.life.music.reply.mood.0025" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Песня о доме особенно звучит, когда мы далеко и слушаем её вдвоём." />
 		<template id="v3.life.music.reply.mood.0026" act="life.music.mood.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Твоя тоска театральнее, моя композиция хотя бы честная." />
 		<template id="v3.life.music.reply.mood.0027" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не обвиняй грустную музыку в чувствах, которые уже были внутри." />
-		<template id="v3.life.music.reply.mood.0028" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Убери эту песню: сегодня я не готов возвращаться туда." />
+		<template id="v3.life.music.reply.mood.0028" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если песня возвращает туда, куда сейчас не хочется, её проще убрать без объяснений." />
 		<template id="v3.life.music.reply.mood.0029" act="life.music.mood.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="В грусти иногда выбираю ещё более тихие песни, чтобы не притворяться бодрым." />
 		<template id="v3.life.music.reply.mood.0030" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Перед дальней дорогой ставлю музыку, которая держит внимание без тревоги." />
 		<template id="v3.life.music.reply.mood.0031" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Некоторые резкие звуки действительно усиливают моё беспокойство." />
@@ -442,7 +442,7 @@
 		<template id="v3.life.music.reply.mood.0039" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Тихие струны создают ощущение комнаты с тёплым светом." />
 		<template id="v3.life.music.reply.mood.0040" act="life.music.mood.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Когда будем готовы говорить, включим ту мелодию и сядем рядом." />
 		<template id="v3.life.music.reply.mood.0041" act="life.music.mood.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я успокоился раньше, хотя твоя песня была громче." />
-		<template id="v3.life.music.reply.mood.0042" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не используй нашу музыку как средство давления." />
+		<template id="v3.life.music.reply.mood.0042" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Музыку, связанную с общими воспоминаниями, нельзя использовать для давления." />
 		<template id="v3.life.music.reply.mood.0043" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты испортил эту песню своими намеренными провокациями." />
 		<template id="v3.life.music.reply.mood.0044" act="life.music.mood.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="С победой у меня связан припев, который мы кричали всей командой." />
 		<template id="v3.life.music.reply.mood.0045" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Когда скучаю, включаю знакомый голос, но не застреваю в нём надолго." />
@@ -462,7 +462,7 @@
 		<template id="v3.life.music.reply.mood.0059" act="life.music.mood.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Музыка умеет поддержать без слов, потому что не требует немедленного ответа." />
 		<template id="v3.life.music.reply.mood.0060" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Перед волнительным событием выбираю знакомую структуру и ровный темп." />
 		<template id="v3.life.music.reply.mood.0061" act="life.music.mood.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Есть трек, под который плечи сами опускаются и дышать становится легче." />
-		<template id="v3.life.music.reply.mood.0062" act="life.music.mood.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Этот вечер теплее с нашей тихой подборкой." />
+		<template id="v3.life.music.reply.mood.0062" act="life.music.mood.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Тихая подборка может сделать вечер теплее, если она подходит настроению." />
 		<template id="v3.life.music.reply.mood.0063" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твой успокаивающий альбом проиграл обычной тишине." />
 		<template id="v3.life.music.reply.mood.0064" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не меняй музыку, пока я восстанавливаю дыхание." />
 		<template id="v3.life.music.reply.mood.0065" act="life.music.mood.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если снова включишь сигнал тревоги ради шутки, уйдёшь." />
@@ -476,9 +476,9 @@
 		<template id="v3.life.music.reply.mood.0073" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Такой поступок я не прощу одной сменой трека." />
 		<template id="v3.life.music.reply.mood.0074" act="life.music.mood.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Для праздника выбираю музыку, под которую люди сами начинают улыбаться." />
 		<template id="v3.life.music.reply.mood.0075" act="life.music.mood.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Песня усиливает эмоцию, если уже есть причина её чувствовать." />
-		<template id="v3.life.music.reply.mood.0076" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для примирения подойдёт наша спокойная композиция без спорных слов." />
+		<template id="v3.life.music.reply.mood.0076" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для примирения лучше спокойная композиция без спорных слов." />
 		<template id="v3.life.music.reply.mood.0077" act="life.music.mood.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После этого трека мне действительно хочется позвонить старому другу." />
-		<template id="v3.life.music.reply.mood.0078" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сегодня я рад, и твой выбор неожиданно хорошо совпал." />
+		<template id="v3.life.music.reply.mood.0078" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Радостное настроение иногда неожиданно совпадает с чужим выбором музыки." />
 		<template id="v3.life.music.reply.mood.0079" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не превращай празднование в соревнование за колонку." />
 		<template id="v3.life.music.reply.mood.0080" act="life.music.mood.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты испортил общий момент своим намеренно оскорбительным треком." />
 		<template id="v3.life.music.reply.mood.0081" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Когда мне хорошо, звучат песни, которые хочется делить с другими." />
@@ -497,7 +497,7 @@
 		<template id="v3.life.music.reply.mood.0094" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не требуй улыбаться под музыку по команде." />
 		<template id="v3.life.music.reply.mood.0095" act="life.music.mood.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Твоя попытка заглушить чужие чувства выглядит жестоко." />
 		<template id="v3.life.music.reply.mood.0096" act="life.music.mood.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ностальгия бывает приятной, если не заставляет жить только прошлым." />
-		<template id="v3.life.music.reply.mood.0097" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я сохраню эту песню для момента, когда захочу вернуться к воспоминанию." />
+		<template id="v3.life.music.reply.mood.0097" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Песню можно сохранить для будущего настроения, не обещая возвращение к воспоминанию." />
 		<template id="v3.life.music.reply.mood.0098" act="life.music.mood.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Пусть прошлое прозвучит один раз и уступит место сегодняшнему вечеру." />
 		<template id="v3.life.music.reply.mood.0099" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Послушаем старую запись вместе и вспомним, какими были тогда." />
 		<template id="v3.life.music.reply.mood.0100" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Твои воспоминания приукрашены сильнее ремастера." />
@@ -509,11 +509,11 @@
 		<template id="v3.life.music.reply.mood.0106" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я убавлю громкость и останусь рядом, пока не станет легче." />
 		<template id="v3.life.music.reply.mood.0107" act="life.music.mood.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мой спокойный трек сработал, хотя ты над ним смеялся." />
 		<template id="v3.life.music.reply.mood.0108" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не проверяй мою реакцию резкими звуками." />
-		<template id="v3.life.music.reply.mood.0109" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ещё одна такая «шутка» будет последней нашей встречей." />
+		<template id="v3.life.music.reply.mood.0109" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ещё одна жестокая «шутка» вполне может стать причиной закончить общение." />
 		<template id="v3.life.music.reply.mood.0110" act="life.music.mood.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Для уверенности выбираю песню с устойчивым шагом и ясным голосом." />
 		<template id="v3.life.music.reply.mood.0111" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Перед выходом один знакомый припев помогает собраться." />
 		<template id="v3.life.music.reply.mood.0112" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Музыка не делает работу за меня, но напоминает держать ритм." />
-		<template id="v3.life.music.reply.mood.0113" act="life.music.mood.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Включи наш боевой трек, и пойдём заканчивать дело вместе." />
+		<template id="v3.life.music.reply.mood.0113" act="life.music.mood.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Бодрый трек иногда помогает закончить дело, но общим его считать нельзя без истории." />
 		<template id="v3.life.music.reply.mood.0114" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я выйду первым, зато ты лучше знаешь слова." />
 		<template id="v3.life.music.reply.mood.0115" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не подгоняй меня громкостью." />
 		<template id="v3.life.music.reply.mood.0116" act="life.music.mood.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Твои выкрики не мотивируют, а мешают сосредоточиться." />
@@ -527,14 +527,14 @@
 		<template id="v3.life.music.reply.mood.0124" act="life.music.mood.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Хорошая новость просит песни, которую можно включить громче обычного." />
 		<template id="v3.life.music.reply.mood.0125" act="life.music.mood.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Для маленькой радости достаточно одного бодрого трека на кухне." />
 		<template id="v3.life.music.reply.mood.0126" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Праздничный плейлист должен оставить место разговору и смеху." />
-		<template id="v3.life.music.reply.mood.0127" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай отметим это нашей песней и откроем окно." />
+		<template id="v3.life.music.reply.mood.0127" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хороший момент можно отметить подходящей песней и свежим воздухом." />
 		<template id="v3.life.music.reply.mood.0128" act="life.music.mood.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Моя новость лучше твоего трека, но припев подходит." />
 		<template id="v3.life.music.reply.mood.0129" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не перетягивай внимание на собственное выступление." />
 		<template id="v3.life.music.reply.mood.0130" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если пришёл портить чужую радость, музыка тебе не поможет." />
 		<template id="v3.life.music.reply.mood.0131" act="life.music.mood.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Одиночество бывает мягким под музыку, выбранную без спешки." />
 		<template id="v3.life.music.reply.mood.0132" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Голос в записи создаёт компанию, но не требует отвечать." />
 		<template id="v3.life.music.reply.mood.0133" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Длинная инструментальная пьеса помогает провести вечер наедине с собой." />
-		<template id="v3.life.music.reply.mood.0134" act="life.music.mood.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я позвоню тебе после альбома, если захочется живого разговора." />
+		<template id="v3.life.music.reply.mood.0134" act="life.music.mood.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После альбома можно предложить живой разговор, но звонок должен сделать сам собеседник." />
 		<template id="v3.life.music.reply.mood.0135" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне комфортнее одному, и это не проигрыш твоей шумной компании." />
 		<template id="v3.life.music.reply.mood.0136" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не врывайся в моё пространство с колонкой." />
 		<template id="v3.life.music.reply.mood.0137" act="life.music.mood.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Оставь меня и перестань изображать заботу громкими песнями." />
@@ -562,7 +562,7 @@
 		<template id="v3.life.music.reply.mood.0159" act="life.music.mood.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Усталости подходит музыка без требования следить за сюжетом." />
 		<template id="v3.life.music.reply.mood.0160" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мягкая повторяемость позволяет голове наконец перестать выбирать." />
 		<template id="v3.life.music.reply.mood.0161" act="life.music.mood.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если даже тихий звук раздражает, я оставляю полную тишину." />
-		<template id="v3.life.music.reply.mood.0162" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ложись рядом, я поставлю таймер и очень тихий трек." />
+		<template id="v3.life.music.reply.mood.0162" act="life.music.mood.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Тихий трек с таймером можно включить самостоятельно перед сном." />
 		<template id="v3.life.music.reply.mood.0163" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я выключил музыку раньше, чем ты признал, что тоже устал." />
 		<template id="v3.life.music.reply.mood.0164" act="life.music.mood.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не тормоши меня новой подборкой сегодня." />
 		<template id="v3.life.music.reply.mood.0165" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Забери звук из комнаты и закрой дверь с другой стороны." />
@@ -595,24 +595,24 @@
 		<template id="v3.life.music.reply.mood.0192" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не спорь с тем, что я чувствую." />
 		<template id="v3.life.music.reply.mood.0193" act="life.music.mood.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Тебе не позволено превращать моё состояние в развлечение." />
 		<template id="v3.life.music.reply.mood.0194" act="life.music.mood.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Музыка сегодня останется тихим сопровождением, а не решением." />
-		<template id="v3.life.music.reply.mood.0195" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Когда трек закончится, я проверю, изменилось ли хоть что-нибудь." />
+		<template id="v3.life.music.reply.mood.0195" act="life.music.mood.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После трека стоит самому заметить, изменилось ли настроение." />
 		<template id="v3.life.music.reply.mood.0196" act="life.music.mood.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Можно сохранить эту песню как отметку нынешнего дня." />
-		<template id="v3.life.music.reply.mood.0197" act="life.music.mood.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Запиши название, потом сравним наши ощущения." />
+		<template id="v3.life.music.reply.mood.0197" act="life.music.mood.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Название лучше записать сейчас, а впечатления сравнить при следующем разговоре." />
 		<template id="v3.life.music.reply.mood.0198" act="life.music.mood.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="С тобой даже сложное настроение выдерживать немного легче." />
 		<template id="v3.life.music.reply.mood.0199" act="life.music.mood.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сам выберу момент, когда музыка снова будет уместна." />
 		<template id="v3.life.music.reply.mood.0200" act="life.music.mood.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="На сегодня достаточно звуков; дальше мне нужна тишина." />
-		<template id="v3.life.music.reply.discovery.0001" act="life.music.discovery.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Новую музыку чаще нахожу через друзей, саундтреки и случайные концертные записи." />
-		<template id="v3.life.music.reply.discovery.0002" act="life.music.discovery.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Есть маленькая группа с тёплым вокалом; пришлю лучший трек для знакомства." />
-		<template id="v3.life.music.reply.discovery.0003" act="life.music.discovery.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Подборки релизов просматриваю раз в неделю, не пытаясь услышать всё." />
-		<template id="v3.life.music.reply.discovery.0004" act="life.music.discovery.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты чаще других присылаешь мне песни, которые действительно остаются." />
-		<template id="v3.life.music.reply.discovery.0005" act="life.music.discovery.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я открыл этого артиста раньше, зато ты первым попал на концерт." />
+		<template id="v3.life.music.reply.discovery.0001" act="life.music.discovery.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Новую музыку часто находят через друзей, саундтреки и случайные концертные записи." />
+		<template id="v3.life.music.reply.discovery.0002" act="life.music.discovery.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для знакомства с маленькой группой лучше просто назвать один удачный трек." />
+		<template id="v3.life.music.reply.discovery.0003" act="life.music.discovery.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Подборки релизов удобно просматривать раз в неделю, не пытаясь услышать всё." />
+		<template id="v3.life.music.reply.discovery.0004" act="life.music.discovery.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошая рекомендация остаётся надолго, но общую историю ссылок выдумывать не стоит." />
+		<template id="v3.life.music.reply.discovery.0005" act="life.music.discovery.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Раннее знакомство с артистом и поход на концерт нельзя приписывать собеседникам без фактов." />
 		<template id="v3.life.music.reply.discovery.0006" act="life.music.discovery.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не обижайся, если рекомендация не совпала с моим настроением." />
 		<template id="v3.life.music.reply.discovery.0007" act="life.music.discovery.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Прекрати заваливать меня ссылками после каждого отказа." />
-		<template id="v3.life.music.reply.discovery.0008" act="life.music.discovery.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Похожую музыку ищу по участникам записи и лейблу, а не только по алгоритму." />
-		<template id="v3.life.music.reply.discovery.0009" act="life.music.discovery.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Отзывы читаю после первого прослушивания, чтобы не заимствовать чужое впечатление." />
-		<template id="v3.life.music.reply.discovery.0010" act="life.music.discovery.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="На концерт незнакомой группы пойду, если площадка маленькая и билет разумный." />
-		<template id="v3.life.music.reply.discovery.0011" act="life.music.discovery.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай выберем по одному неизвестному артисту и послушаем вместе." />
-		<template id="v3.life.music.reply.discovery.0012" act="life.music.discovery.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Моя случайная находка интереснее твоего списка критиков." />
+		<template id="v3.life.music.reply.discovery.0008" act="life.music.discovery.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Похожую музыку удобно искать по участникам записи и лейблу." />
+		<template id="v3.life.music.reply.discovery.0009" act="life.music.discovery.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Отзывы полезно читать после первого прослушивания, чтобы не заимствовать впечатление." />
+		<template id="v3.life.music.reply.discovery.0010" act="life.music.discovery.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Концерт незнакомой группы интереснее на маленькой площадке и при разумной цене билета." />
+		<template id="v3.life.music.reply.discovery.0011" act="life.music.discovery.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно выбрать по одному неизвестному артисту и обменяться впечатлениями." />
+		<template id="v3.life.music.reply.discovery.0012" act="life.music.discovery.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Случайная находка иногда интереснее списка критиков." />
 		<template id="v3.life.music.reply.discovery.0013" act="life.music.discovery.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не выдавай рекламную подборку за личную рекомендацию." />
 		<template id="v3.life.music.reply.discovery.0014" act="life.music.discovery.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если снова пришлёшь вредоносную ссылку, общение закончится." />
 		<template id="v3.life.music.reply.discovery.0015" act="life.music.discovery.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Алгоритмам доверяю как отправной точке, но они быстро замыкают вкус в круг." />
@@ -640,7 +640,7 @@
 		<template id="v3.life.music.reply.discovery.0037" act="life.music.discovery.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Есть недооценённый альбом, где каждая песня меняет оттенок предыдущей." />
 		<template id="v3.life.music.reply.discovery.0038" act="life.music.discovery.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Соседние жанры слушаю, чтобы понять происхождение знакомых приёмов." />
 		<template id="v3.life.music.reply.discovery.0039" act="life.music.discovery.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="В кафе однажды услышал голос, ради которого подошёл спросить название." />
-		<template id="v3.life.music.reply.discovery.0040" act="life.music.discovery.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я сохранил ту случайную песню из нашей поездки." />
+		<template id="v3.life.music.reply.discovery.0040" act="life.music.discovery.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Случайная песня из поездки часто становится памятной, если такая поездка действительно была." />
 		<template id="v3.life.music.reply.discovery.0041" act="life.music.discovery.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты узнал артиста первым, я зато нашёл его лучший альбом." />
 		<template id="v3.life.music.reply.discovery.0042" act="life.music.discovery.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не присваивай себе чужое музыкальное открытие." />
 		<template id="v3.life.music.reply.discovery.0043" act="life.music.discovery.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После твоей лжи я не верю историям о «случайных» находках." />
@@ -675,7 +675,7 @@
 		<template id="v3.life.music.reply.discovery.0072" act="life.music.discovery.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Совместный трек часто приводит к артисту, которого раньше пропускал." />
 		<template id="v3.life.music.reply.discovery.0073" act="life.music.discovery.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="По похожим исполнителям иду цепочкой, но проверяю, что связь не случайная." />
 		<template id="v3.life.music.reply.discovery.0074" act="life.music.discovery.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Находки сохраняю с короткой заметкой, где и почему услышал." />
-		<template id="v3.life.music.reply.discovery.0075" act="life.music.discovery.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я отправлю тебе редкую песню без требования ответить немедленно." />
+		<template id="v3.life.music.reply.discovery.0075" act="life.music.discovery.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Редкую песню лучше назвать прямо; отправить её сможет тот, у кого есть ссылка." />
 		<template id="v3.life.music.reply.discovery.0076" act="life.music.discovery.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Моя цепочка рекомендаций завела дальше твоего автоматического радио." />
 		<template id="v3.life.music.reply.discovery.0077" act="life.music.discovery.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не добавляй себя соавтором чужой находки." />
 		<template id="v3.life.music.reply.discovery.0078" act="life.music.discovery.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Если удалишь мои заметки ещё раз, общий список закроется." />
@@ -752,7 +752,7 @@
 		<template id="v3.life.music.reply.discovery.0149" act="life.music.discovery.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Новый жанр осваиваю через несколько ключевых альбомов разных лет." />
 		<template id="v3.life.music.reply.discovery.0150" act="life.music.discovery.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Один современный хит редко объясняет всю традицию." />
 		<template id="v3.life.music.reply.discovery.0151" act="life.music.discovery.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Полезно услышать и доступную запись, и более сложный край сцены." />
-		<template id="v3.life.music.reply.discovery.0152" act="life.music.discovery.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты выберешь старую основу, а я найду свежий ответ на неё." />
+		<template id="v3.life.music.reply.discovery.0152" act="life.music.discovery.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Старую основу интересно сравнить со свежим ответом, если оба варианта уже найдены." />
 		<template id="v3.life.music.reply.discovery.0153" act="life.music.discovery.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Моя карта жанра шире, твоя зато понятнее новичку." />
 		<template id="v3.life.music.reply.discovery.0154" act="life.music.discovery.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не устраивай экзамен человеку, который только начал слушать." />
 		<template id="v3.life.music.reply.discovery.0155" act="life.music.discovery.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твои насмешки закрыли ему дорогу к музыке, которой ты якобы дорожишь." />
@@ -791,15 +791,15 @@
 		<template id="v3.life.music.reply.discovery.0188" act="life.music.discovery.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я проследил влияние точнее, зато ты услышал сходство мгновенно." />
 		<template id="v3.life.music.reply.discovery.0189" act="life.music.discovery.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не обвиняй автора в копировании одной общей интонации." />
 		<template id="v3.life.music.reply.discovery.0190" act="life.music.discovery.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твоё желание разоблачить всех мешает тебе услышать музыку." />
-		<template id="v3.life.music.reply.discovery.0191" act="life.music.discovery.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сегодня я бы посоветовал живой мини-альбом с семью короткими песнями." />
+		<template id="v3.life.music.reply.discovery.0191" act="life.music.discovery.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Живой мини-альбом из нескольких коротких песен звучит как любопытная рекомендация." />
 		<template id="v3.life.music.reply.discovery.0192" act="life.music.discovery.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Начните с тихого второго трека, затем переходите к открывающей композиции." />
 		<template id="v3.life.music.reply.discovery.0193" act="life.music.discovery.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если голос не зацепит сразу, дайте ритм-секции хотя бы один шанс." />
-		<template id="v3.life.music.reply.discovery.0194" act="life.music.discovery.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я пришлю ссылку и буду рад услышать честную реакцию завтра." />
+		<template id="v3.life.music.reply.discovery.0194" act="life.music.discovery.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ссылку стоит попросить или найти самому, а реакцию дать после прослушивания." />
 		<template id="v3.life.music.reply.discovery.0195" act="life.music.discovery.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Моя рекомендация смелее твоего привычного выбора." />
 		<template id="v3.life.music.reply.discovery.0196" act="life.music.discovery.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не превращай совет в обязанность отчитаться." />
 		<template id="v3.life.music.reply.discovery.0197" act="life.music.discovery.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Больше ничего тебе не порекомендую после такого отношения." />
 		<template id="v3.life.music.reply.discovery.0198" act="life.music.discovery.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Новая музыка для меня начинается с любопытства, а не с желания быть первым." />
 		<template id="v3.life.music.reply.discovery.0199" act="life.music.discovery.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Хорошая находка расширяет слух и не требует отказаться от старого любимого." />
-		<template id="v3.life.music.reply.discovery.0200" act="life.music.discovery.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я сохраню сегодняшний совет и вернусь с впечатлением после внимательного прослушивания." />
+		<template id="v3.life.music.reply.discovery.0200" act="life.music.discovery.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="К совету лучше вернуться с впечатлением после внимательного прослушивания." />
 	</templates>
 </humanizedV3ConversationSegment>

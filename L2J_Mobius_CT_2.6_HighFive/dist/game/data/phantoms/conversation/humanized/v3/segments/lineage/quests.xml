@@ -3,17 +3,17 @@
 	<templates>
 		<template id="v3.lineage.quests.reply.route.0001" act="lineage.quests.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я здесь впервые, поэтому попрошу ориентиры словами, а не буду угадывать." />
 		<template id="v3.lineage.quests.reply.route.0002" act="lineage.quests.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="От телепорта идём к мосту и держимся основной дороги." />
-		<template id="v3.lineage.quests.reply.route.0003" act="lineage.quests.route.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Вижу мост, дружище; если снова потеряюсь, делайте вид, что это разведка." />
-		<template id="v3.lineage.quests.reply.route.0004" act="lineage.quests.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я останусь рядом до развилки, чтобы ты не отстал." />
+		<template id="v3.lineage.quests.reply.route.0003" act="lineage.quests.route.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если ориентиром служит мост, лучше назвать его прямо и не изображать разведку после ошибки." />
+		<template id="v3.lineage.quests.reply.route.0004" act="lineage.quests.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="До развилки лучше держать группу вместе, чтобы никто не отстал." />
 		<template id="v3.lineage.quests.reply.route.0005" act="lineage.quests.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, даже правильный маршрут не гарантирует тебе первого места." />
-		<template id="v3.lineage.quests.reply.route.0006" act="lineage.quests.route.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Группа собирается у входа." />
+		<template id="v3.lineage.quests.reply.route.0006" act="lineage.quests.route.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Перед выходом группу лучше собрать у входа." />
 		<template id="v3.lineage.quests.reply.route.0007" act="lineage.quests.route.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Самовольные короткие пути не используем." />
-		<template id="v3.lineage.quests.reply.route.0008" act="lineage.quests.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Метка на карте не появилась." />
+		<template id="v3.lineage.quests.reply.route.0008" act="lineage.quests.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если метка на карте не появилась, сначала стоит проверить активный этап." />
 		<template id="v3.lineage.quests.reply.route.0009" act="lineage.quests.route.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Проверьте активный этап задания и нужную зону." />
-		<template id="v3.lineage.quests.reply.route.0010" act="lineage.quests.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="У меня выбран старый квест, вот почему карта молчит." />
+		<template id="v3.lineage.quests.reply.route.0010" act="lineage.quests.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Старая активная версия квеста может объяснить, почему карта молчит." />
 		<template id="v3.lineage.quests.reply.route.0011" act="lineage.quests.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хорошо, что заметил до долгой прогулки." />
 		<template id="v3.lineage.quests.reply.route.0012" act="lineage.quests.route.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, карта не обязана исправлять твой журнал." />
-		<template id="v3.lineage.quests.reply.route.0013" act="lineage.quests.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Активный этап сменён." />
+		<template id="v3.lineage.quests.reply.route.0013" act="lineage.quests.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После смены активного этапа маршрут нужно проверить заново." />
 		<template id="v3.lineage.quests.reply.route.0014" act="lineage.quests.route.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Теперь маршрут строим заново." />
 		<template id="v3.lineage.quests.reply.route.0015" act="lineage.quests.route.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы пришли к закрытой двери." />
 		<template id="v3.lineage.quests.reply.route.0016" act="lineage.quests.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Возможно, вход расположен с другой стороны или требует условия задания." />
@@ -39,7 +39,7 @@
 		<template id="v3.lineage.quests.reply.route.0036" act="lineage.quests.route.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="У одного участника нет нужного телепорта." />
 		<template id="v3.lineage.quests.reply.route.0037" act="lineage.quests.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Либо идём общим доступным способом, либо заранее организуем призыв." />
 		<template id="v3.lineage.quests.reply.route.0038" act="lineage.quests.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я дойду пешком, только обозначьте точку ожидания." />
-		<template id="v3.lineage.quests.reply.route.0039" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я встречу тебя на последнем повороте." />
+		<template id="v3.lineage.quests.reply.route.0039" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Последний поворот стоит отметить понятным ориентиром." />
 		<template id="v3.lineage.quests.reply.route.0040" act="lineage.quests.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, редкий телепорт не делает остальных медленными нарочно." />
 		<template id="v3.lineage.quests.reply.route.0041" act="lineage.quests.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Группа ждёт в безопасной зоне." />
 		<template id="v3.lineage.quests.reply.route.0042" act="lineage.quests.route.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Начинать этап без отставшего нельзя." />
@@ -53,7 +53,7 @@
 		<template id="v3.lineage.quests.reply.route.0050" act="lineage.quests.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я вижу два похожих входа." />
 		<template id="v3.lineage.quests.reply.route.0051" act="lineage.quests.route.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Сверьте название зоны и ориентир из журнала." />
 		<template id="v3.lineage.quests.reply.route.0052" act="lineage.quests.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Нам в левую пещеру, правая ведёт к другому заданию." />
-		<template id="v3.lineage.quests.reply.route.0053" act="lineage.quests.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я останусь у развилки, пока все не повернут правильно." />
+		<template id="v3.lineage.quests.reply.route.0053" act="lineage.quests.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="На развилке полезно остановиться, пока направление не подтвердили все." />
 		<template id="v3.lineage.quests.reply.route.0054" act="lineage.quests.route.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, одинаковые камни снова проверяют твоё внимание." />
 		<template id="v3.lineage.quests.reply.route.0055" act="lineage.quests.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Нужный вход подтверждён." />
 		<template id="v3.lineage.quests.reply.route.0056" act="lineage.quests.route.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="В соседнюю зону не заходим." />
@@ -81,7 +81,7 @@
 		<template id="v3.lineage.quests.reply.route.0078" act="lineage.quests.route.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Маршрут изменился после обновления этапа." />
 		<template id="v3.lineage.quests.reply.route.0079" act="lineage.quests.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Следуйте новой метке, а старую память используйте осторожно." />
 		<template id="v3.lineage.quests.reply.route.0080" act="lineage.quests.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Теперь нас ведёт в другую долину, вижу." />
-		<template id="v3.lineage.quests.reply.route.0081" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я проверю первый поворот вместе с тобой." />
+		<template id="v3.lineage.quests.reply.route.0081" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Первый поворот лучше проверить по карте или журналу до движения." />
 		<template id="v3.lineage.quests.reply.route.0082" act="lineage.quests.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, старый опыт особенно уверен, когда уже бесполезен." />
 		<template id="v3.lineage.quests.reply.route.0083" act="lineage.quests.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Новая линия принята." />
 		<template id="v3.lineage.quests.reply.route.0084" act="lineage.quests.route.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Старый путь больше не используем." />
@@ -123,7 +123,7 @@
 		<template id="v3.lineage.quests.reply.route.0120" act="lineage.quests.route.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Впереди возможна точка без возврата." />
 		<template id="v3.lineage.quests.reply.route.0121" act="lineage.quests.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Перед её пересечением подтвердите, что все выполнили предыдущий этап." />
 		<template id="v3.lineage.quests.reply.route.0122" act="lineage.quests.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мой журнал обновился, можно идти дальше." />
-		<template id="v3.lineage.quests.reply.route.0123" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я проверю статус тех, кто молчит." />
+		<template id="v3.lineage.quests.reply.route.0123" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Статус молчащих участников нужно запросить прямо, а не обещать проверить за них." />
 		<template id="v3.lineage.quests.reply.route.0124" act="lineage.quests.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, необратимый прыжок любит забытые галочки." />
 		<template id="v3.lineage.quests.reply.route.0125" act="lineage.quests.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вся группа подтверждает этап." />
 		<template id="v3.lineage.quests.reply.route.0126" act="lineage.quests.route.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Переход разрешён." />
@@ -144,7 +144,7 @@
 		<template id="v3.lineage.quests.reply.route.0141" act="lineage.quests.route.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Обратная дорога отличается от пути сюда." />
 		<template id="v3.lineage.quests.reply.route.0142" act="lineage.quests.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Запишите ориентиры сейчас, пока место перед глазами." />
 		<template id="v3.lineage.quests.reply.route.0143" act="lineage.quests.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="На выходе держимся правой стены до моста." />
-		<template id="v3.lineage.quests.reply.route.0144" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я сохраню сообщение и проверю хвост группы." />
+		<template id="v3.lineage.quests.reply.route.0144" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сообщение стоит сохранить доступным способом, а хвост группы проверить общим сигналом." />
 		<template id="v3.lineage.quests.reply.route.0145" act="lineage.quests.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, выйти иногда труднее, чем красиво войти." />
 		<template id="v3.lineage.quests.reply.route.0146" act="lineage.quests.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Маршрут возврата опубликован." />
 		<template id="v3.lineage.quests.reply.route.0147" act="lineage.quests.route.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Самостоятельно расходиться рано." />
@@ -165,7 +165,7 @@
 		<template id="v3.lineage.quests.reply.route.0162" act="lineage.quests.route.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Важные повороты и точки ожидания записаны кратко." />
 		<template id="v3.lineage.quests.reply.route.0163" act="lineage.quests.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Следующий поход не потребует копировать весь разговор." />
 		<template id="v3.lineage.quests.reply.route.0164" act="lineage.quests.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Оставим только мост, развилку и вход — остальное видно по дороге." />
-		<template id="v3.lineage.quests.reply.route.0165" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я помогу сохранить живой ориентир, а не инструкцию на сто строк." />
+		<template id="v3.lineage.quests.reply.route.0165" act="lineage.quests.route.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Короткий живой ориентир полезнее инструкции на сто строк." />
 		<template id="v3.lineage.quests.reply.route.0166" act="lineage.quests.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, хорошая память маршрута не обязана быть эпосом." />
 		<template id="v3.lineage.quests.reply.route.0167" act="lineage.quests.route.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сводка доступна группе." />
 		<template id="v3.lineage.quests.reply.route.0168" act="lineage.quests.route.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Непроверенные срезки в неё не вошли." />
@@ -193,7 +193,7 @@
 		<template id="v3.lineage.quests.reply.route.0190" act="lineage.quests.route.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Следующий этап находится рядом с текущей точкой сдачи." />
 		<template id="v3.lineage.quests.reply.route.0191" act="lineage.quests.route.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не расходитесь, пока каждый не увидит обновление журнала." />
 		<template id="v3.lineage.quests.reply.route.0192" act="lineage.quests.route.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="У меня появилась новая метка, показываю направление." />
-		<template id="v3.lineage.quests.reply.route.0193" act="lineage.quests.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я проверю, что она совпадает у остальных." />
+		<template id="v3.lineage.quests.reply.route.0193" act="lineage.quests.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Общий статус нужно сверить у остальных, не обещая сделать это позже." />
 		<template id="v3.lineage.quests.reply.route.0194" act="lineage.quests.route.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, даже знакомая дорога начинается с общего статуса." />
 		<template id="v3.lineage.quests.reply.route.0195" act="lineage.quests.route.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Переход маршрута согласован." />
 		<template id="v3.lineage.quests.reply.route.0196" act="lineage.quests.route.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Старый проводник остаётся только по желанию." />
@@ -202,18 +202,18 @@
 		<template id="v3.lineage.quests.reply.route.0199" act="lineage.quests.route.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Навигационный контекст сохранён." />
 		<template id="v3.lineage.quests.reply.route.0200" act="lineage.quests.route.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Маршрут окончательно закрыт." />
 		<template id="v3.lineage.quests.reply.objective.0001" act="lineage.quests.objective.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я не знаю этот этап, поэтому сначала прочитаю фактическую строку журнала." />
-		<template id="v3.lineage.quests.reply.objective.0002" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Цель сформулирована как сбор предметов с отмеченных противников." />
+		<template id="v3.lineage.quests.reply.objective.0002" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если журнал требует предметы с отмеченных противников, сначала стоит проверить именно эту цель." />
 		<template id="v3.lineage.quests.reply.objective.0003" act="lineage.quests.objective.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Понял, бьём нужных и не расползаемся по всей зоне." />
-		<template id="v3.lineage.quests.reply.objective.0004" act="lineage.quests.objective.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я останусь рядом, чтобы прогресс засчитывался одинаково." />
+		<template id="v3.lineage.quests.reply.objective.0004" act="lineage.quests.objective.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Для одинакового зачёта важны условия квеста, а не обещание стоять рядом." />
 		<template id="v3.lineage.quests.reply.objective.0005" act="lineage.quests.objective.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, квестовый текст сильнее твоей памяти о прошлом прохождении." />
 		<template id="v3.lineage.quests.reply.objective.0006" act="lineage.quests.objective.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Счётчик проверяем после первой цели." />
 		<template id="v3.lineage.quests.reply.objective.0007" act="lineage.quests.objective.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Начинать массовый фарм до проверки не будем." />
-		<template id="v3.lineage.quests.reply.objective.0008" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Первый противник убит, но предмет не появился." />
+		<template id="v3.lineage.quests.reply.objective.0008" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если первый противник не дал предмет, это ещё не доказывает ошибку." />
 		<template id="v3.lineage.quests.reply.objective.0009" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Одна попытка не доказывает ошибку; проверьте нужный тип цели и свободное место." />
-		<template id="v3.lineage.quests.reply.objective.0010" act="lineage.quests.objective.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Моб тот, инвентарь свободен — продолжаем ещё немного." />
-		<template id="v3.lineage.quests.reply.objective.0011" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помогу следить за фактом, не обещая быстрый дроп." />
+		<template id="v3.lineage.quests.reply.objective.0010" act="lineage.quests.objective.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Когда тип цели верный и в инвентаре есть место, можно сделать ещё несколько попыток." />
+		<template id="v3.lineage.quests.reply.objective.0011" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Факт дропа лучше отмечать сразу, не обещая быстрый результат." />
 		<template id="v3.lineage.quests.reply.objective.0012" act="lineage.quests.objective.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, случайная добыча не слушает твоё нетерпение." />
-		<template id="v3.lineage.quests.reply.objective.0013" act="lineage.quests.objective.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Условия пока выглядят верно." />
+		<template id="v3.lineage.quests.reply.objective.0013" act="lineage.quests.objective.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если условия выглядят верно, одной пустой попытки мало для вывода." />
 		<template id="v3.lineage.quests.reply.objective.0014" act="lineage.quests.objective.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не называй багом первый пустой труп." />
 		<template id="v3.lineage.quests.reply.objective.0015" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="У одного участника счётчик не растёт." />
 		<template id="v3.lineage.quests.reply.objective.0016" act="lineage.quests.objective.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Проверьте расстояние, активный этап и участие в убийстве." />
@@ -232,7 +232,7 @@
 		<template id="v3.lineage.quests.reply.objective.0029" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Квестовый предмет уже лежит в инвентаре." />
 		<template id="v3.lineage.quests.reply.objective.0030" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не удаляйте и не сдавайте его до обновления этапа всей группы." />
 		<template id="v3.lineage.quests.reply.objective.0031" act="lineage.quests.objective.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Нашёл в последней вкладке, я его чуть не продал." />
-		<template id="v3.lineage.quests.reply.objective.0032" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помогу тебе отделить его от обычного мусора." />
+		<template id="v3.lineage.quests.reply.objective.0032" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Квестовый предмет нужно отличать по данным, а не по чужому обещанию." />
 		<template id="v3.lineage.quests.reply.objective.0033" act="lineage.quests.objective.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, важная вещь любит прятаться между хламом." />
 		<template id="v3.lineage.quests.reply.objective.0034" act="lineage.quests.objective.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Предмет сохранён." />
 		<template id="v3.lineage.quests.reply.objective.0035" act="lineage.quests.objective.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="В обмен его не кладём." />
@@ -246,7 +246,7 @@
 		<template id="v3.lineage.quests.reply.objective.0043" act="lineage.quests.objective.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Группа использует объект, но прогресс получает только первый человек." />
 		<template id="v3.lineage.quests.reply.objective.0044" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Возможно, действие нужно повторить каждым участником отдельно." />
 		<template id="v3.lineage.quests.reply.objective.0045" act="lineage.quests.objective.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я закончил, теперь отхожу и даю место следующему." />
-		<template id="v3.lineage.quests.reply.objective.0046" act="lineage.quests.objective.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я проверю журнал после твоего нажатия." />
+		<template id="v3.lineage.quests.reply.objective.0046" act="lineage.quests.objective.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После действия журнал стоит проверить самому." />
 		<template id="v3.lineage.quests.reply.objective.0047" act="lineage.quests.objective.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, очередь иногда является частью механики." />
 		<template id="v3.lineage.quests.reply.objective.0048" act="lineage.quests.objective.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Объект активируем по одному." />
 		<template id="v3.lineage.quests.reply.objective.0049" act="lineage.quests.objective.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не нажимайте одновременно." />
@@ -260,7 +260,7 @@
 		<template id="v3.lineage.quests.reply.objective.0057" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Предмет не падает из-за полного инвентаря." />
 		<template id="v3.lineage.quests.reply.objective.0058" act="lineage.quests.objective.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Освободите место до следующей цели и проверьте, не появился ли он рядом." />
 		<template id="v3.lineage.quests.reply.objective.0059" act="lineage.quests.objective.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Выкинул мусор, теперь есть несколько свободных слотов." />
-		<template id="v3.lineage.quests.reply.objective.0060" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я останусь до подтверждения, чтобы вещь не потерялась снова." />
+		<template id="v3.lineage.quests.reply.objective.0060" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="До подтверждения предмет лучше не перемещать и не считать сохранённым." />
 		<template id="v3.lineage.quests.reply.objective.0061" act="lineage.quests.objective.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, жадность к хламу почти победила квест." />
 		<template id="v3.lineage.quests.reply.objective.0062" act="lineage.quests.objective.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Инвентарь готов." />
 		<template id="v3.lineage.quests.reply.objective.0063" act="lineage.quests.objective.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Следующую добычу проверяем сразу." />
@@ -295,14 +295,14 @@
 		<template id="v3.lineage.quests.reply.objective.0092" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Квест требует использовать конкретный предмет." />
 		<template id="v3.lineage.quests.reply.objective.0093" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Проверьте его имя и активную цель перед нажатием." />
 		<template id="v3.lineage.quests.reply.objective.0094" act="lineage.quests.objective.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="В панели был похожий предмет, нужный лежит в сумке." />
-		<template id="v3.lineage.quests.reply.objective.0095" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помогу убрать лишнее, чтобы ошибка не повторилась." />
+		<template id="v3.lineage.quests.reply.objective.0095" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лишнее стоит убрать по правилам, чтобы ошибка не повторилась." />
 		<template id="v3.lineage.quests.reply.objective.0096" act="lineage.quests.objective.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, одинаковые иконки снова устроили засаду." />
 		<template id="v3.lineage.quests.reply.objective.0097" act="lineage.quests.objective.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Используем только подтверждённую вещь." />
 		<template id="v3.lineage.quests.reply.objective.0098" act="lineage.quests.objective.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Случайные расходники не тратим." />
 		<template id="v3.lineage.quests.reply.objective.0099" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После использования появился откат." />
 		<template id="v3.lineage.quests.reply.objective.0100" act="lineage.quests.objective.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Следующий участник ждёт готовности объекта, не нажимая впустую." />
 		<template id="v3.lineage.quests.reply.objective.0101" act="lineage.quests.objective.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Таймер вижу, отхожу и сообщу, когда исчезнет." />
-		<template id="v3.lineage.quests.reply.objective.0102" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я сохраню очередь, чтобы никто не потерял место." />
+		<template id="v3.lineage.quests.reply.objective.0102" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Очередь должна быть видна всем, иначе обещание сохранить место ничего не значит." />
 		<template id="v3.lineage.quests.reply.objective.0103" act="lineage.quests.objective.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, нетерпение не сокращает серую кнопку." />
 		<template id="v3.lineage.quests.reply.objective.0104" act="lineage.quests.objective.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Активации идут по готовности." />
 		<template id="v3.lineage.quests.reply.objective.0105" act="lineage.quests.objective.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Спам действий запрещён." />
@@ -316,7 +316,7 @@
 		<template id="v3.lineage.quests.reply.objective.0113" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мы подозреваем ошибку задания." />
 		<template id="v3.lineage.quests.reply.objective.0114" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Перед выводом воспроизведите минимальный шаг и исключите пропущенные условия." />
 		<template id="v3.lineage.quests.reply.objective.0115" act="lineage.quests.objective.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Сделаем одну чистую попытку по журналу и запишем результат." />
-		<template id="v3.lineage.quests.reply.objective.0116" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помогу собрать факты без десятка хаотичных повторов." />
+		<template id="v3.lineage.quests.reply.objective.0116" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Нескольких точных фактов достаточно; хаотичные повторы только мешают." />
 		<template id="v3.lineage.quests.reply.objective.0117" act="lineage.quests.objective.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, настоящий баг любит точное описание, не крик." />
 		<template id="v3.lineage.quests.reply.objective.0118" act="lineage.quests.objective.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Диагностика ограничена одним сценарием." />
 		<template id="v3.lineage.quests.reply.objective.0119" act="lineage.quests.objective.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ресурсы наугад не тратим." />
@@ -330,14 +330,14 @@
 		<template id="v3.lineage.quests.reply.objective.0127" act="lineage.quests.objective.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После перезапуска журнал обновился." />
 		<template id="v3.lineage.quests.reply.objective.0128" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Проверьте, сохранился ли фактический предмет и прогресс у каждого." />
 		<template id="v3.lineage.quests.reply.objective.0129" act="lineage.quests.objective.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="У меня всё появилось, у двоих ещё пусто." />
-		<template id="v3.lineage.quests.reply.objective.0130" act="lineage.quests.objective.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я останусь с ними, общую сдачу пока не начинаем." />
+		<template id="v3.lineage.quests.reply.objective.0130" act="lineage.quests.objective.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Общую сдачу не начинают, пока участники не подтвердили готовность." />
 		<template id="v3.lineage.quests.reply.objective.0131" act="lineage.quests.objective.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, один успех не объявляет всю группу спасённой." />
 		<template id="v3.lineage.quests.reply.objective.0132" act="lineage.quests.objective.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Статус собираем по участникам." />
 		<template id="v3.lineage.quests.reply.objective.0133" act="lineage.quests.objective.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Молчание не считаем завершением." />
 		<template id="v3.lineage.quests.reply.objective.0134" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Все получили обязательный предмет." />
 		<template id="v3.lineage.quests.reply.objective.0135" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Теперь можно двигаться к сдаче без дополнительных убийств." />
 		<template id="v3.lineage.quests.reply.objective.0136" act="lineage.quests.objective.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Наконец-то, убираю оружие и считаю сумку ещё раз." />
-		<template id="v3.lineage.quests.reply.objective.0137" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я проверю твой предмет до выхода из зоны." />
+		<template id="v3.lineage.quests.reply.objective.0137" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Предмет лучше проверить до выхода из зоны штатным способом." />
 		<template id="v3.lineage.quests.reply.objective.0138" act="lineage.quests.objective.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, добивать лишнего моба уже не геройство." />
 		<template id="v3.lineage.quests.reply.objective.0139" act="lineage.quests.objective.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Фарм прекращён." />
 		<template id="v3.lineage.quests.reply.objective.0140" act="lineage.quests.objective.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Цель сбора закрыта." />
@@ -351,7 +351,7 @@
 		<template id="v3.lineage.quests.reply.objective.0148" act="lineage.quests.objective.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Журнал обновился после разговора с NPC." />
 		<template id="v3.lineage.quests.reply.objective.0149" act="lineage.quests.objective.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Прочитайте новую цель вместо автоматического движения по старому маршруту." />
 		<template id="v3.lineage.quests.reply.objective.0150" act="lineage.quests.objective.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Теперь требуется другой предмет, вижу строку." />
-		<template id="v3.lineage.quests.reply.objective.0151" act="lineage.quests.objective.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я помогу группе сверить, что обновление одинаковое." />
+		<template id="v3.lineage.quests.reply.objective.0151" act="lineage.quests.objective.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Обновление стоит сверить у группы общим вопросом." />
 		<template id="v3.lineage.quests.reply.objective.0152" act="lineage.quests.objective.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, новый этап не обязан продолжать твою догадку." />
 		<template id="v3.lineage.quests.reply.objective.0153" act="lineage.quests.objective.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Следующая цель подтверждена." />
 		<template id="v3.lineage.quests.reply.objective.0154" act="lineage.quests.objective.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Старые предметы сохраняем до ясного назначения." />
@@ -365,7 +365,7 @@
 		<template id="v3.lineage.quests.reply.objective.0162" act="lineage.quests.objective.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Цель выполнена с документированным решением возникших проблем." />
 		<template id="v3.lineage.quests.reply.objective.0163" act="lineage.quests.objective.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Следующий состав сможет избежать неверных мобов и переполнения." />
 		<template id="v3.lineage.quests.reply.objective.0164" act="lineage.quests.objective.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Запишем две полезные вещи, не весь сегодняшний чат." />
-		<template id="v3.lineage.quests.reply.objective.0165" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помогу оставить короткую подсказку без выдуманных гарантий." />
+		<template id="v3.lineage.quests.reply.objective.0165" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Короткая подсказка полезна только без выдуманных гарантий." />
 		<template id="v3.lineage.quests.reply.objective.0166" act="lineage.quests.objective.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, хороший совет экономит путь, а не обещает дроп." />
 		<template id="v3.lineage.quests.reply.objective.0167" act="lineage.quests.objective.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сводка этапа готова." />
 		<template id="v3.lineage.quests.reply.objective.0168" act="lineage.quests.objective.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Неподтверждённые догадки исключены." />
@@ -403,14 +403,14 @@
 		<template id="v3.lineage.quests.reply.objective.0200" act="lineage.quests.objective.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Можно перейти к обычной квестовой рутине." />
 		<template id="v3.lineage.quests.reply.routine.0001" act="lineage.quests.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я не знаю ваш обычный порядок, поэтому не обещаю пройти всё за вечер." />
 		<template id="v3.lineage.quests.reply.routine.0002" act="lineage.quests.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Список можно сократить до заданий, которые помещаются в доступное время." />
-		<template id="v3.lineage.quests.reply.routine.0003" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давайте закроем два по пути и не превращать ночь в смену." />
-		<template id="v3.lineage.quests.reply.routine.0004" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я останусь рядом, пока тебе это приносит удовольствие." />
+		<template id="v3.lineage.quests.reply.routine.0003" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Два задания по пути звучат разумнее, чем превращать ночь в смену." />
+		<template id="v3.lineage.quests.reply.routine.0004" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Рутину стоит продолжать, пока она приносит удовольствие, а не из-за обещанной компании." />
 		<template id="v3.lineage.quests.reply.routine.0005" act="lineage.quests.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, ежедневная галочка не выдаёт медаль за усталость." />
-		<template id="v3.lineage.quests.reply.routine.0006" act="lineage.quests.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="На сегодня выбран короткий набор." />
+		<template id="v3.lineage.quests.reply.routine.0006" act="lineage.quests.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="На один вечер разумнее выбрать короткий набор, чем обещать закрыть всё." />
 		<template id="v3.lineage.quests.reply.routine.0007" act="lineage.quests.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Остальное можно пропустить без оправданий." />
-		<template id="v3.lineage.quests.reply.routine.0008" act="lineage.quests.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Человек не хочет делать ежедневные задания." />
+		<template id="v3.lineage.quests.reply.routine.0008" act="lineage.quests.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Отказ от ежедневных заданий не требует оправданий перед группой." />
 		<template id="v3.lineage.quests.reply.routine.0009" act="lineage.quests.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Пропуск дня не требует голосования группы." />
-		<template id="v3.lineage.quests.reply.routine.0010" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Идите без меня, я сегодня хочу просто побродить." />
+		<template id="v3.lineage.quests.reply.routine.0010" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если сегодня хочется просто побродить, группа может пойти по рутине отдельно." />
 		<template id="v3.lineage.quests.reply.routine.0011" act="lineage.quests.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне нравится, что ты выбираешь игру, а не чувство долга." />
 		<template id="v3.lineage.quests.reply.routine.0012" act="lineage.quests.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, рутина переживёт твоё редкое непослушание." />
 		<template id="v3.lineage.quests.reply.routine.0013" act="lineage.quests.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Участие добровольное." />
@@ -418,14 +418,14 @@
 		<template id="v3.lineage.quests.reply.routine.0015" act="lineage.quests.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Группа хочет совместить задания с обычным фармом." />
 		<template id="v3.lineage.quests.reply.routine.0016" act="lineage.quests.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Выберите маршрут, где цели действительно пересекаются." />
 		<template id="v3.lineage.quests.reply.routine.0017" act="lineage.quests.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Берём квесты по дороге и не делаем крюк ради мелкой награды." />
-		<template id="v3.lineage.quests.reply.routine.0018" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу следить за временем, чтобы экономия не стала новым марафоном." />
+		<template id="v3.lineage.quests.reply.routine.0018" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Время лучше ограничить заранее, чтобы экономия не стала новым марафоном." />
 		<template id="v3.lineage.quests.reply.routine.0019" act="lineage.quests.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, хорошая рутина умеет притворяться полезной." />
 		<template id="v3.lineage.quests.reply.routine.0020" act="lineage.quests.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Совмещаем только подтверждённые этапы." />
 		<template id="v3.lineage.quests.reply.routine.0021" act="lineage.quests.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лишние остановки отменяем." />
 		<template id="v3.lineage.quests.reply.routine.0022" act="lineage.quests.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="У одного игрока другой день цепочки." />
 		<template id="v3.lineage.quests.reply.routine.0023" act="lineage.quests.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ему нужен отдельный статус, а не требование повторять всё с группой." />
 		<template id="v3.lineage.quests.reply.routine.0024" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я догоню вас после своего этапа, не ждите у каждого NPC." />
-		<template id="v3.lineage.quests.reply.routine.0025" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я останусь на связи и скажу, где мы встретимся." />
+		<template id="v3.lineage.quests.reply.routine.0025" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Место встречи нужно назвать в общем канале до выхода." />
 		<template id="v3.lineage.quests.reply.routine.0026" act="lineage.quests.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, календарь заданий не обязан быть строем." />
 		<template id="v3.lineage.quests.reply.routine.0027" act="lineage.quests.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Точка соединения назначена." />
 		<template id="v3.lineage.quests.reply.routine.0028" act="lineage.quests.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Разный прогресс не превращаем в проблему характера." />
@@ -453,7 +453,7 @@
 		<template id="v3.lineage.quests.reply.routine.0050" act="lineage.quests.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Группа каждый день спорит о порядке одних и тех же заданий." />
 		<template id="v3.lineage.quests.reply.routine.0051" act="lineage.quests.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Зафиксируйте удобный маршрут, но оставьте право менять его по составу." />
 		<template id="v3.lineage.quests.reply.routine.0052" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сначала город, потом поле, обратно не возвращаемся." />
-		<template id="v3.lineage.quests.reply.routine.0053" act="lineage.quests.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу проверить, подходит ли порядок сегодняшним участникам." />
+		<template id="v3.lineage.quests.reply.routine.0053" act="lineage.quests.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Порядок должен подходить сегодняшним участникам, а не прежней привычке." />
 		<template id="v3.lineage.quests.reply.routine.0054" act="lineage.quests.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, идеальный круг ломается о первого человека без телепорта." />
 		<template id="v3.lineage.quests.reply.routine.0055" act="lineage.quests.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Маршрут принят как базовый, не вечный." />
 		<template id="v3.lineage.quests.reply.routine.0056" act="lineage.quests.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Изменения сообщаем до старта." />
@@ -467,7 +467,7 @@
 		<template id="v3.lineage.quests.reply.routine.0064" act="lineage.quests.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Кто-то забыл принять задание перед фармом." />
 		<template id="v3.lineage.quests.reply.routine.0065" act="lineage.quests.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Вернитесь к NPC или решите продолжать без его прогресса, не скрывая выбор." />
 		<template id="v3.lineage.quests.reply.routine.0066" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Моя ошибка, быстро возьму и догоню на первой точке." />
-		<template id="v3.lineage.quests.reply.routine.0067" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я встречу тебя, чтобы путь не стал наказанием." />
+		<template id="v3.lineage.quests.reply.routine.0067" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Долгий путь легче принять при ясной цели, без обещанного сопровождения." />
 		<template id="v3.lineage.quests.reply.routine.0068" act="lineage.quests.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, галочка до убийств полезнее сожаления после." />
 		<template id="v3.lineage.quests.reply.routine.0069" act="lineage.quests.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Группа ждёт ограниченное время." />
 		<template id="v3.lineage.quests.reply.routine.0070" act="lineage.quests.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Следующий раз проверяем журнал у старта." />
@@ -495,7 +495,7 @@
 		<template id="v3.lineage.quests.reply.routine.0092" act="lineage.quests.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Один участник постоянно просит ускориться." />
 		<template id="v3.lineage.quests.reply.routine.0093" act="lineage.quests.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Скорость группы определяется теми, кто реально выполняет этапы вместе." />
 		<template id="v3.lineage.quests.reply.routine.0094" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не успеваю читать журнал на бегу, дайте секунду." />
-		<template id="v3.lineage.quests.reply.routine.0095" act="lineage.quests.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я останусь рядом и не позволю назвать внимательность тормозом." />
+		<template id="v3.lineage.quests.reply.routine.0095" act="lineage.quests.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Внимательность не тормоз, но личное обещание быть рядом её не заменяет." />
 		<template id="v3.lineage.quests.reply.routine.0096" act="lineage.quests.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, рекорд круга бесполезен с пропущенной целью." />
 		<template id="v3.lineage.quests.reply.routine.0097" act="lineage.quests.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Паузы на проверку допустимы." />
 		<template id="v3.lineage.quests.reply.routine.0098" act="lineage.quests.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Торопливый может идти отдельно без претензий." />
@@ -509,7 +509,7 @@
 		<template id="v3.lineage.quests.reply.routine.0106" act="lineage.quests.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Участники хотят делить рутинные обязанности." />
 		<template id="v3.lineage.quests.reply.routine.0107" act="lineage.quests.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Распределяйте только то, что допускает игровой зачёт и правила группы." />
 		<template id="v3.lineage.quests.reply.routine.0108" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я соберу предметы, ты веди маршрут и считай этапы." />
-		<template id="v3.lineage.quests.reply.routine.0109" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу не превратить взаимопомощь в передачу чужого прогресса." />
+		<template id="v3.lineage.quests.reply.routine.0109" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Взаимопомощь не должна превращаться в передачу чужого прогресса." />
 		<template id="v3.lineage.quests.reply.routine.0110" act="lineage.quests.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, команда сокращает суету, не обязательные действия." />
 		<template id="v3.lineage.quests.reply.routine.0111" act="lineage.quests.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Роли назначены на один круг." />
 		<template id="v3.lineage.quests.reply.routine.0112" act="lineage.quests.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Нельзя обещать зачёт, которого механика не даёт." />
@@ -522,7 +522,7 @@
 		<template id="v3.lineage.quests.reply.routine.0119" act="lineage.quests.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сбор заканчивается по исходной цели." />
 		<template id="v3.lineage.quests.reply.routine.0120" act="lineage.quests.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Часть группы хочет забрать награды сейчас, часть позже." />
 		<template id="v3.lineage.quests.reply.routine.0121" act="lineage.quests.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Если выбор личный и не блокирует остальных, разойдитесь без общего приказа." />
-		<template id="v3.lineage.quests.reply.routine.0122" act="lineage.quests.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я заберу сегодня, вы можете оставить до удобного момента." />
+		<template id="v3.lineage.quests.reply.routine.0122" act="lineage.quests.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Забирать предмет стоит только тому, кому он реально доступен сейчас." />
 		<template id="v3.lineage.quests.reply.routine.0123" act="lineage.quests.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно, чтобы твой темп не стал обязательным для друзей." />
 		<template id="v3.lineage.quests.reply.routine.0124" act="lineage.quests.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, даже очередь к награде не требует строя." />
 		<template id="v3.lineage.quests.reply.routine.0125" act="lineage.quests.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Сдача происходит индивидуально." />
@@ -537,7 +537,7 @@
 		<template id="v3.lineage.quests.reply.routine.0134" act="lineage.quests.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Группа завела короткий список перед ежедневным кругом." />
 		<template id="v3.lineage.quests.reply.routine.0135" act="lineage.quests.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Он должен предотвращать ошибки, а не превращаться в отчёт о присутствии." />
 		<template id="v3.lineage.quests.reply.routine.0136" act="lineage.quests.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Принял, инвентарь и квест проверил, можно идти." />
-		<template id="v3.lineage.quests.reply.routine.0137" act="lineage.quests.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу обновлять только то, что действительно ломает маршрут." />
+		<template id="v3.lineage.quests.reply.routine.0137" act="lineage.quests.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Обновлять нужно только то, что действительно ломает маршрут." />
 		<template id="v3.lineage.quests.reply.routine.0138" act="lineage.quests.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, список полезен, пока не требует списка к списку." />
 		<template id="v3.lineage.quests.reply.routine.0139" act="lineage.quests.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Проверка занимает одну минуту." />
 		<template id="v3.lineage.quests.reply.routine.0140" act="lineage.quests.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Лишние пункты удаляем." />
@@ -604,13 +604,13 @@
 		<template id="v3.lineage.quests.reply.choice.0001" act="lineage.quests.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я не проходил эту ветку и не буду притворяться, что знаю последствия." />
 		<template id="v3.lineage.quests.reply.choice.0002" act="lineage.quests.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сначала выясните, обратим ли выбор и что явно написано в окне." />
 		<template id="v3.lineage.quests.reply.choice.0003" act="lineage.quests.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Дайте прочитать текст самому, без хора советчиков." />
-		<template id="v3.lineage.quests.reply.choice.0004" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я останусь рядом, но решение за твоим персонажем." />
+		<template id="v3.lineage.quests.reply.choice.0004" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Решение остаётся за персонажем, независимо от обещаний быть рядом." />
 		<template id="v3.lineage.quests.reply.choice.0005" act="lineage.quests.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, чужой оптимальный ответ не обязан быть твоим." />
-		<template id="v3.lineage.quests.reply.choice.0006" act="lineage.quests.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Кнопку нажимает владелец." />
+		<template id="v3.lineage.quests.reply.choice.0006" act="lineage.quests.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Окончательный выбор должен делать владелец персонажа." />
 		<template id="v3.lineage.quests.reply.choice.0007" act="lineage.quests.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Спойлеры без просьбы прекращаем." />
-		<template id="v3.lineage.quests.reply.choice.0008" act="lineage.quests.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Один вариант даёт более подходящую награду." />
+		<template id="v3.lineage.quests.reply.choice.0008" act="lineage.quests.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если один вариант даёт более подходящую награду, это важный аргумент, но не приказ." />
 		<template id="v3.lineage.quests.reply.choice.0009" act="lineage.quests.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Это важный аргумент, но сюжетный интерес тоже принадлежит игроку." />
-		<template id="v3.lineage.quests.reply.choice.0010" act="lineage.quests.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Возьму слабее, зато хочу увидеть эту линию." />
+		<template id="v3.lineage.quests.reply.choice.0010" act="lineage.quests.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Можно выбрать награду слабее ради интересной сюжетной линии." />
 		<template id="v3.lineage.quests.reply.choice.0011" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится, что ты выбираешь опыт, а не только таблицу." />
 		<template id="v3.lineage.quests.reply.choice.0012" act="lineage.quests.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, романтик проиграл калькулятору и всё равно улыбается." />
 		<template id="v3.lineage.quests.reply.choice.0013" act="lineage.quests.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Выбор подтверждён без обещания максимальной выгоды." />
@@ -618,14 +618,14 @@
 		<template id="v3.lineage.quests.reply.choice.0015" act="lineage.quests.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Группа ждёт, пока один участник читает диалог." />
 		<template id="v3.lineage.quests.reply.choice.0016" act="lineage.quests.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Дайте ему разумное время, если этап действительно общий." />
 		<template id="v3.lineage.quests.reply.choice.0017" act="lineage.quests.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Секунду, я не хочу случайно пропустить смысл." />
-		<template id="v3.lineage.quests.reply.choice.0018" act="lineage.quests.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я поддержу паузу и не стану пересказывать экран за тебя." />
+		<template id="v3.lineage.quests.reply.choice.0018" act="lineage.quests.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Паузу на чтение стоит поддержать, не пересказывая игроку его экран." />
 		<template id="v3.lineage.quests.reply.choice.0019" act="lineage.quests.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, чтение — редкий босс, попробуй победить сам." />
 		<template id="v3.lineage.quests.reply.choice.0020" act="lineage.quests.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Общий переход отложен до ответа владельца." />
 		<template id="v3.lineage.quests.reply.choice.0021" act="lineage.quests.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Нажимать его вариант никто не будет." />
 		<template id="v3.lineage.quests.reply.choice.0022" act="lineage.quests.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Кто-то уже прошёл ветку и начинает рассказывать финал." />
 		<template id="v3.lineage.quests.reply.choice.0023" act="lineage.quests.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Остановите детали, если человек просил только узнать обратимость." />
 		<template id="v3.lineage.quests.reply.choice.0024" act="lineage.quests.choice.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Скажи лишь, можно ли потом вернуться; остальное хочу увидеть сам." />
-		<template id="v3.lineage.quests.reply.choice.0025" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прослежу, чтобы вопрос не превратился в пересказ сюжета." />
+		<template id="v3.lineage.quests.reply.choice.0025" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Вопрос лучше сформулировать без пересказа всего сюжета." />
 		<template id="v3.lineage.quests.reply.choice.0026" act="lineage.quests.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, знание финала не делает тебя рассказчиком по умолчанию." />
 		<template id="v3.lineage.quests.reply.choice.0027" act="lineage.quests.choice.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ответ ограничиваем запрошенной информацией." />
 		<template id="v3.lineage.quests.reply.choice.0028" act="lineage.quests.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Спойлер закрыт." />
@@ -653,7 +653,7 @@
 		<template id="v3.lineage.quests.reply.choice.0050" act="lineage.quests.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разные ветки временно разводят участников." />
 		<template id="v3.lineage.quests.reply.choice.0051" act="lineage.quests.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Назначьте точку встречи после индивидуальных этапов." />
 		<template id="v3.lineage.quests.reply.choice.0052" act="lineage.quests.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я беру левую линию, увидимся у следующего общего NPC." />
-		<template id="v3.lineage.quests.reply.choice.0053" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я сохраню связь и помогу, если твой путь окажется сложнее." />
+		<template id="v3.lineage.quests.reply.choice.0053" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если путь окажется сложнее, конкретный вопрос поможет больше общего обещания." />
 		<template id="v3.lineage.quests.reply.choice.0054" act="lineage.quests.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, разошлись по сюжету — не потеряйся по дороге." />
 		<template id="v3.lineage.quests.reply.choice.0055" act="lineage.quests.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Встреча назначена после завершения." />
 		<template id="v3.lineage.quests.reply.choice.0056" act="lineage.quests.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Выбор не означает выход из группы навсегда." />
@@ -674,7 +674,7 @@
 		<template id="v3.lineage.quests.reply.choice.0071" act="lineage.quests.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я случайно нажал не тот ответ." />
 		<template id="v3.lineage.quests.reply.choice.0072" act="lineage.quests.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Сначала проверьте, есть ли штатная отмена до следующего шага." />
 		<template id="v3.lineage.quests.reply.choice.0073" act="lineage.quests.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Кнопки возврата нет; ладно, пойду по этой ветке." />
-		<template id="v3.lineage.quests.reply.choice.0074" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я помогу тебе увидеть доступный путь, не называя всё потерянным." />
+		<template id="v3.lineage.quests.reply.choice.0074" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Доступный путь стоит искать по условиям, не объявляя всё потерянным." />
 		<template id="v3.lineage.quests.reply.choice.0075" act="lineage.quests.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, ошибка выбрала приключение за тебя." />
 		<template id="v3.lineage.quests.reply.choice.0076" act="lineage.quests.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Необратимость принята по факту." />
 		<template id="v3.lineage.quests.reply.choice.0077" act="lineage.quests.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не трать ресурсы на непроверенный обход." />
@@ -695,14 +695,14 @@
 		<template id="v3.lineage.quests.reply.choice.0092" act="lineage.quests.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Кандидат на выбор спрашивает только о стиле ветки." />
 		<template id="v3.lineage.quests.reply.choice.0093" act="lineage.quests.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Можно описать тон и тип задач без раскрытия событий." />
 		<template id="v3.lineage.quests.reply.choice.0094" act="lineage.quests.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Одна больше про исследование, другая про прямые бои — этого достаточно." />
-		<template id="v3.lineage.quests.reply.choice.0095" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я сохраню детали, чтобы решение оставалось живым." />
+		<template id="v3.lineage.quests.reply.choice.0095" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Детали лучше записать доступным способом до решения." />
 		<template id="v3.lineage.quests.reply.choice.0096" act="lineage.quests.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, даже ты способен дать подсказку без финала." />
 		<template id="v3.lineage.quests.reply.choice.0097" act="lineage.quests.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Информация ограничена форматом прохождения." />
 		<template id="v3.lineage.quests.reply.choice.0098" act="lineage.quests.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сюжетные события не раскрываем." />
 		<template id="v3.lineage.quests.reply.choice.0099" act="lineage.quests.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Группа торопит игрока ради общего времени." />
 		<template id="v3.lineage.quests.reply.choice.0100" act="lineage.quests.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Можно назначить короткую паузу или разрешить ему догнать позже." />
 		<template id="v3.lineage.quests.reply.choice.0101" act="lineage.quests.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Идите дальше, я спокойно дочитаю и встречу вас после." />
-		<template id="v3.lineage.quests.reply.choice.0102" act="lineage.quests.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я останусь на связи и не превращу твой выбор в задержку всех." />
+		<template id="v3.lineage.quests.reply.choice.0102" act="lineage.quests.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Личный выбор не должен задерживать всех; срок стоит назвать заранее." />
 		<template id="v3.lineage.quests.reply.choice.0103" act="lineage.quests.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, медленное решение не обязано держать колонну." />
 		<template id="v3.lineage.quests.reply.choice.0104" act="lineage.quests.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Маршруты временно разделены." />
 		<template id="v3.lineage.quests.reply.choice.0105" act="lineage.quests.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Игрок не получает штрафа от группы за чтение." />
@@ -723,7 +723,7 @@
 		<template id="v3.lineage.quests.reply.choice.0120" act="lineage.quests.choice.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="До ответа осталось несколько секунд таймера." />
 		<template id="v3.lineage.quests.reply.choice.0121" act="lineage.quests.choice.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если таймер видим и реален, выберите заранее допустимый безопасный вариант." />
 		<template id="v3.lineage.quests.reply.choice.0122" act="lineage.quests.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Беру второй, я его уже обдумывал до окна." />
-		<template id="v3.lineage.quests.reply.choice.0123" act="lineage.quests.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я помогу принять результат без упрёка за ограниченное время." />
+		<template id="v3.lineage.quests.reply.choice.0123" act="lineage.quests.choice.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ограниченное время не повод упрекать человека за результат." />
 		<template id="v3.lineage.quests.reply.choice.0124" act="lineage.quests.choice.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, скорость наконец стала фактическим условием." />
 		<template id="v3.lineage.quests.reply.choice.0125" act="lineage.quests.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Выбор сделан до истечения." />
 		<template id="v3.lineage.quests.reply.choice.0126" act="lineage.quests.choice.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После таймера не переписываем мотивы." />
@@ -779,7 +779,7 @@
 		<template id="v3.lineage.quests.reply.choice.0176" act="lineage.quests.choice.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Журнал больше не предлагает альтернативный ответ." />
 		<template id="v3.lineage.quests.reply.choice.0177" act="lineage.quests.choice.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Это подтверждает окончательность без необходимости гадать." />
 		<template id="v3.lineage.quests.reply.choice.0178" act="lineage.quests.choice.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Понятно, дверь закрылась; зато впереди моя версия истории." />
-		<template id="v3.lineage.quests.reply.choice.0179" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я останусь рядом, если последствия окажутся неожиданными." />
+		<template id="v3.lineage.quests.reply.choice.0179" act="lineage.quests.choice.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Неожиданные последствия лучше разбирать по фактам, без обещаний присутствия." />
 		<template id="v3.lineage.quests.reply.choice.0180" act="lineage.quests.choice.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, назад не зовут, значит смотри вперёд." />
 		<template id="v3.lineage.quests.reply.choice.0181" act="lineage.quests.choice.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Выбранный этап сохранён." />
 		<template id="v3.lineage.quests.reply.choice.0182" act="lineage.quests.choice.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Повторно нажимать ничего не нужно." />

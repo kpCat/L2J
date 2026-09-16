@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3ConversationSegment id="v3.social.rivalry.conversation" version="3" category="social.rivalry" mature="false">
 	<templates>
-		<template id="v3.social.rivalry.reply.challenge.0001" act="social.rivalry.challenge.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я приму вызов после того, как уточним правила." />
-		<template id="v3.social.rivalry.reply.challenge.0002" act="social.rivalry.challenge.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Договорились: честный матч без скрытых условий." />
-		<template id="v3.social.rivalry.reply.challenge.0003" act="social.rivalry.challenge.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты давно просил шанс, сегодня он у тебя." />
-		<template id="v3.social.rivalry.reply.challenge.0004" act="social.rivalry.challenge.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я ждал именно твоего вызова." />
-		<template id="v3.social.rivalry.reply.challenge.0005" act="social.rivalry.challenge.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Выбирай арену, соперник, и не опаздывай." />
-		<template id="v3.social.rivalry.reply.challenge.0006" act="social.rivalry.challenge.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я сыграю, если разговор останется спокойным." />
+		<template id="v3.social.rivalry.reply.challenge.0001" act="social.rivalry.challenge.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вызов разумно принимать только после уточнения правил." />
+		<template id="v3.social.rivalry.reply.challenge.0002" act="social.rivalry.challenge.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Честный матч без скрытых условий начинается с явной договорённости." />
+		<template id="v3.social.rivalry.reply.challenge.0003" act="social.rivalry.challenge.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Шанс стоит давать сейчас, не утверждая, что его давно просили." />
+		<template id="v3.social.rivalry.reply.challenge.0004" act="social.rivalry.challenge.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Интересный вызов не требует заявления, что его давно ждали." />
+		<template id="v3.social.rivalry.reply.challenge.0005" act="social.rivalry.challenge.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Арену и время нужно назвать до принятия вызова." />
+		<template id="v3.social.rivalry.reply.challenge.0006" act="social.rivalry.challenge.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сыграть можно, если разговор останется спокойным и правила ясны." />
 		<template id="v3.social.rivalry.reply.challenge.0007" act="social.rivalry.challenge.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="С вами я не буду участвовать ни в чём." />
 		<template id="v3.social.rivalry.reply.challenge.0008" act="social.rivalry.challenge.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Интересное предложение; назовите время и формат." />
-		<template id="v3.social.rivalry.reply.challenge.0009" act="social.rivalry.challenge.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ваш вызов принят, условия запишем заранее." />
-		<template id="v3.social.rivalry.reply.challenge.0010" act="social.rivalry.challenge.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты готов увидеть, чему я научился?" />
-		<template id="v3.social.rivalry.reply.challenge.0011" act="social.rivalry.challenge.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я знаю твою силу и всё равно выйду первым." />
-		<template id="v3.social.rivalry.reply.challenge.0012" act="social.rivalry.challenge.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="На этот раз победитель выбирает следующий раунд." />
-		<template id="v3.social.rivalry.reply.challenge.0013" act="social.rivalry.challenge.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Согласен на матч, но без прежних провокаций." />
+		<template id="v3.social.rivalry.reply.challenge.0009" act="social.rivalry.challenge.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Перед принятием вызова условия стоит записать заранее." />
+		<template id="v3.social.rivalry.reply.challenge.0010" act="social.rivalry.challenge.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Лучше показать, чему научился, в реальном матче, а не обещать это словами." />
+		<template id="v3.social.rivalry.reply.challenge.0011" act="social.rivalry.challenge.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Силу соперника стоит оценивать по игре, не утверждая прежнее знание." />
+		<template id="v3.social.rivalry.reply.challenge.0012" act="social.rivalry.challenge.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Право победителя выбирать следующий раунд должно быть правилом до старта." />
+		<template id="v3.social.rivalry.reply.challenge.0013" act="social.rivalry.challenge.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Матч без провокаций возможен, если обе стороны это принимают." />
 		<template id="v3.social.rivalry.reply.challenge.0014" act="social.rivalry.challenge.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не приближайтесь и не пытайтесь вызвать меня снова." />
 		<template id="v3.social.rivalry.reply.challenge.0015" act="social.rivalry.challenge.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давайте начнём с короткой пробной партии." />
-		<template id="v3.social.rivalry.reply.challenge.0016" act="social.rivalry.challenge.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я готов соревноваться на равных условиях." />
-		<template id="v3.social.rivalry.reply.challenge.0017" act="social.rivalry.challenge.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты бросил вызов именно в подходящий день." />
+		<template id="v3.social.rivalry.reply.challenge.0016" act="social.rivalry.challenge.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соревноваться стоит только на равных и заранее названных условиях." />
+		<template id="v3.social.rivalry.reply.challenge.0017" act="social.rivalry.challenge.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Подходящий день для вызова определяется сейчас, а не выдуманной историей." />
 		<template id="v3.social.rivalry.reply.challenge.0018" act="social.rivalry.challenge.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне нравится, когда ты заставляешь меня расти." />
-		<template id="v3.social.rivalry.reply.challenge.0019" act="social.rivalry.challenge.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="До трёх побед, соперник, без пересмотра правил." />
+		<template id="v3.social.rivalry.reply.challenge.0019" act="social.rivalry.challenge.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Формат до трёх побед работает только без пересмотра правил по ходу." />
 		<template id="v3.social.rivalry.reply.challenge.0020" act="social.rivalry.challenge.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я приму участие только при взаимном уважении." />
 		<template id="v3.social.rivalry.reply.challenge.0021" act="social.rivalry.challenge.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Любой контакт с вами для меня закрыт." />
 		<template id="v3.social.rivalry.reply.challenge.0022" act="social.rivalry.challenge.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Смелый вызов от нового знакомого; принимаю." />
 		<template id="v3.social.rivalry.reply.challenge.0023" act="social.rivalry.challenge.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Предлагаю нейтральную площадку и независимый счёт." />
 		<template id="v3.social.rivalry.reply.challenge.0024" act="social.rivalry.challenge.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты получишь реванш, о котором столько говорил." />
-		<template id="v3.social.rivalry.reply.challenge.0025" act="social.rivalry.challenge.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сохраню для тебя свой лучший приём." />
+		<template id="v3.social.rivalry.reply.challenge.0025" act="social.rivalry.challenge.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лучший приём стоит показать в реальном матче, а не обещать заранее." />
 		<template id="v3.social.rivalry.reply.challenge.0026" act="social.rivalry.challenge.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Начинай первым, чтобы потом не искать оправданий." />
 		<template id="v3.social.rivalry.reply.challenge.0027" act="social.rivalry.challenge.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мы сыграем, когда спадёт напряжение." />
 		<template id="v3.social.rivalry.reply.challenge.0028" act="social.rivalry.challenge.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваш вызов похож на угрозу, я отказываюсь." />
@@ -33,7 +33,7 @@
 		<template id="v3.social.rivalry.reply.challenge.0030" act="social.rivalry.challenge.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я согласен, если одинаковое снаряжение у обоих." />
 		<template id="v3.social.rivalry.reply.challenge.0031" act="social.rivalry.challenge.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты уверен, что готов к полной серии?" />
 		<template id="v3.social.rivalry.reply.challenge.0032" act="social.rivalry.challenge.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я хочу проверить себя именно рядом с тобой." />
-		<template id="v3.social.rivalry.reply.challenge.0033" act="social.rivalry.challenge.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Сегодня я выберу темп, а ты постарайся удержаться." />
+		<template id="v3.social.rivalry.reply.challenge.0033" act="social.rivalry.challenge.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Темп выбирают по правилам встречи, не по заявлению о текущем дне." />
 		<template id="v3.social.rivalry.reply.challenge.0034" act="social.rivalry.challenge.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Договоримся без зрителей и лишних разговоров." />
 		<template id="v3.social.rivalry.reply.challenge.0035" act="social.rivalry.challenge.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не стану участвовать в вашем преследовании." />
 		<template id="v3.social.rivalry.reply.challenge.0036" act="social.rivalry.challenge.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Первый матч проведём спокойно и без ставок." />
@@ -68,7 +68,7 @@
 		<template id="v3.social.rivalry.reply.challenge.0065" act="social.rivalry.challenge.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Принимаю предложение и прошу подтвердить условия." />
 		<template id="v3.social.rivalry.reply.challenge.0066" act="social.rivalry.challenge.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты хочешь короткий матч или настоящую проверку?" />
 		<template id="v3.social.rivalry.reply.challenge.0067" act="social.rivalry.challenge.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Рядом с тобой мне не страшно проиграть честно." />
-		<template id="v3.social.rivalry.reply.challenge.0068" act="social.rivalry.challenge.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я дам фору только тому, кто в ней не нуждается." />
+		<template id="v3.social.rivalry.reply.challenge.0068" act="social.rivalry.challenge.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Фора должна быть реальным правилом, а не красивой репликой." />
 		<template id="v3.social.rivalry.reply.challenge.0069" act="social.rivalry.challenge.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сначала восстановим доверие, потом устроим реванш." />
 		<template id="v3.social.rivalry.reply.challenge.0070" act="social.rivalry.challenge.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я отказался и не буду повторять это снова." />
 		<template id="v3.social.rivalry.reply.challenge.0071" act="social.rivalry.challenge.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваш вызов понятен; мне нужно время решить." />
@@ -201,24 +201,24 @@
 		<template id="v3.social.rivalry.reply.challenge.0198" act="social.rivalry.challenge.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я согласен на ясный регламент и честный старт." />
 		<template id="v3.social.rivalry.reply.challenge.0199" act="social.rivalry.challenge.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты получишь ответ на поле, а не в обещаниях." />
 		<template id="v3.social.rivalry.reply.challenge.0200" act="social.rivalry.challenge.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я рад, что именно ты станешь моей проверкой." />
-		<template id="v3.social.rivalry.reply.score.0001" act="social.rivalry.score.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Сейчас у каждого по одному очку." />
-		<template id="v3.social.rivalry.reply.score.0002" act="social.rivalry.score.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Табло показывает ничью после второго раунда." />
-		<template id="v3.social.rivalry.reply.score.0003" act="social.rivalry.score.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты ведёшь на один балл." />
-		<template id="v3.social.rivalry.reply.score.0004" act="social.rivalry.score.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Наша общая серия снова сравнялась." />
-		<template id="v3.social.rivalry.reply.score.0005" act="social.rivalry.score.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, последнее очко пока записано мне." />
-		<template id="v3.social.rivalry.reply.score.0006" act="social.rivalry.score.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я признаю счёт, но хочу проверить протокол." />
+		<template id="v3.social.rivalry.reply.score.0001" act="social.rivalry.score.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Равный счёт существует только при подтверждённом табло." />
+		<template id="v3.social.rivalry.reply.score.0002" act="social.rivalry.score.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ничью после второго раунда должен показывать реальный протокол." />
+		<template id="v3.social.rivalry.reply.score.0003" act="social.rivalry.score.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Преимущество в один балл должно быть видно на реальном табло." />
+		<template id="v3.social.rivalry.reply.score.0004" act="social.rivalry.score.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Серия может сравняться только по реальному счёту." />
+		<template id="v3.social.rivalry.reply.score.0005" act="social.rivalry.score.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Последнее очко принадлежит тому, кому его присудили по правилам." />
+		<template id="v3.social.rivalry.reply.score.0006" act="social.rivalry.score.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Счёт стоит признавать только после проверки протокола." />
 		<template id="v3.social.rivalry.reply.score.0007" act="social.rivalry.score.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ваши манипуляции со счётом прекращают матч." />
-		<template id="v3.social.rivalry.reply.score.0008" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="По моим данным, впереди ваша команда." />
-		<template id="v3.social.rivalry.reply.score.0009" act="social.rivalry.score.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Результат обновят после решения судьи." />
-		<template id="v3.social.rivalry.reply.score.0010" act="social.rivalry.score.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты выиграл два раунда из трёх." />
-		<template id="v3.social.rivalry.reply.score.0011" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помню каждую твою победу и рад им." />
-		<template id="v3.social.rivalry.reply.score.0012" act="social.rivalry.score.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В серии пять-два, готовься сокращать разрыв." />
-		<template id="v3.social.rivalry.reply.score.0013" act="social.rivalry.score.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Счёт верный, хотя спорный эпизод ещё обсудим." />
+		<template id="v3.social.rivalry.reply.score.0008" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Впереди та команда, которую показывает проверенный результат." />
+		<template id="v3.social.rivalry.reply.score.0009" act="social.rivalry.score.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Результат обновляют после реального решения судьи." />
+		<template id="v3.social.rivalry.reply.score.0010" act="social.rivalry.score.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Два раунда из трёх — факт только при реальном результате." />
+		<template id="v3.social.rivalry.reply.score.0011" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Чужие победы можно уважать без заявления, что помнишь каждую." />
+		<template id="v3.social.rivalry.reply.score.0012" act="social.rivalry.score.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Счёт пять-два нельзя объявлять без табло." />
+		<template id="v3.social.rivalry.reply.score.0013" act="social.rivalry.score.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Верный счёт подтверждает протокол, а спорный эпизод обсуждают отдельно." />
 		<template id="v3.social.rivalry.reply.score.0014" act="social.rivalry.score.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не приближайтесь к табло и ко мне." />
 		<template id="v3.social.rivalry.reply.score.0015" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Первый балл засчитан после повторной проверки." />
 		<template id="v3.social.rivalry.reply.score.0016" act="social.rivalry.score.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="До финала осталось две победы." />
 		<template id="v3.social.rivalry.reply.score.0017" act="social.rivalry.score.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты сравнял результат последним ходом." />
-		<template id="v3.social.rivalry.reply.score.0018" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я веду наш домашний счёт без обмана." />
+		<template id="v3.social.rivalry.reply.score.0018" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Домашний счёт имеет смысл только при реальной договорённости его вести." />
 		<template id="v3.social.rivalry.reply.score.0019" act="social.rivalry.score.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, теперь преимущество снова у тебя." />
 		<template id="v3.social.rivalry.reply.score.0020" act="social.rivalry.score.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Зафиксируем итог и закончим встречу." />
 		<template id="v3.social.rivalry.reply.score.0021" act="social.rivalry.score.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваши угрозы не изменят официальный результат." />
@@ -232,21 +232,21 @@
 		<template id="v3.social.rivalry.reply.score.0029" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="По таблице у вас три чистые победы." />
 		<template id="v3.social.rivalry.reply.score.0030" act="social.rivalry.score.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Этот матч не входит в сезонный зачёт." />
 		<template id="v3.social.rivalry.reply.score.0031" act="social.rivalry.score.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты потерял очко за нарушение правила." />
-		<template id="v3.social.rivalry.reply.score.0032" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я сохранил все наши результаты по датам." />
+		<template id="v3.social.rivalry.reply.score.0032" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Результаты по датам нельзя считать сохранёнными без настоящей записи." />
 		<template id="v3.social.rivalry.reply.score.0033" act="social.rivalry.score.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, один раунд отделяет тебя от ничьей." />
 		<template id="v3.social.rivalry.reply.score.0034" act="social.rivalry.score.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сначала исправим запись, потом продолжим." />
 		<template id="v3.social.rivalry.reply.score.0035" act="social.rivalry.score.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваш результат аннулирован из-за нарушения." />
 		<template id="v3.social.rivalry.reply.score.0036" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Общий итог сейчас четыре-четыре." />
 		<template id="v3.social.rivalry.reply.score.0037" act="social.rivalry.score.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Командный балл разделили между участниками." />
 		<template id="v3.social.rivalry.reply.score.0038" act="social.rivalry.score.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты первым набрал нужные десять очков." />
-		<template id="v3.social.rivalry.reply.score.0039" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я добавил твою победу в наш список." />
+		<template id="v3.social.rivalry.reply.score.0039" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Победу стоит добавить в список тому, кто действительно ведёт этот список." />
 		<template id="v3.social.rivalry.reply.score.0040" act="social.rivalry.score.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="По личным встречам я всё ещё впереди." />
 		<template id="v3.social.rivalry.reply.score.0041" act="social.rivalry.score.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Итог подтверждён, спорить больше не о чем." />
 		<template id="v3.social.rivalry.reply.score.0042" act="social.rivalry.score.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не касайтесь оборудования и отойдите." />
 		<template id="v3.social.rivalry.reply.score.0043" act="social.rivalry.score.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После пересчёта вы вышли на первое место." />
 		<template id="v3.social.rivalry.reply.score.0044" act="social.rivalry.score.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Решающий балл присудили справедливо." />
 		<template id="v3.social.rivalry.reply.score.0045" act="social.rivalry.score.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты выиграл серию с минимальным разрывом." />
-		<template id="v3.social.rivalry.reply.score.0046" act="social.rivalry.score.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я рад, что наш счёт отражает честную борьбу." />
+		<template id="v3.social.rivalry.reply.score.0046" act="social.rivalry.score.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Честная борьба важнее выдуманного общего счёта." />
 		<template id="v3.social.rivalry.reply.score.0047" act="social.rivalry.score.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, табло сегодня особенно красиво." />
 		<template id="v3.social.rivalry.reply.score.0048" act="social.rivalry.score.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Этот результат временный до проверки записи." />
 		<template id="v3.social.rivalry.reply.score.0049" act="social.rivalry.score.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ваше вмешательство в протокол будет сообщено организаторам." />
@@ -260,7 +260,7 @@
 		<template id="v3.social.rivalry.reply.score.0057" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="По официальной таблице вы не проиграли ни разу." />
 		<template id="v3.social.rivalry.reply.score.0058" act="social.rivalry.score.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Бонус начислят после технической проверки." />
 		<template id="v3.social.rivalry.reply.score.0059" act="social.rivalry.score.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты сравнял серию в самой концовке." />
-		<template id="v3.social.rivalry.reply.score.0060" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я точно помню наш первый результат." />
+		<template id="v3.social.rivalry.reply.score.0060" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Первый результат нельзя помнить, если его история не дана." />
 		<template id="v3.social.rivalry.reply.score.0061" act="social.rivalry.score.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, твой отрыв сократился до минимума." />
 		<template id="v3.social.rivalry.reply.score.0062" act="social.rivalry.score.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мы остановим матч до согласования счёта." />
 		<template id="v3.social.rivalry.reply.score.0063" act="social.rivalry.score.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваши действия делают результат недействительным." />
@@ -274,7 +274,7 @@
 		<template id="v3.social.rivalry.reply.score.0071" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваш последний ход принёс два очка." />
 		<template id="v3.social.rivalry.reply.score.0072" act="social.rivalry.score.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Результат пересчитали в присутствии обеих команд." />
 		<template id="v3.social.rivalry.reply.score.0073" act="social.rivalry.score.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты выиграл четыре встречи подряд." />
-		<template id="v3.social.rivalry.reply.score.0074" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я сохранил табло нашей первой игры." />
+		<template id="v3.social.rivalry.reply.score.0074" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Табло первой игры существует только при реальном сохранённом результате." />
 		<template id="v3.social.rivalry.reply.score.0075" act="social.rivalry.score.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, в финале всё начнётся заново." />
 		<template id="v3.social.rivalry.reply.score.0076" act="social.rivalry.score.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мне нужен официальный протокол до продолжения." />
 		<template id="v3.social.rivalry.reply.score.0077" act="social.rivalry.score.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваши попытки изменить запись зафиксированы." />
@@ -302,7 +302,7 @@
 		<template id="v3.social.rivalry.reply.score.0099" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваш результат выше прошлого на три балла." />
 		<template id="v3.social.rivalry.reply.score.0100" act="social.rivalry.score.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Штраф уменьшил итог команды на одно очко." />
 		<template id="v3.social.rivalry.reply.score.0101" act="social.rivalry.score.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты победил с разницей в один ход." />
-		<template id="v3.social.rivalry.reply.score.0102" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я веду наш счёт только ради добрых реваншей." />
+		<template id="v3.social.rivalry.reply.score.0102" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Счёт ради добрых реваншей стоит вести только по согласию обоих." />
 		<template id="v3.social.rivalry.reply.score.0103" act="social.rivalry.score.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, одна ничья спасла твою серию." />
 		<template id="v3.social.rivalry.reply.score.0104" act="social.rivalry.score.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мы не продолжим до исправления ошибки." />
 		<template id="v3.social.rivalry.reply.score.0105" act="social.rivalry.score.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваше вмешательство лишило матч законной силы." />
@@ -386,7 +386,7 @@
 		<template id="v3.social.rivalry.reply.score.0183" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваш итог подтверждён повторным подсчётом." />
 		<template id="v3.social.rivalry.reply.score.0184" act="social.rivalry.score.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Решающая ничья переносит матч." />
 		<template id="v3.social.rivalry.reply.score.0185" act="social.rivalry.score.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты первым достиг контрольной отметки." />
-		<template id="v3.social.rivalry.reply.score.0186" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я добавлю эту игру в нашу историю." />
+		<template id="v3.social.rivalry.reply.score.0186" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Эта игра станет частью истории только после реального матча." />
 		<template id="v3.social.rivalry.reply.score.0187" act="social.rivalry.score.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, сегодня счёт заканчивается мирно." />
 		<template id="v3.social.rivalry.reply.score.0188" act="social.rivalry.score.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Оставим результат до следующего разговора." />
 		<template id="v3.social.rivalry.reply.score.0189" act="social.rivalry.score.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После объявления результата сообщений не будет." />
@@ -400,24 +400,24 @@
 		<template id="v3.social.rivalry.reply.score.0197" act="social.rivalry.score.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="У каждой команды осталось по одному решающему ходу." />
 		<template id="v3.social.rivalry.reply.score.0198" act="social.rivalry.score.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Итоговый балл внесли без возражений." />
 		<template id="v3.social.rivalry.reply.score.0199" act="social.rivalry.score.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты закрыл сезон личным рекордом." />
-		<template id="v3.social.rivalry.reply.score.0200" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я сохраню эту ничью до нашего честного реванша." />
-		<template id="v3.social.rivalry.reply.respect.0001" act="social.rivalry.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Вы играли честно, и это достойно уважения." />
-		<template id="v3.social.rivalry.reply.respect.0002" act="social.rivalry.respect.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Спасибо за спокойный матч без лишних жестов." />
-		<template id="v3.social.rivalry.reply.respect.0003" act="social.rivalry.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты показал сильную технику и хороший характер." />
-		<template id="v3.social.rivalry.reply.respect.0004" act="social.rivalry.respect.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я горжусь тем, как ты принял результат." />
-		<template id="v3.social.rivalry.reply.respect.0005" act="social.rivalry.respect.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, твоя победа заслужена полностью." />
+		<template id="v3.social.rivalry.reply.score.0200" act="social.rivalry.score.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ничью можно помнить до реванша, но сохранять её без фактов нельзя." />
+		<template id="v3.social.rivalry.reply.respect.0001" act="social.rivalry.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Честная игра достойна уважения, когда она подтверждена правилами." />
+		<template id="v3.social.rivalry.reply.respect.0002" act="social.rivalry.respect.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Спокойный матч без лишних жестов заслуживает благодарности, если он действительно был." />
+		<template id="v3.social.rivalry.reply.respect.0003" act="social.rivalry.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сильная техника и хороший характер видны по реальной игре." />
+		<template id="v3.social.rivalry.reply.respect.0004" act="social.rivalry.respect.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Спокойное принятие результата заслуживает уважения без заявления личной гордости." />
+		<template id="v3.social.rivalry.reply.respect.0005" act="social.rivalry.respect.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Заслуженную победу стоит признать, но её нельзя выдумывать." />
 		<template id="v3.social.rivalry.reply.respect.0006" act="social.rivalry.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я признаю мастерство, но дистанцию сохраняю." />
 		<template id="v3.social.rivalry.reply.respect.0007" act="social.rivalry.respect.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваш результат не меняет моего решения прекратить контакт." />
-		<template id="v3.social.rivalry.reply.respect.0008" act="social.rivalry.respect.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Редко встречаю настолько подготовленного участника." />
-		<template id="v3.social.rivalry.reply.respect.0009" act="social.rivalry.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ваш точный ход решил матч справедливо." />
-		<template id="v3.social.rivalry.reply.respect.0010" act="social.rivalry.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты не сдался после плохого начала." />
-		<template id="v3.social.rivalry.reply.respect.0011" act="social.rivalry.respect.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне дорого, что мы остаёмся близкими после любой игры." />
-		<template id="v3.social.rivalry.reply.respect.0012" act="social.rivalry.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сегодня ты был сильнее; реванш всё равно будет." />
-		<template id="v3.social.rivalry.reply.respect.0013" act="social.rivalry.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я уважаю результат, хотя конфликт ещё не закрыт." />
+		<template id="v3.social.rivalry.reply.respect.0008" act="social.rivalry.respect.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Редкая подготовленность заметна по фактам, а не по придуманной встрече." />
+		<template id="v3.social.rivalry.reply.respect.0009" act="social.rivalry.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Точный ход может решить матч справедливо, если судейство его подтвердило." />
+		<template id="v3.social.rivalry.reply.respect.0010" act="social.rivalry.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не сдаться после плохого начала — сильный поступок, если это произошло." />
+		<template id="v3.social.rivalry.reply.respect.0011" act="social.rivalry.respect.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Близость после игры возможна только при реальных отношениях." />
+		<template id="v3.social.rivalry.reply.respect.0012" act="social.rivalry.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сильнейшего сегодня определяет реальный результат; реванш остаётся предложением." />
+		<template id="v3.social.rivalry.reply.respect.0013" act="social.rivalry.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Уважение к результату не обязано закрывать реальный конфликт." />
 		<template id="v3.social.rivalry.reply.respect.0014" act="social.rivalry.respect.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не пытайтесь использовать победу для нового унижения." />
 		<template id="v3.social.rivalry.reply.respect.0015" act="social.rivalry.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спасибо за ясные правила и корректную игру." />
 		<template id="v3.social.rivalry.reply.respect.0016" act="social.rivalry.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы приняли поражение без оправданий." />
-		<template id="v3.social.rivalry.reply.respect.0017" act="social.rivalry.respect.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты заметно вырос с нашей прошлой встречи." />
+		<template id="v3.social.rivalry.reply.respect.0017" act="social.rivalry.respect.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Рост соперника виден по текущей игре, а не по выдуманной прошлой встрече." />
 		<template id="v3.social.rivalry.reply.respect.0018" act="social.rivalry.respect.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я всегда верил, что ты способен на такой финал." />
 		<template id="v3.social.rivalry.reply.respect.0019" act="social.rivalry.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, твой риск оказался точным и красивым." />
 		<template id="v3.social.rivalry.reply.respect.0020" act="social.rivalry.respect.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я признаю честную победу без примирения." />
@@ -433,8 +433,8 @@
 		<template id="v3.social.rivalry.reply.respect.0030" act="social.rivalry.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ваша подготовка была видна в каждом решении." />
 		<template id="v3.social.rivalry.reply.respect.0031" act="social.rivalry.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты достойно вернулся после ошибки." />
 		<template id="v3.social.rivalry.reply.respect.0032" act="social.rivalry.respect.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я рад видеть, как твой труд превращается в результат." />
-		<template id="v3.social.rivalry.reply.respect.0033" act="social.rivalry.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, сегодня я научился у тебя терпению." />
-		<template id="v3.social.rivalry.reply.respect.0034" act="social.rivalry.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Уважение к игре не отменяет нашей сложной истории." />
+		<template id="v3.social.rivalry.reply.respect.0033" act="social.rivalry.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="У сильного соперника можно учиться терпению без заявления о сегодняшнем событии." />
+		<template id="v3.social.rivalry.reply.respect.0034" act="social.rivalry.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Уважение к игре не требует выдуманной сложной истории." />
 		<template id="v3.social.rivalry.reply.respect.0035" act="social.rivalry.respect.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваши достижения не дают вам права преследовать меня." />
 		<template id="v3.social.rivalry.reply.respect.0036" act="social.rivalry.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хороший матч: никто не искал лёгкой лазейки." />
 		<template id="v3.social.rivalry.reply.respect.0037" act="social.rivalry.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы честно сообщили об собственной ошибке." />
@@ -481,7 +481,7 @@
 		<template id="v3.social.rivalry.reply.respect.0078" act="social.rivalry.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Вы умеете выигрывать без унижения проигравшего." />
 		<template id="v3.social.rivalry.reply.respect.0079" act="social.rivalry.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ваш ответ на ошибку показал настоящий класс." />
 		<template id="v3.social.rivalry.reply.respect.0080" act="social.rivalry.respect.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты сохранил концентрацию в самой трудной концовке." />
-		<template id="v3.social.rivalry.reply.respect.0081" act="social.rivalry.respect.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я видел весь твой путь к этой победе." />
+		<template id="v3.social.rivalry.reply.respect.0081" act="social.rivalry.respect.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Путь к победе стоит признавать по известным фактам, а не утверждать, что видел его весь." />
 		<template id="v3.social.rivalry.reply.respect.0082" act="social.rivalry.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, твоя стратегия сегодня была лучше." />
 		<template id="v3.social.rivalry.reply.respect.0083" act="social.rivalry.respect.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Признаю результат, но больше не обсуждаю отношения." />
 		<template id="v3.social.rivalry.reply.respect.0084" act="social.rivalry.respect.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не связывайтесь со мной под предлогом поздравления." />
@@ -517,7 +517,7 @@
 		<template id="v3.social.rivalry.reply.respect.0114" act="social.rivalry.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Спасибо, что не стали использовать спорную лазейку." />
 		<template id="v3.social.rivalry.reply.respect.0115" act="social.rivalry.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты остановил игру ради безопасности другого." />
 		<template id="v3.social.rivalry.reply.respect.0116" act="social.rivalry.respect.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне важно видеть в тебе такого человека." />
-		<template id="v3.social.rivalry.reply.respect.0117" act="social.rivalry.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сегодня я уступил действительно сильному сопернику." />
+		<template id="v3.social.rivalry.reply.respect.0117" act="social.rivalry.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сильного соперника можно признать без заявления о сегодняшнем поражении." />
 		<template id="v3.social.rivalry.reply.respect.0118" act="social.rivalry.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я признаю честность, сохраняя дистанцию." />
 		<template id="v3.social.rivalry.reply.respect.0119" act="social.rivalry.respect.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваш результат не даёт права приближаться." />
 		<template id="v3.social.rivalry.reply.respect.0120" act="social.rivalry.respect.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Вы умеете слушать судью и аудиторию одинаково спокойно." />
@@ -537,7 +537,7 @@
 		<template id="v3.social.rivalry.reply.respect.0134" act="social.rivalry.respect.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Вы сохранили точность, когда остальные торопились." />
 		<template id="v3.social.rivalry.reply.respect.0135" act="social.rivalry.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ваш выбор безопасного решения заслуживает уважения." />
 		<template id="v3.social.rivalry.reply.respect.0136" act="social.rivalry.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты признал чужой хороший ход без зависти." />
-		<template id="v3.social.rivalry.reply.respect.0137" act="social.rivalry.respect.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я видел, как ты поддержал команду после поражения." />
+		<template id="v3.social.rivalry.reply.respect.0137" act="social.rivalry.respect.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Поддержка команды после поражения заслуживает уважения, если её действительно видели." />
 		<template id="v3.social.rivalry.reply.respect.0138" act="social.rivalry.respect.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, сегодня ты был на шаг впереди." />
 		<template id="v3.social.rivalry.reply.respect.0139" act="social.rivalry.respect.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не спорю со счётом, но разговор окончен." />
 		<template id="v3.social.rivalry.reply.respect.0140" act="social.rivalry.respect.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не приближайтесь ко мне на награждении." />
@@ -601,18 +601,18 @@
 		<template id="v3.social.rivalry.reply.respect.0198" act="social.rivalry.respect.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вы сохранили достоинство в сложном поражении." />
 		<template id="v3.social.rivalry.reply.respect.0199" act="social.rivalry.respect.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты сделал всё возможное и остался честным." />
 		<template id="v3.social.rivalry.reply.respect.0200" act="social.rivalry.respect.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я горжусь твоим отношением к людям сильнее, чем медалью." />
-		<template id="v3.social.rivalry.reply.pressure.0001" act="social.rivalry.pressure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Дышите ровнее; первая встреча не требует идеального результата." />
+		<template id="v3.social.rivalry.reply.pressure.0001" act="social.rivalry.pressure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Первая встреча не требует идеального результата; ровное дыхание поможет больше." />
 		<template id="v3.social.rivalry.reply.pressure.0002" act="social.rivalry.pressure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сосредоточьтесь на следующем ходе, а не на табло." />
-		<template id="v3.social.rivalry.reply.pressure.0003" act="social.rivalry.pressure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты справлялся с более тяжёлыми минутами." />
-		<template id="v3.social.rivalry.reply.pressure.0004" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я рядом, даже когда борьба становится жёсткой." />
-		<template id="v3.social.rivalry.reply.pressure.0005" act="social.rivalry.pressure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давление растёт, соперник; покажи настоящую выдержку." />
-		<template id="v3.social.rivalry.reply.pressure.0006" act="social.rivalry.pressure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не подталкивай меня, сейчас это мешает собраться." />
+		<template id="v3.social.rivalry.reply.pressure.0003" act="social.rivalry.pressure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Тяжёлые минуты уже могли быть, но приписывать их собеседнику нельзя." />
+		<template id="v3.social.rivalry.reply.pressure.0004" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В жёсткой борьбе помогают правила и поддержка доступных людей, не обещание быть рядом." />
+		<template id="v3.social.rivalry.reply.pressure.0005" act="social.rivalry.pressure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="При растущем давлении настоящая выдержка важнее бравады." />
+		<template id="v3.social.rivalry.reply.pressure.0006" act="social.rivalry.pressure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Чужое подталкивание может мешать собраться; это нормально назвать прямо." />
 		<template id="v3.social.rivalry.reply.pressure.0007" act="social.rivalry.pressure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваши угрозы не заставят меня продолжать." />
 		<template id="v3.social.rivalry.reply.pressure.0008" act="social.rivalry.pressure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно взять короткую паузу и вернуться спокойно." />
 		<template id="v3.social.rivalry.reply.pressure.0009" act="social.rivalry.pressure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не позволяйте одной ошибке определять весь матч." />
-		<template id="v3.social.rivalry.reply.pressure.0010" act="social.rivalry.pressure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты слишком рано смотришь на итог." />
-		<template id="v3.social.rivalry.reply.pressure.0011" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне знаком этот взгляд; доверься своей подготовке." />
-		<template id="v3.social.rivalry.reply.pressure.0012" act="social.rivalry.pressure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Последние минуты покажут, кто умеет ждать." />
+		<template id="v3.social.rivalry.reply.pressure.0010" act="social.rivalry.pressure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="На итог легко смотреть слишком рано, но текущую сцену выдумывать не стоит." />
+		<template id="v3.social.rivalry.reply.pressure.0011" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Знакомый взгляд нельзя приписывать без общей истории; лучше напомнить о подготовке." />
+		<template id="v3.social.rivalry.reply.pressure.0012" act="social.rivalry.pressure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Последние минуты часто показывают выдержку, если матч действительно идёт." />
 		<template id="v3.social.rivalry.reply.pressure.0013" act="social.rivalry.pressure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не буду отвечать на провокации во время игры." />
 		<template id="v3.social.rivalry.reply.pressure.0014" act="social.rivalry.pressure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваше давление неприемлемо, я ухожу." />
 		<template id="v3.social.rivalry.reply.pressure.0015" act="social.rivalry.pressure.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Счёт близкий, поэтому держите выбранный темп." />
@@ -625,7 +625,7 @@
 		<template id="v3.social.rivalry.reply.pressure.0022" act="social.rivalry.pressure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ошибка уже позади; выберите следующее действие." />
 		<template id="v3.social.rivalry.reply.pressure.0023" act="social.rivalry.pressure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Решение можно принять без спешки и паники." />
 		<template id="v3.social.rivalry.reply.pressure.0024" act="social.rivalry.pressure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты слышишь зал сильнее, чем собственный план." />
-		<template id="v3.social.rivalry.reply.pressure.0025" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я останусь рядом, но ход должен быть твоим." />
+		<template id="v3.social.rivalry.reply.pressure.0025" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Поддержка словами возможна, но ход всё равно остаётся за игроком." />
 		<template id="v3.social.rivalry.reply.pressure.0026" act="social.rivalry.pressure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, не отдавай мне победу одним сомнением." />
 		<template id="v3.social.rivalry.reply.pressure.0027" act="social.rivalry.pressure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне трудно продолжать под этим тоном." />
 		<template id="v3.social.rivalry.reply.pressure.0028" act="social.rivalry.pressure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я прекращаю участие из-за ваших угроз." />
@@ -646,7 +646,7 @@
 		<template id="v3.social.rivalry.reply.pressure.0043" act="social.rivalry.pressure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вы не обязаны отвечать немедленно." />
 		<template id="v3.social.rivalry.reply.pressure.0044" act="social.rivalry.pressure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Выберите самый надёжный вариант, а не эффектный." />
 		<template id="v3.social.rivalry.reply.pressure.0045" act="social.rivalry.pressure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты устал, но техника всё ещё с тобой." />
-		<template id="v3.social.rivalry.reply.pressure.0046" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я напомню план, если шум сбивает тебя." />
+		<template id="v3.social.rivalry.reply.pressure.0046" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="План лучше записать заранее, чем рассчитывать на чужое напоминание." />
 		<template id="v3.social.rivalry.reply.pressure.0047" act="social.rivalry.pressure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, твоя пауза не означает слабость." />
 		<template id="v3.social.rivalry.reply.pressure.0048" act="social.rivalry.pressure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не буду играть, пока мы оба раздражены." />
 		<template id="v3.social.rivalry.reply.pressure.0049" act="social.rivalry.pressure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваше давление не даёт согласия." />
@@ -688,7 +688,7 @@
 		<template id="v3.social.rivalry.reply.pressure.0085" act="social.rivalry.pressure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вы имеете право отказаться от последней попытки." />
 		<template id="v3.social.rivalry.reply.pressure.0086" act="social.rivalry.pressure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Тишина перед стартом может помочь собраться." />
 		<template id="v3.social.rivalry.reply.pressure.0087" act="social.rivalry.pressure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты не обязан отвечать на каждую мою реплику." />
-		<template id="v3.social.rivalry.reply.pressure.0088" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я напомню тебе, что результат не меняет моего отношения." />
+		<template id="v3.social.rivalry.reply.pressure.0088" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Результат не обязан менять отношение; напоминание об этом можно оставить себе." />
 		<template id="v3.social.rivalry.reply.pressure.0089" act="social.rivalry.pressure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давление почувствовали оба, так что условия честные." />
 		<template id="v3.social.rivalry.reply.pressure.0090" act="social.rivalry.pressure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне нужен судья рядом до конца игры." />
 		<template id="v3.social.rivalry.reply.pressure.0091" act="social.rivalry.pressure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не преследуйте меня после отказа." />
@@ -723,7 +723,7 @@
 		<template id="v3.social.rivalry.reply.pressure.0120" act="social.rivalry.pressure.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не считайте оставшиеся очки во время движения." />
 		<template id="v3.social.rivalry.reply.pressure.0121" act="social.rivalry.pressure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сначала восстановите равновесие, потом рискуйте." />
 		<template id="v3.social.rivalry.reply.pressure.0122" act="social.rivalry.pressure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты пытаешься выиграть весь матч одним ходом." />
-		<template id="v3.social.rivalry.reply.pressure.0123" act="social.rivalry.pressure.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я помогу убрать лишний шум вокруг тебя." />
+		<template id="v3.social.rivalry.reply.pressure.0123" act="social.rivalry.pressure.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Лишний шум вокруг игрока стоит уменьшить правилами площадки, не обещанием вмешаться." />
 		<template id="v3.social.rivalry.reply.pressure.0124" act="social.rivalry.pressure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, давление любит торопливых; не радуй его." />
 		<template id="v3.social.rivalry.reply.pressure.0125" act="social.rivalry.pressure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я хочу отойти и вернуться позже." />
 		<template id="v3.social.rivalry.reply.pressure.0126" act="social.rivalry.pressure.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваше принуждение делает участие невозможным." />
@@ -758,7 +758,7 @@
 		<template id="v3.social.rivalry.reply.pressure.0155" act="social.rivalry.pressure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вам не нужно оправдывать волнение перед стартом." />
 		<template id="v3.social.rivalry.reply.pressure.0156" act="social.rivalry.pressure.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Один спокойный вдох лучше трёх новых мыслей." />
 		<template id="v3.social.rivalry.reply.pressure.0157" act="social.rivalry.pressure.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты подготовился; теперь позволь навыку работать." />
-		<template id="v3.social.rivalry.reply.pressure.0158" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я останусь рядом, даже если ты решишь остановиться." />
+		<template id="v3.social.rivalry.reply.pressure.0158" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Решение остановиться не требует обещания, что кто-то останется рядом." />
 		<template id="v3.social.rivalry.reply.pressure.0159" act="social.rivalry.pressure.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Давление не даёт права нарушать правила." />
 		<template id="v3.social.rivalry.reply.pressure.0160" act="social.rivalry.pressure.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне необходим нейтральный человек рядом." />
 		<template id="v3.social.rivalry.reply.pressure.0161" act="social.rivalry.pressure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я сообщил о вашем поведении службе безопасности." />
@@ -772,7 +772,7 @@
 		<template id="v3.social.rivalry.reply.pressure.0169" act="social.rivalry.pressure.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Финальный момент не требует идеального решения." />
 		<template id="v3.social.rivalry.reply.pressure.0170" act="social.rivalry.pressure.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сделайте паузу перед самым рискованным выбором." />
 		<template id="v3.social.rivalry.reply.pressure.0171" act="social.rivalry.pressure.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты уже доказал, что умеешь возвращаться." />
-		<template id="v3.social.rivalry.reply.pressure.0172" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я помогу тебе выйти из толпы после матча." />
+		<template id="v3.social.rivalry.reply.pressure.0172" act="social.rivalry.pressure.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После матча из толпы лучше выходить по безопасному маршруту самостоятельно." />
 		<template id="v3.social.rivalry.reply.pressure.0173" act="social.rivalry.pressure.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Последнее очко стоит столько же, сколько первое." />
 		<template id="v3.social.rivalry.reply.pressure.0174" act="social.rivalry.pressure.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне плохо, и я прекращаю участие." />
 		<template id="v3.social.rivalry.reply.pressure.0175" act="social.rivalry.pressure.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не приближайтесь; помощь уже вызвана." />

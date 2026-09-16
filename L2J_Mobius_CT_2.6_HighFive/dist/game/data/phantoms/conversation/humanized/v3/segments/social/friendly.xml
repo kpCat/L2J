@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <humanizedV3ConversationSegment id="v3.social.friendly.conversation" version="3" category="social.friendly" mature="false">
 	<templates>
-		<template id="v3.social.friendly.reply.001" act="relationship.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Взаимно, хорошая встреча." />
-		<template id="v3.social.friendly.reply.002" act="relationship.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="И я рад, давно не пересекались." />
+		<template id="v3.social.friendly.reply.001" act="relationship.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Хорошую встречу приятно назвать взаимной, если она действительно состоялась." />
+		<template id="v3.social.friendly.reply.002" act="relationship.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Радость от встречи не требует заявления о долгом отсутствии." />
 		<template id="v3.social.friendly.reply.003" act="relationship.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Приятно это слышать." />
 		<template id="v3.social.friendly.reply.warmth.0001" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо, мне тоже приятно вас видеть." />
-		<template id="v3.social.friendly.reply.warmth.0002" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Рад встрече; день сразу стал немного светлее." />
-		<template id="v3.social.friendly.reply.warmth.0003" act="social.friendly.warmth.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты вовремя появился — я как раз хотел поделиться хорошей новостью." />
-		<template id="v3.social.friendly.reply.warmth.0004" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я скучал по этому спокойствию рядом с тобой." />
+		<template id="v3.social.friendly.reply.warmth.0002" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Приятная встреча может сделать день светлее, если она происходит сейчас." />
+		<template id="v3.social.friendly.reply.warmth.0003" act="social.friendly.warmth.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Хорошей новостью приятно делиться с тем, кто действительно появился вовремя." />
+		<template id="v3.social.friendly.reply.warmth.0004" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="По спокойствию рядом можно скучать только при реальной общей истории." />
 		<template id="v3.social.friendly.reply.warmth.0005" act="social.friendly.warmth.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не думай, что тёплый приём отменяет наше дружеское соперничество." />
 		<template id="v3.social.friendly.reply.warmth.0006" act="social.friendly.warmth.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Давайте сохраним уважительный тон и не притворяться ближе, чем мы есть." />
 		<template id="v3.social.friendly.reply.warmth.0007" act="social.friendly.warmth.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваша любезность не меняет моего отношения; держите дистанцию." />
 		<template id="v3.social.friendly.reply.warmth.0008" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Разговор идёт легко, спасибо за открытость." />
-		<template id="v3.social.friendly.reply.warmth.0009" act="social.friendly.warmth.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Хорошо снова пересечься без суеты и обязательной программы." />
-		<template id="v3.social.friendly.reply.warmth.0010" act="social.friendly.warmth.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Садись ближе, у меня как раз есть чай и время." />
-		<template id="v3.social.friendly.reply.warmth.0011" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я рад, что ты пришёл именно сегодня; мне тебя не хватало." />
-		<template id="v3.social.friendly.reply.warmth.0012" act="social.friendly.warmth.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты выбрал лучшее место, но следующую встречу организую я." />
+		<template id="v3.social.friendly.reply.warmth.0009" act="social.friendly.warmth.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Снова пересечься приятно, если люди действительно уже были знакомы." />
+		<template id="v3.social.friendly.reply.warmth.0010" act="social.friendly.warmth.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Чай и время стоит предлагать только когда они действительно есть." />
+		<template id="v3.social.friendly.reply.warmth.0011" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Радость от визита лучше выразить без выдуманной тоски по человеку." />
+		<template id="v3.social.friendly.reply.warmth.0012" act="social.friendly.warmth.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Следующую встречу организует тот, кто реально готов это сделать." />
 		<template id="v3.social.friendly.reply.warmth.0013" act="social.friendly.warmth.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Тепло принимаю, фамильярность — нет." />
-		<template id="v3.social.friendly.reply.warmth.0014" act="social.friendly.warmth.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не пытайтесь изображать дружбу после прежнего поведения." />
+		<template id="v3.social.friendly.reply.warmth.0014" act="social.friendly.warmth.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Прежнее поведение нельзя использовать без реального контекста; достаточно попросить дистанцию." />
 		<template id="v3.social.friendly.reply.warmth.0015" act="social.friendly.warmth.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваше сообщение было неожиданным и приятным." />
 		<template id="v3.social.friendly.reply.warmth.0016" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится, что рядом с тобой не нужно искать тему каждую минуту." />
 		<template id="v3.social.friendly.reply.warmth.0017" act="social.friendly.warmth.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давно хотел написать, но рад, что мы всё-таки встретились лично." />
@@ -35,7 +35,7 @@
 		<template id="v3.social.friendly.reply.warmth.0029" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вас приятно слушать: в разговоре есть внимание к другому человеку." />
 		<template id="v3.social.friendly.reply.warmth.0030" act="social.friendly.warmth.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Вместе время проходит незаметно и без ощущения, что его потеряли." />
 		<template id="v3.social.friendly.reply.warmth.0031" act="social.friendly.warmth.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты всегда находишь нужные слова, но сегодня хватило самого присутствия." />
-		<template id="v3.social.friendly.reply.warmth.0032" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Наша встреча действительно сделала мой день лучше." />
+		<template id="v3.social.friendly.reply.warmth.0032" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хорошая встреча способна сделать день лучше, если она действительно состоялась." />
 		<template id="v3.social.friendly.reply.warmth.0033" act="social.friendly.warmth.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я заметил твою улыбку раньше, чем ты моё хорошее настроение." />
 		<template id="v3.social.friendly.reply.warmth.0034" act="social.friendly.warmth.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не дави теплом, если человек просит пространство." />
 		<template id="v3.social.friendly.reply.warmth.0035" act="social.friendly.warmth.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваше присутствие сейчас нежелательно." />
@@ -111,10 +111,10 @@
 		<template id="v3.social.friendly.reply.warmth.0105" act="social.friendly.warmth.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Пора уходить; больше я повторять не буду." />
 		<template id="v3.social.friendly.reply.warmth.0106" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо, что пришли без ожидания развлечений и особого приёма." />
 		<template id="v3.social.friendly.reply.warmth.0107" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится наше умение радоваться обычным мелочам." />
-		<template id="v3.social.friendly.reply.warmth.0108" act="social.friendly.warmth.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты заметил смешную вывеску, и вся прогулка сразу стала нашей." />
-		<template id="v3.social.friendly.reply.warmth.0109" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сохраню этот билет как память о дне вместе." />
+		<template id="v3.social.friendly.reply.warmth.0108" act="social.friendly.warmth.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Смешная вывеска иногда превращает прогулку в памятную, но такую прогулку нельзя выдумывать." />
+		<template id="v3.social.friendly.reply.warmth.0109" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Билет можно сохранить как память о реальном совместном дне." />
 		<template id="v3.social.friendly.reply.warmth.0110" act="social.friendly.warmth.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Моя история смешнее, твой смех заразительнее." />
-		<template id="v3.social.friendly.reply.warmth.0111" act="social.friendly.warmth.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не публикуй наши фотографии без согласия." />
+		<template id="v3.social.friendly.reply.warmth.0111" act="social.friendly.warmth.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Фотографии нельзя публиковать без согласия всех, кто на них есть." />
 		<template id="v3.social.friendly.reply.warmth.0112" act="social.friendly.warmth.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если снимок появится в сети, доверия больше не будет." />
 		<template id="v3.social.friendly.reply.warmth.0113" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваш комплимент был конкретным и потому особенно приятным." />
 		<template id="v3.social.friendly.reply.warmth.0114" act="social.friendly.warmth.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мы давно знакомы, а разговор всё ещё способен удивить." />
@@ -133,7 +133,7 @@
 		<template id="v3.social.friendly.reply.warmth.0127" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше чувство юмора делает разговор лёгким, не превращая других в мишень." />
 		<template id="v3.social.friendly.reply.warmth.0128" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давно не смеялся так спокойно и без необходимости держать оборону." />
 		<template id="v3.social.friendly.reply.warmth.0129" act="social.friendly.warmth.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты снова нашёл шутку, которая подходит именно мне." />
-		<template id="v3.social.friendly.reply.warmth.0130" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне приятно, что наши внутренние шутки остаются добрыми." />
+		<template id="v3.social.friendly.reply.warmth.0130" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Внутренние шутки хороши, пока они действительно общие и остаются добрыми." />
 		<template id="v3.social.friendly.reply.warmth.0131" act="social.friendly.warmth.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я поддел тебя точнее, ты ответил быстрее." />
 		<template id="v3.social.friendly.reply.warmth.0132" act="social.friendly.warmth.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не переходи от дружеской шутки к унижению." />
 		<template id="v3.social.friendly.reply.warmth.0133" act="social.friendly.warmth.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Это было жестоко; продолжать общение не хочу." />
@@ -150,7 +150,7 @@
 		<template id="v3.social.friendly.reply.warmth.0144" act="social.friendly.warmth.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мне нравится, что у нас можно уйти раньше без обиды." />
 		<template id="v3.social.friendly.reply.warmth.0145" act="social.friendly.warmth.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой дом просторнее, твой приём теплее." />
 		<template id="v3.social.friendly.reply.warmth.0146" act="social.friendly.warmth.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не удерживай гостя чувством вины." />
-		<template id="v3.social.friendly.reply.warmth.0147" act="social.friendly.warmth.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если снова запрёшь дверь ради «шутки», я вызову помощь." />
+		<template id="v3.social.friendly.reply.warmth.0147" act="social.friendly.warmth.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если дверь запирают ради опасной «шутки», нужно самому вызвать помощь." />
 		<template id="v3.social.friendly.reply.warmth.0148" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше сообщение пришло в нужный момент и не требовало длинного ответа." />
 		<template id="v3.social.friendly.reply.warmth.0149" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Иногда одна добрая фраза действительно меняет направление дня." />
 		<template id="v3.social.friendly.reply.warmth.0150" act="social.friendly.warmth.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты написал без причины, и именно поэтому это было особенно приятно." />
@@ -182,7 +182,7 @@
 		<template id="v3.social.friendly.reply.warmth.0176" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Спасибо за маленький подарок без повода и скрытого ожидания." />
 		<template id="v3.social.friendly.reply.warmth.0177" act="social.friendly.warmth.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне важнее записка, чем сама вещь; в ней слышен ваш голос." />
 		<template id="v3.social.friendly.reply.warmth.0178" act="social.friendly.warmth.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты снова угадал не цену, а настроение." />
-		<template id="v3.social.friendly.reply.warmth.0179" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сохраню упаковку, потому что ты сделал её сам." />
+		<template id="v3.social.friendly.reply.warmth.0179" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Упаковку ручной работы можно сохранить, если такой подарок действительно был." />
 		<template id="v3.social.friendly.reply.warmth.0180" act="social.friendly.warmth.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мой сюрприз эффектнее, твой гораздо личнее." />
 		<template id="v3.social.friendly.reply.warmth.0181" act="social.friendly.warmth.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не покупай мне дорогие вещи после просьбы этого не делать." />
 		<template id="v3.social.friendly.reply.warmth.0182" act="social.friendly.warmth.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваш подарок не создаёт для меня обязательств." />
@@ -205,19 +205,19 @@
 		<template id="v3.social.friendly.reply.warmth.0199" act="social.friendly.warmth.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне приятно ваше внимание, хотя мы пока едва знакомы." />
 		<template id="v3.social.friendly.reply.warmth.0200" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хорошее общение получилось без лишних ожиданий." />
 		<template id="v3.social.friendly.reply.trust.0001" act="social.friendly.trust.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Доверие между незнакомыми начинается с простых честных слов." />
-		<template id="v3.social.friendly.reply.trust.0002" act="social.friendly.trust.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я услышал вас и буду судить по поступкам." />
-		<template id="v3.social.friendly.reply.trust.0003" act="social.friendly.trust.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты уже не раз показывал, что на тебя можно положиться." />
-		<template id="v3.social.friendly.reply.trust.0004" act="social.friendly.trust.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Тебе я могу рассказать то, что обычно держу при себе." />
+		<template id="v3.social.friendly.reply.trust.0002" act="social.friendly.trust.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Слова стоит принять к сведению, а вывод делать по поступкам." />
+		<template id="v3.social.friendly.reply.trust.0003" act="social.friendly.trust.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Надёжность доказывают повторяемые поступки, а не выдуманное прошлое." />
+		<template id="v3.social.friendly.reply.trust.0004" act="social.friendly.trust.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Личным делятся только там, где доверие уже реально возникло." />
 		<template id="v3.social.friendly.reply.trust.0005" act="social.friendly.trust.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я верю твоему слову, но нашу проверку всё равно выиграю." />
-		<template id="v3.social.friendly.reply.trust.0006" act="social.friendly.trust.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="После прежних споров доверие придётся возвращать постепенно." />
+		<template id="v3.social.friendly.reply.trust.0006" act="social.friendly.trust.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="После реальных споров доверие обычно возвращается постепенно." />
 		<template id="v3.social.friendly.reply.trust.0007" act="social.friendly.trust.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="У меня нет причин принимать ваши обещания на веру." />
 		<template id="v3.social.friendly.reply.trust.0008" act="social.friendly.trust.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Спасибо, что сказали прямо и не стали приукрашивать." />
-		<template id="v3.social.friendly.reply.trust.0009" act="social.friendly.trust.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ваше спокойствие помогает воспринимать разговор серьёзно." />
-		<template id="v3.social.friendly.reply.trust.0010" act="social.friendly.trust.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="С тобой можно договориться без скрытых условий." />
-		<template id="v3.social.friendly.reply.trust.0011" act="social.friendly.trust.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я знаю: если станет трудно, ты не исчезнешь." />
-		<template id="v3.social.friendly.reply.trust.0012" act="social.friendly.trust.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Проверять тебя на каждом шаге было бы слишком простой победой." />
+		<template id="v3.social.friendly.reply.trust.0009" act="social.friendly.trust.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Спокойный тон помогает воспринимать разговор серьёзно." />
+		<template id="v3.social.friendly.reply.trust.0010" act="social.friendly.trust.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Договариваться без скрытых условий можно, если это подтверждают поступки." />
+		<template id="v3.social.friendly.reply.trust.0011" act="social.friendly.trust.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Надёжный человек не исчезает при трудностях, но конкретного собеседника так объявлять рано." />
+		<template id="v3.social.friendly.reply.trust.0012" act="social.friendly.trust.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Постоянные проверки разрушают доверие вместо доказательства победы." />
 		<template id="v3.social.friendly.reply.trust.0013" act="social.friendly.trust.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Одних заверений сейчас мало, нужны последовательные действия." />
-		<template id="v3.social.friendly.reply.trust.0014" act="social.friendly.trust.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После обмана я больше не доверяю вам личные вещи." />
+		<template id="v3.social.friendly.reply.trust.0014" act="social.friendly.trust.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После реального обмана личные вещи лучше не доверять до восстановления границ." />
 		<template id="v3.social.friendly.reply.trust.0015" act="social.friendly.trust.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Пока мы мало знакомы, поэтому начнём с небольшой договорённости." />
 		<template id="v3.social.friendly.reply.trust.0016" act="social.friendly.trust.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне важно, что вы заранее предупредили об изменениях." />
 		<template id="v3.social.friendly.reply.trust.0017" act="social.friendly.trust.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты держишь слово даже тогда, когда это неудобно." />
@@ -230,7 +230,7 @@
 		<template id="v3.social.friendly.reply.trust.0024" act="social.friendly.trust.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Спасибо, что доверил мне эту историю." />
 		<template id="v3.social.friendly.reply.trust.0025" act="social.friendly.trust.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="То, что ты показал слабость, останется между нами." />
 		<template id="v3.social.friendly.reply.trust.0026" act="social.friendly.trust.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мы соперники, но твоя честность заслуживает уважения." />
-		<template id="v3.social.friendly.reply.trust.0027" act="social.friendly.trust.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я помню прежний конфликт, поэтому буду осторожен." />
+		<template id="v3.social.friendly.reply.trust.0027" act="social.friendly.trust.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Прежний конфликт может объяснять осторожность только тогда, когда он действительно был." />
 		<template id="v3.social.friendly.reply.trust.0028" act="social.friendly.trust.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не пытайтесь использовать откровенность против меня." />
 		<template id="v3.social.friendly.reply.trust.0029" act="social.friendly.trust.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваш ответ звучит убедительно, и я приму его без допроса." />
 		<template id="v3.social.friendly.reply.trust.0030" act="social.friendly.trust.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно оставить эту тему между нами." />
@@ -362,7 +362,7 @@
 		<template id="v3.social.friendly.reply.trust.0156" act="social.friendly.trust.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне достаточно ясного ответа без лишних клятв." />
 		<template id="v3.social.friendly.reply.trust.0157" act="social.friendly.trust.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты не давишь на больное даже во время ссоры." />
 		<template id="v3.social.friendly.reply.trust.0158" act="social.friendly.trust.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я доверяю тебе говорить от моего имени в этом вопросе." />
-		<template id="v3.social.friendly.reply.trust.0159" act="social.friendly.trust.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В нашей конкуренции есть правило: данное слово не меняют." />
+		<template id="v3.social.friendly.reply.trust.0159" act="social.friendly.trust.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="В честной конкуренции данное слово не меняют задним числом." />
 		<template id="v3.social.friendly.reply.trust.0160" act="social.friendly.trust.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Пока я слышу только защиту, а не готовность исправлять." />
 		<template id="v3.social.friendly.reply.trust.0161" act="social.friendly.trust.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Вы превратили мою открытость в оружие, и разговор окончен." />
 		<template id="v3.social.friendly.reply.trust.0162" act="social.friendly.trust.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я могу ошибаться, поэтому готов проверить своё впечатление." />
@@ -403,31 +403,31 @@
 		<template id="v3.social.friendly.reply.trust.0197" act="social.friendly.trust.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я отвечу честно и оставлю вам пространство решить самому." />
 		<template id="v3.social.friendly.reply.trust.0198" act="social.friendly.trust.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ваше уважение к моему отказу укрепляет доверие." />
 		<template id="v3.social.friendly.reply.trust.0199" act="social.friendly.trust.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты можешь рассчитывать на меня без торжественных обещаний." />
-		<template id="v3.social.friendly.reply.support.0001" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я не знаю вас близко, но могу помочь с первым шагом." />
+		<template id="v3.social.friendly.reply.support.0001" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Даже незнакомому можно помочь разговором с первым шагом." />
 		<template id="v3.social.friendly.reply.support.0002" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Расскажите, какая поддержка сейчас действительно нужна." />
-		<template id="v3.social.friendly.reply.support.0003" act="social.friendly.support.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я побуду рядом, пока ты собираешься с мыслями." />
-		<template id="v3.social.friendly.reply.support.0004" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Тебе не придётся проходить через это в одиночку." />
-		<template id="v3.social.friendly.reply.support.0005" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу, но потом жду честного реванша." />
-		<template id="v3.social.friendly.reply.support.0006" act="social.friendly.support.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сейчас я готов выслушать без продолжения нашего спора." />
+		<template id="v3.social.friendly.reply.support.0003" act="social.friendly.support.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Собраться с мыслями легче без давления и обещания физического присутствия." />
+		<template id="v3.social.friendly.reply.support.0004" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Тяжёлое не обязательно проходить в одиночку, но реальную поддержку нужно просить у доступных людей." />
+		<template id="v3.social.friendly.reply.support.0005" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Поддержка не требует обещания реальной помощи или будущего реванша." />
+		<template id="v3.social.friendly.reply.support.0006" act="social.friendly.support.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сейчас можно выслушать человека, не продолжая прежний спор." />
 		<template id="v3.social.friendly.reply.support.0007" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не пытайтесь выдавать давление за просьбу о поддержке." />
 		<template id="v3.social.friendly.reply.support.0008" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если вам тяжело, можно начать с самого простого." />
-		<template id="v3.social.friendly.reply.support.0009" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я могу взять на себя одну конкретную часть дела." />
-		<template id="v3.social.friendly.reply.support.0010" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не обязан выглядеть бодрым рядом со мной." />
-		<template id="v3.social.friendly.reply.support.0011" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сегодня я прикрою тебя, а с остальным разберёмся вместе." />
-		<template id="v3.social.friendly.reply.support.0012" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперники тоже подают руку, когда кто-то упал." />
-		<template id="v3.social.friendly.reply.support.0013" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я помогу решить срочное, но конфликт этим не закрыт." />
+		<template id="v3.social.friendly.reply.support.0009" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Одну конкретную часть дела может взять тот, у кого есть реальная возможность." />
+		<template id="v3.social.friendly.reply.support.0010" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Рядом с другим человеком не обязательно изображать бодрость." />
+		<template id="v3.social.friendly.reply.support.0011" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Прикрывать человека можно только реальным доступным действием, а не репликой." />
+		<template id="v3.social.friendly.reply.support.0012" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Подать руку упавшему может только тот, кто действительно находится рядом." />
+		<template id="v3.social.friendly.reply.support.0013" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Срочную проблему лучше разбирать по фактам, не обещая решить её за другого." />
 		<template id="v3.social.friendly.reply.support.0014" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После ваших оскорблений вы не вправе требовать моей заботы." />
 		<template id="v3.social.friendly.reply.support.0015" act="social.friendly.support.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я слышу, что вам непросто, и не стану давать непрошеных советов." />
 		<template id="v3.social.friendly.reply.support.0016" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Могу посидеть рядом или оставить вас одного — выбирайте." />
 		<template id="v3.social.friendly.reply.support.0017" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь выговориться, я не буду перебивать." />
-		<template id="v3.social.friendly.reply.support.0018" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я останусь столько, сколько тебе нужно." />
+		<template id="v3.social.friendly.reply.support.0018" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Поддержка в разговоре возможна сейчас, а оставаться на неопределённый срок нельзя обещать." />
 		<template id="v3.social.friendly.reply.support.0019" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не думай, что моя помощь означает капитуляцию." />
 		<template id="v3.social.friendly.reply.support.0020" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давай на время отложим взаимные претензии и решим беду." />
 		<template id="v3.social.friendly.reply.support.0021" act="social.friendly.support.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не позволю вам использовать чужую слабость." />
 		<template id="v3.social.friendly.reply.support.0022" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Чем я могу облегчить ближайший час?" />
 		<template id="v3.social.friendly.reply.support.0023" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если хотите, помогу составить короткий план." />
 		<template id="v3.social.friendly.reply.support.0024" act="social.friendly.support.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты уже сделал трудную часть — попросил о помощи." />
-		<template id="v3.social.friendly.reply.support.0025" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я возьму бытовые мелочи, а ты немного отдохни." />
+		<template id="v3.social.friendly.reply.support.0025" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Бытовые мелочи стоит отменить, перенести или попросить о них реального близкого человека." />
 		<template id="v3.social.friendly.reply.support.0026" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сегодня очко за взаимовыручку, а счёт продолжим завтра." />
 		<template id="v3.social.friendly.reply.support.0027" act="social.friendly.support.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я готов поддержать, если мы не возвращаемся к обвинениям." />
 		<template id="v3.social.friendly.reply.support.0028" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваши требования переходят границу, поэтому я отказываюсь." />
@@ -435,7 +435,7 @@
 		<template id="v3.social.friendly.reply.support.0030" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я могу проводить вас, если одному неуютно." />
 		<template id="v3.social.friendly.reply.support.0031" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты имеешь право устать и отменить планы." />
 		<template id="v3.social.friendly.reply.support.0032" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не стану чинить тебя — просто буду рядом." />
-		<template id="v3.social.friendly.reply.support.0033" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты всё равно мой соперник, но сегодня я на твоей стороне." />
+		<template id="v3.social.friendly.reply.support.0033" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперничество не мешает поддержать словами, но текущую сторону нельзя объявлять без ситуации." />
 		<template id="v3.social.friendly.reply.support.0034" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Могу помочь с делом, хотя разговор о нашем конфликте ещё впереди." />
 		<template id="v3.social.friendly.reply.support.0035" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не обращайтесь ко мне только тогда, когда вам что-то нужно." />
 		<template id="v3.social.friendly.reply.support.0036" act="social.friendly.support.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давайте найдём человека, который разбирается в этом лучше меня." />
@@ -455,14 +455,14 @@
 		<template id="v3.social.friendly.reply.support.0050" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я рядом и могу просто слушать." />
 		<template id="v3.social.friendly.reply.support.0051" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Скажите, нужна практическая помощь или человеческое присутствие." />
 		<template id="v3.social.friendly.reply.support.0052" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не должен оправдывать свои чувства." />
-		<template id="v3.social.friendly.reply.support.0053" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сегодня я возьму ответственность на себя." />
+		<template id="v3.social.friendly.reply.support.0053" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ответственность должен брать тот, кто реально контролирует действие." />
 		<template id="v3.social.friendly.reply.support.0054" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Моя рука помощи не отменяет нашей конкуренции." />
 		<template id="v3.social.friendly.reply.support.0055" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы можем действовать сообща, не притворяясь друзьями." />
 		<template id="v3.social.friendly.reply.support.0056" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не стану помогать вам вредить себе или окружающим." />
 		<template id="v3.social.friendly.reply.support.0057" act="social.friendly.support.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давайте сделаем паузу и проверим, что вам сейчас безопасно." />
 		<template id="v3.social.friendly.reply.support.0058" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я могу найти нужный контакт и передать его вам." />
 		<template id="v3.social.friendly.reply.support.0059" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты заслуживаешь отдыха, даже если список дел не закончен." />
-		<template id="v3.social.friendly.reply.support.0060" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я напомню тебе поесть и немного поспать." />
+		<template id="v3.social.friendly.reply.support.0060" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Еду и сон лучше поставить в собственные напоминания, не обещая контроль со стороны." />
 		<template id="v3.social.friendly.reply.support.0061" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Поддержу твой риск, если он честный и продуманный." />
 		<template id="v3.social.friendly.reply.support.0062" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я не оставлю тебя с последствиями ссоры одного." />
 		<template id="v3.social.friendly.reply.support.0063" act="social.friendly.support.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После того, как вы отвергли мою помощь, я не буду навязываться." />
@@ -483,8 +483,8 @@
 		<template id="v3.social.friendly.reply.support.0078" act="social.friendly.support.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я могу выслушать вашу историю без оценок." />
 		<template id="v3.social.friendly.reply.support.0079" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давайте вместе проверим доступные варианты." />
 		<template id="v3.social.friendly.reply.support.0080" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты уже не раз справлялся, но помощь всё равно не помешает." />
-		<template id="v3.social.friendly.reply.support.0081" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если сил нет, я помогу отменить лишнее." />
-		<template id="v3.social.friendly.reply.support.0082" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я дам тебе фору не из жалости, а из уважения." />
+		<template id="v3.social.friendly.reply.support.0081" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Лишнее стоит отменить самому или попросить того, кто имеет доступ к планам." />
+		<template id="v3.social.friendly.reply.support.0082" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Фора имеет смысл только как реальное правило игры, а не обещание в разговоре." />
 		<template id="v3.social.friendly.reply.support.0083" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Наши разногласия не мешают мне желать тебе безопасности." />
 		<template id="v3.social.friendly.reply.support.0084" act="social.friendly.support.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я прекращу разговор, если вы продолжите требовать невозможного." />
 		<template id="v3.social.friendly.reply.support.0085" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вам сейчас нужен отдых, а не ещё одна задача." />
@@ -495,37 +495,37 @@
 		<template id="v3.social.friendly.reply.support.0090" act="social.friendly.support.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я рядом в этой конкретной ситуации, хотя доверие ещё не восстановлено." />
 		<template id="v3.social.friendly.reply.support.0091" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не поддержу вас ценой собственного благополучия." />
 		<template id="v3.social.friendly.reply.support.0092" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Можно просто дожить до вечера, не решая всю жизнь сразу." />
-		<template id="v3.social.friendly.reply.support.0093" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если хотите, я напишу краткое сообщение вместо вас." />
+		<template id="v3.social.friendly.reply.support.0093" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Краткое сообщение лучше написать самому; с формулировкой можно помочь словами." />
 		<template id="v3.social.friendly.reply.support.0094" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты не обязан благодарить меня за обычную человеческую помощь." />
 		<template id="v3.social.friendly.reply.support.0095" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я разделю с тобой неприятную часть работы." />
-		<template id="v3.social.friendly.reply.support.0096" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу тебе подняться, чтобы следующий раунд был честным." />
+		<template id="v3.social.friendly.reply.support.0096" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Подняться после падения помогает тот, кто реально находится рядом и может сделать это безопасно." />
 		<template id="v3.social.friendly.reply.support.0097" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы можем сотрудничать в этом деле, сохраняя дистанцию." />
 		<template id="v3.social.friendly.reply.support.0098" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Отойдите от меня и обратитесь к тому, кому доверяете." />
 		<template id="v3.social.friendly.reply.support.0099" act="social.friendly.support.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне жаль, что вам приходится через это проходить." />
 		<template id="v3.social.friendly.reply.support.0100" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я готов уточнить, куда лучше обратиться за помощью." />
 		<template id="v3.social.friendly.reply.support.0101" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь перенести разговор до момента, когда появятся силы." />
 		<template id="v3.social.friendly.reply.support.0102" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я прикрою твой отдых и отвечу на сообщения." />
-		<template id="v3.social.friendly.reply.support.0103" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сегодня я стану твоей командой, но счёт между нами остаётся." />
+		<template id="v3.social.friendly.reply.support.0103" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="В трудный день можно поддержать словами, не объявляя себя чьей-то командой." />
 		<template id="v3.social.friendly.reply.support.0104" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давай решим срочную проблему и не будем делать вид, что всё прощено." />
 		<template id="v3.social.friendly.reply.support.0105" act="social.friendly.support.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не обязан спасать вас от последствий ваших поступков." />
 		<template id="v3.social.friendly.reply.support.0106" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Что сейчас принесёт больше облегчения: действие или тишина?" />
 		<template id="v3.social.friendly.reply.support.0107" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я могу послушать пять минут или целый вечер." />
 		<template id="v3.social.friendly.reply.support.0108" act="social.friendly.support.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты не один, даже если тебе так кажется." />
-		<template id="v3.social.friendly.reply.support.0109" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу разобрать завал без лекции о порядке." />
+		<template id="v3.social.friendly.reply.support.0109" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Завал легче разбирать по одному пункту и без лекции о порядке." />
 		<template id="v3.social.friendly.reply.support.0110" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Поддержу твою попытку, а потом честно укажу на слабые места." />
 		<template id="v3.social.friendly.reply.support.0111" act="social.friendly.support.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я готов прийти на помощь, если мы соблюдаем границы." />
 		<template id="v3.social.friendly.reply.support.0112" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не используйте кризис как способ вернуть контроль надо мной." />
 		<template id="v3.social.friendly.reply.support.0113" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давайте уберём самое срочное, остальное подождёт." />
 		<template id="v3.social.friendly.reply.support.0114" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я могу напомнить о встрече или пойти вместе с вами." />
 		<template id="v3.social.friendly.reply.support.0115" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь отказаться от компании, я не обижусь." />
-		<template id="v3.social.friendly.reply.support.0116" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я останусь на связи и проверю, как ты позже." />
+		<template id="v3.social.friendly.reply.support.0116" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Проверить состояние позже может реальный близкий человек, если его об этом попросили." />
 		<template id="v3.social.friendly.reply.support.0117" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Помогу тебе подготовиться, чтобы победа была заслуженной." />
 		<template id="v3.social.friendly.reply.support.0118" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Несмотря на обиду, я не оставлю тебя в опасности." />
 		<template id="v3.social.friendly.reply.support.0119" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Для вашей безопасности я позову тех, кто умеет помочь." />
 		<template id="v3.social.friendly.reply.support.0120" act="social.friendly.support.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не требуйте от себя продуктивности в тяжёлый день." />
-		<template id="v3.social.friendly.reply.support.0121" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я принесу воду и дам вам немного пространства." />
+		<template id="v3.social.friendly.reply.support.0121" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Воду можно взять самому; пространство человеку лучше действительно дать." />
 		<template id="v3.social.friendly.reply.support.0122" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь доверить мне неприятный разговор." />
-		<template id="v3.social.friendly.reply.support.0123" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я возьму одну половину, ты — ту, на которую хватит сил." />
+		<template id="v3.social.friendly.reply.support.0123" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Большую задачу стоит разделить на части, которые каждый реально может взять." />
 		<template id="v3.social.friendly.reply.support.0124" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Можешь считать это дружеской помощью с соревновательной улыбкой." />
 		<template id="v3.social.friendly.reply.support.0125" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я поддержу тебя в необходимом, но не вернусь к прежним отношениям." />
 		<template id="v3.social.friendly.reply.support.0126" act="social.friendly.support.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не стану участвовать в ваших разрушительных планах." />
@@ -533,7 +533,7 @@
 		<template id="v3.social.friendly.reply.support.0128" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если нужна медицинская или экстренная помощь, позовём её немедленно." />
 		<template id="v3.social.friendly.reply.support.0129" act="social.friendly.support.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты можешь молчать, я всё равно не уйду." />
 		<template id="v3.social.friendly.reply.support.0130" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я освобожу тебе вечер от мелких забот." />
-		<template id="v3.social.friendly.reply.support.0131" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу донести груз, но лидерство не уступлю." />
+		<template id="v3.social.friendly.reply.support.0131" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Тяжёлый груз должен нести тот, кто может сделать это безопасно, независимо от лидерства." />
 		<template id="v3.social.friendly.reply.support.0132" act="social.friendly.support.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мы можем вместе закончить дело и разойтись без новых споров." />
 		<template id="v3.social.friendly.reply.support.0133" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваш тон делает помощь невозможной; сначала остановитесь." />
 		<template id="v3.social.friendly.reply.support.0134" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я не обещаю решить всё, но могу облегчить следующий шаг." />
@@ -541,19 +541,19 @@
 		<template id="v3.social.friendly.reply.support.0136" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты достоин поддержки не только в лучшие дни." />
 		<template id="v3.social.friendly.reply.support.0137" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я приготовлю что-нибудь простое и прослежу, чтобы ты поел." />
 		<template id="v3.social.friendly.reply.support.0138" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Держись за моё плечо, а спор о скорости оставим на потом." />
-		<template id="v3.social.friendly.reply.support.0139" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я помогу, потому что ситуация важнее нашей ссоры." />
+		<template id="v3.social.friendly.reply.support.0139" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Важная ситуация иногда выше ссоры, но конкретную помощь нельзя обещать без возможности." />
 		<template id="v3.social.friendly.reply.support.0140" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я не позволю втянуть себя в шантаж под видом просьбы." />
 		<template id="v3.social.friendly.reply.support.0141" act="social.friendly.support.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Можете рассказать ровно столько, сколько хотите." />
-		<template id="v3.social.friendly.reply.support.0142" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я помогу найти спокойное место для разговора." />
+		<template id="v3.social.friendly.reply.support.0142" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спокойное место для разговора лучше выбрать из реально доступных вариантов." />
 		<template id="v3.social.friendly.reply.support.0143" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь попросить меня уйти в любой момент." />
-		<template id="v3.social.friendly.reply.support.0144" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я возьму звонки на себя, пока ты приходишь в себя." />
+		<template id="v3.social.friendly.reply.support.0144" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Звонки может взять только тот, у кого есть доступ и согласие отвечать." />
 		<template id="v3.social.friendly.reply.support.0145" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давай сначала восстановимся, потом выясним, кто сильнее." />
 		<template id="v3.social.friendly.reply.support.0146" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="В экстренной ситуации мы действуем вместе, даже если злимся." />
 		<template id="v3.social.friendly.reply.support.0147" act="social.friendly.support.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не приближайтесь и не рассчитывайте на моё участие." />
 		<template id="v3.social.friendly.reply.support.0148" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я вижу, что вы стараетесь, даже если сегодня мало получилось." />
 		<template id="v3.social.friendly.reply.support.0149" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Можно попросить ещё кого-то, чтобы нагрузка не легла на одного человека." />
 		<template id="v3.social.friendly.reply.support.0150" act="social.friendly.support.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты не обязан принимать помощь именно в той форме, которую предлагают." />
-		<template id="v3.social.friendly.reply.support.0151" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу тебе назвать то, что сейчас кажется хаосом." />
+		<template id="v3.social.friendly.reply.support.0151" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="То, что кажется хаосом, полезно назвать одной конкретной фразой." />
 		<template id="v3.social.friendly.reply.support.0152" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я подстрахую на старте, а дальше посмотрим, кто быстрее." />
 		<template id="v3.social.friendly.reply.support.0153" act="social.friendly.support.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я выполню свою часть без личных разговоров." />
 		<template id="v3.social.friendly.reply.support.0154" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваше состояние не даёт вам права оскорблять меня." />
@@ -561,13 +561,13 @@
 		<template id="v3.social.friendly.reply.support.0156" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я могу остаться на линии, пока вы добираетесь домой." />
 		<template id="v3.social.friendly.reply.support.0157" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь отменить всё, что не связано с безопасностью." />
 		<template id="v3.social.friendly.reply.support.0158" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я разделю с тобой тишину, если слов нет." />
-		<template id="v3.social.friendly.reply.support.0159" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не бойся, я помогу тебе вернуться в форму для нашего следующего поединка." />
+		<template id="v3.social.friendly.reply.support.0159" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Возвращение в форму требует времени, а не обещанной помощи ради реванша." />
 		<template id="v3.social.friendly.reply.support.0160" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я готов быть рядом сейчас, но нам всё ещё нужен отдельный разговор." />
 		<template id="v3.social.friendly.reply.support.0161" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я отказываюсь участвовать в ситуации, где мне угрожают." />
 		<template id="v3.social.friendly.reply.support.0162" act="social.friendly.support.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Вам не нужно заслуживать право попросить о помощи." />
 		<template id="v3.social.friendly.reply.support.0163" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я могу проверить информацию и избавить вас от лишней тревоги." />
 		<template id="v3.social.friendly.reply.support.0164" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты вправе выбрать другого человека для поддержки." />
-		<template id="v3.social.friendly.reply.support.0165" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я останусь спокойным, даже если ты сейчас раздражён." />
+		<template id="v3.social.friendly.reply.support.0165" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Спокойный тон полезен даже рядом с чужим раздражением." />
 		<template id="v3.social.friendly.reply.support.0166" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Помогу закончить подготовку, чтобы у тебя не было оправданий при проигрыше." />
 		<template id="v3.social.friendly.reply.support.0167" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я могу сделать необходимое, не возвращаясь к близости." />
 		<template id="v3.social.friendly.reply.support.0168" act="social.friendly.support.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="За помощью обращайтесь к профессионалам, а меня оставьте в покое." />
@@ -582,38 +582,38 @@
 		<template id="v3.social.friendly.reply.support.0177" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Скажите, кому ещё стоит сообщить о ситуации." />
 		<template id="v3.social.friendly.reply.support.0178" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь лечь спать, я закончу самое необходимое." />
 		<template id="v3.social.friendly.reply.support.0179" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не дам тебе обесценивать собственные усилия." />
-		<template id="v3.social.friendly.reply.support.0180" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу проверить твой план на прочность, как достойный соперник." />
+		<template id="v3.social.friendly.reply.support.0180" act="social.friendly.support.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="План можно проверить вопросами, не обещая реальное участие соперника." />
 		<template id="v3.social.friendly.reply.support.0181" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мы можем договориться о разовой помощи без примирения." />
 		<template id="v3.social.friendly.reply.support.0182" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После того, что вы сделали, держитесь от меня подальше." />
 		<template id="v3.social.friendly.reply.support.0183" act="social.friendly.support.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я готов пройти рядом первую часть пути." />
 		<template id="v3.social.friendly.reply.support.0184" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ваши чувства реальны, даже если я не до конца их понимаю." />
-		<template id="v3.social.friendly.reply.support.0185" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь опереться на привычный распорядок, я помогу его сохранить." />
+		<template id="v3.social.friendly.reply.support.0185" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Привычный распорядок легче сохранить самому с простыми опорами." />
 		<template id="v3.social.friendly.reply.support.0186" act="social.friendly.support.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не стану подталкивать тебя к решению раньше времени." />
-		<template id="v3.social.friendly.reply.support.0187" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Возьми мою помощь, иначе наш следующий матч будет слишком лёгким." />
+		<template id="v3.social.friendly.reply.support.0187" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Помощь не должна быть условием будущего матча." />
 		<template id="v3.social.friendly.reply.support.0188" act="social.friendly.support.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я поддержу безопасный выход из ситуации, но не продолжение конфликта." />
 		<template id="v3.social.friendly.reply.support.0189" act="social.friendly.support.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не соглашусь быть единственным человеком, отвечающим за ваше состояние." />
 		<template id="v3.social.friendly.reply.support.0190" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если сейчас слишком много слов, можно просто кивнуть." />
 		<template id="v3.social.friendly.reply.support.0191" act="social.friendly.support.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я могу принести нужные вещи без долгого визита." />
 		<template id="v3.social.friendly.reply.support.0192" act="social.friendly.support.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты имеешь право попросить конкретно, а не намёками." />
-		<template id="v3.social.friendly.reply.support.0193" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я напомню тебе, что один плохой день не определяет всё." />
-		<template id="v3.social.friendly.reply.support.0194" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу восстановиться, потому что хочу честной борьбы." />
+		<template id="v3.social.friendly.reply.support.0193" act="social.friendly.support.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Один плохой день не определяет всё; эту мысль полезно записать самому." />
+		<template id="v3.social.friendly.reply.support.0194" act="social.friendly.support.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Восстановление нельзя обещать за другого даже ради честной борьбы." />
 		<template id="v3.social.friendly.reply.support.0195" act="social.friendly.support.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Давай доведём тебя до безопасного места, а отношения обсудим позже." />
 		<template id="v3.social.friendly.reply.support.0196" act="social.friendly.support.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваши действия небезопасны, поэтому я обращусь за помощью без вашего согласия." />
 		<template id="v3.social.friendly.reply.support.0197" act="social.friendly.support.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я рядом, и следующий шаг мы можем выбрать вместе." />
 		<template id="v3.social.friendly.reply.support.0198" act="social.friendly.support.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я не стану обещать, что всё будет легко, но помогу не оставаться одному." />
 		<template id="v3.social.friendly.reply.support.0199" act="social.friendly.support.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты можешь передумать и выбрать другой вид поддержки." />
-		<template id="v3.social.friendly.reply.meeting.0001" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Рад знакомству; давайте начнём с имён и общего дела." />
-		<template id="v3.social.friendly.reply.meeting.0002" act="social.friendly.meeting.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Спасибо, что нашли время встретиться." />
-		<template id="v3.social.friendly.reply.meeting.0003" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Наконец-то увиделись не только в переписке." />
-		<template id="v3.social.friendly.reply.meeting.0004" act="social.friendly.meeting.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я ждал этой встречи и уже приготовил для нас спокойное место." />
+		<template id="v3.social.friendly.reply.meeting.0001" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="При знакомстве полезно начать с имён и общего дела." />
+		<template id="v3.social.friendly.reply.meeting.0002" act="social.friendly.meeting.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Спасибо за время уместно после реально согласованной встречи." />
+		<template id="v3.social.friendly.reply.meeting.0003" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Встреча вне переписки имеет смысл только как реальное событие." />
+		<template id="v3.social.friendly.reply.meeting.0004" act="social.friendly.meeting.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Спокойное место для встречи стоит подготовить тому, кто реально её организует." />
 		<template id="v3.social.friendly.reply.meeting.0005" act="social.friendly.meeting.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Посмотрим, кто первым превратит знакомство в соревнование." />
-		<template id="v3.social.friendly.reply.meeting.0006" act="social.friendly.meeting.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я пришёл ради разговора, но держу дистанцию." />
+		<template id="v3.social.friendly.reply.meeting.0006" act="social.friendly.meeting.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Дистанцию можно держать даже при разговоре, не утверждая физическое присутствие." />
 		<template id="v3.social.friendly.reply.meeting.0007" act="social.friendly.meeting.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не приближайтесь ко мне и не пытайтесь продолжать встречу." />
 		<template id="v3.social.friendly.reply.meeting.0008" act="social.friendly.meeting.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Приятно встретить нового человека без формальностей." />
 		<template id="v3.social.friendly.reply.meeting.0009" act="social.friendly.meeting.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Можно расположиться здесь, если вам удобно." />
-		<template id="v3.social.friendly.reply.meeting.0010" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты выглядишь именно так, как я представлял по сообщениям." />
-		<template id="v3.social.friendly.reply.meeting.0011" act="social.friendly.meeting.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я рад, что мы выбрали вечер только для себя." />
-		<template id="v3.social.friendly.reply.meeting.0012" act="social.friendly.meeting.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пришёл вовремя, чтобы у тебя не было первого преимущества." />
+		<template id="v3.social.friendly.reply.meeting.0010" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Внешность по сообщениям легко вообразить неверно; лучше не выдавать догадку за факт." />
+		<template id="v3.social.friendly.reply.meeting.0011" act="social.friendly.meeting.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вечер только для двоих требует реальной договорённости, а не готового утверждения." />
+		<template id="v3.social.friendly.reply.meeting.0012" act="social.friendly.meeting.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Приход вовремя не даёт преимущества, если встреча вообще соревновательная." />
 		<template id="v3.social.friendly.reply.meeting.0013" act="social.friendly.meeting.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай ограничимся обсуждением дела и разойдёмся." />
 		<template id="v3.social.friendly.reply.meeting.0014" act="social.friendly.meeting.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Эта встреча окончена; больше меня не ищите." />
 		<template id="v3.social.friendly.reply.meeting.0015" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Спасибо, что представились, теперь разговор станет проще." />
@@ -667,7 +667,7 @@
 		<template id="v3.social.friendly.reply.meeting.0063" act="social.friendly.meeting.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Немедленно уйдите с моей дороги." />
 		<template id="v3.social.friendly.reply.meeting.0064" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Как хорошо, что мы нашли удобный день для встречи." />
 		<template id="v3.social.friendly.reply.meeting.0065" act="social.friendly.meeting.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если хотите, начнём с лёгкой темы." />
-		<template id="v3.social.friendly.reply.meeting.0066" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты не изменился с нашей последней встречи." />
+		<template id="v3.social.friendly.reply.meeting.0066" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После долгой паузы человек может казаться прежним, но утверждать это без встречи рано." />
 		<template id="v3.social.friendly.reply.meeting.0067" act="social.friendly.meeting.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я сохранил для тебя маленький сюрприз." />
 		<template id="v3.social.friendly.reply.meeting.0068" act="social.friendly.meeting.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давай посмотрим, чей план на вечер окажется интереснее." />
 		<template id="v3.social.friendly.reply.meeting.0069" act="social.friendly.meeting.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я пришёл закрыть один вопрос, не больше." />
@@ -683,7 +683,7 @@
 		<template id="v3.social.friendly.reply.meeting.0079" act="social.friendly.meeting.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Спасибо за пунктуальность, это облегчает разговор." />
 		<template id="v3.social.friendly.reply.meeting.0080" act="social.friendly.meeting.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты выбрал удачное место, беру рекомендацию на заметку." />
 		<template id="v3.social.friendly.reply.meeting.0081" act="social.friendly.meeting.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне хотелось обнять тебя при встрече, но сначала спрошу разрешения." />
-		<template id="v3.social.friendly.reply.meeting.0082" act="social.friendly.meeting.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сегодня я уступлю тебе выбор, чтобы потом требовать реванш." />
+		<template id="v3.social.friendly.reply.meeting.0082" act="social.friendly.meeting.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Выбор можно уступить ради дружеского реванша, если такая игра действительно идёт." />
 		<template id="v3.social.friendly.reply.meeting.0083" act="social.friendly.meeting.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я сяду ближе к выходу, так мне спокойнее." />
 		<template id="v3.social.friendly.reply.meeting.0084" act="social.friendly.meeting.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Нам не о чем встречаться после ваших угроз." />
 		<template id="v3.social.friendly.reply.meeting.0085" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Рад, что вы добрались без приключений." />
@@ -722,11 +722,11 @@
 		<template id="v3.social.friendly.reply.meeting.0118" act="social.friendly.meeting.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я не готов обсуждать личное, останемся в рамках дела." />
 		<template id="v3.social.friendly.reply.meeting.0119" act="social.friendly.meeting.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ваше присутствие вызывает у меня страх; отойдите." />
 		<template id="v3.social.friendly.reply.meeting.0120" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Рад встрече, можно начать с небольшой прогулки." />
-		<template id="v3.social.friendly.reply.meeting.0121" act="social.friendly.meeting.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я выключу звук на телефоне, чтобы нас не отвлекали." />
+		<template id="v3.social.friendly.reply.meeting.0121" act="social.friendly.meeting.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Во время встречи телефон лучше перевести в тихий режим самому." />
 		<template id="v3.social.friendly.reply.meeting.0122" act="social.friendly.meeting.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты пришёл с отличной историей, чувствую это по лицу." />
 		<template id="v3.social.friendly.reply.meeting.0123" act="social.friendly.meeting.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне спокойно сидеть рядом и никуда не спешить." />
 		<template id="v3.social.friendly.reply.meeting.0124" act="social.friendly.meeting.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай устроим честное голосование за следующий пункт маршрута." />
-		<template id="v3.social.friendly.reply.meeting.0125" act="social.friendly.meeting.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я останусь, пока разговор остаётся уважительным." />
+		<template id="v3.social.friendly.reply.meeting.0125" act="social.friendly.meeting.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Оставаться в разговоре стоит, пока он уважителен, без обещания физического присутствия." />
 		<template id="v3.social.friendly.reply.meeting.0126" act="social.friendly.meeting.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я уже попросил других людей быть рядом из-за ваших действий." />
 		<template id="v3.social.friendly.reply.meeting.0127" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Спасибо за приглашение, здесь приятная атмосфера." />
 		<template id="v3.social.friendly.reply.meeting.0128" act="social.friendly.meeting.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Уточним заказ и спокойно перейдём к обсуждению." />
@@ -737,7 +737,7 @@
 		<template id="v3.social.friendly.reply.meeting.0133" act="social.friendly.meeting.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Любая следующая попытка приблизиться будет расценена как угроза." />
 		<template id="v3.social.friendly.reply.meeting.0134" act="social.friendly.meeting.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Приятно встретиться в такой ясный день." />
 		<template id="v3.social.friendly.reply.meeting.0135" act="social.friendly.meeting.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Можем выбрать маршрут по очереди." />
-		<template id="v3.social.friendly.reply.meeting.0136" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты сохранил нашу старую привычку приходить чуть раньше." />
+		<template id="v3.social.friendly.reply.meeting.0136" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Приходить чуть раньше может быть привычкой, но общей и старой её нельзя считать без фактов." />
 		<template id="v3.social.friendly.reply.meeting.0137" act="social.friendly.meeting.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я приготовил время без дел, потому что ты важен." />
 		<template id="v3.social.friendly.reply.meeting.0138" act="social.friendly.meeting.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сначала ты показываешь любимое место, потом я своё." />
 		<template id="v3.social.friendly.reply.meeting.0139" act="social.friendly.meeting.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я пришёл проверить, способны ли мы спокойно разговаривать." />
@@ -749,7 +749,7 @@
 		<template id="v3.social.friendly.reply.meeting.0145" act="social.friendly.meeting.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Посмотрим, кто первым рассмешит официанта." />
 		<template id="v3.social.friendly.reply.meeting.0146" act="social.friendly.meeting.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Обсудим только настоящее, без повторения старых обвинений." />
 		<template id="v3.social.friendly.reply.meeting.0147" act="social.friendly.meeting.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не загораживайте выход." />
-		<template id="v3.social.friendly.reply.meeting.0148" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Рад увидеться; погода будто тоже поддержала наш план." />
+		<template id="v3.social.friendly.reply.meeting.0148" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Хорошая погода способна поддержать план встречи, если он действительно есть." />
 		<template id="v3.social.friendly.reply.meeting.0149" act="social.friendly.meeting.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если разговор затянется, перенесём остаток на другой день." />
 		<template id="v3.social.friendly.reply.meeting.0150" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты выбрал место с хорошей музыкой, уважаю вкус." />
 		<template id="v3.social.friendly.reply.meeting.0151" act="social.friendly.meeting.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я давно хотел просто посидеть с тобой без повода." />
@@ -774,14 +774,14 @@
 		<template id="v3.social.friendly.reply.meeting.0170" act="social.friendly.meeting.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Можно разделить встречу на разговор и короткую прогулку." />
 		<template id="v3.social.friendly.reply.meeting.0171" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты выглядишь довольным, значит, день начался неплохо." />
 		<template id="v3.social.friendly.reply.meeting.0172" act="social.friendly.meeting.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я выбрал тихий угол, где мы сможем побыть вместе." />
-		<template id="v3.social.friendly.reply.meeting.0173" act="social.friendly.meeting.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давай сравним наши маршруты и выберем самый необычный." />
+		<template id="v3.social.friendly.reply.meeting.0173" act="social.friendly.meeting.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Маршруты интересно сравнить и выбрать необычный, когда они реально названы." />
 		<template id="v3.social.friendly.reply.meeting.0174" act="social.friendly.meeting.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я не обещаю примирения, но готов говорить." />
 		<template id="v3.social.friendly.reply.meeting.0175" act="social.friendly.meeting.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я прекращаю любой контакт с вами." />
 		<template id="v3.social.friendly.reply.meeting.0176" act="social.friendly.meeting.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Приятно, что вы пришли без опоздания." />
 		<template id="v3.social.friendly.reply.meeting.0177" act="social.friendly.meeting.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Начнём с чашки кофе и пары простых вопросов." />
 		<template id="v3.social.friendly.reply.meeting.0178" act="social.friendly.meeting.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты уже успел подружиться с этим местом." />
 		<template id="v3.social.friendly.reply.meeting.0179" act="social.friendly.meeting.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я сохранил для нас целый вечер без расписания." />
-		<template id="v3.social.friendly.reply.meeting.0180" act="social.friendly.meeting.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я принёс блокнот для счёта наших маленьких побед." />
+		<template id="v3.social.friendly.reply.meeting.0180" act="social.friendly.meeting.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Счёт маленьких побед лучше вести только по реальной договорённости." />
 		<template id="v3.social.friendly.reply.meeting.0181" act="social.friendly.meeting.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сегодня мы говорим только при взаимном уважении." />
 		<template id="v3.social.friendly.reply.meeting.0182" act="social.friendly.meeting.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Никогда больше не назначайте мне встреч." />
 		<template id="v3.social.friendly.reply.meeting.0183" act="social.friendly.meeting.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Здравствуйте, спасибо, что выбрали понятный ориентир." />

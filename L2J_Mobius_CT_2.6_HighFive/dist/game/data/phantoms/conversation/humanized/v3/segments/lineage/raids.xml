@@ -3,14 +3,14 @@
 	<templates>
 		<template id="v3.lineage.raids.reply.preparation.0001" act="lineage.raids.preparation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я впервые иду с вами, поэтому хочу услышать порядок входа заранее." />
 		<template id="v3.lineage.raids.reply.preparation.0002" act="lineage.raids.preparation.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сначала собираемся в безопасной точке и проверяем доступ каждого." />
-		<template id="v3.lineage.raids.reply.preparation.0003" act="lineage.raids.preparation.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Расходники взял, место освободил, голова пока тоже свободна." />
-		<template id="v3.lineage.raids.reply.preparation.0004" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я пройду список вместе с тобой, чтобы мелочь не испортила вечер." />
+		<template id="v3.lineage.raids.reply.preparation.0003" act="lineage.raids.preparation.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Перед входом стоит проверить расходники, свободное место и собственную готовность." />
+		<template id="v3.lineage.raids.reply.preparation.0004" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Список лучше пройти вдвоём, чтобы мелочь не испортила вечер." />
 		<template id="v3.lineage.raids.reply.preparation.0005" act="lineage.raids.preparation.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, подготовка не делает тебя медленным, только менее смешным после фейла." />
 		<template id="v3.lineage.raids.reply.preparation.0006" act="lineage.raids.preparation.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="До полной проверки внутрь не заходим." />
 		<template id="v3.lineage.raids.reply.preparation.0007" act="lineage.raids.preparation.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Кто пришёл без доступа, не задерживает молча весь рейд." />
-		<template id="v3.lineage.raids.reply.preparation.0008" act="lineage.raids.preparation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Одного участника не пускает через дверь." />
+		<template id="v3.lineage.raids.reply.preparation.0008" act="lineage.raids.preparation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если одного участника не пускает через дверь, сначала нужно выяснить условие доступа." />
 		<template id="v3.lineage.raids.reply.preparation.0009" act="lineage.raids.preparation.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Пусть он проверит обязательное условие, остальные остаются на точке." />
-		<template id="v3.lineage.raids.reply.preparation.0010" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я подожду с ним, вы пока не нажимайте запуск." />
+		<template id="v3.lineage.raids.reply.preparation.0010" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не нажимайте запуск, пока нужный участник не подтвердил готовность." />
 		<template id="v3.lineage.raids.reply.preparation.0011" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне важно, чтобы ты не остался снаружи из-за чужой спешки." />
 		<template id="v3.lineage.raids.reply.preparation.0012" act="lineage.raids.preparation.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, победить дверь труднее без нужного квеста." />
 		<template id="v3.lineage.raids.reply.preparation.0013" act="lineage.raids.preparation.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Причину доступа выясняем до старта." />
@@ -18,7 +18,7 @@
 		<template id="v3.lineage.raids.reply.preparation.0015" act="lineage.raids.preparation.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="До сбора осталось мало времени, а состав неполный." />
 		<template id="v3.lineage.raids.reply.preparation.0016" act="lineage.raids.preparation.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Назовите критические роли и крайний срок ожидания." />
 		<template id="v3.lineage.raids.reply.preparation.0017" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Нам нужен ещё один хил, без него заходить не станем." />
-		<template id="v3.lineage.raids.reply.preparation.0018" act="lineage.raids.preparation.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я помогу искать замену, но не обещаю невозможный состав." />
+		<template id="v3.lineage.raids.reply.preparation.0018" act="lineage.raids.preparation.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Замену стоит искать по реальной роли, не обещая невозможный состав." />
 		<template id="v3.lineage.raids.reply.preparation.0019" act="lineage.raids.preparation.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, пустой слот не лечит силой уверенности." />
 		<template id="v3.lineage.raids.reply.preparation.0020" act="lineage.raids.preparation.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Поиск идёт до объявленного времени." />
 		<template id="v3.lineage.raids.reply.preparation.0021" act="lineage.raids.preparation.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После срока либо отмена, либо новый план." />
@@ -39,7 +39,7 @@
 		<template id="v3.lineage.raids.reply.preparation.0036" act="lineage.raids.preparation.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Новый участник не знает механику." />
 		<template id="v3.lineage.raids.reply.preparation.0037" act="lineage.raids.preparation.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Дайте ему краткий маршрут опасных моментов и одну понятную роль." />
 		<template id="v3.lineage.raids.reply.preparation.0038" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Скажите, где стоять и когда точно нельзя жать умения." />
-		<template id="v3.lineage.raids.reply.preparation.0039" act="lineage.raids.preparation.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я останусь рядом на первой фазе и подскажу без крика." />
+		<template id="v3.lineage.raids.reply.preparation.0039" act="lineage.raids.preparation.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="На первой фазе помогают короткие ориентиры, а не обещание быть рядом." />
 		<template id="v3.lineage.raids.reply.preparation.0040" act="lineage.raids.preparation.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, новичку нужна карта, не энциклопедия перед дверью." />
 		<template id="v3.lineage.raids.reply.preparation.0041" act="lineage.raids.preparation.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Объяснение ограничиваем ключевыми рисками." />
 		<template id="v3.lineage.raids.reply.preparation.0042" act="lineage.raids.preparation.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="За ошибку новичка отвечает и тот, кто ничего не объяснил." />
@@ -53,14 +53,14 @@
 		<template id="v3.lineage.raids.reply.preparation.0050" act="lineage.raids.preparation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Часть группы уже ушла по маршруту без остальных." />
 		<template id="v3.lineage.raids.reply.preparation.0051" act="lineage.raids.preparation.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Остановитесь на ближайшей безопасной точке и восстановите состав." />
 		<template id="v3.lineage.raids.reply.preparation.0052" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не агрим дальше, ждём хвост." />
-		<template id="v3.lineage.raids.reply.preparation.0053" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я проверю, кто отстал, и доведу их к метке." />
+		<template id="v3.lineage.raids.reply.preparation.0053" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Отставших лучше собрать у метки общим сигналом." />
 		<template id="v3.lineage.raids.reply.preparation.0054" act="lineage.raids.preparation.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, быстрый авангард без рейда остаётся экскурсией." />
 		<template id="v3.lineage.raids.reply.preparation.0055" act="lineage.raids.preparation.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Движение продолжаем только вместе." />
 		<template id="v3.lineage.raids.reply.preparation.0056" act="lineage.raids.preparation.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Кто убежал вперёд, возвращается сам." />
 		<template id="v3.lineage.raids.reply.preparation.0057" act="lineage.raids.preparation.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне нужно уйти раньше предполагаемого конца." />
 		<template id="v3.lineage.raids.reply.preparation.0058" act="lineage.raids.preparation.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Назовите роль и время замены до начала попытки." />
-		<template id="v3.lineage.raids.reply.preparation.0059" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я останусь на первый заход и передам задачу после него." />
-		<template id="v3.lineage.raids.reply.preparation.0060" act="lineage.raids.preparation.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я прослежу, чтобы тебя не удерживали сверх договорённости." />
+		<template id="v3.lineage.raids.reply.preparation.0059" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Передача задачи должна быть подтверждена тем, кто реально берёт следующий заход." />
+		<template id="v3.lineage.raids.reply.preparation.0060" act="lineage.raids.preparation.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Время участия стоит согласовать заранее и не удерживать сверх него." />
 		<template id="v3.lineage.raids.reply.preparation.0061" act="lineage.raids.preparation.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, честный уход лучше исчезновения на фазе." />
 		<template id="v3.lineage.raids.reply.preparation.0062" act="lineage.raids.preparation.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Замена подтверждает готовность заранее." />
 		<template id="v3.lineage.raids.reply.preparation.0063" act="lineage.raids.preparation.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Без сменщика критическая роль не стартует." />
@@ -74,7 +74,7 @@
 		<template id="v3.lineage.raids.reply.preparation.0071" act="lineage.raids.preparation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="У группы нет свободных слотов под возможный дроп." />
 		<template id="v3.lineage.raids.reply.preparation.0072" act="lineage.raids.preparation.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Очистите инвентари до входа и оставьте запас для расходников." />
 		<template id="v3.lineage.raids.reply.preparation.0073" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сейчас выгружу мусор, который зачем-то ношу с прошлого века." />
-		<template id="v3.lineage.raids.reply.preparation.0074" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я подожду; потерянный дроп будет обиднее минуты подготовки." />
+		<template id="v3.lineage.raids.reply.preparation.0074" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Минута подготовки дешевле потерянного дропа." />
 		<template id="v3.lineage.raids.reply.preparation.0075" act="lineage.raids.preparation.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, коллекция хлама снова сражается против тебя." />
 		<template id="v3.lineage.raids.reply.preparation.0076" act="lineage.raids.preparation.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Проверяем вместимость каждого." />
 		<template id="v3.lineage.raids.reply.preparation.0077" act="lineage.raids.preparation.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Переполненный инвентарь — причина остановить вход." />
@@ -88,7 +88,7 @@
 		<template id="v3.lineage.raids.reply.preparation.0085" act="lineage.raids.preparation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="На точке сбора появились враждебные игроки." />
 		<template id="v3.lineage.raids.reply.preparation.0086" act="lineage.raids.preparation.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не флагайтесь случайно и держите маршрут отхода открытым." />
 		<template id="v3.lineage.raids.reply.preparation.0087" act="lineage.raids.preparation.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Стою ближе к выходу, в чат не отвечаю." />
-		<template id="v3.lineage.raids.reply.preparation.0088" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я останусь рядом, чтобы провокация не разорвала состав." />
+		<template id="v3.lineage.raids.reply.preparation.0088" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Провокацию гасит общий план, а не обещание стоять рядом." />
 		<template id="v3.lineage.raids.reply.preparation.0089" act="lineage.raids.preparation.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, подготовка к боссу не требует бонусного PvP." />
 		<template id="v3.lineage.raids.reply.preparation.0090" act="lineage.raids.preparation.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Конфликт избегаем до выполнения рейда." />
 		<template id="v3.lineage.raids.reply.preparation.0091" act="lineage.raids.preparation.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Кто начнёт драку без приказа, теряет место." />
@@ -108,7 +108,7 @@
 		<template id="v3.lineage.raids.reply.preparation.0105" act="lineage.raids.preparation.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="«Тренировка» не оправдывает отсутствие подготовки." />
 		<template id="v3.lineage.raids.reply.preparation.0106" act="lineage.raids.preparation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ресурсы рейда распределены между несколькими группами." />
 		<template id="v3.lineage.raids.reply.preparation.0107" act="lineage.raids.preparation.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Каждый лидер подтверждает свою часть до общего входа." />
-		<template id="v3.lineage.raids.reply.preparation.0108" act="lineage.raids.preparation.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Наша пачка готова, баф и восстановление проверены." />
+		<template id="v3.lineage.raids.reply.preparation.0108" act="lineage.raids.preparation.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Перед стартом пачка должна подтвердить баф и восстановление, а не считаться готовой автоматически." />
 		<template id="v3.lineage.raids.reply.preparation.0109" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сверю твою строку с общим списком, чтобы ничего не потерялось." />
 		<template id="v3.lineage.raids.reply.preparation.0110" act="lineage.raids.preparation.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, рейд собирается из маленьких подтверждённых частей." />
 		<template id="v3.lineage.raids.reply.preparation.0111" act="lineage.raids.preparation.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Готовность отмечается по группам." />
@@ -137,7 +137,7 @@
 		<template id="v3.lineage.raids.reply.preparation.0134" act="lineage.raids.preparation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Перед дверью обнаружили неверный баф у части состава." />
 		<template id="v3.lineage.raids.reply.preparation.0135" act="lineage.raids.preparation.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Исправьте его сейчас и проверьте, что старый эффект снят." />
 		<template id="v3.lineage.raids.reply.preparation.0136" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="У меня конфликтует защита, секунду на замену." />
-		<template id="v3.lineage.raids.reply.preparation.0137" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу сверить без попытки запомнить всё на глаз." />
+		<template id="v3.lineage.raids.reply.preparation.0137" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Проверочный список надёжнее попытки запомнить всё на глаз." />
 		<template id="v3.lineage.raids.reply.preparation.0138" act="lineage.raids.preparation.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, неправильный баф умеет предавать молча." />
 		<template id="v3.lineage.raids.reply.preparation.0139" act="lineage.raids.preparation.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Повторная проверка после обновления обязательна." />
 		<template id="v3.lineage.raids.reply.preparation.0140" act="lineage.raids.preparation.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вход до завершения запрещён." />
@@ -165,7 +165,7 @@
 		<template id="v3.lineage.raids.reply.preparation.0162" act="lineage.raids.preparation.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Подготовительный список сохранён для следующего сбора." />
 		<template id="v3.lineage.raids.reply.preparation.0163" act="lineage.raids.preparation.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Так повтор не начнётся с полного изобретения процесса." />
 		<template id="v3.lineage.raids.reply.preparation.0164" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Запишем только реальные проблемы сегодняшнего входа." />
-		<template id="v3.lineage.raids.reply.preparation.0165" act="lineage.raids.preparation.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я помогу отделить полезный вывод от ритуала." />
+		<template id="v3.lineage.raids.reply.preparation.0165" act="lineage.raids.preparation.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Полезный вывод стоит отделять от ритуала по результату." />
 		<template id="v3.lineage.raids.reply.preparation.0166" act="lineage.raids.preparation.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, хороший список короче плохой памяти." />
 		<template id="v3.lineage.raids.reply.preparation.0167" act="lineage.raids.preparation.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Подготовка закрыта документированным итогом." />
 		<template id="v3.lineage.raids.reply.preparation.0168" act="lineage.raids.preparation.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Новые условия потребуют отдельной проверки." />
@@ -179,7 +179,7 @@
 		<template id="v3.lineage.raids.reply.preparation.0176" act="lineage.raids.preparation.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Общие расходники пересчитаны после передачи лидерам групп." />
 		<template id="v3.lineage.raids.reply.preparation.0177" act="lineage.raids.preparation.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Количество совпадает с планом и резервом." />
 		<template id="v3.lineage.raids.reply.preparation.0178" act="lineage.raids.preparation.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Моя пачка получила свою часть, запись вижу." />
-		<template id="v3.lineage.raids.reply.preparation.0179" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сохраню копию до завершения распределения." />
+		<template id="v3.lineage.raids.reply.preparation.0179" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Распределение должно оставаться видимым до завершения штатным способом." />
 		<template id="v3.lineage.raids.reply.preparation.0180" act="lineage.raids.preparation.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, даже поход на босса начинается с честного счёта." />
 		<template id="v3.lineage.raids.reply.preparation.0181" act="lineage.raids.preparation.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Материальный учёт закрыт." />
 		<template id="v3.lineage.raids.reply.preparation.0182" act="lineage.raids.preparation.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Лишние предметы возвращены владельцам." />
@@ -203,17 +203,17 @@
 		<template id="v3.lineage.raids.reply.preparation.0200" act="lineage.raids.preparation.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Подготовительный этап закрыт." />
 		<template id="v3.lineage.raids.reply.roles.0001" act="lineage.raids.roles.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я не знаю распределение, поэтому прошу назвать мою задачу одним предложением." />
 		<template id="v3.lineage.raids.reply.roles.0002" act="lineage.raids.roles.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вы держите дальнюю группу и сообщаете о появлении аддов." />
-		<template id="v3.lineage.raids.reply.roles.0003" act="lineage.raids.roles.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Понял: не бегу к боссу, смотрю назад и кричу по делу." />
-		<template id="v3.lineage.raids.reply.roles.0004" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я останусь рядом на первой фазе, чтобы помочь с ориентирами." />
+		<template id="v3.lineage.raids.reply.roles.0003" act="lineage.raids.roles.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Задача звучит просто: не бежать к боссу, смотреть назад и сообщать только важное." />
+		<template id="v3.lineage.raids.reply.roles.0004" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="На первой фазе нужны понятные ориентиры, а не обещание личного сопровождения." />
 		<template id="v3.lineage.raids.reply.roles.0005" act="lineage.raids.roles.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, роль звучит просто ровно до первого адда." />
-		<template id="v3.lineage.raids.reply.roles.0006" act="lineage.raids.roles.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Задача подтверждена участником." />
+		<template id="v3.lineage.raids.reply.roles.0006" act="lineage.raids.roles.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Задача ясна только после явного подтверждения участником." />
 		<template id="v3.lineage.raids.reply.roles.0007" act="lineage.raids.roles.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Самовольная смена позиции запрещена." />
-		<template id="v3.lineage.raids.reply.roles.0008" act="lineage.raids.roles.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Главный танк ещё не назначен." />
+		<template id="v3.lineage.raids.reply.roles.0008" act="lineage.raids.roles.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если главный танк ещё не назначен, начинать рано." />
 		<template id="v3.lineage.raids.reply.roles.0009" act="lineage.raids.roles.reply" band="TENSE" register="CASUAL" profanity="NONE" text="До входа нужен один ответственный и явный резерв." />
-		<template id="v3.lineage.raids.reply.roles.0010" act="lineage.raids.roles.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я возьму босса, второй танк подхватывает только по сигналу." />
+		<template id="v3.lineage.raids.reply.roles.0010" act="lineage.raids.roles.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Босса берёт назначенный танк; второй подхватывает только по реальному сигналу." />
 		<template id="v3.lineage.raids.reply.roles.0011" act="lineage.raids.roles.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне спокойно, когда ваша смена определена до падения." />
 		<template id="v3.lineage.raids.reply.roles.0012" act="lineage.raids.roles.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, два танка без порядка держат только спор." />
-		<template id="v3.lineage.raids.reply.roles.0013" act="lineage.raids.roles.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Основной и резервный танк отмечены." />
+		<template id="v3.lineage.raids.reply.roles.0013" act="lineage.raids.roles.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Основного и резервного танка нужно отметить до входа." />
 		<template id="v3.lineage.raids.reply.roles.0014" act="lineage.raids.roles.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Перетягивать угрозу ради счёта нельзя." />
 		<template id="v3.lineage.raids.reply.roles.0015" act="lineage.raids.roles.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хилы пытаются лечить одну и ту же группу." />
 		<template id="v3.lineage.raids.reply.roles.0016" act="lineage.raids.roles.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Разделите приоритеты и оставьте взаимную подстраховку." />
@@ -225,7 +225,7 @@
 		<template id="v3.lineage.raids.reply.roles.0022" act="lineage.raids.roles.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Никто не назначен на аддов." />
 		<template id="v3.lineage.raids.reply.roles.0023" act="lineage.raids.roles.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Эта роль должна появиться до первой волны, а не после хаоса." />
 		<template id="v3.lineage.raids.reply.roles.0024" act="lineage.raids.roles.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Возьму контроль и позову урон, когда соберу их вместе." />
-		<template id="v3.lineage.raids.reply.roles.0025" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я помогу прикрыть тебя, пока толпа ещё не связана." />
+		<template id="v3.lineage.raids.reply.roles.0025" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Пока толпа не связана, прикрытие должно идти от назначенной роли." />
 		<template id="v3.lineage.raids.reply.roles.0026" act="lineage.raids.roles.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, мелкие цели любят великое пренебрежение." />
 		<template id="v3.lineage.raids.reply.roles.0027" act="lineage.raids.roles.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Команда аддов получает отдельную метку." />
 		<template id="v3.lineage.raids.reply.roles.0028" act="lineage.raids.roles.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Игнорировать их нельзя." />
@@ -260,20 +260,20 @@
 		<template id="v3.lineage.raids.reply.roles.0057" act="lineage.raids.roles.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Танк упал раньше запланированной смены." />
 		<template id="v3.lineage.raids.reply.roles.0058" act="lineage.raids.roles.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Резерв принимает босса немедленно, остальные не разбегаются." />
 		<template id="v3.lineage.raids.reply.roles.0059" act="lineage.raids.roles.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Беру цель, хилы смотрите на меня." />
-		<template id="v3.lineage.raids.reply.roles.0060" act="lineage.raids.roles.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я дам тебе защиту в первый момент и не буду спасать личный урон." />
+		<template id="v3.lineage.raids.reply.roles.0060" act="lineage.raids.roles.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Защиту даёт доступное умение по ситуации, а не декоративное обещание." />
 		<template id="v3.lineage.raids.reply.roles.0061" act="lineage.raids.roles.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, резерв существует именно для плохой секунды." />
 		<template id="v3.lineage.raids.reply.roles.0062" act="lineage.raids.roles.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Смена состоялась." />
 		<template id="v3.lineage.raids.reply.roles.0063" act="lineage.raids.roles.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Паника отменяется, работаем по плану." />
 		<template id="v3.lineage.raids.reply.roles.0064" act="lineage.raids.roles.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Маркер цели исчез после смерти игрока." />
 		<template id="v3.lineage.raids.reply.roles.0065" act="lineage.raids.roles.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Рейд-лидер назначает новую метку и повторяет ассист." />
 		<template id="v3.lineage.raids.reply.roles.0066" act="lineage.raids.roles.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вижу нового человека, переключаюсь." />
-		<template id="v3.lineage.raids.reply.roles.0067" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я проверю, что дальняя группа тоже сменила цель." />
+		<template id="v3.lineage.raids.reply.roles.0067" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Смену цели дальняя группа должна подтвердить коротким сигналом." />
 		<template id="v3.lineage.raids.reply.roles.0068" act="lineage.raids.roles.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, бить память о старой метке бесполезно." />
 		<template id="v3.lineage.raids.reply.roles.0069" act="lineage.raids.roles.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Новый ассист активен." />
 		<template id="v3.lineage.raids.reply.roles.0070" act="lineage.raids.roles.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Старую цель забываем." />
 		<template id="v3.lineage.raids.reply.roles.0071" act="lineage.raids.roles.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Один участник выполняет сразу три задачи и перестаёт справляться." />
 		<template id="v3.lineage.raids.reply.roles.0072" act="lineage.raids.roles.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Разделите хотя бы мониторинг и объявления между другими." />
-		<template id="v3.lineage.raids.reply.roles.0073" act="lineage.raids.roles.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я возьму отсчёты, оставь себе механику босса." />
+		<template id="v3.lineage.raids.reply.roles.0073" act="lineage.raids.roles.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Отсчёты поручают тому, кто реально подтвердил эту роль." />
 		<template id="v3.lineage.raids.reply.roles.0074" act="lineage.raids.roles.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне важно разгрузить тебя до ошибки, а не поздравить после." />
 		<template id="v3.lineage.raids.reply.roles.0075" act="lineage.raids.roles.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, незаменимость плохо переживает перегрузку." />
 		<template id="v3.lineage.raids.reply.roles.0076" act="lineage.raids.roles.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Лишняя функция передана." />
@@ -302,7 +302,7 @@
 		<template id="v3.lineage.raids.reply.roles.0099" act="lineage.raids.roles.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Дальние бойцы мешают друг другу на одной точке." />
 		<template id="v3.lineage.raids.reply.roles.0100" act="lineage.raids.roles.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Разведите позиции по двум меткам с сохранением дальности лечения." />
 		<template id="v3.lineage.raids.reply.roles.0101" act="lineage.raids.roles.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Перехожу вправо, там обзор чище." />
-		<template id="v3.lineage.raids.reply.roles.0102" act="lineage.raids.roles.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я проверю, что ты остаёшься в радиусе поддержки." />
+		<template id="v3.lineage.raids.reply.roles.0102" act="lineage.raids.roles.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Радиус поддержки проверяют по позиции, не по обещанию присматривать." />
 		<template id="v3.lineage.raids.reply.roles.0103" act="lineage.raids.roles.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, личное пространство полезно даже под огнём." />
 		<template id="v3.lineage.raids.reply.roles.0104" act="lineage.raids.roles.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Позиции закреплены отдельно." />
 		<template id="v3.lineage.raids.reply.roles.0105" act="lineage.raids.roles.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сбиваться снова в одну кучу нельзя." />
@@ -330,13 +330,13 @@
 		<template id="v3.lineage.raids.reply.roles.0127" act="lineage.raids.roles.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Контроль аддов конфликтует с массовым уроном группы." />
 		<template id="v3.lineage.raids.reply.roles.0128" act="lineage.raids.roles.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Согласуйте окно атаки, чтобы не снимать эффект раньше времени." />
 		<template id="v3.lineage.raids.reply.roles.0129" act="lineage.raids.roles.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Жду слово «бей», до него цели не трогаю." />
-		<template id="v3.lineage.raids.reply.roles.0130" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я дам ясный сигнал после сбора волны." />
+		<template id="v3.lineage.raids.reply.roles.0130" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После сбора волны нужен ясный общий сигнал." />
 		<template id="v3.lineage.raids.reply.roles.0131" act="lineage.raids.roles.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, терпение иногда наносит больше урона." />
 		<template id="v3.lineage.raids.reply.roles.0132" act="lineage.raids.roles.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Массовая атака только по команде контролёра." />
 		<template id="v3.lineage.raids.reply.roles.0133" act="lineage.raids.roles.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сломаешь контроль — исправляй последствия первым." />
 		<template id="v3.lineage.raids.reply.roles.0134" act="lineage.raids.roles.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Игрок ушёл из рейда раньше передачи роли." />
 		<template id="v3.lineage.raids.reply.roles.0135" act="lineage.raids.roles.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Остановите старт и назначьте замену с полным объяснением задачи." />
-		<template id="v3.lineage.raids.reply.roles.0136" act="lineage.raids.roles.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я возьму его позицию, но покажите первую метку." />
+		<template id="v3.lineage.raids.reply.roles.0136" act="lineage.raids.roles.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Позицию принимает только реально назначенный участник после первой метки." />
 		<template id="v3.lineage.raids.reply.roles.0137" act="lineage.raids.roles.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я быстро проведу тебя по маршруту до открытия входа." />
 		<template id="v3.lineage.raids.reply.roles.0138" act="lineage.raids.roles.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, пустое место нельзя залить мотивацией." />
 		<template id="v3.lineage.raids.reply.roles.0139" act="lineage.raids.roles.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Роль восстановлена до новой попытки." />
@@ -351,7 +351,7 @@
 		<template id="v3.lineage.raids.reply.roles.0148" act="lineage.raids.roles.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После неудачи два игрока спорят, чья роль важнее." />
 		<template id="v3.lineage.raids.reply.roles.0149" act="lineage.raids.roles.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Нужно восстановить цепочку действий, а не ранжировать людей." />
 		<template id="v3.lineage.raids.reply.roles.0150" act="lineage.raids.roles.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я пропустил свой сигнал, а ты поздно сообщил — оба момента реальные." />
-		<template id="v3.lineage.raids.reply.roles.0151" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я помогу вам превратить это в два исправления, не в одну ссору." />
+		<template id="v3.lineage.raids.reply.roles.0151" act="lineage.raids.roles.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Из ошибки лучше вынести два конкретных исправления, а не одну ссору." />
 		<template id="v3.lineage.raids.reply.roles.0152" act="lineage.raids.roles.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, вина плохо заменяет новую команду." />
 		<template id="v3.lineage.raids.reply.roles.0153" act="lineage.raids.roles.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Следующая попытка получает конкретные изменения." />
 		<template id="v3.lineage.raids.reply.roles.0154" act="lineage.raids.roles.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Спор о ценности ролей закрываем." />
@@ -379,7 +379,7 @@
 		<template id="v3.lineage.raids.reply.roles.0176" act="lineage.raids.roles.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Распределение сработало без потерянных задач." />
 		<template id="v3.lineage.raids.reply.roles.0177" act="lineage.raids.roles.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Каждый участник знает, кто его подменит в следующий раз." />
 		<template id="v3.lineage.raids.reply.roles.0178" act="lineage.raids.roles.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Запишите схему, она сэкономила нам слишком много нервов." />
-		<template id="v3.lineage.raids.reply.roles.0179" act="lineage.raids.roles.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помогу сохранить только нужные детали, без романа о победе." />
+		<template id="v3.lineage.raids.reply.roles.0179" act="lineage.raids.roles.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Для следующего захода достаточно нужных деталей, без романа о победе." />
 		<template id="v3.lineage.raids.reply.roles.0180" act="lineage.raids.roles.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, хорошая роль оставляет след в плане, не только в логе." />
 		<template id="v3.lineage.raids.reply.roles.0181" act="lineage.raids.roles.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Список обновлён по фактическому составу." />
 		<template id="v3.lineage.raids.reply.roles.0182" act="lineage.raids.roles.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ролевой этап закрыт." />
@@ -404,28 +404,28 @@
 		<template id="v3.lineage.raids.reply.timing.0001" act="lineage.raids.timing.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я впервые жду этого босса и не знаю точного окна появления." />
 		<template id="v3.lineage.raids.reply.timing.0002" act="lineage.raids.timing.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Используем подтверждённый диапазон, а не обещаем минуту без основания." />
 		<template id="v3.lineage.raids.reply.timing.0003" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Значит, занимаемся подготовкой и не смотрим на часы каждую секунду." />
-		<template id="v3.lineage.raids.reply.timing.0004" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я останусь рядом и сообщу, когда появится реальный признак." />
+		<template id="v3.lineage.raids.reply.timing.0004" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="О реальном признаке лучше сообщать сразу, не обещая личное наблюдение." />
 		<template id="v3.lineage.raids.reply.timing.0005" act="lineage.raids.timing.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, неточный таймер не станет точнее от твоего взгляда." />
-		<template id="v3.lineage.raids.reply.timing.0006" act="lineage.raids.timing.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ориентир объявлен как диапазон." />
+		<template id="v3.lineage.raids.reply.timing.0006" act="lineage.raids.timing.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ориентир честнее объявлять диапазоном, если точная минута неизвестна." />
 		<template id="v3.lineage.raids.reply.timing.0007" act="lineage.raids.timing.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Выдуманное точное время не распространяем." />
-		<template id="v3.lineage.raids.reply.timing.0008" act="lineage.raids.timing.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мы приехали слишком рано." />
+		<template id="v3.lineage.raids.reply.timing.0008" act="lineage.raids.timing.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если группа приехала слишком рано, ожидание лучше разделить на смены." />
 		<template id="v3.lineage.raids.reply.timing.0009" act="lineage.raids.timing.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Долгое ожидание лучше разделить на смены, чтобы люди не выгорели до боя." />
-		<template id="v3.lineage.raids.reply.timing.0010" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я постою первым, потом разбудите следующего наблюдателя." />
+		<template id="v3.lineage.raids.reply.timing.0010" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Первую смену может взять доброволец, а следующую лучше определить заранее." />
 		<template id="v3.lineage.raids.reply.timing.0011" act="lineage.raids.timing.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне важно, чтобы ты не тратил весь ресурс внимания до старта." />
 		<template id="v3.lineage.raids.reply.timing.0012" act="lineage.raids.timing.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, караулить пустую точку тоже надо уметь по расписанию." />
-		<template id="v3.lineage.raids.reply.timing.0013" act="lineage.raids.timing.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Первая смена назначена." />
-		<template id="v3.lineage.raids.reply.timing.0014" act="lineage.raids.timing.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Постоянно держать весь рейд на месте не будем." />
+		<template id="v3.lineage.raids.reply.timing.0013" act="lineage.raids.timing.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Первую смену нужно назначить до начала долгого ожидания." />
+		<template id="v3.lineage.raids.reply.timing.0014" act="lineage.raids.timing.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Держать весь рейд на месте постоянно незачем; достаточно дежурных смен." />
 		<template id="v3.lineage.raids.reply.timing.0015" act="lineage.raids.timing.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Часть состава опаздывает к объявленному началу." />
 		<template id="v3.lineage.raids.reply.timing.0016" act="lineage.raids.timing.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Назовите крайний срок и критические роли среди задержанных." />
-		<template id="v3.lineage.raids.reply.timing.0017" act="lineage.raids.timing.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Наш хил будет через пять минут, дальше ждать не просит." />
-		<template id="v3.lineage.raids.reply.timing.0018" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу удержать группу от случайного старта до этого срока." />
+		<template id="v3.lineage.raids.reply.timing.0017" act="lineage.raids.timing.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если хил просит пять минут, срок стоит подтвердить, а не выдавать за текущий факт." />
+		<template id="v3.lineage.raids.reply.timing.0018" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Случайный старт предотвращает общий запрет запуска до срока." />
 		<template id="v3.lineage.raids.reply.timing.0019" act="lineage.raids.timing.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, опоздание с честным временем лучше загадочного «уже бегу»." />
 		<template id="v3.lineage.raids.reply.timing.0020" act="lineage.raids.timing.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Таймер ожидания установлен." />
 		<template id="v3.lineage.raids.reply.timing.0021" act="lineage.raids.timing.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После него решение принимается без новых переносов." />
 		<template id="v3.lineage.raids.reply.timing.0022" act="lineage.raids.timing.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Попытка длится дольше, чем один участник может остаться." />
 		<template id="v3.lineage.raids.reply.timing.0023" act="lineage.raids.timing.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Нужна запланированная смена или отказ от его критической роли." />
 		<template id="v3.lineage.raids.reply.timing.0024" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я уйду через сорок минут, поставьте меня в первую группу урона." />
-		<template id="v3.lineage.raids.reply.timing.0025" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я напомню о времени заранее и не стану удерживать тебя финальной фазой." />
+		<template id="v3.lineage.raids.reply.timing.0025" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="О времени лучше предупредить заранее, не удерживая человека финальной фазой." />
 		<template id="v3.lineage.raids.reply.timing.0026" act="lineage.raids.timing.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, реальный таймер сильнее желания лидера." />
 		<template id="v3.lineage.raids.reply.timing.0027" act="lineage.raids.timing.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Роль рассчитана на доступное время." />
 		<template id="v3.lineage.raids.reply.timing.0028" act="lineage.raids.timing.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Нельзя строить план на обещании задержаться." />
@@ -445,7 +445,7 @@
 		<template id="v3.lineage.raids.reply.timing.0042" act="lineage.raids.timing.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Без готовых умений вход запрещён." />
 		<template id="v3.lineage.raids.reply.timing.0043" act="lineage.raids.timing.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Откаты разных групп готовы в разное время." />
 		<template id="v3.lineage.raids.reply.timing.0044" act="lineage.raids.timing.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Стартуем по последнему критическому умению, а не по самому раннему." />
-		<template id="v3.lineage.raids.reply.timing.0045" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="У нашей пачки ещё двадцать секунд, предупредим заранее." />
+		<template id="v3.lineage.raids.reply.timing.0045" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если пачке осталось двадцать секунд, об этом стоит предупредить общим сигналом." />
 		<template id="v3.lineage.raids.reply.timing.0046" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я сверю общий сигнал, чтобы тебя не оставили в ожидании одного." />
 		<template id="v3.lineage.raids.reply.timing.0047" act="lineage.raids.timing.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, общий бой начинается по самому важному таймеру." />
 		<template id="v3.lineage.raids.reply.timing.0048" act="lineage.raids.timing.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Финальный отсчёт после готовности всех групп." />
@@ -495,14 +495,14 @@
 		<template id="v3.lineage.raids.reply.timing.0092" act="lineage.raids.timing.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Босс появился раньше начала нашего окна ожидания." />
 		<template id="v3.lineage.raids.reply.timing.0093" act="lineage.raids.timing.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сначала оцените фактическую готовность, не бегите только из-за неожиданности." />
 		<template id="v3.lineage.raids.reply.timing.0094" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="У нас половина состава в городе, сейчас входить бессмысленно." />
-		<template id="v3.lineage.raids.reply.timing.0095" act="lineage.raids.timing.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу быстро собрать статус без требования чуда." />
+		<template id="v3.lineage.raids.reply.timing.0095" act="lineage.raids.timing.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Статус удобнее собрать коротким опросом без требования чуда." />
 		<template id="v3.lineage.raids.reply.timing.0096" act="lineage.raids.timing.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, ранний шанс тоже можно честно упустить." />
 		<template id="v3.lineage.raids.reply.timing.0097" act="lineage.raids.timing.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не готовый рейд не стартует." />
 		<template id="v3.lineage.raids.reply.timing.0098" act="lineage.raids.timing.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Событие фиксируем для следующего ориентира." />
 		<template id="v3.lineage.raids.reply.timing.0099" act="lineage.raids.timing.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Точку уже заняла другая группа." />
 		<template id="v3.lineage.raids.reply.timing.0100" act="lineage.raids.timing.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не начинайте конфликт, пока можно узнать их план и следующее окно." />
 		<template id="v3.lineage.raids.reply.timing.0101" act="lineage.raids.timing.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Напишем спокойно и не будем изображать право собственности." />
-		<template id="v3.lineage.raids.reply.timing.0102" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я останусь рядом, если разговор станет напряжённым." />
+		<template id="v3.lineage.raids.reply.timing.0102" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Напряжённый разговор лучше перенести, не обещая стоять рядом." />
 		<template id="v3.lineage.raids.reply.timing.0103" act="lineage.raids.timing.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, таймер босса не выдаёт титул владельца земли." />
 		<template id="v3.lineage.raids.reply.timing.0104" act="lineage.raids.timing.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Согласуем очередность без угроз." />
 		<template id="v3.lineage.raids.reply.timing.0105" act="lineage.raids.timing.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Драка съест больше времени, чем ожидание." />
@@ -516,14 +516,14 @@
 		<template id="v3.lineage.raids.reply.timing.0113" act="lineage.raids.timing.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мы пропустили ожидаемое появление." />
 		<template id="v3.lineage.raids.reply.timing.0114" act="lineage.raids.timing.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не придумывайте причину; запишите факт и новый диапазон наблюдения." />
 		<template id="v3.lineage.raids.reply.timing.0115" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Печально, зато перестанем клясться старым временем." />
-		<template id="v3.lineage.raids.reply.timing.0116" act="lineage.raids.timing.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу обновить ориентир без поиска виноватого." />
+		<template id="v3.lineage.raids.reply.timing.0116" act="lineage.raids.timing.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ориентир стоит обновить без поиска виноватого." />
 		<template id="v3.lineage.raids.reply.timing.0117" act="lineage.raids.timing.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, часы победили уверенный слух." />
 		<template id="v3.lineage.raids.reply.timing.0118" act="lineage.raids.timing.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Старый таймер признан неверным." />
 		<template id="v3.lineage.raids.reply.timing.0119" act="lineage.raids.timing.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Следующее окно строим на новых наблюдениях." />
 		<template id="v3.lineage.raids.reply.timing.0120" act="lineage.raids.timing.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Пересменка наблюдателей случилась с разрывом." />
 		<template id="v3.lineage.raids.reply.timing.0121" act="lineage.raids.timing.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Исправьте передачу времени и состояния точки." />
 		<template id="v3.lineage.raids.reply.timing.0122" act="lineage.raids.timing.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я пришёл, но не знал, когда последний раз проверяли." />
-		<template id="v3.lineage.raids.reply.timing.0123" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я останусь до ясной передачи, чтобы разрыв не повторился." />
+		<template id="v3.lineage.raids.reply.timing.0123" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Передача должна быть ясной, чтобы разрыв не повторился." />
 		<template id="v3.lineage.raids.reply.timing.0124" act="lineage.raids.timing.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, смена без отчёта охраняет только неизвестность." />
 		<template id="v3.lineage.raids.reply.timing.0125" act="lineage.raids.timing.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Новый наблюдатель получил отметку времени." />
 		<template id="v3.lineage.raids.reply.timing.0126" act="lineage.raids.timing.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Пост передан полностью." />
@@ -544,7 +544,7 @@
 		<template id="v3.lineage.raids.reply.timing.0141" act="lineage.raids.timing.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Попытка идёт дольше обычного, ресурсы ещё есть." />
 		<template id="v3.lineage.raids.reply.timing.0142" act="lineage.raids.timing.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не ускоряйтесь только из-за ожидания; следуйте безопасным фазам." />
 		<template id="v3.lineage.raids.reply.timing.0143" act="lineage.raids.timing.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Да, руки устали, но лишний риск быстрее не закончит." />
-		<template id="v3.lineage.raids.reply.timing.0144" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я напомню о паузе между циклами, чтобы сохранить внимание." />
+		<template id="v3.lineage.raids.reply.timing.0144" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Пауза между циклами должна быть частью плана, а не чужим напоминанием." />
 		<template id="v3.lineage.raids.reply.timing.0145" act="lineage.raids.timing.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, длинный бой выигрывает тот, кто не спорит с длительностью." />
 		<template id="v3.lineage.raids.reply.timing.0146" act="lineage.raids.timing.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Темп остаётся устойчивым." />
 		<template id="v3.lineage.raids.reply.timing.0147" act="lineage.raids.timing.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Жадные сокращения механики запрещены." />
@@ -579,13 +579,13 @@
 		<template id="v3.lineage.raids.reply.timing.0176" act="lineage.raids.timing.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Перенос затронул людей из другого часового пояса." />
 		<template id="v3.lineage.raids.reply.timing.0177" act="lineage.raids.timing.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Нужно заново проверить доступность, а не считать разницу мелочью." />
 		<template id="v3.lineage.raids.reply.timing.0178" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Для меня это уже ночь, место лучше отдать другому." />
-		<template id="v3.lineage.raids.reply.timing.0179" act="lineage.raids.timing.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу найти замену без требования сломать режим." />
+		<template id="v3.lineage.raids.reply.timing.0179" act="lineage.raids.timing.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Замену ищут без требования ломать чужой режим." />
 		<template id="v3.lineage.raids.reply.timing.0180" act="lineage.raids.timing.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, босс не оплачивает сон." />
 		<template id="v3.lineage.raids.reply.timing.0181" act="lineage.raids.timing.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Состав обновлён после переноса." />
 		<template id="v3.lineage.raids.reply.timing.0182" act="lineage.raids.timing.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Старый список недействителен." />
 		<template id="v3.lineage.raids.reply.timing.0183" act="lineage.raids.timing.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Последний этап распределения занял больше времени, чем сам бой." />
 		<template id="v3.lineage.raids.reply.timing.0184" act="lineage.raids.timing.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="На будущее выделите отдельный срок, но не отнимайте его скрыто сейчас." />
-		<template id="v3.lineage.raids.reply.timing.0185" act="lineage.raids.timing.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я останусь до своего лота, потом передам подтверждение письменно." />
+		<template id="v3.lineage.raids.reply.timing.0185" act="lineage.raids.timing.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Получение лота и передача подтверждения должны идти по правилам, не по обещанию." />
 		<template id="v3.lineage.raids.reply.timing.0186" act="lineage.raids.timing.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно, чтобы обещанное завершение включало и честный расчёт." />
 		<template id="v3.lineage.raids.reply.timing.0187" act="lineage.raids.timing.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, победа над боссом не останавливает часы участников." />
 		<template id="v3.lineage.raids.reply.timing.0188" act="lineage.raids.timing.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Расчёт получает короткий крайний срок." />
@@ -602,23 +602,23 @@
 		<template id="v3.lineage.raids.reply.timing.0199" act="lineage.raids.timing.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Планирование завершено." />
 		<template id="v3.lineage.raids.reply.timing.0200" act="lineage.raids.timing.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Переходим к распределению результата." />
 		<template id="v3.lineage.raids.reply.loot.0001" act="lineage.raids.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я участвую впервые, поэтому хочу услышать правила до поднятия предметов." />
-		<template id="v3.lineage.raids.reply.loot.0002" act="lineage.raids.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Основные категории дропа и способ выбора объявлены в закреплённом сообщении." />
-		<template id="v3.lineage.raids.reply.loot.0003" act="lineage.raids.loot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Прочитал, вопросов нет; роллю только то, что могу использовать." />
-		<template id="v3.lineage.raids.reply.loot.0004" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я помогу тебе уточнить спорное, пока личный интерес ещё не вмешался." />
+		<template id="v3.lineage.raids.reply.loot.0002" act="lineage.raids.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Основные категории дропа и способ выбора лучше закрепить до похода." />
+		<template id="v3.lineage.raids.reply.loot.0003" act="lineage.raids.loot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После чтения правил можно роллить только то, что персонаж способен использовать." />
+		<template id="v3.lineage.raids.reply.loot.0004" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спорное лучше уточнять до того, как личный интерес вмешается в разговор." />
 		<template id="v3.lineage.raids.reply.loot.0005" act="lineage.raids.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, честный ролл начинается до появления блестящей вещи." />
-		<template id="v3.lineage.raids.reply.loot.0006" act="lineage.raids.loot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Правила подтверждены всеми группами." />
+		<template id="v3.lineage.raids.reply.loot.0006" act="lineage.raids.loot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Правила считаются общими только после подтверждения всеми группами." />
 		<template id="v3.lineage.raids.reply.loot.0007" act="lineage.raids.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После победы их не меняем." />
-		<template id="v3.lineage.raids.reply.loot.0008" act="lineage.raids.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Предмет подняли слишком быстро, и никто не видел системное сообщение." />
+		<template id="v3.lineage.raids.reply.loot.0008" act="lineage.raids.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если предмет подняли слишком быстро и системное сообщение никто не увидел, сначала нужен лог." />
 		<template id="v3.lineage.raids.reply.loot.0009" act="lineage.raids.loot.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Сначала проверьте лог и владельца, не назначая виноватого." />
-		<template id="v3.lineage.raids.reply.loot.0010" act="lineage.raids.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Он у меня, поднял автоматически; не двигаю до решения." />
+		<template id="v3.lineage.raids.reply.loot.0010" act="lineage.raids.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="При автоматическом подборе предмет лучше не трогать до общего решения." />
 		<template id="v3.lineage.raids.reply.loot.0011" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спасибо, что сообщил сразу и не пытаешься сделать ошибку своей удачей." />
 		<template id="v3.lineage.raids.reply.loot.0012" act="lineage.raids.loot.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, быстрые руки ещё не получили право собственности." />
-		<template id="v3.lineage.raids.reply.loot.0013" act="lineage.raids.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Предмет возвращаем в общий процесс." />
+		<template id="v3.lineage.raids.reply.loot.0013" act="lineage.raids.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Случайно поднятый предмет нужно вернуть в общий процесс распределения." />
 		<template id="v3.lineage.raids.reply.loot.0014" act="lineage.raids.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Скрыть случайный подъём не получится." />
 		<template id="v3.lineage.raids.reply.loot.0015" act="lineage.raids.loot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="На вещь заявили приоритет несколько игроков одной роли." />
 		<template id="v3.lineage.raids.reply.loot.0016" act="lineage.raids.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Примените заранее выбранный порядок между ними." />
 		<template id="v3.lineage.raids.reply.loot.0017" act="lineage.raids.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мы оба подходим, значит решает обычный ролл." />
-		<template id="v3.lineage.raids.reply.loot.0018" act="lineage.raids.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я останусь рядом независимо от результата." />
+		<template id="v3.lineage.raids.reply.loot.0018" act="lineage.raids.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Результат распределения не требует обещаний оставаться рядом." />
 		<template id="v3.lineage.raids.reply.loot.0019" act="lineage.raids.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, пусть число выберет того, кто сегодня громче радуется." />
 		<template id="v3.lineage.raids.reply.loot.0020" act="lineage.raids.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Участники допущены на равных условиях." />
 		<template id="v3.lineage.raids.reply.loot.0021" act="lineage.raids.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Личные симпатии в выбор не вмешиваются." />
@@ -646,7 +646,7 @@
 		<template id="v3.lineage.raids.reply.loot.0043" act="lineage.raids.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Рейдовый лидер хочет забрать вещь в клановый склад." />
 		<template id="v3.lineage.raids.reply.loot.0044" act="lineage.raids.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Такой тип дропа должен быть заранее отнесён к общему фонду." />
 		<template id="v3.lineage.raids.reply.loot.0045" act="lineage.raids.loot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Да, в правилах указано именно это; передаю ответственному." />
-		<template id="v3.lineage.raids.reply.loot.0046" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прослежу, чтобы предмет появился в открытом отчёте." />
+		<template id="v3.lineage.raids.reply.loot.0046" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Предмет должен появиться в открытом отчёте по процедуре, а не по личному присмотру." />
 		<template id="v3.lineage.raids.reply.loot.0047" act="lineage.raids.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, общий склад требует общей памяти." />
 		<template id="v3.lineage.raids.reply.loot.0048" act="lineage.raids.loot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Передача подтверждена владельцем склада." />
 		<template id="v3.lineage.raids.reply.loot.0049" act="lineage.raids.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Исчезать без записи предмет не будет." />
@@ -660,14 +660,14 @@
 		<template id="v3.lineage.raids.reply.loot.0057" act="lineage.raids.loot.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Продажа состоялась дешевле ожидаемого." />
 		<template id="v3.lineage.raids.reply.loot.0058" act="lineage.raids.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сравните фактическое предложение и подтвердите, что оно было разрешено." />
 		<template id="v3.lineage.raids.reply.loot.0059" act="lineage.raids.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="В чате согласовали срочную цену, вижу сообщение." />
-		<template id="v3.lineage.raids.reply.loot.0060" act="lineage.raids.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я помогу рассчитать доли из реальной суммы, а не мечты." />
+		<template id="v3.lineage.raids.reply.loot.0060" act="lineage.raids.loot.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Доли считают из реальной суммы, а не из мечты." />
 		<template id="v3.lineage.raids.reply.loot.0061" act="lineage.raids.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, рынок не читает наш список желаний." />
 		<template id="v3.lineage.raids.reply.loot.0062" act="lineage.raids.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Фактическая выручка подтверждена." />
 		<template id="v3.lineage.raids.reply.loot.0063" act="lineage.raids.loot.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Продавца не обвиняем за согласованную цену." />
 		<template id="v3.lineage.raids.reply.loot.0064" act="lineage.raids.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Один участник утверждает, что получил меньшую долю." />
 		<template id="v3.lineage.raids.reply.loot.0065" act="lineage.raids.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Проверьте общую сумму, число долей и комиссию по шагам." />
 		<template id="v3.lineage.raids.reply.loot.0066" act="lineage.raids.loot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="У меня действительно не хватает одной части, вот платёж." />
-		<template id="v3.lineage.raids.reply.loot.0067" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я останусь до исправления и не назову вопрос жадностью." />
+		<template id="v3.lineage.raids.reply.loot.0067" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ошибка в очереди требует исправления, но не обещания присутствовать до конца." />
 		<template id="v3.lineage.raids.reply.loot.0068" act="lineage.raids.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, даже маленькая недостача портит большой рейд." />
 		<template id="v3.lineage.raids.reply.loot.0069" act="lineage.raids.loot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ошибка расчёта подтверждена." />
 		<template id="v3.lineage.raids.reply.loot.0070" act="lineage.raids.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Доплата проводится немедленно." />
@@ -709,7 +709,7 @@
 		<template id="v3.lineage.raids.reply.loot.0106" act="lineage.raids.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Редкий предмет выиграл участник, которому он подходит хуже." />
 		<template id="v3.lineage.raids.reply.loot.0107" act="lineage.raids.loot.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если правила основаны на ролле, личная оценка не отменяет результат." />
 		<template id="v3.lineage.raids.reply.loot.0108" act="lineage.raids.loot.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Поздравляю. Надеюсь, найдёшь ему хорошее применение." />
-		<template id="v3.lineage.raids.reply.loot.0109" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я помогу тебе принять проигрыш без обесценивания победителя." />
+		<template id="v3.lineage.raids.reply.loot.0109" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Проигрыш можно принять без обесценивания победителя." />
 		<template id="v3.lineage.raids.reply.loot.0110" act="lineage.raids.loot.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, кубик не обязан разделять твой вкус." />
 		<template id="v3.lineage.raids.reply.loot.0111" act="lineage.raids.loot.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Результат ролла окончательный." />
 		<template id="v3.lineage.raids.reply.loot.0112" act="lineage.raids.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Травить победителя запрещено." />
@@ -737,7 +737,7 @@
 		<template id="v3.lineage.raids.reply.loot.0134" act="lineage.raids.loot.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Список ожидания обновили после получения предмета." />
 		<template id="v3.lineage.raids.reply.loot.0135" act="lineage.raids.loot.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Следующий приоритет переходит к тем, кто всё ещё ждёт." />
 		<template id="v3.lineage.raids.reply.loot.0136" act="lineage.raids.loot.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Отметьте меня закрытым, второй такой предмет не нужен." />
-		<template id="v3.lineage.raids.reply.loot.0137" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прослежу, чтобы твой успех не оставил тебя в очереди по ошибке." />
+		<template id="v3.lineage.raids.reply.loot.0137" act="lineage.raids.loot.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Успех не должен оставлять игрока в очереди из-за ошибки учёта." />
 		<template id="v3.lineage.raids.reply.loot.0138" act="lineage.raids.loot.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, одна галочка спасает будущую ссору." />
 		<template id="v3.lineage.raids.reply.loot.0139" act="lineage.raids.loot.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Резерв победителя снят." />
 		<template id="v3.lineage.raids.reply.loot.0140" act="lineage.raids.loot.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="История распределения сохранена." />

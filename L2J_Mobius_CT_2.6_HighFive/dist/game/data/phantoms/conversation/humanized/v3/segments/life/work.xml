@@ -4,15 +4,15 @@
 		<template id="v3.life.work.reply.load.0001" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сначала выпишите всё и выберите одну задачу, без которой день действительно провалится." />
 		<template id="v3.life.work.reply.load.0002" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если срок близко, обозначьте минимальный результат и отдельно список продолжения." />
 		<template id="v3.life.work.reply.load.0003" act="life.work.load.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Чужие задачи стоит вернуть владельцам с ясным объяснением своей загрузки." />
-		<template id="v3.life.work.reply.load.0004" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давай вместе разложим завал на срочное, важное и то, что можно удалить." />
-		<template id="v3.life.work.reply.load.0005" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой список длиннее, зато я хотя бы не называю каждую мелочь пожаром." />
+		<template id="v3.life.work.reply.load.0004" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Завал полезно разложить на срочное, важное и то, что можно удалить." />
+		<template id="v3.life.work.reply.load.0005" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Длинный список не оправдывает привычку называть каждую мелочь пожаром." />
 		<template id="v3.life.work.reply.load.0006" act="life.work.load.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не обещай за меня новую работу на общей встрече." />
 		<template id="v3.life.work.reply.load.0007" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сваливай свои просроченные дела на кого-нибудь другого." />
 		<template id="v3.life.work.reply.load.0008" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Когда непонятно, с чего начать, выберите самый маленький шаг по главной цели." />
 		<template id="v3.life.work.reply.load.0009" act="life.work.load.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="День из встреч требует защищённого окна хотя бы на одну содержательную задачу." />
 		<template id="v3.life.work.reply.load.0010" act="life.work.load.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сложность проекта лучше пересчитать сейчас, чем скрывать её до финального срока." />
-		<template id="v3.life.work.reply.load.0011" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу сформулировать новый прогноз без оправданий и паники." />
-		<template id="v3.life.work.reply.load.0012" act="life.work.load.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты недооценил объём, я раньше заметил зависимость — используем оба вывода." />
+		<template id="v3.life.work.reply.load.0011" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Новый прогноз лучше формулировать без оправданий и паники." />
+		<template id="v3.life.work.reply.load.0012" act="life.work.load.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Недооценённый объём и замеченная зависимость — два полезных вывода без личной истории." />
 		<template id="v3.life.work.reply.load.0013" act="life.work.load.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не ставь мне встречу поверх согласованного рабочего блока." />
 		<template id="v3.life.work.reply.load.0014" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После твоих постоянных помех я закрываю доступ к своему времени." />
 		<template id="v3.life.work.reply.load.0015" act="life.work.load.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="При частых отвлечениях выключите уведомления и заранее обозначьте час ответа." />
@@ -25,7 +25,7 @@
 		<template id="v3.life.work.reply.load.0022" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Перенести часть работы разумно, если цена параллельного выполнения выше." />
 		<template id="v3.life.work.reply.load.0023" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Приоритеты определяются последствиями и зависимостями, а не громкостью просьбы." />
 		<template id="v3.life.work.reply.load.0024" act="life.work.load.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если всё срочное, попросите владельца назвать порядок и зафиксировать выбор." />
-		<template id="v3.life.work.reply.load.0025" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я останусь на связи, пока ты сообщаешь о риске команде." />
+		<template id="v3.life.work.reply.load.0025" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="О риске стоит сообщить команде прямо, не рассчитывая на обещанную связь." />
 		<template id="v3.life.work.reply.load.0026" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты лучше знаешь клиента, я точнее оценю технический объём." />
 		<template id="v3.life.work.reply.load.0027" act="life.work.load.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не заставляй меня молча выбирать между качеством и сном." />
 		<template id="v3.life.work.reply.load.0028" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если руководство снова меняет порядок без ресурсов, пусть принимает задержку." />
@@ -46,7 +46,7 @@
 		<template id="v3.life.work.reply.load.0043" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="День в сообщениях стоит прервать отдельным окном для ответов." />
 		<template id="v3.life.work.reply.load.0044" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Главную задачу поставьте в календарь раньше входящих запросов." />
 		<template id="v3.life.work.reply.load.0045" act="life.work.load.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="После отпуска сначала восстановите контекст, затем берите новые обещания." />
-		<template id="v3.life.work.reply.load.0046" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я пришлю тебе краткую сводку изменений, чтобы не читать всю переписку." />
+		<template id="v3.life.work.reply.load.0046" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Короткая сводка тут полезнее, чем перечитывать всю переписку." />
 		<template id="v3.life.work.reply.load.0047" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты быстрее отвечаешь, я зато заканчиваю ключевую работу." />
 		<template id="v3.life.work.reply.load.0048" act="life.work.load.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не жди от меня мгновенной реакции на каждый канал." />
 		<template id="v3.life.work.reply.load.0049" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если продолжишь дёргать по мелочам, я отключу личные сообщения." />
@@ -67,7 +67,7 @@
 		<template id="v3.life.work.reply.load.0064" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="День из совещаний нужно учитывать как день координации, а не притворяться, что он свободен." />
 		<template id="v3.life.work.reply.load.0065" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Застрявшее согласование требует владельца решения и конкретной даты ответа." />
 		<template id="v3.life.work.reply.load.0066" act="life.work.load.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Срочную правку перед концом дня принимают только вместе с пересмотром других обещаний." />
-		<template id="v3.life.work.reply.load.0067" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу сформулировать влияние правки на выпуск." />
+		<template id="v3.life.work.reply.load.0067" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Влияние правки на выпуск лучше назвать одним конкретным предложением." />
 		<template id="v3.life.work.reply.load.0068" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Моя оценка короче твоей, потому что я не прячу последствия." />
 		<template id="v3.life.work.reply.load.0069" act="life.work.load.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не объявляй всё срочным в пятницу вечером." />
 		<template id="v3.life.work.reply.load.0070" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Свою внезапную идею реализуй сам и не задерживай остальных." />
@@ -88,7 +88,7 @@
 		<template id="v3.life.work.reply.load.0085" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Когда всё горит, остановитесь и определите источник огня, а не бегайте между дымом." />
 		<template id="v3.life.work.reply.load.0086" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Быстрая работа не уменьшает список, если входящий поток выше завершения." />
 		<template id="v3.life.work.reply.load.0087" act="life.work.load.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="О задержке сообщайте до срока: факт, причина, влияние и новый прогноз." />
-		<template id="v3.life.work.reply.load.0088" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу тебе написать короткое честное обновление." />
+		<template id="v3.life.work.reply.load.0088" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Короткое честное обновление сильнее длинного защитного объяснения." />
 		<template id="v3.life.work.reply.load.0089" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой план восстановления строже, зато твой учитывает людей." />
 		<template id="v3.life.work.reply.load.0090" act="life.work.load.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не скрывай риск ради красивого зелёного статуса." />
 		<template id="v3.life.work.reply.load.0091" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После очередного сокрытия твоим отчётам никто не верит." />
@@ -103,7 +103,7 @@
 		<template id="v3.life.work.reply.load.0100" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Несколько владельцев означают, что окончательное решение должен принять один названный человек." />
 		<template id="v3.life.work.reply.load.0101" act="life.work.load.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Конфликт срочных дел нужно поднять тому, кто отвечает за общий результат." />
 		<template id="v3.life.work.reply.load.0102" act="life.work.load.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Главное на сегодня сформулируйте одним предложением и защитите под него время." />
-		<template id="v3.life.work.reply.load.0103" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я останусь рядом, пока ты закрываешь этот единственный ключевой шаг." />
+		<template id="v3.life.work.reply.load.0103" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Один ключевой шаг лучше закрыть самостоятельно, не опираясь на чужое присутствие." />
 		<template id="v3.life.work.reply.load.0104" act="life.work.load.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Моя задача громче, твоя важнее для выпуска — уступаю очередь." />
 		<template id="v3.life.work.reply.load.0105" act="life.work.load.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не вмешивайся в порядок работы без полномочий." />
 		<template id="v3.life.work.reply.load.0106" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твои требования противоречат друг другу; выполнять их одновременно я не буду." />
@@ -117,7 +117,7 @@
 		<template id="v3.life.work.reply.load.0114" act="life.work.load.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Большую задачу разбейте по результатам, которые можно проверить отдельно." />
 		<template id="v3.life.work.reply.load.0115" act="life.work.load.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Первый кусок должен уменьшать неизвестность, а не выглядеть эффектнее." />
 		<template id="v3.life.work.reply.load.0116" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сделанное наполовину лучше оформить как ясный промежуточный статус." />
-		<template id="v3.life.work.reply.load.0117" act="life.work.load.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу найти точку, где работу можно безопасно передать." />
+		<template id="v3.life.work.reply.load.0117" act="life.work.load.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Работу безопасно передавать там, где результат и следующий владелец понятны." />
 		<template id="v3.life.work.reply.load.0118" act="life.work.load.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты быстрее начинаешь, я лучше закрываю хвосты." />
 		<template id="v3.life.work.reply.load.0119" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не бросай незавершённое мне без объяснения контекста." />
 		<template id="v3.life.work.reply.load.0120" act="life.work.load.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После твоего хаоса я принимаю работу только через формальную передачу." />
@@ -145,14 +145,14 @@
 		<template id="v3.life.work.reply.load.0142" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="При риске срока предложите варианты, а не только сообщение о проблеме." />
 		<template id="v3.life.work.reply.load.0143" act="life.work.load.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Первый вариант — меньше объём, второй — позже дата, третий — больше помощь." />
 		<template id="v3.life.work.reply.load.0144" act="life.work.load.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Заказчик должен увидеть различия в последствиях каждого решения." />
-		<template id="v3.life.work.reply.load.0145" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу сделать варианты конкретными и без защитного тона." />
+		<template id="v3.life.work.reply.load.0145" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Варианты стоит сделать конкретными и убрать защитный тон." />
 		<template id="v3.life.work.reply.load.0146" act="life.work.load.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Моя дата надёжнее, твоя сохраняет больше функций." />
 		<template id="v3.life.work.reply.load.0147" act="life.work.load.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не скрывай самый безопасный вариант ради давления." />
 		<template id="v3.life.work.reply.load.0148" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После манипуляции команда потребует решения письменно." />
 		<template id="v3.life.work.reply.load.0149" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Чужую ошибку исправьте, но отдельно разберите, как она прошла проверку." />
 		<template id="v3.life.work.reply.load.0150" act="life.work.load.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Поиск виноватого не должен задерживать восстановление результата." />
 		<template id="v3.life.work.reply.load.0151" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После исправления добавьте один конкретный барьер от повторения." />
-		<template id="v3.life.work.reply.load.0152" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты проверишь данные, я подготовлю изменение и описание причины." />
+		<template id="v3.life.work.reply.load.0152" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Данные и описание изменения должны готовить те, у кого есть доступ к работе." />
 		<template id="v3.life.work.reply.load.0153" act="life.work.load.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мой фикс быстрее, твой тест ловит более широкий риск." />
 		<template id="v3.life.work.reply.load.0154" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не стирай следы ошибки ради собственной репутации." />
 		<template id="v3.life.work.reply.load.0155" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если снова попытаешься скрыть инцидент, подключу руководство." />
@@ -166,7 +166,7 @@
 		<template id="v3.life.work.reply.load.0163" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Перегрузку стоит показывать цифрами: активные задачи, сроки и доступные часы." />
 		<template id="v3.life.work.reply.load.0164" act="life.work.load.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Список помогает отделить реальную работу от общего чувства паники." />
 		<template id="v3.life.work.reply.load.0165" act="life.work.load.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Руководителю проще решить проблему, когда видно, что именно конкурирует." />
-		<template id="v3.life.work.reply.load.0166" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу оформить картину без преувеличения и самообвинений." />
+		<template id="v3.life.work.reply.load.0166" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Картину лучше собрать без преувеличения и самообвинений." />
 		<template id="v3.life.work.reply.load.0167" act="life.work.load.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Моя загрузка выше, но твои зависимости делают риск серьёзнее." />
 		<template id="v3.life.work.reply.load.0168" act="life.work.load.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не сравнивай усталость как соревнование." />
 		<template id="v3.life.work.reply.load.0169" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твои насмешки над перегруженными коллегами недопустимы." />
@@ -180,7 +180,7 @@
 		<template id="v3.life.work.reply.load.0177" act="life.work.load.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Для восстановления контроля выберите один список, один календарь и один канал входа." />
 		<template id="v3.life.work.reply.load.0178" act="life.work.load.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разрозненные заметки создают ощущение бесконечной неизвестной работы." />
 		<template id="v3.life.work.reply.load.0179" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Перенесите всё в систему один раз, затем поддерживайте небольшими обновлениями." />
-		<template id="v3.life.work.reply.load.0180" act="life.work.load.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу собрать хвосты, но правила дальше соблюдаем оба." />
+		<template id="v3.life.work.reply.load.0180" act="life.work.load.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Хвосты нужно распределить по реальным владельцам, а правила соблюдать всем." />
 		<template id="v3.life.work.reply.load.0181" act="life.work.load.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Моя система строже, твоя требует меньше обслуживания." />
 		<template id="v3.life.work.reply.load.0182" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не создавай параллельный список для моей команды." />
 		<template id="v3.life.work.reply.load.0183" act="life.work.load.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если снова спрячешь задачи вне процесса, они не будут выполнены." />
@@ -194,7 +194,7 @@
 		<template id="v3.life.work.reply.load.0191" act="life.work.load.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Закончить главное означает получить проверяемый результат, а не просто устать." />
 		<template id="v3.life.work.reply.load.0192" act="life.work.load.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Перед уходом покажите, что именно готово и кто принимает следующий шаг." />
 		<template id="v3.life.work.reply.load.0193" act="life.work.load.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Незавершённые детали можно честно вынести в отдельный список." />
-		<template id="v3.life.work.reply.load.0194" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я проверю итог вместе с тобой, чтобы день закончился точкой." />
+		<template id="v3.life.work.reply.load.0194" act="life.work.load.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Итог стоит проверить доступным способом, чтобы день закончился точкой." />
 		<template id="v3.life.work.reply.load.0195" act="life.work.load.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мой результат шире, твой надёжнее подтверждён." />
 		<template id="v3.life.work.reply.load.0196" act="life.work.load.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не присваивай работу команды в последнем отчёте." />
 		<template id="v3.life.work.reply.load.0197" act="life.work.load.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После такой попытки авторство будет зафиксировано публично." />
@@ -204,15 +204,15 @@
 		<template id="v3.life.work.reply.break.0001" act="life.work.break.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Короткий перерыв сейчас вернёт больше внимания, чем ещё двадцать минут через силу." />
 		<template id="v3.life.work.reply.break.0002" act="life.work.break.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Отойдите от экрана, посмотрите вдаль и дайте глазам сменить фокус." />
 		<template id="v3.life.work.reply.break.0003" act="life.work.break.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если концентрация исчезла, сначала вода и несколько минут движения." />
-		<template id="v3.life.work.reply.break.0004" act="life.work.break.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Пойдём за кофе вместе и не возьмём с собой рабочий разговор." />
-		<template id="v3.life.work.reply.break.0005" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я выдержал дольше, но твоя пауза оказалась своевременнее." />
+		<template id="v3.life.work.reply.break.0004" act="life.work.break.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="За кофе можно сходить вместе, если оба реально договорились оставить работу за дверью." />
+		<template id="v3.life.work.reply.break.0005" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Своевременная пауза важнее соревнования, кто выдержал дольше." />
 		<template id="v3.life.work.reply.break.0006" act="life.work.break.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не отменяй мой перерыв из-за своей плохой подготовки." />
 		<template id="v3.life.work.reply.break.0007" act="life.work.break.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если снова ворвёшься без стука, я закрою дверь." />
 		<template id="v3.life.work.reply.break.0008" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Безопасная продолжительность работы зависит от задачи, но паузы нужны до полного истощения." />
 		<template id="v3.life.work.reply.break.0009" act="life.work.break.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Пропущенный обед не делает день продуктивнее, только отодвигает усталость." />
 		<template id="v3.life.work.reply.break.0010" act="life.work.break.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Короткая прогулка вернёт телу движение и голове другой масштаб." />
-		<template id="v3.life.work.reply.break.0011" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай оставим телефоны и выйдем на десять минут." />
-		<template id="v3.life.work.reply.break.0012" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты быстрее вернулся, я успел действительно переключиться." />
+		<template id="v3.life.work.reply.break.0011" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Десять минут без телефона и рабочего разговора могут дать настоящую паузу." />
+		<template id="v3.life.work.reply.break.0012" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Скорость возвращения не показывает, удалось ли человеку действительно переключиться." />
 		<template id="v3.life.work.reply.break.0013" act="life.work.break.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не пиши мне во время обозначенного обеда." />
 		<template id="v3.life.work.reply.break.0014" act="life.work.break.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твои «срочные» сообщения подождут до конца паузы." />
 		<template id="v3.life.work.reply.break.0015" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Рабочий ритм не исчезает от перерыва, если оставить заметку о следующем шаге." />
@@ -239,7 +239,7 @@
 		<template id="v3.life.work.reply.break.0036" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Закрытая дверь на перерыве означает недоступность до указанного времени." />
 		<template id="v3.life.work.reply.break.0037" act="life.work.break.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Свежий воздух полезнее пятой прокрутки одной и той же задачи." />
 		<template id="v3.life.work.reply.break.0038" act="life.work.break.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сделаем чай и не будем открывать ноутбук, пока он заваривается." />
-		<template id="v3.life.work.reply.break.0039" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты встаёшь первым, я принесу кружки." />
+		<template id="v3.life.work.reply.break.0039" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="За кружками встаёт тот, кому они действительно нужны." />
 		<template id="v3.life.work.reply.break.0040" act="life.work.break.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мой чай крепче, зато твоя пауза действительно без телефона." />
 		<template id="v3.life.work.reply.break.0041" act="life.work.break.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не оставляй новые документы у моей чашки." />
 		<template id="v3.life.work.reply.break.0042" act="life.work.break.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если снова прервёшь отдых требованием, обращусь к руководителю." />
@@ -275,7 +275,7 @@
 		<template id="v3.life.work.reply.break.0072" act="life.work.break.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Чувство вины за отдых не делает работу качественнее и не увеличивает реальные часы." />
 		<template id="v3.life.work.reply.break.0073" act="life.work.break.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Пауза — часть устойчивого темпа, а не награда после полного истощения." />
 		<template id="v3.life.work.reply.break.0074" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Короткая разминка помогает плечам и шее после долгого сидения." />
-		<template id="v3.life.work.reply.break.0075" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я поставлю таймер на пятнадцать минут, чтобы никто не гадал о возвращении." />
+		<template id="v3.life.work.reply.break.0075" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Пятнадцатиминутный таймер каждый может поставить сам, чтобы срок возвращения был ясен." />
 		<template id="v3.life.work.reply.break.0076" act="life.work.break.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мой перерыв регулярнее, твой сегодня явно необходимее." />
 		<template id="v3.life.work.reply.break.0077" act="life.work.break.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не комментируй, как другой человек восстанавливается." />
 		<template id="v3.life.work.reply.break.0078" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоя слежка за паузами нарушает рабочие границы." />
@@ -289,7 +289,7 @@
 		<template id="v3.life.work.reply.break.0086" act="life.work.break.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После сорока минут чтения полезно сменить позу и несколько минут смотреть вдаль." />
 		<template id="v3.life.work.reply.break.0087" act="life.work.break.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Перед новым блоком работы закройте предыдущий короткой заметкой." />
 		<template id="v3.life.work.reply.break.0088" act="life.work.break.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не берите телефон на каждую паузу: он продолжает тот же поток внимания." />
-		<template id="v3.life.work.reply.break.0089" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я подожду у двери, пока ты сохраняешь файл." />
+		<template id="v3.life.work.reply.break.0089" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Перед выходом файл лучше сохранить, не заставляя кого-то ждать у двери." />
 		<template id="v3.life.work.reply.break.0090" act="life.work.break.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты быстрее переключаешься, я тщательнее оставляю контекст." />
 		<template id="v3.life.work.reply.break.0091" act="life.work.break.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не открывай новую тему за минуту до перерыва." />
 		<template id="v3.life.work.reply.break.0092" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоё намеренное затягивание больше не сработает." />
@@ -299,11 +299,11 @@
 		<template id="v3.life.work.reply.break.0096" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай пройдёмся, а потом вместе проверим тон ответа." />
 		<template id="v3.life.work.reply.break.0097" act="life.work.break.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Моя реакция резче, твоя пауза разумнее." />
 		<template id="v3.life.work.reply.break.0098" act="life.work.break.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не требуй немедленно отправить письмо в раздражении." />
-		<template id="v3.life.work.reply.break.0099" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если продолжишь подталкивать к конфликту, я уберу тебя из обсуждения." />
+		<template id="v3.life.work.reply.break.0099" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Подталкивание к конфликту — повод ограничить обсуждение по правилам, а не личной угрозой." />
 		<template id="v3.life.work.reply.break.0100" act="life.work.break.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Между двумя созвонами оставляйте хотя бы несколько минут без разговора." />
 		<template id="v3.life.work.reply.break.0101" act="life.work.break.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не заполняйте каждое свободное окно новой встречей." />
 		<template id="v3.life.work.reply.break.0102" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Запишите одно действие после звонка и отойдите от рабочего места." />
-		<template id="v3.life.work.reply.break.0103" act="life.work.break.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я возьму следующий созвон, а ты пять минут побудь в тишине." />
+		<template id="v3.life.work.reply.break.0103" act="life.work.break.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Следующий созвон нельзя взять на себя из чата; пять минут тишины всё равно полезны." />
 		<template id="v3.life.work.reply.break.0104" act="life.work.break.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="У меня больше встреч, но у тебя сегодняшняя была тяжелее." />
 		<template id="v3.life.work.reply.break.0105" act="life.work.break.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не перехватывай чужой перерыв внезапным звонком." />
 		<template id="v3.life.work.reply.break.0106" act="life.work.break.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После третьего вызова без предупреждения номер будет заблокирован." />
@@ -331,7 +331,7 @@
 		<template id="v3.life.work.reply.break.0128" act="life.work.break.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Возвращение после перерыва начните с записанного следующего шага." />
 		<template id="v3.life.work.reply.break.0129" act="life.work.break.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Первые две минуты уйдут на восстановление контекста, и это нормально." />
 		<template id="v3.life.work.reply.break.0130" act="life.work.break.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не открывайте почту раньше главной задачи, если она ждала вас до паузы." />
-		<template id="v3.life.work.reply.break.0131" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я напомню, на чём мы остановились, без нового списка требований." />
+		<template id="v3.life.work.reply.break.0131" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Перед паузой полезно записать, на чём остановились." />
 		<template id="v3.life.work.reply.break.0132" act="life.work.break.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты входишь в контекст быстрее, я лучше помню принятое решение." />
 		<template id="v3.life.work.reply.break.0133" act="life.work.break.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не вываливай все новости в момент возвращения." />
 		<template id="v3.life.work.reply.break.0134" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если опять устроишь засаду у стола, я сменю место работы." />
@@ -345,13 +345,13 @@
 		<template id="v3.life.work.reply.break.0142" act="life.work.break.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Пауза после ошибки нужна не для наказания, а для восстановления ясности." />
 		<template id="v3.life.work.reply.break.0143" act="life.work.break.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Отойдите от результата, затем спокойно проверьте причину и последствия." />
 		<template id="v3.life.work.reply.break.0144" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Стыд только сужает внимание; конкретный следующий шаг возвращает контроль." />
-		<template id="v3.life.work.reply.break.0145" act="life.work.break.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я останусь рядом, пока ты переводишь дыхание." />
+		<template id="v3.life.work.reply.break.0145" act="life.work.break.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Перевести дыхание можно без обещания, что кто-то останется рядом." />
 		<template id="v3.life.work.reply.break.0146" act="life.work.break.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Моя ошибка заметнее, зато ты дольше отказывался остановиться." />
 		<template id="v3.life.work.reply.break.0147" act="life.work.break.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не используй чужую ошибку, чтобы лишить человека отдыха." />
 		<template id="v3.life.work.reply.break.0148" act="life.work.break.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После твоего унижения я продолжу только с присутствием руководителя." />
 		<template id="v3.life.work.reply.break.0149" act="life.work.break.reply" band="TENSE" register="CASUAL" profanity="NONE" text="В конце перерыва проверьте, стало ли легче, а не просто истёк ли таймер." />
 		<template id="v3.life.work.reply.break.0150" act="life.work.break.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если усталость не уменьшилась, возможно, нужен более длинный отдых или конец дня." />
-		<template id="v3.life.work.reply.break.0151" act="life.work.break.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я помогу оценить остаток задач без давления продолжать любой ценой." />
+		<template id="v3.life.work.reply.break.0151" act="life.work.break.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Остаток задач стоит оценивать без давления продолжать любой ценой." />
 		<template id="v3.life.work.reply.break.0152" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты можешь остановиться раньше меня, это не делает твой вклад меньше." />
 		<template id="v3.life.work.reply.break.0153" act="life.work.break.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не требуй медицинских подробностей ради разрешения на отдых." />
 		<template id="v3.life.work.reply.break.0154" act="life.work.break.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если продолжишь отрицать чужое самочувствие, разговор пойдёт через кадровую службу." />
@@ -373,20 +373,20 @@
 		<template id="v3.life.work.reply.break.0170" act="life.work.break.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Важно увидеть и почувствовать что-то, не связанное с текущей задачей." />
 		<template id="v3.life.work.reply.break.0171" act="life.work.break.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="При удалённой работе полезно выйти из комнаты хотя бы на несколько минут." />
 		<template id="v3.life.work.reply.break.0172" act="life.work.break.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давай спустимся за почтой и вернёмся без телефонов в руках." />
-		<template id="v3.life.work.reply.break.0173" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты выбрал лестницу, я сохраню силы на вечер." />
+		<template id="v3.life.work.reply.break.0173" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Лестница может дать передышку, а силы на вечер лучше не обещать заранее." />
 		<template id="v3.life.work.reply.break.0174" act="life.work.break.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не запирай людей на рабочем месте своим разговором." />
-		<template id="v3.life.work.reply.break.0175" act="life.work.break.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если снова перекроешь выход, я вызову помощь." />
+		<template id="v3.life.work.reply.break.0175" act="life.work.break.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если кто-то перекрывает выход, нужно отойти и самостоятельно вызвать помощь." />
 		<template id="v3.life.work.reply.break.0176" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После обеда начните с небольшой понятной задачи, если включаться тяжело." />
 		<template id="v3.life.work.reply.break.0177" act="life.work.break.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сложный блок можно открыть заметкой и дать контексту вернуться постепенно." />
 		<template id="v3.life.work.reply.break.0178" act="life.work.break.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не ругайте себя за несколько минут разгона — это цена переключения." />
-		<template id="v3.life.work.reply.break.0179" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я подготовлю материалы, пока ты спокойно возвращаешься." />
+		<template id="v3.life.work.reply.break.0179" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Материалы лучше подготовить до паузы тому, у кого есть к ним доступ." />
 		<template id="v3.life.work.reply.break.0180" act="life.work.break.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты быстрее сделал первый шаг, я лучше удержал дальнейший план." />
 		<template id="v3.life.work.reply.break.0181" act="life.work.break.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не бросай срочное требование человеку в момент возвращения." />
 		<template id="v3.life.work.reply.break.0182" act="life.work.break.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твоё давление только продлевает потерю внимания." />
 		<template id="v3.life.work.reply.break.0183" act="life.work.break.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Конец дня тоже может быть перерывом, а не обещанием продолжить дома." />
 		<template id="v3.life.work.reply.break.0184" act="life.work.break.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Закройте рабочие приложения и физически уберите оборудование из поля зрения." />
 		<template id="v3.life.work.reply.break.0185" act="life.work.break.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Оставьте короткую запись на утро, чтобы мозгу не приходилось помнить ночью." />
-		<template id="v3.life.work.reply.break.0186" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я подожду, пока ты сохранишь заметку, и мы выйдем вместе." />
+		<template id="v3.life.work.reply.break.0186" act="life.work.break.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сохрани заметку, а выйти вместе можно только по реальной договорённости." />
 		<template id="v3.life.work.reply.break.0187" act="life.work.break.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мой ноутбук уже закрыт, но я не буду подгонять тебя." />
 		<template id="v3.life.work.reply.break.0188" act="life.work.break.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не отправляй домашние задания взрослым коллегам после смены." />
 		<template id="v3.life.work.reply.break.0189" act="life.work.break.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ещё одно вечернее требование будет зафиксировано как нарушение графика." />
@@ -404,15 +404,15 @@
 		<template id="v3.life.work.reply.routine.0001" act="life.work.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Рабочее утро начните с календаря и одной главной цели, а не со всех каналов сразу." />
 		<template id="v3.life.work.reply.routine.0002" act="life.work.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Первое действие должно быть настолько конкретным, чтобы его можно было начать без разгона." />
 		<template id="v3.life.work.reply.routine.0003" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мелкие задачи записывайте в одно место сразу, не полагаясь на память." />
-		<template id="v3.life.work.reply.routine.0004" act="life.work.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давай составим короткий недельный план с запасом, а не идеальный график." />
-		<template id="v3.life.work.reply.routine.0005" act="life.work.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Моя система строже, твоя легче переживает неожиданные изменения." />
+		<template id="v3.life.work.reply.routine.0004" act="life.work.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Короткий недельный план с запасом полезнее идеального графика." />
+		<template id="v3.life.work.reply.routine.0005" act="life.work.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Строгая и гибкая системы по-разному переживают неожиданные изменения." />
 		<template id="v3.life.work.reply.routine.0006" act="life.work.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не добавляй задачи в мой список без согласования." />
 		<template id="v3.life.work.reply.routine.0007" act="life.work.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После очередной тайной правки доступ к плану будет закрыт." />
 		<template id="v3.life.work.reply.routine.0008" act="life.work.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Список дел удобен, когда отделяет результаты от случайных напоминаний." />
 		<template id="v3.life.work.reply.routine.0009" act="life.work.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Почту лучше проверять в назначенные окна, если роль не требует постоянной реакции." />
 		<template id="v3.life.work.reply.routine.0010" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Утренние сообщения ограничьте таймером, прежде чем они съедят лучшее внимание." />
 		<template id="v3.life.work.reply.routine.0011" act="life.work.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Перед ежедневной встречей запиши вчерашний итог, сегодняшний шаг и блокер." />
-		<template id="v3.life.work.reply.routine.0012" act="life.work.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты расскажешь статус, я добавлю зависимость, которую заметил." />
+		<template id="v3.life.work.reply.routine.0012" act="life.work.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="На ежедневной встрече один человек называет статус, другой — только реальную зависимость." />
 		<template id="v3.life.work.reply.routine.0013" act="life.work.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не превращай ежедневную встречу в отчёт перед собой." />
 		<template id="v3.life.work.reply.routine.0014" act="life.work.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Твои сорок минут монолога отменяют смысл короткой синхронизации." />
 		<template id="v3.life.work.reply.routine.0015" act="life.work.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Одна активная задача обычно заканчивается быстрее пяти постоянно переключаемых." />
@@ -440,7 +440,7 @@
 		<template id="v3.life.work.reply.routine.0037" act="life.work.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Без приоритетов утро уходит на то, что первым потребовало внимания." />
 		<template id="v3.life.work.reply.routine.0038" act="life.work.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Календарь должен отражать реальные длительности и переходы между встречами." />
 		<template id="v3.life.work.reply.routine.0039" act="life.work.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="В еженедельный обзор включите завершённое, зависшее, новые риски и следующий фокус." />
-		<template id="v3.life.work.reply.routine.0040" act="life.work.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я принесу список хвостов, а ты проверишь, что цели всё ещё актуальны." />
+		<template id="v3.life.work.reply.routine.0040" act="life.work.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Список хвостов нужно принести из реальной системы задач, а цели перепроверить." />
 		<template id="v3.life.work.reply.routine.0041" act="life.work.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мой календарь плотнее, твой честнее показывает буфер." />
 		<template id="v3.life.work.reply.routine.0042" act="life.work.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не ставь мне встречу в каждое свободное окно." />
 		<template id="v3.life.work.reply.routine.0043" act="life.work.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если снова захватишь защищённое время, приглашение будет отклонено без обсуждения." />
@@ -456,7 +456,7 @@
 		<template id="v3.life.work.reply.routine.0053" act="life.work.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Опоздание на первую встречу часто начинается с слишком позднего начала утренней рутины." />
 		<template id="v3.life.work.reply.routine.0054" act="life.work.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Рабочее место подготовьте вечером: зарядка, вода и нужные материалы." />
 		<template id="v3.life.work.reply.routine.0055" act="life.work.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Повторяющиеся задачи удобнее собрать в чек-лист с ясным владельцем." />
-		<template id="v3.life.work.reply.routine.0056" act="life.work.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я сделаю шаблон, ты проверишь его на следующем цикле." />
+		<template id="v3.life.work.reply.routine.0056" act="life.work.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Шаблон стоит сделать тому, кто будет проверять его на следующем цикле." />
 		<template id="v3.life.work.reply.routine.0057" act="life.work.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Моя автоматизация быстрее, твой ручной контроль ловит больше исключений." />
 		<template id="v3.life.work.reply.routine.0058" act="life.work.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не назначай повторяющуюся задачу человеку молча." />
 		<template id="v3.life.work.reply.routine.0059" act="life.work.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если снова спрячешь обязанность в шаблоне, она вернётся владельцу." />
@@ -471,7 +471,7 @@
 		<template id="v3.life.work.reply.routine.0068" act="life.work.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="После выходных восстановите контекст через последние решения и незавершённые шаги." />
 		<template id="v3.life.work.reply.routine.0069" act="life.work.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Буфер нужен не как пустота, а как место для реальных неожиданностей." />
 		<template id="v3.life.work.reply.routine.0070" act="life.work.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Перед уходом проверьте календарь завтра и одну главную задачу." />
-		<template id="v3.life.work.reply.routine.0071" act="life.work.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я пришлю тебе пятничную сводку, чтобы понедельник начался спокойнее." />
+		<template id="v3.life.work.reply.routine.0071" act="life.work.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Пятничная сводка полезна, если её действительно ведут; обещать отправку нельзя." />
 		<template id="v3.life.work.reply.routine.0072" act="life.work.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты быстрее вспоминаешь разговоры, я лучше храню решения письменно." />
 		<template id="v3.life.work.reply.routine.0073" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не назначай сложный старт без контекста на раннее утро." />
 		<template id="v3.life.work.reply.routine.0074" act="life.work.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Твоя привычка писать в выходные не станет моей понедельничной паникой." />
@@ -479,7 +479,7 @@
 		<template id="v3.life.work.reply.routine.0076" act="life.work.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="В рабочий режим вводит последовательность простых действий, а не ожидание вдохновения." />
 		<template id="v3.life.work.reply.routine.0077" act="life.work.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сложные задачи ставьте на время своего лучшего внимания, рутину — на спад." />
 		<template id="v3.life.work.reply.routine.0078" act="life.work.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Список можно чистить вечером, если это не превращается в новый час работы." />
-		<template id="v3.life.work.reply.routine.0079" act="life.work.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давай сравним наши ритмы и не навязывать один график обоим." />
+		<template id="v3.life.work.reply.routine.0079" act="life.work.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разные рабочие ритмы стоит сравнить, не навязывая один график обоим." />
 		<template id="v3.life.work.reply.routine.0080" act="life.work.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я продуктивнее утром, ты дольше держишься после обеда." />
 		<template id="v3.life.work.reply.routine.0081" act="life.work.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не требуй одинаковых часов от людей с разными обязанностями." />
 		<template id="v3.life.work.reply.routine.0082" act="life.work.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твоя попытка контролировать каждую минуту будет оспорена официально." />
@@ -487,7 +487,7 @@
 		<template id="v3.life.work.reply.routine.0084" act="life.work.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Стабильный график строится вокруг сна, обязательств и реальных рабочих окон." />
 		<template id="v3.life.work.reply.routine.0085" act="life.work.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Когда рутина надоела, измените форму, сохранив полезный результат." />
 		<template id="v3.life.work.reply.routine.0086" act="life.work.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Полезная привычка держится на лёгком запуске и видимом завершении." />
-		<template id="v3.life.work.reply.routine.0087" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я напомню про обзор, но не буду проверять тебя как ребёнка." />
+		<template id="v3.life.work.reply.routine.0087" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Обзор лучше поставить в календарь, не превращая напоминание в контроль." />
 		<template id="v3.life.work.reply.routine.0088" act="life.work.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты сохранил серию дольше, я точнее выбираю исключения." />
 		<template id="v3.life.work.reply.routine.0089" act="life.work.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не используй привычку как меру профессиональной ценности." />
 		<template id="v3.life.work.reply.routine.0090" act="life.work.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твоё требование отчёта о каждом ритуале прекращается сейчас." />
@@ -515,7 +515,7 @@
 		<template id="v3.life.work.reply.routine.0112" act="life.work.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Повторяющуюся мелочь автоматизируйте только после понимания стабильного процесса." />
 		<template id="v3.life.work.reply.routine.0113" act="life.work.routine.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Плохая автоматизация быстрее размножает ошибку." />
 		<template id="v3.life.work.reply.routine.0114" act="life.work.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сначала один цикл пройдите вручную и зафиксируйте исключения." />
-		<template id="v3.life.work.reply.routine.0115" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я напишу черновой сценарий, ты проверишь его на реальной неделе." />
+		<template id="v3.life.work.reply.routine.0115" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Черновой сценарий должен писать тот, кто знает реальную неделю и имеет доступ." />
 		<template id="v3.life.work.reply.routine.0116" act="life.work.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Моя автоматизация шире, твой чек-лист надёжнее на старте." />
 		<template id="v3.life.work.reply.routine.0117" act="life.work.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не подключай инструмент к общим данным без согласования." />
 		<template id="v3.life.work.reply.routine.0118" act="life.work.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После твоего несанкционированного запуска доступ будет отозван." />
@@ -550,7 +550,7 @@
 		<template id="v3.life.work.reply.routine.0147" act="life.work.routine.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Контекст после выходных восстанавливается из решений, а не из сотни непрочитанных реплик." />
 		<template id="v3.life.work.reply.routine.0148" act="life.work.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сначала посмотрите статус проекта, затем только ветки, где требуется действие." />
 		<template id="v3.life.work.reply.routine.0149" act="life.work.routine.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Один список вопросов помогает не утонуть в подробностях прошлой недели." />
-		<template id="v3.life.work.reply.routine.0150" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я подготовлю тебе три изменения, которые действительно влияют на сегодняшний план." />
+		<template id="v3.life.work.reply.routine.0150" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Для сегодняшнего плана достаточно трёх изменений, которые действительно на него влияют." />
 		<template id="v3.life.work.reply.routine.0151" act="life.work.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты помнишь людей, я лучше храню технические факты." />
 		<template id="v3.life.work.reply.routine.0152" act="life.work.routine.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не требуй читать весь чат ради доказательства вовлечённости." />
 		<template id="v3.life.work.reply.routine.0153" act="life.work.routine.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После твоего намеренного сокрытия сводка будет идти через другого владельца." />
@@ -564,7 +564,7 @@
 		<template id="v3.life.work.reply.routine.0161" act="life.work.routine.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Список задач нуждается в регулярном удалении того, что больше не имеет владельца или пользы." />
 		<template id="v3.life.work.reply.routine.0162" act="life.work.routine.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Долгое нахождение в списке не делает пункт обязательным навсегда." />
 		<template id="v3.life.work.reply.routine.0163" act="life.work.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Отложенное должно иметь условие возвращения, иначе это архив." />
-		<template id="v3.life.work.reply.routine.0164" act="life.work.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я помогу удалить старое без чувства, будто мы предали прошлые планы." />
+		<template id="v3.life.work.reply.routine.0164" act="life.work.routine.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Старое можно удалить после проверки владельца и последствий, без чувства предательства планов." />
 		<template id="v3.life.work.reply.routine.0165" act="life.work.routine.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой список короче, твой сохраняет больше возможных идей." />
 		<template id="v3.life.work.reply.routine.0166" act="life.work.routine.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не возвращай удалённые задачи без нового основания." />
 		<template id="v3.life.work.reply.routine.0167" act="life.work.routine.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После твоей подмены архив станет доступен только для чтения." />
@@ -601,27 +601,27 @@
 		<template id="v3.life.work.reply.routine.0198" act="life.work.routine.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Завтра первым откроется не почта, а подготовленный рабочий контекст." />
 		<template id="v3.life.work.reply.routine.0199" act="life.work.routine.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Полезный ритм выдерживает сбой и возвращается без самонаказания." />
 		<template id="v3.life.work.reply.routine.0200" act="life.work.routine.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="На сегодня процесс закрыт: результат записан, следующий шаг понятен." />
-		<template id="v3.life.work.reply.boundaries.0001" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После рабочего времени я отвечу на следующий день, если это не согласованная авария." />
+		<template id="v3.life.work.reply.boundaries.0001" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После рабочего времени ответ разумно оставить на следующий день, кроме согласованной аварии." />
 		<template id="v3.life.work.reply.boundaries.0002" act="life.work.boundaries.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ночные сообщения можно отправлять без ожидания немедленного ответа." />
-		<template id="v3.life.work.reply.boundaries.0003" act="life.work.boundaries.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="На выходных я недоступен; вернусь к просьбе в понедельник." />
+		<template id="v3.life.work.reply.boundaries.0003" act="life.work.boundaries.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="На выходных можно быть недоступным и вернуться к просьбе в рабочий день." />
 		<template id="v3.life.work.reply.boundaries.0004" act="life.work.boundaries.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай заранее определим резервного человека для настоящей срочности." />
-		<template id="v3.life.work.reply.boundaries.0005" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я тоже вижу сообщение, но не собираюсь жить быстрее собственного графика." />
+		<template id="v3.life.work.reply.boundaries.0005" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Увиденное сообщение не обязывает жить быстрее собственного графика." />
 		<template id="v3.life.work.reply.boundaries.0006" act="life.work.boundaries.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не звони мне ночью без угрозы людям или системе." />
 		<template id="v3.life.work.reply.boundaries.0007" act="life.work.boundaries.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ещё один ночной звонок будет зафиксирован как нарушение." />
-		<template id="v3.life.work.reply.boundaries.0008" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Встречу во время обеда отклоню и предложу ближайшее рабочее окно." />
+		<template id="v3.life.work.reply.boundaries.0008" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Встречу во время обеда разумно отклонить и предложить рабочее окно." />
 		<template id="v3.life.work.reply.boundaries.0009" act="life.work.boundaries.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Личный номер не нужен, если есть корпоративные каналы." />
 		<template id="v3.life.work.reply.boundaries.0010" act="life.work.boundaries.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Работа, вошедшая в вечер, должна вытеснить что-то из завтрашнего плана." />
-		<template id="v3.life.work.reply.boundaries.0011" act="life.work.boundaries.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я сообщу время доступности, а ты поможешь защитить его в команде." />
+		<template id="v3.life.work.reply.boundaries.0011" act="life.work.boundaries.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Время доступности стоит сообщить самому и попросить команду его уважать." />
 		<template id="v3.life.work.reply.boundaries.0012" act="life.work.boundaries.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мои границы строже твоих, но обе должны уважаться." />
 		<template id="v3.life.work.reply.boundaries.0013" act="life.work.boundaries.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не требуй отчёта о том, чем я занят после смены." />
 		<template id="v3.life.work.reply.boundaries.0014" act="life.work.boundaries.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоя попытка контролировать моё личное время прекращается сейчас." />
 		<template id="v3.life.work.reply.boundaries.0015" act="life.work.boundaries.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мгновенный ответ невозможен, если я выполняю другую согласованную работу." />
-		<template id="v3.life.work.reply.boundaries.0016" act="life.work.boundaries.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="На звонки без предупреждения буду отвечать только при возможности." />
+		<template id="v3.life.work.reply.boundaries.0016" act="life.work.boundaries.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="На звонок без предупреждения каждый отвечает только при реальной возможности." />
 		<template id="v3.life.work.reply.boundaries.0017" act="life.work.boundaries.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Чужую смену возьму лишь добровольно и после уточнения компенсации." />
 		<template id="v3.life.work.reply.boundaries.0018" act="life.work.boundaries.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Давай посмотрим расписание и найдём честный обмен, а не одностороннюю услугу." />
-		<template id="v3.life.work.reply.boundaries.0019" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты чаще соглашаешься, я лучше помню цену такого решения." />
+		<template id="v3.life.work.reply.boundaries.0019" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Цена слишком частого согласия важнее сравнения личных привычек." />
 		<template id="v3.life.work.reply.boundaries.0020" act="life.work.boundaries.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не обещай моё время другому человеку." />
-		<template id="v3.life.work.reply.boundaries.0021" act="life.work.boundaries.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После подмены графика я обращусь к руководителю смены." />
+		<template id="v3.life.work.reply.boundaries.0021" act="life.work.boundaries.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Подмену графика стоит обсуждать с руководителем смены тому, кого она затронула." />
 		<template id="v3.life.work.reply.boundaries.0022" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Время на отдых защищается так же конкретно, как встреча: оно недоступно." />
 		<template id="v3.life.work.reply.boundaries.0023" act="life.work.boundaries.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Перебивания можно сократить закрытой дверью, статусом и единым окном вопросов." />
 		<template id="v3.life.work.reply.boundaries.0024" act="life.work.boundaries.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Задачи из личных сообщений я переношу в систему до начала работы." />
@@ -632,7 +632,7 @@
 		<template id="v3.life.work.reply.boundaries.0029" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Лишнюю встречу отклоню, если решение возможно письменно." />
 		<template id="v3.life.work.reply.boundaries.0030" act="life.work.boundaries.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Просьба остаться дольше требует причины, нового приоритета и моего согласия." />
 		<template id="v3.life.work.reply.boundaries.0031" act="life.work.boundaries.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="В отпуске рабочие каналы выключены, а ответственность передана заранее." />
-		<template id="v3.life.work.reply.boundaries.0032" act="life.work.boundaries.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я помогу составить передачу, чтобы тебя действительно не тревожили." />
+		<template id="v3.life.work.reply.boundaries.0032" act="life.work.boundaries.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Передачу стоит составить так, чтобы после неё человека действительно не тревожили." />
 		<template id="v3.life.work.reply.boundaries.0033" act="life.work.boundaries.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты отвечаешь из отпуска быстрее, я зато возвращаюсь отдохнувшим." />
 		<template id="v3.life.work.reply.boundaries.0034" act="life.work.boundaries.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не ставь человека в копию только ради давления." />
 		<template id="v3.life.work.reply.boundaries.0035" act="life.work.boundaries.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если снова потревожишь меня в отпуске без аварии, вопрос уйдёт выше." />
@@ -669,7 +669,7 @@
 		<template id="v3.life.work.reply.boundaries.0066" act="life.work.boundaries.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Камера на встрече включается по необходимости и согласию, а не как проверка присутствия." />
 		<template id="v3.life.work.reply.boundaries.0067" act="life.work.boundaries.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Вызов без повестки можно отклонить с просьбой прислать цель и вопросы." />
 		<template id="v3.life.work.reply.boundaries.0068" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="На ответ мне нужно время до завтра; сейчас обещать решение не стану." />
-		<template id="v3.life.work.reply.boundaries.0069" act="life.work.boundaries.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я подожду твоего обдуманного ответа вместо мгновенного согласия." />
+		<template id="v3.life.work.reply.boundaries.0069" act="life.work.boundaries.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Обдуманный ответ полезнее мгновенного согласия." />
 		<template id="v3.life.work.reply.boundaries.0070" act="life.work.boundaries.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты решаешь быстрее, я осторожнее беру обязательства." />
 		<template id="v3.life.work.reply.boundaries.0071" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не считай паузу молчаливым согласием." />
 		<template id="v3.life.work.reply.boundaries.0072" act="life.work.boundaries.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Твоё требование ответа «прямо сейчас» отклонено." />
@@ -683,7 +683,7 @@
 		<template id="v3.life.work.reply.boundaries.0080" act="life.work.boundaries.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Во время глубокой работы вопросы принимаю в список и отвечаю после блока." />
 		<template id="v3.life.work.reply.boundaries.0081" act="life.work.boundaries.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ответственность без полномочий и доступа принимать не буду." />
 		<template id="v3.life.work.reply.boundaries.0082" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Срочную просьбу отклоню, если она конфликтует с уже согласованной более важной задачей." />
-		<template id="v3.life.work.reply.boundaries.0083" act="life.work.boundaries.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу предложить другой срок или исполнителя без чувства вины." />
+		<template id="v3.life.work.reply.boundaries.0083" act="life.work.boundaries.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Другой срок или исполнитель — нормальная альтернатива без чувства вины." />
 		<template id="v3.life.work.reply.boundaries.0084" act="life.work.boundaries.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Твой приоритет важен, но не отменяет все остальные." />
 		<template id="v3.life.work.reply.boundaries.0085" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не используй слово «срочно» как приказ." />
 		<template id="v3.life.work.reply.boundaries.0086" act="life.work.boundaries.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После твоих угроз любые запросы пойдут через руководство." />
@@ -699,7 +699,7 @@
 		<template id="v3.life.work.reply.boundaries.0096" act="life.work.boundaries.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Под давлением соглашаться не буду; вернусь с ответом после проверки фактов." />
 		<template id="v3.life.work.reply.boundaries.0097" act="life.work.boundaries.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Помощь заканчивается там, где меня делают владельцем чужой работы без согласия." />
 		<template id="v3.life.work.reply.boundaries.0098" act="life.work.boundaries.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если отказ снова проигнорируют, дальнейшее общение будет только письменно." />
-		<template id="v3.life.work.reply.boundaries.0099" act="life.work.boundaries.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я сохраню переписку и обращусь к человеку, ответственному за безопасный процесс." />
+		<template id="v3.life.work.reply.boundaries.0099" act="life.work.boundaries.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Переписку стоит сохранить самостоятельно и обратиться к ответственному за безопасность." />
 		<template id="v3.life.work.reply.boundaries.0100" act="life.work.boundaries.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Рабочая граница звучит конкретно: что я не делаю, когда вернусь и какой канал доступен." />
 		<template id="v3.life.work.reply.boundaries.0101" act="life.work.boundaries.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Длинное оправдание создаёт пространство спорить с причиной вместо уважения к ответу." />
 		<template id="v3.life.work.reply.boundaries.0102" act="life.work.boundaries.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Повторите ту же формулировку без новых объяснений, если давление продолжается." />
@@ -717,21 +717,21 @@
 		<template id="v3.life.work.reply.boundaries.0114" act="life.work.boundaries.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Обед не является свободным слотом только потому, что в календаре нет встречи." />
 		<template id="v3.life.work.reply.boundaries.0115" act="life.work.boundaries.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Можно пометить его занятостью без публикации личных деталей." />
 		<template id="v3.life.work.reply.boundaries.0116" act="life.work.boundaries.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если время регулярно забирают, предложите отдельное устойчивое окно синхронизации." />
-		<template id="v3.life.work.reply.boundaries.0117" act="life.work.boundaries.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я перенесу наш звонок и не буду просить объяснять еду." />
+		<template id="v3.life.work.reply.boundaries.0117" act="life.work.boundaries.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Звонок можно перенести по реальной договорённости, не требуя личных объяснений." />
 		<template id="v3.life.work.reply.boundaries.0118" act="life.work.boundaries.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мой обед позже, но твой уже начался и остаётся защищённым." />
 		<template id="v3.life.work.reply.boundaries.0119" act="life.work.boundaries.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не садись рядом с ноутбуком человека и не начинай совещание без приглашения." />
 		<template id="v3.life.work.reply.boundaries.0120" act="life.work.boundaries.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ещё одно вторжение за стол будет оформлено как жалоба." />
 		<template id="v3.life.work.reply.boundaries.0121" act="life.work.boundaries.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Личный номер нужен только там, где человек добровольно согласился на такой канал." />
 		<template id="v3.life.work.reply.boundaries.0122" act="life.work.boundaries.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Отказ делиться контактом не означает отказ сотрудничать." />
 		<template id="v3.life.work.reply.boundaries.0123" act="life.work.boundaries.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Корпоративный мессенджер сохраняет историю и позволяет управлять доступностью." />
-		<template id="v3.life.work.reply.boundaries.0124" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я пришлю тебе рабочий адрес и отвечу в свои часы." />
+		<template id="v3.life.work.reply.boundaries.0124" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Рабочий адрес стоит назвать в свои часы тому, кто реально им владеет." />
 		<template id="v3.life.work.reply.boundaries.0125" act="life.work.boundaries.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты свободнее раздаёшь контакты, я предпочитаю разделять роли." />
 		<template id="v3.life.work.reply.boundaries.0126" act="life.work.boundaries.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не добывай мой номер через коллег." />
 		<template id="v3.life.work.reply.boundaries.0127" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После передачи контакта без согласия я потребую удалить его и зафиксирую инцидент." />
 		<template id="v3.life.work.reply.boundaries.0128" act="life.work.boundaries.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Чужая смена не становится обязанностью из-за отсутствия добровольцев." />
 		<template id="v3.life.work.reply.boundaries.0129" act="life.work.boundaries.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Запрос должен включать время, компенсацию и возможность спокойно отказаться." />
 		<template id="v3.life.work.reply.boundaries.0130" act="life.work.boundaries.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Системная нехватка людей не решается постоянными личными жертвами." />
-		<template id="v3.life.work.reply.boundaries.0131" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я помогу найти альтернативу, но не буду убеждать тебя согласиться." />
+		<template id="v3.life.work.reply.boundaries.0131" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Альтернативу полезно найти, не убеждая человека согласиться." />
 		<template id="v3.life.work.reply.boundaries.0132" act="life.work.boundaries.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я чаще выручаю, ты лучше защищаешь устойчивый график." />
 		<template id="v3.life.work.reply.boundaries.0133" act="life.work.boundaries.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не дави чувством вины на человека с выходным." />
 		<template id="v3.life.work.reply.boundaries.0134" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твои манипуляции расписанием будут переданы руководителю." />
@@ -766,7 +766,7 @@
 		<template id="v3.life.work.reply.boundaries.0163" act="life.work.boundaries.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Время на ответ позволяет проверить последствия и не обещать невозможное." />
 		<template id="v3.life.work.reply.boundaries.0164" act="life.work.boundaries.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Назовите точный момент возвращения, чтобы пауза не выглядела исчезновением." />
 		<template id="v3.life.work.reply.boundaries.0165" act="life.work.boundaries.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если решение зависит от данных, перечислите, что именно нужно получить." />
-		<template id="v3.life.work.reply.boundaries.0166" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я помогу собрать факты, пока ты не берёшь обязательство." />
+		<template id="v3.life.work.reply.boundaries.0166" act="life.work.boundaries.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Факты лучше собрать до того, как брать обязательство." />
 		<template id="v3.life.work.reply.boundaries.0167" act="life.work.boundaries.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты решаешь смелее, я точнее вижу риски." />
 		<template id="v3.life.work.reply.boundaries.0168" act="life.work.boundaries.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не интерпретируй молчание как разрешение действовать." />
 		<template id="v3.life.work.reply.boundaries.0169" act="life.work.boundaries.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если пойдёшь дальше без согласия, ответственность останется на тебе." />

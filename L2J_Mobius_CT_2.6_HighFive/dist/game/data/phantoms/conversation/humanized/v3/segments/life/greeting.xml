@@ -4,7 +4,7 @@
 		<template id="v3.life.greeting.reply.arrival.0001" act="life.greeting.arrival.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Здравствуйте. Мы ещё не знакомы, но можно начать с простого приветствия." />
 		<template id="v3.life.greeting.reply.arrival.0002" act="life.greeting.arrival.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Привет, располагайся — разговор только начинается." />
 		<template id="v3.life.greeting.reply.arrival.0003" act="life.greeting.arrival.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="О, наконец знакомый ник. Заходи, тут спокойно." />
-		<template id="v3.life.greeting.reply.arrival.0004" act="life.greeting.arrival.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Рад тебя видеть; твоё появление почему-то сразу оживило вечер." />
+		<template id="v3.life.greeting.reply.arrival.0004" act="life.greeting.arrival.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Появление знакомого человека нередко оживляет вечер, если встреча действительно желанна." />
 		<template id="v3.life.greeting.reply.arrival.0005" act="life.greeting.arrival.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ну привет, соперник. Даже ты сегодня вовремя." />
 		<template id="v3.life.greeting.reply.arrival.0006" act="life.greeting.arrival.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Вижу. Что хотел?" />
 		<template id="v3.life.greeting.reply.arrival.0007" act="life.greeting.arrival.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Поздоровался — достаточно, церемонию отменяем." />
@@ -165,13 +165,13 @@
 		<template id="v3.life.greeting.reply.arrival.0162" act="life.greeting.arrival.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Привет, вижу новые ники." />
 		<template id="v3.life.greeting.reply.arrival.0163" act="life.greeting.arrival.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Да, состав немного изменился; знакомиться можно по ходу." />
 		<template id="v3.life.greeting.reply.arrival.0164" act="life.greeting.arrival.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Новые ники, старые странности — баланс соблюдён." />
-		<template id="v3.life.greeting.reply.arrival.0165" act="life.greeting.arrival.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я помогу тебе войти в разговор без публичных представлений." />
+		<template id="v3.life.greeting.reply.arrival.0165" act="life.greeting.arrival.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="В разговор проще войти через один спокойный вопрос, без публичного представления." />
 		<template id="v3.life.greeting.reply.arrival.0166" act="life.greeting.arrival.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, не пугай новичков своей репутацией." />
 		<template id="v3.life.greeting.reply.arrival.0167" act="life.greeting.arrival.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Заметил — хорошо." />
 		<template id="v3.life.greeting.reply.arrival.0168" act="life.greeting.arrival.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не начинай сортировать людей на старых и новых." />
 		<template id="v3.life.greeting.reply.arrival.0169" act="life.greeting.arrival.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я пришёл просто побыть рядом." />
 		<template id="v3.life.greeting.reply.arrival.0170" act="life.greeting.arrival.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Это достаточная причина, разговор не требует билета." />
-		<template id="v3.life.greeting.reply.arrival.0171" act="life.greeting.arrival.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Садись в воображаемый угол, я принесу воображаемый плед." />
+		<template id="v3.life.greeting.reply.arrival.0171" act="life.greeting.arrival.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Воображаемый угол и плед — безопасный формат гостеприимства без реальных обещаний." />
 		<template id="v3.life.greeting.reply.arrival.0172" act="life.greeting.arrival.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нравится твоё присутствие без необходимости что-то доказывать." />
 		<template id="v3.life.greeting.reply.arrival.0173" act="life.greeting.arrival.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, рядом можно быть и молча проигрывать." />
 		<template id="v3.life.greeting.reply.arrival.0174" act="life.greeting.arrival.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Будь, только не мешай." />
@@ -201,14 +201,14 @@
 		<template id="v3.life.greeting.reply.arrival.0198" act="life.greeting.arrival.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Тон задан без фальшивой фамильярности." />
 		<template id="v3.life.greeting.reply.arrival.0199" act="life.greeting.arrival.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Можно переходить от приветствия к настоящему разговору." />
 		<template id="v3.life.greeting.reply.arrival.0200" act="life.greeting.arrival.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Arrival-контекст закрыт." />
-		<template id="v3.life.greeting.reply.return.0001" act="life.greeting.return.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мы давно не пересекались, поэтому я не буду делать вид, что знаю все новости." />
+		<template id="v3.life.greeting.reply.return.0001" act="life.greeting.return.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="После долгой паузы честнее признать, что всех новостей не знаешь." />
 		<template id="v3.life.greeting.reply.return.0002" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="С возвращением. Можешь войти в ритм без отчёта за отсутствие." />
 		<template id="v3.life.greeting.reply.return.0003" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="О, пропажа нашлась! Садись, мир не успел закончиться." />
-		<template id="v3.life.greeting.reply.return.0004" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я правда скучал по твоему голосу, но объяснений не требую." />
-		<template id="v3.life.greeting.reply.return.0005" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, пауза не стёрла наш счёт." />
+		<template id="v3.life.greeting.reply.return.0004" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="По знакомому голосу можно скучать, если такая близость действительно есть." />
+		<template id="v3.life.greeting.reply.return.0005" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Пауза не обязана стирать дружеское соперничество, если оно действительно есть." />
 		<template id="v3.life.greeting.reply.return.0006" act="life.greeting.return.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вернулся — хорошо. Продолжай с текущего места." />
 		<template id="v3.life.greeting.reply.return.0007" act="life.greeting.return.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не жди фанфар за обычное появление." />
-		<template id="v3.life.greeting.reply.return.0008" act="life.greeting.return.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я снова здесь после перерыва. Надеюсь, никому ничего не должен." />
+		<template id="v3.life.greeting.reply.return.0008" act="life.greeting.return.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После перерыва можно вернуться без ощущения долга перед разговором." />
 		<template id="v3.life.greeting.reply.return.0009" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Отсутствие само по себе не создаёт долга перед разговором." />
 		<template id="v3.life.greeting.reply.return.0010" act="life.greeting.return.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Должен только одну историю, если она смешная и добровольная." />
 		<template id="v3.life.greeting.reply.return.0011" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне достаточно, что ты вернулся по собственному желанию." />
@@ -239,14 +239,14 @@
 		<template id="v3.life.greeting.reply.return.0036" act="life.greeting.return.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я вышел на минуту и потерял нить разговора." />
 		<template id="v3.life.greeting.reply.return.0037" act="life.greeting.return.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Последняя тема была простой; можешь спросить конкретно." />
 		<template id="v3.life.greeting.reply.return.0038" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мы обсуждали всё и ничего, ты почти не отстал." />
-		<template id="v3.life.greeting.reply.return.0039" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помогу вернуться без чтения сотни сообщений." />
+		<template id="v3.life.greeting.reply.return.0039" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После паузы лучше начать с короткой сводки, а не перечитывать сотню сообщений." />
 		<template id="v3.life.greeting.reply.return.0040" act="life.greeting.return.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, минута отсутствия не оправдывает новую дискуссию." />
 		<template id="v3.life.greeting.reply.return.0041" act="life.greeting.return.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сейчас речь о другом." />
 		<template id="v3.life.greeting.reply.return.0042" act="life.greeting.return.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Следи за разговором сам." />
 		<template id="v3.life.greeting.reply.return.0043" act="life.greeting.return.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Давно не заходил. Здесь всё сильно изменилось?" />
 		<template id="v3.life.greeting.reply.return.0044" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Люди и темы меняются постепенно, лучше посмотреть самому." />
 		<template id="v3.life.greeting.reply.return.0045" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Стулья те же, шутки местами хуже." />
-		<template id="v3.life.greeting.reply.return.0046" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я покажу, что стало новым, не превращая прошлое в эталон." />
+		<template id="v3.life.greeting.reply.return.0046" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Новое можно показать кратко, не делая прошлое эталоном." />
 		<template id="v3.life.greeting.reply.return.0047" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, одно неизменно: ты всё ещё опаздываешь." />
 		<template id="v3.life.greeting.reply.return.0048" act="life.greeting.return.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Изменения увидишь по ходу." />
 		<template id="v3.life.greeting.reply.return.0049" act="life.greeting.return.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мир не стоял на паузе ради тебя." />
@@ -266,14 +266,14 @@
 		<template id="v3.life.greeting.reply.return.0063" act="life.greeting.return.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Любопытные переживут." />
 		<template id="v3.life.greeting.reply.return.0064" act="life.greeting.return.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Меня вообще кто-нибудь помнит?" />
 		<template id="v3.life.greeting.reply.return.0065" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Память бывает разной; не нужно устраивать проверку всем сразу." />
-		<template id="v3.life.greeting.reply.return.0066" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я помню твою привычку задавать опасные вопросы, считается?" />
+		<template id="v3.life.greeting.reply.return.0066" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Опасные вопросы запоминаются легко, но приписывать привычку без фактов не стоит." />
 		<template id="v3.life.greeting.reply.return.0067" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне знаком твой голос, и этого достаточно для начала." />
 		<template id="v3.life.greeting.reply.return.0068" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, забыть тебя было бы слишком удобно." />
 		<template id="v3.life.greeting.reply.return.0069" act="life.greeting.return.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Узнал. Дальше что?" />
 		<template id="v3.life.greeting.reply.return.0070" act="life.greeting.return.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Самооценку здесь чинить не будут." />
 		<template id="v3.life.greeting.reply.return.0071" act="life.greeting.return.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Вернулся после сложного дня и хочу молча посидеть." />
 		<template id="v3.life.greeting.reply.return.0072" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Садись. Тишина не требует объяснений." />
-		<template id="v3.life.greeting.reply.return.0073" act="life.greeting.return.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я поставлю рядом воображаемую кружку и не полезу с вопросами." />
+		<template id="v3.life.greeting.reply.return.0073" act="life.greeting.return.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Воображаемая кружка уместна, а с реальными вопросами можно не спешить." />
 		<template id="v3.life.greeting.reply.return.0074" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне спокойно просто знать, что ты здесь." />
 		<template id="v3.life.greeting.reply.return.0075" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, сегодня даже я оставлю тебя в покое." />
 		<template id="v3.life.greeting.reply.return.0076" act="life.greeting.return.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Можешь молчать." />
@@ -301,7 +301,7 @@
 		<template id="v3.life.greeting.reply.return.0098" act="life.greeting.return.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если вещь пустяковая, мог не возвращаться." />
 		<template id="v3.life.greeting.reply.return.0099" act="life.greeting.return.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После долгой паузы не знаю, с чего начать." />
 		<template id="v3.life.greeting.reply.return.0100" act="life.greeting.return.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Начните с того, что актуально сейчас, без полной автобиографии." />
-		<template id="v3.life.greeting.reply.return.0101" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Скажи «привет» — остальное мы уже пережили." />
+		<template id="v3.life.greeting.reply.return.0101" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Иногда одного «привет» достаточно, без выдуманного общего прошлого." />
 		<template id="v3.life.greeting.reply.return.0102" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я подхвачу любую простую тему, чтобы снять неловкость." />
 		<template id="v3.life.greeting.reply.return.0103" act="life.greeting.return.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, первый шаг после паузы всё ещё шаг." />
 		<template id="v3.life.greeting.reply.return.0104" act="life.greeting.return.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Говори прямо." />
@@ -316,7 +316,7 @@
 		<template id="v3.life.greeting.reply.return.0113" act="life.greeting.return.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Кто-нибудь может напомнить, на чём мы остановились вчера?" />
 		<template id="v3.life.greeting.reply.return.0114" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Лучше назвать последнюю принятую мысль, а не пересказывать весь спор." />
 		<template id="v3.life.greeting.reply.return.0115" act="life.greeting.return.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мы остановились ровно перед тем, как все устали." />
-		<template id="v3.life.greeting.reply.return.0116" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я сохраню нейтральную версию без выбора стороны за тебя." />
+		<template id="v3.life.greeting.reply.return.0116" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Нейтральный ответ лучше дать сейчас, не обещая хранить его за другого." />
 		<template id="v3.life.greeting.reply.return.0117" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, вчерашний счёт сегодня не действует." />
 		<template id="v3.life.greeting.reply.return.0118" act="life.greeting.return.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Последний итог был такой-то." />
 		<template id="v3.life.greeting.reply.return.0119" act="life.greeting.return.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Читай историю, если хочешь детали." />
@@ -329,7 +329,7 @@
 		<template id="v3.life.greeting.reply.return.0126" act="life.greeting.return.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Метания у двери утомляют." />
 		<template id="v3.life.greeting.reply.return.0127" act="life.greeting.return.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я вернулся с хорошим настроением." />
 		<template id="v3.life.greeting.reply.return.0128" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Отлично, делись им без обязанности развеселить всех." />
-		<template id="v3.life.greeting.reply.return.0129" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Клади настроение на стол, посмотрим, выдержит ли наши шутки." />
+		<template id="v3.life.greeting.reply.return.0129" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Настроение не обязано выдерживать чужие шутки; границу можно назвать прямо." />
 		<template id="v3.life.greeting.reply.return.0130" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне радостно видеть тебя таким, даже без причины." />
 		<template id="v3.life.greeting.reply.return.0131" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, не расслабляйся: бодрость ещё проверим." />
 		<template id="v3.life.greeting.reply.return.0132" act="life.greeting.return.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хорошо. Используй с пользой." />
@@ -337,7 +337,7 @@
 		<template id="v3.life.greeting.reply.return.0134" act="life.greeting.return.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Вернулся злой, предупреждаю заранее." />
 		<template id="v3.life.greeting.reply.return.0135" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Спасибо за предупреждение; можно взять паузу и не срываться." />
 		<template id="v3.life.greeting.reply.return.0136" act="life.greeting.return.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Рычать разрешено в сторону пустой комнаты." />
-		<template id="v3.life.greeting.reply.return.0137" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я останусь рядом, но границы остальных защищу тоже." />
+		<template id="v3.life.greeting.reply.return.0137" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Можно поддержать разговор словами, не обещая присутствие и защиту границ всех людей." />
 		<template id="v3.life.greeting.reply.return.0138" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, злость не выдаёт тебе дополнительных очков." />
 		<template id="v3.life.greeting.reply.return.0139" act="life.greeting.return.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Держи тон." />
 		<template id="v3.life.greeting.reply.return.0140" act="life.greeting.return.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твоё настроение не индульгенция." />
@@ -351,7 +351,7 @@
 		<template id="v3.life.greeting.reply.return.0148" act="life.greeting.return.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Состав изменился, и я никого не знаю." />
 		<template id="v3.life.greeting.reply.return.0149" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно познакомиться через разговор, без общего представления по очереди." />
 		<template id="v3.life.greeting.reply.return.0150" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я тоже половину не знаю, притворимся уверенными вместе." />
-		<template id="v3.life.greeting.reply.return.0151" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я помогу тебе найти знакомую тему, не выдавая людей списком." />
+		<template id="v3.life.greeting.reply.return.0151" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Знакомую тему проще найти по текущему разговору, не перечисляя людей." />
 		<template id="v3.life.greeting.reply.return.0152" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, новый состав — новые свидетели твоих поражений." />
 		<template id="v3.life.greeting.reply.return.0153" act="life.greeting.return.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Осмотрись." />
 		<template id="v3.life.greeting.reply.return.0154" act="life.greeting.return.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Никто не обязан облегчать тебе возвращение." />
@@ -393,7 +393,7 @@
 		<template id="v3.life.greeting.reply.return.0190" act="life.greeting.return.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Возвращение произошло в выбранном человеком объёме." />
 		<template id="v3.life.greeting.reply.return.0191" act="life.greeting.return.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ни одна пропущенная тема не стала обязательным домашним заданием." />
 		<template id="v3.life.greeting.reply.return.0192" act="life.greeting.return.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Теперь можно смеяться, спорить или молчать как обычно." />
-		<template id="v3.life.greeting.reply.return.0193" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я сохраню место рядом без обещания удерживать тебя." />
+		<template id="v3.life.greeting.reply.return.0193" act="life.greeting.return.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Приглашение можно оставить открытым, не обещая удерживать место." />
 		<template id="v3.life.greeting.reply.return.0194" act="life.greeting.return.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, статус «вернулся» снят — снова просто мешаешь всем на равных." />
 		<template id="v3.life.greeting.reply.return.0195" act="life.greeting.return.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Разговор продолжен с текущей точки." />
 		<template id="v3.life.greeting.reply.return.0196" act="life.greeting.return.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Return-контекст закрыт." />
@@ -402,16 +402,16 @@
 		<template id="v3.life.greeting.reply.return.0199" act="life.greeting.return.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Дальше выбирает сам участник." />
 		<template id="v3.life.greeting.reply.return.0200" act="life.greeting.return.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Возвращение завершено." />
 		<template id="v3.life.greeting.reply.timeofday.0001" act="life.greeting.timeofday.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Доброе утро. Не уверен, что у вас тот же час, поэтому без предположений." />
-		<template id="v3.life.greeting.reply.timeofday.0002" act="life.greeting.timeofday.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="У меня утро, у тебя может быть что угодно — привет в любом случае." />
-		<template id="v3.life.greeting.reply.timeofday.0003" act="life.greeting.timeofday.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если это ночь, считай мою бодрость актом агрессии." />
-		<template id="v3.life.greeting.reply.timeofday.0004" act="life.greeting.timeofday.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне приятно начать свой день с твоего голоса, где бы ты ни был." />
+		<template id="v3.life.greeting.reply.timeofday.0002" act="life.greeting.timeofday.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="У собеседников может быть разное время суток, поэтому простого приветствия достаточно." />
+		<template id="v3.life.greeting.reply.timeofday.0003" act="life.greeting.timeofday.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если это ночь, бодрость лучше не выдавать за установленный факт." />
+		<template id="v3.life.greeting.reply.timeofday.0004" act="life.greeting.timeofday.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Начать день с приятного голоса хорошо, если разговор действительно пришёлся на утро." />
 		<template id="v3.life.greeting.reply.timeofday.0005" act="life.greeting.timeofday.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, рассвет не даёт тебе преимущества." />
 		<template id="v3.life.greeting.reply.timeofday.0006" act="life.greeting.timeofday.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Утро принято. Говори." />
 		<template id="v3.life.greeting.reply.timeofday.0007" act="life.greeting.timeofday.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не заражай меня своей ранней радостью." />
 		<template id="v3.life.greeting.reply.timeofday.0008" act="life.greeting.timeofday.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Кто уже проснулся, а кто только изображает присутствие?" />
-		<template id="v3.life.greeting.reply.timeofday.0009" act="life.greeting.timeofday.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я проснулся достаточно, чтобы читать, но не достаточно для сложных решений." />
-		<template id="v3.life.greeting.reply.timeofday.0010" act="life.greeting.timeofday.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Глаза открыты, мозг обещал подойти позже." />
-		<template id="v3.life.greeting.reply.timeofday.0011" act="life.greeting.timeofday.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я могу говорить тихо, пока ты собираешься с мыслями." />
+		<template id="v3.life.greeting.reply.timeofday.0009" act="life.greeting.timeofday.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сонное утро допускает чтение, но сложные решения лучше отложить." />
+		<template id="v3.life.greeting.reply.timeofday.0010" act="life.greeting.timeofday.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Иногда глаза уже открыты, а внимание ещё не включилось." />
+		<template id="v3.life.greeting.reply.timeofday.0011" act="life.greeting.timeofday.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Тихий разговор уместен, пока собеседник собирается с мыслями." />
 		<template id="v3.life.greeting.reply.timeofday.0012" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, сонный режим не освобождает от точных ответов." />
 		<template id="v3.life.greeting.reply.timeofday.0013" act="life.greeting.timeofday.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Просыпайся без спектакля." />
 		<template id="v3.life.greeting.reply.timeofday.0014" act="life.greeting.timeofday.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если спишь, молчи убедительнее." />
@@ -475,7 +475,7 @@
 		<template id="v3.life.greeting.reply.timeofday.0072" act="life.greeting.timeofday.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Для кого-то да, но не будем предполагать чужой график." />
 		<template id="v3.life.greeting.reply.timeofday.0073" act="life.greeting.timeofday.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="У меня пятница определяется по уровню желания ничего не решать." />
 		<template id="v3.life.greeting.reply.timeofday.0074" act="life.greeting.timeofday.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне хочется разделить с тобой облегчение, если оно у тебя есть." />
-		<template id="v3.life.greeting.reply.timeofday.0075" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, конец недели не отменяет наш спор." />
+		<template id="v3.life.greeting.reply.timeofday.0075" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Конец недели не отменяет спор, если собеседники действительно хотят к нему вернуться." />
 		<template id="v3.life.greeting.reply.timeofday.0076" act="life.greeting.timeofday.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Пятница. Ясно." />
 		<template id="v3.life.greeting.reply.timeofday.0077" act="life.greeting.timeofday.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Календарь — слабая тема для радости." />
 		<template id="v3.life.greeting.reply.timeofday.0078" act="life.greeting.timeofday.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Понедельничное утро пришло без приглашения." />
@@ -524,7 +524,7 @@
 		<template id="v3.life.greeting.reply.timeofday.0121" act="life.greeting.timeofday.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Спасибо. Пусть у вас тоже будет меньше резких углов." />
 		<template id="v3.life.greeting.reply.timeofday.0122" act="life.greeting.timeofday.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Мягкий вечер звучит как плед с хорошим пиаром." />
 		<template id="v3.life.greeting.reply.timeofday.0123" act="life.greeting.timeofday.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне тепло от такого пожелания без требования отвечать тем же." />
-		<template id="v3.life.greeting.reply.timeofday.0124" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, мягкость вечера не распространится на наш счёт." />
+		<template id="v3.life.greeting.reply.timeofday.0124" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мягкость вечера не обязана распространяться на любой спор." />
 		<template id="v3.life.greeting.reply.timeofday.0125" act="life.greeting.timeofday.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Взаимно." />
 		<template id="v3.life.greeting.reply.timeofday.0126" act="life.greeting.timeofday.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Излишняя сладость утомляет." />
 		<template id="v3.life.greeting.reply.timeofday.0127" act="life.greeting.timeofday.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Тихой ночи." />
@@ -536,7 +536,7 @@
 		<template id="v3.life.greeting.reply.timeofday.0133" act="life.greeting.timeofday.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не распоряжайся моей тишиной." />
 		<template id="v3.life.greeting.reply.timeofday.0134" act="life.greeting.timeofday.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Бодрого дня всем." />
 		<template id="v3.life.greeting.reply.timeofday.0135" act="life.greeting.timeofday.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Спасибо, но можно и небодрого — главное, собственного." />
-		<template id="v3.life.greeting.reply.timeofday.0136" act="life.greeting.timeofday.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я возьму половину бодрости, остальное оставлю на завтра." />
+		<template id="v3.life.greeting.reply.timeofday.0136" act="life.greeting.timeofday.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Бодрость на завтра лучше не делить заранее — она приходит без расписания." />
 		<template id="v3.life.greeting.reply.timeofday.0137" act="life.greeting.timeofday.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне приятно твоё пожелание, даже если сил немного." />
 		<template id="v3.life.greeting.reply.timeofday.0138" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, бодрость проверим первой сложной мыслью." />
 		<template id="v3.life.greeting.reply.timeofday.0139" act="life.greeting.timeofday.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Принято." />
@@ -562,10 +562,10 @@
 		<template id="v3.life.greeting.reply.timeofday.0159" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, время победило тебя без боя." />
 		<template id="v3.life.greeting.reply.timeofday.0160" act="life.greeting.timeofday.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Посмотри дату." />
 		<template id="v3.life.greeting.reply.timeofday.0161" act="life.greeting.timeofday.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не делай из забывчивости философию." />
-		<template id="v3.life.greeting.reply.timeofday.0162" act="life.greeting.timeofday.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Часовые пояса снова перепутали наши приветствия." />
+		<template id="v3.life.greeting.reply.timeofday.0162" act="life.greeting.timeofday.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Часовые пояса легко путают приветствия даже без общей истории." />
 		<template id="v3.life.greeting.reply.timeofday.0163" act="life.greeting.timeofday.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Зато можно выбрать любое доброе время суток и не спорить." />
 		<template id="v3.life.greeting.reply.timeofday.0164" act="life.greeting.timeofday.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Тогда доброго всего сразу, оптом дешевле." />
-		<template id="v3.life.greeting.reply.timeofday.0165" act="life.greeting.timeofday.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне нравится наша маленькая временная путаница." />
+		<template id="v3.life.greeting.reply.timeofday.0165" act="life.greeting.timeofday.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Небольшая путаница со временем бывает забавной, если никому не мешает." />
 		<template id="v3.life.greeting.reply.timeofday.0166" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, даже часы не хотят играть по твоим правилам." />
 		<template id="v3.life.greeting.reply.timeofday.0167" act="life.greeting.timeofday.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Привет независимо от времени." />
 		<template id="v3.life.greeting.reply.timeofday.0168" act="life.greeting.timeofday.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Тема часов исчерпана." />
@@ -580,7 +580,7 @@
 		<template id="v3.life.greeting.reply.timeofday.0177" act="life.greeting.timeofday.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Пожелание осталось приглашением, а не требованием настроения." />
 		<template id="v3.life.greeting.reply.timeofday.0178" act="life.greeting.timeofday.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Утро, день, вечер и ночь мирно разошлись по часовым поясам." />
 		<template id="v3.life.greeting.reply.timeofday.0179" act="life.greeting.timeofday.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мне приятно совпасть с тобой хотя бы в одном сообщении." />
-		<template id="v3.life.greeting.reply.timeofday.0180" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, часы закрыты, наш спор ещё нет." />
+		<template id="v3.life.greeting.reply.timeofday.0180" act="life.greeting.timeofday.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Часы можно закрыть, а к спору вернуться только по взаимному желанию." />
 		<template id="v3.life.greeting.reply.timeofday.0181" act="life.greeting.timeofday.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Временной контекст завершён." />
 		<template id="v3.life.greeting.reply.timeofday.0182" act="life.greeting.timeofday.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Можно говорить о чём-то кроме календаря." />
 		<template id="v3.life.greeting.reply.timeofday.0183" act="life.greeting.timeofday.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Последний взгляд на часы не стал упрёком тем, кто бодрствует иначе." />
@@ -608,7 +608,7 @@
 		<template id="v3.life.greeting.reply.farewell.0005" act="life.greeting.farewell.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, уходи сейчас, реванш всё равно найдёт тебя." />
 		<template id="v3.life.greeting.reply.farewell.0006" act="life.greeting.farewell.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Пока. Разговор закончен." />
 		<template id="v3.life.greeting.reply.farewell.0007" act="life.greeting.farewell.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Наконец-то тише станет." />
-		<template id="v3.life.greeting.reply.farewell.0008" act="life.greeting.farewell.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне пора по делам, не хочу исчезать без слова." />
+		<template id="v3.life.greeting.reply.farewell.0008" act="life.greeting.farewell.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Уход по делам лучше обозначить прямо, не исчезая без слова." />
 		<template id="v3.life.greeting.reply.farewell.0009" act="life.greeting.farewell.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Спасибо, что предупредили; отвечать после ухода не потребуется." />
 		<template id="v3.life.greeting.reply.farewell.0010" act="life.greeting.farewell.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Беги, пока дела не пришли сюда сами." />
 		<template id="v3.life.greeting.reply.farewell.0011" act="life.greeting.farewell.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне приятно, что ты оставил ясную точку вместо внезапной тишины." />
@@ -626,7 +626,7 @@
 		<template id="v3.life.greeting.reply.farewell.0023" act="life.greeting.farewell.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Взаимно. Хороший разговор не обязан длиться до усталости." />
 		<template id="v3.life.greeting.reply.farewell.0024" act="life.greeting.farewell.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы даже почти не поссорились — высокий стандарт вечера." />
 		<template id="v3.life.greeting.reply.farewell.0025" act="life.greeting.farewell.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне тепло от этой встречи; можешь унести только это, без долга." />
-		<template id="v3.life.greeting.reply.farewell.0026" act="life.greeting.farewell.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Соперник, приятный разговор не меняет наш счёт." />
+		<template id="v3.life.greeting.reply.farewell.0026" act="life.greeting.farewell.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Приятный разговор не обязан отменять дружеское соперничество." />
 		<template id="v3.life.greeting.reply.farewell.0027" act="life.greeting.farewell.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Принято. До следующего раза." />
 		<template id="v3.life.greeting.reply.farewell.0028" act="life.greeting.farewell.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не раздавай благодарности как финальные титры." />
 		<template id="v3.life.greeting.reply.farewell.0029" act="life.greeting.farewell.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я ненадолго отойду и могу не вернуться сегодня." />
@@ -716,7 +716,7 @@
 		<template id="v3.life.greeting.reply.farewell.0113" act="life.greeting.farewell.reply" band="TENSE" register="CASUAL" profanity="NONE" text="До скорого, хотя точного времени не знаю." />
 		<template id="v3.life.greeting.reply.farewell.0114" act="life.greeting.farewell.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Точность здесь не нужна; встретимся по факту." />
 		<template id="v3.life.greeting.reply.farewell.0115" act="life.greeting.farewell.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Скоро — прекрасная единица времени без гарантий." />
-		<template id="v3.life.greeting.reply.farewell.0116" act="life.greeting.farewell.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я сохраню желание встретиться, не превращая его в расписание." />
+		<template id="v3.life.greeting.reply.farewell.0116" act="life.greeting.farewell.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Желание встретиться лучше оставить предложением, не превращая его в обещание." />
 		<template id="v3.life.greeting.reply.farewell.0117" act="life.greeting.farewell.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, неопределённость тебя не спасёт." />
 		<template id="v3.life.greeting.reply.farewell.0118" act="life.greeting.farewell.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Когда-нибудь увидимся." />
 		<template id="v3.life.greeting.reply.farewell.0119" act="life.greeting.farewell.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Пустое обещание можно было не давать." />
@@ -779,7 +779,7 @@
 		<template id="v3.life.greeting.reply.farewell.0176" act="life.greeting.farewell.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Последнее сообщение не создаёт нового вопроса или долга." />
 		<template id="v3.life.greeting.reply.farewell.0177" act="life.greeting.farewell.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Обе стороны понимают, что ответ может прийти уже в другой раз." />
 		<template id="v3.life.greeting.reply.farewell.0178" act="life.greeting.farewell.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="До встречи — и правда до встречи, без тайного продолжения." />
-		<template id="v3.life.greeting.reply.farewell.0179" act="life.greeting.farewell.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я сохраню хорошее ощущение, не удерживая тебя словами." />
+		<template id="v3.life.greeting.reply.farewell.0179" act="life.greeting.farewell.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошее ощущение можно унести с собой без обещаний хранить его навсегда." />
 		<template id="v3.life.greeting.reply.farewell.0180" act="life.greeting.farewell.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соперник, финальная точка твоя, следующая реплика будет моей." />
 		<template id="v3.life.greeting.reply.farewell.0181" act="life.greeting.farewell.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Прощание принято." />
 		<template id="v3.life.greeting.reply.farewell.0182" act="life.greeting.farewell.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Контекст закрыт." />

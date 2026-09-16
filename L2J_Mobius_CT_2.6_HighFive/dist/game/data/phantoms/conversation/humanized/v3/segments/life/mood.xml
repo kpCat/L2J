@@ -8,10 +8,10 @@
 		<template id="v3.life.mood.reply.checkin.0005" act="life.mood.checkin.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, даже настроение не обязано участвовать в соревновании." />
 		<template id="v3.life.mood.reply.checkin.0006" act="life.mood.checkin.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ответ не требуется немедленно." />
 		<template id="v3.life.mood.reply.checkin.0007" act="life.mood.checkin.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не люблю вопросы, которые притворяются заботой." />
-		<template id="v3.life.mood.reply.checkin.0008" act="life.mood.checkin.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты сегодня заметно тише обычного." />
+		<template id="v3.life.mood.reply.checkin.0008" act="life.mood.checkin.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если человек кажется тише обычного, лучше спросить, а не выдавать наблюдение за фактом." />
 		<template id="v3.life.mood.reply.checkin.0009" act="life.mood.checkin.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Это наблюдение, а не вывод; хотите поговорить?" />
-		<template id="v3.life.mood.reply.checkin.0010" act="life.mood.checkin.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Тишина сегодня громкая, но я не полезу с фонариком." />
-		<template id="v3.life.mood.reply.checkin.0011" act="life.mood.checkin.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я останусь рядом, даже если слов пока нет." />
+		<template id="v3.life.mood.reply.checkin.0010" act="life.mood.checkin.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Тишина иногда ощущается громкой, но лезть в неё без приглашения не стоит." />
+		<template id="v3.life.mood.reply.checkin.0011" act="life.mood.checkin.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Даже без слов можно бережно поддержать человека в текущем разговоре." />
 		<template id="v3.life.mood.reply.checkin.0012" act="life.mood.checkin.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соперник, молчание тебе идёт, но я всё равно заметил." />
 		<template id="v3.life.mood.reply.checkin.0013" act="life.mood.checkin.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если нужно пространство, скажи прямо." />
 		<template id="v3.life.mood.reply.checkin.0014" act="life.mood.checkin.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не делай из моей тишины событие." />
@@ -123,7 +123,7 @@
 		<template id="v3.life.mood.reply.checkin.0120" act="life.mood.checkin.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Что тебе сейчас нужнее: чтобы услышали или чтобы предложили идею?" />
 		<template id="v3.life.mood.reply.checkin.0121" act="life.mood.checkin.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Разделение полезно, но ответ можно поменять позже." />
 		<template id="v3.life.mood.reply.checkin.0122" act="life.mood.checkin.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сначала просто послушай, советы потом." />
-		<template id="v3.life.mood.reply.checkin.0123" act="life.mood.checkin.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я сохраню свои решения до прямой просьбы." />
+		<template id="v3.life.mood.reply.checkin.0123" act="life.mood.checkin.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Решения лучше не навязывать без прямой просьбы." />
 		<template id="v3.life.mood.reply.checkin.0124" act="life.mood.checkin.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, молчать по команде тоже навык." />
 		<template id="v3.life.mood.reply.checkin.0125" act="life.mood.checkin.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Рассказывай, я рядом и не буду перебивать." />
 		<template id="v3.life.mood.reply.checkin.0126" act="life.mood.checkin.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не изображай консультанта." />
@@ -193,7 +193,7 @@
 		<template id="v3.life.mood.reply.checkin.0190" act="life.mood.checkin.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Проверка помогла уточнить только формат общения." />
 		<template id="v3.life.mood.reply.checkin.0191" act="life.mood.checkin.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Этого достаточно; настроение не обязано становиться общей темой." />
 		<template id="v3.life.mood.reply.checkin.0192" act="life.mood.checkin.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Давайте говорить медленнее и без личных вопросов." />
-		<template id="v3.life.mood.reply.checkin.0193" act="life.mood.checkin.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне подходит, я сохраню близость через уважение к расстоянию." />
+		<template id="v3.life.mood.reply.checkin.0193" act="life.mood.checkin.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Близость иногда выражается уважением к расстоянию, если она вообще уместна." />
 		<template id="v3.life.mood.reply.checkin.0194" act="life.mood.checkin.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соперник, формат ясен, лишние ходы отменены." />
 		<template id="v3.life.mood.reply.checkin.0195" act="life.mood.checkin.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Условия разговора приняты." />
 		<template id="v3.life.mood.reply.checkin.0196" act="life.mood.checkin.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Причины остаются личными." />
@@ -205,10 +205,10 @@
 		<template id="v3.life.mood.reply.empathy.0002" act="life.mood.empathy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Звучит тяжело. Советы сейчас нужны или достаточно присутствия?" />
 		<template id="v3.life.mood.reply.empathy.0003" act="life.mood.empathy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я рядом, дружище. Не собирай слова идеально." />
 		<template id="v3.life.mood.reply.empathy.0004" act="life.mood.empathy.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне жаль, что тебе приходится нести это; объяснять больше не обязан." />
-		<template id="v3.life.mood.reply.empathy.0005" act="life.mood.empathy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, сегодня я не буду превращать боль в соревнование." />
+		<template id="v3.life.mood.reply.empathy.0005" act="life.mood.empathy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Боль не стоит превращать в соревнование ни сегодня, ни в другой день." />
 		<template id="v3.life.mood.reply.empathy.0006" act="life.mood.empathy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Говори только фактами, которые хочешь назвать." />
 		<template id="v3.life.mood.reply.empathy.0007" act="life.mood.empathy.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не требуй сочувствия после половины намёка." />
-		<template id="v3.life.mood.reply.empathy.0008" act="life.mood.empathy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сегодня всё навалилось одновременно." />
+		<template id="v3.life.mood.reply.empathy.0008" act="life.mood.empathy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Когда всё навалилось одновременно, разумнее назвать одну проблему за раз." />
 		<template id="v3.life.mood.reply.empathy.0009" act="life.mood.empathy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Когда проблем много, их вес ощущается сильнее простой суммы." />
 		<template id="v3.life.mood.reply.empathy.0010" act="life.mood.empathy.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Да, будто они договорились прийти одной компанией." />
 		<template id="v3.life.mood.reply.empathy.0011" act="life.mood.empathy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я не стану просить тебя немедленно разложить их по полкам." />
@@ -253,7 +253,7 @@
 		<template id="v3.life.mood.reply.empathy.0050" act="life.mood.empathy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я сорвался на человека и теперь стыдно." />
 		<template id="v3.life.mood.reply.empathy.0051" act="life.mood.empathy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можно признать вред без превращения себя целиком в плохого человека." />
 		<template id="v3.life.mood.reply.empathy.0052" act="life.mood.empathy.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Напишу извинение без длинных оправданий." />
-		<template id="v3.life.mood.reply.empathy.0053" act="life.mood.empathy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помогу тебе выдержать ожидание ответа после этого." />
+		<template id="v3.life.mood.reply.empathy.0053" act="life.mood.empathy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ожидание ответа легче переносить, если заранее не строить худшие версии." />
 		<template id="v3.life.mood.reply.empathy.0054" act="life.mood.empathy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, признать ошибку труднее, чем нанести её." />
 		<template id="v3.life.mood.reply.empathy.0055" act="life.mood.empathy.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Исправляй конкретный поступок." />
 		<template id="v3.life.mood.reply.empathy.0056" act="life.mood.empathy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Стыд ничего не чинит сам по себе." />
@@ -309,7 +309,7 @@
 		<template id="v3.life.mood.reply.empathy.0106" act="life.mood.empathy.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я боюсь возвращаться к разговору после ссоры." />
 		<template id="v3.life.mood.reply.empathy.0107" act="life.mood.empathy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Страх понятен; можно начать с короткой нейтральной фразы." />
 		<template id="v3.life.mood.reply.empathy.0108" act="life.mood.empathy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Напишу, что готов поговорить, когда и он будет готов." />
-		<template id="v3.life.mood.reply.empathy.0109" act="life.mood.empathy.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я останусь рядом, пока ты нажимаешь отправку." />
+		<template id="v3.life.mood.reply.empathy.0109" act="life.mood.empathy.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Перед отправкой полезно перечитать сообщение и сделать паузу." />
 		<template id="v3.life.mood.reply.empathy.0110" act="life.mood.empathy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, мост строится одной доской, не речью." />
 		<template id="v3.life.mood.reply.empathy.0111" act="life.mood.empathy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не требуй ответа сразу." />
 		<template id="v3.life.mood.reply.empathy.0112" act="life.mood.empathy.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Боишься — всё равно отвечай за свою часть." />
@@ -323,14 +323,14 @@
 		<template id="v3.life.mood.reply.empathy.0120" act="life.mood.empathy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне легче, когда меня просто слушают." />
 		<template id="v3.life.mood.reply.empathy.0121" act="life.mood.empathy.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Тогда внимание важнее ответа и сравнения с чужими историями." />
 		<template id="v3.life.mood.reply.empathy.0122" act="life.mood.empathy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Продолжай, я не перебью советом из кармана." />
-		<template id="v3.life.mood.reply.empathy.0123" act="life.mood.empathy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне дорого твоё доверие, я сохраню темп за тобой." />
+		<template id="v3.life.mood.reply.empathy.0123" act="life.mood.empathy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Чужой темп стоит уважать, особенно когда человек доверился." />
 		<template id="v3.life.mood.reply.empathy.0124" act="life.mood.empathy.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, сегодня твоя речь не нуждается в моём реванше." />
 		<template id="v3.life.mood.reply.empathy.0125" act="life.mood.empathy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Говори в своём темпе, я внимательно слушаю." />
 		<template id="v3.life.mood.reply.empathy.0126" act="life.mood.empathy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не путай слушателя с вечным контейнером." />
 		<template id="v3.life.mood.reply.empathy.0127" act="life.mood.empathy.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не сравнивай это с тем, как бывает у других." />
 		<template id="v3.life.mood.reply.empathy.0128" act="life.mood.empathy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Хорошо. Чужой масштаб не определяет вашу боль." />
 		<template id="v3.life.mood.reply.empathy.0129" act="life.mood.empathy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Спасибо, я не участвую в олимпиаде несчастий." />
-		<template id="v3.life.mood.reply.empathy.0130" act="life.mood.empathy.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я останусь в твоей истории, не приводя примеры победителей." />
+		<template id="v3.life.mood.reply.empathy.0130" act="life.mood.empathy.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="В чужой истории нельзя обещать место; достаточно внимательно отнестись к сказанному." />
 		<template id="v3.life.mood.reply.empathy.0131" act="life.mood.empathy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, даже страдание не обязано иметь таблицу лидеров." />
 		<template id="v3.life.mood.reply.empathy.0132" act="life.mood.empathy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сравнений не будет." />
 		<template id="v3.life.mood.reply.empathy.0133" act="life.mood.empathy.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Но и исключительным себя не объявляй." />
@@ -343,7 +343,7 @@
 		<template id="v3.life.mood.reply.empathy.0140" act="life.mood.empathy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не изображай выздоровление ради аудитории." />
 		<template id="v3.life.mood.reply.empathy.0141" act="life.mood.empathy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне хочется побыть одному." />
 		<template id="v3.life.mood.reply.empathy.0142" act="life.mood.empathy.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Спасибо, что сказали прямо; пространство можно дать без обиды." />
-		<template id="v3.life.mood.reply.empathy.0143" act="life.mood.empathy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я напишу, когда захочу снова слышать людей." />
+		<template id="v3.life.mood.reply.empathy.0143" act="life.mood.empathy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если не хочется слышать людей, лучше взять паузу без обещания написать позже." />
 		<template id="v3.life.mood.reply.empathy.0144" act="life.mood.empathy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я дождусь твоего сигнала и не буду проверять дверь." />
 		<template id="v3.life.mood.reply.empathy.0145" act="life.mood.empathy.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Соперник, одиночный раунд принадлежит тебе." />
 		<template id="v3.life.mood.reply.empathy.0146" act="life.mood.empathy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Контакт прекращаем." />
@@ -404,21 +404,21 @@
 		<template id="v3.life.mood.reply.calm.0001" act="life.mood.calm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я не знаю, что вам обычно помогает, поэтому не стану выдавать рецепт." />
 		<template id="v3.life.mood.reply.calm.0002" act="life.mood.calm.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Можно начать с простой паузы и убрать лишние сообщения." />
 		<template id="v3.life.mood.reply.calm.0003" act="life.mood.calm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давайте минуту никто ничего от меня не хочет." />
-		<template id="v3.life.mood.reply.calm.0004" act="life.mood.calm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я побуду рядом тихо и не буду считать секунды." />
+		<template id="v3.life.mood.reply.calm.0004" act="life.mood.calm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Тихая поддержка возможна в разговоре, но физическое присутствие обещать нельзя." />
 		<template id="v3.life.mood.reply.calm.0005" act="life.mood.calm.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, пауза не означает, что спор выиграл кто-то другой." />
 		<template id="v3.life.mood.reply.calm.0006" act="life.mood.calm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Разговор остановлен." />
 		<template id="v3.life.mood.reply.calm.0007" act="life.mood.calm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если хочешь тишины, перестань отвечать." />
-		<template id="v3.life.mood.reply.calm.0008" act="life.mood.calm.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мысли снова ходят одним и тем же кругом." />
+		<template id="v3.life.mood.reply.calm.0008" act="life.mood.calm.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Когда мысли ходят по кругу, полезно записать одну и сделать паузу." />
 		<template id="v3.life.mood.reply.calm.0009" act="life.mood.calm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Иногда помогает записать одну фразу и отложить продолжение." />
-		<template id="v3.life.mood.reply.calm.0010" act="life.mood.calm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Напишу главное, остальное пусть побегает без меня." />
+		<template id="v3.life.mood.reply.calm.0010" act="life.mood.calm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Главное можно записать, а остальное отложить до более спокойного момента." />
 		<template id="v3.life.mood.reply.calm.0011" act="life.mood.calm.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я не стану вытаскивать новые пункты из этой записи." />
 		<template id="v3.life.mood.reply.calm.0012" act="life.mood.calm.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, круг мыслей не становится маршрутом от количества повторов." />
 		<template id="v3.life.mood.reply.calm.0013" act="life.mood.calm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Одной формулировки достаточно." />
 		<template id="v3.life.mood.reply.calm.0014" act="life.mood.calm.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не пересказывай тревогу бесконечно." />
-		<template id="v3.life.mood.reply.calm.0015" act="life.mood.calm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я слишком зол, чтобы отвечать нормально." />
+		<template id="v3.life.mood.reply.calm.0015" act="life.mood.calm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Когда злость мешает отвечать нормально, пауза честнее немедленной реакции." />
 		<template id="v3.life.mood.reply.calm.0016" act="life.mood.calm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Тогда задержка ответа защищает всех лучше немедленной честности." />
 		<template id="v3.life.mood.reply.calm.0017" act="life.mood.calm.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Удаляю черновик и отхожу от клавиатуры." />
-		<template id="v3.life.mood.reply.calm.0018" act="life.mood.calm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я сохраню тему до твоего возвращения, не подталкивая." />
+		<template id="v3.life.mood.reply.calm.0018" act="life.mood.calm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="К теме можно вернуться после паузы, если желание останется у обоих." />
 		<template id="v3.life.mood.reply.calm.0019" act="life.mood.calm.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, несказанная гадость — редкая твоя победа." />
 		<template id="v3.life.mood.reply.calm.0020" act="life.mood.calm.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ответ переносим." />
 		<template id="v3.life.mood.reply.calm.0021" act="life.mood.calm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не возвращайся, пока не можешь держать тон." />
@@ -467,7 +467,7 @@
 		<template id="v3.life.mood.reply.calm.0064" act="life.mood.calm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне мешает яркий свет, я отойду." />
 		<template id="v3.life.mood.reply.calm.0065" act="life.mood.calm.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Хорошо. Вы можете изменить окружение без объяснения всей реакции." />
 		<template id="v3.life.mood.reply.calm.0066" act="life.mood.calm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Убавлю экран, а то он будто спорит вместе со всеми." />
-		<template id="v3.life.mood.reply.calm.0067" act="life.mood.calm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я подожду, пока тебе станет удобнее смотреть и отвечать." />
+		<template id="v3.life.mood.reply.calm.0067" act="life.mood.calm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ответить можно тогда, когда смотреть на разговор станет удобнее." />
 		<template id="v3.life.mood.reply.calm.0068" act="life.mood.calm.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, даже яркость выиграла у твоего терпения." />
 		<template id="v3.life.mood.reply.calm.0069" act="life.mood.calm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Настрой среду." />
 		<template id="v3.life.mood.reply.calm.0070" act="life.mood.calm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не делай из лампы виноватого." />
@@ -508,7 +508,7 @@
 		<template id="v3.life.mood.reply.calm.0105" act="life.mood.calm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не объявляй победу раньше времени." />
 		<template id="v3.life.mood.reply.calm.0106" act="life.mood.calm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я могу слушать, но говорить пока трудно." />
 		<template id="v3.life.mood.reply.calm.0107" act="life.mood.calm.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Тогда обмен не обязан быть симметричным." />
-		<template id="v3.life.mood.reply.calm.0108" act="life.mood.calm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я поставлю короткий знак, если нужно остановиться." />
+		<template id="v3.life.mood.reply.calm.0108" act="life.mood.calm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Для остановки полезно заранее выбрать короткий понятный знак." />
 		<template id="v3.life.mood.reply.calm.0109" act="life.mood.calm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я буду говорить по одной мысли и ждать его." />
 		<template id="v3.life.mood.reply.calm.0110" act="life.mood.calm.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, молчаливый контроль остаётся контролем." />
 		<template id="v3.life.mood.reply.calm.0111" act="life.mood.calm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Такой способ общения мне подходит; продолжим спокойно." />
@@ -530,7 +530,7 @@
 		<template id="v3.life.mood.reply.calm.0127" act="life.mood.calm.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я вернулся и готов обсуждать только один пункт." />
 		<template id="v3.life.mood.reply.calm.0128" act="life.mood.calm.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ограничение полезно: выберите самый конкретный вопрос." />
 		<template id="v3.life.mood.reply.calm.0129" act="life.mood.calm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Начнём с того, что именно было сказано, без мотивов." />
-		<template id="v3.life.mood.reply.calm.0130" act="life.mood.calm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я останусь на фактах и не расширю спор." />
+		<template id="v3.life.mood.reply.calm.0130" act="life.mood.calm.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Лучше держаться фактов и не расширять спор." />
 		<template id="v3.life.mood.reply.calm.0131" act="life.mood.calm.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперник, один пункт — даже ты не потеряешься." />
 		<template id="v3.life.mood.reply.calm.0132" act="life.mood.calm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Остальные темы откладываем." />
 		<template id="v3.life.mood.reply.calm.0133" act="life.mood.calm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не тащи всё обратно одним пакетом." />
@@ -558,7 +558,7 @@
 		<template id="v3.life.mood.reply.calm.0155" act="life.mood.calm.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Пауза помогла вернуть выбор, а не навязала конкретное решение." />
 		<template id="v3.life.mood.reply.calm.0156" act="life.mood.calm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Человек сам определил темп, среду и момент возвращения." />
 		<template id="v3.life.mood.reply.calm.0157" act="life.mood.calm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Теперь могу думать без ощущения, что меня толкают." />
-		<template id="v3.life.mood.reply.calm.0158" act="life.mood.calm.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я сохраню это пространство и не превращу помощь в контроль." />
+		<template id="v3.life.mood.reply.calm.0158" act="life.mood.calm.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Помощь не должна превращаться в контроль; пространство остаётся за человеком." />
 		<template id="v3.life.mood.reply.calm.0159" act="life.mood.calm.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Соперник, спокойствие получено без капитуляции." />
 		<template id="v3.life.mood.reply.calm.0160" act="life.mood.calm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Новых действий не требуется." />
 		<template id="v3.life.mood.reply.calm.0161" act="life.mood.calm.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Calm-контекст закрыт." />
@@ -597,24 +597,24 @@
 		<template id="v3.life.mood.reply.calm.0194" act="life.mood.calm.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Пауза сработала: могу продолжить без резких слов." />
 		<template id="v3.life.mood.reply.calm.0195" act="life.mood.calm.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ничего решать немедленно не нужно, и это уже облегчение." />
 		<template id="v3.life.mood.reply.calm.0196" act="life.mood.calm.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Договоримся вернуться к вопросу после сна." />
-		<template id="v3.life.mood.reply.calm.0197" act="life.mood.calm.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я поставлю телефон на беззвучный и немного полежу." />
+		<template id="v3.life.mood.reply.calm.0197" act="life.mood.calm.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Беззвучный режим и короткий отдых иногда полезнее продолжения переписки." />
 		<template id="v3.life.mood.reply.calm.0198" act="life.mood.calm.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не входи без стука, мне нужна настоящая тишина." />
 		<template id="v3.life.mood.reply.calm.0199" act="life.mood.calm.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="На сегодня достаточно; завтра посмотрим на всё свежим взглядом." />
 		<template id="v3.life.mood.reply.calm.0200" act="life.mood.calm.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Спасибо за пространство — теперь я снова слышу собственные мысли." />
-		<template id="v3.life.mood.reply.energy.0001" act="life.mood.energy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сегодня сил достаточно, можно взяться за обычные дела." />
-		<template id="v3.life.mood.reply.energy.0002" act="life.mood.energy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="У меня бодрое утро: уже хочется куда-нибудь выбраться." />
-		<template id="v3.life.mood.reply.energy.0003" act="life.mood.energy.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если ты за прогулку, я готов через десять минут." />
-		<template id="v3.life.mood.reply.energy.0004" act="life.mood.energy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твоя энергия заразительна — давай не просидим день дома." />
+		<template id="v3.life.mood.reply.energy.0001" act="life.mood.energy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если сил достаточно, можно взяться за обычные дела без заявлений о текущем состоянии." />
+		<template id="v3.life.mood.reply.energy.0002" act="life.mood.energy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Бодрое утро часто вызывает желание выбраться из дома." />
+		<template id="v3.life.mood.reply.energy.0003" act="life.mood.energy.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="На прогулку можно собраться через десять минут, если желание действительно есть." />
+		<template id="v3.life.mood.reply.energy.0004" act="life.mood.energy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Чужая энергия может заразить, но планы на день лучше не обещать за двоих." />
 		<template id="v3.life.mood.reply.energy.0005" act="life.mood.energy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не рассчитывай, что бодрый вид заставит меня соревноваться." />
-		<template id="v3.life.mood.reply.energy.0006" act="life.mood.energy.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я в порядке, но под твой темп подстраиваться не стану." />
-		<template id="v3.life.mood.reply.energy.0007" act="life.mood.energy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Моё настроение тебя не касается, займись своим днём." />
-		<template id="v3.life.mood.reply.energy.0008" act="life.mood.energy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После завтрака появилась нормальная рабочая бодрость." />
-		<template id="v3.life.mood.reply.energy.0009" act="life.mood.energy.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Кофе сегодня действительно помог проснуться." />
-		<template id="v3.life.mood.reply.energy.0010" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я уже закончил утренние дела и всё ещё полон сил." />
-		<template id="v3.life.mood.reply.energy.0011" act="life.mood.energy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="С тобой хочется направить этот заряд во что-нибудь приятное." />
+		<template id="v3.life.mood.reply.energy.0006" act="life.mood.energy.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Даже в порядке человек не обязан подстраиваться под чужой темп." />
+		<template id="v3.life.mood.reply.energy.0007" act="life.mood.energy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Личное настроение не обязано быть предметом чужого контроля." />
+		<template id="v3.life.mood.reply.energy.0008" act="life.mood.energy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После завтрака нередко появляется рабочая бодрость." />
+		<template id="v3.life.mood.reply.energy.0009" act="life.mood.energy.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Кофе иногда помогает проснуться, но чужое текущее состояние из этого не следует." />
+		<template id="v3.life.mood.reply.energy.0010" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Даже после утренних дел силы могут остаться, но утверждать это за собеседника нельзя." />
+		<template id="v3.life.mood.reply.energy.0011" act="life.mood.energy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хороший заряд стоит направить во что-то приятное, если он действительно есть." />
 		<template id="v3.life.mood.reply.energy.0012" act="life.mood.energy.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Улыбка не означает, что я забыл наш спор." />
-		<template id="v3.life.mood.reply.energy.0013" act="life.mood.energy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не провоцируй: лишнюю энергию я лучше потрачу на спорт." />
-		<template id="v3.life.mood.reply.energy.0014" act="life.mood.energy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Отойди, пока хорошее настроение не закончилось." />
+		<template id="v3.life.mood.reply.energy.0013" act="life.mood.energy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Лишнюю энергию лучше потратить на спорт, если человек сам этого хочет." />
+		<template id="v3.life.mood.reply.energy.0014" act="life.mood.energy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Хорошее настроение не даёт права отталкивать людей." />
 		<template id="v3.life.mood.reply.energy.0015" act="life.mood.energy.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сейчас чувствую подъём, хотя причин вроде бы немного." />
 		<template id="v3.life.mood.reply.energy.0016" act="life.mood.energy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="День начался удачно, и это заметно по настроению." />
 		<template id="v3.life.mood.reply.energy.0017" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Давай включим музыку погромче — сегодня она к месту." />
@@ -624,7 +624,7 @@
 		<template id="v3.life.mood.reply.energy.0021" act="life.mood.energy.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не порть утро очередной бессмысленной перепалкой." />
 		<template id="v3.life.mood.reply.energy.0022" act="life.mood.energy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Наконец-то выспался и перестал клевать носом." />
 		<template id="v3.life.mood.reply.energy.0023" act="life.mood.energy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После хорошего сна голова работает заметно быстрее." />
-		<template id="v3.life.mood.reply.energy.0024" act="life.mood.energy.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сегодня я первым предложу план на вечер." />
+		<template id="v3.life.mood.reply.energy.0024" act="life.mood.energy.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="План на вечер можно предложить первым, не утверждая текущее настроение." />
 		<template id="v3.life.mood.reply.energy.0025" act="life.mood.energy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Пока силы есть, давай закончим то, что давно откладывали." />
 		<template id="v3.life.mood.reply.energy.0026" act="life.mood.energy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Даже в бодром состоянии я не собираюсь уступать тебе первенство." />
 		<template id="v3.life.mood.reply.energy.0027" act="life.mood.energy.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты слишком шумный для человека, который просто выспался." />
@@ -640,7 +640,7 @@
 		<template id="v3.life.mood.reply.energy.0037" act="life.mood.energy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Удалось войти в ритм без долгой раскачки." />
 		<template id="v3.life.mood.reply.energy.0038" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я закрыл сложную задачу и хочу двигаться дальше." />
 		<template id="v3.life.mood.reply.energy.0039" act="life.mood.energy.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ты помог поймать темп, поэтому продолжим вместе." />
-		<template id="v3.life.mood.reply.energy.0040" act="life.mood.energy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мой хороший результат не повод сравнивать наши скорости." />
+		<template id="v3.life.mood.reply.energy.0040" act="life.mood.energy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хороший результат одного человека не повод сравнивать скорости." />
 		<template id="v3.life.mood.reply.energy.0041" act="life.mood.energy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не отвлекай меня разговорами, пока есть рабочий запал." />
 		<template id="v3.life.mood.reply.energy.0042" act="life.mood.energy.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ещё одна помеха — и весь этот настрой исчезнет." />
 		<template id="v3.life.mood.reply.energy.0043" act="life.mood.energy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После тренировки усталость приятная, а голова ясная." />
@@ -674,14 +674,14 @@
 		<template id="v3.life.mood.reply.energy.0071" act="life.mood.energy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Впереди свободный вечер, и настроение сразу лучше." />
 		<template id="v3.life.mood.reply.energy.0072" act="life.mood.energy.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Хочется провести эти часы не у экрана." />
 		<template id="v3.life.mood.reply.energy.0073" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я готов на спонтанный план, если он без долгой дороги." />
-		<template id="v3.life.mood.reply.energy.0074" act="life.mood.energy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Выбирай место, сегодня я легко соглашусь на приключение." />
+		<template id="v3.life.mood.reply.energy.0074" act="life.mood.energy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Место для приключения стоит выбирать по реальному желанию, а не обещанной лёгкости." />
 		<template id="v3.life.mood.reply.energy.0075" act="life.mood.energy.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Наши планы могут совпасть, но правила каждый выбирает сам." />
 		<template id="v3.life.mood.reply.energy.0076" act="life.mood.energy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не пытайся забрать весь вечер под свои затеи." />
 		<template id="v3.life.mood.reply.energy.0077" act="life.mood.energy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твоё приглашение звучит как ловушка, поэтому откажусь." />
 		<template id="v3.life.mood.reply.energy.0078" act="life.mood.energy.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Музыка попалась удачная, и шаг сам стал быстрее." />
 		<template id="v3.life.mood.reply.energy.0079" act="life.mood.energy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Этот плейлист отлично разгоняет сонливость." />
 		<template id="v3.life.mood.reply.energy.0080" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Кажется, я могу переделать половину списка под один альбом." />
-		<template id="v3.life.mood.reply.energy.0081" act="life.mood.energy.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Поставь нашу любимую песню, хочется подпеть вместе." />
+		<template id="v3.life.mood.reply.energy.0081" act="life.mood.energy.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Любимую песню лучше назвать самому; общую нельзя выдумывать за собеседника." />
 		<template id="v3.life.mood.reply.energy.0082" act="life.mood.energy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не трогай очередь треков, сегодня выбираю я." />
 		<template id="v3.life.mood.reply.energy.0083" act="life.mood.energy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если снова включишь одно и то же, бодрость быстро закончится." />
 		<template id="v3.life.mood.reply.energy.0084" act="life.mood.energy.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Выключи этот шум — он не заряжает, а выводит из себя." />
@@ -778,14 +778,14 @@
 		<template id="v3.life.mood.reply.energy.0175" act="life.mood.energy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твои насмешки закончились вместе с моим проигрышем." />
 		<template id="v3.life.mood.reply.energy.0176" act="life.mood.energy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="В компании сегодня удивительно легко и свободно." />
 		<template id="v3.life.mood.reply.energy.0177" act="life.mood.energy.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Мне давно не было так уютно среди людей." />
-		<template id="v3.life.mood.reply.energy.0178" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я останусь ещё ненадолго, хотя собирался уйти рано." />
+		<template id="v3.life.mood.reply.energy.0178" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если хочется остаться ненадолго, об этом лучше решить в моменте." />
 		<template id="v3.life.mood.reply.energy.0179" act="life.mood.energy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спасибо, что собрал всех: этот вечер мне был нужен." />
 		<template id="v3.life.mood.reply.energy.0180" act="life.mood.energy.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мы можем веселиться рядом, не изображая близких друзей." />
 		<template id="v3.life.mood.reply.energy.0181" act="life.mood.energy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не переходи на фамильярность только из-за общей вечеринки." />
 		<template id="v3.life.mood.reply.energy.0182" act="life.mood.energy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="От меня отстань и ищи другого собеседника." />
 		<template id="v3.life.mood.reply.energy.0183" act="life.mood.energy.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Планы на завтра наконец вызывают интерес, а не усталость." />
 		<template id="v3.life.mood.reply.energy.0184" act="life.mood.energy.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Хочется проснуться пораньше и не терять утро." />
-		<template id="v3.life.mood.reply.energy.0185" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я подготовлю всё с вечера, чтобы начать без суеты." />
+		<template id="v3.life.mood.reply.energy.0185" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Подготовка с вечера помогает начать без суеты, если она действительно сделана." />
 		<template id="v3.life.mood.reply.energy.0186" act="life.mood.energy.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Расбуди меня сообщением — хочу разделить этот день с тобой." />
 		<template id="v3.life.mood.reply.energy.0187" act="life.mood.energy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Утром посмотрим, кто из нас действительно готов действовать." />
 		<template id="v3.life.mood.reply.energy.0188" act="life.mood.energy.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не обещай за меня, свой график я определю сам." />
@@ -796,7 +796,7 @@
 		<template id="v3.life.mood.reply.energy.0193" act="life.mood.energy.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты рядом, и этот подъём ощущается надёжнее." />
 		<template id="v3.life.mood.reply.energy.0194" act="life.mood.energy.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мы оба на ходу, но каждый отвечает за свой результат." />
 		<template id="v3.life.mood.reply.energy.0195" act="life.mood.energy.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не стой над душой — так энергия превращается в раздражение." />
-		<template id="v3.life.mood.reply.energy.0196" act="life.mood.energy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Уйди с дороги, сегодня я не намерен терпеть помехи." />
+		<template id="v3.life.mood.reply.energy.0196" act="life.mood.energy.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Помехи раздражают, но текущее настроение не стоит выдавать за готовый факт." />
 		<template id="v3.life.mood.reply.energy.0197" act="life.mood.energy.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Настроение ровное и живое; больше мне сейчас не нужно." />
 		<template id="v3.life.mood.reply.energy.0198" act="life.mood.energy.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Обычный день внезапно оказался вполне хорошим." />
 		<template id="v3.life.mood.reply.energy.0199" act="life.mood.energy.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Хочу удержать это состояние без лишних обещаний." />

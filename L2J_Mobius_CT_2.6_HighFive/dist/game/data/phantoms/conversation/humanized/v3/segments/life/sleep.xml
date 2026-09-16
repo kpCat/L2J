@@ -4,24 +4,24 @@
 		<template id="v3.life.sleep.reply.fatigue.0001" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если вы совсем не выспались, сегодня лучше снизить нагрузку и не садиться за руль сонным." />
 		<template id="v3.life.sleep.reply.fatigue.0002" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Закрывающиеся глаза — сигнал остановиться в безопасном месте, а не терпеть дальше." />
 		<template id="v3.life.sleep.reply.fatigue.0003" act="life.sleep.fatigue.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="После обеда помогает свет, вода и короткая прогулка, но они не заменяют сон." />
-		<template id="v3.life.sleep.reply.fatigue.0004" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я возьму часть бытовых дел, а ты сегодня ляжешь раньше." />
-		<template id="v3.life.sleep.reply.fatigue.0005" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Моя ночь была короче, но соревнование в усталости никому не поможет." />
+		<template id="v3.life.sleep.reply.fatigue.0004" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Часть бытовых дел можно перенести или разделить, чтобы лечь раньше." />
+		<template id="v3.life.sleep.reply.fatigue.0005" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Соревнование в усталости никому не помогает, какой бы короткой ни была ночь." />
 		<template id="v3.life.sleep.reply.fatigue.0006" act="life.sleep.fatigue.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не требуй от меня обычного темпа после бессонной ночи." />
 		<template id="v3.life.sleep.reply.fatigue.0007" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если продолжишь подталкивать меня к опасной поездке, я откажусь и уйду." />
 		<template id="v3.life.sleep.reply.fatigue.0008" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Когда сил нет даже думать, оставьте только безопасные и простые действия." />
 		<template id="v3.life.sleep.reply.fatigue.0009" act="life.sleep.fatigue.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Проснуться уставшим иногда случается; при повторении лучше обратиться к специалисту." />
 		<template id="v3.life.sleep.reply.fatigue.0010" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Туман в голове требует паузы, особенно перед решениями с последствиями." />
-		<template id="v3.life.sleep.reply.fatigue.0011" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давай перенесём сложный разговор и просто спокойно поедим." />
-		<template id="v3.life.sleep.reply.fatigue.0012" act="life.sleep.fatigue.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты держишься бодрее, я лучше признаю предел на сегодня." />
+		<template id="v3.life.sleep.reply.fatigue.0011" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сложный разговор можно перенести, а спокойная еда иногда помогает восстановиться." />
+		<template id="v3.life.sleep.reply.fatigue.0012" act="life.sleep.fatigue.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Чужую бодрость и собственный предел лучше не сравнивать как соревнование." />
 		<template id="v3.life.sleep.reply.fatigue.0013" act="life.sleep.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не называй усталость ленью." />
 		<template id="v3.life.sleep.reply.fatigue.0014" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твои насмешки не заставят моё тело работать безопаснее." />
 		<template id="v3.life.sleep.reply.fatigue.0015" act="life.sleep.fatigue.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Потеря концентрации увеличивает риск ошибок; проверьте критичное ещё одним человеком." />
 		<template id="v3.life.sleep.reply.fatigue.0016" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если хочется лечь прямо сейчас, найдите безопасное место для короткого отдыха." />
 		<template id="v3.life.sleep.reply.fatigue.0017" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Дополнительный кофе поздно днём может ухудшить следующую ночь." />
 		<template id="v3.life.sleep.reply.fatigue.0018" act="life.sleep.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я закончу за тебя маршрут, только не пытайся ехать в таком состоянии." />
-		<template id="v3.life.sleep.reply.fatigue.0019" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты выпил больше кофе, но я хотя бы не притворяюсь отдохнувшим." />
+		<template id="v3.life.sleep.reply.fatigue.0019" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Кофе не доказывает, что человек отдохнул, и количество чашек лучше не выдумывать." />
 		<template id="v3.life.sleep.reply.fatigue.0020" act="life.sleep.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не подсовывай мне ещё один энергетик." />
-		<template id="v3.life.sleep.reply.fatigue.0021" act="life.sleep.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После твоего давления я сам сообщу, что не способен продолжать смену." />
+		<template id="v3.life.sleep.reply.fatigue.0021" act="life.sleep.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="При опасной усталости на смене нужно самому сообщить, что продолжать небезопасно." />
 		<template id="v3.life.sleep.reply.fatigue.0022" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Тяжёлая голова после короткого сна обычно требует воды, еды и настоящего отдыха." />
 		<template id="v3.life.sleep.reply.fatigue.0023" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если симптом сильный, необычный или сопровождается другими проблемами, нужна медицинская помощь." />
 		<template id="v3.life.sleep.reply.fatigue.0024" act="life.sleep.fatigue.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="До вечера дойдём маленькими шагами и без новых обязательств." />
@@ -32,7 +32,7 @@
 		<template id="v3.life.sleep.reply.fatigue.0029" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Накопленная за неделю усталость редко исчезает за одну длинную ночь." />
 		<template id="v3.life.sleep.reply.fatigue.0030" act="life.sleep.fatigue.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ошибки в простой задаче — повод остановиться и проверить базовое состояние." />
 		<template id="v3.life.sleep.reply.fatigue.0031" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Раздражение от шума усиливается при истощении, поэтому снизьте стимулы вокруг." />
-		<template id="v3.life.sleep.reply.fatigue.0032" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я выключу музыку и оставлю тебе спокойную комнату." />
+		<template id="v3.life.sleep.reply.fatigue.0032" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Музыку лучше выключить самому и подготовить спокойную комнату." />
 		<template id="v3.life.sleep.reply.fatigue.0033" act="life.sleep.fatigue.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты быстрее замечаешь ошибки, я раньше замечаю усталость." />
 		<template id="v3.life.sleep.reply.fatigue.0034" act="life.sleep.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не включай звук назло человеку с головной болью." />
 		<template id="v3.life.sleep.reply.fatigue.0035" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твоё намеренное шумное поведение неприемлемо." />
@@ -46,21 +46,21 @@
 		<template id="v3.life.sleep.reply.fatigue.0043" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Недостаток энергии на разговор можно обозначить без подробностей: «Вернусь к теме завтра»." />
 		<template id="v3.life.sleep.reply.fatigue.0044" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Частая зевота на встрече не равна неуважению, особенно после ночной смены." />
 		<template id="v3.life.sleep.reply.fatigue.0045" act="life.sleep.fatigue.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Сонливость за рулём требует немедленно прекратить движение в безопасном месте." />
-		<template id="v3.life.sleep.reply.fatigue.0046" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я вызову транспорт или останусь рядом, пока ты отдыхаешь." />
-		<template id="v3.life.sleep.reply.fatigue.0047" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты можешь спорить о выносливости, но ключи сейчас остаются у меня." />
+		<template id="v3.life.sleep.reply.fatigue.0046" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="В сонном состоянии лучше не садиться за руль; безопасный транспорт важнее спешки." />
+		<template id="v3.life.sleep.reply.fatigue.0047" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="При сильной сонливости ключи лучше добровольно отложить и не спорить о выносливости." />
 		<template id="v3.life.sleep.reply.fatigue.0048" act="life.sleep.fatigue.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не садись за руль, я не позволю рисковать людьми." />
-		<template id="v3.life.sleep.reply.fatigue.0049" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если попытаешься ехать сонным, я вызову помощь." />
+		<template id="v3.life.sleep.reply.fatigue.0049" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если человек пытается ехать сонным, нужно остановиться и самому вызвать доступную помощь." />
 		<template id="v3.life.sleep.reply.fatigue.0050" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Слабость после тренировки может требовать воды, еды и снижения нагрузки; при тревожных симптомах нужна помощь." />
 		<template id="v3.life.sleep.reply.fatigue.0051" act="life.sleep.fatigue.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Неясная постоянная усталость заслуживает наблюдения и разговора с врачом." />
 		<template id="v3.life.sleep.reply.fatigue.0052" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Достаточная по часам ночь не всегда означает восстановление, если сон часто прерывался." />
-		<template id="v3.life.sleep.reply.fatigue.0053" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу записать, как ты спал и чувствовал себя несколько дней подряд." />
+		<template id="v3.life.sleep.reply.fatigue.0053" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сон и самочувствие несколько дней полезно записывать самостоятельно для врача." />
 		<template id="v3.life.sleep.reply.fatigue.0054" act="life.sleep.fatigue.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Мои часы сна меньше, твоя сонливость сильнее — цифры не объясняют всё." />
 		<template id="v3.life.sleep.reply.fatigue.0055" act="life.sleep.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не ставь человеку диагноз по одному разговору." />
 		<template id="v3.life.sleep.reply.fatigue.0056" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твои медицинские насмешки должны прекратиться." />
 		<template id="v3.life.sleep.reply.fatigue.0057" act="life.sleep.fatigue.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Если к вечеру вы буквально выключаетесь, перенесите важные решения на более бодрое время." />
 		<template id="v3.life.sleep.reply.fatigue.0058" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Трудно встать — начните с воды, света и одного безопасного движения без резкого рывка." />
 		<template id="v3.life.sleep.reply.fatigue.0059" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Замедленный темп после плохой ночи естественнее попытки работать как обычно." />
-		<template id="v3.life.sleep.reply.fatigue.0060" act="life.sleep.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я подожду, пока ты соберёшься, и не буду торопить." />
+		<template id="v3.life.sleep.reply.fatigue.0060" act="life.sleep.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Собираться после недосыпа лучше без чужой спешки и обещаний ждать рядом." />
 		<template id="v3.life.sleep.reply.fatigue.0061" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты сделал меньше, зато не допустил опасной ошибки." />
 		<template id="v3.life.sleep.reply.fatigue.0062" act="life.sleep.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не сравнивай сегодняшний результат с обычным днём." />
 		<template id="v3.life.sleep.reply.fatigue.0063" act="life.sleep.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Твоя гонка за цифрами не важнее здоровья команды." />
@@ -81,7 +81,7 @@
 		<template id="v3.life.sleep.reply.fatigue.0078" act="life.sleep.fatigue.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Когда трудно слушать людей, попросите короткое письменное сообщение вместо длинного разговора." />
 		<template id="v3.life.sleep.reply.fatigue.0079" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Опустошённость после напряжённого периода требует не только сна, но и снижения требований." />
 		<template id="v3.life.sleep.reply.fatigue.0080" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Вечер дома без обязательств может быть самым разумным планом." />
-		<template id="v3.life.sleep.reply.fatigue.0081" act="life.sleep.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я останусь рядом молча, если компания нужна без беседы." />
+		<template id="v3.life.sleep.reply.fatigue.0081" act="life.sleep.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Молчаливая компания помогает не всем; её можно попросить у реального близкого человека." />
 		<template id="v3.life.sleep.reply.fatigue.0082" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты отказался от встречи раньше, зато сохранил силы на завтра." />
 		<template id="v3.life.sleep.reply.fatigue.0083" act="life.sleep.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не приходи без приглашения к человеку, который попросил побыть один." />
 		<template id="v3.life.sleep.reply.fatigue.0084" act="life.sleep.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ещё раз нарушишь эту границу — контакт будет ограничен." />
@@ -95,14 +95,14 @@
 		<template id="v3.life.sleep.reply.fatigue.0092" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Резкость на фоне усталости объяснима, но за сказанные слова всё равно нужно отвечать." />
 		<template id="v3.life.sleep.reply.fatigue.0093" act="life.sleep.fatigue.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если чувствуете вспышку, возьмите паузу до продолжения разговора." />
 		<template id="v3.life.sleep.reply.fatigue.0094" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Кофе не заменяет отдых, особенно когда организм явно просит остановиться." />
-		<template id="v3.life.sleep.reply.fatigue.0095" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я дам тебе пространство, а тему вернём после сна." />
+		<template id="v3.life.sleep.reply.fatigue.0095" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После сна к теме проще вернуться, если дать себе пространство сейчас." />
 		<template id="v3.life.sleep.reply.fatigue.0096" act="life.sleep.fatigue.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты быстрее извинился, я раньше заметил, что разговор пора прекращать." />
 		<template id="v3.life.sleep.reply.fatigue.0097" act="life.sleep.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не используй усталость как разрешение унижать людей." />
 		<template id="v3.life.sleep.reply.fatigue.0098" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После твоих оскорблений одной ночи сна для примирения недостаточно." />
 		<template id="v3.life.sleep.reply.fatigue.0099" act="life.sleep.fatigue.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Восстановление после тяжёлой недели начинается со снижения планов, а не идеального списка отдыха." />
 		<template id="v3.life.sleep.reply.fatigue.0100" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Перенесите часть дел и оставьте место нескольким обычным ночам сна." />
 		<template id="v3.life.sleep.reply.fatigue.0101" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Днём выбирайте мягкое движение и еду, которая не добавляет тяжести." />
-		<template id="v3.life.sleep.reply.fatigue.0102" act="life.sleep.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я возьму покупки, а ты проведёшь вечер без новых поручений." />
+		<template id="v3.life.sleep.reply.fatigue.0102" act="life.sleep.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Покупки и новые поручения лучше перенести, если сил уже мало." />
 		<template id="v3.life.sleep.reply.fatigue.0103" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой выходной активнее, твой сегодня должен быть спокойнее." />
 		<template id="v3.life.sleep.reply.fatigue.0104" act="life.sleep.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не составляй человеку программу восстановления без просьбы." />
 		<template id="v3.life.sleep.reply.fatigue.0105" act="life.sleep.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Если снова вломишься с делами, дверь останется закрытой." />
@@ -130,7 +130,7 @@
 		<template id="v3.life.sleep.reply.fatigue.0127" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Желание просто выспаться лучше поддержать несколькими спокойными ночами, а не одной гонкой за часами." />
 		<template id="v3.life.sleep.reply.fatigue.0128" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Слишком долгий отсып может сдвинуть режим, поэтому ориентируйтесь на устойчивость и самочувствие." />
 		<template id="v3.life.sleep.reply.fatigue.0129" act="life.sleep.fatigue.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если усталость держится несмотря на достаточный отдых, обсудите её с медицинским специалистом." />
-		<template id="v3.life.sleep.reply.fatigue.0130" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я помогу разгрузить завтра, чтобы ночь не начиналась с тревоги о делах." />
+		<template id="v3.life.sleep.reply.fatigue.0130" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Завтрашние дела стоит сократить заранее, чтобы тревога не съела ночь." />
 		<template id="v3.life.sleep.reply.fatigue.0131" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой режим ровнее, зато ты честно признал проблему." />
 		<template id="v3.life.sleep.reply.fatigue.0132" act="life.sleep.fatigue.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не назначай себе лекарства по случайному совету." />
 		<template id="v3.life.sleep.reply.fatigue.0133" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="После опасного «лечения» я вызываю врача." />
@@ -151,10 +151,10 @@
 		<template id="v3.life.sleep.reply.fatigue.0148" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Тяжёлые веки во время чтения означают, что материал уже плохо усваивается." />
 		<template id="v3.life.sleep.reply.fatigue.0149" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Отложите обучение и оставьте заметку, где продолжить завтра." />
 		<template id="v3.life.sleep.reply.fatigue.0150" act="life.sleep.fatigue.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Повторное чтение одной строки — достаточная причина закрыть книгу или экран." />
-		<template id="v3.life.sleep.reply.fatigue.0151" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я сохраню страницу и погашу свет, когда ты будешь готов." />
+		<template id="v3.life.sleep.reply.fatigue.0151" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Страницу можно сохранить самому, а свет погасить, когда будешь готов." />
 		<template id="v3.life.sleep.reply.fatigue.0152" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты дошёл дальше, я лучше запомню после сна." />
 		<template id="v3.life.sleep.reply.fatigue.0153" act="life.sleep.fatigue.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не включай яркий свет, когда человек уже засыпает." />
-		<template id="v3.life.sleep.reply.fatigue.0154" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Намеренное пробуждение разрушает доверие; сегодня я перейду в другую комнату." />
+		<template id="v3.life.sleep.reply.fatigue.0154" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Намеренно будить человека — серьёзное нарушение границы; отдельное пространство может помочь." />
 		<template id="v3.life.sleep.reply.fatigue.0155" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Усталость иногда маскируется беспокойной активностью и невозможностью остановиться." />
 		<template id="v3.life.sleep.reply.fatigue.0156" act="life.sleep.fatigue.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Перед сном снизьте темп, даже если кажется, что появилось второе дыхание." />
 		<template id="v3.life.sleep.reply.fatigue.0157" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Запишите незавершённое, чтобы не держать его движением до ночи." />
@@ -165,7 +165,7 @@
 		<template id="v3.life.sleep.reply.fatigue.0162" act="life.sleep.fatigue.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="При физической слабости не продолжайте нагрузку через головокружение или боль." />
 		<template id="v3.life.sleep.reply.fatigue.0163" act="life.sleep.fatigue.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Сядьте или лягте безопасно, выпейте воды и оцените, нужна ли помощь." />
 		<template id="v3.life.sleep.reply.fatigue.0164" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Внезапные, сильные или тревожные симптомы требуют обращения за медицинской помощью." />
-		<template id="v3.life.sleep.reply.fatigue.0165" act="life.sleep.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я останусь рядом и вызову помощь, если состояние не улучшится." />
+		<template id="v3.life.sleep.reply.fatigue.0165" act="life.sleep.fatigue.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если состояние не улучшается или пугает, нужно самостоятельно вызвать медицинскую помощь." />
 		<template id="v3.life.sleep.reply.fatigue.0166" act="life.sleep.fatigue.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты хочешь спорить, но сейчас важнее безопасно остановиться." />
 		<template id="v3.life.sleep.reply.fatigue.0167" act="life.sleep.fatigue.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не мешай человеку обратиться за помощью." />
 		<template id="v3.life.sleep.reply.fatigue.0168" act="life.sleep.fatigue.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После твоей попытки скрыть симптомы я сам сообщу ответственным." />
@@ -199,26 +199,26 @@
 		<template id="v3.life.sleep.reply.fatigue.0196" act="life.sleep.fatigue.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Твои претензии подождут до нормального состояния." />
 		<template id="v3.life.sleep.reply.fatigue.0197" act="life.sleep.fatigue.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="На сегодня достаточно: тело явно просит сна и снижения нагрузки." />
 		<template id="v3.life.sleep.reply.fatigue.0198" act="life.sleep.fatigue.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Закройте день спокойно и обратитесь за помощью, если усталость необычна или опасна." />
-		<template id="v3.life.sleep.reply.fatigue.0199" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я помогу убрать последние обязательства, чтобы отдых действительно начался." />
+		<template id="v3.life.sleep.reply.fatigue.0199" act="life.sleep.fatigue.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Последние обязательства лучше отменить или перенести, чтобы отдых действительно начался." />
 		<template id="v3.life.sleep.reply.fatigue.0200" act="life.sleep.fatigue.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сон сейчас важнее попытки доказать, что вы можете терпеть дальше." />
 		<template id="v3.life.sleep.reply.schedule.0001" act="life.sleep.schedule.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Время сна лучше выбирать от стабильного подъёма и необходимой продолжительности отдыха." />
 		<template id="v3.life.sleep.reply.schedule.0002" act="life.sleep.schedule.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Режим возвращайте постепенно, сдвигая вечер и утро небольшими шагами." />
 		<template id="v3.life.sleep.reply.schedule.0003" act="life.sleep.schedule.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Позднее засыпание легче менять через утренний свет и предсказуемое завершение дня." />
-		<template id="v3.life.sleep.reply.schedule.0004" act="life.sleep.schedule.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Давай договоримся о тихом вечере и одинаковом подъёме несколько дней." />
-		<template id="v3.life.sleep.reply.schedule.0005" act="life.sleep.schedule.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мой график раньше, твой лучше подходит твоей реальной смене." />
+		<template id="v3.life.sleep.reply.schedule.0004" act="life.sleep.schedule.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Тихий вечер и стабильный подъём несколько дней могут помочь вернуть режим." />
+		<template id="v3.life.sleep.reply.schedule.0005" act="life.sleep.schedule.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="График должен подходить реальной смене человека, а не сравнению двух режимов." />
 		<template id="v3.life.sleep.reply.schedule.0006" act="life.sleep.schedule.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не заставляй меня ложиться по твоему режиму." />
 		<template id="v3.life.sleep.reply.schedule.0007" act="life.sleep.schedule.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Если снова разбудишь без причины, спать рядом больше не будем." />
 		<template id="v3.life.sleep.reply.schedule.0008" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Долгий сон до обеда в выходные способен сдвинуть следующую ночь." />
 		<template id="v3.life.sleep.reply.schedule.0009" act="life.sleep.schedule.reply" band="TENSE" register="CASUAL" profanity="NONE" text="При сменной работе режим сложнее; полезны затемнение, тишина и план перехода." />
 		<template id="v3.life.sleep.reply.schedule.0010" act="life.sleep.schedule.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Лечь раньше трудно без изменения того, что происходит вечером и утром." />
-		<template id="v3.life.sleep.reply.schedule.0011" act="life.sleep.schedule.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я помогу убрать поздний созвон, чтобы у тебя появилось реальное время на сон." />
-		<template id="v3.life.sleep.reply.schedule.0012" act="life.sleep.schedule.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ты встаёшь раньше, я устойчивее держу одинаковый час." />
+		<template id="v3.life.sleep.reply.schedule.0011" act="life.sleep.schedule.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Поздний созвон стоит перенести самому, если он съедает реальное время на сон." />
+		<template id="v3.life.sleep.reply.schedule.0012" act="life.sleep.schedule.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ранний подъём и стабильный час — разные стратегии, а не личное соревнование." />
 		<template id="v3.life.sleep.reply.schedule.0013" act="life.sleep.schedule.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не хвастайся коротким сном как преимуществом." />
 		<template id="v3.life.sleep.reply.schedule.0014" act="life.sleep.schedule.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Твои ночные сообщения больше не будут частью моего режима." />
 		<template id="v3.life.sleep.reply.schedule.0015" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Отсыпаться после недосыпа естественно, но огромный сдвиг выходных может затруднить понедельник." />
 		<template id="v3.life.sleep.reply.schedule.0016" act="life.sleep.schedule.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="После ночной работы дайте себе безопасно добраться и защитите дневной сон от шума." />
 		<template id="v3.life.sleep.reply.schedule.0017" act="life.sleep.schedule.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Повтор будильника часто дробит последние минуты; лучше один реалистичный сигнал и ясный план подъёма." />
-		<template id="v3.life.sleep.reply.schedule.0018" act="life.sleep.schedule.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я поставлю чайник, пока ты открываешь шторы." />
+		<template id="v3.life.sleep.reply.schedule.0018" act="life.sleep.schedule.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Утром полезнее открыть шторы и поставить чайник самому." />
 		<template id="v3.life.sleep.reply.schedule.0019" act="life.sleep.schedule.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мой будильник громче, твой утренний свет работает мягче." />
 		<template id="v3.life.sleep.reply.schedule.0020" act="life.sleep.schedule.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не нажимай повтор на моём устройстве." />
 		<template id="v3.life.sleep.reply.schedule.0021" act="life.sleep.schedule.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="После третьего умышленного отключения ты больше не отвечаешь за мой подъём." />
@@ -248,7 +248,7 @@
 		<template id="v3.life.sleep.reply.schedule.0045" act="life.sleep.schedule.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если лежите вовремя, но долго не спите регулярно, стоит оценить привычки и обратиться за помощью при продолжении." />
 		<template id="v3.life.sleep.reply.schedule.0046" act="life.sleep.schedule.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Несколько будильников могут приучить игнорировать первые сигналы." />
 		<template id="v3.life.sleep.reply.schedule.0047" act="life.sleep.schedule.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="При плавающем графике ищите устойчивые элементы: свет после подъёма и ритуал перед сном." />
-		<template id="v3.life.sleep.reply.schedule.0048" act="life.sleep.schedule.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я помогу подобрать минимум, который переживёт разные смены." />
+		<template id="v3.life.sleep.reply.schedule.0048" act="life.sleep.schedule.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Для разных смен нужен минимальный режим, который реально можно соблюдать." />
 		<template id="v3.life.sleep.reply.schedule.0049" act="life.sleep.schedule.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты лучше держишь выходные, я быстрее адаптируюсь к новой смене." />
 		<template id="v3.life.sleep.reply.schedule.0050" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не меняй моё расписание без согласования." />
 		<template id="v3.life.sleep.reply.schedule.0051" act="life.sleep.schedule.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После твоей подмены смен я обращусь к руководителю." />
@@ -285,7 +285,7 @@
 		<template id="v3.life.sleep.reply.schedule.0082" act="life.sleep.schedule.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После тяжёлой недели дополнительный сон может помочь, но восстановление требует и следующих ночей." />
 		<template id="v3.life.sleep.reply.schedule.0083" act="life.sleep.schedule.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Последний приём пищи выбирайте так, чтобы лечь без сильного голода и тяжести." />
 		<template id="v3.life.sleep.reply.schedule.0084" act="life.sleep.schedule.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Вечером уменьшите общий свет, оставив достаточно для безопасного движения." />
-		<template id="v3.life.sleep.reply.schedule.0085" act="life.sleep.schedule.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я включу тёплую лампу, а ты уберёшь яркий экран." />
+		<template id="v3.life.sleep.reply.schedule.0085" act="life.sleep.schedule.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Тёплая лампа и убранный яркий экран помогают подготовиться ко сну." />
 		<template id="v3.life.sleep.reply.schedule.0086" act="life.sleep.schedule.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мой ужин раньше, твой зато легче перед сном." />
 		<template id="v3.life.sleep.reply.schedule.0087" act="life.sleep.schedule.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не выключай свет, пока люди ещё ходят по комнате." />
 		<template id="v3.life.sleep.reply.schedule.0088" act="life.sleep.schedule.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="После твоего опасного эксперимента управлять освещением ты не будешь." />
@@ -293,7 +293,7 @@
 		<template id="v3.life.sleep.reply.schedule.0090" act="life.sleep.schedule.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сон ребёнка действительно влияет на взрослых; ночные обязанности лучше делить явно." />
 		<template id="v3.life.sleep.reply.schedule.0091" act="life.sleep.schedule.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Чередование дежурств должно учитывать работу, кормление и возможность каждого восстановиться." />
 		<template id="v3.life.sleep.reply.schedule.0092" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давай составим справедливый график и пересмотрим его через неделю." />
-		<template id="v3.life.sleep.reply.schedule.0093" act="life.sleep.schedule.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я возьму первую ночь, ты — следующую без попытки считать каждое пробуждение." />
+		<template id="v3.life.sleep.reply.schedule.0093" act="life.sleep.schedule.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ночные дежурства нужно делить по ясной договорённости, не выдумывая её заранее." />
 		<template id="v3.life.sleep.reply.schedule.0094" act="life.sleep.schedule.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не перекладывай все ночи на одного человека." />
 		<template id="v3.life.sleep.reply.schedule.0095" act="life.sleep.schedule.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если продолжишь отказываться от своей части, подключим семейного специалиста." />
 		<template id="v3.life.sleep.reply.schedule.0096" act="life.sleep.schedule.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Разное время подъёма каждый день затрудняет предсказуемую сонливость вечером." />
@@ -320,7 +320,7 @@
 		<template id="v3.life.sleep.reply.schedule.0117" act="life.sleep.schedule.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Стабильность важнее идеального часа, который невозможно соблюдать." />
 		<template id="v3.life.sleep.reply.schedule.0118" act="life.sleep.schedule.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ориентируйтесь на достаточный сон и реальные обязанности утром." />
 		<template id="v3.life.sleep.reply.schedule.0119" act="life.sleep.schedule.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Если режим вызывает длительные трудности или сильную дневную сонливость, обратитесь к специалисту." />
-		<template id="v3.life.sleep.reply.schedule.0120" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу записать неделю сна без попытки поставить диагноз." />
+		<template id="v3.life.sleep.reply.schedule.0120" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Неделю сна можно записывать самостоятельно, не пытаясь ставить диагноз." />
 		<template id="v3.life.sleep.reply.schedule.0121" act="life.sleep.schedule.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты ложишься правильнее по часам, я лучше просыпаюсь — посмотрим шире цифр." />
 		<template id="v3.life.sleep.reply.schedule.0122" act="life.sleep.schedule.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не назначай человеку таблетки по своему опыту." />
 		<template id="v3.life.sleep.reply.schedule.0123" act="life.sleep.schedule.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После опасного совета я прекращу разговор и вызову помощь при необходимости." />
@@ -355,7 +355,7 @@
 		<template id="v3.life.sleep.reply.schedule.0152" act="life.sleep.schedule.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Экран перед сном мешает не только светом, но и бесконечной сменой содержания." />
 		<template id="v3.life.sleep.reply.schedule.0153" act="life.sleep.schedule.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Остановите поток в заранее выбранное время и оставьте устройство вне кровати." />
 		<template id="v3.life.sleep.reply.schedule.0154" act="life.sleep.schedule.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Спокойное аудио с таймером может быть переходом, если полная тишина непривычна." />
-		<template id="v3.life.sleep.reply.schedule.0155" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я поставлю таймер и не буду листать рядом с тобой." />
+		<template id="v3.life.sleep.reply.schedule.0155" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Таймер и отказ от ленты рядом с кроватью часто помогают лучше обещаний." />
 		<template id="v3.life.sleep.reply.schedule.0156" act="life.sleep.schedule.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мой телефон дальше от кровати, твой хотя бы в ночном режиме." />
 		<template id="v3.life.sleep.reply.schedule.0157" act="life.sleep.schedule.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не присылай мне ролики после обозначенного часа." />
 		<template id="v3.life.sleep.reply.schedule.0158" act="life.sleep.schedule.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если продолжишь звонить ночью, контакт будет заглушён." />
@@ -383,7 +383,7 @@
 		<template id="v3.life.sleep.reply.schedule.0180" act="life.sleep.schedule.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Плавающий режим легче переносить, если каждый тип смены имеет свой план сна и света." />
 		<template id="v3.life.sleep.reply.schedule.0181" act="life.sleep.schedule.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не меняйте его в последнюю минуту без необходимости и компенсации." />
 		<template id="v3.life.sleep.reply.schedule.0182" act="life.sleep.schedule.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Запишите, какой переход особенно тяжёл, чтобы обсуждать расписание фактами." />
-		<template id="v3.life.sleep.reply.schedule.0183" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я помогу оформить запрос работодателю о небезопасной последовательности смен." />
+		<template id="v3.life.sleep.reply.schedule.0183" act="life.sleep.schedule.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Запрос работодателю о небезопасных сменах лучше оформить самому и сохранить копию." />
 		<template id="v3.life.sleep.reply.schedule.0184" act="life.sleep.schedule.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты адаптируешься быстрее, но мой предел тоже реален." />
 		<template id="v3.life.sleep.reply.schedule.0185" act="life.sleep.schedule.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не требуй привыкнуть к графику, который системно лишает сна." />
 		<template id="v3.life.sleep.reply.schedule.0186" act="life.sleep.schedule.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После очередной опасной смены я откажусь письменно." />
@@ -404,15 +404,15 @@
 		<template id="v3.life.sleep.reply.insomnia.0001" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Два часа без сна мучительны; уберите часы из поля зрения и снизьте давление «уснуть сейчас»." />
 		<template id="v3.life.sleep.reply.insomnia.0002" act="life.sleep.insomnia.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ночные мысли можно кратко записать, чтобы не решать их в кровати." />
 		<template id="v3.life.sleep.reply.insomnia.0003" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="При пробуждении сохраняйте мягкий свет и спокойное занятие, если сон долго не возвращается." />
-		<template id="v3.life.sleep.reply.insomnia.0004" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я посижу рядом тихо, без вопросов и советов." />
-		<template id="v3.life.sleep.reply.insomnia.0005" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ты уснёшь раньше, я зато не буду считать минуты вслух." />
+		<template id="v3.life.sleep.reply.insomnia.0004" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Тихая компания может помочь ночью, если о ней попросили реального близкого человека." />
+		<template id="v3.life.sleep.reply.insomnia.0005" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Считать минуты вслух бессмысленно; кто уснёт раньше, заранее неизвестно." />
 		<template id="v3.life.sleep.reply.insomnia.0006" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не спрашивай каждые пять минут, сплю ли я." />
 		<template id="v3.life.sleep.reply.insomnia.0007" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если снова разбудишь меня намеренно, ночевать рядом больше не будешь." />
 		<template id="v3.life.sleep.reply.insomnia.0008" act="life.sleep.insomnia.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Страх не уснуть сам усиливает напряжение; задача ночи — отдыхать, а не сдавать экзамен." />
 		<template id="v3.life.sleep.reply.insomnia.0009" act="life.sleep.insomnia.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Каждый шорох легче заметить в тишине, поэтому иногда помогает ровный безопасный фон." />
 		<template id="v3.life.sleep.reply.insomnia.0010" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сильное сердцебиение с тревожными симптомами требует медицинской оценки, особенно при боли или нехватке воздуха." />
-		<template id="v3.life.sleep.reply.insomnia.0011" act="life.sleep.insomnia.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу оценить состояние и вызвать помощь, если есть опасные признаки." />
-		<template id="v3.life.sleep.reply.insomnia.0012" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Моя ночь тоже тяжёлая, но сравнивать бессонницу бессмысленно." />
+		<template id="v3.life.sleep.reply.insomnia.0011" act="life.sleep.insomnia.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="При опасных признаках важно оценить состояние и самостоятельно вызвать помощь." />
+		<template id="v3.life.sleep.reply.insomnia.0012" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сравнивать бессонницу бессмысленно, даже если обе ночи были тяжёлыми." />
 		<template id="v3.life.sleep.reply.insomnia.0013" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не ставь диагноз человеку по одному пробуждению." />
 		<template id="v3.life.sleep.reply.insomnia.0014" act="life.sleep.insomnia.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Твои насмешки над тревогой прекращаются немедленно." />
 		<template id="v3.life.sleep.reply.insomnia.0015" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Постоянный взгляд на часы превращает ночь в обратный отсчёт." />
@@ -425,7 +425,7 @@
 		<template id="v3.life.sleep.reply.insomnia.0022" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Встать можно, если долго не спится, и заняться чем-то спокойным при приглушённом свете." />
 		<template id="v3.life.sleep.reply.insomnia.0023" act="life.sleep.insomnia.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ночью без телефона подойдут бумажная книга, тихое аудио или простое дыхание." />
 		<template id="v3.life.sleep.reply.insomnia.0024" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Видео помогает отвлечься, но свет и бесконечная очередь способны удерживать бодрость." />
-		<template id="v3.life.sleep.reply.insomnia.0025" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я поставлю знакомую запись с таймером, если тебе так спокойнее." />
+		<template id="v3.life.sleep.reply.insomnia.0025" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Знакомую запись с таймером можно включить самому, если от неё спокойнее." />
 		<template id="v3.life.sleep.reply.insomnia.0026" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мой фон тише, твой голосовой трек быстрее отвлекает мысли." />
 		<template id="v3.life.sleep.reply.insomnia.0027" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не включай автоматическое продолжение на всю ночь." />
 		<template id="v3.life.sleep.reply.insomnia.0028" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После очередной громкой рекламы устройство останется за дверью." />
@@ -439,7 +439,7 @@
 		<template id="v3.life.sleep.reply.insomnia.0036" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После кошмара полезно оглядеться, назвать настоящее место и дать телу успокоиться." />
 		<template id="v3.life.sleep.reply.insomnia.0037" act="life.sleep.insomnia.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Расслаблять тело можно постепенно, без требования сделать это идеально." />
 		<template id="v3.life.sleep.reply.insomnia.0038" act="life.sleep.insomnia.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ощущение «разучился спать» пугает, но одна тяжёлая ночь не отменяет способность организма." />
-		<template id="v3.life.sleep.reply.insomnia.0039" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я останусь рядом, пока комната снова не станет знакомой." />
+		<template id="v3.life.sleep.reply.insomnia.0039" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Когда комната кажется незнакомой, помогают свет и проверка обстановки, а не обещание присутствия." />
 		<template id="v3.life.sleep.reply.insomnia.0040" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты быстрее пришёл в себя, я дольше помню детали сна." />
 		<template id="v3.life.sleep.reply.insomnia.0041" act="life.sleep.insomnia.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не требуй пересказывать кошмар." />
 		<template id="v3.life.sleep.reply.insomnia.0042" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Твои попытки напугать меня снова недопустимы." />
@@ -474,7 +474,7 @@
 		<template id="v3.life.sleep.reply.insomnia.0071" act="life.sleep.insomnia.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Вздрагивание при засыпании часто бывает, но необычные или тревожные эпизоды требуют консультации врача." />
 		<template id="v3.life.sleep.reply.insomnia.0072" act="life.sleep.insomnia.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Сон под утро не делает ночь моральным провалом; день можно упростить ради безопасности." />
 		<template id="v3.life.sleep.reply.insomnia.0073" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Перед важным днём тревога понятна, но репетиция катастрофы ночью не помогает." />
-		<template id="v3.life.sleep.reply.insomnia.0074" act="life.sleep.insomnia.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я помогу подготовить утренние вещи, чтобы убрать один источник напряжения." />
+		<template id="v3.life.sleep.reply.insomnia.0074" act="life.sleep.insomnia.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Утренние вещи лучше подготовить заранее, чтобы снять один источник напряжения." />
 		<template id="v3.life.sleep.reply.insomnia.0075" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ты готов лучше, чем чувствуешь сейчас; остальное решим утром." />
 		<template id="v3.life.sleep.reply.insomnia.0076" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не обещай провал только потому, что я не сплю." />
 		<template id="v3.life.sleep.reply.insomnia.0077" act="life.sleep.insomnia.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Твои запугивания прекращаются сейчас." />
@@ -503,7 +503,7 @@
 		<template id="v3.life.sleep.reply.insomnia.0100" act="life.sleep.insomnia.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Несколько пробуждений бывают у многих, но важны их частота, длительность и дневное самочувствие." />
 		<template id="v3.life.sleep.reply.insomnia.0101" act="life.sleep.insomnia.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Запишите наблюдения на несколько дней без постоянного контроля каждой минуты." />
 		<template id="v3.life.sleep.reply.insomnia.0102" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если пробуждения устойчивы и истощают, обсудите их с медицинским специалистом." />
-		<template id="v3.life.sleep.reply.insomnia.0103" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я помогу вести спокойные заметки, не превращая ночь в лабораторию." />
+		<template id="v3.life.sleep.reply.insomnia.0103" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Спокойные заметки могут помочь, если не превращать ночь в лабораторию." />
 		<template id="v3.life.sleep.reply.insomnia.0104" act="life.sleep.insomnia.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты просыпаешься чаще, я дольше возвращаю сон — у каждого своя трудность." />
 		<template id="v3.life.sleep.reply.insomnia.0105" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не сравнивай качество сна как соревнование." />
 		<template id="v3.life.sleep.reply.insomnia.0106" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твоя насмешка над истощением неприемлема." />
@@ -517,7 +517,7 @@
 		<template id="v3.life.sleep.reply.insomnia.0114" act="life.sleep.insomnia.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Длительная бессонница — не то, что нужно терпеть в одиночку или лечить случайными средствами." />
 		<template id="v3.life.sleep.reply.insomnia.0115" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Врач или специалист по сну поможет оценить причины и безопасные варианты помощи." />
 		<template id="v3.life.sleep.reply.insomnia.0116" act="life.sleep.insomnia.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Соберите информацию о режиме, веществах, симптомах и дневном влиянии." />
-		<template id="v3.life.sleep.reply.insomnia.0117" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я помогу подготовить вопросы к приёму, но не буду ставить диагноз." />
+		<template id="v3.life.sleep.reply.insomnia.0117" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вопросы к приёму полезно записать самому, не пытаясь заранее ставить диагноз." />
 		<template id="v3.life.sleep.reply.insomnia.0118" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мой совет осторожнее, твоя история может быть полезна лишь как личный опыт." />
 		<template id="v3.life.sleep.reply.insomnia.0119" act="life.sleep.insomnia.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не отдавай человеку свои лекарства." />
 		<template id="v3.life.sleep.reply.insomnia.0120" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если ты снова предложишь опасную смесь, я остановлю это и вызову помощь." />
@@ -531,7 +531,7 @@
 		<template id="v3.life.sleep.reply.insomnia.0128" act="life.sleep.insomnia.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если лежание вызывает всё больше напряжения, ненадолго смените место и занятие." />
 		<template id="v3.life.sleep.reply.insomnia.0129" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Выберите тусклый свет и что-то скучное, не превращая ночь в активный день." />
 		<template id="v3.life.sleep.reply.insomnia.0130" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Возвращайтесь в кровать, когда появится сонливость, а не из чувства долга." />
-		<template id="v3.life.sleep.reply.insomnia.0131" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я сохраню комнату тихой, пока ты сидишь в кресле." />
+		<template id="v3.life.sleep.reply.insomnia.0131" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Тихая комната помогает, но её нельзя обещать из чата." />
 		<template id="v3.life.sleep.reply.insomnia.0132" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мой способ медленнее, твой быстрее снимает телесное напряжение." />
 		<template id="v3.life.sleep.reply.insomnia.0133" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не захватывай общую комнату ярким экраном." />
 		<template id="v3.life.sleep.reply.insomnia.0134" act="life.sleep.insomnia.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если продолжишь шуметь, дверь будет закрыта." />
@@ -545,21 +545,21 @@
 		<template id="v3.life.sleep.reply.insomnia.0142" act="life.sleep.insomnia.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ночная тревога часто обещает катастрофу, которую утром мозг оценивает иначе." />
 		<template id="v3.life.sleep.reply.insomnia.0143" act="life.sleep.insomnia.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Запишите вопрос и назначьте дневное время, когда действительно сможете им заняться." />
 		<template id="v3.life.sleep.reply.insomnia.0144" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не принимайте большие решения в состоянии истощения, если их можно отложить." />
-		<template id="v3.life.sleep.reply.insomnia.0145" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я напомню утром о записанном, чтобы сейчас не удерживать это в голове." />
+		<template id="v3.life.sleep.reply.insomnia.0145" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Записанное не нужно удерживать в голове; напоминание на утро можно поставить самому." />
 		<template id="v3.life.sleep.reply.insomnia.0146" act="life.sleep.insomnia.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Твоя идея срочнее кажется ночью, моя проверка подождёт света." />
 		<template id="v3.life.sleep.reply.insomnia.0147" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не требуй ответа на конфликтное сообщение сейчас." />
 		<template id="v3.life.sleep.reply.insomnia.0148" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если продолжишь угрозы, я обращусь за помощью и сохраню переписку." />
 		<template id="v3.life.sleep.reply.insomnia.0149" act="life.sleep.insomnia.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Беруши выбирайте так, чтобы оставались слышимыми важные сигналы безопасности." />
 		<template id="v3.life.sleep.reply.insomnia.0150" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Белый или другой ровный шум держите достаточно тихим для слуха." />
 		<template id="v3.life.sleep.reply.insomnia.0151" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сначала устраните источник звука, если это возможно без конфликта." />
-		<template id="v3.life.sleep.reply.insomnia.0152" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я проверю окно и технику, пока ты остаёшься в постели." />
+		<template id="v3.life.sleep.reply.insomnia.0152" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Окно и технику стоит проверить самому, если это безопасно." />
 		<template id="v3.life.sleep.reply.insomnia.0153" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты слышишь высокие звуки, я сильнее чувствую вибрацию." />
 		<template id="v3.life.sleep.reply.insomnia.0154" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не стучи по стене среди ночи и не начинай ссору." />
 		<template id="v3.life.sleep.reply.insomnia.0155" act="life.sleep.insomnia.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="После твоих угроз соседям вопрос будет решаться через официальные службы." />
 		<template id="v3.life.sleep.reply.insomnia.0156" act="life.sleep.insomnia.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Температуру спальни подбирают по комфорту обоих, иногда с разными одеялами." />
 		<template id="v3.life.sleep.reply.insomnia.0157" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сухой воздух можно оценить безопасным увлажнением и проветриванием." />
 		<template id="v3.life.sleep.reply.insomnia.0158" act="life.sleep.insomnia.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не закрывайте вентиляцию и не используйте опасные нагреватели ради сна." />
-		<template id="v3.life.sleep.reply.insomnia.0159" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я принесу второе одеяло, чтобы не спорить о всей комнате." />
+		<template id="v3.life.sleep.reply.insomnia.0159" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Второе одеяло проще взять самому, чем спорить о температуре всей комнаты." />
 		<template id="v3.life.sleep.reply.insomnia.0160" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мой комфорт прохладнее, твой требует более тёплой стороны." />
 		<template id="v3.life.sleep.reply.insomnia.0161" act="life.sleep.insomnia.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не открывай окно над спящим человеком без согласия." />
 		<template id="v3.life.sleep.reply.insomnia.0162" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После очередной ночной борьбы за температуру будем спать отдельно." />
@@ -567,34 +567,34 @@
 		<template id="v3.life.sleep.reply.insomnia.0164" act="life.sleep.insomnia.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Одна строка «следующий шаг» обычно полезнее ночного часа исправлений." />
 		<template id="v3.life.sleep.reply.insomnia.0165" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Уберите ноутбук физически подальше от кровати." />
 		<template id="v3.life.sleep.reply.insomnia.0166" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я запишу твою мысль, если открывать устройство сейчас слишком тяжело." />
-		<template id="v3.life.sleep.reply.insomnia.0167" act="life.sleep.insomnia.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты придумал решение ночью, я проверю его утром на свежую голову." />
+		<template id="v3.life.sleep.reply.insomnia.0167" act="life.sleep.insomnia.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ночное решение лучше перепроверить утром на свежую голову." />
 		<template id="v3.life.sleep.reply.insomnia.0168" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не отправляй правку в производство в полусне." />
 		<template id="v3.life.sleep.reply.insomnia.0169" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Если снова внесёшь ночное изменение без проверки, доступ будет ограничен." />
 		<template id="v3.life.sleep.reply.insomnia.0170" act="life.sleep.insomnia.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Часы можно поставить экраном вниз, сохранив слышимый будильник." />
 		<template id="v3.life.sleep.reply.insomnia.0171" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не проверяйте время после каждого пробуждения." />
 		<template id="v3.life.sleep.reply.insomnia.0172" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Оценивать ночь лучше утром по общему самочувствию, а не сумме тревожных взглядов." />
-		<template id="v3.life.sleep.reply.insomnia.0173" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я уберу телефон на свою сторону и не скажу время без просьбы." />
+		<template id="v3.life.sleep.reply.insomnia.0173" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Телефон можно убрать подальше и не смотреть время без необходимости." />
 		<template id="v3.life.sleep.reply.insomnia.0174" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты считаешь минуты, я считаю причины перестать считать." />
 		<template id="v3.life.sleep.reply.insomnia.0175" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не объявляй вслух, сколько осталось до подъёма." />
 		<template id="v3.life.sleep.reply.insomnia.0176" act="life.sleep.insomnia.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Если продолжишь тревожить меня временем, выйди из комнаты." />
 		<template id="v3.life.sleep.reply.insomnia.0177" act="life.sleep.insomnia.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Важный день не требует идеальной ночи, хотя отдых поможет." />
 		<template id="v3.life.sleep.reply.insomnia.0178" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Подготовьте одежду и материалы, затем оставьте дальнейшую репетицию утру." />
 		<template id="v3.life.sleep.reply.insomnia.0179" act="life.sleep.insomnia.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Напомните себе о случаях, когда справлялись после несовершенного сна." />
-		<template id="v3.life.sleep.reply.insomnia.0180" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я помогу утром с простыми делами, чтобы снять часть давления." />
+		<template id="v3.life.sleep.reply.insomnia.0180" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Утренние дела стоит упростить заранее, чтобы снять часть давления." />
 		<template id="v3.life.sleep.reply.insomnia.0181" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты готовился достаточно; ночь не обязана доказывать это ещё раз." />
 		<template id="v3.life.sleep.reply.insomnia.0182" act="life.sleep.insomnia.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Не пугай человека последствиями бессонной ночи." />
 		<template id="v3.life.sleep.reply.insomnia.0183" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Твои намеренные попытки усилить тревогу прекращаются." />
 		<template id="v3.life.sleep.reply.insomnia.0184" act="life.sleep.insomnia.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="При боли в груди, выраженной нехватке воздуха, потере сознания или другой острой угрозе нужна срочная помощь." />
 		<template id="v3.life.sleep.reply.insomnia.0185" act="life.sleep.insomnia.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Без опасных симптомов можно сосредоточиться на комфорте и обратиться к специалисту при продолжении проблемы." />
 		<template id="v3.life.sleep.reply.insomnia.0186" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не используйте советы из чата как замену персональной медицинской оценке." />
-		<template id="v3.life.sleep.reply.insomnia.0187" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я помогу вызвать помощь или записаться, исходя из реальной срочности." />
+		<template id="v3.life.sleep.reply.insomnia.0187" act="life.sleep.insomnia.reply" band="TENSE" register="CASUAL" profanity="NONE" text="При реальной срочности нужно самому вызвать помощь или записаться к специалисту." />
 		<template id="v3.life.sleep.reply.insomnia.0188" act="life.sleep.insomnia.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Моя осторожность лучше твоего случайного диагноза." />
 		<template id="v3.life.sleep.reply.insomnia.0189" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не обесценивай симптомы и не запрещай человеку обращаться к врачу." />
 		<template id="v3.life.sleep.reply.insomnia.0190" act="life.sleep.insomnia.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="После твоего вмешательства медицинские решения будут приниматься без тебя." />
 		<template id="v3.life.sleep.reply.insomnia.0191" act="life.sleep.insomnia.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Эта ночь не требует победы; достаточно провести её безопасно и бережно." />
 		<template id="v3.life.sleep.reply.insomnia.0192" act="life.sleep.insomnia.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Утром сократите нагрузку и не управляйте транспортом, если опасно клонит в сон." />
 		<template id="v3.life.sleep.reply.insomnia.0193" act="life.sleep.insomnia.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Следующая ночь начинается с обычного дня, а не с наказания за сегодняшнюю." />
-		<template id="v3.life.sleep.reply.insomnia.0194" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Я помогу сохранить спокойный ритм и не обсуждать сон каждую минуту." />
+		<template id="v3.life.sleep.reply.insomnia.0194" act="life.sleep.insomnia.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Спокойный ритм полезнее обсуждения сна каждую минуту." />
 		<template id="v3.life.sleep.reply.insomnia.0195" act="life.sleep.insomnia.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты пережил трудную ночь, не превращая её в опасный эксперимент." />
 		<template id="v3.life.sleep.reply.insomnia.0196" act="life.sleep.insomnia.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не требуй обещания, что завтра всё будет идеально." />
 		<template id="v3.life.sleep.reply.insomnia.0197" act="life.sleep.insomnia.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Твои обвинения останутся за дверью спальни." />
@@ -604,15 +604,15 @@
 		<template id="v3.life.sleep.reply.rest.0001" act="life.sleep.rest.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Нормальный отдых уменьшает нагрузку, а не превращается в ещё один проект совершенства." />
 		<template id="v3.life.sleep.reply.rest.0002" act="life.sleep.rest.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если выходные не восстановили, возможно, в них было слишком много обязанностей или слишком мало сна." />
 		<template id="v3.life.sleep.reply.rest.0003" act="life.sleep.rest.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="День дома можно провести без списка достижений и отчёта перед другими." />
-		<template id="v3.life.sleep.reply.rest.0004" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Давай выберем между тихой прогулкой и диваном по реальному самочувствию." />
-		<template id="v3.life.sleep.reply.rest.0005" act="life.sleep.rest.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мой отдых активнее, твой сегодня честнее отвечает усталости." />
+		<template id="v3.life.sleep.reply.rest.0004" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Между тихой прогулкой и диваном лучше выбирать по реальному самочувствию." />
+		<template id="v3.life.sleep.reply.rest.0005" act="life.sleep.rest.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Активный и тихий отдых подходят разной усталости, без личного сравнения." />
 		<template id="v3.life.sleep.reply.rest.0006" act="life.sleep.rest.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не называй бездельем восстановление." />
 		<template id="v3.life.sleep.reply.rest.0007" act="life.sleep.rest.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Твои требования развлекать тебя в мой выходной отклонены." />
 		<template id="v3.life.sleep.reply.rest.0008" act="life.sleep.rest.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ничего не делать трудно, если ценность привыкли измерять только результатом." />
 		<template id="v3.life.sleep.reply.rest.0009" act="life.sleep.rest.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вина за отдых часто остаётся эхом требований, а не фактом нарушения." />
 		<template id="v3.life.sleep.reply.rest.0010" act="life.sleep.rest.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Восстановиться без поездки можно тишиной, сном, знакомой едой и сменой обычного ритма." />
-		<template id="v3.life.sleep.reply.rest.0011" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я устрою нам спокойный вечер без гостей и срочных решений." />
-		<template id="v3.life.sleep.reply.rest.0012" act="life.sleep.rest.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты отдохнёшь дома, я прогуляюсь — сравнивать тут нечего." />
+		<template id="v3.life.sleep.reply.rest.0011" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спокойный вечер без гостей и срочных решений стоит сначала согласовать со всеми участниками." />
+		<template id="v3.life.sleep.reply.rest.0012" act="life.sleep.rest.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Домашний отдых и прогулка одинаково нормальны; сравнивать их нечего." />
 		<template id="v3.life.sleep.reply.rest.0013" act="life.sleep.rest.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не приходи без приглашения в мой тихий вечер." />
 		<template id="v3.life.sleep.reply.rest.0014" act="life.sleep.rest.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Незваные планы сегодня не принимаются; следующий визит закончится ограничением контакта." />
 		<template id="v3.life.sleep.reply.rest.0015" act="life.sleep.rest.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Отмена всех планов допустима, если вы сообщаете людям заранее и не исчезаете из важных обязательств." />
@@ -632,7 +632,7 @@
 		<template id="v3.life.sleep.reply.rest.0029" act="life.sleep.rest.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После общения восстановление может требовать одиночества и отсутствия новых сообщений." />
 		<template id="v3.life.sleep.reply.rest.0030" act="life.sleep.rest.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Не отвечать весь день можно, если заранее обозначить недоступность важным людям." />
 		<template id="v3.life.sleep.reply.rest.0031" act="life.sleep.rest.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Лежать и читать — полноценный выбор, если телу удобно и есть движение по необходимости." />
-		<template id="v3.life.sleep.reply.rest.0032" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я принесу чай и оставлю книгу рядом, без дальнейших планов." />
+		<template id="v3.life.sleep.reply.rest.0032" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Чай и книга звучат уютно, но подготовить их придётся самому." />
 		<template id="v3.life.sleep.reply.rest.0033" act="life.sleep.rest.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Моя прогулка энергичнее, твоя глава спокойнее." />
 		<template id="v3.life.sleep.reply.rest.0034" act="life.sleep.rest.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не отбирай книгу ради навязанной активности." />
 		<template id="v3.life.sleep.reply.rest.0035" act="life.sleep.rest.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Если продолжишь мешать, отдыхать буду без тебя." />
@@ -646,7 +646,7 @@
 		<template id="v3.life.sleep.reply.rest.0043" act="life.sleep.rest.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если отдых превращается в список дел, оставьте одно бытовое действие и уберите остальное." />
 		<template id="v3.life.sleep.reply.rest.0044" act="life.sleep.rest.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Слишком много планов на выходные создают вторую смену вместо восстановления." />
 		<template id="v3.life.sleep.reply.rest.0045" act="life.sleep.rest.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="От встречи можно отказаться ради отдыха без выдуманной болезни." />
-		<template id="v3.life.sleep.reply.rest.0046" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я помогу написать короткое честное сообщение и выключить телефон." />
+		<template id="v3.life.sleep.reply.rest.0046" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Короткое честное сообщение можно написать самому и после выключить телефон." />
 		<template id="v3.life.sleep.reply.rest.0047" act="life.sleep.rest.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мой отказ прямее, твой мягче сохраняет планы на другой день." />
 		<template id="v3.life.sleep.reply.rest.0048" act="life.sleep.rest.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не торгуйся после чужого отказа." />
 		<template id="v3.life.sleep.reply.rest.0049" act="life.sleep.rest.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После твоего давления будущих приглашений не будет." />
@@ -667,7 +667,7 @@
 		<template id="v3.life.sleep.reply.rest.0064" act="life.sleep.rest.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сегодня можно ничего не достигать и всё равно прожить день осмысленно." />
 		<template id="v3.life.sleep.reply.rest.0065" act="life.sleep.rest.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Усталость от контента уменьшается, когда экран перестаёт задавать тему каждую секунду." />
 		<template id="v3.life.sleep.reply.rest.0066" act="life.sleep.rest.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Посидеть без музыки и видео сначала непривычно, затем слышнее собственное состояние." />
-		<template id="v3.life.sleep.reply.rest.0067" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я уберу телефон в ящик и поставлю обычный чайник." />
+		<template id="v3.life.sleep.reply.rest.0067" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Телефон лучше убрать в ящик, а обычный чайник поставить только если не собираешься сразу спать." />
 		<template id="v3.life.sleep.reply.rest.0068" act="life.sleep.rest.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты отключился раньше, я дольше сопротивлялся привычке листать." />
 		<template id="v3.life.sleep.reply.rest.0069" act="life.sleep.rest.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Не присылай мне бесконечные ссылки в день тишины." />
 		<template id="v3.life.sleep.reply.rest.0070" act="life.sleep.rest.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После очередного потока уведомлений чат будет заглушён." />
@@ -745,7 +745,7 @@
 		<template id="v3.life.sleep.reply.rest.0142" act="life.sleep.rest.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Отпуск может утомить дорогой, новизной и необходимостью постоянно выбирать." />
 		<template id="v3.life.sleep.reply.rest.0143" act="life.sleep.rest.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="После возвращения оставьте хотя бы один спокойный буферный вечер." />
 		<template id="v3.life.sleep.reply.rest.0144" act="life.sleep.rest.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Не заполняйте первый день дома срочными встречами без необходимости." />
-		<template id="v3.life.sleep.reply.rest.0145" act="life.sleep.rest.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я заберу продукты, пока ты распакуешь только самое нужное." />
+		<template id="v3.life.sleep.reply.rest.0145" act="life.sleep.rest.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="После покупки стоит распаковать только нужное, а остальное оставить на потом." />
 		<template id="v3.life.sleep.reply.rest.0146" act="life.sleep.rest.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Моя поездка была спокойнее, твоя дала больше впечатлений." />
 		<template id="v3.life.sleep.reply.rest.0147" act="life.sleep.rest.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Не обвиняй человека в неблагодарности за усталость после отпуска." />
 		<template id="v3.life.sleep.reply.rest.0148" act="life.sleep.rest.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Твои претензии к моему восстановлению больше не слушаю." />
@@ -759,7 +759,7 @@
 		<template id="v3.life.sleep.reply.rest.0156" act="life.sleep.rest.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Короткий отдых между обязанностями лучше провести без входящих сообщений." />
 		<template id="v3.life.sleep.reply.rest.0157" act="life.sleep.rest.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Даже пять минут с закрытыми глазами требуют безопасного места, а не транспорта или техники." />
 		<template id="v3.life.sleep.reply.rest.0158" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Выберите один сигнал возвращения, чтобы не следить за временем постоянно." />
-		<template id="v3.life.sleep.reply.rest.0159" act="life.sleep.rest.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Я поставлю мягкий таймер и прикрою дверь." />
+		<template id="v3.life.sleep.reply.rest.0159" act="life.sleep.rest.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мягкий таймер и прикрытая дверь помогают обозначить конец отдыха." />
 		<template id="v3.life.sleep.reply.rest.0160" act="life.sleep.rest.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты отдыхаешь короче, я медленнее возвращаю внимание." />
 		<template id="v3.life.sleep.reply.rest.0161" act="life.sleep.rest.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не буди человека раньше согласованного сигнала." />
 		<template id="v3.life.sleep.reply.rest.0162" act="life.sleep.rest.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Если повторишь это назло, больше рядом отдыхать не будем." />
@@ -797,7 +797,7 @@
 		<template id="v3.life.sleep.reply.rest.0194" act="life.sleep.rest.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я приготовлю чай, а дальше каждый выберет своё занятие." />
 		<template id="v3.life.sleep.reply.rest.0195" act="life.sleep.rest.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты предложил больше идей, я лучше услышал просьбу о покое." />
 		<template id="v3.life.sleep.reply.rest.0196" act="life.sleep.rest.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не принимай потребность в одиночестве за отвержение." />
-		<template id="v3.life.sleep.reply.rest.0197" act="life.sleep.rest.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После твоих обвинений сегодня я выбираю отдельное пространство." />
+		<template id="v3.life.sleep.reply.rest.0197" act="life.sleep.rest.reply" band="TENSE" register="CASUAL" profanity="NONE" text="После обвинений отдельное пространство может быть разумной границей." />
 		<template id="v3.life.sleep.reply.rest.0198" act="life.sleep.rest.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Завершать отдых стоит без резкого прыжка в десяток накопленных задач." />
 		<template id="v3.life.sleep.reply.rest.0199" act="life.sleep.rest.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Подготовьте одну вещь для завтра и оставьте остальные в списке." />
 		<template id="v3.life.sleep.reply.rest.0200" act="life.sleep.rest.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошее восстановление заканчивается ощущением достаточности, а не выполненным планом." />

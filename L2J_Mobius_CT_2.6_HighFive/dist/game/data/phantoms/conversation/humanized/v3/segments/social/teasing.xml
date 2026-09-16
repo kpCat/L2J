@@ -3,26 +3,26 @@
 	<templates>
 		<template id="v3.social.teasing.reply.banter.0001" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Смелое начало знакомства; вы всегда так быстро переходите к подколам?" />
 		<template id="v3.social.teasing.reply.banter.0002" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошая попытка, но для меткого замечания вам не хватило деталей." />
-		<template id="v3.social.teasing.reply.banter.0003" act="social.teasing.banter.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты снова вошёл так, будто за тобой играет победная музыка." />
+		<template id="v3.social.teasing.reply.banter.0003" act="social.teasing.banter.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Эффектный вход иногда звучит так, будто за ним играет победная музыка." />
 		<template id="v3.social.teasing.reply.banter.0004" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне нравится твоя уверенность, особенно когда она ничем не подкреплена." />
-		<template id="v3.social.teasing.reply.banter.0005" act="social.teasing.banter.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Продолжай разминаться, к главной словесной дуэли я ещё не приступил." />
-		<template id="v3.social.teasing.reply.banter.0006" act="social.teasing.banter.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Сегодня я не настроен на привычные подколы, сбавь обороты." />
+		<template id="v3.social.teasing.reply.banter.0005" act="social.teasing.banter.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="К словесной дуэли лучше приступать только по взаимному желанию." />
+		<template id="v3.social.teasing.reply.banter.0006" act="social.teasing.banter.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Если сегодня не до подколов, границу лучше назвать прямо без описания настроения как факта." />
 		<template id="v3.social.teasing.reply.banter.0007" act="social.teasing.banter.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ваши насмешки не дают вам права оставаться рядом." />
-		<template id="v3.social.teasing.reply.banter.0008" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Неожиданно остро для первого разговора, запишу за вами одно очко." />
-		<template id="v3.social.teasing.reply.banter.0009" act="social.teasing.banter.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Вы умеете шутить с серьёзным лицом, это почти убедительно." />
-		<template id="v3.social.teasing.reply.banter.0010" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты специально выбрал рубашку под цвет своей самоуверенности?" />
-		<template id="v3.social.teasing.reply.banter.0011" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я узнал этот взгляд: сейчас ты скажешь что-нибудь ужасно довольное собой." />
-		<template id="v3.social.teasing.reply.banter.0012" act="social.teasing.banter.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Поддразнивай сколько хочешь, счёт всё равно в мою пользу." />
+		<template id="v3.social.teasing.reply.banter.0008" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Острое начало разговора можно условно оценить в одно очко." />
+		<template id="v3.social.teasing.reply.banter.0009" act="social.teasing.banter.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Шутка с серьёзным лицом почти убедительна сама по себе." />
+		<template id="v3.social.teasing.reply.banter.0010" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Рубашка может выглядеть самоуверенно и без истории о намеренном выборе." />
+		<template id="v3.social.teasing.reply.banter.0011" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Довольный взгляд может обещать колкость, но знакомым его считать нельзя без истории." />
+		<template id="v3.social.teasing.reply.banter.0012" act="social.teasing.banter.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Счёт должен быть реальным, иначе поддразнивание о преимуществе пустое." />
 		<template id="v3.social.teasing.reply.banter.0013" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Можем пошутить, только не возвращайся к больной теме." />
 		<template id="v3.social.teasing.reply.banter.0014" act="social.teasing.banter.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не пытайтесь унижать меня под видом лёгкой беседы." />
 		<template id="v3.social.teasing.reply.banter.0015" act="social.teasing.banter.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Кажется, у вас заготовлена реплика; давайте уже услышим её." />
-		<template id="v3.social.teasing.reply.banter.0016" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ваше эффектное появление заслуживает хотя бы коротких аплодисментов." />
-		<template id="v3.social.teasing.reply.banter.0017" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты так долго готовил эту фразу, что я успел придумать три ответа." />
+		<template id="v3.social.teasing.reply.banter.0016" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Эффектное появление заслуживает только воображаемых аплодисментов." />
+		<template id="v3.social.teasing.reply.banter.0017" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Долго подготовленная фраза будто сама даёт время придумать три ответа." />
 		<template id="v3.social.teasing.reply.banter.0018" act="social.teasing.banter.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Рядом с тобой даже обычное опоздание превращается в спектакль." />
-		<template id="v3.social.teasing.reply.banter.0019" act="social.teasing.banter.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я дам тебе фору в одну шутку, чтобы борьба была интереснее." />
+		<template id="v3.social.teasing.reply.banter.0019" act="social.teasing.banter.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Фора в одну шутку работает только как реально принятое правило." />
 		<template id="v3.social.teasing.reply.banter.0020" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне сейчас не до игры, оставь этот тон на другой день." />
 		<template id="v3.social.teasing.reply.banter.0021" act="social.teasing.banter.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ещё один выпад, и разговор закончится." />
-		<template id="v3.social.teasing.reply.banter.0022" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вы смотрите так торжественно, будто уже выиграли наш спор." />
+		<template id="v3.social.teasing.reply.banter.0022" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Торжественный вид ещё не означает победу в споре." />
 		<template id="v3.social.teasing.reply.banter.0023" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Признаю, это прозвучало достаточно ловко для случайной встречи." />
 		<template id="v3.social.teasing.reply.banter.0024" act="social.teasing.banter.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты опять принёс своё лучшее оправдание и даже не распаковал его." />
 		<template id="v3.social.teasing.reply.banter.0025" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я скучал по этой способности раздражать меня ровно настолько, чтобы улыбнуться." />
@@ -55,7 +55,7 @@
 		<template id="v3.social.teasing.reply.banter.0052" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты пришёл вовремя — теперь мне нечем тебя поддеть." />
 		<template id="v3.social.teasing.reply.banter.0053" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Даже твоя показная невинность мне уже знакома и по-своему дорога." />
 		<template id="v3.social.teasing.reply.banter.0054" act="social.teasing.banter.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ещё одна такая реплика, и я официально объявлю реванш." />
-		<template id="v3.social.teasing.reply.banter.0055" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сегодня я хочу спокойствия, а не нашего обычного обмена уколами." />
+		<template id="v3.social.teasing.reply.banter.0055" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Когда хочется спокойствия, обычный обмен уколами лучше поставить на паузу." />
 		<template id="v3.social.teasing.reply.banter.0056" act="social.teasing.banter.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Держитесь подальше и прекратите насмешки." />
 		<template id="v3.social.teasing.reply.banter.0057" act="social.teasing.banter.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я вижу, вы заранее довольны своей будущей шуткой." />
 		<template id="v3.social.teasing.reply.banter.0058" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошо сыграно, но улыбка выдала вас раньше финала." />
@@ -75,7 +75,7 @@
 		<template id="v3.social.teasing.reply.banter.0072" act="social.teasing.banter.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Ваша невозмутимость продержалась до первого уточняющего вопроса." />
 		<template id="v3.social.teasing.reply.banter.0073" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты снова опоздал ровно настолько, чтобы назвать это эффектным входом." />
 		<template id="v3.social.teasing.reply.banter.0074" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я готов простить твою самоуверенность за одну хорошую историю." />
-		<template id="v3.social.teasing.reply.banter.0075" act="social.teasing.banter.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Прекрасный выпад; жаль, что я слышал его ещё до твоего рождения." />
+		<template id="v3.social.teasing.reply.banter.0075" act="social.teasing.banter.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Даже старый выпад можно оценить без выдуманной биографии слушателя." />
 		<template id="v3.social.teasing.reply.banter.0076" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не подталкивай меня к привычной игре, сейчас не тот момент." />
 		<template id="v3.social.teasing.reply.banter.0077" act="social.teasing.banter.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Не приближайтесь и больше не делайте меня объектом насмешек." />
 		<template id="v3.social.teasing.reply.banter.0078" act="social.teasing.banter.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваша шутка была бы опаснее, если бы я понял её с первого раза." />
@@ -124,7 +124,7 @@
 		<template id="v3.social.teasing.reply.banter.0121" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Вы точно рассчитывали, что никто не задаст второй вопрос." />
 		<template id="v3.social.teasing.reply.banter.0122" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты умеешь хвастаться даже тем, что не успел сделать." />
 		<template id="v3.social.teasing.reply.banter.0123" act="social.teasing.banter.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я бы возмутился, но твоя довольная улыбка слишком смешная." />
-		<template id="v3.social.teasing.reply.banter.0124" act="social.teasing.banter.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Начинай, соперник; сегодня я настроен на длинную партию." />
+		<template id="v3.social.teasing.reply.banter.0124" act="social.teasing.banter.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Длинная партия начинается только по взаимному согласию, а не из-за сегодняшнего настроя." />
 		<template id="v3.social.teasing.reply.banter.0125" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Оставь подколы до тех пор, пока мы не решим основной конфликт." />
 		<template id="v3.social.teasing.reply.banter.0126" act="social.teasing.banter.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ваши слова звучат враждебно, а не дружелюбно." />
 		<template id="v3.social.teasing.reply.banter.0127" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Для такого заявления вам понадобится либо доказательство, либо отличная шутка." />
@@ -137,16 +137,16 @@
 		<template id="v3.social.teasing.reply.banter.0134" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Вы ещё не заслужили право так точно меня поддевать." />
 		<template id="v3.social.teasing.reply.banter.0135" act="social.teasing.banter.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я оценил паузу, но финальная реплика куда-то потерялась." />
 		<template id="v3.social.teasing.reply.banter.0136" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты опять рассказываешь историю, где случайно оказываешься героем." />
-		<template id="v3.social.teasing.reply.banter.0137" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я слышал её много раз и всё равно люблю твою подачу." />
+		<template id="v3.social.teasing.reply.banter.0137" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Знакомая шутка может оставаться смешной благодаря подаче, без заявления о многих прошлых повторах." />
 		<template id="v3.social.teasing.reply.banter.0138" act="social.teasing.banter.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="За такую самоуверенность полагается немедленная словесная проверка." />
-		<template id="v3.social.teasing.reply.banter.0139" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не превращай нашу сложную встречу в представление." />
+		<template id="v3.social.teasing.reply.banter.0139" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сложную встречу не стоит превращать в представление, если она действительно напряжённая." />
 		<template id="v3.social.teasing.reply.banter.0140" act="social.teasing.banter.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне небезопасно рядом с вами; немедленно отойдите." />
 		<template id="v3.social.teasing.reply.banter.0141" act="social.teasing.banter.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="У вас выразительное лицо человека, который забыл собственный аргумент." />
 		<template id="v3.social.teasing.reply.banter.0142" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Кажется, ваш план закончился на эффектном заголовке." />
 		<template id="v3.social.teasing.reply.banter.0143" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты принёс зонтик в солнечный день и называешь это стратегией." />
 		<template id="v3.social.teasing.reply.banter.0144" act="social.teasing.banter.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я скучал по твоей способности готовиться к совершенно другой погоде." />
 		<template id="v3.social.teasing.reply.banter.0145" act="social.teasing.banter.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Попробуй задеть точнее, пока я не засчитал техническое поражение." />
-		<template id="v3.social.teasing.reply.banter.0146" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я прошу не использовать наши личные разговоры для колкостей." />
+		<template id="v3.social.teasing.reply.banter.0146" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Личные разговоры нельзя использовать для колкостей, если они действительно были доверены." />
 		<template id="v3.social.teasing.reply.banter.0147" act="social.teasing.banter.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ваше внимание ко мне нежелательно в любой форме." />
 		<template id="v3.social.teasing.reply.banter.0148" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Неплохо: вы успели пошутить раньше, чем успели представиться." />
 		<template id="v3.social.teasing.reply.banter.0149" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ваша реплика звучала увереннее, чем её смысл." />
@@ -158,23 +158,23 @@
 		<template id="v3.social.teasing.reply.banter.0155" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваш вид говорит, что впереди либо шутка, либо очень плохая идея." />
 		<template id="v3.social.teasing.reply.banter.0156" act="social.teasing.banter.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Вы почти сохранили загадочность, пока не начали объяснять." />
 		<template id="v3.social.teasing.reply.banter.0157" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты сегодня так бодр, будто спал целых четыре часа." />
-		<template id="v3.social.teasing.reply.banter.0158" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я принесу тебе медаль за героическую борьбу с будильником." />
+		<template id="v3.social.teasing.reply.banter.0158" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="За борьбу с будильником подойдёт только воображаемая медаль." />
 		<template id="v3.social.teasing.reply.banter.0159" act="social.teasing.banter.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Считай эту колкость официальным началом нового раунда." />
 		<template id="v3.social.teasing.reply.banter.0160" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не испытывай границу, которую я обозначил вчера." />
 		<template id="v3.social.teasing.reply.banter.0161" act="social.teasing.banter.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Прекратите контактировать со мной через насмешки и угрозы." />
 		<template id="v3.social.teasing.reply.banter.0162" act="social.teasing.banter.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Необычный способ начать разговор, но хотя бы запоминающийся." />
 		<template id="v3.social.teasing.reply.banter.0163" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Вы блестяще ответили на вопрос, которого никто не задавал." />
 		<template id="v3.social.teasing.reply.banter.0164" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты опять нашёл причину гордиться случайностью." />
-		<template id="v3.social.teasing.reply.banter.0165" act="social.teasing.banter.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я сохраню этот момент для твоей будущей биографии." />
+		<template id="v3.social.teasing.reply.banter.0165" act="social.teasing.banter.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Смешной момент достоин шутки, а не обещания сохранить его для чужой биографии." />
 		<template id="v3.social.teasing.reply.banter.0166" act="social.teasing.banter.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Улыбайся, пока можешь: мой ответ уже на подходе." />
-		<template id="v3.social.teasing.reply.banter.0167" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сегодня я не готов различать шутку и нападение." />
+		<template id="v3.social.teasing.reply.banter.0167" act="social.teasing.banter.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если трудно отличить шутку от нападения, подколы лучше остановить." />
 		<template id="v3.social.teasing.reply.banter.0168" act="social.teasing.banter.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я обращусь за защитой, если вы продолжите." />
 		<template id="v3.social.teasing.reply.banter.0169" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваша серьёзность делает эту маленькую ошибку особенно забавной." />
 		<template id="v3.social.teasing.reply.banter.0170" act="social.teasing.banter.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Вы явно рассчитывали на более впечатлительную аудиторию." />
 		<template id="v3.social.teasing.reply.banter.0171" act="social.teasing.banter.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Ты всегда выбираешь драматичную паузу вместо простого ответа." />
 		<template id="v3.social.teasing.reply.banter.0172" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я терплю твои спектакли только потому, что знаю хороший финал." />
 		<template id="v3.social.teasing.reply.banter.0173" act="social.teasing.banter.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Давай проверим, кто дольше продержится без хвастовства." />
-		<template id="v3.social.teasing.reply.banter.0174" act="social.teasing.banter.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне не подходит такой способ общения после нашей ссоры." />
+		<template id="v3.social.teasing.reply.banter.0174" act="social.teasing.banter.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="После ссоры колкости особенно неуместны, если ссора действительно была." />
 		<template id="v3.social.teasing.reply.banter.0175" act="social.teasing.banter.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Любой следующий комментарий будет считаться домогательством." />
 		<template id="v3.social.teasing.reply.banter.0176" act="social.teasing.banter.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не каждый риск оправдан, но этот подкол был почти удачным." />
 		<template id="v3.social.teasing.reply.banter.0177" act="social.teasing.banter.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="У вас получилось выглядеть загадочно и растерянно одновременно." />
@@ -202,17 +202,17 @@
 		<template id="v3.social.teasing.reply.banter.0199" act="social.teasing.banter.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты снова пытаешься очаровать всех плохо скрытой самодовольностью." />
 		<template id="v3.social.teasing.reply.banter.0200" act="social.teasing.banter.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я давно знаю этот приём и всё равно не хочу, чтобы ты его менял." />
 		<template id="v3.social.teasing.reply.comeback.0001" act="social.teasing.comeback.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Для первого выпада неплохо; хотите услышать ответ без скидки на знакомство?" />
-		<template id="v3.social.teasing.reply.comeback.0002" act="social.teasing.comeback.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вы оставили слишком удобную паузу, и я обязан ею воспользоваться." />
-		<template id="v3.social.teasing.reply.comeback.0003" act="social.teasing.comeback.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты сам открыл эту тему, поэтому достаю историю про твой великий провал." />
-		<template id="v3.social.teasing.reply.comeback.0004" act="social.teasing.comeback.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я мог бы промолчать, но тогда твоя самоуверенность останется без присмотра." />
+		<template id="v3.social.teasing.reply.comeback.0002" act="social.teasing.comeback.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Удобная пауза не создаёт обязанности использовать её для укола." />
+		<template id="v3.social.teasing.reply.comeback.0003" act="social.teasing.comeback.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Чужая тема не даёт права выдумывать историю о великом провале." />
+		<template id="v3.social.teasing.reply.comeback.0004" act="social.teasing.comeback.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Самоуверенность не нуждается в обещанном присмотре." />
 		<template id="v3.social.teasing.reply.comeback.0005" act="social.teasing.comeback.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ответ будет коротким: сначала догоняй, потом хвастайся." />
-		<template id="v3.social.teasing.reply.comeback.0006" act="social.teasing.comeback.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я отвечу спокойно, но продолжать перепалку не хочу." />
+		<template id="v3.social.teasing.reply.comeback.0006" act="social.teasing.comeback.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Спокойный ответ не обязывает продолжать перепалку." />
 		<template id="v3.social.teasing.reply.comeback.0007" act="social.teasing.comeback.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="На ваши оскорбления я реагировать не стану." />
-		<template id="v3.social.teasing.reply.comeback.0008" act="social.teasing.comeback.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Смелая реплика; теперь приготовьтесь к симметричному знакомству." />
-		<template id="v3.social.teasing.reply.comeback.0009" act="social.teasing.comeback.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ваш подкол вернулся к отправителю ещё до того, как я закончил улыбаться." />
-		<template id="v3.social.teasing.reply.comeback.0010" act="social.teasing.comeback.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты забыл, кто хранит фотографии с того самого вечера." />
-		<template id="v3.social.teasing.reply.comeback.0011" act="social.teasing.comeback.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я люблю тебя достаточно, чтобы напомнить об этом промахе лично." />
-		<template id="v3.social.teasing.reply.comeback.0012" act="social.teasing.comeback.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хороший удар, соперник, но защита у тебя сегодня открыта." />
+		<template id="v3.social.teasing.reply.comeback.0008" act="social.teasing.comeback.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="После смелой реплики можно ответить симметрично, не обещая будущую атаку." />
+		<template id="v3.social.teasing.reply.comeback.0009" act="social.teasing.comeback.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Иногда подкол возвращается к автору ещё до ответа." />
+		<template id="v3.social.teasing.reply.comeback.0010" act="social.teasing.comeback.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Фотографии с «того самого вечера» нельзя выдумывать или использовать как угрозу." />
+		<template id="v3.social.teasing.reply.comeback.0011" act="social.teasing.comeback.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Любовь нельзя объявлять ради права напомнить о выдуманном промахе." />
+		<template id="v3.social.teasing.reply.comeback.0012" act="social.teasing.comeback.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хороший выпад не доказывает, что защита соперника сегодня открыта." />
 		<template id="v3.social.teasing.reply.comeback.0013" act="social.teasing.comeback.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не вынуждай меня отвечать жёстче, чем я хочу." />
 		<template id="v3.social.teasing.reply.comeback.0014" act="social.teasing.comeback.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я прекращаю разговор и не позволю вам продолжать травлю." />
 		<template id="v3.social.teasing.reply.comeback.0015" act="social.teasing.comeback.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Вы уверены, что хотите подарить мне такой удобный повод?" />
@@ -262,12 +262,12 @@
 		<template id="v3.social.teasing.reply.comeback.0059" act="social.teasing.comeback.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты снова учишь меня порядку из комнаты, где пропал пол." />
 		<template id="v3.social.teasing.reply.comeback.0060" act="social.teasing.comeback.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я отвечу с любовью: сначала найди кружку, которую держишь в руке." />
 		<template id="v3.social.teasing.reply.comeback.0061" act="social.teasing.comeback.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Одно очко за дерзость, минус два за предсказуемость." />
-		<template id="v3.social.teasing.reply.comeback.0062" act="social.teasing.comeback.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я не готов шутить о нашей текущей проблеме." />
+		<template id="v3.social.teasing.reply.comeback.0062" act="social.teasing.comeback.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Текущая проблема не обязана становиться материалом для шутки." />
 		<template id="v3.social.teasing.reply.comeback.0063" act="social.teasing.comeback.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не используйте мои ответы как повод для дальнейшего преследования." />
 		<template id="v3.social.teasing.reply.comeback.0064" act="social.teasing.comeback.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Для незнакомца вы оставляете удивительно много материала для ответа." />
 		<template id="v3.social.teasing.reply.comeback.0065" act="social.teasing.comeback.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вы попали почти точно, если считать соседнюю тему." />
-		<template id="v3.social.teasing.reply.comeback.0066" act="social.teasing.comeback.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты вспомнил мой промах, а я помню всю твою неделю." />
-		<template id="v3.social.teasing.reply.comeback.0067" act="social.teasing.comeback.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мне хватит одной фразы, но я сохраню её до особенно довольной улыбки." />
+		<template id="v3.social.teasing.reply.comeback.0066" act="social.teasing.comeback.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Один промах не даёт права выдумывать память о чужой неделе." />
+		<template id="v3.social.teasing.reply.comeback.0067" act="social.teasing.comeback.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Хорошую фразу можно оставить до подходящего момента, не обещая будущую сцену." />
 		<template id="v3.social.teasing.reply.comeback.0068" act="social.teasing.comeback.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Счёт сравнялся раньше, чем ты успел объявить себя победителем." />
 		<template id="v3.social.teasing.reply.comeback.0069" act="social.teasing.comeback.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне нужна пауза, а не ещё один словесный раунд." />
 		<template id="v3.social.teasing.reply.comeback.0070" act="social.teasing.comeback.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не буду отвечать человеку, который намеренно причиняет боль." />
@@ -295,7 +295,7 @@
 		<template id="v3.social.teasing.reply.comeback.0092" act="social.teasing.comeback.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Могу ответить, но сначала уточню: вы точно готовы смеяться над собой?" />
 		<template id="v3.social.teasing.reply.comeback.0093" act="social.teasing.comeback.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ваша шутка пришла первой, смысл обещал подойти позже." />
 		<template id="v3.social.teasing.reply.comeback.0094" act="social.teasing.comeback.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ты хвалишь свою скорость, пока остальные ждут тебя у финиша." />
-		<template id="v3.social.teasing.reply.comeback.0095" act="social.teasing.comeback.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я сохраню тёплую версию ответа, потому что ты мне дорог." />
+		<template id="v3.social.teasing.reply.comeback.0095" act="social.teasing.comeback.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Тёплая версия ответа полезнее, когда человек действительно дорог." />
 		<template id="v3.social.teasing.reply.comeback.0096" act="social.teasing.comeback.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Подставился красиво, соперник; такое нельзя оставлять без очка." />
 		<template id="v3.social.teasing.reply.comeback.0097" act="social.teasing.comeback.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Не используй нашу близость как разрешение задевать меня." />
 		<template id="v3.social.teasing.reply.comeback.0098" act="social.teasing.comeback.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ваши слова являются оскорблением, а не приглашением к диалогу." />
@@ -330,7 +330,7 @@
 		<template id="v3.social.teasing.reply.comeback.0127" act="social.teasing.comeback.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Вы первым нажали на кнопку, подписанную «ответить без жалости»." />
 		<template id="v3.social.teasing.reply.comeback.0128" act="social.teasing.comeback.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ваша шутка закончилась раньше, чем я успел приготовиться защищаться." />
 		<template id="v3.social.teasing.reply.comeback.0129" act="social.teasing.comeback.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты опять споришь с картой, стоя ровно там, где она показывает." />
-		<template id="v3.social.teasing.reply.comeback.0130" act="social.teasing.comeback.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я берегу твои тайны, но смешные привычки остаются общим достоянием нашей кухни." />
+		<template id="v3.social.teasing.reply.comeback.0130" act="social.teasing.comeback.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Чужие тайны нужно беречь; бытовые привычки не становятся общим достоянием автоматически." />
 		<template id="v3.social.teasing.reply.comeback.0131" act="social.teasing.comeback.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Соперник, ты открыл линию, которую я просчитал ещё утром." />
 		<template id="v3.social.teasing.reply.comeback.0132" act="social.teasing.comeback.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне некомфортно продолжать после этой реплики." />
 		<template id="v3.social.teasing.reply.comeback.0133" act="social.teasing.comeback.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не принимаю ваши издевательства и ухожу." />
@@ -364,7 +364,7 @@
 		<template id="v3.social.teasing.reply.comeback.0161" act="social.teasing.comeback.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не обращайтесь ко мне, ваше внимание нежелательно." />
 		<template id="v3.social.teasing.reply.comeback.0162" act="social.teasing.comeback.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Вы оставили открытым именно тот вопрос, которым хотели меня задеть." />
 		<template id="v3.social.teasing.reply.comeback.0163" act="social.teasing.comeback.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ваша уверенность держится достойно, в отличие от самой реплики." />
-		<template id="v3.social.teasing.reply.comeback.0164" act="social.teasing.comeback.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты сравниваешь наши ошибки, удобно забывая половину своих." />
+		<template id="v3.social.teasing.reply.comeback.0164" act="social.teasing.comeback.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сравнивать ошибки стоит по фактам, не придумывая общую историю." />
 		<template id="v3.social.teasing.reply.comeback.0165" act="social.teasing.comeback.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я мог бы ответить списком, но одной твоей улыбки уже достаточно." />
 		<template id="v3.social.teasing.reply.comeback.0166" act="social.teasing.comeback.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Принимай поражение достойно: ты сам придумал этот раунд." />
 		<template id="v3.social.teasing.reply.comeback.0167" act="social.teasing.comeback.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я ещё слишком зол, чтобы шутить безопасно." />
@@ -393,7 +393,7 @@
 		<template id="v3.social.teasing.reply.comeback.0190" act="social.teasing.comeback.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Если это проверка остроумия, вы выбрали любопытный способ представиться." />
 		<template id="v3.social.teasing.reply.comeback.0191" act="social.teasing.comeback.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Вы почти избежали ответа, но добавили слишком самодовольную улыбку." />
 		<template id="v3.social.teasing.reply.comeback.0192" act="social.teasing.comeback.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Ты называешь меня драматичным, делая паузу перед каждым словом." />
-		<template id="v3.social.teasing.reply.comeback.0193" act="social.teasing.comeback.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Я сохраню твой секрет в обмен на право смеяться над этой мелочью." />
+		<template id="v3.social.teasing.reply.comeback.0193" act="social.teasing.comeback.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Секрет нельзя превращать в плату за право смеяться." />
 		<template id="v3.social.teasing.reply.comeback.0194" act="social.teasing.comeback.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Раунд ещё идёт, поэтому не спеши позировать с победой." />
 		<template id="v3.social.teasing.reply.comeback.0195" act="social.teasing.comeback.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я не готов отвечать, когда чувствую угрозу." />
 		<template id="v3.social.teasing.reply.comeback.0196" act="social.teasing.comeback.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Любое дальнейшее обращение ко мне будет нежелательным контактом." />
@@ -403,14 +403,14 @@
 		<template id="v3.social.teasing.reply.comeback.0200" act="social.teasing.comeback.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Я отвечу позже, когда твоя довольная мина станет ещё заметнее." />
 		<template id="v3.social.teasing.reply.limit.0001" act="social.teasing.limit.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мы едва знакомы, поэтому прошу не шутить о моей внешности." />
 		<template id="v3.social.teasing.reply.limit.0002" act="social.teasing.limit.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Эта тема для меня личная; давайте выберем другую." />
-		<template id="v3.social.teasing.reply.limit.0003" act="social.teasing.limit.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты можешь поддразнивать меня, но не упоминай семью." />
-		<template id="v3.social.teasing.reply.limit.0004" act="social.teasing.limit.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне обычно нравится наш юмор, однако сейчас ты задел больное." />
+		<template id="v3.social.teasing.reply.limit.0003" act="social.teasing.limit.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Поддразнивание допустимо только с согласия и без упоминания семьи." />
+		<template id="v3.social.teasing.reply.limit.0004" act="social.teasing.limit.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Любимый общий юмор не оправдывает удар по больному месту." />
 		<template id="v3.social.teasing.reply.limit.0005" act="social.teasing.limit.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Соперничество не оправдывает шутки о слабостях." />
-		<template id="v3.social.teasing.reply.limit.0006" act="social.teasing.limit.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Я уже просил остановиться; не заставляй повторять." />
+		<template id="v3.social.teasing.reply.limit.0006" act="social.teasing.limit.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если просьба остановиться уже звучала, её не должны заставлять повторять." />
 		<template id="v3.social.teasing.reply.limit.0007" act="social.teasing.limit.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваши оскорбления прекращают любое общение." />
 		<template id="v3.social.teasing.reply.limit.0008" act="social.teasing.limit.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я не давал согласия на такие личные комментарии." />
 		<template id="v3.social.teasing.reply.limit.0009" act="social.teasing.limit.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Шутка прозвучала грубо, и мне нужно, чтобы вы это услышали." />
-		<template id="v3.social.teasing.reply.limit.0010" act="social.teasing.limit.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты хорошо знаешь мою границу и сейчас подошёл к ней слишком близко." />
+		<template id="v3.social.teasing.reply.limit.0010" act="social.teasing.limit.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Даже знакомая граница должна быть названа прямо, без заявления об общей истории." />
 		<template id="v3.social.teasing.reply.limit.0011" act="social.teasing.limit.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Я доверяю тебе, поэтому прямо говорю: мне больно." />
 		<template id="v3.social.teasing.reply.limit.0012" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Подкалывай мои результаты, но не трогай здоровье." />
 		<template id="v3.social.teasing.reply.limit.0013" act="social.teasing.limit.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мы можем продолжить разговор только без сарказма." />
@@ -419,14 +419,14 @@
 		<template id="v3.social.teasing.reply.limit.0016" act="social.teasing.limit.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне неприятен этот комментарий; пожалуйста, смените тему." />
 		<template id="v3.social.teasing.reply.limit.0017" act="social.teasing.limit.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты можешь смеяться над ситуацией, но не надо смеяться надо мной." />
 		<template id="v3.social.teasing.reply.limit.0018" act="social.teasing.limit.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я знаю, что ты не хотел ранить, однако остановись сейчас." />
-		<template id="v3.social.teasing.reply.limit.0019" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="В нашей дуэли запрещены удары по личной жизни." />
-		<template id="v3.social.teasing.reply.limit.0020" act="social.teasing.limit.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не готов терпеть этот тон после нашей ссоры." />
+		<template id="v3.social.teasing.reply.limit.0019" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="В любой словесной дуэли личная жизнь должна оставаться вне ударов." />
+		<template id="v3.social.teasing.reply.limit.0020" act="social.teasing.limit.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После ссоры резкий тон особенно тяжёл, если конфликт действительно был." />
 		<template id="v3.social.teasing.reply.limit.0021" act="social.teasing.limit.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваше поведение является травлей, и я сообщу о нём." />
 		<template id="v3.social.teasing.reply.limit.0022" act="social.teasing.limit.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не шутите о моём акценте, это не повод для развлечения." />
 		<template id="v3.social.teasing.reply.limit.0023" act="social.teasing.limit.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Мне нужна одна ясная вещь: больше не повторяйте эту фразу." />
 		<template id="v3.social.teasing.reply.limit.0024" act="social.teasing.limit.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Ты обещал не выносить эту историю в компанию." />
 		<template id="v3.social.teasing.reply.limit.0025" act="social.teasing.limit.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я хочу продолжать смеяться с тобой, но только безопасно для обоих." />
-		<template id="v3.social.teasing.reply.limit.0026" act="social.teasing.limit.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Оставим родителей за пределами наших подколов." />
+		<template id="v3.social.teasing.reply.limit.0026" act="social.teasing.limit.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Родителей лучше оставлять за пределами любых подколов." />
 		<template id="v3.social.teasing.reply.limit.0027" act="social.teasing.limit.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Мне кажется, ты прячешь настоящую претензию за юмором." />
 		<template id="v3.social.teasing.reply.limit.0028" act="social.teasing.limit.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Не пытайтесь проверить, насколько далеко можно зайти." />
 		<template id="v3.social.teasing.reply.limit.0029" act="social.teasing.limit.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я не разрешал снимать эту сцену или выкладывать её." />
@@ -440,7 +440,7 @@
 		<template id="v3.social.teasing.reply.limit.0037" act="social.teasing.limit.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Мне не нравится, когда шутят о моём теле." />
 		<template id="v3.social.teasing.reply.limit.0038" act="social.teasing.limit.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Ты уже увидел мою реакцию; дальше продолжать жестоко." />
 		<template id="v3.social.teasing.reply.limit.0039" act="social.teasing.limit.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мне важно, чтобы близкий человек уважал это «нет»." />
-		<template id="v3.social.teasing.reply.limit.0040" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Давай выберем другую мишень, лучше наши нелепые планы." />
+		<template id="v3.social.teasing.reply.limit.0040" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Другую мишень для шутки можно найти без ссылки на общие планы." />
 		<template id="v3.social.teasing.reply.limit.0041" act="social.teasing.limit.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Я не хочу отвечать ударом на удар, поэтому делаю паузу." />
 		<template id="v3.social.teasing.reply.limit.0042" act="social.teasing.limit.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ваша попытка задеть меня не останется без границ." />
 		<template id="v3.social.teasing.reply.limit.0043" act="social.teasing.limit.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не повторяйте чужие личные слова ради смеха." />
@@ -461,7 +461,7 @@
 		<template id="v3.social.teasing.reply.limit.0058" act="social.teasing.limit.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не шутите про чужие деньги и обстоятельства." />
 		<template id="v3.social.teasing.reply.limit.0059" act="social.teasing.limit.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Для меня это не безобидная тема." />
 		<template id="v3.social.teasing.reply.limit.0060" act="social.teasing.limit.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты можешь заметить ошибку без публичного спектакля." />
-		<template id="v3.social.teasing.reply.limit.0061" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я говорю это тебе честно, потому что хочу сохранить нашу близость." />
+		<template id="v3.social.teasing.reply.limit.0061" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Честная граница важнее заявления о выдуманной близости." />
 		<template id="v3.social.teasing.reply.limit.0062" act="social.teasing.limit.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Держим соревнование в рамках выбранной игры." />
 		<template id="v3.social.teasing.reply.limit.0063" act="social.teasing.limit.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Мне нужна дистанция после этой колкости." />
 		<template id="v3.social.teasing.reply.limit.0064" act="social.teasing.limit.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не связывайтесь со мной ни напрямую, ни через других." />
@@ -470,7 +470,7 @@
 		<template id="v3.social.teasing.reply.limit.0067" act="social.teasing.limit.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты слишком долго продолжаешь после первого отказа." />
 		<template id="v3.social.teasing.reply.limit.0068" act="social.teasing.limit.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне хочется доверять тебе, поэтому услышь мою просьбу." />
 		<template id="v3.social.teasing.reply.limit.0069" act="social.teasing.limit.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Шутки про поражение допустимы, про личную боль — нет." />
-		<template id="v3.social.teasing.reply.limit.0070" act="social.teasing.limit.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сегодня я не выдержу обычной резкости, говори мягче." />
+		<template id="v3.social.teasing.reply.limit.0070" act="social.teasing.limit.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Если сегодня резкость переносится тяжело, лучше попросить говорить мягче." />
 		<template id="v3.social.teasing.reply.limit.0071" act="social.teasing.limit.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Отойдите после того, как я обозначил границу шуток." />
 		<template id="v3.social.teasing.reply.limit.0072" act="social.teasing.limit.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Не нужно объяснять, почему мне «следовало» рассмеяться." />
 		<template id="v3.social.teasing.reply.limit.0073" act="social.teasing.limit.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Я не обязан принимать юмор, который мне неприятен." />
@@ -504,7 +504,7 @@
 		<template id="v3.social.teasing.reply.limit.0101" act="social.teasing.limit.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не хочу быть частью этого розыгрыша." />
 		<template id="v3.social.teasing.reply.limit.0102" act="social.teasing.limit.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты продолжаешь после ясного отказа, и это уже не игра." />
 		<template id="v3.social.teasing.reply.limit.0103" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне нужен честный разговор и короткое извинение." />
-		<template id="v3.social.teasing.reply.limit.0104" act="social.teasing.limit.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Наше соперничество не распространяется на друзей и близких." />
+		<template id="v3.social.teasing.reply.limit.0104" act="social.teasing.limit.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Соперничество не распространяется на друзей и близких." />
 		<template id="v3.social.teasing.reply.limit.0105" act="social.teasing.limit.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сейчас отойди и дай мне пространство." />
 		<template id="v3.social.teasing.reply.limit.0106" act="social.teasing.limit.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я прекращаю контакт из-за повторных оскорблений." />
 		<template id="v3.social.teasing.reply.limit.0107" act="social.teasing.limit.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Если шутка требует чужого стыда, она мне не подходит." />
@@ -539,13 +539,13 @@
 		<template id="v3.social.teasing.reply.limit.0136" act="social.teasing.limit.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне важно, чтобы эта запись была удалена." />
 		<template id="v3.social.teasing.reply.limit.0137" act="social.teasing.limit.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты поставил меня в неловкое положение перед всеми." />
 		<template id="v3.social.teasing.reply.limit.0138" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я хочу услышать, что ты понял причину, а не новую шутку." />
-		<template id="v3.social.teasing.reply.limit.0139" act="social.teasing.limit.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сравнивай наши решения, а не происхождение." />
+		<template id="v3.social.teasing.reply.limit.0139" act="social.teasing.limit.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Сравнивай решения, а не происхождение людей." />
 		<template id="v3.social.teasing.reply.limit.0140" act="social.teasing.limit.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Мы вернёмся к общению, когда сможем говорить без уколов." />
 		<template id="v3.social.teasing.reply.limit.0141" act="social.teasing.limit.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ваши действия вынуждают меня искать защиту." />
 		<template id="v3.social.teasing.reply.limit.0142" act="social.teasing.limit.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Пожалуйста, не шутите про травматичный опыт." />
 		<template id="v3.social.teasing.reply.limit.0143" act="social.teasing.limit.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Я не готов делиться этой частью жизни." />
 		<template id="v3.social.teasing.reply.limit.0144" act="social.teasing.limit.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ты можешь не знать деталей, но мою просьбу уже слышал." />
-		<template id="v3.social.teasing.reply.limit.0145" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Мне дороже наши отношения, чем право ответить колкостью." />
+		<template id="v3.social.teasing.reply.limit.0145" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Отношения важнее права ответить колкостью, если эти отношения действительно есть." />
 		<template id="v3.social.teasing.reply.limit.0146" act="social.teasing.limit.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Никаких намёков на личные сообщения во время спора." />
 		<template id="v3.social.teasing.reply.limit.0147" act="social.teasing.limit.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Сейчас любая ирония звучит для меня агрессивно." />
 		<template id="v3.social.teasing.reply.limit.0148" act="social.teasing.limit.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Не пытайтесь приблизиться после моего отказа." />
@@ -580,7 +580,7 @@
 		<template id="v3.social.teasing.reply.limit.0177" act="social.teasing.limit.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давайте не смеяться над человеком, которого здесь нет." />
 		<template id="v3.social.teasing.reply.limit.0178" act="social.teasing.limit.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне важно сохранить эту информацию между нами." />
 		<template id="v3.social.teasing.reply.limit.0179" act="social.teasing.limit.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты слишком близко подошёл к теме, которую я берегу." />
-		<template id="v3.social.teasing.reply.limit.0180" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если ты ценишь наши отношения, остановись без спора." />
+		<template id="v3.social.teasing.reply.limit.0180" act="social.teasing.limit.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Если отношения ценны, остановиться без спора — нормальная просьба." />
 		<template id="v3.social.teasing.reply.limit.0181" act="social.teasing.limit.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Подколы допустимы только с возможностью спокойно отказаться." />
 		<template id="v3.social.teasing.reply.limit.0182" act="social.teasing.limit.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Сейчас я ухожу, потому что разговор стал небезопасным." />
 		<template id="v3.social.teasing.reply.limit.0183" act="social.teasing.limit.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Ваши комментарии являются преследованием." />
@@ -601,18 +601,18 @@
 		<template id="v3.social.teasing.reply.limit.0198" act="social.teasing.limit.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Остановитесь: человек явно просит не продолжать." />
 		<template id="v3.social.teasing.reply.limit.0199" act="social.teasing.limit.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне больно и неловко, поэтому я ухожу." />
 		<template id="v3.social.teasing.reply.limit.0200" act="social.teasing.limit.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ты не получишь нового ответа на уже сказанное «нет»." />
-		<template id="v3.social.teasing.reply.humor.0001" act="social.teasing.humor.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я не сразу понял шутку, но теперь она работает вдвойне." />
-		<template id="v3.social.teasing.reply.humor.0002" act="social.teasing.humor.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы рассказали это с таким серьёзным лицом, что я почти поверил." />
-		<template id="v3.social.teasing.reply.humor.0003" act="social.teasing.humor.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты умеешь находить смешное именно там, где все уже устали." />
-		<template id="v3.social.teasing.reply.humor.0004" act="social.teasing.humor.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится наш странный юмор, понятный без длинных объяснений." />
-		<template id="v3.social.teasing.reply.humor.0005" act="social.teasing.humor.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="За этот каламбур начисляю очко и снимаю два за качество." />
-		<template id="v3.social.teasing.reply.humor.0006" act="social.teasing.humor.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сегодня мне трудно смеяться, но спасибо за мягкую попытку." />
+		<template id="v3.social.teasing.reply.humor.0001" act="social.teasing.humor.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Шутка может заработать не сразу, особенно если у неё второй слой." />
+		<template id="v3.social.teasing.reply.humor.0002" act="social.teasing.humor.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Серьёзная подача иногда делает историю убедительнее, но реакцию собеседника нельзя выдумывать." />
+		<template id="v3.social.teasing.reply.humor.0003" act="social.teasing.humor.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Смешное иногда находится именно там, где все устали, без приписывания способности одному человеку." />
+		<template id="v3.social.teasing.reply.humor.0004" act="social.teasing.humor.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Странный юмор бывает понятен без длинных объяснений, но общим его делает опыт." />
+		<template id="v3.social.teasing.reply.humor.0005" act="social.teasing.humor.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="За плохой каламбур можно условно дать очко и снять два за качество." />
+		<template id="v3.social.teasing.reply.humor.0006" act="social.teasing.humor.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Когда смеяться трудно, мягкая попытка всё равно может быть ценной." />
 		<template id="v3.social.teasing.reply.humor.0007" act="social.teasing.humor.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваш юмор направлен на причинение боли, а не на радость." />
-		<template id="v3.social.teasing.reply.humor.0008" act="social.teasing.humor.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неожиданно забавно; я ожидал обычного вежливого разговора." />
-		<template id="v3.social.teasing.reply.humor.0009" act="social.teasing.humor.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="У этой истории был отличный поворот, хотя начало меня насторожило." />
-		<template id="v3.social.teasing.reply.humor.0010" act="social.teasing.humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты снова рассказал нелепость так, будто читаешь важный доклад." />
-		<template id="v3.social.teasing.reply.humor.0011" act="social.teasing.humor.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я люблю момент, когда ты сам первым ломаешь серьёзное лицо." />
-		<template id="v3.social.teasing.reply.humor.0012" act="social.teasing.humor.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Смешно, но в следующий раз я принесу каламбур ещё хуже." />
+		<template id="v3.social.teasing.reply.humor.0008" act="social.teasing.humor.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Неожиданная шутка иногда оживляет обычный вежливый разговор." />
+		<template id="v3.social.teasing.reply.humor.0009" act="social.teasing.humor.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Хороший поворот истории может снять настороженность к началу." />
+		<template id="v3.social.teasing.reply.humor.0010" act="social.teasing.humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Нелепость, рассказанная как важный доклад, часто работает лучше." />
+		<template id="v3.social.teasing.reply.humor.0011" act="social.teasing.humor.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Смешно, когда рассказчик первым ломает серьёзное лицо, если это видно сейчас." />
+		<template id="v3.social.teasing.reply.humor.0012" act="social.teasing.humor.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="В следующий раз можно придумать каламбур ещё хуже, без обещания принести его." />
 		<template id="v3.social.teasing.reply.humor.0013" act="social.teasing.humor.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давай выберем тему, над которой обоим безопасно смеяться." />
 		<template id="v3.social.teasing.reply.humor.0014" act="social.teasing.humor.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Не называйте издевательство чувством юмора." />
 		<template id="v3.social.teasing.reply.humor.0015" act="social.teasing.humor.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Мне понадобилась секунда, зато теперь я улыбаюсь искренне." />
@@ -638,7 +638,7 @@
 		<template id="v3.social.teasing.reply.humor.0035" act="social.teasing.humor.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваше веселье за мой счёт заканчивается здесь." />
 		<template id="v3.social.teasing.reply.humor.0036" act="social.teasing.humor.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Это было достаточно глупо, чтобы оказаться по-настоящему смешным." />
 		<template id="v3.social.teasing.reply.humor.0037" act="social.teasing.humor.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы совершенно серьёзно произнесли невозможное и победили." />
-		<template id="v3.social.teasing.reply.humor.0038" act="social.teasing.humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты снова нашёл смешную сторону в нашей бытовой катастрофе." />
+		<template id="v3.social.teasing.reply.humor.0038" act="social.teasing.humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Даже бытовая катастрофа иногда имеет смешную сторону." />
 		<template id="v3.social.teasing.reply.humor.0039" act="social.teasing.humor.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Мне нравится, что мы можем смеяться над общими промахами." />
 		<template id="v3.social.teasing.reply.humor.0040" act="social.teasing.humor.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Принимаю вызов на самый плохой каламбур вечера." />
 		<template id="v3.social.teasing.reply.humor.0041" act="social.teasing.humor.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Сейчас шутка звучит как уход от важного разговора." />
@@ -667,7 +667,7 @@
 		<template id="v3.social.teasing.reply.humor.0064" act="social.teasing.humor.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не знаю, что было смешнее: история или ваша попытка не улыбаться." />
 		<template id="v3.social.teasing.reply.humor.0065" act="social.teasing.humor.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы выбрали ровно ту деталь, которая оживила весь рассказ." />
 		<template id="v3.social.teasing.reply.humor.0066" act="social.teasing.humor.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ты снова заставил меня смеяться посреди совершенно серьёзного дела." />
-		<template id="v3.social.teasing.reply.humor.0067" act="social.teasing.humor.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне дорого наше право иногда быть глупыми рядом." />
+		<template id="v3.social.teasing.reply.humor.0067" act="social.teasing.humor.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Право иногда быть глупыми рядом возникает только из реальной близости." />
 		<template id="v3.social.teasing.reply.humor.0068" act="social.teasing.humor.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я отвечу шуткой настолько плохой, что этот раунд станет моим." />
 		<template id="v3.social.teasing.reply.humor.0069" act="social.teasing.humor.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сейчас мне важно быть услышанным без юмора." />
 		<template id="v3.social.teasing.reply.humor.0070" act="social.teasing.humor.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Прекратите распространять унизительные шутки обо мне." />
@@ -702,7 +702,7 @@
 		<template id="v3.social.teasing.reply.humor.0099" act="social.teasing.humor.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ваш ответ был настолько неожиданным, что официальность не выдержала." />
 		<template id="v3.social.teasing.reply.humor.0100" act="social.teasing.humor.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы сделали паузу ровно там, где она была нужна." />
 		<template id="v3.social.teasing.reply.humor.0101" act="social.teasing.humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты можешь рассмешить меня одним взглядом на происходящее." />
-		<template id="v3.social.teasing.reply.humor.0102" act="social.teasing.humor.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Наша общая коллекция нелепых случаев снова пополнилась." />
+		<template id="v3.social.teasing.reply.humor.0102" act="social.teasing.humor.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Коллекция нелепых случаев существует только там, где её реально собирали." />
 		<template id="v3.social.teasing.reply.humor.0103" act="social.teasing.humor.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я попробую превзойти этот рассказ, хотя планка подозрительно низкая." />
 		<template id="v3.social.teasing.reply.humor.0104" act="social.teasing.humor.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не надо заставлять меня улыбаться, когда я злюсь." />
 		<template id="v3.social.teasing.reply.humor.0105" act="social.teasing.humor.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваше поведение враждебно и не станет допустимым от смеха." />
@@ -745,7 +745,7 @@
 		<template id="v3.social.teasing.reply.humor.0142" act="social.teasing.humor.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы вовремя остановились и дали всем самим понять смешное." />
 		<template id="v3.social.teasing.reply.humor.0143" act="social.teasing.humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты изобразил моё удивление точнее, чем я сам." />
 		<template id="v3.social.teasing.reply.humor.0144" act="social.teasing.humor.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Спасибо, что мы можем смеяться и не соревноваться в жестокости." />
-		<template id="v3.social.teasing.reply.humor.0145" act="social.teasing.humor.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Я принесу в ответ историю, где ты хотя бы раз выглядишь серьёзным." />
+		<template id="v3.social.teasing.reply.humor.0145" act="social.teasing.humor.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="В ответ лучше рассказать нейтральную историю, не обещая добыть компромат." />
 		<template id="v3.social.teasing.reply.humor.0146" act="social.teasing.humor.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Давай оставим иронию и назовём проблему прямо." />
 		<template id="v3.social.teasing.reply.humor.0147" act="social.teasing.humor.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваши насмешки — причина, по которой я не хочу вас видеть." />
 		<template id="v3.social.teasing.reply.humor.0148" act="social.teasing.humor.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Я оценил спокойную шутку без попытки привлечь всю комнату." />
@@ -758,7 +758,7 @@
 		<template id="v3.social.teasing.reply.humor.0155" act="social.teasing.humor.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ваше первое впечатление оказалось удивительно весёлым." />
 		<template id="v3.social.teasing.reply.humor.0156" act="social.teasing.humor.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вы рассказали коротко и попали точно в настроение." />
 		<template id="v3.social.teasing.reply.humor.0157" act="social.teasing.humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты опять сделал вид, что случайный звук был запланированной шуткой." />
-		<template id="v3.social.teasing.reply.humor.0158" act="social.teasing.humor.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Я люблю наше умение смеяться после честного разговора." />
+		<template id="v3.social.teasing.reply.humor.0158" act="social.teasing.humor.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Смех после честного разговора может быть дорог, если такой опыт действительно общий." />
 		<template id="v3.social.teasing.reply.humor.0159" act="social.teasing.humor.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Соревнование продолжается: следующий участник обязан не рассмеяться сам." />
 		<template id="v3.social.teasing.reply.humor.0160" act="social.teasing.humor.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Не превращай примирение в повод для сарказма." />
 		<template id="v3.social.teasing.reply.humor.0161" act="social.teasing.humor.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Ваше веселье основано на чужом страхе, и это недопустимо." />
@@ -786,7 +786,7 @@
 		<template id="v3.social.teasing.reply.humor.0183" act="social.teasing.humor.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Ваш юмор помог снять неловкость и никого не задел." />
 		<template id="v3.social.teasing.reply.humor.0184" act="social.teasing.humor.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Вы выбрали замечательно неожиданный образ." />
 		<template id="v3.social.teasing.reply.humor.0185" act="social.teasing.humor.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Ты превращаешь бытовые мелочи в целые комедии." />
-		<template id="v3.social.teasing.reply.humor.0186" act="social.teasing.humor.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Я скучал по нашему смеху без причины." />
+		<template id="v3.social.teasing.reply.humor.0186" act="social.teasing.humor.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Скучать по лёгкому смеху можно без заявления об общей прошлой привычке." />
 		<template id="v3.social.teasing.reply.humor.0187" act="social.teasing.humor.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="За самый плохой финал вечера присуждаю тебе почётное первое место." />
 		<template id="v3.social.teasing.reply.humor.0188" act="social.teasing.humor.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Мне сейчас не смешно, и это не приглашение стараться сильнее." />
 		<template id="v3.social.teasing.reply.humor.0189" act="social.teasing.humor.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ваши слова унижают меня; немедленно прекратите." />
