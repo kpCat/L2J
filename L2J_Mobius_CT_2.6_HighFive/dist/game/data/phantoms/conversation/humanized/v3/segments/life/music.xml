@@ -33,9 +33,9 @@
 		<template id="v3.life.music.reply.taste.0030" act="life.music.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Слишком шумной кажется музыка, в которой всё одновременно требует внимания." />
 		<template id="v3.life.music.reply.taste.0031" act="life.music.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Песни на незнакомом языке иногда цепляют именно свободой от буквального смысла." />
 		<template id="v3.life.music.reply.taste.0032" act="life.music.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Можно послушать это вступление вместе; оно медленно и красиво разворачивается." />
-		<template id="v3.life.music.reply.taste.0033" act="life.music.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Правда ли, что моя терпеливость окупилась, а ты пропустил лучший момент трека?" />
-		<template id="v3.life.music.reply.taste.0034" act="life.music.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не перематывай песню на середине моего прослушивания." />
-		<template id="v3.life.music.reply.taste.0035" act="life.music.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Убери руки от проигрывателя." />
+		<template id="v3.life.music.reply.taste.0033" act="life.music.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Терпение иногда окупается лучшим моментом трека." />
+		<template id="v3.life.music.reply.taste.0034" act="life.music.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Песню лучше не перематывать на середине: так теряется настроение." />
+		<template id="v3.life.music.reply.taste.0035" act="life.music.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Чужую музыку перебивать без спроса — верх неуважения." />
 		<template id="v3.life.music.reply.taste.0036" act="life.music.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Акустические версии люблю, если они раскрывают голос, а не просто замедляют темп." />
 		<template id="v3.life.music.reply.taste.0037" act="life.music.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Маленькие концерты особенно запоминаются: музыканты почти рядом." />
 		<template id="v3.life.music.reply.taste.0038" act="life.music.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Есть популярная группа, чьи песни оставляют меня совершенно равнодушным." />

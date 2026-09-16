@@ -20,14 +20,14 @@
 		<template id="v3.social.friendly.reply.warmth.0014" act="social.friendly.warmth.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Если нужна дистанция, достаточно попросить о ней прямо." />
 		<template id="v3.social.friendly.reply.warmth.0015" act="social.friendly.warmth.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Ваше сообщение было неожиданным и приятным." />
 		<template id="v3.social.friendly.reply.warmth.0016" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Мне нравится, что рядом с тобой не нужно искать тему каждую минуту." />
-		<template id="v3.social.friendly.reply.warmth.0017" act="social.friendly.warmth.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Давно хотел написать, но рад, что мы всё-таки встретились лично." />
+		<template id="v3.social.friendly.reply.warmth.0017" act="social.friendly.warmth.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Порой переписка затягивается, зато личный разговор звучит теплее." />
 		<template id="v3.social.friendly.reply.warmth.0018" act="social.friendly.warmth.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="С тобой даже обычный вечер ощущается своим." />
 		<template id="v3.social.friendly.reply.warmth.0019" act="social.friendly.warmth.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Быстрый ответ — маленькая победа дружбы." />
 		<template id="v3.social.friendly.reply.warmth.0020" act="social.friendly.warmth.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не принимай мою улыбку за разрешение нарушать границы." />
 		<template id="v3.social.friendly.reply.warmth.0021" act="social.friendly.warmth.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Оставьте комплименты тем, кто им верит." />
 		<template id="v3.social.friendly.reply.warmth.0022" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Тёплый приём помогает расслабиться." />
 		<template id="v3.social.friendly.reply.warmth.0023" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Рядом с тобой и правда спокойнее дышится." />
-		<template id="v3.social.friendly.reply.warmth.0024" act="social.friendly.warmth.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Неужели ты опять сумел поднять мне настроение одной фразой?" />
+		<template id="v3.social.friendly.reply.warmth.0024" act="social.friendly.warmth.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Одна удачная фраза иногда заметно поднимает настроение." />
 		<template id="v3.social.friendly.reply.warmth.0025" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Знакомство с хорошим человеком само по себе радует." />
 		<template id="v3.social.friendly.reply.warmth.0026" act="social.friendly.warmth.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Мой комплимент точнее твоего, хотя оба сегодня к месту." />
 		<template id="v3.social.friendly.reply.warmth.0027" act="social.friendly.warmth.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Не превращай добрые слова в требование взаимности." />
@@ -42,12 +42,12 @@
 		<template id="v3.social.friendly.reply.warmth.0036" act="social.friendly.warmth.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Приятно, когда важную для другого деталь помнят." />
 		<template id="v3.social.friendly.reply.warmth.0037" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Хорошо, когда разговор позволяет обоим оставаться собой." />
 		<template id="v3.social.friendly.reply.warmth.0038" act="social.friendly.warmth.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Ты мне дорог, и я не хочу прятать это за шутками." />
-		<template id="v3.social.friendly.reply.warmth.0039" act="social.friendly.warmth.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Твоя улыбка вернула вечеру уют, которого не хватало." />
-		<template id="v3.social.friendly.reply.warmth.0040" act="social.friendly.warmth.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Я первым заметил перемену в настроении, но ты лучше её поддержал." />
+		<template id="v3.social.friendly.reply.warmth.0039" act="social.friendly.warmth.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Тёплая улыбка легко делает разговор уютнее." />
+		<template id="v3.social.friendly.reply.warmth.0040" act="social.friendly.warmth.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Перемену в настроении легко заметить, а поддержать её бывает важнее." />
 		<template id="v3.social.friendly.reply.warmth.0041" act="social.friendly.warmth.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Не используй близость как право решать за меня." />
 		<template id="v3.social.friendly.reply.warmth.0042" act="social.friendly.warmth.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="После болезненных слов прежнее тепло иногда исчезает." />
 		<template id="v3.social.friendly.reply.warmth.0043" act="social.friendly.warmth.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Знакомого голоса порой не хватает сильнее долгих разговоров." />
-		<template id="v3.social.friendly.reply.warmth.0044" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Спасибо, что помните такие мелочи без напоминаний." />
+		<template id="v3.social.friendly.reply.warmth.0044" act="social.friendly.warmth.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Внимание к мелочам приятно даже без напоминаний." />
 		<template id="v3.social.friendly.reply.warmth.0045" act="social.friendly.warmth.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Рядом с тобой уют создаётся не вещами, а вниманием." />
 		<template id="v3.social.friendly.reply.warmth.0046" act="social.friendly.warmth.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Разделить спокойный вечер с близким человеком особенно приятно." />
 		<template id="v3.social.friendly.reply.warmth.0047" act="social.friendly.warmth.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Моя атмосфера веселее, твоя умеет делать пространство тёплым." />

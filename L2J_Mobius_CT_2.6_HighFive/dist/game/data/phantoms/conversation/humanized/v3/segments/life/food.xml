@@ -18,7 +18,7 @@
 		<template id="v3.life.food.reply.taste.0015" act="life.food.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="К чаю беру лимон, а сахар обычно оставляю на столе." />
 		<template id="v3.life.food.reply.taste.0016" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Итальянскую кухню люблю за простые продукты и ясный вкус." />
 		<template id="v3.life.food.reply.taste.0017" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Несколько дней подряд одну еду выдержу, если она действительно удачная." />
-		<template id="v3.life.food.reply.taste.0018" act="life.food.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Для нашего перекуса хватит сыра, яблок и свежего хлеба." />
+		<template id="v3.life.food.reply.taste.0018" act="life.food.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Для лёгкого перекуса хорошо подходят сыр, яблоки и свежий хлеб." />
 		<template id="v3.life.food.reply.taste.0019" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Необычная подача ещё не делает блюдо вкуснее моего выбора." />
 		<template id="v3.life.food.reply.taste.0020" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Сладкий соус к мясу терпим, но восторгаться им не буду." />
 		<template id="v3.life.food.reply.taste.0021" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Ешь своё и перестань комментировать мой ужин." />
@@ -36,10 +36,10 @@
 		<template id="v3.life.food.reply.taste.0033" act="life.food.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Гречку люблю рассыпчатой, а овсянку — только с ягодами." />
 		<template id="v3.life.food.reply.taste.0034" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Ананас на пицце переживу, но заказывать его для всех не позволю." />
 		<template id="v3.life.food.reply.taste.0035" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Растительное молоко бывает удачным, если не пытается изображать обычное." />
-		<template id="v3.life.food.reply.taste.0036" act="life.food.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Неужели ты снова превратил ужин в конкурс странных сочетаний?" />
+		<template id="v3.life.food.reply.taste.0036" act="life.food.taste.reply" band="UNKNOWN" register="NEUTRAL" profanity="NONE" text="Странные сочетания легко превращают ужин в гастрономический эксперимент." />
 		<template id="v3.life.food.reply.taste.0037" act="life.food.taste.reply" band="NEUTRAL" register="CASUAL" profanity="NONE" text="Горчицу удобно держать про запас: она спасает слишком спокойную еду." />
 		<template id="v3.life.food.reply.taste.0038" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Хрустящие овощи люблю, особенно когда их не утопили в заправке." />
-		<template id="v3.life.food.reply.taste.0039" act="life.food.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сыр с мёдом звучал подозрительно, пока я не попробовал." />
+		<template id="v3.life.food.reply.taste.0039" act="life.food.taste.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Сыр с мёдом звучит подозрительно, но сочетание может приятно удивить." />
 		<template id="v3.life.food.reply.taste.0040" act="life.food.taste.reply" band="RIVAL" register="CASUAL" profanity="NONE" text="Сейчас больше всего хочется спелой груши." />
 		<template id="v3.life.food.reply.taste.0041" act="life.food.taste.reply" band="TENSE" register="CASUAL" profanity="NONE" text="Рыбу выбираю чаще мяса, если уверен в её свежести." />
 		<template id="v3.life.food.reply.taste.0042" act="life.food.taste.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Еда без соли для меня слишком тихая, но пересол тоже всё портит." />
@@ -51,7 +51,7 @@
 		<template id="v3.life.food.reply.taste.0048" act="life.food.taste.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Горячее блюдо подожду: обожжённый язык никому не доказательство смелости." />
 		<template id="v3.life.food.reply.taste.0049" act="life.food.taste.reply" band="HOSTILE" register="CASUAL" profanity="NONE" text="Свежий хлеб пахнет так, что любая выпечка на минуту проигрывает." />
 		<template id="v3.life.food.reply.taste.0050" act="life.food.taste.reply" band="UNKNOWN" register="CASUAL" profanity="NONE" text="Имбирь хорош в чае и маринаде, но дозировку легко испортить." />
-		<template id="v3.life.food.reply.taste.0051" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Серьёзно, в блин положу творог с ягодами — ты знаешь, это мой надёжный выбор?" />
+		<template id="v3.life.food.reply.taste.0051" act="life.food.taste.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Творог с ягодами в блинах — мой надёжный выбор." />
 		<template id="v3.life.food.reply.taste.0052" act="life.food.taste.reply" band="FAMILIAR" register="CASUAL" profanity="NONE" text="Твой острый соус не сделает обычную картошку выдающимся блюдом." />
 		<template id="v3.life.food.reply.taste.0053" act="life.food.taste.reply" band="TRUSTED" register="CASUAL" profanity="NONE" text="Из уличной еды чаще беру то, что готовят прямо при мне." />
 		<template id="v3.life.food.reply.taste.0054" act="life.food.taste.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Орехи в салате добавляют текстуру, только их не должно быть слишком много." />
