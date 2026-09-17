@@ -20,6 +20,15 @@ function Get-IniValue
 	return $match.Groups[1].Value.Trim()
 }
 
+function Get-DatabaseName
+{
+	param([string] $Path)
+	$url = Get-IniValue $Path "URL"
+	$match = [regex]::Match($url, "^jdbc:(?:mysql|mariadb)://[^/]+/([^?]+)(?:\?.*)?$", [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+	if (-not $match.Success) { return "<invalid>" }
+	return $match.Groups[1].Value
+}
+
 function Get-ProcessState
 {
 	param([string] $RecordPath)
@@ -52,7 +61,7 @@ $personalConfig = Join-Path $runtimeRoot "game\config\Custom\PersonalCharacterQo
 $loginConfig = Join-Path $runtimeRoot "login\config\Server.ini"
 $databaseMarker = Join-Path $runtimeRoot "DB_CONFIG_REQUIRED.txt"
 $databaseStatus = [string] $manifest.databaseConfig
-$databaseReady = ($databaseStatus -eq "USER_CONFIRMED_EXISTING") -and (-not (Test-Path -LiteralPath $databaseMarker))
+$databaseReady = (@("USER_CONFIRMED_EXISTING", "FRESH_LOCAL_PROVISIONED") -contains $databaseStatus) -and (-not (Test-Path -LiteralPath $databaseMarker))
 
 $expected = [ordered]@{
 	EnablePhantomSystem = "True"
@@ -75,7 +84,17 @@ foreach ($setting in $expected.GetEnumerator())
 }
 if ((Get-IniValue $personalConfig "AllowedAccounts") -cne [string] $manifest.account) { $errors += "AllowedAccounts не совпадает с manifest." }
 if ((Get-IniValue $loginConfig "AutoCreateAccounts") -cne "True") { $errors += "AutoCreateAccounts не равен True." }
-if (-not $databaseReady) { $errors += "Local play не готов: DatabaseConfig=$databaseStatus; требуется USER_CONFIRMED_EXISTING без DB_CONFIG_REQUIRED.txt." }
+if (-not $databaseReady) { $errors += "Local play не готов: DatabaseConfig=$databaseStatus; требуется USER_CONFIRMED_EXISTING или FRESH_LOCAL_PROVISIONED без DB_CONFIG_REQUIRED.txt." }
+if ($databaseStatus -eq "FRESH_LOCAL_PROVISIONED")
+{
+	$databaseName = [string] $manifest.databaseName
+	$loginDatabaseName = Get-DatabaseName (Join-Path $runtimeRoot "login\config\Database.ini")
+	$gameDatabaseName = Get-DatabaseName (Join-Path $runtimeRoot "game\config\Database.ini")
+	if ([string]::IsNullOrWhiteSpace($databaseName) -or ($loginDatabaseName -cne $databaseName) -or ($gameDatabaseName -cne $databaseName))
+	{
+		$errors += "Fresh runtime Database.ini не совпадает с manifest databaseName."
+	}
+}
 foreach ($jar in @("LoginServer.jar", "GameServer.jar"))
 {
 	if (-not (Test-Path -LiteralPath (Join-Path $runtimeRoot "libs\$jar"))) { $errors += "Отсутствует libs/$jar." }

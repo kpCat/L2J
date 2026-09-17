@@ -298,6 +298,10 @@ if ($SanitizedZip)
 	$sanitizedManifestPath = Join-Path $sanitizedRoot "local-play.json"
 	$sanitizedManifest = Get-Content -LiteralPath $sanitizedManifestPath -Raw | ConvertFrom-Json
 	$sanitizedManifest.databaseConfig = "DB_CONFIG_REQUIRED"
+	$sanitizedManifest.PSObject.Properties.Remove("databaseName")
+	$sanitizedManifest.PSObject.Properties.Remove("databaseHost")
+	$sanitizedManifest.PSObject.Properties.Remove("databasePort")
+	$sanitizedManifest.PSObject.Properties.Remove("gameServerId")
 	$sanitizedManifest | ConvertTo-Json | Set-Content -LiteralPath $sanitizedManifestPath -Encoding UTF8
 	if (Test-Path -LiteralPath $zipPath)
 	{

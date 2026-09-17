@@ -16,6 +16,7 @@ function Stop-OwnedProcess
 	param([string] $RecordPath)
 	if (-not (Test-Path -LiteralPath $RecordPath)) { return }
 	$record = Get-Content -LiteralPath $RecordPath -Raw | ConvertFrom-Json
+	$removeRecord = $false
 	try
 	{
 		$process = Get-Process -Id ([int] $record.pid) -ErrorAction Stop
@@ -35,16 +36,27 @@ function Stop-OwnedProcess
 		if (-not $process.HasExited)
 		{
 			Stop-Process -Id $process.Id -Force
+			$null = $process.WaitForExit(10000)
 		}
+		if (-not $process.HasExited) { throw "Не удалось остановить подтверждённый PID $($process.Id). PID record сохранён." }
+		$removeRecord = $true
 		Write-Host "$($record.role) PID=$($record.pid) остановлен."
 	}
 	catch [Microsoft.PowerShell.Commands.ProcessCommandException]
 	{
+		if (Get-Process -Id ([int] $record.pid) -ErrorAction SilentlyContinue)
+		{
+			throw "Нет прав остановить подтверждённый $($record.role) PID=$($record.pid). PID record сохранён."
+		}
+		$removeRecord = $true
 		Write-Host "$($record.role) PID=$($record.pid) уже не запущен."
 	}
 	finally
 	{
-		Remove-Item -LiteralPath $RecordPath -Force -ErrorAction SilentlyContinue
+		if ($removeRecord)
+		{
+			Remove-Item -LiteralPath $RecordPath -Force -ErrorAction SilentlyContinue
+		}
 	}
 }
 

@@ -1,18 +1,19 @@
 # Phantom World: локальный игровой выпуск
 
-Этот сценарий собирает High Five из текущих исходников, копирует весь `dist` в приватный runtime и меняет только значения уже существующих ключей в копиях `.ini`. Исходные конфиги остаются с безопасными shipped-настройками и не изменяются.
+Этот сценарий собирает High Five из текущих исходников, создаёт полностью новый локальный мир в отдельной БД и копирует `dist` в приватный runtime. Исходные `Database.ini`, `hexid.txt`, SQL и shipped-конфиги не изменяются. Существующая БД `l2jmobiush5` защищена и этим workflow не выбирается, не очищается и не изменяется.
 
 ## Быстрый старт
 
 Из PowerShell в каталоге `L2J_Mobius_CT_2.6_HighFive`:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-LocalPlay.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-FreshLocalPlay.ps1
 ```
 
-Команда выполняет свежий `ant -q jar`, создаёт `artifacts\local-play\runtime` и применяет preset `Lively`. Затем:
+Команда выполняет свежий `ant -q jar`, доказывает отсутствие БД `l2jmobiush5_localplay`, создаёт её без overwrite/reset, штатным `DatabaseInstaller` устанавливает login+game schema, штатным `GameServerRegister` создаёт новый server ID 1/hexid и применяет preset `Lively` только в `artifacts\local-play\runtime`. Затем:
 
 ```text
+artifacts\local-play\runtime\CHECK_LOCAL_PLAY.cmd
 artifacts\local-play\runtime\START_LOCAL_PLAY.cmd
 ```
 
@@ -43,7 +44,7 @@ Stop-скрипт работает только с PID и временем ст�
 Пример выбора:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-LocalPlay.ps1 -Preset Balanced
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-FreshLocalPlay.ps1 -Preset Balanced
 ```
 
 Во всех трёх вариантах scheduler pulse остаётся `100 ms`, budget — `128 profiles/pulse`, ecology включена с `LIVING`, Humanized Semantic v3 и custom overlay включены. Autonomous BUY+SELL private market остаётся включённым по принятому `PhantomMarket.ini`; MANUFACTURE не открывается бесплатно и не переопределяется.
@@ -53,7 +54,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-pl
 ## Другой аккаунт и Personal QoL
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-LocalPlay.ps1 -Account myaccount
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-FreshLocalPlay.ps1 -Account myaccount
 ```
 
 Имя должно соответствовать `[a-z0-9_-]`, длина — не более 45 символов. Builder записывает его только в staging `AllowedAccounts` и включает принятые Personal QoL: cross-class skills, crystallization, Seven Signs access, party support, positive effect duration policy, premium storefront и quest over-level relief. Множители длительности остаются принятыми нейтральными `1.0`, потому что выпуск не придумывает новый баланс. `EnableServerWideAutoNoblesse=True` также включён, но этот конкретный принятый switch глобален для runtime, а не ограничен account allowlist.
@@ -63,14 +64,28 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-pl
 По умолчанию оба режима выключены. Явное включение:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-LocalPlay.ps1 -Mature
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-LocalPlay.ps1 -Diagnostics
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-LocalPlay.ps1 -Mature -Diagnostics
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-FreshLocalPlay.ps1 -Mature
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-FreshLocalPlay.ps1 -Diagnostics
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-FreshLocalPlay.ps1 -Mature -Diagnostics
 ```
 
 Diagnostics предназначен для bounded trace, а не для постоянного подробного логирования.
 
 ## База данных и секреты
+
+Рекомендуемый fresh workflow:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-FreshLocalPlay.ps1
+```
+
+По умолчанию создаётся только новая `l2jmobiush5_localplay`. Другое безопасное имя можно задать через `-DatabaseName`, например `-DatabaseName l2jmobiush5_localplay2`. Имена исходных БД из обоих source `Database.ini`, `l2jmobiush5_phantom_test` и системные `mysql`, `information_schema`, `performance_schema`, `sys` запрещены. Если target уже существует, команда завершается до сборки и ничего в нём не меняет; автоматического drop/reset нет. При частичной ошибке runtime остаётся fail-closed, а созданную БД нужно проверить и удалить вручную либо выбрать новое имя.
+
+DB login/password читаются из существующих локальных конфигов только в память и передаются Java-процессам через stdin. Они не записываются в manifest, командную строку, документацию или sanitized ZIP. После provisioning manifest получает `FRESH_LOCAL_PROVISIONED` и точное безопасное имя БД; `CHECK_LOCAL_PLAY.cmd` и `START_LOCAL_PLAY.cmd` дополнительно сверяют это имя с обоими private runtime `Database.ini`.
+
+Canonical installer сначала применяет login SQL, затем game SQL; внутри каждого каталога файлы идут по имени без учёта регистра, как в текущем `DatabaseInstaller`. Freshness gate до первого запуска подтверждает пустые `accounts`, `characters`, clan/offline/private-store и все Phantom runtime/profile tables. Автоматический workflow не создаёт `localplayer`: первый аккаунт появляется только после ручного входа благодаря штатному `AutoCreateAccounts=True`.
+
+Старый `Build-LocalPlay.ps1` оставлен как explicit existing-DB/fail-closed путь:
 
 Private runtime может содержать копии существующих `dist\login\config\Database.ini` и `dist\game\config\Database.ini`. Builder не выводит логин или пароль и не проверяет соединение. Поэтому обычная сборка всегда fail-closed: даже полностью заполненные скопированные конфиги получают статус `COPIED_PRIVATE_UNVERIFIED`, создаётся `DB_CONFIG_REQUIRED.txt`, а `Start-LocalPlay.ps1` отказывается запускать Java.
 
@@ -82,11 +97,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-pl
 
 Switch означает явное acknowledgement скопированной существующей конфигурации, но не является автоматическим доказательством безопасности базы. Только при наличии URL/Login/Password в обоих `Database.ini` manifest получает `USER_CONFIRMED_EXISTING`, marker не создаётся, и startup разрешается. Иначе замените оба staging `Database.ini` на non-production DB и пересоберите/пометьте runtime поддержанным workflow. Sanitized ZIP всегда остаётся `DB_CONFIG_REQUIRED` и не является startable.
 
-Не используйте production DB для автоматического smoke. Этот workflow не provision-ит базу, не запускает `prepare-phantom-test-db` и не создаёт аккаунт. Если нужен shareable архив без credentials:
+Fresh workflow не запускает `prepare-phantom-test-db` и никогда не использует `l2jmobiush5` как target. Если нужен shareable архив без credentials:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-LocalPlay.ps1 -SanitizedZip
 ```
+
+Для fresh workflow используйте тот же switch: `Build-FreshLocalPlay.ps1 -SanitizedZip`. Архив всё равно получает `DB_CONFIG_REQUIRED`, пустые `Login`/`Password` и не получает статус `FRESH_LOCAL_PROVISIONED`.
 
 Архив `artifacts\local-play\L2J-H5-Phantom-LocalPlay-sanitized.zip` содержит пустые `Login`/`Password` в обоих Database.ini и marker `DB_CONFIG_REQUIRED.txt`. Приватный runtime и ZIP защищены `.gitignore` и не должны коммититься.
 

@@ -1,7 +1,7 @@
 ﻿[CmdletBinding()]
 param(
 	[int] $LoginTimeoutSeconds = 60,
-	[int] $GameTimeoutSeconds = 120
+	[int] $GameTimeoutSeconds = 600
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,6 +24,15 @@ function Get-IniValue
 	$match = [regex]::Match($text, "(?m)^[ \t]*" + [regex]::Escape($Key) + "[ \t]*=[ \t]*([^\r\n]*)\r?$")
 	if (-not $match.Success) { throw "Не найден ключ '$Key' в '$Path'." }
 	return $match.Groups[1].Value.Trim()
+}
+
+function Get-DatabaseName
+{
+	param([string] $Path)
+	$url = Get-IniValue $Path "URL"
+	$match = [regex]::Match($url, "^jdbc:(?:mysql|mariadb)://[^/]+/([^?]+)(?:\?.*)?$", [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+	if (-not $match.Success) { throw "Некорректный JDBC URL в private runtime Database.ini." }
+	return $match.Groups[1].Value
 }
 
 function Test-OwnedProcess
@@ -80,9 +89,22 @@ $runtimeRoot = Get-RuntimeRoot
 $manifestPath = Join-Path $runtimeRoot "local-play.json"
 if (-not (Test-Path -LiteralPath $manifestPath)) { throw "Runtime не собран. Сначала запустите Build-LocalPlay.ps1." }
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-if ([string] $manifest.databaseConfig -ne "USER_CONFIRMED_EXISTING")
+$databaseStatus = [string] $manifest.databaseConfig
+$allowedDatabaseStatuses = @("USER_CONFIRMED_EXISTING", "FRESH_LOCAL_PROVISIONED")
+if (($allowedDatabaseStatuses -notcontains $databaseStatus) -or (Test-Path -LiteralPath (Join-Path $runtimeRoot "DB_CONFIG_REQUIRED.txt")))
 {
 	throw "Local play заблокирован: DatabaseConfig=$($manifest.databaseConfig). Нужна явная локальная DB-конфигурация и подтверждение при сборке."
+}
+if ($databaseStatus -eq "FRESH_LOCAL_PROVISIONED")
+{
+	$databaseName = [string] $manifest.databaseName
+	if ([string]::IsNullOrWhiteSpace($databaseName)) { throw "Fresh local play заблокирован: manifest не содержит databaseName." }
+	$loginDatabaseName = Get-DatabaseName (Join-Path $runtimeRoot "login\config\Database.ini")
+	$gameDatabaseName = Get-DatabaseName (Join-Path $runtimeRoot "game\config\Database.ini")
+	if (($loginDatabaseName -cne $databaseName) -or ($gameDatabaseName -cne $databaseName))
+	{
+		throw "Fresh local play заблокирован: runtime Database.ini не совпадает с manifest databaseName."
+	}
 }
 
 $pidRoot = Join-Path $runtimeRoot "local-play\pids"
