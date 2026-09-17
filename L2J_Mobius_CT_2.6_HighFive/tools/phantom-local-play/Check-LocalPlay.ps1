@@ -50,6 +50,9 @@ $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $phantomConfig = Join-Path $runtimeRoot "game\config\Custom\PhantomPlayers.ini"
 $personalConfig = Join-Path $runtimeRoot "game\config\Custom\PersonalCharacterQoL.ini"
 $loginConfig = Join-Path $runtimeRoot "login\config\Server.ini"
+$databaseMarker = Join-Path $runtimeRoot "DB_CONFIG_REQUIRED.txt"
+$databaseStatus = [string] $manifest.databaseConfig
+$databaseReady = ($databaseStatus -eq "USER_CONFIRMED_EXISTING") -and (-not (Test-Path -LiteralPath $databaseMarker))
 
 $expected = [ordered]@{
 	EnablePhantomSystem = "True"
@@ -72,12 +75,15 @@ foreach ($setting in $expected.GetEnumerator())
 }
 if ((Get-IniValue $personalConfig "AllowedAccounts") -cne [string] $manifest.account) { $errors += "AllowedAccounts не совпадает с manifest." }
 if ((Get-IniValue $loginConfig "AutoCreateAccounts") -cne "True") { $errors += "AutoCreateAccounts не равен True." }
+if (-not $databaseReady) { $errors += "Local play не готов: DatabaseConfig=$databaseStatus; требуется USER_CONFIRMED_EXISTING без DB_CONFIG_REQUIRED.txt." }
 foreach ($jar in @("LoginServer.jar", "GameServer.jar"))
 {
 	if (-not (Test-Path -LiteralPath (Join-Path $runtimeRoot "libs\$jar"))) { $errors += "Отсутствует libs/$jar." }
 }
 if ($errors.Count -gt 0)
 {
+	Write-Host "DatabaseConfig=$databaseStatus"
+	Write-Warning "CHECK NOT READY: локальная база не подтверждена для local play."
 	$errors | ForEach-Object { Write-Error $_ }
 	exit 1
 }
@@ -89,7 +95,6 @@ Write-Host "CONFIG PASS"
 Write-Host "Preset=$($manifest.preset) Population=$($manifest.populationTarget) Active=$($manifest.activeTarget) MaterializedCap=$($manifest.materializedCap) PulseMs=$($manifest.schedulerPulseMillis)"
 Write-Host "Ecology=$($manifest.ecology) HumanizedV3=$($manifest.humanizedV3) CustomOverlay=$($manifest.customOverlay) Mature=$($manifest.mature) Diagnostics=$($manifest.diagnostics)"
 Write-Host "AutoCreateAccounts=$($manifest.autoCreateAccounts) PersonalQoLAccount=$($manifest.account) AutoNoblesseGlobal=$($manifest.autoNoblesseGlobal)"
-Write-Host "DatabaseConfig=$($manifest.databaseConfig)"
+Write-Host "DatabaseConfig=$databaseStatus"
 Write-Host "LoginServer=$(Get-ProcessState (Join-Path $pidRoot 'LoginServer.json')) Port${loginPort}=$(Test-TcpPort $loginPort)"
 Write-Host "GameServer=$(Get-ProcessState (Join-Path $pidRoot 'GameServer.json')) Port${gamePort}=$(Test-TcpPort $gamePort)"
-if (Test-Path -LiteralPath (Join-Path $runtimeRoot "DB_CONFIG_REQUIRED.txt")) { Write-Warning "DB_CONFIG_REQUIRED" }

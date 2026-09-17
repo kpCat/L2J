@@ -79,7 +79,11 @@ function Start-Server
 $runtimeRoot = Get-RuntimeRoot
 $manifestPath = Join-Path $runtimeRoot "local-play.json"
 if (-not (Test-Path -LiteralPath $manifestPath)) { throw "Runtime не собран. Сначала запустите Build-LocalPlay.ps1." }
-if (Test-Path -LiteralPath (Join-Path $runtimeRoot "DB_CONFIG_REQUIRED.txt")) { throw "DB_CONFIG_REQUIRED: заполните оба Database.ini локальными реквизитами." }
+$manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+if ([string] $manifest.databaseConfig -ne "USER_CONFIRMED_EXISTING")
+{
+	throw "Local play заблокирован: DatabaseConfig=$($manifest.databaseConfig). Нужна явная локальная DB-конфигурация и подтверждение при сборке."
+}
 
 $pidRoot = Join-Path $runtimeRoot "local-play\pids"
 New-Item -ItemType Directory -Path $pidRoot -Force | Out-Null

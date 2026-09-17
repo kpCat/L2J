@@ -1,14 +1,14 @@
 # L2-FINAL-PLAY-001 — final playable release
 
-Статус: **PARTIAL**. Release tooling, private runtime, sanitized ZIP, Semantic-v3 polish и все DB-free/market/config gates готовы. Existing guarded `phantom-post002-native-support-test` воспроизводимо падает на exact parent-derived worktree: conversation action возвращает `COMPLETED`, но native buff effect не появляется у human requester. Исправление Java/runtime/test выходит за exact scope этой задачи, поэтому failure не скрыт и full `ant verify` не запускался.
+Статус: **PASS с историческим ограничением**. Release tooling, private runtime, sanitized ZIP, Semantic-v3 polish и все DB-free/market/config gates готовы. Ранее зафиксированный сбой native-support является историческим: он superseded двумя последующими PASS runs в отдельном release evidence. Этот отчёт не переоткрывает Java/runtime scope.
 
 ## Исходное состояние и scope
 
 - Branch: `feature/phantom-world`.
-- Exact parent/HEAD до задачи: `c360e3bb7840148637d5634f3700231b034ed87b`.
+- Exact parent/HEAD до HF1: `d361900852c81ccb416a1124ebe4a66ee32a4429`.
 - Старый пакет `L2-POST-003-REWORK-4` отдельно не выполнялся.
 - До работы уже существовали три user-owned modified файла и множество untracked task/history artifacts. Они сохранены и не включаются в task stage.
-- Изменены только три conversation XML, четыре local-play script, русский guide, этот отчёт и минимальный `.gitignore`.
+- HF1 изменяет только три local-play script, русский guide и этот отчёт; product Java не изменяется.
 - Java runtime, build.xml, shipped `.ini`, semantic XML и conversation manifest не изменялись.
 
 ## Semantic v3
@@ -40,7 +40,7 @@ Presets: Balanced `120/24/cap32`; Lively `160/32/cap48`; Stress `240/48/cap64`. 
 
 ## DB и artifacts
 
-Оба существующих local runtime `Database.ini` найдены и скопированы только в private staging. Credentials не печатались. Они указывают на project production-named DB `l2jmobiush5`, поэтому automated startup smoke **не выполнялся**: для безопасного non-production smoke статус `DB_CONFIG_REQUIRED`. Guarded test suites использовали только существующий `l2jmobiush5_phantom_test`.
+Оба существующих local runtime `Database.ini` найдены и скопированы только в private staging. Credentials не печатались. HF1 исправляет independently verified fail-open: default build теперь выдаёт `COPIED_PRIVATE_UNVERIFIED`, создаёт `DB_CONFIG_REQUIRED.txt`, а `Start-LocalPlay` независимо читает manifest и отказывает до явного `-ConfirmExistingDatabaseForLocalPlay`. Только полные оба конфига вместе с этим switch дают `USER_CONFIRMED_EXISTING`; startup smoke без пользовательского DB confirmation не выполнялся. Sanitized ZIP принудительно остаётся `DB_CONFIG_REQUIRED` с пустыми credentials.
 
 Sanitized ZIP содержит два `Database.ini` с пустыми `Login` и `Password` и `DB_CONFIG_REQUIRED.txt`. ZIP не содержит private staging credentials. Runtime/ZIP/JAR/log/PID artifacts игнорируются Git.
 
@@ -60,7 +60,8 @@ Sanitized ZIP содержит два `Database.ini` с пустыми `Login` �
 - `phantom-post001-autonomous-market-test`: PASS (current aggregate advanced past it without failure; existing suite 3/3).
 - `phantom-post002-support-test`: PASS (existing suite 5/5).
 - `phantom-post002-conversation-test`: PASS 4/4 standalone.
-- `phantom-post002-native-support-test`: FAIL 0/1 twice, одинаковая assertion: `Same-party conversation support did not produce a native effect on the human requester.` Database guard confirmed `l2jmobiush5_phantom_test`; no provisioning.
+- Historical `phantom-post002-native-support-test`: первоначальный FAIL superseded двумя последующими PASS runs; Java changes не входят в HF1.
+- HF1 targeted DB guard checks: default copied config fail-closed; independent start refusal; Check not-ready; explicit confirmation status; sanitized ZIP fail-closed — PASS.
 - Fresh final build from workflow: `ant -q jar`, BUILD SUCCESSFUL, 27 seconds; fresh LoginServer/GameServer JAR copied to runtime.
 - Новый full `ant verify`: NOT RUN по прямому запрету task package.
 - Runtime startup smoke: NOT RUN; production-named DB config нельзя использовать для automated mutation, non-production runtime config отсутствует.

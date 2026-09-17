@@ -72,7 +72,15 @@ Diagnostics предназначен для bounded trace, а не для пос
 
 ## База данных и секреты
 
-Private runtime может содержать копии существующих `dist\login\config\Database.ini` и `dist\game\config\Database.ini`. Builder не выводит логин или пароль и не проверяет соединение, поэтому manifest честно помечает их как `COPIED_PRIVATE_UNVERIFIED`. Если полноценные локальные конфиги отсутствуют, создаётся `DB_CONFIG_REQUIRED.txt`; заполните оба файла вручную и удалите marker после проверки.
+Private runtime может содержать копии существующих `dist\login\config\Database.ini` и `dist\game\config\Database.ini`. Builder не выводит логин или пароль и не проверяет соединение. Поэтому обычная сборка всегда fail-closed: даже полностью заполненные скопированные конфиги получают статус `COPIED_PRIVATE_UNVERIFIED`, создаётся `DB_CONFIG_REQUIRED.txt`, а `Start-LocalPlay.ps1` отказывается запускать Java.
+
+Если `l2jmobiush5` действительно является вашей намеренной локальной/private gameplay DB, пересоберите runtime с явным подтверждением человека:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-play\Build-LocalPlay.ps1 -ConfirmExistingDatabaseForLocalPlay
+```
+
+Switch означает явное acknowledgement скопированной существующей конфигурации, но не является автоматическим доказательством безопасности базы. Только при наличии URL/Login/Password в обоих `Database.ini` manifest получает `USER_CONFIRMED_EXISTING`, marker не создаётся, и startup разрешается. Иначе замените оба staging `Database.ini` на non-production DB и пересоберите/пометьте runtime поддержанным workflow. Sanitized ZIP всегда остаётся `DB_CONFIG_REQUIRED` и не является startable.
 
 Не используйте production DB для автоматического smoke. Этот workflow не provision-ит базу, не запускает `prepare-phantom-test-db` и не создаёт аккаунт. Если нужен shareable архив без credentials:
 
@@ -91,7 +99,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\phantom-local-pl
 
 `CHECK_LOCAL_PLAY.cmd` сверяет manifest с staging-конфигами, наличие JAR, записанные PID и локальные порты. Он никогда не печатает DB credentials.
 
-Если сервер не стартует, сначала проверьте `DB_CONFIG_REQUIRED.txt`, оба `Database.ini`, MariaDB, порты `9014`/`7777` и последние server logs. Для обычной остановки используйте только `STOP_LOCAL_PLAY.cmd`.
+Если сервер не стартует, сначала проверьте `CHECK_LOCAL_PLAY.cmd`: он показывает только безопасный DB status и завершает readiness с ошибкой для `COPIED_PRIVATE_UNVERIFIED`/`DB_CONFIG_REQUIRED`. Для обычной остановки используйте только `STOP_LOCAL_PLAY.cmd`.
 
 ## Как изменить численность позже
 

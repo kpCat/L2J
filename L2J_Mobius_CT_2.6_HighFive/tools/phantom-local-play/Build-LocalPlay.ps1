@@ -6,6 +6,7 @@ param(
 	[string] $Account = "localplayer",
 	[switch] $Mature,
 	[switch] $Diagnostics,
+	[switch] $ConfirmExistingDatabaseForLocalPlay,
 	[switch] $SanitizedZip
 )
 
@@ -214,8 +215,20 @@ $checkCmd = "@echo off`r`npowershell.exe -NoProfile -ExecutionPolicy Bypass -Fil
 
 $loginDatabaseConfig = Join-Path $temporaryRuntime "login\config\Database.ini"
 $gameDatabaseConfig = Join-Path $temporaryRuntime "game\config\Database.ini"
-$databaseConfigFound = (Test-PrivateDatabaseConfig $loginDatabaseConfig) -and (Test-PrivateDatabaseConfig $gameDatabaseConfig)
-if (-not $databaseConfigFound)
+$databaseConfigComplete = (Test-PrivateDatabaseConfig $loginDatabaseConfig) -and (Test-PrivateDatabaseConfig $gameDatabaseConfig)
+$databaseConfigStatus = if ($databaseConfigComplete -and $ConfirmExistingDatabaseForLocalPlay)
+{
+	"USER_CONFIRMED_EXISTING"
+}
+elseif ($databaseConfigComplete)
+{
+	"COPIED_PRIVATE_UNVERIFIED"
+}
+else
+{
+	"DB_CONFIG_REQUIRED"
+}
+if ($databaseConfigStatus -ne "USER_CONFIRMED_EXISTING")
 {
 	[IO.File]::WriteAllText((Join-Path $temporaryRuntime "DB_CONFIG_REQUIRED.txt"), "Укажите локальные LoginServer и GameServer Database.ini. Не используйте production DB для автоматических smoke-тестов.`r`n", [Text.UTF8Encoding]::new($true))
 }
@@ -238,7 +251,7 @@ $manifest = [ordered]@{
 	autoCreateAccounts = $true
 	personalQoL = $true
 	autoNoblesseGlobal = $true
-	databaseConfig = $(if ($databaseConfigFound) { "COPIED_PRIVATE_UNVERIFIED" } else { "DB_CONFIG_REQUIRED" })
+	databaseConfig = $databaseConfigStatus
 	loginJarSha256 = (Get-FileHash -LiteralPath (Join-Path $temporaryRuntime "libs\LoginServer.jar") -Algorithm SHA256).Hash
 	gameJarSha256 = (Get-FileHash -LiteralPath (Join-Path $temporaryRuntime "libs\GameServer.jar") -Algorithm SHA256).Hash
 }
@@ -298,7 +311,7 @@ Write-Host "Local-play runtime: $runtimeRoot"
 Write-Host "Preset=$Preset Population=$($selected.Population) Active=$($selected.Active) MaterializedCap=$($selected.Materialized) PulseMs=100"
 Write-Host "Ecology=LIVING HumanizedV3=True CustomOverlay=True Mature=$([bool] $Mature) Diagnostics=$([bool] $Diagnostics)"
 Write-Host "AutoCreateAccounts=True PersonalQoLAccount=$Account AutoNoblesseGlobal=True"
-Write-Host "DatabaseConfig=$(if ($databaseConfigFound) { 'COPIED_PRIVATE_UNVERIFIED' } else { 'DB_CONFIG_REQUIRED' })"
+Write-Host "DatabaseConfig=$databaseConfigStatus"
 if ($SanitizedZip)
 {
 	Write-Host "Sanitized ZIP: $zipPath"
