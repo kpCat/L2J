@@ -226,6 +226,7 @@ import handlers.chat.commands.voiced.Lang;
 import handlers.chat.commands.voiced.Offline;
 import handlers.chat.commands.voiced.OfflinePlay;
 import handlers.chat.commands.voiced.Online;
+import handlers.chat.commands.voiced.PhantomStatus;
 import handlers.chat.commands.voiced.Premium;
 import handlers.chat.commands.voiced.Wedding;
 import handlers.items.BeastSoulShot;
@@ -564,6 +565,7 @@ public class MasterHandler
 			OfflinePlayConfig.ENABLE_OFFLINE_PLAY_COMMAND ? OfflinePlay.class : null,
 			OfflineTradeConfig.ENABLE_OFFLINE_COMMAND && (OfflineTradeConfig.OFFLINE_TRADE_ENABLE || OfflineTradeConfig.OFFLINE_CRAFT_ENABLE) ? Offline.class : null,
 			OnlineInfoConfig.ENABLE_ONLINE_COMMAND ? Online.class : null,
+			PhantomStatus.class,
 			PremiumSystemConfig.PREMIUM_SYSTEM_ENABLED ? Premium.class : null,
 			AutoPotionsConfig.AUTO_POTIONS_ENABLED ? AutoPotion.class : null,
 		},

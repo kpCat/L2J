@@ -1,11 +1,13 @@
 ﻿[CmdletBinding()]
 param(
 	[int] $LoginTimeoutSeconds = 60,
-	[int] $GameTimeoutSeconds = 600
+	[int] $GameTimeoutSeconds = 600,
+	[switch] $Background
 )
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'LocalPlay-Ownership.ps1')
 
 function Get-RuntimeRoot
 {
@@ -35,37 +37,20 @@ function Get-DatabaseName
 	return $match.Groups[1].Value
 }
 
-function Test-OwnedProcess
-{
-	param([string] $RecordPath)
-	if (-not (Test-Path -LiteralPath $RecordPath)) { return $false }
-	try
-	{
-		$record = Get-Content -LiteralPath $RecordPath -Raw | ConvertFrom-Json
-		$process = Get-Process -Id ([int] $record.pid) -ErrorAction Stop
-		return $process.StartTime.ToUniversalTime().ToString("o") -eq [string] $record.startTimeUtc
-	}
-	catch
-	{
-		return $false
-	}
-}
-
 function Wait-TcpPort
 {
-	param([int] $Port, [int] $TimeoutSeconds, [Diagnostics.Process] $Process)
+	param([int[]] $Ports, [int] $TimeoutSeconds, [Diagnostics.Process] $Process)
 	$deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
 	do
 	{
 		if ($Process.HasExited) { return $false }
-		$client = [Net.Sockets.TcpClient]::new()
-		try
+		$owners = Get-LocalPlayPortOwners $Ports
+		foreach ($port in $Ports)
 		{
-			$task = $client.ConnectAsync("127.0.0.1", $Port)
-			if ($task.Wait(500) -and $client.Connected) { return $true }
+			if ($owners.ContainsKey($port) -and ([int] $owners[$port] -ne $Process.Id)) { throw "Порт $port занят PID=$($owners[$port]), а новый child PID=$($Process.Id)." }
 		}
-		catch { }
-		finally { $client.Dispose() }
+		$missing = @($Ports | Where-Object { (-not $owners.ContainsKey($_)) -or ([int] $owners[$_] -ne $Process.Id) })
+		if ($missing.Count -eq 0) { return $true }
 		Start-Sleep -Milliseconds 500
 	}
 	while ([DateTime]::UtcNow -lt $deadline)
@@ -74,14 +59,23 @@ function Wait-TcpPort
 
 function Start-Server
 {
-	param([string] $Role, [string] $WorkingDirectory, [string] $JarName, [string] $RecordPath)
+	param([string] $Role, [string] $WorkingDirectory, [string] $JarName, [string] $RecordPath, [string] $RuntimeId)
 	$javaHomeExecutable = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME "bin\java.exe" } else { $null }
 	$javaExecutable = if ($javaHomeExecutable -and (Test-Path -LiteralPath $javaHomeExecutable)) { $javaHomeExecutable } else { (Get-Command java.exe -ErrorAction Stop).Source }
 	$javaOptions = @((Get-Content -LiteralPath (Join-Path $WorkingDirectory "java.cfg") -Raw).Trim() -split "\s+" | Where-Object { $_ })
-	$arguments = @($javaOptions + @("-jar", "..\libs\$JarName"))
-	$process = Start-Process -FilePath $javaExecutable -ArgumentList $arguments -WorkingDirectory $WorkingDirectory -PassThru
-	$record = [ordered]@{ role = $Role; pid = $process.Id; startTimeUtc = $process.StartTime.ToUniversalTime().ToString("o") }
-	$record | ConvertTo-Json | Set-Content -LiteralPath $RecordPath -Encoding UTF8
+	$arguments = @($javaOptions + @("-Dphantom.localplay.runtime=$RuntimeId", "-Dphantom.localplay.role=$Role", "-jar", "..\libs\$JarName"))
+	if ($Background)
+	{
+		$logRoot = Join-Path $runtimeRoot 'local-play\logs'
+		New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+		$stem = "$Role-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+		$process = Start-Process -FilePath $javaExecutable -ArgumentList $arguments -WorkingDirectory $WorkingDirectory -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logRoot "$stem-stdout.log") -RedirectStandardError (Join-Path $logRoot "$stem-stderr.log") -PassThru
+	}
+	else
+	{
+		$process = Start-Process -FilePath $javaExecutable -ArgumentList $arguments -WorkingDirectory $WorkingDirectory -WindowStyle Normal -PassThru
+	}
+	Save-LocalPlayRecord $RecordPath $Role ([pscustomobject]@{ pid = $process.Id; startTimeUtcTicks = $process.StartTime.ToUniversalTime().Ticks }) $JarName $RuntimeId
 	return $process
 }
 
@@ -111,23 +105,33 @@ $pidRoot = Join-Path $runtimeRoot "local-play\pids"
 New-Item -ItemType Directory -Path $pidRoot -Force | Out-Null
 $loginRecord = Join-Path $pidRoot "LoginServer.json"
 $gameRecord = Join-Path $pidRoot "GameServer.json"
-if ((Test-OwnedProcess $loginRecord) -or (Test-OwnedProcess $gameRecord)) { throw "Local play уже запущен. Используйте CHECK_LOCAL_PLAY.cmd." }
-Remove-Item -LiteralPath $loginRecord, $gameRecord -Force -ErrorAction SilentlyContinue
 
 $loginDirectory = Join-Path $runtimeRoot "login"
 $gameDirectory = Join-Path $runtimeRoot "game"
 $loginPort = [int] (Get-IniValue (Join-Path $loginDirectory "config\Server.ini") "LoginPort")
+$clientPort = [int] (Get-IniValue (Join-Path $loginDirectory "config\Server.ini") "LoginserverPort")
 $gamePort = [int] (Get-IniValue (Join-Path $gameDirectory "config\Server.ini") "GameserverPort")
+$loginState = Get-LocalPlayRoleState $runtimeRoot 'LoginServer' 'LoginServer.jar' @($clientPort, $loginPort)
+$gameState = Get-LocalPlayRoleState $runtimeRoot 'GameServer' 'GameServer.jar' @($gamePort)
+if (($loginState.state -eq 'RUNNING') -and ($gameState.state -eq 'RUNNING'))
+{
+	Write-Host "ALREADY RUNNING: Login PID=$($loginState.pid), Game PID=$($gameState.pid)."
+	exit 0
+}
+if (($loginState.state -ne 'STOPPED') -and ($loginState.state -ne 'STALE_RECORD')) { throw "LoginServer=$($loginState.state): $($loginState.reason). START заблокирован." }
+if (($gameState.state -ne 'STOPPED') -and ($gameState.state -ne 'STALE_RECORD')) { throw "GameServer=$($gameState.state): $($gameState.reason). START заблокирован." }
+Remove-Item -LiteralPath $loginRecord, $gameRecord -Force -ErrorAction SilentlyContinue
+$runtimeId = Get-LocalPlayRuntimeId $runtimeRoot
 
-$loginProcess = Start-Server -Role "LoginServer" -WorkingDirectory $loginDirectory -JarName "LoginServer.jar" -RecordPath $loginRecord
-if (-not (Wait-TcpPort -Port $loginPort -TimeoutSeconds $LoginTimeoutSeconds -Process $loginProcess))
+$loginProcess = Start-Server -Role "LoginServer" -WorkingDirectory $loginDirectory -JarName "LoginServer.jar" -RecordPath $loginRecord -RuntimeId $runtimeId
+if (-not (Wait-TcpPort -Ports @($clientPort, $loginPort) -TimeoutSeconds $LoginTimeoutSeconds -Process $loginProcess))
 {
 	& (Join-Path $runtimeRoot "Stop-LocalPlay.ps1")
 	throw "LoginServer не открыл порт $loginPort за $LoginTimeoutSeconds секунд. Проверьте runtime/login/log."
 }
 
-$gameProcess = Start-Server -Role "GameServer" -WorkingDirectory $gameDirectory -JarName "GameServer.jar" -RecordPath $gameRecord
-if (-not (Wait-TcpPort -Port $gamePort -TimeoutSeconds $GameTimeoutSeconds -Process $gameProcess))
+$gameProcess = Start-Server -Role "GameServer" -WorkingDirectory $gameDirectory -JarName "GameServer.jar" -RecordPath $gameRecord -RuntimeId $runtimeId
+if (-not (Wait-TcpPort -Ports @($gamePort) -TimeoutSeconds $GameTimeoutSeconds -Process $gameProcess))
 {
 	Write-Warning "GameServer не открыл порт $gamePort за $GameTimeoutSeconds секунд. Выполняется остановка только записанных PID."
 	& (Join-Path $runtimeRoot "Stop-LocalPlay.ps1")

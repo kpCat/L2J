@@ -35,4 +35,10 @@ GameServer JAR SHA-256 `3B7D421924A5702CB6D8183422494FE94A77430DE03251F2E3E21233
 
 Runtime CHECK/START подтверждают два owned процесса и открытые ими порты. Native eligibility/World snapshot в живой JVM ещё не получен через авторизованную GM-команду; DB `online` не заменяет эту проверку. Поэтому **LIVE-003-0B runtime gate=PENDING; общий результат=PARTIAL**. LIVE-003 целиком, recovery/content/crash, LIVE-001/002/004/005 не закрыты. Новые этапы не запускались.
 
-NEXT_ACTION: в текущем runtime авторизованным GM снять `//phantom status` и `//phantom status <profileId>` в естественном ACTIVE окне, подтвердить eligible → admitted → exact World Player либо конкретный native blocker и принять runtime gate LIVE-003-0B.
+### LIVE-003-0B-C1 — 23.09.2026
+
+На tracked baseline `314a570327cb7d5c60ae102a3fa809d53cb598bd` source tooling стал каноническим: PID record v2 с UTC ticks и JVM runtime/role marker, exact port ownership, видимый manual START, явный background mode, no-op duplicate START и STOP с проверкой exit/портов. Private runtime получил эти скрипты, новый GameServer JAR `93135D8AB1C77CE913477C5A9A5B1EADD208C28CFC07CA5BC066B63AE79C570E` и `.phantomstatus [profileId]` voiced handler для personal allowlisted real player. A09/A10 теперь имеют отдельные deterministic assertions; финальные 6 focused Ant targets, PowerShell 5.1/pwsh 7 ownership regression 8/8 и один `ant jar` GREEN. Manual visible, duplicate, STOP, background и missing-record recovery smoke подтверждены exact PID/портами. Отчёт: `docs/phantoms/reports/LIVE-003-0B-C1.md`.
+
+После smoke private background pair Login PID 32684 / Game PID 21708 держит 2106/9014 и 7777; игровые конфиги, rates, heap/collector и Login JAR совпадают по SHA до/после. Клиентский `.phantomstatus` в этой JVM ещё не получен, поэтому native live status gate **BLOCKED на клиентском снимке**, не подтверждён отсутствием ACTIVE кандидатов. Recovery/content/crash и другие LIVE goal здесь не закрыты.
+
+NEXT_ACTION: войти обычным personal allowlisted персонажем в работающий private runtime и выполнить `.phantomstatus`; при наличии admitted ID выполнить `.phantomstatus <profileId>`, сохранить native eligible/admitted/worldPresent или точную причину blocker и принять только gate LIVE-003-0B-C1.

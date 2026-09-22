@@ -3,6 +3,7 @@ param()
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'LocalPlay-Ownership.ps1')
 
 function Get-RuntimeRoot
 {
@@ -27,29 +28,6 @@ function Get-DatabaseName
 	$match = [regex]::Match($url, "^jdbc:(?:mysql|mariadb)://[^/]+/([^?]+)(?:\?.*)?$", [Text.RegularExpressions.RegexOptions]::IgnoreCase)
 	if (-not $match.Success) { return "<invalid>" }
 	return $match.Groups[1].Value
-}
-
-function Get-ProcessState
-{
-	param([string] $RecordPath)
-	if (-not (Test-Path -LiteralPath $RecordPath)) { return "STOPPED" }
-	try
-	{
-		$record = Get-Content -LiteralPath $RecordPath -Raw | ConvertFrom-Json
-		$process = Get-Process -Id ([int] $record.pid) -ErrorAction Stop
-		if ($process.StartTime.ToUniversalTime().ToString("o") -ne [string] $record.startTimeUtc) { return "STALE_PID" }
-		return "RUNNING(pid=$($process.Id))"
-	}
-	catch { return "STOPPED(stale-record)" }
-}
-
-function Test-TcpPort
-{
-	param([int] $Port)
-	$client = [Net.Sockets.TcpClient]::new()
-	try { return $client.ConnectAsync("127.0.0.1", $Port).Wait(500) -and $client.Connected }
-	catch { return $false }
-	finally { $client.Dispose() }
 }
 
 $runtimeRoot = Get-RuntimeRoot
@@ -108,12 +86,17 @@ if ($errors.Count -gt 0)
 }
 
 $loginPort = [int] (Get-IniValue $loginConfig "LoginPort")
+$clientPort = [int] (Get-IniValue $loginConfig "LoginserverPort")
 $gamePort = [int] (Get-IniValue (Join-Path $runtimeRoot "game\config\Server.ini") "GameserverPort")
-$pidRoot = Join-Path $runtimeRoot "local-play\pids"
+$loginState = Get-LocalPlayRoleState $runtimeRoot 'LoginServer' 'LoginServer.jar' @($clientPort, $loginPort)
+$gameState = Get-LocalPlayRoleState $runtimeRoot 'GameServer' 'GameServer.jar' @($gamePort)
+$owners = Get-LocalPlayPortOwners @($clientPort, $loginPort, $gamePort)
 Write-Host "CONFIG PASS"
 Write-Host "Preset=$($manifest.preset) Population=$($manifest.populationTarget) Active=$($manifest.activeTarget) MaterializedCap=$($manifest.materializedCap) PulseMs=$($manifest.schedulerPulseMillis)"
 Write-Host "Ecology=$($manifest.ecology) HumanizedV3=$($manifest.humanizedV3) CustomOverlay=$($manifest.customOverlay) Mature=$($manifest.mature) Diagnostics=$($manifest.diagnostics)"
 Write-Host "AutoCreateAccounts=$($manifest.autoCreateAccounts) PersonalQoLAccount=$($manifest.account) AutoNoblesseGlobal=$($manifest.autoNoblesseGlobal)"
 Write-Host "DatabaseConfig=$databaseStatus"
-Write-Host "LoginServer=$(Get-ProcessState (Join-Path $pidRoot 'LoginServer.json')) Port${loginPort}=$(Test-TcpPort $loginPort)"
-Write-Host "GameServer=$(Get-ProcessState (Join-Path $pidRoot 'GameServer.json')) Port${gamePort}=$(Test-TcpPort $gamePort)"
+Write-Host "LoginServer=$($loginState.state)(pid=$($loginState.pid), staleRecord=$($loginState.staleRecord)) Port${clientPort}=$($owners.ContainsKey($clientPort)) owner=$($owners[$clientPort]) Port${loginPort}=$($owners.ContainsKey($loginPort)) owner=$($owners[$loginPort])"
+Write-Host "GameServer=$($gameState.state)(pid=$($gameState.pid), staleRecord=$($gameState.staleRecord)) Port${gamePort}=$($owners.ContainsKey($gamePort)) owner=$($owners[$gamePort])"
+if (($loginState.state -eq 'RUNNING') -xor ($gameState.state -eq 'RUNNING')) { Write-Warning 'PARTIAL PAIR: only one role is running.' }
+if (($loginState.state -eq 'FOREIGN_PORT_OWNER') -or ($gameState.state -eq 'FOREIGN_PORT_OWNER') -or ($loginState.state -eq 'INCONSISTENT') -or ($gameState.state -eq 'INCONSISTENT')) { exit 2 }

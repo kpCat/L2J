@@ -31,6 +31,7 @@ import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStat
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.CreationOutcome;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
 import org.l2jmobius.tests.phantoms.PhantomPopulationTestDoubles.MemoryStore;
 import org.l2jmobius.tests.phantoms.PhantomPopulationTestDoubles.MutableClock;
@@ -68,7 +69,78 @@ public final class PhantomLive003AdmissionSuite implements PhantomTestSuite
 		registry.add("A05-all-fenced-then-permitted-fills-bounded-target", this::testAllFencedThenPermitted);
 		registry.add("A06-empty-region-quota-moves-to-eligible-region", this::testRegionalCapacity);
 		registry.add("A07-A08-no-ecology-stays-deterministic-and-cap-bounded", this::testNoEcologyCapacity);
+		registry.add("A09-ready-after-bootstrap-enters-eligible-admission", this::testReadyAfterBootstrap);
+		registry.add("A10-minute-boundary-rebalances-without-duplicate-owner", this::testMinuteBoundary);
+		registry.add("C09-C11-personal-status-read-only-voiced-route", this::testPersonalStatusRoute);
 		registry.add("A13-non-admin-phantom-command-gets-explicit-denial", this::testAdminDenial);
+	}
+
+	private void testPersonalStatusRoute(PhantomTestContext context) throws Exception
+	{
+		final String relative = "dist/game/data/scripts/handlers/chat/commands/voiced/PhantomStatus.java";
+		PhantomAssertions.assertTrue(Files.isRegularFile(context.moduleRoot().resolve(relative)), "Personal voiced Phantom status handler is missing.");
+		final String handler = Files.readString(context.moduleRoot().resolve(relative));
+		final String master = Files.readString(context.moduleRoot().resolve("dist/game/data/scripts/handlers/MasterHandler.java"));
+		PhantomAssertions.assertTrue(master.contains("PhantomStatus.class"), "Personal status is not registered in canonical voiced dispatch.");
+		PhantomAssertions.assertTrue(handler.contains("isPersonalUser(player)") && handler.contains("operatorStatus()") && handler.contains("operatorAdmissionProfile("), "Personal status must authorize before reading native snapshots.");
+		for (String forbidden : java.util.List.of("operatorEnable(", "operatorDisable(", "operatorDrain(", "operatorReset", "operatorReplay", "operatorTrace"))
+		{
+			PhantomAssertions.assertFalse(handler.contains(forbidden), "Personal status contains mutating operator route " + forbidden);
+		}
+	}
+
+	private void testReadyAfterBootstrap(PhantomTestContext context)
+	{
+		final MemoryStore store = new MemoryStore(_population.hash());
+		seedMorning(store, 1, 1);
+		for (long id = 2; id <= 3; id++)
+		{
+			final ManagedSnapshot pending = store.seed(id, PhantomPopulationState.State.INITIALIZING, PhantomPopulationState.CreationStage.VERIFIED, 1);
+			final PhantomPopulationState state = pending.state();
+			store.updateState(pending, new PhantomPopulationState(state.state(), state.populationGeneration(), state.creationOrdinal(), state.catalogHash(), state.initializationAuthorityHash(), state.deterministicSeed(), state.nameAttempt(), state.reservedAccount(), state.ownershipToken(), state.characterName(), state.classId(), state.female(), state.face(), state.hairColor(), state.hairStyle(), "morning", state.schedulePhaseMinutes(), state.homeMapRegionId(), state.creationX(), state.creationY(), state.creationZ(), state.expectedCharacterObjectId(), state.actualCharacterObjectId(), state.creationStage(), state.initializationHash(), state.lastFailure()));
+		}
+		final EcologyStore ecologyStore = new EcologyStore();
+		ecologyStore._states.put(1L, new StoredState(ecologyState(minute(NOW)), 0));
+		ecologyStore._states.put(2L, new StoredState(ecologyState(minute(NOW)), 0));
+		ecologyStore._states.put(3L, new StoredState(ecologyState(minute(NOW) - 1), 0));
+		final PhantomPopulationEcologyService ecology = ecology(ecologyStore, new IdleHistoricalPort());
+		final Ownership ownership = new Ownership();
+		final PhantomPopulationManager manager = manager(store, ownership, ecology, 3, 3, 8, 8);
+		PhantomAssertions.assertTrue(manager.start(), "A09 manager did not start.");
+		pulseUntil(manager, () -> ownership.activeIds().equals(Set.of(1L)));
+		PhantomAssertions.assertEquals(CreationOutcome.READY, manager.advanceCreation(2).outcome(), "A09 permitted bootstrap did not become READY.");
+		PhantomAssertions.assertEquals(CreationOutcome.READY, manager.advanceCreation(3).outcome(), "A09 fenced bootstrap did not become READY.");
+		pulseUntil(manager, () -> ownership.activeIds().equals(Set.of(1L, 2L)));
+		PhantomAssertions.assertEquals(2, manager.admissionSnapshot().eligibleActive(), "A09 fenced READY consumed eligible admission.");
+		PhantomAssertions.assertEquals(2, manager.admissionSnapshot().admittedActive(), "A09 READY-after-bootstrap missed admission.");
+		stop(manager);
+	}
+
+	private void testMinuteBoundary(PhantomTestContext context)
+	{
+		final MemoryStore store = new MemoryStore(_population.hash());
+		seedMorning(store, 1, 1);
+		seedMorning(store, 2, 1);
+		final EcologyStore ecologyStore = new EcologyStore();
+		ecologyStore._states.put(1L, new StoredState(ecologyState(minute(NOW) + 1), 0));
+		ecologyStore._states.put(2L, new StoredState(ecologyState(minute(NOW)), 0));
+		final MutableClock clock = new MutableClock(NOW);
+		final PhantomPopulationEcologyService ecology = new PhantomPopulationEcologyService(_ecology, _population, ecologyStore, new IdleHistoricalPort(), id -> false, id -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 2);
+		final Ownership ownership = new Ownership();
+		final PhantomPopulationManager manager = new PhantomPopulationManager(store, _population, null, ownership, clock, ZoneOffset.UTC, 2, 2, 8, 8, 2, 32);
+		manager.installEcology(ecology);
+		PhantomAssertions.assertTrue(manager.start(), "A10 manager did not start.");
+		pulseUntil(manager, () -> ownership.activeIds().equals(Set.of(1L, 2L)));
+		clock.set(NOW.plusSeconds(60));
+		pulseUntil(manager, () -> ownership.activeIds().equals(Set.of(1L)));
+		PhantomAssertions.assertEquals(1, manager.admissionSnapshot().eligibleActive(), "A10 previous-minute eligibility survived the boundary.");
+		PhantomAssertions.assertEquals(1, manager.admissionSnapshot().admittedActive(), "A10 previous-minute owner retained admission.");
+		for (int pulse = 0; pulse < 10; pulse++)
+		{
+			manager.onPulse();
+		}
+		PhantomAssertions.assertEquals(Set.of(1L), ownership.activeIds(), "A10 repeated minute-boundary pulses duplicated or restored a fenced owner.");
+		stop(manager);
 	}
 
 	private void testNoEcologyCapacity(PhantomTestContext context)
