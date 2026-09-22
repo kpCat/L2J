@@ -58,10 +58,12 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 		final PhantomMaterializationService.MaterializeResult result = _service.materialize(profileId);
 		if (result.status() == ResultStatus.SUCCESS)
 		{
+			clearDiagnosticFailure(profileId);
 			return TransitionOutcome.success();
 		}
 		if ((result.status() == ResultStatus.ALREADY_ACTIVE) && isMaterialized(profileId))
 		{
+			clearDiagnosticFailure(profileId);
 			return TransitionOutcome.success();
 		}
 		recordDiagnosticFailure(profileId, result);
@@ -75,16 +77,20 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 
 	private synchronized void recordDiagnosticFailure(long profileId, PhantomMaterializationService.MaterializeResult result)
 	{
-		if (!_diagnosticsEnabled || _diagnosticFailures.containsKey(profileId))
-		{
-			return;
-		}
-		if (_diagnosticFailures.size() == MAX_DIAGNOSTIC_PROFILES)
+		final boolean firstFailure = _diagnosticFailures.put(profileId, result.status()) == null;
+		if (_diagnosticFailures.size() > MAX_DIAGNOSTIC_PROFILES)
 		{
 			_diagnosticFailures.remove(_diagnosticFailures.keySet().iterator().next());
 		}
-		_diagnosticFailures.put(profileId, result.status());
-		LOGGER.warning("Phantom materialization boundary diagnostic: profileId=" + profileId + ", status=" + result.status() + ", snapshot=" + result.snapshot());
+		if (_diagnosticsEnabled && firstFailure)
+		{
+			LOGGER.warning("Phantom materialization boundary diagnostic: profileId=" + profileId + ", status=" + result.status() + ", snapshot=" + result.snapshot());
+		}
+	}
+
+	private synchronized void clearDiagnosticFailure(long profileId)
+	{
+		_diagnosticFailures.remove(profileId);
 	}
 
 	@Override

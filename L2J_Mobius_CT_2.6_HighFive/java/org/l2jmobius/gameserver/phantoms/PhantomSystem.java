@@ -211,6 +211,7 @@ public final class PhantomSystem
 	private final boolean _productionMaterialization;
 	private boolean _shutdownFailureForTesting;
 	private PhantomMaterializationService _materializationService;
+	private PhantomMaterializationServiceActivityPort _materializationActivity;
 	private PhantomDecisionEngine _decisionEngine;
 	private PhantomNavigationService _navigationService;
 	private PhantomTopologyService _topologyService;
@@ -311,7 +312,8 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom materialization service could not enter the running state.");
 				}
 				workSinkBridge = new PhantomActivityWorkSinkBridge();
-				_scheduler = createScheduler(new PhantomMaterializationServiceActivityPort(_materializationService, _settings.diagnosticsEnabled()), workSinkBridge);
+				_materializationActivity = new PhantomMaterializationServiceActivityPort(_materializationService, _settings.diagnosticsEnabled());
+				_scheduler = createScheduler(_materializationActivity, workSinkBridge);
 				combatPolicy = PhantomCombatPolicy.productionDefaults(_settings.maxScheduledPhantomProfiles());
 			}
 			else
@@ -1586,6 +1588,8 @@ public final class PhantomSystem
 		final Snapshot snapshot = configured.snapshot();
 		final PhantomMetrics.Snapshot metrics = snapshot.metrics();
 		final PhantomPopulationEcologyService.Snapshot ecology = configured._populationManager == null ? PhantomPopulationEcologyService.Snapshot.disabled() : configured._populationManager.ecologySnapshot();
+		final PhantomPopulationManager.AdmissionSnapshot admission = configured._populationManager == null ? PhantomPopulationManager.AdmissionSnapshot.inactive() : configured._populationManager.admissionSnapshot();
+		final long worldMaterialized = configured._materializationService == null ? 0 : configured._materializationService.snapshot().materializations().stream().filter(entry -> (entry.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE) && entry.worldPresent()).count();
 		final java.util.Map<String, Integer> levelHistogram;
 		try
 		{
@@ -1593,7 +1597,7 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException exception)
 		{
-			return OperatorStatus.readFailure(settings.enabled(), settings.diagnosticsEnabled(), _operatorMode, snapshot, metrics, ecology);
+			return OperatorStatus.readFailure(settings.enabled(), settings.diagnosticsEnabled(), _operatorMode, snapshot, metrics, ecology, admission, worldMaterialized);
 		}
 		return new OperatorStatus(
 			settings.enabled(),
@@ -1617,7 +1621,22 @@ public final class PhantomSystem
 			metrics.shutdownFailures(),
 			ecology,
 			levelHistogram,
-			snapshot.selectedTrace());
+			snapshot.selectedTrace(),
+			admission,
+			worldMaterialized);
+	}
+
+	public static synchronized java.util.Optional<OperatorAdmissionProfile> operatorAdmissionProfile(long profileId)
+	{
+		final PhantomSystem configured = _configuredInstance;
+		if ((profileId <= 0) || (configured == null) || (configured._populationManager == null))
+		{
+			return java.util.Optional.empty();
+		}
+		return configured._populationManager.admissionProfile(profileId).map(admission -> new OperatorAdmissionProfile(admission,
+			configured._scheduler == null ? null : configured._scheduler.find(profileId).orElse(null),
+			configured._materializationService == null ? null : configured._materializationService.find(profileId).orElse(null),
+			configured._materializationActivity == null ? null : configured._materializationActivity.diagnosticFailures().get(profileId)));
 	}
 
 	public static synchronized OperatorEconomicAudit operatorEconomicAudit(long profileId)
@@ -2128,7 +2147,11 @@ public final class PhantomSystem
 		}
 	}
 
-	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomPopulationEcologyService.Snapshot ecology, java.util.Map<String, Integer> levelHistogram, PhantomSelectedDecisionTrace.Snapshot selectedTrace)
+	public record OperatorAdmissionProfile(PhantomPopulationManager.AdmissionProfileSnapshot admission, org.l2jmobius.gameserver.phantoms.activity.PhantomActivitySnapshot scheduler, PhantomMaterializationService.MaterializationSnapshot materialization, PhantomMaterializationService.ResultStatus lastMaterializationFailure)
+	{
+	}
+
+	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomPopulationEcologyService.Snapshot ecology, java.util.Map<String, Integer> levelHistogram, PhantomSelectedDecisionTrace.Snapshot selectedTrace, PhantomPopulationManager.AdmissionSnapshot admission, long worldMaterialized)
 	{
 		public OperatorStatus
 		{
@@ -2138,12 +2161,12 @@ public final class PhantomSystem
 
 		private static OperatorStatus notRunning(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode)
 		{
-			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), false, null, PhantomScheduler.SchedulerState.STOPPED, PhantomDecisionEngine.State.STOPPED, 0, 0, java.util.List.of(0L, 0L, 0L, 0L, 0L), PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL, 0, 0, 0, 0, 0, 0, PhantomPopulationEcologyService.Snapshot.disabled(), java.util.Map.of(), PhantomSelectedDecisionTrace.Snapshot.disabled());
+			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), false, null, PhantomScheduler.SchedulerState.STOPPED, PhantomDecisionEngine.State.STOPPED, 0, 0, java.util.List.of(0L, 0L, 0L, 0L, 0L), PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL, 0, 0, 0, 0, 0, 0, PhantomPopulationEcologyService.Snapshot.disabled(), java.util.Map.of(), PhantomSelectedDecisionTrace.Snapshot.disabled(), PhantomPopulationManager.AdmissionSnapshot.inactive(), 0);
 		}
 
-		private static OperatorStatus readFailure(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, Snapshot snapshot, PhantomMetrics.Snapshot metrics, PhantomPopulationEcologyService.Snapshot ecology)
+		private static OperatorStatus readFailure(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, Snapshot snapshot, PhantomMetrics.Snapshot metrics, PhantomPopulationEcologyService.Snapshot ecology, PhantomPopulationManager.AdmissionSnapshot admission, long worldMaterialized)
 		{
-			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), true, snapshot.state(), snapshot.scheduler().state(), snapshot.decision().state(), metrics.activeCurrent(), metrics.activePeak(), metrics.activity().stateCounts(), snapshot.scheduler().overloadLevel(), snapshot.scheduler().peakOverloadLevel(), snapshot.scheduler().ready(), snapshot.scheduler().due(), snapshot.scheduler().capacity(), metrics.queueAccepted(), metrics.queueRejected(), metrics.shutdownFailures(), ecology, java.util.Map.of("UNAVAILABLE", Math.max(0, ecology.managed())), snapshot.selectedTrace());
+			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), true, snapshot.state(), snapshot.scheduler().state(), snapshot.decision().state(), metrics.activeCurrent(), metrics.activePeak(), metrics.activity().stateCounts(), snapshot.scheduler().overloadLevel(), snapshot.scheduler().peakOverloadLevel(), snapshot.scheduler().ready(), snapshot.scheduler().due(), snapshot.scheduler().capacity(), metrics.queueAccepted(), metrics.queueRejected(), metrics.shutdownFailures(), ecology, java.util.Map.of("UNAVAILABLE", Math.max(0, ecology.managed())), snapshot.selectedTrace(), admission, worldMaterialized);
 		}
 	}
 

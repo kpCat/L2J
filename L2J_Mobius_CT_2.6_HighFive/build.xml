@@ -3882,6 +3882,14 @@
 			<arg value="${qol.level.gap.seed}" />
 		</java>
 	</target>
+	<target name="test-live003-admission" depends="compile-tests" description="Run LIVE-003-0B ecology-aware ACTIVE admission tests without database access.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="live003-admission" />
+			<arg value="30030002" />
+		</java>
+	</target>
 
 	<target name="qol-shop-test" depends="compile-tests" description="Run L2-QOL-001 registered board and native multisell debit/credit tests.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />

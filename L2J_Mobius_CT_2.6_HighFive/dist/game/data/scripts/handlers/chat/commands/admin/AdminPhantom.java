@@ -39,6 +39,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomPopulationResetService.ResetResu
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorControlResult;
+import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorAdmissionProfile;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorEconomicAudit;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorReplayResult;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorStatus;
@@ -110,6 +111,30 @@ public class AdminPhantom implements IAdminCommandHandler
 		{
 			sendStatus(activeChar);
 			return true;
+		}
+		if (arguments.startsWith("status "))
+		{
+			try
+			{
+				final long profileId = Long.parseLong(arguments.substring(7).trim());
+				sendStatus(activeChar);
+				final OperatorAdmissionProfile profile = PhantomSystem.operatorAdmissionProfile(profileId).orElse(null);
+				if (profile == null)
+				{
+					activeChar.sendSysMessage("Phantom profile " + profileId + ": not found in population manager.");
+				}
+				else
+				{
+					activeChar.sendSysMessage("Phantom profile " + profileId + ": population=" + profile.admission().populationState() + ", desired=" + profile.admission().desiredState() + ", eligible=" + profile.admission().eligible() + ", admitted=" + profile.admission().admitted() + ", reason=" + profile.admission().reason() + ", pendingRebalance=" + profile.admission().pendingRebalance() + ".");
+					activeChar.sendSysMessage("Phantom profile " + profileId + ": scheduler=" + (profile.scheduler() == null ? "absent" : profile.scheduler().effectiveState() + "/" + profile.scheduler().transitionStatus() + "/" + profile.scheduler().lastResult()) + ", materialized=" + (profile.materialization() != null && profile.materialization().worldPresent()) + ", nativeFailure=" + profile.lastMaterializationFailure() + ".");
+				}
+				return true;
+			}
+			catch (NumberFormatException e)
+			{
+				sendUsage(activeChar);
+				return false;
+			}
 		}
 		if (arguments.startsWith("economy "))
 		{
@@ -206,6 +231,7 @@ public class AdminPhantom implements IAdminCommandHandler
 		final OperatorStatus status = PhantomSystem.operatorStatus();
 		activeChar.sendSysMessage("Phantom status: configured=" + status.configuredEnabled() + ", diagnostics=" + status.diagnosticsEnabled() + ", operatorMode=" + status.operatorMode() + ", desiredRunning=" + status.desiredRuntimeEnabled() + ", runtimeConfigured=" + status.runtimeConfigured() + ", runtime=" + status.runtimeState() + ".");
 		activeChar.sendSysMessage("Phantom execution: scheduler=" + status.schedulerState() + ", decision=" + status.decisionState() + ", active=" + status.activeCurrent() + ", activePeak=" + status.activePeak() + ".");
+		activeChar.sendSysMessage("Phantom admission: at=" + status.admission().evaluatedAt() + ", desired=" + status.admission().desiredActive() + ", eligible=" + status.admission().eligibleActive() + ", admitted=" + status.admission().admittedActive() + ", effective=" + status.activityStateCounts().get(0) + ", worldMaterialized=" + status.worldMaterialized() + ", target=" + status.admission().activeTarget() + ", cap=" + status.admission().materializedCap() + ", pendingRebalance=" + status.admission().pendingRebalance() + " (independent snapshots).");
 		final List<Long> states = status.activityStateCounts();
 		activeChar.sendSysMessage("Phantom activity: ACTIVE=" + states.get(0) + ", NEARBY_PERCEPTIBLE=" + states.get(1) + ", WARM=" + states.get(2) + ", BACKGROUND=" + states.get(3) + ", SLEEPING=" + states.get(4) + ".");
 		activeChar.sendSysMessage("Phantom load: overload=" + status.overloadLevel() + ", overloadPeak=" + status.peakOverloadLevel() + ", ready=" + status.queueReady() + ", due=" + status.queueDue() + ", capacity=" + status.queueCapacity() + ", accepted=" + status.queueAccepted() + ", rejected=" + status.queueRejected() + ".");
@@ -284,7 +310,7 @@ public class AdminPhantom implements IAdminCommandHandler
 
 	private static void sendUsage(Player activeChar)
 	{
-		activeChar.sendSysMessage("Usage: //phantom enable | //phantom drain | //phantom disable | //phantom reset preview | //phantom reset confirm <TOKEN> [reseed] | //phantom reset cancel | //phantom status | //phantom trace <profileId> | //phantom trace clear | //phantom replay capture | //phantom replay run | //phantom replay clear | //phantom economy <profileId>");
+		activeChar.sendSysMessage("Usage: //phantom enable | //phantom drain | //phantom disable | //phantom reset preview | //phantom reset confirm <TOKEN> [reseed] | //phantom reset cancel | //phantom status | //phantom trace <profileId> | //phantom trace clear | //phantom replay capture | //phantom replay run | //phantom replay clear | //phantom economy <profileId> | //phantom status <profileId>");
 	}
 
 	@Override

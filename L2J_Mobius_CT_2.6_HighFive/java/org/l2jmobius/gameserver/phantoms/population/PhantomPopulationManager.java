@@ -93,6 +93,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private final Map<Integer, TreeSet<Long>> _readyIdsByRegion = new HashMap<>();
 	private final Map<Integer, TreeSet<Long>> _desiredActiveIdsByRegion = new HashMap<>();
 	private final Set<Long> _admittedIds = new HashSet<>();
+	private final Set<Long> _eligibleActiveIds = new HashSet<>();
 	private final Map<Integer, Integer> _classHistogram = new HashMap<>();
 	private final Map<Integer, Integer> _levelHistogram = new HashMap<>();
 	private final Map<Integer, Integer> _regionHistogram = new HashMap<>();
@@ -108,6 +109,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private long _clockRecomputeCursor;
 	private long _lastEpochDay = Long.MIN_VALUE;
 	private Instant _lastControlInstant = Instant.MIN;
+	private Instant _lastAdmissionInstant = Instant.MIN;
 	private long _populationGeneration = 1;
 	private long _creationOrdinal;
 	private long _controlCalls;
@@ -739,12 +741,30 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		final long epochDay = now.atZone(_zoneId).toLocalDate().toEpochDay();
 		final Map<Integer, Integer> population = new HashMap<>();
 		_readyIdsByRegion.forEach((region, ids) -> population.put(region, ids.size()));
+		final Map<Integer, TreeSet<Long>> eligibleByRegion = new HashMap<>();
 		final Map<Integer, Integer> desired = new HashMap<>();
-		_desiredActiveIdsByRegion.forEach((region, ids) -> desired.put(region, ids.size()));
+		_eligibleActiveIds.clear();
+		for (Map.Entry<Integer, TreeSet<Long>> regional : _desiredActiveIdsByRegion.entrySet())
+		{
+			final TreeSet<Long> eligible = new TreeSet<>();
+			for (long profileId : regional.getValue())
+			{
+				if ((_ecology == null) || _ecology.permitsScheduling(profileId, now))
+				{
+					eligible.add(profileId);
+					_eligibleActiveIds.add(profileId);
+				}
+			}
+			if (!eligible.isEmpty())
+			{
+				eligibleByRegion.put(regional.getKey(), eligible);
+				desired.put(regional.getKey(), eligible.size());
+			}
+		}
 		final int limit = Math.min(Math.min(_activeTarget, _maximumMaterialized), desired.values().stream().mapToInt(Integer::intValue).sum());
 		final Map<Integer, Integer> quotas = largestRemainderCounts(population, desired, limit);
 		final Set<Long> admitted = new HashSet<>();
-		for (Map.Entry<Integer, TreeSet<Long>> regional : _desiredActiveIdsByRegion.entrySet())
+		for (Map.Entry<Integer, TreeSet<Long>> regional : eligibleByRegion.entrySet())
 		{
 			final TreeSet<Long> ids = regional.getValue();
 			final int quota = Math.min(quotas.getOrDefault(regional.getKey(), 0), ids.size());
@@ -776,6 +796,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		changed.removeIf(profileId -> _admittedIds.contains(profileId) == admitted.contains(profileId));
 		_admittedIds.clear();
 		_admittedIds.addAll(admitted);
+		_lastAdmissionInstant = now;
 		for (long profileId : changed)
 		{
 			final Entry entry = _entries.get(profileId);
@@ -1019,7 +1040,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				entry._forceScheduleEvaluation = false;
 				evaluateScheduleLocked(entry, now);
 			}
-			entry._effectiveState = ((_ecology != null) && !_ecology.permitsScheduling(action.profileId())) ? PhantomActivityState.SLEEPING : effectiveStateLocked(entry);
+			entry._effectiveState = ((_ecology != null) && !_ecology.permitsScheduling(action.profileId(), now)) ? PhantomActivityState.SLEEPING : effectiveStateLocked(entry);
 			effective = entry._effectiveState;
 			sequence = ++entry._signalSequence;
 			final long untilBoundary = Math.max(1, ChronoUnit.MILLIS.between(now, entry._nextBoundary));
@@ -1358,6 +1379,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			final Entry entry = _entries.get(profileId);
 			if ((_lifecycle == LifecycleState.RUNNING) && (entry != null) && (entry._snapshot.state().state() == State.READY))
 			{
+				_admissionDirty = true;
 				queueActionLocked(entry, ((_ecology != null) && _ecology.permitsScheduling(profileId)) ? RetryActionType.READY_RELOAD : RetryActionType.READY_SCHEDULE, 0, _controlCalls);
 			}
 		}
@@ -1516,6 +1538,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			_readyIds.clear();
 			_readyIdsByRegion.clear();
 			_desiredActiveIdsByRegion.clear();
+			_eligibleActiveIds.clear();
 			_admittedIds.clear();
 			_classHistogram.clear();
 			_levelHistogram.clear();
@@ -1535,6 +1558,37 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		synchronized (_monitor)
 		{
 			return new Snapshot(_lifecycle, _target, _activeTarget, _entries.size(), _readyCount, _retiredCount, _inconsistentCount, _inconsistentDeficit, _due.size(), 0, _retryActions.size(), _lastPulseOperations, _controlCalls, _controlClaims, _creationClaims, _persistenceClaims, _peakOperations, _peakCreationClaims, _peakPersistenceClaims, Map.copyOf(_classHistogram), Map.copyOf(_levelHistogram), Map.copyOf(_regionHistogram));
+		}
+	}
+
+	public AdmissionSnapshot admissionSnapshot()
+	{
+		synchronized (_monitor)
+		{
+			int desired = 0;
+			for (TreeSet<Long> ids : _desiredActiveIdsByRegion.values())
+			{
+				desired += ids.size();
+			}
+			return new AdmissionSnapshot(_lastAdmissionInstant, desired, _eligibleActiveIds.size(), _admittedIds.size(), _activeTarget, _maximumMaterialized, _admissionDirty);
+		}
+	}
+
+	public Optional<AdmissionProfileSnapshot> admissionProfile(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			if (entry == null)
+			{
+				return Optional.empty();
+			}
+			final boolean ready = entry._snapshot.state().state() == State.READY;
+			final boolean desired = ready && (entry._desiredState == PhantomActivityState.ACTIVE);
+			final boolean eligible = desired && _eligibleActiveIds.contains(profileId);
+			final boolean admitted = eligible && _admittedIds.contains(profileId);
+			final String reason = !ready ? "not_ready" : !desired ? "schedule_not_active" : !eligible ? "ecology_fenced" : !admitted ? "capacity" : "admitted";
+			return Optional.of(new AdmissionProfileSnapshot(profileId, entry._snapshot.state().state(), entry._desiredState, entry._effectiveState, eligible, admitted, reason, _admissionDirty));
 		}
 	}
 
@@ -1627,6 +1681,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 					}
 				}
 				removeDesiredActiveLocked(entry);
+				_eligibleActiveIds.remove(profileId);
 				_admittedIds.remove(profileId);
 				_admissionDirty = true;
 			}
@@ -1727,6 +1782,18 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			return new Snapshot(LifecycleState.STOPPED, 0, 0, 0, 0, 0, 0, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Map.of(), Map.of(), Map.of());
 		}
+	}
+
+	public record AdmissionSnapshot(Instant evaluatedAt, int desiredActive, int eligibleActive, int admittedActive, int activeTarget, int materializedCap, boolean pendingRebalance)
+	{
+		public static AdmissionSnapshot inactive()
+		{
+			return new AdmissionSnapshot(Instant.MIN, 0, 0, 0, 0, 0, false);
+		}
+	}
+
+	public record AdmissionProfileSnapshot(long profileId, State populationState, PhantomActivityState desiredState, PhantomActivityState effectiveState, boolean eligible, boolean admitted, String reason, boolean pendingRebalance)
+	{
 	}
 
 	public record AdmissionProfile(long profileId, int regionId, long seed, PhantomActivityState desiredState)

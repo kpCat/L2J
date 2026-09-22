@@ -267,6 +267,7 @@ public final class PhantomTestLauncher
 			case "goal033a1-topology-ingress" -> new PhantomGoal033A1TopologyIngressSuite();
 			case "historical-background-goal033a" -> new PhantomHistoricalBackgroundGoal033ASuite();
 			case "population-ecology-goal033" -> new PhantomPopulationEcologyGoal033Suite();
+			case "live003-admission" -> new PhantomLive003AdmissionSuite();
 			case "population-ecology-production-goal033" -> new PhantomPopulationEcologyProductionGoal033Suite();
 			case "siege-goal035" -> new PhantomSiegeGoal035Suite();
 			case "quest-instance-goal036" -> new PhantomQuestInstanceGoal036Suite();

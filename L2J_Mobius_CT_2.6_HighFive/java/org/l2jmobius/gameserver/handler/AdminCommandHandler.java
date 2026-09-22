@@ -84,6 +84,10 @@ public class AdminCommandHandler implements IHandler<IAdminCommandHandler, Strin
 	{
 		if (!player.isGM())
 		{
+			if (fullCommand.equals("admin_phantom") || fullCommand.startsWith("admin_phantom "))
+			{
+				player.sendMessage("Недостаточно прав для команды Phantom.");
+			}
 			return;
 		}
 		

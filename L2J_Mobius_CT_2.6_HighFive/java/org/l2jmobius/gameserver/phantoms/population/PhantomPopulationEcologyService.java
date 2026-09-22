@@ -497,7 +497,12 @@ public final class PhantomPopulationEcologyService
 
 	public boolean permitsScheduling(long profileId)
 	{
-		final long now = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
+		return permitsScheduling(profileId, _clock.instant());
+	}
+
+	public boolean permitsScheduling(long profileId, Instant instant)
+	{
+		final long now = Math.max(0, Objects.requireNonNull(instant, "Scheduling instant must not be null.").toEpochMilli() / MINUTE_MILLIS);
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
