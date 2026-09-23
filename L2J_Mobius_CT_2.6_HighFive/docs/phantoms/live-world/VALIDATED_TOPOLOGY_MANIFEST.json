@@ -1,0 +1,29 @@
+{
+  "schema": "LIVE-002-C/1",
+  "datasetId": "high-five-core",
+  "datasetVersion": 4,
+  "anchorValidationSha256": "42a3987c12a74cc9cad369e919680ef6798488262eee4dcfbddc3ef391b79b04",
+  "routeValidationSha256": "1c1d4b19669d704c162e971fcc6a24bdd3cb1325bc3783d9cfadc552a326a22b",
+  "ruinsValidationSha256": "785d75c6a5909180bb88c3069786ef0b663bbbbbb1d1f2cb6da10f5214c5fb4b",
+  "generatedNodes": 919,
+  "generatedEdges": 1424,
+  "travelPolicy": "ceil(validated path length / 100 world units per second), minimum 1000 ms",
+  "shards": {
+    "high-five-generated-01.xml": "9242aaf4f4d711cbf99311f2be4f049110c83acb1e242bd7ca22dbcd03e051c4"
+  },
+  "bands": [
+    {"band": "1-5", "validated": 38, "reachable": 8, "unreachableValidated": 30, "anchorBlocked": 56, "routeBlocked": 30},
+    {"band": "6-10", "validated": 50, "reachable": 0, "unreachableValidated": 50, "anchorBlocked": 99, "routeBlocked": 50},
+    {"band": "11-19", "validated": 42, "reachable": 0, "unreachableValidated": 42, "anchorBlocked": 166, "routeBlocked": 42},
+    {"band": "20-39", "validated": 192, "reachable": 0, "unreachableValidated": 192, "anchorBlocked": 392, "routeBlocked": 192},
+    {"band": "40-51", "validated": 136, "reachable": 0, "unreachableValidated": 136, "anchorBlocked": 427, "routeBlocked": 136},
+    {"band": "52-60", "validated": 52, "reachable": 0, "unreachableValidated": 52, "anchorBlocked": 202, "routeBlocked": 52},
+    {"band": "61-75", "validated": 337, "reachable": 0, "unreachableValidated": 337, "anchorBlocked": 380, "routeBlocked": 337},
+    {"band": "76-80", "validated": 154, "reachable": 0, "unreachableValidated": 154, "anchorBlocked": 222, "routeBlocked": 154},
+    {"band": "81-85", "validated": 36, "reachable": 0, "unreachableValidated": 36, "anchorBlocked": 45, "routeBlocked": 36}
+  ],
+  "ruinsCandidateGroups": 10,
+  "ruinsValidatedGroups": 0,
+  "ruinsLandmarkPathProven": 0,
+  "ruinsPlannerReachableGroups": 0
+}

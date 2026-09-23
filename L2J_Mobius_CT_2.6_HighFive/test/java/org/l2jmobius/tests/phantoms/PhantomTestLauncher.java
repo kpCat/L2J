@@ -264,8 +264,10 @@ public final class PhantomTestLauncher
 			case "topology-signal-ledger" -> new PhantomTopologySignalLedgerSuite();
 			case "topology-generation" -> new PhantomTopologyGenerationSuite();
 			case "topology-corpus" -> new PhantomTopologyProductionCorpusSuite();
+			case "topology-geodata-validation" -> new PhantomTopologyGeodataValidator();
 			case "goal033a1-topology-ingress" -> new PhantomGoal033A1TopologyIngressSuite();
 			case "historical-background-goal033a" -> new PhantomHistoricalBackgroundGoal033ASuite();
+			case "generated-historical-route" -> new PhantomGeneratedHistoricalRouteSuite();
 			case "population-ecology-goal033" -> new PhantomPopulationEcologyGoal033Suite();
 			case "live003-admission" -> new PhantomLive003AdmissionSuite();
 			case "population-ecology-production-goal033" -> new PhantomPopulationEcologyProductionGoal033Suite();

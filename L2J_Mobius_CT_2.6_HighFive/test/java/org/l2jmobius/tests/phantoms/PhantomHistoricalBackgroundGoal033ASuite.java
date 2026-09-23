@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -69,8 +70,12 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundP
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Identity;
@@ -98,7 +103,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdgeMode;
 
 /** Focused Goal033A causal historical Background integration gate. */
-public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuite
+public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuite
 {
 	private static final long SEED = 33003312L;
 	private static final long FROM_MINUTE = 1_000_000L;
@@ -219,6 +224,7 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 			final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(goal);
 			PhantomAssertions.assertEquals(PhantomGoalStatus.ACTIVE, goal.status(), "Planner did not persist an ACTIVE farm.background goal.");
 			assertPlannerEvidence(baseline, spec);
+			assertGeneratedPlannerRoute(baseline, runtime.planner(), context);
 
 			final var replanned = runtime.planner().replan(profileId, baseline, goal, context.seed(), 1);
 			final var restartedPlan = runtime.planner().replan(profileId, baseline, goal, context.seed(), 1);
@@ -242,6 +248,20 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 			context.record("goal033a.selectedNpcId", spec.npcId());
 			context.record("goal033a.selectedFarmAnchor", spec.anchorId());
 			context.record("goal033a.initialIngressAnchor", baseline.position().committedAnchorId());
+		}
+	}
+
+	protected void testGeneratedRoute(PhantomTestContext context) throws Exception
+	{
+		final ManagedSnapshot managed = createManaged(context.seed());
+		try (RuntimeHarness runtime = openRuntime(managed.profile().profileId(), new PhantomBackgroundTransaction()))
+		{
+			final long profileId = managed.profile().profileId();
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, runtime.materialization().materialize(profileId).status(), "Generated route preflight materialization failed.");
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, runtime.materialization().dematerialize(profileId).status(), "Generated route preflight dematerialization failed.");
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Generated route canonical baseline failed: " + begun.reason());
+			assertGeneratedPlannerRoute(runtime.transaction().load(profileId).state(), runtime.planner(), context);
 		}
 	}
 	private void testAtomicFaultReplayAndRestart(PhantomTestContext context) throws Exception
@@ -705,6 +725,40 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 			currentAnchor = edge.toAnchorId();
 		}
 		PhantomAssertions.assertEquals(spec.anchorId(), currentAnchor, "Planner route does not terminate at the selected FARMING anchor.");
+	}
+
+	private void assertGeneratedPlannerRoute(PhantomBackgroundState baseline, PhantomHistoricalBackgroundPlanner planner, PhantomTestContext context)
+	{
+		final int level = baseline.progress().level();
+		final var targets = _production.knowledge().suitableTargets(new TargetQuery(Math.max(1, level - 2), level + 2, level, null, null, Set.of(NpcKind.MONSTER), true, true, null, null, null, PageRequest.first(64))).values();
+		for (var target : targets)
+		{
+			for (var area : target.representativeAreas())
+			{
+				if ((area.topologyNodeId() == null) || !area.topologyNodeId().startsWith("generated.") || (area.instanceId() != 0) || (area.totalConfiguredAmount() <= 0))
+				{
+					continue;
+				}
+				for (var anchor : _production.topology().snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()))
+				{
+					final var route = _production.topology().routeHint(baseline.position().committedAnchorId(), anchor.id()).orElse(null);
+					if ((route == null) || route.edgeIds().isEmpty() || route.edgeIds().stream().noneMatch(edgeId -> edgeId.startsWith("generated.")))
+					{
+						continue;
+					}
+					final int npcId = target.npc().npcId();
+					final PhantomGoal goal = new PhantomGoal(1, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), new PhantomDomainRef(PhantomBackgroundGoalSpec.NPC_NAMESPACE, Integer.toString(npcId)), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, npcId + "@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "background.catchup.plan", 0);
+				if (planner.remainsSuitable(baseline, goal))
+				{
+					context.record("goal033a.generatedRoute", String.join(",", route.edgeIds()));
+					context.record("goal033a.generatedAnchor", anchor.id());
+					context.record("goal033a.generatedNpcId", npcId);
+					return;
+				}
+				}
+			}
+		}
+		PhantomAssertions.assertTrue(false, "Historical planner consumed no newly published generated farming route from the actual ingress.");
 	}
 
 	private ManagedSnapshot createManaged(long seed)

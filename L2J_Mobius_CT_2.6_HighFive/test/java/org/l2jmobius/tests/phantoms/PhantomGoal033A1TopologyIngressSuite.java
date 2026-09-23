@@ -249,7 +249,7 @@ public final class PhantomGoal033A1TopologyIngressSuite implements PhantomTestSu
 		_nonDirectNavigation.clear();
 		_degradedNavigationSegments = 0;
 		requireManifest(_manifest);
-		PhantomAssertions.assertEquals(3, _topology.datasetVersion(), "Goal033A1 topology dataset version changed.");
+		PhantomAssertions.assertEquals(4, _topology.datasetVersion(), "Goal033A1 topology dataset version changed.");
 		final var knowledge = _production.knowledge().snapshot();
 		final Set<String> validatedEdgeIds = new HashSet<>();
 

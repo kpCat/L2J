@@ -20,6 +20,8 @@
  */
 package org.l2jmobius.tests.phantoms;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -38,6 +40,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNodeKind;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationException;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationBackend.DoorState;
 
 public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSuite
@@ -46,6 +49,7 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 	private L2jTopologyValidationBackend _backend;
 	private PhantomTopologySnapshot _snapshot;
 	private PhantomTopologyQuery _query;
+	private Path _moduleRoot;
 
 	@Override
 	public String id()
@@ -56,6 +60,7 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
+		_moduleRoot = context.moduleRoot();
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
 		MapRegionData.getInstance();
@@ -95,16 +100,18 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 		registry.add("05-source-evidence-complete", _ -> testSources());
 		registry.add("06-representative-roles-and-modes", _ -> testCoverage());
 		registry.add("07-exact-feasible-territory-polygons", _ -> testFeasibleTerritories());
+		registry.add("08-generated-proof-only", _ -> testGeneratedProof());
+		registry.add("09-mismatched-dataset-metadata-rejected", _ -> testMetadataMismatch());
 	}
 
 	private void testDataset()
 	{
 		PhantomAssertions.assertEquals("high-five-core", _snapshot.datasetId(), "Production topology dataset ID changed.");
 		PhantomAssertions.assertEquals(1, _snapshot.schemaVersion(), "Production topology schema version changed.");
-		PhantomAssertions.assertEquals(3, _snapshot.datasetVersion(), "Production topology dataset version changed.");
-		PhantomAssertions.assertEquals(112, _snapshot.nodes().size(), "Production topology node count changed.");
-		PhantomAssertions.assertEquals(113, _snapshot.anchors().size(), "Production topology anchor count changed.");
-		PhantomAssertions.assertEquals(83, _snapshot.edges().size(), "Production topology edge count changed.");
+		PhantomAssertions.assertEquals(4, _snapshot.datasetVersion(), "Production topology dataset version changed.");
+		PhantomAssertions.assertEquals(1031, _snapshot.nodes().size(), "Production topology node count changed.");
+		PhantomAssertions.assertEquals(1032, _snapshot.anchors().size(), "Production topology anchor count changed.");
+		PhantomAssertions.assertEquals(1507, _snapshot.edges().size(), "Production topology edge count changed.");
 		PhantomAssertions.assertEquals(64, _snapshot.canonicalHash().length(), "Production topology canonical SHA-256 length changed.");
 		for (String id : List.of("giran.castle.siege.outer", "giran.castle.siege.inner"))
 		{
@@ -167,8 +174,8 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 
 	private void testFeasibleTerritories()
 	{
-		final var nodes = _snapshot.nodes().stream().filter(node -> (node.kind() == PhantomTopologyNodeKind.FARMING_AREA) && (node.area().form() == Form.POLYGON)).toList();
-		final var anchors = _snapshot.anchors().stream().filter(anchor -> (anchor.role() == PhantomTopologyAnchorRole.FARMING) && (_snapshot.nodeById().get(anchor.nodeId()).area().form() == Form.POLYGON)).toList();
+		final var nodes = _snapshot.nodes().stream().filter(node -> !node.id().startsWith("generated.") && (node.kind() == PhantomTopologyNodeKind.FARMING_AREA) && (node.area().form() == Form.POLYGON)).toList();
+		final var anchors = _snapshot.anchors().stream().filter(anchor -> !anchor.id().startsWith("generated.") && (anchor.role() == PhantomTopologyAnchorRole.FARMING) && (_snapshot.nodeById().get(anchor.nodeId()).area().form() == Form.POLYGON)).toList();
 		final StringBuilder zDrift = new StringBuilder();
 		PhantomAssertions.assertEquals(20, nodes.size(), "Feasible factual territory node count changed.");
 		PhantomAssertions.assertEquals(20, anchors.size(), "Feasible factual territory anchor count changed.");
@@ -195,5 +202,76 @@ public final class PhantomTopologyProductionCorpusSuite implements PhantomTestSu
 			PhantomAssertions.assertEquals(node.sourceRefs(), anchor.sourceRefs(), "Feasible node/anchor source identity differs.");
 		}
 		PhantomAssertions.assertEquals("", zDrift.toString(), "Feasible territory anchor Z is not GeoEngine-normalized.");
+	}
+
+	private void testGeneratedProof() throws Exception
+	{
+		final Path evidence = _moduleRoot.resolve("docs/phantoms/live-world");
+		int anchorRows = 0;
+		int validAnchors = 0;
+		for (String line : Files.readAllLines(evidence.resolve("ANCHOR_GEODATA_VALIDATION.tsv"), StandardCharsets.UTF_8).stream().skip(1).toList())
+		{
+			final String[] fields = line.split("\t", -1);
+			anchorRows++;
+			final var node = _snapshot.nodeById().get(fields[1]);
+			final var anchor = _snapshot.anchorById().get(fields[2]);
+			if (fields[3].equals("VALID"))
+			{
+				validAnchors++;
+				PhantomAssertions.assertTrue((node != null) && (anchor != null), "Proven generated node/anchor was not published.");
+				PhantomAssertions.assertEquals(Integer.parseInt(fields[6]), anchor.point().z(), "Published generated Z differs from GeoEngine proof.");
+			}
+			else
+			{
+				PhantomAssertions.assertTrue((node == null) && (anchor == null), "Unvalidated generated node/anchor became active.");
+			}
+		}
+		PhantomAssertions.assertEquals(2632, anchorRows, "Generated anchor accounting changed.");
+		PhantomAssertions.assertEquals(919, validAnchors, "Generated anchor proof count changed.");
+		int routeRows = 0;
+		int validEdges = 0;
+		for (String line : Files.readAllLines(evidence.resolve("ROUTE_GEODATA_VALIDATION.tsv"), StandardCharsets.UTF_8).stream().skip(1).toList())
+		{
+			final String[] fields = line.split("\t", -1);
+			routeRows++;
+			if (fields[1].equals("E"))
+			{
+				continue;
+			}
+			final var edge = _snapshot.edgeById().get(fields[0] + (fields[1].equals("F") ? ".f" : ".r"));
+			if (fields[6].startsWith("VALID_"))
+			{
+				validEdges++;
+				PhantomAssertions.assertTrue(edge != null, "Geodata-proven directed route was not published.");
+				PhantomAssertions.assertEquals(PhantomTopologyEdgeMode.BACKGROUND, edge.mode(), "Generated planner edge is not BACKGROUND.");
+				PhantomAssertions.assertFalse(edge.bidirectional(), "Generated planner edge became bidirectional.");
+				PhantomAssertions.assertTrue(edge.backgroundEligible(), "Generated planner edge is not background eligible.");
+				PhantomAssertions.assertEquals(fields[4], edge.fromAnchorId(), "Generated route source anchor differs from proof.");
+				PhantomAssertions.assertEquals(fields[5], edge.toAnchorId(), "Generated route target anchor differs from proof.");
+			}
+			else
+			{
+				PhantomAssertions.assertTrue(edge == null, "Blocked generated route became active.");
+			}
+		}
+		PhantomAssertions.assertEquals(8657, routeRows, "Candidate route accounting changed.");
+		PhantomAssertions.assertEquals(1424, validEdges, "Generated directed route proof count changed.");
+	}
+
+	private void testMetadataMismatch() throws Exception
+	{
+		final Path directory = Files.createTempDirectory("phantom-topology-metadata-");
+		try
+		{
+			Files.writeString(directory.resolve("a.xml"), "<topology schemaVersion=\"1\" datasetId=\"high-five-core\" datasetVersion=\"4\" />");
+			Files.writeString(directory.resolve("b.xml"), "<topology schemaVersion=\"1\" datasetId=\"high-five-core\" datasetVersion=\"3\" />");
+			PhantomAssertions.assertThrows(PhantomTopologyValidationException.class, () -> new PhantomTopologyLoader(directory, _backend, PhantomTopologyPolicy.productionDefaults()).load(1), "Topology loader accepted mixed datasetVersion metadata.");
+		}
+		finally
+		{
+			Files.deleteIfExists(directory.resolve("a.xml"));
+			Files.deleteIfExists(directory.resolve("b.xml"));
+			Files.deleteIfExists(directory);
+		}
 	}
 }

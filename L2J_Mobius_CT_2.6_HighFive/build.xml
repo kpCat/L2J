@@ -3882,6 +3882,56 @@
 			<arg value="${qol.level.gap.seed}" />
 		</java>
 	</target>
+
+	<target name="phantom-generated-historical-route-test" depends="compile-tests" description="Prove a generated route is accepted by the real historical planner.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing ${phantom.test.schema.manifest}; run prepare-phantom-test-db explicitly." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="600000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="generated-historical-route" />
+			<arg value="${phantom.goal033a.seed}" />
+		</java>
+	</target>
+	<target name="phantom-geodata-rules-test" depends="compile-tests" description="Run focused GeoEngine validation decision controls.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomGeoValidationRulesTest" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game" />
+	</target>
+
+	<target name="phantom-geodata-validation" depends="compile-tests" description="Validate LIVE-002-B candidates with the actual GeoEngine.">
+		<fail unless="phantom.geodata.output" message="Set phantom.geodata.output to an explicit output directory." />
+		<property name="phantom.geodata.input" value="${basedir}/docs/phantoms/live-world" />
+		<property name="phantom.geodata.fixture" value="false" />
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing dedicated Phantom test DB config." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing dedicated Phantom test DB schema manifest." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="3600000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<jvmarg value="-Dphantom.geodata.fixture=${phantom.geodata.fixture}" />
+			<jvmarg value="-Dphantom.geodata.input=${phantom.geodata.input}" />
+			<jvmarg value="-Dphantom.geodata.core=${basedir}/dist/game/data/phantoms/topology/high-five-core.xml" />
+			<jvmarg value="-Dphantom.geodata.output=${phantom.geodata.output}" />
+			<arg value="topology-geodata-validation" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-geodata-publication" depends="compile-tests" description="Publish only proven LIVE-002-C topology to deterministic shards.">
+		<fail unless="phantom.geodata.validation" message="Set phantom.geodata.validation to the validator output directory." />
+		<fail unless="phantom.geodata.output" message="Set phantom.geodata.output to an explicit publication directory." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTopologyGeodataPublisher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000" dir="${datapack}/game">
+			<arg value="${basedir}/docs/phantoms/live-world" />
+			<arg value="${phantom.geodata.validation}" />
+			<arg value="${basedir}/dist/game/data/phantoms/topology/high-five-core.xml" />
+			<arg value="${phantom.geodata.output}" />
+		</java>
+	</target>
 	<target name="test-live003-admission" depends="compile-tests" description="Run LIVE-003-0B ecology-aware ACTIVE admission tests without database access.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

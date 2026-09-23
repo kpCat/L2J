@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="3">
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
 	<node id="giran.castle.siege.outer" kind="OUTDOOR_AREA" instanceId="0" form="POLYGON" minZ="-14515" maxZ="16000" tags="castle-siege">
 		<vertex x="121412" y="140594" />
 		<vertex x="121358" y="149919" />

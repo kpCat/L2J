@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="3">
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
 	<node id="giran.region" kind="WORLD_REGION" instanceId="0" form="CUBOID" minX="73000" maxX="93000" minY="138000" maxY="158000" minZ="-5000" maxZ="0" tags="city-cluster">
 		<source path="data/mapregion/giran_castle_town.xml" />
 	</node>
