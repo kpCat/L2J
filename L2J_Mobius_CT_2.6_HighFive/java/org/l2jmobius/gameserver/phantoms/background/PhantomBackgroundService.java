@@ -384,7 +384,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final TravelAdvance advance;
 				try
 				{
-					advance = _authority.advanceTravel(state, spec, FARM_TRAVEL_BUDGET_MILLIS);
+					advance = _authority.advanceTravel(state, spec, FARM_TRAVEL_BUDGET_MILLIS, expectedCatchup.cursorEpochMinute());
 				}
 				catch (RuntimeException exception)
 				{
@@ -394,12 +394,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				{
 					return switch (advance.status())
 					{
-						case EDGE_CLOSED, NO_ROUTE -> retry("catchup.travel." + advance.status().name().toLowerCase());
+						case EDGE_CLOSED, NO_ROUTE, INSUFFICIENT_ADENA -> retry("catchup.travel." + advance.status().name().toLowerCase());
 						default -> OperationResult.replan("catchup.travel." + advance.status().name().toLowerCase());
 					};
 				}
-				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_TRAVEL, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
-				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), Map.of(), state.autoGetSkills(), List.of(), null, mutation);
+				final String travelLegId = advance.edgeId().startsWith("leg.") ? advance.edgeId() : "";
+				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_TRAVEL, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical, travelLegId);
+				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), advance.feeAdena() == 0 ? Map.of() : Map.of(57, -advance.feeAdena()), state.autoGetSkills(), List.of(), null, mutation);
 				return commit(claim, command);
 			}
 			final FarmInput input;
@@ -439,25 +440,28 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		for (ActionKind actionKind : List.of(ActionKind.HISTORICAL_TRAVEL, ActionKind.HISTORICAL_FARM, ActionKind.HISTORICAL_DEAD_IDLE))
 		{
-			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(claim.profileId(), claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, actionKind, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
-			if (!claim.state().receipt().operationKey().equals(key.digest()))
+			for (String legId : actionKind == ActionKind.HISTORICAL_TRAVEL ? java.util.stream.Stream.concat(java.util.stream.Stream.of(""), _authority.travelLegIds().stream()).toList() : List.of(""))
 			{
-				continue;
+				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(claim.profileId(), claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, actionKind, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical, legId);
+				if (!claim.state().receipt().operationKey().equals(key.digest()))
+				{
+					continue;
+				}
+				final PhantomBackgroundTransaction.Result result = transaction(() -> _transactions.verifyCommittedHistoricalReplay(claim.profileId(), claim.characterObjectId(), goal, key, catchup));
+				if (result.status() == PhantomBackgroundTransaction.Status.IDEMPOTENT)
+				{
+					_idempotentOperations.incrementAndGet();
+					return OperationResult.idempotent("transaction.idempotent");
+				}
+				final OperationResult failure = mapTransactionFailure(result.status());
+				if (failure.status() == OperationStatus.INCONSISTENT)
+				{
+					claim.retainIdentity();
+					failStop();
+					_failedOperations.incrementAndGet();
+				}
+				return failure;
 			}
-			final PhantomBackgroundTransaction.Result result = transaction(() -> _transactions.verifyCommittedHistoricalReplay(claim.profileId(), claim.characterObjectId(), goal, key, catchup));
-			if (result.status() == PhantomBackgroundTransaction.Status.IDEMPOTENT)
-			{
-				_idempotentOperations.incrementAndGet();
-				return OperationResult.idempotent("transaction.idempotent");
-			}
-			final OperationResult failure = mapTransactionFailure(result.status());
-			if (failure.status() == OperationStatus.INCONSISTENT)
-			{
-				claim.retainIdentity();
-				failStop();
-				_failedOperations.incrementAndGet();
-			}
-			return failure;
 		}
 		return null;
 	}
@@ -690,6 +694,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public OperationResult travel(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos)
 	{
+		return travel(profileId, goal, activityGeneration, tickSequence, activityState, logicalNowNanos, 0);
+	}
+
+	public OperationResult travel(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos, long logicalEpochMinute)
+	{
 		if (activityState != PhantomActivityState.BACKGROUND)
 		{
 			return OperationResult.replan("activity.not_background");
@@ -710,18 +719,19 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return retry("state.not_ready");
 			}
-			final TravelAdvance advance = _authority.advanceTravel(state, claim.spec(), FARM_TRAVEL_BUDGET_MILLIS);
+			final TravelAdvance advance = _authority.advanceTravel(state, claim.spec(), FARM_TRAVEL_BUDGET_MILLIS, logicalEpochMinute);
 			if (!advance.mutated())
 			{
 				return switch (advance.status())
 				{
 					case AT_DESTINATION -> OperationResult.success("travel.at_destination");
-					case EDGE_CLOSED, NO_ROUTE -> retry("travel." + advance.status().name().toLowerCase());
+					case EDGE_CLOSED, NO_ROUTE, INSUFFICIENT_ADENA -> retry("travel." + advance.status().name().toLowerCase());
 					default -> OperationResult.replan("travel." + advance.status().name().toLowerCase());
 				};
 			}
-			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, ActionKind.TRAVEL, claim.spec().npcId(), claim.spec().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes());
-			final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), Map.of(), state.autoGetSkills());
+			final String travelLegId = advance.edgeId().startsWith("leg.") ? advance.edgeId() : "";
+			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, ActionKind.TRAVEL, claim.spec().npcId(), claim.spec().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, null, travelLegId);
+			final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), advance.feeAdena() == 0 ? Map.of() : Map.of(57, -advance.feeAdena()), state.autoGetSkills());
 			return commit(claim, command);
 		}
 	}

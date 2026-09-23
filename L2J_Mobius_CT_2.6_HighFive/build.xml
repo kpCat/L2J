@@ -885,6 +885,22 @@
 		</java>
 	</target>
 
+	<target name="phantom-normal-gatekeeper-travel-test" depends="compile-tests" description="Validate factual NORMAL Gatekeeper travel routes on the guarded test database.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing guarded phantom test database config." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing guarded phantom test database schema manifest." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="180000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="normal-gatekeeper-travel" />
+			<arg value="2002002" />
+		</java>
+	</target>
+
+	<target name="phantom-normal-gatekeeper-d2-focused-test" depends="phantom-normal-gatekeeper-travel-test,phantom-historical-background-goal033a-test,phantom-topology-generation-test,phantom-topology-production-corpus-test,phantom-background-transaction-test,phantom-background-decision-test,phantom-economy-reservation-concurrency-test" description="Run bounded D2 travel, historical, topology, transaction, Decision and economy regressions." />
+
 	<target name="phantom-topology-production-corpus-test" depends="compile-tests" description="Validate the committed topology seed against current High Five loaders.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
 		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />

@@ -48,6 +48,8 @@ import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.handler.ItemHandler;
+import org.l2jmobius.gameserver.managers.CastleManager;
+import org.l2jmobius.gameserver.managers.TownManager;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.enums.creature.Race;
@@ -129,13 +131,43 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	private final Supplier<PhantomTopologyQuery> _topology;
 	private final Supplier<PhantomProgressionCatalog> _progression;
 	private final Supplier<PhantomCommerceCatalog> _commerce;
+	private final PhantomNormalGatekeeperTravel _travel;
+	private volatile PhantomNormalGatekeeperTravel _topologyTravel;
 
 	public L2jPhantomBackgroundAuthority(Supplier<PhantomGameKnowledgeQuery> knowledge, Supplier<PhantomTopologyQuery> topology, Supplier<PhantomProgressionCatalog> progression, Supplier<PhantomCommerceCatalog> commerce)
+	{
+		this(knowledge, topology, progression, commerce, null);
+	}
+
+	public L2jPhantomBackgroundAuthority(Supplier<PhantomGameKnowledgeQuery> knowledge, Supplier<PhantomTopologyQuery> topology, Supplier<PhantomProgressionCatalog> progression, Supplier<PhantomCommerceCatalog> commerce, PhantomNormalGatekeeperTravel travel)
 	{
 		_knowledge = Objects.requireNonNull(knowledge, "knowledge");
 		_topology = Objects.requireNonNull(topology, "topology");
 		_progression = Objects.requireNonNull(progression, "progression");
 		_commerce = Objects.requireNonNull(commerce, "commerce");
+		_travel = travel;
+	}
+
+	@Override
+	public PhantomNormalGatekeeperTravel travelQuery(PhantomTopologyQuery topology)
+	{
+		if (_travel != null)
+		{
+			return _travel.forTopology(topology);
+		}
+		PhantomNormalGatekeeperTravel current = _topologyTravel;
+		if ((current == null) || (current.topology() != topology))
+		{
+			current = PhantomNormalGatekeeperTravel.empty(topology);
+			_topologyTravel = current;
+		}
+		return current;
+	}
+
+	@Override
+	public List<String> travelLegIds()
+	{
+		return _travel == null ? List.of() : _travel.legs().stream().map(PhantomNormalGatekeeperTravel.Leg::id).toList();
 	}
 
 	@Override
@@ -145,7 +177,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final PhantomTopologyQuery topology = _topology.get();
 		final PhantomProgressionCatalog progression = _progression.get();
 		final PhantomCommerceCatalog commerce = _commerce.get();
-		return new Hashes(compositeKnowledgeHash(knowledge.combinedHash()), topology.snapshot().canonicalHash(), progression.combinedHash(), commerce.hashes().combined());
+		final String topologyHash = (_travel == null) || _travel.legs().isEmpty() ? topology.snapshot().canonicalHash() : digest("BACKGROUND_TRAVEL_V1", topology.snapshot().canonicalHash(), _travel.hash());
+		return new Hashes(compositeKnowledgeHash(knowledge.combinedHash()), topologyHash, progression.combinedHash(), commerce.hashes().combined());
 	}
 
 	@Override
@@ -328,16 +361,22 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	@Override
 	public TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis)
 	{
-		return advanceTravel(state, goal.anchorId(), elapsedBudgetMillis);
+		return advanceTravel(state, goal.anchorId(), elapsedBudgetMillis, -1, true);
+	}
+
+	@Override
+	public TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis, long logicalEpochMinute)
+	{
+		return advanceTravel(state, goal.anchorId(), elapsedBudgetMillis, logicalEpochMinute, true);
 	}
 
 	@Override
 	public TravelAdvance advanceAcquisitionTravel(PhantomBackgroundState state, Source source, long elapsedBudgetMillis)
 	{
-		return advanceTravel(state, source.anchorId(), elapsedBudgetMillis);
+		return advanceTravel(state, source.anchorId(), elapsedBudgetMillis, 0, false);
 	}
 
-	private TravelAdvance advanceTravel(PhantomBackgroundState state, String destinationAnchorId, long elapsedBudgetMillis)
+	private TravelAdvance advanceTravel(PhantomBackgroundState state, String destinationAnchorId, long elapsedBudgetMillis, long logicalEpochMinute, boolean allowGatekeeper)
 	{
 		if ((elapsedBudgetMillis <= 0) || (elapsedBudgetMillis > MAX_TRAVEL_BUDGET_MILLIS))
 		{
@@ -352,12 +391,17 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			return unchanged(Status.AT_DESTINATION, state, "");
 		}
-		final PhantomTopologyQuery.RouteHint route = topology.routeHint(state.position().committedAnchorId(), destinationAnchorId).orElse(null);
-		if ((route == null) || route.edgeIds().isEmpty())
+		final List<PhantomNormalGatekeeperTravel.Step> route = (allowGatekeeper ? travelQuery(topology) : PhantomNormalGatekeeperTravel.empty(topology)).route(state.position().committedAnchorId(), destinationAnchorId).orElse(null);
+		if ((route == null) || route.isEmpty())
 		{
 			return unchanged(Status.NO_ROUTE, state, "");
 		}
-		final String edgeId = route.edgeIds().getFirst();
+		final PhantomNormalGatekeeperTravel.Step first = route.getFirst();
+		final String edgeId = first.id();
+		if (first.type() == PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER)
+		{
+			return advanceGatekeeper(state, first, topology, elapsedBudgetMillis, logicalEpochMinute);
+		}
 		final PhantomTopologyEdge edge = topology.snapshot().edgeById().get(edgeId);
 		if ((edge == null) || !edge.backgroundEligible())
 		{
@@ -412,6 +456,52 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			return new TravelAdvance(Status.PARTIAL, state.position(), new Clock(state.clock().rngState(), remaining - elapsedBudgetMillis, state.clock().residualEncounterMillis()), edgeId);
 		}
 		return new TravelAdvance(Status.ARRIVED, canonicalArrival.get(), new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()), edgeId);
+	}
+
+	private TravelAdvance advanceGatekeeper(PhantomBackgroundState state, PhantomNormalGatekeeperTravel.Step step, PhantomTopologyQuery topology, long budgetMillis, long logicalEpochMinute)
+	{
+		final PhantomNormalGatekeeperTravel.Leg leg = step.gatekeeper();
+		final PhantomTopologyAnchor current = topology.findAnchor(step.fromAnchorId()).orElse(null);
+		final PhantomTopologyAnchor arrival = topology.findAnchor(step.toAnchorId()).orElse(null);
+		if ((current == null) || (arrival == null) || !atCanonicalAnchor(state.position(), current) || (state.position().instanceId() != 0))
+		{
+			return unchanged(Status.ANCHOR_MISMATCH, state, step.id());
+		}
+		if ((leg == null) || (logicalEpochMinute < 0) || !PhantomNormalGatekeeperTravel.matchesNative(leg) || !gatekeeperConditions(leg))
+		{
+			return unchanged(Status.UNSUPPORTED_CONDITION, state, step.id());
+		}
+		final Optional<Position> position = canonicalCommittedAnchorPosition(arrival, state.position().heading());
+		if (position.isEmpty())
+		{
+			return unchanged(Status.ANCHOR_MISMATCH, state, step.id());
+		}
+		final long remaining = state.clock().residualTravelMillis() == 0 ? leg.travelMillis() : state.clock().residualTravelMillis();
+		if (remaining > budgetMillis)
+		{
+			return new TravelAdvance(Status.PARTIAL, state.position(), new Clock(state.clock().rngState(), remaining - budgetMillis, state.clock().residualEncounterMillis()), step.id());
+		}
+		final long fee = PhantomNormalGatekeeperTravel.fee(leg, state.identity().classIndex(), state.progress().level(), logicalEpochMinute);
+		if (fee > state.inventory().itemCount(Inventory.ADENA_ID))
+		{
+			return unchanged(Status.INSUFFICIENT_ADENA, state, step.id());
+		}
+		return new TravelAdvance(Status.ARRIVED, position.get(), new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()), step.id(), fee);
+	}
+
+	private static boolean gatekeeperConditions(PhantomNormalGatekeeperTravel.Leg leg)
+	{
+		if (PlayerConfig.TELEPORT_WHILE_SIEGE_IN_PROGRESS)
+		{
+			return true;
+		}
+		final var town = TownManager.getTown(leg.sourceX(), leg.sourceY(), leg.sourceZ());
+		if (town == null)
+		{
+			return false;
+		}
+		final var castle = CastleManager.getInstance().getCastleById(town.getTaxById());
+		return (castle != null) && !castle.getSiege().isInProgress();
 	}
 
 	@Override
@@ -617,6 +707,10 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		if (goal.summonResourceItemId() > 0)
 		{
 			mutableItemIds.add(goal.summonResourceItemId());
+		}
+		if ((_travel != null) && !_travel.legs().isEmpty())
+		{
+			mutableItemIds.add(Inventory.ADENA_ID);
 		}
 		if (mutableItemIds.size() > PhantomBackgroundState.MAX_MUTABLE_ITEM_IDS)
 		{
@@ -910,7 +1004,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
 	private static void requireSupportedPlayer(Player player)
 	{
-		if ((player.getInstanceId() != 0) || player.isFlying() || player.isFlyingMounted() || player.isMounted() || player.isInParty() || player.isInCombat() || player.isGM() || player.hasPremiumStatus() || player.isOnEvent() || player.isFestivalParticipant() || (player.getKarma() != 0) || (player.getNevitHourglassMultiplier() != 1) || (player.getStat().getVitalityMultiplier() != 1))
+		if ((player.getInstanceId() != 0) || player.isFlying() || player.isFlyingMounted() || player.isMounted() || player.isInParty() || player.isInCombat() || player.isCombatFlagEquipped() || player.isGM() || player.hasPremiumStatus() || player.isOnEvent() || player.isFestivalParticipant() || (player.getKarma() != 0) || (player.getNevitHourglassMultiplier() != 1) || (player.getStat().getVitalityMultiplier() != 1))
 		{
 			throw new IllegalArgumentException("Canonical Player is in an unsupported background context.");
 		}

@@ -3553,7 +3553,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		return new PhantomGoal(15, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "self"), new PhantomDomainRef("npc", Integer.toString(npcId)), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, npcId + "@" + anchorId)), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchorId), "farm.background", 500, 0, 0, 0, constraints, "background.explicit", 0);
 	}
 
-	private static PhantomBackgroundState productionState(PhantomTopologyAnchor anchor, Hashes hashes)
+	static PhantomBackgroundState productionState(PhantomTopologyAnchor anchor, Hashes hashes)
 	{
 		return new PhantomBackgroundState(State.READY, new Identity(15001501, 15001501, 0, 0, 0), new Progress(1, 0, 0, 0), new Vitals(100, 100, 100, 100, 10, 10), canonicalAnchorPosition(anchor, 0), combat(ModelKind.MELEE, 1, 1, 0), Loadout.none(), inventory(), List.of(), new Clock(SEED, 0, 0), Receipt.empty(), hashes);
 	}

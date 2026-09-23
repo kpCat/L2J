@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
+import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver;
@@ -394,7 +395,8 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom commerce service could not enter the running state.");
 				}
 				final PhantomPartyParticipationPort.Bridge partyParticipation = PhantomPartyParticipationPort.bridge();
-				final L2jPhantomBackgroundAuthority backgroundAuthority = new L2jPhantomBackgroundAuthority(_gameKnowledgeService::query, _topologyService::query, _progressionService::catalog, _commerceService::catalog);
+				final PhantomNormalGatekeeperTravel travel = PhantomNormalGatekeeperTravel.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/travel/high-five-normal-gk.xml").toPath(), _topologyService.query());
+				final L2jPhantomBackgroundAuthority backgroundAuthority = new L2jPhantomBackgroundAuthority(_gameKnowledgeService::query, _topologyService::query, _progressionService::catalog, _commerceService::catalog, travel);
 				_backgroundService = new PhantomBackgroundService(
 					productionProfiles,
 					productionGoals,

@@ -37,6 +37,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashe
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Position;
 import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 
 /**
  * Read-only authority boundary for canonical runtime facts and immutable loader
@@ -75,6 +76,21 @@ public interface PhantomBackgroundAuthority
 
 	TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis);
 
+	default TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis, long logicalEpochMinute)
+	{
+		return advanceTravel(state, goal, elapsedBudgetMillis);
+	}
+
+	default PhantomNormalGatekeeperTravel travelQuery(PhantomTopologyQuery topology)
+	{
+		return PhantomNormalGatekeeperTravel.empty(topology);
+	}
+
+	default List<String> travelLegIds()
+	{
+		return List.of();
+	}
+
 	Optional<Position> canonicalRecoveryPosition(int x, int y, int z, int instanceId, int heading);
 
 	default TravelAdvance advanceAcquisitionTravel(PhantomBackgroundState state, Source source, long elapsedBudgetMillis)
@@ -111,14 +127,23 @@ public interface PhantomBackgroundAuthority
 		}
 	}
 
-	record TravelAdvance(Status status, Position position, Clock clock, String edgeId)
+	record TravelAdvance(Status status, Position position, Clock clock, String edgeId, long feeAdena)
 	{
+		public TravelAdvance(Status status, Position position, Clock clock, String edgeId)
+		{
+			this(status, position, clock, edgeId, 0);
+		}
+
 		public TravelAdvance
 		{
 			Objects.requireNonNull(status, "status");
 			Objects.requireNonNull(position, "position");
 			Objects.requireNonNull(clock, "clock");
 			edgeId = Objects.requireNonNullElse(edgeId, "");
+			if (feeAdena < 0)
+			{
+				throw new IllegalArgumentException("Negative NORMAL GK fee.");
+			}
 		}
 
 		public boolean mutated()
@@ -134,7 +159,9 @@ public interface PhantomBackgroundAuthority
 			NO_ROUTE,
 			EDGE_NOT_ELIGIBLE,
 			EDGE_CLOSED,
-			ANCHOR_MISMATCH
+			ANCHOR_MISMATCH,
+			INSUFFICIENT_ADENA,
+			UNSUPPORTED_CONDITION
 		}
 	}
 }

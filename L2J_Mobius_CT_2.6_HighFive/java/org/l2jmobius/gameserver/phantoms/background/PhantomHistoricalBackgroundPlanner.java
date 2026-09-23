@@ -171,22 +171,12 @@ public final class PhantomHistoricalBackgroundPlanner
 		{
 			return null;
 		}
-		final List<String> route = _topology.routeHint(currentAnchorId, anchorId).map(PhantomTopologyQuery.RouteHint::edgeIds).orElse(null);
+		final List<PhantomNormalGatekeeperTravel.Step> route = _authority.travelQuery(_topology).route(currentAnchorId, anchorId).orElse(null);
 		if ((route == null) || (!currentAnchorId.equals(anchorId) && route.isEmpty()))
 		{
 			return null;
 		}
-		String expectedAnchor = currentAnchorId;
-		for (String edgeId : route)
-		{
-			final PhantomTopologyEdge edge = _topology.snapshot().edgeById().get(edgeId);
-			if ((edge == null) || !edge.backgroundEligible() || (edge.mode() != PhantomTopologyEdgeMode.BACKGROUND) || !edge.fromAnchorId().equals(expectedAnchor) || !_topology.isTraversable(edgeId))
-			{
-				return null;
-			}
-			expectedAnchor = edge.toAnchorId();
-		}
-		return expectedAnchor.equals(anchorId) ? new Candidate(target, anchor, route) : null;
+		return new Candidate(target, anchor, route.stream().map(PhantomNormalGatekeeperTravel.Step::id).toList());
 	}
 
 	private static void putPositivePair(Map<String, Long> constraints, String itemKey, int itemId, String countKey, int count)

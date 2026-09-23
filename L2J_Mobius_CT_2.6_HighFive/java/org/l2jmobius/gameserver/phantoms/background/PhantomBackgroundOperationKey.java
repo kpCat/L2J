@@ -28,17 +28,21 @@ import java.util.Objects;
 
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes;
 
-public record PhantomBackgroundOperationKey(long profileId, int characterObjectId, long goalId, long goalRevision, long activityGeneration, long tickSequence, ActionKind actionKind, int targetNpcId, String anchorId, int modelVersion, Hashes hashes, AcquisitionIdentity acquisition, HistoricalIdentity historical)
+public record PhantomBackgroundOperationKey(long profileId, int characterObjectId, long goalId, long goalRevision, long activityGeneration, long tickSequence, ActionKind actionKind, int targetNpcId, String anchorId, int modelVersion, Hashes hashes, AcquisitionIdentity acquisition, HistoricalIdentity historical, String travelLegId)
 {
+	public PhantomBackgroundOperationKey(long profileId, int characterObjectId, long goalId, long goalRevision, long activityGeneration, long tickSequence, ActionKind actionKind, int targetNpcId, String anchorId, int modelVersion, Hashes hashes, AcquisitionIdentity acquisition, HistoricalIdentity historical)
+	{
+		this(profileId, characterObjectId, goalId, goalRevision, activityGeneration, tickSequence, actionKind, targetNpcId, anchorId, modelVersion, hashes, acquisition, historical, "");
+	}
 
 	public PhantomBackgroundOperationKey(long profileId, int characterObjectId, long goalId, long goalRevision, long activityGeneration, long tickSequence, ActionKind actionKind, int targetNpcId, String anchorId, int modelVersion, Hashes hashes)
 	{
-		this(profileId, characterObjectId, goalId, goalRevision, activityGeneration, tickSequence, actionKind, targetNpcId, anchorId, modelVersion, hashes, null, null);
+		this(profileId, characterObjectId, goalId, goalRevision, activityGeneration, tickSequence, actionKind, targetNpcId, anchorId, modelVersion, hashes, null, null, "");
 	}
 
 	public PhantomBackgroundOperationKey(long profileId, int characterObjectId, long goalId, long goalRevision, long activityGeneration, long tickSequence, ActionKind actionKind, int targetNpcId, String anchorId, int modelVersion, Hashes hashes, AcquisitionIdentity acquisition)
 	{
-		this(profileId, characterObjectId, goalId, goalRevision, activityGeneration, tickSequence, actionKind, targetNpcId, anchorId, modelVersion, hashes, acquisition, null);
+		this(profileId, characterObjectId, goalId, goalRevision, activityGeneration, tickSequence, actionKind, targetNpcId, anchorId, modelVersion, hashes, acquisition, null, "");
 	}
 
 	public PhantomBackgroundOperationKey
@@ -50,6 +54,11 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 		Objects.requireNonNull(actionKind, "actionKind");
 		Objects.requireNonNull(anchorId, "anchorId");
 		Objects.requireNonNull(hashes, "hashes");
+		travelLegId = Objects.requireNonNull(travelLegId, "travelLegId");
+		if (!travelLegId.isEmpty() && (((actionKind != ActionKind.TRAVEL) && (actionKind != ActionKind.HISTORICAL_TRAVEL)) || !travelLegId.matches("leg[.][0-9a-f]{24}")))
+		{
+			throw new IllegalArgumentException("Invalid NORMAL GK travel leg identity.");
+		}
 		final boolean acquisitionAction = (actionKind == ActionKind.ACQUISITION_DEATH_DROP) || (actionKind == ActionKind.ACQUISITION_SPOIL_SWEEP) || (actionKind == ActionKind.ACQUISITION_MANOR_CROP) || (actionKind == ActionKind.ACQUISITION_QUEST_COLLECTION) || (actionKind == ActionKind.ACQUISITION_TRAVEL);
 		final boolean historicalAction = (actionKind == ActionKind.HISTORICAL_FARM) || (actionKind == ActionKind.HISTORICAL_TRAVEL) || (actionKind == ActionKind.HISTORICAL_DEAD_IDLE);
 		if (((acquisition != null) != acquisitionAction) || ((historical != null) != historicalAction) || ((acquisition != null) && (historical != null)))
@@ -66,7 +75,7 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 			final String canonical;
 			if (historical != null)
 			{
-				canonical = "HISTORICAL_BACKGROUND_V1|" + profileId + "|" + characterObjectId + "|" + goalId + "|" + goalRevision + "|" + actionKind + "|" + targetNpcId + "|" + anchorId + "|" + modelVersion + "|" + historical.requestId() + "|" + historical.catchupGeneration() + "|" + historical.intervalOrdinal() + "|" + historical.fromEpochMinute() + "|" + historical.nextEpochMinute() + "|" + historical.planIdentity() + "|" + hashes.knowledge() + "|" + hashes.topology() + "|" + hashes.progression() + "|" + hashes.commerce();
+				canonical = "HISTORICAL_BACKGROUND_V1|" + profileId + "|" + characterObjectId + "|" + goalId + "|" + goalRevision + "|" + actionKind + "|" + targetNpcId + "|" + anchorId + "|" + modelVersion + "|" + historical.requestId() + "|" + historical.catchupGeneration() + "|" + historical.intervalOrdinal() + "|" + historical.fromEpochMinute() + "|" + historical.nextEpochMinute() + "|" + historical.planIdentity() + "|" + hashes.knowledge() + "|" + hashes.topology() + "|" + hashes.progression() + "|" + hashes.commerce() + (travelLegId.isEmpty() ? "" : "|" + travelLegId);
 			}
 			else if (acquisition != null)
 			{
@@ -74,7 +83,7 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 			}
 			else
 			{
-				canonical = profileId + "|" + characterObjectId + "|" + goalId + "|" + goalRevision + "|" + activityGeneration + "|" + tickSequence + "|" + actionKind + "|" + targetNpcId + "|" + anchorId + "|" + modelVersion + "|" + hashes.knowledge() + "|" + hashes.topology() + "|" + hashes.progression() + "|" + hashes.commerce();
+				canonical = profileId + "|" + characterObjectId + "|" + goalId + "|" + goalRevision + "|" + activityGeneration + "|" + tickSequence + "|" + actionKind + "|" + targetNpcId + "|" + anchorId + "|" + modelVersion + "|" + hashes.knowledge() + "|" + hashes.topology() + "|" + hashes.progression() + "|" + hashes.commerce() + (travelLegId.isEmpty() ? "" : "|" + travelLegId);
 			}
 			return HexFormat.of().formatHex(digest.digest(canonical.getBytes(StandardCharsets.UTF_8)));
 		}
