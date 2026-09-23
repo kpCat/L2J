@@ -1,0 +1,73 @@
+start_family	level_band	published_ordinary_farms	topology_only_reachable	normal_gk_reachable	closed_area_factual_reachable	final_reachable	blocker_count	witness_coverage_key	witness_path
+dark-elf	1-5	43	3	3	0	3	96	36714f071123eedc9cac6c0520e9b4c9bcf2959e34a6c1e8861d76d6027005f8	population.ingress.dark-elf.01|population.travel.dark-elf.i01->population.route.dark-elf.a1|population.travel.dark-elf.a1-a2->population.route.dark-elf.a2|population.travel.dark-elf.a2-a3->population.route.dark-elf.a3|population.travel.dark-elf.a3-farm->population.farming.dark-elf.20529|generated.route.7b289551494b049c4a895f74.r->generated.farm.36714f071123eedc9cac6c05.anchor
+dark-elf	6-10	50	0	0	0	0	149		UNREACHABLE
+dark-elf	11-19	57	0	0	0	0	223		UNREACHABLE
+dark-elf	20-39	192	0	0	0	0	584		UNREACHABLE
+dark-elf	40-51	136	0	0	0	0	563		UNREACHABLE
+dark-elf	52-60	52	0	0	0	0	254		UNREACHABLE
+dark-elf	61-75	337	0	0	0	0	717		UNREACHABLE
+dark-elf	76-80	154	0	0	0	0	376		UNREACHABLE
+dark-elf	81-85	36	0	0	0	0	81		UNREACHABLE
+dwarf	1-5	43	4	4	0	4	95	38c89747141fb9d2d99ed3f325c90565d1e7de5dc51afe28e21a03175357430f	population.ingress.dwarf.01|bridge.2a7e451e36175b54ee6aae0d->generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor|bridge.e1a849f9e1dc13c6b0376e23->population.route.dwarf.a2|population.travel.dwarf.a2-a3->population.route.dwarf.a3|population.travel.dwarf.a3-a4->population.route.dwarf.a4|population.travel.dwarf.a4-farm->population.farming.dwarf.20533
+dwarf	6-10	50	0	0	0	0	149		UNREACHABLE
+dwarf	11-19	57	0	7	0	7	216	088e8bc59766f22991a08e5d3c7c53d499e6ed75997691ceabef230793bf46a4	population.ingress.dwarf.01|bridge.2a7e451e36175b54ee6aae0d->generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor|bridge.e1a849f9e1dc13c6b0376e23->population.route.dwarf.a2|population.travel.dwarf.a2-a3->population.route.dwarf.a3|population.travel.dwarf.a3-a4->population.route.dwarf.a4|population.travel.dwarf.a4-farm->population.farming.dwarf.20533|generated.route.4e6554c822ccedad3b0e40d8.f->generated.farm.ea72d768f3c8ec3d79c1a530.anchor|normal-gk:leg.d251a83343348fd8765b6f29->generated.farm.088e8bc59766f22991a08e5d.anchor
+dwarf	20-39	192	0	9	0	9	575	013f818c1372afc740e3cbc25d246ffd8e7904b115d7417f3bcce88c3ff2c407	population.ingress.dwarf.01|bridge.2a7e451e36175b54ee6aae0d->generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor|bridge.e1a849f9e1dc13c6b0376e23->population.route.dwarf.a2|population.travel.dwarf.a2-a3->population.route.dwarf.a3|population.travel.dwarf.a3-a4->population.route.dwarf.a4|population.travel.dwarf.a4-farm->population.farming.dwarf.20533|generated.route.4e6554c822ccedad3b0e40d8.f->generated.farm.ea72d768f3c8ec3d79c1a530.anchor|normal-gk:leg.4d913307b9d22d3fc5836e12->generated.farm.475038779aaee6a2e82aa06b.anchor|generated.route.18326207856b7feae43ab92a.f->generated.farm.77743197e238ebb0e1e3eac2.anchor|bridge.77e2c81e767de27b8e7d55cc->generated.farm.013f818c1372afc740e3cbc2.anchor
+dwarf	40-51	136	0	0	0	0	563		UNREACHABLE
+dwarf	52-60	52	0	0	0	0	254		UNREACHABLE
+dwarf	61-75	337	0	0	0	0	717		UNREACHABLE
+dwarf	76-80	154	0	0	0	0	376		UNREACHABLE
+dwarf	81-85	36	0	0	0	0	81		UNREACHABLE
+elf	1-5	43	15	15	0	15	84	315ead3894472d3a362b42775342529f233d9dc4415619c6db09f09ba78befef	population.ingress.elf.01|bridge.44f583e15c029cbdf677311a->generated.farm.c4067c834f12b99e976909a2.anchor|bridge.d1a01ae453f65bcf6dc9a081->generated.farm.428b85922009e44829ae2db0.anchor|generated.route.fae000bace777bcac18f8d31.f->generated.farm.d6f82637bd6fae44cd109781.anchor|bridge.1fd43e92bb12695706422353->generated.farm.315ead3894472d3a362b4277.anchor
+elf	6-10	50	7	7	0	7	142	0a9b6aeb870068f470d93c4bfc1f36373ffa09ccb5eafb1477ce5c9669ab50b2	population.ingress.elf.01|bridge.44f583e15c029cbdf677311a->generated.farm.c4067c834f12b99e976909a2.anchor|bridge.d1a01ae453f65bcf6dc9a081->generated.farm.428b85922009e44829ae2db0.anchor|generated.route.fae000bace777bcac18f8d31.f->generated.farm.d6f82637bd6fae44cd109781.anchor|bridge.0c2cfe5a733ea954170aafea->generated.farm.946a41fbbc63614320c02954.anchor|generated.route.d9e01ca592f2c8af891fe7e5.r->generated.farm.0a9b6aeb870068f470d93c4b.anchor
+elf	11-19	57	5	5	0	5	218	83d3f1fec9580d5628932e77857a4e49f1a9222a7d3fbd440b5c0512cdb6cc4b	population.ingress.elf.01|bridge.44f583e15c029cbdf677311a->generated.farm.c4067c834f12b99e976909a2.anchor|bridge.00a6620ed0f6acd655127829->elven.farming.oren04-2019-21
+elf	20-39	192	0	0	0	0	584		UNREACHABLE
+elf	40-51	136	0	0	0	0	563		UNREACHABLE
+elf	52-60	52	0	0	0	0	254		UNREACHABLE
+elf	61-75	337	0	0	0	0	717		UNREACHABLE
+elf	76-80	154	0	0	0	0	376		UNREACHABLE
+elf	81-85	36	0	0	0	0	81		UNREACHABLE
+human-fighter	1-5	43	0	0	0	0	99		UNREACHABLE
+human-fighter	6-10	50	0	0	0	0	149		UNREACHABLE
+human-fighter	11-19	57	0	0	0	0	223		UNREACHABLE
+human-fighter	20-39	192	0	0	0	0	584		UNREACHABLE
+human-fighter	40-51	136	0	0	0	0	563		UNREACHABLE
+human-fighter	52-60	52	0	0	0	0	254		UNREACHABLE
+human-fighter	61-75	337	0	0	0	0	717		UNREACHABLE
+human-fighter	76-80	154	0	0	0	0	376		UNREACHABLE
+human-fighter	81-85	36	0	0	0	0	81		UNREACHABLE
+human-mystic	1-5	43	4	4	0	4	95	432802d3c2901d9686cb16510def711306bd237ab3a21445b7d83ce7b1512283	population.ingress.human-mystic.01|bridge.2d6a7ad146283857f5a718b7->generated.farm.432802d3c2901d9686cb1651.anchor
+human-mystic	6-10	50	0	0	0	0	149		UNREACHABLE
+human-mystic	11-19	57	0	0	0	0	223		UNREACHABLE
+human-mystic	20-39	192	0	0	0	0	584		UNREACHABLE
+human-mystic	40-51	136	0	0	0	0	563		UNREACHABLE
+human-mystic	52-60	52	0	0	0	0	254		UNREACHABLE
+human-mystic	61-75	337	0	0	0	0	717		UNREACHABLE
+human-mystic	76-80	154	0	0	0	0	376		UNREACHABLE
+human-mystic	81-85	36	0	0	0	0	81		UNREACHABLE
+kamael	1-5	43	1	1	0	1	98	74718a641fa7e78154fea8926b343964df4ceb91b67921e099133978bb74e43f	population.ingress.kamael.01|bridge.0f8e303006a41eaae9bbe8ed->generated.farm.74718a641fa7e78154fea892.anchor
+kamael	6-10	50	0	0	0	0	149		UNREACHABLE
+kamael	11-19	57	0	0	0	0	223		UNREACHABLE
+kamael	20-39	192	0	0	0	0	584		UNREACHABLE
+kamael	40-51	136	0	0	0	0	563		UNREACHABLE
+kamael	52-60	52	0	0	0	0	254		UNREACHABLE
+kamael	61-75	337	0	0	0	0	717		UNREACHABLE
+kamael	76-80	154	0	0	0	0	376		UNREACHABLE
+kamael	81-85	36	0	0	0	0	81		UNREACHABLE
+orc	1-5	43	2	2	0	2	97	b23351f226ffa46e9e3b15380ec02e9910eb4b47a858bbb98d2d32fa3b63a9d3	population.ingress.orc.01|bridge.7916598c4b344229792d93de->generated.farm.eda8543a4ab4d30e028f9b97.anchor|bridge.a259022eae2665972495b265->population.route.orc.a3|population.travel.orc.a3-a4->population.route.orc.a4|population.travel.orc.a4-farm->population.farming.orc.20535
+orc	6-10	50	0	0	0	0	149		UNREACHABLE
+orc	11-19	57	0	0	0	0	223		UNREACHABLE
+orc	20-39	192	0	0	0	0	584		UNREACHABLE
+orc	40-51	136	0	0	0	0	563		UNREACHABLE
+orc	52-60	52	0	0	0	0	254		UNREACHABLE
+orc	61-75	337	0	0	0	0	717		UNREACHABLE
+orc	76-80	154	0	0	0	0	376		UNREACHABLE
+orc	81-85	36	0	0	0	0	81		UNREACHABLE
+GLOBAL	1-5	43	29	29	0	29	70	315ead3894472d3a362b42775342529f233d9dc4415619c6db09f09ba78befef	population.ingress.elf.01|bridge.44f583e15c029cbdf677311a->generated.farm.c4067c834f12b99e976909a2.anchor|bridge.d1a01ae453f65bcf6dc9a081->generated.farm.428b85922009e44829ae2db0.anchor|generated.route.fae000bace777bcac18f8d31.f->generated.farm.d6f82637bd6fae44cd109781.anchor|bridge.1fd43e92bb12695706422353->generated.farm.315ead3894472d3a362b4277.anchor
+GLOBAL	6-10	50	7	7	0	7	142	0a9b6aeb870068f470d93c4bfc1f36373ffa09ccb5eafb1477ce5c9669ab50b2	population.ingress.elf.01|bridge.44f583e15c029cbdf677311a->generated.farm.c4067c834f12b99e976909a2.anchor|bridge.d1a01ae453f65bcf6dc9a081->generated.farm.428b85922009e44829ae2db0.anchor|generated.route.fae000bace777bcac18f8d31.f->generated.farm.d6f82637bd6fae44cd109781.anchor|bridge.0c2cfe5a733ea954170aafea->generated.farm.946a41fbbc63614320c02954.anchor|generated.route.d9e01ca592f2c8af891fe7e5.r->generated.farm.0a9b6aeb870068f470d93c4b.anchor
+GLOBAL	11-19	57	5	12	0	12	211	088e8bc59766f22991a08e5d3c7c53d499e6ed75997691ceabef230793bf46a4	population.ingress.dwarf.01|bridge.2a7e451e36175b54ee6aae0d->generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor|bridge.e1a849f9e1dc13c6b0376e23->population.route.dwarf.a2|population.travel.dwarf.a2-a3->population.route.dwarf.a3|population.travel.dwarf.a3-a4->population.route.dwarf.a4|population.travel.dwarf.a4-farm->population.farming.dwarf.20533|generated.route.4e6554c822ccedad3b0e40d8.f->generated.farm.ea72d768f3c8ec3d79c1a530.anchor|normal-gk:leg.d251a83343348fd8765b6f29->generated.farm.088e8bc59766f22991a08e5d.anchor
+GLOBAL	20-39	192	0	9	0	9	575	013f818c1372afc740e3cbc25d246ffd8e7904b115d7417f3bcce88c3ff2c407	population.ingress.dwarf.01|bridge.2a7e451e36175b54ee6aae0d->generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor|bridge.e1a849f9e1dc13c6b0376e23->population.route.dwarf.a2|population.travel.dwarf.a2-a3->population.route.dwarf.a3|population.travel.dwarf.a3-a4->population.route.dwarf.a4|population.travel.dwarf.a4-farm->population.farming.dwarf.20533|generated.route.4e6554c822ccedad3b0e40d8.f->generated.farm.ea72d768f3c8ec3d79c1a530.anchor|normal-gk:leg.4d913307b9d22d3fc5836e12->generated.farm.475038779aaee6a2e82aa06b.anchor|generated.route.18326207856b7feae43ab92a.f->generated.farm.77743197e238ebb0e1e3eac2.anchor|bridge.77e2c81e767de27b8e7d55cc->generated.farm.013f818c1372afc740e3cbc2.anchor
+GLOBAL	40-51	136	0	0	0	0	563		UNREACHABLE
+GLOBAL	52-60	52	0	0	0	0	254		UNREACHABLE
+GLOBAL	61-75	337	0	0	0	0	717		UNREACHABLE
+GLOBAL	76-80	154	0	0	0	0	376		UNREACHABLE
+GLOBAL	81-85	36	0	0	0	0	81		UNREACHABLE

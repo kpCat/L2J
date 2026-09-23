@@ -1,0 +1,661 @@
+<?xml version='1.0' encoding='utf-8'?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
+	<edge id="bridge.00a6620ed0f6acd655127829" fromNodeId="generated.farm.c4067c834f12b99e976909a2" toNodeId="elven.farming.oren04-2019-21" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="144150" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor" toAnchorId="elven.farming.oren04-2019-21">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.00da323c16accfaa642ddbba" fromNodeId="population.farming.elf.20534" toNodeId="generated.farm.7451e61fe8e94f49afb1f9e2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="51510" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.farming.elf.20534" toAnchorId="generated.farm.7451e61fe8e94f49afb1f9e2.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.010e430bef96ee0a60cd54aa" fromNodeId="population.ingress.kamael.04" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4090" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.04" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.0380ddd106251a89da855250" fromNodeId="generated.farm.c4067c834f12b99e976909a2" toNodeId="population.ingress.elf.04" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="296980" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor" toAnchorId="population.ingress.elf.04">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</edge>
+	<edge id="bridge.095476cb302451958a3ad8e9" fromNodeId="generated.farm.d6f82637bd6fae44cd109781" toNodeId="generated.farm.57a38f13450e54452b749339" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="136410" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor" toAnchorId="generated.farm.57a38f13450e54452b749339.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.099703149806ba77806cce2c" fromNodeId="population.ingress.elf.03" toNodeId="generated.farm.c4067c834f12b99e976909a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="297000" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.03" toAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.0a2bd2df31d1ea194fc087a9" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.ingress.kamael.04" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4090" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.ingress.kamael.04">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</edge>
+	<edge id="bridge.0bda04d1a31966edf8d40f8d" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.ingress.kamael.05" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="8750" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.ingress.kamael.05">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</edge>
+	<edge id="bridge.0c2cfe5a733ea954170aafea" fromNodeId="generated.farm.d6f82637bd6fae44cd109781" toNodeId="generated.farm.946a41fbbc63614320c02954" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="213590" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor" toAnchorId="generated.farm.946a41fbbc63614320c02954.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.0dcd79b055acde11615a7f4f" fromNodeId="generated.farm.58356b4e9844a379fecfbaf6" toNodeId="generated.farm.52dc95334718091370944146" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="24820" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.58356b4e9844a379fecfbaf6.anchor" toAnchorId="generated.farm.52dc95334718091370944146.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.0df83e5f23dd2339809707e3" fromNodeId="generated.farm.57a38f13450e54452b749339" toNodeId="generated.farm.d6f82637bd6fae44cd109781" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="136410" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.57a38f13450e54452b749339.anchor" toAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.0f8e303006a41eaae9bbe8ed" fromNodeId="population.ingress.kamael.01" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10540" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.01" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.0fa88994675ab5594a10058e" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.route.dwarf.i06-w0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3680" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.route.dwarf.i06-w0">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.0fe1e8d7d3692d2ae4835c64" fromNodeId="population.route.kamael.a3" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10610" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.a3" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.10c9fbc8a443dbd7fd67969a" fromNodeId="population.ingress.human-mystic.03" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3810" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-mystic.03" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.12e0b7944285e5fa0e17e03e" fromNodeId="population.route.dwarf.i03-w0" toNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2360" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.i03-w0" toAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.161fa360637753460d2ec3db" fromNodeId="population.route.human-mystic.b2" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="21430" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.b2" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.19f6f3f7f8fec06db3a8ba75" fromNodeId="population.route.dwarf.i06-w0" toNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3690" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.i06-w0" toAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.1c10e722f6f8576ea7255e73" fromNodeId="generated.farm.7451e61fe8e94f49afb1f9e2" toNodeId="generated.farm.428b85922009e44829ae2db0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="70950" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.7451e61fe8e94f49afb1f9e2.anchor" toAnchorId="generated.farm.428b85922009e44829ae2db0.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.1c1bf91725845f6dae87d3b1" fromNodeId="generated.farm.c4067c834f12b99e976909a2" toNodeId="population.ingress.elf.01" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="295690" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor" toAnchorId="population.ingress.elf.01">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</edge>
+	<edge id="bridge.1d86fa52c9d332492fbb0d4f" fromNodeId="generated.farm.d6f82637bd6fae44cd109781" toNodeId="generated.farm.5ee423a52e35fbb905b7ecb0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="110960" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor" toAnchorId="generated.farm.5ee423a52e35fbb905b7ecb0.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.1fd43e92bb12695706422353" fromNodeId="generated.farm.d6f82637bd6fae44cd109781" toNodeId="generated.farm.315ead3894472d3a362b4277" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="47000" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor" toAnchorId="generated.farm.315ead3894472d3a362b4277.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.24f269b65f7eac41afeeeb8f" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.route.dwarf.w1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1000" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.route.dwarf.w1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.272bfe00ae31d6ffec8d8f5a" fromNodeId="population.route.orc.a1" toNodeId="generated.farm.eda8543a4ab4d30e028f9b97" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="15990" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.orc.a1" toAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.279900af078ffa8ece85a2dc" fromNodeId="generated.farm.428b85922009e44829ae2db0" toNodeId="generated.farm.c4067c834f12b99e976909a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="294710" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.428b85922009e44829ae2db0.anchor" toAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.2a7e451e36175b54ee6aae0d" fromNodeId="population.ingress.dwarf.01" toNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1170" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.01" toAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.2ad4971d7f404a1a1087b613" fromNodeId="elven.farming.oren04-2019-21" toNodeId="generated.farm.c4067c834f12b99e976909a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="144150" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="elven.farming.oren04-2019-21" toAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.2b32123a596b85cd1e3a74d9" fromNodeId="generated.farm.519759dffe4a0803b970d3ee" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="135170" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.519759dffe4a0803b970d3ee.anchor" toAnchorId="population.farming.elf.20534">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.2cb734504985f3fbb96ebffa" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.ingress.human-mystic.01" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2960" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.ingress.human-mystic.01">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</edge>
+	<edge id="bridge.2d6a7ad146283857f5a718b7" fromNodeId="population.ingress.human-mystic.01" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2960" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-mystic.01" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.2e0fb8c1b3ca1342a3415c7d" fromNodeId="generated.farm.013f818c1372afc740e3cbc2" toNodeId="generated.farm.df677844f3af094815e984cc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="66800" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.013f818c1372afc740e3cbc2.anchor" toAnchorId="generated.farm.df677844f3af094815e984cc.anchor">
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.2fdb8d5ecd7957b6a1add509" fromNodeId="generated.farm.58356b4e9844a379fecfbaf6" toNodeId="generated.farm.7451e61fe8e94f49afb1f9e2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="31080" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.58356b4e9844a379fecfbaf6.anchor" toAnchorId="generated.farm.7451e61fe8e94f49afb1f9e2.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.3019bae8a854df3671d3f5ae" fromNodeId="generated.farm.7451e61fe8e94f49afb1f9e2" toNodeId="generated.farm.58356b4e9844a379fecfbaf6" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="31080" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.7451e61fe8e94f49afb1f9e2.anchor" toAnchorId="generated.farm.58356b4e9844a379fecfbaf6.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.39eff3fb2110bf839515af87" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.a1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10330" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.a1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.3cd04ab4f1aa3093982bcc45" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.route.human-mystic.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="22960" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.route.human-mystic.a2">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="bridge.3f63ff48e25ce6902c9e583b" fromNodeId="population.ingress.orc.04" toNodeId="generated.farm.eda8543a4ab4d30e028f9b97" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4210" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.04" toAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.3fa9618cce1d8173089eca23" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.ingress.dwarf.01" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1220" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.ingress.dwarf.01">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</edge>
+	<edge id="bridge.436baa7537748ae93997127c" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.d2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17330" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.d2">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.44cb919cce32cb6fc5db19ae" fromNodeId="population.ingress.dwarf.03" toNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3100" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.03" toAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.44f583e15c029cbdf677311a" fromNodeId="population.ingress.elf.01" toNodeId="generated.farm.c4067c834f12b99e976909a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="295690" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.01" toAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.46a969ddfc8b7c460c17f5b2" fromNodeId="generated.farm.013f818c1372afc740e3cbc2" toNodeId="generated.farm.77743197e238ebb0e1e3eac2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="51770" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.013f818c1372afc740e3cbc2.anchor" toAnchorId="generated.farm.77743197e238ebb0e1e3eac2.anchor">
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.491d789e91bbb747f55ea944" fromNodeId="population.route.dark-elf.a1" toNodeId="generated.farm.f66a8a0231b2d83dac29cc4d" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="24270" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dark-elf.a1" toAnchorId="generated.farm.f66a8a0231b2d83dac29cc4d.anchor">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="bridge.4ad6e95e241bbc71b9b0a831" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.route.human-mystic.guard.30733" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="38210" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.route.human-mystic.guard.30733">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+		<source path="data/stats/npcs/30700-30799.xml" />
+	</edge>
+	<edge id="bridge.4e9041c9ef7b09c628188d07" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.ingress.dwarf.04" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2690" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.ingress.dwarf.04">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</edge>
+	<edge id="bridge.4f2fa1226c83f4f220a743f2" fromNodeId="population.ingress.human-mystic.04" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3870" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-mystic.04" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.5064dba268b79d1e184e2956" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.route.dwarf.a1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18590" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.route.dwarf.a1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.53b3b4efcef08d6ed1313983" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4720" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.a2">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.582105c66d9ffd56ed4d2f32" fromNodeId="population.route.kamael.a2" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4720" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.a2" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.589cbf3d36acb8802869a973" fromNodeId="generated.farm.5b2f7b39b431b1d31c0f938a" toNodeId="generated.farm.768fa444a79123489bd7aa1d" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="135050" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.5b2f7b39b431b1d31c0f938a.anchor" toAnchorId="generated.farm.768fa444a79123489bd7aa1d.anchor">
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.63ff6507e914ec0468b62b43" fromNodeId="generated.farm.eda8543a4ab4d30e028f9b97" toNodeId="population.ingress.orc.04" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4210" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor" toAnchorId="population.ingress.orc.04">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</edge>
+	<edge id="bridge.6432b9da24adcfdde27fbb7d" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.ingress.human-mystic.04" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3870" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.ingress.human-mystic.04">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</edge>
+	<edge id="bridge.648fbf533ab082487c514367" fromNodeId="population.route.kamael.a4" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="5900" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.a4" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.683041b75f8512cc0fa11731" fromNodeId="population.ingress.elf.04" toNodeId="generated.farm.c4067c834f12b99e976909a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="296980" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.04" toAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.694cc501c04d3db8b915f3e8" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.route.human-mystic.a1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="21000" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.route.human-mystic.a1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="bridge.6a2cdfc2de7ee23894cf148f" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.ingress.dwarf.06" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3320" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.ingress.dwarf.06">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</edge>
+	<edge id="bridge.6b1c5e51a0a6a0f13fc0e186" fromNodeId="population.route.human-mystic.a2" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="22560" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.a2" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.6c42ef24898d9571908a5645" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.b2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17410" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.b2">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.7331211af610301eea32fbb9" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.ingress.dwarf.05" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2700" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.ingress.dwarf.05">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</edge>
+	<edge id="bridge.765615d7e5536301c1e1ac21" fromNodeId="population.ingress.dwarf.04" toNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2710" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.04" toAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.77b05878010c0aead5946c79" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.route.human-mystic.c1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="38160" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.route.human-mystic.c1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="bridge.77e2c81e767de27b8e7d55cc" fromNodeId="generated.farm.77743197e238ebb0e1e3eac2" toNodeId="generated.farm.013f818c1372afc740e3cbc2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="51770" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.77743197e238ebb0e1e3eac2.anchor" toAnchorId="generated.farm.013f818c1372afc740e3cbc2.anchor">
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.7916598c4b344229792d93de" fromNodeId="population.ingress.orc.01" toNodeId="generated.farm.eda8543a4ab4d30e028f9b97" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4830" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.01" toAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.7a8f2487efb0e4292d7a7cae" fromNodeId="generated.farm.c966cf46f4c8074e4ddbc1d1" toNodeId="generated.farm.58356b4e9844a379fecfbaf6" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="83500" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c966cf46f4c8074e4ddbc1d1.anchor" toAnchorId="generated.farm.58356b4e9844a379fecfbaf6.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.7abaa3c52469113ac0f3a029" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.route.human-mystic.b1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="5400" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.route.human-mystic.b1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="bridge.7d18a1e89e1f314039a0ff1b" fromNodeId="population.ingress.orc.02" toNodeId="generated.farm.eda8543a4ab4d30e028f9b97" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4350" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.02" toAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.7e4b1fe3328c0ac19d1abfde" fromNodeId="population.ingress.kamael.05" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="8750" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.05" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.7fc2ab872b18b69b87ee51ec" fromNodeId="generated.farm.428b85922009e44829ae2db0" toNodeId="generated.farm.7451e61fe8e94f49afb1f9e2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="70950" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.428b85922009e44829ae2db0.anchor" toAnchorId="generated.farm.7451e61fe8e94f49afb1f9e2.anchor">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.8040757b6584826df8b0c295" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.route.dwarf.i03-w0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2320" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.route.dwarf.i03-w0">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.81c07cf86f4495f9e81caa75" fromNodeId="population.ingress.orc.05" toNodeId="generated.farm.eda8543a4ab4d30e028f9b97" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4940" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.05" toAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.829dee6f61c18bedc2d790a9" fromNodeId="generated.farm.52dc95334718091370944146" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="46610" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.52dc95334718091370944146.anchor" toAnchorId="population.farming.elf.20534">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.83629c87cb1319d5572ddc6b" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.c1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17360" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.c1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.84d394706af711b290b36ca0" fromNodeId="population.route.kamael.b2" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="16470" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.b2" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.856bb29709fb572a0275da41" fromNodeId="population.ingress.dwarf.06" toNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3370" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.06" toAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.87bcd7ec60ce4d666bb6ea8e" fromNodeId="generated.farm.5ee423a52e35fbb905b7ecb0" toNodeId="generated.farm.d6f82637bd6fae44cd109781" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="110960" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.5ee423a52e35fbb905b7ecb0.anchor" toAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.89345ce1250d9015b5b1f678" fromNodeId="generated.farm.c4067c834f12b99e976909a2" toNodeId="population.ingress.elf.02" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="296200" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor" toAnchorId="population.ingress.elf.02">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</edge>
+	<edge id="bridge.8e367fb8659f17ffe6132d7d" fromNodeId="generated.farm.e72c2c1fdf7715981415fcdb" toNodeId="population.route.orc.a3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="33120" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.e72c2c1fdf7715981415fcdb.anchor" toAnchorId="population.route.orc.a3">
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</edge>
+	<edge id="bridge.8e64f2cb8acc0592ac77daa3" fromNodeId="generated.farm.a72d8924a597b43a1b34ebbd" toNodeId="generated.farm.a0a916d344116254f0d4e3f5" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="284090" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a72d8924a597b43a1b34ebbd.anchor" toAnchorId="generated.farm.a0a916d344116254f0d4e3f5.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.8e6f15256c8ff2a3277268d9" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.route.human-mystic.b2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="21900" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.route.human-mystic.b2">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+	</edge>
+	<edge id="bridge.9271ca6dadbf7e1e8d0ac08d" fromNodeId="generated.farm.d6f82637bd6fae44cd109781" toNodeId="generated.farm.78d792f9dc16f4ce4003c1ae" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="27670" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor" toAnchorId="generated.farm.78d792f9dc16f4ce4003c1ae.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.948ae391c09fd8d67697f729" fromNodeId="generated.farm.eda8543a4ab4d30e028f9b97" toNodeId="population.ingress.orc.05" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4940" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor" toAnchorId="population.ingress.orc.05">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</edge>
+	<edge id="bridge.9b4c6c45e6289a3f7d90092a" fromNodeId="population.route.human-mystic.a1" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="20530" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.a1" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.9c64fe2a365374fda1549cab" fromNodeId="population.route.dark-elf.a2" toNodeId="generated.farm.f66a8a0231b2d83dac29cc4d" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="24190" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dark-elf.a2" toAnchorId="generated.farm.f66a8a0231b2d83dac29cc4d.anchor">
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+	</edge>
+	<edge id="bridge.9db2ba2b91cfde9ec9c06255" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.d1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17650" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.d1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.a0bfbee34c5dbed99c4b8774" fromNodeId="population.farming.elf.20534" toNodeId="generated.farm.519759dffe4a0803b970d3ee" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="135170" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.farming.elf.20534" toAnchorId="generated.farm.519759dffe4a0803b970d3ee.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.a1c2d4b691ed4345a2864570" fromNodeId="generated.farm.315ead3894472d3a362b4277" toNodeId="generated.farm.d6f82637bd6fae44cd109781" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="47000" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.315ead3894472d3a362b4277.anchor" toAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.a259022eae2665972495b265" fromNodeId="generated.farm.eda8543a4ab4d30e028f9b97" toNodeId="population.route.orc.a3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="54530" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor" toAnchorId="population.route.orc.a3">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="bridge.a32a936d5e2a9bb937bbad93" fromNodeId="population.route.human-mystic.c1" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="37390" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.c1" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.a3bbe0a9ec100fefd8b4384a" fromNodeId="generated.farm.f66a8a0231b2d83dac29cc4d" toNodeId="population.route.dark-elf.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="24190" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.f66a8a0231b2d83dac29cc4d.anchor" toAnchorId="population.route.dark-elf.a2">
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</edge>
+	<edge id="bridge.a484a9ff014aaa51960e97e8" fromNodeId="generated.farm.eda8543a4ab4d30e028f9b97" toNodeId="population.ingress.orc.03" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4560" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor" toAnchorId="population.ingress.orc.03">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</edge>
+	<edge id="bridge.a5a1e99f97b2dd79af223fe3" fromNodeId="generated.farm.7451e61fe8e94f49afb1f9e2" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="51510" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.7451e61fe8e94f49afb1f9e2.anchor" toAnchorId="population.farming.elf.20534">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.a7955371392ad6d4d2565055" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.b4" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17120" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.b4">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.a9572e4fe39f552d43f4918c" fromNodeId="population.route.kamael.d1" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17650" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.d1" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.aa4afee049034baa57a1b7ce" fromNodeId="generated.farm.68243117d5885fe09a0b57bc" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="53190" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.68243117d5885fe09a0b57bc.anchor" toAnchorId="population.farming.elf.20534">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.aaead383e2011ad99f5aa16a" fromNodeId="population.ingress.dwarf.02" toNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1480" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.02" toAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.abad1257030b631fca598f7e" fromNodeId="generated.farm.a0a916d344116254f0d4e3f5" toNodeId="population.farming.elf.20534" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="230400" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a0a916d344116254f0d4e3f5.anchor" toAnchorId="population.farming.elf.20534">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.abc4b330df7d6f7bb39f039e" fromNodeId="generated.farm.f66a8a0231b2d83dac29cc4d" toNodeId="population.route.dark-elf.a1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="24270" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.f66a8a0231b2d83dac29cc4d.anchor" toAnchorId="population.route.dark-elf.a1">
+		<source path="data/spawns/DarkElfTerritory/DarkElfStarting.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/DarkMystic.xml" />
+	</edge>
+	<edge id="bridge.ada98447ac5a326734c582d4" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.a4" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="5900" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.a4">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.ae2b8a4c994d67fa2fdf07aa" fromNodeId="population.route.orc.a3" toNodeId="generated.farm.eda8543a4ab4d30e028f9b97" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="54530" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.orc.a3" toAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.b00e8e05037187ca0b5f5e7f" fromNodeId="generated.farm.9caf3d9715b6ff604306dc10" toNodeId="population.ingress.human-fighter.03" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1520" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.9caf3d9715b6ff604306dc10.anchor" toAnchorId="population.ingress.human-fighter.03">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanFighter.xml" />
+	</edge>
+	<edge id="bridge.b38f958c5cece5327b50a722" fromNodeId="population.route.dwarf.w1" toNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1000" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.dwarf.w1" toAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.b6399f0406f57028ac4a8c21" fromNodeId="population.ingress.elf.02" toNodeId="generated.farm.c4067c834f12b99e976909a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="296200" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.elf.02" toAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor">
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.b7c81a5c7cbfa5a6449eb870" fromNodeId="population.ingress.orc.06" toNodeId="generated.farm.eda8543a4ab4d30e028f9b97" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4280" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.06" toAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.b949b079ea48e10107c5b8f9" fromNodeId="population.farming.elf.20534" toNodeId="generated.farm.52dc95334718091370944146" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="46610" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.farming.elf.20534" toAnchorId="generated.farm.52dc95334718091370944146.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.bd452a7f7ee78fc5967a357f" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.a3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10610" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.a3">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.bdfcf6f89ec2b2b823a6ad77" fromNodeId="population.route.kamael.b1" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18080" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.b1" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.be22a0649e2f711a9fa97f97" fromNodeId="population.route.kamael.b4" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="16650" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.b4" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.bef49edebc8d5d032a9fecae" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.ingress.kamael.06" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="5530" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.ingress.kamael.06">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</edge>
+	<edge id="bridge.c0c9c8dd548cb744e15073e7" fromNodeId="generated.farm.eda8543a4ab4d30e028f9b97" toNodeId="population.ingress.orc.01" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4830" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor" toAnchorId="population.ingress.orc.01">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</edge>
+	<edge id="bridge.c0e5525973ed0d3177813649" fromNodeId="population.ingress.kamael.06" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="5530" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.06" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.c6c875e0a2d691edf931f2a6" fromNodeId="population.farming.elf.20534" toNodeId="generated.farm.68243117d5885fe09a0b57bc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="53190" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.farming.elf.20534" toAnchorId="generated.farm.68243117d5885fe09a0b57bc.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.cb5a1f8667c3f288d7834255" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.ingress.dwarf.02" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="1510" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.ingress.dwarf.02">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</edge>
+	<edge id="bridge.cc9e0ea012dadb27a49f8cc2" fromNodeId="generated.farm.52dc95334718091370944146" toNodeId="generated.farm.58356b4e9844a379fecfbaf6" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="24820" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.52dc95334718091370944146.anchor" toAnchorId="generated.farm.58356b4e9844a379fecfbaf6.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.cdd00c1007f56dda474ae16f" fromNodeId="generated.farm.78d792f9dc16f4ce4003c1ae" toNodeId="generated.farm.d6f82637bd6fae44cd109781" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="27670" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.78d792f9dc16f4ce4003c1ae.anchor" toAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.ce18ab507dffa51265c30463" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.ingress.kamael.03" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3730" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.ingress.kamael.03">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</edge>
+	<edge id="bridge.cf3d0ee957e92c4e86e4d58c" fromNodeId="population.route.kamael.c1" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17360" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.c1" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.cf69459b7dbdcecddc46d29c" fromNodeId="generated.farm.eda8543a4ab4d30e028f9b97" toNodeId="population.ingress.orc.06" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4280" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor" toAnchorId="population.ingress.orc.06">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</edge>
+	<edge id="bridge.d06301730bf9378e5a2878fd" fromNodeId="population.route.human-mystic.b1" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="5400" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.b1" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.d1a01ae453f65bcf6dc9a081" fromNodeId="generated.farm.c4067c834f12b99e976909a2" toNodeId="generated.farm.428b85922009e44829ae2db0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="294710" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor" toAnchorId="generated.farm.428b85922009e44829ae2db0.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.d25c46447d3b16884da595c2" fromNodeId="generated.farm.eda8543a4ab4d30e028f9b97" toNodeId="population.route.orc.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="36860" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor" toAnchorId="population.route.orc.a2">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="bridge.d4c0eb954c030f4dad1f86c0" fromNodeId="population.route.orc.a2" toNodeId="generated.farm.eda8543a4ab4d30e028f9b97" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="36860" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.orc.a2" toAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.dbafe05bd69eb5d51e20d67f" fromNodeId="generated.farm.eda8543a4ab4d30e028f9b97" toNodeId="population.route.orc.a1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="15990" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor" toAnchorId="population.route.orc.a1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+	</edge>
+	<edge id="bridge.dc185d6f3262968446b1fb28" fromNodeId="population.ingress.dwarf.05" toNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="2710" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.dwarf.05" toAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor">
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.dcafaf45da22e6dc7fef7188" fromNodeId="population.route.kamael.d2" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17330" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.d2" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.debcde053e88eb0b4d0ae4fa" fromNodeId="generated.farm.e72c2c1fdf7715981415fcdb" toNodeId="population.route.orc.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="45980" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.e72c2c1fdf7715981415fcdb.anchor" toAnchorId="population.route.orc.a2">
+		<source path="data/spawns/OrcTerritory/OrcStarting.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</edge>
+	<edge id="bridge.df8d3588ee87decd6ab487cf" fromNodeId="generated.farm.eda8543a4ab4d30e028f9b97" toNodeId="population.ingress.orc.02" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4350" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor" toAnchorId="population.ingress.orc.02">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+	</edge>
+	<edge id="bridge.df9a265302429d7852acd89b" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.ingress.dwarf.03" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3230" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.ingress.dwarf.03">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+	</edge>
+	<edge id="bridge.e02b58c2bc6b4da290bf704e" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.route.kamael.b1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18690" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.route.kamael.b1">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+	</edge>
+	<edge id="bridge.e127d0c466eb1faba98f8be8" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.route.dwarf.w2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18540" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.route.dwarf.w2">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.e1a849f9e1dc13c6b0376e23" fromNodeId="generated.farm.dcbfae7bd58c752ca4f1e7ca" toNodeId="population.route.dwarf.a2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="25180" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor" toAnchorId="population.route.dwarf.a2">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/DwarvenFighter.xml" />
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.e652f1771a1a0894d9ce1f11" fromNodeId="generated.farm.768fa444a79123489bd7aa1d" toNodeId="generated.farm.5b2f7b39b431b1d31c0f938a" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="135050" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.768fa444a79123489bd7aa1d.anchor" toAnchorId="generated.farm.5b2f7b39b431b1d31c0f938a.anchor">
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.e7e4465b70151731245bf4c4" fromNodeId="population.ingress.orc.03" toNodeId="generated.farm.eda8543a4ab4d30e028f9b97" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="4560" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.orc.03" toAnchorId="generated.farm.eda8543a4ab4d30e028f9b97.anchor">
+		<source path="data/stats/players/templates/StartingClass/OrcFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/OrcMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.ea3347d79cd5797accf46088" fromNodeId="population.farming.elf.20534" toNodeId="generated.farm.a0a916d344116254f0d4e3f5" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="230400" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.farming.elf.20534" toAnchorId="generated.farm.a0a916d344116254f0d4e3f5.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.ef5938ed843983aa588fc4ac" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.ingress.human-mystic.02" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3860" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.ingress.human-mystic.02">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</edge>
+	<edge id="bridge.ef8c8a8000a78d0e815b81e8" fromNodeId="population.route.human-mystic.guard.30733" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="37400" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.human-mystic.guard.30733" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/TalkingIsland/TalkingIslandMonsters.xml" />
+		<source path="data/stats/npcs/30700-30799.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.f13bf369b37874172413a6df" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.ingress.kamael.02" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10620" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.ingress.kamael.02">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</edge>
+	<edge id="bridge.f518fce877a5b244bcaa191d" fromNodeId="population.route.kamael.a1" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10330" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.route.kamael.a1" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Kamael/IsleOfSouls.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.f53dca3f020d1168b3aa8c8c" fromNodeId="generated.farm.c4067c834f12b99e976909a2" toNodeId="population.ingress.elf.03" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="297000" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c4067c834f12b99e976909a2.anchor" toAnchorId="population.ingress.elf.03">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenFighter.xml" />
+		<source path="data/stats/players/templates/StartingClass/ElvenMystic.xml" />
+	</edge>
+	<edge id="bridge.f6c2e5b67b8b4314ce9fd30f" fromNodeId="generated.farm.946a41fbbc63614320c02954" toNodeId="generated.farm.d6f82637bd6fae44cd109781" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="213590" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.946a41fbbc63614320c02954.anchor" toAnchorId="generated.farm.d6f82637bd6fae44cd109781.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.f729ed11bfac29b3a342e3c4" fromNodeId="population.ingress.kamael.03" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3730" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.03" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.f752cbe5bf79e47b35c6d6b6" fromNodeId="generated.farm.df677844f3af094815e984cc" toNodeId="generated.farm.013f818c1372afc740e3cbc2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="66800" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.df677844f3af094815e984cc.anchor" toAnchorId="generated.farm.013f818c1372afc740e3cbc2.anchor">
+		<source path="data/spawns/DwarvenTerritory/DwarvenStarting.xml" />
+	</edge>
+	<edge id="bridge.f765bb5f0a872bf0d929f7b8" fromNodeId="generated.farm.432802d3c2901d9686cb1651" toNodeId="population.ingress.human-mystic.03" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3810" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor" toAnchorId="population.ingress.human-mystic.03">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+	</edge>
+	<edge id="bridge.f9baa39050c460069069da7e" fromNodeId="generated.farm.74718a641fa7e78154fea892" toNodeId="population.ingress.kamael.01" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10540" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.74718a641fa7e78154fea892.anchor" toAnchorId="population.ingress.kamael.01">
+		<source path="data/spawns/Others/Gremlins.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+	</edge>
+	<edge id="bridge.fae8341cdfc1d1df3a32cd2c" fromNodeId="population.ingress.human-mystic.02" toNodeId="generated.farm.432802d3c2901d9686cb1651" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="3860" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.human-mystic.02" toAnchorId="generated.farm.432802d3c2901d9686cb1651.anchor">
+		<source path="data/stats/players/templates/StartingClass/HumanMystic.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+	<edge id="bridge.fc222a7023a15f654a15be8e" fromNodeId="generated.farm.a0a916d344116254f0d4e3f5" toNodeId="generated.farm.a72d8924a597b43a1b34ebbd" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="284090" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a0a916d344116254f0d4e3f5.anchor" toAnchorId="generated.farm.a72d8924a597b43a1b34ebbd.anchor">
+		<source path="data/spawns/ElvenTerritory/ElvenStarting.xml" />
+	</edge>
+	<edge id="bridge.fe592d4d6fb17e2c15f8fd7f" fromNodeId="population.ingress.kamael.02" toNodeId="generated.farm.74718a641fa7e78154fea892" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10620" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="population.ingress.kamael.02" toAnchorId="generated.farm.74718a641fa7e78154fea892.anchor">
+		<source path="data/stats/players/templates/StartingClass/KamaelMaleSoldier.xml" />
+		<source path="data/stats/players/templates/StartingClass/KamaelFemaleSoldier.xml" />
+		<source path="data/spawns/Others/Gremlins.xml" />
+	</edge>
+</topology>

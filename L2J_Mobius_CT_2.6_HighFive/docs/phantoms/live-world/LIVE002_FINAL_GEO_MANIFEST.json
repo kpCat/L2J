@@ -1,0 +1,61 @@
+{
+  "schema": "LIVE-002-FINAL-GEO/1",
+  "baseline": "700811df18562a9313d122373d21865fbb10d592",
+  "accepted_c_sha256": {
+    "ANCHOR_GEODATA_VALIDATION.tsv": "42a3987c12a74cc9cad369e919680ef6798488262eee4dcfbddc3ef391b79b04",
+    "ROUTE_GEODATA_VALIDATION.tsv": "1c1d4b19669d704c162e971fcc6a24bdd3cb1325bc3783d9cfadc552a326a22b",
+    "RUINS_GEODATA_VALIDATION.tsv": "785d75c6a5909180bb88c3069786ef0b663bbbbbb1d1f2cb6da10f5214c5fb4b",
+    "high-five-generated-01.xml": "9242aaf4f4d711cbf99311f2be4f049110c83acb1e242bd7ca22dbcd03e051c4",
+    "VALIDATED_TOPOLOGY_MANIFEST.json": "82e76d497c496cdd69c13df49c98dcfff25e4b26bff813ee8acc97b5724775ce"
+  },
+  "accepted_d1_sha256": {
+    "GATEKEEPER_FACTS.tsv": "a8318075ef6ea3c3f266aa975ef1565fb8d6c93d2f074f076a059ed5d2ea2fe4",
+    "TRAVEL_CONNECTORS.tsv": "fe0c0433e8975ff43f397470eca5caf0ae3b545e4d66d0ece2096d1ed97c1926",
+    "TRAVEL_TRANSITIONS.tsv": "d378de9ddb395914c7e36480f149143f3cb9a2b84284ca625708d5c880f3e09d",
+    "TRAVEL_REACHABILITY.tsv": "21a1e2d6fbe5f4e8dc1c18ea2b40a5b251d59661d4e32271ade13de065753421",
+    "TRAVEL_BACKBONE_MANIFEST.json": "9da8da25ff76490ee0492f7a85279ade444981d5858ca1a1f043811e105fdec3"
+  },
+  "input_sha256": {
+    "WORLD_COVERAGE.tsv": "84af90619ff959af64119ad079cf0f2b85692dec2aa985d2314185b059c76c8e",
+    "TOPOLOGY_CANDIDATES.tsv": "aec029b27e0f9e8f04a86afc16b3c1a5e7e6ddbaedc7a37f25b0b2f08b7c873f",
+    "ANCHOR_GEODATA_VALIDATION.tsv": "42a3987c12a74cc9cad369e919680ef6798488262eee4dcfbddc3ef391b79b04",
+    "ROUTE_GEODATA_VALIDATION.tsv": "1c1d4b19669d704c162e971fcc6a24bdd3cb1325bc3783d9cfadc552a326a22b",
+    "GATEKEEPER_FACTS.tsv": "a8318075ef6ea3c3f266aa975ef1565fb8d6c93d2f074f076a059ed5d2ea2fe4",
+    "TRAVEL_CONNECTORS.tsv": "fe0c0433e8975ff43f397470eca5caf0ae3b545e4d66d0ece2096d1ed97c1926",
+    "TRAVEL_TRANSITIONS.tsv": "d378de9ddb395914c7e36480f149143f3cb9a2b84284ca625708d5c880f3e09d"
+  },
+  "adaptive_geo_proof_sha256": {
+    "current": "b4fac4b1d0693a5bad65ac0b66f5a94cb6d84f31d187fb7abd82ec68e98d26a6",
+    "wave2": "86f4077b7d197e75473d2430a3a71981976c242f342516954550f2041da3e011"
+  },
+  "native_geodata_aggregate_sha256": "e94d36db89fa58e13e679f90673cd7bc62e5362292e3390cf878a6d2ef4da7c2",
+  "native_doors_sha256": "a2b2199efec80c8d296064f15ef5a6fb9125ede887c51e3fc068e3d0d7b596f8",
+  "d2_catalog_sha256": "5ccf7ac85e89027ba4506f20d64f41cc7167af285ceb88f1ef5a93f16cc5398f",
+  "generator_sha256": "7f961c116aa5bd578a2ba847ca8d459da9b04754ba1ea3cf31da321febac5498",
+  "output_sha256": {
+    "WORLD_GAP_CLASSIFICATION.tsv": "2b7dc06855f873098c24180e9d3fe8a7dbb8dee46e1b342ecce8ab8d3469d311",
+    "WORLD_COMPONENT_BRIDGES.tsv": "fa8665b2cbe9dbf62c0f75a7e3e4a4ef5dd868bbf128a186e05ac46abb096028",
+    "CLOSED_AREA_ACCESS.tsv": "8036add79cb10acb00cf7145ac8200f6169733bf067d8fe87011363f18aea041",
+    "LIVE002_FINAL_REACHABILITY.tsv": "27de6d2a6d0dc1f6a00dd6ce685b01d230676865bb05f04d512506d1e51a4158"
+  },
+  "bridge_shard_sha256": "7d92baaa21e40aa80010d7975ce64ab8050671a839fda49e0a6a2491cac47343",
+  "counts": {
+    "ordinary": 2652,
+    "closed": 676,
+    "bridge_proofs": 145,
+    "reachable_band_count": 4
+  },
+  "ruins_of_despair": [
+    {
+      "fact_key": "fact.abdc7798f7b2491d57793ef2",
+      "native_source": "data/teleporters/town/30256.xml",
+      "source_gk": "spawn.c0fbe411a8ad3f8c4ad97ee4",
+      "destination": "dest.25e5971a4db1bc705e78b0a5",
+      "ingress_to_gk": false,
+      "admitted_normal_transition": false,
+      "destination_connector": false,
+      "local_farm_coverage_keys": [],
+      "status": "BLOCKED"
+    }
+  ]
+}
