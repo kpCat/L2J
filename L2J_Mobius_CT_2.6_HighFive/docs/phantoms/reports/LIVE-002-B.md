@@ -30,6 +30,31 @@ Read-first: `AGENTS.md`, master plan, workflow/task standards, TASK/EVIDENCE/ACC
 
 Три core farming nodes без доказанного exact match: `giran.farming.22859`, `population.farming.human-fighter.20545`, `population.farming.kamael.22228`. Они не переназначены по имени. Generated IDs — digest от неизменного `coverage_key`, проверяются на коллизии с core и друг с другом. Polygon без source-backed Z не получает выдуманный anchor. Все 3 550 новых walking/region rows — `NEEDS_GEODATA`; максимальная степень нового walking graph — 4, расстояние ограничено 12 000, индекс — 3×3 соседних native grid cells, instance совпадает. После RED regression для catacomb-to-outdoor edge из walking index исключены 676 ordinary groups с фактическими source paths `data/spawns/Catacombs/*`, `Aden/TowerOfInsolence.xml`, `Giran/DevilsIsle.xml`, `Goddard/ImperialTomb.xml`, `Oren/IvoryTower.xml`: для них нет явного door/room route evidence. Их topology accounting rows и существующие core edges сохранены. Existing edges сохраняют ID, factual teleport идёт только от native NPC к заявленной destination; обратная дуга не выводится. Ни один кандидат не загружен runtime и не получает `backgroundEligible`.
 
+Точные core mapping rows из `TOPOLOGY_CANDIDATES.tsv` приведены ниже. Для каждого из этих 20 rows `anchor_id` равен указанному `node_id` и сохранён из `high-five-core.xml`.
+
+| Coverage key | Existing core node/anchor ID |
+|---|---|
+| `d3658f356d4b9c218c7cbc490e8533938cd0d9ac513cc3b2eae0b8cc9381e587` | `elven.farming.oren04-2019-02s` |
+| `a8c0cfcec953b90b09bfd4224a43f6b254279853ed169dc0249d1625908ed1ae` | `elven.farming.oren04-2019-03s` |
+| `d13185ae56587f5cb80fb75cbb15f8a069de965e5aee823b48a038db236fda23` | `elven.farming.oren04-2019-07s` |
+| `f12e1ec9c2f5eded835d648b03a054a833889e8140def87b25c8e2485615ea81` | `elven.farming.oren04-2019-08s` |
+| `96ae8108caf85bb707da82d808aa816e7cffde121af3179e2d3aba186b530276` | `elven.farming.oren04-2019-10s` |
+| `68c39494dd0b7414fb22f5d4cb5174dbc8fa62c4a3d6b57cda68850595f4c895` | `elven.farming.oren04-2019-11s` |
+| `ad16d4b9e3930e84930708adb30c971a069e56a3a2ce1421293733af2e02d789` | `elven.farming.oren04-2019-15s` |
+| `bc72510879513ea6016e6ff66915ea364ae3acefc11216f6a835cb9bc3683d17` | `elven.farming.oren04-2019-16s` |
+| `1e0614f9fd9c18e6537aa5f7931489526339fb7fbce2fee7cc37e34c5d5064b1` | `elven.farming.oren04-2019-19s` |
+| `83d3f1fec9580d5628932e77857a4e49f1a9222a7d3fbd440b5c0512cdb6cc4b` | `elven.farming.oren04-2019-21` |
+| `8d07a64410270111dda4bb6d9bd4fcfd6859210a814bd09042496829b343ea1f` | `elven.farming.oren04-2019-241s` |
+| `f81fed46952eb35c183673d5c53b88238630e2766fe45d7aaec5e709a6ac2a50` | `elven.farming.oren06-2120-04` |
+| `c955dad602eac346477cfbdce3ebd832a98f65a299797ae135ab6c2ee77673e8` | `elven.farming.oren06-2120-06` |
+| `f80d2dc48bbde40c138e7d8a0d6b26b47bc1d2be86f4b585adb2ae4eb1971877` | `elven.farming.oren06-2120-07` |
+| `52e04851f566584b91543d5d7f34f2aadaf1710885e88a91aafc1d382c94b4b7` | `population.farming.dark-elf.20529` |
+| `38c89747141fb9d2d99ed3f325c90565d1e7de5dc51afe28e21a03175357430f` | `population.farming.dwarf.20533` |
+| `4b565d1fb9786be38cf9f51e86cc5b226a7682bb2e524576100ca76e1a985a68` | `population.farming.elf.20534` |
+| `f468bea42714b1542d09ef43b13cb6379641b3c7870f03111a25599574f95af8` | `population.farming.human-mystic.20481` |
+| `b23351f226ffa46e9e3b15380ec02e9910eb4b47a858bbb98d2d32fa3b63a9d3` | `population.farming.orc.20535` |
+| `05f9c3cd9ed64ffb35b5263b11786547e0e7a7f509a3744cd16e71ffec705ba8` | `talking-island.farming.gludio31-1624-11s` |
+
 ## Level bands
 
 Группы с диапазоном NPC level, пересекающим band, учитываются в каждом пересечённом band. Компоненты относятся к **невалидированному candidate graph**, не к реальной проходимости.
