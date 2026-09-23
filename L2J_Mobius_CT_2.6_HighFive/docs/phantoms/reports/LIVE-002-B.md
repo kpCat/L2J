@@ -1,6 +1,6 @@
 # LIVE-002-B — spatial/topology candidate graph
 
-Дата: 23.09.2026. Ветка `feature/phantom-world`; обязательный исходный tracked HEAD `c7219c2db451eaa6a36be1e8b1c9bcf7077aac25`. Статус **SUCCESS / candidate graph GREEN**. Implementation и документационный commit указаны в итоговом handoff: SHA самого документационного commit нельзя поместить внутрь него без изменения SHA.
+Дата: 23.09.2026. Ветка `feature/phantom-world`; обязательный исходный tracked HEAD `c7219c2db451eaa6a36be1e8b1c9bcf7077aac25`. Статус **SUCCESS / candidate graph GREEN**. Первый implementation commit `e0f6d883d36e2654da8a43b6cadb61412749acd0`; итоговый corrective commit указан в handoff: SHA самого commit нельзя поместить внутрь него без изменения SHA.
 
 ## Scope и источники
 
@@ -23,11 +23,12 @@ Read-first: `AGENTS.md`, master plan, workflow/task standards, TASK/EVIDENCE/ACC
 | `NEEDS_ANCHOR_GEODATA` | 2 551 |
 | Ambiguous / duplicate node / anchor / route IDs | 0 / 0 / 0 / 0 |
 | Unmatched existing core farming nodes | 3 |
+| Closed-source groups without new walking edges | 676 |
 | Existing core edges | 83 |
-| New LOCAL_WALK / REGION_LINK | 4 672 / 104 |
+| New LOCAL_WALK / REGION_LINK | 3 442 / 108 |
 | Factual directed teleport rows | 1 474 |
 
-Три core farming nodes без доказанного exact match: `giran.farming.22859`, `population.farming.human-fighter.20545`, `population.farming.kamael.22228`. Они не переназначены по имени. Generated IDs — digest от неизменного `coverage_key`, проверяются на коллизии с core и друг с другом. Polygon без source-backed Z не получает выдуманный anchor. Все 4 776 новых walking/region rows — `NEEDS_GEODATA`; максимальная степень нового walking graph — 4, расстояние ограничено 12 000, индекс — 3×3 соседних native grid cells, instance совпадает. Existing edges сохраняют ID, factual teleport идёт только от native NPC к заявленной destination; обратная дуга не выводится. Ни один кандидат не загружен runtime и не получает `backgroundEligible`.
+Три core farming nodes без доказанного exact match: `giran.farming.22859`, `population.farming.human-fighter.20545`, `population.farming.kamael.22228`. Они не переназначены по имени. Generated IDs — digest от неизменного `coverage_key`, проверяются на коллизии с core и друг с другом. Polygon без source-backed Z не получает выдуманный anchor. Все 3 550 новых walking/region rows — `NEEDS_GEODATA`; максимальная степень нового walking graph — 4, расстояние ограничено 12 000, индекс — 3×3 соседних native grid cells, instance совпадает. После RED regression для catacomb-to-outdoor edge из walking index исключены 676 ordinary groups с фактическими source paths `data/spawns/Catacombs/*`, `Aden/TowerOfInsolence.xml`, `Giran/DevilsIsle.xml`, `Goddard/ImperialTomb.xml`, `Oren/IvoryTower.xml`: для них нет явного door/room route evidence. Их topology accounting rows и существующие core edges сохранены. Existing edges сохраняют ID, factual teleport идёт только от native NPC к заявленной destination; обратная дуга не выводится. Ни один кандидат не загружен runtime и не получает `backgroundEligible`.
 
 ## Level bands
 
@@ -36,13 +37,13 @@ Read-first: `AGENTS.md`, master plan, workflow/task standards, TASK/EVIDENCE/ACC
 | Band | Groups | Regions | Core | Generated | Await geodata/anchor | Candidate components |
 |---|---:|---:|---:|---:|---:|---:|
 | 1–5 | 99 | 6 | 5 | 94 | 94 | 11 |
-| 6–10 | 149 | 5 | 0 | 149 | 149 | 27 |
-| 11–19 | 223 | 7 | 15 | 208 | 208 | 18 |
-| 20–39 | 584 | 11 | 0 | 584 | 584 | 26 |
-| 40–51 | 563 | 9 | 0 | 563 | 563 | 30 |
-| 52–60 | 254 | 9 | 0 | 254 | 254 | 43 |
-| 61–75 | 717 | 8 | 0 | 717 | 717 | 32 |
-| 76–80 | 376 | 8 | 0 | 376 | 376 | 25 |
+| 6–10 | 149 | 5 | 0 | 149 | 149 | 22 |
+| 11–19 | 223 | 7 | 15 | 208 | 208 | 15 |
+| 20–39 | 584 | 11 | 0 | 584 | 584 | 122 |
+| 40–51 | 563 | 9 | 0 | 563 | 563 | 235 |
+| 52–60 | 254 | 9 | 0 | 254 | 254 | 143 |
+| 61–75 | 717 | 8 | 0 | 717 | 717 | 279 |
+| 76–80 | 376 | 8 | 0 | 376 | 376 | 103 |
 | 81–85 | 81 | 4 | 0 | 81 | 81 | 10 |
 
 ## Ruins of Despair candidate-set evidence
@@ -66,10 +67,10 @@ Native `data/teleporters/town/30256.xml` содержит `Ruins of Despair` в 
 
 ## Проверки и границы
 
-- `Test-TopologyCandidates.ps1`: GREEN; focused fixture покрывает exact core/false positive, mapregion/zone/teleport, polygon anchor, collision, reordering/path normalization, same-instance routes, teleport direction и byte identity.
-- Два неизменных production generation run: GREEN и byte-identical для четырёх canonical outputs. SHA-256: spatial `8ce940eeba2285ced494b5880be5f624eb8eba91a4ed24b5c7d5688e15600935`; topology `aec029b27e0f9e8f04a86afc16b3c1a5e7e6ddbaedc7a37f25b0b2f08b7c873f`; routes `832130fde9ab93099faf18323e2d4d68dd0d1ed4142307506f39c8f9acea565a`; manifest `989acfa7120125c6659149ea6b3e96291a1251894226725c00c6a025019b1f84`.
-- `Validate-TopologyCandidates.ps1`: GREEN; independently сверены 2 652 keys, accepted inputs, output/source hashes, NPC/level facts, ID uniqueness, core ownership, same-instance walking, degree/distance bounds, statuses и отсутствие validated новых walking routes.
+- `Test-TopologyCandidates.ps1`: GREEN; focused fixture покрывает exact core/false positive, mapregion/zone/teleport, polygon anchor, collision, reordering/path normalization, same-instance routes, fanout, catacomb isolation, teleport direction и byte identity. Catacomb regression сначала RED, затем GREEN.
+- Два неизменных production generation run: GREEN и byte-identical для четырёх canonical outputs. SHA-256: spatial `8ce940eeba2285ced494b5880be5f624eb8eba91a4ed24b5c7d5688e15600935`; topology `aec029b27e0f9e8f04a86afc16b3c1a5e7e6ddbaedc7a37f25b0b2f08b7c873f`; routes `b757c0690c4890f5d3464cc921897087841261766f560b838f90a80f5a829bfa`; manifest `d5ebd388bf59a9ee24c59d8bfe801c72c0f2783a2c92c49f4b0a1d5948039a6a`.
+- `Validate-TopologyCandidates.ps1`: GREEN; независимо сверены 2 652 keys, accepted inputs, output/source hashes, NPC/level facts, ID uniqueness, core ownership, все 1 474 native направленные teleport relations, same-instance walking, closed-source exclusion, degree/distance bounds, statuses и отсутствие validated новых walking routes.
 - `git diff --check` и exact staged scope guard: GREEN перед commit. Полный `ant verify` — 0, `ant jar` — 0; server/runtime/DB — 0. Topology Java corpus suite не запускалась: её `beforeAll` инициализирует headless GameServer environment, тогда как этот checkpoint не требует boot.
 - Existing `high-five-core.xml`, loader, runtime, пользовательские config/rates/heap/schedules/population и другие хроники не изменялись. Предсуществовавшие dirty/untracked user files не включены в staging.
 
-Goal `/goal` вызван один раз; подготовка, генерация и проверка заняли около 30 минут. Ограничение результата: геодата, walkability и публикация topology остаются LIVE-002-C. **NEXT_ACTION: LIVE-002-C — GeoEngine/path validation and publication of validated generated topology.** Автоматически не начинать.
+Goal `/goal` вызван один раз; подготовка, корректировка после аудита, генерация и проверка заняли около 40 минут. Ограничение результата: геодата, walkability и публикация topology остаются LIVE-002-C. **NEXT_ACTION: LIVE-002-C — GeoEngine/path validation and publication of validated generated topology.** Автоматически не начинать.
