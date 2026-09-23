@@ -830,6 +830,11 @@ public final class PhantomBackgroundModel
 		{
 			return (encounters > 0) || (manorSowAttempts > 0);
 		}
+
+		public boolean indivisibleObjectCap()
+		{
+			return (reason == ResultReason.OBJECT_CAP) && !mutated();
+		}
 	}
 
 	public record RandomStep(double value, long nextState)

@@ -342,19 +342,35 @@ public final class PhantomPopulationEcologyService
 			persist(profileId, ecology, state.completeRequest());
 			return 0;
 		}
-		if ((catchup.state().status() == Status.FAILED_REPLAN_REQUIRED) || (intervalBudget <= 0))
+		if (retryDeferred(profileId))
 		{
-			if (catchup.state().status() == Status.FAILED_REPLAN_REQUIRED)
-			{
-				recordFailure(catchup.state().failureReason());
-			}
 			return 0;
+		}
+		if (intervalBudget <= 0)
+		{
+			return 0;
+		}
+		if (catchup.state().status() == Status.FAILED_REPLAN_REQUIRED)
+		{
+			recordFailureOnce(profileId, catchup.state().failureReason());
+			if (!failedProbeDue(profileId))
+			{
+				return 0;
+			}
 		}
 		final int bounded = Math.min(intervalBudget, _catalog.limits().maximumIntervalsPerPulse());
 		final var advanced = _historical.advance(profileId, bounded, bounded);
 		if ((advanced.status() != ResultStatusCode.SUCCESS) && (advanced.status() != ResultStatusCode.RETRY))
 		{
-			recordFailure(advanced.reason());
+			recordFailureOnce(profileId, advanced.reason());
+		}
+		else if (advanced.status() == ResultStatusCode.SUCCESS)
+		{
+			clearReportedFailure(profileId);
+		}
+		if (advanced.status() == ResultStatusCode.RETRY)
+		{
+			deferRetry(profileId);
 		}
 		if ((advanced.snapshot() != null) && (advanced.snapshot().state().status() == Status.COMPLETE))
 		{
@@ -748,6 +764,70 @@ public final class PhantomPopulationEcologyService
 		}
 	}
 
+	private void recordFailureOnce(long profileId, String reason)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			if ((entry != null) && !Objects.equals(entry._lastReportedFailure, reason))
+			{
+				entry._lastReportedFailure = reason;
+				recordFailure(reason);
+			}
+		}
+	}
+
+	private void clearReportedFailure(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			if (entry != null)
+			{
+				entry._lastReportedFailure = null;
+				entry._retryDelayPulses = 0;
+				entry._nextRetryPulse = 0;
+				entry._nextFailedProbePulse = 0;
+			}
+		}
+	}
+
+	private boolean failedProbeDue(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			if ((entry == null) || (_pulses < entry._nextFailedProbePulse))
+			{
+				return false;
+			}
+			entry._nextFailedProbePulse = _pulses + 256;
+			return true;
+		}
+	}
+
+	private boolean retryDeferred(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			return (entry != null) && (_pulses < entry._nextRetryPulse);
+		}
+	}
+
+	private void deferRetry(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			if (entry != null)
+			{
+				entry._retryDelayPulses = Math.min(256, Math.max(1, entry._retryDelayPulses * 2));
+				entry._nextRetryPulse = _pulses + entry._retryDelayPulses;
+			}
+		}
+	}
+
 	private void requireRuntime()
 	{
 		if ((_populationView == null) || (_populationEvents == null))
@@ -779,6 +859,10 @@ public final class PhantomPopulationEcologyService
 	private static final class Entry
 	{
 		private StoredState _stored;
+		private String _lastReportedFailure;
+		private int _retryDelayPulses;
+		private long _nextRetryPulse;
+		private long _nextFailedProbePulse;
 		private boolean _claimed;
 		private boolean _archiveRequested;
 		private boolean _publishedSchedulingPermission;

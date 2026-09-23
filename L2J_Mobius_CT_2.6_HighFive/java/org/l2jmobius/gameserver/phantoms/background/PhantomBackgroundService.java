@@ -421,6 +421,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
 				if (!batch.mutated())
 				{
+					if (batch.indivisibleObjectCap())
+					{
+						return OperationResult.replan("model.object_cap_indivisible");
+					}
 					return batch.reason() == PhantomBackgroundModel.ResultReason.TIME_BUDGET ? retry("model.time_budget") : OperationResult.replan("model." + batch.reason().name().toLowerCase());
 				}
 				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(state.identity(), batch.progress().level());
@@ -1265,12 +1269,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
-	private OperationResult mapTransactionFailure(PhantomBackgroundTransaction.Status status)
+	public OperationResult mapTransactionFailure(PhantomBackgroundTransaction.Status status)
 	{
 		return switch (status)
 		{
 			case STALE_OPERATION, GOAL_STALE, HASH_STALE, STATE_CONFLICT, STATE_ABSENT, PROFILE_LINK_STALE, CATCHUP_CONFLICT -> OperationResult.replan("transaction." + status.name().toLowerCase());
-			case INCONSISTENT, CANONICAL_MISMATCH, ITEM_CONFLICT, ITEM_LIMIT, UNSUPPORTED_ITEM, UNSUPPORTED_INSTANCE, OBJECT_ID_EXHAUSTED, PROGRESSION_CONFLICT, ACQUISITION_CONFLICT -> OperationResult.inconsistent("transaction." + status.name().toLowerCase());
+			case ITEM_CONFLICT -> OperationResult.inconsistent("transaction.item_conflict_canonical");
+			case INCONSISTENT, CANONICAL_MISMATCH, ITEM_LIMIT, UNSUPPORTED_ITEM, UNSUPPORTED_INSTANCE, OBJECT_ID_EXHAUSTED, PROGRESSION_CONFLICT, ACQUISITION_CONFLICT -> OperationResult.inconsistent("transaction." + status.name().toLowerCase());
+			case ITEM_BUSY, ITEM_EXPECTED_COUNT_STALE -> retry("transaction." + status.name().toLowerCase());
 			default -> retry("transaction." + status.name().toLowerCase());
 		};
 	}

@@ -70,7 +70,12 @@ public record PhantomBackgroundCatchupState(Status status, String requestId, lon
 
 	public PhantomBackgroundCatchupState withPlan(long replacementGoalId, long replacementGoalRevision, long replacementPlanOrdinal, String replacementPlanIdentity, long replacementKnowledgeGeneration, long replacementTopologyGeneration)
 	{
-		return new PhantomBackgroundCatchupState(status == Status.PENDING ? Status.PENDING : Status.RUNNING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, replacementPlanOrdinal, intervalOrdinal, generation, replacementKnowledgeGeneration, replacementTopologyGeneration, replacementGoalId, replacementGoalRevision, replacementPlanIdentity, modelVersion, authorityHashes, "");
+		return withPlan(replacementGoalId, replacementGoalRevision, replacementPlanOrdinal, replacementPlanIdentity, replacementKnowledgeGeneration, replacementTopologyGeneration, authorityHashes);
+	}
+
+	public PhantomBackgroundCatchupState withPlan(long replacementGoalId, long replacementGoalRevision, long replacementPlanOrdinal, String replacementPlanIdentity, long replacementKnowledgeGeneration, long replacementTopologyGeneration, Hashes replacementHashes)
+	{
+		return new PhantomBackgroundCatchupState(status == Status.PENDING ? Status.PENDING : Status.RUNNING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, replacementPlanOrdinal, intervalOrdinal, generation, replacementKnowledgeGeneration, replacementTopologyGeneration, replacementGoalId, replacementGoalRevision, replacementPlanIdentity, modelVersion, replacementHashes, "");
 	}
 
 	public PhantomBackgroundCatchupState running()
@@ -95,6 +100,29 @@ public record PhantomBackgroundCatchupState(Status status, String requestId, lon
 	public PhantomBackgroundCatchupState failed(String reason)
 	{
 		return new PhantomBackgroundCatchupState(Status.FAILED_REPLAN_REQUIRED, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, planOrdinal, intervalOrdinal, generation, knowledgeGeneration, topologyGeneration, goalId, goalRevision, planIdentity, modelVersion, authorityHashes, requireBounded(reason, MAX_FAILURE_REASON_LENGTH, "failureReason"));
+	}
+
+	public PhantomBackgroundCatchupState retryRunning()
+	{
+		if ((status != Status.FAILED_REPLAN_REQUIRED) || (goalId <= 0) || (cursorEpochMinute >= targetEpochMinute))
+		{
+			throw new IllegalStateException("Only a planned failed catch-up can retry its current interval.");
+		}
+		return new PhantomBackgroundCatchupState(Status.RUNNING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, planOrdinal, intervalOrdinal, generation, knowledgeGeneration, topologyGeneration, goalId, goalRevision, planIdentity, modelVersion, authorityHashes, "");
+	}
+
+	public PhantomBackgroundCatchupState retryPending(long nextKnowledgeGeneration, long nextTopologyGeneration, Hashes nextHashes)
+	{
+		if ((status != Status.FAILED_REPLAN_REQUIRED) || (goalId != 0) || (cursorEpochMinute != fromEpochMinute) || (intervalOrdinal != 0))
+		{
+			throw new IllegalStateException("Only an unplanned failed catch-up can retry baseline planning.");
+		}
+		return new PhantomBackgroundCatchupState(Status.PENDING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, planOrdinal, intervalOrdinal, generation, nextKnowledgeGeneration, nextTopologyGeneration, 0, 0, "", modelVersion, nextHashes, "");
+	}
+
+	public PhantomBackgroundCatchupState blockedForGeneration(String reason, long nextKnowledgeGeneration, long nextTopologyGeneration, Hashes nextHashes)
+	{
+		return new PhantomBackgroundCatchupState(Status.FAILED_REPLAN_REQUIRED, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, planOrdinal, intervalOrdinal, generation, nextKnowledgeGeneration, nextTopologyGeneration, goalId, goalRevision, planIdentity, modelVersion, nextHashes, requireBounded(reason, MAX_FAILURE_REASON_LENGTH, "failureReason"));
 	}
 
 	public boolean owns(String candidateRequestId)

@@ -437,7 +437,7 @@ public final class PhantomBackgroundTransaction
 			economyClaim = PhantomEconomyConflictPort.claim(expected.identity().profileId(), null, resources);
 			if (!economyClaim.acquired())
 			{
-				return new Result(Status.ITEM_CONFLICT, null);
+				return new Result(Status.ITEM_BUSY, null);
 			}
 		}
 		try (economyClaim; Connection connection = _connections.open())
@@ -530,11 +530,11 @@ public final class PhantomBackgroundTransaction
 					}
 					_faultInjector.inject(FaultPoint.AFTER_QUEST_LOCKS);
 				}
-				validateAcquisitionResources(command.acquisition(), itemRows);
 				if (!durableMatches(expected, canonical, itemRows, skillRows))
 				{
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
 				}
+				validateAcquisitionResources(command.acquisition(), itemRows);
 				final Set<Integer> mutableItemIds = expandedMutableItemIds(expected.inventory(), command.additionalMutableItemIds());
 				final ItemMutationResult itemMutation = mutateItems(connection, expected, itemRows, command.itemDeltas(), mutableItemIds, reservedIds, releasedIds);
 				final Vitals canonicalVitals = canonicalVitals(command.vitals());
@@ -1003,7 +1003,7 @@ public final class PhantomBackgroundTransaction
 		final long count = itemRows.stream().filter(row -> (row.location() == ItemLocation.INVENTORY) && (row.itemId() == manor.seedItemId())).mapToLong(ItemRow::count).sum();
 		if ((count != manor.seedCountBeforeDispatch()) || (count <= 0))
 		{
-			throw new StateConflict(Status.ITEM_CONFLICT);
+			throw new StateConflict(Status.ITEM_EXPECTED_COUNT_STALE);
 		}
 	}
 
@@ -1820,6 +1820,8 @@ public final class PhantomBackgroundTransaction
 		STALE_OPERATION,
 		HASH_STALE,
 		CANONICAL_MISMATCH,
+		ITEM_BUSY,
+		ITEM_EXPECTED_COUNT_STALE,
 		ITEM_CONFLICT,
 		ITEM_LIMIT,
 		UNSUPPORTED_ITEM,

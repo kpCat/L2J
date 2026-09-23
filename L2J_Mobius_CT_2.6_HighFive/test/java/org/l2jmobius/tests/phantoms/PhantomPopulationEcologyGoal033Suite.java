@@ -88,6 +88,134 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("07-production-architecture-static-fences", this::testStaticFences);
 		registry.add("08-idle-calendar-catchup-reopens-schedule-fence", this::testIdleCalendarCatchupFence);
 		registry.add("09-restart-existing-ecology-reopens-schedule-fences", this::testRestartExistingEcologyFences);
+		registry.add("10-topology-block-quiet-and-resume", this::testTopologyBlockQuietAndResume);
+		registry.add("11-transient-item-retry-has-shared-pulse-backoff", this::testTransientItemRetryBackoff);
+	}
+
+	private void testTransientItemRetryBackoff(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:30:00Z");
+		final long from = minute(now) - 1;
+		final long target = minute(now);
+		final String requestId = "c".repeat(64);
+		final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final ManagedSnapshot population = populationStore.seedReady(1, 1);
+		final EcologyMemoryStore store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(from, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()).beginRequest(requestId, target));
+		final PhantomBackgroundState.Hashes hashes = new PhantomBackgroundState.Hashes("knowledge", "topology", "progression", "commerce");
+		final PhantomBackgroundCatchupState running = new PhantomBackgroundCatchupState(Status.RUNNING, requestId, 1, from, target, from, 0, 0, 1, 1, 1, 1, 0, "d".repeat(64), PhantomBackgroundState.MODEL_VERSION, hashes, "");
+		final AtomicReference<Snapshot> catchup = new AtomicReference<>(new Snapshot(running, 0));
+		final AtomicInteger attempts = new AtomicInteger();
+		final AtomicBoolean busy = new AtomicBoolean(true);
+		final HistoricalPort historical = new HistoricalPort()
+		{
+			@Override
+			public Optional<Snapshot> status(long profileId)
+			{
+				return Optional.of(catchup.get());
+			}
+
+			@Override
+			public PhantomHistoricalBackgroundService.Result begin(long profileId, long fromEpochMinute, long targetEpochMinute, long deterministicSeed)
+			{
+				throw new AssertionError("An existing item retry must not begin again.");
+			}
+
+			@Override
+			public PhantomHistoricalBackgroundService.Result advance(long profileId, int maximumIntervals, int maximumMinutes)
+			{
+				attempts.incrementAndGet();
+				if (busy.get())
+				{
+					return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.RETRY, "transaction.item_busy", catchup.get());
+				}
+				final Snapshot complete = new Snapshot(catchup.get().state().advanceTo(target), 1);
+				catchup.set(complete);
+				return PhantomHistoricalBackgroundService.Result.success(complete, 1);
+			}
+		};
+		final PhantomPopulationEcologyService service = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 1);
+		service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+		service.register(population);
+		for (int pulse = 0; pulse < 20; pulse++)
+		{
+			service.onPopulationPulse();
+		}
+		PhantomAssertions.assertTrue(attempts.get() <= 6, "Transient item contention retried every population pulse.");
+		PhantomAssertions.assertEquals(from, store.require(1).state().calendarCursorEpochMinute(), "Transient item contention advanced the ecology cursor.");
+		busy.set(false);
+		for (int pulse = 0; (pulse < 256) && store.require(1).state().requestPending(); pulse++)
+		{
+			service.onPopulationPulse();
+		}
+		PhantomAssertions.assertFalse(store.require(1).state().requestPending(), "Released item contention did not complete the existing request.");
+		PhantomAssertions.assertTrue(service.permitsScheduling(1), "Completed item retry did not reopen scheduling.");
+	}
+
+	private void testTopologyBlockQuietAndResume(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:30:00Z");
+		final long from = minute(now) - 1;
+		final long target = minute(now);
+		final String requestId = "a".repeat(64);
+		final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final ManagedSnapshot population = populationStore.seedReady(1, 1);
+		final EcologyMemoryStore store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(from, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()).beginRequest(requestId, target));
+		final PhantomBackgroundState.Hashes hashes = new PhantomBackgroundState.Hashes("knowledge", "topology", "progression", "commerce");
+		final PhantomBackgroundCatchupState failed = new PhantomBackgroundCatchupState(Status.FAILED_REPLAN_REQUIRED, requestId, 1, from, target, from, 0, 0, 1, 1, 1, 1, 0, "b".repeat(64), PhantomBackgroundState.MODEL_VERSION, hashes, "planner.target_or_route.absent");
+		final AtomicReference<Snapshot> catchup = new AtomicReference<>(new Snapshot(failed, 0));
+		final AtomicBoolean topologyReady = new AtomicBoolean(false);
+		final HistoricalPort historical = new HistoricalPort()
+		{
+			@Override
+			public Optional<Snapshot> status(long profileId)
+			{
+				return Optional.of(catchup.get());
+			}
+
+			@Override
+			public PhantomHistoricalBackgroundService.Result begin(long profileId, long fromEpochMinute, long targetEpochMinute, long deterministicSeed)
+			{
+				throw new AssertionError("An existing ecology request must not begin again.");
+			}
+
+			@Override
+			public PhantomHistoricalBackgroundService.Result advance(long profileId, int maximumIntervals, int maximumMinutes)
+			{
+				final Snapshot current = catchup.get();
+				if (current.state().status() == Status.FAILED_REPLAN_REQUIRED)
+				{
+					if (!topologyReady.get())
+					{
+						return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.REPLAN_REQUIRED, current.state().failureReason(), current);
+					}
+					final Snapshot complete = new Snapshot(current.state().withPlan(1, 0, 0, "b".repeat(64), 1, 2).advanceTo(target), current.rowVersion() + 1);
+					catchup.set(complete);
+					return PhantomHistoricalBackgroundService.Result.success(complete, 1);
+				}
+				final Snapshot complete = new Snapshot(current.state().advanceTo(target), current.rowVersion() + 1);
+				catchup.set(complete);
+				return PhantomHistoricalBackgroundService.Result.success(complete, 1);
+			}
+		};
+		final PhantomPopulationEcologyService service = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 1);
+		service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+		service.register(population);
+		for (int pulse = 0; pulse < 5; pulse++)
+		{
+			service.onPopulationPulse();
+		}
+		PhantomAssertions.assertFalse(service.permitsScheduling(1), "Missing factual topology reopened scheduling.");
+		PhantomAssertions.assertEquals(from, store.require(1).state().calendarCursorEpochMinute(), "Missing topology advanced ecology cursor.");
+		PhantomAssertions.assertTrue(service.snapshot().failures() <= 1, "Unchanged topology absence inflated failure telemetry every pulse.");
+		topologyReady.set(true);
+		for (int pulse = 0; (pulse < 512) && store.require(1).state().requestPending(); pulse++)
+		{
+			service.onPopulationPulse();
+		}
+		PhantomAssertions.assertFalse(store.require(1).state().requestPending(), "Recovered topology did not complete the existing ecology request.");
+		PhantomAssertions.assertTrue(service.permitsScheduling(1), "Recovered request did not reopen scheduling permission.");
 	}
 
 	private void testCatalogConfigAndCodec(PhantomTestContext context) throws Exception

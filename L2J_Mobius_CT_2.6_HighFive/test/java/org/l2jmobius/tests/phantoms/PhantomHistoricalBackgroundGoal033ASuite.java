@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -45,10 +46,13 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStat
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.Snapshot;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchRequest;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Drop;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Target;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.ActionKind;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.HistoricalIdentity;
@@ -67,6 +71,15 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundS
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Identity;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Kind;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.Reservation;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.ResourceKind;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOperation.State;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPolicy;
+import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
@@ -151,6 +164,12 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 		registry.add("02-canonical-planner-baseline-and-fences", this::testPlannerBaselineAndFences);
 		registry.add("03-atomic-fault-replay-and-restart", this::testAtomicFaultReplayAndRestart);
 		registry.add("04-stale-hash-and-reset-cascade", this::testStaleHashAndResetCascade);
+		registry.add("05-stale-after-commit-recovers-across-restart", this::testStaleAfterCommitRecovers);
+		registry.add("06-indivisible-object-cap-is-bounded", this::testIndivisibleObjectCap);
+		registry.add("07-item-reservation-retry-and-canonical-mismatch", this::testItemReservationAndMismatch);
+		registry.add("08-current-authority-recaptures-canonical-baseline", this::testCurrentAuthorityRecapturesCanonicalBaseline);
+		registry.add("09-unplanned-topology-block-reopens-on-generation", this::testUnplannedTopologyBlockReopens);
+		registry.add("10-legacy-item-conflict-retries-from-cursor", this::testLegacyItemConflictRetries);
 	}
 	private void testCodecAndIdentity(PhantomTestContext context)
 	{
@@ -217,6 +236,7 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 			PhantomAssertions.assertEquals(4, advanced.advancedIntervals(), "Catch-up did not execute exactly one interval per simulated minute.");
 			PhantomAssertions.assertEquals(Status.COMPLETE, advanced.snapshot().state().status(), "Catch-up did not stop exactly at its target cursor.");
 			PhantomAssertions.assertTrue(runtime.historical().permitsNormalOperation(profileId), "COMPLETE catch-up did not reopen normal Decision work.");
+			PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, runtime.transaction().reconcileVerifyPending(profileId, baseline.identity().characterObjectId()).status(), "COMPLETE catch-up left an unreconciled canonical Background state.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, runtime.materialization().materialize(profileId).status(), "COMPLETE catch-up did not reopen NORMAL materialization.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, runtime.materialization().dematerialize(profileId).status(), "Post-catch-up ordinary dematerialization failed.");
 			context.record("goal033a.selectedNpcId", spec.npcId());
@@ -410,18 +430,263 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 			final Hashes hashes = current.state().authorityHashes();
 			final Hashes staleHashes = new Hashes("stale-" + hashes.knowledge(), hashes.topology(), hashes.progression(), hashes.commerce());
 			store.replace(profileId, current, copyWithHashes(current.state(), staleHashes));
-			final byte[] backgroundBefore = componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE);
-			final var rejected = runtime.historical().advance(profileId, 1, 1);
-			PhantomAssertions.assertEquals(ResultStatusCode.REPLAN_REQUIRED, rejected.status(), "Stale authority hash did not fail closed.");
-			PhantomAssertions.assertEquals(Status.FAILED_REPLAN_REQUIRED, rejected.snapshot().state().status(), "Stale authority hash did not persist explicit replan-required state.");
-			PhantomAssertions.assertTrue(Arrays.equals(backgroundBefore, componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE)), "Stale authority hash mutated canonical Background/player state.");
-			PhantomAssertions.assertFalse(runtime.historical().permitsNormalOperation(profileId), "Failed replan-required state silently reopened normal work.");
+			final var recovered = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, recovered.status(), "Stale authority hash did not recover from canonical state: " + recovered.reason());
+			PhantomAssertions.assertEquals(current.state().cursorEpochMinute() + 1, recovered.snapshot().state().cursorEpochMinute(), "Stale recovery did not advance exactly one interval.");
+			PhantomAssertions.assertEquals(hashes, recovered.snapshot().state().authorityHashes(), "Stale recovery did not install current authority hashes.");
+			PhantomAssertions.assertFalse(runtime.historical().permitsNormalOperation(profileId), "Incomplete catch-up silently reopened normal work.");
 		}
 
 		deleteProfileOnly(profileId);
 		PhantomAssertions.assertTrue(_profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).isEmpty(), "Profile reset did not cascade-delete pending catch-up state.");
 		context.record("goal033a.staleHashReason", "catchup.authority_hash_or_generation_stale");
 		context.record("goal033a.resetCascadeProfile", profileId);
+	}
+
+	private void testStaleAfterCommitRecovers(PhantomTestContext context) throws Exception
+	{
+		final ManagedSnapshot managed = createManaged(context.seed() + 3);
+		final long profileId = managed.profile().profileId();
+		RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction());
+		try
+		{
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Recovery fixture baseline failed.");
+			final var first = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, first.status(), "Recovery fixture did not commit its first interval.");
+			final PhantomBackgroundCatchupStore store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			final Snapshot committed = store.load(profileId).orElseThrow();
+			final byte[] canonicalAfterCommit = componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+			final Hashes hashes = committed.state().authorityHashes();
+			final Hashes stale = new Hashes("stale-" + hashes.knowledge(), hashes.topology(), hashes.progression(), hashes.commerce());
+			final Snapshot failed = store.replace(profileId, committed, copyWithHashes(committed.state(), stale).failed("catchup.authority_hash_or_generation_stale"));
+			PhantomAssertions.assertEquals(committed.state().cursorEpochMinute(), failed.state().cursorEpochMinute(), "Stale fixture advanced the cursor.");
+			PhantomAssertions.assertTrue(Arrays.equals(canonicalAfterCommit, componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE)), "Stale fixture changed committed canonical rewards.");
+			runtime.close();
+			runtime = openRuntime(profileId, new PhantomBackgroundTransaction());
+			final var recovered = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, recovered.status(), "Failed stale request did not recover after restart: " + recovered.reason());
+			PhantomAssertions.assertEquals(committed.state().cursorEpochMinute() + 1, recovered.snapshot().state().cursorEpochMinute(), "Recovery did not commit exactly the next interval.");
+			PhantomAssertions.assertEquals(committed.state().intervalOrdinal() + 1, recovered.snapshot().state().intervalOrdinal(), "Recovery replayed an interval ordinal.");
+			PhantomAssertions.assertEquals(committed.state().deterministicSeed(), recovered.snapshot().state().deterministicSeed(), "Recovery changed request lineage seed.");
+			final byte[] backgroundAfterRecovery = componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+			runtime.close();
+			runtime = openRuntime(profileId, new PhantomBackgroundTransaction());
+			PhantomAssertions.assertTrue(Arrays.equals(backgroundAfterRecovery, componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE)), "Restart replayed canonical rewards after recovery.");
+			PhantomAssertions.assertEquals(recovered.snapshot().state().cursorEpochMinute(), runtime.historical().status(profileId).orElseThrow().state().cursorEpochMinute(), "Restart changed the recovered cursor.");
+			final var continued = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, continued.status(), "Recovery continuation failed after second restart: " + continued.reason());
+			PhantomAssertions.assertEquals(recovered.snapshot().state().cursorEpochMinute() + 1, continued.snapshot().state().cursorEpochMinute(), "Second restart replayed the recovered interval.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testIndivisibleObjectCap(PhantomTestContext context) throws Exception
+	{
+		final ManagedSnapshot managed = createManaged(context.seed() + 4);
+		final long profileId = managed.profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 16, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Object-cap fixture baseline failed: " + begun.reason());
+			final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(runtime.goals().load(profileId).orElseThrow().goal());
+			for (int step = 0; (step < 16) && !runtime.transaction().load(profileId).state().position().committedAnchorId().equals(spec.anchorId()); step++)
+			{
+				PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().advance(profileId, 1, 1).status(), "Object-cap fixture could not reach its factual farm anchor.");
+			}
+			final PhantomBackgroundState baseline = runtime.transaction().load(profileId).state();
+			PhantomAssertions.assertEquals(spec.anchorId(), baseline.position().committedAnchorId(), "Object-cap fixture did not reach its factual farm anchor.");
+			final var input = _production.authority().farmInput(baseline, spec);
+			final Target original = input.target();
+			final List<Drop> drops = new ArrayList<>();
+			for (int ordinal = 0; ordinal < 17; ordinal++)
+			{
+				drops.add(new Drop(57 + ordinal, ordinal, 0, 100, 100, 1, 1, 1, null, 1, 100, true, 0));
+			}
+			final Target oversized = new Target(original.npcId(), original.level(), original.normalMonster(), original.maximumHp(), original.maximumMp(), original.physicalOffense(), original.magicOffense(), original.physicalDefense(), original.magicDefense(), original.attackSpeed(), original.castSpeed(), original.baseExperience(), original.baseSkillPoints(), drops, 17);
+			final var batch = new PhantomBackgroundModel().evaluate(new BatchRequest(baseline, oversized, input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
+			PhantomAssertions.assertTrue(batch.indivisibleObjectCap(), "A single oversized encounter was not classified as bounded unsupported input.");
+			PhantomAssertions.assertFalse(batch.mutated(), "An indivisible object-cap encounter partially mutated rewards.");
+			final Drop oneObject = new Drop(500000, 0, 0, 100, 100, 1, 1, 1, null, 1, 100, false, 0);
+			final Target cumulative = new Target(original.npcId(), original.level(), true, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, List.of(oneObject), 1);
+			final var bounded = new PhantomBackgroundModel().evaluate(new BatchRequest(baseline, cumulative, input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
+			PhantomAssertions.assertEquals(PhantomBackgroundModel.ResultReason.OBJECT_CAP, bounded.reason(), "Cumulative object safety cap did not stop the bounded batch.");
+			PhantomAssertions.assertTrue(bounded.mutated(), "A completed prefix was discarded at the object safety cap.");
+			PhantomAssertions.assertFalse(bounded.indivisibleObjectCap(), "A completed prefix was mistaken for an indivisible encounter.");
+			PhantomAssertions.assertEquals(baseline, runtime.transaction().load(profileId).state(), "An uncommitted object-cap encounter changed canonical state.");
+		}
+	}
+
+	private void testItemReservationAndMismatch(PhantomTestContext context) throws Exception
+	{
+		final ManagedSnapshot managed = createManaged(context.seed() + 5);
+		final long profileId = managed.profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 2, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Item conflict fixture baseline failed: " + begun.reason());
+			final PhantomBackgroundState baseline = runtime.transaction().load(profileId).state();
+			final PhantomGoal goal = runtime.goals().load(profileId).orElseThrow().goal();
+			final int objectId = baseline.identity().characterObjectId();
+			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, objectId, goal.goalId(), goal.revision(), 1, 1, ActionKind.FARM, PhantomBackgroundGoalSpec.parse(goal).npcId(), PhantomBackgroundGoalSpec.parse(goal).anchorId(), PhantomBackgroundState.MODEL_VERSION, baseline.hashes());
+			final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(baseline, goal, key, baseline.progress(), baseline.vitals(), baseline.position(), baseline.clock(), Map.of(57, 1L), baseline.autoGetSkills());
+			final PhantomEconomyPolicy policy = PhantomEconomyPolicy.load(context.moduleRoot().resolve("dist/game/data/phantoms/economy/high-five-economy-v1.xml"));
+			final PhantomEconomyReservationService reservations = new PhantomEconomyReservationService(policy);
+			final long now = System.currentTimeMillis();
+			final PhantomEconomyOperation operation = new PhantomEconomyOperation(new Identity(profileId, objectId, goal.goalId(), goal.revision(), 1, "economy.live0030c", 1, 1), Kind.SELF_CRAFT, State.PREPARED, PhantomEconomyOperation.sha256("authority:live0030c"), PhantomEconomyOperation.sha256("intent:live0030c"), PhantomEconomyOperation.utf8Payload("before"), PhantomEconomyOperation.utf8Payload("intent"), now, now, now + 120000, 0);
+			final Reservation held = new Reservation(profileId, objectId, baseline.identity().classIndex(), ResourceKind.ITEM_COUNT, 0, 57, 1, baseline.inventory().itemCount(57), 0, "INVENTORY");
+			try
+			{
+				PhantomAssertions.assertTrue(reservations.start(), "Item conflict reservation service did not start.");
+				PhantomAssertions.assertEquals(PhantomEconomyReservationService.Status.RESERVED, reservations.reserve(operation, List.of(held)).status(), "Item conflict reservation was not acquired.");
+				PhantomEconomyConflictPort.install(reservations);
+				PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.ITEM_BUSY, runtime.transaction().execute(command).status(), "Temporary item reservation was classified as a canonical mismatch.");
+				PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.RETRY, runtime.background().mapTransactionFailure(PhantomBackgroundTransaction.Status.ITEM_BUSY).status(), "Temporary item reservation did not preserve retry semantics.");
+				PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.RETRY, runtime.background().mapTransactionFailure(PhantomBackgroundTransaction.Status.ITEM_EXPECTED_COUNT_STALE).status(), "Stale acquisition expected count did not preserve retry semantics.");
+				PhantomAssertions.assertEquals(PhantomBackgroundService.ServiceState.RUNNING, runtime.background().snapshot().state(), "Temporary item reservation failed the whole Background service.");
+				PhantomAssertions.assertEquals(baseline, runtime.transaction().load(profileId).state(), "Blocked item claim changed canonical rewards.");
+				reservations.transition(operation.operationId(), State.RESERVED, State.ABORTED, System.currentTimeMillis(), new PhantomEconomyOperation.Audit(PhantomEconomyOperation.Result.ERROR, "operation.conflict", new byte[0]));
+				final PhantomBackgroundTransaction.Command mismatch = new PhantomBackgroundTransaction.Command(baseline, goal, key, baseline.progress(), baseline.vitals(), baseline.position(), baseline.clock(), Map.of(999999, -1L), baseline.autoGetSkills());
+				PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.ITEM_CONFLICT, runtime.transaction().execute(mismatch).status(), "Genuine nonmutable inventory mismatch did not fail closed.");
+				PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.INCONSISTENT, runtime.background().mapTransactionFailure(PhantomBackgroundTransaction.Status.ITEM_CONFLICT).status(), "Canonical inventory mismatch was classified as retryable.");
+			}
+			finally
+			{
+				PhantomEconomyConflictPort.uninstall(reservations);
+				reservations.shutdown(System.currentTimeMillis());
+			}
+		}
+	}
+
+	private void testCurrentAuthorityRecapturesCanonicalBaseline(PhantomTestContext context) throws Exception
+	{
+		final ManagedSnapshot managed = createManaged(context.seed() + 6);
+		final long profileId = managed.profile().profileId();
+		RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction());
+		try
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed()).status(), "Authority refresh fixture baseline failed.");
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().advance(profileId, 1, 1).status(), "Authority refresh fixture did not commit its first interval.");
+			final Snapshot committed = runtime.historical().status(profileId).orElseThrow();
+			final PhantomBackgroundState canonical = runtime.transaction().load(profileId).state();
+			final Hashes oldHashes = canonical.hashes();
+			final Hashes currentHashes = new Hashes("new-" + oldHashes.knowledge(), oldHashes.topology(), oldHashes.progression(), oldHashes.commerce());
+			runtime.close();
+			runtime = openRuntime(profileId, new PhantomBackgroundTransaction(), authorityWithHashes(currentHashes));
+			final var recovered = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, recovered.status(), "Stale canonical baseline was not recaptured: " + recovered.reason());
+			PhantomAssertions.assertEquals(committed.state().cursorEpochMinute() + 1, recovered.snapshot().state().cursorEpochMinute(), "Canonical refresh replayed or skipped an interval.");
+			PhantomAssertions.assertEquals(committed.state().deterministicSeed(), recovered.snapshot().state().deterministicSeed(), "Canonical refresh changed lineage seed.");
+			PhantomAssertions.assertEquals(currentHashes, runtime.transaction().load(profileId).state().hashes(), "Canonical refresh did not install current authority hashes.");
+			PhantomAssertions.assertTrue(runtime.transaction().load(profileId).state().progress().experience() >= canonical.progress().experience(), "Canonical refresh rewound committed EXP.");
+			PhantomAssertions.assertTrue(runtime.transaction().load(profileId).state().progress().skillPoints() >= canonical.progress().skillPoints(), "Canonical refresh rewound committed SP.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testUnplannedTopologyBlockReopens(PhantomTestContext context) throws Exception
+	{
+		final ManagedSnapshot managed = createManaged(context.seed() + 7);
+		final long profileId = managed.profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final var current = runtime.planner().generation();
+			final PhantomBackgroundCatchupState blocked = new PhantomBackgroundCatchupState(Status.FAILED_REPLAN_REQUIRED, "f".repeat(64), context.seed(), FROM_MINUTE, FROM_MINUTE + 4, FROM_MINUTE, 0, 0, 1, current.knowledgeGeneration(), current.topologyGeneration() + 1, 0, 0, "", PhantomBackgroundState.MODEL_VERSION, current.authorityHashes(), "planner.target_or_route.absent");
+			final PhantomBackgroundCatchupStore store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			store.claim(profileId, blocked);
+			PhantomAssertions.assertTrue(runtime.historical().status(profileId).orElseThrow().state().blocksNormalOperation(), "Unplanned topology block admitted normal work.");
+			final var recovered = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, recovered.status(), "Factual topology generation did not resume the same request: " + recovered.reason());
+			PhantomAssertions.assertEquals(blocked.requestId(), recovered.snapshot().state().requestId(), "Topology recovery replaced the durable request identity.");
+			PhantomAssertions.assertEquals(blocked.deterministicSeed(), recovered.snapshot().state().deterministicSeed(), "Topology recovery changed the lineage seed.");
+			PhantomAssertions.assertEquals(FROM_MINUTE + 1, recovered.snapshot().state().cursorEpochMinute(), "Topology recovery replayed or skipped a minute.");
+		}
+	}
+
+	private void testLegacyItemConflictRetries(PhantomTestContext context) throws Exception
+	{
+		final ManagedSnapshot managed = createManaged(context.seed() + 8);
+		final long profileId = managed.profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed()).status(), "Legacy item-conflict fixture baseline failed.");
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().advance(profileId, 1, 1).status(), "Legacy item-conflict fixture did not commit its first interval.");
+			final PhantomBackgroundCatchupStore store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			final Snapshot committed = store.load(profileId).orElseThrow();
+			final byte[] canonicalBefore = componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+			store.replace(profileId, committed, committed.state().failed("transaction.item_conflict"));
+			PhantomAssertions.assertTrue(Arrays.equals(canonicalBefore, componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE)), "Legacy item-conflict fixture changed canonical rewards.");
+			final var retried = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, retried.status(), "Legacy transient item conflict did not retry: " + retried.reason());
+			PhantomAssertions.assertEquals(committed.state().cursorEpochMinute() + 1, retried.snapshot().state().cursorEpochMinute(), "Legacy item-conflict retry replayed the committed minute.");
+			PhantomAssertions.assertEquals(committed.state().deterministicSeed(), retried.snapshot().state().deterministicSeed(), "Legacy item-conflict retry changed lineage seed.");
+		}
+	}
+
+	private PhantomBackgroundAuthority authorityWithHashes(Hashes currentHashes)
+	{
+		final PhantomBackgroundAuthority delegate = _production.authority();
+		return new PhantomBackgroundAuthority()
+		{
+			@Override
+			public Hashes hashes()
+			{
+				return currentHashes;
+			}
+
+			@Override
+			public PhantomBackgroundState capture(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous)
+			{
+				return copyBackgroundWithHashes(delegate.capture(profileId, player, goal, previous), currentHashes);
+			}
+
+			@Override
+			public PlanningSnapshot planningSnapshot(Player player)
+			{
+				return delegate.planningSnapshot(player);
+			}
+
+			@Override
+			public boolean matchesRuntime(Player player, PhantomBackgroundState state)
+			{
+				return delegate.matchesRuntime(player, state);
+			}
+
+			@Override
+			public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal)
+			{
+				return delegate.farmInput(copyBackgroundWithHashes(state, delegate.hashes()), goal);
+			}
+
+			@Override
+			public TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis)
+			{
+				return delegate.advanceTravel(copyBackgroundWithHashes(state, delegate.hashes()), goal, elapsedBudgetMillis);
+			}
+
+			@Override
+			public Optional<Position> canonicalRecoveryPosition(int x, int y, int z, int instanceId, int heading)
+			{
+				return delegate.canonicalRecoveryPosition(x, y, z, instanceId, heading);
+			}
+
+			@Override
+			public List<PhantomBackgroundState.AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level)
+			{
+				return delegate.autoGetSkills(identity, level);
+			}
+		};
+	}
+
+	private static PhantomBackgroundState copyBackgroundWithHashes(PhantomBackgroundState state, Hashes hashes)
+	{
+		return new PhantomBackgroundState(state.state(), state.identity(), state.progress(), state.vitals(), state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), hashes);
 	}
 	private void assertPlannerEvidence(PhantomBackgroundState baseline, PhantomBackgroundGoalSpec spec)
 	{
@@ -462,6 +727,11 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 
 	private RuntimeHarness openRuntime(long profileId, PhantomBackgroundTransaction transaction)
 	{
+		return openRuntime(profileId, transaction, _production.authority());
+	}
+
+	private RuntimeHarness openRuntime(long profileId, PhantomBackgroundTransaction transaction, PhantomBackgroundAuthority authority)
+	{
 		final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
 		final PhantomMaterializationLifecycleBridge lifecycle = new PhantomMaterializationLifecycleBridge();
 		final PhantomMetrics metrics = new PhantomMetrics();
@@ -469,9 +739,9 @@ public final class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTe
 		{
 		}, lifecycle, 5_000, 10_000);
 		final AtomicReference<PhantomMaterializationService> materializationRef = new AtomicReference<>(materialization);
-		final PhantomBackgroundService background = new PhantomBackgroundService(_profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), materializationRef::get);
+		final PhantomBackgroundService background = new PhantomBackgroundService(_profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, authority, new PhantomBackgroundCompetitionRegistry(), noSignals(), materializationRef::get);
 		PhantomAssertions.assertTrue(background.start(), "Goal033A Background service did not start.");
-		final PhantomHistoricalBackgroundPlanner planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), _production.topology(), _production.authority());
+		final PhantomHistoricalBackgroundPlanner planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), _production.topology(), authority);
 		final PhantomHistoricalBackgroundService historical = new PhantomHistoricalBackgroundService(_profiles, goals, planner, background, materialization);
 		lifecycle.install(PhantomMaterializationLifecyclePort.chain(historical, background));
 		PhantomAssertions.assertTrue(materialization.start(), "Goal033A materialization service did not start.");
