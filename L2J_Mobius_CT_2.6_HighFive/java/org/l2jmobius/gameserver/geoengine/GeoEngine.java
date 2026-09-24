@@ -78,6 +78,28 @@ public class GeoEngine
 	private static final int COORDINATE_OFFSET = 8;
 	private static final int HEIGHT_INCREASE_LIMIT = 40;
 	private static final int SPAWN_HEIGHT_OFFSET = 20;
+
+	interface MovementCollisionOracle
+	{
+		boolean doorBetween(int fromX, int fromY, int fromZ, int toX, int toY, int toZ, int instanceId);
+
+		boolean fenceBetween(int fromX, int fromY, int fromZ, int toX, int toY, int toZ, int instanceId);
+	}
+
+	private static final MovementCollisionOracle PRODUCTION_MOVEMENT_COLLISION = new MovementCollisionOracle()
+	{
+		@Override
+		public boolean doorBetween(int fromX, int fromY, int fromZ, int toX, int toY, int toZ, int instanceId)
+		{
+			return DoorData.getInstance().checkIfDoorsBetween(fromX, fromY, fromZ, toX, toY, toZ, instanceId, false);
+		}
+
+		@Override
+		public boolean fenceBetween(int fromX, int fromY, int fromZ, int toX, int toY, int toZ, int instanceId)
+		{
+			return FenceData.getInstance().checkIfFenceBetween(fromX, fromY, fromZ, toX, toY, toZ, instanceId);
+		}
+	};
 	
 	// Region Management.
 	private static final AtomicReferenceArray<IRegion> REGIONS = new AtomicReferenceArray<>(GEO_REGIONS);
@@ -727,6 +749,11 @@ public class GeoEngine
 	 */
 	public boolean canMoveToTarget(int fromX, int fromY, int fromZ, int toX, int toY, int toZ, int instanceId)
 	{
+		return canMoveToTarget(fromX, fromY, fromZ, toX, toY, toZ, instanceId, PRODUCTION_MOVEMENT_COLLISION);
+	}
+
+	boolean canMoveToTarget(int fromX, int fromY, int fromZ, int toX, int toY, int toZ, int instanceId, MovementCollisionOracle collision)
+	{
 		final int geoX = getGeoX(fromX);
 		final int geoY = getGeoY(fromY);
 		final int nearestFromZ = getNearestZ(geoX, geoY, fromZ);
@@ -735,13 +762,13 @@ public class GeoEngine
 		final int nearestToZ = getNearestZ(targetGeoX, targetGeoY, toZ);
 		
 		// Door checks.
-		if (DoorData.getInstance().checkIfDoorsBetween(fromX, fromY, nearestFromZ, toX, toY, nearestToZ, instanceId, false))
+		if (collision.doorBetween(fromX, fromY, nearestFromZ, toX, toY, nearestToZ, instanceId))
 		{
 			return false;
 		}
 		
 		// Fence checks.
-		if (FenceData.getInstance().checkIfFenceBetween(fromX, fromY, nearestFromZ, toX, toY, nearestToZ, instanceId))
+		if (collision.fenceBetween(fromX, fromY, nearestFromZ, toX, toY, nearestToZ, instanceId))
 		{
 			return false;
 		}

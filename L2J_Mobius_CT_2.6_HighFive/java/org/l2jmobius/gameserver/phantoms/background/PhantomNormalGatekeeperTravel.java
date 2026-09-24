@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntPredicate;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -46,6 +47,7 @@ public final class PhantomNormalGatekeeperTravel
 	private static final int MAX_CACHED_SOURCES = 64;
 	private static final String FACTS_SHA = "a8318075ef6ea3c3f266aa975ef1565fb8d6c93d2f074f076a059ed5d2ea2fe4";
 	private static final String CONNECTORS_SHA = "fe0c0433e8975ff43f397470eca5caf0ae3b545e4d66d0ece2096d1ed97c1926";
+	private static final String TARGETED_CONNECTORS_SHA = "689e6adb216b7ba609f6fd4a59db1d5fca19439838d30b015142a9a250e6492e";
 	private static final String TRANSITIONS_SHA = "d378de9ddb395914c7e36480f149143f3cb9a2b84284ca625708d5c880f3e09d";
 
 	private final PhantomTopologyQuery _topology;
@@ -102,7 +104,7 @@ public final class PhantomNormalGatekeeperTravel
 			factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);
 			final Element root = factory.newDocumentBuilder().parse(new ByteArrayInputStream(bytes)).getDocumentElement();
-			if (!"travel".equals(root.getTagName()) || !"LIVE-002-D2/1".equals(root.getAttribute("schema")) || !FACTS_SHA.equals(root.getAttribute("factsSha256")) || !CONNECTORS_SHA.equals(root.getAttribute("connectorsSha256")) || !TRANSITIONS_SHA.equals(root.getAttribute("transitionsSha256")))
+			if (!"travel".equals(root.getTagName()) || !"LIVE-002-D2/1".equals(root.getAttribute("schema")) || !FACTS_SHA.equals(root.getAttribute("factsSha256")) || !CONNECTORS_SHA.equals(root.getAttribute("connectorsSha256")) || !TARGETED_CONNECTORS_SHA.equals(root.getAttribute("targetedConnectorsSha256")) || !TRANSITIONS_SHA.equals(root.getAttribute("transitionsSha256")))
 			{
 				throw new IllegalArgumentException("NORMAL GK catalog D1 provenance changed.");
 			}
@@ -159,13 +161,14 @@ public final class PhantomNormalGatekeeperTravel
 		final int feeId = number(value, "feeId");
 		final long feeCount = Long.parseLong(attribute(value, "feeCount"));
 		final long travelMillis = Long.parseLong(attribute(value, "travelMillis"));
+		final List<Integer> destinationCastleIds = parseDestinationCastleIds(value.getAttribute("destinationCastleIds"));
 		final PhantomTopologyAnchor departure = topology.findAnchor(from).orElseThrow();
 		final PhantomTopologyAnchor arrival = topology.findAnchor(to).orElseThrow();
 		if (!id.matches("leg[.][0-9a-f]{24}") || !sourceConnector.matches("connector[.][0-9a-f]{24}") || !destinationConnector.matches("connector[.][0-9a-f]{24}") || !transition.matches("transition[.][0-9a-f]{24}") || !id.equals("leg." + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(compoundIdentity.getBytes(StandardCharsets.US_ASCII))).substring(0, 24)) || refs.length() > 512 || !refs.contains("data/teleporters/") || !refs.contains("data/spawns/") || (departure.point().instanceId() != 0) || (arrival.point().instanceId() != 0) || (npcId <= 0) || (index < 0) || (index > 1024) || ((feeId != 0) && (feeId != 57)) || (feeCount < 0) || (feeCount > 1_000_000_000L) || (travelMillis < 1000) || (travelMillis > 86_400_000))
 		{
 			throw new IllegalArgumentException("Unsupported NORMAL GK leg.");
 		}
-		final Leg leg = new Leg(id, from, to, sourceConnector, transition, destinationConnector, npcId, listName, index, x, y, z, sourceX, sourceY, sourceZ, feeId, feeCount, travelMillis, refs);
+		final Leg leg = new Leg(id, from, to, sourceConnector, transition, destinationConnector, npcId, listName, index, x, y, z, sourceX, sourceY, sourceZ, feeId, feeCount, travelMillis, refs, destinationCastleIds);
 		if (!matchesNative(leg))
 		{
 			throw new IllegalArgumentException("NORMAL GK native destination changed.");
@@ -181,7 +184,49 @@ public final class PhantomNormalGatekeeperTravel
 			return false;
 		}
 		final TeleportLocation location = holder.getLocation(leg.destinationIndex());
-		return (location.getX() == leg.destinationX()) && (location.getY() == leg.destinationY()) && (location.getZ() == leg.destinationZ()) && (location.getFeeId() == leg.feeId()) && (location.getFeeCount() == leg.feeCount()) && location.getCastleId().isEmpty();
+		return (location.getX() == leg.destinationX()) && (location.getY() == leg.destinationY()) && (location.getZ() == leg.destinationZ()) && (location.getFeeId() == leg.feeId()) && (location.getFeeCount() == leg.feeCount()) && nativeCastleIdsMatch(leg.destinationCastleIds(), location.getCastleId());
+	}
+
+	public static List<Integer> parseDestinationCastleIds(String encoded)
+	{
+		if (encoded.isEmpty())
+		{
+			return List.of();
+		}
+		final List<Integer> ids = new ArrayList<>();
+		int previous = 0;
+		for (String part : encoded.split(";", -1))
+		{
+			if (!part.matches("[1-9][0-9]*"))
+			{
+				throw new IllegalArgumentException("Invalid destination castle ID.");
+			}
+			final int id = Integer.parseInt(part);
+			if (id <= previous)
+			{
+				throw new IllegalArgumentException("Noncanonical destination castle IDs.");
+			}
+			ids.add(id);
+			previous = id;
+		}
+		return List.copyOf(ids);
+	}
+
+	public static boolean nativeCastleIdsMatch(List<Integer> persisted, List<Integer> nativeIds)
+	{
+		return persisted.equals(nativeIds);
+	}
+
+	public static boolean destinationCastlesAvailable(List<Integer> castleIds, IntPredicate available)
+	{
+		for (int castleId : castleIds)
+		{
+			if ((castleId <= 0) || !available.test(castleId))
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static String attribute(Element value, String name)
@@ -311,7 +356,11 @@ public final class PhantomNormalGatekeeperTravel
 	{
 	}
 
-	public record Leg(String id, String fromAnchorId, String toAnchorId, String sourceConnectorId, String transitionId, String destinationConnectorId, int teleporterNpcId, String teleportListName, int destinationIndex, int destinationX, int destinationY, int destinationZ, int sourceX, int sourceY, int sourceZ, int feeId, long feeCount, long travelMillis, String sourceRefs)
+	public record Leg(String id, String fromAnchorId, String toAnchorId, String sourceConnectorId, String transitionId, String destinationConnectorId, int teleporterNpcId, String teleportListName, int destinationIndex, int destinationX, int destinationY, int destinationZ, int sourceX, int sourceY, int sourceZ, int feeId, long feeCount, long travelMillis, String sourceRefs, List<Integer> destinationCastleIds)
 	{
+		public Leg
+		{
+			destinationCastleIds = List.copyOf(destinationCastleIds);
+		}
 	}
 }

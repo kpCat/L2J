@@ -501,7 +501,11 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			return false;
 		}
 		final var castle = CastleManager.getInstance().getCastleById(town.getTaxById());
-		return (castle != null) && !castle.getSiege().isInProgress();
+		return (castle != null) && !castle.getSiege().isInProgress() && PhantomNormalGatekeeperTravel.destinationCastlesAvailable(leg.destinationCastleIds(), castleId ->
+		{
+			final var destinationCastle = CastleManager.getInstance().getCastleById(castleId);
+			return (destinationCastle != null) && (destinationCastle.getSiege() != null) && !destinationCastle.getSiege().isInProgress();
+		});
 	}
 
 	@Override

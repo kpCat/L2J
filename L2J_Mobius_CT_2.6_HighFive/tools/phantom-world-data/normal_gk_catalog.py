@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import json
 import math
 import xml.etree.ElementTree as ET
 from collections import defaultdict
@@ -23,15 +24,36 @@ def module_root():
     return Path(__file__).resolve().parents[2]
 
 
-def join(transitions, connectors, facts):
+def destination_eligible(row, anchor_points):
+    if row.get("connector_kind") != "DEST_TO_ANCHOR" or row.get("from_type") != "DEST" or row.get("to_type") != "ANCHOR" or row.get("instance_id") != "0":
+        return False
+    if row.get("validation_status") in ("VALID_DIRECT", "VALID_PATH"):
+        return int(row.get("path_length", "0")) > 0 and int(row.get("path_segments", "0")) > 0
+    if row.get("validation_status") != "VALID_IDENTITY" or row.get("reason") != "CANONICAL_IDENTITY":
+        return False
+    if any(row.get(field) != "0" for field in ("straight_distance", "path_length", "path_segments")):
+        return False
+    point = anchor_points.get(row.get("to_id"))
+    return point is not None and point[3] == "0" and all(row.get("from_" + axis) == row.get("to_" + axis) == point[index] for index, axis in enumerate(("x", "y", "z")))
+
+
+def canonical_castle_ids(value):
+    if not value:
+        return ""
+    parts = value.split(";")
+    if any(not part.isdecimal() or part.startswith("0") or int(part) <= 0 for part in parts) or [int(part) for part in parts] != sorted({int(part) for part in parts}):
+        raise ValueError("Noncanonical destination castle IDs")
+    return value
+
+
+def join(transitions, connectors, facts, anchor_points=None):
+    anchor_points = anchor_points or {}
     sources = defaultdict(list)
     destinations = defaultdict(list)
     for row in connectors:
-        if row.get("validation_status") not in ("VALID_DIRECT", "VALID_PATH") or row.get("instance_id") != "0" or int(row.get("path_length", "0")) <= 0:
-            continue
-        if row.get("connector_kind") == "ANCHOR_TO_GK" and row.get("from_type") == "ANCHOR" and row.get("to_type") == "GK":
+        if row.get("connector_kind") == "ANCHOR_TO_GK" and row.get("from_type") == "ANCHOR" and row.get("to_type") == "GK" and row.get("instance_id") == "0" and row.get("validation_status") in ("VALID_DIRECT", "VALID_PATH") and int(row.get("path_length", "0")) > 0:
             sources[row["to_id"]].append(row)
-        if row.get("connector_kind") == "DEST_TO_ANCHOR" and row.get("from_type") == "DEST" and row.get("to_type") == "ANCHOR":
+        if destination_eligible(row, anchor_points):
             destinations[row["from_id"]].append(row)
     native = {"transition." + d1.key(row["fact_key"]): row for row in facts if row.get("availability_class") == "NORMAL" and row.get("teleport_type") == "NORMAL"}
     result = []
@@ -42,7 +64,7 @@ def join(transitions, connectors, facts):
         if fact is None or any(fact[field] != transition[value] for field, value in (("teleporter_spawn_key", "from_gk_fact_key"), ("teleporter_npc_id", "teleporter_npc_id"), ("fee_id", "fee_id"), ("fee_count", "fee_count"))):
             continue
         destination_id = "dest." + d1.key(fact["destination_x"], fact["destination_y"], fact["destination_z"], fact["teleporter_instance_id"])
-        if destination_id != transition["to_destination_fact_key"] or fact["castle_ids"] or fact["teleporter_instance_id"] != "0":
+        if destination_id != transition["to_destination_fact_key"] or fact["teleporter_instance_id"] != "0":
             continue
         for source in sources[transition["from_gk_fact_key"]]:
             if any(source["to_" + axis] != fact["teleporter_spawn_" + axis] for axis in ("x", "y", "z")):
@@ -61,6 +83,7 @@ def join(transitions, connectors, facts):
                     "destinationX": fact["destination_x"], "destinationY": fact["destination_y"], "destinationZ": fact["destination_z"],
                     "sourceX": fact["teleporter_spawn_x"], "sourceY": fact["teleporter_spawn_y"], "sourceZ": fact["teleporter_spawn_z"],
                     "feeId": fact["fee_id"], "feeCount": fact["fee_count"],
+                    "destinationCastleIds": canonical_castle_ids(fact["castle_ids"]),
                     "travelMillis": str(max(1000, math.ceil((int(source["path_length"]) + int(destination["path_length"])) / 100) * 1000 + 1000)),
                     "sourceRefs": "|".join(sorted(set((fact["source_path"], fact["spawn_source_path"], *source["source_refs"].split("|"), *destination["source_refs"].split("|"))))),
                 })
@@ -77,13 +100,29 @@ def build(module, output):
         if d1.sha_file(registry / name) != expected:
             raise RuntimeError("BLOCKED_INPUT_DRIFT: " + name)
     facts = d1.read_tsv(registry / "GATEKEEPER_FACTS.tsv")
-    connectors = d1.read_tsv(registry / "TRAVEL_CONNECTORS.tsv")
+    manifest = json.loads((registry / "TARGETED_TRAVEL_CONNECTORS_MANIFEST.json").read_text(encoding="utf-8"))
+    if manifest.get("schema") != "LIVE-002-40-51/1" or manifest.get("base_d1_connectors_sha256") != ACCEPTED_D1["TRAVEL_CONNECTORS.tsv"]:
+        raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: manifest binding")
+    for name, expected in manifest["output_sha256"].items():
+        if d1.sha_file(registry / name) != expected:
+            raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: " + name)
+    if d1.sha_file(module / "dist/game/data/phantoms/topology/high-five-generated-03.xml") != manifest["generated03_sha256"]:
+        raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: generated-03")
+    supplement = d1.read_tsv(registry / "TARGETED_TRAVEL_CONNECTORS.tsv")
+    if len(supplement) != 2 or {row["connector_id"] for row in supplement} != {"connector.73bea2de1609f40ad6b3230e", "connector.92ca2c480990a8b06fa07d82"}:
+        raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: exact targeted connector set")
+    connectors = d1.read_tsv(registry / "TRAVEL_CONNECTORS.tsv") + supplement
     transitions = d1.read_tsv(registry / "TRAVEL_TRANSITIONS.tsv")
-    legs = join(transitions, connectors, facts)
-    anchors = {anchor["id"] for anchor in d1.topology(module)[0].values()}
-    if any(leg["fromAnchorId"] not in anchors or leg["toAnchorId"] not in anchors for leg in legs):
+    anchors = d1.topology(module)[0]
+    for name in ("high-five-generated-02.xml", "high-five-generated-03.xml"):
+        root = ET.parse(module / "dist/game/data/phantoms/topology" / name).getroot()
+        for anchor in root.findall("anchor"):
+            anchors[anchor.get("id")] = {"x": int(anchor.get("x")), "y": int(anchor.get("y")), "z": int(anchor.get("z")), "instance": int(anchor.get("instanceId"))}
+    anchor_points = {key: (str(value["x"]), str(value["y"]), str(value["z"]), str(value["instance"])) for key, value in anchors.items()}
+    legs = join(transitions, connectors, facts, anchor_points)
+    if any(leg["fromAnchorId"] not in anchor_points or leg["toAnchorId"] not in anchor_points for leg in legs):
         raise RuntimeError("NORMAL Gatekeeper catalog references unknown topology anchor.")
-    root = ET.Element("travel", {"schema": "LIVE-002-D2/1", "factsSha256": ACCEPTED_D1["GATEKEEPER_FACTS.tsv"], "connectorsSha256": ACCEPTED_D1["TRAVEL_CONNECTORS.tsv"], "transitionsSha256": ACCEPTED_D1["TRAVEL_TRANSITIONS.tsv"]})
+    root = ET.Element("travel", {"schema": "LIVE-002-D2/1", "factsSha256": ACCEPTED_D1["GATEKEEPER_FACTS.tsv"], "connectorsSha256": ACCEPTED_D1["TRAVEL_CONNECTORS.tsv"], "targetedConnectorsSha256": manifest["output_sha256"]["TARGETED_TRAVEL_CONNECTORS.tsv"], "transitionsSha256": ACCEPTED_D1["TRAVEL_TRANSITIONS.tsv"]})
     for leg in legs:
         ET.SubElement(root, "leg", leg)
     output.parent.mkdir(parents=True, exist_ok=True)

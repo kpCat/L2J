@@ -153,6 +153,16 @@ public class PathFinding
 	 */
 	public List<GeoLocation> findPath(int x, int y, int z, int tx, int ty, int tz, int instanceId, boolean playable)
 	{
+		return findPath(x, y, z, tx, ty, tz, instanceId, playable, true);
+	}
+
+	List<GeoLocation> findRawPath(int x, int y, int z, int tx, int ty, int tz, int instanceId, boolean playable)
+	{
+		return findPath(x, y, z, tx, ty, tz, instanceId, playable, false);
+	}
+
+	private List<GeoLocation> findPath(int x, int y, int z, int tx, int ty, int tz, int instanceId, boolean playable, boolean postFilter)
+	{
 		final GeoEngine geoEngine = GeoEngine.getInstance();
 		final int gx = GeoEngine.getGeoX(x);
 		final int gy = GeoEngine.getGeoY(y);
@@ -197,7 +207,7 @@ public class PathFinding
 			buffer.free();
 		}
 		
-		if ((path.size() < 3) || (GeoEngineConfig.MAX_POSTFILTER_PASSES <= 0))
+		if (!postFilter || (path.size() < 3) || (GeoEngineConfig.MAX_POSTFILTER_PASSES <= 0))
 		{
 			return path;
 		}

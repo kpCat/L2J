@@ -1,0 +1,15 @@
+{
+  "base_d1_connectors_sha256": "fe0c0433e8975ff43f397470eca5caf0ae3b545e4d66d0ece2096d1ed97c1926",
+  "counts": {
+    "movement_directions": 5,
+    "plunderous_edges": 4,
+    "targeted_connectors": 2
+  },
+  "generated03_sha256": "5be7c4902e35794947f572eabb4f6695b5b193e6728ab9f21639ea0c4ee4ce90",
+  "output_sha256": {
+    "LIVE002_40_51_HERMETIC_GEO_PROOF.tsv": "294d1569dfefe97c778c6e7cd81555d2f54fc38a2e2bf2aabe53f9d9e344bad2",
+    "PLUNDEROUS_40_FINAL_ROUTE.tsv": "704f98a8d08a2c833681a493b01ff0e9af2fdd287137ee601a8fa6735d178d09",
+    "TARGETED_TRAVEL_CONNECTORS.tsv": "689e6adb216b7ba609f6fd4a59db1d5fca19439838d30b015142a9a250e6492e"
+  },
+  "schema": "LIVE-002-40-51/1"
+}

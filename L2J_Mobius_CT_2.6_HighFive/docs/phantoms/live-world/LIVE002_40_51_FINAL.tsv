@@ -1,0 +1,15 @@
+step	start_anchor_id	edge_type	edge_id	from_anchor_id	to_anchor_id	transition_id	fee_count	destination_castle_ids	target_npc_id	target_level	global_ordinary_40_51
+1	population.ingress.dwarf.01	BACKGROUND	bridge.2a7e451e36175b54ee6aae0d	population.ingress.dwarf.01	generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor				22026	40	1
+2	population.ingress.dwarf.01	BACKGROUND	bridge.e1a849f9e1dc13c6b0376e23	generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor	population.route.dwarf.a2				22026	40	1
+3	population.ingress.dwarf.01	BACKGROUND	population.travel.dwarf.a2-a3	population.route.dwarf.a2	population.route.dwarf.a3				22026	40	1
+4	population.ingress.dwarf.01	BACKGROUND	population.travel.dwarf.a3-a4	population.route.dwarf.a3	population.route.dwarf.a4				22026	40	1
+5	population.ingress.dwarf.01	BACKGROUND	population.travel.dwarf.a4-farm	population.route.dwarf.a4	population.farming.dwarf.20533				22026	40	1
+6	population.ingress.dwarf.01	BACKGROUND	generated.route.4e6554c822ccedad3b0e40d8.f	population.farming.dwarf.20533	generated.farm.ea72d768f3c8ec3d79c1a530.anchor				22026	40	1
+7	population.ingress.dwarf.01	NORMAL_GATEKEEPER	leg.1de5c790d9551a859d5e7575	generated.farm.ea72d768f3c8ec3d79c1a530.anchor	generated.route.schuttgart.40.arrival.anchor	transition.da2bfda52a944f78cd61ab30	4400	9	22026	40	1
+8	population.ingress.dwarf.01	NORMAL_GATEKEEPER	leg.83929da8bae01540beb2b4e1	generated.route.schuttgart.40.arrival.anchor	generated.farm.7e05f4b455d51dddfaf626dc.anchor	transition.bb1ab636c13e8cbfaee92385	1600		22026	40	1
+9	population.ingress.dwarf.01	BACKGROUND	generated.route.live002.40-51.01	generated.farm.7e05f4b455d51dddfaf626dc.anchor	generated.farm.28e320ef344762d4fcb9c7bc.anchor				22026	40	1
+10	population.ingress.dwarf.01	BACKGROUND	generated.route.f2f0a8149cbde77b19bbf92d.f	generated.farm.28e320ef344762d4fcb9c7bc.anchor	generated.farm.e906a4f684b66f9c100d44e1.anchor				22026	40	1
+11	population.ingress.dwarf.01	BACKGROUND	generated.route.8df261afa5c9c84029ba58ec.r	generated.farm.e906a4f684b66f9c100d44e1.anchor	generated.farm.e20a44e2413cc5ec51f0b15c.anchor				22026	40	1
+12	population.ingress.dwarf.01	BACKGROUND	generated.route.live002.40-51.02	generated.farm.e20a44e2413cc5ec51f0b15c.anchor	generated.route.plunderous.40.route-a.anchor				22026	40	1
+13	population.ingress.dwarf.01	BACKGROUND	generated.route.live002.40-51.03	generated.route.plunderous.40.route-a.anchor	generated.route.plunderous.40.route-b.anchor				22026	40	1
+14	population.ingress.dwarf.01	BACKGROUND	generated.route.live002.40-51.04	generated.route.plunderous.40.route-b.anchor	generated.farm.4c20d26f8b57611bdafd0d33.anchor				22026	40	1

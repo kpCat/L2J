@@ -13,6 +13,7 @@ public final class PhantomGeoValidationRulesTest
 
 	public static void main(String[] args) throws Exception
 	{
+		org.l2jmobius.gameserver.geoengine.HermeticGeoProofTest.run();
 		anchorControls();
 		routeControls();
 		identityConnectorControls();

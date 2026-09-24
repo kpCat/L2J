@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
+	<node id="generated.route.plunderous.40.route-a" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="119921" maxX="119923" minY="-160431" maxY="-160429" minZ="-977" maxZ="-975" tags="route">
+		<source path="data/spawns/Others/PlunderousPlains.xml" />
+	</node>
+	<anchor id="generated.route.plunderous.40.route-a.anchor" role="ROUTE" nodeId="generated.route.plunderous.40.route-a" x="119922" y="-160430" z="-976" instanceId="0" tolerance="0" tags="route">
+		<source path="data/spawns/Others/PlunderousPlains.xml" />
+	</anchor>
+	<node id="generated.route.plunderous.40.route-b" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="123155" maxX="123157" minY="-160165" maxY="-160163" minZ="-1193" maxZ="-1191" tags="route">
+		<source path="data/spawns/Others/PlunderousPlains.xml" />
+	</node>
+	<anchor id="generated.route.plunderous.40.route-b.anchor" role="ROUTE" nodeId="generated.route.plunderous.40.route-b" x="123156" y="-160164" z="-1192" instanceId="0" tolerance="0" tags="route">
+		<source path="data/spawns/Others/PlunderousPlains.xml" />
+	</anchor>
+	<node id="generated.route.schuttgart.40.arrival" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="87125" maxX="87127" minY="-143521" maxY="-143519" minZ="-1289" maxZ="-1287" tags="route">
+		<source path="data/teleporters/town/30540.xml" />
+	</node>
+	<anchor id="generated.route.schuttgart.40.arrival.anchor" role="ROUTE" nodeId="generated.route.schuttgart.40.arrival" x="87126" y="-143520" z="-1288" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/30540.xml" />
+	</anchor>
+	<edge id="generated.route.live002.40-51.01" fromNodeId="generated.farm.7e05f4b455d51dddfaf626dc" toNodeId="generated.farm.28e320ef344762d4fcb9c7bc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="23760" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.7e05f4b455d51dddfaf626dc.anchor" toAnchorId="generated.farm.28e320ef344762d4fcb9c7bc.anchor">
+		<source path="data/spawns/Others/PlunderousPlains.xml" />
+	</edge>
+	<edge id="generated.route.live002.40-51.02" fromNodeId="generated.farm.e20a44e2413cc5ec51f0b15c" toNodeId="generated.route.plunderous.40.route-a" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="14820" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.e20a44e2413cc5ec51f0b15c.anchor" toAnchorId="generated.route.plunderous.40.route-a.anchor">
+		<source path="data/spawns/Others/PlunderousPlains.xml" />
+	</edge>
+	<edge id="generated.route.live002.40-51.03" fromNodeId="generated.route.plunderous.40.route-a" toNodeId="generated.route.plunderous.40.route-b" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="42150" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.plunderous.40.route-a.anchor" toAnchorId="generated.route.plunderous.40.route-b.anchor">
+		<source path="data/spawns/Others/PlunderousPlains.xml" />
+	</edge>
+	<edge id="generated.route.live002.40-51.04" fromNodeId="generated.route.plunderous.40.route-b" toNodeId="generated.farm.4c20d26f8b57611bdafd0d33" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="21290" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.plunderous.40.route-b.anchor" toAnchorId="generated.farm.4c20d26f8b57611bdafd0d33.anchor">
+		<source path="data/spawns/Others/PlunderousPlains.xml" />
+	</edge>
+</topology>

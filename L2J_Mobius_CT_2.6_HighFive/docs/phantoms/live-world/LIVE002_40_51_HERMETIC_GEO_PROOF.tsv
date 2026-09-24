@@ -1,0 +1,6 @@
+connector_id	from_x	from_y	from_z	to_x	to_y	to_z	validation_status	path_length	path_segments	required_buffer	max_pathfind_buffer	door_intersections	fence_intersections	door_ids	fence_names	collision_proof
+plunderous_06_to_05	110516	-157305	-2056	112606	-158386	-1728	VALID_DIRECT	2376	1	324	500	0	0	[]	[]	STATIC_XML_CLEAR
+plunderous_02_to_route_a	119549	-161828	-1296	119922	-160430	-976	VALID_DIRECT	1482	1	240	500	0	0	[]	[]	STATIC_XML_CLEAR
+plunderous_route_a_to_route_b	119922	-160430	-976	123156	-160164	-1192	VALID_PATH	4215	21	468	500	0	0	[]	[]	STATIC_XML_CLEAR
+plunderous_route_b_to_30	123156	-160164	-1192	124885	-159590	-1288	VALID_PATH	2129	27	280	500	0	0	[]	[]	STATIC_XML_CLEAR
+schuttgart_route_to_bilia	87126	-143520	-1288	87048	-143448	-1293	VALID_DIRECT	107	1	74	500	0	0	[]	[]	STATIC_XML_CLEAR
