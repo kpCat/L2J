@@ -15,6 +15,7 @@ public final class PhantomGeoValidationRulesTest
 	{
 		anchorControls();
 		routeControls();
+		identityConnectorControls();
 		chainControls();
 		shardControls();
 		System.out.println("PHANTOM GEO RULES: PASS");
@@ -95,6 +96,20 @@ public final class PhantomGeoValidationRulesTest
 		check("NO_PATH", PhantomGeoValidationRules.route(A, B, probe).reason());
 		check("CROSS_INSTANCE", PhantomGeoValidationRules.route(A, new PhantomGeoValidationRules.Point(200, 100, 20, 1), probe).reason());
 		check("NO_MOVEMENT", PhantomGeoValidationRules.route(A, A, probe).reason());
+	}
+
+	private static void identityConnectorControls()
+	{
+		final Probe probe = new Probe();
+		check("NO_MOVEMENT", PhantomGeoValidationRules.route(A, A, probe).reason());
+		final var identity = PhantomGeoValidationRules.connectorRoute("DEST_TO_ANCHOR", A, A, true, true, probe);
+		check("VALID_IDENTITY", identity.reason());
+		check(0L, identity.length());
+		check(0, identity.segments());
+		check("NO_MOVEMENT", PhantomGeoValidationRules.connectorRoute("ANCHOR_TO_GK", A, A, true, true, probe).reason());
+		check("NO_MOVEMENT", PhantomGeoValidationRules.connectorRoute("DEST_TO_ANCHOR", A, new PhantomGeoValidationRules.Point(100, 100, 21, 0), true, true, probe).reason());
+		check("CROSS_INSTANCE", PhantomGeoValidationRules.connectorRoute("DEST_TO_ANCHOR", A, new PhantomGeoValidationRules.Point(100, 100, 20, 1), true, true, probe).reason());
+		check("NO_MOVEMENT", PhantomGeoValidationRules.connectorRoute("DEST_TO_ANCHOR", A, A, false, true, probe).reason());
 	}
 
 	private static void check(Object expected, Object actual)

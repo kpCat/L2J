@@ -94,6 +94,23 @@ final class PhantomGeoValidationRules
 		return route(from, to, probe, Integer.MAX_VALUE, false);
 	}
 
+	static RouteProof connectorRoute(String kind, Point from, Point to, boolean hasFromSource, boolean hasToSource, Probe probe)
+	{
+		if ((from.instanceId() != to.instanceId()) || (from.instanceId() != 0))
+		{
+			return new RouteProof("CROSS_INSTANCE", 0, 0);
+		}
+		if ("DEST_TO_ANCHOR".equals(kind) && hasFromSource && hasToSource && (from.x() == to.x()) && (from.y() == to.y()) && probe.hasGeo(from.x(), from.y()))
+		{
+			final int stableZ = probe.height(from.x(), from.y(), from.z());
+			if ((stableZ == probe.height(from.x(), from.y(), from.z())) && (stableZ == probe.height(from.x(), from.y(), stableZ)) && (to.z() == stableZ))
+			{
+				return new RouteProof("VALID_IDENTITY", 0, 0);
+			}
+		}
+		return route(from, to, probe);
+	}
+
 	static int requiredBuffer(Point from, Point to)
 	{
 		final int deltaX = Math.abs(GeoEngine.getGeoX(from.x()) - GeoEngine.getGeoX(to.x()));
