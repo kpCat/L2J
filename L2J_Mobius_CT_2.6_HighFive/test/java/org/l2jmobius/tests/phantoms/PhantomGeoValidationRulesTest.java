@@ -15,8 +15,9 @@ public final class PhantomGeoValidationRulesTest
 	{
 		anchorControls();
 		routeControls();
+		chainControls();
 		shardControls();
-		System.out.println("PHANTOM GEO RULES: 17/17 PASS");
+		System.out.println("PHANTOM GEO RULES: PASS");
 	}
 
 	private static void shardControls() throws Exception
@@ -73,7 +74,13 @@ public final class PhantomGeoValidationRulesTest
 	private static void routeControls()
 	{
 		final Probe probe = new Probe();
+		check(2296, PhantomGeoValidationRules.requiredBuffer(new PhantomGeoValidationRules.Point(139714, -177456, -1536, 0), new PhantomGeoValidationRules.Point(124885, -159590, -1288, 0)));
+		check(500, PhantomGeoValidationRules.maximumBuffer("100x6;128x6;192x6;256x4;320x4;384x4;500x2"));
+		probe.move = false;
+		check("DIRECT_BLOCKED_PATHFINDER_OUT_OF_RANGE", PhantomGeoValidationRules.route(A, new PhantomGeoValidationRules.Point(9000, 100, 20, 0), probe, 500).reason());
+		check("NO_PATH_WITHIN_BUFFER", PhantomGeoValidationRules.route(A, B, probe, 500).reason());
 		probe.move = true;
+		check("VALID_DIRECT", PhantomGeoValidationRules.route(A, new PhantomGeoValidationRules.Point(9000, 100, 20, 0), probe, 500).reason());
 		probe.oneWay = true;
 		check("VALID_DIRECT", PhantomGeoValidationRules.route(A, B, probe).reason());
 		check("NO_PATH", PhantomGeoValidationRules.route(B, A, probe).reason());
@@ -95,6 +102,59 @@ public final class PhantomGeoValidationRulesTest
 		if (!expected.equals(actual))
 		{
 			throw new AssertionError("Expected " + expected + " but got " + actual);
+		}
+	}
+
+	private static void chainControls()
+	{
+		final var a = new PhantomPathChainSearch.Waypoint("a", new PhantomGeoValidationRules.Point(100, 100, 20, 0), "FACTUAL", "a");
+		final var middle = new PhantomPathChainSearch.Waypoint("middle", new PhantomGeoValidationRules.Point(200, 100, 20, 0), "ROUTE", "tile");
+		final var b = new PhantomPathChainSearch.Waypoint("b", new PhantomGeoValidationRules.Point(300, 100, 20, 0), "FACTUAL", "b");
+		final var probe = new ChainProbe();
+		final var points = List.of(a, middle, b);
+		final var path = PhantomPathChainSearch.search(points, "a", "b", 500, probe);
+		check(2, path.size());
+		check("a", path.getFirst().from().id());
+		check("middle", path.getFirst().to().id());
+		check("b", path.getLast().to().id());
+		check("VALID_DIRECT", path.getFirst().proof().reason());
+		check(path, PhantomPathChainSearch.search(points, "a", "b", 500, probe));
+		check(List.of(), PhantomPathChainSearch.search(points, "b", "a", 500, probe));
+		probe.blocked = true;
+		check(List.of(), PhantomPathChainSearch.search(points, "a", "b", 500, probe));
+		probe.pathCalls = 0;
+		check(List.of(), PhantomPathChainSearch.search(List.of(a, b), "a", "b", 70, probe));
+		check(0, probe.pathCalls);
+	}
+
+	private static final class ChainProbe implements PhantomGeoValidationRules.Probe
+	{
+		boolean blocked;
+		int pathCalls;
+
+		@Override
+		public boolean hasGeo(int x, int y)
+		{
+			return true;
+		}
+
+		@Override
+		public int height(int x, int y, int z)
+		{
+			return z;
+		}
+
+		@Override
+		public boolean canMove(PhantomGeoValidationRules.Point from, PhantomGeoValidationRules.Point to)
+		{
+			return !blocked && (to.x() - from.x() == 100);
+		}
+
+		@Override
+		public List<PhantomGeoValidationRules.Point> path(PhantomGeoValidationRules.Point from, PhantomGeoValidationRules.Point to)
+		{
+			pathCalls++;
+			return null;
 		}
 	}
 

@@ -26,6 +26,7 @@ public final class PhantomTravelGeoProbe
 		}
 		ServerConfig.DATAPACK_ROOT = new File(".").getCanonicalFile();
 		GeoEngineConfig.load();
+		final int maximumBuffer = PhantomGeoValidationRules.maximumBuffer(GeoEngineConfig.PATHFIND_BUFFERS);
 		if (GeoEngineConfig.PATHFINDING != 2)
 		{
 			throw new IllegalStateException("PathFinding=2 required");
@@ -67,7 +68,7 @@ public final class PhantomTravelGeoProbe
 			throw new IllegalArgumentException("Unexpected connector candidate header");
 		}
 		final List<String> output = new ArrayList<>();
-		output.add("connector_id\tvalidation_status\tpath_length\tpath_segments");
+		output.add("connector_id\tvalidation_status\tpath_length\tpath_segments\trequired_buffer\tmax_pathfind_buffer");
 		for (int i = 1; i < lines.size(); i++)
 		{
 			final String[] row = lines.get(i).split("\t", -1);
@@ -77,10 +78,10 @@ public final class PhantomTravelGeoProbe
 			}
 			final PhantomGeoValidationRules.Point from = new PhantomGeoValidationRules.Point(Integer.parseInt(row[1]), Integer.parseInt(row[2]), Integer.parseInt(row[3]), Integer.parseInt(row[4]));
 			final PhantomGeoValidationRules.Point to = new PhantomGeoValidationRules.Point(Integer.parseInt(row[5]), Integer.parseInt(row[6]), Integer.parseInt(row[7]), Integer.parseInt(row[8]));
-			final PhantomGeoValidationRules.RouteProof result = PhantomGeoValidationRules.route(from, to, probe);
-			output.add(String.join("\t", row[0], result.reason(), Long.toString(result.length()), Integer.toString(result.segments())));
+			final PhantomGeoValidationRules.RouteProof result = PhantomGeoValidationRules.route(from, to, probe, maximumBuffer);
+			output.add(String.join("\t", row[0], result.reason(), Long.toString(result.length()), Integer.toString(result.segments()), Integer.toString(PhantomGeoValidationRules.requiredBuffer(from, to)), Integer.toString(maximumBuffer)));
 		}
 		Files.writeString(Path.of(args[1]), String.join("\n", output) + "\n", StandardCharsets.UTF_8);
-		System.out.println("TRAVEL_GEO_PROBE candidates=" + (lines.size() - 1) + " proven=" + output.stream().filter(s -> s.contains("VALID_DIRECT") || s.contains("VALID_PATH")).count());
+		System.out.println("TRAVEL_GEO_PROBE candidates=" + (lines.size() - 1) + " proven=" + output.stream().filter(s -> s.contains("VALID_DIRECT") || s.contains("VALID_PATH")).count() + " PathFindBuffers=" + GeoEngineConfig.PATHFIND_BUFFERS + " max=" + maximumBuffer);
 	}
 }

@@ -3,6 +3,8 @@ package org.l2jmobius.tests.phantoms;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
+
 /** Bounded, deterministic checks shared by the fixture tests and the real GeoEngine tool. */
 final class PhantomGeoValidationRules
 {
@@ -89,6 +91,38 @@ final class PhantomGeoValidationRules
 
 	static RouteProof route(Point from, Point to, Probe probe)
 	{
+		return route(from, to, probe, Integer.MAX_VALUE, false);
+	}
+
+	static int requiredBuffer(Point from, Point to)
+	{
+		final int deltaX = Math.abs(GeoEngine.getGeoX(from.x()) - GeoEngine.getGeoX(to.x()));
+		final int deltaY = Math.abs(GeoEngine.getGeoY(from.y()) - GeoEngine.getGeoY(to.y()));
+		return 64 + (2 * Math.max(deltaX, deltaY));
+	}
+
+	static int maximumBuffer(String configuration)
+	{
+		int maximum = 0;
+		for (String entry : configuration.split(";"))
+		{
+			final String[] parts = entry.trim().split("x", -1);
+			if ((parts.length != 2) || (Integer.parseInt(parts[1]) <= 0))
+			{
+				throw new IllegalArgumentException("Invalid PathFindBuffers entry: " + entry);
+			}
+			maximum = Math.max(maximum, Integer.parseInt(parts[0]));
+		}
+		return maximum;
+	}
+
+	static RouteProof route(Point from, Point to, Probe probe, int maximumBuffer)
+	{
+		return route(from, to, probe, maximumBuffer, true);
+	}
+
+	private static RouteProof route(Point from, Point to, Probe probe, int maximumBuffer, boolean classifyNull)
+	{
 		if ((from.instanceId() != to.instanceId()) || (from.instanceId() != 0))
 		{
 			return new RouteProof("CROSS_INSTANCE", 0, 0);
@@ -105,10 +139,14 @@ final class PhantomGeoValidationRules
 		{
 			return new RouteProof("VALID_DIRECT", distance(from, to), 1);
 		}
+		if (requiredBuffer(from, to) > maximumBuffer)
+		{
+			return new RouteProof("DIRECT_BLOCKED_PATHFINDER_OUT_OF_RANGE", 0, 0);
+		}
 		final List<Point> path = probe.path(from, to);
 		if ((path == null) || path.isEmpty())
 		{
-			return new RouteProof("NO_PATH", 0, 0);
+			return new RouteProof(classifyNull ? "NO_PATH_WITHIN_BUFFER" : "NO_PATH", 0, 0);
 		}
 		if (path.size() > 256)
 		{
@@ -133,7 +171,7 @@ final class PhantomGeoValidationRules
 			segments++;
 			previous = current;
 		}
-		return segments == 0 ? new RouteProof("NO_PATH", 0, 0) : new RouteProof("VALID_PATH", length, segments);
+		return segments == 0 ? new RouteProof(classifyNull ? "NO_PATH_WITHIN_BUFFER" : "NO_PATH", 0, 0) : new RouteProof("VALID_PATH", length, segments);
 	}
 
 	private static long distance(Point from, Point to)
