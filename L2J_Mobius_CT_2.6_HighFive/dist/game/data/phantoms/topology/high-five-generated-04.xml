@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
+	<node id="generated.route.live002.aden.arrival" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="146782" maxX="146784" minY="25807" maxY="25809" minZ="-2009" maxZ="-2007" tags="route">
+		<source path="data/teleporters/town/31964.xml" />
+	</node>
+	<anchor id="generated.route.live002.aden.arrival.anchor" role="ROUTE" nodeId="generated.route.live002.aden.arrival" x="146783" y="25808" z="-2008" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/31964.xml" />
+	</anchor>
+	<node id="generated.route.live002.goddard.arrival" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="148023" maxX="148025" minY="-55282" maxY="-55280" minZ="-2729" maxZ="-2727" tags="route">
+		<source path="data/teleporters/town/31964.xml" />
+	</node>
+	<anchor id="generated.route.live002.goddard.arrival.anchor" role="ROUTE" nodeId="generated.route.live002.goddard.arrival" x="148024" y="-55281" z="-2728" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/31964.xml" />
+	</anchor>
+</topology>

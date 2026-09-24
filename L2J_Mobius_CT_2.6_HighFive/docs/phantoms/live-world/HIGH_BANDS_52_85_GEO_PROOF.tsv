@@ -1,0 +1,3 @@
+connector_id	from_x	from_y	from_z	from_instance	to_x	to_y	to_z	to_instance	validation_status	path_length	path_segments	required_buffer	max_pathfind_buffer	door_intersections	fence_intersections	door_ids	fence_names	collision_proof	anchor_id	source_path
+hub.30848	146783	25808	-2008	0	146737	25807	-2013	0	VALID_DIRECT	47	1	68	500	0	0	[]	[]	STATIC_XML_CLEAR	generated.route.live002.aden.arrival.anchor	data/spawns/Others/24_18.xml
+hub.31275	148024	-55281	-2728	0	147966	-55228	-2728	0	VALID_DIRECT	79	1	72	500	0	0	[]	[]	STATIC_XML_CLEAR	generated.route.live002.goddard.arrival.anchor	data/spawns/Others/24_16.xml

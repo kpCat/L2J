@@ -11,7 +11,7 @@ from pathlib import Path
 import travel_backbone as d1
 
 
-TOPOLOGY = ("high-five-core.xml", "high-five-siege.xml", "high-five-generated-01.xml", "high-five-generated-02.xml", "high-five-generated-03.xml")
+TOPOLOGY = ("high-five-core.xml", "high-five-siege.xml", "high-five-generated-01.xml", "high-five-generated-02.xml", "high-five-generated-03.xml", "high-five-generated-04.xml")
 TARGET = "generated.farm.4c20d26f8b57611bdafd0d33.anchor"
 EXPECTED_TRANSITIONS = ("transition.da2bfda52a944f78cd61ab30", "transition.bb1ab636c13e8cbfaee92385")
 
@@ -137,8 +137,8 @@ def prove(module, output):
     if catalog_root.get("connectorsSha256") != manifest["base_d1_connectors_sha256"] or catalog_root.get("targetedConnectorsSha256") != manifest["output_sha256"]["TARGETED_TRAVEL_CONNECTORS.tsv"]:
         raise RuntimeError("Catalog connector provenance drift")
     catalog = [leg.attrib for leg in catalog_root.findall("leg")]
-    if len(catalog) != 12:
-        raise RuntimeError("Catalog leg count drift")
+    if len(catalog) < 12:
+        raise RuntimeError("Catalog lost accepted 40-51 legs")
     native_facts(module, catalog)
     gk_edges = [(leg["fromAnchorId"], leg["toAnchorId"], "NORMAL_GATEKEEPER", leg["id"]) for leg in catalog]
     baseline_gk = [edge for edge, leg in zip(gk_edges, catalog) if leg["sourceConnectorId"] != "connector.92ca2c480990a8b06fa07d82" and leg["destinationConnectorId"] != "connector.73bea2de1609f40ad6b3230e"]

@@ -108,13 +108,17 @@ def build(module, output):
             raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: " + name)
     if d1.sha_file(module / "dist/game/data/phantoms/topology/high-five-generated-03.xml") != manifest["generated03_sha256"]:
         raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: generated-03")
+    if "generated04_sha256" in manifest and d1.sha_file(module / "dist/game/data/phantoms/topology/high-five-generated-04.xml") != manifest["generated04_sha256"]:
+        raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: generated-04")
     supplement = d1.read_tsv(registry / "TARGETED_TRAVEL_CONNECTORS.tsv")
-    if len(supplement) != 2 or {row["connector_id"] for row in supplement} != {"connector.73bea2de1609f40ad6b3230e", "connector.92ca2c480990a8b06fa07d82"}:
-        raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: exact targeted connector set")
+    accepted = {"connector.73bea2de1609f40ad6b3230e", "connector.92ca2c480990a8b06fa07d82"}
+    if len(supplement) != len({row["connector_id"] for row in supplement}) or not accepted.issubset({row["connector_id"] for row in supplement}):
+        raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: accepted targeted connectors missing or duplicate")
     connectors = d1.read_tsv(registry / "TRAVEL_CONNECTORS.tsv") + supplement
     transitions = d1.read_tsv(registry / "TRAVEL_TRANSITIONS.tsv")
     anchors = d1.topology(module)[0]
-    for name in ("high-five-generated-02.xml", "high-five-generated-03.xml"):
+    extra_shards = ("high-five-generated-02.xml", "high-five-generated-03.xml") + (("high-five-generated-04.xml",) if "generated04_sha256" in manifest else ())
+    for name in extra_shards:
         root = ET.parse(module / "dist/game/data/phantoms/topology" / name).getroot()
         for anchor in root.findall("anchor"):
             anchors[anchor.get("id")] = {"x": int(anchor.get("x")), "y": int(anchor.get("y")), "z": int(anchor.get("z")), "instance": int(anchor.get("instanceId"))}

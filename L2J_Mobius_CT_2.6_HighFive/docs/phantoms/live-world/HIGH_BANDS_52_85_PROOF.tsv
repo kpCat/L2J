@@ -1,0 +1,31 @@
+band	status	start_ingress	ordered_step	edge_type	edge_id	from_anchor_id	to_anchor_id	transition_id	teleporter_npc_id	native_destination	coverage_key	npc_level_min	npc_level_max	source_path	collision_proof	blocker
+52-60	GREEN	population.ingress.dwarf.01	1	BACKGROUND	bridge.2a7e451e36175b54ee6aae0d	population.ingress.dwarf.01	generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor									NONE
+52-60	GREEN	population.ingress.dwarf.01	2	BACKGROUND	bridge.e1a849f9e1dc13c6b0376e23	generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor	population.route.dwarf.a2									NONE
+52-60	GREEN	population.ingress.dwarf.01	3	BACKGROUND	population.travel.dwarf.a2-a3	population.route.dwarf.a2	population.route.dwarf.a3									NONE
+52-60	GREEN	population.ingress.dwarf.01	4	BACKGROUND	population.travel.dwarf.a3-a4	population.route.dwarf.a3	population.route.dwarf.a4									NONE
+52-60	GREEN	population.ingress.dwarf.01	5	BACKGROUND	population.travel.dwarf.a4-farm	population.route.dwarf.a4	population.farming.dwarf.20533									NONE
+52-60	GREEN	population.ingress.dwarf.01	6	BACKGROUND	generated.route.4e6554c822ccedad3b0e40d8.f	population.farming.dwarf.20533	generated.farm.ea72d768f3c8ec3d79c1a530.anchor									NONE
+52-60	GREEN	population.ingress.dwarf.01	7	NORMAL_GATEKEEPER	leg.1de5c790d9551a859d5e7575	generated.farm.ea72d768f3c8ec3d79c1a530.anchor	generated.route.schuttgart.40.arrival.anchor	transition.da2bfda52a944f78cd61ab30	30540	The Town of Schuttgart						NONE
+52-60	GREEN	population.ingress.dwarf.01	8	NORMAL_GATEKEEPER	leg.cfaeb4d79321610e35888f01	generated.route.schuttgart.40.arrival.anchor	generated.route.live002.aden.arrival.anchor	transition.46e5e9e842e6b7f0822926e4	31964	Town of Aden						NONE
+52-60	GREEN	population.ingress.dwarf.01	9	NORMAL_GATEKEEPER	leg.0ee1386d3e01b8b8da539c80	generated.route.live002.aden.arrival.anchor	generated.farm.8fec35df912b586c4d90ffe6.anchor	transition.62bf0a1a73e3a6289cbda513	30848	Seal of Shilen					STATIC_XML_CLEAR	NONE
+52-60	GREEN	population.ingress.dwarf.01	10	BACKGROUND	generated.route.8fc213ecfc1b9536d469d46e.r	generated.farm.8fec35df912b586c4d90ffe6.anchor	generated.farm.079a0cb66fadcb6801c9a79b.anchor				079a0cb66fadcb6801c9a79b8835ecaac1a83fbf3bc6ab8235349178d9458431	55	55	data/spawns/Aden/Cemetery.xml		NONE
+61-75	GREEN	population.ingress.dwarf.01	1	BACKGROUND	bridge.2a7e451e36175b54ee6aae0d	population.ingress.dwarf.01	generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor									NONE
+61-75	GREEN	population.ingress.dwarf.01	2	BACKGROUND	bridge.e1a849f9e1dc13c6b0376e23	generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor	population.route.dwarf.a2									NONE
+61-75	GREEN	population.ingress.dwarf.01	3	BACKGROUND	population.travel.dwarf.a2-a3	population.route.dwarf.a2	population.route.dwarf.a3									NONE
+61-75	GREEN	population.ingress.dwarf.01	4	BACKGROUND	population.travel.dwarf.a3-a4	population.route.dwarf.a3	population.route.dwarf.a4									NONE
+61-75	GREEN	population.ingress.dwarf.01	5	BACKGROUND	population.travel.dwarf.a4-farm	population.route.dwarf.a4	population.farming.dwarf.20533									NONE
+61-75	GREEN	population.ingress.dwarf.01	6	BACKGROUND	generated.route.4e6554c822ccedad3b0e40d8.f	population.farming.dwarf.20533	generated.farm.ea72d768f3c8ec3d79c1a530.anchor									NONE
+61-75	GREEN	population.ingress.dwarf.01	7	NORMAL_GATEKEEPER	leg.1de5c790d9551a859d5e7575	generated.farm.ea72d768f3c8ec3d79c1a530.anchor	generated.route.schuttgart.40.arrival.anchor	transition.da2bfda52a944f78cd61ab30	30540	The Town of Schuttgart						NONE
+61-75	GREEN	population.ingress.dwarf.01	8	NORMAL_GATEKEEPER	leg.e10537c618b8876de12ad35e	generated.route.schuttgart.40.arrival.anchor	generated.route.live002.goddard.arrival.anchor	transition.1d5bcc2aab01844df7a0fcb8	31964	Town of Goddard						NONE
+61-75	GREEN	population.ingress.dwarf.01	9	NORMAL_GATEKEEPER	leg.872c4a16bdd379d147b68e83	generated.route.live002.goddard.arrival.anchor	generated.farm.5241a753fc2261cfc117ac7b.anchor	transition.88ac7e01b3ee5a4c9c077c0f	31275	Hot Springs					STATIC_XML_CLEAR	NONE
+61-75	GREEN	population.ingress.dwarf.01	10	BACKGROUND	generated.route.02a6e67427ce8674f2b410c3.r	generated.farm.5241a753fc2261cfc117ac7b.anchor	generated.farm.4475282a85a97a4b396b967b.anchor				4475282a85a97a4b396b967bff60c3ebdef5bd1edc9dd4973cf38057f07638e2	73	75	data/spawns/Goddard/HotSprings.xml		NONE
+76-80	GREEN	population.ingress.dwarf.01	1	BACKGROUND	bridge.2a7e451e36175b54ee6aae0d	population.ingress.dwarf.01	generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor									NONE
+76-80	GREEN	population.ingress.dwarf.01	2	BACKGROUND	bridge.e1a849f9e1dc13c6b0376e23	generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor	population.route.dwarf.a2									NONE
+76-80	GREEN	population.ingress.dwarf.01	3	BACKGROUND	population.travel.dwarf.a2-a3	population.route.dwarf.a2	population.route.dwarf.a3									NONE
+76-80	GREEN	population.ingress.dwarf.01	4	BACKGROUND	population.travel.dwarf.a3-a4	population.route.dwarf.a3	population.route.dwarf.a4									NONE
+76-80	GREEN	population.ingress.dwarf.01	5	BACKGROUND	population.travel.dwarf.a4-farm	population.route.dwarf.a4	population.farming.dwarf.20533									NONE
+76-80	GREEN	population.ingress.dwarf.01	6	BACKGROUND	generated.route.4e6554c822ccedad3b0e40d8.f	population.farming.dwarf.20533	generated.farm.ea72d768f3c8ec3d79c1a530.anchor									NONE
+76-80	GREEN	population.ingress.dwarf.01	7	NORMAL_GATEKEEPER	leg.1de5c790d9551a859d5e7575	generated.farm.ea72d768f3c8ec3d79c1a530.anchor	generated.route.schuttgart.40.arrival.anchor	transition.da2bfda52a944f78cd61ab30	30540	The Town of Schuttgart						NONE
+76-80	GREEN	population.ingress.dwarf.01	8	NORMAL_GATEKEEPER	leg.e10537c618b8876de12ad35e	generated.route.schuttgart.40.arrival.anchor	generated.route.live002.goddard.arrival.anchor	transition.1d5bcc2aab01844df7a0fcb8	31964	Town of Goddard						NONE
+76-80	GREEN	population.ingress.dwarf.01	9	NORMAL_GATEKEEPER	leg.78b0cc8b895e397fa3a5b69b	generated.route.live002.goddard.arrival.anchor	generated.farm.4c99bd428d6bae74750f6eec.anchor	transition.d6e54e010ce31d698175b1cd	31275	Varka Silenos Stronghold	4c99bd428d6bae74750f6eecaa4fcbbdbfb562a905f0008c1816c43eb287953b	77	77	data/spawns/Goddard/VarkaSlenosOutpost.xml	STATIC_XML_CLEAR	NONE
+81-85	BLOCKED															NO_OPEN_ORDINARY_CANDIDATE

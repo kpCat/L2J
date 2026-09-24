@@ -10,7 +10,7 @@ class NormalGatekeeperCatalogTest(unittest.TestCase):
     def test_targeted_two_stage_legs_are_derived_from_facts(self):
         with tempfile.TemporaryDirectory() as temporary:
             legs = catalog.build(catalog.module_root(), Path(temporary) / "travel.xml")
-            self.assertEqual(12, len(legs))
+            self.assertEqual(30, len(legs))
             schuttgart = next(leg for leg in legs if leg["transitionId"] == "transition.da2bfda52a944f78cd61ab30")
             plunderous = next(leg for leg in legs if leg["transitionId"] == "transition.bb1ab636c13e8cbfaee92385" and leg["destinationConnectorId"] == "connector.60e086bc4f8c97db861efd4d")
             self.assertEqual("9", schuttgart["destinationCastleIds"])
@@ -28,8 +28,9 @@ class NormalGatekeeperCatalogTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "travel.xml"
             legs = catalog.build(catalog.module_root(), output)
-            self.assertEqual(12, len(legs))
-            self.assertEqual(12, len({leg["id"] for leg in legs}))
+            self.assertEqual(30, len(legs))
+            self.assertEqual(30, len({leg["id"] for leg in legs}))
+            self.assertTrue({"30848", "31275"}.issubset({leg["teleporterNpcId"] for leg in legs}))
             self.assertTrue({"transition.e4b886ff65a767c9d77f3d3f", "transition.e904d3aed33a9cecd852c15c"}.issubset({leg["transitionId"] for leg in legs}))
             self.assertEqual({"57"}, {leg["feeId"] for leg in legs})
             first = output.read_bytes()
