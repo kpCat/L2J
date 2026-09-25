@@ -89,9 +89,11 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 	private static final int MANAGED_PAGE_SIZE = 256;
 	private static final int DISABLED_ACCOUNT_ACCESS_LEVEL = -1;
 	private static final int MAX_NAME_ATTEMPTS = 32;
+	private static final String V1_PREDECESSOR_HASH = "23b12fc523de83d1bdea54a75677823b2e8129978792a9c9fec684accfaa4748";
 
 	private final PhantomProfileRepository _profiles;
 	private final PhantomPopulationCatalog _catalog;
+	private final PhantomPopulationCatalog _predecessorCatalog;
 	private final PhantomPopulationStateCodec _codec;
 	private final SecureRandom _secureRandom;
 	private final ZoneId _zoneId;
@@ -107,6 +109,11 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 		this(profiles, catalog, zoneId, new PhantomPopulationStateCodec(), new SecureRandom(), FailureInjector.none());
 	}
 
+	public PhantomPopulationStore(PhantomProfileRepository profiles, PhantomPopulationCatalog catalog, PhantomPopulationCatalog predecessorCatalog, ZoneId zoneId)
+	{
+		this(profiles, catalog, predecessorCatalog, zoneId, new PhantomPopulationStateCodec(), new SecureRandom(), FailureInjector.none());
+	}
+
 	public PhantomPopulationStore(PhantomProfileRepository profiles, PhantomPopulationCatalog catalog, ZoneId zoneId, FailureInjector failureInjector)
 	{
 		this(profiles, catalog, zoneId, new PhantomPopulationStateCodec(), new SecureRandom(), failureInjector);
@@ -114,8 +121,18 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 
 	PhantomPopulationStore(PhantomProfileRepository profiles, PhantomPopulationCatalog catalog, ZoneId zoneId, PhantomPopulationStateCodec codec, SecureRandom secureRandom, FailureInjector failureInjector)
 	{
+		this(profiles, catalog, null, zoneId, codec, secureRandom, failureInjector);
+	}
+
+	private PhantomPopulationStore(PhantomProfileRepository profiles, PhantomPopulationCatalog catalog, PhantomPopulationCatalog predecessorCatalog, ZoneId zoneId, PhantomPopulationStateCodec codec, SecureRandom secureRandom, FailureInjector failureInjector)
+	{
 		_profiles = Objects.requireNonNull(profiles, "Profile repository must not be null.");
 		_catalog = Objects.requireNonNull(catalog, "Population catalog must not be null.");
+		if ((predecessorCatalog != null) && !V1_PREDECESSOR_HASH.equals(predecessorCatalog.hash()))
+		{
+			throw new IllegalArgumentException("Population predecessor is not the exact committed v1 catalog.");
+		}
+		_predecessorCatalog = predecessorCatalog;
 		_zoneId = Objects.requireNonNull(zoneId, "Population time zone must not be null.");
 		_codec = Objects.requireNonNull(codec, "Population codec must not be null.");
 		_secureRandom = Objects.requireNonNull(secureRandom, "Secure random must not be null.");
@@ -1107,12 +1124,9 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 		{
 			throw new PopulationAuthorityException(AuthorityFailure.LEGACY_AUTHORITY_V1, "authority.legacy_v1");
 		}
-		if (!state.catalogHash().equals(_catalog.hash()))
-		{
-			throw new PopulationAuthorityException(AuthorityFailure.CATALOG_DRIFT, "authority.catalog_drift");
-		}
+		final PhantomPopulationCatalog authorityCatalog = authorityCatalog(state.catalogHash(), state.scheduleTemplate(), state.schedulePhaseMinutes(), _catalog, _predecessorCatalog);
 		final PopulationInitializationContract authority = PopulationInitializationContract.resolve(
-			_catalog.hash(),
+			authorityCatalog.hash(),
 			_zoneId,
 			state.classId(),
 			new Location(state.creationX(), state.creationY(), state.creationZ()));
@@ -1121,6 +1135,31 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 			throw new PopulationAuthorityException(AuthorityFailure.CONTRACT_DRIFT, "authority.contract_drift");
 		}
 		return authority;
+	}
+
+	public static PhantomPopulationCatalog authorityCatalog(String catalogHash, String scheduleTemplate, int schedulePhaseMinutes, PhantomPopulationCatalog current, PhantomPopulationCatalog predecessor)
+	{
+		Objects.requireNonNull(current, "Current population catalog must not be null.");
+		final PhantomPopulationCatalog selected;
+		if (current.hash().equals(catalogHash))
+		{
+			selected = current;
+		}
+		else if ((predecessor != null) && V1_PREDECESSOR_HASH.equals(predecessor.hash()) && V1_PREDECESSOR_HASH.equals(catalogHash))
+		{
+			selected = predecessor;
+		}
+		else
+		{
+			throw new PopulationAuthorityException(AuthorityFailure.CATALOG_DRIFT, "authority.catalog_drift");
+		}
+		final ScheduleTemplate oldSchedule = selected.templates().get(scheduleTemplate);
+		final ScheduleTemplate newSchedule = current.templates().get(scheduleTemplate);
+		if ((oldSchedule == null) || (newSchedule == null) || (schedulePhaseMinutes < -oldSchedule.maximumPhaseMinutes()) || (schedulePhaseMinutes > oldSchedule.maximumPhaseMinutes()) || (schedulePhaseMinutes < -newSchedule.maximumPhaseMinutes()) || (schedulePhaseMinutes > newSchedule.maximumPhaseMinutes()))
+		{
+			throw new PopulationAuthorityException(AuthorityFailure.CATALOG_DRIFT, "authority.schedule_drift");
+		}
+		return selected;
 	}
 
 	private static PlayerTemplate requireTemplate(int classId)

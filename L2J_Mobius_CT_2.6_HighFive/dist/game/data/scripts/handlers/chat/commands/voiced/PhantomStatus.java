@@ -63,6 +63,8 @@ public class PhantomStatus implements IVoicedCommandHandler
 		player.sendSysMessage("Phantom admission: target=" + status.admission().activeTarget() + ", cap=" + status.admission().materializedCap() + ", pendingRebalance=" + status.admission().pendingRebalance() + " (independent snapshots).");
 		final PhantomPopulationEcologyService.Snapshot ecology = status.ecology();
 		player.sendSysMessage("Phantom ecology: enabled=" + ecology.enabled() + ", pendingCatchup=" + ecology.pendingCatchup() + ", failures=" + ecology.failures() + ".");
+		player.sendSysMessage("Phantom presence: available=" + status.presence().available() + ", busy=" + status.presence().busy() + ", offline=" + status.presence().offline() + "; activity=" + status.activityStateCounts() + ".");
+		player.sendSysMessage("Phantom background: due=" + ecology.periodicDueCalls() + ", overdue=" + ecology.periodicOverdueCalls() + ", running=" + ecology.periodicRunning() + ", blocked=" + ecology.periodicBlockedCalls() + ", queued=" + status.queueDue() + ", cadence=300-900s.");
 		return true;
 	}
 

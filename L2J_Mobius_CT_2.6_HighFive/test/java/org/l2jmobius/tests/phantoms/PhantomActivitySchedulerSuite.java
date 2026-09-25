@@ -21,6 +21,8 @@
 package org.l2jmobius.gameserver.phantoms;
 
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +50,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityTransitionStatus;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomConsideration;
@@ -97,6 +100,100 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("18-cleanup-retry-recomputes-warm-to-sleeping", _ -> testCleanupRetryCurrentSleeping());
 		registry.add("19-cleanup-retry-recomputes-warm-to-active", _ -> testCleanupRetryCurrentActive());
 		registry.add("20-manual-scheduler-drives-one-decision-slice", _ -> testDecisionSinkIntegration());
+		registry.add("21-production-background-first-due-waits-5-to-15-minutes", _ -> testProductionBackgroundDue());
+		registry.add("22-materialization-reconciles-before-canonical-player", _ -> testReconcileFirstMaterialization());
+		registry.add("23-production-policy-10000-profiles-24h", this::testProductionPolicy10000);
+	}
+
+	private void testProductionPolicy10000(PhantomTestContext context) throws Exception
+	{
+		final int profiles = 10_000;
+		final PhantomSchedulerPolicy policy = PhantomSchedulerPolicy.productionDefaults(10);
+		long minimumCadence = Long.MAX_VALUE;
+		long maximumCadence = 0;
+		long totalCadence = 0;
+		for (long profileId = 1; profileId <= profiles; profileId++)
+		{
+			final long cadence = policy.cadenceMillis(PhantomActivityState.BACKGROUND, profileId, 1);
+			minimumCadence = Math.min(minimumCadence, cadence);
+			maximumCadence = Math.max(maximumCadence, cadence);
+			totalCadence += cadence;
+		}
+		PhantomAssertions.assertTrue((minimumCadence >= 300_000) && (maximumCadence <= 900_000) && (maximumCadence > minimumCadence), "10k cadence escaped the deterministic 5-15m distribution.");
+		final ManualClock clock = new ManualClock();
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final AtomicInteger dispatches = new AtomicInteger();
+		final PhantomScheduler scheduler = new PhantomScheduler(profiles, 10, profiles, policy, clock, (pulse, period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 16, 1, metrics), PhantomActivityMaterializationPort.noop(), item -> dispatches.incrementAndGet());
+		PhantomAssertions.assertTrue(scheduler.start(), "10k production-policy scheduler did not start.");
+		for (long profileId = 1; profileId <= profiles; profileId++)
+		{
+			PhantomAssertions.assertEquals(RegistrationStatus.REGISTERED, scheduler.register(profileId).status(), "10k registration exceeded the configured bound.");
+			scheduler.submitSignal(profileId, signal("background", 1, PhantomActivityState.BACKGROUND, PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS));
+		}
+		int maximumDue = 0;
+		int maximumReady = 0;
+		for (int minute = 0; minute < 1440; minute++)
+		{
+			scheduler.pulse();
+			final var snapshot = scheduler.snapshot();
+			maximumDue = Math.max(maximumDue, snapshot.due());
+			maximumReady = Math.max(maximumReady, snapshot.ready());
+			PhantomAssertions.assertTrue((snapshot.due() + snapshot.ready()) <= profiles, "Shared due/ready queues exceeded logical profile capacity.");
+			clock.advanceMillis(60_000);
+		}
+		PhantomAssertions.assertTrue(dispatches.get() > profiles, "24h simulation did not dispatch recurring BACKGROUND work.");
+		PhantomAssertions.assertTrue((maximumDue <= profiles) && (maximumReady <= profiles), "24h simulation exceeded bounded shared queues.");
+		scheduler.beginStop();
+		PhantomAssertions.assertTrue(scheduler.finishStop(), "10k scheduler did not stop cleanly.");
+		final String output = "metric\tvalue\n" + "scope\tscheduler_policy_only\n" + "profiles\t" + profiles + "\n" + "hours\t24\n" + "dispatches\t" + dispatches.get() + "\n" + "cadence_min_ms\t" + minimumCadence + "\n" + "cadence_mean_ms\t" + (totalCadence / profiles) + "\n" + "cadence_max_ms\t" + maximumCadence + "\n" + "queue_due_max\t" + maximumDue + "\n" + "queue_ready_max\t" + maximumReady + "\n" + "players_constructed\t0\n" + "per_profile_futures\t0\n";
+		Files.writeString(context.moduleRoot().resolve("docs/phantoms/live-world/LIVE003_CORE_SCALE_10000.tsv"), output, StandardCharsets.UTF_8);
+		context.record("live003.scaleDispatches", dispatches.get());
+	}
+
+	private void testReconcileFirstMaterialization()
+	{
+		final FakeMaterializationPort delegate = new FakeMaterializationPort();
+		final PhantomReconcileFirstActivityPort port = new PhantomReconcileFirstActivityPort(delegate);
+		final java.util.concurrent.atomic.AtomicBoolean cursorCurrent = new java.util.concurrent.atomic.AtomicBoolean();
+		port.install(profileId -> (profileId == 1) && cursorCurrent.get());
+		PhantomAssertions.assertEquals(Outcome.TRANSIENT_BLOCK, port.materialize(1).outcome(), "Stale cursor admitted canonical Player materialization.");
+		PhantomAssertions.assertEquals(0, delegate.materializeCalls, "Blocked materialization reached the Player owner.");
+		cursorCurrent.set(true);
+		for (int cycle = 0; cycle < 100; cycle++)
+		{
+			PhantomAssertions.assertEquals(Outcome.SUCCESS, port.materialize(1).outcome(), "Reconciled profile did not materialize.");
+			PhantomAssertions.assertTrue(port.isMaterialized(1) && port.hasLifecycleOwnership(1), "Canonical materialization owner was lost.");
+			PhantomAssertions.assertEquals(Outcome.SUCCESS, port.dematerialize(1).outcome(), "Canonical dematerialization failed.");
+			PhantomAssertions.assertFalse(port.isMaterialized(1) || port.hasLifecycleOwnership(1), "Lifecycle ownership leaked after dematerialization.");
+		}
+		PhantomAssertions.assertEquals(100, delegate.materializeCalls, "Materialization was duplicated after reconciliation.");
+	}
+
+	private void testProductionBackgroundDue()
+	{
+		final PhantomSchedulerPolicy policy = PhantomSchedulerPolicy.productionDefaults(10);
+		final long firstInterval = policy.cadenceMillis(PhantomActivityState.BACKGROUND, 1, 1);
+		PhantomAssertions.assertTrue((firstInterval >= 300_000) && (firstInterval <= 900_000), "Production BACKGROUND cadence is outside 5..15 minutes.");
+		PhantomAssertions.assertEquals(firstInterval, policy.cadenceMillis(PhantomActivityState.BACKGROUND, 1, 1), "Production cadence is not deterministic.");
+		PhantomAssertions.assertTrue(policy.cadenceMillis(PhantomActivityState.BACKGROUND, 2, 1) != firstInterval, "Profile identity did not spread due times.");
+		final ManualClock clock = new ManualClock();
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final List<PhantomActivityWorkItem> work = new ArrayList<>();
+		final PhantomScheduler scheduler = new PhantomScheduler(1, 10, 1, policy, clock, (pulse, period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 16, 1, metrics), PhantomActivityMaterializationPort.noop(), work::add);
+		PhantomAssertions.assertTrue(scheduler.start(), "Production cadence fixture did not start.");
+		scheduler.register(1);
+		scheduler.submitSignal(1, signal("background", 1, PhantomActivityState.BACKGROUND, PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS));
+		scheduler.pulse();
+		PhantomAssertions.assertEquals(0, work.size(), "First BACKGROUND work was delivered immediately.");
+		PhantomAssertions.assertEquals(firstInterval * 1_000_000L, scheduler.find(1).orElseThrow().nextDueNanos(), "First BACKGROUND due differs from production policy.");
+		clock.advanceMillis(firstInterval - 1);
+		scheduler.pulse();
+		PhantomAssertions.assertEquals(0, work.size(), "BACKGROUND work was delivered before due.");
+		clock.advanceMillis(1);
+		scheduler.pulse();
+		PhantomAssertions.assertEquals(1, work.size(), "Due BACKGROUND work was not delivered.");
+		PhantomAssertions.assertEquals(0, scheduler.snapshot().scheduledTaskCount(), "Manual scheduler created a per-profile future.");
+		stop(scheduler);
 	}
 
 	private void testRegistration()

@@ -49,7 +49,24 @@ public record PhantomSchedulerPolicy(int maximumSignalSources, long maximumSigna
 	public static PhantomSchedulerPolicy productionDefaults(int pulseMillis)
 	{
 		final long wallBudget = Math.max(1, Math.min(50, (pulseMillis * 3L) / 4L));
-		return new PhantomSchedulerPolicy(16, PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, 2000, 1000, 30000, 100, 250, 1000, 10000, wallBudget);
+		return new PhantomSchedulerPolicy(16, PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, 2000, 1000, 30000, 100, 250, 1000, 300000, wallBudget);
+	}
+
+	public long cadenceMillis(PhantomActivityState state, long profileId, long workOrdinal)
+	{
+		if ((state != PhantomActivityState.BACKGROUND) || (backgroundCadenceMillis != 300000))
+		{
+			return cadenceMillis(state);
+		}
+		if ((profileId <= 0) || (workOrdinal <= 0))
+		{
+			throw new IllegalArgumentException("BACKGROUND cadence identity must be positive.");
+		}
+		long mixed = profileId ^ (workOrdinal * 0x9e3779b97f4a7c15L);
+		mixed = (mixed ^ (mixed >>> 30)) * 0xbf58476d1ce4e5b9L;
+		mixed = (mixed ^ (mixed >>> 27)) * 0x94d049bb133111ebL;
+		mixed ^= mixed >>> 31;
+		return 300000 + Math.floorMod(mixed, 600001);
 	}
 
 	public long cadenceMillis(PhantomActivityState state)

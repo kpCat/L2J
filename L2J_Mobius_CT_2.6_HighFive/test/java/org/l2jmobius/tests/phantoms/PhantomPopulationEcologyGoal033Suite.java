@@ -90,6 +90,74 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("09-restart-existing-ecology-reopens-schedule-fences", this::testRestartExistingEcologyFences);
 		registry.add("10-topology-block-quiet-and-resume", this::testTopologyBlockQuietAndResume);
 		registry.add("11-transient-item-retry-has-shared-pulse-backoff", this::testTransientItemRetryBackoff);
+		registry.add("12-background-due-reconciles-elapsed-cursor-once", this::testBackgroundDueReconciliation);
+		registry.add("13-periodic-due-crash-before-and-after-durable-commit", this::testPeriodicDueCrashRecovery);
+	}
+
+	private void testPeriodicDueCrashRecovery(PhantomTestContext context)
+	{
+		for (boolean afterSave : List.of(false, true))
+		{
+			final Instant from = Instant.parse("2026-01-05T20:00:00Z");
+			final long fromMinute = minute(from);
+			final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+			final ManagedSnapshot population = populationStore.seedReady(1, 1);
+			final EcologyMemoryStore store = new EcologyMemoryStore(null);
+			store.insert(1, stateAt(fromMinute, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()));
+			final HistoricalMemoryPort historical = new HistoricalMemoryPort();
+			final PhantomPopulationTestDoubles.MutableClock clock = new PhantomPopulationTestDoubles.MutableClock(from.plusSeconds(10 * 60));
+			final PhantomPopulationEcologyService first = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+			first.enablePeriodicDueMode();
+			first.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+			first.register(population);
+			historical.crashNextAdvance(afterSave);
+			PhantomAssertions.assertFalse(first.reconcileBackgroundDue(1).complete(), "Injected crash was reported as a complete due.");
+			PhantomAssertions.assertTrue(store.require(1).state().calendarCursorEpochMinute() >= fromMinute, "Crash moved durable ecology cursor backwards.");
+			final PhantomPopulationEcologyService restarted = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+			restarted.enablePeriodicDueMode();
+			restarted.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+			restarted.register(population);
+			final var recovered = restarted.reconcileBackgroundDue(1);
+			PhantomAssertions.assertTrue(recovered.complete(), "Restart did not reconcile the durable request after injected crash.");
+			PhantomAssertions.assertEquals(fromMinute + 10, store.require(1).state().calendarCursorEpochMinute(), "Recovery did not commit the whole ten-minute cursor.");
+			PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "Crash/retry double-awarded or lost model minutes.");
+			PhantomAssertions.assertEquals(1, historical.requestIds().size(), "Crash/retry created a second request identity.");
+			PhantomAssertions.assertEquals(0, restarted.reconcileBackgroundDue(1).advancedIntervals(), "Scheduler ack retry advanced a completed request.");
+		}
+		context.record("goal033.periodicCrashRecovery", "before_save,after_save");
+	}
+
+	private void testBackgroundDueReconciliation(PhantomTestContext context)
+	{
+		final Instant from = Instant.parse("2026-01-05T20:00:00Z");
+		final long fromMinute = minute(from);
+		final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final ManagedSnapshot population = populationStore.seedReady(1, 1);
+		final EcologyMemoryStore store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(fromMinute, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()));
+		final HistoricalMemoryPort historical = new HistoricalMemoryPort();
+		final PhantomPopulationTestDoubles.MutableClock clock = new PhantomPopulationTestDoubles.MutableClock(from);
+		final PhantomPopulationEcologyService service = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		service.enablePeriodicDueMode();
+		service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+		service.register(population);
+		service.onPopulationPulse();
+		clock.set(from.plusSeconds(10 * 60));
+		service.onPopulationPulse();
+		PhantomAssertions.assertEquals(0L, historical.advancedMinutes(), "Ordinary award occurred before the first shared BACKGROUND due.");
+		PhantomAssertions.assertTrue(service.permitsScheduling(1), "Pending ordinary due withdrew the scheduler before its first due.");
+		final var first = service.reconcileBackgroundDue(1);
+		PhantomAssertions.assertTrue(first.complete(), "One shared BACKGROUND due did not reconcile the whole ten-minute cursor gap.");
+		PhantomAssertions.assertEquals(fromMinute + 10, store.require(1).state().calendarCursorEpochMinute(), "Durable ecology cursor stopped before the due minute.");
+		final long advanced = historical.advancedMinutes();
+		PhantomAssertions.assertTrue(advanced > 1, "A ten-minute due was truncated to one model minute.");
+		final var duplicate = service.reconcileBackgroundDue(1);
+		PhantomAssertions.assertTrue(duplicate.complete(), "Duplicate due should be a completed no-op.");
+		PhantomAssertions.assertEquals(advanced, historical.advancedMinutes(), "Duplicate due applied historical intervals twice.");
+		PhantomAssertions.assertEquals(2L, service.snapshot().periodicDueCalls(), "Periodic due counter lost duplicate dispatch.");
+		PhantomAssertions.assertEquals(0, service.snapshot().periodicRunning(), "Completed due retained a running counter.");
+		PhantomAssertions.assertEquals(0L, service.snapshot().periodicBlockedCalls(), "Completed due was counted as blocked.");
+		context.record("goal033.backgroundDueMinutes", advanced);
 	}
 
 	private void testTransientItemRetryBackoff(PhantomTestContext context)
@@ -875,6 +943,12 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		private final Map<Long, Snapshot> _states = new HashMap<>();
 		private final List<String> _requestIds = new ArrayList<>();
 		private long _advancedMinutes;
+		private Boolean _crashAfterSaveOnce;
+
+		private synchronized void crashNextAdvance(boolean afterSave)
+		{
+			_crashAfterSaveOnce = afterSave;
+		}
 
 		@Override
 		public synchronized Optional<Snapshot> status(long profileId)
@@ -908,9 +982,19 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			final Snapshot current = Optional.ofNullable(_states.get(profileId)).orElseThrow();
 			final long remaining = current.state().targetEpochMinute() - current.state().cursorEpochMinute();
 			final int advanced = Math.toIntExact(Math.min(remaining, Math.min(maximumIntervals, maximumMinutes)));
+			if (Boolean.FALSE.equals(_crashAfterSaveOnce))
+			{
+				_crashAfterSaveOnce = null;
+				throw new IllegalStateException("synthetic.crash_before_durable_save");
+			}
 			final Snapshot saved = new Snapshot(current.state().advanceTo(current.state().cursorEpochMinute() + advanced), current.rowVersion() + 1);
 			_states.put(profileId, saved);
 			_advancedMinutes += advanced;
+			if (Boolean.TRUE.equals(_crashAfterSaveOnce))
+			{
+				_crashAfterSaveOnce = null;
+				throw new IllegalStateException("synthetic.crash_after_durable_save");
+			}
 			return PhantomHistoricalBackgroundService.Result.success(saved, advanced);
 		}
 

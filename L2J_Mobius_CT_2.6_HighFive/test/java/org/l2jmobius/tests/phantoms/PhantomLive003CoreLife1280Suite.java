@@ -19,6 +19,10 @@ import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.Nam
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyCatalog;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPresenceRegistry;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPresenceRegistry.Presence;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.PopulationAuthorityException;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState;
@@ -53,7 +57,9 @@ public final class PhantomLive003CoreLife1280Suite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		registry.add("G-10000-adversarial-nickname-code-gate", this::nicknameGate);
-		registry.add("F-168-hour-current-calendar-capacity-proof", this::weeklySchedule);
+		registry.add("F-168-hour-v2-calendar-capacity-proof", this::weeklySchedule);
+		registry.add("F-exact-v1-predecessor-authority-selection", this::predecessorAuthority);
+		registry.add("A-schedule-presence-and-exclusive-busy", this::logicalPresence);
 		registry.add("I-10000-pure-due-rate-reference", this::dueRateReference);
 		registry.add("C-existing-minute-cursor-operation-identity", this::existingCursorIdentity);
 	}
@@ -110,16 +116,57 @@ public final class PhantomLive003CoreLife1280Suite implements PhantomTestSuite
 
 	private void weeklySchedule(PhantomTestContext context) throws Exception
 	{
+		final PhantomPopulationCatalog v2 = PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v2.xml"), ZoneOffset.UTC);
+		PhantomAssertions.assertEquals(_catalog.templates().keySet(), v2.templates().keySet(), "V2 schedule IDs changed.");
+		for (String templateId : _catalog.templates().keySet())
+		{
+			PhantomAssertions.assertEquals(_catalog.templates().get(templateId).maximumPhaseMinutes(), v2.templates().get(templateId).maximumPhaseMinutes(), "V2 schedule phase bounds changed.");
+		}
 		final PhantomSocialCatalog social = PhantomSocialCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/social/high-five-social-v1.xml"));
-		final PhantomPopulationEcologyCatalog ecology = PhantomPopulationEcologyCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-ecology-v1.xml"), _catalog, social);
-		final String first = weeklyRows(ecology);
-		final String second = weeklyRows(ecology);
+		final PhantomPopulationEcologyCatalog ecology = PhantomPopulationEcologyCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-ecology-v1.xml"), v2, social);
+		final String first = weeklyRows(v2, ecology);
+		final String second = weeklyRows(v2, ecology);
 		PhantomAssertions.assertEquals(first, second, "Weekly schedule rerun differs.");
 		PhantomAssertions.assertEquals(169L, first.lines().count(), "Weekly schedule must contain exactly 168 hours.");
 		Files.writeString(context.moduleRoot().resolve("docs/phantoms/live-world/LIVE003_WEEKLY_SCHEDULE_1280.tsv"), first, StandardCharsets.UTF_8);
 	}
 
-	private String weeklyRows(PhantomPopulationEcologyCatalog ecology)
+	private void predecessorAuthority(PhantomTestContext context)
+	{
+		final PhantomPopulationCatalog v2 = PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v2.xml"), ZoneOffset.UTC);
+		PhantomAssertions.assertEquals(_catalog.hash(), PhantomPopulationStore.authorityCatalog(_catalog.hash(), "morning", 20, v2, _catalog).hash(), "Exact v1 predecessor was rejected.");
+		PhantomAssertions.assertEquals(v2.hash(), PhantomPopulationStore.authorityCatalog(v2.hash(), "morning", 20, v2, _catalog).hash(), "New v2 authority was rejected.");
+		PhantomAssertions.assertThrows(PopulationAuthorityException.class, () -> PhantomPopulationStore.authorityCatalog("0".repeat(64), "morning", 20, v2, _catalog), "Unknown predecessor hash was accepted.");
+		PhantomAssertions.assertThrows(PopulationAuthorityException.class, () -> PhantomPopulationStore.authorityCatalog(_catalog.hash(), "morning", 21, v2, _catalog), "Out-of-range v1 phase was accepted.");
+		PhantomAssertions.assertThrows(PopulationAuthorityException.class, () -> PhantomPopulationStore.authorityCatalog(_catalog.hash(), "missing", 0, v2, _catalog), "Missing v2 schedule ID was accepted.");
+		PhantomAssertions.assertThrows(PopulationAuthorityException.class, () -> PhantomPopulationStore.authorityCatalog(_catalog.hash(), "morning", 0, v2, v2), "Non-v1 predecessor was accepted.");
+	}
+
+	private void logicalPresence(PhantomTestContext context)
+	{
+		final PhantomPresenceRegistry presence = new PhantomPresenceRegistry(2);
+		PhantomAssertions.assertEquals(Presence.OFFLINE, presence.state(1), "Unknown profile was not OFFLINE.");
+		PhantomAssertions.assertTrue(presence.schedule(1, PhantomActivityState.BACKGROUND), "BACKGROUND schedule did not publish presence.");
+		PhantomAssertions.assertEquals(Presence.AVAILABLE, presence.state(1), "BACKGROUND schedule was not AVAILABLE.");
+		PhantomAssertions.assertTrue(presence.claimBusy(1, "party"), "Exclusive BUSY claim failed.");
+		PhantomAssertions.assertFalse(presence.claimBusy(1, "trade"), "Second exclusive BUSY claim succeeded.");
+		PhantomAssertions.assertFalse(presence.permitsOrdinaryFarm(1), "BUSY permitted ordinary farm.");
+		PhantomAssertions.assertTrue(presence.schedule(1, PhantomActivityState.SLEEPING), "SLEEPING schedule was not accepted.");
+		PhantomAssertions.assertEquals(Presence.OFFLINE, presence.state(1), "SLEEPING did not become OFFLINE.");
+		PhantomAssertions.assertFalse(presence.permitsOrdinaryFarm(1), "OFFLINE permitted ordinary farm.");
+		PhantomAssertions.assertTrue(presence.schedule(1, PhantomActivityState.WARM), "WARM schedule was not accepted.");
+		PhantomAssertions.assertEquals(Presence.BUSY, presence.state(1), "Schedule transition dropped independent BUSY claim.");
+		PhantomAssertions.assertFalse(presence.releaseBusy(1, "trade"), "Unrelated owner released BUSY.");
+		PhantomAssertions.assertTrue(presence.releaseBusy(1, "party"), "Exact owner could not release BUSY.");
+		PhantomAssertions.assertTrue(presence.permitsOrdinaryFarm(1), "AVAILABLE did not permit ordinary farm.");
+		PhantomAssertions.assertTrue(presence.schedule(2, PhantomActivityState.ACTIVE), "Second profile was rejected.");
+		PhantomAssertions.assertFalse(presence.schedule(3, PhantomActivityState.ACTIVE), "Presence exceeded bounded capacity.");
+		PhantomAssertions.assertEquals(2, presence.snapshot().available(), "Presence count lost AVAILABLE profiles.");
+		presence.remove(1);
+		PhantomAssertions.assertTrue(presence.schedule(3, PhantomActivityState.BACKGROUND), "Removal did not free bounded capacity.");
+	}
+
+	private String weeklyRows(PhantomPopulationCatalog catalog, PhantomPopulationEcologyCatalog ecology)
 	{
 		final String[] templates = new String[1280];
 		final int[] phases = new int[1280];
@@ -130,7 +177,7 @@ public final class PhantomLive003CoreLife1280Suite implements PhantomTestSuite
 			final long profileId = index + 1L;
 			final String template = ecology.assign(Preset.LIVING, 1, profileId, seed, initialMinute, -1, 0, null).scheduleTemplate();
 			templates[index] = template;
-			final int maximumPhase = _catalog.templates().get(template).maximumPhaseMinutes();
+			final int maximumPhase = catalog.templates().get(template).maximumPhaseMinutes();
 			phases[index] = maximumPhase == 0 ? 0 : (int) Math.floorMod(mix(seed, profileId) >>> 23, (maximumPhase * 2L) + 1L) - maximumPhase;
 		}
 		final StringBuilder rows = new StringBuilder("hour_utc\tactive\tbackground\twarm\tsleeping\tactive_target_shortfall_64\n");
@@ -145,7 +192,7 @@ public final class PhantomLive003CoreLife1280Suite implements PhantomTestSuite
 			int sleeping = 0;
 			for (int index = 0; index < templates.length; index++)
 			{
-				final PhantomActivityState state = _catalog.evaluate(templates[index], instant, ZoneOffset.UTC, phases[index]).state();
+				final PhantomActivityState state = catalog.evaluate(templates[index], instant, ZoneOffset.UTC, phases[index]).state();
 				switch (state)
 				{
 					case ACTIVE -> active++;
@@ -160,8 +207,8 @@ public final class PhantomLive003CoreLife1280Suite implements PhantomTestSuite
 			maximumActive = Math.max(maximumActive, active);
 			rows.append(instant).append('\t').append(active).append('\t').append(background).append('\t').append(warm).append('\t').append(sleeping).append('\t').append(Math.max(0, 64 - active)).append('\n');
 		}
-		PhantomAssertions.assertTrue(minimumActive < 64, "The current calendar capacity blocker unexpectedly disappeared.");
-		PhantomAssertions.assertTrue(maximumActive > minimumActive, "Current calendar has no daypart variation.");
+		PhantomAssertions.assertTrue(minimumActive >= 64, "V2 calendar has an ACTIVE capacity gap.");
+		PhantomAssertions.assertTrue(maximumActive > minimumActive, "V2 calendar has no daypart variation.");
 		return rows.toString();
 	}
 

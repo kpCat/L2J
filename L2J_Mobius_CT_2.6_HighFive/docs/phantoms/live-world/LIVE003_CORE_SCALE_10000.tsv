@@ -1,0 +1,12 @@
+metric	value
+scope	scheduler_policy_only
+profiles	10000
+hours	24
+dispatches	1366738
+cadence_min_ms	300049
+cadence_mean_ms	599767
+cadence_max_ms	899925
+queue_due_max	10000
+queue_ready_max	0
+players_constructed	0
+per_profile_futures	0

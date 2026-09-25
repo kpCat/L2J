@@ -83,6 +83,7 @@ public final class PhantomLive003AdmissionSuite implements PhantomTestSuite
 		final String master = Files.readString(context.moduleRoot().resolve("dist/game/data/scripts/handlers/MasterHandler.java"));
 		PhantomAssertions.assertTrue(master.contains("PhantomStatus.class"), "Personal status is not registered in canonical voiced dispatch.");
 		PhantomAssertions.assertTrue(handler.contains("isPersonalUser(player)") && handler.contains("operatorStatus()") && handler.contains("operatorAdmissionProfile("), "Personal status must authorize before reading native snapshots.");
+		PhantomAssertions.assertTrue(handler.contains("status.presence().available()") && handler.contains("status.presence().busy()") && handler.contains("status.presence().offline()") && handler.contains("status.activityStateCounts()") && handler.contains("status.queueDue()") && handler.contains("ecology.periodicDueCalls()") && handler.contains("ecology.periodicOverdueCalls()") && handler.contains("ecology.periodicRunning()") && handler.contains("ecology.periodicBlockedCalls()") && handler.contains("cadence=300-900s"), "Compact operator status lost presence, activity or background cadence counters.");
 		for (String forbidden : java.util.List.of("operatorEnable(", "operatorDisable(", "operatorDrain(", "operatorReset", "operatorReplay", "operatorTrace"))
 		{
 			PhantomAssertions.assertFalse(handler.contains(forbidden), "Personal status contains mutating operator route " + forbidden);

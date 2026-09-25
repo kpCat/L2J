@@ -62,6 +62,7 @@ public final class PhantomPopulationEcologyService
 	private final Map<String, Integer> _scheduleHistogram = new TreeMap<>();
 	private PopulationView _populationView;
 	private PopulationEvents _populationEvents;
+	private boolean _periodicDueMode;
 	private boolean _inventoryReady = true;
 	private boolean _replacementInventoryBuilt;
 	private int _unloadedEntries;
@@ -79,6 +80,10 @@ public final class PhantomPopulationEcologyService
 	private int _lastPulseIntervals;
 	private int _maximumPulseProfiles;
 	private int _maximumPulseIntervals;
+	private long _periodicDueCalls;
+	private long _periodicOverdueCalls;
+	private int _periodicRunning;
+	private long _periodicBlockedCalls;
 	private String _lastFailure = "";
 
 	public PhantomPopulationEcologyService(PhantomPopulationEcologyCatalog catalog, PhantomPopulationCatalog populationCatalog, PhantomPopulationEcologyStore store, PhantomHistoricalBackgroundService historical, LongPredicate materialized, SafeBoundary safeBoundary, Clock clock, ZoneId zoneId, Preset preset, int worldAgeDaysOverride, int archiveLimit)
@@ -141,6 +146,18 @@ public final class PhantomPopulationEcologyService
 			}
 			_populationView = Objects.requireNonNull(populationView, "Population view must not be null.");
 			_populationEvents = Objects.requireNonNull(populationEvents, "Population events must not be null.");
+		}
+	}
+
+	public void enablePeriodicDueMode()
+	{
+		synchronized (_monitor)
+		{
+			if (_periodicDueMode || !_entries.isEmpty())
+			{
+				throw new IllegalStateException("Periodic due mode must be enabled once before population restore.");
+			}
+			_periodicDueMode = true;
 		}
 	}
 
@@ -265,7 +282,91 @@ public final class PhantomPopulationEcologyService
 		}
 	}
 
+	/** Reconciles one shared scheduler due through the existing durable calendar and 0C cursor. */
+	public DueReconciliation reconcileBackgroundDue(long profileId)
+	{
+		final long targetMinute = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
+		synchronized (_monitor)
+		{
+			requireRuntime();
+			_periodicDueCalls++;
+			final Entry entry = _entries.get(profileId);
+			if ((entry == null) || entry._claimed)
+			{
+				_periodicBlockedCalls++;
+				return new DueReconciliation(false, 0, "ecology.unavailable");
+			}
+			if ((entry._stored != null) && entry._stored.state().initialCatchupComplete() && (targetMinute - entry._stored.state().calendarCursorEpochMinute() > 15))
+			{
+				_periodicOverdueCalls++;
+			}
+			entry._claimed = true;
+			_periodicRunning++;
+			_queued.remove(profileId);
+			_due.remove(profileId);
+		}
+		int advanced = 0;
+		boolean complete = false;
+		try
+		{
+			final int intervalLimit = _catalog.limits().maximumIntervalsPerPulse();
+			for (int steps = 0; steps < (intervalLimit * 4) + 8; steps++)
+			{
+				final StoredState before = stored(profileId);
+				if ((before != null) && (before.state().calendarCursorEpochMinute() >= targetMinute) && !before.state().requestPending())
+				{
+					complete = true;
+					return new DueReconciliation(true, advanced, "ecology.cursor_current");
+				}
+				final int remaining = intervalLimit - advanced;
+				if (remaining <= 0)
+				{
+					break;
+				}
+				final int used = process(profileId, remaining, true);
+				advanced += used;
+				if ((used == 0) && (before == stored(profileId)))
+				{
+					break;
+				}
+			}
+			final StoredState after = stored(profileId);
+			complete = (after != null) && (after.state().calendarCursorEpochMinute() >= targetMinute) && !after.state().requestPending();
+			return new DueReconciliation(complete, advanced, "ecology.cursor_pending");
+		}
+		catch (RuntimeException exception)
+		{
+			recordFailure(typedFailure(exception));
+			return new DueReconciliation(false, advanced, typedFailure(exception));
+		}
+		finally
+		{
+			synchronized (_monitor)
+			{
+				final Entry entry = _entries.get(profileId);
+				if (entry != null)
+				{
+					entry._claimed = false;
+					queueLocked(profileId);
+				}
+				_profileOperations++;
+				_historicalIntervals += advanced;
+				_periodicRunning--;
+				if (!complete)
+				{
+					_periodicBlockedCalls++;
+				}
+			}
+			publishSchedulingPermissionEdge(profileId);
+		}
+	}
+
 	private int process(long profileId, int intervalBudget)
+	{
+		return process(profileId, intervalBudget, false);
+	}
+
+	private int process(long profileId, int intervalBudget, boolean periodicDue)
 	{
 		final ManagedSnapshot population = _populationView.find(profileId).orElse(null);
 		if (population == null)
@@ -309,6 +410,10 @@ public final class PhantomPopulationEcologyService
 			{
 				persist(profileId, stored, state.advanceCalendar(now));
 			}
+			return 0;
+		}
+		if (_periodicDueMode && state.initialCatchupComplete() && !periodicDue)
+		{
 			return 0;
 		}
 		final long reconciliationTarget = state.initialCatchupComplete() ? now : Math.min(now, state.initialTargetEpochMinute());
@@ -547,9 +652,9 @@ public final class PhantomPopulationEcologyService
 		}
 	}
 
-	private static boolean permitsSchedulingLocked(Entry entry, long now)
+	private boolean permitsSchedulingLocked(Entry entry, long now)
 	{
-		return (entry._stored != null) && (entry._stored.state().disposition() == Disposition.MANAGED) && entry._stored.state().initialCatchupComplete() && !entry._stored.state().requestPending() && (entry._stored.state().calendarCursorEpochMinute() >= now);
+		return (entry._stored != null) && (entry._stored.state().disposition() == Disposition.MANAGED) && entry._stored.state().initialCatchupComplete() && !entry._stored.state().requestPending() && (_periodicDueMode || (entry._stored.state().calendarCursorEpochMinute() >= now));
 	}
 
 	public boolean managed(long profileId)
@@ -609,7 +714,7 @@ public final class PhantomPopulationEcologyService
 				}
 			}
 			final String pause = _archived >= _archiveLimit ? "archive_limit" : (!_inventoryReady ? "inventory_loading" : "none");
-			return new Snapshot(true, _preset, _catalog.hash(), _inventoryReady, _managed, _archived, newcomers, pending, pause, Map.copyOf(_paceHistogram), Map.copyOf(_personalityHistogram), Map.copyOf(_scheduleHistogram), _pulses, _profileOperations, _historicalIntervals, _productiveMinutes, _calendarMinutes, _persistenceWrites, _failures, _lastPulseProfiles, _lastPulseIntervals, _maximumPulseProfiles, _maximumPulseIntervals, _lastFailure);
+			return new Snapshot(true, _preset, _catalog.hash(), _inventoryReady, _managed, _archived, newcomers, pending, pause, Map.copyOf(_paceHistogram), Map.copyOf(_personalityHistogram), Map.copyOf(_scheduleHistogram), _pulses, _profileOperations, _historicalIntervals, _productiveMinutes, _calendarMinutes, _persistenceWrites, _failures, _lastPulseProfiles, _lastPulseIntervals, _maximumPulseProfiles, _maximumPulseIntervals, _lastFailure, _periodicDueCalls, _periodicOverdueCalls, _periodicRunning, _periodicBlockedCalls);
 		}
 	}
 
@@ -920,11 +1025,15 @@ public final class PhantomPopulationEcologyService
 		}
 	}
 
-	public record Snapshot(boolean enabled, Preset preset, String catalogHash, boolean inventoryReady, int managed, int archived, int newcomers, int pendingCatchup, String turnoverPaused, Map<Pace, Integer> paceHistogram, Map<Personality, Integer> personalityHistogram, Map<String, Integer> scheduleHistogram, long pulses, long profileOperations, long historicalIntervals, long productiveMinutes, long calendarMinutes, long persistenceWrites, long failures, int lastPulseProfiles, int lastPulseIntervals, int maximumPulseProfiles, int maximumPulseIntervals, String lastFailure)
+	public record DueReconciliation(boolean complete, int advancedIntervals, String reason)
+	{
+	}
+
+	public record Snapshot(boolean enabled, Preset preset, String catalogHash, boolean inventoryReady, int managed, int archived, int newcomers, int pendingCatchup, String turnoverPaused, Map<Pace, Integer> paceHistogram, Map<Personality, Integer> personalityHistogram, Map<String, Integer> scheduleHistogram, long pulses, long profileOperations, long historicalIntervals, long productiveMinutes, long calendarMinutes, long persistenceWrites, long failures, int lastPulseProfiles, int lastPulseIntervals, int maximumPulseProfiles, int maximumPulseIntervals, String lastFailure, long periodicDueCalls, long periodicOverdueCalls, int periodicRunning, long periodicBlockedCalls)
 	{
 		public static Snapshot disabled()
 		{
-			return new Snapshot(false, Preset.LIVING, "none", true, 0, 0, 0, 0, "disabled", Map.of(), Map.of(), Map.of(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "");
+			return new Snapshot(false, Preset.LIVING, "none", true, 0, 0, 0, 0, "disabled", Map.of(), Map.of(), Map.of(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", 0, 0, 0, 0);
 		}
 	}
 }

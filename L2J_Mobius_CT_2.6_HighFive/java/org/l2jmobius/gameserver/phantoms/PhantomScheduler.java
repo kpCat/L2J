@@ -918,7 +918,7 @@ public final class PhantomScheduler
 				slot._retryDueNanos = 0;
 				slot._demotionEligibleAtNanos = 0;
 				slot._lastTransitionNanos = logicalNow;
-				slot._nextWorkDueNanos = slot._effectiveState == PhantomActivityState.SLEEPING ? 0 : logicalNow;
+				slot._nextWorkDueNanos = firstWorkDueLocked(slot, logicalNow);
 				_metrics.recordActivityTransition(previous, slot._effectiveState);
 				if (freshMaterializationRequired || (slot._generation != plan._generation))
 				{
@@ -936,7 +936,7 @@ public final class PhantomScheduler
 			slot._transitionStatus = slot._unregisterRequested ? PhantomActivityTransitionStatus.UNREGISTER_PENDING : PhantomActivityTransitionStatus.STABLE;
 			slot._lastResult = PhantomActivityResultCategory.TRANSITION_SUCCEEDED;
 			slot._lastTransitionNanos = logicalNow;
-			slot._nextWorkDueNanos = slot._effectiveState == PhantomActivityState.SLEEPING ? 0 : logicalNow;
+			slot._nextWorkDueNanos = firstWorkDueLocked(slot, logicalNow);
 			_metrics.recordActivityTransition(previous, slot._effectiveState);
 			if (slot._generation != plan._generation)
 			{
@@ -979,9 +979,28 @@ public final class PhantomScheduler
 			return null;
 		}
 		final long tickSequence = ++slot._tickSequence;
-		final long cadenceMillis = saturatingMultiply(_policy.cadenceMillis(slot._effectiveState), overload.cadenceMultiplier(slot._effectiveState));
+		final long cadenceMillis = workCadenceMillis(slot, overload);
 		slot._nextWorkDueNanos = saturatingAdd(logicalNow, millisToNanos(cadenceMillis));
 		return new PhantomActivityWorkItem(slot._profileId, slot._effectiveState, slot._activityGeneration, tickSequence, logicalNow, overload);
+	}
+
+	private long firstWorkDueLocked(Slot slot, long logicalNow)
+	{
+		if (slot._effectiveState == PhantomActivityState.SLEEPING)
+		{
+			return 0;
+		}
+		if ((slot._effectiveState == PhantomActivityState.BACKGROUND) && (_policy.backgroundCadenceMillis() == 300000))
+		{
+			return saturatingAdd(logicalNow, millisToNanos(_policy.cadenceMillis(PhantomActivityState.BACKGROUND, slot._profileId, slot._tickSequence + 1)));
+		}
+		return logicalNow;
+	}
+
+	private long workCadenceMillis(Slot slot, PhantomActivityOverloadLevel overload)
+	{
+		final long cadence = _policy.cadenceMillis(slot._effectiveState, slot._profileId, slot._tickSequence + 1);
+		return (slot._effectiveState == PhantomActivityState.BACKGROUND) && (_policy.backgroundCadenceMillis() == 300000) ? cadence : saturatingMultiply(cadence, overload.cadenceMultiplier(slot._effectiveState));
 	}
 
 	private void scheduleNextDueLocked(Slot slot, long logicalNow, PhantomActivityOverloadLevel overload)

@@ -86,6 +86,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private final int _maximumMaterialized;
 	private final int _creationLimit;
 	private final int _boundaryBudget;
+	private final PhantomPresenceRegistry _presence;
 	private final Map<Long, Entry> _entries = new HashMap<>();
 	private final PriorityQueue<DueEntry> _due = new PriorityQueue<>();
 	private final PriorityQueue<RetryAction> _retryActions = new PriorityQueue<>();
@@ -142,6 +143,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		_maximumMaterialized = maximumMaterialized;
 		_creationLimit = creationLimit;
 		_boundaryBudget = boundaryBudget;
+		_presence = new PhantomPresenceRegistry(maximumScheduled);
 		validateTargets(target, activeTarget);
 		_target = target;
 		_activeTarget = activeTarget;
@@ -165,6 +167,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		_maximumMaterialized = maximumMaterialized;
 		_creationLimit = creationLimit;
 		_boundaryBudget = boundaryBudget;
+		_presence = new PhantomPresenceRegistry(maximumScheduled);
 		validateTargets(target, activeTarget);
 		_target = target;
 		_activeTarget = activeTarget;
@@ -1045,12 +1048,21 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			sequence = ++entry._signalSequence;
 			final long untilBoundary = Math.max(1, ChronoUnit.MILLIS.between(now, entry._nextBoundary));
 			ttl = Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, Math.min(SIGNAL_HEARTBEAT_MILLIS, untilBoundary));
+			if (effective == PhantomActivityState.SLEEPING)
+			{
+				_presence.schedule(action.profileId(), effective);
+			}
 		}
 		final SignalStatus status = effective == PhantomActivityState.SLEEPING ? _ownership.withdraw(action.profileId(), SCHEDULE_SIGNAL_SOURCE, sequence) : _ownership.submit(action.profileId(), SCHEDULE_SIGNAL_SOURCE, sequence, effective, ttl);
 		switch (status)
 		{
 			case ACCEPTED, COALESCED, STALE ->
 			{
+				if (actionCurrent(action) && !_presence.schedule(action.profileId(), effective))
+				{
+					retryOrFail(action, "presence.capacity");
+					return;
+				}
 				if (!cleanupBootstrap(action.profileId()))
 				{
 					retryOrFail(action, "ownership.bootstrap_cleanup_exhausted");
@@ -1535,6 +1547,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				return false;
 			}
 			_entries.clear();
+			_presence.clear();
 			_readyIds.clear();
 			_readyIdsByRegion.clear();
 			_desiredActiveIdsByRegion.clear();
@@ -1559,6 +1572,11 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			return new Snapshot(_lifecycle, _target, _activeTarget, _entries.size(), _readyCount, _retiredCount, _inconsistentCount, _inconsistentDeficit, _due.size(), 0, _retryActions.size(), _lastPulseOperations, _controlCalls, _controlClaims, _creationClaims, _persistenceClaims, _peakOperations, _peakCreationClaims, _peakPersistenceClaims, Map.copyOf(_classHistogram), Map.copyOf(_levelHistogram), Map.copyOf(_regionHistogram));
 		}
+	}
+
+	public PhantomPresenceRegistry presence()
+	{
+		return _presence;
 	}
 
 	public AdmissionSnapshot admissionSnapshot()
@@ -1634,6 +1652,10 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	{
 		removeStateIndexesLocked(entry);
 		entry._snapshot = snapshot;
+		if (snapshot.state().state() != State.READY)
+		{
+			_presence.remove(snapshot.profile().profileId());
+		}
 		entry._ownershipGeneration++;
 		entry._queuedActions.clear();
 		entry._scheduleGeneration++;

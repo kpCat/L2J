@@ -33,6 +33,8 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
+import java.util.function.LongPredicate;
+import java.util.function.LongFunction;
 import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.config.RatesConfig;
@@ -108,6 +110,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private volatile PhantomAcquisitionManorAuthority _manor;
 	private volatile PhantomAcquisitionQuestCatalog _quests;
 	private volatile Limits _acquisitionLimits;
+	private volatile LongPredicate _ordinaryPresence = profileId -> true;
+	private boolean _presenceInstalled;
+	private volatile LongFunction<OperationResult> _periodicFarm;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TransitionKind> _transitions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, Lease> _retainedIdentityLeases = new ConcurrentHashMap<>();
@@ -208,6 +213,25 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return true;
 	}
 
+	public synchronized void installPresencePolicy(LongPredicate ordinaryPresence)
+	{
+		if (_presenceInstalled || (_state == ServiceState.STOPPING) || (_state == ServiceState.STOPPED))
+		{
+			throw new IllegalStateException("Ordinary presence policy can only be installed once before work starts.");
+		}
+		_ordinaryPresence = Objects.requireNonNull(ordinaryPresence, "Ordinary presence policy must not be null.");
+		_presenceInstalled = true;
+	}
+
+	public synchronized void installPeriodicFarm(LongFunction<OperationResult> periodicFarm)
+	{
+		if ((_periodicFarm != null) || (_state == ServiceState.STOPPING) || (_state == ServiceState.STOPPED))
+		{
+			throw new IllegalStateException("Periodic farm can only be installed once before work starts.");
+		}
+		_periodicFarm = Objects.requireNonNull(periodicFarm, "Periodic farm must not be null.");
+	}
+
 	public synchronized boolean finishStop()
 	{
 		if (_state == ServiceState.STOPPED)
@@ -235,6 +259,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (_partyParticipation.blocksBackground(profileId))
 		{
 			return new Directive(DirectiveKind.RETRY, "party.materialized_only", "");
+		}
+		if ((activityState == PhantomActivityState.BACKGROUND) && !_ordinaryPresence.test(profileId))
+		{
+			return new Directive(DirectiveKind.RETRY, "presence.not_available", "");
 		}
 		final PhantomBackgroundGoalSpec spec;
 		try
@@ -281,9 +309,28 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return OperationResult.replan("activity.not_background");
 		}
+		if (!_ordinaryPresence.test(profileId))
+		{
+			return retry("presence.not_available");
+		}
 		if (_partyParticipation.blocksBackground(profileId))
 		{
 			return retry("party.materialized_only");
+		}
+		final LongFunction<OperationResult> periodicFarm = _periodicFarm;
+		if (periodicFarm != null)
+		{
+			final Directive current = directive(profileId, goal, activityState);
+			if (current.kind() != DirectiveKind.FARM)
+			{
+				return switch (current.kind())
+				{
+					case RETRY -> retry(current.reason());
+					case INCONSISTENT -> OperationResult.inconsistent(current.reason());
+					default -> OperationResult.replan(current.reason());
+				};
+			}
+			return periodicFarm.apply(profileId);
 		}
 		final OperationClaim claim = acquire(profileId, goal, activityGeneration, tickSequence);
 		if (!claim.acquired())
@@ -702,6 +749,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (activityState != PhantomActivityState.BACKGROUND)
 		{
 			return OperationResult.replan("activity.not_background");
+		}
+		if (!_ordinaryPresence.test(profileId))
+		{
+			return retry("presence.not_available");
 		}
 		if (_partyParticipation.blocksBackground(profileId))
 		{
