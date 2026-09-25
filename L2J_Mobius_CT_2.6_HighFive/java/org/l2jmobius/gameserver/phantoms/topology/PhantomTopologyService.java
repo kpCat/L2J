@@ -35,6 +35,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomPerceptionProvider.Unre
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyGenerationCoordinator.View;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.CandidateMembership;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.ProfileTopologySnapshot;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrySnapshot;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrationResult;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RemovalResult;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.UpdateResult;
@@ -349,6 +350,49 @@ public final class PhantomTopologyService
 			throw new IllegalArgumentException("Invalid bounded perceptible-profile query.");
 		}
 		return perceptibleProfilesUnderLease(observerProfileId, channel, limit);
+	}
+
+	/** A human is a query point, never a registered phantom profile. */
+	public List<ProfileTopologySnapshot> perceptibleProfilesAt(PhantomTopologyPoint point, PhantomPerceptionChannel channel, int limit)
+	{
+		Objects.requireNonNull(point, "Human point must not be null.");
+		Objects.requireNonNull(channel, "Perception channel must not be null.");
+		if ((limit < 1) || (limit > 1024))
+		{
+			throw new IllegalArgumentException("Invalid bounded human-point query.");
+		}
+		try (PhantomTopologyGenerationCoordinator.Lease ignored = _generationCoordinator.read())
+		{
+			final View view = runningView();
+			if (view == null)
+			{
+				return List.of();
+			}
+			final String nodeId = view.query().mostSpecificNode(point).map(PhantomTopologyNode::id).orElse(null);
+			if (nodeId == null)
+			{
+				return List.of();
+			}
+			final Set<String> nodes = new HashSet<>();
+			nodes.add(nodeId);
+			for (PhantomTopologyEdge edge : view.query().edges(nodeId))
+			{
+				if (view.query().isPerceptible(edge.id(), channel))
+				{
+					final String other = edge.otherNode(nodeId);
+					if (other != null)
+					{
+						nodes.add(other);
+					}
+				}
+			}
+			return _profileRegistry.listForNodes(nodes, limit, view.generation());
+		}
+	}
+
+	public RegistrySnapshot registrySnapshot()
+	{
+		return _profileRegistry.snapshot();
 	}
 
 	private List<ProfileTopologySnapshot> perceptibleProfilesUnderLease(long observerProfileId, PhantomPerceptionChannel channel, int limit)

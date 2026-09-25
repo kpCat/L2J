@@ -108,6 +108,8 @@ public final class PhantomTopologyProfileRegistry
 	private Map<String, LinkedHashSet<Long>> _profilesByNode = new HashMap<>();
 	private State _state = State.NEW;
 	private long _generation = -1;
+	private int _lastCandidatesExamined;
+	private int _maximumCandidatesExamined;
 
 	PhantomTopologyProfileRegistry(int capacity, PhantomTopologyMetrics metrics)
 	{
@@ -277,6 +279,8 @@ public final class PhantomTopologyProfileRegistry
 					profileIds.add(profileId);
 				}
 			});
+			_lastCandidatesExamined = profileIds.size();
+			_maximumCandidatesExamined = Math.max(_maximumCandidatesExamined, _lastCandidatesExamined);
 			final ArrayList<ProfileTopologySnapshot> result = new ArrayList<>(Math.min(limit, profileIds.size()));
 			profileIds.stream().limit(limit).forEach(profileId ->
 			{
@@ -405,6 +409,18 @@ public final class PhantomTopologyProfileRegistry
 		{
 			return _entries.size();
 		}
+	}
+
+	public RegistrySnapshot snapshot()
+	{
+		synchronized (_monitor)
+		{
+			return new RegistrySnapshot(_entries.size(), _profilesByNode.values().stream().mapToInt(Set::size).sum(), _profilesByNode.size(), _lastCandidatesExamined, _maximumCandidatesExamined);
+		}
+	}
+
+	public record RegistrySnapshot(int registered, int resolved, int occupiedNodeBuckets, int lastCandidatesExamined, int maximumCandidatesExamined)
+	{
 	}
 
 	long generation()

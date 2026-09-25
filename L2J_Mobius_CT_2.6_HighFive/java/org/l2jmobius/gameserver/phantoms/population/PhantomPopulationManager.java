@@ -37,6 +37,7 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.LongPredicate;
+import java.util.function.LongConsumer;
 
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler;
 import org.l2jmobius.gameserver.phantoms.PhantomScheduler.RegistrationStatus;
@@ -101,6 +102,9 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private PhantomDecisionEngine _decisionEngine;
 	private PhantomPopulationOwnershipPort _ownership;
 	private PhantomPopulationEcologyService _ecology;
+	private LongConsumer _topologyReady = profileId -> {};
+	private LongConsumer _topologyRetired = profileId -> {};
+	private boolean _topologyInstalled;
 	private LifecycleState _lifecycle = LifecycleState.NEW;
 	private int _target;
 	private int _activeTarget;
@@ -183,6 +187,20 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			_decisionEngine = Objects.requireNonNull(decisionEngine, "Decision engine must not be null.");
 			_ownership = new ProductionOwnershipPort(_scheduler, _decisionEngine, _materialized);
+		}
+	}
+
+	public void installTopologyMembership(LongConsumer ready, LongConsumer retired)
+	{
+		synchronized (_monitor)
+		{
+			if ((_lifecycle != LifecycleState.NEW) || _topologyInstalled)
+			{
+				throw new IllegalStateException("Population topology membership can only be installed once before start.");
+			}
+			_topologyReady = Objects.requireNonNull(ready, "ready");
+			_topologyRetired = Objects.requireNonNull(retired, "retired");
+			_topologyInstalled = true;
 		}
 	}
 
@@ -1033,6 +1051,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			return;
 		}
+		_topologyReady.accept(action.profileId());
 		final PhantomActivityState effective;
 		final long sequence;
 		final long ttl;
@@ -1359,6 +1378,10 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		if (archiveCompleted)
 		{
 			reconcileTarget(_target, _activeTarget);
+		}
+		if (!archiveCancelled)
+		{
+			_topologyRetired.accept(profileId);
 		}
 	}
 

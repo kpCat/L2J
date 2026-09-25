@@ -64,6 +64,16 @@ public interface PhantomBackgroundAuthority
 
 	FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal);
 
+	default List<Integer> ordinarySpoilSkillIds(int activeClassId)
+	{
+		return List.of();
+	}
+
+	default FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, Map<Integer, Integer> learnedSkills)
+	{
+		return farmInput(state, goal);
+	}
+
 	default FarmInput acquisitionInput(PhantomBackgroundState state, Source source)
 	{
 		throw new UnsupportedOperationException("Acquisition background authority is unavailable.");

@@ -92,6 +92,104 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("11-transient-item-retry-has-shared-pulse-backoff", this::testTransientItemRetryBackoff);
 		registry.add("12-background-due-reconciles-elapsed-cursor-once", this::testBackgroundDueReconciliation);
 		registry.add("13-periodic-due-crash-before-and-after-durable-commit", this::testPeriodicDueCrashRecovery);
+		registry.add("14-periodic-cursor-materialized-boundary-and-resume", this::testPeriodicMaterializedBoundary);
+		registry.add("15-stale-authority-renews-current-request", this::testStaleAuthorityRenewal);
+	}
+
+	private void testStaleAuthorityRenewal(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:30:00Z");
+		final long from = minute(now) - 10;
+		final long target = minute(now);
+		final String requestId = "e".repeat(64);
+		final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final ManagedSnapshot population = populationStore.seedReady(1, 1);
+		final EcologyMemoryStore store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(from, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()).beginRequest(requestId, target));
+		final PhantomBackgroundState.Hashes oldHashes = new PhantomBackgroundState.Hashes("knowledge", "topology", "progression", "commerce");
+		final PhantomBackgroundState.Hashes currentHashes = new PhantomBackgroundState.Hashes("knowledge", "topology-current", "progression", "commerce");
+		final PhantomBackgroundCatchupState stale = new PhantomBackgroundCatchupState(Status.FAILED_REPLAN_REQUIRED, requestId, 1, from, target, from, 0, 0, 1, 1, 1, 1, 0, "f".repeat(64), PhantomBackgroundState.MODEL_VERSION, oldHashes, "authority.hash_stale");
+		final AtomicReference<Snapshot> catchup = new AtomicReference<>(new Snapshot(stale, 0));
+		final AtomicBoolean renewed = new AtomicBoolean();
+		final AtomicInteger awards = new AtomicInteger();
+		final HistoricalPort historical = new HistoricalPort()
+		{
+			@Override
+			public Optional<Snapshot> status(long profileId)
+			{
+				return Optional.of(catchup.get());
+			}
+
+			@Override
+			public PhantomHistoricalBackgroundService.Result begin(long profileId, long fromEpochMinute, long targetEpochMinute, long deterministicSeed)
+			{
+				throw new AssertionError("Stale authority must keep the existing request identity.");
+			}
+
+			@Override
+			public PhantomHistoricalBackgroundService.Result advance(long profileId, int maximumIntervals, int maximumMinutes)
+			{
+				final Snapshot current = catchup.get();
+				if (!renewed.get())
+				{
+					return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.REPLAN_REQUIRED, "authority.hash_stale", current);
+				}
+				final PhantomBackgroundCatchupState continued = current.state().withPlan(1, 1, 1, "a".repeat(64), 2, 2, currentHashes).advanceTo(target);
+				awards.addAndGet(Math.toIntExact(target - current.state().cursorEpochMinute()));
+				final Snapshot committed = new Snapshot(continued, current.rowVersion() + 1);
+				catchup.set(committed);
+				return PhantomHistoricalBackgroundService.Result.success(committed, 1);
+			}
+		};
+		final PhantomPopulationEcologyService service = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 1);
+		service.enablePeriodicDueMode();
+		service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+		service.register(population);
+		PhantomAssertions.assertFalse(service.reconcileBackgroundDue(1).complete(), "Stale authority incorrectly completed the due.");
+		PhantomAssertions.assertEquals(from, store.require(1).state().calendarCursorEpochMinute(), "Stale authority moved the accepted cursor.");
+		renewed.set(true);
+		for (int pulse = 0; (pulse < 512) && store.require(1).state().requestPending(); pulse++)
+		{
+			service.onPopulationPulse();
+		}
+		PhantomAssertions.assertTrue(service.reconcileBackgroundDue(1).complete(), "Renewed authority did not complete the pending due.");
+		PhantomAssertions.assertEquals(target, store.require(1).state().calendarCursorEpochMinute(), "Renewal did not advance the existing ecology cursor.");
+		PhantomAssertions.assertEquals(requestId, catchup.get().state().requestId(), "Renewal created a second request identity.");
+		PhantomAssertions.assertEquals(currentHashes, catchup.get().state().authorityHashes(), "Renewal kept stale authority hashes.");
+		PhantomAssertions.assertEquals(10, awards.get(), "Renewal did not award ten logical minutes exactly once.");
+		PhantomAssertions.assertEquals(0, service.reconcileBackgroundDue(1).advancedIntervals(), "Completed renewal replayed the award.");
+		context.record("goal033.staleAuthorityRenewal", "same_request,10_minutes_once");
+	}
+
+	private void testPeriodicMaterializedBoundary(PhantomTestContext context)
+	{
+		final Instant from = Instant.parse("2026-01-05T20:00:00Z");
+		final long fromMinute = minute(from);
+		final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final ManagedSnapshot population = populationStore.seedReady(1, 1);
+		final EcologyMemoryStore store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(fromMinute, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()));
+		final HistoricalMemoryPort historical = new HistoricalMemoryPort();
+		final AtomicBoolean materialized = new AtomicBoolean();
+		final PhantomPopulationTestDoubles.MutableClock clock = new PhantomPopulationTestDoubles.MutableClock(from.plusSeconds(10 * 60));
+		final PhantomPopulationEcologyService service = service(store, historical, materialized, new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		service.enablePeriodicDueMode();
+		service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+		service.register(population);
+		PhantomAssertions.assertTrue(service.reconcileBackgroundDue(1).complete(), "First ten-minute due did not complete.");
+		PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "First ten-minute due did not award exactly once.");
+		materialized.set(true);
+		clock.set(from.plusSeconds(15 * 60));
+		PhantomAssertions.assertTrue(service.reconcileBackgroundDue(1).complete(), "Materialized boundary did not commit calendar time.");
+		PhantomAssertions.assertEquals(fromMinute + 15, store.require(1).state().calendarCursorEpochMinute(), "Materialized boundary left historical time replayable.");
+		PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "Materialized boundary awarded historical minutes.");
+		materialized.set(false);
+		clock.set(from.plusSeconds(25 * 60));
+		PhantomAssertions.assertTrue(service.reconcileBackgroundDue(1).complete(), "Dematerialized boundary did not resume periodic due.");
+		PhantomAssertions.assertEquals(fromMinute + 25, store.require(1).state().calendarCursorEpochMinute(), "Resumed cursor regressed or skipped the due target.");
+		PhantomAssertions.assertEquals(20L, historical.advancedMinutes(), "Dematerialized window double-awarded materialized time.");
+		PhantomAssertions.assertEquals(0, service.reconcileBackgroundDue(1).advancedIntervals(), "Ack replay advanced a completed dematerialized due.");
+		context.record("goal033.periodicMaterializedBoundary", "10_awarded,5_materialized_no_award,10_resumed");
 	}
 
 	private void testPeriodicDueCrashRecovery(PhantomTestContext context)

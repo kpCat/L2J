@@ -33,6 +33,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
+import java.util.function.BiConsumer;
 import java.util.function.LongPredicate;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
@@ -111,6 +112,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private volatile PhantomAcquisitionQuestCatalog _quests;
 	private volatile Limits _acquisitionLimits;
 	private volatile LongPredicate _ordinaryPresence = profileId -> true;
+	private volatile BiConsumer<Long, PhantomBackgroundState.Position> _committedPosition = (profileId, position) -> {};
+	private boolean _positionPublisherInstalled;
 	private boolean _presenceInstalled;
 	private volatile LongFunction<OperationResult> _periodicFarm;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
@@ -221,6 +224,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		_ordinaryPresence = Objects.requireNonNull(ordinaryPresence, "Ordinary presence policy must not be null.");
 		_presenceInstalled = true;
+	}
+
+	public synchronized void installCommittedPositionPublisher(BiConsumer<Long, PhantomBackgroundState.Position> publisher)
+	{
+		if (_positionPublisherInstalled || (_state == ServiceState.STOPPING) || (_state == ServiceState.STOPPED))
+		{
+			throw new IllegalStateException("Committed position publisher can only be installed once before work starts.");
+		}
+		_committedPosition = Objects.requireNonNull(publisher, "publisher");
+		_positionPublisherInstalled = true;
 	}
 
 	public synchronized void installPeriodicFarm(LongFunction<OperationResult> periodicFarm)
@@ -352,7 +365,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final FarmInput input;
 			try
 			{
-				input = _authority.farmInput(state, spec);
+				input = ordinaryFarmInput(profileId, claim.characterObjectId(), state, spec);
 			}
 			catch (RuntimeException exception)
 			{
@@ -453,7 +466,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final FarmInput input;
 			try
 			{
-				input = _authority.farmInput(state, spec);
+				input = ordinaryFarmInput(profileId, claim.characterObjectId(), state, spec);
 			}
 			catch (RuntimeException exception)
 			{
@@ -497,6 +510,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final PhantomBackgroundTransaction.Result result = transaction(() -> _transactions.verifyCommittedHistoricalReplay(claim.profileId(), claim.characterObjectId(), goal, key, catchup));
 				if (result.status() == PhantomBackgroundTransaction.Status.IDEMPOTENT)
 				{
+					publishPosition(claim.profileId(), result);
 					_idempotentOperations.incrementAndGet();
 					return OperationResult.idempotent("transaction.idempotent");
 				}
@@ -1270,6 +1284,21 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
+	private FarmInput ordinaryFarmInput(long profileId, int characterObjectId, PhantomBackgroundState state, PhantomBackgroundGoalSpec spec)
+	{
+		final List<Integer> skillIds = _authority.ordinarySpoilSkillIds(state.identity().activeClassId());
+		if (skillIds.isEmpty())
+		{
+			return _authority.farmInput(state, spec);
+		}
+		final var eligibility = transaction(() -> _transactions.readAcquisitionEligibility(profileId, characterObjectId, state.identity().classIndex(), state.identity().activeClassId(), skillIds, state.hashes().progression(), _authority.hashes()));
+		if (!eligibility.successful())
+		{
+			throw new IllegalStateException("Ordinary spoil capability evidence is unavailable.");
+		}
+		return _authority.farmInput(state, spec, eligibility.snapshot().skillLevels());
+	}
+
 	private OperationResult commit(OperationClaim claim, PhantomBackgroundTransaction.Command command)
 	{
 		if (_partyParticipation.blocksBackground(claim.profileId()))
@@ -1302,11 +1331,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				_failedOperations.incrementAndGet();
 				return OperationResult.inconsistent("transaction.idempotent_unverified");
 			}
+			publishPosition(claim.profileId(), verified);
 			_idempotentOperations.incrementAndGet();
 			return OperationResult.idempotent("transaction.idempotent");
 		}
 		if (result.status() == PhantomBackgroundTransaction.Status.SUCCESS)
 		{
+			publishPosition(claim.profileId(), result);
 			_completedOperations.incrementAndGet();
 			return OperationResult.success("transaction.committed");
 		}
@@ -1316,6 +1347,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			_failedOperations.incrementAndGet();
 		}
 		return failure;
+	}
+
+	private void publishPosition(long profileId, PhantomBackgroundTransaction.Result result)
+	{
+		if (result.state() != null)
+		{
+			_committedPosition.accept(profileId, result.state().position());
+		}
 	}
 
 	private static String bindingHash(PhantomAcquisitionState.MethodBinding binding)

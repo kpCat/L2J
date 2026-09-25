@@ -384,6 +384,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("05-causal-death-and-loss", _ -> testCausalDeath());
 		registry.add("06-competition-capacity-release", _ -> testCompetition());
 		registry.add("07-grouped-ungrouped-occurrence-parity", _ -> testDropOccurrenceParity());
+		registry.add("08-ordinary-spoil-separate-from-death-drops", _ -> testOrdinarySpoil());
 	}
 
 	private void registerTransaction(PhantomTestRegistry registry)
@@ -1691,6 +1692,23 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(-((long) first.encounters()), first.inventoryDelta().itemDeltas().get(6645), "Summon-resource consumption is not exact.");
 			PhantomAssertions.assertTrue(first.vitals().currentMp() < state.vitals().currentMp(), "Selected-skill MP was not consumed.");
 		}
+	}
+
+	private void testOrdinarySpoil()
+	{
+		final Drop death = new Drop(57, -1, 0, 100, 100, 1, 1, 1, null, 1, 100, true, 0, DropDisposition.ACQUIRE, DropOrigin.ORDINARY);
+		final Drop spoil = new Drop(10, -1, 0, 100, 100, 2, 2, 1, null, 1, 100, true, 0, DropDisposition.ACQUIRE, DropOrigin.ORDINARY_SPOIL);
+		final PhantomBackgroundState state = state(1, 101, State.READY, 100, 100, new InventoryFacts(List.of(10, 57), List.of(), "model", 0, 100000, 0, 100));
+		final Target both = target(1, 1, 0, List.of(death, spoil));
+		final PhantomBackgroundModel model = new PhantomBackgroundModel();
+		final BatchResult first = model.evaluate(request(state, both));
+		final BatchResult replay = model.evaluate(request(state, both));
+		final BatchResult deathOnly = model.evaluate(request(state, target(1, 1, 0, List.of(death))));
+		PhantomAssertions.assertEquals(first, replay, "Ordinary spoil replay changed deterministic RNG output.");
+		PhantomAssertions.assertTrue(first.encounters() > 0, "Ordinary spoil fixture did not encounter a monster.");
+		PhantomAssertions.assertTrue(first.inventoryDelta().itemDeltas().getOrDefault(10, 0L) > 0, "Capable ordinary farm omitted spoil.");
+		PhantomAssertions.assertEquals(deathOnly.inventoryDelta().itemDeltas().get(57), first.inventoryDelta().itemDeltas().get(57), "Ordinary spoil duplicated a death drop.");
+		PhantomAssertions.assertFalse(deathOnly.inventoryDelta().itemDeltas().containsKey(10), "Death-only farm acquired spoil.");
 	}
 
 	private void testDropsAndCapacity()

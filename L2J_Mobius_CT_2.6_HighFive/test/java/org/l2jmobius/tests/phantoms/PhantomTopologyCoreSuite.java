@@ -56,8 +56,8 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationExcep
 
 public final class PhantomTopologyCoreSuite implements PhantomTestSuite
 {
-	static final PhantomTopologyPolicy POLICY = PhantomTopologyPolicy.productionDefaults();
-	static final PhantomTopologyPoint LEFT_POINT = point(300, 500);
+	public static final PhantomTopologyPolicy POLICY = PhantomTopologyPolicy.productionDefaults();
+	public static final PhantomTopologyPoint LEFT_POINT = point(300, 500);
 	static final PhantomTopologyPoint RIGHT_POINT = point(700, 500);
 	static final PhantomTopologyPoint LEFT_DOOR = point(490, 500);
 	static final PhantomTopologyPoint RIGHT_DOOR = point(510, 500);
@@ -466,7 +466,7 @@ public final class PhantomTopologyCoreSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(256, POLICY.maximumGraphNodes(), "Topology graph policy changed.");
 	}
 
-	static PhantomTopologySnapshot snapshot(TestBackend backend)
+	public static PhantomTopologySnapshot snapshot(TestBackend backend)
 	{
 		final List<PhantomTopologyAnchor> anchors = baseDoorAnchors();
 		return create(baseNodes(), anchors, List.of(doorEdge("dungeon.door", anchors.get(0).id(), anchors.get(1).id())), backend);
@@ -550,7 +550,7 @@ public final class PhantomTopologyCoreSuite implements PhantomTestSuite
 		}
 	}
 
-	static final class TestBackend implements PhantomTopologyValidationBackend
+	public static final class TestBackend implements PhantomTopologyValidationBackend
 	{
 		final Map<Integer, NpcFact> _npcs = new HashMap<>();
 		final Map<Integer, List<SpawnFact>> _spawns = new HashMap<>();
@@ -559,7 +559,7 @@ public final class PhantomTopologyCoreSuite implements PhantomTestSuite
 		int _mapRegionLocId = 1;
 		Runnable _doorStateHook;
 
-		TestBackend()
+		public TestBackend()
 		{
 			_npcs.put(100, new NpcFact(100, "Teleporter", false));
 			_npcs.put(101, new NpcFact(101, "Merchant", false));

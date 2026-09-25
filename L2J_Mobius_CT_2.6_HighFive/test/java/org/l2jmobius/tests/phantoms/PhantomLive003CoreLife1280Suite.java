@@ -13,6 +13,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
 
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.NameStyle;
@@ -31,6 +34,12 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKe
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.ActionKind;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.HistoricalIdentity;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Receipt;
+import org.l2jmobius.gameserver.phantoms.background.PhantomOrdinarySpoilEvidence;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Authority;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.CapabilityRule;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SkillRef;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.TargetScope;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
 
 /** DB-free LIVE-003 code evidence at the accepted 1,280-profile scale. */
@@ -60,8 +69,28 @@ public final class PhantomLive003CoreLife1280Suite implements PhantomTestSuite
 		registry.add("F-168-hour-v2-calendar-capacity-proof", this::weeklySchedule);
 		registry.add("F-exact-v1-predecessor-authority-selection", this::predecessorAuthority);
 		registry.add("A-schedule-presence-and-exclusive-busy", this::logicalPresence);
+		registry.add("A-exact-external-busy-owners", this::externalBusyOwners);
+		registry.add("B-production-ecology-default-and-explicit-opt-out", this::ecologyDefault);
 		registry.add("I-10000-pure-due-rate-reference", this::dueRateReference);
 		registry.add("C-existing-minute-cursor-operation-identity", this::existingCursorIdentity);
+		registry.add("D-ordinary-spoil-exact-learned-evidence", this::ordinarySpoilEvidence);
+	}
+
+	private void ordinarySpoilEvidence(PhantomTestContext context)
+	{
+		final SkillRef spoil = new SkillRef(254, 1);
+		final SkillRef evidence = new SkillRef(1250, 2);
+		final SkillRef sweep = new SkillRef(42, 1);
+		final List<CapabilityRule> rules = List.of(
+			new CapabilityRule("profession.spoil", "spoil", 1, List.of(0), spoil, List.of(spoil, evidence), TargetScope.SINGLE_TARGET, Set.of(), List.of(), true, false, false, Authority.CURATED_CAPABILITY_RULE, List.of("capabilities.xml")),
+			new CapabilityRule("profession.sweep", "sweep", 1, List.of(0), sweep, List.of(sweep), TargetScope.SINGLE_TARGET, Set.of(), List.of(), true, false, false, Authority.CURATED_CAPABILITY_RULE, List.of("capabilities.xml")));
+		PhantomAssertions.assertEquals(List.of(42, 254, 1250), PhantomOrdinarySpoilEvidence.candidateSkillIds(rules), "Exact required skill IDs changed.");
+		PhantomAssertions.assertTrue(PhantomOrdinarySpoilEvidence.eligible(rules, Map.of(254, 1, 1250, 2, 42, 1)), "Capable spoiler lost native spoil.");
+		PhantomAssertions.assertFalse(PhantomOrdinarySpoilEvidence.eligible(rules, Map.of(254, 1, 1250, 2)), "Missing Sweep was accepted.");
+		PhantomAssertions.assertFalse(PhantomOrdinarySpoilEvidence.eligible(rules, Map.of(254, 1, 1250, 1, 42, 1)), "Insufficient evidence skill level was accepted.");
+		PhantomAssertions.assertTrue(PhantomOrdinarySpoilEvidence.candidateSkillIds(List.of()).isEmpty(), "Non-spoiler caused an unnecessary skill read.");
+		PhantomAssertions.assertFalse(PhantomOrdinarySpoilEvidence.eligible(List.of(), Map.of(254, 1, 1250, 2, 42, 1)), "Non-spoiler gained spoil from learned skills alone.");
+		context.record("live003.ordinarySpoilExactSkillIds", "42,254,1250");
 	}
 
 	private void existingCursorIdentity(PhantomTestContext context)
@@ -81,6 +110,16 @@ public final class PhantomLive003CoreLife1280Suite implements PhantomTestSuite
 		final var key = new PhantomBackgroundOperationKey(1, 1, 1, 0, 0, 0, ActionKind.HISTORICAL_FARM, 1, "anchor", PhantomBackgroundState.MODEL_VERSION, hashes, null, interval);
 		final var same = new PhantomBackgroundOperationKey(1, 1, 1, 0, 0, 0, ActionKind.HISTORICAL_FARM, 1, "anchor", PhantomBackgroundState.MODEL_VERSION, hashes, null, replay);
 		PhantomAssertions.assertEquals(key.digest(), same.digest(), "Existing operation identity changed after cursor restore.");
+		final Receipt committedReceipt = new Receipt(key.digest(), 0, 0, "after-hash");
+		PhantomAssertions.assertEquals(committedReceipt.operationKey(), same.digest(), "Commit-before-ack replay lost its exact operation receipt.");
+		final var newerHashes = new PhantomBackgroundState.Hashes("knowledge", "topology-next", "progression", "commerce");
+		final var blocked = first.blockedForGeneration("planner.topology.stale", 2, 2, newerHashes);
+		PhantomAssertions.assertEquals(101L, blocked.cursorEpochMinute(), "Stale authority moved the accepted cursor.");
+		final var renewed = blocked.withPlan(1, 1, 1, "c".repeat(64), 2, 2, newerHashes);
+		PhantomAssertions.assertEquals(102L, renewed.advanceTo(102).cursorEpochMinute(), "Renewed authority did not continue from the accepted cursor.");
+		final var renewedIdentity = new HistoricalIdentity(renewed.requestId(), renewed.generation(), renewed.intervalOrdinal(), renewed.cursorEpochMinute(), renewed.cursorEpochMinute() + 1, renewed.planIdentity());
+		final var renewedKey = new PhantomBackgroundOperationKey(1, 1, 1, 1, 0, 0, ActionKind.HISTORICAL_FARM, 1, "anchor", PhantomBackgroundState.MODEL_VERSION, newerHashes, null, renewedIdentity);
+		PhantomAssertions.assertFalse(renewedKey.digest().equals(committedReceipt.operationKey()), "Renewal reused a stale operation receipt.");
 		context.record("live003.reusedHistoricalOperationDigest", key.digest());
 	}
 
@@ -164,6 +203,52 @@ public final class PhantomLive003CoreLife1280Suite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(2, presence.snapshot().available(), "Presence count lost AVAILABLE profiles.");
 		presence.remove(1);
 		PhantomAssertions.assertTrue(presence.schedule(3, PhantomActivityState.BACKGROUND), "Removal did not free bounded capacity.");
+	}
+
+	private void externalBusyOwners(PhantomTestContext context)
+	{
+		final PhantomPresenceRegistry presence = new PhantomPresenceRegistry(2);
+		final AtomicBoolean party = new AtomicBoolean();
+		final AtomicBoolean store = new AtomicBoolean();
+		final AtomicBoolean action = new AtomicBoolean();
+		presence.installExternalBusySource("party", id -> (id == 1) && party.get());
+		presence.installExternalBusySource("store", id -> (id == 1) && store.get());
+		presence.installExternalBusySource("action", id -> (id == 1) && action.get());
+		presence.schedule(1, PhantomActivityState.BACKGROUND);
+		PhantomAssertions.assertEquals(Presence.AVAILABLE, presence.state(1), "Exact external sources blocked a released profile.");
+		for (AtomicBoolean owner : List.of(party, store, action))
+		{
+			owner.set(true);
+			PhantomAssertions.assertEquals(Presence.BUSY, presence.state(1), "Exact external owner did not block presence.");
+			PhantomAssertions.assertEquals(1, presence.snapshot().externalBusy(), "External BUSY count lost the owner.");
+			presence.schedule(1, PhantomActivityState.SLEEPING);
+			PhantomAssertions.assertEquals(Presence.OFFLINE, presence.state(1), "OFFLINE did not dominate external BUSY.");
+			presence.schedule(1, PhantomActivityState.BACKGROUND);
+			owner.set(false);
+			PhantomAssertions.assertEquals(Presence.AVAILABLE, presence.state(1), "Released exact owner did not restore AVAILABLE.");
+		}
+		PhantomAssertions.assertThrows(IllegalStateException.class, () -> presence.installExternalBusySource("party", id -> false), "Duplicate external owner was accepted.");
+		context.record("live003.externalBusySources", 3);
+	}
+
+	private void ecologyDefault(PhantomTestContext context) throws Exception
+	{
+		PhantomAssertions.assertTrue(new PhantomPlayersConfig.Settings(true, false).ecologyEnabled(), "Enabled production composition has no periodic Ecology owner by default.");
+		final String packaged = Files.readString(context.moduleRoot().resolve("dist/game/config/Custom/PhantomPlayers.ini"), StandardCharsets.UTF_8);
+		PhantomAssertions.assertTrue(packaged.contains("EnablePhantomSystem = False"), "Top-level Phantom World default changed.");
+		PhantomAssertions.assertTrue(packaged.contains("EnablePhantomEcology = True"), "Packaged Ecology default does not install the periodic owner.");
+		final Path config = Files.createTempFile("live003-ecology-", ".ini");
+		try
+		{
+			Files.writeString(config, packaged.replace("EnablePhantomSystem = False", "EnablePhantomSystem = True"), StandardCharsets.UTF_8);
+			PhantomAssertions.assertTrue(PhantomPlayersConfig.read(config).ecologyEnabled(), "Packaged enabled production config did not install Ecology.");
+			Files.writeString(config, packaged.replace("EnablePhantomSystem = False", "EnablePhantomSystem = True").replace("EnablePhantomEcology = True", "EnablePhantomEcology = False"), StandardCharsets.UTF_8);
+			PhantomAssertions.assertFalse(PhantomPlayersConfig.read(config).ecologyEnabled(), "Explicit Ecology=false was not honored.");
+		}
+		finally
+		{
+			Files.deleteIfExists(config);
+		}
 	}
 
 	private String weeklyRows(PhantomPopulationCatalog catalog, PhantomPopulationEcologyCatalog ecology)

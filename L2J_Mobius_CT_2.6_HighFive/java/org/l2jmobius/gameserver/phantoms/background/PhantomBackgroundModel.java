@@ -157,7 +157,17 @@ public final class PhantomBackgroundModel
 			}
 			else
 			{
-				roll = rollDrops(target, random);
+				final List<Drop> spoil = target.drops().stream().filter(drop -> drop.origin() == DropOrigin.ORDINARY_SPOIL).toList();
+				if (spoil.isEmpty())
+				{
+					roll = rollDrops(target, random);
+				}
+				else
+				{
+					final List<Drop> deathDrops = target.drops().stream().filter(drop -> drop.origin() != DropOrigin.ORDINARY_SPOIL).toList();
+					final Target deathTarget = new Target(target.npcId(), target.level(), target.normalMonster(), target.maximumHp(), target.maximumMp(), target.physicalOffense(), target.magicOffense(), target.physicalDefense(), target.magicDefense(), target.attackSpeed(), target.castSpeed(), target.baseExperience(), target.baseSkillPoints(), deathDrops, target.maximumRandomDropOccurrences());
+					roll = mergeRolls(rollDrops(deathTarget, random), rollSpoil(spoil, random));
+				}
 			}
 			long methodTargetDelta = 0;
 			if (request.mode() == BatchMode.ACQUISITION_MANOR_CROP)
@@ -650,6 +660,7 @@ public final class PhantomBackgroundModel
 	public enum DropOrigin
 	{
 		ORDINARY,
+		ORDINARY_SPOIL,
 		INCIDENTAL_DEATH_DROP,
 		ACQUISITION_TARGET
 	}

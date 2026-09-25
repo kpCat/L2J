@@ -272,6 +272,19 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	@Override
 	public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal)
 	{
+		return farmInput(state, goal, Map.of());
+	}
+
+	@Override
+	public List<Integer> ordinarySpoilSkillIds(int activeClassId)
+	{
+		return PhantomOrdinarySpoilEvidence.candidateSkillIds(_progression.get().capabilities(activeClassId));
+	}
+
+	@Override
+	public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, Map<Integer, Integer> learnedSkills)
+	{
+		learnedSkills = Map.copyOf(learnedSkills);
 		if (!state.hashes().equals(hashes()))
 		{
 			throw new IllegalStateException("Background authority generation changed.");
@@ -294,7 +307,14 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			throw new IllegalArgumentException("Persisted target has no authoritative spawn capacity at the farm anchor.");
 		}
-		final List<Drop> drops = drops(state, npc.level(), knowledge.dropFactsByNpc().getOrDefault(goal.npcId(), List.of()));
+		final List<Drop> drops = new ArrayList<>(drops(state, npc.level(), knowledge.dropFactsByNpc().getOrDefault(goal.npcId(), List.of())));
+		if (PhantomOrdinarySpoilEvidence.eligible(_progression.get().capabilities(state.identity().activeClassId()), learnedSkills))
+		{
+			for (DropFact fact : knowledge.spoilFactsByNpc().getOrDefault(goal.npcId(), List.of()))
+			{
+				drops.add(drop(state, npc.level(), fact, DropOrigin.ORDINARY_SPOIL, true));
+			}
+		}
 		final Target target = new Target(goal.npcId(), npc.level(), true, template.getBaseHpMax(), template.getBaseMpMax(), template.getBasePAtk(), template.getBaseMAtk(), template.getBasePDef(), template.getBaseMDef(), template.getBasePAtkSpd(), template.getBaseMAtkSpd(), npc.exp(), npc.sp(), drops, RatesConfig.DROP_MAX_OCCURRENCES_NORMAL);
 		final double expRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicExpRate(state.progress().level()) : RatesConfig.RATE_XP;
 		final double spRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicSpRate(state.progress().level()) : RatesConfig.RATE_SP;
@@ -696,6 +716,17 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			else
 			{
 				groundLossItemIds.add(fact.itemId());
+			}
+		}
+		if (!ordinarySpoilSkillIds(player.getActiveClass()).isEmpty())
+		{
+			for (DropFact fact : knowledge.spoilFactsByNpc().getOrDefault(goal.npcId(), List.of()))
+			{
+				if (ItemData.getInstance().getTemplate(fact.itemId()) == null)
+				{
+					throw new IllegalArgumentException("Persisted target contains an unsupported spoil item.");
+				}
+				mutableItemIds.add(fact.itemId());
 			}
 		}
 		if (groundLossItemIds.size() > PhantomBackgroundModel.MAX_GROUND_LOSS_ITEM_IDS)

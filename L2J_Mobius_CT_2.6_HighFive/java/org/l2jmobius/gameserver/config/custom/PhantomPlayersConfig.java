@@ -93,7 +93,7 @@ public final class PhantomPlayersConfig
 			final Integer partyOperationsPerPulse = strictInteger(config.getValue("PhantomPartyOperationsPerPulse"), 10, 10000, DEFAULT_PARTY_OPERATIONS_PER_PULSE);
 			final Integer socialCacheProfiles = strictInteger(config.getValue("PhantomSocialCacheProfiles"), 16, 10000, DEFAULT_SOCIAL_CACHE_PROFILES);
 			final ZoneId populationTimeZone = strictZoneId(config.getValue("PhantomPopulationTimeZone"));
-			final Boolean ecologyEnabled = strictOptionalBoolean(config.getValue("EnablePhantomEcology"), false);
+			final Boolean ecologyEnabled = strictOptionalBoolean(config.getValue("EnablePhantomEcology"), true);
 			final String ecologyPreset = strictEcologyPreset(config.getValue("PhantomEcologyPreset"));
 			final Integer ecologyWorldAgeDays = strictWorldAgeDays(config.getValue("PhantomEcologyWorldAgeDays"));
 			final Integer ecologyArchiveLimit = strictInteger(config.getValue("PhantomEcologyArchiveLimit"), 1, 1_000_000, DEFAULT_ECOLOGY_ARCHIVE_LIMIT);
@@ -372,12 +372,12 @@ public final class PhantomPlayersConfig
 
 		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms, int maxScheduledPhantomProfiles, int schedulerPulseMillis, int schedulerProfilesPerPulse, int populationTarget, int populationActiveTarget, int populationCreationInFlight, int populationBoundariesPerPulse, int partyOperationsPerPulse, int socialCacheProfiles, ZoneId populationTimeZone)
 		{
-			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, maxScheduledPhantomProfiles, schedulerPulseMillis, schedulerProfilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, false, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, enabled ? DEFAULT_ECOLOGY_ARCHIVE_LIMIT : 0);
+			this(enabled, diagnosticsEnabled, maxMaterializedPhantoms, maxScheduledPhantomProfiles, schedulerPulseMillis, schedulerProfilesPerPulse, populationTarget, populationActiveTarget, populationCreationInFlight, populationBoundariesPerPulse, partyOperationsPerPulse, socialCacheProfiles, populationTimeZone, enabled, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, enabled ? DEFAULT_ECOLOGY_ARCHIVE_LIMIT : 0);
 		}
 
 		public Settings(boolean enabled, boolean diagnosticsEnabled)
 		{
-			this(enabled, diagnosticsEnabled, enabled ? DEFAULT_MAX_MATERIALIZED_PHANTOMS : 0, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0, DEFAULT_POPULATION_TARGET, DEFAULT_POPULATION_ACTIVE_TARGET, enabled ? DEFAULT_POPULATION_CREATION_IN_FLIGHT : 0, enabled ? DEFAULT_POPULATION_BOUNDARIES_PER_PULSE : 0, enabled ? DEFAULT_PARTY_OPERATIONS_PER_PULSE : 0, enabled ? DEFAULT_SOCIAL_CACHE_PROFILES : 0, DEFAULT_POPULATION_TIME_ZONE, false, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, enabled ? DEFAULT_ECOLOGY_ARCHIVE_LIMIT : 0);
+			this(enabled, diagnosticsEnabled, enabled ? DEFAULT_MAX_MATERIALIZED_PHANTOMS : 0, enabled ? DEFAULT_MAX_SCHEDULED_PHANTOM_PROFILES : 0, enabled ? DEFAULT_SCHEDULER_PULSE_MILLIS : 0, enabled ? DEFAULT_SCHEDULER_PROFILES_PER_PULSE : 0, DEFAULT_POPULATION_TARGET, DEFAULT_POPULATION_ACTIVE_TARGET, enabled ? DEFAULT_POPULATION_CREATION_IN_FLIGHT : 0, enabled ? DEFAULT_POPULATION_BOUNDARIES_PER_PULSE : 0, enabled ? DEFAULT_PARTY_OPERATIONS_PER_PULSE : 0, enabled ? DEFAULT_SOCIAL_CACHE_PROFILES : 0, DEFAULT_POPULATION_TIME_ZONE, enabled, DEFAULT_ECOLOGY_PRESET, DEFAULT_ECOLOGY_WORLD_AGE_DAYS, enabled ? DEFAULT_ECOLOGY_ARCHIVE_LIMIT : 0);
 		}
 
 		public Settings(boolean enabled, boolean diagnosticsEnabled, int maxMaterializedPhantoms)

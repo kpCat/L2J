@@ -29,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
@@ -47,6 +49,10 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrationResult;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.UpdateResult;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPositionPublisher;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Position;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationBackend.DoorState;
 
@@ -89,6 +95,8 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		registry.add("26-stop-race-and-quiescence", _ -> testStopRace());
 		registry.add("27-stopped-operations-rejected", _ -> testStopped());
 		registry.add("28-no-materialization-navigation-reference", _ -> testNoDirectSubsystemReference());
+		registry.add("29-human-point-locality-and-committed-boundaries", _ -> testHumanPointLocality());
+		registry.add("30-existing-registry-10000-local-bucket-bound", _ -> testScaleRegistry());
 	}
 
 	private void testStartsEmpty()
@@ -397,6 +405,72 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(fixture.service.finishStop(), "Perception provider did not stop.");
 		PhantomAssertions.assertEquals(RegistrationResult.NOT_RUNNING, fixture.service.registerProfile(1), "Stopped profile registry accepted registration.");
 		PhantomAssertions.assertEquals(EventStatus.NOT_RUNNING, fixture.service.localChat(chat(PhantomTopologyCoreSuite.LEFT_POINT, 1000)).status(), "Stopped provider accepted an event.");
+	}
+
+	private void testHumanPointLocality()
+	{
+		final Fixture fixture = fixture();
+		fixture.backend._doorStates.put(500, DoorState.CLOSED);
+		final PhantomTopologyPositionPublisher publisher = new PhantomTopologyPositionPublisher(fixture.service, _ -> java.util.Optional.empty());
+		publisher.ready(1);
+		publisher.committed(1, position(PhantomTopologyCoreSuite.LEFT_POINT));
+		publisher.ready(2);
+		publisher.committed(2, position(PhantomTopologyCoreSuite.RIGHT_POINT));
+		PhantomAssertions.assertEquals(List.of(1L), fixture.service.perceptibleProfilesAt(PhantomTopologyCoreSuite.LEFT_POINT, PhantomPerceptionChannel.TARGETABILITY, 2).stream().map(profile -> profile.profileId()).toList(), "Human point query included a remote profile behind a closed door.");
+		final AtomicLong now = new AtomicLong(1000);
+		final AtomicBoolean online = new AtomicBoolean(true);
+		final PhantomHumanLocalityControl locality = new PhantomHumanLocalityControl(fixture.service, fixture.port, () -> List.of(PhantomTopologyCoreSuite.LEFT_POINT), now::get, profileId -> online.get());
+		locality.onPulse();
+		PhantomAssertions.assertTrue(locality.isLocal(1), "Local committed profile received no relevance signal.");
+		PhantomAssertions.assertFalse(locality.isLocal(2), "Remote profile became materialization eligible.");
+		online.set(false);
+		PhantomAssertions.assertFalse(locality.isLocal(1), "OFFLINE did not dominate an existing local signal.");
+		online.set(true);
+		PhantomAssertions.assertEquals(UpdateResult.STALE, fixture.service.updateProfile(1, PhantomTopologyCoreSuite.RIGHT_POINT, 0), "Transient stale update was accepted.");
+		PhantomAssertions.assertEquals("dungeon.left", fixture.service.findProfile(1).orElseThrow().nodeId(), "Stale or transient move changed committed membership.");
+		publisher.committed(1, position(PhantomTopologyCoreSuite.RIGHT_POINT));
+		now.addAndGet(1000);
+		locality.onPulse();
+		PhantomAssertions.assertFalse(locality.isLocal(1), "Committed remote move remained locally signaled.");
+		publisher.committed(1, position(PhantomTopologyCoreSuite.LEFT_POINT));
+		fixture.port._statusByProfile.put(1L, SignalDelivery.REJECTED);
+		now.addAndGet(1000);
+		locality.onPulse();
+		PhantomAssertions.assertFalse(locality.isLocal(1), "Rejected local signal admitted materialization.");
+		fixture.port._statusByProfile.remove(1L);
+		for (int cycle = 0; cycle < 100; cycle++)
+		{
+			publisher.retired(1);
+			publisher.ready(1);
+			publisher.committed(1, position(PhantomTopologyCoreSuite.LEFT_POINT));
+			PhantomAssertions.assertEquals(2, fixture.service.registrySnapshot().registered(), "Materialize/dematerialize cycle leaked duplicate topology ownership.");
+		}
+		stop(fixture);
+	}
+
+	private void testScaleRegistry()
+	{
+		final Fixture fixture = fixture(policyWith(10_000, 1024));
+		fixture.backend._doorStates.put(500, DoorState.CLOSED);
+		for (long profileId = 1; profileId <= 10_000; profileId++)
+		{
+			register(fixture, profileId, profileId <= 100 ? PhantomTopologyCoreSuite.LEFT_POINT : PhantomTopologyCoreSuite.RIGHT_POINT);
+		}
+		final var first = fixture.service.perceptibleProfilesAt(PhantomTopologyCoreSuite.LEFT_POINT, PhantomPerceptionChannel.TARGETABILITY, 32);
+		final var replay = fixture.service.perceptibleProfilesAt(PhantomTopologyCoreSuite.LEFT_POINT, PhantomPerceptionChannel.TARGETABILITY, 32);
+		PhantomAssertions.assertEquals(first, replay, "Capped human-point query is not deterministic.");
+		PhantomAssertions.assertEquals(32, first.size(), "Human-point query lost deterministic cap.");
+		PhantomAssertions.assertEquals(1L, first.getFirst().profileId(), "Human-point cap did not select lowest profile ID.");
+		PhantomAssertions.assertEquals(10_000, fixture.service.registrySnapshot().registered(), "Existing topology registry did not hold 10,000 profiles.");
+		PhantomAssertions.assertEquals(10_000, fixture.service.registrySnapshot().resolved(), "Existing topology registry lost resolved profiles.");
+		PhantomAssertions.assertEquals(2, fixture.service.registrySnapshot().occupiedNodeBuckets(), "Existing topology registry node buckets changed.");
+		PhantomAssertions.assertEquals(100, fixture.service.registrySnapshot().maximumCandidatesExamined(), "Local query inspected remote node bucket.");
+		stop(fixture);
+	}
+
+	private static Position position(PhantomTopologyPoint point)
+	{
+		return new Position(point.instanceId(), point.x(), point.y(), point.z(), 0, "test.anchor");
 	}
 
 	private void testNoDirectSubsystemReference()

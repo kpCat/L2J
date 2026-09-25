@@ -192,6 +192,9 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSigna
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPositionPublisher;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
 /**
  * Lifecycle owner for the disabled-by-default Phantom World subsystem.
@@ -220,6 +223,7 @@ public final class PhantomSystem
 	private PhantomDecisionEngine _decisionEngine;
 	private PhantomNavigationService _navigationService;
 	private PhantomTopologyService _topologyService;
+	private PhantomHumanLocalityControl _humanLocality;
 	private PhantomGameKnowledgeService _gameKnowledgeService;
 	private PhantomSemanticUnderstandingService _semanticUnderstandingService;
 	private PhantomProgressionService _progressionService;
@@ -416,9 +420,12 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Phantom background service could not enter the running state.");
 				}
+				final PhantomTopologyPositionPublisher positionPublisher = new PhantomTopologyPositionPublisher(_topologyService, _backgroundService::acquisitionSnapshot);
+				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
+				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), () -> World.getInstance().getPlayers().stream().filter(player -> player.isOnline() && !player.hasHeadlessOutboundSession()).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList(), System::currentTimeMillis, profileId -> (_populationManager != null) && (_populationManager.presence().state(profileId) != PhantomPresenceRegistry.Presence.OFFLINE));
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority), _backgroundService, _materializationService);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
-				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge)));
+				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge))));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
@@ -456,6 +463,7 @@ public final class PhantomSystem
 					_settings.maxMaterializedPhantoms(),
 					_settings.populationCreationInFlight(),
 					_settings.populationBoundariesPerPulse());
+				_populationManager.installTopologyMembership(positionPublisher::ready, positionPublisher::retired);
 				_backgroundService.installPresencePolicy(_populationManager.presence()::permitsOrdinaryFarm);
 				final File partyRoleCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-roles-v1.xml");
 				final PhantomPartyRoleCatalog partyRoleCatalog = PhantomPartyRoleCatalog.load(partyRoleCatalogFile.toPath());
@@ -498,6 +506,9 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
 				partyParticipation.install(_partyCoordinator);
+				_populationManager.presence().installExternalBusySource("party", _partyCoordinator::blocksBackground);
+				_populationManager.presence().installExternalBusySource("store", _phantomStoreService::blocksDecision);
+				_populationManager.presence().installExternalBusySource("action", profileId -> _materializationService.find(profileId).map(materialization -> materialization.admittedActionCount() > 0).orElse(false));
 				if (_settings.ecologyEnabled())
 				{
 					final File ecologyCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/population/high-five-ecology-v1.xml");
@@ -519,7 +530,7 @@ public final class PhantomSystem
 					_socialService.installPersonalityInitializer(_populationEcology::initialPersonalityTraits);
 				}
 				final PhantomPopulationEcologyService periodicEcology = _populationEcology;
-				_reconcileMaterializationActivity.install(profileId -> (periodicEcology == null) || periodicEcology.reconcileBackgroundDue(profileId).complete());
+				_reconcileMaterializationActivity.install(profileId -> _humanLocality.isLocal(profileId) && ((periodicEcology == null) || periodicEcology.reconcileBackgroundDue(profileId).complete()));
 				_backgroundService.installPeriodicFarm(profileId ->
 				{
 					if (periodicEcology == null)
@@ -662,6 +673,7 @@ public final class PhantomSystem
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
+				controlPorts.add(_humanLocality);
 				if (_autonomousMarketProducer != null)
 				{
 					controlPorts.add(_autonomousMarketProducer);
@@ -1626,6 +1638,9 @@ public final class PhantomSystem
 		final PhantomPopulationEcologyService.Snapshot ecology = configured._populationManager == null ? PhantomPopulationEcologyService.Snapshot.disabled() : configured._populationManager.ecologySnapshot();
 		final PhantomPopulationManager.AdmissionSnapshot admission = configured._populationManager == null ? PhantomPopulationManager.AdmissionSnapshot.inactive() : configured._populationManager.admissionSnapshot();
 		final PhantomPresenceRegistry.Snapshot presence = configured._populationManager == null ? new PhantomPresenceRegistry.Snapshot(0, 0, 0) : configured._populationManager.presence().snapshot();
+		final var registry = configured._topologyService == null ? new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrySnapshot(0, 0, 0, 0, 0) : configured._topologyService.registrySnapshot();
+		final String periodicOwner = configured._populationEcology == null ? "DISABLED_BY_CONFIG" : "ECOLOGY";
+		final int localSignaled = configured._humanLocality == null ? 0 : configured._humanLocality.localCount();
 		final long worldMaterialized = configured._materializationService == null ? 0 : configured._materializationService.snapshot().materializations().stream().filter(entry -> (entry.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE) && entry.worldPresent()).count();
 		final java.util.Map<String, Integer> levelHistogram;
 		try
@@ -1634,7 +1649,7 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException exception)
 		{
-			return OperatorStatus.readFailure(settings.enabled(), settings.diagnosticsEnabled(), _operatorMode, snapshot, metrics, ecology, admission, worldMaterialized, presence);
+			return OperatorStatus.readFailure(settings.enabled(), settings.diagnosticsEnabled(), _operatorMode, snapshot, metrics, ecology, admission, worldMaterialized, presence, registry, periodicOwner, localSignaled);
 		}
 		return new OperatorStatus(
 			settings.enabled(),
@@ -1661,7 +1676,10 @@ public final class PhantomSystem
 			snapshot.selectedTrace(),
 			admission,
 			worldMaterialized,
-			presence);
+			presence,
+			registry,
+			periodicOwner,
+			localSignaled);
 	}
 
 	public static synchronized java.util.Optional<OperatorAdmissionProfile> operatorAdmissionProfile(long profileId)
@@ -1674,7 +1692,8 @@ public final class PhantomSystem
 		return configured._populationManager.admissionProfile(profileId).map(admission -> new OperatorAdmissionProfile(admission,
 			configured._scheduler == null ? null : configured._scheduler.find(profileId).orElse(null),
 			configured._materializationService == null ? null : configured._materializationService.find(profileId).orElse(null),
-			configured._materializationActivity == null ? null : configured._materializationActivity.diagnosticFailures().get(profileId)));
+			configured._materializationActivity == null ? null : configured._materializationActivity.diagnosticFailures().get(profileId),
+			configured._populationManager.presence().busyReason(profileId)));
 	}
 
 	public static synchronized OperatorEconomicAudit operatorEconomicAudit(long profileId)
@@ -2185,11 +2204,11 @@ public final class PhantomSystem
 		}
 	}
 
-	public record OperatorAdmissionProfile(PhantomPopulationManager.AdmissionProfileSnapshot admission, org.l2jmobius.gameserver.phantoms.activity.PhantomActivitySnapshot scheduler, PhantomMaterializationService.MaterializationSnapshot materialization, PhantomMaterializationService.ResultStatus lastMaterializationFailure)
+	public record OperatorAdmissionProfile(PhantomPopulationManager.AdmissionProfileSnapshot admission, org.l2jmobius.gameserver.phantoms.activity.PhantomActivitySnapshot scheduler, PhantomMaterializationService.MaterializationSnapshot materialization, PhantomMaterializationService.ResultStatus lastMaterializationFailure, String busyReason)
 	{
 	}
 
-	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomPopulationEcologyService.Snapshot ecology, java.util.Map<String, Integer> levelHistogram, PhantomSelectedDecisionTrace.Snapshot selectedTrace, PhantomPopulationManager.AdmissionSnapshot admission, long worldMaterialized, PhantomPresenceRegistry.Snapshot presence)
+	public record OperatorStatus(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, boolean desiredRuntimeEnabled, boolean runtimeConfigured, State runtimeState, PhantomScheduler.SchedulerState schedulerState, PhantomDecisionEngine.State decisionState, long activeCurrent, long activePeak, java.util.List<Long> activityStateCounts, PhantomActivityOverloadLevel overloadLevel, PhantomActivityOverloadLevel peakOverloadLevel, int queueReady, int queueDue, int queueCapacity, long queueAccepted, long queueRejected, long shutdownFailures, PhantomPopulationEcologyService.Snapshot ecology, java.util.Map<String, Integer> levelHistogram, PhantomSelectedDecisionTrace.Snapshot selectedTrace, PhantomPopulationManager.AdmissionSnapshot admission, long worldMaterialized, PhantomPresenceRegistry.Snapshot presence, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrySnapshot registry, String periodicOwner, int localSignaled)
 	{
 		public OperatorStatus
 		{
@@ -2199,12 +2218,12 @@ public final class PhantomSystem
 
 		private static OperatorStatus notRunning(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode)
 		{
-			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), false, null, PhantomScheduler.SchedulerState.STOPPED, PhantomDecisionEngine.State.STOPPED, 0, 0, java.util.List.of(0L, 0L, 0L, 0L, 0L), PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL, 0, 0, 0, 0, 0, 0, PhantomPopulationEcologyService.Snapshot.disabled(), java.util.Map.of(), PhantomSelectedDecisionTrace.Snapshot.disabled(), PhantomPopulationManager.AdmissionSnapshot.inactive(), 0, new PhantomPresenceRegistry.Snapshot(0, 0, 0));
+			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), false, null, PhantomScheduler.SchedulerState.STOPPED, PhantomDecisionEngine.State.STOPPED, 0, 0, java.util.List.of(0L, 0L, 0L, 0L, 0L), PhantomActivityOverloadLevel.NORMAL, PhantomActivityOverloadLevel.NORMAL, 0, 0, 0, 0, 0, 0, PhantomPopulationEcologyService.Snapshot.disabled(), java.util.Map.of(), PhantomSelectedDecisionTrace.Snapshot.disabled(), PhantomPopulationManager.AdmissionSnapshot.inactive(), 0, new PhantomPresenceRegistry.Snapshot(0, 0, 0), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrySnapshot(0, 0, 0, 0, 0), "DISABLED_BY_CONFIG", 0);
 		}
 
-		private static OperatorStatus readFailure(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, Snapshot snapshot, PhantomMetrics.Snapshot metrics, PhantomPopulationEcologyService.Snapshot ecology, PhantomPopulationManager.AdmissionSnapshot admission, long worldMaterialized, PhantomPresenceRegistry.Snapshot presence)
+		private static OperatorStatus readFailure(boolean configuredEnabled, boolean diagnosticsEnabled, OperatorMode operatorMode, Snapshot snapshot, PhantomMetrics.Snapshot metrics, PhantomPopulationEcologyService.Snapshot ecology, PhantomPopulationManager.AdmissionSnapshot admission, long worldMaterialized, PhantomPresenceRegistry.Snapshot presence, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrySnapshot registry, String periodicOwner, int localSignaled)
 		{
-			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), true, snapshot.state(), snapshot.scheduler().state(), snapshot.decision().state(), metrics.activeCurrent(), metrics.activePeak(), metrics.activity().stateCounts(), snapshot.scheduler().overloadLevel(), snapshot.scheduler().peakOverloadLevel(), snapshot.scheduler().ready(), snapshot.scheduler().due(), snapshot.scheduler().capacity(), metrics.queueAccepted(), metrics.queueRejected(), metrics.shutdownFailures(), ecology, java.util.Map.of("UNAVAILABLE", Math.max(0, ecology.managed())), snapshot.selectedTrace(), admission, worldMaterialized, presence);
+			return new OperatorStatus(configuredEnabled, diagnosticsEnabled, operatorMode, PhantomSystem.desiredRuntimeEnabled(configuredEnabled, operatorMode), true, snapshot.state(), snapshot.scheduler().state(), snapshot.decision().state(), metrics.activeCurrent(), metrics.activePeak(), metrics.activity().stateCounts(), snapshot.scheduler().overloadLevel(), snapshot.scheduler().peakOverloadLevel(), snapshot.scheduler().ready(), snapshot.scheduler().due(), snapshot.scheduler().capacity(), metrics.queueAccepted(), metrics.queueRejected(), metrics.shutdownFailures(), ecology, java.util.Map.of("UNAVAILABLE", Math.max(0, ecology.managed())), snapshot.selectedTrace(), admission, worldMaterialized, presence, registry, periodicOwner, localSignaled);
 		}
 	}
 

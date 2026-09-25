@@ -52,6 +52,13 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPresenceRegistry;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomPerceptionChannel;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSignalPort;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrationResult;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.UpdateResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomConsideration;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionCandidate;
@@ -65,6 +72,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomWeightedConsideration;
 import org.l2jmobius.tests.phantoms.PhantomAssertions;
+import org.l2jmobius.tests.phantoms.PhantomTopologyCoreSuite;
 import org.l2jmobius.tests.phantoms.PhantomTestContext;
 import org.l2jmobius.tests.phantoms.PhantomTestRegistry;
 import org.l2jmobius.tests.phantoms.PhantomTestSuite;
@@ -125,11 +133,28 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		final AtomicInteger dispatches = new AtomicInteger();
 		final PhantomScheduler scheduler = new PhantomScheduler(profiles, 10, profiles, policy, clock, (pulse, period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 16, 1, metrics), PhantomActivityMaterializationPort.noop(), item -> dispatches.incrementAndGet());
 		PhantomAssertions.assertTrue(scheduler.start(), "10k production-policy scheduler did not start.");
+		final PhantomPresenceRegistry presence = new PhantomPresenceRegistry(profiles);
+		presence.installExternalBusySource("party", profileId -> (profileId % 100) == 1);
+		final PhantomTopologyCoreSuite.TestBackend topologyBackend = new PhantomTopologyCoreSuite.TestBackend();
+		final PhantomTopologyService topology = PhantomTopologyService.fromSnapshotForTesting(PhantomTopologyCoreSuite.snapshot(topologyBackend), topologyBackend, PhantomTopologyCoreSuite.POLICY.withMaximumRegisteredProfiles(profiles), new PhantomSchedulerRelevanceSignalPort(scheduler));
+		PhantomAssertions.assertTrue(topology.start(), "Integrated 10k topology registry did not start.");
 		for (long profileId = 1; profileId <= profiles; profileId++)
 		{
 			PhantomAssertions.assertEquals(RegistrationStatus.REGISTERED, scheduler.register(profileId).status(), "10k registration exceeded the configured bound.");
-			scheduler.submitSignal(profileId, signal("background", 1, PhantomActivityState.BACKGROUND, PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS));
+			final boolean online = (profileId % 10) != 0;
+			presence.schedule(profileId, online ? PhantomActivityState.BACKGROUND : PhantomActivityState.SLEEPING);
+			if (online)
+			{
+				scheduler.submitSignal(profileId, signal("background", 1, PhantomActivityState.BACKGROUND, PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS));
+			}
+			PhantomAssertions.assertEquals(RegistrationResult.REGISTERED, topology.registerProfile(profileId), "Integrated 10k topology registration failed.");
+			PhantomAssertions.assertEquals(UpdateResult.UPDATED, topology.updateProfile(profileId, profileId <= 100 ? PhantomTopologyCoreSuite.LEFT_POINT : new PhantomTopologyPoint(50, 50, 50, 0), 1), "Integrated 10k committed position failed.");
 		}
+		final var local = topology.perceptibleProfilesAt(PhantomTopologyCoreSuite.LEFT_POINT, PhantomPerceptionChannel.TARGETABILITY, 32);
+		PhantomAssertions.assertEquals(32, local.size(), "Integrated local query lost its cap.");
+		PhantomAssertions.assertEquals(100, topology.registrySnapshot().maximumCandidatesExamined(), "Integrated local query scanned remote profiles.");
+		PhantomAssertions.assertEquals(100, presence.snapshot().externalBusy(), "External BUSY count changed in integrated 10k run.");
+		PhantomAssertions.assertEquals(1000, presence.snapshot().offline(), "Representative offline schedule count changed.");
 		int maximumDue = 0;
 		int maximumReady = 0;
 		for (int minute = 0; minute < 1440; minute++)
@@ -145,7 +170,10 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue((maximumDue <= profiles) && (maximumReady <= profiles), "24h simulation exceeded bounded shared queues.");
 		scheduler.beginStop();
 		PhantomAssertions.assertTrue(scheduler.finishStop(), "10k scheduler did not stop cleanly.");
-		final String output = "metric\tvalue\n" + "scope\tscheduler_policy_only\n" + "profiles\t" + profiles + "\n" + "hours\t24\n" + "dispatches\t" + dispatches.get() + "\n" + "cadence_min_ms\t" + minimumCadence + "\n" + "cadence_mean_ms\t" + (totalCadence / profiles) + "\n" + "cadence_max_ms\t" + maximumCadence + "\n" + "queue_due_max\t" + maximumDue + "\n" + "queue_ready_max\t" + maximumReady + "\n" + "players_constructed\t0\n" + "per_profile_futures\t0\n";
+		final var registry = topology.registrySnapshot();
+		topology.beginStop();
+		PhantomAssertions.assertTrue(topology.finishStop(), "Integrated 10k topology registry did not stop cleanly.");
+		final String output = "metric\tvalue\n" + "scope\tintegrated_scheduler_presence_topology\n" + "profiles\t" + profiles + "\n" + "hours\t24\n" + "dispatches\t" + dispatches.get() + "\n" + "cadence_min_ms\t" + minimumCadence + "\n" + "cadence_mean_ms\t" + (totalCadence / profiles) + "\n" + "cadence_max_ms\t" + maximumCadence + "\n" + "queue_due_max\t" + maximumDue + "\n" + "queue_ready_max\t" + maximumReady + "\n" + "presence_available\t" + presence.snapshot().available() + "\n" + "presence_external_busy\t" + presence.snapshot().externalBusy() + "\n" + "presence_offline\t" + presence.snapshot().offline() + "\n" + "registry_profiles\t" + registry.registered() + "\n" + "registry_resolved\t" + registry.resolved() + "\n" + "registry_buckets\t" + registry.occupiedNodeBuckets() + "\n" + "registry_query_max_candidates\t" + registry.maximumCandidatesExamined() + "\n" + "shared_scheduler_drivers\t1\n" + "players_constructed\t0\n" + "per_profile_futures\t0\n";
 		Files.writeString(context.moduleRoot().resolve("docs/phantoms/live-world/LIVE003_CORE_SCALE_10000.tsv"), output, StandardCharsets.UTF_8);
 		context.record("live003.scaleDispatches", dispatches.get());
 	}

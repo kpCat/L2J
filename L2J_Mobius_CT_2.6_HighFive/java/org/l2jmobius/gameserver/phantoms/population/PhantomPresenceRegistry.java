@@ -4,8 +4,11 @@
 package org.l2jmobius.gameserver.phantoms.population;
 
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongPredicate;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 
@@ -21,6 +24,7 @@ public final class PhantomPresenceRegistry
 
 	private final int _maximumProfiles;
 	private final Map<Long, Slot> _slots = new HashMap<>();
+	private volatile List<ExternalBusySource> _externalBusySources = List.of();
 
 	public PhantomPresenceRegistry(int maximumProfiles)
 	{
@@ -88,39 +92,109 @@ public final class PhantomPresenceRegistry
 		_slots.clear();
 	}
 
-	public synchronized Presence state(long profileId)
+	public synchronized void installExternalBusySource(String name, LongPredicate blocked)
 	{
-		final Slot slot = _slots.get(profileId);
-		if ((slot == null) || !slot._online)
+		if ((name == null) || !name.matches("[a-z][a-z0-9_.-]{0,63}"))
 		{
-			return Presence.OFFLINE;
+			throw new IllegalArgumentException("External BUSY source requires a bounded name.");
 		}
-		return slot._busyOwner == null ? Presence.AVAILABLE : Presence.BUSY;
+		Objects.requireNonNull(blocked, "External BUSY predicate must not be null.");
+		if ((_externalBusySources.size() >= 8) || _externalBusySources.stream().anyMatch(source -> source.name().equals(name)))
+		{
+			throw new IllegalStateException("External BUSY source capacity or name conflict.");
+		}
+		final List<ExternalBusySource> sources = new ArrayList<>(_externalBusySources);
+		sources.add(new ExternalBusySource(name, blocked));
+		_externalBusySources = List.copyOf(sources);
 	}
 
-	public synchronized boolean permitsOrdinaryFarm(long profileId)
+	public String busyReason(long profileId)
+	{
+		final String internalOwner;
+		synchronized (this)
+		{
+			final Slot slot = _slots.get(profileId);
+			if ((slot == null) || !slot._online)
+			{
+				return "offline";
+			}
+			internalOwner = slot._busyOwner;
+		}
+		if (internalOwner != null)
+		{
+			return "internal." + internalOwner;
+		}
+		for (ExternalBusySource source : _externalBusySources)
+		{
+			try
+			{
+				if (source.blocked().test(profileId))
+				{
+					return source.name();
+				}
+			}
+			catch (RuntimeException exception)
+			{
+				return source.name() + ".unavailable";
+			}
+		}
+		return "none";
+	}
+
+	public Presence state(long profileId)
+	{
+		final String reason = busyReason(profileId);
+		return "offline".equals(reason) ? Presence.OFFLINE : "none".equals(reason) ? Presence.AVAILABLE : Presence.BUSY;
+	}
+
+	public boolean permitsOrdinaryFarm(long profileId)
 	{
 		return state(profileId) == Presence.AVAILABLE;
 	}
 
-	public synchronized Snapshot snapshot()
+	public Snapshot snapshot()
 	{
 		int available = 0;
 		int busy = 0;
 		int offline = 0;
-		for (long profileId : _slots.keySet())
+		int externalBusy = 0;
+		final List<Long> ids;
+		synchronized (this)
 		{
-			switch (state(profileId))
+			ids = List.copyOf(_slots.keySet());
+		}
+		for (long profileId : ids)
+		{
+			final String reason = busyReason(profileId);
+			if ("offline".equals(reason))
 			{
-				case AVAILABLE -> available++;
-				case BUSY -> busy++;
-				case OFFLINE -> offline++;
+				offline++;
+			}
+			else if ("none".equals(reason))
+			{
+				available++;
+			}
+			else
+			{
+				busy++;
+				if (!reason.startsWith("internal."))
+				{
+					externalBusy++;
+				}
 			}
 		}
-		return new Snapshot(available, busy, offline);
+		return new Snapshot(available, busy, offline, externalBusy);
 	}
 
-	public record Snapshot(int available, int busy, int offline)
+	public record Snapshot(int available, int busy, int offline, int externalBusy)
+	{
+		public Snapshot(int available, int busy, int offline)
+		{
+			this(available, busy, offline, 0);
+		}
+	}
+
+	private record ExternalBusySource(String name, LongPredicate blocked)
 	{
 	}
 
