@@ -1696,6 +1696,19 @@ public final class PhantomSystem
 			configured._populationManager.presence().busyReason(profileId)));
 	}
 
+	/** Read-only canonical target for the one-shot LocalPlay human relocation proof. */
+	public static synchronized java.util.Optional<OperatorLocalityTarget> operatorNearestLocalityTarget(PhantomTopologyPoint human)
+	{
+		Objects.requireNonNull(human, "Human point must not be null.");
+		final PhantomSystem configured = _configuredInstance;
+		if ((configured == null) || (configured._state != State.RUNNING) || (configured._populationManager == null) || (configured._topologyService == null))
+		{
+			return java.util.Optional.empty();
+		}
+		return PhantomLocalProofSelector.nearest(human, configured._topologyService.listProfiles(), configured._populationManager::admissionProfile, profileId -> configured._populationManager.presence().state(profileId) == PhantomPresenceRegistry.Presence.AVAILABLE)
+			.map(profile -> new OperatorLocalityTarget(profile.profileId(), profile.point(), profile.nodeId(), profile.topologyGeneration()));
+	}
+
 	public static synchronized OperatorEconomicAudit operatorEconomicAudit(long profileId)
 	{
 		if (profileId <= 0)
@@ -2205,6 +2218,10 @@ public final class PhantomSystem
 	}
 
 	public record OperatorAdmissionProfile(PhantomPopulationManager.AdmissionProfileSnapshot admission, org.l2jmobius.gameserver.phantoms.activity.PhantomActivitySnapshot scheduler, PhantomMaterializationService.MaterializationSnapshot materialization, PhantomMaterializationService.ResultStatus lastMaterializationFailure, String busyReason)
+	{
+	}
+
+	public record OperatorLocalityTarget(long profileId, PhantomTopologyPoint committedPosition, String topologyNodeId, long topologyGeneration)
 	{
 	}
 

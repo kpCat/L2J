@@ -35,6 +35,7 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.PhantomLocalProofSelector;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.SelectionStatus;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
@@ -54,6 +55,10 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector.CandidateEvaluation;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector.EvaluationStatus;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager.AdmissionProfileSnapshot;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.ProfileTopologySnapshot;
 
 public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 {
@@ -72,6 +77,37 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 		registry.add("04-single-profile-capacity-switch-and-clear", _ -> testCapacitySwitchAndClear());
 		registry.add("05-observer-prefilter-and-exception-isolation", this::testObserverSemantics);
 		registry.add("06-admin-family-access-and-privacy-contract", this::testAdminContract);
+		registry.add("07-local-proof-nearest-committed-admitted", _ -> testNearestLocalProof());
+		registry.add("08-local-proof-no-remote-or-unresolved-fallback", _ -> testLocalProofFailClosed());
+	}
+
+	private static void testNearestLocalProof()
+	{
+		final PhantomTopologyPoint human = new PhantomTopologyPoint(0, 0, 0, 0);
+		final List<ProfileTopologySnapshot> profiles = List.of(
+			new ProfileTopologySnapshot(1, new PhantomTopologyPoint(10, 0, 0, 0), 1, null, 1),
+			new ProfileTopologySnapshot(2, new PhantomTopologyPoint(200, 0, 0, 0), 1, "farm", 1),
+			new ProfileTopologySnapshot(3, new PhantomTopologyPoint(100, 0, 0, 0), 1, "route", 1),
+			new ProfileTopologySnapshot(4, new PhantomTopologyPoint(50, 0, 0, 1), 1, "instance", 1));
+		final var chosen = PhantomLocalProofSelector.nearest(human, profiles, id -> Optional.of(admission(id, true, true)), id -> true).orElseThrow();
+		PhantomAssertions.assertEquals(3L, chosen.profileId(), "Local proof did not select the nearest resolved admitted profile in the human instance.");
+	}
+
+	private static void testLocalProofFailClosed()
+	{
+		final PhantomTopologyPoint human = new PhantomTopologyPoint(0, 0, 0, 0);
+		final List<ProfileTopologySnapshot> profiles = List.of(
+			new ProfileTopologySnapshot(1, new PhantomTopologyPoint(10, 0, 0, 0), 1, null, 1),
+			new ProfileTopologySnapshot(2, new PhantomTopologyPoint(20, 0, 0, 0), 1, "route", 1),
+			new ProfileTopologySnapshot(3, new PhantomTopologyPoint(30, 0, 0, 0), 1, "farm", 1),
+			new ProfileTopologySnapshot(4, new PhantomTopologyPoint(40, 0, 0, 0), 1, "farm", 1),
+			new ProfileTopologySnapshot(5, new PhantomTopologyPoint(50, 0, 0, 0), 1, "farm", 1));
+		PhantomAssertions.assertTrue(PhantomLocalProofSelector.nearest(human, profiles, id -> Optional.of(new AdmissionProfileSnapshot(id, State.READY, PhantomActivityState.ACTIVE, PhantomActivityState.WARM, id != 2, id != 3, "admitted", id == 5)), id -> id != 4).isEmpty(), "Local proof selected an unresolved, ineligible, unadmitted, pending or offline profile.");
+	}
+
+	private static AdmissionProfileSnapshot admission(long id, boolean eligible, boolean admitted)
+	{
+		return new AdmissionProfileSnapshot(id, State.READY, PhantomActivityState.ACTIVE, PhantomActivityState.WARM, eligible, admitted, admitted ? "admitted" : "ecology_fenced", false);
 	}
 
 	private static void testDisabledStatus()
