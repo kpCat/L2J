@@ -47,7 +47,7 @@ public final class PhantomNormalGatekeeperTravel
 	private static final int MAX_CACHED_SOURCES = 64;
 	private static final String FACTS_SHA = "a8318075ef6ea3c3f266aa975ef1565fb8d6c93d2f074f076a059ed5d2ea2fe4";
 	private static final String CONNECTORS_SHA = "fe0c0433e8975ff43f397470eca5caf0ae3b545e4d66d0ece2096d1ed97c1926";
-	private static final String TARGETED_CONNECTORS_SHA = "881c6be02318523aefaaf726c343004d0991273d6d8ee75f1162e35d62e97fad";
+	private static final String TARGETED_CONNECTORS_SHA = "e5fefd3a8ae7678f8fe0ac5d53fc2c3fba0305c5a08fac5d4f98d359cfe06a44";
 	private static final String TRANSITIONS_SHA = "d378de9ddb395914c7e36480f149143f3cb9a2b84284ca625708d5c880f3e09d";
 
 	private final PhantomTopologyQuery _topology;

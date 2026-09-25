@@ -1,0 +1,785 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
+	<node id="entry.ada5e6ad46b3b68ab18e2aee" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="43407" maxX="43409" minY="206880" maxY="206882" minZ="-3753" maxZ="-3751" tags="route">
+		<source path="data/teleporters/town/30080.xml" />
+	</node>
+	<anchor id="entry.ada5e6ad46b3b68ab18e2aee.anchor" role="ROUTE" nodeId="entry.ada5e6ad46b3b68ab18e2aee" x="43408" y="206881" z="-3752" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/30080.xml" />
+	</anchor>
+	<node id="generated.farm.08c523a999bdf66ad7dea0a0" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4500" maxZ="-4200" tags="content-farming">
+		<vertex x="41608" y="200821" />
+		<vertex x="42037" y="200951" />
+		<vertex x="41787" y="201325" />
+		<vertex x="41315" y="201575" />
+		<vertex x="41288" y="201137" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.08c523a999bdf66ad7dea0a0.anchor" role="FARMING" nodeId="generated.farm.08c523a999bdf66ad7dea0a0" x="41607" y="201162" z="-4336" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.0c3d5b9b9615274b1783c86a" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3940" maxZ="-3740" tags="content-farming">
+		<vertex x="43199" y="215819" />
+		<vertex x="44508" y="215819" />
+		<vertex x="44508" y="217017" />
+		<vertex x="43199" y="217017" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.0c3d5b9b9615274b1783c86a.anchor" role="FARMING" nodeId="generated.farm.0c3d5b9b9615274b1783c86a" x="43854" y="216418" z="-3904" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.0cfb8358fd4e4c4b3fd43e1f" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3776" maxZ="-3626" tags="content-farming">
+		<vertex x="43439" y="213259" />
+		<vertex x="43589" y="213249" />
+		<vertex x="43750" y="213760" />
+		<vertex x="43680" y="214092" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.0cfb8358fd4e4c4b3fd43e1f.anchor" role="FARMING" nodeId="generated.farm.0cfb8358fd4e4c4b3fd43e1f" x="43614" y="213590" z="-3712" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.0d58be8322d126fd103d1799" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3556" maxZ="-3356" tags="content-farming">
+		<vertex x="48337" y="205663" />
+		<vertex x="48773" y="205879" />
+		<vertex x="48792" y="207687" />
+		<vertex x="48631" y="207962" />
+		<vertex x="48025" y="207901" />
+		<vertex x="47535" y="207469" />
+		<vertex x="47594" y="206175" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.0d58be8322d126fd103d1799.anchor" role="FARMING" nodeId="generated.farm.0d58be8322d126fd103d1799" x="48241" y="206962" z="-3520" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.1168bd89e8693814315a56d2" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3796" maxZ="-3596" tags="content-farming">
+		<vertex x="46292" y="215386" />
+		<vertex x="46518" y="215271" />
+		<vertex x="46993" y="215509" />
+		<vertex x="47358" y="216190" />
+		<vertex x="47188" y="216577" />
+		<vertex x="46315" y="216667" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.1168bd89e8693814315a56d2.anchor" role="FARMING" nodeId="generated.farm.1168bd89e8693814315a56d2" x="46777" y="215933" z="-3752" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.121472eac71d68672f3b5cda" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3812" maxZ="-3612" tags="content-farming">
+		<vertex x="42538" y="204058" />
+		<vertex x="42829" y="203720" />
+		<vertex x="43790" y="204297" />
+		<vertex x="43759" y="204920" />
+		<vertex x="43002" y="205080" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.121472eac71d68672f3b5cda.anchor" role="FARMING" nodeId="generated.farm.121472eac71d68672f3b5cda" x="43184" y="204415" z="-3752" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.1991e88e53e504fb9709fedc" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3752" maxZ="-3502" tags="content-farming">
+		<vertex x="49420" y="207132" />
+		<vertex x="49564" y="207048" />
+		<vertex x="49620" y="207332" />
+		<vertex x="49614" y="207749" />
+		<vertex x="49422" y="207760" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.1991e88e53e504fb9709fedc.anchor" role="FARMING" nodeId="generated.farm.1991e88e53e504fb9709fedc" x="49528" y="207404" z="-3592" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.24f298f8535b7f3ab04b423a" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4268" maxZ="-3918" tags="content-farming">
+		<vertex x="41938" y="201923" />
+		<vertex x="42319" y="201754" />
+		<vertex x="42475" y="202032" />
+		<vertex x="42158" y="202642" />
+		<vertex x="41856" y="202672" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.24f298f8535b7f3ab04b423a.anchor" role="FARMING" nodeId="generated.farm.24f298f8535b7f3ab04b423a" x="42149" y="202205" z="-4112" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.2a5ab13cb674a6200d5ff19c" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3764" maxZ="-3564" tags="content-farming">
+		<vertex x="42805" y="214266" />
+		<vertex x="43627" y="214195" />
+		<vertex x="43386" y="214355" />
+		<vertex x="42805" y="214405" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.2a5ab13cb674a6200d5ff19c.anchor" role="FARMING" nodeId="generated.farm.2a5ab13cb674a6200d5ff19c" x="43156" y="214305" z="-3688" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.2fe934bf9b1f2ea6ecf22537" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3620" maxZ="-3420" tags="content-farming">
+		<vertex x="45982" y="220162" />
+		<vertex x="46833" y="219847" />
+		<vertex x="47189" y="220185" />
+		<vertex x="47166" y="220974" />
+		<vertex x="46576" y="221032" />
+		<vertex x="46003" y="220831" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.2fe934bf9b1f2ea6ecf22537.anchor" role="FARMING" nodeId="generated.farm.2fe934bf9b1f2ea6ecf22537" x="46625" y="220505" z="-3584" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.32030ead7ab63c0f3ff5d307" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3808" maxZ="-3608" tags="content-farming">
+		<vertex x="45112" y="212320" />
+		<vertex x="46048" y="212280" />
+		<vertex x="46280" y="212392" />
+		<vertex x="46224" y="212980" />
+		<vertex x="45261" y="212938" />
+		<vertex x="45068" y="212504" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.32030ead7ab63c0f3ff5d307.anchor" role="FARMING" nodeId="generated.farm.32030ead7ab63c0f3ff5d307" x="45666" y="212569" z="-3752" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.36d876c83cca0fb5e4428f1f" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3683" maxZ="-3483" tags="content-farming">
+		<vertex x="46427" y="204961" />
+		<vertex x="47040" y="205041" />
+		<vertex x="47151" y="206130" />
+		<vertex x="46967" y="206686" />
+		<vertex x="45939" y="206427" />
+		<vertex x="45717" y="206109" />
+		<vertex x="45717" y="205188" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.36d876c83cca0fb5e4428f1f.anchor" role="FARMING" nodeId="generated.farm.36d876c83cca0fb5e4428f1f" x="46423" y="205792" z="-3616" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.3f1497cd3cf69b18164eb3d8" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4004" maxZ="-3754" tags="content-farming">
+		<vertex x="44651" y="215939" />
+		<vertex x="45506" y="215904" />
+		<vertex x="45800" y="216139" />
+		<vertex x="45755" y="216622" />
+		<vertex x="44699" y="216573" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.3f1497cd3cf69b18164eb3d8.anchor" role="FARMING" nodeId="generated.farm.3f1497cd3cf69b18164eb3d8" x="45282" y="216235" z="-3904" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.469706f42aed03ca8752f513" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4064" maxZ="-3714" tags="content-farming">
+		<vertex x="41798" y="202736" />
+		<vertex x="42167" y="202710" />
+		<vertex x="42387" y="203261" />
+		<vertex x="42096" y="203546" />
+		<vertex x="41755" y="203316" />
+		<vertex x="41664" y="202992" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.469706f42aed03ca8752f513.anchor" role="FARMING" nodeId="generated.farm.469706f42aed03ca8752f513" x="41978" y="203094" z="-3920" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.5152587f5d52d68aa3307d15" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3732" maxZ="-3532" tags="content-farming">
+		<vertex x="45945" y="206769" />
+		<vertex x="46193" y="206927" />
+		<vertex x="46272" y="207953" />
+		<vertex x="46009" y="208176" />
+		<vertex x="45346" y="208091" />
+		<vertex x="45172" y="207837" />
+		<vertex x="45299" y="207282" />
+		<vertex x="45585" y="206916" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.5152587f5d52d68aa3307d15.anchor" role="FARMING" nodeId="generated.farm.5152587f5d52d68aa3307d15" x="45728" y="207494" z="-3696" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.5844391794232531818c2c53" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3636" maxZ="-3436" tags="content-farming">
+		<vertex x="47595" y="208720" />
+		<vertex x="47989" y="209095" />
+		<vertex x="47953" y="209562" />
+		<vertex x="47595" y="209768" />
+		<vertex x="46617" y="209740" />
+		<vertex x="46484" y="208783" />
+		<vertex x="46702" y="208565" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.5844391794232531818c2c53.anchor" role="FARMING" nodeId="generated.farm.5844391794232531818c2c53" x="47276" y="209176" z="-3584" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.5864c5a21d13b5080a6dea92" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3772" maxZ="-3572" tags="content-farming">
+		<vertex x="49163" y="207966" />
+		<vertex x="50907" y="207966" />
+		<vertex x="50907" y="209418" />
+		<vertex x="49163" y="209418" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.5864c5a21d13b5080a6dea92.anchor" role="FARMING" nodeId="generated.farm.5864c5a21d13b5080a6dea92" x="50035" y="208692" z="-3728" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.67251873fdfc8d605e12e97c" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4672" maxZ="-4472" tags="content-farming">
+		<vertex x="41398" y="198549" />
+		<vertex x="41699" y="198574" />
+		<vertex x="41793" y="199508" />
+		<vertex x="41343" y="199505" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.67251873fdfc8d605e12e97c.anchor" role="FARMING" nodeId="generated.farm.67251873fdfc8d605e12e97c" x="41558" y="199034" z="-4616" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.69828cd3aecca42272b95365" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3856" maxZ="-3656" tags="content-farming">
+		<vertex x="43511" y="218426" />
+		<vertex x="43711" y="218426" />
+		<vertex x="43711" y="218759" />
+		<vertex x="43511" y="218759" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.69828cd3aecca42272b95365.anchor" role="FARMING" nodeId="generated.farm.69828cd3aecca42272b95365" x="43611" y="218592" z="-3824" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.6b09ee1d3852d548b02efb72" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3964" maxZ="-3664" tags="content-farming">
+		<vertex x="45215" y="215339" />
+		<vertex x="45657" y="215270" />
+		<vertex x="45639" y="215694" />
+		<vertex x="45405" y="215850" />
+		<vertex x="44660" y="215802" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.6b09ee1d3852d548b02efb72.anchor" role="FARMING" nodeId="generated.farm.6b09ee1d3852d548b02efb72" x="45315" y="215591" z="-3904" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.6b786e1c0dd0685449ed5efc" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3752" maxZ="-3552" tags="content-farming">
+		<vertex x="41707" y="211982" />
+		<vertex x="42025" y="211917" />
+		<vertex x="42463" y="212012" />
+		<vertex x="42702" y="212346" />
+		<vertex x="42593" y="212977" />
+		<vertex x="42301" y="213144" />
+		<vertex x="41821" y="213081" />
+		<vertex x="41600" y="212602" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.6b786e1c0dd0685449ed5efc.anchor" role="FARMING" nodeId="generated.farm.6b786e1c0dd0685449ed5efc" x="42152" y="212508" z="-3712" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.6f7f1765f89ae95fe51f2796" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4000" maxZ="-3800" tags="content-farming">
+		<vertex x="44786" y="217500" />
+		<vertex x="45659" y="217482" />
+		<vertex x="45838" y="217615" />
+		<vertex x="45797" y="218245" />
+		<vertex x="44787" y="218239" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.6f7f1765f89ae95fe51f2796.anchor" role="FARMING" nodeId="generated.farm.6f7f1765f89ae95fe51f2796" x="45373" y="217816" z="-3952" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.788a7343bc908a787d613997" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3816" maxZ="-3606" tags="content-farming">
+		<vertex x="44871" y="205705" />
+		<vertex x="45051" y="205765" />
+		<vertex x="44992" y="206663" />
+		<vertex x="44792" y="206623" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.788a7343bc908a787d613997.anchor" role="FARMING" nodeId="generated.farm.788a7343bc908a787d613997" x="44926" y="206189" z="-3712" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.7fe0706d470228a627209868" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3632" maxZ="-3432" tags="content-farming">
+		<vertex x="45467" y="210166" />
+		<vertex x="47622" y="209897" />
+		<vertex x="48052" y="210294" />
+		<vertex x="47959" y="211029" />
+		<vertex x="46123" y="211234" />
+		<vertex x="45549" y="211055" />
+		<vertex x="45316" y="210481" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.7fe0706d470228a627209868.anchor" role="FARMING" nodeId="generated.farm.7fe0706d470228a627209868" x="46584" y="210594" z="-3592" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.88a99d2166a845e449a21e58" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3788" maxZ="-3588" tags="content-farming">
+		<vertex x="43447" y="209837" />
+		<vertex x="43776" y="209816" />
+		<vertex x="44274" y="210102" />
+		<vertex x="44290" y="210816" />
+		<vertex x="43352" y="210867" />
+		<vertex x="43006" y="210651" />
+		<vertex x="43006" y="210002" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.88a99d2166a845e449a21e58.anchor" role="FARMING" nodeId="generated.farm.88a99d2166a845e449a21e58" x="43593" y="210299" z="-3712" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.88e3561b0e2a4a9fd5f2e3f5" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3800" maxZ="-3600" tags="content-farming">
+		<vertex x="45103" y="213855" />
+		<vertex x="46096" y="213838" />
+		<vertex x="46303" y="214020" />
+		<vertex x="46206" y="214658" />
+		<vertex x="45479" y="214679" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.88e3561b0e2a4a9fd5f2e3f5.anchor" role="FARMING" nodeId="generated.farm.88e3561b0e2a4a9fd5f2e3f5" x="45837" y="214210" z="-3752" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.89c65b1f432cc04d377d0d23" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3632" maxZ="-3432" tags="content-farming">
+		<vertex x="49156" y="219671" />
+		<vertex x="49775" y="219367" />
+		<vertex x="50478" y="219833" />
+		<vertex x="49993" y="220764" />
+		<vertex x="49237" y="221006" />
+		<vertex x="48781" y="220949" />
+		<vertex x="48667" y="220208" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.89c65b1f432cc04d377d0d23.anchor" role="FARMING" nodeId="generated.farm.89c65b1f432cc04d377d0d23" x="49441" y="220257" z="-3584" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.94518b187e35bdf69bc512f8" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3764" maxZ="-3564" tags="content-farming">
+		<vertex x="42232" y="209877" />
+		<vertex x="42778" y="210050" />
+		<vertex x="42735" y="210704" />
+		<vertex x="42341" y="210985" />
+		<vertex x="41576" y="210798" />
+		<vertex x="41576" y="210193" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.94518b187e35bdf69bc512f8.anchor" role="FARMING" nodeId="generated.farm.94518b187e35bdf69bc512f8" x="42206" y="210434" z="-3712" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.9484cfd23515ac20668af363" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4696" maxZ="-4096" tags="content-farming">
+		<vertex x="39370" y="196737" />
+		<vertex x="43657" y="196725" />
+		<vertex x="43342" y="197448" />
+		<vertex x="41584" y="198218" />
+		<vertex x="39779" y="197379" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.9484cfd23515ac20668af363.anchor" role="FARMING" nodeId="generated.farm.9484cfd23515ac20668af363" x="41546" y="197301" z="-4616" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.97b1b84919a2b242be257b4b" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3940" maxZ="-3740" tags="content-farming">
+		<vertex x="43211" y="214537" />
+		<vertex x="44492" y="214537" />
+		<vertex x="44492" y="215693" />
+		<vertex x="43211" y="215693" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.97b1b84919a2b242be257b4b.anchor" role="FARMING" nodeId="generated.farm.97b1b84919a2b242be257b4b" x="43852" y="215115" z="-3904" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.988c5b202cf5994fb1ddea79" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4324" maxZ="-4074" tags="content-farming">
+		<vertex x="41370" y="201591" />
+		<vertex x="41778" y="201370" />
+		<vertex x="42284" y="201739" />
+		<vertex x="41916" y="201908" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.988c5b202cf5994fb1ddea79.anchor" role="FARMING" nodeId="generated.farm.988c5b202cf5994fb1ddea79" x="41837" y="201652" z="-4232" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.a206ebee3f09f8cb8bc231a0" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3864" maxZ="-3664" tags="content-farming">
+		<vertex x="42566" y="203960" />
+		<vertex x="42116" y="203583" />
+		<vertex x="42454" y="203289" />
+		<vertex x="42903" y="203588" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.a206ebee3f09f8cb8bc231a0.anchor" role="FARMING" nodeId="generated.farm.a206ebee3f09f8cb8bc231a0" x="42510" y="203605" z="-3816" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.a3f66dacb508d794811a19c0" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3936" maxZ="-3736" tags="content-farming">
+		<vertex x="43209" y="217145" />
+		<vertex x="44491" y="217145" />
+		<vertex x="44502" y="218305" />
+		<vertex x="43220" y="218305" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.a3f66dacb508d794811a19c0.anchor" role="FARMING" nodeId="generated.farm.a3f66dacb508d794811a19c0" x="43856" y="217725" z="-3904" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.b30369f621b577fce042a3e8" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3800" maxZ="-3600" tags="content-farming">
+		<vertex x="45296" y="213219" />
+		<vertex x="46136" y="213081" />
+		<vertex x="46289" y="213374" />
+		<vertex x="46158" y="213669" />
+		<vertex x="45105" y="213668" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.b30369f621b577fce042a3e8.anchor" role="FARMING" nodeId="generated.farm.b30369f621b577fce042a3e8" x="45797" y="213402" z="-3752" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.b37c391b398857bcfb574d04" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4680" maxZ="-4480" tags="content-farming">
+		<vertex x="41212" y="199522" />
+		<vertex x="41567" y="199506" />
+		<vertex x="41873" y="200295" />
+		<vertex x="41372" y="200376" />
+		<vertex x="40870" y="200074" />
+		<vertex x="40788" y="199731" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.b37c391b398857bcfb574d04.anchor" role="FARMING" nodeId="generated.farm.b37c391b398857bcfb574d04" x="41280" y="199917" z="-4632" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.b518232112aaf0c6a53e36cf" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3792" maxZ="-3592" tags="content-farming">
+		<vertex x="46287" y="216779" />
+		<vertex x="46934" y="216830" />
+		<vertex x="47171" y="216990" />
+		<vertex x="47302" y="217417" />
+		<vertex x="46887" y="218156" />
+		<vertex x="46467" y="218328" />
+		<vertex x="46156" y="218312" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.b518232112aaf0c6a53e36cf.anchor" role="FARMING" nodeId="generated.farm.b518232112aaf0c6a53e36cf" x="46743" y="217545" z="-3752" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.bea70c8b55217f2d3a4c2703" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4040" maxZ="-3840" tags="content-farming">
+		<vertex x="50122" y="206397" />
+		<vertex x="51336" y="206122" />
+		<vertex x="51611" y="206511" />
+		<vertex x="51582" y="206907" />
+		<vertex x="50342" y="207082" />
+		<vertex x="50067" y="206566" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.bea70c8b55217f2d3a4c2703.anchor" role="FARMING" nodeId="generated.farm.bea70c8b55217f2d3a4c2703" x="50843" y="206598" z="-4000" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.c21df20b630eacb47dd381e4" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3772" maxZ="-3572" tags="content-farming">
+		<vertex x="42983" y="212134" />
+		<vertex x="43466" y="212134" />
+		<vertex x="43643" y="212286" />
+		<vertex x="43573" y="213029" />
+		<vertex x="43296" y="213165" />
+		<vertex x="43036" y="213047" />
+		<vertex x="42918" y="212823" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.c21df20b630eacb47dd381e4.anchor" role="FARMING" nodeId="generated.farm.c21df20b630eacb47dd381e4" x="43274" y="212660" z="-3712" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.d11d2a30ca183a08744a7a92" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3780" maxZ="-3580" tags="content-farming">
+		<vertex x="49427" y="209611" />
+		<vertex x="50885" y="209630" />
+		<vertex x="50885" y="211183" />
+		<vertex x="49135" y="211181" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.d11d2a30ca183a08744a7a92.anchor" role="FARMING" nodeId="generated.farm.d11d2a30ca183a08744a7a92" x="50083" y="210401" z="-3728" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.dbb270207b4530672de64be5" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3660" maxZ="-3460" tags="content-farming">
+		<vertex x="45213" y="219877" />
+		<vertex x="45834" y="220143" />
+		<vertex x="45834" y="220842" />
+		<vertex x="44626" y="220897" />
+		<vertex x="44372" y="220729" />
+		<vertex x="44451" y="220042" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.dbb270207b4530672de64be5.anchor" role="FARMING" nodeId="generated.farm.dbb270207b4530672de64be5" x="45055" y="220422" z="-3584" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.e20d55d2d2c4588c8a08d2ff" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3968" maxZ="-3768" tags="content-farming">
+		<vertex x="44775" y="216905" />
+		<vertex x="45752" y="216795" />
+		<vertex x="45793" y="217258" />
+		<vertex x="45565" y="217383" />
+		<vertex x="44778" y="217394" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.e20d55d2d2c4588c8a08d2ff.anchor" role="FARMING" nodeId="generated.farm.e20d55d2d2c4588c8a08d2ff" x="45333" y="217147" z="-3920" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.e58074c0aa57c35f3102d656" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4684" maxZ="-4334" tags="content-farming">
+		<vertex x="41406" y="200402" />
+		<vertex x="41896" y="200319" />
+		<vertex x="42041" y="200457" />
+		<vertex x="42028" y="200913" />
+		<vertex x="41642" y="200771" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.e58074c0aa57c35f3102d656.anchor" role="FARMING" nodeId="generated.farm.e58074c0aa57c35f3102d656" x="41803" y="200572" z="-4552" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.e74dd9a156141e260fb4b89f" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3940" maxZ="-3740" tags="content-farming">
+		<vertex x="43012" y="218850" />
+		<vertex x="43708" y="218850" />
+		<vertex x="43719" y="219260" />
+		<vertex x="43001" y="219260" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.e74dd9a156141e260fb4b89f.anchor" role="FARMING" nodeId="generated.farm.e74dd9a156141e260fb4b89f" x="43360" y="219055" z="-3904" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.f2bab688353fa77725ffe3cd" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3764" maxZ="-3564" tags="content-farming">
+		<vertex x="42443" y="211319" />
+		<vertex x="42784" y="211446" />
+		<vertex x="43051" y="211604" />
+		<vertex x="42950" y="211716" />
+		<vertex x="42346" y="211433" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.f2bab688353fa77725ffe3cd.anchor" role="FARMING" nodeId="generated.farm.f2bab688353fa77725ffe3cd" x="42715" y="211504" z="-3712" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.f847b1b8d2b3b5b1bda757a6" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3632" maxZ="-3432" tags="content-farming">
+		<vertex x="48360" y="208115" />
+		<vertex x="48535" y="208115" />
+		<vertex x="48535" y="209136" />
+		<vertex x="48360" y="209136" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.f847b1b8d2b3b5b1bda757a6.anchor" role="FARMING" nodeId="generated.farm.f847b1b8d2b3b5b1bda757a6" x="48448" y="208626" z="-3552" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.fa92c35d572b5318b07c7af1" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3732" maxZ="-3532" tags="content-farming">
+		<vertex x="46101" y="211469" />
+		<vertex x="46353" y="211477" />
+		<vertex x="46204" y="212057" />
+		<vertex x="45209" y="212124" />
+		<vertex x="45508" y="211736" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.fa92c35d572b5318b07c7af1.anchor" role="FARMING" nodeId="generated.farm.fa92c35d572b5318b07c7af1" x="45875" y="211773" z="-3640" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<node id="generated.farm.fff91d22664d3a915cf1cbfc" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3628" maxZ="-3428" tags="content-farming">
+		<vertex x="47790" y="220792" />
+		<vertex x="48632" y="220818" />
+		<vertex x="48683" y="220992" />
+		<vertex x="47828" y="220980" />
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</node>
+	<anchor id="generated.farm.fff91d22664d3a915cf1cbfc.anchor" role="FARMING" nodeId="generated.farm.fff91d22664d3a915cf1cbfc" x="48233" y="220896" z="-3584" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+	</anchor>
+	<edge id="content.bridge.02e07730cd73fa9b44bffffd" fromNodeId="generated.farm.88e3561b0e2a4a9fd5f2e3f5" toNodeId="generated.farm.e20d55d2d2c4588c8a08d2ff" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="32380" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.88e3561b0e2a4a9fd5f2e3f5.anchor" toAnchorId="generated.farm.e20d55d2d2c4588c8a08d2ff.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.05a6147f670da3c185394dc2" fromNodeId="generated.farm.36d876c83cca0fb5e4428f1f" toNodeId="generated.farm.5152587f5d52d68aa3307d15" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="26170" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.36d876c83cca0fb5e4428f1f.anchor" toAnchorId="generated.farm.5152587f5d52d68aa3307d15.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.08209eee58d0ca0e33da143d" fromNodeId="generated.farm.5864c5a21d13b5080a6dea92" toNodeId="generated.farm.d11d2a30ca183a08744a7a92" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="23260" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.5864c5a21d13b5080a6dea92.anchor" toAnchorId="generated.farm.d11d2a30ca183a08744a7a92.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-2-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.0ff66f6352594f3a4e667d67" fromNodeId="generated.farm.f2bab688353fa77725ffe3cd" toNodeId="generated.farm.6b786e1c0dd0685449ed5efc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="43430" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.f2bab688353fa77725ffe3cd.anchor" toAnchorId="generated.farm.6b786e1c0dd0685449ed5efc.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-5-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.15385eca4c1a2940c33db87d" fromNodeId="generated.farm.88a99d2166a845e449a21e58" toNodeId="generated.farm.c21df20b630eacb47dd381e4" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="43260" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.88a99d2166a845e449a21e58.anchor" toAnchorId="generated.farm.c21df20b630eacb47dd381e4.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.173f0eaf3409a13c89df093a" fromNodeId="generated.farm.88a99d2166a845e449a21e58" toNodeId="generated.farm.f2bab688353fa77725ffe3cd" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="28080" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.88a99d2166a845e449a21e58.anchor" toAnchorId="generated.farm.f2bab688353fa77725ffe3cd.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.1a4ebf24ed852000b4c197f0" fromNodeId="generated.farm.6f7f1765f89ae95fe51f2796" toNodeId="generated.farm.dbb270207b4530672de64be5" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="30880" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6f7f1765f89ae95fe51f2796.anchor" toAnchorId="generated.farm.dbb270207b4530672de64be5.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.1e035044798e8bbeee1fc3a7" fromNodeId="generated.farm.0c3d5b9b9615274b1783c86a" toNodeId="generated.farm.97b1b84919a2b242be257b4b" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18570" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.0c3d5b9b9615274b1783c86a.anchor" toAnchorId="generated.farm.97b1b84919a2b242be257b4b.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.1fec8a66c1a0ba2c7e159aa7" fromNodeId="generated.farm.6f7f1765f89ae95fe51f2796" toNodeId="generated.farm.69828cd3aecca42272b95365" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="23640" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6f7f1765f89ae95fe51f2796.anchor" toAnchorId="generated.farm.69828cd3aecca42272b95365.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.2d6c3cbe9a3b2ec2e6116bda" fromNodeId="generated.farm.88e3561b0e2a4a9fd5f2e3f5" toNodeId="generated.farm.0c3d5b9b9615274b1783c86a" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="36450" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.88e3561b0e2a4a9fd5f2e3f5.anchor" toAnchorId="generated.farm.0c3d5b9b9615274b1783c86a.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.2fc5a1b3db79700df9602bec" fromNodeId="generated.farm.36d876c83cca0fb5e4428f1f" toNodeId="generated.farm.5844391794232531818c2c53" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="54620" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.36d876c83cca0fb5e4428f1f.anchor" toAnchorId="generated.farm.5844391794232531818c2c53.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.49e197ddb78483c3c7821e85" fromNodeId="generated.farm.b518232112aaf0c6a53e36cf" toNodeId="generated.farm.2fe934bf9b1f2ea6ecf22537" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="36800" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.b518232112aaf0c6a53e36cf.anchor" toAnchorId="generated.farm.2fe934bf9b1f2ea6ecf22537.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.529d1e76c50e5e68689b64b4" fromNodeId="generated.farm.36d876c83cca0fb5e4428f1f" toNodeId="generated.farm.1991e88e53e504fb9709fedc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="53470" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.36d876c83cca0fb5e4428f1f.anchor" toAnchorId="generated.farm.1991e88e53e504fb9709fedc.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.554307c1871ef620e2c30ecc" fromNodeId="generated.farm.b518232112aaf0c6a53e36cf" toNodeId="generated.farm.fff91d22664d3a915cf1cbfc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="51750" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.b518232112aaf0c6a53e36cf.anchor" toAnchorId="generated.farm.fff91d22664d3a915cf1cbfc.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.5865ef2f5e74f283292b8b9a" fromNodeId="generated.farm.88e3561b0e2a4a9fd5f2e3f5" toNodeId="generated.farm.6b09ee1d3852d548b02efb72" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17000" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.88e3561b0e2a4a9fd5f2e3f5.anchor" toAnchorId="generated.farm.6b09ee1d3852d548b02efb72.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.5b1dbd1e1ce16c3c9e6df625" fromNodeId="generated.farm.6f7f1765f89ae95fe51f2796" toNodeId="generated.farm.a3f66dacb508d794811a19c0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17350" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6f7f1765f89ae95fe51f2796.anchor" toAnchorId="generated.farm.a3f66dacb508d794811a19c0.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.5cb8f4dae57aa8c418c77266" fromNodeId="generated.farm.5844391794232531818c2c53" toNodeId="generated.farm.fa92c35d572b5318b07c7af1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="34390" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.5844391794232531818c2c53.anchor" toAnchorId="generated.farm.fa92c35d572b5318b07c7af1.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-2-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.6ab3ef5b03d06e03cdc8adff" fromNodeId="generated.farm.88e3561b0e2a4a9fd5f2e3f5" toNodeId="generated.farm.b518232112aaf0c6a53e36cf" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="38700" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.88e3561b0e2a4a9fd5f2e3f5.anchor" toAnchorId="generated.farm.b518232112aaf0c6a53e36cf.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.795a7648bb32d624d2f38b21" fromNodeId="generated.farm.5844391794232531818c2c53" toNodeId="generated.farm.32030ead7ab63c0f3ff5d307" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="50180" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.5844391794232531818c2c53.anchor" toAnchorId="generated.farm.32030ead7ab63c0f3ff5d307.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-2-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.7b4c17793f3da32f841ed7ff" fromNodeId="generated.farm.88a99d2166a845e449a21e58" toNodeId="generated.farm.94518b187e35bdf69bc512f8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="16200" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.88a99d2166a845e449a21e58.anchor" toAnchorId="generated.farm.94518b187e35bdf69bc512f8.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.8ee61ebf12c2e6d1f95b9b94" fromNodeId="generated.farm.fff91d22664d3a915cf1cbfc" toNodeId="generated.farm.89c65b1f432cc04d377d0d23" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="14960" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.fff91d22664d3a915cf1cbfc.anchor" toAnchorId="generated.farm.89c65b1f432cc04d377d0d23.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-5-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.9245223ebcf525d22d2880b5" fromNodeId="generated.farm.6f7f1765f89ae95fe51f2796" toNodeId="generated.farm.e74dd9a156141e260fb4b89f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29930" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6f7f1765f89ae95fe51f2796.anchor" toAnchorId="generated.farm.e74dd9a156141e260fb4b89f.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.abc704b4f5ebe6ff66932fcc" fromNodeId="generated.farm.fa92c35d572b5318b07c7af1" toNodeId="generated.farm.88a99d2166a845e449a21e58" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="39460" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.fa92c35d572b5318b07c7af1.anchor" toAnchorId="generated.farm.88a99d2166a845e449a21e58.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.bf7d4bd569171c1a20e0e003" fromNodeId="generated.farm.88e3561b0e2a4a9fd5f2e3f5" toNodeId="generated.farm.1168bd89e8693814315a56d2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="19630" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.88e3561b0e2a4a9fd5f2e3f5.anchor" toAnchorId="generated.farm.1168bd89e8693814315a56d2.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.cc8832c6edd3b7f20db85550" fromNodeId="generated.farm.5844391794232531818c2c53" toNodeId="generated.farm.7fe0706d470228a627209868" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="19480" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.5844391794232531818c2c53.anchor" toAnchorId="generated.farm.7fe0706d470228a627209868.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-2-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.f3542fed60be243e0e39936f" fromNodeId="generated.farm.88e3561b0e2a4a9fd5f2e3f5" toNodeId="generated.farm.3f1497cd3cf69b18164eb3d8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="23470" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.88e3561b0e2a4a9fd5f2e3f5.anchor" toAnchorId="generated.farm.3f1497cd3cf69b18164eb3d8.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-devils_isle-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.edge.08dd4ef2aab2d592611da7d1" fromNodeId="generated.farm.0c3d5b9b9615274b1783c86a" toNodeId="generated.farm.3f1497cd3cf69b18164eb3d8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17440" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.0c3d5b9b9615274b1783c86a.anchor" toAnchorId="generated.farm.3f1497cd3cf69b18164eb3d8.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.1632835f46f7a82abaf621c1" fromNodeId="generated.farm.32030ead7ab63c0f3ff5d307" toNodeId="generated.farm.b30369f621b577fce042a3e8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10650" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.32030ead7ab63c0f3ff5d307.anchor" toAnchorId="generated.farm.b30369f621b577fce042a3e8.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.18208dd7eb3498d78177ed8e" fromNodeId="generated.farm.97b1b84919a2b242be257b4b" toNodeId="generated.farm.0c3d5b9b9615274b1783c86a" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18640" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.97b1b84919a2b242be257b4b.anchor" toAnchorId="generated.farm.0c3d5b9b9615274b1783c86a.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.18e42eee78a7a7d0a54fb157" fromNodeId="generated.farm.3f1497cd3cf69b18164eb3d8" toNodeId="generated.farm.e20d55d2d2c4588c8a08d2ff" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9140" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.3f1497cd3cf69b18164eb3d8.anchor" toAnchorId="generated.farm.e20d55d2d2c4588c8a08d2ff.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.19d460863fbc5183d6b54a7d" fromNodeId="generated.farm.2fe934bf9b1f2ea6ecf22537" toNodeId="generated.farm.dbb270207b4530672de64be5" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17050" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.2fe934bf9b1f2ea6ecf22537.anchor" toAnchorId="generated.farm.dbb270207b4530672de64be5.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.2ef23c4b6b0333b9cf6af307" fromNodeId="generated.farm.1991e88e53e504fb9709fedc" toNodeId="generated.farm.bea70c8b55217f2d3a4c2703" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="30650" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.1991e88e53e504fb9709fedc.anchor" toAnchorId="generated.farm.bea70c8b55217f2d3a4c2703.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.315a8e8c6be431b84e77e42f" fromNodeId="generated.farm.788a7343bc908a787d613997" toNodeId="generated.farm.36d876c83cca0fb5e4428f1f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="22970" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.788a7343bc908a787d613997.anchor" toAnchorId="generated.farm.36d876c83cca0fb5e4428f1f.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.41440403d1a6ffec1bc54a91" fromNodeId="generated.farm.121472eac71d68672f3b5cda" toNodeId="generated.farm.a206ebee3f09f8cb8bc231a0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10560" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.121472eac71d68672f3b5cda.anchor" toAnchorId="generated.farm.a206ebee3f09f8cb8bc231a0.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.41d538b2fe50f32cac148a69" fromNodeId="generated.farm.24f298f8535b7f3ab04b423a" toNodeId="generated.farm.988c5b202cf5994fb1ddea79" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="6470" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.24f298f8535b7f3ab04b423a.anchor" toAnchorId="generated.farm.988c5b202cf5994fb1ddea79.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.426075ff7191596d3eced6da" fromNodeId="generated.farm.f847b1b8d2b3b5b1bda757a6" toNodeId="generated.farm.5864c5a21d13b5080a6dea92" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="48360" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.f847b1b8d2b3b5b1bda757a6.anchor" toAnchorId="generated.farm.5864c5a21d13b5080a6dea92.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.4da25deb585463f545baa162" fromNodeId="generated.farm.f2bab688353fa77725ffe3cd" toNodeId="generated.farm.94518b187e35bdf69bc512f8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="14040" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.f2bab688353fa77725ffe3cd.anchor" toAnchorId="generated.farm.94518b187e35bdf69bc512f8.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.5c67cb4ff5a535ee902051c3" fromNodeId="generated.farm.5844391794232531818c2c53" toNodeId="generated.farm.f847b1b8d2b3b5b1bda757a6" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18910" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.5844391794232531818c2c53.anchor" toAnchorId="generated.farm.f847b1b8d2b3b5b1bda757a6.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.5d785155abee499ebc2cf9e1" fromNodeId="entry.ada5e6ad46b3b68ab18e2aee" toNodeId="generated.farm.121472eac71d68672f3b5cda" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="28950" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="entry.ada5e6ad46b3b68ab18e2aee.anchor" toAnchorId="generated.farm.121472eac71d68672f3b5cda.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.5f3c862cf4d9419a1d84ffcc" fromNodeId="generated.farm.0cfb8358fd4e4c4b3fd43e1f" toNodeId="generated.farm.2a5ab13cb674a6200d5ff19c" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10150" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.0cfb8358fd4e4c4b3fd43e1f.anchor" toAnchorId="generated.farm.2a5ab13cb674a6200d5ff19c.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.6393aa6cd122fc4b600a9318" fromNodeId="generated.farm.69828cd3aecca42272b95365" toNodeId="generated.farm.e74dd9a156141e260fb4b89f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="6260" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.69828cd3aecca42272b95365.anchor" toAnchorId="generated.farm.e74dd9a156141e260fb4b89f.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.6c2735107d34419d1dae729f" fromNodeId="generated.farm.3f1497cd3cf69b18164eb3d8" toNodeId="generated.farm.6b09ee1d3852d548b02efb72" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="6450" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.3f1497cd3cf69b18164eb3d8.anchor" toAnchorId="generated.farm.6b09ee1d3852d548b02efb72.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.6cad8bff4409848b74cf5d0c" fromNodeId="generated.farm.a206ebee3f09f8cb8bc231a0" toNodeId="generated.farm.469706f42aed03ca8752f513" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="7450" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a206ebee3f09f8cb8bc231a0.anchor" toAnchorId="generated.farm.469706f42aed03ca8752f513.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.7b71f39e552484099548e49d" fromNodeId="generated.farm.e20d55d2d2c4588c8a08d2ff" toNodeId="generated.farm.6f7f1765f89ae95fe51f2796" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="6710" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.e20d55d2d2c4588c8a08d2ff.anchor" toAnchorId="generated.farm.6f7f1765f89ae95fe51f2796.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.7d4f897cf401278f7b81270e" fromNodeId="generated.farm.988c5b202cf5994fb1ddea79" toNodeId="generated.farm.08c523a999bdf66ad7dea0a0" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="6930" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.988c5b202cf5994fb1ddea79.anchor" toAnchorId="generated.farm.08c523a999bdf66ad7dea0a0.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.806c702c449239ce7fd43ae7" fromNodeId="generated.farm.6b09ee1d3852d548b02efb72" toNodeId="generated.farm.1168bd89e8693814315a56d2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="31680" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6b09ee1d3852d548b02efb72.anchor" toAnchorId="generated.farm.1168bd89e8693814315a56d2.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.88b7b62d7c341d9b081cbb0d" fromNodeId="generated.farm.e58074c0aa57c35f3102d656" toNodeId="generated.farm.b37c391b398857bcfb574d04" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="8420" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.e58074c0aa57c35f3102d656.anchor" toAnchorId="generated.farm.b37c391b398857bcfb574d04.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.89fdda183793057befcb3a0c" fromNodeId="generated.farm.1991e88e53e504fb9709fedc" toNodeId="generated.farm.0d58be8322d126fd103d1799" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18580" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.1991e88e53e504fb9709fedc.anchor" toAnchorId="generated.farm.0d58be8322d126fd103d1799.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.920220374aa83f74658b868d" fromNodeId="generated.farm.a3f66dacb508d794811a19c0" toNodeId="generated.farm.69828cd3aecca42272b95365" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="10930" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a3f66dacb508d794811a19c0.anchor" toAnchorId="generated.farm.69828cd3aecca42272b95365.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.920efbfe87997295795cbab2" fromNodeId="generated.farm.b30369f621b577fce042a3e8" toNodeId="generated.farm.88e3561b0e2a4a9fd5f2e3f5" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="14990" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.b30369f621b577fce042a3e8.anchor" toAnchorId="generated.farm.88e3561b0e2a4a9fd5f2e3f5.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.98945b6d7c622f8b99e7538b" fromNodeId="generated.farm.c21df20b630eacb47dd381e4" toNodeId="generated.farm.0cfb8358fd4e4c4b3fd43e1f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9910" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c21df20b630eacb47dd381e4.anchor" toAnchorId="generated.farm.0cfb8358fd4e4c4b3fd43e1f.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.98a05f7141168dacefd811b2" fromNodeId="generated.farm.469706f42aed03ca8752f513" toNodeId="generated.farm.24f298f8535b7f3ab04b423a" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9260" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.469706f42aed03ca8752f513.anchor" toAnchorId="generated.farm.24f298f8535b7f3ab04b423a.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.a972ff857511e28c61b1cb81" fromNodeId="generated.farm.7fe0706d470228a627209868" toNodeId="generated.farm.fa92c35d572b5318b07c7af1" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="15150" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.7fe0706d470228a627209868.anchor" toAnchorId="generated.farm.fa92c35d572b5318b07c7af1.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.adcc221a60b8d8583566dada" fromNodeId="generated.farm.6b786e1c0dd0685449ed5efc" toNodeId="generated.farm.f2bab688353fa77725ffe3cd" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="42650" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6b786e1c0dd0685449ed5efc.anchor" toAnchorId="generated.farm.f2bab688353fa77725ffe3cd.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.ba4ad28c6c8ca3ea0611fa60" fromNodeId="generated.farm.fff91d22664d3a915cf1cbfc" toNodeId="generated.farm.2fe934bf9b1f2ea6ecf22537" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17810" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.fff91d22664d3a915cf1cbfc.anchor" toAnchorId="generated.farm.2fe934bf9b1f2ea6ecf22537.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.ccebebf870544518708c2e79" fromNodeId="generated.farm.94518b187e35bdf69bc512f8" toNodeId="generated.farm.88a99d2166a845e449a21e58" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="16590" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.94518b187e35bdf69bc512f8.anchor" toAnchorId="generated.farm.88a99d2166a845e449a21e58.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.db4ccbd547924379937b6644" fromNodeId="generated.farm.fa92c35d572b5318b07c7af1" toNodeId="generated.farm.32030ead7ab63c0f3ff5d307" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="13470" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.fa92c35d572b5318b07c7af1.anchor" toAnchorId="generated.farm.32030ead7ab63c0f3ff5d307.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.dbe59f37b77c146832ee09a6" fromNodeId="generated.farm.67251873fdfc8d605e12e97c" toNodeId="generated.farm.9484cfd23515ac20668af363" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="17340" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.67251873fdfc8d605e12e97c.anchor" toAnchorId="generated.farm.9484cfd23515ac20668af363.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.dee9c50554fc8354bbe7b9a6" fromNodeId="entry.ada5e6ad46b3b68ab18e2aee" toNodeId="generated.farm.788a7343bc908a787d613997" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="24590" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="entry.ada5e6ad46b3b68ab18e2aee.anchor" toAnchorId="generated.farm.788a7343bc908a787d613997.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.f0a1a36ce20a413d4f88efb1" fromNodeId="generated.farm.08c523a999bdf66ad7dea0a0" toNodeId="generated.farm.e58074c0aa57c35f3102d656" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="6590" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.08c523a999bdf66ad7dea0a0.anchor" toAnchorId="generated.farm.e58074c0aa57c35f3102d656.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.f8c00d75bd6f0c874106d8ea" fromNodeId="generated.farm.b37c391b398857bcfb574d04" toNodeId="generated.farm.67251873fdfc8d605e12e97c" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9260" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.b37c391b398857bcfb574d04.anchor" toAnchorId="generated.farm.67251873fdfc8d605e12e97c.anchor">
+		<source path="data/spawns/Giran/DevilsIsle.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+</topology>

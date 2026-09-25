@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
+	<node id="generated.route.live002.gludio.arrival" kind="ROUTE_AREA" instanceId="0" tags="route" form="CUBOID" minX="-12788" maxX="-12786" minY="122778" maxY="122780" minZ="-3113" maxZ="-3111">
+		<source path="data/teleporters/town/31964.xml" />
+	</node>
+	<anchor id="generated.route.live002.gludio.arrival.anchor" role="ROUTE" nodeId="generated.route.live002.gludio.arrival" x="-12787" y="122779" z="-3112" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/31964.xml" />
+	</anchor>
+	<node id="generated.route.live002.ruins.arrival" kind="ROUTE_AREA" instanceId="0" tags="route" form="CUBOID" minX="-19121" maxX="-19119" minY="136815" maxY="136817" minZ="-3753" maxZ="-3751">
+		<source path="data/teleporters/town/30256.xml" />
+	</node>
+	<anchor id="generated.route.live002.ruins.arrival.anchor" role="ROUTE" nodeId="generated.route.live002.ruins.arrival" x="-19120" y="136816" z="-3752" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/30256.xml" />
+	</anchor>
+	<node id="generated.route.live002.ruins.geo.8eb6d6a79b1bd7bc" kind="ROUTE_AREA" instanceId="0" tags="route" form="CUBOID" minX="-19881" maxX="-19879" minY="133751" maxY="133753" minZ="-3873" maxZ="-3871">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</node>
+	<anchor id="generated.route.live002.ruins.geo.8eb6d6a79b1bd7bc.anchor" role="ROUTE" nodeId="generated.route.live002.ruins.geo.8eb6d6a79b1bd7bc" x="-19880" y="133752" z="-3872" instanceId="0" tolerance="0" tags="route">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</anchor>
+	<node id="generated.route.live002.ruins.geo.a4cce70d7769f2f2" kind="ROUTE_AREA" instanceId="0" tags="route" form="CUBOID" minX="-22937" maxX="-22935" minY="130679" maxY="130681" minZ="-3649" maxZ="-3647">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</node>
+	<anchor id="generated.route.live002.ruins.geo.a4cce70d7769f2f2.anchor" role="ROUTE" nodeId="generated.route.live002.ruins.geo.a4cce70d7769f2f2" x="-22936" y="130680" z="-3648" instanceId="0" tolerance="0" tags="route">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</anchor>
+	<node id="generated.route.live002.ruins.geo.551b71eff3a0043f" kind="ROUTE_AREA" instanceId="0" tags="route" form="CUBOID" minX="-26009" maxX="-26007" minY="130519" maxY="130521" minZ="-3689" maxZ="-3687">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</node>
+	<anchor id="generated.route.live002.ruins.geo.551b71eff3a0043f.anchor" role="ROUTE" nodeId="generated.route.live002.ruins.geo.551b71eff3a0043f" x="-26008" y="130520" z="-3688" instanceId="0" tolerance="0" tags="route">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</anchor>
+	<node id="generated.route.live002.ruins.geo.7c92bb94461fa1d2" kind="ROUTE_AREA" instanceId="0" tags="route" form="CUBOID" minX="-29081" maxX="-29079" minY="133255" maxY="133257" minZ="-3657" maxZ="-3655">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</node>
+	<anchor id="generated.route.live002.ruins.geo.7c92bb94461fa1d2.anchor" role="ROUTE" nodeId="generated.route.live002.ruins.geo.7c92bb94461fa1d2" x="-29080" y="133256" z="-3656" instanceId="0" tolerance="0" tags="route">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</anchor>
+	<node id="generated.route.live002.ruins.geo.73e02075fc2fc16d" kind="ROUTE_AREA" instanceId="0" tags="route" form="CUBOID" minX="-32153" maxX="-32151" minY="136327" maxY="136329" minZ="-3905" maxZ="-3903">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</node>
+	<anchor id="generated.route.live002.ruins.geo.73e02075fc2fc16d.anchor" role="ROUTE" nodeId="generated.route.live002.ruins.geo.73e02075fc2fc16d" x="-32152" y="136328" z="-3904" instanceId="0" tolerance="0" tags="route">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</anchor>
+	<node id="generated.farm.b729b4b54a41170f2da2aa85" kind="FARMING_AREA" instanceId="0" tags="outdoor-farming" form="POINT_RADIUS" x="-33539" y="137701" z="-3480" radius="1">
+		<source path="data/spawns/Others/18_22.xml" />
+	</node>
+	<anchor id="generated.farm.b729b4b54a41170f2da2aa85.anchor" role="FARMING" nodeId="generated.farm.b729b4b54a41170f2da2aa85" x="-33539" y="137701" z="-3480" instanceId="0" tolerance="0" tags="outdoor-farming" npcId="20059">
+		<source path="data/spawns/Others/18_22.xml" />
+	</anchor>
+	<edge id="generated.route.live002.ruins.geo.hop-1" fromNodeId="generated.route.live002.ruins.arrival" toNodeId="generated.route.live002.ruins.geo.8eb6d6a79b1bd7bc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="31600" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.live002.ruins.arrival.anchor" toAnchorId="generated.route.live002.ruins.geo.8eb6d6a79b1bd7bc.anchor">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</edge>
+	<edge id="generated.route.live002.ruins.geo.hop-2" fromNodeId="generated.route.live002.ruins.geo.8eb6d6a79b1bd7bc" toNodeId="generated.route.live002.ruins.geo.a4cce70d7769f2f2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="43390" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.live002.ruins.geo.8eb6d6a79b1bd7bc.anchor" toAnchorId="generated.route.live002.ruins.geo.a4cce70d7769f2f2.anchor">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</edge>
+	<edge id="generated.route.live002.ruins.geo.hop-3" fromNodeId="generated.route.live002.ruins.geo.a4cce70d7769f2f2" toNodeId="generated.route.live002.ruins.geo.551b71eff3a0043f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="30770" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.live002.ruins.geo.a4cce70d7769f2f2.anchor" toAnchorId="generated.route.live002.ruins.geo.551b71eff3a0043f.anchor">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</edge>
+	<edge id="generated.route.live002.ruins.geo.hop-4" fromNodeId="generated.route.live002.ruins.geo.551b71eff3a0043f" toNodeId="generated.route.live002.ruins.geo.7c92bb94461fa1d2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="41140" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.live002.ruins.geo.551b71eff3a0043f.anchor" toAnchorId="generated.route.live002.ruins.geo.7c92bb94461fa1d2.anchor">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</edge>
+	<edge id="generated.route.live002.ruins.geo.hop-5" fromNodeId="generated.route.live002.ruins.geo.7c92bb94461fa1d2" toNodeId="generated.route.live002.ruins.geo.73e02075fc2fc16d" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="43520" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.live002.ruins.geo.7c92bb94461fa1d2.anchor" toAnchorId="generated.route.live002.ruins.geo.73e02075fc2fc16d.anchor">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</edge>
+	<edge id="generated.route.live002.ruins.geo.hop-6" fromNodeId="generated.route.live002.ruins.geo.73e02075fc2fc16d" toNodeId="generated.farm.b729b4b54a41170f2da2aa85" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="25150" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.live002.ruins.geo.73e02075fc2fc16d.anchor" toAnchorId="generated.farm.b729b4b54a41170f2da2aa85.anchor">
+		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
+	</edge>
+</topology>

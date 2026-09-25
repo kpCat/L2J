@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
+	<node id="generated.route.content.imperial.arrival" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="186698" maxX="186700" minY="-75916" maxY="-75914" minZ="-2827" maxZ="-2825" tags="route">
+		<source path="data/teleporters/town/31275.xml" />
+	</node>
+	<anchor id="generated.route.content.imperial.arrival.anchor" role="ROUTE" nodeId="generated.route.content.imperial.arrival" x="186699" y="-75915" z="-2826" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/31275.xml" />
+	</anchor>
+	<node id="generated.route.content.imperial.geo.38d99da5b8d9fe2c56c2dd76" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="184551" maxX="184553" minY="-78377" maxY="-78375" minZ="-2729" maxZ="-2727" tags="route">
+		<source path="data/phantoms/evidence/live002-imperial-oversized-01.tsv" />
+	</node>
+	<anchor id="generated.route.content.imperial.geo.38d99da5b8d9fe2c56c2dd76.anchor" role="ROUTE" nodeId="generated.route.content.imperial.geo.38d99da5b8d9fe2c56c2dd76" x="184552" y="-78376" z="-2728" instanceId="0" tolerance="0" tags="route">
+		<source path="data/phantoms/evidence/live002-imperial-oversized-01.tsv" />
+	</anchor>
+	<node id="generated.route.content.imperial.geo.834db90bd9e150402b9f457f" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="182231" maxX="182233" minY="-78617" maxY="-78615" minZ="-2729" maxZ="-2727" tags="route">
+		<source path="data/phantoms/evidence/live002-imperial-oversized-01.tsv" />
+	</node>
+	<anchor id="generated.route.content.imperial.geo.834db90bd9e150402b9f457f.anchor" role="ROUTE" nodeId="generated.route.content.imperial.geo.834db90bd9e150402b9f457f" x="182232" y="-78616" z="-2728" instanceId="0" tolerance="0" tags="route">
+		<source path="data/phantoms/evidence/live002-imperial-oversized-01.tsv" />
+	</anchor>
+	<node id="generated.route.content.imperial.geo.85f2c4f47d4ffb20c65c59bc" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="184839" maxX="184841" minY="-76105" maxY="-76103" minZ="-2729" maxZ="-2727" tags="route">
+		<source path="data/phantoms/evidence/live002-imperial-oversized-01.tsv" />
+	</node>
+	<anchor id="generated.route.content.imperial.geo.85f2c4f47d4ffb20c65c59bc.anchor" role="ROUTE" nodeId="generated.route.content.imperial.geo.85f2c4f47d4ffb20c65c59bc" x="184840" y="-76104" z="-2728" instanceId="0" tolerance="0" tags="route">
+		<source path="data/phantoms/evidence/live002-imperial-oversized-01.tsv" />
+	</anchor>
+	<node id="generated.farm.09edc98c74eb257722cb0c34" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-7313" maxZ="-7013" tags="content-farming">
+		<vertex x="189041" y="-78487" />
+		<vertex x="189856" y="-78476" />
+		<vertex x="189845" y="-77747" />
+		<vertex x="189045" y="-77684" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.09edc98c74eb257722cb0c34.anchor" role="FARMING" nodeId="generated.farm.09edc98c74eb257722cb0c34" x="189447" y="-78098" z="-7256" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.0ac141f2d795f5695b18d40a" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-2784" maxZ="-2484" tags="content-farming">
+		<vertex x="183025" y="-78004" />
+		<vertex x="182081" y="-77103" />
+		<vertex x="180769" y="-77070" />
+		<vertex x="179850" y="-78031" />
+		<vertex x="179838" y="-79343" />
+		<vertex x="180759" y="-80288" />
+		<vertex x="182097" y="-80297" />
+		<vertex x="183015" y="-79354" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.0ac141f2d795f5695b18d40a.anchor" role="FARMING" nodeId="generated.farm.0ac141f2d795f5695b18d40a" x="181429" y="-78686" z="-2728" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.11e5c21033dc9a3f75ca7ebd" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3423" maxZ="-3123" tags="content-farming">
+		<vertex x="174736" y="-81498" />
+		<vertex x="175468" y="-81493" />
+		<vertex x="175512" y="-80681" />
+		<vertex x="174691" y="-80692" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.11e5c21033dc9a3f75ca7ebd.anchor" role="FARMING" nodeId="generated.farm.11e5c21033dc9a3f75ca7ebd" x="175102" y="-81091" z="-3376" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.121af166e52d46efe8e1e15d" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-6005" maxZ="-5705" tags="content-farming">
+		<vertex x="189047" y="-84252" />
+		<vertex x="189801" y="-84247" />
+		<vertex x="189857" y="-83452" />
+		<vertex x="189048" y="-83434" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.121af166e52d46efe8e1e15d.anchor" role="FARMING" nodeId="generated.farm.121af166e52d46efe8e1e15d" x="189438" y="-83846" z="-5960" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.31d3d6cc3b1f562a81bcb068" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-2775" maxZ="-2475" tags="content-farming">
+		<vertex x="174676" y="-75761" />
+		<vertex x="175457" y="-75739" />
+		<vertex x="175449" y="-74942" />
+		<vertex x="174703" y="-74937" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.31d3d6cc3b1f562a81bcb068.anchor" role="FARMING" nodeId="generated.farm.31d3d6cc3b1f562a81bcb068" x="175071" y="-75345" z="-2728" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.33630bee515c5257b2db0fe8" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-2778" maxZ="-2478" tags="content-farming">
+		<vertex x="177505" y="-75734" />
+		<vertex x="178286" y="-75713" />
+		<vertex x="178278" y="-74915" />
+		<vertex x="177532" y="-74910" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.33630bee515c5257b2db0fe8.anchor" role="FARMING" nodeId="generated.farm.33630bee515c5257b2db0fe8" x="177900" y="-75318" z="-2728" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.4f0b1780f352370bcdae7327" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-6647" maxZ="-6347" tags="content-farming">
+		<vertex x="186143" y="-78512" />
+		<vertex x="186962" y="-78497" />
+		<vertex x="186952" y="-77690" />
+		<vertex x="186140" y="-77695" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.4f0b1780f352370bcdae7327.anchor" role="FARMING" nodeId="generated.farm.4f0b1780f352370bcdae7327" x="186549" y="-78098" z="-6608" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.4f3be7fae963d8c88704f4a8" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-5372" maxZ="-5072" tags="content-farming">
+		<vertex x="186151" y="-84243" />
+		<vertex x="186911" y="-84241" />
+		<vertex x="186965" y="-83467" />
+		<vertex x="186141" y="-83455" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.4f3be7fae963d8c88704f4a8.anchor" role="FARMING" nodeId="generated.farm.4f3be7fae963d8c88704f4a8" x="186542" y="-83852" z="-5320" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.6291986d89ade1f56ea17160" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-6631" maxZ="-6331" tags="content-farming">
+		<vertex x="179922" y="-82573" />
+		<vertex x="181354" y="-82571" />
+		<vertex x="181280" y="-82101" />
+		<vertex x="179926" y="-82053" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.6291986d89ade1f56ea17160.anchor" role="FARMING" nodeId="generated.farm.6291986d89ade1f56ea17160" x="180620" y="-82324" z="-6592" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.65f2c33fbfea3c51738dfccd" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-6012" maxZ="-5712" tags="content-farming">
+		<vertex x="183282" y="-78507" />
+		<vertex x="184060" y="-78506" />
+		<vertex x="184047" y="-77708" />
+		<vertex x="183290" y="-77713" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.65f2c33fbfea3c51738dfccd.anchor" role="FARMING" nodeId="generated.farm.65f2c33fbfea3c51738dfccd" x="183670" y="-78108" z="-5960" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.6b6f6c2545639fb2f48a1515" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-5367" maxZ="-5067" tags="content-farming">
+		<vertex x="183286" y="-81378" />
+		<vertex x="184046" y="-81378" />
+		<vertex x="184034" y="-80596" />
+		<vertex x="183293" y="-80595" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.6b6f6c2545639fb2f48a1515.anchor" role="FARMING" nodeId="generated.farm.6b6f6c2545639fb2f48a1515" x="183665" y="-80987" z="-5320" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.72007cc387f17e963e4fcf2c" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-2778" maxZ="-2478" tags="content-farming">
+		<vertex x="179362" y="-75558" />
+		<vertex x="181659" y="-75562" />
+		<vertex x="181570" y="-75066" />
+		<vertex x="179360" y="-75074" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.72007cc387f17e963e4fcf2c.anchor" role="FARMING" nodeId="generated.farm.72007cc387f17e963e4fcf2c" x="180488" y="-75315" z="-2728" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.7404957fd9f2ac9aa8910274" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-3422" maxZ="-3122" tags="content-farming">
+		<vertex x="177556" y="-78584" />
+		<vertex x="178370" y="-78567" />
+		<vertex x="178368" y="-77809" />
+		<vertex x="177552" y="-77791" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.7404957fd9f2ac9aa8910274.anchor" role="FARMING" nodeId="generated.farm.7404957fd9f2ac9aa8910274" x="177962" y="-78188" z="-3376" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.8a09c0c169c64214e17f0247" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-6011" maxZ="-5711" tags="content-farming">
+		<vertex x="183299" y="-84273" />
+		<vertex x="184050" y="-84275" />
+		<vertex x="184080" y="-83473" />
+		<vertex x="183288" y="-83466" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.8a09c0c169c64214e17f0247.anchor" role="FARMING" nodeId="generated.farm.8a09c0c169c64214e17f0247" x="183679" y="-83872" z="-5960" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.afd63c757206e9f4a0987356" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-6668" maxZ="-6368" tags="content-farming">
+		<vertex x="189032" y="-81361" />
+		<vertex x="189850" y="-81343" />
+		<vertex x="189847" y="-80621" />
+		<vertex x="189054" y="-80555" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.afd63c757206e9f4a0987356.anchor" role="FARMING" nodeId="generated.farm.afd63c757206e9f4a0987356" x="189446" y="-80970" z="-6608" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.c33b905ac0194e9ae4520c61" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-6641" maxZ="-6341" tags="content-farming">
+		<vertex x="180806" y="-84051" />
+		<vertex x="181277" y="-84137" />
+		<vertex x="181323" y="-82707" />
+		<vertex x="180852" y="-82704" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.c33b905ac0194e9ae4520c61.anchor" role="FARMING" nodeId="generated.farm.c33b905ac0194e9ae4520c61" x="181064" y="-83400" z="-6592" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.d0acb54fb45f64c750753b3f" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4072" maxZ="-3772" tags="content-farming">
+		<vertex x="177583" y="-81446" />
+		<vertex x="178337" y="-81443" />
+		<vertex x="178350" y="-80638" />
+		<vertex x="177570" y="-80645" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.d0acb54fb45f64c750753b3f.anchor" role="FARMING" nodeId="generated.farm.d0acb54fb45f64c750753b3f" x="177960" y="-81043" z="-4024" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.e1f713cd1471a176f5fb632d" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-4715" maxZ="-4415" tags="content-farming">
+		<vertex x="180439" y="-81438" />
+		<vertex x="181196" y="-81441" />
+		<vertex x="181202" y="-80595" />
+		<vertex x="180441" y="-80597" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.e1f713cd1471a176f5fb632d.anchor" role="FARMING" nodeId="generated.farm.e1f713cd1471a176f5fb632d" x="180820" y="-81018" z="-4672" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.eb19b9fba767b54ef29e9070" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-2770" maxZ="-2470" tags="content-farming">
+		<vertex x="174679" y="-78607" />
+		<vertex x="175464" y="-78600" />
+		<vertex x="175477" y="-77837" />
+		<vertex x="174673" y="-77829" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.eb19b9fba767b54ef29e9070.anchor" role="FARMING" nodeId="generated.farm.eb19b9fba767b54ef29e9070" x="175073" y="-78218" z="-2728" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<node id="generated.farm.fa744c535286dc2ceeee001e" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-6015" maxZ="-5715" tags="content-farming">
+		<vertex x="186142" y="-81378" />
+		<vertex x="186961" y="-81360" />
+		<vertex x="186957" y="-80639" />
+		<vertex x="186164" y="-80573" />
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</node>
+	<anchor id="generated.farm.fa744c535286dc2ceeee001e.anchor" role="FARMING" nodeId="generated.farm.fa744c535286dc2ceeee001e" x="186556" y="-80988" z="-5960" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+	</anchor>
+	<edge id="content.bridge.03239e35627bdaa9129c3e61" fromNodeId="generated.farm.72007cc387f17e963e4fcf2c" toNodeId="generated.farm.33630bee515c5257b2db0fe8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="25890" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.72007cc387f17e963e4fcf2c.anchor" toAnchorId="generated.farm.33630bee515c5257b2db0fe8.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-2-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.1f4198340d0868ddd9522301" fromNodeId="generated.farm.e1f713cd1471a176f5fb632d" toNodeId="generated.farm.65f2c33fbfea3c51738dfccd" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="58850" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.e1f713cd1471a176f5fb632d.anchor" toAnchorId="generated.farm.65f2c33fbfea3c51738dfccd.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.23bb1cc35c731ff69ab3c741" fromNodeId="generated.farm.7404957fd9f2ac9aa8910274" toNodeId="generated.farm.d0acb54fb45f64c750753b3f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29280" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.7404957fd9f2ac9aa8910274.anchor" toAnchorId="generated.farm.d0acb54fb45f64c750753b3f.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.256e61a6f7f70fa458d2914a" fromNodeId="generated.farm.65f2c33fbfea3c51738dfccd" toNodeId="generated.farm.4f0b1780f352370bcdae7327" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29520" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.65f2c33fbfea3c51738dfccd.anchor" toAnchorId="generated.farm.4f0b1780f352370bcdae7327.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-5-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.3a52ee5e7e3006e2a9df6de9" fromNodeId="generated.farm.e1f713cd1471a176f5fb632d" toNodeId="generated.farm.8a09c0c169c64214e17f0247" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="58490" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.e1f713cd1471a176f5fb632d.anchor" toAnchorId="generated.farm.8a09c0c169c64214e17f0247.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.4455bb9990528325dfb531a7" fromNodeId="generated.farm.72007cc387f17e963e4fcf2c" toNodeId="generated.farm.7404957fd9f2ac9aa8910274" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="54300" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.72007cc387f17e963e4fcf2c.anchor" toAnchorId="generated.farm.7404957fd9f2ac9aa8910274.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-2-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.7c51a12bd7c668e097eceea8" fromNodeId="generated.farm.eb19b9fba767b54ef29e9070" toNodeId="generated.farm.11e5c21033dc9a3f75ca7ebd" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29460" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.eb19b9fba767b54ef29e9070.anchor" toAnchorId="generated.farm.11e5c21033dc9a3f75ca7ebd.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.9eb4cec1c5495cd43e7572b3" fromNodeId="generated.farm.8a09c0c169c64214e17f0247" toNodeId="generated.farm.c33b905ac0194e9ae4520c61" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29530" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.8a09c0c169c64214e17f0247.anchor" toAnchorId="generated.farm.c33b905ac0194e9ae4520c61.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-5-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.ba8d9f2ee0b2d3e6c966f9b5" fromNodeId="generated.farm.0ac141f2d795f5695b18d40a" toNodeId="generated.farm.72007cc387f17e963e4fcf2c" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="40180" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.0ac141f2d795f5695b18d40a.anchor" toAnchorId="generated.farm.72007cc387f17e963e4fcf2c.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.f4ff95037b933d4babb3873a" fromNodeId="generated.farm.7404957fd9f2ac9aa8910274" toNodeId="generated.farm.e1f713cd1471a176f5fb632d" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="58450" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.7404957fd9f2ac9aa8910274.anchor" toAnchorId="generated.farm.e1f713cd1471a176f5fb632d.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-3-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.f7d5c06c0882f073e82e046e" fromNodeId="generated.farm.e1f713cd1471a176f5fb632d" toNodeId="generated.farm.6b6f6c2545639fb2f48a1515" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29190" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.e1f713cd1471a176f5fb632d.anchor" toAnchorId="generated.farm.6b6f6c2545639fb2f48a1515.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-4-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.f9c4e0a7cd6a34a7067c5fd3" fromNodeId="generated.farm.8a09c0c169c64214e17f0247" toNodeId="generated.farm.6291986d89ade1f56ea17160" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="43140" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.8a09c0c169c64214e17f0247.anchor" toAnchorId="generated.farm.6291986d89ade1f56ea17160.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-imperial_tomb-bridge-5-proof.tsv" />
+	</edge>
+	<edge id="content.edge.07eab5dbbc524cd2cacd97de" fromNodeId="generated.farm.65f2c33fbfea3c51738dfccd" toNodeId="generated.farm.6b6f6c2545639fb2f48a1515" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29500" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.65f2c33fbfea3c51738dfccd.anchor" toAnchorId="generated.farm.6b6f6c2545639fb2f48a1515.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.0a7de84f19d898539b4fab56" fromNodeId="generated.farm.33630bee515c5257b2db0fe8" toNodeId="generated.farm.31d3d6cc3b1f562a81bcb068" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="28300" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.33630bee515c5257b2db0fe8.anchor" toAnchorId="generated.farm.31d3d6cc3b1f562a81bcb068.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.28007d35025128d3d030e784" fromNodeId="generated.farm.4f0b1780f352370bcdae7327" toNodeId="generated.farm.65f2c33fbfea3c51738dfccd" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29520" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.4f0b1780f352370bcdae7327.anchor" toAnchorId="generated.farm.65f2c33fbfea3c51738dfccd.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.2b0304ff5eac21326654d93e" fromNodeId="generated.farm.afd63c757206e9f4a0987356" toNodeId="generated.farm.121af166e52d46efe8e1e15d" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29490" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.afd63c757206e9f4a0987356.anchor" toAnchorId="generated.farm.121af166e52d46efe8e1e15d.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.30a14b1767ce0904e51ffe0b" fromNodeId="generated.farm.d0acb54fb45f64c750753b3f" toNodeId="generated.farm.11e5c21033dc9a3f75ca7ebd" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29310" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.d0acb54fb45f64c750753b3f.anchor" toAnchorId="generated.farm.11e5c21033dc9a3f75ca7ebd.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.331ad23d8ee7730e30139138" fromNodeId="generated.farm.6b6f6c2545639fb2f48a1515" toNodeId="generated.farm.e1f713cd1471a176f5fb632d" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29190" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6b6f6c2545639fb2f48a1515.anchor" toAnchorId="generated.farm.e1f713cd1471a176f5fb632d.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.3c2109a4e3737e8b3e08b2da" fromNodeId="generated.farm.31d3d6cc3b1f562a81bcb068" toNodeId="generated.farm.eb19b9fba767b54ef29e9070" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="28740" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.31d3d6cc3b1f562a81bcb068.anchor" toAnchorId="generated.farm.eb19b9fba767b54ef29e9070.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.600f743d8ef9c83cfb56305b" fromNodeId="generated.farm.4f3be7fae963d8c88704f4a8" toNodeId="generated.farm.fa744c535286dc2ceeee001e" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29350" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.4f3be7fae963d8c88704f4a8.anchor" toAnchorId="generated.farm.fa744c535286dc2ceeee001e.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.6d8a9059dd1dbfdefc5b27ae" fromNodeId="generated.farm.6291986d89ade1f56ea17160" toNodeId="generated.farm.c33b905ac0194e9ae4520c61" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="13710" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6291986d89ade1f56ea17160.anchor" toAnchorId="generated.farm.c33b905ac0194e9ae4520c61.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.78ccd1dfec372a89051c82fe" fromNodeId="generated.farm.fa744c535286dc2ceeee001e" toNodeId="generated.farm.afd63c757206e9f4a0987356" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29620" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.fa744c535286dc2ceeee001e.anchor" toAnchorId="generated.farm.afd63c757206e9f4a0987356.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.7d8ca690d6b197d27ff2c01a" fromNodeId="generated.farm.33630bee515c5257b2db0fe8" toNodeId="generated.farm.72007cc387f17e963e4fcf2c" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="25890" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.33630bee515c5257b2db0fe8.anchor" toAnchorId="generated.farm.72007cc387f17e963e4fcf2c.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.8e127199ad28da19805284b7" fromNodeId="generated.farm.c33b905ac0194e9ae4520c61" toNodeId="generated.farm.8a09c0c169c64214e17f0247" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="30550" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c33b905ac0194e9ae4520c61.anchor" toAnchorId="generated.farm.8a09c0c169c64214e17f0247.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.8f37cb6d8c5c019e51fc38c2" fromNodeId="generated.farm.e1f713cd1471a176f5fb632d" toNodeId="generated.farm.d0acb54fb45f64c750753b3f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29330" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.e1f713cd1471a176f5fb632d.anchor" toAnchorId="generated.farm.d0acb54fb45f64c750753b3f.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.96bcad90fe3371f3e368eda1" fromNodeId="generated.farm.7404957fd9f2ac9aa8910274" toNodeId="generated.farm.33630bee515c5257b2db0fe8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29430" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.7404957fd9f2ac9aa8910274.anchor" toAnchorId="generated.farm.33630bee515c5257b2db0fe8.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.a2e63a000173812dd3a23188" fromNodeId="generated.farm.afd63c757206e9f4a0987356" toNodeId="generated.farm.09edc98c74eb257722cb0c34" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29450" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.afd63c757206e9f4a0987356.anchor" toAnchorId="generated.farm.09edc98c74eb257722cb0c34.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.a4dda5b5dc6492113f727a0b" fromNodeId="generated.farm.d0acb54fb45f64c750753b3f" toNodeId="generated.farm.7404957fd9f2ac9aa8910274" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29280" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.d0acb54fb45f64c750753b3f.anchor" toAnchorId="generated.farm.7404957fd9f2ac9aa8910274.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.c30eb1752e856c923281c4c3" fromNodeId="generated.farm.8a09c0c169c64214e17f0247" toNodeId="generated.farm.4f3be7fae963d8c88704f4a8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29340" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.8a09c0c169c64214e17f0247.anchor" toAnchorId="generated.farm.4f3be7fae963d8c88704f4a8.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.imperial.oversized.46db3a92e281bc2e582489d6" fromNodeId="generated.route.content.imperial.arrival" toNodeId="generated.route.content.imperial.geo.85f2c4f47d4ffb20c65c59bc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="22810" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.content.imperial.arrival.anchor" toAnchorId="generated.route.content.imperial.geo.85f2c4f47d4ffb20c65c59bc.anchor">
+		<source path="data/teleporters/town/31275.xml" />
+		<source path="data/phantoms/evidence/live002-imperial-oversized-hops-proof.tsv" />
+	</edge>
+	<edge id="content.imperial.oversized.5310544052d0ffb0c1b8ea37" fromNodeId="generated.route.content.imperial.geo.38d99da5b8d9fe2c56c2dd76" toNodeId="generated.route.content.imperial.geo.834db90bd9e150402b9f457f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="24590" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.content.imperial.geo.38d99da5b8d9fe2c56c2dd76.anchor" toAnchorId="generated.route.content.imperial.geo.834db90bd9e150402b9f457f.anchor">
+		<source path="data/teleporters/town/31275.xml" />
+		<source path="data/phantoms/evidence/live002-imperial-oversized-hops-proof.tsv" />
+	</edge>
+	<edge id="content.imperial.oversized.91dabac51fd49dc70bd82b30" fromNodeId="generated.route.content.imperial.geo.834db90bd9e150402b9f457f" toNodeId="generated.farm.0ac141f2d795f5695b18d40a" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="8070" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.content.imperial.geo.834db90bd9e150402b9f457f.anchor" toAnchorId="generated.farm.0ac141f2d795f5695b18d40a.anchor">
+		<source path="data/spawns/Goddard/ImperialTomb.xml" />
+		<source path="data/phantoms/evidence/live002-imperial-oversized-hops-proof.tsv" />
+	</edge>
+	<edge id="content.imperial.oversized.cb496c864e1602ea36344505" fromNodeId="generated.route.content.imperial.geo.85f2c4f47d4ffb20c65c59bc" toNodeId="generated.route.content.imperial.geo.38d99da5b8d9fe2c56c2dd76" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="22910" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.content.imperial.geo.85f2c4f47d4ffb20c65c59bc.anchor" toAnchorId="generated.route.content.imperial.geo.38d99da5b8d9fe2c56c2dd76.anchor">
+		<source path="data/teleporters/town/31275.xml" />
+		<source path="data/phantoms/evidence/live002-imperial-oversized-hops-proof.tsv" />
+	</edge>
+</topology>

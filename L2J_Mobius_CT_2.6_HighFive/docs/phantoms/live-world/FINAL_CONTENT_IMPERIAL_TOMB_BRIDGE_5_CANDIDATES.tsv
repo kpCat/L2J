@@ -1,0 +1,4 @@
+connector_id	family	source_family	from_id	to_id	from_x	from_y	from_z	to_x	to_y	to_z	entrance_semantic	entrance_owner	selection	straight_distance
+content.bridge.9eb4cec1c5495cd43e7572b3	IMPERIAL_TOMB	ImperialTomb	generated.farm.8a09c0c169c64214e17f0247.anchor	generated.farm.c33b905ac0194e9ae4520c61.anchor	183679	-83872	-5960	181064	-83400	-6592	WALK_PASSAGE	data/teleporters/town/31275.xml	COMPONENT_BOUNDARY_BRIDGE	2732
+content.bridge.256e61a6f7f70fa458d2914a	IMPERIAL_TOMB	ImperialTomb	generated.farm.65f2c33fbfea3c51738dfccd.anchor	generated.farm.4f0b1780f352370bcdae7327.anchor	183670	-78108	-5960	186549	-78098	-6608	WALK_PASSAGE	data/teleporters/town/31275.xml	COMPONENT_BOUNDARY_BRIDGE	2952
+content.bridge.f9c4e0a7cd6a34a7067c5fd3	IMPERIAL_TOMB	ImperialTomb	generated.farm.8a09c0c169c64214e17f0247.anchor	generated.farm.6291986d89ade1f56ea17160.anchor	183679	-83872	-5960	180620	-82324	-6592	WALK_PASSAGE	data/teleporters/town/31275.xml	COMPONENT_BOUNDARY_BRIDGE	3487

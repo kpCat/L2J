@@ -1,21 +1,32 @@
 {
   "base_d1_connectors_sha256": "fe0c0433e8975ff43f397470eca5caf0ae3b545e4d66d0ece2096d1ed97c1926",
+  "closed_devils_sha256": "cb3aff88c7f7f3c3e4483e782860a05cbbf99af92bdfbe18012e3bac367e2a49",
+  "closed_family_shards_sha256": {
+    "DEVILS_ISLE": "cb3aff88c7f7f3c3e4483e782860a05cbbf99af92bdfbe18012e3bac367e2a49",
+    "IMPERIAL_TOMB": "7b51a41277cbf1c174eeac1d4b794c51680976a1d20aba5b8b0112723e7f0623",
+    "IVORY_TOWER": "b0d24060fafd8fa871a9fa42b9227afaec04de454e42047f98c418baf5bf814d",
+    "SSQ_CATACOMBS_NECROPOLIS": "6280aa1871f98ff271d43b9ecd3bf336607170d94af57e1e3de59458ef5cf432",
+    "TOWER_OF_INSOLENCE": "bd8139748c6e1e84e9d0f6f936152ae73fc96b04929411e086794ca7f5d1a9db"
+  },
   "counts": {
+    "closed_normal_entry_connectors": 1,
     "high_band_movement_directions": 2,
     "movement_directions": 5,
     "plunderous_edges": 4,
     "point_farm_new_movement_directions": 5,
-    "targeted_connectors": 9
+    "ruins_geo_hops": 6,
+    "targeted_connectors": 13
   },
   "generated03_sha256": "5be7c4902e35794947f572eabb4f6695b5b193e6728ab9f21639ea0c4ee4ce90",
   "generated04_sha256": "39a69217a5d2c6cb713338e3943fd254d625f83819fbf68a504b7a6dbe9a99a7",
   "generated05_sha256": "2c2da58595c7c0c80869bc59cba6bae0c52c4c7ef9743f9ae734bddcb0263b76",
+  "generated06_sha256": "e55037269fec57dc37066c2f25f42d413216bc6a350ecc9bd7bfca55084c096b",
   "output_sha256": {
     "HIGH_BANDS_52_85_GEO_PROOF.tsv": "57690ec34ca9df65acfdc8d488f1e258661c66baf5bbde52c58aa23099df6f28",
     "LIVE002_40_51_HERMETIC_GEO_PROOF.tsv": "294d1569dfefe97c778c6e7cd81555d2f54fc38a2e2bf2aabe53f9d9e344bad2",
     "PLUNDEROUS_40_FINAL_ROUTE.tsv": "704f98a8d08a2c833681a493b01ff0e9af2fdd287137ee601a8fa6735d178d09",
     "POINT_FARM_81_85_PROOF.tsv": "7a3d25ceb4495c26e3e0206c800d23beadf0da34ecaa4671c1585b9d4f2900c0",
-    "TARGETED_TRAVEL_CONNECTORS.tsv": "881c6be02318523aefaaf726c343004d0991273d6d8ee75f1162e35d62e97fad"
+    "TARGETED_TRAVEL_CONNECTORS.tsv": "e5fefd3a8ae7678f8fe0ac5d53fc2c3fba0305c5a08fac5d4f98d359cfe06a44"
   },
   "schema": "LIVE-002-40-51/1"
 }

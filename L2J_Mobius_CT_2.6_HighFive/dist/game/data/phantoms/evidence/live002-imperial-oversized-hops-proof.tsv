@@ -1,0 +1,5 @@
+connector_id	validation_status	path_length	path_segments	required_buffer	max_pathfind_buffer	door_intersections	fence_intersections	door_ids	fence_names	collision_proof
+content.imperial.oversized.46db3a92e281bc2e582489d6	VALID_PATH	2281	6	296	500	0	0	[]	[]	STATIC_XML_CLEAR
+content.imperial.oversized.cb496c864e1602ea36344505	VALID_DIRECT	2291	1	348	500	0	0	[]	[]	STATIC_XML_CLEAR
+content.imperial.oversized.5310544052d0ffb0c1b8ea37	VALID_PATH	2459	9	354	500	0	0	[]	[]	STATIC_XML_CLEAR
+content.imperial.oversized.91dabac51fd49dc70bd82b30	VALID_DIRECT	807	1	164	500	0	0	[]	[]	STATIC_XML_CLEAR

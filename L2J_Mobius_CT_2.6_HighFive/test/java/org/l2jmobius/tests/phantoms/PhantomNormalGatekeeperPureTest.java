@@ -41,17 +41,20 @@ public final class PhantomNormalGatekeeperPureTest
 		final Path tampered = Files.createTempFile("phantom-gk-provenance", ".xml");
 		try
 		{
-			Files.writeString(tampered, original.replaceFirst("targetedConnectorsSha256=\"[0-9a-f]{64}\"", "targetedConnectorsSha256=\"" + "0".repeat(64) + "\""));
-			try
+			for (String stale : List.of("881c6be02318523aefaaf726c343004d0991273d6d8ee75f1162e35d62e97fad", "c436039da63f72a93fb6d8eafe7f1b76d2e7fe033302da76be5588d31fa330bd"))
 			{
-				PhantomNormalGatekeeperTravel.load(tampered, null);
-				throw new AssertionError("Tampered supplement hash was accepted.");
-			}
-			catch (IllegalArgumentException expected)
-			{
-				if ((expected.getCause() == null) || !expected.getCause().getMessage().contains("provenance changed"))
+				Files.writeString(tampered, original.replaceFirst("targetedConnectorsSha256=\"[0-9a-f]{64}\"", "targetedConnectorsSha256=\"" + stale + "\""));
+				try
 				{
-					throw new AssertionError("Catalog was rejected for an unrelated reason.", expected);
+					PhantomNormalGatekeeperTravel.load(tampered, null);
+					throw new AssertionError("Stale supplement hash was accepted.");
+				}
+				catch (IllegalArgumentException expected)
+				{
+					if ((expected.getCause() == null) || !expected.getCause().getMessage().contains("provenance changed"))
+					{
+						throw new AssertionError("Catalog was rejected for an unrelated reason.", expected);
+					}
 				}
 			}
 		}

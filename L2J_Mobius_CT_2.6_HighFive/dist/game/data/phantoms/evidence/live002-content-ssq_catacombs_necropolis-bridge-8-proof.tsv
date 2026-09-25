@@ -1,0 +1,6 @@
+connector_id	validation_status	path_length	path_segments	required_buffer	max_pathfind_buffer	door_intersections	fence_intersections	door_ids	fence_names	collision_proof
+content.bridge.1f5b76ea5560d10e325f2bc2	NO_PATH_WITHIN_BUFFER	0	0	214	500	0	0	[]	[]	STATIC_XML_CLEAR
+content.bridge.d0fa113721d1ab6acd2115cb	VALID_PATH	2985	8	410	500	0	0	[]	[]	STATIC_XML_CLEAR
+content.bridge.c8f60129f7b2feb44093508f	VALID_PATH	3037	11	410	500	0	0	[]	[]	STATIC_XML_CLEAR
+content.bridge.d294b9b6b76c212806522355	DIRECT_BLOCKED_PATHFINDER_OUT_OF_RANGE	0	0	694	500	0	0	[]	[]	STATIC_XML_CLEAR
+content.bridge.0b2137062031f4c23f7a42ee	DIRECT_BLOCKED_PATHFINDER_OUT_OF_RANGE	0	0	776	500	0	0	[]	[]	STATIC_XML_CLEAR

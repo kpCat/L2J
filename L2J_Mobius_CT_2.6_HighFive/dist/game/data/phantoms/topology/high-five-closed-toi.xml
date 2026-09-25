@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
+	<node id="entry.toi.nobles.0d4f4faf0d5c0632e18dfc14" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="110847" maxX="110849" minY="16153" maxY="16155" minZ="-2121" maxZ="-2119" tags="route">
+		<source path="data/teleporters/town/30848.xml" />
+	</node>
+	<anchor id="entry.toi.nobles.0d4f4faf0d5c0632e18dfc14.anchor" role="ROUTE" nodeId="entry.toi.nobles.0d4f4faf0d5c0632e18dfc14" x="110848" y="16154" z="-2120" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/30848.xml" />
+	</anchor>
+	<node id="entry.toi.nobles.48e3482d51febfa5f48f425e" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="118524" maxX="118526" minY="16454" maxY="16456" minZ="5983" maxZ="5985" tags="route">
+		<source path="data/teleporters/town/30848.xml" />
+	</node>
+	<anchor id="entry.toi.nobles.48e3482d51febfa5f48f425e.anchor" role="ROUTE" nodeId="entry.toi.nobles.48e3482d51febfa5f48f425e" x="118525" y="16455" z="5984" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/30848.xml" />
+	</anchor>
+	<node id="entry.toi.nobles.e35af686d888a75ee8287664" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="118403" maxX="118405" minY="15987" maxY="15989" minZ="831" maxZ="833" tags="route">
+		<source path="data/teleporters/town/30848.xml" />
+	</node>
+	<anchor id="entry.toi.nobles.e35af686d888a75ee8287664.anchor" role="ROUTE" nodeId="entry.toi.nobles.e35af686d888a75ee8287664" x="118404" y="15988" z="832" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/30848.xml" />
+	</anchor>
+	<node id="generated.farm.003ce483f1390dd1f2c56598" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="888" maxZ="1088" tags="content-farming">
+		<vertex x="115292" y="13272" />
+		<vertex x="116168" y="13640" />
+		<vertex x="115680" y="14388" />
+		<vertex x="115132" y="14172" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.003ce483f1390dd1f2c56598.anchor" role="FARMING" nodeId="generated.farm.003ce483f1390dd1f2c56598" x="115568" y="13868" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.01196fc406e6183446f2b1c4" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="896" maxZ="1096" tags="content-farming">
+		<vertex x="112324" y="17744" />
+		<vertex x="113000" y="17312" />
+		<vertex x="113404" y="17760" />
+		<vertex x="112972" y="18400" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.01196fc406e6183446f2b1c4.anchor" role="FARMING" nodeId="generated.farm.01196fc406e6183446f2b1c4" x="112925" y="17804" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.06de56e48e26f447faba1eec" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="888" maxZ="1088" tags="content-farming">
+		<vertex x="116308" y="13744" />
+		<vertex x="116924" y="14372" />
+		<vertex x="116252" y="14872" />
+		<vertex x="115852" y="14504" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.06de56e48e26f447faba1eec.anchor" role="FARMING" nodeId="generated.farm.06de56e48e26f447faba1eec" x="116334" y="14373" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.0c3a2b86325aa834f8d5d0d8" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="5956" maxZ="6156" tags="content-farming">
+		<vertex x="111873" y="16667" />
+		<vertex x="112618" y="16573" />
+		<vertex x="112880" y="17186" />
+		<vertex x="112268" y="17580" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.0c3a2b86325aa834f8d5d0d8.anchor" role="FARMING" nodeId="generated.farm.0c3a2b86325aa834f8d5d0d8" x="112410" y="17002" z="5984" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.16542edc6c4a46e070e283bb" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="896" maxZ="1096" tags="content-farming">
+		<vertex x="116288" y="17304" />
+		<vertex x="116984" y="17740" />
+		<vertex x="116312" y="18404" />
+		<vertex x="115864" y="17784" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.16542edc6c4a46e070e283bb.anchor" role="FARMING" nodeId="generated.farm.16542edc6c4a46e070e283bb" x="116362" y="17808" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.21dd5b73d1286b655f16b3d3" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="5948" maxZ="6148" tags="content-farming">
+		<vertex x="112324" y="17684" />
+		<vertex x="112974" y="17290" />
+		<vertex x="113424" y="17752" />
+		<vertex x="112999" y="18372" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.21dd5b73d1286b655f16b3d3.anchor" role="FARMING" nodeId="generated.farm.21dd5b73d1286b655f16b3d3" x="112930" y="17774" z="5984" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.22894ed980b07d9ed7524684" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="888" maxZ="1088" tags="content-farming">
+		<vertex x="115300" y="14424" />
+		<vertex x="116260" y="15200" />
+		<vertex x="116476" y="16280" />
+		<vertex x="116296" y="16916" />
+		<vertex x="115296" y="16512" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.22894ed980b07d9ed7524684.anchor" role="FARMING" nodeId="generated.farm.22894ed980b07d9ed7524684" x="115926" y="15866" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.29545a8470779c4c7100df8f" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="896" maxZ="1096" tags="content-farming">
+		<vertex x="112320" y="14392" />
+		<vertex x="112992" y="13736" />
+		<vertex x="113456" y="14508" />
+		<vertex x="113024" y="14888" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.29545a8470779c4c7100df8f.anchor" role="FARMING" nodeId="generated.farm.29545a8470779c4c7100df8f" x="112948" y="14381" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.4c2b59d00cddc6b6d35a6d78" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="896" maxZ="1096" tags="content-farming">
+		<vertex x="113604" y="17852" />
+		<vertex x="114156" y="18080" />
+		<vertex x="114012" y="18872" />
+		<vertex x="113128" y="18504" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.4c2b59d00cddc6b6d35a6d78.anchor" role="FARMING" nodeId="generated.farm.4c2b59d00cddc6b6d35a6d78" x="113725" y="18327" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.654e5d244a01edb4a9da3731" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="5944" maxZ="6144" tags="content-farming">
+		<vertex x="115280" y="13272" />
+		<vertex x="116176" y="13652" />
+		<vertex x="115696" y="14312" />
+		<vertex x="115124" y="14076" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.654e5d244a01edb4a9da3731.anchor" role="FARMING" nodeId="generated.farm.654e5d244a01edb4a9da3731" x="115569" y="13828" z="5984" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.67666036b83d7efb25ec1ff2" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-2164" maxZ="-1964" tags="content-farming">
+		<vertex x="116615" y="14792" />
+		<vertex x="116979" y="15548" />
+		<vertex x="115949" y="15704" />
+		<vertex x="115028" y="14724" />
+		<vertex x="115189" y="13775" />
+		<vertex x="115987" y="14105" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.67666036b83d7efb25ec1ff2.anchor" role="FARMING" nodeId="generated.farm.67666036b83d7efb25ec1ff2" x="115958" y="14775" z="-2120" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.6a1beb51f646ae5e352917c5" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="5948" maxZ="6148" tags="content-farming">
+		<vertex x="116296" y="13720" />
+		<vertex x="116996" y="14428" />
+		<vertex x="116300" y="14876" />
+		<vertex x="115864" y="14420" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.6a1beb51f646ae5e352917c5.anchor" role="FARMING" nodeId="generated.farm.6a1beb51f646ae5e352917c5" x="116364" y="14361" z="5984" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.7ab80eb28ebca089ca50c741" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="5956" maxZ="6156" tags="content-farming">
+		<vertex x="114336" y="18117" />
+		<vertex x="114967" y="18117" />
+		<vertex x="115155" y="18880" />
+		<vertex x="114148" y="18880" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.7ab80eb28ebca089ca50c741.anchor" role="FARMING" nodeId="generated.farm.7ab80eb28ebca089ca50c741" x="114652" y="18498" z="5984" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.a04b0f6f0d8c6311214baec8" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-2156" maxZ="-1956" tags="content-farming">
+		<vertex x="113288" y="14124" />
+		<vertex x="114140" y="13764" />
+		<vertex x="114304" y="14672" />
+		<vertex x="113308" y="15716" />
+		<vertex x="112288" y="15496" />
+		<vertex x="112744" y="14672" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.a04b0f6f0d8c6311214baec8.anchor" role="FARMING" nodeId="generated.farm.a04b0f6f0d8c6311214baec8" x="113345" y="14741" z="-2120" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.a10b944a62366cf5f20fbc43" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="892" maxZ="1092" tags="content-farming">
+		<vertex x="115120" y="18072" />
+		<vertex x="115660" y="17856" />
+		<vertex x="116180" y="18500" />
+		<vertex x="115292" y="18872" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.a10b944a62366cf5f20fbc43.anchor" role="FARMING" nodeId="generated.farm.a10b944a62366cf5f20fbc43" x="115563" y="18325" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.a1d013d31102ce30d0fc91cc" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="888" maxZ="1088" tags="content-farming">
+		<vertex x="112808" y="15872" />
+		<vertex x="114000" y="15936" />
+		<vertex x="113992" y="17812" />
+		<vertex x="113556" y="17640" />
+		<vertex x="113028" y="16992" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.a1d013d31102ce30d0fc91cc.anchor" role="FARMING" nodeId="generated.farm.a1d013d31102ce30d0fc91cc" x="113477" y="16850" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.a459320841eef2e4481f0e7c" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="896" maxZ="1096" tags="content-farming">
+		<vertex x="113140" y="13640" />
+		<vertex x="114004" y="13280" />
+		<vertex x="114172" y="14184" />
+		<vertex x="113632" y="14408" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.a459320841eef2e4481f0e7c.anchor" role="FARMING" nodeId="generated.farm.a459320841eef2e4481f0e7c" x="113737" y="13878" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.c73ba8b86e19409817d24d33" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="-2160" maxZ="-1960" tags="content-farming">
+		<vertex x="115991" y="16420" />
+		<vertex x="116975" y="16560" />
+		<vertex x="116639" y="17348" />
+		<vertex x="116019" y="18019" />
+		<vertex x="115168" y="18367" />
+		<vertex x="115056" y="17415" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.c73ba8b86e19409817d24d33.anchor" role="FARMING" nodeId="generated.farm.c73ba8b86e19409817d24d33" x="115975" y="17355" z="-2120" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.c98d04e9094cb21800b191e5" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="5956" maxZ="6156" tags="content-farming">
+		<vertex x="115871" y="17721" />
+		<vertex x="116315" y="17252" />
+		<vertex x="116990" y="17677" />
+		<vertex x="116265" y="18409" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.c98d04e9094cb21800b191e5.anchor" role="FARMING" nodeId="generated.farm.c98d04e9094cb21800b191e5" x="116360" y="17765" z="5984" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.ccf6294d235e42a22c702a85" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="888" maxZ="1088" tags="content-farming">
+		<vertex x="114440" y="15116" />
+		<vertex x="114888" y="15112" />
+		<vertex x="114900" y="17876" />
+		<vertex x="114432" y="17872" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.ccf6294d235e42a22c702a85.anchor" role="FARMING" nodeId="generated.farm.ccf6294d235e42a22c702a85" x="114665" y="16494" z="928" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.d0f8724d210c1d8272a60fd3" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="5956" maxZ="6156" tags="content-farming">
+		<vertex x="113542" y="17815" />
+		<vertex x="114192" y="18096" />
+		<vertex x="114023" y="18859" />
+		<vertex x="113110" y="18465" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.d0f8724d210c1d8272a60fd3.anchor" role="FARMING" nodeId="generated.farm.d0f8724d210c1d8272a60fd3" x="113717" y="18309" z="5984" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.ee88100ca74c331deca64694" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="5948" maxZ="6148" tags="content-farming">
+		<vertex x="114148" y="13253" />
+		<vertex x="115136" y="13253" />
+		<vertex x="114970" y="14039" />
+		<vertex x="114339" y="14039" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.ee88100ca74c331deca64694.anchor" role="FARMING" nodeId="generated.farm.ee88100ca74c331deca64694" x="114648" y="13646" z="5984" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<node id="generated.farm.f472d34d58785e2d78e6b082" kind="FARMING_AREA" instanceId="0" form="POLYGON" minZ="5944" maxZ="6144" tags="content-farming">
+		<vertex x="111869" y="15586" />
+		<vertex x="112576" y="15699" />
+		<vertex x="112576" y="16405" />
+		<vertex x="111869" y="16555" />
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</node>
+	<anchor id="generated.farm.f472d34d58785e2d78e6b082.anchor" role="FARMING" nodeId="generated.farm.f472d34d58785e2d78e6b082" x="112222" y="16061" z="5984" instanceId="0" tolerance="0" tags="content-farming">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+	</anchor>
+	<edge id="content.bridge.5c05d4d49d769fe34cfce660" fromNodeId="generated.farm.c98d04e9094cb21800b191e5" toNodeId="generated.farm.7ab80eb28ebca089ca50c741" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="21090" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c98d04e9094cb21800b191e5.anchor" toAnchorId="generated.farm.7ab80eb28ebca089ca50c741.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.5ccd07f4e82b1c218bf835b4" fromNodeId="generated.farm.c98d04e9094cb21800b191e5" toNodeId="generated.farm.d0f8724d210c1d8272a60fd3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="29550" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c98d04e9094cb21800b191e5.anchor" toAnchorId="generated.farm.d0f8724d210c1d8272a60fd3.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.6b41e4cd3d4fc0c7036841b9" fromNodeId="generated.farm.6a1beb51f646ae5e352917c5" toNodeId="generated.farm.ee88100ca74c331deca64694" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18590" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6a1beb51f646ae5e352917c5.anchor" toAnchorId="generated.farm.ee88100ca74c331deca64694.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.7d153c330d87227bf860c1c6" fromNodeId="generated.farm.c98d04e9094cb21800b191e5" toNodeId="generated.farm.21dd5b73d1286b655f16b3d3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="38800" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.c98d04e9094cb21800b191e5.anchor" toAnchorId="generated.farm.21dd5b73d1286b655f16b3d3.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.8348b2592d8813220e78f289" fromNodeId="generated.farm.ccf6294d235e42a22c702a85" toNodeId="generated.farm.16542edc6c4a46e070e283bb" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="26590" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.ccf6294d235e42a22c702a85.anchor" toAnchorId="generated.farm.16542edc6c4a46e070e283bb.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-2-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.a1e8f99e1d5e8e007bdedf15" fromNodeId="generated.farm.003ce483f1390dd1f2c56598" toNodeId="generated.farm.a459320841eef2e4481f0e7c" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="19340" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.003ce483f1390dd1f2c56598.anchor" toAnchorId="generated.farm.a459320841eef2e4481f0e7c.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.b0154ec8df7946b9f8102579" fromNodeId="generated.farm.4c2b59d00cddc6b6d35a6d78" toNodeId="generated.farm.a10b944a62366cf5f20fbc43" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="18390" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.4c2b59d00cddc6b6d35a6d78.anchor" toAnchorId="generated.farm.a10b944a62366cf5f20fbc43.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-2-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.b62c61da2ef83a810076f4a6" fromNodeId="generated.farm.003ce483f1390dd1f2c56598" toNodeId="generated.farm.29545a8470779c4c7100df8f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="28990" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.003ce483f1390dd1f2c56598.anchor" toAnchorId="generated.farm.29545a8470779c4c7100df8f.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.c1e08bdeee50e7073fae98e2" fromNodeId="generated.farm.ccf6294d235e42a22c702a85" toNodeId="generated.farm.22894ed980b07d9ed7524684" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="14090" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.ccf6294d235e42a22c702a85.anchor" toAnchorId="generated.farm.22894ed980b07d9ed7524684.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-2-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.f0ac49a278974453bba54fca" fromNodeId="generated.farm.003ce483f1390dd1f2c56598" toNodeId="generated.farm.a1d013d31102ce30d0fc91cc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="44830" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.003ce483f1390dd1f2c56598.anchor" toAnchorId="generated.farm.a1d013d31102ce30d0fc91cc.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.f428118330caec95ec1ca6b3" fromNodeId="generated.farm.6a1beb51f646ae5e352917c5" toNodeId="generated.farm.654e5d244a01edb4a9da3731" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9580" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.6a1beb51f646ae5e352917c5.anchor" toAnchorId="generated.farm.654e5d244a01edb4a9da3731.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.f6886f697c9baccf9b4e2650" fromNodeId="generated.farm.a04b0f6f0d8c6311214baec8" toNodeId="generated.farm.c73ba8b86e19409817d24d33" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="37090" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a04b0f6f0d8c6311214baec8.anchor" toAnchorId="generated.farm.c73ba8b86e19409817d24d33.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.fbee9066838ec7d1e27ef99c" fromNodeId="generated.farm.06de56e48e26f447faba1eec" toNodeId="generated.farm.ccf6294d235e42a22c702a85" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="42320" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.06de56e48e26f447faba1eec.anchor" toAnchorId="generated.farm.ccf6294d235e42a22c702a85.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.bridge.ff5a1806e09a9851c1cb50db" fromNodeId="generated.farm.a04b0f6f0d8c6311214baec8" toNodeId="generated.farm.67666036b83d7efb25ec1ff2" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="32840" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a04b0f6f0d8c6311214baec8.anchor" toAnchorId="generated.farm.67666036b83d7efb25ec1ff2.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-bridge-1-proof.tsv" />
+	</edge>
+	<edge id="content.edge.14f63f68e484f5490d589853" fromNodeId="generated.farm.a10b944a62366cf5f20fbc43" toNodeId="generated.farm.16542edc6c4a46e070e283bb" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9520" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a10b944a62366cf5f20fbc43.anchor" toAnchorId="generated.farm.16542edc6c4a46e070e283bb.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.16ee7e8a18e055eb3112d885" fromNodeId="generated.farm.7ab80eb28ebca089ca50c741" toNodeId="generated.farm.d0f8724d210c1d8272a60fd3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9540" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.7ab80eb28ebca089ca50c741.anchor" toAnchorId="generated.farm.d0f8724d210c1d8272a60fd3.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.559657f166995e007ccd0ae3" fromNodeId="generated.farm.0c3a2b86325aa834f8d5d0d8" toNodeId="generated.farm.f472d34d58785e2d78e6b082" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9600" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.0c3a2b86325aa834f8d5d0d8.anchor" toAnchorId="generated.farm.f472d34d58785e2d78e6b082.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.70e8d0166c94982d0f14a2d2" fromNodeId="generated.farm.654e5d244a01edb4a9da3731" toNodeId="generated.farm.6a1beb51f646ae5e352917c5" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9580" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.654e5d244a01edb4a9da3731.anchor" toAnchorId="generated.farm.6a1beb51f646ae5e352917c5.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.78d06221a845fded19406259" fromNodeId="generated.farm.a1d013d31102ce30d0fc91cc" toNodeId="generated.farm.01196fc406e6183446f2b1c4" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="11950" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a1d013d31102ce30d0fc91cc.anchor" toAnchorId="generated.farm.01196fc406e6183446f2b1c4.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.7e27c6ea3fee8d52cda1b892" fromNodeId="generated.farm.06de56e48e26f447faba1eec" toNodeId="generated.farm.003ce483f1390dd1f2c56598" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9180" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.06de56e48e26f447faba1eec.anchor" toAnchorId="generated.farm.003ce483f1390dd1f2c56598.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.85b4f0e9a4be7f13c1273a48" fromNodeId="generated.farm.ee88100ca74c331deca64694" toNodeId="generated.farm.654e5d244a01edb4a9da3731" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9390" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.ee88100ca74c331deca64694.anchor" toAnchorId="generated.farm.654e5d244a01edb4a9da3731.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.927337178f1a6d30a4b3353a" fromNodeId="generated.farm.21dd5b73d1286b655f16b3d3" toNodeId="generated.farm.0c3a2b86325aa834f8d5d0d8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9310" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.21dd5b73d1286b655f16b3d3.anchor" toAnchorId="generated.farm.0c3a2b86325aa834f8d5d0d8.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.a6ac14a7157c9e518fef8b6a" fromNodeId="generated.farm.01196fc406e6183446f2b1c4" toNodeId="generated.farm.4c2b59d00cddc6b6d35a6d78" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9560" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.01196fc406e6183446f2b1c4.anchor" toAnchorId="generated.farm.4c2b59d00cddc6b6d35a6d78.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.afa9b00b8e43aa35e7cd37c9" fromNodeId="generated.farm.a1d013d31102ce30d0fc91cc" toNodeId="generated.farm.ccf6294d235e42a22c702a85" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="12410" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a1d013d31102ce30d0fc91cc.anchor" toAnchorId="generated.farm.ccf6294d235e42a22c702a85.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.c496f76c3072e9f6c46a1719" fromNodeId="generated.farm.d0f8724d210c1d8272a60fd3" toNodeId="generated.farm.21dd5b73d1286b655f16b3d3" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9520" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.d0f8724d210c1d8272a60fd3.anchor" toAnchorId="generated.farm.21dd5b73d1286b655f16b3d3.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.edge.eddaafd0a8eddb9735998fbb" fromNodeId="generated.farm.a459320841eef2e4481f0e7c" toNodeId="generated.farm.29545a8470779c4c7100df8f" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="9360" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.farm.a459320841eef2e4481f0e7c.anchor" toAnchorId="generated.farm.29545a8470779c4c7100df8f.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-geo-proof.tsv" />
+	</edge>
+	<edge id="content.seed.retry.0e71d6239b91d23fd0b8cca2" fromNodeId="entry.toi.nobles.e35af686d888a75ee8287664" toNodeId="generated.farm.003ce483f1390dd1f2c56598" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="39940" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="entry.toi.nobles.e35af686d888a75ee8287664.anchor" toAnchorId="generated.farm.003ce483f1390dd1f2c56598.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-seed-retry-proof.tsv" />
+	</edge>
+	<edge id="content.seed.retry.19fb6a5cce514bdcc7110ec1" fromNodeId="entry.toi.nobles.48e3482d51febfa5f48f425e" toNodeId="generated.farm.6a1beb51f646ae5e352917c5" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="33850" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="entry.toi.nobles.48e3482d51febfa5f48f425e.anchor" toAnchorId="generated.farm.6a1beb51f646ae5e352917c5.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-seed-retry-proof.tsv" />
+	</edge>
+	<edge id="content.seed.retry.4202121486caf70699ea5354" fromNodeId="entry.toi.nobles.e35af686d888a75ee8287664" toNodeId="generated.farm.06de56e48e26f447faba1eec" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="31070" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="entry.toi.nobles.e35af686d888a75ee8287664.anchor" toAnchorId="generated.farm.06de56e48e26f447faba1eec.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-seed-retry-proof.tsv" />
+	</edge>
+	<edge id="content.seed.retry.75afed80e2ce0a5eef583722" fromNodeId="entry.toi.nobles.48e3482d51febfa5f48f425e" toNodeId="generated.farm.c98d04e9094cb21800b191e5" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="34220" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="entry.toi.nobles.48e3482d51febfa5f48f425e.anchor" toAnchorId="generated.farm.c98d04e9094cb21800b191e5.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-seed-retry-proof.tsv" />
+	</edge>
+	<edge id="content.seed.retry.d20cf0a66e7970aad0117ee7" fromNodeId="entry.toi.nobles.0d4f4faf0d5c0632e18dfc14" toNodeId="generated.farm.a04b0f6f0d8c6311214baec8" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="44170" backgroundEligible="false" channels="COMBAT,TARGETABILITY" fromAnchorId="entry.toi.nobles.0d4f4faf0d5c0632e18dfc14.anchor" toAnchorId="generated.farm.a04b0f6f0d8c6311214baec8.anchor">
+		<source path="data/spawns/Aden/TowerOfInsolence.xml" />
+		<source path="data/phantoms/evidence/live002-content-tower_of_insolence-seed-retry-proof.tsv" />
+	</edge>
+</topology>
