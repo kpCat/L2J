@@ -271,6 +271,7 @@ public final class PhantomTestLauncher
 			case "generated-historical-route" -> new PhantomGeneratedHistoricalRouteSuite();
 			case "population-ecology-goal033" -> new PhantomPopulationEcologyGoal033Suite();
 			case "live003-admission" -> new PhantomLive003AdmissionSuite();
+			case "live003-core-life-1280" -> new PhantomLive003CoreLife1280Suite();
 			case "population-ecology-production-goal033" -> new PhantomPopulationEcologyProductionGoal033Suite();
 			case "siege-goal035" -> new PhantomSiegeGoal035Suite();
 			case "quest-instance-goal036" -> new PhantomQuestInstanceGoal036Suite();

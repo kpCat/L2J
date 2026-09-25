@@ -88,7 +88,7 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 {
 	private static final int MANAGED_PAGE_SIZE = 256;
 	private static final int DISABLED_ACCOUNT_ACCESS_LEVEL = -1;
-	private static final int MAX_NAME_ATTEMPTS = 8;
+	private static final int MAX_NAME_ATTEMPTS = 32;
 
 	private final PhantomProfileRepository _profiles;
 	private final PhantomPopulationCatalog _catalog;
@@ -337,7 +337,7 @@ public final class PhantomPopulationStore implements PhantomPopulationPersistenc
 				do
 				{
 					attempt++;
-					final String nextName = _catalog.name(mix(snapshot.state().deterministicSeed(), snapshot.profile().profileId()), attempt);
+					final String nextName = attempt <= 8 ? _catalog.name(mix(snapshot.state().deterministicSeed(), snapshot.profile().profileId()), attempt) : _catalog.fallbackName(snapshot.profile().profileId(), attempt);
 					if (!characterNameExists(nextName))
 					{
 						snapshot = updateState(snapshot, snapshot.state().withName(attempt, nextName));

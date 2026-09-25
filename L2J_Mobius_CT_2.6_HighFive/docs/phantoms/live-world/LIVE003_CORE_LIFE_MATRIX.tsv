@@ -1,0 +1,13 @@
+checkpoint	status	evidence	remaining_gate
+A_PRESENCE	BLOCKED_PRESENCE_OWNER_CONFLICT	No orthogonal logical-presence owner was integrated with population/activity.	AVAILABLE/BUSY/OFFLINE matrix and OFFLINE background suppression.
+B_BATCHED_BACKGROUND	BLOCKED_BACKGROUND_DUE_OWNER_CONFLICT	Production scheduler background cadence is 10000 ms; pure 10000-profile reference is 5..15 min only.	Integrate deterministic due work with the shared scheduler and historical interval owner.
+C_IDEMPOTENCE	BLOCKED_BACKGROUND_DUE_OWNER_CONFLICT	Existing 0C minute cursor survives codec replay; historical operation digest is stable.	Bind periodic due to that operation/cursor contract and prove boundary races.
+D_PROGRESSION	BLOCKED_PROGRESSION_NATIVE_OPERATION_BLOCKED	LIVE-002 generated-06 and final proof hashes match published evidence; no representative current-route replay was run.	Pure Human/Dwarf/alternate progression and native route proof.
+D_SPOIL	BLOCKED_SPOIL_CAPABILITY_UNAVAILABLE	Historical farming authority reads normal death drops; no capability-truth interval spoil proof.	Spoiler normal drop plus spoil and non-spoiler exclusion.
+E_LOCATION_INDEX	BLOCKED_LOCATION_INDEX_OWNER_CONFLICT	No canonical topology-keyed logical-location index was integrated.	Bounded local query and 100 pure cycles.
+E_MATERIALIZATION_POLICY	BLOCKED_MATERIALIZATION_POLICY_OWNER_CONFLICT	No index-backed local-only selection or reconciliation/hysteresis proof.	Canonical committed anchor and busy/action protection.
+F_WEEKLY_SCHEDULE	BLOCKED_SCHEDULE_CAPACITY_INSUFFICIENT	168 deterministic hours: minimum ACTIVE 0; 92 hours below target 64.	Existing ecology calendar composition must cover current target and suppress OFFLINE.
+G_NICKNAME_CODE_GATE	GREEN	10000 deterministic unique valid names; 2336 adversarial reserved names; 0 duplicate/exhausted; fallback exercised.	NICKNAME_LIVE_DB_GATE=PENDING_RUNTIME.
+H_OBSERVABILITY	BLOCKED_OBSERVABILITY_OWNER_CONFLICT	Existing .phantomstatus was not extended with logical/due/index counters.	Compact base status and DB-free operator test.
+I_SCALE_CONTRACT	BLOCKED_SCALE_CONTRACT_REGRESSION	Pure 10000-slot reference: 1437153 updates/24h, mean 16.634/s, max 48/s; production cadence 10000 ms.	Production due/index integration and zero-Player scale contract.
+0D_RUNTIME	PENDING_RUNTIME	No server, client, DB or live scale was started.	Separate live 0D gate.

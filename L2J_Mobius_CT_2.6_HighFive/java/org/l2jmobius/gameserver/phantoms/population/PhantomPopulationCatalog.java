@@ -185,6 +185,30 @@ public final class PhantomPopulationCatalog
 		return chooseName(deterministicValue, attempt).value();
 	}
 
+	/** Bounded collision fallback keyed by the durable profile identity. */
+	public String fallbackName(long profileId, int attempt)
+	{
+		if ((profileId <= 0) || (attempt < 9) || (attempt > 255))
+		{
+			throw new IllegalArgumentException("Nickname fallback inputs are invalid.");
+		}
+		final String alphabet = "0123456789BDFHKMRVWXYZ";
+		long value = Math.addExact(Math.multiplyExact(profileId, 247L), attempt - 9L);
+		final StringBuilder encoded = new StringBuilder();
+		do
+		{
+			encoded.append(alphabet.charAt((int) (value % alphabet.length())));
+			value /= alphabet.length();
+		}
+		while (value > 0);
+		final String name = "B" + encoded.reverse();
+		if (name.length() > 16)
+		{
+			throw new IllegalArgumentException("Nickname fallback exceeds native name length.");
+		}
+		return name;
+	}
+
 	public CareerArchetype chooseArchetype(long deterministicSeed, long creationOrdinal)
 	{
 		if (creationOrdinal < 1)
