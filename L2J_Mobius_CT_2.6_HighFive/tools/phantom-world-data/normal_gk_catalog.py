@@ -110,6 +110,8 @@ def build(module, output):
         raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: generated-03")
     if "generated04_sha256" in manifest and d1.sha_file(module / "dist/game/data/phantoms/topology/high-five-generated-04.xml") != manifest["generated04_sha256"]:
         raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: generated-04")
+    if "generated05_sha256" in manifest and d1.sha_file(module / "dist/game/data/phantoms/topology/high-five-generated-05.xml") != manifest["generated05_sha256"]:
+        raise RuntimeError("BLOCKED_CONNECTOR_PROVENANCE: generated-05")
     supplement = d1.read_tsv(registry / "TARGETED_TRAVEL_CONNECTORS.tsv")
     accepted = {"connector.73bea2de1609f40ad6b3230e", "connector.92ca2c480990a8b06fa07d82"}
     if len(supplement) != len({row["connector_id"] for row in supplement}) or not accepted.issubset({row["connector_id"] for row in supplement}):
@@ -118,6 +120,8 @@ def build(module, output):
     transitions = d1.read_tsv(registry / "TRAVEL_TRANSITIONS.tsv")
     anchors = d1.topology(module)[0]
     extra_shards = ("high-five-generated-02.xml", "high-five-generated-03.xml") + (("high-five-generated-04.xml",) if "generated04_sha256" in manifest else ())
+    if "generated05_sha256" in manifest:
+        extra_shards += ("high-five-generated-05.xml",)
     for name in extra_shards:
         root = ET.parse(module / "dist/game/data/phantoms/topology" / name).getroot()
         for anchor in root.findall("anchor"):

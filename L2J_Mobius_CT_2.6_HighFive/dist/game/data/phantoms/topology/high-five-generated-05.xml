@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
+	<node id="generated.route.live002.oren.arrival" kind="ROUTE_AREA" instanceId="0" form="CUBOID" minX="82970" maxX="82972" minY="53206" maxY="53208" minZ="-1489" maxZ="-1487" tags="route">
+		<source path="data/teleporters/town/31964.xml" />
+	</node>
+	<anchor id="generated.route.live002.oren.arrival.anchor" role="ROUTE" nodeId="generated.route.live002.oren.arrival" x="82971" y="53207" z="-1488" instanceId="0" tolerance="0" tags="route">
+		<source path="data/teleporters/town/31964.xml" />
+	</anchor>
+	<node id="generated.farm.7617d478280b73549ec67bfd" kind="FARMING_AREA" instanceId="0" form="POINT_RADIUS" x="84902" y="60870" z="-3440" radius="1" tags="outdoor-farming">
+		<source path="data/spawns/Oren/SelMahums.xml" />
+	</node>
+	<anchor id="generated.farm.7617d478280b73549ec67bfd.anchor" role="FARMING" nodeId="generated.farm.7617d478280b73549ec67bfd" x="84902" y="60870" z="-3440" instanceId="0" tolerance="0" npcId="22782" tags="outdoor-farming">
+		<source path="data/spawns/Oren/SelMahums.xml" />
+	</anchor>
+</topology>

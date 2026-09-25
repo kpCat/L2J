@@ -3,19 +3,20 @@ import unittest
 from pathlib import Path
 
 import live002_high_bands_final as final
+import live002_81_85_final as current
 
 
 class HighBandsFinalTest(unittest.TestCase):
-    def test_current_ordinary_reachability_and_blocker(self):
+    def test_current_ordinary_reachability_and_point_farm(self):
         module = Path(__file__).resolve().parents[2]
         with tempfile.TemporaryDirectory() as temporary:
-            counts, statuses = final.prove(module, Path(temporary) / "proof.tsv")
-        self.assertEqual(1, counts["40-51"])
-        self.assertGreaterEqual(counts["52-60"], 1)
-        self.assertGreaterEqual(counts["61-75"], 1)
-        self.assertGreaterEqual(counts["76-80"], 1)
-        self.assertEqual(0, counts["81-85"])
-        self.assertEqual("NO_OPEN_ORDINARY_CANDIDATE", statuses["81-85"])
+            counts, length = current.validate(module, Path(temporary) / "proof.tsv")
+        self.assertGreaterEqual(counts["40-51"], 1)
+        self.assertGreaterEqual(counts["52-60"], 10)
+        self.assertGreaterEqual(counts["61-75"], 15)
+        self.assertGreaterEqual(counts["76-80"], 3)
+        self.assertGreaterEqual(counts["81-85"], 1)
+        self.assertGreaterEqual(length, 2)
 
     def test_native_level_drift_is_rejected(self):
         module = Path(__file__).resolve().parents[2]
