@@ -109,6 +109,7 @@ public final class PhantomTopologyCoreSuite implements PhantomTestSuite
 		registry.add("36-returned-node-bound", _ -> testReturnedNodeBound());
 		registry.add("37-no-mutable-server-object-exposure", _ -> testNoServerObjectExposure());
 		registry.add("38-policy-production-bounds", _ -> testPolicy());
+		registry.add("39-bounded-normalized-point-farm", _ -> testNormalizedPointFarm());
 	}
 
 	private void testPoint()
@@ -272,6 +273,33 @@ public final class PhantomTopologyCoreSuite implements PhantomTestSuite
 		backend._spawns.put(999, List.of(new SpawnFact(999, LEFT_POINT)));
 		final PhantomTopologyAnchor anchor = new PhantomTopologyAnchor("anchor", PhantomTopologyAnchorRole.FARMING, "node", LEFT_POINT, 999, null, 0, List.of(), List.of());
 		PhantomAssertions.assertThrows(PhantomTopologyValidationException.class, () -> create(List.of(new PhantomTopologyNode("node", PhantomTopologyNodeKind.FARMING_AREA, 0, area(0, 1000), null, List.of(), List.of())), List.of(anchor), List.of(), backend), "Non-Monster farming anchor was accepted.");
+	}
+
+	private void testNormalizedPointFarm()
+	{
+		final TestBackend backend = new TestBackend();
+		final PhantomTopologyPoint nativePoint = point(-33539, 137701, -3479);
+		backend._npcs.put(20059, new NpcFact(20059, "Monster", true));
+		backend._spawns.put(20059, List.of(new SpawnFact(20059, nativePoint)));
+		final List<String> source = List.of("data/spawns/Others/18_22.xml");
+		final List<String> marker = List.of("normalized-point-farm");
+		final PhantomTopologyNode node = new PhantomTopologyNode("normalized", PhantomTopologyNodeKind.FARMING_AREA, 0, PhantomTopologyArea.pointRadius(nativePoint, 1), null, marker, source);
+		final PhantomTopologyAnchor anchor = new PhantomTopologyAnchor("normalized.anchor", PhantomTopologyAnchorRole.FARMING, node.id(), point(-33539, 137701, -3480), 20059, null, 0, marker, source);
+		final PhantomTopologySnapshot snapshot = create(List.of(node), List.of(anchor), List.of(), backend);
+		final PhantomTopologyQuery query = new PhantomTopologyQuery(snapshot, backend, new PhantomTopologyMetrics());
+		PhantomAssertions.assertEquals(node.id(), query.mostSpecificNode(nativePoint).orElseThrow().id(), "Native source point did not map to normalized farm.");
+		PhantomAssertions.assertTrue(node.area().contains(anchor.point()), "Normalized anchor left its native-centered node.");
+		final PhantomTopologyNode exactNode = new PhantomTopologyNode(node.id(), node.kind(), 0, node.area(), null, List.of(), source);
+		final PhantomTopologyAnchor exactAnchor = new PhantomTopologyAnchor(anchor.id(), anchor.role(), anchor.nodeId(), nativePoint, 20059, null, 0, List.of(), source);
+		create(List.of(exactNode), List.of(exactAnchor), List.of(), backend);
+		final PhantomTopologyNode deltaFourNode = new PhantomTopologyNode(node.id(), node.kind(), 0, PhantomTopologyArea.pointRadius(nativePoint, 4), null, marker, source);
+		final PhantomTopologyAnchor deltaFourAnchor = new PhantomTopologyAnchor(anchor.id(), anchor.role(), anchor.nodeId(), point(-33539, 137701, -3483), 20059, null, 0, marker, source);
+		create(List.of(deltaFourNode), List.of(deltaFourAnchor), List.of(), backend);
+		final PhantomTopologyNode unmarked = new PhantomTopologyNode(node.id(), node.kind(), 0, node.area(), null, List.of(), source);
+		PhantomAssertions.assertThrows(PhantomTopologyValidationException.class, () -> create(List.of(unmarked), List.of(anchor), List.of(), backend), "Unmarked normalized farm was accepted.");
+		final PhantomTopologyNode tooWide = new PhantomTopologyNode(node.id(), node.kind(), 0, PhantomTopologyArea.pointRadius(nativePoint, 5), null, marker, source);
+		final PhantomTopologyAnchor deltaFive = new PhantomTopologyAnchor(anchor.id(), anchor.role(), anchor.nodeId(), point(-33539, 137701, -3484), 20059, null, 0, marker, source);
+		PhantomAssertions.assertThrows(PhantomTopologyValidationException.class, () -> create(List.of(tooWide), List.of(deltaFive), List.of(), backend), "Delta five normalized farm was accepted.");
 	}
 
 	private void testSemanticEvidence()

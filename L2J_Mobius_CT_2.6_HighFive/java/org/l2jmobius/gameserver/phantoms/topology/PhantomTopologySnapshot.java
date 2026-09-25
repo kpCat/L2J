@@ -227,7 +227,7 @@ public final class PhantomTopologySnapshot
 				boolean matchingSpawn = false;
 				for (SpawnFact spawn : backend.spawns(anchor.npcId(), 4096))
 				{
-					if (anchor.point().distance3D(spawn.point()) <= anchor.validationTolerance())
+					if ((anchor.point().distance3D(spawn.point()) <= anchor.validationTolerance()) || matchesBoundedNormalizedPointFarm(node, anchor, spawn))
 					{
 						matchingSpawn = true;
 						break;
@@ -254,6 +254,18 @@ public final class PhantomTopologySnapshot
 				}
 			}
 		}
+	}
+
+	private static boolean matchesBoundedNormalizedPointFarm(PhantomTopologyNode node, PhantomTopologyAnchor anchor, SpawnFact spawn)
+	{
+		if ((anchor.role() != PhantomTopologyAnchorRole.FARMING) || (node.kind() != PhantomTopologyNodeKind.FARMING_AREA) || (node.area().form() != PhantomTopologyArea.Form.POINT_RADIUS) || (node.area().radius() > 4) || (anchor.validationTolerance() != 0) || !node.tags().contains("normalized-point-farm") || !anchor.tags().contains("normalized-point-farm") || node.sourceRefs().isEmpty() || !node.sourceRefs().equals(anchor.sourceRefs()))
+		{
+			return false;
+		}
+		final PhantomTopologyPoint nativePoint = node.area().representativePoint();
+		final PhantomTopologyPoint geoPoint = anchor.point();
+		final long deltaZ = Math.abs((long) nativePoint.z() - geoPoint.z());
+		return nativePoint.equals(spawn.point()) && (nativePoint.instanceId() == 0) && (geoPoint.instanceId() == 0) && (nativePoint.x() == geoPoint.x()) && (nativePoint.y() == geoPoint.y()) && (deltaZ >= 1) && (deltaZ <= 4) && (node.area().radius() == deltaZ);
 	}
 
 	private void validateEdges(PhantomTopologyValidationBackend backend)
