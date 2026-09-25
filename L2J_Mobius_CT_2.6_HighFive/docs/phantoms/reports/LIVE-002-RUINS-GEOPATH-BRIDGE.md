@@ -4,7 +4,9 @@
 
 ## Read-first и scope
 
-Прочитаны `TASK.md`, `EVIDENCE.md`, `ACCEPTANCE.md` только из заданного абсолютного каталога, локальный `AGENTS.md`, master plan, workflow contract, task standard, предыдущий Ruins отчёт и текущий STATE. Сверены `PathFinding`, `NodeBuffer`, `GeoNode`, `GeoLocation`, normalized farm proof, `PhantomTravelGeoProbe`, `generated-03/04/05`, targeted supplement/manifest, generic GK generator и 81–85 final validator. Аналоги: штатный test-only hermetic Geo probe, Oren ROUTE/FARMING публикация в generated-05, directed BACKGROUND edges в generated-03. `README.md` и отдельные code-map/pattern-файлы в модуле не найдены; `readme.txt` прочитан. Соседние хроники не изменялись.
+Прочитаны текущие `TASK.md`, `EVIDENCE.md`, `ACCEPTANCE.md` из заданного абсолютного каталога, локальный `AGENTS.md`, master plan, workflow contract, task standard, предыдущий Ruins отчёт и текущий STATE. Сверены `PathFinding`, `NodeBuffer`, `GeoNode`, `GeoLocation`, normalized farm proof, `PhantomTravelGeoProbe`, `generated-03/04/05`, targeted supplement/manifest, generic GK generator и 81–85 final validator. Аналоги: штатный test-only hermetic Geo probe, Oren ROUTE/FARMING публикация в generated-05, directed BACKGROUND edges в generated-03. `README.md` и отдельные code-map/pattern-файлы в модуле не найдены; `readme.txt` прочитан. Соседние хроники не изменялись.
+
+Отклонение от пользовательского read-scope: дополнительно были прочитаны первые 170 строк `docs/phantoms/tasks/LIVE-002-RUINS-NORMALIZED-POINT-FARM/TASK.md`. Этот task-файл находился внутри разрешённого `docs`, но вне единственного разрешённого каталога task-файлов. Repo-wide поиск `TASK.md` не выполнялся; предыдущий task-файл не менялся и не использовался для расширения scope.
 
 Tracked HEAD до изменений `7033027dc8edb08972726de3bf1a0eebd67478ad`, ветка `feature/phantom-world`, upstream `origin/feature/phantom-world`. Несвязанные dirty/untracked файлы обнаружены и не включаются в task scope. Fresh DB-free Python graph audit на активных shards 01–05 и исходном GK catalog подтвердил ordinary progression **`5/13/15/3/1`**, 40 NORMAL legs.
 
@@ -34,4 +36,4 @@ Exact allowlist этого BLOCKED checkpoint:
 - `docs/phantoms/reports/LIVE-002-RUINS-GEOPATH-BRIDGE.md`
 - `docs/phantoms/live-world/STATE.md`
 
-Для GREEN нужен отдельный review, разрешающий обновить production SHA pin без изменения travel semantic, либо согласованное иное provenance решение. До этого generated-06/connectors/catalog активировать нельзя. DB/migrations/config changes отсутствуют; performance impact на runtime отсутствует. Commit SHA и результат normal push приведены в финальном сообщении выполнения task.
+Для GREEN нужен отдельный review, разрешающий обновить production SHA pin без изменения travel semantic, либо согласованное иное provenance решение. До этого generated-06/connectors/catalog активировать нельзя. DB/migrations/config changes отсутствуют; performance impact на runtime отсутствует. Audit commit `d0e22cf83919d69c122d54a5d183f86c1098d760`; SHA отдельного report correction commit и результат normal push приведены в финальном сообщении выполнения task.
