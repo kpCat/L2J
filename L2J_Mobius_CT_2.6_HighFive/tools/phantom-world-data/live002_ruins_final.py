@@ -48,7 +48,7 @@ def validate(module, output):
     if len(nodes) != 8 or len(shard.findall("anchor")) != 8 or len(shard.findall("edge")) != 6:
         raise RuntimeError("Ruins shard scope drift")
     farm = nodes[FARM]
-    if any(farm.get(key) != value for key, value in {"kind": "FARMING_AREA", "form": "POINT_RADIUS", "instanceId": "0", "x": "-33539", "y": "137701", "z": "-3480", "radius": "1"}.items()) or any(anchors[TARGET].get(key) != value for key, value in {"role": "FARMING", "npcId": "20059", "instanceId": "0"}.items()):
+    if any(farm.get(key) != value for key, value in {"kind": "FARMING_AREA", "form": "POINT_RADIUS", "instanceId": "0", "x": "-33539", "y": "137701", "z": "-3479", "radius": "1", "tags": "normalized-point-farm,outdoor-farming"}.items()) or any(anchors[TARGET].get(key) != value for key, value in {"role": "FARMING", "npcId": "20059", "instanceId": "0", "z": "-3480", "tags": "normalized-point-farm,outdoor-farming"}.items()):
         raise RuntimeError("Ruins farm anchor drift")
     if not any(item.get("path") == "data/spawns/Others/18_22.xml" for item in farm.findall("source")):
         raise RuntimeError("Ruins native source drift")

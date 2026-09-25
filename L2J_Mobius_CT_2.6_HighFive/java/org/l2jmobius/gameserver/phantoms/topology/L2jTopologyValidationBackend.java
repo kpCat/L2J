@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.data.xml.DoorData;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
+import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.instance.Door;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
@@ -73,7 +74,9 @@ public final class L2jTopologyValidationBackend implements PhantomTopologyValida
 			{
 				break;
 			}
-			result.add(new SpawnFact(npcId, new PhantomTopologyPoint(spawn.getX(), spawn.getY(), spawn.getZ(), spawn.getInstanceId())));
+			final Location source = spawn.getSpawnLocation();
+			final Location position = source != null ? source : spawn;
+			result.add(new SpawnFact(npcId, new PhantomTopologyPoint(position.getX(), position.getY(), position.getZ(), spawn.getInstanceId())));
 		}
 		return List.copyOf(result);
 	}

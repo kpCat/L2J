@@ -272,6 +272,7 @@ public final class PhantomTestLauncher
 			case "population-ecology-goal033" -> new PhantomPopulationEcologyGoal033Suite();
 			case "live003-admission" -> new PhantomLive003AdmissionSuite();
 			case "live003-core-life-1280" -> new PhantomLive003CoreLife1280Suite();
+			case "live003-runtime-authority-proof" -> new PhantomLive003RuntimeAuthorityProofSuite();
 			case "population-ecology-production-goal033" -> new PhantomPopulationEcologyProductionGoal033Suite();
 			case "siege-goal035" -> new PhantomSiegeGoal035Suite();
 			case "quest-instance-goal036" -> new PhantomQuestInstanceGoal036Suite();

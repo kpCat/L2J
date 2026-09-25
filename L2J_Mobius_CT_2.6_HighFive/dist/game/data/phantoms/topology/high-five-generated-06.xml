@@ -42,10 +42,10 @@
 	<anchor id="generated.route.live002.ruins.geo.73e02075fc2fc16d.anchor" role="ROUTE" nodeId="generated.route.live002.ruins.geo.73e02075fc2fc16d" x="-32152" y="136328" z="-3904" instanceId="0" tolerance="0" tags="route">
 		<source path="data/phantoms/evidence/live002-ruins-geodata-path.tsv" />
 	</anchor>
-	<node id="generated.farm.b729b4b54a41170f2da2aa85" kind="FARMING_AREA" instanceId="0" tags="outdoor-farming" form="POINT_RADIUS" x="-33539" y="137701" z="-3480" radius="1">
+	<node id="generated.farm.b729b4b54a41170f2da2aa85" kind="FARMING_AREA" instanceId="0" tags="normalized-point-farm,outdoor-farming" form="POINT_RADIUS" x="-33539" y="137701" z="-3479" radius="1">
 		<source path="data/spawns/Others/18_22.xml" />
 	</node>
-	<anchor id="generated.farm.b729b4b54a41170f2da2aa85.anchor" role="FARMING" nodeId="generated.farm.b729b4b54a41170f2da2aa85" x="-33539" y="137701" z="-3480" instanceId="0" tolerance="0" tags="outdoor-farming" npcId="20059">
+	<anchor id="generated.farm.b729b4b54a41170f2da2aa85.anchor" role="FARMING" nodeId="generated.farm.b729b4b54a41170f2da2aa85" x="-33539" y="137701" z="-3480" instanceId="0" tolerance="0" tags="normalized-point-farm,outdoor-farming" npcId="20059">
 		<source path="data/spawns/Others/18_22.xml" />
 	</anchor>
 	<edge id="generated.route.live002.ruins.geo.hop-1" fromNodeId="generated.route.live002.ruins.arrival" toNodeId="generated.route.live002.ruins.geo.8eb6d6a79b1bd7bc" mode="BACKGROUND" bidirectional="false" baseCost="1" baseTravelMillis="31600" backgroundEligible="true" channels="COMBAT,TARGETABILITY" fromAnchorId="generated.route.live002.ruins.arrival.anchor" toAnchorId="generated.route.live002.ruins.geo.8eb6d6a79b1bd7bc.anchor">

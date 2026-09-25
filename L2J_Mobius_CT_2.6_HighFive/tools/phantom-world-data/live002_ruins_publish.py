@@ -20,12 +20,13 @@ SOURCE = "data/spawns/Others/18_22.xml"
 EVIDENCE = "data/phantoms/evidence/live002-ruins-geodata-path.tsv"
 
 
-def point(root, ident, xyz, role, source, npc_id=""):
+def point(root, ident, xyz, role, source, npc_id="", native_z=None):
     x, y, z = xyz
+    tags = "normalized-point-farm,outdoor-farming" if native_z is not None else ("outdoor-farming" if role == "FARMING" else "route")
     attrs = {"id": ident, "kind": "FARMING_AREA" if role == "FARMING" else "ROUTE_AREA",
-             "instanceId": "0", "tags": "outdoor-farming" if role == "FARMING" else "route"}
+             "instanceId": "0", "tags": tags}
     if role == "FARMING":
-        attrs.update({"form": "POINT_RADIUS", "x": str(x), "y": str(y), "z": str(z), "radius": "1"})
+        attrs.update({"form": "POINT_RADIUS", "x": str(x), "y": str(y), "z": str(native_z if native_z is not None else z), "radius": "1"})
     else:
         attrs.update({"form": "CUBOID", "minX": str(x - 1), "maxX": str(x + 1),
                       "minY": str(y - 1), "maxY": str(y + 1), "minZ": str(z - 1), "maxZ": str(z + 1)})
@@ -88,7 +89,7 @@ def publish(module):
     point(shard, RUINS, (-19120, 136816, -3752), "ROUTE", bella["source_path"])
     for row in proof[:-1]:
         point(shard, row["to_id"], tuple(int(row["to_" + axis]) for axis in "xyz"), "ROUTE", EVIDENCE)
-    point(shard, FARM, (-33539, 137701, -3480), "FARMING", SOURCE, "20059")
+    point(shard, FARM, (-33539, 137701, -3480), "FARMING", SOURCE, "20059", native_z=-3479)
     for row in proof:
         edge = ET.SubElement(shard, "edge", {"id": "generated.route.live002.ruins.geo.hop-" + row["hop"],
             "fromNodeId": row["from_id"], "toNodeId": row["to_id"], "mode": "BACKGROUND",

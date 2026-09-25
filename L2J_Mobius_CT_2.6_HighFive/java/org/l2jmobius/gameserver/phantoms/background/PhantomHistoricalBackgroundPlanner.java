@@ -39,6 +39,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.KnowledgePage;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery;
@@ -54,6 +55,7 @@ public final class PhantomHistoricalBackgroundPlanner
 {
 	private static final int LEVEL_RADIUS = 2;
 	private static final int MAXIMUM_TARGETS = 64;
+	private static final int FALLBACK_TARGETS = 256;
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomTopologyQuery _topology;
 	private final PhantomBackgroundAuthority _authority;
@@ -111,7 +113,12 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		final int minimum = Math.max(1, state.progress().level() - LEVEL_RADIUS);
 		final int maximum = state.progress().level() + LEVEL_RADIUS;
-		final TargetFact target = _knowledge.suitableTargets(new TargetQuery(minimum, maximum, state.progress().level(), null, null, Set.of(NpcKind.MONSTER), true, true, null, null, null, PageRequest.first(MAXIMUM_TARGETS))).values().stream().filter(value -> value.npc().npcId() == spec.npcId()).findFirst().orElse(null);
+		final KnowledgePage<TargetFact> first = targets(minimum, maximum, state.progress().level(), PageRequest.first(MAXIMUM_TARGETS));
+		TargetFact target = first.values().stream().filter(value -> value.npc().npcId() == spec.npcId()).findFirst().orElse(null);
+		if ((target == null) && (first.nextCursor() != null))
+		{
+			target = targets(minimum, maximum, state.progress().level(), new PageRequest(FALLBACK_TARGETS, first.nextCursor())).values().stream().filter(value -> value.npc().npcId() == spec.npcId()).findFirst().orElse(null);
+		}
 		return (target != null) && (candidate(state.position().committedAnchorId(), target, spec.anchorId()) != null);
 	}
 
@@ -129,19 +136,11 @@ public final class PhantomHistoricalBackgroundPlanner
 		final int minimum = Math.max(1, level - LEVEL_RADIUS);
 		final int maximum = level + LEVEL_RADIUS;
 		final List<Candidate> candidates = new ArrayList<>();
-		for (TargetFact target : _knowledge.suitableTargets(new TargetQuery(minimum, maximum, level, null, null, Set.of(NpcKind.MONSTER), true, true, null, null, null, PageRequest.first(MAXIMUM_TARGETS))).values())
+		final KnowledgePage<TargetFact> first = targets(minimum, maximum, level, PageRequest.first(MAXIMUM_TARGETS));
+		addCandidates(candidates, currentAnchorId, first.values());
+		if (candidates.isEmpty() && (first.nextCursor() != null))
 		{
-			for (var area : target.representativeAreas().stream().filter(value -> (value.instanceId() == 0) && (value.totalConfiguredAmount() > 0) && (value.topologyNodeId() != null)).toList())
-			{
-				for (PhantomTopologyAnchor anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()).stream().filter(value -> (value.role() == PhantomTopologyAnchorRole.FARMING) && (value.point().instanceId() == 0) && ((value.npcId() == null) || (value.npcId() == target.npc().npcId()))).toList())
-				{
-					final Candidate candidate = candidate(currentAnchorId, target, anchor.id());
-					if (candidate != null)
-					{
-						candidates.add(candidate);
-					}
-				}
-			}
+			addCandidates(candidates, currentAnchorId, targets(minimum, maximum, level, new PageRequest(FALLBACK_TARGETS, first.nextCursor())).values());
 		}
 		if (candidates.isEmpty())
 		{
@@ -164,6 +163,30 @@ public final class PhantomHistoricalBackgroundPlanner
 		final String identity = digest("BACKGROUND_CATCHUP_PLAN_V1", profileId, level, activeClassId, currentAnchorId, deterministicSeed, planOrdinal, generation.knowledgeGeneration(), generation.topologyGeneration(), generation.authorityHashes(), npcId, anchorId, selected.routeEdgeIds(), constraints);
 		return new Result(goal, spec, identity, generation, selected.routeEdgeIds(), "planner.ready");
 	}
+
+	private KnowledgePage<TargetFact> targets(int minimum, int maximum, int level, PageRequest page)
+	{
+		return _knowledge.suitableTargets(new TargetQuery(minimum, maximum, level, null, null, Set.of(NpcKind.MONSTER), true, true, null, null, null, page));
+	}
+
+	private void addCandidates(List<Candidate> candidates, String currentAnchorId, List<TargetFact> targets)
+	{
+		for (TargetFact target : targets)
+		{
+			for (var area : target.representativeAreas().stream().filter(value -> (value.instanceId() == 0) && (value.totalConfiguredAmount() > 0) && (value.topologyNodeId() != null)).toList())
+			{
+				for (PhantomTopologyAnchor anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()).stream().filter(value -> (value.role() == PhantomTopologyAnchorRole.FARMING) && (value.point().instanceId() == 0) && ((value.npcId() == null) || (value.npcId() == target.npc().npcId()))).toList())
+				{
+					final Candidate candidate = candidate(currentAnchorId, target, anchor.id());
+					if (candidate != null)
+					{
+						candidates.add(candidate);
+					}
+				}
+			}
+		}
+	}
+
 	private Candidate candidate(String currentAnchorId, TargetFact target, String anchorId)
 	{
 		final PhantomTopologyAnchor anchor = _topology.findAnchor(anchorId).orElse(null);

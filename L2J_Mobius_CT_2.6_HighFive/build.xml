@@ -3964,6 +3964,19 @@
 			<arg value="30031280" />
 		</java>
 	</target>
+	<target name="phantom-live003-runtime-authority-proof-test" depends="compile-tests" description="Prove LIVE-003 routes against production-loaded data on the guarded test database.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing guarded phantom test database config." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing guarded phantom test database schema manifest." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<arg value="live003-runtime-authority-proof" />
+			<arg value="30031000" />
+		</java>
+	</target>
 
 	<target name="qol-shop-test" depends="compile-tests" description="Run L2-QOL-001 registered board and native multisell debit/credit tests.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
