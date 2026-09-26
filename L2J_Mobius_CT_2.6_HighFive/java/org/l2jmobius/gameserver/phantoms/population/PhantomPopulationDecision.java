@@ -37,8 +37,8 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomWeightedConsideration;
-import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.CreationOutcome;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.CreationResult;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot;
 
 /**
  * One explicit WARM-only semantic creation action for population.bootstrap.
@@ -49,6 +49,7 @@ public final class PhantomPopulationDecision
 	public static final String ACTION_KEY = "population.create_character";
 	private static final long STEP_TIMEOUT_MILLIS = 60_000;
 	private static final long RETRY_MILLIS = 25;
+	private static final int MAX_CREATION_ADVANCES = 4;
 	private final PhantomPopulationManager _manager;
 
 	public PhantomPopulationDecision(PhantomPopulationManager manager)
@@ -80,18 +81,47 @@ public final class PhantomPopulationDecision
 			{
 				return PhantomStepResult.of(Type.FAIL_GOAL, "population.creation.stale");
 			}
-			final CreationResult result = _manager.advanceCreation(context.profileId());
-			if (result.snapshot() == null)
+			ManagedSnapshot before = _manager.find(context.profileId()).orElse(null);
+			for (int advance = 0; advance < MAX_CREATION_ADVANCES; advance++)
 			{
-				return PhantomStepResult.of(Type.FAIL_GOAL, "population.creation.absent");
+				if (context.cancellationToken().isCancelled())
+				{
+					return PhantomStepResult.of(Type.CANCELLED, "population.creation.cancelled");
+				}
+				final CreationResult result = _manager.advanceCreation(context.profileId());
+				if (result.snapshot() == null)
+				{
+					return PhantomStepResult.of(Type.FAIL_GOAL, "population.creation.absent");
+				}
+				switch (result.outcome())
+				{
+					case PROGRESSED ->
+					{
+						if ((before == null) || (result.snapshot().component().rowVersion() <= before.component().rowVersion()))
+						{
+							return PhantomStepResult.of(Type.REPLAN, "population.creation.no_progress");
+						}
+						before = result.snapshot();
+					}
+					case RETRY ->
+					{
+						return PhantomStepResult.retry(RETRY_MILLIS, "population.creation.retry");
+					}
+					case READY ->
+					{
+						return PhantomStepResult.of(Type.SUCCESS, "population.creation.ready");
+					}
+					case INCONSISTENT ->
+					{
+						return PhantomStepResult.of(Type.FAIL_GOAL, "population.creation.inconsistent");
+					}
+					case NOT_PENDING ->
+					{
+						return result.snapshot().state().state() == PhantomPopulationState.State.READY ? PhantomStepResult.of(Type.SUCCESS, "population.creation.idempotent") : PhantomStepResult.of(Type.REPLAN, "population.creation.not_pending");
+					}
+				}
 			}
-			return switch (result.outcome())
-			{
-				case PROGRESSED, RETRY -> PhantomStepResult.retry(RETRY_MILLIS, "population.creation.retry");
-				case READY -> PhantomStepResult.of(Type.SUCCESS, "population.creation.ready");
-				case INCONSISTENT -> PhantomStepResult.of(Type.FAIL_GOAL, "population.creation.inconsistent");
-				case NOT_PENDING -> result.snapshot().state().state() == PhantomPopulationState.State.READY ? PhantomStepResult.of(Type.SUCCESS, "population.creation.idempotent") : PhantomStepResult.of(Type.REPLAN, "population.creation.not_pending");
-			};
+			return PhantomStepResult.retry(RETRY_MILLIS, "population.creation.retry");
 		});
 	}
 

@@ -352,6 +352,7 @@ public final class PhantomTestLauncher
 			case "social-humanization-goal030b" -> new PhantomSocialHumanizationGoal030BSuite();
 			case "population-catalog" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CATALOG);
 			case "population-schedule" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.SCHEDULE);
+			case "population-throughput" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.THROUGHPUT);
 			case "population-creation" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.CREATION);
 			case "population-reconciliation" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.RECONCILIATION);
 			case "population-lifecycle" -> new PhantomPopulationSuite(PhantomPopulationSuite.Mode.LIFECYCLE);

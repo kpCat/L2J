@@ -1671,6 +1671,16 @@
 		</java>
 	</target>
 
+	<target name="phantom-population-throughput-test" depends="compile-tests" description="Run DB-free population creation decision throughput regression.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
+			<jvmarg value="-Xmx1536m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="population-throughput" />
+			<arg value="${phantom.goal016.seed}" />
+		</java>
+	</target>
+
 	<target name="phantom-population-creation-test" depends="compile-tests" description="Run Goal 016 restart-safe real level-one character creation tests.">
 		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
 		<fail unless="phantom.test.config.present" message="Missing ${phantom.test.config}; run prepare-phantom-test-db explicitly." />

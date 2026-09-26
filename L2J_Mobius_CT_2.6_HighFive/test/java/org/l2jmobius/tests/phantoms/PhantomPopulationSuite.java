@@ -70,8 +70,15 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.AttachResult;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.DetachResult;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomPlan;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomPlanStep;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
@@ -82,6 +89,7 @@ import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStateCodec;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.AuthorityFailure;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.CreationOutcome;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.CreationResult;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.FaultInjectedException;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.FaultPoint;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot;
@@ -185,6 +193,12 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 				registry.add("01-midnight-gap-and-latest-state", this::testScheduleStates);
 				registry.add("02-dst-gap-overlap-and-clock-direction", this::testDst);
 				registry.add("03-active-admission-region-quota-and-rotation", this::testAdmission);
+			}
+			case THROUGHPUT ->
+			{
+				registry.add("01-one-warm-handler-completes-four-durable-creation-stages", this::testOneWarmCreation);
+				registry.add("02-transient-cancellation-and-terminal-outcomes-stop-chaining", this::testCreationStops);
+				registry.add("03-hard-bound-and-no-progress-fail-closed", this::testCreationBound);
 			}
 			case CREATION ->
 			{
@@ -305,6 +319,135 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(!first.equals(nextDay), "Daily ACTIVE rotation did not change.");
 		final long regionOne = first.stream().filter(id -> id <= 6).count();
 		PhantomAssertions.assertEquals(3L, regionOne, "Largest-remainder regional quota mismatch.");
+	}
+
+	private void testOneWarmCreation(PhantomTestContext context)
+	{
+		final MemoryStore store = new MemoryStore(_catalog.hash());
+		store.seed(1, PhantomPopulationState.State.SHELL, PhantomPopulationState.CreationStage.SHELL_DURABLE, 1);
+		final PhantomPopulationManager manager = syntheticManager(store, new Ownership(), 1, 0, 8);
+		PhantomAssertions.assertTrue(manager.start(), "Throughput manager did not start.");
+		final PhantomStepResult result = executeCreation(manager, () -> false);
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, result.type(), "One WARM delivery stopped after only one durable creation stage: state=" + manager.find(1).orElseThrow().state().state() + ", writes=" + store.writes() + ".");
+		PhantomAssertions.assertEquals(PhantomPopulationState.State.READY, manager.find(1).orElseThrow().state().state(), "One WARM delivery did not reach READY.");
+		PhantomAssertions.assertEquals(4L, store.writes(), "Normal creation did not persist four durable stages.");
+		stopSynthetic(manager);
+	}
+
+	private void testCreationStops(PhantomTestContext context)
+	{
+		final AtomicInteger calls = new AtomicInteger();
+		final MemoryStore retryStore = new MemoryStore(_catalog.hash())
+		{
+			@Override
+			public synchronized CreationResult advanceCreation(ManagedSnapshot current)
+			{
+				return calls.incrementAndGet() == 2 ? new CreationResult(CreationOutcome.RETRY, current) : super.advanceCreation(current);
+			}
+		};
+		retryStore.seed(1, PhantomPopulationState.State.SHELL, PhantomPopulationState.CreationStage.SHELL_DURABLE, 1);
+		final PhantomPopulationManager retryManager = syntheticManager(retryStore, new Ownership(), 1, 0, 8);
+		PhantomAssertions.assertTrue(retryManager.start(), "Retry manager did not start.");
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.RETRY, executeCreation(retryManager, () -> false).type(), "Transient RETRY did not stop creation.");
+		PhantomAssertions.assertEquals(2, calls.get(), "Transient RETRY was followed by another durable call.");
+		stopSynthetic(retryManager);
+
+		final AtomicBoolean cancelled = new AtomicBoolean();
+		final MemoryStore cancellationStore = new MemoryStore(_catalog.hash())
+		{
+			@Override
+			public synchronized CreationResult advanceCreation(ManagedSnapshot current)
+			{
+				final CreationResult result = super.advanceCreation(current);
+				cancelled.set(true);
+				return result;
+			}
+		};
+		cancellationStore.seed(1, PhantomPopulationState.State.SHELL, PhantomPopulationState.CreationStage.SHELL_DURABLE, 1);
+		final PhantomPopulationManager cancellationManager = syntheticManager(cancellationStore, new Ownership(), 1, 0, 8);
+		PhantomAssertions.assertTrue(cancellationManager.start(), "Cancellation manager did not start.");
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.CANCELLED, executeCreation(cancellationManager, cancelled::get).type(), "Cancellation did not stop before the next durable stage.");
+		PhantomAssertions.assertEquals(1L, cancellationStore.writes(), "Cancellation allowed another durable write.");
+		stopSynthetic(cancellationManager);
+
+		assertCreationOutcome(CreationOutcome.INCONSISTENT, PhantomStepResult.Type.FAIL_GOAL);
+		assertCreationOutcome(CreationOutcome.NOT_PENDING, PhantomStepResult.Type.REPLAN);
+		final MemoryStore readyStore = new MemoryStore(_catalog.hash());
+		readyStore.seedReady(1, 1);
+		final PhantomPopulationManager readyManager = syntheticManager(readyStore, new Ownership(), 1, 0, 8);
+		PhantomAssertions.assertTrue(readyManager.start(), "Idempotent READY manager did not start.");
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, executeCreation(readyManager, () -> false).type(), "Idempotent READY did not succeed.");
+		PhantomAssertions.assertEquals(0L, readyStore.writes(), "Idempotent READY wrote a creation stage.");
+		stopSynthetic(readyManager);
+	}
+
+	private void testCreationBound(PhantomTestContext context)
+	{
+		final AtomicInteger calls = new AtomicInteger();
+		final MemoryStore progressing = new MemoryStore(_catalog.hash())
+		{
+			@Override
+			public synchronized CreationResult advanceCreation(ManagedSnapshot current)
+			{
+				calls.incrementAndGet();
+				return new CreationResult(CreationOutcome.PROGRESSED, updateState(current, current.state()));
+			}
+		};
+		progressing.seed(1, PhantomPopulationState.State.SHELL, PhantomPopulationState.CreationStage.SHELL_DURABLE, 1);
+		final PhantomPopulationManager boundManager = syntheticManager(progressing, new Ownership(), 1, 0, 8);
+		PhantomAssertions.assertTrue(boundManager.start(), "Bound manager did not start.");
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.RETRY, executeCreation(boundManager, () -> false).type(), "Hard bound did not yield RETRY.");
+		PhantomAssertions.assertEquals(4, calls.get(), "Creation continuation exceeded the four-call hard bound.");
+		stopSynthetic(boundManager);
+
+		final AtomicInteger stuckCalls = new AtomicInteger();
+		final MemoryStore stuck = new MemoryStore(_catalog.hash())
+		{
+			@Override
+			public synchronized CreationResult advanceCreation(ManagedSnapshot current)
+			{
+				stuckCalls.incrementAndGet();
+				return new CreationResult(CreationOutcome.PROGRESSED, current);
+			}
+		};
+		stuck.seed(1, PhantomPopulationState.State.SHELL, PhantomPopulationState.CreationStage.SHELL_DURABLE, 1);
+		final PhantomPopulationManager stuckManager = syntheticManager(stuck, new Ownership(), 1, 0, 8);
+		PhantomAssertions.assertTrue(stuckManager.start(), "Stuck manager did not start.");
+		PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, executeCreation(stuckManager, () -> false).type(), "No-progress PROGRESSED was not rejected.");
+		PhantomAssertions.assertEquals(1, stuckCalls.get(), "No-progress PROGRESSED advanced again.");
+		stopSynthetic(stuckManager);
+	}
+
+	private void assertCreationOutcome(CreationOutcome outcome, PhantomStepResult.Type expected)
+	{
+		final AtomicInteger calls = new AtomicInteger();
+		final MemoryStore store = new MemoryStore(_catalog.hash())
+		{
+			@Override
+			public synchronized CreationResult advanceCreation(ManagedSnapshot current)
+			{
+				calls.incrementAndGet();
+				return new CreationResult(outcome, current);
+			}
+		};
+		store.seed(1, PhantomPopulationState.State.SHELL, PhantomPopulationState.CreationStage.SHELL_DURABLE, 1);
+		final PhantomPopulationManager manager = syntheticManager(store, new Ownership(), 1, 0, 8);
+		PhantomAssertions.assertTrue(manager.start(), "Outcome manager did not start.");
+		PhantomAssertions.assertEquals(expected, executeCreation(manager, () -> false).type(), "Creation outcome changed: " + outcome + ".");
+		PhantomAssertions.assertEquals(1, calls.get(), "Terminal outcome was followed by another durable call.");
+		stopSynthetic(manager);
+	}
+
+	private static PhantomStepResult executeCreation(PhantomPopulationManager manager, java.util.function.BooleanSupplier cancelled)
+	{
+		final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
+		new PhantomPopulationDecision(manager).registerHandlers(handlers);
+		handlers.seal();
+		final PhantomDomainRef target = new PhantomDomainRef("population.profile", "1");
+		final PhantomGoal goal = new PhantomGoal(1, PhantomPopulationManager.BOOTSTRAP_GOAL_TYPE, PhantomGoalStatus.ACTIVE, target, target, 1, 0, "population.create", List.of(target), target, "population.bootstrap", 1000, 0, 0, 0, java.util.Map.of(), "population.bootstrap.required", 0);
+		final PhantomPlanStep step = new PhantomPlanStep(0, PhantomPopulationDecision.ACTION_KEY, target, java.util.Map.of(), 60_000, 10, "population.creation.explicit");
+		final PhantomPlan plan = new PhantomPlan(1, goal.goalId(), PhantomPopulationDecision.CANDIDATE_KEY, List.of(step), 60_000, 1);
+		return handlers.snapshot().get(PhantomPopulationDecision.ACTION_KEY).execute(new PhantomStepContext(1, goal, plan, step, PhantomActivityState.WARM, 1, 1, cancelled::getAsBoolean));
 	}
 
 	private void testRealCreation(PhantomTestContext context) throws Exception
@@ -1260,6 +1403,7 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 	{
 		CATALOG(false),
 		SCHEDULE(false),
+		THROUGHPUT(false),
 		CREATION(true),
 		RECONCILIATION(true),
 		LIFECYCLE(true),

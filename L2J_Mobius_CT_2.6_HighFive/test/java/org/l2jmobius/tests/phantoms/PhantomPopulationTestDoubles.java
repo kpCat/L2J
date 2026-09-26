@@ -60,7 +60,7 @@ public final class PhantomPopulationTestDoubles
 	{
 	}
 
-	public static final class MemoryStore implements PhantomPopulationPersistencePort
+	public static class MemoryStore implements PhantomPopulationPersistencePort
 	{
 		private static final Instant CREATED = Instant.parse("2026-01-01T00:00:00Z");
 		private final NavigableMap<Long, ManagedSnapshot> _rows = new TreeMap<>();
