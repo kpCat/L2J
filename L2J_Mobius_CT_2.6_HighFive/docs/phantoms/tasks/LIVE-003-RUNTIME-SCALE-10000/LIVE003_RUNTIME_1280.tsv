@@ -1,0 +1,2 @@
+gate	server_sample_local	client_witness_utc	status	managed	linked	ready	committed_positions	distinct_names	distinct_accounts	duplicate_names	duplicate_accounts	effective_active	world_materialized	local_signaled	periodic_owner	registered	resolved	profile_id	profile_world_present	active_target	materialized_cap	game_pid	login_pid	last_heap_percent	db_connections	game_threads	fatal_markers
+1280	2026-09-26T16:26:00+03:00	2026-09-26T13:16:28Z	GREEN	1280	1280	1280	1280	1280	1280	0	0	7	7	20	ECOLOGY	1280	1280	201	true	64	128	5488	18092	79.2	14	237	0

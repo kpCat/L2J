@@ -1,0 +1,2 @@
+gate	started_local	deadline_local	last_sample_local	status	blocker	target	managed	linked	ready	committed_positions	distinct_names	distinct_accounts	duplicate_names	duplicate_accounts	game_pid	login_pid	last_heap_percent	max_observed_db_connections	fatal_markers	poststop_ports_closed
+5000	2026-09-26T16:29:24+03:00	2026-09-26T17:14:24+03:00	2026-09-26T17:14:51+03:00	BLOCKED	SCALE_CREATION_THROUGHPUT_BLOCKED	5000	1280	1280	1280	1280	1280	1280	0	0	12028	22184	85.35	15	0	true

@@ -1,0 +1,6 @@
+gate	status	managed	linked	unique_names	unique_accounts	blocker
+progression_15	GREEN					none
+locality_0D	GREEN	1280	1280	1280	1280	none
+runtime_1280	GREEN	1280	1280	1280	1280	none
+runtime_5000	BLOCKED	1280	1280	1280	1280	SCALE_CREATION_THROUGHPUT_BLOCKED
+runtime_10000	NOT_STARTED					5000 gate not GREEN

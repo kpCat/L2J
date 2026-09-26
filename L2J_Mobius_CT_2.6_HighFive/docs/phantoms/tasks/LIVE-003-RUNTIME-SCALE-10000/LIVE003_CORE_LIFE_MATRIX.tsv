@@ -1,0 +1,10 @@
+row	status	evidence
+A presence incl party/store/action BUSY	GREEN	Prior core-life acceptance recorded in EVIDENCE.md
+B shared 5-15m cadence and ECOLOGY owner	GREEN	Live client ECOLOGY owner and 1280 runtime samples
+C pure idempotence	GREEN	Prior core-life acceptance recorded in EVIDENCE.md
+D ordinary spoil	GREEN	Prior core-life acceptance recorded in EVIDENCE.md
+E topology registry and local query	GREEN	Live registered/resolved 1280/1280 and localSignaled 20
+F v1/v2 schedule 168/168	GREEN	Prior core-life acceptance recorded in EVIDENCE.md
+G nickname10k code	GREEN	Prior core-life acceptance; live PLAY 1280 identities unique
+H observability	GREEN	Live status and profile 201 witness
+I pure10k	GREEN	Prior core-life acceptance recorded in EVIDENCE.md

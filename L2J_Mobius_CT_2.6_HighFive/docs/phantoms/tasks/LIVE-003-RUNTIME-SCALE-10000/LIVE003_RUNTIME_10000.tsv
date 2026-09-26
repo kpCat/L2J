@@ -1,0 +1,2 @@
+gate	status	reason	started	last_green	private_target_left
+10000	NOT_STARTED	5000 gate BLOCKED: SCALE_CREATION_THROUGHPUT_BLOCKED	false	1280	5000
