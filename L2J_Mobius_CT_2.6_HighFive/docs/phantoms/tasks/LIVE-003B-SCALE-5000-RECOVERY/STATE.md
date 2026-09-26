@@ -1,0 +1,10 @@
+# LIVE-003B — state checkpoint, 2026-09-26
+
+- Статус: **BLOCKED — SCALE_5000_DEADLINE_CREATION_RATE_BLOCKED**. Gate 5000 и 15-минутный soak не достигнуты; 10000 и LIVE-004/005 не начаты.
+- Доказанный и исправленный первичный дефект: ecology `inventoryReady` переходил false→true во время `publish()` последней восстановленной записи, а end-of-pulse сравнение брало `before` слишком поздно и теряло `reconcilePopulation()`. DB-free RED: Goal033 16/17, `Expected <4> but was <2>`; GREEN: 17/17.
+- Code fix commit/push: `3f3fa07c5f242f1e2a9423a930e68ae085e36a7b` на `feature/phantom-world`. Чистый detached `ant jar` дал private GameServer.jar SHA-256 `C9947AC12C181705F9804ADE62E2C740E76FBF38B687EED605CB2D244CEF953D`.
+- PLAY baseline 1280/1280; первый новый shell profile 1281 записан в `18:01:55.231`, связан с персонажем к `18:01:58.603`. Новый profile 1282 дошёл до READY и committed BackgroundState `(24496,9206,-3584)` с canonical anchor. Отдельное live подтверждение topology registry для нового профиля не получено.
+- К deadline `18:46:00+03:00` минутный sample `18:46:14` дал 2656/2654. После exact owned stop итоговый read-only PLAY snapshot: 2668 managed / 2666 linked, уникальных имён/аккаунтов 2666/2666, duplicates 0, committed positions 2632, два профиля ещё в creation lifecycle. Профили сохранены.
+- 51 safety sample за 44.33 минуты: 1374 новых managed, 30.99/min; heap peak 93.99% от 4096 MiB, максимум два подряд >90%; Game threads 160–163; DB connections 13–15 из 151; fatal markers 0. 5000 при этом темпе не достигнуты. Budgets не менялись.
+- Owned Login/Game STOPPED, ports 2106/9014/7777 closed. Private PopulationTarget остаётся 5000; ActiveTarget 64, materialized cap 128, MaxScheduled 10000, CreationInFlight 2, SchedulerPulse 100 ms и boundaries 64 сохранены. PLAY direct DML/DDL, reset/reseed/delete не выполнялись.
+- Подробности: `EVIDENCE.md`, `LIVE-003B-SCALE-5000-RECOVERY.md`, `LIVE003B_RUNTIME_5000.tsv`. Финальный отчётный commit/push указан в ответе по завершении задачи.
