@@ -90,28 +90,46 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		{
 			if ((existing != null) && !sameRequest(existing.state(), initial))
 			{
-				if ((existing.state().status() != Status.COMPLETE) || !existing.state().authorityHashes().equals(generation.authorityHashes()) || (existing.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (existing.state().topologyGeneration() != generation.topologyGeneration()))
+				if (existing.state().status() != Status.COMPLETE)
 				{
 					return Result.rejected(ResultStatusCode.CONFLICT, "catchup.claim.stale", existing);
 				}
 				final StoredGoal currentGoal = _goals.load(profileId).orElse(null);
-				if ((currentGoal != null) && (currentGoal.goal().goalId() == existing.state().goalId()) && (currentGoal.goal().revision() == existing.state().goalRevision()))
+				final boolean currentAuthority = existing.state().authorityHashes().equals(generation.authorityHashes()) && (existing.state().knowledgeGeneration() == generation.knowledgeGeneration()) && (existing.state().topologyGeneration() == generation.topologyGeneration());
+				if (currentAuthority && (currentGoal != null) && (currentGoal.goal().goalId() == existing.state().goalId()) && (currentGoal.goal().revision() == existing.state().goalRevision()))
 				{
 					initial = initial.withPlan(existing.state().goalId(), existing.state().goalRevision(), existing.state().planOrdinal(), existing.state().planIdentity(), generation.knowledgeGeneration(), generation.topologyGeneration());
 					claimed = _store.renewCompleted(profileId, existing, initial);
 				}
 				else
 				{
-					final PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+					PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
 					if ((currentGoal == null) || (backgroundState == null) || ((backgroundState.state() != PhantomBackgroundState.State.READY) && (backgroundState.state() != PhantomBackgroundState.State.DEAD)))
 					{
 						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.baseline_or_goal_missing", existing);
+					}
+					if (!backgroundState.hashes().equals(generation.authorityHashes()))
+					{
+						final Result refresh = refreshCanonicalBaseline(profileId, existing);
+						if (!refresh.successful())
+						{
+							return refresh;
+						}
+						backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+						if ((backgroundState == null) || !backgroundState.hashes().equals(generation.authorityHashes()))
+						{
+							return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.canonical_refresh_unverified", existing);
+						}
 					}
 					final long nextPlanOrdinal = Math.addExact(existing.state().planOrdinal(), 1);
 					final var replacement = _planner.replaceFromState(profileId, backgroundState, currentGoal.goal(), deterministicSeed, nextPlanOrdinal);
 					if (!replacement.ready())
 					{
 						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, replacement.reasonKey(), existing);
+					}
+					if (!_planner.generation().equals(generation))
+					{
+						return Result.rejected(ResultStatusCode.RETRY, "catchup.renewal.generation_changed", existing);
 					}
 					initial = initial.withPlan(replacement.goal().goalId(), replacement.goal().revision(), nextPlanOrdinal, replacement.planIdentity(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration());
 					claimed = _store.renewCompletedWithPlan(profileId, existing, initial, currentGoal, replacement.goal()).catchup();

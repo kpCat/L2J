@@ -180,6 +180,31 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("10-legacy-item-conflict-retries-from-cursor", this::testLegacyItemConflictRetries);
 		registry.add("11-d2-managed-dwarf-normal-gk", this::testD2ManagedDwarfNormalGatekeeper);
 		registry.add("12-d2-paid-gk-atomic-replay", this::testD2PaidGatekeeperAtomicReplay);
+		registry.add("13-complete-stale-authority-renews-next-due", this::testCompleteStaleAuthorityRenewsNextDue);
+	}
+
+	private void testCompleteStaleAuthorityRenewsNextDue(PhantomTestContext context) throws Exception
+	{
+		final ManagedSnapshot managed = createManaged(context.seed() + 13);
+		final long profileId = managed.profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed()).status(), "First durable window did not begin.");
+			final var first = runtime.historical().advance(profileId, 4, 4);
+			PhantomAssertions.assertEquals(Status.COMPLETE, first.snapshot().state().status(), "First durable window did not complete.");
+			final PhantomBackgroundCatchupStore store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			final Snapshot complete = store.load(profileId).orElseThrow();
+			final Hashes current = runtime.planner().generation().authorityHashes();
+			final Hashes stale = new Hashes("old-" + current.knowledge(), current.topology(), current.progression(), current.commerce());
+			store.replace(profileId, complete, copyWithHashes(complete.state(), stale));
+			final var renewed = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, renewed.status(), "Completed stale authority blocked the next ecology due: " + renewed.reason());
+			PhantomAssertions.assertEquals(Status.RUNNING, renewed.snapshot().state().status(), "Renewed due did not enter RUNNING.");
+			PhantomAssertions.assertEquals(FROM_MINUTE + 4, renewed.snapshot().state().cursorEpochMinute(), "Renewal replayed or skipped completed time.");
+			PhantomAssertions.assertEquals(current, renewed.snapshot().state().authorityHashes(), "Renewal kept stale authority hashes.");
+			PhantomAssertions.assertEquals(complete.state().goalId(), renewed.snapshot().state().goalId(), "Renewal replaced the durable goal identity.");
+			PhantomAssertions.assertEquals(complete.state().goalRevision() + 1, renewed.snapshot().state().goalRevision(), "Renewal did not atomically advance the goal revision.");
+		}
 	}
 
 	private void testD2PaidGatekeeperAtomicReplay(PhantomTestContext context) throws Exception
