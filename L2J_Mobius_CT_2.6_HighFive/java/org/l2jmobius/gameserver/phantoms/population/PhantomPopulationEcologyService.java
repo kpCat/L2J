@@ -222,9 +222,11 @@ public final class PhantomPopulationEcologyService
 	{
 		final List<Long> profiles = new ArrayList<>();
 		final Set<Long> materializationProfiles = new HashSet<>();
+		final boolean inventoryReadyBefore;
 		synchronized (_monitor)
 		{
 			requireRuntime();
+			inventoryReadyBefore = _inventoryReady;
 			_pulses++;
 			if (!_materializationDue.isEmpty())
 			{
@@ -303,9 +305,8 @@ public final class PhantomPopulationEcologyService
 			_maximumPulseIntervals = Math.max(_maximumPulseIntervals, _lastPulseIntervals);
 			_profileOperations += profiles.size();
 			_historicalIntervals += intervals;
-			final boolean before = _inventoryReady;
 			refreshInventoryLocked();
-			inventoryBecameReady = !before && _inventoryReady;
+			inventoryBecameReady = !inventoryReadyBefore && _inventoryReady;
 		}
 		if (inventoryBecameReady)
 		{

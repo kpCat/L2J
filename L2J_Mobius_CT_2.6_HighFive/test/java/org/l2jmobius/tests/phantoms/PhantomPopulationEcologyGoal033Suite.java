@@ -95,6 +95,30 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("14-periodic-cursor-materialized-boundary-and-resume", this::testPeriodicMaterializedBoundary);
 		registry.add("15-stale-authority-renews-current-request", this::testStaleAuthorityRenewal);
 		registry.add("16-incomplete-periodic-due-continues-under-pulse-budgets", this::testIncompletePeriodicDueContinues);
+		registry.add("17-restored-inventory-readiness-starts-bounded-target-creation", this::testRestoredInventoryReadinessStartsCreation);
+	}
+
+	private void testRestoredInventoryReadinessStartsCreation(PhantomTestContext context)
+	{
+		final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final EcologyMemoryStore ecologyStore = new EcologyMemoryStore(populationStore);
+		for (long profileId = 1; profileId <= 2; profileId++)
+		{
+			final ManagedSnapshot restored = populationStore.seedReady(profileId, 1);
+			ecologyStore.insert(profileId, stateAt(minute(CREATED), Pace.OUTLIER, 10_000, restored.state().scheduleTemplate()));
+		}
+		final PhantomPopulationTestDoubles.MutableClock clock = new PhantomPopulationTestDoubles.MutableClock(CREATED);
+		final PhantomPopulationEcologyService ecology = service(ecologyStore, new HistoricalMemoryPort(), new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
+		final PhantomPopulationManager manager = new PhantomPopulationManager(populationStore, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 5, 0, 16, 4, 2, 64);
+		manager.installEcology(ecology);
+		PhantomAssertions.assertTrue(manager.start(), "Restored population did not start.");
+		PhantomAssertions.assertFalse(ecology.inventoryReady(), "Restored ecology unexpectedly bypassed inventory loading.");
+		PhantomAssertions.assertEquals(2, populationStore.size(), "Target deficit created shells before ecology inventory was ready.");
+		manager.onPulse();
+		PhantomAssertions.assertTrue(ecology.inventoryReady(), "Final restored ecology row did not make inventory ready inside the pulse.");
+		PhantomAssertions.assertEquals(4, populationStore.size(), "Lost ecology readiness edge did not reconcile the target deficit into two bounded shells.");
+		stop(manager);
+		context.record("goal033.restoredReadinessCreated", populationStore.size());
 	}
 
 	private void testIncompletePeriodicDueContinues(PhantomTestContext context)
@@ -753,6 +777,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			service.onPopulationPulse();
 		}
 		PhantomAssertions.assertTrue(service.inventoryReady(), "Restart ecology inventory did not load through bounded population pulses.");
+		PhantomAssertions.assertEquals(1, reconciliations.get(), "Restored inventory readiness did not reconcile population exactly once.");
 		for (long profileId : eligible)
 		{
 			PhantomAssertions.assertTrue(service.permitsScheduling(profileId), "Loaded eligible ecology row did not permit scheduling: " + profileId);
@@ -761,6 +786,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertEquals(eligible, distinctFenceChanges, "Restart restore did not reopen every eligible READY schedule fence.");
 		final int changesAfterRestore = fenceChanges.size();
 		service.onPopulationPulse();
+		PhantomAssertions.assertEquals(1, reconciliations.get(), "No-op ecology pulse repeated population reconciliation.");
 		PhantomAssertions.assertEquals(changesAfterRestore, fenceChanges.size(), "No-op ecology pulse repeated scheduling-permission refreshes.");
 
 		clock.set(now.plusSeconds(60));
