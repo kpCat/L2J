@@ -56,6 +56,8 @@ public final class PhantomPopulationEcologyService
 	private final Map<Long, Entry> _entries = new LinkedHashMap<>();
 	private final ArrayDeque<Long> _due = new ArrayDeque<>();
 	private final Set<Long> _queued = new HashSet<>();
+	private final ArrayDeque<Long> _materializationDue = new ArrayDeque<>();
+	private final Set<Long> _materializationQueued = new HashSet<>();
 	private final ArrayDeque<Long> _replacementQueue = new ArrayDeque<>();
 	private final Map<Pace, Integer> _paceHistogram = new EnumMap<>(Pace.class);
 	private final Map<Personality, Integer> _personalityHistogram = new EnumMap<>(Personality.class);
@@ -219,11 +221,28 @@ public final class PhantomPopulationEcologyService
 	public void onPopulationPulse()
 	{
 		final List<Long> profiles = new ArrayList<>();
+		final Set<Long> materializationProfiles = new HashSet<>();
 		synchronized (_monitor)
 		{
 			requireRuntime();
 			_pulses++;
-			for (int count = 0; (count < _catalog.limits().maximumProfilesPerPulse()) && !_due.isEmpty(); count++)
+			if (!_materializationDue.isEmpty())
+			{
+				final long profileId = _materializationDue.removeFirst();
+				_materializationQueued.remove(profileId);
+				final Entry entry = _entries.get(profileId);
+				if ((entry != null) && !entry._claimed)
+				{
+					entry._claimed = true;
+					profiles.add(profileId);
+					materializationProfiles.add(profileId);
+				}
+				else if (entry != null)
+				{
+					queueMaterializationLocked(profileId, false);
+				}
+			}
+			for (int count = profiles.size(); (count < _catalog.limits().maximumProfilesPerPulse()) && !_due.isEmpty(); count++)
 			{
 				final long profileId = _due.removeFirst();
 				_queued.remove(profileId);
@@ -239,9 +258,12 @@ public final class PhantomPopulationEcologyService
 		int intervals = 0;
 		for (long profileId : profiles)
 		{
+			final StoredState before = stored(profileId);
+			boolean processed = false;
 			try
 			{
-				final int used = process(profileId, intervalsRemaining);
+				final int used = process(profileId, intervalsRemaining, materializationProfiles.contains(profileId));
+				processed = true;
 				intervals += used;
 				intervalsRemaining -= used;
 				publishSchedulingPermissionEdge(profileId);
@@ -258,7 +280,16 @@ public final class PhantomPopulationEcologyService
 					if (entry != null)
 					{
 						entry._claimed = false;
-						queueLocked(profileId);
+						final StoredState after = entry._stored;
+						final long now = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
+						if (processed && materializationProfiles.contains(profileId) && (after != null) && (before != after) && ((after.state().calendarCursorEpochMinute() < now) || after.state().requestPending()))
+						{
+							queueMaterializationLocked(profileId, true);
+						}
+						else
+						{
+							queueLocked(profileId);
+						}
 					}
 				}
 			}
@@ -285,6 +316,17 @@ public final class PhantomPopulationEcologyService
 	/** Reconciles one shared scheduler due through the existing durable calendar and 0C cursor. */
 	public DueReconciliation reconcileBackgroundDue(long profileId)
 	{
+		return reconcileBackgroundDue(profileId, false);
+	}
+
+	/** Continues an incomplete local materialization due inside the existing pulse budgets. */
+	public DueReconciliation reconcileMaterializationDue(long profileId)
+	{
+		return reconcileBackgroundDue(profileId, true);
+	}
+
+	private DueReconciliation reconcileBackgroundDue(long profileId, boolean materializationDue)
+	{
 		final long targetMinute = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
 		synchronized (_monitor)
 		{
@@ -304,11 +346,15 @@ public final class PhantomPopulationEcologyService
 			_periodicRunning++;
 			_queued.remove(profileId);
 			_due.remove(profileId);
+			_materializationQueued.remove(profileId);
+			_materializationDue.remove(profileId);
 		}
 		int advanced = 0;
 		boolean complete = false;
+		boolean continueMaterialization = false;
 		try
 		{
+			final StoredState initial = stored(profileId);
 			final int intervalLimit = _catalog.limits().maximumIntervalsPerPulse();
 			for (int steps = 0; steps < (intervalLimit * 4) + 8; steps++)
 			{
@@ -332,6 +378,7 @@ public final class PhantomPopulationEcologyService
 			}
 			final StoredState after = stored(profileId);
 			complete = (after != null) && (after.state().calendarCursorEpochMinute() >= targetMinute) && !after.state().requestPending();
+			continueMaterialization = materializationDue && !complete && (after != null) && (initial != after);
 			return new DueReconciliation(complete, advanced, "ecology.cursor_pending");
 		}
 		catch (RuntimeException exception)
@@ -347,7 +394,14 @@ public final class PhantomPopulationEcologyService
 				if (entry != null)
 				{
 					entry._claimed = false;
-					queueLocked(profileId);
+					if (continueMaterialization)
+					{
+						queueMaterializationLocked(profileId, false);
+					}
+					else
+					{
+						queueLocked(profileId);
+					}
 				}
 				_profileOperations++;
 				_historicalIntervals += advanced;
@@ -817,14 +871,33 @@ public final class PhantomPopulationEcologyService
 		}
 		_queued.remove(profileId);
 		_due.remove(profileId);
+		_materializationQueued.remove(profileId);
+		_materializationDue.remove(profileId);
 		refreshInventoryLocked();
 	}
 
 	private void queueLocked(long profileId)
 	{
-		if (_queued.add(profileId))
+		if (!_materializationQueued.contains(profileId) && _queued.add(profileId))
 		{
 			_due.addLast(profileId);
+		}
+	}
+
+	private void queueMaterializationLocked(long profileId, boolean continuation)
+	{
+		if (_materializationQueued.add(profileId))
+		{
+			_queued.remove(profileId);
+			_due.remove(profileId);
+			if (continuation)
+			{
+				_materializationDue.addFirst(profileId);
+			}
+			else
+			{
+				_materializationDue.addLast(profileId);
+			}
 		}
 	}
 

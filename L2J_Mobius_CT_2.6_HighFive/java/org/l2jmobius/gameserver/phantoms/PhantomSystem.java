@@ -530,7 +530,7 @@ public final class PhantomSystem
 					_socialService.installPersonalityInitializer(_populationEcology::initialPersonalityTraits);
 				}
 				final PhantomPopulationEcologyService periodicEcology = _populationEcology;
-				_reconcileMaterializationActivity.install(profileId -> _humanLocality.isLocal(profileId) && ((periodicEcology == null) || periodicEcology.reconcileBackgroundDue(profileId).complete()));
+				_reconcileMaterializationActivity.install(profileId -> _humanLocality.isLocal(profileId) && ((periodicEcology == null) || periodicEcology.reconcileMaterializationDue(profileId).complete()));
 				_backgroundService.installPeriodicFarm(profileId ->
 				{
 					if (periodicEcology == null)

@@ -94,6 +94,34 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("13-periodic-due-crash-before-and-after-durable-commit", this::testPeriodicDueCrashRecovery);
 		registry.add("14-periodic-cursor-materialized-boundary-and-resume", this::testPeriodicMaterializedBoundary);
 		registry.add("15-stale-authority-renews-current-request", this::testStaleAuthorityRenewal);
+		registry.add("16-incomplete-periodic-due-continues-under-pulse-budgets", this::testIncompletePeriodicDueContinues);
+	}
+
+	private void testIncompletePeriodicDueContinues(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:00:00Z");
+		final long target = minute(now);
+		final PhantomPopulationTestDoubles.MemoryStore populationStore = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final ManagedSnapshot population = populationStore.seedReady(1, 1);
+		final EcologyMemoryStore store = new EcologyMemoryStore(null);
+		store.insert(1, stateAt(target - 60, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()));
+		final HistoricalMemoryPort historical = new HistoricalMemoryPort();
+		final PhantomPopulationEcologyService service = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 10);
+		service.enablePeriodicDueMode();
+		service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+		service.register(population);
+		final var first = service.reconcileMaterializationDue(1);
+		PhantomAssertions.assertFalse(first.complete(), "Backlogged due unexpectedly bypassed the bounded cursor gate.");
+		PhantomAssertions.assertTrue(store.require(1).state().calendarCursorEpochMinute() < target, "Fixture did not retain a due gap.");
+		for (int pulse = 0; (pulse < 200) && (store.require(1).state().calendarCursorEpochMinute() < target); pulse++)
+		{
+			service.onPopulationPulse();
+		}
+		PhantomAssertions.assertEquals(target, store.require(1).state().calendarCursorEpochMinute(), "An incomplete explicit due did not continue through bounded ecology pulses.");
+		PhantomAssertions.assertTrue(service.reconcileBackgroundDue(1).complete(), "Current durable cursor did not release the materialization gate.");
+		PhantomAssertions.assertTrue(service.snapshot().maximumPulseProfiles() <= _ecology.limits().maximumProfilesPerPulse(), "Periodic continuation exceeded the profile pulse budget.");
+		PhantomAssertions.assertTrue(service.snapshot().maximumPulseIntervals() <= _ecology.limits().maximumIntervalsPerPulse(), "Periodic continuation exceeded the interval pulse budget.");
+		context.record("goal033.periodicContinuation", historical.advancedMinutes());
 	}
 
 	private void testStaleAuthorityRenewal(PhantomTestContext context)
