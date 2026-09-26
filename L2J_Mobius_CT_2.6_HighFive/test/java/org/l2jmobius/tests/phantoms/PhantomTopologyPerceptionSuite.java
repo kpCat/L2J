@@ -96,6 +96,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		registry.add("27-stopped-operations-rejected", _ -> testStopped());
 		registry.add("28-no-materialization-navigation-reference", _ -> testNoDirectSubsystemReference());
 		registry.add("29-human-point-locality-and-committed-boundaries", _ -> testHumanPointLocality());
+		registry.add("29a-ground-normalized-route-human-locality", _ -> testGroundNormalizedRouteHumanLocality());
 		registry.add("30-existing-registry-10000-local-bucket-bound", _ -> testScaleRegistry());
 	}
 
@@ -445,6 +446,33 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 			publisher.committed(1, position(PhantomTopologyCoreSuite.LEFT_POINT));
 			PhantomAssertions.assertEquals(2, fixture.service.registrySnapshot().registered(), "Materialize/dematerialize cycle leaked duplicate topology ownership.");
 		}
+		stop(fixture);
+	}
+
+	private void testGroundNormalizedRouteHumanLocality()
+	{
+		final PhantomTopologyPoint canonical = new PhantomTopologyPoint(-90072, 248328, -3568, 0);
+		final PhantomTopologyPoint ground = new PhantomTopologyPoint(-90072, 248328, -3563, 0);
+		final PhantomTopologyPoint remote = new PhantomTopologyPoint(-89900, 248328, -3568, 0);
+		final PhantomTopologyCoreSuite.TestBackend backend = new PhantomTopologyCoreSuite.TestBackend();
+		final PhantomTopologySnapshot snapshot = PhantomTopologyCoreSuite.create(List.of(
+			new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNode("farm.local", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNodeKind.FARMING_AREA, 0, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.cuboid(0, -90100, -90040, 248300, 248350, -3600, -3500), null, List.of(), List.of()),
+			new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNode("route.local", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNodeKind.ROUTE_AREA, 0, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.pointRadius(canonical, 1), null, List.of(), List.of()),
+			new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNode("route.remote", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNodeKind.ROUTE_AREA, 0, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.pointRadius(remote, 1), null, List.of(), List.of())), List.of(), List.of(), backend);
+		final Fixture fixture = fixture(PhantomTopologyCoreSuite.POLICY, backend, snapshot);
+		register(fixture, 173, canonical);
+		register(fixture, 174, remote);
+		PhantomAssertions.assertEquals(RegistrationResult.REGISTERED, fixture.service.registerProfile(175), "Unresolved control profile registration failed.");
+		PhantomAssertions.assertEquals("farm.local", fixture.service.query().mostSpecificNode(ground).orElseThrow().id(), "Strict canonical topology unexpectedly selected the radius-1 route after geodata Z normalization.");
+		PhantomAssertions.assertEquals(List.of(173L), fixture.service.perceptibleProfilesAt(ground, PhantomPerceptionChannel.TARGETABILITY, 32).stream().map(profile -> profile.profileId()).toList(), "Ground-normalized human failed to find only the local committed route profile.");
+		PhantomAssertions.assertTrue(fixture.service.perceptibleProfilesAt(new PhantomTopologyPoint(-90070, 248328, -3563, 0), PhantomPerceptionChannel.TARGETABILITY, 32).isEmpty(), "Human XY outside radius-1 route was treated as local.");
+		PhantomAssertions.assertTrue(fixture.service.perceptibleProfilesAt(new PhantomTopologyPoint(-90072, 248328, -3551, 0), PhantomPerceptionChannel.TARGETABILITY, 32).isEmpty(), "Human Z outside bounded ground tolerance was treated as local.");
+		PhantomAssertions.assertTrue(fixture.service.perceptibleProfilesAt(new PhantomTopologyPoint(-90072, 248328, -3563, 1), PhantomPerceptionChannel.TARGETABILITY, 32).isEmpty(), "Cross-instance human was treated as local.");
+		final PhantomHumanLocalityControl locality = new PhantomHumanLocalityControl(fixture.service, fixture.port, () -> List.of(ground), () -> 1000, profileId -> true);
+		locality.onPulse();
+		PhantomAssertions.assertTrue(locality.isLocal(173), "Ground-normalized human did not deliver the ordinary local relevance signal.");
+		PhantomAssertions.assertFalse(locality.isLocal(174), "Remote committed profile received a local relevance signal.");
+		PhantomAssertions.assertFalse(locality.isLocal(175), "Unresolved profile received a local relevance signal.");
 		stop(fixture);
 	}
 

@@ -368,7 +368,7 @@ public final class PhantomTopologyService
 			{
 				return List.of();
 			}
-			final String nodeId = view.query().mostSpecificNode(point).map(PhantomTopologyNode::id).orElse(null);
+			final String nodeId = view.query().mostSpecificHumanNode(point).map(PhantomTopologyNode::id).orElse(null);
 			if (nodeId == null)
 			{
 				return List.of();

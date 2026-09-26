@@ -38,6 +38,8 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyValidationBacke
  */
 public final class PhantomTopologyQuery
 {
+	private static final int HUMAN_ROUTE_GROUND_Z_TOLERANCE = 16;
+
 	public record RouteHint(String fromAnchorId, String toAnchorId, List<String> edgeIds)
 	{
 		public RouteHint
@@ -69,14 +71,36 @@ public final class PhantomTopologyQuery
 
 	public List<PhantomTopologyNode> locate(PhantomTopologyPoint point)
 	{
+		return locate(point, false);
+	}
+
+	private List<PhantomTopologyNode> locate(PhantomTopologyPoint point, boolean humanGround)
+	{
 		Objects.requireNonNull(point, "point");
 		_metrics.recordSpatialQuery();
-		return _snapshot.spatialNodes(point).stream().filter(node -> node.area().contains(point)).sorted(Comparator.comparingInt((PhantomTopologyNode node) -> _snapshot.depth(node.id())).reversed().thenComparingDouble(node -> node.area().measure()).thenComparing(PhantomTopologyNode::id)).limit(_snapshot.policy().maximumReturnedNodes()).toList();
+		return _snapshot.spatialNodes(point).stream().filter(node -> node.area().contains(point) || (humanGround && containsGroundNormalizedHumanRoute(node, point))).sorted(Comparator.comparingInt((PhantomTopologyNode node) -> _snapshot.depth(node.id())).reversed().thenComparingDouble(node -> node.area().measure()).thenComparing(PhantomTopologyNode::id)).limit(_snapshot.policy().maximumReturnedNodes()).toList();
+	}
+
+	private static boolean containsGroundNormalizedHumanRoute(PhantomTopologyNode node, PhantomTopologyPoint point)
+	{
+		final PhantomTopologyArea area = node.area();
+		if ((node.kind() != PhantomTopologyNodeKind.ROUTE_AREA) || (area.form() != PhantomTopologyArea.Form.POINT_RADIUS) || (area.instanceId() != point.instanceId()))
+		{
+			return false;
+		}
+		return (Math.abs((long) point.z() - area.center().z()) <= HUMAN_ROUTE_GROUND_Z_TOLERANCE) && (area.center().distanceSquared2D(point) <= ((long) area.radius() * area.radius()));
 	}
 
 	public Optional<PhantomTopologyNode> mostSpecificNode(PhantomTopologyPoint point)
 	{
 		final List<PhantomTopologyNode> located = locate(point);
+		return located.isEmpty() ? Optional.empty() : Optional.of(located.getFirst());
+	}
+
+	/** Human ground Z can differ slightly from an otherwise exact route anchor after geodata placement. */
+	public Optional<PhantomTopologyNode> mostSpecificHumanNode(PhantomTopologyPoint point)
+	{
+		final List<PhantomTopologyNode> located = locate(point, true);
 		return located.isEmpty() ? Optional.empty() : Optional.of(located.getFirst());
 	}
 
