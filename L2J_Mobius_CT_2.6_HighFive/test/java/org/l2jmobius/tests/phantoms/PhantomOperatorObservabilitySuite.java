@@ -79,6 +79,7 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 		registry.add("06-admin-family-access-and-privacy-contract", this::testAdminContract);
 		registry.add("07-local-proof-nearest-committed-admitted", _ -> testNearestLocalProof());
 		registry.add("08-local-proof-no-remote-or-unresolved-fallback", _ -> testLocalProofFailClosed());
+		registry.add("09-envelope-ready-without-active-admission", _ -> testEnvelopeReadySelection());
 	}
 
 	private static void testNearestLocalProof()
@@ -103,6 +104,20 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 			new ProfileTopologySnapshot(4, new PhantomTopologyPoint(40, 0, 0, 0), 1, "farm", 1),
 			new ProfileTopologySnapshot(5, new PhantomTopologyPoint(50, 0, 0, 0), 1, "farm", 1));
 		PhantomAssertions.assertTrue(PhantomLocalProofSelector.nearest(human, profiles, id -> Optional.of(new AdmissionProfileSnapshot(id, State.READY, PhantomActivityState.ACTIVE, PhantomActivityState.WARM, id != 2, id != 3, "admitted", id == 5)), id -> id != 4).isEmpty(), "Local proof selected an unresolved, ineligible, unadmitted, pending or offline profile.");
+	}
+
+	private static void testEnvelopeReadySelection()
+	{
+		final PhantomTopologyPoint anchor = new PhantomTopologyPoint(39050, 41882, -3592, 0);
+		final List<ProfileTopologySnapshot> profiles = List.of(
+			new ProfileTopologySnapshot(1, anchor, 1, null, 1),
+			new ProfileTopologySnapshot(2, anchor, 1, "farm", 1),
+			new ProfileTopologySnapshot(3, new PhantomTopologyPoint(39060, 41882, -3592, 0), 1, "farm", 1),
+			new ProfileTopologySnapshot(4, new PhantomTopologyPoint(39050, 41882, -3592, 1), 1, "farm", 1),
+			new ProfileTopologySnapshot(5, new PhantomTopologyPoint(39200, 41882, -3592, 0), 1, "farm", 1));
+		final var selected = PhantomLocalProofSelector.nearestReadyWithin(anchor, profiles, id -> Optional.of(admission(id, false, false)), id -> id != 3, 64L * 64L).orElseThrow();
+		PhantomAssertions.assertEquals(2L, selected.profileId(), "Envelope proof must accept a READY, available ordinary profile without global ACTIVE admission.");
+		PhantomAssertions.assertTrue(PhantomLocalProofSelector.nearestReadyWithin(anchor, profiles, id -> Optional.of(new AdmissionProfileSnapshot(id, State.RETIRED, PhantomActivityState.WARM, PhantomActivityState.WARM, false, false, "not_ready", false)), id -> true, 64L * 64L).isEmpty(), "Envelope proof selected a non-READY profile.");
 	}
 
 	private static AdmissionProfileSnapshot admission(long id, boolean eligible, boolean admitted)

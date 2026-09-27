@@ -18,12 +18,14 @@ Populate during execution. Do not replace exact measurements with prose.
 ## Route discovery before arm
 
 - chosen area: Elven Territory outdoor farming corridor, away from the previous blocked Talking Island wall.
-- target profileId: natural cohort at the fixed farm anchor; read-only PLAY `SELECT` found profile `25` among 112 profiles at the anchor. The Pilot selects one eligible ordinary profile there and fixes that ID for the full connected run. Exact selected ID is pending the final arm.
+- target profileId: natural cohort at the fixed farm anchor; read-only PLAY `SELECT` found profile `25` among 112 profiles at the anchor. The Pilot selects one READY/AVAILABLE ordinary profile there and fixes that ID for the full connected run. Exact selected ID is pending the final arm.
 - target committed XYZ / instance: candidate cohort `(39050,41882,-3592)`, instance 0; exact selected runtime topology point pending.
 - route start/end/waypoints: fixed start `(45085,42001,-3496)` in native x-region 22; prewarm point `(44126,42751,-3488)` in region 21; visible traversal through `(42857,42534,-3514)`, `(41588,42316,-3540)`, `(40319,42099,-3566)` to target anchor `(39050,41882,-3592)` in region 19, then reverse exit and re-entry. The target's region 19 is not in the start region 22 surrounding set; region 21 is outside client visibility; region 20 first enters it.
 - GeoEngine route proof: `ANCHOR_PROOF.tsv` reports `VALID` exact start Z and local move with `STATIC_XML_CLEAR`; `adaptive-geo-proof.tsv` reports `VALID_DIRECT` for all 42 directed legs/subhops, including return. Subhops are at most 400 XY units for `MOVE_SELF`; start→prewarm is 1218 units for guarded `TELEPORT_SELF`. Native 203-region geodata was loaded. `population.farming.elf.20534` contains the prewarm point and has a TARGETABILITY edge to `generated.farm.7451e61fe8e94f49afb1f9e2`, which contains the target anchor.
 - Pilot helper required? yes.
-- if yes, RED limitation and exact helper scope: existing `TELEPORT_SELF` allows origin, current candidate, or a GeoEngine-reachable point within 2000; TestAdmin's previous Talking Island position cannot reach the chosen lane. Existing `SNAPSHOT_PHANTOMS` selects only the nearest candidate, so it cannot track one fixed profile through dematerialization. Added two consent-gated, TestAdmin-only Pilot operations: one teleports solely to the fixed, normalized, geo-proven start after selecting an admitted natural available target at the exact cohort; the other reads only that target's materialization/locality/native region state. No general destination parameter or phantom gameplay change.
+- if yes, RED limitation and exact helper scope: existing `TELEPORT_SELF` allows origin, current candidate, or a GeoEngine-reachable point within 2000; TestAdmin's previous Talking Island position cannot reach the chosen lane. Existing `SNAPSHOT_PHANTOMS` selects only the nearest candidate, so it cannot track one fixed profile through dematerialization. Added two consent-gated, TestAdmin-only Pilot operations: one teleports solely to the fixed, normalized, geo-proven start after selecting a READY/AVAILABLE natural target at the exact cohort; the other reads only that target's materialization/locality/native region state. No general destination parameter or phantom gameplay change.
+
+First connected preflight on commit `8609ca630df` rejected `PREPARE_M1_ENVELOPE:NO_ORDINARY_TARGET_AT_PROOF_ANCHOR` before any movement or TSV. Read-first showed its selector required global ACTIVE admission (64 slots over 10000 profiles), although locality itself submits `NEARBY_PERCEPTIBLE` to any non-OFFLINE profile and that state requires materialization. Read-only PLAY `SELECT` confirmed 112 natural profiles at the exact farm anchor; `SHOW COLUMNS` and `SELECT` only, no PLAY mutation. The operator-only selector was narrowed to READY, AVAILABLE, resolved, same-instance profiles within 64 units of the fixed anchor. This removes an unrelated prerequisite without changing budgets or phantom scheduling/materialization behavior. Focused RED was missing `nearestReadyWithin` at compile; focused GREEN: operator observability 9/9, Pilot contract 6/6, guarded TEST DB native 4/4. A second exact-SHA build/restart and at most one further TestAdmin arm are required; no third arm will be requested.
 
 ## USER_CLIENT_ACTION count
 
@@ -90,11 +92,11 @@ Recommended columns:
 - focused tests: `ant phantom-localplay-pilot-native-test` RED 3/4 (`PREPARE_M1_ENVELOPE` absent), then final `ant phantom-localplay-pilot-test` GREEN contract 6/6 and guarded TEST DB native 4/4 after fixed-anchor refinement. Initial unprivileged compile hit sandbox `AccessDeniedException` on a repository JAR; the required rerun with normal filesystem access compiled and passed.
 - mojibake-маркеры в изменённых файлах проверены: совпадений нет.
 - escaped Cyrillic в изменённых файлах проверены: совпадений нет.
-- diff check:
-- code commit (if any):
-- clean detached JAR SHA-256 (if any):
-- deployment:
-- final LocalPlay health:
+- diff check: `git diff --cached --check` exit 0 before the exact-path code/task commit.
+- code commit: `8609ca630df29d27dfe3b8b0c58b50ca20ed9c11`, normal push to `origin/feature/phantom-world`; no unrelated paths staged.
+- clean detached JAR SHA-256: `5B99BDE587E7E398DC6CFA6EE5D242006DB6071EEE58B04BA88C483DC62F4E4A`; clean managed detached checkout at that exact SHA, `ant jar` BUILD SUCCESSFUL (2291 sources), clean `git status --porcelain=v1` before build.
+- deployment: old JAR SHA-256 `C868989EB12C656861D4D85BABEC43BB136C1646041CFC753C5CA968A18C9467` and manifest saved under `artifacts/local-play/m1-materialization-backup-20260927`; controlled `Stop-LocalPlay.ps1`, copied exact new JAR to private runtime, updated manifest hash atomically, and `Start-LocalPlay.ps1 -Background` completed.
+- final LocalPlay health before connected run: `CONFIG PASS`; LoginServer PID 15716 and GameServer PID 23968 `RUNNING`, owned ports 2106/9014/7777; population/active/materialized cap/pulse = `10000/64/128/100`, diagnostics True. Old Pilot lease stale after restart. New single arm requested only after route/build/deploy were ready.
 
 ## Final status
 

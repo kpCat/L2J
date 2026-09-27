@@ -182,13 +182,13 @@ public final class LocalPlayPilotActions
 		{
 			return Outcome.of("REJECTED", "ACTOR_BUSY");
 		}
-		final OperatorLocalityTarget target = PhantomSystem.operatorNearestLocalityTarget(M1_TARGET_ANCHOR).orElse(null);
-		if ((target == null) || (target.committedPosition().instanceId() != 0) || (M1_TARGET_ANCHOR.distanceSquared2D(target.committedPosition()) > (M1_ANCHOR_TOLERANCE * M1_ANCHOR_TOLERANCE)))
+		final OperatorLocalityTarget target = PhantomSystem.operatorNearestReadyLocalityTarget(M1_TARGET_ANCHOR, M1_ANCHOR_TOLERANCE * M1_ANCHOR_TOLERANCE).orElse(null);
+		if (target == null)
 		{
 			return Outcome.of("REJECTED", "NO_ORDINARY_TARGET_AT_PROOF_ANCHOR");
 		}
 		final OperatorAdmissionProfile admission = PhantomSystem.operatorAdmissionProfile(target.profileId()).orElse(null);
-		if ((admission == null) || !admission.admission().admitted() || admission.admission().pendingRebalance() || !GeoEngine.getInstance().hasGeo(M1_ROUTE_START.getX(), M1_ROUTE_START.getY()) || (GeoEngine.getInstance().getHeight(M1_ROUTE_START.getX(), M1_ROUTE_START.getY(), M1_ROUTE_START.getZ()) != M1_ROUTE_START.getZ()))
+		if ((admission == null) || !"none".equals(admission.busyReason()) || !GeoEngine.getInstance().hasGeo(M1_ROUTE_START.getX(), M1_ROUTE_START.getY()) || (GeoEngine.getInstance().getHeight(M1_ROUTE_START.getX(), M1_ROUTE_START.getY(), M1_ROUTE_START.getZ()) != M1_ROUTE_START.getZ()))
 		{
 			return Outcome.of("REJECTED", "PROOF_TARGET_OR_ANCHOR_UNAVAILABLE");
 		}
