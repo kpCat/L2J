@@ -22,6 +22,7 @@ import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorAdmissionProfile;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorLocalityTarget;
+import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 
@@ -40,6 +41,7 @@ public final class LocalPlayPilotActions
 	private Location _candidatePosition;
 	private int _candidateObjectId;
 	private int _selectedMobObjectId;
+	private long _selectedTraceProfileId;
 	private final Set<Integer> _mobRoster = new HashSet<>();
 	private int _ownedPartyLeaderObjectId;
 	private InvitationIdentity _pendingOwnInvite;
@@ -79,8 +81,11 @@ public final class LocalPlayPilotActions
 		{
 			return switch (request.operation())
 			{
-				case STATUS, CAPABILITIES -> Outcome.of("SUCCEEDED", request.operation() == LocalPlayPilotProtocol.Operation.CAPABILITIES ? "STATUS,SNAPSHOT_PHANTOMS,SNAPSHOT_TARGETS,TELEPORT_SELF,MOVE_SELF,STOP_MOVE,SIT,STAND,SELECT_TARGET,SAY,PARTY_INVITE,PARTY_RESPOND,PARTY_LEAVE,ATTACK_NPC,CAST_LEARNED_SKILL" : "SNAPSHOT");
+				case STATUS, CAPABILITIES -> Outcome.of("SUCCEEDED", request.operation() == LocalPlayPilotProtocol.Operation.CAPABILITIES ? "STATUS,SNAPSHOT_PHANTOMS,SELECT_VISIBLE_PHANTOM_TRACE,SNAPSHOT_SELECTED_PHANTOM_TRACE,REPLAY_SELECTED_PHANTOM_TRACE,SNAPSHOT_TARGETS,TELEPORT_SELF,MOVE_SELF,STOP_MOVE,SIT,STAND,SELECT_TARGET,SAY,PARTY_INVITE,PARTY_RESPOND,PARTY_LEAVE,ATTACK_NPC,CAST_LEARNED_SKILL" : "SNAPSHOT");
 				case SNAPSHOT_PHANTOMS -> candidate(actor);
+				case SELECT_VISIBLE_PHANTOM_TRACE -> selectVisibleTrace(actor);
+				case SNAPSHOT_SELECTED_PHANTOM_TRACE -> selectedTrace();
+				case REPLAY_SELECTED_PHANTOM_TRACE -> replaySelectedTrace();
 				case SNAPSHOT_TARGETS -> targets(actor);
 				case SIT -> sit(actor);
 				case STAND -> stand(actor);
@@ -168,17 +173,22 @@ public final class LocalPlayPilotActions
 	private Outcome candidate(Player actor)
 	{
 		final PhantomTopologyPoint here = new PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId());
+		final OperatorLocalityTarget visible = PhantomSystem.operatorNearestVisibleMaterializedTarget(actor).orElse(null);
 		final OperatorLocalityTarget nearest = PhantomSystem.operatorNearestLocalityTarget(here).orElse(null);
 		if (nearest == null)
 		{
 			_candidatePosition = null;
 			_candidateObjectId = 0;
-			return Outcome.of("SUCCEEDED", "NO_CANDIDATE");
+			final Map<String, String> data = new LinkedHashMap<>();
+			addVisibleMaterialized(data, visible);
+			return new Outcome("SUCCEEDED", "NO_CANDIDATE", Map.copyOf(data));
 		}
 		final OperatorAdmissionProfile profile = PhantomSystem.operatorAdmissionProfile(nearest.profileId()).orElse(null);
 		if ((profile == null) || !profile.admission().admitted() || profile.admission().pendingRebalance() || (nearest.committedPosition().instanceId() != actor.getInstanceId()))
 		{
-			return Outcome.of("SUCCEEDED", "NO_ADMITTED_CANDIDATE");
+			final Map<String, String> data = new LinkedHashMap<>();
+			addVisibleMaterialized(data, visible);
+			return new Outcome("SUCCEEDED", "NO_ADMITTED_CANDIDATE", Map.copyOf(data));
 		}
 		final PhantomTopologyPoint point = nearest.committedPosition();
 		_candidatePosition = new Location(point.x(), point.y(), point.z(), actor.getHeading(), point.instanceId());
@@ -191,6 +201,7 @@ public final class LocalPlayPilotActions
 		data.put("instanceId", Integer.toString(point.instanceId()));
 		data.put("admitted", "true");
 		data.put("materialized", Boolean.toString((profile.materialization() != null) && profile.materialization().worldPresent()));
+		addVisibleMaterialized(data, visible);
 		if ((profile.materialization() != null) && profile.materialization().worldPresent())
 		{
 			final int objectId = profile.materialization().characterObjectId();
@@ -203,6 +214,92 @@ public final class LocalPlayPilotActions
 			}
 		}
 		return new Outcome("SUCCEEDED", "CANDIDATE_SNAPSHOT", Map.copyOf(data));
+	}
+
+	private static void addVisibleMaterialized(Map<String, String> data, OperatorLocalityTarget visible)
+	{
+		if (visible != null)
+		{
+			data.put("visibleProfileId", Long.toString(visible.profileId()));
+			data.put("visibleX", Integer.toString(visible.committedPosition().x()));
+			data.put("visibleY", Integer.toString(visible.committedPosition().y()));
+			data.put("visibleZ", Integer.toString(visible.committedPosition().z()));
+		}
+	}
+
+	private Outcome selectVisibleTrace(Player actor)
+	{
+		final OperatorLocalityTarget visible = PhantomSystem.operatorNearestVisibleMaterializedTarget(actor).orElse(null);
+		if (visible == null)
+		{
+			return Outcome.of("REJECTED", "NO_VISIBLE_MATERIALIZED_PHANTOM");
+		}
+		final PhantomSelectedDecisionTrace.SelectionStatus status = PhantomSystem.selectOperatorTrace(visible.profileId());
+		if (status != PhantomSelectedDecisionTrace.SelectionStatus.SELECTED)
+		{
+			return Outcome.of("REJECTED", status.name());
+		}
+		_selectedTraceProfileId = visible.profileId();
+		return new Outcome("SUCCEEDED", status.name(), Map.of("profileId", Long.toString(visible.profileId())));
+	}
+
+	private Outcome selectedTrace()
+	{
+		final PhantomSelectedDecisionTrace.Snapshot trace = PhantomSystem.operatorStatus().selectedTrace();
+		if ((_selectedTraceProfileId <= 0) || (trace.selectedProfileId() != _selectedTraceProfileId))
+		{
+			return Outcome.of("REJECTED", "NO_PILOT_TRACE_SELECTION");
+		}
+		final Map<String, String> data = new LinkedHashMap<>();
+		data.put("profileId", Long.toString(trace.selectedProfileId()));
+		data.put("attached", Boolean.toString(trace.attached()));
+		data.put("recorded", Long.toString(trace.recorded()));
+		data.put("dropped", Long.toString(trace.dropped()));
+		data.put("health", trace.health().name());
+		data.put("ageMillis", Long.toString(trace.ageMillis()));
+		if (trace.current() != null)
+		{
+			final PhantomSelectedDecisionTrace.DecisionView current = trace.current();
+			data.put("activityState", String.valueOf(current.activityState()));
+			data.put("goalType", String.valueOf(current.goalType()));
+			data.put("goalStatus", String.valueOf(current.goalStatus()));
+			data.put("runtimeState", String.valueOf(current.runtimeState()));
+			data.put("decisionSequence", Long.toString(current.decisionSequence()));
+			data.put("candidateKey", String.valueOf(current.candidateKey()));
+			data.put("score", Integer.toString(current.score()));
+			data.put("step", Integer.toString(current.step()));
+			data.put("attempt", Integer.toString(current.attempt()));
+			data.put("lastResult", String.valueOf(current.lastResult()));
+			data.put("reasonKey", String.valueOf(current.reasonKey()));
+			data.put("topCandidates", current.topCandidates().toString());
+		}
+		final int start = Math.max(0, trace.history().size() - 8);
+		for (int index = start; index < trace.history().size(); index++)
+		{
+			data.put("history" + (index - start), trace.history().get(index).toString());
+		}
+		return new Outcome("SUCCEEDED", "SELECTED_TRACE_SNAPSHOT", Map.copyOf(data));
+	}
+
+	private Outcome replaySelectedTrace()
+	{
+		final PhantomSelectedDecisionTrace.Snapshot trace = PhantomSystem.operatorStatus().selectedTrace();
+		if ((_selectedTraceProfileId <= 0) || (trace.selectedProfileId() != _selectedTraceProfileId))
+		{
+			return Outcome.of("REJECTED", "NO_PILOT_TRACE_SELECTION");
+		}
+		final PhantomSystem.OperatorReplayResult capture = PhantomSystem.operatorReplayCapture();
+		if (capture.code() != PhantomSystem.OperatorReplayCode.CAPTURED)
+		{
+			return Outcome.of("REJECTED", capture.code().name());
+		}
+		final PhantomSystem.OperatorReplayResult replay = PhantomSystem.operatorReplayRun();
+		final Map<String, String> data = new LinkedHashMap<>();
+		data.put("profileId", Long.toString(replay.profileId()));
+		data.put("frameCount", Integer.toString(replay.frameCount()));
+		data.put("digest", replay.digest());
+		data.put("replay", String.valueOf(replay.replay()));
+		return new Outcome(replay.code() == PhantomSystem.OperatorReplayCode.REPLAY_PASS ? "SUCCEEDED" : "REJECTED", replay.code().name(), Map.copyOf(data));
 	}
 
 	private Outcome targets(Player actor)

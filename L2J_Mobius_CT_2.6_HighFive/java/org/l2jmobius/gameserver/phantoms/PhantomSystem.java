@@ -1696,6 +1696,37 @@ public final class PhantomSystem
 			configured._populationManager.presence().busyReason(profileId)));
 	}
 
+	/** Read-only naturally materialized target already visible to the Pilot actor. */
+	public static synchronized java.util.Optional<OperatorLocalityTarget> operatorNearestVisibleMaterializedTarget(Player human)
+	{
+		Objects.requireNonNull(human, "Human actor must not be null.");
+		final PhantomSystem configured = _configuredInstance;
+		if ((configured == null) || (configured._state != State.RUNNING) || (configured._populationManager == null) || (configured._topologyService == null) || (configured._materializationService == null))
+		{
+			return java.util.Optional.empty();
+		}
+		final java.util.Set<Integer> visible = new java.util.HashSet<>();
+		World.getInstance().forEachVisibleObject(human, Player.class, target ->
+		{
+			if (target.isOnline() && target.isVisibleFor(human))
+			{
+				visible.add(target.getObjectId());
+			}
+		});
+		if (visible.isEmpty())
+		{
+			return java.util.Optional.empty();
+		}
+		final PhantomTopologyPoint point = new PhantomTopologyPoint(human.getX(), human.getY(), human.getZ(), human.getInstanceId());
+		return configured._materializationService.snapshot().materializations().stream()
+			.filter(entry -> entry.worldPresent() && (entry.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE) && visible.contains(entry.characterObjectId()))
+			.map(entry -> configured._topologyService.findProfile(entry.profileId()))
+			.flatMap(java.util.Optional::stream)
+			.filter(profile -> profile.resolved() && (profile.point() != null) && (profile.point().instanceId() == point.instanceId()))
+			.min(java.util.Comparator.comparingLong((org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.ProfileTopologySnapshot profile) -> point.distanceSquared2D(profile.point())).thenComparingLong(org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.ProfileTopologySnapshot::profileId))
+			.map(profile -> new OperatorLocalityTarget(profile.profileId(), profile.point(), profile.nodeId(), profile.topologyGeneration()));
+	}
+
 	/** Read-only canonical target for the one-shot LocalPlay human relocation proof. */
 	public static synchronized java.util.Optional<OperatorLocalityTarget> operatorNearestLocalityTarget(PhantomTopologyPoint human)
 	{
