@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-	[ValidatePattern('^[\p{L}\p{N}_-]{1,32}$')][string] $ExpectedName = 'CodexQA',
+	[ValidatePattern('^[\p{L}\p{N}_-]{1,32}$')][string] $ExpectedName = 'TestAdmin',
 	[ValidateRange(1, 10)][int] $ArmMinutes = 10
 )
 
