@@ -1,0 +1,30 @@
+PHANTOM-LIVE-M1-VISIBLE-WORLD-001
+
+Thinking level: HIGH
+
+Goal:
+Make the first user-visible Phantom World vertical genuinely alive:
+1) remove/prove away visible materialization pop-in/flicker for a controlled REAL-player approach;
+2) prove the exact reason ordinary visible phantoms stand idle;
+3) fix only the proven root cause(s) so ordinary visible phantoms perform real native gameplay actions without operator commands.
+
+This is a NEW Codex chat.
+
+Repository:
+C:\Users\ZBook\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\
+
+GitHub:
+https://github.com/kpCat/L2J
+
+Branch:
+feature/phantom-world
+
+Required initial HEAD:
+7872e18fbf37177cf08ab23f342a25e3742bb1d0
+
+Human-interaction budget:
+- target: ONE USER_CLIENT_ACTION total;
+- hard maximum: TWO USER_CLIENT_ACTION events total;
+- a third requested login/re-arm/manual traversal is a task blocker, not an acceptable workflow.
+
+Use TestAdmin and the already GREEN LocalPlay Pilot. Do not build another QA framework.

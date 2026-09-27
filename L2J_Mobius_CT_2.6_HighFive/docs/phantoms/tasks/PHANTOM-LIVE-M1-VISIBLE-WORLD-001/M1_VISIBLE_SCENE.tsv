@@ -1,0 +1,3 @@
+utc_time	actor	actor_x	actor_y	actor_z	instance_id	profile_id	profile_x	profile_y	profile_z	admitted	materialized	selected_trace	native_action	verdict
+2026-09-27T15:44:44Z	TestAdmin	-90825	248162	-3568	0	6	-90875	248162	-3568	true	false	DISABLED	NOT_OBSERVED	NO_VISIBLE_IDLE_SAMPLE
+2026-09-27T15:45:36Z	TestAdmin	-90825	248162	-3568	0	6	-90875	248162	-3568	true	false	DISABLED	NOT_OBSERVED	NO_VISIBLE_IDLE_SAMPLE
