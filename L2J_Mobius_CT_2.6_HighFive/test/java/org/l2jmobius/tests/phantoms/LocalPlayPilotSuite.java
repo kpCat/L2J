@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.l2jmobius.gameserver.localplay.LocalPlayPilotArmCode;
 import org.l2jmobius.gameserver.localplay.LocalPlayPilotLease;
 import org.l2jmobius.gameserver.localplay.LocalPlayPilotLease.State;
 import org.l2jmobius.gameserver.localplay.LocalPlayPilotProtocol;
@@ -24,6 +25,7 @@ public final class LocalPlayPilotSuite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		registry.add("exact-client-and-process-arm", this::exactArm);
+		registry.add("short-human-arm-code", this::shortHumanArmCode);
 		registry.add("sequence-stop-and-expiry", this::sequenceStopExpiry);
 		registry.add("off-invalidates-consent", this::offInvalidates);
 		registry.add("mailbox-xml-contract", this::mailboxXmlContract);
@@ -43,6 +45,18 @@ public final class LocalPlayPilotSuite implements PhantomTestSuite
 		assertTrue(lease.valid("account", 5, client, 17, 200), "same client");
 		assertFalse(lease.valid("account", 5, new Object(), 17, 200), "different GameClient");
 		assertFalse(lease.valid("account", 6, client, 17, 200), "different character");
+	}
+
+	private void shortHumanArmCode(PhantomTestContext context)
+	{
+		final String hash = "a00d76646eba91b057841554d5c8334f498dc592ed744bce404f21fe271cd36e";
+		assertTrue(LocalPlayPilotArmCode.isValid("ABCD2345"), "eight unambiguous characters");
+		assertTrue(LocalPlayPilotArmCode.matches("abcd2345", hash), "case-insensitive typed code");
+		assertFalse(LocalPlayPilotArmCode.isValid("ABCD234"), "short code rejected");
+		assertFalse(LocalPlayPilotArmCode.isValid("ABCD23456"), "long code rejected");
+		assertFalse(LocalPlayPilotArmCode.isValid("ABCI2345"), "ambiguous character rejected");
+		assertFalse(LocalPlayPilotArmCode.matches("ABCD2346", hash), "wrong one-time code rejected");
+		assertFalse(LocalPlayPilotArmCode.isValid("0123456789abcdef0123456789abcdef"), "internal nonce is not human-entered");
 	}
 
 	private void sequenceStopExpiry(PhantomTestContext context)

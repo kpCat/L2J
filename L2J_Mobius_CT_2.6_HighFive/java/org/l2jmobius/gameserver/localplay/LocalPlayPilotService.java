@@ -326,9 +326,9 @@ public final class LocalPlayPilotService
 		Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
 	}
 
-	public synchronized String arm(Player player, String nonce)
+	public synchronized String arm(Player player, String armCode)
 	{
-		if ((_poller == null) || !mailboxSafe() || (player == null) || (nonce == null) || !nonce.matches("[0-9a-fA-F]{32,128}") || !realClient(player))
+		if ((_poller == null) || !mailboxSafe() || (player == null) || !LocalPlayPilotArmCode.isValid(armCode) || !realClient(player))
 		{
 			return "Пилот недоступен или настоящий клиент не подтверждён.";
 		}
@@ -350,12 +350,13 @@ public final class LocalPlayPilotService
 			final Properties permit = readProperties(permitFile);
 			final long permitExpiry = Long.parseLong(permit.getProperty("expiresUtcMillis", "0"));
 			final long now = System.currentTimeMillis();
-			if (!"1".equals(permit.getProperty("version")) || (permitExpiry <= now) || (permitExpiry > now + (10 * 60 * 1000L)) || !_runtimeId.equals(permit.getProperty("runtimeId")) || !Long.toString(_pid).equals(permit.getProperty("pid")) || !Long.toString(_startTicks).equals(permit.getProperty("startTimeUtcTicks")) || !player.getName().equals(permit.getProperty("expectedName")))
+			if (!"2".equals(permit.getProperty("version")) || (permitExpiry <= now) || (permitExpiry > now + (10 * 60 * 1000L)) || !_runtimeId.equals(permit.getProperty("runtimeId")) || !Long.toString(_pid).equals(permit.getProperty("pid")) || !Long.toString(_startTicks).equals(permit.getProperty("startTimeUtcTicks")) || !player.getName().equals(permit.getProperty("expectedName")))
 			{
 				return "Разрешение не соответствует этому персонажу или процессу.";
 			}
 			final long armDeadlineNanos = System.nanoTime() + ((permitExpiry - now) * 1000000L);
-			if (!nonce.equals(permit.getProperty("nonce")))
+			final String nonce = permit.getProperty("nonce");
+			if ((nonce == null) || !nonce.matches("[0-9a-f]{48}") || !LocalPlayPilotArmCode.matches(armCode, permit.getProperty("armCodeSha256")))
 			{
 				return "Неверный или использованный код разрешения.";
 			}

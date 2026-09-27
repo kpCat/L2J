@@ -32,7 +32,7 @@
 - фактический GameClient/REAL_LOGIN identity сохраняется, нет дубля Player; потери соединения/смерти не маскируются;
 - никаких 10k reset/reseed, ручного SQL или budget tuning.
 
-Если подходящего phantom/skill нет — этот gameplay subcase `NOT_APPLICABLE/NOT_OBSERVED` с причиной. Не требовать докачивать CodexQA или чинить AI в этой задаче. Не пропускать при этом обязательные deterministic adapter tests.
+Если подходящего phantom/skill нет — этот gameplay subcase `NOT_APPLICABLE/NOT_OBSERVED` с причиной. Не требовать докачивать TestAdmin или чинить AI в этой задаче. Не пропускать при этом обязательные deterministic adapter tests.
 
 ## D. Статус и outputs
 
