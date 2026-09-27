@@ -394,6 +394,30 @@
 		</java>
 	</target>
 
+	<target name="phantom-localplay-pilot-contract-test" depends="compile-tests" description="Run the bounded LocalPlay pilot security contract suite.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="localplay-pilot" />
+			<arg value="40004001" />
+		</java>
+	</target>
+	<target name="phantom-localplay-pilot-native-test" depends="compile-tests" description="Run LocalPlay native action checks against the allowlisted TEST database.">
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing isolated Phantom test DB config." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing isolated Phantom test schema manifest." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="240000" dir="${datapack}/game">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<jvmarg value="-Dphantom.test.schema.manifest=${phantom.test.schema.manifest}" />
+			<arg value="localplay-pilot-native" />
+			<arg value="40004001" />
+		</java>
+	</target>
+	<target name="phantom-localplay-pilot-test" depends="phantom-localplay-pilot-contract-test,phantom-localplay-pilot-native-test" description="Run the focused pilot contract and guarded native action gates." />
+
 	<target name="phantom-headless-player-test" depends="compile-tests" description="Run the bounded canonical headless Player feasibility suite.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="240000" dir="${datapack}/game">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />

@@ -6,6 +6,7 @@ param(
 	[string] $Account = "localplayer",
 	[switch] $Mature,
 	[switch] $Diagnostics,
+	[switch] $EnablePilot,
 	[switch] $ConfirmExistingDatabaseForLocalPlay,
 	[switch] $SanitizedZip
 )
@@ -148,6 +149,7 @@ $characterConfig = Join-Path $temporaryRuntime "game\config\Custom\PersonalChara
 $premiumConfig = Join-Path $temporaryRuntime "game\config\Custom\PersonalPremiumQoL.ini"
 $progressionConfig = Join-Path $temporaryRuntime "game\config\Custom\PersonalProgressionQoL.ini"
 $loginServerConfig = Join-Path $temporaryRuntime "login\config\Server.ini"
+$pilotConfig = Join-Path $temporaryRuntime "game\config\Custom\LocalPlayPilot.ini"
 
 $patches = [ordered]@{
 	$phantomConfig = [ordered]@{
@@ -188,6 +190,9 @@ $patches = [ordered]@{
 	$loginServerConfig = [ordered]@{
 		AutoCreateAccounts = "True"
 	}
+	$pilotConfig = [ordered]@{
+		EnableLocalPlayPilot = $(if ($EnablePilot) { "True" } else { "False" })
+	}
 }
 
 foreach ($entry in $patches.GetEnumerator())
@@ -200,11 +205,14 @@ foreach ($entry in $patches.GetEnumerator())
 	Assert-CommentsPreserved -Source (Join-Path $sourceDist $relativePath) -Copy $entry.Key
 }
 
-$toolFiles = @("LocalPlay-Ownership.ps1", "Start-LocalPlay.ps1", "Stop-LocalPlay.ps1", "Check-LocalPlay.ps1")
+$toolFiles = @("LocalPlay-Ownership.ps1", "Start-LocalPlay.ps1", "Stop-LocalPlay.ps1", "Check-LocalPlay.ps1", "LocalPlay-Pilot.ps1", "Prepare-LocalPlayPilot.ps1", "Get-LocalPlayPilot.ps1", "Invoke-LocalPlayPilot.ps1", "Stop-LocalPlayPilot.ps1", "Run-LocalPlayPilotScenario.ps1")
 foreach ($toolFile in $toolFiles)
 {
 	Copy-Item -LiteralPath (Join-Path $PSScriptRoot $toolFile) -Destination (Join-Path $temporaryRuntime $toolFile) -Force
 }
+$scenarioRoot = Join-Path $temporaryRuntime 'scenarios'
+New-Item -ItemType Directory -Path $scenarioRoot -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'scenarios\pilot-smoke.xml') -Destination (Join-Path $scenarioRoot 'pilot-smoke.xml') -Force
 
 $startCmd = "@echo off`r`npowershell.exe -NoProfile -ExecutionPolicy Bypass -File `"%~dp0Start-LocalPlay.ps1`"`r`n"
 $stopCmd = "@echo off`r`npowershell.exe -NoProfile -ExecutionPolicy Bypass -File `"%~dp0Stop-LocalPlay.ps1`"`r`n"

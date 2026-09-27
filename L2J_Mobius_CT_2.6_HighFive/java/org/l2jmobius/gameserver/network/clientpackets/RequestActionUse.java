@@ -97,6 +97,7 @@ public class RequestActionUse extends ClientPacket
 		{
 			return;
 		}
+		org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().onManualAction(player);
 		
 		// Don't do anything if player is dead or confused
 		if ((player.isFakeDeath() && (_actionId != 0)) || player.isDead() || player.isOutOfControl())

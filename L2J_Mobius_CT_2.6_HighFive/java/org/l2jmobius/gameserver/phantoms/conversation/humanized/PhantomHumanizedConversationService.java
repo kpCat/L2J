@@ -53,7 +53,7 @@ public final class PhantomHumanizedConversationService
 	{
 		public Request
 		{
-			if ((ownerProfileId <= 0) || (ownerName == null) || ownerName.isBlank() || (ownerName.length() > 64) || (speaker == null) || ((origin != Origin.CLIENT_CHAT) && (origin != Origin.PHANTOM_SOCIAL)) || (channel == null) || (text == null) || text.isBlank() || (text.length() > 1024) || (observationHash == null) || !observationHash.matches("[0-9A-Fa-f]{64}") || (nowMinute < 0) || (identity == null) || (identity.available() && (identity.profileId() != ownerProfileId)))
+			if ((ownerProfileId <= 0) || (ownerName == null) || ownerName.isBlank() || (ownerName.length() > 64) || (speaker == null) || ((origin != Origin.CLIENT_CHAT) && (origin != Origin.LOCALPLAY_PILOT) && (origin != Origin.PHANTOM_SOCIAL)) || (channel == null) || (text == null) || text.isBlank() || (text.length() > 1024) || (observationHash == null) || !observationHash.matches("[0-9A-Fa-f]{64}") || (nowMinute < 0) || (identity == null) || (identity.available() && (identity.profileId() != ownerProfileId)))
 			{
 				throw new IllegalArgumentException("Humanized conversation request is invalid.");
 			}
@@ -125,7 +125,7 @@ public final class PhantomHumanizedConversationService
 	public Optional<SupportRequest> requestedSupport(Request request)
 	{
 		Objects.requireNonNull(request);
-		if ((request.origin() != Origin.CLIENT_CHAT) || ((request.speaker().kind() == SubjectKind.PHANTOM_PROFILE) && (request.speaker().id() == request.ownerProfileId())))
+		if (((request.origin() != Origin.CLIENT_CHAT) && (request.origin() != Origin.LOCALPLAY_PILOT)) || ((request.speaker().kind() == SubjectKind.PHANTOM_PROFILE) && (request.speaker().id() == request.ownerProfileId())))
 		{
 			return Optional.empty();
 		}
@@ -214,7 +214,7 @@ public final class PhantomHumanizedConversationService
 					new Evidence("humanized.act", match.act()),
 					new Evidence("humanized.persona", personaKey),
 					new Evidence("humanized.relationship", band.name().toLowerCase(java.util.Locale.ROOT)),
-					new Evidence("humanized.origin", request.origin() == Origin.CLIENT_CHAT ? "client_chat" : "phantom_social"));
+					new Evidence("humanized.origin", request.origin() == Origin.CLIENT_CHAT ? "client_chat" : request.origin() == Origin.LOCALPLAY_PILOT ? "localplay_pilot" : "phantom_social"));
 				return new Decision(true, false, match.topic(), match.act(), selection.text(), match.normalizedHash(), selection.templateId(), personaKey, band, memory.isPresent(), selection.profanityUsed(), selection.matureUsed(), eventKey, evidence);
 			}
 			catch (RuntimeException exception)

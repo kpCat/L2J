@@ -44,7 +44,7 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PartyInvita
 import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PreparationOutcome;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InvitationIdentity;
-import org.l2jmobius.gameserver.network.clientpackets.Say2;
+import org.l2jmobius.gameserver.model.chat.PlayerChatIngress;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
@@ -133,7 +133,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	private static final long CHECKPOINT_2_SEED = 20002002L;
 	private static final Hashes HASHES = new Hashes("A".repeat(64), "B".repeat(64), "C".repeat(64));
 	private static final Method RUN_PULSE = method(PhantomConversationService.class, "runPulse", int.class);
-	private static final Method DISPATCH_FINAL = method(Say2.class, "dispatchFinalFiltered", IChatHandler.class, ChatType.class, Player.class, String.class, String.class, long.class);
+	private static final Method DISPATCH_FINAL = method(PlayerChatIngress.class, "dispatchFinalFiltered", IChatHandler.class, ChatType.class, Player.class, String.class, String.class, long.class, boolean.class);
 	private final Mode _mode;
 	private final List<ConversationResponsePlan> _plans = new ArrayList<>();
 	private final List<PhaseEvent> _phaseEvents = new ArrayList<>();
@@ -755,9 +755,9 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 					};
 				}
 			};
-			invoke(DISPATCH_FINAL, null, handler, ChatType.WHISPER, _speaker, _observer.getName(), "где взять адену", 120_000_000L);
+			invoke(DISPATCH_FINAL, null, handler, ChatType.WHISPER, _speaker, _observer.getName(), "где взять адену", 120_000_000L, false);
 			driveUntilPlans(beforeManual + 2, 64);
-			PhantomAssertions.assertEquals(1, handlerCalls.get(), "Say2 final handler was not invoked exactly once.");
+			PhantomAssertions.assertEquals(1, handlerCalls.get(), "Shared player-chat final handler was not invoked exactly once.");
 			final ConversationResponsePlan plan = _plans.getLast();
 			PhantomAssertions.assertTrue(_stateExistedBeforePublish, "Conversation plan was published before durable conversation.state.");
 			PhantomAssertions.assertEquals(_observerProfile.profileId(), plan.ownerProfileId(), "Plan owner is not the actual delivered Phantom recipient.");
@@ -781,8 +781,8 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 					};
 				}
 			};
-			invoke(DISPATCH_FINAL, null, invalidHandler, ChatType.WHISPER, _speaker, _observer.getName(), null, 120_000_001L);
-			invoke(DISPATCH_FINAL, null, invalidHandler, ChatType.WHISPER, _speaker, _observer.getName(), "x".repeat(1025), 120_000_002L);
+			invoke(DISPATCH_FINAL, null, invalidHandler, ChatType.WHISPER, _speaker, _observer.getName(), null, 120_000_001L, false);
+			invoke(DISPATCH_FINAL, null, invalidHandler, ChatType.WHISPER, _speaker, _observer.getName(), "x".repeat(1025), 120_000_002L, false);
 			PhantomAssertions.assertEquals(2, invalidCalls.get(), "Invalid observation instrumentation changed ordinary handler invocation.");
 		});
 

@@ -53,6 +53,7 @@ public class RequestMagicSkillUse extends ClientPacket
 		{
 			return;
 		}
+		org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().onManualAction(player);
 		
 		if (player.isDead())
 		{

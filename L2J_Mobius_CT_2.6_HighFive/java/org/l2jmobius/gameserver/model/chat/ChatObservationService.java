@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.LongAdder;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 
 /**
- * Generic actual-delivery observation seam. A client dispatch scope is visible
+ * Generic actual-delivery observation seam. A player dispatch scope is visible
  * only while the final chat handler creates its recipient packets; each packet
  * then reports the concrete recipient after normal packet side effects ran.
  */
@@ -22,6 +22,7 @@ public final class ChatObservationService
 	public enum Origin
 	{
 		CLIENT_CHAT,
+		LOCALPLAY_PILOT,
 		PHANTOM_GENERATED,
 		PHANTOM_SOCIAL
 	}
@@ -79,7 +80,7 @@ public final class ChatObservationService
 		void close();
 	}
 
-	public record Snapshot(long scopes, long clientScopes, long generatedScopes, long nestedRejected, long rejections, long mismatches, long captures, long deliveries, long clientDeliveries, long generatedDeliveries, long dispatchesClosed, long backpressure, long callbackFailures, boolean observerRegistered)
+	public record Snapshot(long scopes, long clientScopes, long generatedScopes, long pilotScopes, long nestedRejected, long rejections, long mismatches, long captures, long deliveries, long clientDeliveries, long generatedDeliveries, long pilotDeliveries, long dispatchesClosed, long backpressure, long callbackFailures, boolean observerRegistered)
 	{
 	}
 
@@ -94,6 +95,7 @@ public final class ChatObservationService
 	private final LongAdder _scopes = new LongAdder();
 	private final LongAdder _clientScopes = new LongAdder();
 	private final LongAdder _generatedScopes = new LongAdder();
+	private final LongAdder _pilotScopes = new LongAdder();
 	private final LongAdder _nestedRejected = new LongAdder();
 	private final LongAdder _rejections = new LongAdder();
 	private final LongAdder _mismatches = new LongAdder();
@@ -101,6 +103,7 @@ public final class ChatObservationService
 	private final LongAdder _deliveries = new LongAdder();
 	private final LongAdder _clientDeliveries = new LongAdder();
 	private final LongAdder _generatedDeliveries = new LongAdder();
+	private final LongAdder _pilotDeliveries = new LongAdder();
 	private final LongAdder _dispatchesClosed = new LongAdder();
 	private final LongAdder _backpressure = new LongAdder();
 	private final LongAdder _callbackFailures = new LongAdder();
@@ -118,6 +121,11 @@ public final class ChatObservationService
 	public DispatchHandle openClientDispatch(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
 	{
 		return openDispatch(Origin.CLIENT_CHAT, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis, 0);
+	}
+
+	public DispatchHandle openPilotDispatch(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
+	{
+		return openDispatch(Origin.LOCALPLAY_PILOT, speakerObjectId, speakerName, chatType, whisperTarget, finalText, epochMillis, 0);
 	}
 
 	public DispatchHandle openGeneratedDispatch(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)
@@ -174,6 +182,10 @@ public final class ChatObservationService
 		{
 			_clientScopes.increment();
 		}
+		else if (origin == Origin.LOCALPLAY_PILOT)
+		{
+			_pilotScopes.increment();
+		}
 		else
 		{
 			_generatedScopes.increment();
@@ -229,6 +241,10 @@ public final class ChatObservationService
 		{
 			_clientDeliveries.increment();
 		}
+		else if (descriptor.origin() == Origin.LOCALPLAY_PILOT)
+		{
+			_pilotDeliveries.increment();
+		}
 		else
 		{
 			_generatedDeliveries.increment();
@@ -276,7 +292,7 @@ public final class ChatObservationService
 
 	public Snapshot snapshot()
 	{
-		return new Snapshot(_scopes.sum(), _clientScopes.sum(), _generatedScopes.sum(), _nestedRejected.sum(), _rejections.sum(), _mismatches.sum(), _captures.sum(), _deliveries.sum(), _clientDeliveries.sum(), _generatedDeliveries.sum(), _dispatchesClosed.sum(), _backpressure.sum(), _callbackFailures.sum(), _registration != null);
+		return new Snapshot(_scopes.sum(), _clientScopes.sum(), _generatedScopes.sum(), _pilotScopes.sum(), _nestedRejected.sum(), _rejections.sum(), _mismatches.sum(), _captures.sum(), _deliveries.sum(), _clientDeliveries.sum(), _generatedDeliveries.sum(), _pilotDeliveries.sum(), _dispatchesClosed.sum(), _backpressure.sum(), _callbackFailures.sum(), _registration != null);
 	}
 
 	private static boolean validDescriptorFields(int speakerObjectId, String speakerName, ChatType chatType, String whisperTarget, String finalText, long epochMillis)

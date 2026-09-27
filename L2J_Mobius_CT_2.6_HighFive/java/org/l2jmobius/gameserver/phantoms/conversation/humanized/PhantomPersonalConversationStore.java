@@ -239,7 +239,7 @@ public final class PhantomPersonalConversationStore
 		}
 		final int generatedTurns;
 		final long cooldown;
-		if (origin == Origin.CLIENT_CHAT)
+		if ((origin == Origin.CLIENT_CHAT) || (origin == Origin.LOCALPLAY_PILOT))
 		{
 			generatedTurns = 0;
 			cooldown = 0;

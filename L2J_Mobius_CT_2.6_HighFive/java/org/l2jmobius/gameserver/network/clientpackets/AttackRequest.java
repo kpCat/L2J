@@ -65,6 +65,7 @@ public class AttackRequest extends ClientPacket
 		{
 			return;
 		}
+		org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().onManualAction(player);
 		
 		// Avoid Attacks in Boat.
 		if (player.isPlayable() && player.isInBoat())

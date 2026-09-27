@@ -1463,7 +1463,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 
 	private static boolean eligibleOrigin(Origin origin)
 	{
-		return (origin == Origin.CLIENT_CHAT) || (origin == Origin.PHANTOM_SOCIAL);
+		return (origin == Origin.CLIENT_CHAT) || (origin == Origin.LOCALPLAY_PILOT) || (origin == Origin.PHANTOM_SOCIAL);
 	}
 
 	private record IngressEvent(IngressKind kind, DeliveredObservation observation, DispatchDescriptor dispatch)

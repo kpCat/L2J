@@ -214,6 +214,8 @@ public final class PhantomTestLauncher
 	{
 		return switch (mode)
 		{
+			case "localplay-pilot" -> new LocalPlayPilotSuite();
+			case "localplay-pilot-native" -> new LocalPlayPilotNativeSuite();
 			case "unit" -> new PhantomHarnessUnitSuite();
 			case "negative" -> new PhantomNegativeControlSuite();
 			case "db" -> new PhantomTestDatabaseIntegrationSuite();

@@ -173,6 +173,7 @@ import org.l2jmobius.gameserver.network.GamePacketHandler;
 import org.l2jmobius.gameserver.network.NpcStringId;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
+import org.l2jmobius.gameserver.localplay.LocalPlayPilotService;
 import org.l2jmobius.gameserver.qol.PersonalPremiumQoLService;
 import org.l2jmobius.gameserver.qol.PersonalProgressionShopService;
 import org.l2jmobius.gameserver.scripting.ScriptEngine;
@@ -464,6 +465,7 @@ public class GameServer
 				throw new IllegalStateException("Phantom World failed to start.");
 			}
 		}
+		LocalPlayPilotService.getInstance().startConfigured();
 		
 		if (ServerConfig.SERVER_RESTART_SCHEDULE_ENABLED)
 		{

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pilotScenario version="1" name="pilot-smoke" maxSeconds="600">
+  <segment name="baseline">
+    <step kind="STATUS" />
+    <step kind="STATUS_BURST" count="20" intervalMs="250" />
+    <step kind="SIT_STAND" />
+    <step kind="MOVE_RETURN" distance="50" />
+    <step kind="TELEPORT_RETURN" distance="50" />
+    <step kind="PHANTOM_CONTACT" />
+    <step kind="OPTIONAL_COMBAT" />
+    <step kind="IDLE_CHECK" seconds="60" />
+  </segment>
+  <segment name="reuse">
+    <step kind="STATUS" />
+    <step kind="SIT_STAND" />
+    <step kind="STATUS" />
+  </segment>
+</pilotScenario>

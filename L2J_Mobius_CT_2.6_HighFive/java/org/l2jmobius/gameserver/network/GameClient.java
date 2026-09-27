@@ -97,6 +97,7 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 	public void onDisconnection()
 	{
 		LOGGER_ACCOUNTING.finer("Client disconnected: " + this);
+		org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().onDisconnect(this);
 		_playerLock.lock();
 		try
 		{

@@ -39,6 +39,7 @@ import org.l2jmobius.gameserver.config.custom.FakePlayersConfig;
 import org.l2jmobius.gameserver.config.custom.FindPvpConfig;
 import org.l2jmobius.gameserver.config.custom.FreeMountsConfig;
 import org.l2jmobius.gameserver.config.custom.HellboundStatusConfig;
+import org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig;
 import org.l2jmobius.gameserver.config.custom.MerchantZeroSellPriceConfig;
 import org.l2jmobius.gameserver.config.custom.MultilingualSupportConfig;
 import org.l2jmobius.gameserver.config.custom.NoblessMasterConfig;
@@ -118,6 +119,7 @@ public class ConfigLoader
 		FindPvpConfig.load();
 		FreeMountsConfig.load();
 		HellboundStatusConfig.load();
+		LocalPlayPilotConfig.load();
 		MerchantZeroSellPriceConfig.load();
 		MultilingualSupportConfig.load();
 		NoblessMasterConfig.load();

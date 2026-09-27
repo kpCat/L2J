@@ -64,6 +64,7 @@ public class MoveToLocation extends ClientPacket
 		{
 			return;
 		}
+		org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().onManualAction(player);
 		
 		if (player.isOverloaded())
 		{
