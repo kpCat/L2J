@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-	[string] $ScenarioPath = (Join-Path $PSScriptRoot 'scenarios\pilot-smoke.xml'),
+	[string] $ScenarioPath,
 	[string] $OutputDirectory
 )
 
@@ -8,6 +8,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'LocalPlay-Pilot.ps1')
 
+if (-not $ScenarioPath) { $ScenarioPath = Join-Path $PSScriptRoot 'scenarios\pilot-smoke.xml' }
 $context = Get-PilotContext -RequireEnabled
 $session = Get-PilotSession $context
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $context.PilotRoot 'reports' }
@@ -63,7 +64,7 @@ function Invoke-ScenarioAction([string] $Segment, [string] $Step, [string] $Oper
 	$result = $json | ConvertFrom-Json
 	if ($null -ne $result.after)
 	{
-		if (($result.after.identityOwner -cne 'REAL_LOGIN') -or ($result.after.clientIdentity -ceq 'none') -or ($result.after.worldPresent -cne 'true') -or ([int] $result.after.actorObjectId -ne [int] $script:session.objectId)) { throw 'Native result lost bound REAL_LOGIN/GameClient/World identity.' }
+		if (($result.after.identityOwner -cne 'REAL_LOGIN') -or ($result.after.clientIdentity -ceq 'none') -or (($result.after.worldPresent -cne 'true') -and (($result.after.teleporting -cne 'true') -or ($Operation -notin @('TELEPORT_SELF', 'STATUS')))) -or ([int] $result.after.actorObjectId -ne [int] $script:session.objectId)) { throw 'Native result lost bound REAL_LOGIN/GameClient/World identity.' }
 		if ($null -eq $script:boundClientIdentity) { $script:boundClientIdentity = [string] $result.after.clientIdentity }
 		elseif ($script:boundClientIdentity -cne [string] $result.after.clientIdentity) { throw 'GameClient identity changed during pilot run.' }
 	}
