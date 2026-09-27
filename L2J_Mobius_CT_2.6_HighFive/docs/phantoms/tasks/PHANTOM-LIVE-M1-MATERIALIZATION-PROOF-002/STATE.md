@@ -6,4 +6,6 @@ Status: **BLOCKED — M1_CONNECTED_MATERIALIZATION_ENVELOPE_UNPROVEN**.
 
 Материализация при `human.local=true` не наступила для natural profiles 59 и 450 до native visibility boundary; второй prewarm наблюдался около 67 секунд. Точный scheduler bottleneck не установлен. Видимый проход, grace, дематериализация и re-entry не доказаны. Дополнительный Pilot origin alias мешает вернуть TestAdmin к исходной точке: он оставлен на безопасном внешнем якоре `(45085,42001,-3491)`, REAL_LOGIN/online/worldPresent, Pilot idle. Продолжение требует отдельного решения о новом arm gate; этот task его не начинает. M2 не начинать.
 
+Read-only продолжение: два JVM thread dump показали historical ecology DB transaction на scheduler control path до ready-slot processing; глубина очереди и причинный вклад ещё не измерены. Поздний snapshot profile 450 оставался `STORED`, после выхода из prewarm его `presenceReason` стал `offline`. Новых client actions и restart не было.
+
 Подробности: `EVIDENCE.md`, `RESULT.md`, `MATERIALIZATION_ATTEMPT_1.tsv`, `MATERIALIZATION_CONNECTED_PROOF.tsv`, GeoEngine proof TSV.
