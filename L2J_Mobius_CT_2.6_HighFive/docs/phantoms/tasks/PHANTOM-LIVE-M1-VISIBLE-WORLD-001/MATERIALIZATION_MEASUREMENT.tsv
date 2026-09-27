@@ -1,3 +1,7 @@
 utc_time	actor_x	actor_y	actor_z	profile_id	profile_x	profile_y	profile_z	instance_id	distance_2d	admitted	materialized	native_visibility_basis	first_prewarm_time	first_materialization_time	verdict
 2026-09-27T15:44:44Z	-90825	248162	-3568	6	-90875	248162	-3568	0	50	true	false	2048-unit region and adjacent regions	UNKNOWN	UNKNOWN	UNRESOLVED
 2026-09-27T15:45:36Z	-90825	248162	-3568	6	-90875	248162	-3568	0	50	true	false	2048-unit region and adjacent regions	UNKNOWN	UNKNOWN	UNRESOLVED
+2026-09-27T16:02:45Z	-90875	248162	-3563	6	-90875	248162	-3568	0	0	true	false	2048-unit region and adjacent regions	UNKNOWN	UNKNOWN	NO_MATERIALIZATION_AT_SAME_XY
+2026-09-27T18:24:15Z	-90825	248162	-3568	692	-90072	248328	-3568	0	771	UNKNOWN	true	2048-unit region and adjacent regions	UNKNOWN	UNKNOWN	ALREADY_VISIBLE_NO_FIRST_PREWARM
+2026-09-27T18:25:25Z	-90875	248162	-3563	1348	-90875	248162	-3568	0	5	UNKNOWN	true	2048-unit region and adjacent regions	UNKNOWN	UNKNOWN	ALREADY_VISIBLE_NO_FIRST_PREWARM
+2026-09-27T18:28:09Z	-90875	247862	-3555	UNKNOWN	UNKNOWN	UNKNOWN	UNKNOWN	0	UNKNOWN	UNKNOWN	UNKNOWN	2048-unit region and adjacent regions	UNKNOWN	UNKNOWN	GEOENGINE_ROUTE_REJECTED_BEFORE_BOUNDARY
