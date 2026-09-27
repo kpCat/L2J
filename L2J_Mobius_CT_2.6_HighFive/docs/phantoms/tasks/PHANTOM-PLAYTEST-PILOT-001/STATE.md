@@ -1,12 +1,11 @@
 # PHANTOM-PLAYTEST-PILOT-001 — состояние
 
-Статус: `READY_FOR_CLIENT_BINDING`. Автоматические проверки и clean deployment завершены. Настоящий клиент ещё не привязан; `CONNECTED_SERVER` и `CLIENT_OBSERVED` не подтверждены, GREEN не заявлен.
+Статус: `CONNECTED_SMOKE_PROVEN / SHORT_CODE_CUTOVER_PENDING`. Два connected segment пройдены на одном реальном клиенте. GREEN всего обновлённого пакета пока не заявлен: новый короткий arm code требует следующего штатного запуска новой Java-сборки, а действующую lease TestAdmin по указанию пользователя не сбрасываем.
 
-- Branch: `feature/phantom-world`; initial HEAD `d2ae5704031ca85e417c3cb959de47cd72618821`; последний code commit `93cd5b8a609`.
-- Clean JAR из `e918f755167cd2a63c45f4938b7f291d60c13d59`: SHA-256 `CC7EC666A0662B7916B900B8EC1122932798956D2DE29FCD0484EE71DA77FC4B`. Runtime `Prepare-LocalPlayPilot.ps1` из `93cd5b8a609`: SHA-256 `B347C7721615AE2B3A419488D65ECD646037DC8197B0CAD47894BCADC1E78444`.
+- Branch: `feature/phantom-world`; initial HEAD `d2ae5704031ca85e417c3cb959de47cd72618821`; последний code commit `c00cebf8217e72c37011b12a76d77533c8365dfa`.
+- Запущенный GameServer использует ранее clean-deployed JAR из `e918f755167cd2a63c45f4938b7f291d60c13d59`, SHA-256 `CC7EC666A0662B7916B900B8EC1122932798956D2DE29FCD0484EE71DA77FC4B`. Runtime runner из `cb901a5bf57`, SHA-256 `DEBA201A19509AC192C6F7798B9AB9EDD5D6C4E1743A9BE685CEA645E60536A4`. Новый короткий код из `c00cebf8217` протестирован, но не загружен live сервером. Clean JAR `70677B1C76BCF826F2CA1B3BA7FAC89B6E528C4156C2DE58E5C07757F5D1E779` и Prepare `E6AAF6D8D300E659CC1E9B0D684FB0D3F7BC0F12337BC3C7F43BBA2F1907E365` лежат в private `artifacts/local-play/pilot-staged-short-code-c00cebf` до безопасного restart.
 - Owned LocalPlay: LoginServer PID `22512`, GameServer PID `7776`; порты `2106/9014/7777` открыты у owned процессов; pilot enabled; Population=`10000`, Active=`64`, MaterializedCap=`128`, PulseMs=`100` и `FRESH_LOCAL_PROVISIONED` сохранены.
-- Expected character: точный ник `TestAdmin`, отдельный реальный персонаж уровня 1. Account, objectId и session будут взяты из настоящего `GameClient` при `.playtest arm`; пока они неизвестны. `PersonalCharacterQoL` allowlist и GM не менялись.
-- Mailbox `WAITING_ARM`, runner остановлен. Runtime helper без `ExpectedName` создал permit для `TestAdmin` до `2026-09-27T12:48:26.740Z`; одноразовую команду не записывать в репозиторий.
-- Connected run: `RESULTS.tsv` содержит только заголовок; ни один connected scenario не запущен. Следующий шаг — единственный клиентский вход/arm, затем автономный batch и сохранение фактических результатов.
-- Отзыв: `.playtest stop`, `.playtest off`, локальный `Stop-LocalPlayPilot.ps1`; disconnect/restart/expiry инвалидируют lease. После сценариев runner будет остановлен, исправный LocalPlay останется пользователю.
-- Report `RESULT.md` SHA-256: `162FFA4B1DBF3E5D984E6DB542AA93E9BB143175EF261E771D3DCC7B692BC592`.
+- Expected character: точный ник `TestAdmin`, отдельный реальный персонаж уровня 1; account `testadmin`, objectId `268492939`, `REAL_LOGIN`, GameClient identity `890710341` сохранены в native результатах обоих сегментов. Внутренний sessionId остаётся в private runtime. `PersonalCharacterQoL` allowlist и GM не менялись.
+- Connected run: `COMPLETED_WITH_GAPS`, 45 native actions, 2 segment одной session, failure пуст; итоговый `RESULTS.tsv` SHA-256 `1ACF0FCED538AE41A8A09788C5A189381D8C2C074231BCFC1BD71E071ACAABF5`. `NO_CANDIDATE` для chat/invite; CAST/ATTACK неприменимы без законной цели/навыка.
+- Lease: `ARMED_IDLE`, expiry `2026-09-27T14:44:08.073Z`, runner остановлен (`runActive=false`). Повторный вход или arm от пользователя не требуется. Отзыв: `.playtest stop`, `.playtest off`, локальный `Stop-LocalPlayPilot.ps1`; disconnect/restart/expiry инвалидируют lease. Исправный LocalPlay оставлен пользователю.
+- Report `RESULT.md` SHA-256: `408F4775F3D7B82712F1A8BA5223A02F5C2324F13D81ED8D1CCE48130DB3E802`.
