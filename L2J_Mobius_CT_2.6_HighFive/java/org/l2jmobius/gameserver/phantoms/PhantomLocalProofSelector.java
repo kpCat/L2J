@@ -38,16 +38,21 @@ public final class PhantomLocalProofSelector
 	/** Operator-only locality proof selection; the human signal itself may activate a READY profile. */
 	public static Optional<ProfileTopologySnapshot> nearestReadyWithin(PhantomTopologyPoint human, List<ProfileTopologySnapshot> profiles, LongFunction<Optional<AdmissionProfileSnapshot>> admission, LongPredicate available, long maxDistanceSquared2D)
 	{
+		return nearestReadyWithin(human, profiles, admission, available, maxDistanceSquared2D, 0);
+	}
+
+	public static Optional<ProfileTopologySnapshot> nearestReadyWithin(PhantomTopologyPoint human, List<ProfileTopologySnapshot> profiles, LongFunction<Optional<AdmissionProfileSnapshot>> admission, LongPredicate available, long maxDistanceSquared2D, long afterProfileId)
+	{
 		Objects.requireNonNull(human, "Human point must not be null.");
 		Objects.requireNonNull(profiles, "Topology profiles must not be null.");
 		Objects.requireNonNull(admission, "Admission lookup must not be null.");
 		Objects.requireNonNull(available, "Presence lookup must not be null.");
-		if (maxDistanceSquared2D < 0)
+		if ((maxDistanceSquared2D < 0) || (afterProfileId < 0))
 		{
-			throw new IllegalArgumentException("Maximum distance must not be negative.");
+			throw new IllegalArgumentException("Maximum distance and prior profile must not be negative.");
 		}
 		return profiles.stream()
-			.filter(profile -> profile.resolved() && (profile.point() != null) && (profile.point().instanceId() == human.instanceId()) && (human.distanceSquared2D(profile.point()) <= maxDistanceSquared2D))
+			.filter(profile -> (profile.profileId() > afterProfileId) && profile.resolved() && (profile.point() != null) && (profile.point().instanceId() == human.instanceId()) && (human.distanceSquared2D(profile.point()) <= maxDistanceSquared2D))
 			.filter(profile -> admission.apply(profile.profileId()).filter(state -> state.populationState() == State.READY).isPresent())
 			.filter(profile -> available.test(profile.profileId()))
 			.min(Comparator.comparingLong((ProfileTopologySnapshot profile) -> human.distanceSquared2D(profile.point())).thenComparingLong(ProfileTopologySnapshot::profileId));

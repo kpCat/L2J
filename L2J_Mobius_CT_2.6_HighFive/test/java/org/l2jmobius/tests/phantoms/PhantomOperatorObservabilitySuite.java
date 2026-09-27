@@ -117,6 +117,7 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 			new ProfileTopologySnapshot(5, new PhantomTopologyPoint(39200, 41882, -3592, 0), 1, "farm", 1));
 		final var selected = PhantomLocalProofSelector.nearestReadyWithin(anchor, profiles, id -> Optional.of(admission(id, false, false)), id -> id != 3, 64L * 64L).orElseThrow();
 		PhantomAssertions.assertEquals(2L, selected.profileId(), "Envelope proof must accept a READY, available ordinary profile without global ACTIVE admission.");
+		PhantomAssertions.assertEquals(3L, PhantomLocalProofSelector.nearestReadyWithin(anchor, profiles, id -> Optional.of(admission(id, false, false)), id -> true, 64L * 64L, 2).orElseThrow().profileId(), "Envelope proof could not choose the next ordinary profile in the same lane.");
 		PhantomAssertions.assertTrue(PhantomLocalProofSelector.nearestReadyWithin(anchor, profiles, id -> Optional.of(new AdmissionProfileSnapshot(id, State.RETIRED, PhantomActivityState.WARM, PhantomActivityState.WARM, false, false, "not_ready", false)), id -> true, 64L * 64L).isEmpty(), "Envelope proof selected a non-READY profile.");
 	}
 

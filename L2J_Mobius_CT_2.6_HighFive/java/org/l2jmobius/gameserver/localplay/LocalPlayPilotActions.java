@@ -87,7 +87,7 @@ public final class LocalPlayPilotActions
 			{
 				case STATUS, CAPABILITIES -> Outcome.of("SUCCEEDED", request.operation() == LocalPlayPilotProtocol.Operation.CAPABILITIES ? "STATUS,SNAPSHOT_PHANTOMS,PREPARE_M1_ENVELOPE,SNAPSHOT_M1_ENVELOPE,SELECT_VISIBLE_PHANTOM_TRACE,SNAPSHOT_SELECTED_PHANTOM_TRACE,REPLAY_SELECTED_PHANTOM_TRACE,SNAPSHOT_TARGETS,TELEPORT_SELF,MOVE_SELF,STOP_MOVE,SIT,STAND,SELECT_TARGET,SAY,PARTY_INVITE,PARTY_RESPOND,PARTY_LEAVE,ATTACK_NPC,CAST_LEARNED_SKILL" : "SNAPSHOT");
 				case SNAPSHOT_PHANTOMS -> candidate(actor);
-				case PREPARE_M1_ENVELOPE -> prepareM1Envelope(actor);
+				case PREPARE_M1_ENVELOPE -> prepareM1Envelope(actor, args);
 				case SNAPSHOT_M1_ENVELOPE -> snapshotM1Envelope(actor);
 				case SELECT_VISIBLE_PHANTOM_TRACE -> selectVisibleTrace(actor);
 				case SNAPSHOT_SELECTED_PHANTOM_TRACE -> selectedTrace();
@@ -176,13 +176,18 @@ public final class LocalPlayPilotActions
 		return Integer.parseInt(args.getOrDefault(key, ""));
 	}
 
-	private Outcome prepareM1Envelope(Player actor)
+	private Outcome prepareM1Envelope(Player actor, Map<String, String> args)
 	{
+		final long afterProfileId = Long.parseLong(args.getOrDefault("afterProfileId", "0"));
+		if (afterProfileId < 0)
+		{
+			return Outcome.of("REJECTED", "INVALID_ARGUMENT");
+		}
 		if (actor.isDead() || actor.isInStoreMode() || actor.isTeleporting() || actor.isMoving() || (actor.getInstanceId() != 0))
 		{
 			return Outcome.of("REJECTED", "ACTOR_BUSY");
 		}
-		final OperatorLocalityTarget target = PhantomSystem.operatorNearestReadyLocalityTarget(M1_TARGET_ANCHOR, M1_ANCHOR_TOLERANCE * M1_ANCHOR_TOLERANCE).orElse(null);
+		final OperatorLocalityTarget target = PhantomSystem.operatorNearestReadyLocalityTarget(M1_TARGET_ANCHOR, M1_ANCHOR_TOLERANCE * M1_ANCHOR_TOLERANCE, afterProfileId).orElse(null);
 		if (target == null)
 		{
 			return Outcome.of("REJECTED", "NO_ORDINARY_TARGET_AT_PROOF_ANCHOR");

@@ -27,6 +27,8 @@ Populate during execution. Do not replace exact measurements with prose.
 
 First connected preflight on commit `8609ca630df` rejected `PREPARE_M1_ENVELOPE:NO_ORDINARY_TARGET_AT_PROOF_ANCHOR` before any movement or TSV. Read-first showed its selector required global ACTIVE admission (64 slots over 10000 profiles), although locality itself submits `NEARBY_PERCEPTIBLE` to any non-OFFLINE profile and that state requires materialization. Read-only PLAY `SELECT` confirmed 112 natural profiles at the exact farm anchor; `SHOW COLUMNS` and `SELECT` only, no PLAY mutation. The operator-only selector was narrowed to READY, AVAILABLE, resolved, same-instance profiles within 64 units of the fixed anchor. This removes an unrelated prerequisite without changing budgets or phantom scheduling/materialization behavior. Focused RED was missing `nearestReadyWithin` at compile; focused GREEN: operator observability 9/9, Pilot contract 6/6, guarded TEST DB native 4/4. A second exact-SHA build/restart and at most one further TestAdmin arm are required; no third arm will be requested.
 
+Before the final arm, the same bounded selector gained an `afterProfileId` fallback inside this exact anchor cohort. It lets the automated Pilot retry the same proven lane with another READY/AVAILABLE natural target if the first target has a valid presence reason or cap pressure, without another restart or owner action. No target is forced active. Focused suites rerun after this final helper refinement: operator observability 9/9, Pilot contract 6/6, guarded TEST DB native 4/4.
+
 ## USER_CLIENT_ACTION count
 
 1.

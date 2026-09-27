@@ -1771,13 +1771,18 @@ public final class PhantomSystem
 	/** Read-only READY target selection for a bounded human-locality envelope proof. */
 	public static synchronized java.util.Optional<OperatorLocalityTarget> operatorNearestReadyLocalityTarget(PhantomTopologyPoint human, long maxDistanceSquared2D)
 	{
+		return operatorNearestReadyLocalityTarget(human, maxDistanceSquared2D, 0);
+	}
+
+	public static synchronized java.util.Optional<OperatorLocalityTarget> operatorNearestReadyLocalityTarget(PhantomTopologyPoint human, long maxDistanceSquared2D, long afterProfileId)
+	{
 		Objects.requireNonNull(human, "Human point must not be null.");
 		final PhantomSystem configured = _configuredInstance;
 		if ((configured == null) || (configured._state != State.RUNNING) || (configured._populationManager == null) || (configured._topologyService == null))
 		{
 			return java.util.Optional.empty();
 		}
-		return PhantomLocalProofSelector.nearestReadyWithin(human, configured._topologyService.listProfiles(), configured._populationManager::admissionProfile, profileId -> configured._populationManager.presence().state(profileId) == PhantomPresenceRegistry.Presence.AVAILABLE, maxDistanceSquared2D)
+		return PhantomLocalProofSelector.nearestReadyWithin(human, configured._topologyService.listProfiles(), configured._populationManager::admissionProfile, profileId -> configured._populationManager.presence().state(profileId) == PhantomPresenceRegistry.Presence.AVAILABLE, maxDistanceSquared2D, afterProfileId)
 			.map(profile -> new OperatorLocalityTarget(profile.profileId(), profile.point(), profile.nodeId(), profile.topologyGeneration()));
 	}
 

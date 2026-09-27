@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param()
+param([ValidateRange(0, [long]::MaxValue)][long] $AfterProfileId = 0)
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -115,7 +115,7 @@ try
 	$initial = Invoke-Proof 'STATUS'
 	if (($initial.status -cne 'SUCCEEDED') -or ($initial.after.identityOwner -cne 'REAL_LOGIN') -or ($initial.after.worldPresent -cne 'true')) { throw 'NO_CONSENTED_REAL_LOGIN' }
 	$origin = [pscustomobject]@{ x = [int]$initial.after.x; y = [int]$initial.after.y; z = [int]$initial.after.z; instanceId = [int]$initial.after.instanceId }
-	$prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE'
+	$prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' @{ afterProfileId = [string] $AfterProfileId }
 	if ($prepared.status -cne 'ACCEPTED') { throw "PREPARE_REJECTED:$($prepared.reason)" }
 	$profileId = [long]$prepared.candidate.profileId
 	Wait-At 45085 42001 -3496 'OUTSIDE_ARRIVAL'
