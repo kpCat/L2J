@@ -118,6 +118,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKe
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.AcquisitionIdentity;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.ActionKind;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
+import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.OperationStatus;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.AutoGetSkill;
@@ -417,6 +418,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("03-activity-identity-reaches-handler", _ -> testDecisionExecutionIdentity());
 		registry.add("04-visible-alive-ordinary-farm-candidate", _ -> testVisibleAliveCandidate());
 		registry.add("05-phantom-autoplay-admission-with-user-play-disabled", _ -> testPhantomAutoPlayAdmission());
+		registry.add("06-instant-self-heal-is-not-auto-buff", _ -> testInstantSelfHealIsNotAutoBuff());
 	}
 
 	private void registerServerIntegration(PhantomTestRegistry registry)
@@ -2400,6 +2402,15 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		{
 			runtime.close();
 		}
+	}
+
+	private void testInstantSelfHealIsNotAutoBuff()
+	{
+		final var heal = SkillData.getInstance().getSkill(58, 1);
+		final var dash = SkillData.getInstance().getSkill(4, 1);
+		PhantomAssertions.assertTrue((heal != null) && (dash != null), "Native self-heal and continuous self-buff templates are missing.");
+		PhantomAssertions.assertFalse(PhantomVisibleAutoPlay.autoBuffEligible(heal), "Instant Elemental Heal would be recast at full HP because AutoUse has no persistent buff to detect.");
+		PhantomAssertions.assertTrue(PhantomVisibleAutoPlay.autoBuffEligible(dash), "Continuous native self-buff was excluded from AutoUse.");
 	}
 
 	private void testIdentityArbitration() throws Exception

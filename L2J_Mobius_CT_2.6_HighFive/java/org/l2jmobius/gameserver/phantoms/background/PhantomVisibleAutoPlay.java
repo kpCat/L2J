@@ -142,7 +142,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				{
 					player.getAutoUseSettings().getAutoSkills().add(skill.getId());
 				}
-				else if (skill.getTargetType() == TargetType.SELF)
+				else if (autoBuffEligible(skill))
 				{
 					player.getAutoUseSettings().getAutoBuffs().add(skill.getId());
 				}
@@ -178,6 +178,11 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				.forEach(item -> player.addAutoSoulShot(item.getId()));
 			player.rechargeShots(true, true);
 		}
+	}
+
+	public static boolean autoBuffEligible(Skill skill)
+	{
+		return (skill.getTargetType() == TargetType.SELF) && skill.isContinuous();
 	}
 
 	private final class Policy implements PhantomPolicy
