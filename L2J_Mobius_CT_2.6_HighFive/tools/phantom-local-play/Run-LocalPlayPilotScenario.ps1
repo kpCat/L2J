@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
 	[string] $ScenarioPath = (Join-Path $PSScriptRoot 'scenarios\pilot-smoke.xml'),
 	[string] $OutputDirectory

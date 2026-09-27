@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
 	[Parameter(Mandatory = $true)]
 	[ValidateSet('STATUS', 'CAPABILITIES', 'SNAPSHOT_PHANTOMS', 'SNAPSHOT_TARGETS', 'TELEPORT_SELF', 'MOVE_SELF', 'STOP_MOVE', 'SIT', 'STAND', 'SELECT_TARGET', 'SAY', 'PARTY_INVITE', 'PARTY_RESPOND', 'PARTY_LEAVE', 'ATTACK_NPC', 'CAST_LEARNED_SKILL')]

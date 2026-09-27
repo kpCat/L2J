@@ -1,4 +1,4 @@
-. (Join-Path $PSScriptRoot 'LocalPlay-Ownership.ps1')
+﻿. (Join-Path $PSScriptRoot 'LocalPlay-Ownership.ps1')
 
 function Get-PilotRuntimeRoot
 {
