@@ -57,7 +57,7 @@ function Protect-PilotDirectory([string] $Path)
 	$inheritance = [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
 	$propagation = [Security.AccessControl.PropagationFlags]::None
 	$type = [Security.AccessControl.AccessControlType]::Allow
-	foreach ($sidText in @(([Security.Principal.WindowsIdentity]::GetCurrent().User.Value), 'S-1-5-18', 'S-1-5-32-544'))
+	foreach ($sidText in @(([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)))
 	{
 		$sid = New-Object Security.Principal.SecurityIdentifier($sidText)
 		$rule = New-Object Security.AccessControl.FileSystemAccessRule($sid, [Security.AccessControl.FileSystemRights]::FullControl, $inheritance, $propagation, $type)
@@ -69,7 +69,7 @@ function Protect-PilotDirectory([string] $Path)
 	foreach ($rule in $verified.Access)
 	{
 		$sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
-		if (@(([Security.Principal.WindowsIdentity]::GetCurrent().User.Value), 'S-1-5-18', 'S-1-5-32-544') -notcontains $sid) { throw "Небезопасный ACL: $Path" }
+		if (@(([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)) -notcontains $sid) { throw "Небезопасный ACL: $Path" }
 	}
 }
 
@@ -82,7 +82,7 @@ function Initialize-PilotMailbox($Context)
 function Assert-PilotPrivateFile([string] $Path)
 {
 	Assert-PilotNoReparse $Path
-	$allowed = @(([Security.Principal.WindowsIdentity]::GetCurrent().User.Value), 'S-1-5-18', 'S-1-5-32-544')
+	$allowed = @(([Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
 	foreach ($rule in (Get-Acl -LiteralPath $Path).Access)
 	{
 		$sid = $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value

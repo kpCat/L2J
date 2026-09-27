@@ -283,16 +283,20 @@ public final class LocalPlayPilotService
 			}
 			final var lookup = FileSystems.getDefault().getUserPrincipalLookupService();
 			final UserPrincipal user = lookup.lookupPrincipalByName(System.getProperty("user.name"));
-			final UserPrincipal system = lookup.lookupPrincipalByName("S-1-5-18");
-			final UserPrincipal administrators = lookup.lookupPrincipalByName("S-1-5-32-544");
+			boolean userAllowed = false;
 			for (AclEntry entry : view.getAcl())
 			{
-				if ((entry.type() == AclEntryType.ALLOW) && !entry.principal().equals(user) && !entry.principal().equals(system) && !entry.principal().equals(administrators))
+				if (entry.type() != AclEntryType.ALLOW)
+				{
+					continue;
+				}
+				if (!entry.principal().equals(user))
 				{
 					return false;
 				}
+				userAllowed = true;
 			}
-			return true;
+		return userAllowed;
 		}
 		catch (Exception exception)
 		{
