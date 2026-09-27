@@ -22,15 +22,21 @@ public final class PlayTest implements IVoicedCommandHandler
 		{
 			message = pilot.arm(player, value.substring(4));
 		}
+		else if ("status".equals(value))
+		{
+			message = pilot.status(player);
+		}
+		else if ("stop".equals(value))
+		{
+			message = pilot.stop(player);
+		}
+		else if ("off".equals(value))
+		{
+			message = pilot.off(player);
+		}
 		else
 		{
-			message = switch (value)
-			{
-				case "status" -> pilot.status(player);
-				case "stop" -> pilot.stop(player);
-				case "off" -> pilot.off(player);
-				default -> "Использование: .playtest arm <код> | status | stop | off";
-			};
+			message = "Использование: .playtest arm <код> | status | stop | off";
 		}
 		if (player != null)
 		{
