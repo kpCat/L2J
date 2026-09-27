@@ -50,20 +50,28 @@ function Get-PilotContext([switch] $RequireEnabled)
 function Protect-PilotDirectory([string] $Path)
 {
 	Assert-PilotNoReparse $Path
-	if (-not (Test-Path -LiteralPath $Path)) { $null = [IO.Directory]::CreateDirectory($Path) }
+	$currentSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+	if (Test-Path -LiteralPath $Path)
+	{
+		$existing = Get-Acl -LiteralPath $Path
+		$rules = @($existing.Access)
+		if ($existing.AreAccessRulesProtected -and ($rules.Count -gt 0) -and (@($rules | Where-Object { ($_.AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow) -or ($_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -cne $currentSid) }).Count -eq 0)) { return }
+		throw "Существующий private mailbox каталог имеет неподходящий ACL: $Path"
+	}
+	$null = [IO.Directory]::CreateDirectory($Path)
 	$acl = Get-Acl -LiteralPath $Path
 	$acl.SetAccessRuleProtection($true, $false)
 	foreach ($rule in @($acl.Access)) { $acl.RemoveAccessRuleSpecific($rule) | Out-Null }
 	$inheritance = [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
 	$propagation = [Security.AccessControl.PropagationFlags]::None
 	$type = [Security.AccessControl.AccessControlType]::Allow
-	foreach ($sidText in @(([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)))
+	foreach ($sidText in @($currentSid))
 	{
 		$sid = New-Object Security.Principal.SecurityIdentifier($sidText)
 		$rule = New-Object Security.AccessControl.FileSystemAccessRule($sid, [Security.AccessControl.FileSystemRights]::FullControl, $inheritance, $propagation, $type)
 		$acl.AddAccessRule($rule)
 	}
-	Set-Acl -LiteralPath $Path -AclObject $acl
+	Set-Acl -LiteralPath $Path -AclObject $acl -ErrorAction Stop
 	$verified = Get-Acl -LiteralPath $Path
 	if (-not $verified.AreAccessRulesProtected) { throw "Private ACL не применён: $Path" }
 	foreach ($rule in $verified.Access)
