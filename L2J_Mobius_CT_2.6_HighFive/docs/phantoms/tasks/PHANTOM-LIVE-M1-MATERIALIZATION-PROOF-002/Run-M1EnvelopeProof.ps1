@@ -121,7 +121,7 @@ try
 	Wait-At 45085 42001 -3496 'OUTSIDE_ARRIVAL'
 	$null = Wait-For 'OUTSIDE' { param($s) ($s.candidate.worldPresent -ceq 'false') -and ($s.candidate.clientVisible -ceq 'false') -and ($s.candidate.localityCurrent -ceq 'false') } 20
 	Teleport-To 44126 42751 -3488 'PREWARM_APPROACH'
-	$prewarm = Wait-For 'PREWARM' { param($s) ($s.candidate.worldPresent -ceq 'true') -and ($s.candidate.regionCanKnow -ceq 'false') -and ($s.candidate.clientVisible -ceq 'false') } 15
+	$prewarm = Wait-For 'PREWARM' { param($s) ($s.candidate.worldPresent -ceq 'true') -and ($s.candidate.regionCanKnow -ceq 'false') -and ($s.candidate.clientVisible -ceq 'false') } 45
 	$null = Capture 'PREWARM' 'FIRST_MATERIALIZED_BEFORE_VISIBILITY'
 	Traverse $true 'VISIBLE_FORWARD'
 	$null = Capture 'VISIBLE_FORWARD' 'FORWARD_END'
@@ -132,7 +132,7 @@ try
 	$null = Capture 'EXIT_GRACE' 'GRACE_SAMPLE'
 	$null = Wait-For 'DEMATERIALIZATION' { param($s) ($s.candidate.worldPresent -ceq 'false') -and ($s.candidate.clientVisible -ceq 'false') -and ($s.candidate.regionCanKnow -ceq 'false') } 20
 	Teleport-To 44126 42751 -3488 'REENTRY_PREWARM'
-	$null = Wait-For 'REENTRY_PREWARM' { param($s) ($s.candidate.worldPresent -ceq 'true') -and ($s.candidate.regionCanKnow -ceq 'false') -and ($s.candidate.clientVisible -ceq 'false') } 15
+	$null = Wait-For 'REENTRY_PREWARM' { param($s) ($s.candidate.worldPresent -ceq 'true') -and ($s.candidate.regionCanKnow -ceq 'false') -and ($s.candidate.clientVisible -ceq 'false') } 45
 	$null = Capture 'REENTRY_PREWARM' 'REMATERIALIZED_BEFORE_VISIBILITY'
 	Traverse $true 'REENTRY_VISIBLE'
 	$null = Capture 'REENTRY_VISIBLE' 'REENTRY_END'
