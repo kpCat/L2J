@@ -3,6 +3,7 @@
  */
 package org.l2jmobius.gameserver.phantoms.topology;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -11,6 +12,7 @@ import java.util.function.LongSupplier;
 import java.util.function.LongPredicate;
 import java.util.function.Supplier;
 
+import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
@@ -22,7 +24,10 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 	private static final int MAXIMUM_HUMANS_PER_REFRESH = 256;
 	private static final int MAXIMUM_PROFILES_PER_HUMAN = 1024;
 	private static final long REFRESH_MILLIS = 1000;
-	private static final long SIGNAL_TTL_MILLIS = 3000;
+	private static final long SIGNAL_TTL_MILLIS = 10_000;
+	private static final int REGION_SIZE = 1 << World.SHIFT_BY;
+	private static final int EDGE_MARGIN = REGION_SIZE / 4;
+	private static final int PREWARM_REGION_DISTANCE = 2;
 	private final PhantomTopologyService _topology;
 	private final PhantomRelevanceSignalPort _signals;
 	private final Supplier<List<PhantomTopologyPoint>> _humans;
@@ -59,9 +64,16 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 		final TreeSet<Long> candidates = new TreeSet<>();
 		for (PhantomTopologyPoint human : _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).toList())
 		{
-			for (var profile : _topology.perceptibleProfilesAt(human, PhantomPerceptionChannel.TARGETABILITY, MAXIMUM_PROFILES_PER_HUMAN))
+			for (PhantomTopologyPoint probe : probes(human))
 			{
-				candidates.add(profile.profileId());
+				for (var profile : _topology.perceptibleProfilesAt(probe, PhantomPerceptionChannel.TARGETABILITY, MAXIMUM_PROFILES_PER_HUMAN))
+				{
+					final PhantomTopologyPoint point = profile.point();
+					if ((point != null) && (point.instanceId() == human.instanceId()) && (Math.abs((point.x() >> World.SHIFT_BY) - (human.x() >> World.SHIFT_BY)) <= PREWARM_REGION_DISTANCE) && (Math.abs((point.y() >> World.SHIFT_BY) - (human.y() >> World.SHIFT_BY)) <= PREWARM_REGION_DISTANCE))
+					{
+						candidates.add(profile.profileId());
+					}
+				}
 			}
 		}
 		final long sequence = ++_sequence;
@@ -72,13 +84,36 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 			{
 				continue;
 			}
-			final var delivered = _signals.submit(profileId, new PhantomRelevanceSignal(SOURCE, sequence, PhantomActivityState.WARM, SIGNAL_TTL_MILLIS));
+			final var delivered = _signals.submit(profileId, new PhantomRelevanceSignal(SOURCE, sequence, PhantomActivityState.NEARBY_PERCEPTIBLE, SIGNAL_TTL_MILLIS));
 			if ((delivered == PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED) || (delivered == PhantomRelevanceSignalPort.SignalDelivery.COALESCED))
 			{
 				signaled.add(profileId);
 			}
 		}
 		_local = Set.copyOf(signaled);
+	}
+
+	private static List<PhantomTopologyPoint> probes(PhantomTopologyPoint human)
+	{
+		final List<PhantomTopologyPoint> points = new ArrayList<>(4);
+		points.add(human);
+		final int localX = Math.floorMod(human.x(), REGION_SIZE);
+		final int localY = Math.floorMod(human.y(), REGION_SIZE);
+		final int shiftX = localX < EDGE_MARGIN ? -REGION_SIZE : localX >= REGION_SIZE - EDGE_MARGIN ? REGION_SIZE : 0;
+		final int shiftY = localY < EDGE_MARGIN ? -REGION_SIZE : localY >= REGION_SIZE - EDGE_MARGIN ? REGION_SIZE : 0;
+		if (shiftX != 0)
+		{
+			points.add(new PhantomTopologyPoint(human.x() + shiftX, human.y(), human.z(), human.instanceId()));
+		}
+		if (shiftY != 0)
+		{
+			points.add(new PhantomTopologyPoint(human.x(), human.y() + shiftY, human.z(), human.instanceId()));
+		}
+		if ((shiftX != 0) && (shiftY != 0))
+		{
+			points.add(new PhantomTopologyPoint(human.x() + shiftX, human.y() + shiftY, human.z(), human.instanceId()));
+		}
+		return points;
 	}
 
 	public boolean isLocal(long profileId)

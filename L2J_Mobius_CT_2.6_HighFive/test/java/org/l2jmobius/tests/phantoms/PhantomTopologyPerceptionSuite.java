@@ -97,6 +97,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		registry.add("28-no-materialization-navigation-reference", _ -> testNoDirectSubsystemReference());
 		registry.add("29-human-point-locality-and-committed-boundaries", _ -> testHumanPointLocality());
 		registry.add("29a-ground-normalized-route-human-locality", _ -> testGroundNormalizedRouteHumanLocality());
+		registry.add("29b-native-region-prewarm-and-exit-grace", _ -> testNativeRegionPrewarm());
 		registry.add("30-existing-registry-10000-local-bucket-bound", _ -> testScaleRegistry());
 	}
 
@@ -423,6 +424,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		final PhantomHumanLocalityControl locality = new PhantomHumanLocalityControl(fixture.service, fixture.port, () -> List.of(PhantomTopologyCoreSuite.LEFT_POINT), now::get, profileId -> online.get());
 		locality.onPulse();
 		PhantomAssertions.assertTrue(locality.isLocal(1), "Local committed profile received no relevance signal.");
+		assertLastState(fixture, 1, PhantomActivityState.NEARBY_PERCEPTIBLE);
 		PhantomAssertions.assertFalse(locality.isLocal(2), "Remote profile became materialization eligible.");
 		online.set(false);
 		PhantomAssertions.assertFalse(locality.isLocal(1), "OFFLINE did not dominate an existing local signal.");
@@ -473,6 +475,30 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(locality.isLocal(173), "Ground-normalized human did not deliver the ordinary local relevance signal.");
 		PhantomAssertions.assertFalse(locality.isLocal(174), "Remote committed profile received a local relevance signal.");
 		PhantomAssertions.assertFalse(locality.isLocal(175), "Unresolved profile received a local relevance signal.");
+		stop(fixture);
+	}
+
+	private void testNativeRegionPrewarm()
+	{
+		final PhantomTopologyPoint human = new PhantomTopologyPoint(1536, 500, 0, 0);
+		final PhantomTopologyPoint futureVisible = new PhantomTopologyPoint(4097, 500, 0, 0);
+		final PhantomTopologyCoreSuite.TestBackend backend = new PhantomTopologyCoreSuite.TestBackend();
+		final PhantomTopologySnapshot snapshot = PhantomTopologyCoreSuite.create(List.of(
+			new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNode("human.local", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNodeKind.ROUTE_AREA, 0, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.pointRadius(human, 1), null, List.of(), List.of()),
+			new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNode("farm.ahead", org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyNodeKind.FARMING_AREA, 0, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.cuboid(0, 3500, 4300, 450, 550, -50, 50), null, List.of(), List.of())), List.of(), List.of(), backend);
+		final Fixture fixture = fixture(PhantomTopologyCoreSuite.POLICY, backend, snapshot);
+		register(fixture, 77, futureVisible);
+		final AtomicReference<PhantomTopologyPoint> humanPoint = new AtomicReference<>(human);
+		final AtomicLong now = new AtomicLong(1000);
+		final PhantomHumanLocalityControl locality = new PhantomHumanLocalityControl(fixture.service, fixture.port, () -> List.of(humanPoint.get()), now::get);
+		locality.onPulse();
+		PhantomAssertions.assertTrue(locality.isLocal(77), "Next native visibility region was not prewarmed before the human crossed its boundary.");
+		assertLastState(fixture, 77, PhantomActivityState.NEARBY_PERCEPTIBLE);
+		PhantomAssertions.assertEquals(10_000L, fixture.port.signals().getLast().signal().ttlMillis(), "Prewarm signal lost edge hysteresis grace.");
+		humanPoint.set(new PhantomTopologyPoint(1024, 500, 0, 0));
+		now.addAndGet(1000);
+		locality.onPulse();
+		PhantomAssertions.assertFalse(locality.isLocal(77), "Profile beyond the bounded prewarm edge stayed locally admitted.");
 		stop(fixture);
 	}
 

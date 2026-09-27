@@ -20,6 +20,7 @@
  */
 package org.l2jmobius.gameserver.taskmanagers;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -42,6 +43,8 @@ import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
+import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.PhantomPolicy;
+import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickLease;
 
 /**
  * @author Mobius
@@ -49,6 +52,7 @@ import org.l2jmobius.gameserver.model.zone.ZoneId;
 public class AutoUseTaskManager
 {
 	private static final Set<Set<Player>> POOLS = ConcurrentHashMap.newKeySet();
+	private static final Map<Player, PhantomPolicy> PHANTOM_POLICIES = new ConcurrentHashMap<>();
 	private static final int POOL_SIZE = 200;
 	private static final int TASK_DELAY = 300;
 	private static final int REUSE_MARGIN_TIME = 3;
@@ -80,6 +84,19 @@ public class AutoUseTaskManager
 				{
 					stopAutoUseTask(player);
 					continue;
+				}
+				final PhantomPolicy phantomPolicy = PHANTOM_POLICIES.get(player);
+				final TickLease lease = phantomPolicy == null ? () -> {} : phantomPolicy.acquire(player);
+				if (lease == null)
+				{
+					stopAutoUseTask(player);
+					continue;
+				}
+				try (lease)
+				{
+				if ((phantomPolicy != null) && (player.getTarget() != null) && player.getTarget().isCreature() && !phantomPolicy.permitsTarget(player.getTarget().asCreature()))
+				{
+					player.setTarget(null);
 				}
 				
 				if (player.isSitting() || player.isStunned() || player.isSleeping() || player.isParalyzed() || player.isAfraid() || player.isAlikeDead() || player.isMounted() || (player.isTransformed() && player.getTransformation().isRiding()))
@@ -358,6 +375,7 @@ public class AutoUseTaskManager
 						break SKILLS;
 					}
 				}
+				}
 			}
 		}
 		
@@ -422,6 +440,12 @@ public class AutoUseTaskManager
 		}
 	}
 	
+	public synchronized void startPhantomAutoUse(Player player, PhantomPolicy policy)
+	{
+		PHANTOM_POLICIES.put(player, policy);
+		startAutoUseTask(player);
+	}
+
 	public synchronized void startAutoUseTask(Player player)
 	{
 		for (Set<Player> pool : POOLS)
@@ -449,6 +473,7 @@ public class AutoUseTaskManager
 	
 	public void stopAutoUseTask(Player player)
 	{
+		PHANTOM_POLICIES.remove(player);
 		player.getAutoUseSettings().resetSkillOrder();
 		for (Set<Player> pool : POOLS)
 		{

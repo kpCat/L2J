@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.LongConsumer;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.Directive;
@@ -44,21 +46,34 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomWeightedConsideration;
 
 /**
- * Decision adapter for one explicit persisted farm.background goal. It neither
- * chooses a target nor manufactures a goal.
+ * Decision adapter for one explicit persisted farm.background goal. Visible
+ * combat uses the existing server-side AutoPlay pools under the normal goal.
  */
 public final class PhantomBackgroundDecision
 {
-	private static final Set<PhantomActivityState> ALLOWED_STATES = Set.of(PhantomActivityState.ACTIVE, PhantomActivityState.WARM, PhantomActivityState.BACKGROUND);
+	private static final Set<PhantomActivityState> ALLOWED_STATES = Set.of(PhantomActivityState.ACTIVE, PhantomActivityState.NEARBY_PERCEPTIBLE, PhantomActivityState.WARM, PhantomActivityState.BACKGROUND);
 	private static final int STEP_TIMEOUT_MILLIS = 5000;
 	private static final int MAXIMUM_ATTEMPTS = 2;
 	private static final long RETRY_DELAY_MILLIS = 250;
+	private static final String VISIBLE_START_ACTION = "background.visible.start";
+	private static final String VISIBLE_AWAIT_ACTION = "background.visible.await";
 
 	private final PhantomBackgroundService _service;
+	private final BiFunction<Long, PhantomGoal, Boolean> _visibleStart;
+	private final BiFunction<Long, PhantomGoal, Boolean> _visibleRunning;
+	private final LongConsumer _visibleStop;
 
 	public PhantomBackgroundDecision(PhantomBackgroundService service)
 	{
+		this(service, (_profileId, _goal) -> false, (_profileId, _goal) -> false, _profileId -> {});
+	}
+
+	public PhantomBackgroundDecision(PhantomBackgroundService service, BiFunction<Long, PhantomGoal, Boolean> visibleStart, BiFunction<Long, PhantomGoal, Boolean> visibleRunning, LongConsumer visibleStop)
+	{
 		_service = Objects.requireNonNull(service, "service");
+		_visibleStart = Objects.requireNonNull(visibleStart, "visibleStart");
+		_visibleRunning = Objects.requireNonNull(visibleRunning, "visibleRunning");
+		_visibleStop = Objects.requireNonNull(visibleStop, "visibleStop");
 	}
 
 	public void registerCandidates(PhantomCandidateRegistry registry)
@@ -72,7 +87,8 @@ public final class PhantomBackgroundDecision
 			List.of(new PhantomWeightedConsideration("score.background.farm", 1, context ->
 			{
 				final Directive directive = _service.directive(context.profileId(), context.goal(), context.effectiveState());
-				final boolean executable = (directive.kind() == DirectiveKind.FARM) || (directive.kind() == DirectiveKind.TRAVEL) || (directive.kind() == DirectiveKind.RECOVER);
+				final boolean visible = visibleEligible(context.effectiveState(), directive);
+				final boolean executable = visible || (directive.kind() == DirectiveKind.FARM) || (directive.kind() == DirectiveKind.TRAVEL) || (directive.kind() == DirectiveKind.RECOVER);
 				return new PhantomConsideration.Evaluation(executable ? 1000 : 0, executable ? "background.explicit.ready" : "background.explicit.blocked");
 			})),
 			1000,
@@ -85,12 +101,20 @@ public final class PhantomBackgroundDecision
 		registry.register(PhantomBackgroundGoalSpec.TRAVEL_ACTION, context -> execute(context, DirectiveKind.TRAVEL));
 		registry.register(PhantomBackgroundGoalSpec.FARM_ACTION, context -> execute(context, DirectiveKind.FARM));
 		registry.register(PhantomBackgroundGoalSpec.RECOVER_ACTION, context -> execute(context, DirectiveKind.RECOVER));
+		registry.register(VISIBLE_START_ACTION, this::startVisible);
+		registry.register(VISIBLE_AWAIT_ACTION, this::awaitVisible);
 	}
 
 	private PhantomPlan plan(PhantomPlanningContext context)
 	{
 		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(context.goal());
 		final Directive directive = _service.directive(context.profileId(), context.goal(), context.effectiveState());
+		if (visibleEligible(context.effectiveState(), directive))
+		{
+			final PhantomPlanStep start = new PhantomPlanStep(0, VISIBLE_START_ACTION, exactSource(context.goal(), spec), Map.of("npc", (long) spec.npcId()), 5_000, 2, "visible.farm.autoplay.start");
+			final PhantomPlanStep await = new PhantomPlanStep(1, VISIBLE_AWAIT_ACTION, null, Map.of(), 12_000, 10, "visible.farm.autoplay.await");
+			return new PhantomPlan(context.decisionSequence(), context.goal().goalId(), PhantomBackgroundGoalSpec.CANDIDATE_KEY, List.of(start, await), 15_000, context.logicalNowNanos());
+		}
 		final String action = switch (directive.kind())
 		{
 			case TRAVEL -> PhantomBackgroundGoalSpec.TRAVEL_ACTION;
@@ -101,6 +125,52 @@ public final class PhantomBackgroundDecision
 		final PhantomDomainRef source = exactSource(context.goal(), spec);
 		final PhantomPlanStep step = new PhantomPlanStep(0, action, source, Map.of("npc", (long) spec.npcId()), STEP_TIMEOUT_MILLIS, MAXIMUM_ATTEMPTS, action + ".explicit");
 		return new PhantomPlan(context.decisionSequence(), context.goal().goalId(), PhantomBackgroundGoalSpec.CANDIDATE_KEY, List.of(step), STEP_TIMEOUT_MILLIS, context.logicalNowNanos());
+	}
+
+	private static boolean visibleEligible(PhantomActivityState state, Directive directive)
+	{
+		return (state.requiresMaterialization() || (state == PhantomActivityState.WARM)) && (directive.kind() == DirectiveKind.REPLAN) && "recovery.not_dead".equals(directive.reason());
+	}
+
+	private PhantomStepResult startVisible(PhantomStepContext context)
+	{
+		if (context.cancellationToken().isCancelled())
+		{
+			return PhantomStepResult.of(Type.CANCELLED, "background.visible.cancelled");
+		}
+		final PhantomBackgroundGoalSpec spec;
+		try
+		{
+			spec = PhantomBackgroundGoalSpec.parse(context.goal());
+			if (!exactSource(context.goal(), spec).equals(context.step().target()) || !Map.of("npc", (long) spec.npcId()).equals(context.step().numericArguments()))
+			{
+				return PhantomStepResult.of(Type.REPLAN, "background.visible.stale");
+			}
+		}
+		catch (IllegalArgumentException exception)
+		{
+			return PhantomStepResult.of(Type.REPLAN, "background.visible.invalid");
+		}
+		if (!visibleEligible(context.effectiveState(), _service.directive(context.profileId(), context.goal(), context.effectiveState())))
+		{
+			return PhantomStepResult.of(Type.REPLAN, "background.visible.blocked");
+		}
+		return _visibleStart.apply(context.profileId(), context.goal()) ? PhantomStepResult.of(Type.SUCCESS, "background.visible.autoplay_started") : PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry");
+	}
+
+	private PhantomStepResult awaitVisible(PhantomStepContext context)
+	{
+		if (context.cancellationToken().isCancelled())
+		{
+			_visibleStop.accept(context.profileId());
+			return PhantomStepResult.of(Type.CANCELLED, "background.visible.cancelled");
+		}
+		if (!visibleEligible(context.effectiveState(), _service.directive(context.profileId(), context.goal(), context.effectiveState())) || !_visibleRunning.apply(context.profileId(), context.goal()))
+		{
+			_visibleStop.accept(context.profileId());
+			return PhantomStepResult.of(Type.REPLAN, "background.visible.autoplay_stopped");
+		}
+		return PhantomStepResult.retry(1_000, "background.visible.autoplay_running");
 	}
 
 	private PhantomStepResult execute(PhantomStepContext context, DirectiveKind expected)

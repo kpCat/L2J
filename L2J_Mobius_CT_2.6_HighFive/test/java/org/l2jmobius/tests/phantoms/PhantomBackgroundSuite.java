@@ -52,6 +52,7 @@ import java.util.function.IntUnaryOperator;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.RatesConfig;
+import org.l2jmobius.gameserver.config.custom.AutoPlayConfig;
 import org.l2jmobius.gameserver.data.xml.DoorData;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
@@ -71,6 +72,8 @@ import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager;
+import org.l2jmobius.gameserver.taskmanagers.AutoUseTaskManager;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -154,6 +157,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector;
 import org.l2jmobius.gameserver.phantoms.player.PhantomActionFacade;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
@@ -411,6 +415,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("01-exact-goal-contract", _ -> testGoalContract());
 		registry.add("02-exact-candidate-and-handlers", _ -> testDecisionRegistrations());
 		registry.add("03-activity-identity-reaches-handler", _ -> testDecisionExecutionIdentity());
+		registry.add("04-visible-alive-ordinary-farm-candidate", _ -> testVisibleAliveCandidate());
+		registry.add("05-phantom-autoplay-admission-with-user-play-disabled", _ -> testPhantomAutoPlayAdmission());
 	}
 
 	private void registerServerIntegration(PhantomTestRegistry registry)
@@ -2057,7 +2063,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final PhantomBackgroundState dead = makeDead(runtime);
 			final long itemCount = scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=57", runtime.characterObjectId());
 			final var recovered = runtime.background().recover(runtime.profileId(), runtime.goal(), PhantomActivityState.WARM);
-			PhantomAssertions.assertEquals(OperationStatus.FAIL_GOAL, recovered.status(), "Canonical recovery did not return typed FAIL_GOAL: " + recovered.reason());
+			PhantomAssertions.assertEquals(OperationStatus.SUCCESS, recovered.status(), "Canonical recovery must keep the ordinary farming goal active: " + recovered.reason());
 			final PhantomBackgroundState ready = runtime.transaction().load(runtime.profileId()).state();
 			PhantomAssertions.assertEquals(State.READY, ready.state(), "Recovered canonical state is not READY.");
 			PhantomAssertions.assertTrue(ready.vitals().currentHp() > 0, "Recovery did not restore canonical HP.");
@@ -2109,7 +2115,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			makeDead(runtime);
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Preexisting recovery materialization did not become ACTIVE.");
 			final PhantomBackgroundService.OperationResult recovered = runtime.background().recover(runtime.profileId(), runtime.goal(), PhantomActivityState.ACTIVE);
-			PhantomAssertions.assertEquals(OperationStatus.FAIL_GOAL, recovered.status(), "Preexisting materialization recovery did not complete: " + recovered.reason());
+			PhantomAssertions.assertEquals(OperationStatus.SUCCESS, recovered.status(), "Preexisting materialization recovery must keep the ordinary farming goal active: " + recovered.reason());
 			PhantomAssertions.assertTrue(runtime.materialization().find(runtime.profileId()).filter(snapshot -> snapshot.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE).isPresent(), "Recovery dematerialized a Player owned by the existing ACTIVE lifecycle.");
 			PhantomAssertions.assertEquals(State.MATERIALIZED, runtime.transaction().load(runtime.profileId()).state().state(), "Restored ACTIVE recovery did not retain matching MATERIALIZED background state.");
 		}
@@ -2192,7 +2198,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(State.DEAD, dead.state().state(), "Production recovery fixture did not enter DEAD.");
 
 			final PhantomBackgroundService.OperationResult recovered = background.recover(profileId, goal, PhantomActivityState.WARM);
-			PhantomAssertions.assertEquals(OperationStatus.FAIL_GOAL, recovered.status(), "Production town recovery did not complete: " + recovered.reason());
+			PhantomAssertions.assertEquals(OperationStatus.SUCCESS, recovered.status(), "Production town recovery must keep the ordinary farming goal active: " + recovered.reason());
 			final PhantomBackgroundState recoveredState = transaction.load(profileId).state();
 			PhantomAssertions.assertEquals(State.READY, recoveredState.state(), "Production town recovery did not restore READY.");
 			PhantomAssertions.assertTrue(_production.topology().findAnchor(recoveredState.position().committedAnchorId()).isPresent(), "Production town recovery did not retain a corpus topology anchor.");
@@ -2277,7 +2283,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
 			decision.registerHandlers(handlers);
 			handlers.seal();
-			PhantomAssertions.assertEquals(java.util.Set.of(PhantomBackgroundGoalSpec.TRAVEL_ACTION, PhantomBackgroundGoalSpec.FARM_ACTION, PhantomBackgroundGoalSpec.RECOVER_ACTION), handlers.snapshot().keySet(), "Background action registration changed.");
+			PhantomAssertions.assertEquals(java.util.Set.of(PhantomBackgroundGoalSpec.TRAVEL_ACTION, PhantomBackgroundGoalSpec.FARM_ACTION, PhantomBackgroundGoalSpec.RECOVER_ACTION, "background.visible.start", "background.visible.await"), handlers.snapshot().keySet(), "Background action registration changed.");
 			PhantomAssertions.assertFalse(handlers.snapshot().containsKey("progression.learn_skill"), "Goal 015 enabled progression.learn_skill.");
 		}
 		finally
@@ -2308,6 +2314,87 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final Receipt receipt = runtime.transaction().load(runtime.profileId()).state().receipt();
 			PhantomAssertions.assertEquals(7L, receipt.activityGeneration(), "Activity generation did not reach the transaction receipt.");
 			PhantomAssertions.assertEquals(9L, receipt.tickSequence(), "Tick sequence did not reach the transaction receipt.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testVisibleAliveCandidate() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		try
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Visible farming baseline did not materialize.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "Visible farming baseline did not persist background state.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Visible farming fixture did not materialize.");
+			final PhantomBackgroundDecision decision = new PhantomBackgroundDecision(runtime.background(), (profileId, goal) -> profileId == runtime.profileId(), (profileId, goal) -> profileId == runtime.profileId(), profileId -> {});
+			final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
+			decision.registerCandidates(candidates);
+			candidates.seal();
+			final PhantomPlanningContext planning = new PhantomPlanningContext(runtime.profileId(), runtime.goal(), PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, 7, 9, 1234, 1);
+			final var selected = new PhantomUtilitySelector().select(candidates.snapshot(), planning);
+			PhantomAssertions.assertTrue(selected.candidate() != null, "Living materialized farm.background goal had NO_CANDIDATE before the shared AutoPlay target search: " + runtime.background().directive(runtime.profileId(), runtime.goal(), PhantomActivityState.ACTIVE));
+			final PhantomPlan plan = selected.candidate().planFactory().create(planning);
+			PhantomAssertions.assertEquals(List.of("background.visible.start", "background.visible.await"), plan.steps().stream().map(step -> step.actionKey()).toList(), "Visible farm did not use the shared AutoPlay executor.");
+			final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
+			decision.registerHandlers(handlers);
+			handlers.seal();
+			final PhantomStepResult started = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(new PhantomStepContext(runtime.profileId(), runtime.goal(), plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, 7, 9, 1234, 1, () -> false));
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, started.type(), "Visible farm did not start AutoPlay through its registered handler.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testPhantomAutoPlayAdmission() throws Exception
+	{
+		PhantomAssertions.assertFalse(AutoPlayConfig.ENABLE_AUTO_PLAY, "The fixture must keep ordinary user .play disabled.");
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		try
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Phantom AutoPlay fixture did not materialize.");
+			final Player player;
+			try (var lease = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				player = lease.player();
+			}
+			final CountDownLatch ticks = new CountDownLatch(2);
+			final AutoPlayTaskManager.PhantomPolicy policy = new AutoPlayTaskManager.PhantomPolicy()
+			{
+				@Override
+				public AutoPlayTaskManager.TickLease acquire(Player actor)
+				{
+					if (actor != player)
+					{
+						return null;
+					}
+					ticks.countDown();
+					return () -> {};
+				}
+
+				@Override
+				public boolean permitsTarget(org.l2jmobius.gameserver.model.actor.Creature target)
+				{
+					return false;
+				}
+			};
+			try
+			{
+				AutoPlayTaskManager.getInstance().startPhantomAutoPlay(player, policy);
+				AutoUseTaskManager.getInstance().startPhantomAutoUse(player, policy);
+				PhantomAssertions.assertTrue(ticks.await(3, TimeUnit.SECONDS), "Shared AutoPlay/AutoUse pools did not tick the admitted phantom while .play was disabled.");
+				PhantomAssertions.assertTrue(player.isAutoPlaying(), "Phantom AutoPlay admission did not set the native Player state.");
+			}
+			finally
+			{
+				AutoUseTaskManager.getInstance().stopAutoUseTask(player);
+				AutoPlayTaskManager.getInstance().stopAutoPlay(player);
+			}
+			PhantomAssertions.assertFalse(player.isAutoPlaying(), "Phantom AutoPlay stop retained native Player state.");
 		}
 		finally
 		{

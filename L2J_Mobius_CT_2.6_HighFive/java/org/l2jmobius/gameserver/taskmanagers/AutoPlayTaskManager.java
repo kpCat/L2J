@@ -50,9 +50,23 @@ public class AutoPlayTaskManager
 {
 	private static final Set<Set<Player>> POOLS = ConcurrentHashMap.newKeySet();
 	private static final Map<Player, Integer> IDLE_COUNT = new ConcurrentHashMap<>();
+	private static final Map<Player, PhantomPolicy> PHANTOM_POLICIES = new ConcurrentHashMap<>();
 	private static final int POOL_SIZE = 200;
 	private static final int TASK_DELAY = 700;
 	private static final Integer AUTO_ATTACK_ACTION = 2;
+
+	public interface TickLease extends AutoCloseable
+	{
+		@Override
+		void close();
+	}
+
+	public interface PhantomPolicy
+	{
+		TickLease acquire(Player player);
+
+		boolean permitsTarget(Creature target);
+	}
 	
 	protected AutoPlayTaskManager()
 	{
@@ -77,11 +91,20 @@ public class AutoPlayTaskManager
 			
 			PLAY: for (Player player : _players)
 			{
-				if (!player.isOnline() || (player.isInOfflineMode() && !player.isOfflinePlay()) || !AutoPlayConfig.ENABLE_AUTO_PLAY)
+				final PhantomPolicy phantomPolicy = PHANTOM_POLICIES.get(player);
+				if (!player.isOnline() || (player.isInOfflineMode() && !player.isOfflinePlay()) || (!AutoPlayConfig.ENABLE_AUTO_PLAY && (phantomPolicy == null)))
 				{
 					stopAutoPlay(player);
 					continue PLAY;
 				}
+				final TickLease lease = phantomPolicy == null ? () -> {} : phantomPolicy.acquire(player);
+				if (lease == null)
+				{
+					stopAutoPlay(player);
+					continue PLAY;
+				}
+				try (lease)
+				{
 				
 				if (player.isSitting() || player.isCastingNow() || (player.getQueuedSkill() != null))
 				{
@@ -96,10 +119,10 @@ public class AutoPlayTaskManager
 				if ((target != null) && target.isCreature())
 				{
 					final Creature creature = target.asCreature();
-					if (creature.isAlikeDead() || !isTargetModeValid(targetMode, player, creature))
+					if (creature.isAlikeDead() || !isTargetModeValid(targetMode, player, creature, phantomPolicy))
 					{
 						// Logic for Spoil (254) skill.
-						if (creature.isMonster() && creature.isDead() && player.getAutoUseSettings().getAutoSkills().contains(254))
+						if (creature.isMonster() && creature.isDead() && ((phantomPolicy == null) || phantomPolicy.permitsTarget(creature)) && player.getAutoUseSettings().getAutoSkills().contains(254))
 						{
 							final Skill sweeper = player.getKnownSkill(42);
 							if (sweeper != null)
@@ -281,7 +304,7 @@ public class AutoPlayTaskManager
 						}
 						
 						// Check next target mode.
-						if (!isTargetModeValid(targetMode, player, nearby))
+						if (!isTargetModeValid(targetMode, player, nearby, phantomPolicy))
 						{
 							continue TARGET;
 						}
@@ -312,6 +335,7 @@ public class AutoPlayTaskManager
 					
 					player.getAI().setIntention(Intention.ATTACK, creature);
 				}
+				}
 			}
 		}
 		
@@ -320,8 +344,12 @@ public class AutoPlayTaskManager
 			return !player.getAutoUseSettings().getAutoActions().contains(AUTO_ATTACK_ACTION);
 		}
 		
-		private boolean isTargetModeValid(int mode, Player player, Creature creature)
+		private boolean isTargetModeValid(int mode, Player player, Creature creature, PhantomPolicy phantomPolicy)
 		{
+			if ((phantomPolicy != null) && !phantomPolicy.permitsTarget(creature))
+			{
+				return false;
+			}
 			if (!creature.isTargetable() || (creature.isNpc() && (creature.isInvul() || !creature.asNpc().isShowName())))
 			{
 				return false;
@@ -347,6 +375,12 @@ public class AutoPlayTaskManager
 				}
 			}
 		}
+	}
+
+	public synchronized void startPhantomAutoPlay(Player player, PhantomPolicy policy)
+	{
+		PHANTOM_POLICIES.put(player, policy);
+		startAutoPlay(player);
 	}
 	
 	public synchronized void startAutoPlay(Player player)
@@ -380,6 +414,7 @@ public class AutoPlayTaskManager
 	
 	public void stopAutoPlay(Player player)
 	{
+		final boolean phantom = PHANTOM_POLICIES.remove(player) != null;
 		for (Set<Player> pool : POOLS)
 		{
 			if (pool.remove(player))
@@ -387,7 +422,7 @@ public class AutoPlayTaskManager
 				player.setAutoPlaying(false);
 				
 				// Pets must follow their owner.
-				if (player.hasServitor() || player.hasPet())
+				if (!phantom && (player.hasServitor() || player.hasPet()))
 				{
 					player.getSummon().followOwner();
 				}

@@ -47,9 +47,11 @@ import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQue
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService;
+import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
@@ -87,6 +89,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomPersonalC
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort;
@@ -238,6 +241,7 @@ public final class PhantomSystem
 	private PhantomStoreService _phantomStoreService;
 	private PhantomAutonomousMarketProducer _autonomousMarketProducer;
 	private PhantomBackgroundService _backgroundService;
+	private PhantomVisibleAutoPlay _visibleAutoPlay;
 	private PhantomHistoricalBackgroundService _historicalBackgroundService;
 	private PhantomAcquisitionService _acquisitionService;
 	private PhantomFarmingService _farmingService;
@@ -424,8 +428,9 @@ public final class PhantomSystem
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
 				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), () -> World.getInstance().getPlayers().stream().filter(player -> player.isOnline() && !player.hasHeadlessOutboundSession()).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList(), System::currentTimeMillis, profileId -> (_populationManager != null) && (_populationManager.presence().state(profileId) != PhantomPresenceRegistry.Presence.OFFLINE));
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority), _backgroundService, _materializationService);
+				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
-				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge))));
+				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(_visibleAutoPlay, PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge)))));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
@@ -441,7 +446,7 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom acquisition service could not enter the running state.");
 				}
 				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
-				final PhantomBackgroundDecision backgroundDecision = new PhantomBackgroundDecision(_backgroundService);
+				final PhantomBackgroundDecision backgroundDecision = new PhantomBackgroundDecision(_backgroundService, _visibleAutoPlay::start, _visibleAutoPlay::running, _visibleAutoPlay::stop);
 				final PhantomAcquisitionDecision acquisitionDecision = new PhantomAcquisitionDecision(_acquisitionService);
 				final PhantomEconomyDecision economyDecision = new PhantomEconomyDecision(_economyService);
 				final PhantomMultipartyEconomyDecision multipartyEconomyDecision = new PhantomMultipartyEconomyDecision(_multipartyEconomyService);
@@ -463,7 +468,11 @@ public final class PhantomSystem
 					_settings.maxMaterializedPhantoms(),
 					_settings.populationCreationInFlight(),
 					_settings.populationBoundariesPerPulse());
-				_populationManager.installTopologyMembership(positionPublisher::ready, positionPublisher::retired);
+				_populationManager.installTopologyMembership(profileId ->
+				{
+					positionPublisher.ready(profileId);
+					resumeRecoveredBackgroundGoal(profileId, productionGoals);
+				}, positionPublisher::retired);
 				_backgroundService.installPresencePolicy(_populationManager.presence()::permitsOrdinaryFarm);
 				final File partyRoleCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-roles-v1.xml");
 				final PhantomPartyRoleCatalog partyRoleCatalog = PhantomPartyRoleCatalog.load(partyRoleCatalogFile.toPath());
@@ -2278,6 +2287,35 @@ public final class PhantomSystem
 	private static boolean desiredRuntimeEnabled(boolean configuredEnabled, OperatorMode operatorMode)
 	{
 		return configuredEnabled && ((operatorMode == OperatorMode.AUTO) || (operatorMode == OperatorMode.ENABLED));
+	}
+
+	private void resumeRecoveredBackgroundGoal(long profileId, PhantomGoalStateStore goals)
+	{
+		final var runtime = _decisionEngine.find(profileId).orElse(null);
+		if ((runtime == null) || (runtime.goalStatus() != org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.FAILED) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(runtime.goalType()))
+		{
+			return;
+		}
+		final var background = _backgroundService.acquisitionSnapshot(profileId).orElse(null);
+		if ((background == null) || ((background.state() != org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.READY) && ((background.state() != org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.MATERIALIZED) || (background.vitals().currentHp() <= 0))))
+		{
+			return;
+		}
+		final var stored = goals.load(profileId).orElse(null);
+		if ((stored == null) || (stored.goal().status() != org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.FAILED) || (stored.goal().goalId() != runtime.goalId()) || (stored.goal().revision() != runtime.goalRevision()))
+		{
+			return;
+		}
+		final PhantomGoal resumed = stored.goal().withStatus(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE);
+		try
+		{
+			PhantomBackgroundGoalSpec.parse(resumed);
+		}
+		catch (IllegalArgumentException exception)
+		{
+			return;
+		}
+		_decisionEngine.setGoal(profileId, resumed);
 	}
 
 	private String ecologySafetyBlock(long profileId, PhantomGoalStateStore goals)

@@ -296,7 +296,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return new Directive(loaded.status() == PhantomBackgroundTransaction.Status.INCONSISTENT ? DirectiveKind.INCONSISTENT : DirectiveKind.RETRY, "state." + loaded.status().name().toLowerCase(), "");
 		}
 		final PhantomBackgroundState state = loaded.state();
-		if ((activityState == PhantomActivityState.WARM) || (activityState == PhantomActivityState.ACTIVE))
+		if ((activityState == PhantomActivityState.WARM) || activityState.requiresMaterialization())
 		{
 			final boolean recoverable = (state.state() == State.DEAD) || ((state.state() == State.MATERIALIZED) && (state.vitals().currentHp() == 0));
 			return recoverable ? new Directive(DirectiveKind.RECOVER, "state.dead", spec.anchorId()) : new Directive(DirectiveKind.REPLAN, "recovery.not_dead", state.position().committedAnchorId());
@@ -809,7 +809,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public OperationResult recover(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled)
 	{
 		Objects.requireNonNull(cancelled, "cancelled");
-		if ((activityState != PhantomActivityState.WARM) && (activityState != PhantomActivityState.ACTIVE))
+		if ((activityState != PhantomActivityState.WARM) && !activityState.requiresMaterialization())
 		{
 			return OperationResult.replan("recovery.activity");
 		}
@@ -924,7 +924,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				return OperationResult.inconsistent("recovery.rematerialization_" + restored.status().name().toLowerCase());
 			}
 		}
-		return OperationResult.failGoal("death.recovered_at_town");
+		return OperationResult.success("death.recovered_at_town");
 	}
 
 	@Override

@@ -180,14 +180,14 @@ public final class LocalPlayPilotActions
 			_candidatePosition = null;
 			_candidateObjectId = 0;
 			final Map<String, String> data = new LinkedHashMap<>();
-			addVisibleMaterialized(data, visible);
+			addVisibleMaterialized(data, visible, actor);
 			return new Outcome("SUCCEEDED", "NO_CANDIDATE", Map.copyOf(data));
 		}
 		final OperatorAdmissionProfile profile = PhantomSystem.operatorAdmissionProfile(nearest.profileId()).orElse(null);
 		if ((profile == null) || !profile.admission().admitted() || profile.admission().pendingRebalance() || (nearest.committedPosition().instanceId() != actor.getInstanceId()))
 		{
 			final Map<String, String> data = new LinkedHashMap<>();
-			addVisibleMaterialized(data, visible);
+			addVisibleMaterialized(data, visible, actor);
 			return new Outcome("SUCCEEDED", "NO_ADMITTED_CANDIDATE", Map.copyOf(data));
 		}
 		final PhantomTopologyPoint point = nearest.committedPosition();
@@ -201,7 +201,7 @@ public final class LocalPlayPilotActions
 		data.put("instanceId", Integer.toString(point.instanceId()));
 		data.put("admitted", "true");
 		data.put("materialized", Boolean.toString((profile.materialization() != null) && profile.materialization().worldPresent()));
-		addVisibleMaterialized(data, visible);
+		addVisibleMaterialized(data, visible, actor);
 		if ((profile.materialization() != null) && profile.materialization().worldPresent())
 		{
 			final int objectId = profile.materialization().characterObjectId();
@@ -216,7 +216,7 @@ public final class LocalPlayPilotActions
 		return new Outcome("SUCCEEDED", "CANDIDATE_SNAPSHOT", Map.copyOf(data));
 	}
 
-	private static void addVisibleMaterialized(Map<String, String> data, OperatorLocalityTarget visible)
+	private static void addVisibleMaterialized(Map<String, String> data, OperatorLocalityTarget visible, Player actor)
 	{
 		if (visible != null)
 		{
@@ -224,6 +224,21 @@ public final class LocalPlayPilotActions
 			data.put("visibleX", Integer.toString(visible.committedPosition().x()));
 			data.put("visibleY", Integer.toString(visible.committedPosition().y()));
 			data.put("visibleZ", Integer.toString(visible.committedPosition().z()));
+			final OperatorAdmissionProfile profile = PhantomSystem.operatorAdmissionProfile(visible.profileId()).orElse(null);
+			if ((profile != null) && (profile.materialization() != null) && (World.getInstance().findObject(profile.materialization().characterObjectId()) instanceof Player target) && target.isOnline() && (target.getInstanceId() == actor.getInstanceId()) && target.isVisibleFor(actor))
+			{
+				data.put("visibleObjectId", Integer.toString(target.getObjectId()));
+				data.put("visibleLiveX", Integer.toString(target.getX()));
+				data.put("visibleLiveY", Integer.toString(target.getY()));
+				data.put("visibleLiveZ", Integer.toString(target.getZ()));
+				data.put("visibleDistance", Long.toString(Math.round(actor.calculateDistance3D(target))));
+				data.put("visibleTargetObjectId", Integer.toString(target.getTarget() == null ? 0 : target.getTarget().getObjectId()));
+				data.put("visibleAiIntention", target.hasAI() ? target.getAI().getIntention().name() : "NONE");
+				data.put("visibleMoving", Boolean.toString(target.isMoving()));
+				data.put("visibleAttacking", Boolean.toString(target.isAttackingNow()));
+				data.put("visibleAutoPlaying", Boolean.toString(target.isAutoPlaying()));
+				data.put("visibleDead", Boolean.toString(target.isDead()));
+			}
 		}
 	}
 
