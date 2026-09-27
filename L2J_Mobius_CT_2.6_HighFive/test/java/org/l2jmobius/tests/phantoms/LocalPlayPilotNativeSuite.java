@@ -45,6 +45,7 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		registry.add("native-pose-and-read-only-snapshot", this::poseAndSnapshot);
 		registry.add("chat-party-target-and-skill-refusals", this::refusals);
 		registry.add("learned-skill-native-path", this::learnedSkill);
+		registry.add("envelope-proof-requires-natural-target", this::envelopeProofRequiresNaturalTarget);
 	}
 
 	private void poseAndSnapshot(PhantomTestContext context) throws Exception
@@ -78,6 +79,15 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue((areaSkill != null) && areaSkill.isAOE(), "Expected stock area skill is unavailable.");
 		_actor.addSkill(areaSkill, false);
 		PhantomAssertions.assertEquals("SKILL_TARGET_TYPE_NOT_PERMITTED", execute(LocalPlayPilotProtocol.Operation.CAST_LEARNED_SKILL, Map.of("skillId", "7", "targetObjectId", Integer.toString(_actor.getObjectId()))).reason(), "Learned area skill passed pilot target guard.");
+	}
+
+	private void envelopeProofRequiresNaturalTarget(PhantomTestContext context)
+	{
+		final var origin = _actor.getLocation();
+		final LocalPlayPilotActions.Outcome preparation = execute(LocalPlayPilotProtocol.Operation.valueOf("PREPARE_M1_ENVELOPE"), Map.of());
+		PhantomAssertions.assertEquals("REJECTED", preparation.status(), "Envelope preparation accepted without a natural target.");
+		PhantomAssertions.assertEquals(origin, _actor.getLocation(), "Rejected envelope preparation moved the actor.");
+		PhantomAssertions.assertEquals("REJECTED", execute(LocalPlayPilotProtocol.Operation.valueOf("SNAPSHOT_M1_ENVELOPE"), Map.of()).status(), "Unprepared envelope snapshot was accepted.");
 	}
 
 	private LocalPlayPilotActions.Outcome execute(LocalPlayPilotProtocol.Operation operation, Map<String, String> args)

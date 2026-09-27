@@ -1705,6 +1705,25 @@ public final class PhantomSystem
 			configured._populationManager.presence().busyReason(profileId)));
 	}
 
+	/** Read-only topology and locality state for one operator-selected ordinary profile. */
+	public static synchronized java.util.Optional<OperatorLocalityTarget> operatorLocalityTarget(long profileId)
+	{
+		final PhantomSystem configured = _configuredInstance;
+		if ((profileId <= 0) || (configured == null) || (configured._state != State.RUNNING) || (configured._topologyService == null))
+		{
+			return java.util.Optional.empty();
+		}
+		return configured._topologyService.findProfile(profileId)
+			.filter(profile -> profile.resolved() && (profile.point() != null))
+			.map(profile -> new OperatorLocalityTarget(profile.profileId(), profile.point(), profile.nodeId(), profile.topologyGeneration()));
+	}
+
+	public static synchronized boolean operatorHumanLocality(long profileId)
+	{
+		final PhantomSystem configured = _configuredInstance;
+		return (profileId > 0) && (configured != null) && (configured._state == State.RUNNING) && (configured._humanLocality != null) && configured._humanLocality.isLocal(profileId);
+	}
+
 	/** Read-only naturally materialized target already visible to the Pilot actor. */
 	public static synchronized java.util.Optional<OperatorLocalityTarget> operatorNearestVisibleMaterializedTarget(Player human)
 	{

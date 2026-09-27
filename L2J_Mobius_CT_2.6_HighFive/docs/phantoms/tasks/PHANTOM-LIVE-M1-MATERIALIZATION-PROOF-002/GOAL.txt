@@ -1,0 +1,5 @@
+Close the only remaining M1 blocker: M1_CONNECTED_MATERIALIZATION_ENVELOPE_UNPROVEN.
+
+Prove, in one bounded connected TestAdmin/Pilot scenario on real LocalPlay, that an ordinary phantom is materialized before it can become client-visible, stays stable while visible, respects exit grace, dematerializes only after it is safely out of visibility, and rematerializes before visibility on re-entry.
+
+Do not start M2. Do not rework visible combat/AutoPlay unless a new regression is first proven.
