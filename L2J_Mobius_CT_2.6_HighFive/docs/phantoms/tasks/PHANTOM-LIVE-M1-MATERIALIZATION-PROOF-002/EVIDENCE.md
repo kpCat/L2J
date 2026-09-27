@@ -18,8 +18,8 @@ Populate during execution. Do not replace exact measurements with prose.
 ## Route discovery before arm
 
 - chosen area: Elven Territory outdoor farming corridor, away from the previous blocked Talking Island wall.
-- target profileId: natural cohort at the fixed farm anchor; read-only PLAY `SELECT` found profile `25` among 112 profiles at the anchor. The Pilot selects one READY/AVAILABLE ordinary profile there and fixes that ID for the full connected run. Exact selected ID is pending the final arm.
-- target committed XYZ / instance: candidate cohort `(39050,41882,-3592)`, instance 0; exact selected runtime topology point pending.
+- target profileId: natural cohort at the fixed farm anchor; read-only PLAY `SELECT` found profile `25` among 112 profiles at the anchor. The Pilot selects one READY/AVAILABLE ordinary profile there and fixes that ID for each bounded run. Connected runs selected profiles `59`, `450`, and `459` in order.
+- target committed XYZ / instance at selection: `(39050,41882,-3592)`, instance 0 for all three; profile 459's committed position later changed during measurement, as recorded below.
 - route start/end/waypoints: fixed start `(45085,42001,-3496)` in native x-region 22; prewarm point `(44126,42751,-3488)` in region 21; visible traversal through `(42857,42534,-3514)`, `(41588,42316,-3540)`, `(40319,42099,-3566)` to target anchor `(39050,41882,-3592)` in region 19, then reverse exit and re-entry. The target's region 19 is not in the start region 22 surrounding set; region 21 is outside client visibility; region 20 first enters it.
 - GeoEngine route proof: `ANCHOR_PROOF.tsv` reports `VALID` exact start Z and local move with `STATIC_XML_CLEAR`; `adaptive-geo-proof.tsv` reports `VALID_DIRECT` for all 42 directed legs/subhops, including return. Subhops are at most 400 XY units for `MOVE_SELF`; start→prewarm is 1218 units for guarded `TELEPORT_SELF`. Native 203-region geodata was loaded. `population.farming.elf.20534` contains the prewarm point and has a TARGETABILITY edge to `generated.farm.7451e61fe8e94f49afb1f9e2`, which contains the target anchor.
 - Pilot helper required? yes.
@@ -32,13 +32,13 @@ Before the final arm, the same bounded selector gained an `afterProfileId` fallb
 ## USER_CLIENT_ACTION count
 
 1. TestAdmin login/arm on Game PID 23968. First Pilot preflight rejected before movement: no globally admitted target at the fixed cohort. Pilot run stopped; actor stayed at origin.
-2. Final TestAdmin login/arm on Game PID 20952. Two automated measurements used the same lease. No third action was requested.
+2. Final TestAdmin login/arm on Game PID 20952. Three automated measurements used the same lease. No third USER_CLIENT_ACTION was requested.
 
 ## Runtime measurement artifact
 
-`MATERIALIZATION_ATTEMPT_1.tsv`: 19 samples for natural profile 59, saved before the same-lease repeat. `MATERIALIZATION_CONNECTED_PROOF.tsv`: 48 samples for natural profile 450, final extended observation. Both contain UTC, TestAdmin XYZ/instance/native regions, fixed target committed XYZ/native regions, world presence/objectId, native could-know predicate, distance, locality, materialization state/age, scheduler states/signals and presence reason. Neither is a completed A–F connected sequence.
+`MATERIALIZATION_ATTEMPT_1.tsv`: 19 samples for natural profile 59. `MATERIALIZATION_ATTEMPT_2.tsv`: 48 samples for natural profile 450, preserved byte-for-byte before the later run (SHA-256 `772B50C5A14D0528D74309958556CD3956BD74BF6B30EF690C3AF59D35F7D0B5`). `MATERIALIZATION_CONNECTED_PROOF.tsv`: 48 later samples for natural profile 459. All record UTC, TestAdmin XYZ/instance/native regions, fixed target ID and committed XYZ/native regions, world presence/objectId, native could-know predicate, distance, locality, materialization state/age, scheduler states/signals and presence reason. None is a completed A–F connected sequence.
 
-## Required transition evidence
+## Required transition evidence from initial profiles 59 and 450
 
 ### OUTSIDE
 
@@ -75,6 +75,18 @@ Before the final arm, the same bounded selector gained an `afterProfileId` fallb
 
 - not reached; no initial materialization/visible pass.
 
+## Same-lease third natural target: connected RED
+
+The still-valid second TestAdmin lease was reused without another owner action, restart, or code change. A diagnostic `STATUS` with a different run ID briefly caused `SESSION_OR_DEADLINE` at preflight; `Stop-LocalPlayPilot.ps1` restored `ARMED_IDLE` before the bounded retry. The retry selected ordinary profile `459` via `afterProfileId=450` and produced `MATERIALIZATION_CONNECTED_PROOF.tsv` (48 samples, `20:31:08.740Z`–`20:32:19.339Z`).
+
+- **OUTSIDE:** at `20:31:09.340Z`, TestAdmin `(45085,42001,-3491)`/region `(22,20,6)`, target profile 459 committed `(39050,41882,-3592)`/region `(19,20,6)`, `worldPresent=false`, `clientVisible=false`.
+- **PREWARM without materialization:** at `20:31:28.941Z`, stationary TestAdmin `(44126,42751,-3483)`/region `(21,20,6)`, target still at the region-19 anchor, `localityCurrent=true`, `activeSignalSources=2`, `presenceReason=none`, `STORED`, `clientVisible=false`.
+- **Anchor shift and first world presence:** at the next sample `20:31:30.338Z`, the same profile's committed and live position was `(46045,41251,-3504)`/region `(22,20,6)`, object `268488712`, `ACTIVE`, `worldPresent=true`, `regionCanKnow=true`, `clientVisible=true`, distance2D `2436`. It did not first materialize with a recorded positive nonvisible margin. The exact instant and reason for the committed-position change are not instrumented.
+- **Visible disappearance:** at `20:32:10.340Z`, the same stationary TestAdmin still had `clientVisible=true` for the unchanged live target, while `localityCurrent=false`, `requestedState=BACKGROUND`, `activeSignalSources=1`, `presenceReason=none`. At `20:32:11.742Z`, target remained committed at `(46045,41251,-3504)` with `regionCanKnow=true`, but was `STORED/worldPresent=false` and had no live object. This is a precise server-side RED for disappearance across a visible sampling interval; the source of the loss of locality and exact store decision still need diagnosis.
+- The bounded runner ended `PHASE_TIMEOUT:PREWARM`; visible route, exit grace and re-entry were not executed. The runner had returned TestAdmin to `(45085,42001,-3491)` before a guarded local teleport and `STATUS` at `20:33:58.337Z` confirmed `REAL_LOGIN`, online/worldPresent, stationary, not teleporting. Pilot was stopped. No visual question was asked because server evidence had already failed.
+
+This new RED supersedes the earlier inference that the selected cohort simply never materializes. A source-backed diagnosis, focused production fix, and new exact-JAR connected retest are required before M1 GREEN. Both permitted USER_CLIENT_ACTIONs are exhausted; a restart would invalidate the current lease, so that retest is outside this task's arm gate.
+
 ## Passive client observation
 
 - obvious pop-in seen? not-observed; no passive question asked because server evidence already failed.
@@ -100,5 +112,5 @@ Before the final arm, the same bounded selector gained an `afterProfileId` fallb
 ## Final status
 
 - status: `BLOCKED — M1_CONNECTED_MATERIALIZATION_ENVELOPE_UNPROVEN`.
-- exact blocker: source-backed prewarm locality is true for two natural READY/AVAILABLE profiles, but neither materializes before visibility even after 67 seconds at the prewarm point; hence visible stability, exit/grace, dematerialization and re-entry are unproven. Additional Pilot origin alias defect prevented full actor restoration.
+- exact blocker: profiles 59 and 450 did not materialize during connected prewarm despite current locality. The third natural target, profile 459, changed committed anchor before its first observed world presence, became server-visible without a positive nonvisible materialization margin, then stored across a visible sampling interval while TestAdmin and target were stationary. A focused fix and fresh connected retest would need another TestAdmin arm after restart, beyond this task's hard limit. Exit/grace and re-entry remain unproven. The Pilot origin alias also prevents restoration to the original Talking Island position.
 - final remote HEAD before evidence-only report commit: `686761a73f1abe9a0d06821d98e18009f0ccad6c`.
