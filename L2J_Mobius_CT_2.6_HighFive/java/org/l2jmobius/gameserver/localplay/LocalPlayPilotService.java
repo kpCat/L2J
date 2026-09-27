@@ -53,6 +53,7 @@ public final class LocalPlayPilotService
 	private String _runtimeId;
 	private long _pid;
 	private long _startTicks;
+	private long _observedStartMillis;
 	private LocalPlayPilotLease _lease;
 	private Player _player;
 	private GameClient _client;
@@ -91,8 +92,9 @@ public final class LocalPlayPilotService
 			_runtimeId = runtimeId(_runtimeRoot);
 			_pid = ProcessHandle.current().pid();
 			final Instant started = ProcessHandle.current().info().startInstant().orElseThrow();
-			_startTicks = DOTNET_EPOCH_TICKS + (started.getEpochSecond() * 10000000L) + (started.getNano() / 100L);
-			if (!validManifest() || !ownedProcess())
+			_observedStartMillis = started.toEpochMilli();
+			_startTicks = ownedStartTicks();
+			if (!validManifest() || (_startTicks == 0))
 			{
 				throw new IllegalStateException("GameServer ownership incarnation is not current.");
 			}
@@ -129,14 +131,19 @@ public final class LocalPlayPilotService
 
 	private boolean ownedProcess() throws IOException
 	{
+		return (_startTicks != 0) && (ownedStartTicks() == _startTicks);
+	}
+
+	private long ownedStartTicks() throws IOException
+	{
 		if ((_runtimeRoot == null) || (_runtimeId == null) || !_runtimeId.equals(System.getProperty("phantom.localplay.runtime")) || !"GameServer".equals(System.getProperty("phantom.localplay.role")))
 		{
-			return false;
+			return 0;
 		}
 		final Path record = _runtimeRoot.resolve("local-play/pids/GameServer.json");
 		if (!Files.isRegularFile(record, LinkOption.NOFOLLOW_LINKS) || !record.toRealPath().startsWith(_runtimeRoot) || (Files.size(record) > 4096))
 		{
-			return false;
+			return 0;
 		}
 		String json = Files.readString(record, StandardCharsets.UTF_8).strip();
 		if (!json.isEmpty() && (json.charAt(0) == 0xfeff))
@@ -144,7 +151,22 @@ public final class LocalPlayPilotService
 			json = json.substring(1);
 		}
 		final Matcher matcher = OWNED_RECORD.matcher(json);
-		return matcher.matches() && Long.toString(_pid).equals(matcher.group(1)) && Long.toString(_startTicks).equals(matcher.group(2)) && _runtimeId.equals(matcher.group(3));
+		if (!matcher.matches() || !Long.toString(_pid).equals(matcher.group(1)) || !_runtimeId.equals(matcher.group(3)))
+		{
+			return 0;
+		}
+		final long recordedTicks;
+		try
+		{
+			recordedTicks = Long.parseLong(matcher.group(2));
+		}
+		catch (NumberFormatException exception)
+		{
+			return 0;
+		}
+		// ProcessHandle.startInstant() has millisecond precision on Windows; retain the exact
+		// LocalPlay record ticks after matching the same observable process start millisecond.
+		return (recordedTicks >= DOTNET_EPOCH_TICKS) && (((recordedTicks - DOTNET_EPOCH_TICKS) / 10000L) == _observedStartMillis) ? recordedTicks : 0;
 	}
 
 	private boolean validManifest() throws Exception
