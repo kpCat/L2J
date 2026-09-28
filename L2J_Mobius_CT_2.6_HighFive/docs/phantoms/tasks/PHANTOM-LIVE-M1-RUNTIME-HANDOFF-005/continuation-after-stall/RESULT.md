@@ -1,4 +1,4 @@
-# Continuation 005 — M1 OPEN, connected gate REQUIRED
+# Continuation 005 — M1 OPEN, connected gate RED
 
 Продолжение той же задачи. M2 не начат. Новых proof-задач/runner нет.
 Baseline: `50600cefa3da849f231e3883ecdda5a31800b699`; прежний runtime source: `e92d7d438641f3f13158021675bd99e2489a7042`.
@@ -35,7 +35,14 @@ Native death timer 45-second policy покрывает существующий 
 Hunters Village recovery anchor для high-level Giran corpse отсутствует в текущем corpus; XML anchors не добавлены. High-level TEST проверяет load/vitals/SP fence, не эту town route.
 Два существующих store/capture writes при derived-vitals refresh не являются новой атомарной транзакцией; второй write может отказать и оставить штатный retained failure.
 Broad planner 1..85, 10k native scale и новая live-location matrix не запускались. Старый broad 5/5 — прежнее evidence.
-CONNECTED: новый run не выполнялся. Нужен один fresh TestAdmin arm; gate REQUIRED, M1 GREEN не объявлен.
+CONNECTED: ровно один fresh-arm run 0b961629-49ff-4cc7-a96a-afc5cb70bf86, RED MISSED_INITIAL_MATERIALIZATION.
+Profile1298: first physical demand 21:15:02.085210100Z; первое regionCanKnow=true 21:15:25.076470800Z, objectId0/worldPresent=false/STORED.
+Во всех 17 последовательных demand snapshots physical=true, delivery ACCEPTED/COALESCED, overflow=false; pump RUNNING/WAKE_SCHEDULED.
+Inner cursor 29839521→29839525 (4 minutes), target29839530/revision3854; outer29839515, requested horizon29843835. Profile queued=true/running=false на последнем snapshot.
+Urgent queue 973→949, ordinary6671 на visibility; FIFO urgent берёт до 2 profiles/batch, при четырёх profiles slice=4 intervals. Это рабочий pump, но своевременная readiness не достигнута.
+Remaining blocker: подготовка при большом pending backlog и конкурирующей urgent cohort; точный вклад backlog/очереди ещё не доказан. Короткий isolated TEST window не подтверждает production latency.
+Origin восстановлен/REAL_LOGIN подтверждён; existing runner finally остановил Pilot (ARMED_IDLE). Census=0; native gameplay/short-return/массовый idle NOT_OBSERVED.
+Raw WORLD.tsv/RESULT и log — ignored .phantom-local/m1-005-connected-0b961629-49ff-4cc7-a96a-afc5cb70bf86 и continuation-connected-final.log. Не harness-only failure; повтор не запущен, остановка на RED gate.
 
 ## Exact publication allowlist (относительно модуля)
 
@@ -86,3 +93,4 @@ Writes: git add -- $scope; git diff --cached --check -- $scope; git commit -m "f
 $scope — exact 21-path allowlist выше; stage inventory проверен до commit, foreign пути исключены.
 Doc follow-up: git add -- $docs; git diff --cached --check -- $docs; git commit -m "docs(phantoms): record continuation 005 deployment readiness"; git push origin feature/phantom-world.
 $docs — только STATE.md и этот RESULT.md. Native worktree создан app tool с exact ref, без shell branch/worktree mutations.
+Connected outcome doc publication: git commit -m "docs(phantoms): record continuation 005 connected red"; остальные doc stage/check/push команды те же, exact $docs 2 paths.
