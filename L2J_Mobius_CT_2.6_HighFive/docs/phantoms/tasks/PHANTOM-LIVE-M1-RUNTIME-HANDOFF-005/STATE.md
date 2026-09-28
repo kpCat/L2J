@@ -1,33 +1,29 @@
 # STATE
 
-Status: CONNECTED_RUNTIME_RED_M1_OPEN
-Baseline: 82fae37aff225e959213e1d0432b53d50360318a
-Deployed source before this task: de40c81411cf6501cb9446840aef98f7dd9369e2
-
-Read-first завершён: TASK/HANDOFF/DESIGN/PLAN/ACCEPTANCE/SOURCE_MAP, инструкции и отмеченные исходники.
-Git baseline: feature/phantom-world, origin=https://github.com/kpCat/L2J.
-Чужие tracked правки сохранены: PhantomMaterializationService.java, PhantomClanDirectiveIntegrationGoal030C2ASuite.java, PhantomMultipartyEconomySuite.java.
-profile 5079: точная историческая причина OFFLINE неизвестна; raw calendar/nextBoundary отсутствуют.
-RED воспроизведён: calendar-online -> OFFLINE при pending ecology; JDBC блокировал population pulse.
-RED воспроизведён в native TEST: reject-id без retained terminal -> navigation_pending/hold.
-RED воспроизведён: native one-point path -> NO_PATH только по длине списка.
-Изменения DESIGN/PLAN внесены; independent review: важных замечаний нет. Runtime gate RED.
-Aggregate A/B/C: 102/102 PASS; final broad: 5/5 PASS, выполнен один раз.
-Exact code scope: 21 paths; separate mojibake/escaped Cyrillic и whitespace checks PASS.
-Code SHA published: e92d7d438641f3f13158021675bd99e2489a7042.
-Чистый managed detached ant jar PASS (22s); controlled deployment завершён.
-Deployed Game SHA256: 83A2691BC9A417CE9B1D408A735A1E2DCE5423AB658B6E082AF06D39A67DE8D6.
-Build/runtime/manifest hash совпадает; owned Login=16840/Game=29616, CONFIG PASS.
-Runtime startup 50s; Login registration и native Pilot mailbox enabled наблюдены.
-Read-only PLAY calendar: READY=10000, online/horizon180=1760 (17:21:28Z).
-Mailbox headroom=512; old closed records архивированы, consent/evidence сохранены.
-Runner DateTime fix опубликован: 752047c3d80f4ae10c6665857da5bda727b5e0be; offline regression/syntax PASS.
-Ровно один явно разрешённый повтор c6bf597d-efb6-422f-a906-aca8729acc47: VISIBLE_DISAPPEARANCE.
-profile 1313 calendar-online; первое native-visible пересечение без Player: STORED/objectId=0.
-Readiness ecology.commit_pending, queued=true/running=false; cursor 29839500, horizon 29843626.
-Local demand был true, перед visibility стал false; last reason presence.no_current_local_demand.
-Origin/REAL_LOGIN восстановлен; Pilot run остановлен, consent ARMED_IDLE. Бой/travel/continuity NOT OBSERVED.
-M1 RED/open; новых run/arm/restart или Java-правок после результата нет. M2 не начат.
-
-Update this file in place; keep below 40 lines.
-M2 не начинать. Один свежий arm только после автоматической готовности.
+Status: CONTINUATION_AUTOMATED_READY_PUBLICATION_M1_OPEN
+Continuation baseline: 50600cefa3da849f231e3883ecdda5a31800b699.
+Branch/origin: feature/phantom-world / https://github.com/kpCat/L2J.
+Previous deployed code: e92d7d438641f3f13158021675bd99e2489a7042.
+Previous Game SHA256: 83A2691BC9A417CE9B1D408A735A1E2DCE5423AB658B6E082AF06D39A67DE8D6.
+Previous connected RED c6bf597d-efb6-422f-a906-aca8729acc47: VISIBLE_DISAPPEARANCE.
+Первое native-visible пересечение 1313 было без Player; local demand потерян, ecology.commit_pending.
+После прошлого run Origin/REAL_LOGIN восстановлен, Pilot остановлен. Нового arm/run пока нет.
+Read-first continuation TASK/ANALYSIS/DESIGN/PLAN/SOURCE_MAP завершён.
+Native locality buckets/envelope и physical demand/signal delivery split реализованы.
+Ecology: один bounded wake/worker, quantum 100 ms, общий budget 4 profiles/16 intervals.
+Pending RUNNING/COMPLETE восстановление, inner/outer progress, typed failures и cached diagnostics реализованы.
+Native DEAD load: derived vitals refresh с точным identity/progress/position/hash fence.
+Guarded TEST pending→ready→Player→stock native travel→AutoPlay damage пройден на той же identity.
+Итоговый aggregate 199/199 PASS; topology core 39/perception 36, native replay 7, recovery timer 6.
+Последний TEST-only review follow-up cleanup/movement assertions: native suite 7/7 PASS.
+Offline runner PASS: DateTime/ISO/DateTimeOffset/null, typed reasons, actual finally restore/stop mocked.
+Текущий read-only 1313 (19:12:28Z): RUNNING inner 29840583/29840595, outer 29840582, DEAD level3/class18.
+Это не historical RED 4126 calendar gap; TEST — согласованная isolated 13-minute history, не импорт PLAY payload.
+Hunters Village recovery anchor вне coverage; XML не менялся. Broad/10k native/location matrix не повторялись.
+Final review выполнен тем же reviewer; новых proof-задач и второго runner нет.
+Exact publication scope: 21 paths в continuation-after-stall/RESULT.md; чужие hunks вне stage/build.
+Raw logs/probe только ignored .phantom-local. Все Ant запуски строго последовательны.
+Publication/clean exact-SHA JAR/controlled deployment continuation ещё не выполнены.
+Следующий gate: после automatic ready и deploy один свежий TestAdmin arm и existing prepared run.
+M1 GREEN только по connected PLAN §4; required gate не принят автоматически.
+M2 не начат.

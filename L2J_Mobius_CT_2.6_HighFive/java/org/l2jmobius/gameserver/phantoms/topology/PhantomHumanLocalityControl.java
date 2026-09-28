@@ -3,7 +3,7 @@
  */
 package org.l2jmobius.gameserver.phantoms.topology;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -13,8 +13,6 @@ import java.util.function.LongSupplier;
 import java.util.function.LongPredicate;
 import java.util.function.Supplier;
 
-import org.l2jmobius.gameserver.model.World;
-import org.l2jmobius.gameserver.model.WorldRegion;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
@@ -27,16 +25,16 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 	private static final int MAXIMUM_PROFILES_PER_HUMAN = 1024;
 	private static final long REFRESH_MILLIS = 1000;
 	private static final long SIGNAL_TTL_MILLIS = 10_000;
-	private static final int REGION_SIZE = 1 << World.SHIFT_BY;
-	private static final int EDGE_MARGIN = REGION_SIZE / 4;
-	private static final int PREWARM_REGION_DISTANCE = 2;
 	private final PhantomTopologyService _topology;
 	private final PhantomRelevanceSignalPort _signals;
 	private final Supplier<List<PhantomTopologyPoint>> _humans;
 	private final LongSupplier _clock;
 	private final LongPredicate _online;
 	private final Supplier<Map<Long, PhantomTopologyPoint>> _livePlayers;
+	private java.util.function.LongConsumer _physicalDemand = _ -> {};
 	private volatile Set<Long> _local = Set.of();
+	private volatile PhysicalDemand _physical = new PhysicalDemand(0, Map.of(), false);
+	private volatile Map<Long, PhantomRelevanceSignalPort.SignalDelivery> _delivery = Map.of();
 	private long _nextRefresh;
 	private long _sequence;
 
@@ -60,6 +58,12 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 		_livePlayers = Objects.requireNonNull(livePlayers, "livePlayers");
 	}
 
+	/** Installed before scheduler start; enqueue only, independent of signal delivery. */
+	public void installPhysicalDemand(java.util.function.LongConsumer demand)
+	{
+		_physicalDemand = Objects.requireNonNull(demand);
+	}
+
 	@Override
 	public void onPulse()
 	{
@@ -70,30 +74,43 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 		}
 		_nextRefresh = now + REFRESH_MILLIS;
 		final TreeSet<Long> candidates = new TreeSet<>();
+		final Map<Long, Long> revisions = new HashMap<>();
+		boolean overflow = false;
 		final Map<Long, PhantomTopologyPoint> livePlayers = _livePlayers.get();
-		for (PhantomTopologyPoint human : _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).toList())
+		final List<PhantomTopologyPoint> humans = _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).toList();
+		for (PhantomTopologyPoint human : humans)
 		{
 			for (var entry : livePlayers.entrySet())
 			{
-				if (nativeVisible(human, entry.getValue()))
+				if (_online.test(entry.getKey()) && PhantomNativeLocalityEnvelope.prewarm(human, entry.getValue()))
 				{
 					candidates.add(entry.getKey());
 				}
 			}
-			for (PhantomTopologyPoint probe : probes(human))
+			final var query = _topology.nativeProfilesAt(human, MAXIMUM_PROFILES_PER_HUMAN, _online);
+			overflow |= query.overflow();
+			for (var profile : query.candidates())
 			{
-				for (var profile : _topology.perceptibleProfilesAt(probe, PhantomPerceptionChannel.TARGETABILITY, MAXIMUM_PROFILES_PER_HUMAN, _online))
+				final var live = livePlayers.get(profile.profileId());
+				if ((live == null) || PhantomNativeLocalityEnvelope.prewarm(human, live))
 				{
-					final PhantomTopologyPoint point = profile.point();
-					if ((point != null) && (point.instanceId() == human.instanceId()) && (Math.abs((point.x() >> World.SHIFT_BY) - (human.x() >> World.SHIFT_BY)) <= PREWARM_REGION_DISTANCE) && (Math.abs((point.y() >> World.SHIFT_BY) - (human.y() >> World.SHIFT_BY)) <= PREWARM_REGION_DISTANCE))
-					{
-						candidates.add(profile.profileId());
-					}
+					candidates.add(profile.profileId());
+					revisions.put(profile.profileId(), profile.sequence());
 				}
 			}
 		}
+		// A newly capped query must not withdraw already serviced physical demand.
+		for (long id : _local)
+		{
+			if (humans.stream().anyMatch(human -> canPrewarmAt(id, human, livePlayers))) { candidates.add(id); }
+		}
+		candidates.removeIf(id -> !humans.stream().anyMatch(human -> canPrewarmAt(id, human, livePlayers)));
+		for (long id : candidates) { _topology.findProfile(id).ifPresent(profile -> revisions.put(id, profile.sequence())); }
+		_physical = new PhysicalDemand(now, Map.copyOf(revisions), overflow);
+		_local = Set.copyOf(candidates);
+		for (long profileId : candidates) { _physicalDemand.accept(profileId); }
 		final long sequence = ++_sequence;
-		final TreeSet<Long> signaled = new TreeSet<>();
+		final Map<Long, PhantomRelevanceSignalPort.SignalDelivery> delivery = new HashMap<>();
 		for (long profileId : candidates)
 		{
 			if (!_online.test(profileId))
@@ -101,58 +118,34 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 				continue;
 			}
 			final var delivered = _signals.submit(profileId, new PhantomRelevanceSignal(SOURCE, sequence, PhantomActivityState.NEARBY_PERCEPTIBLE, SIGNAL_TTL_MILLIS));
-			if ((delivered == PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED) || (delivered == PhantomRelevanceSignalPort.SignalDelivery.COALESCED))
-			{
-				signaled.add(profileId);
-			}
+			delivery.put(profileId, delivered);
 		}
-		_local = Set.copyOf(signaled);
-	}
-
-	private static List<PhantomTopologyPoint> probes(PhantomTopologyPoint human)
-	{
-		final List<PhantomTopologyPoint> points = new ArrayList<>(4);
-		points.add(human);
-		final int localX = Math.floorMod(human.x(), REGION_SIZE);
-		final int localY = Math.floorMod(human.y(), REGION_SIZE);
-		final int shiftX = localX < EDGE_MARGIN ? -REGION_SIZE : localX >= REGION_SIZE - EDGE_MARGIN ? REGION_SIZE : 0;
-		final int shiftY = localY < EDGE_MARGIN ? -REGION_SIZE : localY >= REGION_SIZE - EDGE_MARGIN ? REGION_SIZE : 0;
-		if (shiftX != 0)
-		{
-			points.add(new PhantomTopologyPoint(human.x() + shiftX, human.y(), human.z(), human.instanceId()));
-		}
-		if (shiftY != 0)
-		{
-			points.add(new PhantomTopologyPoint(human.x(), human.y() + shiftY, human.z(), human.instanceId()));
-		}
-		if ((shiftX != 0) && (shiftY != 0))
-		{
-			points.add(new PhantomTopologyPoint(human.x() + shiftX, human.y() + shiftY, human.z(), human.instanceId()));
-		}
-		return points;
+		_delivery = Map.copyOf(delivery);
 	}
 
 	public boolean isLocal(long profileId)
 	{
-		return _local.contains(profileId) && _online.test(profileId) && (_clock.getAsLong() < (_nextRefresh - REFRESH_MILLIS + SIGNAL_TTL_MILLIS));
+		return _local.contains(profileId) && (_clock.getAsLong() < (_physical.timestampMillis() + SIGNAL_TTL_MILLIS)) && _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).anyMatch(human -> canPrewarmAt(profileId, human));
 	}
 
 	/** Read-only use of the same prewarm gates when preparing a consented human route. */
 	public boolean canPrewarmAt(long profileId, PhantomTopologyPoint human)
 	{
+		return canPrewarmAt(profileId, human, _livePlayers.get());
+	}
+
+	private boolean canPrewarmAt(long profileId, PhantomTopologyPoint human, Map<Long, PhantomTopologyPoint> livePlayers)
+	{
+		final var live = livePlayers.get(profileId);
 		final var profile = _topology.findProfile(profileId).orElse(null);
-		final PhantomTopologyPoint point = profile == null ? null : profile.point();
-		if (!_online.test(profileId) || (point == null) || (point.instanceId() != human.instanceId()) || (Math.abs((point.x() >> World.SHIFT_BY) - (human.x() >> World.SHIFT_BY)) > PREWARM_REGION_DISTANCE) || (Math.abs((point.y() >> World.SHIFT_BY) - (human.y() >> World.SHIFT_BY)) > PREWARM_REGION_DISTANCE))
-		{
-			return false;
-		}
-		return probes(human).stream().anyMatch(probe -> !_topology.perceptibleProfilesAt(probe, PhantomPerceptionChannel.TARGETABILITY, 1, id -> id == profileId).isEmpty());
+		final PhantomTopologyPoint point = live != null ? live : profile == null ? null : profile.point();
+		return _online.test(profileId) && PhantomNativeLocalityEnvelope.prewarm(human, point);
 	}
 
 	/** Recheck committed topology after readiness; a previous local set is only demand. */
 	public boolean isCurrentLocal(long profileId)
 	{
-		return isLocal(profileId) && (isNativeVisible(profileId) || _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).anyMatch(human -> canPrewarmAt(profileId, human)));
+		return isLocal(profileId);
 	}
 
 	public boolean isNativeVisible(long profileId)
@@ -162,20 +155,12 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 			return false;
 		}
 		final PhantomTopologyPoint live = _livePlayers.get().get(profileId);
-		return (live != null) && _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).anyMatch(human -> nativeVisible(human, live));
+		return (live != null) && _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).anyMatch(human -> PhantomNativeLocalityEnvelope.couldKnow(human, live));
 	}
 
-	private static boolean nativeVisible(PhantomTopologyPoint human, PhantomTopologyPoint live)
-	{
-		if ((live == null) || (human.instanceId() != live.instanceId()))
-		{
-			return false;
-		}
-		final World world = World.getInstance();
-		final WorldRegion humanRegion = world.getRegion(human.x(), human.y(), human.z());
-		final WorldRegion liveRegion = world.getRegion(live.x(), live.y(), live.z());
-		return (humanRegion != null) && humanRegion.isSurroundingRegion(liveRegion);
-	}
+	public record PhysicalDemand(long timestampMillis, Map<Long, Long> positionRevisions, boolean overflow) {}
+	public PhysicalDemand physicalSnapshot() { return _physical; }
+	public Map<Long, PhantomRelevanceSignalPort.SignalDelivery> deliverySnapshot() { return _delivery; }
 
 	public int localCount()
 	{

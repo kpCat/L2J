@@ -53,16 +53,20 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.config.custom.AutoPlayConfig;
+import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.data.xml.DoorData;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
+import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.managers.IdManager;
 import org.l2jmobius.gameserver.model.Location;
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.MountType;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
@@ -487,6 +491,314 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("02-real-player-travel-materialization-restart", this::testProductionPositionTransition);
 		registry.add("03-native-farm-movement-keeps-real-position", _ -> testNativeFarmAreaCapture());
 		registry.add("04-visible-travel-native-movement-and-cancellation", this::testVisibleNativeTravel);
+		registry.add("05-restored-pending-cold-queue-to-native-player", context -> testPendingNativeHandoff(context, false));
+		registry.add("06-complete-history-uncommitted-outer-cursor", context -> testPendingNativeHandoff(context, true));
+		registry.add("07-dead-level-loss-native-load-and-progress-fence", context -> testPendingNativeHandoff(context, true, true));
+	}
+
+	private void testPendingNativeHandoff(PhantomTestContext context, boolean alreadyComplete) throws Exception
+	{
+		testPendingNativeHandoff(context, alreadyComplete, false);
+	}
+
+	private void testPendingNativeHandoff(PhantomTestContext context, boolean alreadyComplete, boolean levelLossOnly) throws Exception
+	{
+		final String evidencePrefix = levelLossOnly ? "m1.levelLoss" : alreadyComplete ? "m1.complete" : "m1.running";
+		final var farm = levelLossOnly ? productionFarmSelection() : new ProductionFarmSelection(20481, _production.topology().findAnchor("population.farming.human-mystic.20481").orElseThrow());
+		try (var fixture = openProductionPlayerFixture(farm.anchor(), levelLossOnly ? _production.knowledge().findNpc(farm.npcId()).orElseThrow().level() : 3, levelLossOnly ? null : PlayerClass.ELVEN_FIGHTER, farm))
+		{
+			final var profile = _repository.create(fixture.player().getObjectId());
+			final long id = profile.profileId();
+			final var goals = new PhantomGoalStateStore(_repository);
+			goals.insert(id, fixture.goal());
+			final var authority = _production.authority();
+			final var transaction = new PhantomBackgroundTransaction();
+			final var owner = new AtomicReference<PhantomMaterializationService>();
+			final var background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, authority, new PhantomBackgroundCompetitionRegistry(), noSignals(), owner::get);
+			final var metrics = new PhantomMetrics();
+			final var loadDiagnostic = new PhantomMaterializationLifecyclePort()
+			{
+				@Override public void beforeMaterialize(long value, int objectId) {}
+				@Override public void materializeSucceeded(long value, int objectId) {}
+				@Override public void materializeAborted(long value, int objectId) {}
+				@Override public void beforeStore(long value, Player player) {}
+				@Override public void afterStore(long value, Player player) {}
+				@Override public void afterPlayerLoad(long value, Player player)
+				{
+					final var expected = transaction.load(value).state();
+					if (alreadyComplete && (expected.state() == State.DEAD))
+					{
+						final long originalSp = player.getSp();
+						try
+						{
+							player.getStat().setSp(originalSp + 1);
+							PhantomAssertions.assertThrows(IllegalStateException.class, () -> background.afterPlayerLoad(value, player), "Derived-vitals refresh hid unrelated SP mismatch.");
+							PhantomAssertions.assertEquals(expected, transaction.load(value).state(), "Rejected native load changed the durable snapshot.");
+						}
+						finally { player.getStat().setSp(originalSp); }
+					}
+					if (!authority.matchesRuntime(player, expected))
+					{
+						context.record("m1.pendingLoadExpected", expected.progress() + " / " + expected.vitals() + " / " + expected.position());
+						context.record("m1.pendingLoadActual", "level=" + player.getLevel() + " exp=" + player.getExp() + " sp=" + player.getSp() + " ebd=" + player.getExpBeforeDeath() + " HP=" + player.getCurrentHp() + "/" + player.getMaxHp() + " MP=" + player.getCurrentMp() + "/" + player.getMaxMp() + " CP=" + player.getCurrentCp() + "/" + player.getMaxCp() + " pos=" + player.getX() + "," + player.getY() + "," + player.getZ());
+					}
+				}
+			};
+			final var lifecycle = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge();
+			final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, _ -> {}, lifecycle, 5000, 10000);
+			owner.set(materialization);
+			background.start(); materialization.start();
+			final var topology = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService.fromSnapshotForTesting(_production.topology().snapshot(), _production.topologyBackend(), org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy.productionDefaults(), noSignals());
+			topology.start();
+			final var publisher = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPositionPublisher(topology, _ -> Optional.empty());
+			publisher.ready(id);
+			background.installCommittedPositionPublisher(publisher::committed);
+			org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService ecology = null;
+			PhantomVisibleAutoPlay autoPlay = null;
+			PhantomDecisionEngine engine = null;
+			PhantomNavigationService nativeNavigation = null;
+			org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel nativeTravel = null;
+			org.l2jmobius.gameserver.model.actor.instance.Monster monster = null;
+			try
+			{
+				final var captured = authority.capture(id, fixture.player(), fixture.goal(), null);
+				PhantomAssertions.assertTrue(new PhantomHistoricalBackgroundPlanner(_production.knowledge(), _production.topology(), authority).remainsSuitable(captured, fixture.goal()), "Pending fixture target must match its configured TEST level.");
+				fixture.player().storeMe();
+				PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, fixture.goal()).status(), "Pending replay baseline failed.");
+				publisher.committed(id, captured.position());
+				fixture.releaseRuntime();
+				final var planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), _production.topology(), authority);
+				final var historical = new PhantomHistoricalBackgroundService(_repository, goals, planner, background, materialization);
+				lifecycle.install(PhantomMaterializationLifecyclePort.chain(loadDiagnostic, PhantomMaterializationLifecyclePort.chain(historical, background)));
+				final long target = 29843626L;
+				final long from = target - 13;
+				final var generation = planner.generation();
+				final var catchupStore = new PhantomBackgroundCatchupStore(_repository, goals);
+				final var restored = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.RUNNING, "d".repeat(64), context.seed(), from, target, from, 0, 0, 1, generation.knowledgeGeneration(), generation.topologyGeneration(), fixture.goal().goalId(), fixture.goal().revision(), "a".repeat(64), PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), "");
+				catchupStore.claim(id, restored);
+				final var partial = historical.advance(id, alreadyComplete ? 13 : 1, alreadyComplete ? 13 : 1);
+				PhantomAssertions.assertTrue(partial.successful(), "Real pending initial progress failed: " + partial.reason());
+				PhantomAssertions.assertEquals(alreadyComplete ? PhantomBackgroundCatchupState.Status.COMPLETE : PhantomBackgroundCatchupState.Status.RUNNING, partial.snapshot().state().status(), "Fixture did not persist the required inner status.");
+				final var populationCatalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"), java.time.ZoneOffset.UTC);
+				final var catalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-ecology-v1.xml"), populationCatalog, org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/social/high-five-social-v1.xml")));
+				final var metadata = new PhantomPopulationTestDoubles.MemoryStore(populationCatalog.hash());
+				final var seed = metadata.seedReady(id, 1);
+				final var populationState = seed.state().initialized(profile.characterObjectId(), seed.state().initializationHash()).ready();
+				final var component = _repository.insertComponent(id, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.SCHEMA_VERSION, new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStateCodec().encode(populationState));
+				final var managed = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot(profile, component, populationState);
+				final var store = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore(_repository);
+				final var pending = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState(catalog.hash(), org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 1, 1, from, from, from, from, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Pace.CASUAL, 2500, 15, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Personality.SOCIAL, Map.of(1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0), populationState.scheduleTemplate(), org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Disposition.MANAGED, target + 10000, 0, "", 0, 0, 0, "").beginRequest(restored.requestId(), target);
+				final var persisted = store.insert(id, pending);
+				final var coldStore = new PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null);
+				final var coldLoads = new java.util.concurrent.atomic.AtomicInteger();
+				final var firstClaim = new java.util.concurrent.atomic.AtomicLong();
+				final Map<Long, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot> cohort = new java.util.HashMap<>();
+				cohort.put(id, managed);
+				for (int index = 0; index < 9999; index++)
+				{
+					final long coldId = 1_000_000_000L + index;
+					cohort.put(coldId, metadata.seedReady(coldId, 1));
+					coldStore.insert(coldId, catalog.assign(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 1, index + 2, context.seed(), target, 0, 0, "evening"));
+				}
+				final var persistence = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.PersistencePort()
+				{
+					@Override public Optional<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState> load(long value) { if (value == id) { firstClaim.compareAndSet(0, System.nanoTime()); return store.load(value); } coldLoads.incrementAndGet(); return coldStore.load(value); }
+					@Override public org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState insert(long value, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState state) { return value == id ? store.insert(value, state) : coldStore.insert(value, state); }
+					@Override public org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState save(long value, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState expected, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState state) { return value == id ? store.save(value, expected, state) : coldStore.save(value, expected, state); }
+					@Override public org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.ArchivedResult archive(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot value, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState state, long generation, long now) { throw new AssertionError("Replay cannot archive."); }
+				};
+				final var history = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.HistoricalPort()
+				{
+					@Override public Optional<PhantomBackgroundCatchupStore.Snapshot> status(long value) { return historical.status(value); }
+					@Override public PhantomHistoricalBackgroundService.Result begin(long value, long start, long end, long seedValue) { return historical.begin(value, start, end, seedValue); }
+					@Override public PhantomHistoricalBackgroundService.Result advance(long value, int intervals, int minutes) { return historical.advance(value, intervals, minutes); }
+				};
+				final var presence = new org.l2jmobius.gameserver.phantoms.population.PhantomPresenceRegistry(1);
+				presence.schedule(id, populationCatalog.evaluate(populationState.scheduleTemplate(), java.time.Instant.ofEpochSecond(target * 60), java.time.ZoneOffset.UTC, populationState.schedulePhaseMinutes()).state());
+				PhantomAssertions.assertTrue(presence.isOnline(id), "Replay calendar is OFFLINE.");
+				final var initialPoint = topology.findProfile(id).orElseThrow().point();
+				final var backpressure = new PhantomRelevanceSignalPort()
+				{
+					@Override public SignalDelivery submit(long value, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.BACKPRESSURE; }
+					@Override public SignalDelivery withdraw(long value, String source, long sequence) { return SignalDelivery.BACKPRESSURE; }
+				};
+				final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, backpressure, () -> List.of(initialPoint), () -> System.nanoTime() / 1_000_000L, presence::isOnline);
+				final var released = new java.util.concurrent.atomic.AtomicBoolean();
+				final var heldWorkers = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
+				ecology = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService(catalog, populationCatalog, persistence, history, value -> materialization.find(value).isPresent(), _ -> "", java.time.Clock.fixed(java.time.Instant.ofEpochSecond(target * 60), java.time.ZoneOffset.UTC), java.time.ZoneOffset.UTC, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 0, 10, worker -> { if (released.get()) { ThreadPool.execute(worker); } else { heldWorkers.add(worker); } return true; });
+				ecology.enablePeriodicDueMode();
+				ecology.installDemandPump(100, () -> System.nanoTime() / 1_000_000L, (wake, delay) -> { final var future = ThreadPool.schedule(wake, delay); return () -> future.cancel(false); });
+				ecology.installRuntime(value -> Optional.ofNullable(cohort.get(value)), new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.PopulationEvents()
+				{
+					@Override public void requestArchive(long value) { throw new AssertionError("No retirement in replay."); }
+					@Override public void reconcilePopulation() {}
+					@Override public void ecologyFenceChanged(long value) {}
+				});
+				ecology.installMaterializationDemand(locality::isCurrentLocal);
+				locality.installPhysicalDemand(ecology::requestMaterializationDue);
+				for (var value : cohort.values()) { ecology.register(value); }
+				final var nativeBoundary = new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort(materialization, true);
+				final var gate = new org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort(nativeBoundary);
+				gate.installPopulationReadiness(presence, locality, ecology);
+				final long startNanos = System.nanoTime();
+				locality.onPulse();
+				PhantomAssertions.assertEquals(PhantomRelevanceSignalPort.SignalDelivery.BACKPRESSURE, locality.deliverySnapshot().get(id), "Replay did not exercise independent physical demand.");
+				released.set(true);
+				for (Runnable worker; (worker = heldWorkers.poll()) != null;) { ThreadPool.execute(worker); }
+				while (!ecology.dueSnapshot(id).complete() && (System.nanoTime() - startNanos < TimeUnit.SECONDS.toNanos(22)))
+				{
+					locality.onPulse();
+					if (ecology.progressSnapshot(id).currentStage().equals("blocked")) { break; }
+					Thread.sleep(10);
+				}
+				context.record(evidencePrefix + ".readyMillis", (System.nanoTime() - startNanos) / 1_000_000L);
+				context.record(evidencePrefix + ".firstClaimMillis", Math.max(0, firstClaim.get() - startNanos) / 1_000_000L);
+				context.record(evidencePrefix + ".coldLoads", coldLoads.get());
+				context.record(evidencePrefix + ".progress", ecology.progressSnapshot(id));
+				context.record(evidencePrefix + ".innerIntervals", historical.status(id).orElseThrow().state().intervalOrdinal());
+				context.record(evidencePrefix + ".reason", ecology.dueSnapshot(id).reason());
+				PhantomAssertions.assertTrue(ecology.dueSnapshot(id).complete(), "Native pending replay failed: " + ecology.dueSnapshot(id) + " / " + ecology.progressSnapshot(id));
+				PhantomAssertions.assertEquals(persisted.rowVersion() + 1, store.load(id).orElseThrow().rowVersion(), "Matching request was committed more than once.");
+				PhantomAssertions.assertEquals(13L, historical.status(id).orElseThrow().state().intervalOrdinal(), "Replay reset or duplicated inner intervals.");
+				PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseProfiles() <= 4 && ecology.snapshot().maximumPulseIntervals() <= 16, "Wake sources multiplied the ecology budget.");
+				PhantomAssertions.assertTrue(coldLoads.get() >= 2, "Urgent work starved ordinary cold metadata.");
+				final var beforeLoad = transaction.load(id).state();
+				final var materialized = gate.materialize(id);
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.SUCCESS, materialized.outcome(), "Same physical demand did not materialize the native Player: " + materialized.reason() + " / " + nativeBoundary.diagnosticFailures());
+				PhantomAssertions.assertEquals(beforeLoad.progress(), transaction.load(id).state().progress(), "Native derived-vitals refresh fabricated progress.");
+				PhantomAssertions.assertEquals(13L, historical.status(id).orElseThrow().state().intervalOrdinal(), "Native load replayed completed history.");
+				try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { PhantomAssertions.assertTrue(authority.matchesRuntime(lease.player(), transaction.load(id).state()), "Materialized Player differs from its refreshed durable projection."); }
+				if (levelLossOnly)
+				{
+					PhantomAssertions.assertEquals(State.DEAD, beforeLoad.state(), "Level-loss regression must enter the real DEAD load boundary.");
+					PhantomAssertions.assertTrue(beforeLoad.progress().level() < captured.progress().level(), "Level-loss regression did not reduce the native level.");
+					context.record("m1.pendingLevelLossFence", "native derived vitals refreshed; altered SP rejected before write; completed intervals unchanged");
+					return;
+				}
+				if (beforeLoad.state() == State.DEAD)
+				{
+					try (var lease = materialization.tryAcquireAction(id).orElseThrow())
+					{
+						final var town = MapRegionData.getInstance().getTeleToLocation(lease.player(), TeleportWhereType.TOWN);
+						context.record(evidencePrefix + ".recoveryTown", town + " region=" + (town == null ? 0 : MapRegionData.getInstance().getMapRegionLocId(town.getX(), town.getY())));
+					}
+					final var recovered = background.recoverOrdinaryNativeCorpse(id, profile.characterObjectId());
+					PhantomAssertions.assertTrue(recovered.successful(), "Stored death did not perform native recovery: " + recovered.reason());
+					PhantomAssertions.assertTrue(background.recover(id, goals.load(id).orElseThrow().goal(), PhantomActivityState.ACTIVE).successful(), "Native recovery did not reconcile its existing owner.");
+					PhantomAssertions.assertEquals(beforeLoad.progress(), transaction.load(id).state().progress(), "Native recovery fabricated progress.");
+					context.record(evidencePrefix + ".recovery", "existing native corpse/town recovery; TEST call, 45-second policy covered by existing native timer contract");
+				}
+				final Player player;
+				try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { player = lease.player(); }
+				PhantomAssertions.assertEquals(profile.characterObjectId(), player.getObjectId(), "Readiness replaced native identity.");
+				final var candidates = new PhantomCandidateRegistry(); candidates.seal();
+				final var handlers = new PhantomStepHandlerRegistry(); handlers.seal();
+				engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1); engine.start(); engine.attach(id);
+				final var currentEngine = engine;
+				final var nativeGoal = goals.load(id).orElseThrow().goal();
+				final var travelQuery = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), _production.topology());
+				nativeNavigation = new PhantomNavigationService(metrics);
+				PhantomAssertions.assertTrue(nativeNavigation.start(), "Pending native travel did not start.");
+				nativeTravel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, travelQuery, nativeNavigation, presence::isOnline, noSignals());
+				final int departureX = player.getX();
+				final int departureY = player.getY();
+				final long arrivalDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(100);
+				boolean arrived = false;
+				while (!arrived && (System.nanoTime() < arrivalDeadline))
+				{
+					arrived = nativeTravel.arrive(id, nativeGoal);
+					if (!arrived) { Thread.sleep(25); }
+				}
+				PhantomAssertions.assertTrue(arrived, "Pending native farm travel did not arrive: " + nativeTravel.reason(id) + " / " + nativeNavigation.snapshot());
+				PhantomAssertions.assertEquals(profile.characterObjectId(), player.getObjectId(), "Native travel changed pending identity.");
+				try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { PhantomAssertions.assertTrue(lease.player() == player, "Native travel replaced the materialized Player instance."); }
+				final double displacement = Math.hypot((long)player.getX() - departureX, (long)player.getY() - departureY);
+				if (beforeLoad.state() == State.DEAD) { PhantomAssertions.assertTrue(displacement >= nativeNavigation.policy().minimumProgress(), "Native corpse recovery did not move to the farm."); }
+				PhantomAssertions.assertEquals(farm.anchor().id(), transaction.load(id).state().position().committedAnchorId(), "Pending native arrival did not capture its farm anchor.");
+				context.record(evidencePrefix + ".nativeTravel", "distance=" + displacement + " arrival=" + transaction.load(id).state().position().committedAnchorId());
+				autoPlay = new PhantomVisibleAutoPlay(materialization, () -> currentEngine, presence::isOnline);
+				final int npcId = PhantomBackgroundGoalSpec.parse(nativeGoal).npcId();
+				monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(npcId));
+				monster.setInstanceId(player.getInstanceId());
+				final var nativeSpawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate());
+				nativeSpawn.setXYZ(player.getX() + 20, player.getY(), player.getZ());
+				monster.setSpawn(nativeSpawn);
+				monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp());
+				monster.spawnMe(player.getX() + 20, player.getY(), player.getZ());
+				PhantomAssertions.assertTrue(World.getInstance().getVisibleObjectsInRange(player, Creature.class, 100).contains(monster), "Native combat fixture NPC is absent before AutoPlay: player=" + player.getX() + "," + player.getY() + "," + player.getZ() + " npc=" + monster.getX() + "," + monster.getY() + "," + monster.getZ());
+				final double hp = monster.getCurrentHp();
+				PhantomAssertions.assertTrue(autoPlay.start(id, nativeGoal), "Ready identity did not enter native AutoPlay.");
+				final long actionDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+				while ((monster.getCurrentHp() >= hp) && (System.nanoTime() < actionDeadline)) { Thread.sleep(20); }
+				if (monster.getCurrentHp() >= hp)
+				{
+					context.record(evidencePrefix + ".actionFailure", "online=" + player.isOnline() + " dead=" + player.isDead() + " disabled=" + player.isDisabled() + " teleport=" + player.isTeleporting() + " moving=" + player.isMoving() + " auto=" + player.isAutoPlaying() + " target=" + player.getTarget() + " peace=" + player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) + " visible=" + World.getInstance().getVisibleObjectsInRange(player, Creature.class, 100).contains(monster) + " see=" + GeoEngine.getInstance().canSeeTarget(player, monster) + " move=" + GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), monster.getX(), monster.getY(), monster.getZ(), player.getInstanceId()) + " npcInvul=" + monster.isInvul() + " npcName=" + monster.isShowName());
+					context.record(evidencePrefix + ".actionThreads", Thread.getAllStackTraces().entrySet().stream().filter(entry -> java.util.Arrays.stream(entry.getValue()).anyMatch(frame -> frame.getClassName().endsWith("AutoPlayTaskManager$AutoPlay"))).map(entry -> entry.getKey().getName() + ": " + java.util.Arrays.stream(entry.getValue()).limit(8).toList()).limit(2).toList());
+				}
+				PhantomAssertions.assertTrue(monster.getCurrentHp() < hp, "Native AutoPlay did not perform a useful attack.");
+				context.record(evidencePrefix + ".nativeIdentity", player.getObjectId());
+				context.record(evidencePrefix + ".nativeAction", "AutoPlay target damage=" + (hp - monster.getCurrentHp()));
+			}
+			finally
+			{
+				boolean drained = false;
+				PhantomMaterializationService.ShutdownResult shutdown = null;
+				try
+				{
+					try { if (autoPlay != null) { autoPlay.stop(id); } }
+					finally
+					{
+						try { if (nativeTravel != null) { nativeTravel.beforeMaterialize(id, profile.characterObjectId()); } }
+						finally { if (nativeNavigation != null) { nativeNavigation.beginStop(); nativeNavigation.finishStop(); } }
+					}
+					if (monster != null) { monster.deleteMe(); }
+					try (var action = materialization.tryAcquireAction(id).orElse(null))
+					{
+						if (action != null)
+						{
+							final var actor = action.player();
+							actor.abortAttack(); actor.abortCast(); actor.stopMove(null); actor.setTarget(null);
+							actor.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE);
+							actor.getAI().setAutoAttacking(false);
+							org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager.getInstance().removeAttackStanceTask(actor);
+							try
+							{
+								authority.capture(id, actor, goals.load(id).orElseThrow().goal(), transaction.load(id).state());
+								context.record(evidencePrefix + ".teardownCapture", "supported");
+							}
+							catch (RuntimeException failure)
+							{
+								context.record(evidencePrefix + ".teardownCapture", failure.toString() + " combat=" + actor.isInCombat() + " position=" + actor.getX() + "," + actor.getY() + "," + actor.getZ());
+							}
+						}
+					}
+				}
+				finally
+				{
+					try { if (engine != null) { engine.beginStop(); engine.finishStop(); } }
+					finally
+					{
+						try
+						{
+							if (ecology != null) { ecology.beginStop(); final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5); while (!ecology.finishStop() && System.nanoTime() < deadline) { Thread.sleep(10); } drained = ecology.finishStop(); }
+							else { drained = true; }
+						}
+						finally
+						{
+							try { shutdown = materialization.shutdown(); }
+							finally
+							{
+								try { background.beginStop(); background.finishStop(); }
+								finally { topology.beginStop(); topology.finishStop(); }
+							}
+						}
+					}
+				}
+				PhantomAssertions.assertTrue(shutdown.failedProfileIds().isEmpty(), "Native gameplay fixture retained materialization after combat teardown: " + shutdown.failedProfileIds());
+				PhantomAssertions.assertTrue(drained, "Replay commit retained shutdown ownership.");
+				deleteProfile(profile);
+			}
+		}
 	}
 
 	private void registerProductionLootUnblock(PhantomTestRegistry registry)
@@ -1280,7 +1592,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				{
 					try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
 					{
-						if (Math.hypot((long)action.player().getX() - departure.point().x(), (long)action.player().getY() - departure.point().y()) >= defaults.minimumProgress())
+						final var observed = asyncNavigation.progressTracker().find(profile.profileId()).orElse(null);
+						final var current = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(action.player().getX(), action.player().getY(), action.player().getZ(), action.player().getInstanceId());
+						if ((observed != null) && (Math.hypot((long)action.player().getX() - departure.point().x(), (long)action.player().getY() - departure.point().y()) >= defaults.minimumProgress()) && (((observed.bestDistance() - current.distanceTo(observed.destination())) >= defaults.minimumProgress()) || (current.distanceTo(observed.destination()) <= defaults.arrivalRadius())))
 						{
 							travelClock.addAndGet(TimeUnit.SECONDS.toNanos(65));
 							crossedMinute = true;
@@ -3056,8 +3370,18 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private ProductionPlayerFixture openProductionPlayerFixture(PhantomTopologyAnchor initialAnchor) throws Exception
 	{
-		final ProductionFarmSelection farm = productionFarmSelection();
-		final CapabilitySelection selection = productionCapability();
+		return openProductionPlayerFixture(initialAnchor, 85);
+	}
+
+	private ProductionPlayerFixture openProductionPlayerFixture(PhantomTopologyAnchor initialAnchor, int level) throws Exception
+	{
+		return openProductionPlayerFixture(initialAnchor, level, null, productionFarmSelection());
+	}
+
+	private ProductionPlayerFixture openProductionPlayerFixture(PhantomTopologyAnchor initialAnchor, int level, PlayerClass basicAttackClass, ProductionFarmSelection farm) throws Exception
+	{
+		final CapabilitySelection selection = basicAttackClass == null ? productionCapability(level) : null;
+		final PlayerClass fixtureClass = selection == null ? basicAttackClass : selection.playerClass();
 		final int objectId = _environment.primary().objectId();
 		final Canonical original = canonical(objectId);
 		final int originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId = ?", objectId);
@@ -3066,21 +3390,22 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		try
 		{
 			try (Connection connection = DatabaseFactory.getConnection();
-				PreparedStatement statement = connection.prepareStatement("UPDATE characters SET classid=?,base_class=?,race=?,level=85,exp=?,x=?,y=?,z=?,heading=0,online=0 WHERE charId=?"))
+				PreparedStatement statement = connection.prepareStatement("UPDATE characters SET classid=?,base_class=?,race=?,level=?,exp=?,x=?,y=?,z=?,heading=0,online=0 WHERE charId=?"))
 			{
-				statement.setInt(1, selection.playerClass().getId());
-				statement.setInt(2, selection.playerClass().getId());
-				statement.setInt(3, selection.playerClass().getRace().ordinal());
-				statement.setLong(4, ExperienceData.getInstance().getExpForLevel(85));
-				statement.setInt(5, canonicalInitial.x());
-				statement.setInt(6, canonicalInitial.y());
-				statement.setInt(7, canonicalInitial.z());
-				statement.setInt(8, objectId);
+				statement.setInt(1, fixtureClass.getId());
+				statement.setInt(2, fixtureClass.getId());
+				statement.setInt(3, fixtureClass.getRace().ordinal());
+				statement.setInt(4, level);
+				statement.setLong(5, ExperienceData.getInstance().getExpForLevel(level));
+				statement.setInt(6, canonicalInitial.x());
+				statement.setInt(7, canonicalInitial.y());
+				statement.setInt(8, canonicalInitial.z());
+				statement.setInt(9, objectId);
 				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Could not configure the production loot Player.");
 			}
-			final Identity identity = new Identity(PRODUCTION_LOOT_UNBLOCK_SEED, objectId, 0, selection.playerClass().getId(), selection.playerClass().getRace().ordinal());
-			ensureAutoGetSkills(identity, exactAutoGetSkills(identity, 85));
-			ensureAutoGetSkills(identity, List.of(new AutoGetSkill(selection.rule().actionSkill().skillId(), selection.rule().actionSkill().skillLevel())));
+			final Identity identity = new Identity(PRODUCTION_LOOT_UNBLOCK_SEED, objectId, 0, fixtureClass.getId(), fixtureClass.getRace().ordinal());
+			ensureAutoGetSkills(identity, exactAutoGetSkills(identity, level));
+			if (selection != null) { ensureAutoGetSkills(identity, List.of(new AutoGetSkill(selection.rule().actionSkill().skillId(), selection.rule().actionSkill().skillLevel()))); }
 			player = Player.load(objectId);
 			PhantomAssertions.assertTrue(player != null, "Production loot real Player could not be loaded.");
 			PhantomAssertions.assertEquals(canonicalInitial.x(), player.getX(), "Naturally loaded production Player X differs.");
@@ -3089,7 +3414,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			player.setCurrentHp(player.getMaxHp());
 			player.setCurrentMp(player.getMaxMp());
 			player.setCurrentCp(player.getMaxCp());
-			PhantomAssertions.assertTrue((player.getKnownSkill(selection.rule().actionSkill().skillId()) != null) && (player.getKnownSkill(selection.rule().actionSkill().skillId()).getLevel() >= selection.rule().actionSkill().skillLevel()), "Production loot capability is not ready on the real Player.");
+			if (selection != null) { PhantomAssertions.assertTrue((player.getKnownSkill(selection.rule().actionSkill().skillId()) != null) && (player.getKnownSkill(selection.rule().actionSkill().skillId()).getLevel() >= selection.rule().actionSkill().skillLevel()), "Production loot capability is not ready on the real Player."); }
 			return new ProductionPlayerFixture(player, farm, goal(farm.npcId(), farm.anchor().id()), original, originalBaseClass);
 		}
 		catch (Throwable failure)
@@ -3201,10 +3526,15 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private CapabilitySelection productionCapability()
 	{
+		return productionCapability(85);
+	}
+
+	private CapabilitySelection productionCapability(int level)
+	{
 		final List<CapabilitySelection> selections = new ArrayList<>();
 		for (PlayerClass playerClass : PlayerClass.values())
 		{
-			final CapabilityRule rule = _production.progression().capabilities(playerClass.getId()).stream().filter(candidate -> supportedCapability(candidate.capabilityKey()) && candidate.requiredEquipmentFamilies().isEmpty() && candidate.requiredItems().isEmpty() && !candidate.summonRequired() && !candidate.servitorRequired()).filter(candidate ->
+			final CapabilityRule rule = _production.progression().capabilities(playerClass.getId()).stream().filter(candidate -> supportedCapability(candidate.capabilityKey()) && candidate.requiredEquipmentFamilies().isEmpty() && candidate.requiredItems().isEmpty() && !candidate.summonRequired() && !candidate.servitorRequired()).filter(candidate -> SkillTreeData.getInstance().getCompleteClassSkillTree(playerClass).values().stream().anyMatch(learn -> (learn.getSkillId() == candidate.actionSkill().skillId()) && (learn.getSkillLevel() == candidate.actionSkill().skillLevel()) && (learn.getGetLevel() <= level))).filter(candidate ->
 			{
 				final var fact = _production.progression().skill(candidate.actionSkill());
 				return (fact != null) && fact.damage() && !fact.pvpOnly() && !fact.suicideAttack() && (fact.hpConsume() == 0) && (fact.itemConsumeId() == 0);

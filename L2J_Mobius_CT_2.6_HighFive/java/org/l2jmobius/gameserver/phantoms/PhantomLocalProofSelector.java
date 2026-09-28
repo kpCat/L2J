@@ -52,7 +52,7 @@ public final class PhantomLocalProofSelector
 			throw new IllegalArgumentException("Maximum distance and prior profile must not be negative.");
 		}
 		return profiles.stream()
-			.filter(profile -> (profile.profileId() > afterProfileId) && profile.resolved() && (profile.point() != null) && (profile.point().instanceId() == human.instanceId()) && (human.distanceSquared2D(profile.point()) <= maxDistanceSquared2D))
+			.filter(profile -> (profile.profileId() > afterProfileId) && (profile.point() != null) && org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.prewarm(human, profile.point()) && (human.distanceSquared2D(profile.point()) <= maxDistanceSquared2D))
 			.filter(profile -> admission.apply(profile.profileId()).filter(state -> state.populationState() == State.READY).isPresent())
 			.filter(profile -> available.test(profile.profileId()))
 			.min(Comparator.comparingLong((ProfileTopologySnapshot profile) -> human.distanceSquared2D(profile.point())).thenComparingLong(ProfileTopologySnapshot::profileId));

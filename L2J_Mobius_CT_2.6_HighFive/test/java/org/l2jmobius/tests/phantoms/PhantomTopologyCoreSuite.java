@@ -384,12 +384,19 @@ public final class PhantomTopologyCoreSuite implements PhantomTestSuite
 			final TestBackend backend = new TestBackend();
 			final PhantomTopologyService service = new PhantomTopologyService(new PhantomTopologyLoader(directory, backend, POLICY), backend, POLICY, new NoopSignalPort());
 			PhantomAssertions.assertTrue(service.start(), "Topology service did not start.");
+			final PhantomTopologyPoint unresolved = new PhantomTopologyPoint(-1, -1, -3490, 0);
+			service.registerProfile(31);
+			service.updateProfile(31, unresolved, 1);
 			final String original = service.query().snapshot().canonicalHash();
 			Files.writeString(xml, "<topology schemaVersion=\"2\" datasetId=\"test\" datasetVersion=\"1\" />");
 			PhantomAssertions.assertEquals(PhantomTopologyService.ReloadResult.REJECTED_VALIDATION, service.reload(), "Invalid topology reload was not rejected.");
 			PhantomAssertions.assertEquals(original, service.query().snapshot().canonicalHash(), "Invalid reload replaced active topology snapshot.");
+			Files.writeString(xml, topologyXml(nodeXml("beta", 200)));
+			PhantomAssertions.assertEquals(PhantomTopologyService.ReloadResult.RELOADED, service.reload(), "Valid reload failed.");
+			PhantomAssertions.assertEquals(List.of(31L), service.nativeProfilesAt(unresolved, 1, _ -> true).candidates().stream().map(profile -> profile.profileId()).toList(), "Reload discarded an unresolved native bucket.");
 			service.beginStop();
 			PhantomAssertions.assertTrue(service.finishStop(), "Topology service did not stop after reload test.");
+			PhantomAssertions.assertEquals(0, service.registrySnapshot().registered(), "Stop retained a reloaded native bucket.");
 		}
 		finally
 		{

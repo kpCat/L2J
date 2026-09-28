@@ -1698,7 +1698,7 @@
 			<arg value="33003300" />
 		</java>
 	</target>
-	<target name="phantom-m1-runtime-handoff-test" depends="phantom-m1-runtime-handoff-core-test,phantom-navigation-core-test,phantom-smart-continuity-test" description="Run integrated M1 readiness, native travel and continuity gates on guarded TEST fixtures." />
+	<target name="phantom-m1-runtime-handoff-test" depends="phantom-m1-runtime-handoff-core-test,phantom-topology-core-test,phantom-topology-perception-test,phantom-navigation-core-test,phantom-smart-continuity-test,phantom-background-recovery-teleport-test,phantom-operator-observability-goal028cp1-test" description="Run integrated M1 readiness, native travel and continuity gates on guarded TEST fixtures." />
 
 	<target name="phantom-background-test" depends="phantom-background-position-canonicalization-test,phantom-background-production-loot-unblock-test,phantom-background-model-test,phantom-background-transaction-test,phantom-background-lifecycle-test,phantom-background-decision-test,phantom-background-server-integration-test,phantom-background-performance-smoke,phantom-background-materialization-abort-test,phantom-background-quiescence-test,phantom-background-compact-inventory-test,phantom-background-authoritative-shots-test,phantom-background-production-audit-test,phantom-background-recovery-teleport-test,phantom-background-real-login-test" description="Run the complete focused Goal 015 background farming reconciliation suite." />
 

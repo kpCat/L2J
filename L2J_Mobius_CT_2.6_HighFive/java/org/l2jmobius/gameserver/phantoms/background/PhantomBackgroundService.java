@@ -1129,10 +1129,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public void afterPlayerLoad(long profileId, Player player)
 	{
 		requireTransition(profileId, TransitionKind.MATERIALIZING);
-		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
+		PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 		if (loaded.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT)
 		{
 			return;
+		}
+		if (loaded.successful() && (loaded.state() != null) && !_authority.matchesRuntime(player, loaded.state()))
+		{
+			loaded = refreshDeadNativeVitals(profileId, player, loaded);
 		}
 		if (!loaded.successful() || (loaded.state() == null) || !_authority.matchesRuntime(player, loaded.state()))
 		{
@@ -1148,6 +1152,25 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			throw new IllegalStateException("MATERIALIZED state verification failed.");
 		}
+	}
+
+	/** Native maxima are derived on DEAD Player load; preserve every durable reward/death fact. */
+	private PhantomBackgroundTransaction.Result refreshDeadNativeVitals(long profileId, Player player, PhantomBackgroundTransaction.Result loaded)
+	{
+		final PhantomBackgroundState state = loaded.state();
+		final var progress = state.progress();
+		if ((state.state() != State.DEAD) || !state.hashes().equals(_authority.hashes())) { return loaded; }
+		if (state.vitals().currentCp() > player.getMaxCp()) { return loaded; }
+		final var vitals = new PhantomBackgroundState.Vitals(0, player.getMaxHp(), Math.min(state.vitals().currentMp(), player.getMaxMp()), player.getMaxMp(), state.vitals().currentCp(), player.getMaxCp());
+		final var normalized = new PhantomBackgroundState(state.state(), state.identity(), progress, vitals, state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
+		if (!_authority.matchesRuntime(player, normalized)) { return loaded; }
+		final var goal = _goals.load(profileId).orElse(null);
+		if ((goal == null) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) || (goal.goal().status() != PhantomGoalStatus.ACTIVE)) { return loaded; }
+		final var captured = _authority.capture(profileId, player, goal.goal(), normalized);
+		if (!captured.progress().equals(progress) || !captured.identity().equals(state.identity()) || !captured.position().equals(state.position()) || !captured.receipt().equals(state.receipt()) || !captured.clock().equals(state.clock()) || !captured.hashes().equals(state.hashes())) { return loaded; }
+		// Existing native store/capture boundary under the materialization claim, with no historical replay.
+		player.storeMe();
+		return transaction(() -> _transactions.captureBaseline(captured, goal.goal()));
 	}
 
 	@Override

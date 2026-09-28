@@ -353,6 +353,29 @@ public final class PhantomTopologyService
 		return perceptibleProfilesUnderLease(observerProfileId, channel, limit);
 	}
 
+	public record NativeLocalQuery(List<ProfileTopologySnapshot> candidates, boolean overflow)
+	{
+		public NativeLocalQuery { candidates = List.copyOf(candidates); }
+	}
+
+	public NativeLocalQuery nativeProfilesAt(PhantomTopologyPoint human, int limit, LongPredicate eligible)
+	{
+		Objects.requireNonNull(human);
+		Objects.requireNonNull(eligible);
+		if ((limit < 1) || (limit > 1024)) { throw new IllegalArgumentException("Invalid native recipient limit."); }
+		final List<ProfileTopologySnapshot> captured;
+		try (PhantomTopologyGenerationCoordinator.Lease ignored = _generationCoordinator.read())
+		{
+			final View view = runningView();
+			captured = view == null ? List.of() : _profileRegistry.nativeCandidates(human, view.generation());
+		}
+		// Eligibility may acquire population locks; never call it under topology/registry ownership.
+		final var candidates = captured.stream().filter(profile -> PhantomNativeLocalityEnvelope.prewarm(human, profile.point()) && eligible.test(profile.profileId()))
+			.sorted(java.util.Comparator.<ProfileTopologySnapshot>comparingInt(profile -> PhantomNativeLocalityEnvelope.couldKnow(human, profile.point()) ? 0 : 1)
+				.thenComparingDouble(profile -> Math.hypot((double) profile.point().x() - human.x(), (double) profile.point().y() - human.y())).thenComparingLong(ProfileTopologySnapshot::profileId)).toList();
+		return new NativeLocalQuery(candidates.stream().limit(limit).toList(), candidates.size() > limit);
+	}
+
 	/** A human is a query point, never a registered phantom profile. */
 	public List<ProfileTopologySnapshot> perceptibleProfilesAt(PhantomTopologyPoint point, PhantomPerceptionChannel channel, int limit)
 	{

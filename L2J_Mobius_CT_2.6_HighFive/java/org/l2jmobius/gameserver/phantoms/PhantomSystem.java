@@ -569,11 +569,21 @@ public final class PhantomSystem
 						_settings.ecologyWorldAgeDays(),
 						_settings.ecologyArchiveLimit());
 					_populationEcology.enablePeriodicDueMode();
+					_populationEcology.installDemandPump(_settings.schedulerPulseMillis(), () -> System.nanoTime() / 1_000_000L, (wake, delay) ->
+					{
+						final var future = org.l2jmobius.commons.threads.ThreadPool.schedule(wake, delay);
+						if (future == null) { throw new java.util.concurrent.RejectedExecutionException("ecology.wake_rejected"); }
+						return () -> future.cancel(false);
+					});
 					_populationManager.installEcology(_populationEcology);
 					_socialService.installPersonalityInitializer(_populationEcology::initialPersonalityTraits);
 				}
 				final PhantomPopulationEcologyService periodicEcology = _populationEcology;
-				if (periodicEcology != null) { periodicEcology.installMaterializationDemand(profileId -> _populationManager.presence().isOnline(profileId) && _humanLocality.isLocal(profileId)); }
+				if (periodicEcology != null)
+				{
+					periodicEcology.installMaterializationDemand(profileId -> _populationManager.presence().isOnline(profileId) && _humanLocality.isCurrentLocal(profileId));
+					_humanLocality.installPhysicalDemand(periodicEcology::requestMaterializationDue);
+				}
 				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology);
 				_materializationRetention = new PhantomMaterializationRetentionPolicy(this::retentionFacts, System::nanoTime, 60_000);
 				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING) && _materializationRetention.observe(profileId).retained());
@@ -1797,7 +1807,7 @@ public final class PhantomSystem
 			return java.util.Optional.empty();
 		}
 		return configured._topologyService.findProfile(profileId)
-			.filter(profile -> profile.resolved() && (profile.point() != null))
+			.filter(profile -> profile.point() != null)
 			.map(profile -> new OperatorLocalityTarget(profile.profileId(), profile.point(), profile.nodeId(), profile.topologyGeneration()));
 	}
 
@@ -1805,6 +1815,34 @@ public final class PhantomSystem
 	{
 		final PhantomSystem configured = _configuredInstance;
 		return (profileId > 0) && (configured != null) && (configured._state == State.RUNNING) && (configured._humanLocality != null) && configured._humanLocality.isLocal(profileId);
+	}
+
+	public static synchronized Map<String, String> operatorReadinessProgress(long profileId)
+	{
+		final PhantomSystem configured = _configuredInstance;
+		if ((configured == null) || (configured._populationEcology == null)) { return Map.of(); }
+		final var progress = configured._populationEcology.progressSnapshot(profileId);
+		final Map<String, String> result = new java.util.LinkedHashMap<>();
+		result.put("ordinaryQueued", Integer.toString(progress.ordinaryQueued()));
+		result.put("urgentQueued", Integer.toString(progress.urgentQueued()));
+		result.put("workerState", progress.workerState());
+		result.put("activeProfile", Long.toString(progress.activeProfile()));
+		result.put("currentStage", progress.currentStage());
+		result.put("enqueueAgeMillis", Long.toString(progress.enqueueAgeMillis()));
+		result.put("lastProgressAgeMillis", Long.toString(progress.lastProgressAgeMillis()));
+		result.put("nextWakeMillis", Long.toString(progress.nextWakeMillis()));
+		result.put("nextRetryMillis", Long.toString(progress.nextRetryMillis()));
+		result.put("historicalStatus", progress.historicalStatus());
+		result.put("historicalRequestId", progress.requestId());
+		result.put("innerCursorMinute", Long.toString(progress.innerCursorMinute()));
+		result.put("innerTargetMinute", Long.toString(progress.targetMinute()));
+		result.put("innerRevision", Long.toString(progress.innerRevision()));
+		if (configured._humanLocality != null)
+		{
+			result.put("signalDelivery", String.valueOf(configured._humanLocality.deliverySnapshot().get(profileId)));
+			result.put("localityOverflow", Boolean.toString(configured._humanLocality.physicalSnapshot().overflow()));
+		}
+		return Map.copyOf(result);
 	}
 
 	/** Read-only test of the production prewarm gates for a consented human point. */
@@ -1972,9 +2010,8 @@ public final class PhantomSystem
 	{
 		final PhantomSystem configured = _configuredInstance;
 		if ((configured == null) || (configured._populationManager == null) || (configured._topologyService == null)) { return 0; }
-		final var region = World.getInstance().getRegion(human.x(), human.y(), human.z());
 		return (int) configured._topologyService.listProfiles().stream()
-			.filter(profile -> profile.resolved() && (profile.point() != null) && (profile.point().instanceId() == human.instanceId()) && (region != null) && region.isSurroundingRegion(World.getInstance().getRegion(profile.point().x(), profile.point().y(), profile.point().z())))
+			.filter(profile -> (profile.point() != null) && org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(human, profile.point()))
 			.filter(profile -> configured._populationManager.admissionProfile(profile.profileId()).filter(state -> (state.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY) && state.calendarOnline() && state.nextBoundary().isAfter(until)).isPresent())
 			.filter(profile -> configured._populationManager.presence().state(profile.profileId()) == PhantomPresenceRegistry.Presence.AVAILABLE)
 			.limit(configured._settings.maxMaterializedPhantoms()).count();

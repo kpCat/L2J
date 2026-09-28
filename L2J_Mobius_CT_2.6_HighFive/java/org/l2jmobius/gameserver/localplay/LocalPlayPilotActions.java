@@ -342,8 +342,7 @@ public final class LocalPlayPilotActions
 
 	private static boolean couldKnow(Location human, Location target)
 	{
-		final var region = World.getInstance().getRegion(human.getX(), human.getY(), human.getZ());
-		return (region != null) && region.isSurroundingRegion(World.getInstance().getRegion(target.getX(), target.getY(), target.getZ()));
+		return org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(new PhantomTopologyPoint(human.getX(), human.getY(), human.getZ(), 0), new PhantomTopologyPoint(target.getX(), target.getY(), target.getZ(), 0));
 	}
 
 	private static boolean nativeBothWays(Location first, Location second)
@@ -377,7 +376,7 @@ public final class LocalPlayPilotActions
 		final var actorRegion = World.getInstance().getRegion(actor);
 		final var targetRegion = worldPresent ? World.getInstance().getRegion(player) : World.getInstance().getRegion(point.x(), point.y(), point.z());
 		final boolean sameInstance = actor.getInstanceId() == (worldPresent ? player.getInstanceId() : point.instanceId());
-		final boolean regionCanKnow = sameInstance && (actorRegion != null) && (targetRegion != null) && actorRegion.isSurroundingRegion(targetRegion);
+		final boolean regionCanKnow = sameInstance && org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(new PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId()), worldPresent ? new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()) : point);
 		final boolean clientVisible = worldPresent && regionCanKnow && player.isOnline() && player.isVisibleFor(actor);
 		final Map<String, String> data = new LinkedHashMap<>();
 		data.put("profileId", Long.toString(_envelopeProfileId));
@@ -407,6 +406,7 @@ public final class LocalPlayPilotActions
 		data.put("nativeVisible", Boolean.toString(profile.nativeVisible()));
 		data.put("retentionPins", profile.retentionPins().toString());
 		final var readiness = profile.readiness();
+		data.putAll(PhantomSystem.operatorReadinessProgress(_envelopeProfileId));
 		data.put("readinessReason", readiness == null ? "ecology.disabled" : readiness.reason());
 		if (readiness != null)
 		{

@@ -101,6 +101,57 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		registry.add("29c-live-native-region-retains-locality-after-anchor-shift", _ -> testLiveNativeRegionLocality());
 		registry.add("29d-offline-profiles-do-not-consume-human-locality-bound", _ -> testOfflineLocalityBound());
 		registry.add("30-existing-registry-10000-local-bucket-bound", _ -> testScaleRegistry());
+		registry.add("31-recorded-approach-physical-demand-with-backpressure", this::testRecordedApproach);
+		registry.add("32-native-negative-z-boundary-and-bucket-lifecycle", _ -> testNativeBucketLifecycle());
+	}
+
+	private void testNativeBucketLifecycle()
+	{
+		final var origin = new PhantomTopologyPoint(-1, -1, -3490, 0);
+		final int[][] samples = {{-2048, -3481, 1, 1}, {-4096, -3481, 1, 1}, {-4097, -3481, 0, 1}, {-6145, -3481, 0, 0}, {-1, -8001, 0, 0}, {-1, -6001, 0, 1}, {-1, -4001, 1, 1}, {-1, -2000, 1, 1}, {-1, 0, 0, 1}, {-1, 2000, 0, 0}};
+		for (int[] sample : samples)
+		{
+			final var point = new PhantomTopologyPoint(sample[0], -1, sample[1], 0);
+			PhantomAssertions.assertEquals(sample[2] == 1, org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(origin, point), "Native boundary could-know mismatch.");
+			PhantomAssertions.assertEquals(sample[3] == 1, org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.prewarm(origin, point), "Native boundary prewarm mismatch.");
+		}
+		final Fixture fixture = fixture();
+		try
+		{
+			register(fixture, 1, origin); register(fixture, 2, origin);
+			final var capped = fixture.service.nativeProfilesAt(origin, 1, _ -> true);
+			PhantomAssertions.assertTrue(capped.overflow(), "Native cap hid overflow.");
+			fixture.service.updateProfile(1, new PhantomTopologyPoint(50000, 50000, 0, 0), 2);
+			PhantomAssertions.assertEquals(List.of(2L), fixture.service.nativeProfilesAt(origin, 2, _ -> true).candidates().stream().map(profile -> profile.profileId()).toList(), "Committed movement retained its old native bucket.");
+			fixture.service.unregisterProfile(2);
+			PhantomAssertions.assertTrue(fixture.service.nativeProfilesAt(origin, 2, _ -> true).candidates().isEmpty(), "Unregister retained native bucket.");
+		}
+		finally { stop(fixture); }
+		PhantomAssertions.assertEquals(0, fixture.service.registrySnapshot().registered(), "Stop retained native registry ownership.");
+	}
+
+	private void testRecordedApproach(PhantomTestContext context) throws Exception
+	{
+		final Fixture fixture = fixture();
+		register(fixture, 1313, new PhantomTopologyPoint(46131, 41458, -3504, 0));
+		final AtomicReference<PhantomTopologyPoint> human = new AtomicReference<>();
+		final AtomicLong now = new AtomicLong(1000);
+		fixture.port._statusByProfile.put(1313L, SignalDelivery.BACKPRESSURE);
+		final var locality = new PhantomHumanLocalityControl(fixture.service, fixture.port, () -> List.of(human.get()), now::get);
+		try
+		{
+			for (String row : java.nio.file.Files.readAllLines(context.moduleRoot().resolve("docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-after-stall/fixtures/native-envelope-expectations.tsv")).subList(1, 24))
+			{
+				final String[] fields = row.split("\t");
+				human.set(new PhantomTopologyPoint(Integer.parseInt(fields[2]), Integer.parseInt(fields[3]), Integer.parseInt(fields[4]), 0));
+				now.addAndGet(1000);
+				locality.onPulse();
+				PhantomAssertions.assertEquals(Boolean.parseBoolean(fields[14]), locality.isCurrentLocal(1313), "Recorded physical demand disagreed at " + fields[0]);
+			}
+			human.set(new PhantomTopologyPoint(46131, 41458, -3504, 1));
+			PhantomAssertions.assertFalse(locality.isCurrentLocal(1313), "Instance change retained physical demand.");
+		}
+		finally { stop(fixture); }
 	}
 
 	private void testStartsEmpty()
@@ -427,13 +478,13 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		locality.onPulse();
 		PhantomAssertions.assertTrue(locality.isLocal(1), "Local committed profile received no relevance signal.");
 		assertLastState(fixture, 1, PhantomActivityState.NEARBY_PERCEPTIBLE);
-		PhantomAssertions.assertFalse(locality.isLocal(2), "Remote profile became materialization eligible.");
+		PhantomAssertions.assertTrue(locality.isLocal(2), "Native physical locality was incorrectly blocked by a logical door.");
 		online.set(false);
 		PhantomAssertions.assertFalse(locality.isLocal(1), "OFFLINE did not dominate an existing local signal.");
 		online.set(true);
 		PhantomAssertions.assertEquals(UpdateResult.STALE, fixture.service.updateProfile(1, PhantomTopologyCoreSuite.RIGHT_POINT, 0), "Transient stale update was accepted.");
 		PhantomAssertions.assertEquals("dungeon.left", fixture.service.findProfile(1).orElseThrow().nodeId(), "Stale or transient move changed committed membership.");
-		publisher.committed(1, position(PhantomTopologyCoreSuite.RIGHT_POINT));
+		publisher.committed(1, position(new PhantomTopologyPoint(50_000, 50_000, 0, 0)));
 		now.addAndGet(1000);
 		locality.onPulse();
 		PhantomAssertions.assertFalse(locality.isLocal(1), "Committed remote move remained locally signaled.");
@@ -441,7 +492,8 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		fixture.port._statusByProfile.put(1L, SignalDelivery.REJECTED);
 		now.addAndGet(1000);
 		locality.onPulse();
-		PhantomAssertions.assertFalse(locality.isLocal(1), "Rejected local signal admitted materialization.");
+		PhantomAssertions.assertTrue(locality.isLocal(1), "Rejected signal erased physical demand.");
+		PhantomAssertions.assertEquals(SignalDelivery.REJECTED, locality.deliverySnapshot().get(1L), "Delivery failure was not tracked separately.");
 		fixture.port._statusByProfile.remove(1L);
 		for (int cycle = 0; cycle < 100; cycle++)
 		{
@@ -491,7 +543,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		final PhantomHumanLocalityControl locality = new PhantomHumanLocalityControl(fixture.service, fixture.port, () -> List.of(ground), () -> 1000, profileId -> true);
 		locality.onPulse();
 		PhantomAssertions.assertTrue(locality.isLocal(173), "Ground-normalized human did not deliver the ordinary local relevance signal.");
-		PhantomAssertions.assertFalse(locality.isLocal(174), "Remote committed profile received a local relevance signal.");
+		PhantomAssertions.assertTrue(locality.isLocal(174), "Nearby route node was excluded from native physical demand.");
 		PhantomAssertions.assertFalse(locality.isLocal(175), "Unresolved profile received a local relevance signal.");
 		stop(fixture);
 	}
@@ -513,7 +565,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(locality.isLocal(77), "Next native visibility region was not prewarmed before the human crossed its boundary.");
 		assertLastState(fixture, 77, PhantomActivityState.NEARBY_PERCEPTIBLE);
 		PhantomAssertions.assertEquals(10_000L, fixture.port.signals().getLast().signal().ttlMillis(), "Prewarm signal lost edge hysteresis grace.");
-		humanPoint.set(new PhantomTopologyPoint(1024, 500, 0, 0));
+		humanPoint.set(new PhantomTopologyPoint(-2048, 500, 0, 0));
 		now.addAndGet(1000);
 		locality.onPulse();
 		PhantomAssertions.assertFalse(locality.isLocal(77), "Profile beyond the bounded prewarm edge stayed locally admitted.");

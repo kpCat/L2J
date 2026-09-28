@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.LongPredicate;
+import java.util.function.LongSupplier;
 
 import org.l2jmobius.commons.threads.ThreadPool;
 
@@ -60,6 +61,16 @@ public final class PhantomPopulationEcologyService
 	private boolean _workerStarted;
 	private long _workerGeneration;
 	private long _workerQueuedPulse;
+	private WakeScheduler _wakeScheduler;
+	private LongSupplier _monotonicMillis;
+	private long _quantumMillis;
+	private Runnable _cancelWake;
+	private long _wakeGeneration;
+	private long _nextWakeMillis;
+	private long _nextBatchMillis;
+	private long _workerQueuedMillis;
+	private long _activeProfile;
+	private String _wakeFailure;
 	private boolean _stopping;
 	private LongPredicate _currentDemand = _ -> true;
 	private final Map<Long, Entry> _entries = new LinkedHashMap<>();
@@ -183,6 +194,45 @@ public final class PhantomPopulationEcologyService
 		synchronized (_monitor) { _currentDemand = Objects.requireNonNull(currentDemand); }
 	}
 
+	/** One service timer, sharing the population budget; the wake itself never performs I/O. */
+	public void installDemandPump(long quantumMillis, LongSupplier monotonicMillis, WakeScheduler scheduler)
+	{
+		synchronized (_monitor)
+		{
+			if ((_wakeScheduler != null) || !_entries.isEmpty() || (quantumMillis < 1)) { throw new IllegalStateException("Ecology pump must be installed before restore."); }
+			_quantumMillis = quantumMillis;
+			_monotonicMillis = Objects.requireNonNull(monotonicMillis);
+			_wakeScheduler = Objects.requireNonNull(scheduler);
+		}
+	}
+
+	private void requestWakeLocked()
+	{
+		if ((_wakeScheduler == null) || _stopping || (_wakeFailure != null) || (_cancelWake != null) || (_due.isEmpty() && _materializationDue.isEmpty())) { return; }
+		final long now = _monotonicMillis.getAsLong();
+		final long due = _workerInFlight ? _workerQueuedMillis + 256 * _quantumMillis : Math.max(now, _nextBatchMillis);
+		final long generation = ++_wakeGeneration;
+		_nextWakeMillis = Math.max(now + (_workerStarted ? _quantumMillis : 0), due);
+		try { _cancelWake = Objects.requireNonNull(_wakeScheduler.schedule(() -> pumpWake(generation), Math.max(1, _nextWakeMillis - now))); }
+		catch (RuntimeException exception)
+		{
+			_nextWakeMillis = 0;
+			_wakeFailure = "ecology.wake_rejected";
+			recordFailure(_wakeFailure);
+		}
+	}
+
+	private void pumpWake(long generation)
+	{
+		synchronized (_monitor)
+		{
+			if (_stopping || (generation != _wakeGeneration)) { return; }
+			_cancelWake = null;
+			_nextWakeMillis = 0;
+		}
+		dispatchBatch();
+	}
+
 	public void register(ManagedSnapshot population)
 	{
 		Objects.requireNonNull(population, "Population snapshot must not be null.");
@@ -240,22 +290,33 @@ public final class PhantomPopulationEcologyService
 
 	public void onPopulationPulse()
 	{
+		synchronized (_monitor)
+		{
+			if (_wakeScheduler != null) { requestWakeLocked(); return; }
+		}
+		dispatchBatch();
+	}
+
+	private void dispatchBatch()
+	{
 		final long generation;
 		synchronized (_monitor)
 		{
 			requireRuntime();
 			if (_stopping) { return; }
 			_pulses++;
-			if (_workerInFlight && !_workerStarted && ((_pulses - _workerQueuedPulse) >= 256))
+			if (_workerInFlight && !_workerStarted && ((_wakeScheduler == null) ? ((_pulses - _workerQueuedPulse) >= 256) : (_monotonicMillis.getAsLong() >= _workerQueuedMillis + 256 * _quantumMillis)))
 			{
 				_workerInFlight = false;
 				_workerGeneration++;
 				_lastFailure = "ecology.worker_dispatch_timeout";
 			}
-			if (_workerInFlight || (_due.isEmpty() && _materializationDue.isEmpty())) { return; }
+			if (_workerInFlight || (_due.isEmpty() && _materializationDue.isEmpty())) { requestWakeLocked(); return; }
+			if ((_wakeScheduler != null) && (_monotonicMillis.getAsLong() < _nextBatchMillis)) { requestWakeLocked(); return; }
 			_workerInFlight = true;
 			_workerStarted = false;
 			_workerQueuedPulse = _pulses;
+			if (_wakeScheduler != null) { _workerQueuedMillis = _monotonicMillis.getAsLong(); _nextBatchMillis = _workerQueuedMillis + _quantumMillis; }
 			generation = ++_workerGeneration;
 		}
 		boolean accepted = false;
@@ -269,14 +330,33 @@ public final class PhantomPopulationEcologyService
 					_workerStarted = true;
 				}
 				try { drainBatch(); }
-				finally { synchronized (_monitor) { if (generation == _workerGeneration) { _workerInFlight = false; _workerStarted = false; } _monitor.notifyAll(); } }
+				finally
+				{
+					synchronized (_monitor)
+					{
+						if (generation == _workerGeneration)
+						{
+							_workerInFlight = false; _workerStarted = false; _activeProfile = 0;
+							if (_wakeScheduler != null) { _nextBatchMillis = _monotonicMillis.getAsLong() + _quantumMillis; }
+							cancelWakeLocked(); requestWakeLocked();
+						}
+						_monitor.notifyAll();
+					}
+				}
 			});
 		}
 		catch (RuntimeException exception) { recordFailure("ecology.worker_rejected"); }
 		if (!accepted)
 		{
-			synchronized (_monitor) { if ((generation == _workerGeneration) && !_workerStarted) { _workerInFlight = false; _workerGeneration++; } _lastFailure = "ecology.worker_rejected"; }
+			synchronized (_monitor) { if ((generation == _workerGeneration) && !_workerStarted) { _workerInFlight = false; _workerGeneration++; } _lastFailure = "ecology.worker_rejected"; requestWakeLocked(); }
 		}
+		else { synchronized (_monitor) { requestWakeLocked(); } }
+	}
+
+	private void cancelWakeLocked()
+	{
+		if (_cancelWake != null) { _cancelWake.run(); _cancelWake = null; }
+		_wakeGeneration++; _nextWakeMillis = 0;
 	}
 
 	public void beginStop()
@@ -284,6 +364,7 @@ public final class PhantomPopulationEcologyService
 		synchronized (_monitor)
 		{
 			_stopping = true;
+			cancelWakeLocked();
 			if (!_workerStarted) { _workerInFlight = false; _workerGeneration++; }
 		}
 	}
@@ -338,6 +419,7 @@ public final class PhantomPopulationEcologyService
 		int intervals = 0;
 		for (long profileId : profiles)
 		{
+			synchronized (_monitor) { _activeProfile = profileId; }
 			try
 			{
 				if (materializationProfiles.contains(profileId) && !_currentDemand.test(profileId)) { withdrawMaterializationDue(profileId); }
@@ -370,11 +452,11 @@ public final class PhantomPopulationEcologyService
 					{
 						entry._claimed = false;
 						_periodicRunning--;
-						if (entry._materializationDemand && !dueSnapshotLocked(profileId, entry).complete())
+						if (!entry._terminal && entry._materializationDemand && !dueSnapshotLocked(profileId, entry).complete())
 						{
 							queueMaterializationLocked(profileId, false);
 						}
-						else
+						else if (!entry._terminal && ((entry._stored == null) || (entry._stored.state().disposition() == Disposition.MANAGED)))
 						{
 							queueLocked(profileId);
 						}
@@ -409,15 +491,16 @@ public final class PhantomPopulationEcologyService
 		for (int steps = 0; steps < (intervalLimit * 4) + 8; steps++)
 		{
 			final StoredState before = stored(profileId);
+			final long revision = dueSnapshot(profileId).revision();
 			final boolean requested;
 			synchronized (_monitor)
 			{
 				final Entry entry = _entries.get(profileId);
 				requested = (entry != null) && (entry._requestedMinute > 0);
 			}
-			if (requested && (before != null) && before.state().initialCatchupComplete() && !before.state().requestPending() && dueSnapshot(profileId).complete()) { break; }
+			if (requested && (before != null) && before.state().initialCatchupComplete() && !before.state().requestPending() && dueSnapshot(profileId).complete()) { process(profileId, 0, false); break; }
 			advanced += process(profileId, Math.max(0, intervalLimit - advanced), requested);
-			if ((before == stored(profileId)) || (advanced >= intervalLimit)) { break; }
+			if (((before == stored(profileId)) && (revision == dueSnapshot(profileId).revision())) || (advanced >= intervalLimit)) { break; }
 		}
 		return advanced;
 	}
@@ -492,7 +575,7 @@ public final class PhantomPopulationEcologyService
 			}
 			if (targetMinute > entry._requestedMinute) { entry._requestedMinute = targetMinute; entry._readinessRevision++; }
 			final DueSnapshot snapshot = dueSnapshotLocked(profileId, entry);
-			if (!snapshot.complete())
+			if (!snapshot.complete() && !entry._terminal)
 			{
 				_periodicBlockedCalls++;
 				entry._materializationDemand |= materializationDue;
@@ -515,7 +598,7 @@ public final class PhantomPopulationEcologyService
 		final var stored = entry == null ? null : entry._stored;
 		final var state = stored == null ? null : stored.state();
 		final long horizon = entry == null ? 0 : entry._requestedMinute;
-		final String reason = _stopping ? "ecology.stopping" : entry == null ? "ecology.profile_unknown" : state == null ? "ecology.inventory_pending" : state.disposition() != Disposition.MANAGED ? "ecology.archived" : entry._lastReportedFailure != null ? entry._lastReportedFailure : state.requestPending() ? "ecology.commit_pending" : !state.initialCatchupComplete() ? "ecology.initial_catchup_pending" : state.calendarCursorEpochMinute() < horizon ? "ecology.cursor_pending" : "ecology.cursor_current";
+		final String reason = _stopping ? "ecology.stopping" : _wakeFailure != null ? _wakeFailure : entry == null ? "ecology.profile_unknown" : state == null ? "ecology.inventory_pending" : state.disposition() != Disposition.MANAGED ? "ecology.archived" : entry._lastReportedFailure != null ? entry._lastReportedFailure : state.requestPending() ? "ecology.commit_pending" : !state.initialCatchupComplete() ? "ecology.initial_catchup_pending" : state.calendarCursorEpochMinute() < horizon ? "ecology.cursor_pending" : "ecology.cursor_current";
 		return new DueSnapshot(profileId, horizon, state == null ? 0 : state.calendarCursorEpochMinute(), (state != null) && state.initialCatchupComplete(), (state != null) && state.requestPending(), _queued.contains(profileId) || _materializationQueued.contains(profileId), (entry != null) && entry._claimed, entry == null ? 0 : entry._readinessRevision, "ecology.cursor_current".equals(reason), reason);
 	}
 
@@ -573,6 +656,7 @@ public final class PhantomPopulationEcologyService
 		}
 		if (_periodicDueMode && state.initialCatchupComplete() && !periodicDue)
 		{
+			if (now >= state.turnoverEligibleEpochMinute()) { requestArchive(profileId); }
 			return 0;
 		}
 		final long requested;
@@ -593,16 +677,25 @@ public final class PhantomPopulationEcologyService
 	private int advanceRequest(long profileId, StoredState ecology, int intervalBudget)
 	{
 		final PhantomPopulationEcologyState state = ecology.state();
+		stage(profileId, "historical.status");
 		var catchup = _historical.status(profileId).orElse(null);
+		cacheHistorical(profileId, catchup);
 		if ((catchup == null) || !catchup.state().requestId().equals(state.currentRequestId()))
 		{
 			final var begun = _historical.begin(profileId, state.calendarCursorEpochMinute(), state.currentWindowTargetEpochMinute(), historicalSeed(state));
+			cacheHistorical(profileId, begun.snapshot());
 			if (!begun.successful() || (begun.snapshot() == null) || !begun.snapshot().state().requestId().equals(state.currentRequestId()))
 			{
-				recordFailure(begun.reason());
+				historicalFailure(profileId, begun, "ecology.request_identity_conflict");
 				return 0;
 			}
 			catchup = begun.snapshot();
+		}
+		if ((catchup.state().fromEpochMinute() != state.calendarCursorEpochMinute()) || (catchup.state().targetEpochMinute() != state.currentWindowTargetEpochMinute()))
+		{
+			recordFailureOnce(profileId, "ecology.request_window_conflict");
+			synchronized (_monitor) { _entries.get(profileId)._terminal = true; }
+			return 0;
 		}
 		if (catchup.state().status() == Status.COMPLETE)
 		{
@@ -626,31 +719,33 @@ public final class PhantomPopulationEcologyService
 			}
 		}
 		final int bounded = Math.min(intervalBudget, _catalog.limits().maximumIntervalsPerPulse());
+		stage(profileId, "historical.advance");
 		final var advanced = _historical.advance(profileId, bounded, bounded);
+		cacheHistorical(profileId, advanced.snapshot());
 		if ((advanced.status() != ResultStatusCode.SUCCESS) && (advanced.status() != ResultStatusCode.RETRY))
 		{
-			recordFailureOnce(profileId, advanced.reason());
+			historicalFailure(profileId, advanced, "ecology.historical_failure");
 		}
 		else if (advanced.status() == ResultStatusCode.SUCCESS)
 		{
 			clearReportedFailure(profileId);
 		}
-		if (advanced.status() == ResultStatusCode.RETRY)
-		{
-			deferRetry(profileId);
-		}
+		if (advanced.status() == ResultStatusCode.RETRY) { historicalFailure(profileId, advanced, "ecology.historical_retry"); }
 		if ((advanced.snapshot() != null) && (advanced.snapshot().state().status() == Status.COMPLETE))
 		{
 			persist(profileId, ecology, state.completeRequest());
 		}
-		if (advanced.advancedIntervals() > 0)
+		// A rejected result can still contain intervals committed earlier in this call.
+		final int committed = (advanced.snapshot() != null) && advanced.snapshot().state().requestId().equals(catchup.state().requestId())
+			? Math.toIntExact(Math.max(advanced.advancedIntervals(), advanced.snapshot().state().intervalOrdinal() - catchup.state().intervalOrdinal())) : advanced.advancedIntervals();
+		if (committed > 0)
 		{
 			synchronized (_monitor)
 			{
-				_productiveMinutes += advanced.advancedIntervals();
+				_productiveMinutes += committed;
 			}
 		}
-		return advanced.advancedIntervals();
+		return committed;
 	}
 
 	private int beginNextWindow(long profileId, ManagedSnapshot population, StoredState stored, long reconciliationTarget)
@@ -673,11 +768,12 @@ public final class PhantomPopulationEcologyService
 			return 0;
 		}
 		final var begun = _historical.begin(profileId, window.startEpochMinute(), window.endEpochMinute(), historicalSeed(state));
+		cacheHistorical(profileId, begun.snapshot());
 		if (!begun.successful() || (begun.snapshot() == null))
 		{
 			if (begun.status() != ResultStatusCode.NORMAL_MATERIALIZED)
 			{
-				recordFailure(begun.reason());
+				historicalFailure(profileId, begun, "ecology.historical_begin_failed");
 			}
 			return 0;
 		}
@@ -713,16 +809,11 @@ public final class PhantomPopulationEcologyService
 
 	private void requestArchive(long profileId)
 	{
-		final String blocked;
+		if (!_safeBoundary.blockingReason(profileId).isEmpty()) { return; }
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
 			if ((entry == null) || (entry._stored == null) || entry._archiveRequested || !_inventoryReady || (_archived >= _archiveLimit) || entry._stored.state().requestPending())
-			{
-				return;
-			}
-			blocked = _safeBoundary.blockingReason(profileId);
-			if (!blocked.isEmpty())
 			{
 				return;
 			}
@@ -734,12 +825,13 @@ public final class PhantomPopulationEcologyService
 	public Optional<ArchivedResult> archive(ManagedSnapshot population)
 	{
 		final long profileId = population.profile().profileId();
+		final boolean blocked = _materialized.test(profileId) || !_safeBoundary.blockingReason(profileId).isEmpty();
 		final StoredState ecology;
 		final long generation;
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
-			if ((entry == null) || !entry._archiveRequested || (entry._stored == null) || (entry._stored.state().disposition() != Disposition.MANAGED) || entry._stored.state().requestPending() || (_archived >= _archiveLimit) || _materialized.test(profileId) || !_safeBoundary.blockingReason(profileId).isEmpty())
+			if ((entry == null) || !entry._archiveRequested || (entry._stored == null) || (entry._stored.state().disposition() != Disposition.MANAGED) || entry._stored.state().requestPending() || (_archived >= _archiveLimit) || blocked)
 			{
 				if (entry != null)
 				{
@@ -888,6 +980,7 @@ public final class PhantomPopulationEcologyService
 
 	private StoredState persist(long profileId, StoredState expected, PhantomPopulationEcologyState replacement)
 	{
+		stage(profileId, "ecology.persist");
 		final StoredState saved = _store.save(profileId, expected, replacement);
 		publish(profileId, saved);
 		clearReportedFailure(profileId);
@@ -933,6 +1026,7 @@ public final class PhantomPopulationEcologyService
 		}
 		entry._stored = stored;
 		entry._readinessRevision++;
+		entry._lastProgressMillis = progressClock();
 		addHistogramsLocked(stored.state());
 		_archiveGeneration = Math.max(_archiveGeneration, stored.state().archiveGeneration());
 	}
@@ -990,7 +1084,10 @@ public final class PhantomPopulationEcologyService
 	{
 		if (!_materializationQueued.contains(profileId) && _queued.add(profileId))
 		{
+			final Entry entry = _entries.get(profileId);
+			if (entry != null) { entry._enqueuedMillis = progressClock(); }
 			_due.addLast(profileId);
+			requestWakeLocked();
 		}
 	}
 
@@ -998,6 +1095,8 @@ public final class PhantomPopulationEcologyService
 	{
 		if (_materializationQueued.add(profileId))
 		{
+			final Entry entry = _entries.get(profileId);
+			if (entry != null) { entry._enqueuedMillis = progressClock(); }
 			_queued.remove(profileId);
 			_due.remove(profileId);
 			if (continuation)
@@ -1008,7 +1107,15 @@ public final class PhantomPopulationEcologyService
 			{
 				_materializationDue.addLast(profileId);
 			}
+			requestWakeLocked();
 		}
+	}
+
+	@FunctionalInterface
+	public interface WakeScheduler
+	{
+		/** Returns cancellation for the single outstanding wake. */
+		Runnable schedule(Runnable wake, long delayMillis);
 	}
 
 	private void refreshInventoryLocked()
@@ -1073,6 +1180,7 @@ public final class PhantomPopulationEcologyService
 			if (entry != null)
 			{
 				entry._lastReportedFailure = null;
+				entry._terminal = false;
 				entry._retryDelayPulses = 0;
 				entry._nextRetryPulse = 0;
 				entry._nextFailedProbePulse = 0;
@@ -1085,11 +1193,11 @@ public final class PhantomPopulationEcologyService
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
-			if ((entry == null) || (_pulses < entry._nextFailedProbePulse))
+			if ((entry == null) || (progressClock() < entry._nextFailedProbePulse))
 			{
 				return false;
 			}
-			entry._nextFailedProbePulse = _pulses + 256;
+			entry._nextFailedProbePulse = progressClock() + 256 * retryQuantum();
 			return true;
 		}
 	}
@@ -1099,7 +1207,7 @@ public final class PhantomPopulationEcologyService
 		synchronized (_monitor)
 		{
 			final Entry entry = _entries.get(profileId);
-			return (entry != null) && (_pulses < entry._nextRetryPulse);
+			return (entry != null) && (entry._terminal || (progressClock() < entry._nextRetryPulse));
 		}
 	}
 
@@ -1111,7 +1219,7 @@ public final class PhantomPopulationEcologyService
 			if (entry != null)
 			{
 				entry._retryDelayPulses = Math.min(256, Math.max(1, entry._retryDelayPulses * 2));
-				entry._nextRetryPulse = _pulses + entry._retryDelayPulses;
+				entry._nextRetryPulse = progressClock() + entry._retryDelayPulses * retryQuantum();
 			}
 		}
 	}
@@ -1123,6 +1231,50 @@ public final class PhantomPopulationEcologyService
 			throw new IllegalStateException("Ecology runtime is not installed.");
 		}
 	}
+
+	private long progressClock() { return _monotonicMillis == null ? _pulses : _monotonicMillis.getAsLong(); }
+	private long retryQuantum() { return _wakeScheduler == null ? 1 : _quantumMillis; }
+
+	private void stage(long profileId, String stage)
+	{
+		synchronized (_monitor) { final Entry entry = _entries.get(profileId); if (entry != null) { entry._stage = stage; } }
+	}
+
+	private void cacheHistorical(long profileId, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.Snapshot value)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			if ((entry != null) && (value != null))
+			{
+				if (!value.equals(entry._historicalSnapshot)) { entry._lastProgressMillis = progressClock(); entry._readinessRevision++; }
+				entry._historicalSnapshot = value;
+			}
+		}
+	}
+
+	private void historicalFailure(long profileId, PhantomHistoricalBackgroundService.Result result, String fallback)
+	{
+		final String reason = result.successful() ? fallback : result.reason();
+		recordFailureOnce(profileId, reason);
+		if ((result.status() == ResultStatusCode.RETRY) || (result.status() == ResultStatusCode.NORMAL_MATERIALIZED) || ((result.status() == ResultStatusCode.REPLAN_REQUIRED) && ("authority.hash_stale".equals(reason) || "transaction.item_conflict".equals(reason)))) { deferRetry(profileId); }
+		else { synchronized (_monitor) { final Entry entry = _entries.get(profileId); if (entry != null) { entry._terminal = true; entry._stage = "blocked"; } } }
+	}
+
+	/** Worker-cached diagnostics: no historical/status SQL in this read path. */
+	public ProgressSnapshot progressSnapshot(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			final var historical = entry == null ? null : entry._historicalSnapshot;
+			final var state = historical == null ? null : historical.state();
+			final long now = progressClock();
+			return new ProgressSnapshot(_due.size(), _materializationDue.size(), _workerStarted ? "RUNNING" : _workerInFlight ? "DISPATCHED" : _cancelWake != null ? "WAKE_SCHEDULED" : _stopping ? "STOPPED" : _wakeFailure != null ? "BLOCKED" : "IDLE", _activeProfile, entry == null ? "unknown" : entry._stage, entry == null ? 0 : Math.max(0, now - entry._enqueuedMillis), entry == null ? 0 : Math.max(0, now - entry._lastProgressMillis), _nextWakeMillis, entry == null ? 0 : entry._nextRetryPulse, state == null ? "UNKNOWN" : state.status().name(), state == null ? "" : state.requestId(), state == null ? 0 : state.cursorEpochMinute(), state == null ? 0 : state.targetEpochMinute(), historical == null ? 0 : historical.rowVersion());
+		}
+	}
+
+	public record ProgressSnapshot(int ordinaryQueued, int urgentQueued, String workerState, long activeProfile, String currentStage, long enqueueAgeMillis, long lastProgressAgeMillis, long nextWakeMillis, long nextRetryMillis, String historicalStatus, String requestId, long innerCursorMinute, long targetMinute, long innerRevision) {}
 
 	private static long historicalSeed(PhantomPopulationEcologyState state)
 	{
@@ -1146,6 +1298,11 @@ public final class PhantomPopulationEcologyService
 
 	private static final class Entry
 	{
+		private boolean _terminal;
+		private org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.Snapshot _historicalSnapshot;
+		private String _stage = "queued";
+		private long _lastProgressMillis;
+		private long _enqueuedMillis;
 		private StoredState _stored;
 		private String _lastReportedFailure;
 		private int _retryDelayPulses;

@@ -21,6 +21,8 @@ $firstMaterializedUtc = $null
 $firstVisibleUtc = $null
 $coverage = 'NOT_OBSERVED'
 $cleanup = $false
+$evidenceRoot = Join-Path $module ".phantom-local/m1-005-connected-$runId"
+$null = New-Item -ItemType Directory -Path $evidenceRoot -Force
 
 # Reuse M1-003's consented Pilot operations and immutable native snapshots.
 function Invoke-Proof([string] $operation, [hashtable] $arguments = @{})
@@ -53,6 +55,7 @@ function Capture([string] $phase, [string] $transition = '')
 	{
 		$record[$field] = Read-Field $target $field
 	}
+	foreach ($field in @('signalDelivery', 'localityOverflow', 'ordinaryQueued', 'urgentQueued', 'workerState', 'activeProfile', 'currentStage', 'enqueueAgeMillis', 'lastProgressAgeMillis', 'nextWakeMillis', 'nextRetryMillis', 'historicalStatus', 'historicalRequestId', 'innerCursorMinute', 'innerTargetMinute', 'innerRevision')) { $record[$field] = Read-Field $target $field }
 	$page = $target
 	$totalCensus = 0
 	$totalEligible = 0
@@ -75,7 +78,11 @@ function Capture([string] $phase, [string] $transition = '')
 	$record.censusCount = [string]$totalCensus
 	$record.censusEligible = [string]$totalEligible
 	$script:rows.Add([pscustomobject]$record)
-	if (($target.regionCanKnow -ceq 'true') -and ($target.worldPresent -cne 'true')) { throw 'VISIBLE_DISAPPEARANCE' }
+	if (($target.regionCanKnow -ceq 'true') -and ($target.worldPresent -cne 'true'))
+	{
+		if ($script:objectId -eq 0) { throw 'MISSED_INITIAL_MATERIALIZATION' }
+		throw 'VISIBLE_DISAPPEARANCE'
+	}
 	if (($null -eq $script:firstLocalUtc) -and ($target.localityCurrent -ceq 'true')) { $script:firstLocalUtc = $record.utc }
 	if (($null -eq $script:firstMaterializedUtc) -and ($target.worldPresent -ceq 'true')) { $script:firstMaterializedUtc = $record.utc }
 	if (($null -eq $script:firstVisibleUtc) -and ($target.regionCanKnow -ceq 'true')) { $script:firstVisibleUtc = $record.utc }
@@ -141,7 +148,7 @@ function Save-Tsv($data, [string] $name)
 	$lines = New-Object System.Collections.Generic.List[string]
 	$lines.Add(($columns -join "`t"))
 	foreach ($row in $data) { $lines.Add((($columns | ForEach-Object { [string]$row.$_ }) -join "`t")) }
-	[IO.File]::WriteAllLines((Join-Path $PSScriptRoot $name), $lines, [Text.UTF8Encoding]::new($false))
+	[IO.File]::WriteAllLines((Join-Path $script:evidenceRoot $name), $lines, [Text.UTF8Encoding]::new($false))
 }
 
 try
@@ -212,7 +219,7 @@ finally
 	}
 	Save-Tsv $rows 'M1_CONNECTED_WORLD.tsv'
 	Save-Tsv $census 'M1_VISIBLE_LIFE_CENSUS.tsv'
-	[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'M1_CONNECTED_RESULT.txt'), "runId=$runId`nfailed=$failure`nrestored=$restored`ncoverage=$coverage`nlocal=$firstLocalUtc`nmaterialized=$firstMaterializedUtc`nvisible=$firstVisibleUtc`n", [Text.UTF8Encoding]::new($false))
+	[IO.File]::WriteAllText((Join-Path $evidenceRoot 'M1_CONNECTED_RESULT.txt'), "runId=$runId`nfailed=$failure`nrestored=$restored`ncoverage=$coverage`nlocal=$firstLocalUtc`nmaterialized=$firstMaterializedUtc`nvisible=$firstVisibleUtc`n", [Text.UTF8Encoding]::new($false))
 	& (Join-Path $module 'tools/phantom-local-play/Stop-LocalPlayPilot.ps1') | Out-Null
 }
 if ($failure -or (-not $restored)) { throw $(if ($failure) { $failure } else { 'ORIGIN_RETURN_NOT_CONFIRMED' }) }

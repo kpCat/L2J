@@ -107,6 +107,7 @@ public final class PhantomTopologyProfileRegistry
 	private final PhantomTopologyMetrics _metrics;
 	private final Map<Long, Entry> _entries = new HashMap<>();
 	private Map<String, LinkedHashSet<Long>> _profilesByNode = new HashMap<>();
+	private final Map<PhantomNativeLocalityEnvelope.RegionKey, LinkedHashSet<Long>> _profilesByRegion = new HashMap<>();
 	private State _state = State.NEW;
 	private long _generation = -1;
 	private int _lastCandidatesExamined;
@@ -396,6 +397,7 @@ public final class PhantomTopologyProfileRegistry
 			}
 			_entries.clear();
 			_profilesByNode = new HashMap<>();
+			_profilesByRegion.clear();
 			_state = State.STOPPED;
 			return true;
 		}
@@ -439,6 +441,8 @@ public final class PhantomTopologyProfileRegistry
 
 	private void addMembershipLocked(Entry entry)
 	{
+		final var region = PhantomNativeLocalityEnvelope.region(entry._point);
+		if (region != null) { _profilesByRegion.computeIfAbsent(region, _ -> new LinkedHashSet<>()).add(entry._profileId); }
 		if (entry._nodeId != null)
 		{
 			_profilesByNode.computeIfAbsent(entry._nodeId, _ -> new LinkedHashSet<>()).add(entry._profileId);
@@ -447,6 +451,13 @@ public final class PhantomTopologyProfileRegistry
 
 	private void removeMembershipLocked(Entry entry)
 	{
+		final var region = PhantomNativeLocalityEnvelope.region(entry._point);
+		final var nativeProfiles = _profilesByRegion.get(region);
+		if (nativeProfiles != null)
+		{
+			nativeProfiles.remove(entry._profileId);
+			if (nativeProfiles.isEmpty()) { _profilesByRegion.remove(region); }
+		}
 		if (entry._nodeId == null)
 		{
 			return;
@@ -465,6 +476,28 @@ public final class PhantomTopologyProfileRegistry
 	private static ProfileTopologySnapshot snapshot(Entry entry)
 	{
 		return new ProfileTopologySnapshot(entry._profileId, entry._point, entry._sequence, entry._nodeId, entry._topologyGeneration);
+	}
+
+	List<ProfileTopologySnapshot> nativeCandidates(PhantomTopologyPoint human, long generation)
+	{
+		synchronized (_monitor)
+		{
+			if ((_state != State.RUNNING) || (_generation != generation)) { return List.of(); }
+			final List<ProfileTopologySnapshot> result = new ArrayList<>();
+			for (var bucket : PhantomNativeLocalityEnvelope.buckets(human))
+			{
+				final var ids = _profilesByRegion.get(bucket);
+				if (ids == null) { continue; }
+				for (long id : ids)
+				{
+					final Entry entry = _entries.get(id);
+					if ((entry != null) && (entry._topologyGeneration == generation)) { result.add(snapshot(entry)); }
+				}
+			}
+			_lastCandidatesExamined = result.size();
+			_maximumCandidatesExamined = Math.max(_maximumCandidatesExamined, result.size());
+			return List.copyOf(result);
+		}
 	}
 
 	private static final class Entry
