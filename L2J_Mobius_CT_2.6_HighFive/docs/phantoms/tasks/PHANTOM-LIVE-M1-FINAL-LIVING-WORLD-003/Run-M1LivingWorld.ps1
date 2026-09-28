@@ -1,5 +1,9 @@
 [CmdletBinding()]
-param([ValidateRange(0, [long]::MaxValue)][long] $AfterProfileId = 0)
+param(
+	[ValidateRange(0, [long]::MaxValue)][long] $AfterProfileId = 0,
+	[ValidatePattern('^[0-9a-fA-F-]{36}$')][string] $ResumePreparedRequestId,
+	[switch] $ResumeFromReentry
+)
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -16,6 +20,7 @@ $origin = $null
 $uncertain = $false
 $profileId = 0L
 $route = $null
+if ($ResumeFromReentry -and (-not $ResumePreparedRequestId)) { throw 'RESUME_REENTRY_REQUIRES_CURRENT_LEASE_ROUTE' }
 
 function Invoke-Proof([string] $operation, [hashtable] $arguments = @{})
 {
@@ -30,6 +35,7 @@ function Invoke-Proof([string] $operation, [hashtable] $arguments = @{})
 function Read-Field($object, [string] $name, [string] $fallback = '')
 {
 	if (($null -eq $object) -or ($null -eq $object.PSObject.Properties[$name])) { return $fallback }
+	if (($object.$name -is [DateTime]) -or ($object.$name -is [DateTimeOffset])) { return $object.$name.ToUniversalTime().ToString('o') }
 	return [string] $object.$name
 }
 
@@ -127,10 +133,30 @@ try
 	$initial = Invoke-Proof 'STATUS'
 	if (($initial.status -cne 'SUCCEEDED') -or ($initial.after.identityOwner -cne 'REAL_LOGIN') -or ($initial.after.worldPresent -cne 'true')) { throw 'NO_CONSENTED_REAL_LOGIN' }
 	$origin = [pscustomobject]@{ x = [int]$initial.candidate.originX; y = [int]$initial.candidate.originY; z = [int]$initial.candidate.originZ; instanceId = [int]$initial.candidate.originInstanceId }
-	$prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' @{ afterProfileId = [string] $AfterProfileId }
+	if ($ResumePreparedRequestId)
+	{
+		$prepared = (& (Join-Path $module 'tools/phantom-local-play/Get-LocalPlayPilot.ps1') -RequestId $ResumePreparedRequestId) | ConvertFrom-Json
+		if (($prepared.operation -cne 'PREPARE_M1_ENVELOPE') -or ($prepared.sessionId -cne $initial.sessionId)) { throw 'RESUME_ROUTE_NOT_FROM_CURRENT_LEASE' }
+	}
+	else { $prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' @{ afterProfileId = [string] $AfterProfileId } }
 	if ($prepared.status -cne 'ACCEPTED') { throw "PREPARE_REJECTED:$($prepared.reason)" }
 	$profileId = [long]$prepared.candidate.profileId
 	$route = $prepared.candidate
+	if ($ResumePreparedRequestId -and (-not $ResumeFromReentry))
+	{
+		$points = @($route.route.Split(';') | ForEach-Object { ,@($_.Split(',') | ForEach-Object { [int]$_ }) })
+		$nearestIndex = 0
+		$nearestDistance = [double]::MaxValue
+		for ($index = 0; $index -lt $points.Count; $index++)
+		{
+			$distance = [Math]::Sqrt([Math]::Pow([int]$initial.after.x - $points[$index][0], 2) + [Math]::Pow([int]$initial.after.y - $points[$index][1], 2))
+			if ($distance -lt $nearestDistance) { $nearestDistance = $distance; $nearestIndex = $index }
+		}
+		Move-Leg ([int]$initial.after.x) ([int]$initial.after.y) ([int]$initial.after.z) $points[$nearestIndex][0] $points[$nearestIndex][1] $points[$nearestIndex][2] 'VISIBLE_EXIT_RESUME'
+		for ($index = $nearestIndex; $index -gt 0; $index--) { Move-Leg $points[$index][0] $points[$index][1] $points[$index][2] $points[$index - 1][0] $points[$index - 1][1] $points[$index - 1][2] 'VISIBLE_EXIT_RESUME' }
+	}
+	elseif (-not $ResumeFromReentry)
+	{
 	Wait-At ([int]$route.startX) ([int]$route.startY) ([int]$route.startZ) 'OUTSIDE_ARRIVAL'
 	$null = Wait-For 'OUTSIDE' { param($s) ($s.candidate.worldPresent -ceq 'false') -and ($s.candidate.clientVisible -ceq 'false') -and ($s.candidate.localityCurrent -ceq 'false') } 20
 	Teleport-To ([int]$route.prewarmX) ([int]$route.prewarmY) ([int]$route.prewarmZ) 'PREWARM_APPROACH'
@@ -149,20 +175,31 @@ try
 	}
 	if ($visibleStationarySamples -lt 3) { throw 'INSUFFICIENT_STATIONARY_VISIBLE_WINDOW' }
 	Traverse $false 'VISIBLE_EXIT'
+	}
+	if (-not $ResumeFromReentry)
+	{
 	Teleport-To ([int]$route.startX) ([int]$route.startY) ([int]$route.startZ) 'EXIT_OUTSIDE'
 	$null = Capture 'EXIT_GRACE' 'OUTSIDE_AFTER_EXIT'
 	Start-Sleep -Seconds 3
 	$null = Capture 'EXIT_GRACE' 'GRACE_SAMPLE'
 	$null = Wait-For 'DEMATERIALIZATION' { param($s) ($s.candidate.worldPresent -ceq 'false') -and ($s.candidate.clientVisible -ceq 'false') -and ($s.candidate.regionCanKnow -ceq 'false') } 20
+	}
 	$prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' @{ profileId = [string]$profileId }
 	if ($prepared.status -cne 'ACCEPTED') { throw "REENTRY_PREPARE_REJECTED:$($prepared.reason)" }
 	$route = $prepared.candidate
 	Wait-At ([int]$route.startX) ([int]$route.startY) ([int]$route.startZ) 'REENTRY_OUTSIDE'
+	$beforeReentry = Capture 'REENTRY_OUTSIDE'
+	$wasStoredOutside = $beforeReentry.candidate.worldPresent -ceq 'false'
 	Teleport-To ([int]$route.prewarmX) ([int]$route.prewarmY) ([int]$route.prewarmZ) 'REENTRY_PREWARM'
 	$null = Wait-For 'REENTRY_PREWARM' { param($s) ($s.candidate.worldPresent -ceq 'true') -and ($s.candidate.regionCanKnow -ceq 'false') -and ($s.candidate.clientVisible -ceq 'false') } 45
-	$null = Capture 'REENTRY_PREWARM' 'REMATERIALIZED_BEFORE_VISIBILITY'
+	$null = Capture 'REENTRY_PREWARM' $(if ($wasStoredOutside) { 'REMATERIALIZED_BEFORE_VISIBILITY' } else { 'ALREADY_MATERIALIZED_OUTSIDE_RED' })
 	Traverse $true 'REENTRY_VISIBLE'
 	$null = Capture 'REENTRY_VISIBLE' 'REENTRY_END'
+	if ($ResumeFromReentry)
+	{
+		for ($sample = 0; $sample -lt 8; $sample++) { Start-Sleep -Seconds 5; $null = Capture 'REENTRY_STATIONARY_LIFE' }
+	}
+	if (-not $wasStoredOutside) { throw 'REENTRY_NOT_REMATERIALIZED_EXIT_REMAINED_MATERIALIZED' }
 }
 catch
 {
@@ -176,7 +213,10 @@ finally
 		try
 		{
 			$restore = Invoke-Proof 'TELEPORT_SELF' @{ x = $origin.x; y = $origin.y; z = $origin.z; instanceId = $origin.instanceId }
-			if ($restore.status -eq 'ACCEPTED') { Start-Sleep -Seconds 2; $null = Invoke-Proof 'STATUS' }
+			if ($restore.status -cne 'ACCEPTED') { throw "ORIGIN_RETURN_REJECTED:$($restore.reason)" }
+			Start-Sleep -Seconds 2
+			$restored = Invoke-Proof 'STATUS'
+			if (($restored.status -cne 'SUCCEEDED') -or ($restored.after.identityOwner -cne 'REAL_LOGIN') -or ($restored.after.worldPresent -cne 'true') -or ([int]$restored.after.instanceId -ne $origin.instanceId) -or ([Math]::Abs([int]$restored.after.x - $origin.x) -gt 64) -or ([Math]::Abs([int]$restored.after.y - $origin.y) -gt 64) -or ([Math]::Abs([int]$restored.after.z - $origin.z) -gt 120)) { throw 'ORIGIN_RETURN_NOT_CONFIRMED' }
 		}
 		catch { Write-Warning "Pilot origin restoration needs inspection: $($_.Exception.Message)" }
 	}
@@ -186,7 +226,8 @@ finally
 		$lines = New-Object System.Collections.Generic.List[string]
 		$lines.Add(($columns -join "`t"))
 		foreach ($row in $rows) { $lines.Add((($columns | ForEach-Object { [string]$row.$_ }) -join "`t")) }
-		[IO.File]::WriteAllLines($output, $lines, [Text.UTF8Encoding]::new($false))
+		if ($ResumePreparedRequestId -and (Test-Path -LiteralPath $output)) { [IO.File]::AppendAllLines($output, [string[]]@($lines | Select-Object -Skip 1), [Text.UTF8Encoding]::new($false)) }
+		else { [IO.File]::WriteAllLines($output, $lines, [Text.UTF8Encoding]::new($false)) }
 	}
 	if ($census.Count -gt 0)
 	{
@@ -194,7 +235,8 @@ finally
 		$lines = New-Object System.Collections.Generic.List[string]
 		$lines.Add(($columns -join "`t"))
 		foreach ($row in $census) { $lines.Add((($columns | ForEach-Object { [string]$row.$_ }) -join "`t")) }
-		[IO.File]::WriteAllLines($censusOutput, $lines, [Text.UTF8Encoding]::new($false))
+		if ($ResumePreparedRequestId -and (Test-Path -LiteralPath $censusOutput)) { [IO.File]::AppendAllLines($censusOutput, [string[]]@($lines | Select-Object -Skip 1), [Text.UTF8Encoding]::new($false)) }
+		else { [IO.File]::WriteAllLines($censusOutput, $lines, [Text.UTF8Encoding]::new($false)) }
 	}
 	& $stop | Out-Null
 }
