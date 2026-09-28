@@ -1,6 +1,6 @@
 # STATE
 
-Status: FRESH_ARM_REQUIRED
+Status: CONNECTED_HARNESS_RED_REPEAT_PERMISSION_REQUIRED
 Baseline: 82fae37aff225e959213e1d0432b53d50360318a
 Deployed source before this task: de40c81411cf6501cb9446840aef98f7dd9369e2
 
@@ -21,8 +21,10 @@ Build/runtime/manifest hash совпадает; owned Login=16840/Game=29616, CO
 Runtime startup 50s; Login registration и native Pilot mailbox enabled наблюдены.
 Read-only PLAY calendar: READY=10000, online/horizon180=1760 (17:21:28Z).
 Mailbox headroom=512; old closed records архивированы, consent/evidence сохранены.
-Connected: NOT OBSERVED; manual gate REQUIRED, M1 не GREEN.
-Current owner action required: один свежий TestAdmin arm; затем один prepared runner.
+Connected run f4970953-410f-4608-afc2-f38015427d7c остановился до approach: runner DateTime culture mismatch.
+TestAdmin origin/REAL_LOGIN восстановлен; Pilot run остановлен, consent ARMED_IDLE.
+Runner исправлен через существующий ISO UTC Read-Field; offline regression/syntax PASS.
+Connected mandatory criteria NOT OBSERVED; M1 не GREEN. Повтор только с явным разрешением владельца.
 
 Update this file in place; keep below 40 lines.
 M2 не начинать. Один свежий arm только после автоматической готовности.

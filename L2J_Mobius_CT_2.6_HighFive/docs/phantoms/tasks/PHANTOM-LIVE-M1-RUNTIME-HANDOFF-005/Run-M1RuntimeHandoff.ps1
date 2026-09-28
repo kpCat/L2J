@@ -154,7 +154,7 @@ try
 	$profileId = [long]$prepared.candidate.profileId
 	$route = $prepared.candidate
 	$null = Wait-For 'OUTSIDE' { param($s) ($s.after.teleporting -cne 'true') -and ($s.candidate.regionCanKnow -ceq 'false') -and ($s.candidate.localityCurrent -ceq 'false') } 10
-	if ([DateTime]::Parse($route.nextBoundary).ToUniversalTime() -le [DateTime]::UtcNow.AddSeconds(180)) { throw 'SCENE_INVALIDATED:CALENDAR_HORIZON' }
+	if ([DateTime]::Parse((Read-Field $route 'nextBoundary')).ToUniversalTime() -le [DateTime]::UtcNow.AddSeconds(180)) { throw 'SCENE_INVALIDATED:CALENDAR_HORIZON' }
 	$latency = [Diagnostics.Stopwatch]::StartNew()
 	$null = Walk-To ([int]$route.prewarmX) ([int]$route.prewarmY) ([int]$route.prewarmZ) 'PREWARM_APPROACH'
 	foreach ($waypoint in ([string]$route.route).Split(';'))

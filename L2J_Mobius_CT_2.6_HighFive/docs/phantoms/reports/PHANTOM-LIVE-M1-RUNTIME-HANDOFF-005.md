@@ -1,6 +1,6 @@
 # PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005
 
-Status: **AUTOMATED PASS — CONNECTED GATE REQUIRED**.
+Status: **AUTOMATED PASS — CONNECTED HARNESS RED, GATE REQUIRED**.
 
 Calendar presence теперь публикуется независимо от ecology readiness. Существующие
 ecology queues обслуживает один bounded worker общего ThreadPool; scheduler/local
@@ -37,5 +37,10 @@ Build/runtime/manifest совпадают. Старые артефакты и з
 
 Exact scope, raw log paths, Git authorization and limitations находятся в EVIDENCE.
 Чужие изменения сохранены. Нет schema/dependency/geodata/budget changes, ручных PLAY
-mutations, отдельных прогулок по локациям или M2. Connected для задачи 005 ещё
-не выполнен; автоматические PASS не означают M1 GREEN.
+mutations, отдельных прогулок по локациям или M2. Connected run
+`f4970953-410f-4608-afc2-f38015427d7c` после свежего arm остановился до approach:
+PowerShell DateTime из JSON повторно разбирался как строка другой locale. Прочитан
+реальный payload, RED воспроизведён offline; runner исправлен существующим ISO UTC
+`Read-Field`, без изменения Java/JAR. TestAdmin возвращён в origin/REAL_LOGIN,
+Pilot run остановлен. Mandatory connected критерии NOT OBSERVED, M1 не GREEN.
+Повторный connected-run требует явного разрешения владельца по TASK.

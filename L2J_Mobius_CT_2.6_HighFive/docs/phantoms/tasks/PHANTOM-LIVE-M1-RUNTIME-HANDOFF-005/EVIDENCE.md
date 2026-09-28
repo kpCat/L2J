@@ -65,7 +65,8 @@
 
 ## PUBLICATION / DEPLOYMENT / CONNECTED
 - Code SHA: e92d7d438641f3f13158021675bd99e2489a7042; normal push confirmed by ls-remote.
-- Docs SHA: commit containing this readiness evidence; actual SHA recorded in final chat.
+- Readiness docs SHA: af30457de36cc9f19534f413d92df060518ce696.
+- Runner/date fix and connected evidence SHA: commit containing this update; actual SHA in chat.
 - Clean exact-SHA build: managed detached worktree, clean status and exact HEAD checked;
   `ant -Dbuild=<owned .phantom-local/m1-005-clean-build> jar`: PASS, 22 seconds.
 - Deployed GameServer SHA256: 83A2691BC9A417CE9B1D408A735A1E2DCE5423AB658B6E082AF06D39A67DE8D6.
@@ -80,7 +81,16 @@
   2026-09-28T17:12:35Z, UTC, READY=10000, calendar-online=1052, horizon180=1052.
 - Post-deploy read-only calendar 17:21:28Z: READY=10000, online/horizon180=1760.
 - Diagnostics and native Pilot mailbox enabled; no startup error in inspected final log.
-- Connected actions for task 005: NOT OBSERVED. No consent-gated operation before fresh arm.
+- Connected run f4970953-410f-4608-afc2-f38015427d7c after fresh TestAdmin arm:
+  PREPARE accepted profile 1313 naturally calendar-online, ecology.commit_pending, objectId=0.
+  Two OUTSIDE snapshots; nextBoundary=2026-09-28T23:11:00Z, current locality false.
+  Harness RED before approach: ConvertFrom-Json produces DateTime; implicit string
+  '09/28/2026 23:11:00' fails current-culture Parse. Existing Read-Field normalizes ISO UTC;
+  the one-line fix reproduces RED then PASS offline, runner syntax PASS. No Java/JAR change.
+- TestAdmin returned to exact origin, REAL_LOGIN confirmed; Pilot run stopped,
+  read-only state ARMED_IDLE/runActive=false. No automatic repeat/new arm/restart.
+- M1_CONNECTED_RESULT.txt and M1_CONNECTED_WORLD.tsv preserve this aborted run;
+  raw .phantom-local/m1-005-connected-final.log. Native life/continuity/census NOT OBSERVED.
 - M1 manual gate: REQUIRED. M2 not started. No M1 GREEN claim.
 
 ## LIMITS / PROCESS
