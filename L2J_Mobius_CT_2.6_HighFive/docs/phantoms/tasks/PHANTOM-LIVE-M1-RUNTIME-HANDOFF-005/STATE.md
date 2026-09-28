@@ -1,39 +1,33 @@
 # STATE
 
-Status: CONTINUATION_CONNECTED_RED_M1_OPEN
-Continuation baseline: 50600cefa3da849f231e3883ecdda5a31800b699.
-Branch/origin: feature/phantom-world / https://github.com/kpCat/L2J.
-Previous deployed code: e92d7d438641f3f13158021675bd99e2489a7042.
-Previous Game SHA256: 83A2691BC9A417CE9B1D408A735A1E2DCE5423AB658B6E082AF06D39A67DE8D6.
-Previous connected RED c6bf597d-efb6-422f-a906-aca8729acc47: VISIBLE_DISAPPEARANCE.
-Первое native-visible пересечение 1313 было без Player; local demand потерян, ecology.commit_pending.
-Continuation fresh arm подтверждён; ровно один run 0b961629-49ff-4cc7-a96a-afc5cb70bf86 завершён RED.
-Read-first continuation TASK/ANALYSIS/DESIGN/PLAN/SOURCE_MAP завершён.
-Native locality buckets/envelope и physical demand/signal delivery split реализованы.
-Ecology: один bounded wake/worker, quantum 100 ms, общий budget 4 profiles/16 intervals.
-Pending RUNNING/COMPLETE восстановление, inner/outer progress, typed failures и cached diagnostics реализованы.
-Native DEAD load: derived vitals refresh с точным identity/progress/position/hash fence.
-Guarded TEST pending→ready→Player→stock native travel→AutoPlay damage пройден на той же identity.
-Итоговый aggregate 199/199 PASS; topology core 39/perception 36, native replay 7, recovery timer 6.
-Последний TEST-only review follow-up cleanup/movement assertions: native suite 7/7 PASS.
-Offline runner PASS: DateTime/ISO/DateTimeOffset/null, typed reasons, actual finally restore/stop mocked.
-Текущий read-only 1313 (19:12:28Z): RUNNING inner 29840583/29840595, outer 29840582, DEAD level3/class18.
-Это не historical RED 4126 calendar gap; TEST — согласованная isolated 13-minute history, не импорт PLAY payload.
-Hunters Village recovery anchor вне coverage; XML не менялся. Broad/10k native/location matrix не повторялись.
-Final review выполнен тем же reviewer; новых proof-задач и второго runner нет.
-Exact publication scope: 21 paths в continuation-after-stall/RESULT.md; чужие hunks вне stage/build.
-Raw logs/probe только ignored .phantom-local. Все Ant запуски строго последовательны.
-Published code source: 6f6dec73495657da0d09f8ced328eba6b5083ad2; scoped ordinary push выполнен.
-Clean managed detached ant jar PASS, 25s; ровно один controlled deployment завершён.
-Game SHA256: 2DCA1627FB0C9ED8883087D2F628AFC74E5223F7328DB076DF144CC5F4E02F4D.
-Clean/runtime/manifest hashes совпадают; CONFIG PASS; owned Login=15440/Game=29824 RUNNING.
-Native Pilot enabled и Login registration наблюдены; pre-arm health 21:07:19Z, mailbox headroom=512, Pilot OFF.
-По 42 closed journal/results сохранены в архиве, backup Game/Login/manifest сохранён.
-CONNECTED: MISSED_INITIAL_MATERIALIZATION, profile1298, 21:15:25Z; native regionCanKnow=true, objectId0/STORED.
-Physical demand непрерывен 22.99s, delivery ACCEPTED/COALESCED; localityOverflow=false, pump RUNNING/WAKE_SCHEDULED.
-Inner cursor 29839521→29839525, target29839530; outer29839515, horizon29843835, urgent949/ordinary6671.
-Remaining blocker: timely readiness при большом pending backlog и конкурирующей urgent cohort; точная доля причин ещё не доказана.
-Origin/REAL_LOGIN восстановлен; Pilot run остановлен (ARMED_IDLE). Native life/census/short-return NOT_OBSERVED.
-На required RED gate остановились; повторная сцена/новый proof/новая сборка не выполняются без разрешения.
-M1 GREEN только по connected PLAN §4; required gate не принят автоматически.
+Status: PLAYABLE1280_RUNTIME_PREPARATION_RED_M1_OPEN; final manual gate REQUIRED.
+Последнее продолжение: continuation-playable-1280/RESULT.md; TASK/DESIGN/PLAN реализованы в bounded scope.
+Code/deployed source: ca2dbc753106d165dc73a1b03ba89aadc69f917e; ordinary push origin feature/phantom-world выполнен.
+Game SHA256:7A6332A28FFBB6B864C0D7BDDF783958D84A2E7E008DF9757AC6618580E90706.
+Clean managed detached ant jar PASS; чужие MaterializationService/ClanDirective/Multiparty hunks сохранены и исключены.
+TEST aggregate204/204 PASS; после последнего owner guard targeted core14/14 + ecology6/6 PASS.
+Resize10000→1280→restart1280→3000 сохраняет identities/pending; restart retirement writes0.
+Один ecology worker: focus12/ordinary4, общий4/16/100ms, admission≤8 с реальным headroom/soft reclaim.
+Physical geometry сохранена; retired paused; periodic horizon без human/effective WARM gate; native owner не simulated.
+Native TEST4320 calendar minutes:75 productive windows1108 intervals +381 competing ordinary intervals.
+Ready15042ms/firstClaim10ms; тот же Player, native displacement4691.17, farm arrival, stock AutoPlay damage4.
+Один общий review; READY pause и outer-save-after-inner-commit budget defect исправлены, focused regressions PASS.
+Один controlled owned restart после coherent native PLAY dump и backup JAR/INI/manifest.
+Backup: artifacts/local-play/m1-005-backup-ca2dbc7-20260929-020030; PLAY.sql63397691 bytes; private, не в Git.
+INI/manifest1280/64/128/100, maxScheduled10000; owned Login24428/Game32512 RUNNING; CONFIG PASS.
+PLAY23:04:03Z: READY1280/RETIRED8720; retirementFailures пуст; retired pending6641 сохранены.
+Reserve ecology/history hash одинаков23:02:51Z/23:04:03Z:0659577b3b92f7708bebb3e4688a0d8ac9065714654e6736064b8343dffd1a68.
+Preparation RED: activePending977, initialIncomplete165, FAILED_REPLAN_REQUIRED590, calendarGap17189101.
+Причины: model.object_cap_indivisible354, catchup.authority.unsupported121, planner.target_or_route.absent114, stale1.
+Canonical content/model failures не заменены READY. Полная готовность рабочего населения не подтверждена.
+Новый arm/CONNECTED run не запускались; TestAdmin не перемещался; native life/census/short return PLAY NOT_OBSERVED.
+Saved Pilot ARMED_IDLE старого Game29824; current Game32512 без нового consent run. Stop guard отверг stale-session.
+На предписанном TASK runtime RED остановились до arm; M1 не GREEN, required gate не принят автоматически.
+Owned runtime остаётся RUNNING с автоматической bounded preparation; новый gameplay run не разрешён этим результатом.
+Raw logs/probes/backup только ignored local storage. Schema/world data/providers/навигационные workers не менялись.
+Exact publication scope:8 code/runner paths + RESULT/STATE, перечислены в RESULT; Git разрешён TASK.
+mojibake-маркеры в изменённых файлах проверены.
+escaped Cyrillic в изменённых файлах проверены.
 M2 не начат.
+
+<!-- Previous state retained in historical continuation-after-stall/RESULT.md. -->
