@@ -114,6 +114,7 @@ public final class PhantomScheduler
 		NONE,
 		MATERIALIZE,
 		DEMATERIALIZE,
+		RECLAIM_SOFT,
 		RETRY_MATERIALIZATION_CLEANUP,
 		RETRY_DEMATERIALIZATION_CLEANUP
 	}
@@ -388,6 +389,10 @@ public final class PhantomScheduler
 			}
 			slot._generation++;
 			slot._lastResult = PhantomActivityResultCategory.SIGNAL_ACCEPTED;
+			if (signal.requiredState().requiresMaterialization() && signal.requiredState().isHigherDetailThan(slot._effectiveState) && (slot._transitionStatus == PhantomActivityTransitionStatus.DEFERRED))
+			{
+				slot._retryDueNanos = 0;
+			}
 			if (coalesced)
 			{
 				_metrics.recordActivitySignalCoalesced();
@@ -966,6 +971,14 @@ public final class PhantomScheduler
 
 	private TransitionPlan transitionPlanLocked(Slot slot, PhantomActivityState requested, long logicalNow)
 	{
+		if (slot._softReclaimRequested)
+		{
+			slot._softReclaimRequested = false;
+			if (slot._effectiveState.requiresMaterialization() && (slot._retainedFailureKind == RetainedFailureKind.NONE))
+			{
+				return new TransitionPlan(slot._profileId, slot._generation, requested.requiresMaterialization() ? PhantomActivityState.WARM : requested, BoundaryAction.RECLAIM_SOFT);
+			}
+		}
 		if (slot._retainedFailureKind != RetainedFailureKind.NONE)
 		{
 			if (!slot._explicitRetry)
@@ -989,7 +1002,7 @@ public final class PhantomScheduler
 			return null;
 		}
 
-		if ((slot._transitionStatus == PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED) && (slot._blockedTarget == requested) && (logicalNow < slot._retryDueNanos))
+		if (((slot._transitionStatus == PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED) || (slot._transitionStatus == PhantomActivityTransitionStatus.DEFERRED)) && (slot._blockedTarget == requested) && (logicalNow < slot._retryDueNanos))
 		{
 			return null;
 		}
@@ -1042,8 +1055,17 @@ public final class PhantomScheduler
 			return switch (plan._action)
 			{
 				case NONE -> TransitionOutcome.success();
-				case MATERIALIZE -> _materializationPort.materialize(plan._profileTargetId);
+				case MATERIALIZE ->
+				{
+					final TransitionOutcome outcome = _materializationPort.materialize(plan._profileTargetId);
+					if ((outcome != null) && (outcome.outcome() == Outcome.DEFERRED))
+					{
+						requestSoftReclamation(plan._profileTargetId);
+					}
+					yield outcome;
+				}
 				case DEMATERIALIZE -> _materializationPort.dematerialize(plan._profileTargetId);
+				case RECLAIM_SOFT -> _materializationPort.reclaimSoft(plan._profileTargetId);
 				case RETRY_MATERIALIZATION_CLEANUP, RETRY_DEMATERIALIZATION_CLEANUP ->
 				{
 					final TransitionOutcome outcome = _materializationPort.retryCleanup(plan._profileTargetId);
@@ -1054,6 +1076,19 @@ public final class PhantomScheduler
 		catch (Throwable throwable)
 		{
 			return TransitionOutcome.transientBlock();
+		}
+	}
+
+	private void requestSoftReclamation(long requestingProfileId)
+	{
+		final long profileId = _materializationPort.softReclaimCandidate(requestingProfileId);
+		synchronized (_monitor)
+		{
+			final Slot candidate = _slots.get(profileId);
+			if ((_state == SchedulerState.RUNNING) && (candidate != null) && candidate._effectiveState.requiresMaterialization() && !candidate._processing && !candidate._localProcessing && !candidate._workInFlight && !candidate._boundaryInFlight && (candidate._retainedFailureKind == RetainedFailureKind.NONE) && reserveReadyLocked(candidate))
+			{
+				candidate._softReclaimRequested = true;
+			}
 		}
 	}
 
@@ -1122,6 +1157,14 @@ public final class PhantomScheduler
 			_metrics.recordActivityTransitionRetainedFailure();
 			return;
 		}
+		if (outcome.outcome() == Outcome.DEFERRED)
+		{
+			slot._transitionStatus = PhantomActivityTransitionStatus.DEFERRED;
+			slot._blockedTarget = plan._targetState;
+			slot._retryAttempt = 0;
+			slot._retryDueNanos = slot._generation == plan._generation ? saturatingAdd(logicalNow, millisToNanos(_policy.transitionRetryBaseMillis())) : logicalNow;
+			return;
+		}
 		slot._transitionStatus = PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED;
 		slot._lastResult = PhantomActivityResultCategory.TRANSITION_TRANSIENTLY_BLOCKED;
 		slot._blockedTarget = plan._targetState;
@@ -1173,7 +1216,7 @@ public final class PhantomScheduler
 			return;
 		}
 		long nextDue = Long.MAX_VALUE;
-		if ((slot._transitionStatus == PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED) && (slot._retryDueNanos > 0))
+		if (((slot._transitionStatus == PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED) || (slot._transitionStatus == PhantomActivityTransitionStatus.DEFERRED)) && (slot._retryDueNanos > 0))
 		{
 			nextDue = Math.min(nextDue, slot._retryDueNanos);
 		}
@@ -1427,6 +1470,7 @@ public final class PhantomScheduler
 		private boolean _boundaryInFlight;
 		private boolean _unregisterRequested;
 		private boolean _explicitRetry;
+		private boolean _softReclaimRequested;
 		private long _generation;
 		private long _boundaryGeneration;
 		private long _activityGeneration = 1;

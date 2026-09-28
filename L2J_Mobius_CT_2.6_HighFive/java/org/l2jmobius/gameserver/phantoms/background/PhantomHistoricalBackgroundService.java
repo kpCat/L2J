@@ -24,8 +24,11 @@ package org.l2jmobius.gameserver.phantoms.background;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.LongSupplier;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -57,8 +60,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private final PhantomMaterializationService _materialization;
 	private final ConcurrentHashMap<Long, Admission> _admissions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, String> _recoveryClaims = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, VisibleFailures> _visibleFailures = new ConcurrentHashMap<>();
+	private final LongSupplier _visibleClock;
 
 	public PhantomHistoricalBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomHistoricalBackgroundPlanner planner, PhantomBackgroundService background, PhantomMaterializationService materialization)
+	{
+		this(profiles, goals, planner, background, materialization, System::nanoTime);
+	}
+
+	public PhantomHistoricalBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomHistoricalBackgroundPlanner planner, PhantomBackgroundService background, PhantomMaterializationService materialization, LongSupplier visibleClock)
 	{
 		_profiles = Objects.requireNonNull(profiles, "profiles");
 		_goals = Objects.requireNonNull(goals, "goals");
@@ -66,6 +76,24 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		_planner = Objects.requireNonNull(planner, "planner");
 		_background = Objects.requireNonNull(background, "background");
 		_materialization = Objects.requireNonNull(materialization, "materialization");
+		_visibleClock = Objects.requireNonNull(visibleClock);
+	}
+
+	/** Dynamic failures expire; they never alter the canonical topology or farm intention. */
+	public void recordVisibleFailure(long profileId, PhantomGoal goal, String failedStep)
+	{
+		final var spec = PhantomBackgroundGoalSpec.parse(goal);
+		final long now = _visibleClock.getAsLong();
+		// Failures are rare; only admission/eviction takes this lock, never the decision hot path.
+		synchronized (_visibleFailures)
+		{
+			_visibleFailures.entrySet().removeIf(entry -> (now - entry.getValue()._lastFailureNanos) >= VisibleFailures.TTL_NANOS);
+			_visibleFailures.computeIfAbsent(profileId, _ -> new VisibleFailures()).record(spec.npcId() + "@" + spec.anchorId(), failedStep, now);
+			if (_visibleFailures.size() > 1024)
+			{
+				_visibleFailures.entrySet().stream().min(java.util.Comparator.<java.util.Map.Entry<Long, VisibleFailures>>comparingLong(entry -> entry.getValue()._lastFailureNanos).thenComparingLong(java.util.Map.Entry::getKey)).ifPresent(entry -> _visibleFailures.remove(entry.getKey(), entry.getValue()));
+			}
+		}
 	}
 
 	public Result begin(long profileId, long fromEpochMinute, long targetEpochMinute, long deterministicSeed)
@@ -470,35 +498,39 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** Reuses the catch-up planner when a materialized Player outgrows its exact farm target. */
 	public boolean replanVisibleFarmIfOutgrown(long profileId, PhantomGoal goal, PhantomDecisionEngine decision)
 	{
+		final var failures = _visibleFailures.get(profileId);
+		final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong());
+		final var spec = PhantomBackgroundGoalSpec.parse(goal);
+		final boolean failedTarget = exclusions.targets().contains(spec.npcId() + "@" + spec.anchorId());
 		final Snapshot catchup = status(profileId).orElse(null);
 		if ((catchup == null) || (catchup.state().status() != Status.COMPLETE) || (catchup.state().goalId() != goal.goalId()))
 		{
-			return true;
+			return !failedTarget;
 		}
 		final PhantomBackgroundState baseline = _background.acquisitionSnapshot(profileId).orElse(null);
 		if (baseline == null)
 		{
-			return true;
+			return !failedTarget;
 		}
 		try (ActionLease action = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
 			if ((action == null) || action.player().isDead())
 			{
-				return true;
+				return !failedTarget;
 			}
 			final Player player = action.player();
 			if ((player.getObjectId() != baseline.identity().characterObjectId()) || (player.getActiveClass() != baseline.identity().activeClassId()))
 			{
-				return true;
+				return !failedTarget;
 			}
 			final Progress progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
 			final PhantomBackgroundState projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, baseline.vitals(), baseline.position(), baseline.combat(), baseline.loadout(), baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
-			if (_planner.remainsSuitable(projected, goal))
+			if (!failedTarget && _planner.remainsSuitable(projected, goal))
 			{
 				return true;
 			}
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
-			final var replacement = _planner.replan(profileId, projected, goal, catchup.state().deterministicSeed(), nextOrdinal);
+			final var replacement = _planner.replan(profileId, projected, goal, catchup.state().deterministicSeed(), nextOrdinal, exclusions.targets(), exclusions.steps());
 			if (!replacement.ready() || (decision.setGoal(profileId, replacement.goal()) != PhantomDecisionEngine.MutationResult.APPLIED))
 			{
 				return false;
@@ -645,6 +677,45 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	private record Admission(int characterObjectId, MaterializationPurpose purpose, String ownerClaim)
 	{
+	}
+
+	private record Exclusions(Set<String> targets, Set<String> steps)
+	{
+	}
+
+	private static final class VisibleFailures
+	{
+		private static final long TTL_NANOS = 120_000_000_000L;
+		private final LinkedHashMap<String, Long> _targets = new LinkedHashMap<>();
+		private final LinkedHashMap<String, Long> _steps = new LinkedHashMap<>();
+		private volatile long _lastFailureNanos;
+
+		private synchronized void record(String target, String step, long now)
+		{
+			_lastFailureNanos = now;
+			put(_targets, target, now);
+			if (!step.isEmpty())
+			{
+				put(_steps, step, now);
+			}
+		}
+
+		private static void put(LinkedHashMap<String, Long> values, String key, long now)
+		{
+			values.remove(key);
+			values.put(key, now);
+			if (values.size() > 8)
+			{
+				values.remove(values.keySet().iterator().next());
+			}
+		}
+
+		private synchronized Exclusions exclusions(long now)
+		{
+			_targets.values().removeIf(time -> (now - time) >= TTL_NANOS);
+			_steps.values().removeIf(time -> (now - time) >= TTL_NANOS);
+			return new Exclusions(Set.copyOf(_targets.keySet()), Set.copyOf(_steps.keySet()));
+		}
 	}
 
 	public enum ResultStatusCode

@@ -67,6 +67,10 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 			return TransitionOutcome.success();
 		}
 		recordDiagnosticFailure(profileId, result);
+		if ((result.status() == ResultStatus.CAPACITY_REACHED) || (result.status() == ResultStatus.CATCHUP_FENCED))
+		{
+			return TransitionOutcome.deferred();
+		}
 		return hasLifecycleOwnership(profileId) ? TransitionOutcome.retainedFailure() : TransitionOutcome.transientBlock();
 	}
 

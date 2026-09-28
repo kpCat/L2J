@@ -1119,7 +1119,84 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, goal).status(), "Visible travel baseline failed.");
 			playerFixture.releaseRuntime();
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(profile.profileId()).status(), "Visible travel did not materialize.");
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+			{
+				final Player phantom = action.player();
+				final Player real = Player.load(_environment.observer().objectId());
+				PhantomAssertions.assertTrue((real != null) && !real.hasHeadlessOutboundSession(), "REAL native party fixture is unavailable.");
+				final var party = new org.l2jmobius.gameserver.model.groups.Party(real, org.l2jmobius.gameserver.model.groups.PartyDistributionType.FINDERS_KEEPERS);
+				real.setParty(party);
+				phantom.setParty(party);
+				party.addPartyMember(phantom);
+				try
+				{
+					final var facts = org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts.nativeFacts(phantom, false, false, 0);
+					PhantomAssertions.assertTrue(facts.realParty(), "Native REAL party was not recognized outside locality.");
+					final var retention = new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy(_ -> facts, () -> 1, 60_000);
+					final var port = new org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort(materialization));
+					port.installRetention(id -> retention.observe(id).retained());
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.DEFERRED, port.dematerialize(profile.profileId()).outcome(), "Ordinary demotion broke the native REAL party.");
+					PhantomAssertions.assertTrue(phantom.getParty() == party, "Retention changed canonical Party membership.");
+				}
+				finally
+				{
+					party.removePartyMember(phantom, org.l2jmobius.gameserver.model.groups.PartyMessageType.NONE);
+				}
+				PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts.nativeFacts(phantom, false, false, 0).realParty(), "Ended native membership kept a stale REAL_PARTY pin.");
+			}
 			PhantomAssertions.assertTrue(navigation.start(), "Visible travel navigation did not start.");
+			final var travelHold = new java.util.concurrent.atomic.AtomicBoolean();
+			final var failureSignals = new PhantomRelevanceSignalPort()
+			{
+				@Override
+				public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal)
+				{
+					travelHold.set(true);
+					return SignalDelivery.ACCEPTED;
+				}
+
+				@Override
+				public SignalDelivery withdraw(long id, String source, long sequence)
+				{
+					travelHold.set(false);
+					return SignalDelivery.ACCEPTED;
+				}
+			};
+			final var failedNavigation = new PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
+			{
+				@Override
+				public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to)
+				{
+					return new CapabilitySnapshot(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability.GEODATA_DIRECT_ONLY, 1);
+				}
+
+				@Override
+				public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to)
+				{
+					return false;
+				}
+
+				@Override
+				public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken cancellation)
+				{
+					return null;
+				}
+			}, worker -> { worker.run(); return true; }, System::nanoTime, new PhantomMetrics());
+			failedNavigation.start();
+			try
+			{
+				final var failedRoute = new AtomicReference<org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.Failure>();
+				final var failedTravel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, failedNavigation, _ -> true, failureSignals, (_, failure) -> failedRoute.set(failure), System::nanoTime);
+				PhantomAssertions.assertFalse(failedTravel.arrive(profile.profileId(), goal), "Terminal navigation unexpectedly arrived.");
+				PhantomAssertions.assertFalse(travelHold.get(), "Terminal navigation kept its own materialization presence.");
+				PhantomAssertions.assertEquals(0, failedNavigation.snapshot().activeRequests(), "Terminal navigation kept its owned request.");
+				PhantomAssertions.assertTrue((failedRoute.get() != null) && (failedRoute.get().goal() == goal) && !failedRoute.get().stepId().isEmpty(), "Terminal travel did not publish its exact goal/route failure to alternate replanning.");
+			}
+			finally
+			{
+				failedNavigation.beginStop();
+				failedNavigation.finishStop();
+			}
 			final var permitted = new java.util.concurrent.atomic.AtomicBoolean(true);
 			final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, navigation, _ -> permitted.get(), noSignals());
 			PhantomAssertions.assertFalse(travel.arrive(profile.profileId(), goal), "Visible travel arrived without native movement.");
@@ -1171,18 +1248,51 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final var completed = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.COMPLETE, "v".repeat(64), context.seed(), 0, 1, 1, 0, 1, 1, generation.knowledgeGeneration(), generation.topologyGeneration(), goal.goalId(), goal.revision(), "a".repeat(64), PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), "");
 			final var catchupStore = new PhantomBackgroundCatchupStore(_repository, goals);
 			catchupStore.claim(profile.profileId(), completed);
-			final var historical = new PhantomHistoricalBackgroundService(_repository, goals, planner, background, materialization);
+			final var visibleClock = new java.util.concurrent.atomic.AtomicLong(1);
+			final var historical = new PhantomHistoricalBackgroundService(_repository, goals, planner, background, materialization, visibleClock::get);
 			final var engineCandidates = new PhantomCandidateRegistry();
 			engineCandidates.seal();
 			final var engineHandlers = new PhantomStepHandlerRegistry();
 			engineHandlers.seal();
 			final var engine = new PhantomDecisionEngine(goals, engineCandidates, engineHandlers, new PhantomMetrics(), 1);
 			engine.start();
-			final var autoPlay = new PhantomVisibleAutoPlay(materialization, () -> engine, _ -> true);
+			final var autoPlay = new PhantomVisibleAutoPlay(materialization, () -> engine, _ -> true, visibleClock::get);
 			try
 			{
 				PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profile.profileId()), "Outgrown handoff did not attach its real goal store.");
 				PhantomAssertions.assertTrue(autoPlay.start(profile.profileId(), goal), "Old visible goal did not enter native AutoPlay.");
+				final Map<org.l2jmobius.gameserver.model.actor.Npc, Boolean> unavailableTargets = new java.util.HashMap<>();
+				try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+				{
+					// Keep this absence check idle while advancing its clock, rather than racing native autobuffs.
+					org.l2jmobius.gameserver.taskmanagers.AutoUseTaskManager.getInstance().stopAutoUseTask(action.player());
+					action.player().abortCast();
+					final int exactNpc = PhantomBackgroundGoalSpec.parse(goal).npcId();
+					for (var npc : org.l2jmobius.gameserver.model.World.getInstance().getVisibleObjectsInRange(action.player(), org.l2jmobius.gameserver.model.actor.Npc.class, org.l2jmobius.gameserver.config.custom.AutoPlayConfig.AUTO_PLAY_LONG_RANGE))
+					{
+						if (npc.getId() == exactNpc)
+						{
+							unavailableTargets.put(npc, npc.isInvul());
+							npc.setInvul(true);
+						}
+					}
+					action.player().setTarget(null);
+					action.player().abortAttack();
+				}
+				try
+				{
+					PhantomAssertions.assertFalse(autoPlay.noTargetExpired(profile.profileId(), goal), "No-target fallback fired before its bounded interval.");
+					visibleClock.addAndGet(29_000_000_000L);
+					PhantomAssertions.assertFalse(autoPlay.noTargetExpired(profile.profileId(), goal), "No-target fallback fired before 30 seconds.");
+					PhantomAssertions.assertTrue(autoPlay.running(profile.profileId(), goal), "Native tick stopped the session before absence could be measured.");
+					PhantomAssertions.assertTrue(autoPlay.start(profile.profileId(), goal), "Repeated visible start lost native session.");
+					visibleClock.addAndGet(2_000_000_000L);
+					PhantomAssertions.assertTrue(autoPlay.noTargetExpired(profile.profileId(), goal), "Unavailable exact NPCs kept unexplained IDLE beyond 30 seconds.");
+				}
+				finally
+				{
+					unavailableTargets.forEach((npc, invulnerable) -> npc.setInvul(invulnerable));
+				}
 				final var publicationEngine = new AtomicReference<>(new PhantomDecisionEngine(goals, engineCandidates, engineHandlers, new PhantomMetrics(), 1));
 				final var decision = new PhantomBackgroundDecision(background, autoPlay::start, autoPlay::running, (id, currentGoal) -> historical.replanVisibleFarmIfOutgrown(id, currentGoal, publicationEngine.get()), autoPlay::stop);
 				final var candidates = new PhantomCandidateRegistry();
@@ -1211,6 +1321,34 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(PhantomBackgroundCatchupState.Status.COMPLETE, renewedCatchup.status(), "Visible renewal reopened completed catch-up time.");
 				PhantomAssertions.assertEquals(renewed.revision(), renewedCatchup.goalRevision(), "Visible goal and catch-up revision differ.");
 				context.record("m1.durableVisibleHandoff", goal.revision() + "->" + renewed.revision());
+				// Use the source NPC's level for alternate selection; this ingress has only one routed level-85 candidate.
+				final int sceneLevel = _production.knowledge().findNpc(PhantomBackgroundGoalSpec.parse(goal).npcId()).orElseThrow().level();
+				final PhantomBackgroundState alternateState;
+				try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+				{
+					action.player().getStat().setLevel((byte) sceneLevel);
+					action.player().getStat().setExp(ExperienceData.getInstance().getExpForLevel(sceneLevel));
+					final var progress = new Progress(sceneLevel, action.player().getExp(), action.player().getSp(), action.player().getExpBeforeDeath());
+					alternateState = new PhantomBackgroundState(state.state(), state.identity(), progress, state.vitals(), state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
+				}
+				PhantomAssertions.assertFalse(historical.replanVisibleFarmIfOutgrown(profile.profileId(), renewed, engine), "Source-level native fixture did not renew to a suitable scene target.");
+				final var failedGoal = goals.load(profile.profileId()).orElseThrow().goal();
+				PhantomAssertions.assertTrue(planner.remainsSuitable(alternateState, failedGoal), "Failure fixture destination must otherwise be suitable.");
+				historical.recordVisibleFailure(profile.profileId(), failedGoal, "");
+				final var failedSpec = PhantomBackgroundGoalSpec.parse(failedGoal);
+				final var alternatePlan = planner.replan(profile.profileId(), alternateState, failedGoal, context.seed(), 3, Set.of(failedSpec.npcId() + "@" + failedSpec.anchorId()), Set.of());
+				PhantomAssertions.assertTrue(alternatePlan.ready(), "Native fixture has no suitable alternate: " + alternatePlan.reasonKey());
+				PhantomAssertions.assertFalse(historical.replanVisibleFarmIfOutgrown(profile.profileId(), failedGoal, engine), "Failed suitable destination kept the same visible intention revision.");
+				final var alternate = goals.load(profile.profileId()).orElseThrow().goal();
+				PhantomAssertions.assertEquals(failedGoal.goalId(), alternate.goalId(), "Route/target feedback replaced the high-level farm intention.");
+				PhantomAssertions.assertEquals(failedGoal.revision() + 1, alternate.revision(), "Route/target feedback did not publish alternate replan.");
+				final var oldSpec = failedSpec;
+				final var alternateSpec = PhantomBackgroundGoalSpec.parse(alternate);
+				PhantomAssertions.assertFalse((oldSpec.npcId() == alternateSpec.npcId()) && oldSpec.anchorId().equals(alternateSpec.anchorId()), "Planner selected the failed destination during its exclusion TTL.");
+				PhantomAssertions.assertTrue(planner.remainsSuitable(alternateState, alternate), "Alternate replan ignored existing suitability/reachability facts.");
+				historical.recordVisibleFailure(profile.profileId(), alternate, "");
+				visibleClock.addAndGet(120_000_000_000L);
+				PhantomAssertions.assertTrue(historical.replanVisibleFarmIfOutgrown(profile.profileId(), alternate, engine), "Dynamic reachability exclusion became permanent.");
 			}
 			finally
 			{

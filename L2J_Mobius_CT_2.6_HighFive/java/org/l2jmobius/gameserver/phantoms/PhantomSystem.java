@@ -202,6 +202,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPositionPublisher;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
 /**
@@ -232,6 +233,8 @@ public final class PhantomSystem
 	private PhantomNavigationService _navigationService;
 	private PhantomTopologyService _topologyService;
 	private PhantomHumanLocalityControl _humanLocality;
+	private PhantomMaterializationRetentionPolicy _materializationRetention;
+	private long _nextRetentionRefreshNanos;
 	private PhantomGameKnowledgeService _gameKnowledgeService;
 	private PhantomSemanticUnderstandingService _semanticUnderstandingService;
 	private PhantomProgressionService _progressionService;
@@ -436,7 +439,7 @@ public final class PhantomSystem
 				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), () -> World.getInstance().getPlayers().stream().filter(player -> player.isOnline() && !player.hasHeadlessOutboundSession()).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList(), System::currentTimeMillis, profileId -> (_populationManager != null) && _populationManager.presence().isOnline(profileId), this::liveMaterializedPoints);
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority), _backgroundService, _materializationService);
 				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
-				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler));
+				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), (profileId, failure) -> _historicalBackgroundService.recordVisibleFailure(profileId, failure.goal(), failure.stepId()), System::nanoTime);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(_visibleFarmTravel, PhantomMaterializationLifecyclePort.chain(_visibleAutoPlay, PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge))))));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
@@ -456,9 +459,20 @@ public final class PhantomSystem
 				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
 				final PhantomBackgroundDecision backgroundDecision = new PhantomBackgroundDecision(_backgroundService, (profileId, goal) ->
 				{
-					_visibleAutoPlay.stop(profileId);
-					return _visibleFarmTravel.arrive(profileId, goal) && _visibleAutoPlay.start(profileId, goal);
-				}, _visibleAutoPlay::running, (profileId, goal) -> _historicalBackgroundService.replanVisibleFarmIfOutgrown(profileId, goal, _decisionEngine), _visibleAutoPlay::stop);
+					if (!_visibleFarmTravel.arrive(profileId, goal))
+					{
+						_visibleAutoPlay.stop(profileId);
+						return false;
+					}
+					return _visibleAutoPlay.start(profileId, goal);
+				}, _visibleAutoPlay::running, (profileId, goal) ->
+				{
+					if (_visibleAutoPlay.noTargetExpired(profileId, goal))
+					{
+						_historicalBackgroundService.recordVisibleFailure(profileId, goal, "");
+					}
+					return _historicalBackgroundService.replanVisibleFarmIfOutgrown(profileId, goal, _decisionEngine);
+				}, _visibleAutoPlay::stop);
 				_ordinaryDeathRecovery = new PhantomOrdinaryDeathRecovery(_materializationService, productionGoals, _backgroundService);
 				if (!_ordinaryDeathRecovery.install())
 				{
@@ -557,7 +571,17 @@ public final class PhantomSystem
 				}
 				final PhantomPopulationEcologyService periodicEcology = _populationEcology;
 				_reconcileMaterializationActivity.install(profileId -> _humanLocality.isLocal(profileId) && ((periodicEcology == null) || periodicEcology.reconcileMaterializationDue(profileId).complete()));
-				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING) && _humanLocality.isNativeVisible(profileId));
+				_materializationRetention = new PhantomMaterializationRetentionPolicy(this::retentionFacts, System::nanoTime, 60_000);
+				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING) && _materializationRetention.observe(profileId).retained());
+				_reconcileMaterializationActivity.installSoftReclamation(requestingProfileId ->
+				{
+					if (!_humanLocality.isLocal(requestingProfileId))
+					{
+						return 0;
+					}
+					final var snapshot = _materializationService.snapshot();
+					return snapshot.availablePermits() == 0 ? _materializationRetention.oldestSoft(snapshot.materializations().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.profileId()).toList()) : 0;
+				}, profileId -> _materializationRetention.observe(profileId).reclaimable());
 				_backgroundService.installPeriodicFarm(profileId ->
 				{
 					if (periodicEcology == null)
@@ -708,7 +732,16 @@ public final class PhantomSystem
 				{
 					throw new IllegalStateException("Population control port could not be installed before scheduler start.");
 				}
-				if (!_scheduler.installLocalControlPort(_humanLocality))
+				if (!_scheduler.installLocalControlPort(() ->
+				{
+					_humanLocality.onPulse();
+					final long now = System.nanoTime();
+					if (now >= _nextRetentionRefreshNanos)
+					{
+						_nextRetentionRefreshNanos = now + 1_000_000_000L;
+						_materializationRetention.refresh(_materializationService.list().stream().filter(entry -> entry.worldPresent()).map(entry -> entry.profileId()).toList());
+					}
+				}))
 				{
 					throw new IllegalStateException("Human-local control port could not be installed before scheduler start.");
 				}
@@ -2301,6 +2334,19 @@ public final class PhantomSystem
 	private PhantomScheduler createScheduler(PhantomActivityMaterializationPort materializationPort)
 	{
 		return createScheduler(materializationPort, PhantomActivityWorkSink.noop());
+	}
+
+	private PhantomMaterializationRetentionPolicy.Facts retentionFacts(long profileId)
+	{
+		final var snapshot = _materializationService.find(profileId).orElse(null);
+		final var object = snapshot == null ? null : World.getInstance().findObject(snapshot.characterObjectId());
+		if ((snapshot == null) || !snapshot.worldPresent() || !(object instanceof Player player))
+		{
+			return new PhantomMaterializationRetentionPolicy.Facts(false, false, false, false, false);
+		}
+		final var region = World.getInstance().getRegion(player);
+		final boolean visible = World.getInstance().getPlayers().stream().anyMatch(human -> human.isOnline() && !human.hasHeadlessOutboundSession() && (human.getInstanceId() == player.getInstanceId()) && (World.getInstance().getRegion(human) != null) && World.getInstance().getRegion(human).isSurroundingRegion(region));
+		return PhantomMaterializationRetentionPolicy.Facts.nativeFacts(player, _humanLocality.isLocal(profileId), visible, snapshot.admittedActionCount());
 	}
 
 	private Map<Long, PhantomTopologyPoint> liveMaterializedPoints()

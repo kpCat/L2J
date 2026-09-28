@@ -1683,6 +1683,8 @@
 		</java>
 	</target>
 
+	<target name="phantom-smart-continuity-test" depends="phantom-activity-scheduler-test,phantom-activity-scheduler-local-priority-test,phantom-background-position-canonicalization-test,phantom-background-decision-test" description="Run focused M1 continuity, retention, native travel and target adaptation regressions." />
+
 	<target name="phantom-background-test" depends="phantom-background-position-canonicalization-test,phantom-background-production-loot-unblock-test,phantom-background-model-test,phantom-background-transaction-test,phantom-background-lifecycle-test,phantom-background-decision-test,phantom-background-server-integration-test,phantom-background-performance-smoke,phantom-background-materialization-abort-test,phantom-background-quiescence-test,phantom-background-compact-inventory-test,phantom-background-authoritative-shots-test,phantom-background-production-audit-test,phantom-background-recovery-teleport-test,phantom-background-real-login-test" description="Run the complete focused Goal 015 background farming reconciliation suite." />
 
 	<target name="phantom-background-completion-test" depends="phantom-background-test" description="Run the complete bounded Goal 015 completion gate." />

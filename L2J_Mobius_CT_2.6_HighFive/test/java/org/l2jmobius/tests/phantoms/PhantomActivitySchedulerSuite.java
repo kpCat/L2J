@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivitySnapshot;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityTransitionStatus;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
@@ -129,6 +130,9 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("21-production-background-first-due-waits-5-to-15-minutes", _ -> testProductionBackgroundDue());
 		registry.add("22-materialization-reconciles-before-canonical-player", _ -> testReconcileFirstMaterialization());
 		registry.add("23-production-policy-10000-profiles-24h", this::testProductionPolicy10000);
+		registry.add("24-fresh-human-preempts-policy-wait", _ -> testFreshHumanPolicyWait());
+		registry.add("25-hard-and-recent-human-retention", _ -> testRetentionReasons());
+		registry.add("26-soft-reclamation-preserves-scheduler-ownership", _ -> testSoftReclamation());
 	}
 
 	private void testLocalPromotionUnderBlockedPulse() throws InterruptedException
@@ -274,12 +278,12 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		final java.util.concurrent.atomic.AtomicBoolean nativeVisible = new java.util.concurrent.atomic.AtomicBoolean();
 		port.install(profileId -> (profileId == 1) && cursorCurrent.get());
 		port.installRetention(profileId -> (profileId == 1) && nativeVisible.get());
-		PhantomAssertions.assertEquals(Outcome.TRANSIENT_BLOCK, port.materialize(1).outcome(), "Stale cursor admitted canonical Player materialization.");
+		PhantomAssertions.assertEquals("DEFERRED", port.materialize(1).outcome().name(), "Policy admission was reported as a transition failure.");
 		PhantomAssertions.assertEquals(0, delegate.materializeCalls, "Blocked materialization reached the Player owner.");
 		cursorCurrent.set(true);
 		nativeVisible.set(true);
 		PhantomAssertions.assertEquals(Outcome.SUCCESS, port.materialize(1).outcome(), "Reconciled visible profile did not materialize.");
-		PhantomAssertions.assertEquals(Outcome.TRANSIENT_BLOCK, port.dematerialize(1).outcome(), "Native-visible Player was stored after topology locality expired.");
+		PhantomAssertions.assertEquals("DEFERRED", port.dematerialize(1).outcome().name(), "Native retention was reported as a transition failure.");
 		PhantomAssertions.assertEquals(0, delegate.dematerializeCalls, "Visible retention reached the Player owner.");
 		nativeVisible.set(false);
 		PhantomAssertions.assertEquals(Outcome.SUCCESS, port.dematerialize(1).outcome(), "Exited Player did not store after the visible retention cleared.");
@@ -291,6 +295,118 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(port.isMaterialized(1) || port.hasLifecycleOwnership(1), "Lifecycle ownership leaked after dematerialization.");
 		}
 		PhantomAssertions.assertEquals(101, delegate.materializeCalls, "Materialization was duplicated after reconciliation.");
+	}
+
+	private void testFreshHumanPolicyWait()
+	{
+		final ManualClock clock = new ManualClock();
+		final FakeMaterializationPort delegate = new FakeMaterializationPort();
+		final var admitted = new java.util.concurrent.atomic.AtomicBoolean();
+		final var port = new PhantomReconcileFirstActivityPort(delegate);
+		port.install(_ -> admitted.get());
+		final var metrics = new PhantomMetrics();
+		final var scheduler = new PhantomScheduler(2, 100, 2, PhantomSchedulerPolicy.productionDefaults(100), clock, (_pulse, _period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), port, PhantomActivityWorkSink.noop());
+		scheduler.start();
+		try
+		{
+			scheduler.register(1);
+			scheduler.submitSignal(1, signal("population", 1, PhantomActivityState.ACTIVE, 120_000));
+			scheduler.pulse();
+			for (long delay : new long[] {1000, 2000, 4000, 8000, 16000})
+			{
+				clock.advanceMillis(delay);
+				scheduler.pulse();
+			}
+			admitted.set(true);
+			scheduler.submitSignal(1, signal("human.local", 1, PhantomActivityState.NEARBY_PERCEPTIBLE, 10_000));
+			scheduler.pulse();
+			PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, scheduler.find(1).orElseThrow().effectiveState(), "Fresh human locality inherited the old failure deadline.");
+			PhantomAssertions.assertEquals(1, delegate.materializeCalls, "Policy wait reached canonical ownership or duplicated promotion.");
+		}
+		finally
+		{
+			stop(scheduler);
+		}
+	}
+
+	private void testRetentionReasons()
+	{
+		final var clock = new ManualClock();
+		final var facts = new java.util.concurrent.atomic.AtomicReference<>(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(true, true, true, false, false));
+		final var policy = new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy(_ -> facts.get(), clock::nanoTime, 60_000);
+		PhantomAssertions.assertTrue(policy.observe(1).hard(), "Native-visible Player was not hard retained.");
+		facts.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(true, false, false, true, false));
+		clock.advanceMillis(61_000);
+		PhantomAssertions.assertTrue(policy.observe(1).hard(), "REAL party lost retention when human locality expired.");
+		PhantomAssertions.assertEquals(0L, policy.oldestSoft(List.of(1L)), "Capacity pressure selected a hard party pin.");
+		facts.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(true, true, false, false, false));
+		policy.observe(1);
+		facts.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(true, false, false, false, false));
+		clock.advanceMillis(59_999);
+		PhantomAssertions.assertTrue(policy.observe(1).retained(), "Short human exit lost continuity.");
+		PhantomAssertions.assertEquals(1L, policy.oldestSoft(List.of(1L)), "Soft continuity was not reclaimable.");
+		clock.advanceMillis(1);
+		PhantomAssertions.assertFalse(policy.observe(1).retained(), "Recent human hold did not expire after 60 seconds.");
+		facts.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(true, true, false, false, false));
+		policy.observe(1);
+		clock.advanceMillis(20_000);
+		policy.observe(1);
+		facts.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(true, false, false, false, false));
+		clock.advanceMillis(40_001);
+		PhantomAssertions.assertTrue(policy.observe(1).retained(), "Re-entry did not renew meaningful human contact.");
+		facts.set(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(true, false, false, false, true));
+		clock.advanceMillis(60_000);
+		PhantomAssertions.assertTrue(policy.observe(1).hard(), "Admitted native action was torn down after soft expiry.");
+	}
+
+	private void testSoftReclamation()
+	{
+		final var clock = new ManualClock();
+		final var delegate = new FakeMaterializationPort();
+		final Set<Long> local = new java.util.HashSet<>(Set.of(1L));
+		final var policy = new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy(id -> new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(delegate.isMaterialized(id), local.contains(id), false, false, false), clock::nanoTime, 60_000);
+		final var port = new PhantomReconcileFirstActivityPort(new PhantomActivityMaterializationPort()
+		{
+			@Override
+			public TransitionOutcome materialize(long id)
+			{
+				return delegate.materialized.isEmpty() ? delegate.materialize(id) : TransitionOutcome.deferred();
+			}
+			@Override public TransitionOutcome dematerialize(long id) { return delegate.dematerialize(id); }
+			@Override public TransitionOutcome retryCleanup(long id) { return delegate.retryCleanup(id); }
+			@Override public boolean isMaterialized(long id) { return delegate.isMaterialized(id); }
+			@Override public boolean hasLifecycleOwnership(long id) { return delegate.hasLifecycleOwnership(id); }
+		});
+		port.install(local::contains);
+		port.installRetention(id -> policy.observe(id).retained());
+		port.installSoftReclamation(id -> local.contains(id) && (delegate.materialized.size() == 1) ? policy.oldestSoft(List.copyOf(delegate.materialized.keySet())) : 0, id -> policy.observe(id).reclaimable());
+		final var metrics = new PhantomMetrics();
+		final var scheduler = new PhantomScheduler(2, 100, 2, PhantomSchedulerPolicy.productionDefaults(100), clock, (_pulse, _period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), port, PhantomActivityWorkSink.noop());
+		scheduler.start();
+		try
+		{
+			scheduler.register(1);
+			scheduler.register(2);
+			scheduler.submitSignal(1, signal("human.local", 1, PhantomActivityState.ACTIVE, 120_000));
+			scheduler.pulse();
+			policy.observe(1);
+			local.remove(1L);
+			scheduler.submitSignal(2, signal("population.active", 1, PhantomActivityState.ACTIVE, 120_000));
+			scheduler.pulse();
+			scheduler.pulse();
+			PhantomAssertions.assertTrue(delegate.isMaterialized(1), "Nonlocal admission refusal reclaimed a recent-human Player.");
+			local.add(2L);
+			scheduler.submitSignal(2, signal("human.local", 1, PhantomActivityState.ACTIVE, 120_000));
+			scheduler.pulse();
+			scheduler.pulse();
+			clock.advanceMillis(1000);
+			scheduler.pulse();
+			PhantomAssertions.assertFalse(delegate.isMaterialized(1), "Soft hold starved new human materialization under capacity pressure.");
+			PhantomAssertions.assertTrue(delegate.isMaterialized(2), "Capacity reclamation did not admit the new human-nearby Player.");
+			PhantomAssertions.assertFalse(scheduler.find(1).orElseThrow().effectiveState().requiresMaterialization(), "Soft reclamation left scheduler falsely materialized.");
+			PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, scheduler.find(2).orElseThrow().effectiveState(), "New human promotion did not publish canonical ownership.");
+		}
+		finally { stop(scheduler); }
 	}
 
 	private void testProductionBackgroundDue()
@@ -436,6 +552,24 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(2, fixture.port().materializeCalls, "Due retry did not occur.");
 		PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, fixture.scheduler().find(1).orElseThrow().effectiveState(), "Successful retry did not commit ACTIVE.");
 		stop(fixture.scheduler());
+		final Fixture repeated = fixture(2, 2);
+		for (int i = 0; i < 5; i++) { repeated.port().materializeOutcomes.add(Outcome.TRANSIENT_BLOCK); }
+		repeated.scheduler().register(1);
+		repeated.scheduler().submitSignal(1, signal("interest", 1, PhantomActivityState.ACTIVE, 100));
+		repeated.scheduler().pulse();
+		int attempts = 1;
+		for (long delay : new long[] {2, 4, 8, 8, 8})
+		{
+			repeated.scheduler().submitSignal(1, signal("human.local", attempts, PhantomActivityState.NEARBY_PERCEPTIBLE, 100));
+			repeated.clock().advanceMillis(delay - 1);
+			repeated.scheduler().pulse();
+			PhantomAssertions.assertEquals(attempts, repeated.port().materializeCalls, "Fresh signal bypassed a genuine transition failure backoff.");
+			repeated.clock().advanceMillis(1);
+			repeated.scheduler().pulse();
+			PhantomAssertions.assertEquals(++attempts, repeated.port().materializeCalls, "Bounded exponential retry deadline drifted.");
+		}
+		PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, repeated.scheduler().find(1).orElseThrow().effectiveState(), "Repeated genuine failure did not recover.");
+		stop(repeated.scheduler());
 	}
 
 	private void testRetainedFailure()

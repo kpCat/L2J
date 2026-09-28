@@ -36,9 +36,20 @@ public interface PhantomActivityMaterializationPort
 
 	boolean hasLifecycleOwnership(long profileId);
 
+	default long softReclaimCandidate(long requestingProfileId)
+	{
+		return 0;
+	}
+
+	default TransitionOutcome reclaimSoft(long profileId)
+	{
+		return TransitionOutcome.deferred();
+	}
+
 	enum Outcome
 	{
 		SUCCESS,
+		DEFERRED,
 		TRANSIENT_BLOCK,
 		RETAINED_FAILURE
 	}
@@ -53,6 +64,11 @@ public interface PhantomActivityMaterializationPort
 		public static TransitionOutcome transientBlock()
 		{
 			return new TransitionOutcome(Outcome.TRANSIENT_BLOCK);
+		}
+
+		public static TransitionOutcome deferred()
+		{
+			return new TransitionOutcome(Outcome.DEFERRED);
 		}
 
 		public static TransitionOutcome retainedFailure()

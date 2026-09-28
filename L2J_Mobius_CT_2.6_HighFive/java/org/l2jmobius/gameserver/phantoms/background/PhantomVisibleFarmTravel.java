@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongPredicate;
+import java.util.function.BiConsumer;
+import java.util.function.LongSupplier;
 
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.data.xml.TeleporterData;
@@ -35,8 +37,16 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private final LongPredicate _permitsOrdinary;
 	private final PhantomRelevanceSignalPort _signals;
 	private final Map<Long, Journey> _journeys = new ConcurrentHashMap<>();
+	private final BiConsumer<Long, Failure> _failure;
+	private final LongSupplier _clock;
+	private final java.util.concurrent.atomic.AtomicLong _signalSequence = new java.util.concurrent.atomic.AtomicLong();
 
 	public PhantomVisibleFarmTravel(PhantomMaterializationService materialization, PhantomBackgroundService background, PhantomNormalGatekeeperTravel travel, PhantomNavigationService navigation, LongPredicate permitsOrdinary, PhantomRelevanceSignalPort signals)
+	{
+		this(materialization, background, travel, navigation, permitsOrdinary, signals, (_id, _failure) -> {}, System::nanoTime);
+	}
+
+	public PhantomVisibleFarmTravel(PhantomMaterializationService materialization, PhantomBackgroundService background, PhantomNormalGatekeeperTravel travel, PhantomNavigationService navigation, LongPredicate permitsOrdinary, PhantomRelevanceSignalPort signals, BiConsumer<Long, Failure> failure, LongSupplier clock)
 	{
 		_materialization = Objects.requireNonNull(materialization);
 		_background = Objects.requireNonNull(background);
@@ -44,6 +54,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		_navigation = Objects.requireNonNull(navigation);
 		_permitsOrdinary = Objects.requireNonNull(permitsOrdinary);
 		_signals = Objects.requireNonNull(signals);
+		_failure = Objects.requireNonNull(failure);
+		_clock = Objects.requireNonNull(clock);
 	}
 
 	public boolean arrive(long profileId, PhantomGoal goal)
@@ -83,17 +95,22 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				final var route = _travel.route(state.position().committedAnchorId(), spec.anchorId()).orElse(List.of());
 				if (route.isEmpty())
 				{
+					_failure.accept(profileId, new Failure(goal, "", "travel.route_absent"));
 					return false;
 				}
-				journey = new Journey(goal, player, route.getFirst());
+				journey = new Journey(goal, player, route.getFirst(), _clock.getAsLong());
 				_journeys.put(profileId, journey);
 			}
-			_signals.submit(profileId, new PhantomRelevanceSignal("visible.farm.travel", Math.max(1, System.nanoTime()), PhantomActivityState.NEARBY_PERCEPTIBLE, 60_000));
+			if ((_clock.getAsLong() - journey.startedNanos) >= 60_000_000_000L)
+			{
+				fail(profileId, journey, "travel.progress_timeout");
+				return false;
+			}
 			final var arrival = _travel.topology().findAnchor(journey.step.toAnchorId()).orElseThrow();
 			final var canonical = L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(arrival, player.getHeading()).orElse(null);
 			if (canonical == null)
 			{
-				remove(profileId);
+				fail(profileId, journey, "travel.destination_unproven");
 				return false;
 			}
 			if (journey.step.type() == PhantomNormalGatekeeperTravel.Type.NORMAL_GATEKEEPER)
@@ -101,7 +118,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				final var leg = journey.step.gatekeeper();
 				if (!PhantomNormalGatekeeperTravel.matchesNative(leg))
 				{
-					remove(profileId);
+					fail(profileId, journey, "travel.gatekeeper_unproven");
 					return false;
 				}
 				if (!journey.teleported)
@@ -121,6 +138,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 					if (teleporter[0] == null)
 					{
 						journey.reason = "travel.native_gatekeeper_absent";
+						retryOrFail(profileId, journey);
 						return false;
 					}
 					player.stopMove(null);
@@ -132,6 +150,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 					journey.teleported = (player.getInstanceId() == 0) && (Math.hypot((long) player.getX() - leg.destinationX(), (long) player.getY() - leg.destinationY()) < 128);
 					journey.reason = journey.teleported ? "travel.native_teleport_arrived" : "travel.native_teleport_rejected";
 					clearRoute(profileId, journey);
+					if (!journey.teleported) { retryOrFail(profileId, journey); }
+					else { hold(profileId); }
 					return false;
 				}
 			}
@@ -142,6 +162,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (!_background.captureVisibleArrival(profileId, player, goal, arrival.id()))
 			{
 				journey.reason = "travel.arrival_capture_pending";
+				retryOrFail(profileId, journey);
 				return false;
 			}
 			remove(profileId);
@@ -162,19 +183,20 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			journey.reason = "travel.native_action_busy";
 			return false;
 		}
-		final long now = Math.max(1, System.nanoTime());
-		if ((journey.requestId != 0) && (now >= journey.deadline))
+		final long now = Math.max(1, _clock.getAsLong());
+		if (now < journey.retryAtNanos)
 		{
-			clearRoute(profileId, journey);
+			return false;
 		}
 		if (journey.requestId == 0)
 		{
-			journey.deadline = now + 60_000_000_000L;
+			journey.deadline = journey.startedNanos + 60_000_000_000L;
 			final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, current, destination, now, journey.deadline, 100_000));
 			journey.requestId = submission.requestId();
 			if (journey.requestId == 0)
 			{
 				journey.reason = "travel.navigation_admission_rejected";
+				retryOrFail(profileId, journey);
 				return false;
 			}
 		}
@@ -184,12 +206,18 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (result == null)
 			{
 				journey.reason = "travel.navigation_pending";
+				hold(profileId);
 				return false;
 			}
 			if ((result.route() == null) || (result.route().mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA))
 			{
-				journey.reason = "travel.navigation_unproven";
+				journey.reason = "travel.navigation_" + result.status().name().toLowerCase(java.util.Locale.ROOT);
 				clearRoute(profileId, journey);
+				switch (result.status())
+				{
+					case COOLDOWN, QUEUE_BACKPRESSURE, PROFILE_BUSY, BACKEND_FAILURE, SERVICE_NOT_RUNNING -> retryOrFail(profileId, journey);
+					default -> fail(profileId, journey, journey.reason);
+				}
 				return false;
 			}
 			journey.waypoints = result.route().waypoints();
@@ -207,7 +235,37 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			journey.moveY = player.getYdestination();
 		}
 		journey.reason = player.isMoving() ? "travel.native_walking" : "travel.native_move_rejected";
+		if (player.isMoving()) { hold(profileId); }
+		else { retryOrFail(profileId, journey); }
 		return false;
+	}
+
+	private void hold(long profileId)
+	{
+		_signals.submit(profileId, new PhantomRelevanceSignal("visible.farm.travel", signalSequence(), PhantomActivityState.NEARBY_PERCEPTIBLE, 5_000));
+	}
+
+	private void retryOrFail(long profileId, Journey journey)
+	{
+		_signals.withdraw(profileId, "visible.farm.travel", signalSequence());
+		if (++journey.failures >= 3)
+		{
+			fail(profileId, journey, journey.reason);
+		}
+		else
+		{
+			journey.retryAtNanos = _clock.getAsLong() + 1_000_000_000L;
+		}
+	}
+
+	private void fail(long profileId, Journey journey, String reason)
+	{
+		remove(profileId);
+		_failure.accept(profileId, new Failure(journey.goal, journey.step.id(), reason));
+	}
+
+	public record Failure(PhantomGoal goal, String stepId, String reason)
+	{
 	}
 
 	public String reason(long profileId)
@@ -241,8 +299,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				}
 			}
 			clearRoute(profileId, journey);
-			_signals.withdraw(profileId, "visible.farm.travel", Math.max(1, System.nanoTime()));
+			_signals.withdraw(profileId, "visible.farm.travel", signalSequence());
 		}
+	}
+
+	private long signalSequence()
+	{
+		return _signalSequence.updateAndGet(previous -> Math.max(previous + 1, Math.max(1, _clock.getAsLong())));
 	}
 
 	private static void stopOwnedMove(Journey journey, Player player)
@@ -294,6 +357,10 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private final long revision;
 		private final int objectId;
 		private final PhantomNormalGatekeeperTravel.Step step;
+		private final PhantomGoal goal;
+		private final long startedNanos;
+		private int failures;
+		private long retryAtNanos;
 		private boolean teleported;
 		private boolean moveIssued;
 		private int moveX;
@@ -304,12 +371,14 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private int index;
 		private volatile String reason = "travel.started";
 
-		private Journey(PhantomGoal goal, Player player, PhantomNormalGatekeeperTravel.Step step)
+		private Journey(PhantomGoal goal, Player player, PhantomNormalGatekeeperTravel.Step step, long startedNanos)
 		{
 			goalId = goal.goalId();
 			revision = goal.revision();
 			objectId = player.getObjectId();
 			this.step = step;
+			this.goal = goal;
+			this.startedNanos = startedNanos;
 		}
 	}
 }

@@ -189,7 +189,7 @@ public final class PhantomBackgroundDecision
 		if (!_visibleSuitable.apply(context.profileId(), context.goal()))
 		{
 			_visibleStop.accept(context.profileId());
-			return PhantomStepResult.of(Type.REPLAN, "background.visible.outgrown");
+			return PhantomStepResult.of(Type.REPLAN, "background.visible.replan_required");
 		}
 		return _visibleStart.apply(context.profileId(), context.goal()) ? PhantomStepResult.of(Type.SUCCESS, "background.visible.autoplay_started") : PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry");
 	}
@@ -204,7 +204,7 @@ public final class PhantomBackgroundDecision
 		if (!_visibleSuitable.apply(context.profileId(), context.goal()))
 		{
 			_visibleStop.accept(context.profileId());
-			return PhantomStepResult.of(Type.REPLAN, "background.visible.outgrown");
+			return PhantomStepResult.of(Type.REPLAN, "background.visible.replan_required");
 		}
 		if (!visibleEligible(context.effectiveState(), _service.directive(context.profileId(), context.goal(), context.effectiveState())) || !_visibleRunning.apply(context.profileId(), context.goal()))
 		{
