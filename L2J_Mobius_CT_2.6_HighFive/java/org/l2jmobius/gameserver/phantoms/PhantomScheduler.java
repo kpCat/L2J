@@ -1098,6 +1098,7 @@ public final class PhantomScheduler
 		{
 			outcome = TransitionOutcome.transientBlock();
 		}
+		slot._lastTransitionReason = outcome.reason();
 		if (outcome.outcome() == Outcome.SUCCESS)
 		{
 			if ((plan._action == BoundaryAction.RETRY_MATERIALIZATION_CLEANUP) || (plan._action == BoundaryAction.RETRY_DEMATERIALIZATION_CLEANUP))
@@ -1375,7 +1376,7 @@ public final class PhantomScheduler
 				activeSources++;
 			}
 		}
-		return new PhantomActivitySnapshot(slot._profileId, slot._effectiveState, slot._requestedState, slot._transitionStatus, activeSources, slot._enqueued, slot._dueEntry != null, slot._processing, slot._boundaryInFlight, slot._boundaryGeneration, slot._activityGeneration, slot._dueEntry != null ? slot._dueEntry._dueNanos : 0, slot._tickSequence, slot._lastResult, slot._lastTransitionNanos);
+		return new PhantomActivitySnapshot(slot._profileId, slot._effectiveState, slot._requestedState, slot._transitionStatus, activeSources, slot._enqueued, slot._dueEntry != null, slot._processing, slot._boundaryInFlight, slot._boundaryGeneration, slot._activityGeneration, slot._dueEntry != null ? slot._dueEntry._dueNanos : 0, slot._tickSequence, slot._lastResult, slot._lastTransitionNanos, slot._lastTransitionReason);
 	}
 
 	private long boundedExponentialBackoff(int attempt)
@@ -1480,6 +1481,7 @@ public final class PhantomScheduler
 		private long _nextWorkDueNanos;
 		private long _tickSequence;
 		private long _lastTransitionNanos;
+		private String _lastTransitionReason = "";
 		private DueEntry _dueEntry;
 
 		private Slot(long profileId)

@@ -23,6 +23,9 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationProgressTracker.ProgressStatus;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
@@ -37,6 +40,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private final LongPredicate _permitsOrdinary;
 	private final PhantomRelevanceSignalPort _signals;
 	private final Map<Long, Journey> _journeys = new ConcurrentHashMap<>();
+	private final Map<Long, TerminalFailure> _terminalReasons = new ConcurrentHashMap<>();
+	private final java.util.concurrent.atomic.AtomicLong _failureSequence = new java.util.concurrent.atomic.AtomicLong();
 	private final BiConsumer<Long, Failure> _failure;
 	private final LongSupplier _clock;
 	private final java.util.concurrent.atomic.AtomicLong _signalSequence = new java.util.concurrent.atomic.AtomicLong();
@@ -82,6 +87,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (state.position().committedAnchorId().equals(spec.anchorId()))
 			{
 				remove(profileId);
+				_terminalReasons.remove(profileId);
 				return true;
 			}
 			Journey journey = _journeys.get(profileId);
@@ -95,15 +101,16 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				final var route = _travel.route(state.position().committedAnchorId(), spec.anchorId()).orElse(List.of());
 				if (route.isEmpty())
 				{
+					rememberFailure(profileId, "travel.route_absent");
 					_failure.accept(profileId, new Failure(goal, "", "travel.route_absent"));
 					return false;
 				}
 				journey = new Journey(goal, player, route.getFirst(), _clock.getAsLong());
 				_journeys.put(profileId, journey);
 			}
-			if ((_clock.getAsLong() - journey.startedNanos) >= 60_000_000_000L)
+			if ((_clock.getAsLong() - journey.startedNanos) >= _navigation.policy().maximumAttemptDurationNanos())
 			{
-				fail(profileId, journey, "travel.progress_timeout");
+				fail(profileId, journey, "travel.journey_deadline");
 				return false;
 			}
 			final var arrival = _travel.topology().findAnchor(journey.step.toAnchorId()).orElseThrow();
@@ -190,12 +197,17 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		}
 		if (journey.requestId == 0)
 		{
-			journey.deadline = journey.startedNanos + 60_000_000_000L;
+			journey.deadline = now + _navigation.policy().defaultRequestDeadlineNanos();
 			final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, current, destination, now, journey.deadline, 100_000));
 			journey.requestId = submission.requestId();
-			if (journey.requestId == 0)
+			if (submission.immediateResult() != null)
 			{
-				journey.reason = "travel.navigation_admission_rejected";
+				_navigation.consume(journey.requestId);
+				if (!terminalResult(profileId, journey, submission.immediateResult())) { return false; }
+			}
+			else if ((submission.status() != PhantomNavigationService.SubmissionStatus.ACCEPTED) || (journey.requestId <= 0))
+			{
+				journey.reason = "travel.navigation_protocol_failure";
 				retryOrFail(profileId, journey);
 				return false;
 			}
@@ -205,26 +217,44 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			final var result = _navigation.consume(journey.requestId).orElse(null);
 			if (result == null)
 			{
+				if ((now >= journey.deadline) || _navigation.find(journey.requestId).isEmpty())
+				{
+					journey.reason = now >= journey.deadline ? "travel.navigation_deadline_expired" : "travel.navigation_terminal_missing";
+					retryOrFail(profileId, journey);
+					return false;
+				}
 				journey.reason = "travel.navigation_pending";
 				hold(profileId);
 				return false;
 			}
-			if ((result.route() == null) || (result.route().mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA))
-			{
-				journey.reason = "travel.navigation_" + result.status().name().toLowerCase(java.util.Locale.ROOT);
-				clearRoute(profileId, journey);
-				switch (result.status())
-				{
-					case COOLDOWN, QUEUE_BACKPRESSURE, PROFILE_BUSY, BACKEND_FAILURE, SERVICE_NOT_RUNNING -> retryOrFail(profileId, journey);
-					default -> fail(profileId, journey, journey.reason);
-				}
-				return false;
-			}
-			journey.waypoints = result.route().waypoints();
+			if (!terminalResult(profileId, journey, result)) { return false; }
 		}
 		while ((journey.index < journey.waypoints.size() - 1) && (current.distanceTo(journey.waypoints.get(journey.index)) <= _navigation.arrivalRadius()))
 		{
 			journey.index++;
+		}
+		if (journey.trackedIndex != journey.index)
+		{
+			_navigation.progressTracker().cancel(profileId, journey.requestId);
+			final var waypoint = journey.waypoints.get(journey.index);
+			final var leg = new PhantomNavigationRoute(journey.route.mode(), current, waypoint, List.of(waypoint), journey.route.geodataCapability(), now, false, 1, _navigation.policy().maximumRouteDistance());
+			final var begun = _navigation.progressTracker().begin(profileId, journey.requestId, leg, now);
+			if (begun.status() != org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationProgressTracker.BeginStatus.TRACKING)
+			{
+				journey.reason = "travel.navigation_progress_busy";
+				retryOrFail(profileId, journey);
+				return false;
+			}
+			journey.trackedIndex = journey.index;
+		}
+		final var progress = _navigation.progressTracker().observe(profileId, journey.requestId, current, now).status();
+		if ((progress == ProgressStatus.PROGRESS) || (progress == ProgressStatus.ARRIVED)) { _terminalReasons.remove(profileId); }
+		if (progress == ProgressStatus.ARRIVED) { journey.trackedIndex = -1; }
+		if ((progress == ProgressStatus.STUCK) || (progress == ProgressStatus.TIMEOUT) || (progress == ProgressStatus.STALE))
+		{
+			journey.reason = "travel.native_progress_" + progress.name().toLowerCase(java.util.Locale.ROOT);
+			retryOrFail(profileId, journey);
+			return false;
 		}
 		if (!player.isMoving())
 		{
@@ -240,6 +270,30 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		return false;
 	}
 
+	private boolean terminalResult(long profileId, Journey journey, PhantomNavigationResult result)
+	{
+		if ((result.profileId() != profileId) || (result.requestId() != journey.requestId))
+		{
+			journey.reason = "travel.navigation_protocol_failure";
+			retryOrFail(profileId, journey);
+			return false;
+		}
+		if ((result.route() == null) || (result.route().mode() == PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA))
+		{
+			journey.reason = "travel.navigation_" + result.status().name().toLowerCase(java.util.Locale.ROOT);
+			clearRoute(profileId, journey);
+			switch (result.status())
+			{
+				case COOLDOWN, QUEUE_BACKPRESSURE, PROFILE_BUSY, BACKEND_FAILURE, SERVICE_NOT_RUNNING, CANCELLED, DEADLINE_EXPIRED -> retryOrFail(profileId, journey);
+				default -> fail(profileId, journey, journey.reason);
+			}
+			return false;
+		}
+		journey.route = result.route();
+		journey.waypoints = result.route().waypoints();
+		return true;
+	}
+
 	private void hold(long profileId)
 	{
 		_signals.submit(profileId, new PhantomRelevanceSignal("visible.farm.travel", signalSequence(), PhantomActivityState.NEARBY_PERCEPTIBLE, 5_000));
@@ -247,6 +301,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private void retryOrFail(long profileId, Journey journey)
 	{
+		clearRoute(profileId, journey);
 		_signals.withdraw(profileId, "visible.farm.travel", signalSequence());
 		if (++journey.failures >= 3)
 		{
@@ -261,28 +316,51 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private void fail(long profileId, Journey journey, String reason)
 	{
 		remove(profileId);
+		rememberFailure(profileId, reason);
 		_failure.accept(profileId, new Failure(journey.goal, journey.step.id(), reason));
 	}
 
+	private synchronized void rememberFailure(long profileId, String reason)
+	{
+		if (!_terminalReasons.containsKey(profileId) && (_terminalReasons.size() >= _navigation.policy().maximumTrackedProfiles()))
+		{
+			final var iterator = _terminalReasons.keySet().iterator();
+			if (iterator.hasNext()) { _terminalReasons.remove(iterator.next()); }
+		}
+		_terminalReasons.put(profileId, new TerminalFailure(reason, _failureSequence.incrementAndGet()));
+	}
+
+	public record TerminalFailure(String reason, long sequence) { }
+
+	public TerminalFailure lastFailure(long profileId) { return _terminalReasons.get(profileId); }
+
 	public record Failure(PhantomGoal goal, String stepId, String reason)
 	{
+		public boolean routeFailure()
+		{
+			return reason.equals("travel.route_absent") || reason.equals("travel.destination_unproven") || reason.equals("travel.gatekeeper_unproven") || reason.equals("travel.navigation_no_path") || reason.equals("travel.navigation_route_obstructed") || reason.equals("travel.navigation_route_budget_exceeded");
+		}
 	}
 
 	public String reason(long profileId)
 	{
 		final Journey journey = _journeys.get(profileId);
-		return journey == null ? "" : journey.reason;
+		final TerminalFailure failure = _terminalReasons.get(profileId);
+		return journey == null ? failure == null ? "" : failure.reason() : journey.reason;
 	}
 
 	private void clearRoute(long profileId, Journey journey)
 	{
 		if (journey.requestId != 0)
 		{
+			_navigation.progressTracker().cancel(profileId, journey.requestId);
 			_navigation.cancel(profileId, journey.requestId);
 			_navigation.consume(journey.requestId);
 		}
 		journey.requestId = 0;
 		journey.waypoints = null;
+		journey.route = null;
+		journey.trackedIndex = -1;
 		journey.index = 0;
 	}
 
@@ -321,6 +399,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	public void beforeMaterialize(long profileId, int characterObjectId)
 	{
 		remove(profileId);
+		_terminalReasons.remove(profileId);
 	}
 
 	@Override
@@ -337,6 +416,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	public void materializeAborted(long profileId, int characterObjectId)
 	{
 		remove(profileId);
+		_terminalReasons.remove(profileId);
 	}
 
 	@Override
@@ -344,6 +424,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	{
 		stopOwnedMove(_journeys.get(profileId), player);
 		remove(profileId);
+		_terminalReasons.remove(profileId);
 	}
 
 	@Override
@@ -368,6 +449,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private long requestId;
 		private long deadline;
 		private List<PhantomNavigationPoint> waypoints;
+		private PhantomNavigationRoute route;
+		private int trackedIndex = -1;
 		private int index;
 		private volatile String reason = "travel.started";
 

@@ -1053,6 +1053,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		}
 		_topologyReady.accept(action.profileId());
 		final PhantomActivityState effective;
+		final PhantomActivityState calendar;
 		final long sequence;
 		final long ttl;
 		synchronized (_monitor)
@@ -1063,25 +1064,23 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				evaluateScheduleLocked(entry, now);
 			}
 			entry._effectiveState = ((_ecology != null) && !_ecology.permitsScheduling(action.profileId(), now)) ? PhantomActivityState.SLEEPING : effectiveStateLocked(entry);
+			calendar = ((_ecology != null) && !_ecology.managed(action.profileId())) ? PhantomActivityState.SLEEPING : entry._desiredState;
 			effective = entry._effectiveState;
 			sequence = ++entry._signalSequence;
 			final long untilBoundary = Math.max(1, ChronoUnit.MILLIS.between(now, entry._nextBoundary));
 			ttl = Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, Math.min(SIGNAL_HEARTBEAT_MILLIS, untilBoundary));
-			if (effective == PhantomActivityState.SLEEPING)
-			{
-				_presence.schedule(action.profileId(), effective);
-			}
+		}
+		if (actionCurrent(action) && !_presence.schedule(action.profileId(), calendar))
+		{
+			retryOrFail(action, "presence.capacity");
+			return;
 		}
 		final SignalStatus status = effective == PhantomActivityState.SLEEPING ? _ownership.withdraw(action.profileId(), SCHEDULE_SIGNAL_SOURCE, sequence) : _ownership.submit(action.profileId(), SCHEDULE_SIGNAL_SOURCE, sequence, effective, ttl);
+		if ((calendar == PhantomActivityState.SLEEPING) && (_ecology != null)) { _ecology.withdrawMaterializationDue(action.profileId()); }
 		switch (status)
 		{
 			case ACCEPTED, COALESCED, STALE ->
 			{
-				if (actionCurrent(action) && !_presence.schedule(action.profileId(), effective))
-				{
-					retryOrFail(action, "presence.capacity");
-					return;
-				}
 				if (!cleanupBootstrap(action.profileId()))
 				{
 					retryOrFail(action, "ownership.bootstrap_cleanup_exhausted");
@@ -1629,7 +1628,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			final boolean eligible = desired && _eligibleActiveIds.contains(profileId);
 			final boolean admitted = eligible && _admittedIds.contains(profileId);
 			final String reason = !ready ? "not_ready" : !desired ? "schedule_not_active" : !eligible ? "ecology_fenced" : !admitted ? "capacity" : "admitted";
-			return Optional.of(new AdmissionProfileSnapshot(profileId, entry._snapshot.state().state(), entry._desiredState, entry._effectiveState, eligible, admitted, reason, _admissionDirty));
+			return Optional.of(new AdmissionProfileSnapshot(profileId, entry._snapshot.state().state(), entry._desiredState, entry._effectiveState, eligible, admitted, reason, _admissionDirty, entry._nextBoundary, _presence.isOnline(profileId)));
 		}
 	}
 
@@ -1837,8 +1836,12 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		}
 	}
 
-	public record AdmissionProfileSnapshot(long profileId, State populationState, PhantomActivityState desiredState, PhantomActivityState effectiveState, boolean eligible, boolean admitted, String reason, boolean pendingRebalance)
+	public record AdmissionProfileSnapshot(long profileId, State populationState, PhantomActivityState desiredState, PhantomActivityState effectiveState, boolean eligible, boolean admitted, String reason, boolean pendingRebalance, Instant nextBoundary, boolean calendarOnline)
 	{
+		public AdmissionProfileSnapshot(long profileId, State populationState, PhantomActivityState desiredState, PhantomActivityState effectiveState, boolean eligible, boolean admitted, String reason, boolean pendingRebalance)
+		{
+			this(profileId, populationState, desiredState, effectiveState, eligible, admitted, reason, pendingRebalance, Instant.MAX, desiredState != PhantomActivityState.SLEEPING);
+		}
 	}
 
 	public record AdmissionProfile(long profileId, int regionId, long seed, PhantomActivityState desiredState)

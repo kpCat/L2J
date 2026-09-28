@@ -191,6 +191,21 @@ final class PhantomGeoValidationRules
 		return segments == 0 ? new RouteProof(classifyNull ? "NO_PATH_WITHIN_BUFFER" : "NO_PATH", 0, 0) : new RouteProof("VALID_PATH", length, segments);
 	}
 
+	/** Separate compatibility result; historical geometric proof is left intact. */
+	static org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeRouteContract.Validation runtimeRoute(Point from, Point to, Probe probe)
+	{
+		final var policy = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+		final var origin = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(from.x(), from.y(), from.z(), from.instanceId());
+		final var destination = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(to.x(), to.y(), to.z(), to.instanceId());
+		if (!probe.hasGeo(from.x(), from.y()) || !probe.hasGeo(to.x(), to.y())) { return new org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeRouteContract.Validation(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.NO_GEODATA, List.of()); }
+		if (probe.canMove(from, to))
+		{
+			return new org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeRouteContract.Validation(origin.distanceTo(destination) <= policy.maximumRouteDistance() ? org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.DIRECT_VALIDATED : org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED, List.of(destination));
+		}
+		final var path = probe.path(from, to);
+		return org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeRouteContract.normalize(origin, destination, path == null ? null : path.stream().map(point -> new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(point.x(), point.y(), point.z(), point.instanceId())).toList(), policy, policy.maximumRouteDistance(), (first, last) -> probe.canMove(new Point(first.x(), first.y(), first.z(), first.instanceId()), new Point(last.x(), last.y(), last.z(), last.instanceId())), () -> org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.PATH_FOUND);
+	}
+
 	private static long distance(Point from, Point to)
 	{
 		final long dx = (long) from.x() - to.x();

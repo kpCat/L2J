@@ -64,6 +64,7 @@ import org.l2jmobius.gameserver.phantoms.clan.PhantomClanAffiliationHumanization
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDirectivePolicyGoal030C2ASuite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerPerformanceSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomActivitySchedulerSuite;
+import org.l2jmobius.gameserver.phantoms.PhantomM1RuntimeHandoffSuite;
 import org.l2jmobius.gameserver.phantoms.PhantomPopulationPerformanceSuite;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomKarmaRecoveryNativeGoal030C2BSuite;
 import org.l2jmobius.gameserver.phantoms.pvp.PhantomKarmaRecoveryPolicyGoal030C2BSuite;
@@ -260,6 +261,7 @@ public final class PhantomTestLauncher
 			case "decision-persistence" -> new PhantomDecisionPersistenceSuite();
 			case "decision-performance" -> new PhantomDecisionPerformanceSuite();
 			case "navigation-core" -> new PhantomNavigationCoreSuite();
+			case "m1-runtime-handoff" -> new PhantomM1RuntimeHandoffSuite();
 			case "navigation-performance" -> new PhantomNavigationPerformanceSuite();
 			case "topology-core" -> new PhantomTopologyCoreSuite();
 			case "topology-perception" -> new PhantomTopologyPerceptionSuite();
@@ -273,6 +275,7 @@ public final class PhantomTestLauncher
 			case "historical-background-goal033a" -> new PhantomHistoricalBackgroundGoal033ASuite();
 			case "generated-historical-route" -> new PhantomGeneratedHistoricalRouteSuite();
 			case "population-ecology-goal033" -> new PhantomPopulationEcologyGoal033Suite();
+			case "population-ecology-handoff-regression" -> new PhantomPopulationEcologyGoal033Suite(true);
 			case "live003-admission" -> new PhantomLive003AdmissionSuite();
 			case "live003-core-life-1280" -> new PhantomLive003CoreLife1280Suite();
 			case "live003-runtime-authority-proof" -> new PhantomLive003RuntimeAuthorityProofSuite();

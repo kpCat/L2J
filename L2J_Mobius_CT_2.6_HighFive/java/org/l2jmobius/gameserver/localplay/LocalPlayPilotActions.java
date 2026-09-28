@@ -47,6 +47,8 @@ public final class LocalPlayPilotActions
 	private int _selectedMobObjectId;
 	private long _selectedTraceProfileId;
 	private long _envelopeProfileId;
+	private PhantomTopologyPoint _envelopePosition;
+	private boolean _envelopeMaterialized;
 	private final Set<Integer> _mobRoster = new HashSet<>();
 	private int _ownedPartyLeaderObjectId;
 	private InvitationIdentity _pendingOwnInvite;
@@ -90,7 +92,7 @@ public final class LocalPlayPilotActions
 				case CAPABILITIES -> Outcome.of("SUCCEEDED", "STATUS,SNAPSHOT_PHANTOMS,PREPARE_M1_ENVELOPE,SNAPSHOT_M1_ENVELOPE,SELECT_VISIBLE_PHANTOM_TRACE,SNAPSHOT_SELECTED_PHANTOM_TRACE,REPLAY_SELECTED_PHANTOM_TRACE,SNAPSHOT_TARGETS,TELEPORT_SELF,MOVE_SELF,STOP_MOVE,SIT,STAND,SELECT_TARGET,SAY,PARTY_INVITE,PARTY_RESPOND,PARTY_LEAVE,ATTACK_NPC,CAST_LEARNED_SKILL");
 				case SNAPSHOT_PHANTOMS -> candidate(actor);
 				case PREPARE_M1_ENVELOPE -> prepareM1Envelope(actor, args);
-				case SNAPSHOT_M1_ENVELOPE -> snapshotM1Envelope(actor);
+				case SNAPSHOT_M1_ENVELOPE -> snapshotM1Envelope(actor, args);
 				case SELECT_VISIBLE_PHANTOM_TRACE -> selectVisibleTrace(actor);
 				case SNAPSHOT_SELECTED_PHANTOM_TRACE -> selectedTrace();
 				case REPLAY_SELECTED_PHANTOM_TRACE -> replaySelectedTrace();
@@ -195,33 +197,52 @@ public final class LocalPlayPilotActions
 			return Outcome.of("REJECTED", "INVALID_ARGUMENT");
 		}
 		long after = afterProfileId;
+		OperatorLocalityTarget selected = null;
+		OperatorAdmissionProfile selectedAdmission = null;
+		EnvelopeRoute selectedRoute = null;
+		int selectedCohort = -1;
 		final PhantomTopologyPoint here = new PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId());
 		for (int attempt = 0; attempt < 8; attempt++)
 		{
 			final OperatorLocalityTarget target = (selectedProfileId > 0 ? PhantomSystem.operatorLocalityTarget(selectedProfileId) : PhantomSystem.operatorNearestReadyLocalityTarget(here, (long) M1_TARGET_SEARCH_RADIUS * M1_TARGET_SEARCH_RADIUS, after)).orElse(null);
 			if (target == null)
 			{
-				return Outcome.of("REJECTED", "NO_ORDINARY_READY_TARGET");
+				break;
 			}
 			after = target.profileId();
 			final OperatorAdmissionProfile admission = PhantomSystem.operatorAdmissionProfile(target.profileId()).orElse(null);
-			final EnvelopeRoute route = (admission != null) && "READY".equals(admission.admission().populationState().name()) && "none".equals(admission.busyReason()) ? envelopeRoute(target) : null;
+			final EnvelopeRoute route = (admission != null) && "READY".equals(admission.admission().populationState().name()) && admission.admission().calendarOnline() && admission.admission().nextBoundary().isAfter(java.time.Instant.now().plusSeconds(180)) && "none".equals(admission.busyReason()) ? envelopeRoute(target) : null;
 			if (route != null)
 			{
+				final int cohort = PhantomSystem.operatorNaturalCohortSize(topologyPoint(route.inside()), java.time.Instant.now().plusSeconds(180));
+				if (cohort > selectedCohort)
+				{
+					selected = target; selectedAdmission = admission; selectedRoute = route; selectedCohort = cohort;
+				}
+				if ((cohort >= 4) || (selectedProfileId > 0)) { break; }
+			}
+			if (selectedProfileId > 0) { break; }
+		}
+		if (selected != null)
+		{
+				final OperatorLocalityTarget target = selected;
+				final OperatorAdmissionProfile admission = selectedAdmission;
+				final EnvelopeRoute route = selectedRoute;
 				_envelopeProfileId = target.profileId();
+				_envelopePosition = target.committedPosition();
+				_envelopeMaterialized = false;
 				final Map<String, String> data = new LinkedHashMap<>();
 				data.put("profileId", Long.toString(_envelopeProfileId));
+				data.put("naturalCohortPrepared", Integer.toString(selectedCohort));
+				data.put("calendarState", admission.admission().desiredState().name());
+				data.put("nextBoundary", admission.admission().nextBoundary().toString());
+				data.put("readinessReason", admission.readiness() == null ? "ecology.disabled" : admission.readiness().reason());
 				putPoint(data, "start", route.outside());
 				putPoint(data, "prewarm", route.prewarm());
 				putPoint(data, "inside", route.inside());
 				data.put("route", route.path().stream().map(point -> point.getX() + "," + point.getY() + "," + point.getZ()).collect(java.util.stream.Collectors.joining(";")));
 				actor.teleToLocation(route.outside(), false);
 				return new Outcome("ACCEPTED", "M1_NATURAL_GEO_PROVEN_ENVELOPE", Map.copyOf(data));
-			}
-			if (selectedProfileId > 0)
-			{
-				break;
-			}
 		}
 		return Outcome.of("REJECTED", "NO_NATIVE_PREWARM_ROUTE");
 	}
@@ -331,7 +352,7 @@ public final class LocalPlayPilotActions
 		return geo.canMoveToTarget(first.getX(), first.getY(), first.getZ(), second.getX(), second.getY(), second.getZ(), 0) && geo.canMoveToTarget(second.getX(), second.getY(), second.getZ(), first.getX(), first.getY(), first.getZ(), 0);
 	}
 
-	private Outcome snapshotM1Envelope(Player actor)
+	private Outcome snapshotM1Envelope(Player actor, Map<String, String> args)
 	{
 		if (_envelopeProfileId <= 0)
 		{
@@ -349,6 +370,10 @@ public final class LocalPlayPilotActions
 		final WorldObject object = objectId <= 0 ? null : World.getInstance().findObject(objectId);
 		final Player player = object instanceof Player live ? live : null;
 		final boolean worldPresent = (materialization != null) && materialization.worldPresent() && (player != null);
+		if (!profile.admission().calendarOnline()) { return Outcome.of("REJECTED", "SCENE_INVALIDATED:CALENDAR_OFFLINE"); }
+		if (!"READY".equals(profile.admission().populationState().name())) { return Outcome.of("REJECTED", "SCENE_INVALIDATED:POPULATION_STATE"); }
+		if (!_envelopeMaterialized && !point.equals(_envelopePosition)) { return Outcome.of("REJECTED", "SCENE_INVALIDATED:COMMITTED_ANCHOR_CHANGED"); }
+		_envelopeMaterialized |= worldPresent;
 		final var actorRegion = World.getInstance().getRegion(actor);
 		final var targetRegion = worldPresent ? World.getInstance().getRegion(player) : World.getInstance().getRegion(point.x(), point.y(), point.z());
 		final boolean sameInstance = actor.getInstanceId() == (worldPresent ? player.getInstanceId() : point.instanceId());
@@ -373,8 +398,26 @@ public final class LocalPlayPilotActions
 		data.put("objectId", Integer.toString(objectId));
 		data.put("materializationState", materialization == null ? "STORED" : materialization.state().name());
 		data.put("materializedAgeMillis", (materialization == null) || (materialization.materializedAtNanos() <= 0) ? "-1" : Long.toString(Math.max(0, (System.nanoTime() - materialization.materializedAtNanos()) / 1_000_000L)));
-		data.put("localityCurrent", Boolean.toString(PhantomSystem.operatorHumanLocality(_envelopeProfileId)));
-		data.put("presenceReason", profile.busyReason());
+		data.put("localityCurrent", Boolean.toString(profile.humanLocality()));
+		data.put("presenceReason", profile.admission().calendarOnline() ? "calendar.online" : "calendar.offline");
+		data.put("busyReason", profile.busyReason());
+		data.put("calendarState", profile.admission().desiredState().name());
+		data.put("calendarOnline", Boolean.toString(profile.admission().calendarOnline()));
+		data.put("nextBoundary", profile.admission().nextBoundary().toString());
+		data.put("nativeVisible", Boolean.toString(profile.nativeVisible()));
+		data.put("retentionPins", profile.retentionPins().toString());
+		final var readiness = profile.readiness();
+		data.put("readinessReason", readiness == null ? "ecology.disabled" : readiness.reason());
+		if (readiness != null)
+		{
+			data.put("committedCursorMinute", Long.toString(readiness.committedCursorMinute()));
+			data.put("requestedHorizonMinute", Long.toString(readiness.requestedHorizonMinute()));
+			data.put("initialCatchupComplete", Boolean.toString(readiness.initialCatchupComplete()));
+			data.put("requestPending", Boolean.toString(readiness.requestPending()));
+			data.put("readinessQueued", Boolean.toString(readiness.queued()));
+			data.put("readinessRunning", Boolean.toString(readiness.running()));
+			data.put("readinessRevision", Long.toString(readiness.revision()));
+		}
 		data.put("admitted", Boolean.toString(profile.admission().admitted()));
 		data.put("lastMaterializationFailure", String.valueOf(profile.lastMaterializationFailure()));
 		data.put("distance2D", Long.toString(Math.round(Math.hypot(actor.getX() - (worldPresent ? player.getX() : point.x()), actor.getY() - (worldPresent ? player.getY() : point.y())))));
@@ -391,8 +434,11 @@ public final class LocalPlayPilotActions
 			data.put("activeSignalSources", Integer.toString(profile.scheduler().activeSignalSources()));
 			data.put("boundaryInFlight", Boolean.toString(profile.scheduler().boundaryInFlight()));
 			data.put("transitionStatus", profile.scheduler().transitionStatus().name());
+			data.put("lastTransitionReason", profile.scheduler().lastTransitionReason());
 		}
-		data.putAll(PhantomSystem.operatorVisibleLifeCensus(actor));
+		final long censusAfter = Long.parseLong(args.getOrDefault("censusAfterProfileId", "0"));
+		if (censusAfter < 0) { return Outcome.of("REJECTED", "INVALID_ARGUMENT"); }
+		data.putAll(PhantomSystem.operatorVisibleLifeCensus(actor, censusAfter));
 		return new Outcome("SUCCEEDED", "M1_ENVELOPE_SNAPSHOT", Map.copyOf(data));
 	}
 

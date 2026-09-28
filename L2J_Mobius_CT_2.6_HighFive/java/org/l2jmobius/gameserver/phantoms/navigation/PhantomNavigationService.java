@@ -249,6 +249,11 @@ public final class PhantomNavigationService
 		}
 	}
 
+	public PhantomNavigationPolicy policy()
+	{
+		return _policy;
+	}
+
 	public PhantomNavigationProgressTracker progressTracker()
 	{
 		return _progressTracker;
@@ -725,59 +730,15 @@ public final class PhantomNavigationService
 
 	private ValidatedPath validateBackendPath(RequestEntry entry, List<PhantomNavigationPoint> backendPath, long cancellationGeneration)
 	{
-		if ((backendPath == null) || (backendPath.size() < 2))
-		{
-			return new ValidatedPath(Status.NO_PATH, null);
-		}
-		if (backendPath.size() > (_policy.maximumWaypoints() + 1))
-		{
-			return new ValidatedPath(Status.ROUTE_BUDGET_EXCEEDED, null);
-		}
-		final List<PhantomNavigationPoint> waypoints = new ArrayList<>(backendPath.size() + 1);
-		PhantomNavigationPoint previousCandidate = entry._request.origin();
-		for (int index = 0; index < backendPath.size(); index++)
-		{
-			final PhantomNavigationPoint point = backendPath.get(index);
-			if ((point == null) || (point.instanceId() != entry._request.origin().instanceId()))
-			{
-				return new ValidatedPath(Status.BACKEND_FAILURE, null);
-			}
-			if ((index == 0) && point.equals(entry._request.origin()))
-			{
-				continue;
-			}
-			if (previousCandidate.equals(point))
-			{
-				return new ValidatedPath(Status.BACKEND_FAILURE, null);
-			}
-			waypoints.add(point);
-			previousCandidate = point;
-		}
-		if (waypoints.isEmpty() || !waypoints.getLast().equals(entry._request.destination()))
-		{
-			waypoints.add(entry._request.destination());
-		}
-		if (waypoints.size() > _policy.maximumWaypoints())
-		{
-			return new ValidatedPath(Status.ROUTE_BUDGET_EXCEEDED, null);
-		}
 		final double maximumDistance = routeDistanceBudget(entry._request);
-		double totalDistance = 0;
-		PhantomNavigationPoint previous = entry._request.origin();
-		for (PhantomNavigationPoint point : waypoints)
-		{
-			totalDistance += previous.distanceTo(point);
-			if (!Double.isFinite(totalDistance) || (totalDistance > maximumDistance))
-			{
-				return new ValidatedPath(Status.ROUTE_BUDGET_EXCEEDED, null);
-			}
-			previous = point;
-		}
-		final Status validationStatus = validateSegments(entry, waypoints, cancellationGeneration, false);
+		final var validation = PhantomNativeRouteContract.normalize(entry._request.origin(), entry._request.destination(), backendPath, _policy, maximumDistance, _backend::canMoveDirect, () -> interruption(entry, cancellationGeneration));
+		final Status validationStatus = validation.status();
 		if (validationStatus != Status.PATH_FOUND)
 		{
+			if (validationStatus == Status.ROUTE_OBSTRUCTED) { _metrics.recordNavigationComputedRouteObstructed(); }
 			return new ValidatedPath(validationStatus, null);
 		}
+		final var waypoints = validation.waypoints();
 		try
 		{
 			return new ValidatedPath(
@@ -792,45 +753,18 @@ public final class PhantomNavigationService
 
 	private Status validateSegments(RequestEntry entry, List<PhantomNavigationPoint> waypoints, long cancellationGeneration, boolean cacheRevalidation)
 	{
-		PhantomNavigationPoint previous = entry._request.origin();
-		for (PhantomNavigationPoint waypoint : waypoints)
+		final Status result = PhantomNativeRouteContract.validateSegments(entry._request.origin(), waypoints, _backend::canMoveDirect, () -> interruption(entry, cancellationGeneration));
+		if (result == Status.ROUTE_OBSTRUCTED)
 		{
-			if (entry._cancellation.changedSince(cancellationGeneration))
-			{
-				return Status.CANCELLED;
-			}
-			if (deadlineExpired(entry._request, _clock.getAsLong()))
-			{
-				return Status.DEADLINE_EXPIRED;
-			}
-			final boolean valid;
-			try
-			{
-				valid = _backend.canMoveDirect(previous, waypoint);
-			}
-			catch (Throwable throwable)
-			{
-				return Status.BACKEND_FAILURE;
-			}
-			if (!valid)
-			{
-				if (cacheRevalidation)
-				{
-					_metrics.recordNavigationCacheRouteObstructed();
-				}
-				else
-				{
-					_metrics.recordNavigationComputedRouteObstructed();
-				}
-				return Status.ROUTE_OBSTRUCTED;
-			}
-			previous = waypoint;
+			if (cacheRevalidation) { _metrics.recordNavigationCacheRouteObstructed(); }
+			else { _metrics.recordNavigationComputedRouteObstructed(); }
 		}
-		if (entry._cancellation.changedSince(cancellationGeneration))
-		{
-			return Status.CANCELLED;
-		}
-		return deadlineExpired(entry._request, _clock.getAsLong()) ? Status.DEADLINE_EXPIRED : Status.PATH_FOUND;
+		return result;
+	}
+
+	private Status interruption(RequestEntry entry, long cancellationGeneration)
+	{
+		return entry._cancellation.changedSince(cancellationGeneration) ? Status.CANCELLED : deadlineExpired(entry._request, _clock.getAsLong()) ? Status.DEADLINE_EXPIRED : Status.PATH_FOUND;
 	}
 
 	private WorkerClaim claimWorkerLocked()

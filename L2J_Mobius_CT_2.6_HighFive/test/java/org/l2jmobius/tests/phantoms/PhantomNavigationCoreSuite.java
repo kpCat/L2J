@@ -79,7 +79,7 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		registry.add("12-blocked-pathfinding-disabled", _ -> testBlocked(PhantomNavigationCapability.GEODATA_DIRECT_ONLY, Status.PATHFINDING_DISABLED));
 		registry.add("13-local-path-found", _ -> testPathFound());
 		registry.add("14-no-path-has-no-direct-fallback", _ -> testNoPath());
-		registry.add("14-short-path-is-no-path", _ -> testShortPath());
+		registry.add("14-single-start-normalizes-to-validated-endpoint", _ -> testShortPath());
 		registry.add("15-local-distance-budget", _ -> testLocalDistanceBudget());
 		registry.add("16-waypoint-budget", _ -> testWaypointBudget());
 		registry.add("17-route-distance-budget", _ -> testRouteDistanceBudget());
@@ -114,6 +114,7 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		registry.add("45-accepted-dispatch-orders-before-stop", _ -> testAcceptedDispatchStopOrdering());
 		registry.add("46-rejected-dispatch-orders-before-stop", _ -> testRejectedDispatchStopOrdering());
 		registry.add("47-inline-dispatcher-exact-worker-release", _ -> testInlineDispatcher());
+		registry.add("48-runtime-probe-normalized-path-parity", _ -> testRuntimeProbeParity());
 	}
 
 	private void testPointContract()
@@ -233,8 +234,41 @@ public final class PhantomNavigationCoreSuite implements PhantomTestSuite
 		fixture.backend._path = List.of(ORIGIN);
 		final var submission = fixture.service.submit(request(1, ORIGIN, DESTINATION, 0, 100));
 		fixture.dispatcher.runAll();
-		PhantomAssertions.assertEquals(Status.NO_PATH, fixture.service.consume(submission.requestId()).orElseThrow().status(), "Short path was accepted.");
+		PhantomAssertions.assertEquals(Status.PATH_FOUND, fixture.service.consume(submission.requestId()).orElseThrow().status(), "One-point origin reply did not validate the appended endpoint leg.");
 		stop(fixture);
+	}
+
+	private void testRuntimeProbeParity()
+	{
+		final List<List<PhantomNavigationPoint>> paths = new ArrayList<>(List.of(List.of(DESTINATION), List.of(ORIGIN, MIDPOINT, MIDPOINT), List.of(ORIGIN, MIDPOINT, DESTINATION)));
+		final List<PhantomNavigationPoint> oversized = new ArrayList<>();
+		for (int i = 0; i < 66; i++) { oversized.add(point(10_000 + i, 10_100)); }
+		paths.add(oversized);
+		paths.add(List.of(point(70_000, 10_000), point(-70_000, 10_000), DESTINATION));
+		for (int i = 0; i < paths.size() + 1; i++)
+		{
+			final boolean blocked = i == paths.size();
+			final List<PhantomNavigationPoint> path = paths.get(Math.min(i, paths.size() - 1));
+			final List<PhantomNavigationPoint> selected = blocked ? List.of(MIDPOINT, DESTINATION) : path;
+			final var policy = PhantomNavigationPolicy.productionDefaults();
+			final var runtime = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeRouteContract.normalize(ORIGIN, DESTINATION, selected, policy, policy.maximumRouteDistance(), (_, _) -> !blocked, () -> Status.PATH_FOUND);
+			final var probe = new PhantomGeoValidationRules.Probe()
+			{
+				private boolean _pathRequested;
+				@Override public boolean hasGeo(int x, int y) { return true; }
+				@Override public int height(int x, int y, int z) { return z; }
+				@Override public boolean canMove(PhantomGeoValidationRules.Point from, PhantomGeoValidationRules.Point to) { return _pathRequested && !blocked; }
+				@Override public List<PhantomGeoValidationRules.Point> path(PhantomGeoValidationRules.Point from, PhantomGeoValidationRules.Point to)
+				{
+					_pathRequested = true;
+					return selected.stream().map(p -> new PhantomGeoValidationRules.Point(p.x(), p.y(), p.z(), p.instanceId())).toList();
+				}
+			};
+			final var proof = PhantomGeoValidationRules.runtimeRoute(new PhantomGeoValidationRules.Point(ORIGIN.x(), ORIGIN.y(), 0, 0), new PhantomGeoValidationRules.Point(DESTINATION.x(), DESTINATION.y(), 0, 0), probe);
+			final Status expected = blocked ? Status.ROUTE_OBSTRUCTED : i >= 3 ? Status.ROUTE_BUDGET_EXCEEDED : Status.PATH_FOUND;
+			PhantomAssertions.assertEquals(expected, runtime.status(), "Shared route contract accepted an invalid structural path.");
+			PhantomAssertions.assertEquals(runtime, proof, "Runtime/probe normalized contract diverged.");
+		}
 	}
 
 	private void testLocalDistanceBudget()

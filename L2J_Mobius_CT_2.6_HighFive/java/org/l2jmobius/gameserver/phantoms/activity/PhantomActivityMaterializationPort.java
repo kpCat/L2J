@@ -54,8 +54,17 @@ public interface PhantomActivityMaterializationPort
 		RETAINED_FAILURE
 	}
 
-	record TransitionOutcome(Outcome outcome)
+	record TransitionOutcome(Outcome outcome, String reason)
 	{
+		public TransitionOutcome(Outcome outcome)
+		{
+			this(outcome, "");
+		}
+
+		public static TransitionOutcome deferred(String reason)
+		{
+			return new TransitionOutcome(Outcome.DEFERRED, reason);
+		}
 		public static TransitionOutcome success()
 		{
 			return new TransitionOutcome(Outcome.SUCCESS);

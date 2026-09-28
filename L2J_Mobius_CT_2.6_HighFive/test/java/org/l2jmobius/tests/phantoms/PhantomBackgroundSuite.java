@@ -1189,6 +1189,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				final var failedTravel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, failedNavigation, _ -> true, failureSignals, (_, failure) -> failedRoute.set(failure), System::nanoTime);
 				PhantomAssertions.assertFalse(failedTravel.arrive(profile.profileId(), goal), "Terminal navigation unexpectedly arrived.");
 				PhantomAssertions.assertFalse(travelHold.get(), "Terminal navigation kept its own materialization presence.");
+				PhantomAssertions.assertEquals("travel.navigation_pathfinding_disabled", failedTravel.reason(profile.profileId()), "Terminal native reason vanished before the census could observe it.");
 				PhantomAssertions.assertEquals(0, failedNavigation.snapshot().activeRequests(), "Terminal navigation kept its owned request.");
 				PhantomAssertions.assertTrue((failedRoute.get() != null) && (failedRoute.get().goal() == goal) && !failedRoute.get().stepId().isEmpty(), "Terminal travel did not publish its exact goal/route failure to alternate replanning.");
 			}
@@ -1196,6 +1197,32 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				failedNavigation.beginStop();
 				failedNavigation.finishStop();
+			}
+			final var defaults = org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults();
+			final var queuePolicy = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy(1, 1, defaults.maximumTrackedProfiles(), defaults.maximumCacheEntries(), defaults.cacheTtlMillis(), defaults.pathfindingCooldownMillis(), defaults.maximumLocalStraightDistance(), defaults.maximumWaypoints(), defaults.maximumRouteDistance(), defaults.defaultRequestDeadlineMillis(), defaults.stuckWindowMillis(), defaults.minimumProgress(), defaults.arrivalRadius(), defaults.maximumAttemptDurationMillis());
+			final var workers = new java.util.ArrayDeque<Runnable>();
+			final var queueNavigation = new PhantomNavigationService(queuePolicy, new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
+			{
+				@Override public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return new CapabilitySnapshot(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCapability.GEODATA_PATHFINDING, 1); }
+				@Override public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return false; }
+				@Override public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken cancellation) { return null; }
+			}, worker -> { workers.add(worker); return true; }, System::nanoTime, new PhantomMetrics());
+			queueNavigation.start();
+			try
+			{
+				final long now = System.nanoTime();
+				queueNavigation.submit(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(Long.MAX_VALUE, new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(0, 0, 0, 0), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(100, 0, 0, 0), now, now + 60_000_000_000L, 100_000));
+				final var queueTravel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, queueNavigation, _ -> true, failureSignals);
+				PhantomAssertions.assertFalse(queueTravel.arrive(profile.profileId(), goal), "Queue refusal unexpectedly arrived.");
+				PhantomAssertions.assertEquals("travel.navigation_queue_backpressure", queueTravel.reason(profile.profileId()), "Consumer waited for a rejected nonzero request without a retained terminal result.");
+				PhantomAssertions.assertFalse(travelHold.get(), "Queue refusal created a fake pending travel hold.");
+				queueTravel.beforeMaterialize(profile.profileId(), objectId);
+			}
+			finally
+			{
+				queueNavigation.beginStop();
+				while (!workers.isEmpty()) { workers.removeFirst().run(); }
+				queueNavigation.finishStop();
 			}
 			final var permitted = new java.util.concurrent.atomic.AtomicBoolean(true);
 			final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, navigation, _ -> permitted.get(), noSignals());
@@ -1223,17 +1250,53 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertFalse(action.player().isMoving(), "Cancelled farm travel left native movement running.");
 			}
 			permitted.set(true);
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow()) { action.player().setWalking(); }
+			final var nativeBackend = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+			final var asyncWorkers = new java.util.ArrayDeque<Runnable>();
+			final var pathRequested = new java.util.concurrent.atomic.AtomicBoolean();
+			final var travelClock = new java.util.concurrent.atomic.AtomicLong(System.nanoTime());
+			final var asyncNavigation = new PhantomNavigationService(defaults, new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
+			{
+				@Override public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return nativeBackend.capability(from, to); }
+				@Override public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return pathRequested.get() && nativeBackend.canMoveDirect(from, to); }
+				@Override public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken cancellation)
+				{
+					pathRequested.set(true);
+					// The controlled queue forces async handoff over the actual native pathfinder.
+					return nativeBackend.findPath(request, cancellation);
+				}
+			}, worker -> { asyncWorkers.add(worker); return true; }, travelClock::get, new PhantomMetrics());
+			asyncNavigation.start();
+			final var asyncTravel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, asyncNavigation, _ -> permitted.get(), noSignals(), (_, _) -> {}, travelClock::get);
+			PhantomAssertions.assertFalse(asyncTravel.arrive(profile.profileId(), goal), "Async consumer arrived before its worker.");
+			PhantomAssertions.assertEquals("travel.navigation_pending", asyncTravel.reason(profile.profileId()), "Accepted async request was not pending.");
+			while (!asyncWorkers.isEmpty()) { asyncWorkers.removeFirst().run(); }
 			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
 			boolean arrived = false;
+			boolean crossedMinute = false;
 			while (!arrived && (System.nanoTime() < deadline))
 			{
-				arrived = travel.arrive(profile.profileId(), goal);
+				if (!crossedMinute)
+				{
+					try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+					{
+						if (Math.hypot((long)action.player().getX() - departure.point().x(), (long)action.player().getY() - departure.point().y()) >= defaults.minimumProgress())
+						{
+							travelClock.addAndGet(TimeUnit.SECONDS.toNanos(65));
+							crossedMinute = true;
+						}
+					}
+				}
+				arrived = asyncTravel.arrive(profile.profileId(), goal);
 				if (!arrived)
 				{
-					Thread.sleep(100);
+					Thread.sleep(10);
 				}
 			}
-			PhantomAssertions.assertTrue(arrived, "Native visible travel did not arrive within its short walking bound.");
+			asyncNavigation.beginStop();
+			asyncNavigation.finishStop();
+			PhantomAssertions.assertTrue(arrived, "Native async consumer did not arrive: " + asyncTravel.reason(profile.profileId()) + " / " + asyncNavigation.snapshot());
+			PhantomAssertions.assertTrue(crossedMinute, "Native displacement did not cross the controlled former minute deadline.");
 			final var state = transaction.load(profile.profileId()).state();
 			PhantomAssertions.assertEquals(arrival.id(), state.position().committedAnchorId(), "Native arrival did not commit its anchor.");
 			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())

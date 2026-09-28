@@ -69,7 +69,6 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 			return;
 		}
 		_nextRefresh = now + REFRESH_MILLIS;
-		_local = Set.of();
 		final TreeSet<Long> candidates = new TreeSet<>();
 		final Map<Long, PhantomTopologyPoint> livePlayers = _livePlayers.get();
 		for (PhantomTopologyPoint human : _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).toList())
@@ -148,6 +147,12 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 			return false;
 		}
 		return probes(human).stream().anyMatch(probe -> !_topology.perceptibleProfilesAt(probe, PhantomPerceptionChannel.TARGETABILITY, 1, id -> id == profileId).isEmpty());
+	}
+
+	/** Recheck committed topology after readiness; a previous local set is only demand. */
+	public boolean isCurrentLocal(long profileId)
+	{
+		return isLocal(profileId) && (isNativeVisible(profileId) || _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).anyMatch(human -> canPrewarmAt(profileId, human)));
 	}
 
 	public boolean isNativeVisible(long profileId)

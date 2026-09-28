@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.LongPredicate;
 
+import org.l2jmobius.commons.threads.ThreadPool;
+
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.Status;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService;
@@ -34,8 +36,8 @@ import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStor
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot;
 
 /**
- * Bounded calendar policy above Goal033A. This class owns no timer, thread,
- * executor or future; {@link #onPopulationPulse()} is called by PopulationManager.
+ * Bounded calendar drain above Goal033A. Population pulses dispatch at most one
+ * batch onto the shared pool; no historical I/O runs on the scheduler thread.
  */
 public final class PhantomPopulationEcologyService
 {
@@ -53,6 +55,13 @@ public final class PhantomPopulationEcologyService
 	private final Preset _preset;
 	private final int _worldAgeDaysOverride;
 	private final int _archiveLimit;
+	private final Dispatcher _dispatcher;
+	private boolean _workerInFlight;
+	private boolean _workerStarted;
+	private long _workerGeneration;
+	private long _workerQueuedPulse;
+	private boolean _stopping;
+	private LongPredicate _currentDemand = _ -> true;
 	private final Map<Long, Entry> _entries = new LinkedHashMap<>();
 	private final ArrayDeque<Long> _due = new ArrayDeque<>();
 	private final Set<Long> _queued = new HashSet<>();
@@ -120,6 +129,12 @@ public final class PhantomPopulationEcologyService
 
 	public PhantomPopulationEcologyService(PhantomPopulationEcologyCatalog catalog, PhantomPopulationCatalog populationCatalog, PersistencePort store, HistoricalPort historical, LongPredicate materialized, SafeBoundary safeBoundary, Clock clock, ZoneId zoneId, Preset preset, int worldAgeDaysOverride, int archiveLimit)
 	{
+		this(catalog, populationCatalog, store, historical, materialized, safeBoundary, clock, zoneId, preset, worldAgeDaysOverride, archiveLimit, worker -> { ThreadPool.execute(worker); return true; });
+	}
+
+	public PhantomPopulationEcologyService(PhantomPopulationEcologyCatalog catalog, PhantomPopulationCatalog populationCatalog, PersistencePort store, HistoricalPort historical, LongPredicate materialized, SafeBoundary safeBoundary, Clock clock, ZoneId zoneId, Preset preset, int worldAgeDaysOverride, int archiveLimit, Dispatcher dispatcher)
+	{
+		_dispatcher = Objects.requireNonNull(dispatcher);
 		_catalog = Objects.requireNonNull(catalog, "Ecology catalog must not be null.");
 		_populationCatalog = Objects.requireNonNull(populationCatalog, "Population catalog must not be null.");
 		_store = Objects.requireNonNull(store, "Ecology store must not be null.");
@@ -161,6 +176,11 @@ public final class PhantomPopulationEcologyService
 			}
 			_periodicDueMode = true;
 		}
+	}
+
+	public void installMaterializationDemand(LongPredicate currentDemand)
+	{
+		synchronized (_monitor) { _currentDemand = Objects.requireNonNull(currentDemand); }
 	}
 
 	public void register(ManagedSnapshot population)
@@ -220,6 +240,62 @@ public final class PhantomPopulationEcologyService
 
 	public void onPopulationPulse()
 	{
+		final long generation;
+		synchronized (_monitor)
+		{
+			requireRuntime();
+			if (_stopping) { return; }
+			_pulses++;
+			if (_workerInFlight && !_workerStarted && ((_pulses - _workerQueuedPulse) >= 256))
+			{
+				_workerInFlight = false;
+				_workerGeneration++;
+				_lastFailure = "ecology.worker_dispatch_timeout";
+			}
+			if (_workerInFlight || (_due.isEmpty() && _materializationDue.isEmpty())) { return; }
+			_workerInFlight = true;
+			_workerStarted = false;
+			_workerQueuedPulse = _pulses;
+			generation = ++_workerGeneration;
+		}
+		boolean accepted = false;
+		try
+		{
+			accepted = _dispatcher.dispatch(() ->
+			{
+				synchronized (_monitor)
+				{
+					if (_stopping || ! _workerInFlight || (generation != _workerGeneration)) { return; }
+					_workerStarted = true;
+				}
+				try { drainBatch(); }
+				finally { synchronized (_monitor) { if (generation == _workerGeneration) { _workerInFlight = false; _workerStarted = false; } _monitor.notifyAll(); } }
+			});
+		}
+		catch (RuntimeException exception) { recordFailure("ecology.worker_rejected"); }
+		if (!accepted)
+		{
+			synchronized (_monitor) { if ((generation == _workerGeneration) && !_workerStarted) { _workerInFlight = false; _workerGeneration++; } _lastFailure = "ecology.worker_rejected"; }
+		}
+	}
+
+	public void beginStop()
+	{
+		synchronized (_monitor)
+		{
+			_stopping = true;
+			if (!_workerStarted) { _workerInFlight = false; _workerGeneration++; }
+		}
+	}
+
+	/** Pollable drain fence: a running canonical commit retains ownership until finally. */
+	public boolean finishStop()
+	{
+		synchronized (_monitor) { return _stopping && !_workerInFlight; }
+	}
+
+	private void drainBatch()
+	{
 		final List<Long> profiles = new ArrayList<>();
 		final Set<Long> materializationProfiles = new HashSet<>();
 		final boolean inventoryReadyBefore;
@@ -227,8 +303,8 @@ public final class PhantomPopulationEcologyService
 		{
 			requireRuntime();
 			inventoryReadyBefore = _inventoryReady;
-			_pulses++;
-			if (!_materializationDue.isEmpty())
+			final int urgentLimit = Math.max(1, _catalog.limits().maximumProfilesPerPulse() / 2);
+			for (int count = 0; (count < urgentLimit) && !_materializationDue.isEmpty(); count++)
 			{
 				final long profileId = _materializationDue.removeFirst();
 				_materializationQueued.remove(profileId);
@@ -236,6 +312,7 @@ public final class PhantomPopulationEcologyService
 				if ((entry != null) && !entry._claimed)
 				{
 					entry._claimed = true;
+					_periodicRunning++;
 					profiles.add(profileId);
 					materializationProfiles.add(profileId);
 				}
@@ -252,6 +329,7 @@ public final class PhantomPopulationEcologyService
 				if ((entry != null) && !entry._claimed)
 				{
 					entry._claimed = true;
+					_periodicRunning++;
 					profiles.add(profileId);
 				}
 			}
@@ -260,19 +338,28 @@ public final class PhantomPopulationEcologyService
 		int intervals = 0;
 		for (long profileId : profiles)
 		{
-			final StoredState before = stored(profileId);
-			boolean processed = false;
 			try
 			{
-				final int used = process(profileId, intervalsRemaining, materializationProfiles.contains(profileId));
-				processed = true;
+				if (materializationProfiles.contains(profileId) && !_currentDemand.test(profileId)) { withdrawMaterializationDue(profileId); }
+				final int slice = Math.min(intervalsRemaining, Math.max(1, _catalog.limits().maximumIntervalsPerPulse() / Math.max(1, profiles.size())));
+				final int used = processRequested(profileId, slice);
 				intervals += used;
 				intervalsRemaining -= used;
-				publishSchedulingPermissionEdge(profileId);
+				synchronized (_monitor)
+				{
+					final Entry entry = _entries.get(profileId);
+					if (entry != null) { entry._advancedReceipt += used; }
+				}
 			}
 			catch (RuntimeException exception)
 			{
 				recordFailure(typedFailure(exception));
+				deferRetry(profileId);
+				synchronized (_monitor)
+				{
+					final Entry entry = _entries.get(profileId);
+					if (entry != null) { entry._lastReportedFailure = typedFailure(exception); }
+				}
 			}
 			finally
 			{
@@ -282,11 +369,10 @@ public final class PhantomPopulationEcologyService
 					if (entry != null)
 					{
 						entry._claimed = false;
-						final StoredState after = entry._stored;
-						final long now = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
-						if (processed && materializationProfiles.contains(profileId) && (after != null) && (before != after) && ((after.state().calendarCursorEpochMinute() < now) || after.state().requestPending()))
+						_periodicRunning--;
+						if (entry._materializationDemand && !dueSnapshotLocked(profileId, entry).complete())
 						{
-							queueMaterializationLocked(profileId, true);
+							queueMaterializationLocked(profileId, false);
 						}
 						else
 						{
@@ -294,6 +380,8 @@ public final class PhantomPopulationEcologyService
 						}
 					}
 				}
+				try { publishSchedulingPermissionEdge(profileId); }
+				catch (RuntimeException exception) { recordFailure("ecology.readiness_callback_failed"); }
 			}
 		}
 		boolean inventoryBecameReady = false;
@@ -314,19 +402,77 @@ public final class PhantomPopulationEcologyService
 		}
 	}
 
-	/** Reconciles one shared scheduler due through the existing durable calendar and 0C cursor. */
+	private int processRequested(long profileId, int intervalLimit)
+	{
+		if (retryDeferred(profileId)) { return 0; }
+		int advanced = 0;
+		for (int steps = 0; steps < (intervalLimit * 4) + 8; steps++)
+		{
+			final StoredState before = stored(profileId);
+			final boolean requested;
+			synchronized (_monitor)
+			{
+				final Entry entry = _entries.get(profileId);
+				requested = (entry != null) && (entry._requestedMinute > 0);
+			}
+			if (requested && (before != null) && before.state().initialCatchupComplete() && !before.state().requestPending() && dueSnapshot(profileId).complete()) { break; }
+			advanced += process(profileId, Math.max(0, intervalLimit - advanced), requested);
+			if ((before == stored(profileId)) || (advanced >= intervalLimit)) { break; }
+		}
+		return advanced;
+	}
+
+	/** Compatibility entry point; it only requests work and never drains inline. */
 	public DueReconciliation reconcileBackgroundDue(long profileId)
 	{
-		return reconcileBackgroundDue(profileId, false);
+		return requestBackgroundDue(profileId);
 	}
 
 	/** Continues an incomplete local materialization due inside the existing pulse budgets. */
 	public DueReconciliation reconcileMaterializationDue(long profileId)
 	{
-		return reconcileBackgroundDue(profileId, true);
+		return requestMaterializationDue(profileId);
 	}
 
-	private DueReconciliation reconcileBackgroundDue(long profileId, boolean materializationDue)
+	public DueReconciliation requestBackgroundDue(long profileId)
+	{
+		return requestDue(profileId, false, true);
+	}
+
+	/** Admission gate must not consume the receipt owned by the periodic farm handler. */
+	public DueReconciliation requestBackgroundReadiness(long profileId)
+	{
+		return requestDue(profileId, false, false);
+	}
+
+	public DueReconciliation requestMaterializationDue(long profileId)
+	{
+		return requestDue(profileId, true, false);
+	}
+
+	public void withdrawMaterializationDue(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final Entry entry = _entries.get(profileId);
+			if (entry != null)
+			{
+				entry._materializationDemand = false;
+				_materializationQueued.remove(profileId);
+				_materializationDue.remove(profileId);
+				queueLocked(profileId);
+			}
+		}
+	}
+
+	private DueReconciliation requestDue(long profileId, boolean materializationDue, boolean consumeReceipt)
+	{
+		final var due = registerDue(profileId, materializationDue, consumeReceipt);
+		publishSchedulingPermissionEdge(profileId);
+		return due;
+	}
+
+	private DueReconciliation registerDue(long profileId, boolean materializationDue, boolean consumeReceipt)
 	{
 		final long targetMinute = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
 		synchronized (_monitor)
@@ -334,86 +480,43 @@ public final class PhantomPopulationEcologyService
 			requireRuntime();
 			_periodicDueCalls++;
 			final Entry entry = _entries.get(profileId);
-			if ((entry == null) || entry._claimed)
+			if (entry == null)
 			{
 				_periodicBlockedCalls++;
-				return new DueReconciliation(false, 0, "ecology.unavailable");
+				return new DueReconciliation(false, 0, "ecology.profile_unknown");
 			}
+			if (_stopping) { return new DueReconciliation(false, 0, "ecology.stopping"); }
 			if ((entry._stored != null) && entry._stored.state().initialCatchupComplete() && (targetMinute - entry._stored.state().calendarCursorEpochMinute() > 15))
 			{
 				_periodicOverdueCalls++;
 			}
-			entry._claimed = true;
-			_periodicRunning++;
-			_queued.remove(profileId);
-			_due.remove(profileId);
-			_materializationQueued.remove(profileId);
-			_materializationDue.remove(profileId);
-		}
-		int advanced = 0;
-		boolean complete = false;
-		boolean continueMaterialization = false;
-		try
-		{
-			final StoredState initial = stored(profileId);
-			final int intervalLimit = _catalog.limits().maximumIntervalsPerPulse();
-			for (int steps = 0; steps < (intervalLimit * 4) + 8; steps++)
+			if (targetMinute > entry._requestedMinute) { entry._requestedMinute = targetMinute; entry._readinessRevision++; }
+			final DueSnapshot snapshot = dueSnapshotLocked(profileId, entry);
+			if (!snapshot.complete())
 			{
-				final StoredState before = stored(profileId);
-				if ((before != null) && (before.state().calendarCursorEpochMinute() >= targetMinute) && !before.state().requestPending())
-				{
-					complete = true;
-					return new DueReconciliation(true, advanced, "ecology.cursor_current");
-				}
-				final int remaining = intervalLimit - advanced;
-				if (remaining <= 0)
-				{
-					break;
-				}
-				final int used = process(profileId, remaining, true);
-				advanced += used;
-				if ((used == 0) && (before == stored(profileId)))
-				{
-					break;
-				}
+				_periodicBlockedCalls++;
+				entry._materializationDemand |= materializationDue;
+				if (entry._materializationDemand) { queueMaterializationLocked(profileId, false); }
+				else { queueLocked(profileId); }
 			}
-			final StoredState after = stored(profileId);
-			complete = (after != null) && (after.state().calendarCursorEpochMinute() >= targetMinute) && !after.state().requestPending();
-			continueMaterialization = materializationDue && !complete && (after != null) && (initial != after);
-			return new DueReconciliation(complete, advanced, "ecology.cursor_pending");
+			final int receipt = snapshot.complete() && consumeReceipt ? entry._advancedReceipt : 0;
+			if (snapshot.complete() && consumeReceipt) { entry._advancedReceipt = 0; }
+			return new DueReconciliation(snapshot.complete(), receipt, snapshot.reason());
 		}
-		catch (RuntimeException exception)
-		{
-			recordFailure(typedFailure(exception));
-			return new DueReconciliation(false, advanced, typedFailure(exception));
-		}
-		finally
-		{
-			synchronized (_monitor)
-			{
-				final Entry entry = _entries.get(profileId);
-				if (entry != null)
-				{
-					entry._claimed = false;
-					if (continueMaterialization)
-					{
-						queueMaterializationLocked(profileId, false);
-					}
-					else
-					{
-						queueLocked(profileId);
-					}
-				}
-				_profileOperations++;
-				_historicalIntervals += advanced;
-				_periodicRunning--;
-				if (!complete)
-				{
-					_periodicBlockedCalls++;
-				}
-			}
-			publishSchedulingPermissionEdge(profileId);
-		}
+	}
+
+	public DueSnapshot dueSnapshot(long profileId)
+	{
+		synchronized (_monitor) { return dueSnapshotLocked(profileId, _entries.get(profileId)); }
+	}
+
+	private DueSnapshot dueSnapshotLocked(long profileId, Entry entry)
+	{
+		final var stored = entry == null ? null : entry._stored;
+		final var state = stored == null ? null : stored.state();
+		final long horizon = entry == null ? 0 : entry._requestedMinute;
+		final String reason = _stopping ? "ecology.stopping" : entry == null ? "ecology.profile_unknown" : state == null ? "ecology.inventory_pending" : state.disposition() != Disposition.MANAGED ? "ecology.archived" : entry._lastReportedFailure != null ? entry._lastReportedFailure : state.requestPending() ? "ecology.commit_pending" : !state.initialCatchupComplete() ? "ecology.initial_catchup_pending" : state.calendarCursorEpochMinute() < horizon ? "ecology.cursor_pending" : "ecology.cursor_current";
+		return new DueSnapshot(profileId, horizon, state == null ? 0 : state.calendarCursorEpochMinute(), (state != null) && state.initialCatchupComplete(), (state != null) && state.requestPending(), _queued.contains(profileId) || _materializationQueued.contains(profileId), (entry != null) && entry._claimed, entry == null ? 0 : entry._readinessRevision, "ecology.cursor_current".equals(reason), reason);
 	}
 
 	private int process(long profileId, int intervalBudget)
@@ -456,6 +559,7 @@ public final class PhantomPopulationEcologyService
 		}
 		if (state.requestPending())
 		{
+			if (_materialized.test(profileId)) { recordFailureOnce(profileId, "ecology.live_owner"); return 0; }
 			return advanceRequest(profileId, stored, intervalBudget);
 		}
 		final long now = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
@@ -471,7 +575,10 @@ public final class PhantomPopulationEcologyService
 		{
 			return 0;
 		}
-		final long reconciliationTarget = state.initialCatchupComplete() ? now : Math.min(now, state.initialTargetEpochMinute());
+		final long requested;
+		synchronized (_monitor) { requested = _entries.get(profileId)._requestedMinute; }
+		final long horizon = periodicDue ? Math.min(now, requested) : now;
+		final long reconciliationTarget = state.initialCatchupComplete() ? horizon : Math.min(now, state.initialTargetEpochMinute());
 		if (state.calendarCursorEpochMinute() < reconciliationTarget)
 		{
 			return beginNextWindow(profileId, population, stored, reconciliationTarget);
@@ -709,7 +816,7 @@ public final class PhantomPopulationEcologyService
 
 	private boolean permitsSchedulingLocked(Entry entry, long now)
 	{
-		return (entry._stored != null) && (entry._stored.state().disposition() == Disposition.MANAGED) && entry._stored.state().initialCatchupComplete() && !entry._stored.state().requestPending() && (_periodicDueMode || (entry._stored.state().calendarCursorEpochMinute() >= now));
+		return !_stopping && (entry._stored != null) && (entry._stored.state().disposition() == Disposition.MANAGED) && entry._stored.state().initialCatchupComplete() && !entry._stored.state().requestPending() && (entry._stored.state().calendarCursorEpochMinute() >= entry._requestedMinute) && (_periodicDueMode || (entry._stored.state().calendarCursorEpochMinute() >= now));
 	}
 
 	public boolean managed(long profileId)
@@ -783,6 +890,7 @@ public final class PhantomPopulationEcologyService
 	{
 		final StoredState saved = _store.save(profileId, expected, replacement);
 		publish(profileId, saved);
+		clearReportedFailure(profileId);
 		recordWrite();
 		return saved;
 	}
@@ -824,6 +932,7 @@ public final class PhantomPopulationEcologyService
 			}
 		}
 		entry._stored = stored;
+		entry._readinessRevision++;
 		addHistogramsLocked(stored.state());
 		_archiveGeneration = Math.max(_archiveGeneration, stored.state().archiveGeneration());
 	}
@@ -1045,6 +1154,20 @@ public final class PhantomPopulationEcologyService
 		private boolean _claimed;
 		private boolean _archiveRequested;
 		private boolean _publishedSchedulingPermission;
+		private long _requestedMinute;
+		private boolean _materializationDemand;
+		private int _advancedReceipt;
+		private long _readinessRevision;
+	}
+
+	@FunctionalInterface
+	public interface Dispatcher
+	{
+		boolean dispatch(Runnable worker);
+	}
+
+	public record DueSnapshot(long profileId, long requestedHorizonMinute, long committedCursorMinute, boolean initialCatchupComplete, boolean requestPending, boolean queued, boolean running, long revision, boolean complete, String reason)
+	{
 	}
 
 	@FunctionalInterface

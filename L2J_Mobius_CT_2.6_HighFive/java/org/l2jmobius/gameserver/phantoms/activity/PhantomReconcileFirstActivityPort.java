@@ -6,12 +6,18 @@ package org.l2jmobius.gameserver.phantoms.activity;
 import java.util.Objects;
 import java.util.function.LongPredicate;
 import java.util.function.LongUnaryOperator;
+import java.util.function.LongFunction;
+
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPresenceRegistry;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl;
 
 /** Gates scheduler materialization on the existing durable background cursor. */
 public final class PhantomReconcileFirstActivityPort implements PhantomActivityMaterializationPort
 {
 	private final PhantomActivityMaterializationPort _delegate;
 	private volatile LongPredicate _reconcile;
+	private volatile LongFunction<TransitionOutcome> _readiness;
 	private volatile LongPredicate _retainNativeVisible;
 	private volatile LongPredicate _reclaimSoft;
 	private volatile LongUnaryOperator _softCandidate;
@@ -23,11 +29,38 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 
 	public synchronized void install(LongPredicate reconcile)
 	{
-		if (_reconcile != null)
+		if ((_reconcile != null) || (_readiness != null))
 		{
 			throw new IllegalStateException("Materialization reconciliation can only be installed once.");
 		}
 		_reconcile = Objects.requireNonNull(reconcile, "Materialization reconciliation must not be null.");
+	}
+
+	public synchronized void installReadiness(LongFunction<TransitionOutcome> readiness)
+	{
+		if ((_reconcile != null) || (_readiness != null))
+		{
+			throw new IllegalStateException("Materialization reconciliation can only be installed once.");
+		}
+		_readiness = Objects.requireNonNull(readiness);
+	}
+
+	public void installPopulationReadiness(PhantomPresenceRegistry presence, PhantomHumanLocalityControl locality, PhantomPopulationEcologyService ecology)
+	{
+		installReadiness(profileId ->
+		{
+			if (!presence.isOnline(profileId) || !locality.isLocal(profileId))
+			{
+				if (ecology != null) { ecology.withdrawMaterializationDue(profileId); }
+				return TransitionOutcome.deferred("presence.no_current_local_demand");
+			}
+			if (ecology != null)
+			{
+				final var due = ecology.requestMaterializationDue(profileId);
+				if (!due.complete()) { return TransitionOutcome.deferred(due.reason()); }
+			}
+			return locality.isCurrentLocal(profileId) ? TransitionOutcome.success() : TransitionOutcome.deferred("presence.committed_position_not_local");
+		});
 	}
 
 	public synchronized void installRetention(LongPredicate retainNativeVisible)
@@ -52,6 +85,12 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	@Override
 	public TransitionOutcome materialize(long profileId)
 	{
+		final var readiness = _readiness;
+		if (readiness != null)
+		{
+			final var gate = readiness.apply(profileId);
+			return gate.outcome() == Outcome.SUCCESS ? _delegate.materialize(profileId) : gate;
+		}
 		final LongPredicate reconcile = _reconcile;
 		return ((reconcile != null) && reconcile.test(profileId)) ? _delegate.materialize(profileId) : TransitionOutcome.deferred();
 	}
