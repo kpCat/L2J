@@ -1,6 +1,6 @@
 # STATE
 
-Status: CONNECTED_HARNESS_RED_REPEAT_PERMISSION_REQUIRED
+Status: CONNECTED_RUNTIME_RED_M1_OPEN
 Baseline: 82fae37aff225e959213e1d0432b53d50360318a
 Deployed source before this task: de40c81411cf6501cb9446840aef98f7dd9369e2
 
@@ -11,7 +11,7 @@ profile 5079: точная историческая причина OFFLINE не�
 RED воспроизведён: calendar-online -> OFFLINE при pending ecology; JDBC блокировал population pulse.
 RED воспроизведён в native TEST: reject-id без retained terminal -> navigation_pending/hold.
 RED воспроизведён: native one-point path -> NO_PATH только по длине списка.
-Реализация DESIGN/PLAN завершена; independent review: важных замечаний нет.
+Изменения DESIGN/PLAN внесены; independent review: важных замечаний нет. Runtime gate RED.
 Aggregate A/B/C: 102/102 PASS; final broad: 5/5 PASS, выполнен один раз.
 Exact code scope: 21 paths; separate mojibake/escaped Cyrillic и whitespace checks PASS.
 Code SHA published: e92d7d438641f3f13158021675bd99e2489a7042.
@@ -21,10 +21,13 @@ Build/runtime/manifest hash совпадает; owned Login=16840/Game=29616, CO
 Runtime startup 50s; Login registration и native Pilot mailbox enabled наблюдены.
 Read-only PLAY calendar: READY=10000, online/horizon180=1760 (17:21:28Z).
 Mailbox headroom=512; old closed records архивированы, consent/evidence сохранены.
-Connected run f4970953-410f-4608-afc2-f38015427d7c остановился до approach: runner DateTime culture mismatch.
-TestAdmin origin/REAL_LOGIN восстановлен; Pilot run остановлен, consent ARMED_IDLE.
-Runner исправлен через существующий ISO UTC Read-Field; offline regression/syntax PASS.
-Connected mandatory criteria NOT OBSERVED; M1 не GREEN. Повтор только с явным разрешением владельца.
+Runner DateTime fix опубликован: 752047c3d80f4ae10c6665857da5bda727b5e0be; offline regression/syntax PASS.
+Ровно один явно разрешённый повтор c6bf597d-efb6-422f-a906-aca8729acc47: VISIBLE_DISAPPEARANCE.
+profile 1313 calendar-online; первое native-visible пересечение без Player: STORED/objectId=0.
+Readiness ecology.commit_pending, queued=true/running=false; cursor 29839500, horizon 29843626.
+Local demand был true, перед visibility стал false; last reason presence.no_current_local_demand.
+Origin/REAL_LOGIN восстановлен; Pilot run остановлен, consent ARMED_IDLE. Бой/travel/continuity NOT OBSERVED.
+M1 RED/open; новых run/arm/restart или Java-правок после результата нет. M2 не начат.
 
 Update this file in place; keep below 40 lines.
 M2 не начинать. Один свежий arm только после автоматической готовности.

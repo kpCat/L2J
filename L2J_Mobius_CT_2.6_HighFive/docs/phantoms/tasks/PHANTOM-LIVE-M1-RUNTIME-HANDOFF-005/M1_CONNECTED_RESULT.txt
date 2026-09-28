@@ -1,7 +1,7 @@
-runId=f4970953-410f-4608-afc2-f38015427d7c
-failed=Exception calling "Parse" with "1" argument(s): "String '09/28/2026 23:11:00' was not recognized as a valid DateTime."
+runId=c6bf597d-efb6-422f-a906-aca8729acc47
+failed=VISIBLE_DISAPPEARANCE
 restored=True
 coverage=NOT_OBSERVED
-local=
+local=2026-09-28T17:46:49.639311900Z
 materialized=
 visible=

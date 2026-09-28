@@ -66,7 +66,7 @@
 ## PUBLICATION / DEPLOYMENT / CONNECTED
 - Code SHA: e92d7d438641f3f13158021675bd99e2489a7042; normal push confirmed by ls-remote.
 - Readiness docs SHA: af30457de36cc9f19534f413d92df060518ce696.
-- Runner/date fix and connected evidence SHA: commit containing this update; actual SHA in chat.
+- Runner/date fix SHA: 752047c3d80f4ae10c6665857da5bda727b5e0be; final docs SHA in chat.
 - Clean exact-SHA build: managed detached worktree, clean status and exact HEAD checked;
   `ant -Dbuild=<owned .phantom-local/m1-005-clean-build> jar`: PASS, 22 seconds.
 - Deployed GameServer SHA256: 83A2691BC9A417CE9B1D408A735A1E2DCE5423AB658B6E082AF06D39A67DE8D6.
@@ -89,9 +89,19 @@
   the one-line fix reproduces RED then PASS offline, runner syntax PASS. No Java/JAR change.
 - TestAdmin returned to exact origin, REAL_LOGIN confirmed; Pilot run stopped,
   read-only state ARMED_IDLE/runActive=false. No automatic repeat/new arm/restart.
-- M1_CONNECTED_RESULT.txt and M1_CONNECTED_WORLD.tsv preserve this aborted run;
-  raw .phantom-local/m1-005-connected-final.log. Native life/continuity/census NOT OBSERVED.
-- M1 manual gate: REQUIRED. M2 not started. No M1 GREEN claim.
+- First aborted evidence retained in 752047c3d80 and ignored m1-005-aborted-date-* files.
+- Owner explicitly authorized exactly one repeat in the current arm; same runner unchanged.
+- Repeat c6bf597d-efb6-422f-a906-aca8729acc47: CONNECTED RUNTIME RED, VISIBLE_DISAPPEARANCE.
+  23 D6 rows: OUTSIDE 2 / PREWARM_APPROACH 13 / NATIVE_ENTRY 8. Profile 1313 calendar-online.
+  Local demand first true at 17:46:49.6393119Z; readiness stayed ecology.commit_pending,
+  queued=true/running=false, committed cursor 29839500 / requested horizon 29843626.
+  At 17:46:58.2404169Z regionCanKnow=true, objectId=0/STORED/worldPresent=false;
+  localityCurrent=false, lastTransitionReason=presence.no_current_local_demand.
+- This is missed initial materialization, not disappearance of a previously observed Player.
+  Exact cause of worker/locality state not established; no new proof/audit or Java changes.
+- Origin/REAL_LOGIN restored and Pilot run stopped; read-only ARMED_IDLE/runActive=false.
+- M1_CONNECTED_RESULT.txt / M1_CONNECTED_WORLD.tsv and ignored connected-final.log are actual repeat output.
+  Native gameplay handoff, short-return continuity and cohort census NOT OBSERVED; M1 RED/open, M2 not started.
 
 ## LIMITS / PROCESS
 - Budgets 10000/64/128/100 and navigation budgets/workers unchanged; no world data rewrite.

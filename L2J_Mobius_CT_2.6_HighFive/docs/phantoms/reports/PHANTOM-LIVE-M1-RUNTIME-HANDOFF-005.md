@@ -1,6 +1,6 @@
 # PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005
 
-Status: **AUTOMATED PASS — CONNECTED HARNESS RED, GATE REQUIRED**.
+Status: **AUTOMATED PASS — CONNECTED RUNTIME RED, M1 OPEN**.
 
 Calendar presence теперь публикуется независимо от ecology readiness. Существующие
 ecology queues обслуживает один bounded worker общего ThreadPool; scheduler/local
@@ -42,5 +42,20 @@ mutations, отдельных прогулок по локациям или M2. 
 PowerShell DateTime из JSON повторно разбирался как строка другой locale. Прочитан
 реальный payload, RED воспроизведён offline; runner исправлен существующим ISO UTC
 `Read-Field`, без изменения Java/JAR. TestAdmin возвращён в origin/REAL_LOGIN,
-Pilot run остановлен. Mandatory connected критерии NOT OBSERVED, M1 не GREEN.
-Повторный connected-run требует явного разрешения владельца по TASK.
+Pilot run остановлен. Исправление runner опубликовано в
+`752047c3d80f4ae10c6665857da5bda727b5e0be`.
+
+Владелец явно разрешил ровно один повтор в текущей arm-сессии. Тот же runner
+выполнен один раз: `c6bf597d-efb6-422f-a906-aca8729acc47`, результат
+**VISIBLE_DISAPPEARANCE / RED**. При обычном подходе profile 1313 оставался
+calendar-online; local demand появился в 17:46:49.6393119Z, но readiness осталась
+`ecology.commit_pending`, queued=true/running=false, cursor 29839500 / horizon
+29843626. В 17:46:58.2404169Z область native visibility достигнута без Player:
+objectId=0, STORED, worldPresent=false. Locality уже false, причина transition
+`presence.no_current_local_demand`. Это пропуск первой материализации; ранее
+видимый Player не наблюдался. Точная причина worker/locality состояния не доказана.
+
+TestAdmin возвращён в исходную точку, REAL_LOGIN подтверждён; Pilot run остановлен.
+Native бой/travel handoff, continuity короткого возврата и cohort census
+**NOT OBSERVED**. Java/JAR не менялись, новых proof/audit, run, arm или restart нет.
+M1 остаётся RED/open; M2 не начат.
