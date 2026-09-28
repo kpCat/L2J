@@ -107,3 +107,36 @@
   Review использовал только read-only exact-path diff. Mutation: git add --
   <перечисленный allowlist>, git commit -m "Fix generic phantom smart continuity",
   git push origin feature/phantom-world. broad add/history rewriting запрещены.
+
+## Build / deployment / connected ready
+
+- Code commit/remote: de40c81411cf6501cb9446840aef98f7dd9369e2. Exact staged guard
+  подтвердил 25 task-owned paths. Normal push PASS, ls-remote совпал с source SHA.
+- list_artifacts не нашёл suitable active checkout; native create_worktree(ref=SHA)
+  создал C:/Users/ZBook/.codex/worktrees/m1-smart-continuity/L2J_Mobius.
+  git rev-parse HEAD, git symbolic-ref -q HEAD и git status --porcelain подтвердили
+  exact SHA / detached / clean. Единственный final ant jar PASS: 2294 sources,
+  24 s. Post-build checkout clean; clean-build.log сохранён в task folder.
+- Controlled Stop-LocalPlay остановил только owned старые Game 21216 / Login 32904.
+  Exact clean JARs скопированы после backup. Manifest hashes обновлены штатными
+  existing fields; .NET Replace потребовал непустой backup path, orchestration
+  исправлена без второй сборки и без изменения source/config/budgets.
+- Start-LocalPlay -Background, Check-LocalPlay PASS: Login 21324 / Game 10036,
+  owned 2106/9014/7777, 10000/64/128/100. Startup 47 s; Pilot enabled;
+  registration Server 1/Bartz confirmed. Raw deploy.log, health-before-deploy.log.
+- GameServer build/deploy SHA256 совпал:
+  6C0932A3672E427B6ABC820A096DA65D12FC59B9B2078385004F91F954A1008F.
+  LoginServer SHA256: 3B79A86276AA544E6886881F54814BE159FAC1412241852408781E86EF64A9E8.
+  PhantomPlayers.ini не редактировался. Content SHA256 трёх чужих dirty files
+  после deployment совпал с pre-commit snapshot.
+- Connected runner final syntax PASS. Private mailbox read under owner SID:
+  inbox/processing 0, journals 224 / results 226; cap 512, room для одного scene.
+  Чтение под sandbox SID недостоверно из-за intentional private ACL, поэтому
+  readiness подтверждена actual owner context.
+- WAITING_CONNECTED, actual client actions 0. Fresh TestAdmin arm будет выдан
+  после возвращения владельца. Connected invariants и origin return ещё не
+  выполнены, поэтому M1 не закрыт; M2/new task/proof-only continuation отсутствуют.
+- Evidence-only closeout: exact-path add трёх EVIDENCE/RESULT/report файлов,
+  git diff --cached --name-only/--check; git commit -m
+  "Record verified M1 continuity build and deployment"; normal push той же ветки.
+  Deployed code SHA остаётся указанным выше.
