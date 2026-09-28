@@ -1,6 +1,6 @@
 # STATE
 
-Status: CONTINUATION_AUTOMATED_READY_PUBLICATION_M1_OPEN
+Status: CONTINUATION_READY_FOR_FRESH_ARM_M1_OPEN
 Continuation baseline: 50600cefa3da849f231e3883ecdda5a31800b699.
 Branch/origin: feature/phantom-world / https://github.com/kpCat/L2J.
 Previous deployed code: e92d7d438641f3f13158021675bd99e2489a7042.
@@ -23,7 +23,12 @@ Hunters Village recovery anchor вне coverage; XML не менялся. Broad/
 Final review выполнен тем же reviewer; новых proof-задач и второго runner нет.
 Exact publication scope: 21 paths в continuation-after-stall/RESULT.md; чужие hunks вне stage/build.
 Raw logs/probe только ignored .phantom-local. Все Ant запуски строго последовательны.
-Publication/clean exact-SHA JAR/controlled deployment continuation ещё не выполнены.
-Следующий gate: после automatic ready и deploy один свежий TestAdmin arm и existing prepared run.
+Published code source: 6f6dec73495657da0d09f8ced328eba6b5083ad2; scoped ordinary push выполнен.
+Clean managed detached ant jar PASS, 25s; ровно один controlled deployment завершён.
+Game SHA256: 2DCA1627FB0C9ED8883087D2F628AFC74E5223F7328DB076DF144CC5F4E02F4D.
+Clean/runtime/manifest hashes совпадают; CONFIG PASS; owned Login=15440/Game=29824 RUNNING.
+Native Pilot enabled и Login registration наблюдены; pre-arm health 21:07:19Z, mailbox headroom=512, Pilot OFF.
+По 42 closed journal/results сохранены в архиве, backup Game/Login/manifest сохранён.
+Следующий required gate: один свежий TestAdmin arm и existing prepared connected run; нового run ещё нет.
 M1 GREEN только по connected PLAN §4; required gate не принят автоматически.
 M2 не начат.

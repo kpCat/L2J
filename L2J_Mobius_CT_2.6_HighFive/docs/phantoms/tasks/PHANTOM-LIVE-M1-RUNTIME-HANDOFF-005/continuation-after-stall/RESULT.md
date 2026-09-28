@@ -35,7 +35,7 @@ Native death timer 45-second policy покрывает существующий 
 Hunters Village recovery anchor для high-level Giran corpse отсутствует в текущем corpus; XML anchors не добавлены. High-level TEST проверяет load/vitals/SP fence, не эту town route.
 Два существующих store/capture writes при derived-vitals refresh не являются новой атомарной транзакцией; второй write может отказать и оставить штатный retained failure.
 Broad planner 1..85, 10k native scale и новая live-location matrix не запускались. Старый broad 5/5 — прежнее evidence.
-CONNECTED: новый run не выполнялся; свежий arm будет запрошен только после publication/clean build/deploy/health.
+CONNECTED: новый run не выполнялся. Нужен один fresh TestAdmin arm; gate REQUIRED, M1 GREEN не объявлен.
 
 ## Exact publication allowlist (относительно модуля)
 
@@ -64,4 +64,25 @@ CONNECTED: новый run не выполнялся; свежий arm будет
 Чужие tracked hunks и остальные untracked task inputs остаются вне публикации; .phantom-local/raw DB payload/credentials не stage.
 mojibake-маркеры в изменённых файлах проверены: PASS, все заданные маркеры, exact 21 paths.
 escaped Cyrillic в изменённых файлах проверены: PASS, все шесть regex patterns, exact 21 paths.
-Publication/deployment SHA/hash и whitespace/scope guard будут записаны после controlled deployment.
+Whitespace git diff --cached --check PASS; staged scope 21/21 PASS, опубликованный git show inventory совпадает с allowlist.
+Code source опубликован в origin feature/phantom-world: 6f6dec73495657da0d09f8ced328eba6b5083ad2.
+Managed clean checkout: C:/Users/ZBook/.codex/worktrees/m1-pending-handoff/L2J_Mobius, detached HEAD exact SHA, status clean до build.
+Clean ant -Dbuild=.phantom-local/m1-005-clean-build jar PASS, 25s; build/runtime/manifest Game SHA256 совпадает:
+2DCA1627FB0C9ED8883087D2F628AFC74E5223F7328DB076DF144CC5F4E02F4D.
+Ровно один controlled owned deployment: backup artifacts/local-play/m1-005-backup-6f6dec7-20260929-000515, старые PID 29616/16840 штатно остановлены.
+По 42 closed journal/results архивированы, consent сохранён. CONFIG PASS; owned Login=15440/Game=29824 RUNNING, native Pilot enabled и Login registration наблюдены.
+Pre-arm snapshot 2026-09-28T21:07:19.4769553Z: inbox/processing/journal/results=0, headroom512, Pilot OFF. Cached readiness до fresh consent NOT_OBSERVED, снимается первым existing runner snapshot.
+Raw aggregate/native/offline/build/deploy evidence и pre-arm JSON только .phantom-local. Документация закрытия обновляется отдельно; JAR остаётся exact code source выше.
+
+## Git
+
+Git разрешён разделом «Доступ и публикация» continuation TASK; только inspection/scope guard и точечная публикация этой ветки. History/force/broad restore не использованы.
+Read-only: git status --short; git rev-parse HEAD; git rev-parse --abbrev-ref HEAD; git remote -v; git diff --cached --name-only; git show --format= --name-only HEAD.
+Scoped read-only: git diff -- java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java
+git status --short -- java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java test/java/org/l2jmobius/gameserver/phantoms/PhantomClanDirectiveIntegrationGoal030C2ASuite.java test/java/org/l2jmobius/tests/phantoms/PhantomMultipartyEconomySuite.java
+git diff --stat -- build.xml docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/Run-M1RuntimeHandoff.ps1 java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java java/org/l2jmobius/gameserver/phantoms/PhantomLocalProofSelector.java java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java java/org/l2jmobius/gameserver/phantoms/topology/PhantomTopologyProfileRegistry.java java/org/l2jmobius/gameserver/phantoms/topology/PhantomTopologyService.java test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java test/java/org/l2jmobius/tests/phantoms/PhantomM1RuntimeHandoffSuite.java test/java/org/l2jmobius/tests/phantoms/PhantomOperatorObservabilitySuite.java test/java/org/l2jmobius/tests/phantoms/PhantomTopologyCoreSuite.java test/java/org/l2jmobius/tests/phantoms/PhantomTopologyPerceptionSuite.java
+Foreign paths: java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java; test/java/org/l2jmobius/gameserver/phantoms/PhantomClanDirectiveIntegrationGoal030C2ASuite.java; test/java/org/l2jmobius/tests/phantoms/PhantomMultipartyEconomySuite.java.
+Writes: git add -- $scope; git diff --cached --check -- $scope; git commit -m "fix(phantoms): complete pending handoff under native locality"; git push origin feature/phantom-world.
+$scope — exact 21-path allowlist выше; stage inventory проверен до commit, foreign пути исключены.
+Doc follow-up: git add -- $docs; git diff --cached --check -- $docs; git commit -m "docs(phantoms): record continuation 005 deployment readiness"; git push origin feature/phantom-world.
+$docs — только STATE.md и этот RESULT.md. Native worktree создан app tool с exact ref, без shell branch/worktree mutations.
