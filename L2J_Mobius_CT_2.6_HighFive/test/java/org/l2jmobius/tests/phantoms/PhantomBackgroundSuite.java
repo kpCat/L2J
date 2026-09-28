@@ -504,6 +504,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private void testPendingNativeHandoff(PhantomTestContext context, boolean alreadyComplete, boolean levelLossOnly) throws Exception
 	{
 		final String evidencePrefix = levelLossOnly ? "m1.levelLoss" : alreadyComplete ? "m1.complete" : "m1.running";
+		final boolean longHistory = !alreadyComplete;
 		final var farm = levelLossOnly ? productionFarmSelection() : new ProductionFarmSelection(20481, _production.topology().findAnchor("population.farming.human-mystic.20481").orElseThrow());
 		try (var fixture = openProductionPlayerFixture(farm.anchor(), levelLossOnly ? _production.knowledge().findNpc(farm.npcId()).orElseThrow().level() : 3, levelLossOnly ? null : PlayerClass.ELVEN_FIGHTER, farm))
 		{
@@ -570,35 +571,47 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				final var planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), _production.topology(), authority);
 				final var historical = new PhantomHistoricalBackgroundService(_repository, goals, planner, background, materialization);
 				lifecycle.install(PhantomMaterializationLifecyclePort.chain(loadDiagnostic, PhantomMaterializationLifecyclePort.chain(historical, background)));
-				final long target = 29843626L;
-				final long from = target - 13;
-				final var generation = planner.generation();
-				final var catchupStore = new PhantomBackgroundCatchupStore(_repository, goals);
-				final var restored = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.RUNNING, "d".repeat(64), context.seed(), from, target, from, 0, 0, 1, generation.knowledgeGeneration(), generation.topologyGeneration(), fixture.goal().goalId(), fixture.goal().revision(), "a".repeat(64), PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), "");
-				catchupStore.claim(id, restored);
-				final var partial = historical.advance(id, alreadyComplete ? 13 : 1, alreadyComplete ? 13 : 1);
-				PhantomAssertions.assertTrue(partial.successful(), "Real pending initial progress failed: " + partial.reason());
-				PhantomAssertions.assertEquals(alreadyComplete ? PhantomBackgroundCatchupState.Status.COMPLETE : PhantomBackgroundCatchupState.Status.RUNNING, partial.snapshot().state().status(), "Fixture did not persist the required inner status.");
 				final var populationCatalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"), java.time.ZoneOffset.UTC);
 				final var catalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-ecology-v1.xml"), populationCatalog, org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/social/high-five-social-v1.xml")));
 				final var metadata = new PhantomPopulationTestDoubles.MemoryStore(populationCatalog.hash());
 				final var seed = metadata.seedReady(id, 1);
+				long selectedTarget = 29843626L;
+				if (longHistory)
+				{
+					final var pace = catalog.assign(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 1, 1, context.seed(), selectedTarget, 0, 0, seed.state().scheduleTemplate());
+					while (!catalog.productive(pace, Math.floorDiv(selectedTarget - 4320, pace.productiveBlockMinutes())) || Math.floorMod(selectedTarget - 4320, pace.productiveBlockMinutes()) == pace.productiveBlockMinutes() - 1 || !populationCatalog.evaluate(seed.state().scheduleTemplate(), java.time.Instant.ofEpochSecond(selectedTarget * 60), java.time.ZoneOffset.UTC, seed.state().schedulePhaseMinutes()).state().equals(PhantomActivityState.BACKGROUND))
+					{
+						selectedTarget++;
+						PhantomAssertions.assertTrue(selectedTarget < 29843626L + 1440, "No coherent productive TEST start in the production day.");
+					}
+				}
+				final long target = selectedTarget;
+				final long from = target - (longHistory ? 4320 : 13);
+				final var assignment = catalog.assign(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 1, 1, context.seed(), target, 0, 0, seed.state().scheduleTemplate());
+				final long windowTarget = longHistory ? Math.min(target, (Math.floorDiv(from, assignment.productiveBlockMinutes()) + 1) * assignment.productiveBlockMinutes()) : target;
+				final var generation = planner.generation();
+				final var catchupStore = new PhantomBackgroundCatchupStore(_repository, goals);
+				final var restored = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.RUNNING, "d".repeat(64), context.seed(), from, windowTarget, from, 0, 0, 1, generation.knowledgeGeneration(), generation.topologyGeneration(), fixture.goal().goalId(), fixture.goal().revision(), "a".repeat(64), PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), "");
+				catchupStore.claim(id, restored);
+				final var partial = historical.advance(id, alreadyComplete ? 13 : 1, alreadyComplete ? 13 : 1);
+				PhantomAssertions.assertTrue(partial.successful(), "Real pending initial progress failed: " + partial.reason());
+				PhantomAssertions.assertEquals(alreadyComplete ? PhantomBackgroundCatchupState.Status.COMPLETE : PhantomBackgroundCatchupState.Status.RUNNING, partial.snapshot().state().status(), "Fixture did not persist the required inner status.");
 				final var populationState = seed.state().initialized(profile.characterObjectId(), seed.state().initializationHash()).ready();
 				final var component = _repository.insertComponent(id, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.SCHEMA_VERSION, new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStateCodec().encode(populationState));
 				final var managed = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot(profile, component, populationState);
 				final var store = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore(_repository);
-				final var pending = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState(catalog.hash(), org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 1, 1, from, from, from, from, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Pace.CASUAL, 2500, 15, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Personality.SOCIAL, Map.of(1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0), populationState.scheduleTemplate(), org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Disposition.MANAGED, target + 10000, 0, "", 0, 0, 0, "").beginRequest(restored.requestId(), target);
+				final var pending = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState(catalog.hash(), assignment.preset(), 1, 1, from, from, from, longHistory ? target : from, longHistory ? assignment.pace() : org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Pace.CASUAL, longHistory ? assignment.productiveShareBasisPoints() : 2500, assignment.productiveBlockMinutes(), assignment.personality(), assignment.initialSocialTraits(), populationState.scheduleTemplate(), org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Disposition.MANAGED, target + 10000, 0, "", 0, 0, 0, "").beginRequest(restored.requestId(), windowTarget);
 				final var persisted = store.insert(id, pending);
 				final var coldStore = new PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null);
 				final var coldLoads = new java.util.concurrent.atomic.AtomicInteger();
 				final var firstClaim = new java.util.concurrent.atomic.AtomicLong();
 				final Map<Long, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot> cohort = new java.util.HashMap<>();
 				cohort.put(id, managed);
-				for (int index = 0; index < 9999; index++)
+				for (int index = 0; index < (longHistory ? 1279 : 9999); index++)
 				{
 					final long coldId = 1_000_000_000L + index;
 					cohort.put(coldId, metadata.seedReady(coldId, 1));
-					coldStore.insert(coldId, catalog.assign(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 1, index + 2, context.seed(), target, 0, 0, "evening"));
+					coldStore.insert(coldId, catalog.assign(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 1, index + 2, context.seed(), longHistory ? from : target, 0, 0, "evening"));
 				}
 				final var persistence = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.PersistencePort()
 				{
@@ -607,11 +620,15 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 					@Override public org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState save(long value, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState expected, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState state) { return value == id ? store.save(value, expected, state) : coldStore.save(value, expected, state); }
 					@Override public org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.ArchivedResult archive(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot value, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState state, long generation, long now) { throw new AssertionError("Replay cannot archive."); }
 				};
+				final var competingHistory = new PhantomPopulationEcologyGoal033Suite.HistoricalMemoryPort();
+				final var competingIntervals = new java.util.concurrent.atomic.AtomicLong();
+				final var nativeIntervals = new java.util.concurrent.atomic.AtomicLong(partial.advancedIntervals());
+				final var nativeWindows = new java.util.concurrent.atomic.AtomicInteger(1);
 				final var history = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.HistoricalPort()
 				{
-					@Override public Optional<PhantomBackgroundCatchupStore.Snapshot> status(long value) { return historical.status(value); }
-					@Override public PhantomHistoricalBackgroundService.Result begin(long value, long start, long end, long seedValue) { return historical.begin(value, start, end, seedValue); }
-					@Override public PhantomHistoricalBackgroundService.Result advance(long value, int intervals, int minutes) { return historical.advance(value, intervals, minutes); }
+					@Override public Optional<PhantomBackgroundCatchupStore.Snapshot> status(long value) { return value == id ? historical.status(value) : competingHistory.status(value); }
+					@Override public PhantomHistoricalBackgroundService.Result begin(long value, long start, long end, long seedValue) { if (value != id) { return competingHistory.begin(value, start, end, seedValue); } final var result = historical.begin(value, start, end, seedValue); if (result.successful()) { nativeWindows.incrementAndGet(); } return result; }
+					@Override public PhantomHistoricalBackgroundService.Result advance(long value, int intervals, int minutes) { if (value != id) { final var result = competingHistory.advance(value, intervals, minutes); competingIntervals.addAndGet(result.advancedIntervals()); return result; } final var result = historical.advance(value, intervals, minutes); nativeIntervals.addAndGet(result.advancedIntervals()); return result; }
 				};
 				final var presence = new org.l2jmobius.gameserver.phantoms.population.PhantomPresenceRegistry(1);
 				presence.schedule(id, populationCatalog.evaluate(populationState.scheduleTemplate(), java.time.Instant.ofEpochSecond(target * 60), java.time.ZoneOffset.UTC, populationState.schedulePhaseMinutes()).state());
@@ -622,7 +639,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 					@Override public SignalDelivery submit(long value, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.BACKPRESSURE; }
 					@Override public SignalDelivery withdraw(long value, String source, long sequence) { return SignalDelivery.BACKPRESSURE; }
 				};
-				final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, backpressure, () -> List.of(initialPoint), () -> System.nanoTime() / 1_000_000L, presence::isOnline);
+				final var humanPoint = new AtomicReference<>(initialPoint);
+				final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, backpressure, () -> List.of(humanPoint.get()), () -> System.nanoTime() / 1_000_000L, presence::isOnline);
 				final var released = new java.util.concurrent.atomic.AtomicBoolean();
 				final var heldWorkers = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
 				ecology = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService(catalog, populationCatalog, persistence, history, value -> materialization.find(value).isPresent(), _ -> "", java.time.Clock.fixed(java.time.Instant.ofEpochSecond(target * 60), java.time.ZoneOffset.UTC), java.time.ZoneOffset.UTC, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 0, 10, worker -> { if (released.get()) { ThreadPool.execute(worker); } else { heldWorkers.add(worker); } return true; });
@@ -635,7 +653,31 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 					@Override public void ecologyFenceChanged(long value) {}
 				});
 				ecology.installMaterializationDemand(locality::isCurrentLocal);
-				locality.installPhysicalDemand(ecology::requestMaterializationDue);
+				long expectedProductiveIntervals = windowTarget - from;
+				int expectedProductiveWindows = 1;
+				if (longHistory)
+				{
+					var calendar = pending.completeRequest();
+					while (calendar.calendarCursorEpochMinute() < target)
+					{
+						final var window = ecology.nextProductiveWindow(calendar, populationState.schedulePhaseMinutes(), target);
+						if (window.productive()) { expectedProductiveIntervals += window.endEpochMinute() - window.startEpochMinute(); expectedProductiveWindows++; }
+						PhantomAssertions.assertTrue(window.endEpochMinute() > calendar.calendarCursorEpochMinute(), "Production calendar scan made no progress.");
+						calendar = calendar.advanceCalendar(window.endEpochMinute());
+					}
+				}
+				final var currentEcology = ecology;
+				if (longHistory)
+				{
+					locality.installPreparationDemand((facts, slots) ->
+					{
+						final var competing = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact>();
+						for (int index = 0; index < 973; index++) { competing.add(new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact(1_000_000_000L + index, 1, false, 10000 + index, 1)); }
+						competing.addAll(facts);
+						currentEcology.updateMaterializationDemand(competing, slots);
+					}, () -> 1);
+				}
+				else { locality.installPhysicalDemand(ecology::requestMaterializationDue); }
 				for (var value : cohort.values()) { ecology.register(value); }
 				final var nativeBoundary = new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort(materialization, true);
 				final var gate = new org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort(nativeBoundary);
@@ -645,9 +687,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(PhantomRelevanceSignalPort.SignalDelivery.BACKPRESSURE, locality.deliverySnapshot().get(id), "Replay did not exercise independent physical demand.");
 				released.set(true);
 				for (Runnable worker; (worker = heldWorkers.poll()) != null;) { ThreadPool.execute(worker); }
-				while (!ecology.dueSnapshot(id).complete() && (System.nanoTime() - startNanos < TimeUnit.SECONDS.toNanos(22)))
+				while (!ecology.dueSnapshot(id).complete() && (System.nanoTime() - startNanos < TimeUnit.SECONDS.toNanos(longHistory ? 180 : 22)))
 				{
 					locality.onPulse();
+					if (longHistory && !locality.isCurrentLocal(id)) { humanPoint.set(topology.findProfile(id).orElseThrow().point()); }
 					if (ecology.progressSnapshot(id).currentStage().equals("blocked")) { break; }
 					Thread.sleep(10);
 				}
@@ -657,16 +700,31 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				context.record(evidencePrefix + ".progress", ecology.progressSnapshot(id));
 				context.record(evidencePrefix + ".innerIntervals", historical.status(id).orElseThrow().state().intervalOrdinal());
 				context.record(evidencePrefix + ".reason", ecology.dueSnapshot(id).reason());
+				context.record(evidencePrefix + ".productiveWork", "nativeWindows=" + nativeWindows.get() + " nativeIntervals=" + nativeIntervals.get() + " ordinaryIntervals=" + competingIntervals.get());
 				PhantomAssertions.assertTrue(ecology.dueSnapshot(id).complete(), "Native pending replay failed: " + ecology.dueSnapshot(id) + " / " + ecology.progressSnapshot(id));
-				PhantomAssertions.assertEquals(persisted.rowVersion() + 1, store.load(id).orElseThrow().rowVersion(), "Matching request was committed more than once.");
-				PhantomAssertions.assertEquals(13L, historical.status(id).orElseThrow().state().intervalOrdinal(), "Replay reset or duplicated inner intervals.");
+				if (!longHistory)
+				{
+					PhantomAssertions.assertEquals(persisted.rowVersion() + 1, store.load(id).orElseThrow().rowVersion(), "Matching request was committed more than once.");
+					PhantomAssertions.assertEquals(13L, historical.status(id).orElseThrow().state().intervalOrdinal(), "Replay reset or duplicated inner intervals.");
+				}
+				else
+				{
+					PhantomAssertions.assertEquals(4320L, target - from, "Native TEST shortened the calendar horizon.");
+					PhantomAssertions.assertTrue(nativeWindows.get() > 1 && nativeIntervals.get() > 16, "Native TEST did not complete multiple production windows.");
+					PhantomAssertions.assertEquals(expectedProductiveWindows, nativeWindows.get(), "Native TEST skipped or duplicated a productive window.");
+					PhantomAssertions.assertEquals(expectedProductiveIntervals, nativeIntervals.get(), "Native TEST skipped or duplicated committed productive minutes.");
+					PhantomAssertions.assertTrue(competingIntervals.get() > 0, "Ordinary competing history did not progress.");
+					context.record(evidencePrefix + ".history", "calendarMinutes=4320 productiveWindows=" + nativeWindows.get() + " actualIntervals=" + nativeIntervals.get() + " cohort=1 native+1279 synthetic metadata; 973 synthetic far demands retained");
+				}
 				PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseProfiles() <= 4 && ecology.snapshot().maximumPulseIntervals() <= 16, "Wake sources multiplied the ecology budget.");
 				PhantomAssertions.assertTrue(coldLoads.get() >= 2, "Urgent work starved ordinary cold metadata.");
 				final var beforeLoad = transaction.load(id).state();
+				final long beforeLoadIntervals = historical.status(id).orElseThrow().state().intervalOrdinal();
+				humanPoint.set(topology.findProfile(id).orElseThrow().point()); locality.onPulse();
 				final var materialized = gate.materialize(id);
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.Outcome.SUCCESS, materialized.outcome(), "Same physical demand did not materialize the native Player: " + materialized.reason() + " / " + nativeBoundary.diagnosticFailures());
 				PhantomAssertions.assertEquals(beforeLoad.progress(), transaction.load(id).state().progress(), "Native derived-vitals refresh fabricated progress.");
-				PhantomAssertions.assertEquals(13L, historical.status(id).orElseThrow().state().intervalOrdinal(), "Native load replayed completed history.");
+				PhantomAssertions.assertEquals(beforeLoadIntervals, historical.status(id).orElseThrow().state().intervalOrdinal(), "Native load replayed completed history.");
 				try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { PhantomAssertions.assertTrue(authority.matchesRuntime(lease.player(), transaction.load(id).state()), "Materialized Player differs from its refreshed durable projection."); }
 				if (levelLossOnly)
 				{
@@ -714,7 +772,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				try (var lease = materialization.tryAcquireAction(id).orElseThrow()) { PhantomAssertions.assertTrue(lease.player() == player, "Native travel replaced the materialized Player instance."); }
 				final double displacement = Math.hypot((long)player.getX() - departureX, (long)player.getY() - departureY);
 				if (beforeLoad.state() == State.DEAD) { PhantomAssertions.assertTrue(displacement >= nativeNavigation.policy().minimumProgress(), "Native corpse recovery did not move to the farm."); }
-				PhantomAssertions.assertEquals(farm.anchor().id(), transaction.load(id).state().position().committedAnchorId(), "Pending native arrival did not capture its farm anchor.");
+				PhantomAssertions.assertEquals(PhantomBackgroundGoalSpec.parse(nativeGoal).anchorId(), transaction.load(id).state().position().committedAnchorId(), "Pending native arrival did not capture its farm anchor.");
 				context.record(evidencePrefix + ".nativeTravel", "distance=" + displacement + " arrival=" + transaction.load(id).state().position().committedAnchorId());
 				autoPlay = new PhantomVisibleAutoPlay(materialization, () -> currentEngine, presence::isOnline);
 				final int npcId = PhantomBackgroundGoalSpec.parse(nativeGoal).npcId();

@@ -131,6 +131,9 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		manager.onPulse();
 		PhantomAssertions.assertTrue(ecology.inventoryReady(), "Final restored ecology row did not make inventory ready inside the pulse.");
 		PhantomAssertions.assertEquals(4, populationStore.size(), "Lost ecology readiness edge did not reconcile the target deficit into two bounded shells.");
+		final long createdId = populationStore.loadManagedAfter(0, 16).stream().filter(value -> value.state().creationPending()).findFirst().orElseThrow().profile().profileId();
+		advanceToReady(manager, createdId);
+		PhantomAssertions.assertFalse(ecology.dueSnapshot(createdId).reason().equals("ecology.population_paused"), "New READY identity retained its SHELL ecology pause.");
 		stop(manager);
 		context.record("goal033.restoredReadinessCreated", populationStore.size());
 	}
@@ -144,11 +147,12 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		final EcologyMemoryStore store = new EcologyMemoryStore(null);
 		store.insert(1, stateAt(target - 60, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()));
 		final HistoricalMemoryPort historical = new HistoricalMemoryPort();
-		final PhantomPopulationEcologyService service = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 10);
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(now);
+		final PhantomPopulationEcologyService service = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
 		service.enablePeriodicDueMode();
 		service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
 		service.register(population);
-		final var first = service.reconcileMaterializationDue(1);
+		final var first = service.dueSnapshot(1);
 		PhantomAssertions.assertFalse(first.complete(), "Backlogged due unexpectedly bypassed the bounded cursor gate.");
 		PhantomAssertions.assertTrue(store.require(1).state().calendarCursorEpochMinute() < target, "Fixture did not retain a due gap.");
 		for (int pulse = 0; (pulse < 200) && (store.require(1).state().calendarCursorEpochMinute() < target); pulse++)
@@ -159,6 +163,16 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertTrue(service.reconcileBackgroundDue(1).complete(), "Current durable cursor did not release the materialization gate.");
 		PhantomAssertions.assertTrue(service.snapshot().maximumPulseProfiles() <= _ecology.limits().maximumProfilesPerPulse(), "Periodic continuation exceeded the profile pulse budget.");
 		PhantomAssertions.assertTrue(service.snapshot().maximumPulseIntervals() <= _ecology.limits().maximumIntervalsPerPulse(), "Periodic continuation exceeded the interval pulse budget.");
+		clock.set(Instant.parse("2026-01-05T23:30:00Z"));
+		for (int pulse = 0; pulse < 200; pulse++) { service.onPopulationPulse(); }
+		final long beforeOffline = historical.advancedMinutes();
+		clock.set(Instant.parse("2026-01-06T17:30:00Z"));
+		for (int pulse = 0; pulse < 20; pulse++) { service.onPopulationPulse(); }
+		PhantomAssertions.assertEquals(beforeOffline, historical.advancedMinutes(), "Offline calendar gap fabricated farm work.");
+		PhantomAssertions.assertEquals(minute(clock.instant()), store.require(1).state().calendarCursorEpochMinute(), "Offline gap required a human to advance its canonical cursor.");
+		clock.set(Instant.parse("2026-01-06T17:31:00Z"));
+		for (int pulse = 0; pulse < 10; pulse++) { service.onPopulationPulse(); }
+		PhantomAssertions.assertEquals(beforeOffline + 1, historical.advancedMinutes(), "Background calendar boundary did not resume without human demand.");
 		context.record("goal033.periodicContinuation", historical.advancedMinutes());
 	}
 
@@ -308,13 +322,13 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		service.onPopulationPulse();
 		clock.set(from.plusSeconds(10 * 60));
 		service.onPopulationPulse();
-		PhantomAssertions.assertEquals(0L, historical.advancedMinutes(), "Ordinary award occurred before the first shared BACKGROUND due.");
-		PhantomAssertions.assertTrue(service.permitsScheduling(1), "Pending ordinary due withdrew the scheduler before its first due.");
-		final var pending = service.requestBackgroundDue(1);
-		PhantomAssertions.assertFalse(pending.complete(), "Queued due bypassed the commit fence.");
-		service.onPopulationPulse();
+		PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "Calendar upkeep waited for a human or BACKGROUND scheduler state.");
+		PhantomAssertions.assertTrue(service.permitsScheduling(1), "Automatic committed upkeep did not open scheduling.");
+		PhantomAssertions.assertFalse(service.dueSnapshot(1).queued(), "Steady readiness spun in the ordinary queue.");
+		PhantomAssertions.assertEquals(0, service.requestBackgroundReadiness(1).advancedIntervals(), "Readiness consumed the farm receipt.");
 		final var first = service.requestBackgroundDue(1);
 		PhantomAssertions.assertTrue(first.complete(), "One shared BACKGROUND due did not reconcile the whole ten-minute cursor gap.");
+		PhantomAssertions.assertEquals(10, first.advancedIntervals(), "Automatic upkeep lost the periodic handler receipt.");
 		PhantomAssertions.assertEquals(fromMinute + 10, store.require(1).state().calendarCursorEpochMinute(), "Durable ecology cursor stopped before the due minute.");
 		final long advanced = historical.advancedMinutes();
 		PhantomAssertions.assertTrue(advanced > 1, "A ten-minute due was truncated to one model minute.");
@@ -323,7 +337,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertEquals(advanced, historical.advancedMinutes(), "Duplicate due applied historical intervals twice.");
 		PhantomAssertions.assertEquals(3L, service.snapshot().periodicDueCalls(), "Periodic due counter lost pending/ack/duplicate dispatch.");
 		PhantomAssertions.assertEquals(0, service.snapshot().periodicRunning(), "Completed due retained a running counter.");
-		PhantomAssertions.assertEquals(1L, service.snapshot().periodicBlockedCalls(), "Pending due was not distinguished from completed receipts.");
+		PhantomAssertions.assertEquals(0L, service.snapshot().periodicBlockedCalls(), "Committed upkeep was incorrectly reported as pending.");
 		context.record("goal033.backgroundDueMinutes", advanced);
 	}
 

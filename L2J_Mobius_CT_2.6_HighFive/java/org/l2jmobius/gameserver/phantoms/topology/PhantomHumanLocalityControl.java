@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact;
 
 /** One bounded human-local refresh stage in the shared scheduler pulse. */
 public final class PhantomHumanLocalityControl implements PhantomSchedulerControlPort
@@ -32,6 +33,8 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 	private final LongPredicate _online;
 	private final Supplier<Map<Long, PhantomTopologyPoint>> _livePlayers;
 	private java.util.function.LongConsumer _physicalDemand = _ -> {};
+	private java.util.function.BiConsumer<List<DemandFact>, Integer> _preparationDemand;
+	private java.util.function.IntSupplier _preparationSlots;
 	private volatile Set<Long> _local = Set.of();
 	private volatile PhysicalDemand _physical = new PhysicalDemand(0, Map.of(), false);
 	private volatile Map<Long, PhantomRelevanceSignalPort.SignalDelivery> _delivery = Map.of();
@@ -62,6 +65,12 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 	public void installPhysicalDemand(java.util.function.LongConsumer demand)
 	{
 		_physicalDemand = Objects.requireNonNull(demand);
+	}
+
+	public void installPreparationDemand(java.util.function.BiConsumer<List<DemandFact>, Integer> demand, java.util.function.IntSupplier slots)
+	{
+		_preparationDemand = Objects.requireNonNull(demand);
+		_preparationSlots = Objects.requireNonNull(slots);
 	}
 
 	@Override
@@ -106,9 +115,28 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 		}
 		candidates.removeIf(id -> !humans.stream().anyMatch(human -> canPrewarmAt(id, human, livePlayers)));
 		for (long id : candidates) { _topology.findProfile(id).ifPresent(profile -> revisions.put(id, profile.sequence())); }
-		_physical = new PhysicalDemand(now, Map.copyOf(revisions), overflow);
+		final Map<Long, Long> ages = new HashMap<>();
+		for (DemandFact fact : _physical.facts()) { ages.put(fact.profileId(), fact.firstDemandNanos()); }
+		final var facts = new java.util.ArrayList<DemandFact>();
+		for (long id : candidates)
+		{
+			final var profile = _topology.findProfile(id).orElse(null);
+			final PhantomTopologyPoint point = livePlayers.containsKey(id) ? livePlayers.get(id) : profile == null ? null : profile.point();
+			if (point == null) { continue; }
+			boolean couldKnow = false;
+			long distance = Long.MAX_VALUE;
+			for (var human : humans)
+			{
+				if (!PhantomNativeLocalityEnvelope.prewarm(human, point)) { continue; }
+				couldKnow |= PhantomNativeLocalityEnvelope.couldKnow(human, point);
+				distance = Math.min(distance, point.distanceSquared2D(human));
+			}
+			facts.add(new DemandFact(id, revisions.getOrDefault(id, 0L), couldKnow, distance, ages.getOrDefault(id, System.nanoTime())));
+		}
+		_physical = new PhysicalDemand(now, Map.copyOf(revisions), overflow, List.copyOf(facts));
 		_local = Set.copyOf(candidates);
-		for (long profileId : candidates) { _physicalDemand.accept(profileId); }
+		if (_preparationDemand != null) { _preparationDemand.accept(_physical.facts(), _preparationSlots.getAsInt()); }
+		else { for (long profileId : candidates) { _physicalDemand.accept(profileId); } }
 		final long sequence = ++_sequence;
 		final Map<Long, PhantomRelevanceSignalPort.SignalDelivery> delivery = new HashMap<>();
 		for (long profileId : candidates)
@@ -158,7 +186,10 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 		return (live != null) && _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).anyMatch(human -> PhantomNativeLocalityEnvelope.couldKnow(human, live));
 	}
 
-	public record PhysicalDemand(long timestampMillis, Map<Long, Long> positionRevisions, boolean overflow) {}
+	public record PhysicalDemand(long timestampMillis, Map<Long, Long> positionRevisions, boolean overflow, List<DemandFact> facts)
+	{
+		public PhysicalDemand(long timestampMillis, Map<Long, Long> positionRevisions, boolean overflow) { this(timestampMillis, positionRevisions, overflow, List.of()); }
+	}
 	public PhysicalDemand physicalSnapshot() { return _physical; }
 	public Map<Long, PhantomRelevanceSignalPort.SignalDelivery> deliverySnapshot() { return _delivery; }
 

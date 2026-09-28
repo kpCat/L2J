@@ -96,6 +96,8 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private final Map<Integer, TreeSet<Long>> _desiredActiveIdsByRegion = new HashMap<>();
 	private final Set<Long> _admittedIds = new HashSet<>();
 	private final Set<Long> _eligibleActiveIds = new HashSet<>();
+	private final Set<Long> _participants = java.util.concurrent.ConcurrentHashMap.newKeySet();
+	private LongPredicate _retirementProtected = _ -> false;
 	private final Map<Integer, Integer> _classHistogram = new HashMap<>();
 	private final Map<Integer, Integer> _levelHistogram = new HashMap<>();
 	private final Map<Integer, Integer> _regionHistogram = new HashMap<>();
@@ -113,6 +115,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private boolean _clockRecompute;
 	private long _clockRecomputeCursor;
 	private long _lastEpochDay = Long.MIN_VALUE;
+	private long _lastResizeReconcileMinute = Long.MIN_VALUE;
 	private Instant _lastControlInstant = Instant.MIN;
 	private Instant _lastAdmissionInstant = Instant.MIN;
 	private long _populationGeneration = 1;
@@ -213,6 +216,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				throw new IllegalStateException("Population ecology can only be installed once before start.");
 			}
 			_ecology = Objects.requireNonNull(ecology, "Population ecology must not be null.");
+			_ecology.holdStartupPopulationPlan();
 			_ecology.installRuntime(this::find, new PhantomPopulationEcologyService.PopulationEvents()
 			{
 				@Override
@@ -288,10 +292,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			{
 				_lifecycle = LifecycleState.RUNNING;
 			}
-			if ((_ecology == null) || _ecology.inventoryReady())
-			{
-				reconcileTarget(_target, _activeTarget);
-			}
+			reconcileTarget(_target, _activeTarget);
 			for (long profileId : restoreIds)
 			{
 				restore(profileId);
@@ -311,6 +312,12 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		validateTargets(target, activeTarget);
 		final List<Long> returnIds = new ArrayList<>();
 		final List<Long> retireIds = new ArrayList<>();
+		final List<Long> resumeIds = new ArrayList<>();
+		final List<Long> candidates;
+		synchronized (_monitor) { candidates = _entries.values().stream().filter(entry -> entry._snapshot.state().state() == State.READY).map(entry -> entry._snapshot.profile().profileId()).toList(); }
+		// Native ownership callbacks must never run under the population monitor.
+		final Set<Long> protectedIds = new HashSet<>();
+		for (long id : candidates) { if (_retirementProtected.test(id)) { protectedIds.add(id); } }
 		int shellsToCreate = 0;
 		synchronized (_monitor)
 		{
@@ -320,23 +327,35 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			_target = target;
 			_activeTarget = activeTarget;
-			if ((_ecology != null) && !_ecology.inventoryReady())
-			{
-				_admissionDirty = true;
-				return;
-			}
 			final List<Entry> counted = _entries.values().stream().filter(entry -> (entry._snapshot.state().state() != State.RETIRED) && ((_ecology == null) || _ecology.managed(entry._snapshot.profile().profileId()))).sorted(Comparator.comparingLong(entry -> entry._snapshot.profile().profileId())).toList();
-			int deficit = target - counted.size();
+			int planned = (int) counted.stream().filter(entry -> entry._retirementPending || entry._snapshot.state().state() == State.RETIRE_REQUESTED).count();
+			int deficit = target - (counted.size() - planned) - (int) _entries.values().stream().filter(entry -> entry._returnPending).count();
 			if (deficit > 0)
 			{
-				final List<Entry> retired = _entries.values().stream().filter(entry -> (entry._snapshot.state().state() == State.RETIRED) && ((_ecology == null) || _ecology.returnable(entry._snapshot.profile().profileId()))).sorted(Comparator.comparingLong(entry -> entry._snapshot.profile().profileId())).toList();
+				for (Entry entry : counted)
+				{
+					if (deficit == 0) { break; }
+					if (entry._retirementPending && entry._snapshot.state().state() == State.READY)
+					{
+						entry._retirementPending = false;
+						_participants.add(entry._snapshot.profile().profileId());
+						resumeIds.add(entry._snapshot.profile().profileId());
+						deficit--;
+					}
+				}
+			}
+			if ((deficit > 0) && ((_ecology == null) || _ecology.inventoryReady()))
+			{
+				final List<Entry> retired = _entries.values().stream().filter(entry -> (entry._snapshot.state().state() == State.RETIRED) && !entry._returnPending && ((_ecology == null) || _ecology.returnable(entry._snapshot.profile().profileId()))).sorted(Comparator.comparingLong(entry -> entry._snapshot.profile().profileId())).toList();
 				for (Entry entry : retired)
 				{
-					if (deficit-- <= 0)
+					if (deficit <= 0)
 					{
 						break;
 					}
 					returnIds.add(entry._snapshot.profile().profileId());
+					entry._returnPending = true;
+					deficit--;
 				}
 				if (deficit >= 0)
 				{
@@ -348,14 +367,19 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			else if (deficit < 0)
 			{
-				final List<Entry> managedDescending = counted.stream().filter(entry -> entry._snapshot.state().creationPending() || (entry._snapshot.state().state() == State.READY)).sorted(Comparator.comparingLong((Entry entry) -> entry._snapshot.profile().profileId()).reversed()).toList();
+				final List<Entry> managedDescending = counted.stream().filter(entry -> !entry._retirementPending && !protectedIds.contains(entry._snapshot.profile().profileId()) && (entry._snapshot.state().creationPending() || (entry._snapshot.state().state() == State.READY))).sorted(Comparator.comparingLong((Entry entry) -> entry._snapshot.profile().profileId()).reversed()).toList();
 				for (Entry entry : managedDescending)
 				{
-					if (deficit++ >= 0)
+					if (deficit >= 0)
 					{
 						break;
 					}
 					retireIds.add(entry._snapshot.profile().profileId());
+					entry._retirementPending = true;
+					_participants.remove(entry._snapshot.profile().profileId());
+					_presence.remove(entry._snapshot.profile().profileId());
+					queueActionLocked(entry, RetryActionType.RETIRE_REQUEST, 0, _controlCalls);
+					deficit++;
 				}
 			}
 			_admissionDirty = true;
@@ -367,11 +391,32 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		}
 		for (long profileId : retireIds)
 		{
-			requestRetirement(profileId);
+			if (_ecology != null) { _ecology.updateParticipation(profileId, false); }
 		}
+		for (long profileId : resumeIds) { if (_ecology != null) { _ecology.updateParticipation(profileId, true); } restore(profileId); }
+		if (_ecology != null) { _ecology.startupPopulationPlanApplied(); }
 		for (int index = 0; index < shellsToCreate; index++)
 		{
 			createAndBootstrapShell();
+		}
+	}
+
+	public void installRetirementProtection(LongPredicate protection)
+	{
+		synchronized (_monitor) { if (_lifecycle != LifecycleState.NEW) { throw new IllegalStateException("Retirement protection must precede start."); } _retirementProtected = Objects.requireNonNull(protection); }
+	}
+
+	/** Lock-free membership for callbacks invoked by ecology and locality. */
+	public boolean participates(long profileId) { return _participants.contains(profileId); }
+
+	public record ResizeSnapshot(int participants, int pendingRetirements, int pendingReturns, int retiredReserve, String phase) {}
+	public ResizeSnapshot resizeSnapshot()
+	{
+		synchronized (_monitor)
+		{
+			final int pending = (int) _entries.values().stream().filter(entry -> entry._retirementPending || entry._snapshot.state().state() == State.RETIRE_REQUESTED).count();
+			final int returns = (int) _entries.values().stream().filter(entry -> entry._returnPending).count();
+			return new ResizeSnapshot(_participants.size(), pending, returns, _retiredCount, (pending > 0 || returns > 0 || _participants.size() != _target) ? "resize_pending" : "steady");
 		}
 	}
 
@@ -433,6 +478,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		}
 		if ((result != null) && (result.outcome() == CreationOutcome.READY))
 		{
+			if (_ecology != null) { _ecology.updateParticipation(profileId, participates(profileId)); }
 			reconcileTarget(_target, _activeTarget);
 		}
 		return result;
@@ -471,6 +517,14 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			_ecology.onPopulationPulse();
 		}
 		final Instant now = _clock.instant();
+		final boolean retryProtectedResize;
+		synchronized (_monitor)
+		{
+			final long minute = Math.floorDiv(now.toEpochMilli(), 60_000L);
+			retryProtectedResize = (_participants.size() > _target) && (minute != _lastResizeReconcileMinute);
+			if (retryProtectedResize) { _lastResizeReconcileMinute = minute; }
+		}
+		if (retryProtectedResize) { reconcileTarget(_target, _activeTarget); }
 		int remaining = _boundaryBudget;
 		int processed = 0;
 		while (remaining > 0)
@@ -770,7 +824,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			final TreeSet<Long> eligible = new TreeSet<>();
 			for (long profileId : regional.getValue())
 			{
-				if ((_ecology == null) || _ecology.permitsScheduling(profileId, now))
+				if (_participants.contains(profileId) && ((_ecology == null) || _ecology.permitsScheduling(profileId, now)))
 				{
 					eligible.add(profileId);
 					_eligibleActiveIds.add(profileId);
@@ -961,6 +1015,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				case READY_ATTACH -> processAttach(action, RetryActionType.READY_SCHEDULE);
 				case READY_RELOAD -> processReload(action);
 				case READY_SCHEDULE -> processReadySchedule(action, now);
+				case RETIRE_REQUEST -> processRetireRequest(action);
 				case RETIRE_WITHDRAW -> processRetireWithdraw(action);
 				case RETIRE_UNREGISTER -> processRetireUnregister(action);
 				case RETIRE_COMPLETE -> processRetireComplete(action);
@@ -1047,7 +1102,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private void processReadySchedule(RetryAction action, Instant now)
 	{
 		final Entry entry = currentEntry(action);
-		if ((entry == null) || (entry._snapshot.state().state() != State.READY))
+		if ((entry == null) || (entry._snapshot.state().state() != State.READY) || entry._retirementPending)
 		{
 			return;
 		}
@@ -1132,7 +1187,8 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		switch (status)
 		{
 			case UNREGISTERED, NOT_REGISTERED -> queueNext(action, RetryActionType.RETIRE_COMPLETE);
-			case PENDING, BACKPRESSURE, NOT_RUNNING -> retryOrFail(action, "ownership.unregister_exhausted");
+			case PENDING -> deferProtected(action);
+			case BACKPRESSURE, NOT_RUNNING -> retryOrFail(action, "ownership.unregister_exhausted");
 			case INVALID_PROFILE_ID -> failAction(action, "ownership.unregister_invalid");
 		}
 	}
@@ -1144,9 +1200,9 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			return;
 		}
-		if (_ownership.registered(action.profileId()) || _ownership.materialized(action.profileId()))
+		if (_retirementProtected.test(action.profileId()) || _ownership.registered(action.profileId()) || _ownership.materialized(action.profileId()))
 		{
-			retryOrFail(action, "ownership.retire_presence_exhausted");
+			deferProtected(action);
 			return;
 		}
 		final DetachResult detached = _ownership.detach(action.profileId());
@@ -1154,7 +1210,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			case PENDING ->
 			{
-				retryOrFail(action, "ownership.detach_exhausted");
+				deferProtected(action);
 				return;
 			}
 			case DETACHED, NOT_ATTACHED ->
@@ -1162,6 +1218,19 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 		}
 		persistRetired(entry);
+	}
+
+	private void deferProtected(RetryAction action)
+	{
+		synchronized (_monitor) { final Entry entry = currentEntry(action); if (entry != null) { queueActionLocked(entry, action.type(), action.attempt(), _controlCalls + 10); } }
+	}
+
+	private void processRetireRequest(RetryAction action)
+	{
+		final Entry entry = currentEntry(action);
+		if ((entry == null) || !entry._retirementPending) { return; }
+		if (_retirementProtected.test(action.profileId()) || entry._creationClaimed || ((_ecology != null) && !_ecology.pauseForRetirement(action.profileId()))) { deferProtected(action); return; }
+		requestRetirement(action.profileId());
 	}
 
 	private void processReturnSchedule(RetryAction action)
@@ -1292,6 +1361,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			_persistenceClaims--;
 		}
+		if (_ecology != null) { _ecology.updateParticipation(profileId, false); }
 	}
 
 	private void resumeRetirement(long profileId)
@@ -1378,6 +1448,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			reconcileTarget(_target, _activeTarget);
 		}
+		if (archiveCancelled && (_ecology != null)) { _ecology.updateParticipation(profileId, participates(profileId)); }
 		if (!archiveCancelled)
 		{
 			_topologyRetired.accept(profileId);
@@ -1488,6 +1559,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			_persistenceClaims--;
 		}
+		if (_ecology != null) { _ecology.updateParticipation(profileId, returned.state().state() == State.READY); }
 		if (returned.state().creationPending())
 		{
 			bootstrap(profileId);
@@ -1569,6 +1641,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 				return false;
 			}
 			_entries.clear();
+			_participants.clear();
 			_presence.clear();
 			_readyIds.clear();
 			_readyIdsByRegion.clear();
@@ -1623,7 +1696,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			{
 				return Optional.empty();
 			}
-			final boolean ready = entry._snapshot.state().state() == State.READY;
+			final boolean ready = (entry._snapshot.state().state() == State.READY) && !entry._retirementPending;
 			final boolean desired = ready && (entry._desiredState == PhantomActivityState.ACTIVE);
 			final boolean eligible = desired && _eligibleActiveIds.contains(profileId);
 			final boolean admitted = eligible && _admittedIds.contains(profileId);
@@ -1674,6 +1747,8 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	{
 		removeStateIndexesLocked(entry);
 		entry._snapshot = snapshot;
+		entry._returnPending = false;
+		if (snapshot.state().state() == State.RETIRED) { entry._retirementPending = false; }
 		if (snapshot.state().state() != State.READY)
 		{
 			_presence.remove(snapshot.profile().profileId());
@@ -1691,6 +1766,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		{
 			case READY ->
 			{
+				if (!entry._retirementPending) { _participants.add(profileId); }
 				_readyCount++;
 				_readyIds.add(profileId);
 				_readyIdsByRegion.computeIfAbsent(entry._snapshot.state().homeMapRegionId(), _ -> new TreeSet<>()).add(profileId);
@@ -1708,6 +1784,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 	private void removeStateIndexesLocked(Entry entry)
 	{
 		final long profileId = entry._snapshot.profile().profileId();
+		_participants.remove(profileId);
 		switch (entry._snapshot.state().state())
 		{
 			case READY ->
@@ -1863,6 +1940,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		private long _signalSequence;
 		private boolean _creationClaimed;
 		private boolean _retirementPending;
+		private boolean _returnPending;
 		private boolean _ecologyArchivePending;
 		private boolean _forceScheduleEvaluation;
 		private long _ownershipGeneration;
@@ -1897,6 +1975,7 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		READY_ATTACH,
 		READY_RELOAD,
 		READY_SCHEDULE,
+		RETIRE_REQUEST,
 		RETIRE_WITHDRAW,
 		RETIRE_UNREGISTER,
 		RETIRE_COMPLETE,

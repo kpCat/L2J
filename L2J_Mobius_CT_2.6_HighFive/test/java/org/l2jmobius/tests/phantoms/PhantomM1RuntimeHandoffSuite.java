@@ -57,6 +57,181 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 		registry.add("07-restored-request-begin-rejection-is-typed", this::beginRejection);
 		registry.add("08-monotonic-coalescing-lost-worker-and-wake-rejection", this::monotonicPumpFences);
 		registry.add("09-partial-retry-counts-committed-intervals", this::partialRetryBudget);
+		registry.add("10-bounded-reversible-resize-inventory", this::boundedResize);
+		registry.add("11-retired-pending-is-paused-and-returned", this::retiredPending);
+		registry.add("12-late-near-preparation-keeps-ordinary-budget", this::lateNear);
+		registry.add("13-protected-resize-rechecks-without-exhaustion", this::protectedResize);
+		registry.add("14-outer-save-failure-keeps-committed-budget", this::outerSaveBudget);
+	}
+
+	private void lateNear(PhantomTestContext context)
+	{
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null);
+		final var history = new PhantomPopulationEcologyGoal033Suite.HistoricalMemoryPort();
+		for (long id = 1; id <= 1280; id++)
+		{
+			final var initial = state(population.seedReady(id, 1));
+			final var begun = history.begin(id, initial.calendarCursorEpochMinute(), initial.calendarCursorEpochMinute() + 100, id);
+			store.insert(id, initial.beginRequest(begun.snapshot().state().requestId(), initial.calendarCursorEpochMinute() + 100));
+		}
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(NOW.plusSeconds(40 * 60));
+		final var ecology = new PhantomPopulationEcologyService(_catalog, _population, store, history, _ -> false, _ -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 1280, 64, 10000, 128, 2, 64);
+		manager.installEcology(ecology); manager.start();
+		try
+		{
+			ecology.holdStartupPopulationPlan();
+			for (int pulse = 0; pulse < 320; pulse++) { ecology.onPopulationPulse(); }
+			ecology.startupPopulationPlanApplied();
+			final var facts = new java.util.ArrayList<PhantomPopulationEcologyService.DemandFact>();
+			for (long id = 1; id <= 972; id++) { facts.add(new PhantomPopulationEcologyService.DemandFact(id, 1, false, 10000 + id, 1)); }
+			ecology.updateMaterializationDemand(facts, 8);
+			facts.add(new PhantomPopulationEcologyService.DemandFact(1280, 1, true, 1, 2));
+			ecology.updateMaterializationDemand(facts, 8);
+			for (int refresh = 0; refresh < 10; refresh++) { ecology.updateMaterializationDemand(facts, 8); ecology.requestMaterializationDue(1280); }
+			ecology.onPopulationPulse();
+			final var near = history.status(1280).orElseThrow().state();
+			PhantomAssertions.assertEquals(12L, near.cursorEpochMinute() - near.fromEpochMinute(), "Late closest profile remained behind the physical demand queue.");
+			final var ordinary = history.status(9).orElseThrow().state();
+			PhantomAssertions.assertEquals(4L, ordinary.cursorEpochMinute() - ordinary.fromEpochMinute(), "Urgent demand starved oldest ordinary work.");
+			PhantomAssertions.assertEquals(973, ecology.preparationSnapshot().physicalCount(), "Admission truncated physical truth.");
+			PhantomAssertions.assertEquals(8, ecology.preparationSnapshot().admittedPreparationCount(), "Preparation exceeded eight slots.");
+			facts.add(new PhantomPopulationEcologyService.DemandFact(1279, 1, true, 2, 3));
+			ecology.updateMaterializationDemand(facts, 8);
+			for (int batch = 0; batch < 8; batch++) { ecology.updateMaterializationDemand(facts, 8); ecology.onPopulationPulse(); }
+			final var peer = history.status(1279).orElseThrow().state();
+			PhantomAssertions.assertTrue(peer.cursorEpochMinute() - peer.fromEpochMinute() >= 12, "Eight focus batches starved an admitted same-priority peer.");
+			ecology.updateMaterializationDemand(facts, 0);
+			PhantomAssertions.assertEquals(0, ecology.preparationSnapshot().admittedPreparationCount(), "Full hard capacity retained cold preparation slots.");
+			PhantomAssertions.assertEquals("ecology.preparation_capacity", ecology.requestMaterializationDue(1279).reason(), "Gate poll bypassed preparation capacity.");
+			ecology.updateMaterializationDemand(java.util.List.of(), 8);
+			PhantomAssertions.assertEquals(0, ecology.preparationSnapshot().physicalCount(), "Lost demand retained priority facts.");
+			PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseProfiles() <= 4 && ecology.snapshot().maximumPulseIntervals() <= 16, "Focus multiplied the shared work budget.");
+		}
+		finally { ecology.beginStop(); manager.beginStop(); manager.finishStop(); }
+	}
+
+	private void outerSaveBudget(PhantomTestContext context)
+	{
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var backing = new PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null);
+		final var history = new PhantomPopulationEcologyGoal033Suite.HistoricalMemoryPort();
+		for (long id = 1; id <= 4; id++)
+		{
+			final var initial = state(population.seedReady(id, 1));
+			final long end = initial.calendarCursorEpochMinute() + (id == 1 ? 12 : 100);
+			final var begun = history.begin(id, initial.calendarCursorEpochMinute(), end, id);
+			backing.insert(id, initial.beginRequest(begun.snapshot().state().requestId(), end));
+		}
+		final var failOnce = new java.util.concurrent.atomic.AtomicBoolean(true);
+		final var persistence = new PhantomPopulationEcologyService.PersistencePort()
+		{
+			@Override public Optional<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState> load(long id) { return backing.load(id); }
+			@Override public org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState insert(long id, PhantomPopulationEcologyState state) { return backing.insert(id, state); }
+			@Override public org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState save(long id, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState expected, PhantomPopulationEcologyState state) { if (id == 1 && !state.requestPending() && failOnce.getAndSet(false)) { throw new IllegalStateException("fixture.outer_save_failure"); } return backing.save(id, expected, state); }
+			@Override public org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.ArchivedResult archive(ManagedSnapshot value, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore.StoredState state, long generation, long now) { throw new AssertionError("No archive in budget regression."); }
+		};
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(NOW);
+		final var ecology = new PhantomPopulationEcologyService(_catalog, _population, persistence, history, _ -> false, _ -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 4, 4, 16, 4, 2, 64);
+		manager.installEcology(ecology); manager.start();
+		try
+		{
+			ecology.holdStartupPopulationPlan(); ecology.onPopulationPulse(); ecology.startupPopulationPlanApplied();
+			ecology.updateMaterializationDemand(java.util.List.of(new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1), new PhantomPopulationEcologyService.DemandFact(2, 1, true, 2, 2)), 2);
+			ecology.onPopulationPulse();
+			long actual = 0;
+			for (long id = 1; id <= 4; id++) { final var request = history.status(id).orElseThrow().state(); actual += request.cursorEpochMinute() - request.fromEpochMinute(); }
+			PhantomAssertions.assertEquals(16L, actual, "Outer save failure granted a second interval budget after durable focus commit.");
+			PhantomAssertions.assertEquals(16, ecology.snapshot().lastPulseIntervals(), "Outer save failure lost committed interval accounting.");
+		}
+		finally { ecology.beginStop(); manager.beginStop(); manager.finishStop(); }
+	}
+
+	private void protectedResize(PhantomTestContext context)
+	{
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		for (long id = 1; id <= 3; id++) { population.seedReady(id, 1); }
+		final var protectedOwner = new java.util.concurrent.atomic.AtomicBoolean(true);
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(NOW);
+		final var ownership = new PhantomPopulationTestDoubles.Ownership();
+		final var manager = new PhantomPopulationManager(population, _population, null, ownership, clock, ZoneOffset.UTC, 1, 1, 16, 4, 2, 64);
+		manager.installRetirementProtection(_ -> protectedOwner.get()); manager.start();
+		try
+		{
+			for (int pulse = 0; pulse < 300; pulse++) { manager.onPulse(); }
+			PhantomAssertions.assertEquals(3, manager.snapshot().ready(), "Resize removed a protected owner.");
+			PhantomAssertions.assertEquals("resize_pending", manager.resizeSnapshot().phase(), "Protected excess was reported steady.");
+			for (int wait = 0; wait < 100; wait++) { ownership.unregisterOutcomes(PhantomScheduler.UnregisterStatus.PENDING); }
+			protectedOwner.set(false); clock.set(NOW.plusSeconds(60));
+			for (int pulse = 0; pulse < 300; pulse++) { manager.onPulse(); }
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.RETIRE_REQUESTED, manager.find(3).orElseThrow().state().state(), "Native pending boundary exhausted retirement into INCONSISTENT.");
+			for (int pulse = 0; pulse < 600; pulse++) { manager.onPulse(); }
+			PhantomAssertions.assertEquals(1, manager.snapshot().ready(), "Released owner required a new external resize request.");
+			PhantomAssertions.assertEquals(2, manager.snapshot().retired(), "Guard release lost the reserve.");
+		}
+		finally { manager.beginStop(); manager.finishStop(); }
+	}
+
+	private void boundedResize(PhantomTestContext context)
+	{
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var identities = new java.util.HashMap<Long, Integer>();
+		for (long id = 1; id <= 10000; id++) { identities.put(id, population.seedReady(id, 1).profile().characterObjectId()); }
+		population.resetWrites();
+		var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), new PhantomPopulationTestDoubles.MutableClock(NOW), ZoneOffset.UTC, 1280, 64, 10000, 128, 2, 64);
+		manager.start();
+		try
+		{
+			PhantomAssertions.assertEquals(0L, population.writes(), "Resize callback performed thousands of synchronous retirement writes.");
+			for (int pulse = 0; pulse < 2000 && manager.snapshot().retired() != 8720; pulse++) { manager.onPulse(); }
+			PhantomAssertions.assertEquals(1280, manager.snapshot().ready(), "Resize did not retain the target participants.");
+			PhantomAssertions.assertEquals(8720, manager.snapshot().retired(), "Resize did not preserve retired reserve.");
+			manager.beginStop(); manager.finishStop(); population.resetWrites();
+			manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), new PhantomPopulationTestDoubles.MutableClock(NOW), ZoneOffset.UTC, 1280, 64, 10000, 128, 2, 64);
+			manager.start();
+			for (int pulse = 0; pulse < 40; pulse++) { manager.onPulse(); }
+			PhantomAssertions.assertEquals(0L, population.writes(), "Restart repeated the retirement writes.");
+			PhantomAssertions.assertEquals(1280, manager.snapshot().ready(), "Restart returned reserve without target change.");
+			manager.reconcileTarget(3000, 64); manager.reconcileTarget(3000, 64);
+			for (int pulse = 0; pulse < 2000 && manager.snapshot().ready() != 3000; pulse++) { manager.onPulse(); }
+			PhantomAssertions.assertEquals(3000, manager.snapshot().ready(), "Repeated return plan replaced or duplicated identities.");
+			PhantomAssertions.assertEquals(10000, population.size(), "Resize changed persistent inventory.");
+			for (var entry : identities.entrySet()) { PhantomAssertions.assertEquals(entry.getValue(), population.reload(entry.getKey()).profile().characterObjectId(), "Resize replaced character identity."); }
+			context.record("m1.resize", "10000→1280→restart1280→3000 metadata; no recreation or repeated retirement writes");
+		}
+		finally { manager.beginStop(); manager.finishStop(); }
+	}
+
+	private void retiredPending(PhantomTestContext context)
+	{
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var profile = population.seedReady(1, 1);
+		final var store = new PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null);
+		final var history = new PhantomPopulationEcologyGoal033Suite.HistoricalMemoryPort();
+		final var initial = state(profile);
+		final var begun = history.begin(1, initial.calendarCursorEpochMinute(), initial.calendarCursorEpochMinute() + 13, 1);
+		final var pending = initial.beginRequest(begun.snapshot().state().requestId(), initial.calendarCursorEpochMinute() + 13);
+		store.insert(1, pending);
+		final var workers = new java.util.ArrayDeque<Runnable>();
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(NOW);
+		final var ecology = new PhantomPopulationEcologyService(_catalog, _population, store, history, _ -> false, _ -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { workers.add(worker); return true; });
+		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 0, 0, 16, 4, 2, 64);
+		manager.installEcology(ecology); manager.start();
+		try
+		{
+			for (int pulse = 0; pulse < 20; pulse++) { manager.onPulse(); while (!workers.isEmpty()) { workers.remove().run(); } }
+			PhantomAssertions.assertEquals(1, manager.snapshot().retired(), "Saved pending blocked ordinary retirement.");
+			PhantomAssertions.assertEquals(pending, store.load(1).orElseThrow().state(), "Retirement advanced or cleared saved pending.");
+			PhantomAssertions.assertEquals(begun.snapshot(), history.status(1).orElseThrow(), "Retirement replayed saved history.");
+			PhantomAssertions.assertFalse(ecology.dueSnapshot(1).queued(), "Retired MANAGED profile remained runnable.");
+			manager.reconcileTarget(1, 0);
+			for (int pulse = 0; pulse < 100; pulse++) { manager.onPulse(); while (!workers.isEmpty()) { workers.remove().run(); } }
+			PhantomAssertions.assertEquals(profile.profile().characterObjectId(), manager.find(1).orElseThrow().profile().characterObjectId(), "Return replaced saved identity.");
+			PhantomAssertions.assertTrue(ecology.dueSnapshot(1).complete(), "Returned pending did not resume canonically.");
+		}
+		finally { ecology.beginStop(); manager.beginStop(); manager.finishStop(); }
 	}
 
 	private void monotonicPumpFences(PhantomTestContext context)
@@ -367,7 +542,9 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 			try
 			{
 				manager.onPulse();
+				ecology.holdStartupPopulationPlan();
 				workers.removeFirst().run();
+				ecology.startupPopulationPlanApplied();
 				manager.onPulse();
 				scheduler.localPulse();
 				PhantomAssertions.assertTrue(locality.isLocal(1) && manager.presence().isOnline(1), "Pending calendar-online profile lost actual local demand.");
@@ -378,7 +555,7 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(entered.await(2, TimeUnit.SECONDS), "Canonical save did not reach I/O latch.");
 				java.util.concurrent.CompletableFuture.runAsync(scheduler::pulse).get(200, TimeUnit.MILLISECONDS);
 				java.util.concurrent.CompletableFuture.runAsync(scheduler::localPulse).get(200, TimeUnit.MILLISECONDS);
-				PhantomAssertions.assertTrue(scheduler.find(1).orElseThrow().lastTransitionReason().startsWith("ecology."), "Typed policy reason was not published by the real scheduler.");
+				PhantomAssertions.assertTrue(scheduler.find(1).orElseThrow().lastTransitionReason().startsWith("ecology."), "Typed policy reason was not published by the real scheduler: " + scheduler.find(1).orElseThrow().lastTransitionReason());
 				final long horizon = ecology.dueSnapshot(1).requestedHorizonMinute();
 				ecology.requestMaterializationDue(1);
 				PhantomAssertions.assertEquals(horizon, ecology.dueSnapshot(1).requestedHorizonMinute(), "Repeated demand reset the requested horizon.");

@@ -56,6 +56,7 @@ function Capture([string] $phase, [string] $transition = '')
 		$record[$field] = Read-Field $target $field
 	}
 	foreach ($field in @('signalDelivery', 'localityOverflow', 'ordinaryQueued', 'urgentQueued', 'workerState', 'activeProfile', 'currentStage', 'enqueueAgeMillis', 'lastProgressAgeMillis', 'nextWakeMillis', 'nextRetryMillis', 'historicalStatus', 'historicalRequestId', 'innerCursorMinute', 'innerTargetMinute', 'innerRevision')) { $record[$field] = Read-Field $target $field }
+	foreach ($field in @('physicalCount', 'admittedPreparationCount', 'waitingPreparationCount', 'focusId', 'focusAgeMillis', 'oldestWaitMillis', 'runnableOrdinary', 'reservedPaused', 'committedIntervals', 'elapsedBatchMillis', 'participants', 'resizePending', 'retiredReserve', 'resizePhase')) { $record[$field] = Read-Field $target $field }
 	$page = $target
 	$totalCensus = 0
 	$totalEligible = 0

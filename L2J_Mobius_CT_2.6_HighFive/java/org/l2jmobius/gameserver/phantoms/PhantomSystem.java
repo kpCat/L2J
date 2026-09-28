@@ -582,10 +582,16 @@ public final class PhantomSystem
 				if (periodicEcology != null)
 				{
 					periodicEcology.installMaterializationDemand(profileId -> _populationManager.presence().isOnline(profileId) && _humanLocality.isCurrentLocal(profileId));
-					_humanLocality.installPhysicalDemand(periodicEcology::requestMaterializationDue);
+					_humanLocality.installPreparationDemand(periodicEcology::updateMaterializationDemand, () ->
+					{
+						final var capacity = _materializationService.snapshot();
+						final long soft = capacity.materializations().stream().filter(entry -> entry.worldPresent() && (_materializationRetention != null) && _materializationRetention.observe(entry.profileId()).reclaimable()).count();
+						return Math.min(8, capacity.availablePermits() + Math.toIntExact(soft));
+					});
 				}
 				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology);
 				_materializationRetention = new PhantomMaterializationRetentionPolicy(this::retentionFacts, System::nanoTime, 60_000);
+				_populationManager.installRetirementProtection(profileId -> _materializationRetention.observe(profileId).hard() || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
 				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING) && _materializationRetention.observe(profileId).retained());
 				_reconcileMaterializationActivity.installSoftReclamation(requestingProfileId ->
 				{
@@ -1837,6 +1843,22 @@ public final class PhantomSystem
 		result.put("innerCursorMinute", Long.toString(progress.innerCursorMinute()));
 		result.put("innerTargetMinute", Long.toString(progress.targetMinute()));
 		result.put("innerRevision", Long.toString(progress.innerRevision()));
+		final var preparation = configured._populationEcology.preparationSnapshot();
+		result.put("physicalCount", Integer.toString(preparation.physicalCount()));
+		result.put("admittedPreparationCount", Integer.toString(preparation.admittedPreparationCount()));
+		result.put("waitingPreparationCount", Integer.toString(preparation.waitingPreparationCount()));
+		result.put("focusId", Long.toString(preparation.focusId()));
+		result.put("focusAgeMillis", Long.toString(preparation.focusAgeMillis()));
+		result.put("oldestWaitMillis", Long.toString(preparation.oldestWaitMillis()));
+		result.put("runnableOrdinary", Integer.toString(preparation.runnableOrdinary()));
+		result.put("reservedPaused", Integer.toString(preparation.reservedPaused()));
+		result.put("committedIntervals", Integer.toString(preparation.committedIntervals()));
+		result.put("elapsedBatchMillis", Long.toString(preparation.elapsedBatchMillis()));
+		final var resize = configured._populationManager.resizeSnapshot();
+		result.put("participants", Integer.toString(resize.participants()));
+		result.put("retiredReserve", Integer.toString(resize.retiredReserve()));
+		result.put("resizePending", Integer.toString(resize.pendingRetirements()));
+		result.put("resizePhase", resize.phase());
 		if (configured._humanLocality != null)
 		{
 			result.put("signalDelivery", String.valueOf(configured._humanLocality.deliverySnapshot().get(profileId)));
