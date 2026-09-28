@@ -1,0 +1,14 @@
+utc	phase	transition	humanX	humanY	humanZ	profileId	objectId	committedX	committedY	committedZ	liveX	liveY	liveZ	worldPresent	snapshotWorldPresent	regionCanKnow	clientVisible	distance2D	localityCurrent	materializationState	materializedAgeMillis	activityState	requestedState	activeSignalSources	boundaryInFlight	presenceReason	admitted	transitionStatus	lastMaterializationFailure
+2026-09-28T15:19:31.650304500Z	OUTSIDE		51264	40946	-3499	5079	0	46131	41458	-3504				false	false	false	false	5158	false	STORED	-1	SLEEPING	ACTIVE	1	false	none	true	DEFERRED	null
+2026-09-28T15:19:32.846936400Z	PREWARM_APPROACH		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	ACTIVE	1	false	none	true	DEFERRED	null
+2026-09-28T15:19:34.449525400Z	PREWARM_APPROACH		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:35.045476600Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:36.6434760Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:38.251475700Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:39.847475800Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:41.444475900Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:43.045476800Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:44.645482800Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:46.246477300Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:47.850479500Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null
+2026-09-28T15:19:49.445477200Z	PREWARM		49600	40946	-3491	5079	0	46131	41458	-3504				false	false	false	false	3507	false	STORED	-1	SLEEPING	NEARBY_PERCEPTIBLE	1	false	offline	false	DEFERRED	null

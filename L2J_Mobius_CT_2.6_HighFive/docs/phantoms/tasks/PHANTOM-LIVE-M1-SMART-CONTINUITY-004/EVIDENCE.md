@@ -140,3 +140,34 @@
   git diff --cached --name-only/--check; git commit -m
   "Record verified M1 continuity build and deployment"; normal push той же ветки.
   Deployed code SHA остаётся указанным выше.
+
+## Единственный финальный connected run — RED
+
+- По возвращении владельца выполнены только pre-arm Check-LocalPlay и bounded
+  exact-SHA/JAR check: CONFIG/owned ports PASS, Login 21324 / Game 10036;
+  detached HEAD de40c81411cf6501cb9446840aef98f7dd9369e2 и deployed GameServer
+  SHA256 совпали с ранее проверенной чистой сборкой. Sandbox Git inspection
+  отклонён ownership guard; тот же read-only rev-parse выполнен под owner SID,
+  без изменения safe.directory.
+- Свежий TestAdmin arm фактически активирован пользователем. Get-LocalPlayPilot:
+  ARMED_IDLE, runActive=false, Game 10036, actor 268492939. USER_CLIENT_ACTION=1.
+- Ровно один существующий Run-M1SmartContinuity.ps1 выполнен без изменений.
+  Exit 1: PHASE_TIMEOUT:PREWARM. M1_CONNECTED_WORLD.tsv содержит OUTSIDE,
+  PREWARM_APPROACH и PREWARM (2026-09-28T15:19:31Z..15:19:49Z): natural profile
+  5079, objectId=0, STORED/SLEEPING, DEFERRED. В prewarm presenceReason=offline,
+  admitted=false, localityCurrent=false. Причина по этим samples не установлена.
+- connected-final.log: CONNECTED FAILED; ORIGIN RESTORED: REAL_LOGIN confirmed.
+  Runner выполнил штатный finally/StopPilot. Visible/leave/return/native-life
+  фазы не достигнуты; M1_VISIBLE_LIFE_CENSUS.tsv не создан.
+- Повторного run, новых proof/audit, source edits, build или restart не было.
+  Status CONNECTED RED, M1 открыт; GREEN и M2 не объявляются.
+- Итоговый evidence scope: эти три docs и существующий output
+  M1_CONNECTED_WORLD.tsv. Raw log остаётся вне commit. TASK Git разрешает
+  exact-path add/commit и normal push текущей feature/phantom-world.
+- Mojibake-маркеры в изменённых файлах проверены: четыре exact paths, PASS.
+- Escaped Cyrillic в изменённых файлах проверены отдельно: четыре paths, PASS.
+- Git closeout: git diff --cached --name-only (пустой index); git add --
+  <четыре указанных paths>; git diff --cached --name-only/--check;
+  git commit -m "Record single M1 connected acceptance failure";
+  git push origin feature/phantom-world; git rev-parse HEAD и
+  git ls-remote origin refs/heads/feature/phantom-world для remote SHA.
