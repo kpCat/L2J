@@ -144,6 +144,7 @@ public final class PhantomScheduler
 	private final PhantomSchedulerPolicy _policy;
 	private final MonotonicClock _clock;
 	private final PulseDriver _pulseDriver;
+	private final PulseDriver _localPulseDriver;
 	private final boolean _scheduledPulseRequired;
 	private final PhantomActivityMaterializationPort _materializationPort;
 	private final PhantomActivityWorkSink _workSink;
@@ -154,12 +155,15 @@ public final class PhantomScheduler
 	private final TreeSet<DueEntry> _dueEntries = new TreeSet<>();
 	private SchedulerState _state = SchedulerState.NEW;
 	private ScheduledFuture<?> _pulseFuture;
+	private ScheduledFuture<?> _localPulseFuture;
 	private long _fairnessSequence;
 	private long _pulseSequence;
 	private boolean _pulseInFlight;
+	private boolean _localPulseInFlight;
 	private PhantomActivityOverloadLevel _overloadLevel = PhantomActivityOverloadLevel.NORMAL;
 	private PhantomActivityOverloadLevel _peakOverloadLevel = PhantomActivityOverloadLevel.NORMAL;
 	private PhantomSchedulerControlPort _controlPort = PhantomSchedulerControlPort.noop();
+	private PhantomSchedulerControlPort _localControlPort;
 
 	public PhantomScheduler(int maximumProfiles, int pulseMillis, int profilesPerPulse, PhantomMetrics metrics, PhantomDiagnosticTrace trace, PhantomActivityMaterializationPort materializationPort, PhantomActivityWorkSink workSink)
 	{
@@ -186,6 +190,7 @@ public final class PhantomScheduler
 		_policy = Objects.requireNonNull(policy, "policy");
 		_clock = Objects.requireNonNull(clock, "clock");
 		_pulseDriver = Objects.requireNonNull(pulseDriver, "pulseDriver");
+		_localPulseDriver = scheduledPulseRequired ? (pulse, period) -> ThreadPool.schedulePriorityTaskAtFixedRate(pulse, period, period) : pulseDriver;
 		_scheduledPulseRequired = scheduledPulseRequired;
 		_metrics = Objects.requireNonNull(metrics, "metrics");
 		_trace = Objects.requireNonNull(trace, "trace");
@@ -211,9 +216,25 @@ public final class PhantomScheduler
 					_state = SchedulerState.STOPPED;
 					return false;
 				}
+				if (_localControlPort != null)
+				{
+					_localPulseFuture = _localPulseDriver.scheduleAtFixedRate(this::localPulseSafely, _pulseMillis);
+					if (_scheduledPulseRequired && (_localPulseFuture == null))
+					{
+						_pulseFuture.cancel(false);
+						_pulseFuture = null;
+						_state = SchedulerState.STOPPED;
+						return false;
+					}
+				}
 			}
 			catch (RuntimeException e)
 			{
+				if (_pulseFuture != null)
+				{
+					_pulseFuture.cancel(false);
+					_pulseFuture = null;
+				}
 				_state = SchedulerState.STOPPED;
 				throw e;
 			}
@@ -231,6 +252,20 @@ public final class PhantomScheduler
 				return false;
 			}
 			_controlPort = controlPort;
+			return true;
+		}
+	}
+
+	public boolean installLocalControlPort(PhantomSchedulerControlPort controlPort)
+	{
+		Objects.requireNonNull(controlPort, "controlPort");
+		synchronized (_monitor)
+		{
+			if (_state != SchedulerState.NEW)
+			{
+				return false;
+			}
+			_localControlPort = controlPort;
 			return true;
 		}
 	}
@@ -463,6 +498,7 @@ public final class PhantomScheduler
 	public BeginStopResult beginStop()
 	{
 		final ScheduledFuture<?> pulseFuture;
+		final ScheduledFuture<?> localPulseFuture;
 		synchronized (_monitor)
 		{
 			if (_state == SchedulerState.STOPPED)
@@ -476,11 +512,17 @@ public final class PhantomScheduler
 			_state = SchedulerState.STOPPING;
 			pulseFuture = _pulseFuture;
 			_pulseFuture = null;
+			localPulseFuture = _localPulseFuture;
+			_localPulseFuture = null;
 			_metrics.recordActivityBeginStop();
 		}
 		if (pulseFuture != null)
 		{
 			pulseFuture.cancel(false);
+		}
+		if (localPulseFuture != null)
+		{
+			localPulseFuture.cancel(false);
 		}
 		return BeginStopResult.STARTED;
 	}
@@ -497,7 +539,7 @@ public final class PhantomScheduler
 			{
 				return false;
 			}
-			if (_pulseInFlight || hasInFlightSlotLocked())
+			if (_pulseInFlight || _localPulseInFlight || hasInFlightSlotLocked())
 			{
 				return false;
 			}
@@ -518,13 +560,129 @@ public final class PhantomScheduler
 	{
 		synchronized (_monitor)
 		{
-			return new SchedulerSnapshot(_state, _slots.size(), _readyQueue.size(), _dueEntries.size(), _maximumProfiles, _pulseFuture != null ? 1 : 0, _pulseSequence, _pulseInFlight, _overloadLevel, _peakOverloadLevel);
+			return new SchedulerSnapshot(_state, _slots.size(), _readyQueue.size(), _dueEntries.size(), _maximumProfiles, (_pulseFuture != null ? 1 : 0) + (_localPulseFuture != null ? 1 : 0), _pulseSequence, _pulseInFlight || _localPulseInFlight, _overloadLevel, _peakOverloadLevel);
 		}
 	}
 
 	void pulse()
 	{
 		pulseSafely();
+	}
+
+	void localPulse()
+	{
+		localPulseSafely();
+	}
+
+	private void localPulseSafely()
+	{
+		if (_localControlPort == null)
+		{
+			return;
+		}
+		synchronized (_monitor)
+		{
+			if ((_state != SchedulerState.RUNNING) || _localPulseInFlight)
+			{
+				return;
+			}
+			_localPulseInFlight = true;
+		}
+		try
+		{
+			try
+			{
+				_localControlPort.onPulse();
+			}
+			catch (Throwable throwable)
+			{
+				_metrics.recordActivityWorkFailure();
+			}
+			final long logicalNow = _clock.nanoTime();
+			int processed = 0;
+			for (Long profileId : _readyQueue)
+			{
+				if (processed >= _profilesPerPulse)
+				{
+					break;
+				}
+				final Slot slot;
+				synchronized (_monitor)
+				{
+					slot = _slots.get(profileId);
+					if ((_state != SchedulerState.RUNNING) || (slot == null) || !slot._enqueued || slot._localProcessing || (slot._processing && !slot._workInFlight) || slot._boundaryInFlight || slot._unregisterRequested || slot._effectiveState.requiresMaterialization() || !requestedStateLocked(slot).requiresMaterialization() || (slot._retainedFailureKind != RetainedFailureKind.NONE) || ((slot._transitionStatus == PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED) && (logicalNow < slot._retryDueNanos)))
+					{
+						continue;
+					}
+					slot._localProcessing = true;
+				}
+				try
+				{
+					processLocalPromotion(slot, logicalNow);
+				}
+				catch (Throwable throwable)
+				{
+					synchronized (_monitor)
+					{
+						slot._boundaryInFlight = false;
+						slot._boundaryGeneration = 0;
+						slot._localProcessing = false;
+					}
+					_metrics.recordActivityWorkFailure();
+				}
+				processed++;
+			}
+		}
+		finally
+		{
+			synchronized (_monitor)
+			{
+				_localPulseInFlight = false;
+			}
+		}
+	}
+
+	private void processLocalPromotion(Slot slot, long logicalNow)
+	{
+		final TransitionPlan plan;
+		synchronized (_monitor)
+		{
+			if ((_state != SchedulerState.RUNNING) || (_slots.get(slot._profileId) != slot))
+			{
+				slot._localProcessing = false;
+				return;
+			}
+			expireSignalsLocked(slot, logicalNow);
+			final PhantomActivityState requested = slot._unregisterRequested ? PhantomActivityState.SLEEPING : requestedStateLocked(slot);
+			slot._requestedState = requested;
+			plan = requested.requiresMaterialization() ? transitionPlanLocked(slot, requested, logicalNow) : null;
+			if ((plan != null) && (plan._action != BoundaryAction.NONE))
+			{
+				slot._boundaryInFlight = true;
+				slot._boundaryGeneration = plan._generation;
+			}
+		}
+		if (plan != null)
+		{
+			final TransitionOutcome outcome = executeBoundary(plan);
+			synchronized (_monitor)
+			{
+				slot._boundaryInFlight = false;
+				slot._boundaryGeneration = 0;
+				if (_slots.get(slot._profileId) == slot)
+				{
+					applyTransitionOutcomeLocked(slot, plan, outcome, logicalNow);
+				}
+			}
+		}
+		synchronized (_monitor)
+		{
+			slot._localProcessing = false;
+			if ((_slots.get(slot._profileId) == slot) && (_state == SchedulerState.RUNNING))
+			{
+				scheduleNextDueLocked(slot, logicalNow, _overloadLevel);
+			}
+		}
 	}
 
 	private void pulseSafely()
@@ -635,7 +793,7 @@ public final class PhantomScheduler
 			{
 				continue;
 			}
-			if (processedProfiles.contains(profileId))
+			if (processedProfiles.contains(profileId) || slot._processing || slot._localProcessing)
 			{
 				_readyQueue.offer(profileId);
 				continue;
@@ -756,6 +914,10 @@ public final class PhantomScheduler
 				return;
 			}
 			workItem = prepareWorkLocked(slot, logicalNow, overload);
+			if (workItem != null)
+			{
+				slot._workInFlight = true;
+			}
 		}
 		if (workItem != null)
 		{
@@ -773,6 +935,7 @@ public final class PhantomScheduler
 			{
 				if (_slots.get(slot._profileId) == slot)
 				{
+					slot._workInFlight = false;
 					slot._lastResult = succeeded ? PhantomActivityResultCategory.WORK_DELIVERED : PhantomActivityResultCategory.WORK_FAILED;
 				}
 			}
@@ -1005,7 +1168,7 @@ public final class PhantomScheduler
 
 	private void scheduleNextDueLocked(Slot slot, long logicalNow, PhantomActivityOverloadLevel overload)
 	{
-		if (slot._enqueued || slot._processing || (_slots.get(slot._profileId) != slot))
+		if (slot._enqueued || slot._processing || slot._localProcessing || (_slots.get(slot._profileId) != slot))
 		{
 			return;
 		}
@@ -1124,14 +1287,14 @@ public final class PhantomScheduler
 
 	private boolean isTerminalNonMaterializedLocked(Slot slot)
 	{
-		return !slot._effectiveState.requiresMaterialization() && (slot._retainedFailureKind == RetainedFailureKind.NONE) && !slot._processing && !slot._boundaryInFlight;
+		return !slot._effectiveState.requiresMaterialization() && (slot._retainedFailureKind == RetainedFailureKind.NONE) && !slot._processing && !slot._localProcessing && !slot._boundaryInFlight;
 	}
 
 	private boolean hasInFlightSlotLocked()
 	{
 		for (Slot slot : _slots.values())
 		{
-			if (slot._processing || slot._boundaryInFlight)
+			if (slot._processing || slot._localProcessing || slot._boundaryInFlight)
 			{
 				return true;
 			}
@@ -1141,7 +1304,7 @@ public final class PhantomScheduler
 
 	private void removeSlotLocked(Slot slot)
 	{
-		if (slot._processing || slot._boundaryInFlight)
+		if (slot._processing || slot._localProcessing || slot._boundaryInFlight)
 		{
 			return;
 		}
@@ -1259,6 +1422,8 @@ public final class PhantomScheduler
 		private PhantomActivityState _blockedTarget;
 		private boolean _enqueued;
 		private boolean _processing;
+		private boolean _localProcessing;
+		private boolean _workInFlight;
 		private boolean _boundaryInFlight;
 		private boolean _unregisterRequested;
 		private boolean _explicitRetry;

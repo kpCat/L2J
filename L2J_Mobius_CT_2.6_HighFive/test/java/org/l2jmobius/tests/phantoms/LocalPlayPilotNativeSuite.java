@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.l2jmobius.gameserver.localplay.LocalPlayPilotActions;
 import org.l2jmobius.gameserver.localplay.LocalPlayPilotProtocol;
 import org.l2jmobius.gameserver.data.xml.SkillData;
+import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.skill.Skill;
 
@@ -46,6 +47,7 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		registry.add("chat-party-target-and-skill-refusals", this::refusals);
 		registry.add("learned-skill-native-path", this::learnedSkill);
 		registry.add("envelope-proof-requires-natural-target", this::envelopeProofRequiresNaturalTarget);
+		registry.add("origin-remains-returnable-after-actor-location-changes", this::originRemainsReturnable);
 	}
 
 	private void poseAndSnapshot(PhantomTestContext context) throws Exception
@@ -88,6 +90,21 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals("REJECTED", preparation.status(), "Envelope preparation accepted without a natural target.");
 		PhantomAssertions.assertEquals(origin, _actor.getLocation(), "Rejected envelope preparation moved the actor.");
 		PhantomAssertions.assertEquals("REJECTED", execute(LocalPlayPilotProtocol.Operation.valueOf("SNAPSHOT_M1_ENVELOPE"), Map.of()).status(), "Unprepared envelope snapshot was accepted.");
+	}
+
+	private void originRemainsReturnable(PhantomTestContext context)
+	{
+		final Location original = _actor.getLocation().clone();
+		try
+		{
+			_actor.getLocation().setLocation(new Location(original.getX() + 3000, original.getY(), original.getZ(), original.getHeading(), original.getInstanceId()));
+			final LocalPlayPilotActions.Outcome result = execute(LocalPlayPilotProtocol.Operation.TELEPORT_SELF, Map.of("x", Integer.toString(original.getX()), "y", Integer.toString(original.getY()), "z", Integer.toString(original.getZ()), "instanceId", Integer.toString(original.getInstanceId())));
+			PhantomAssertions.assertEquals("ACCEPTED", result.status(), "Pilot lost its original return point when the actor's mutable Location changed.");
+		}
+		finally
+		{
+			_actor.getLocation().setLocation(original);
+		}
 	}
 
 	private LocalPlayPilotActions.Outcome execute(LocalPlayPilotProtocol.Operation operation, Map<String, String> args)

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.LongConsumer;
 
@@ -55,24 +56,33 @@ public final class PhantomBackgroundDecision
 	private static final int STEP_TIMEOUT_MILLIS = 5000;
 	private static final int MAXIMUM_ATTEMPTS = 2;
 	private static final long RETRY_DELAY_MILLIS = 250;
+	private static final long VISIBLE_CORPSE_WINDOW_NANOS = 45_000_000_000L;
 	private static final String VISIBLE_START_ACTION = "background.visible.start";
 	private static final String VISIBLE_AWAIT_ACTION = "background.visible.await";
 
 	private final PhantomBackgroundService _service;
 	private final BiFunction<Long, PhantomGoal, Boolean> _visibleStart;
 	private final BiFunction<Long, PhantomGoal, Boolean> _visibleRunning;
+	private final BiFunction<Long, PhantomGoal, Boolean> _visibleSuitable;
 	private final LongConsumer _visibleStop;
+	private final ConcurrentHashMap<Long, DeadWindow> _deadWindows = new ConcurrentHashMap<>();
 
 	public PhantomBackgroundDecision(PhantomBackgroundService service)
 	{
-		this(service, (_profileId, _goal) -> false, (_profileId, _goal) -> false, _profileId -> {});
+		this(service, (_profileId, _goal) -> false, (_profileId, _goal) -> false, (_profileId, _goal) -> true, _profileId -> {});
 	}
 
 	public PhantomBackgroundDecision(PhantomBackgroundService service, BiFunction<Long, PhantomGoal, Boolean> visibleStart, BiFunction<Long, PhantomGoal, Boolean> visibleRunning, LongConsumer visibleStop)
 	{
+		this(service, visibleStart, visibleRunning, (_profileId, _goal) -> true, visibleStop);
+	}
+
+	public PhantomBackgroundDecision(PhantomBackgroundService service, BiFunction<Long, PhantomGoal, Boolean> visibleStart, BiFunction<Long, PhantomGoal, Boolean> visibleRunning, BiFunction<Long, PhantomGoal, Boolean> visibleSuitable, LongConsumer visibleStop)
+	{
 		_service = Objects.requireNonNull(service, "service");
 		_visibleStart = Objects.requireNonNull(visibleStart, "visibleStart");
 		_visibleRunning = Objects.requireNonNull(visibleRunning, "visibleRunning");
+		_visibleSuitable = Objects.requireNonNull(visibleSuitable, "visibleSuitable");
 		_visibleStop = Objects.requireNonNull(visibleStop, "visibleStop");
 	}
 
@@ -88,7 +98,8 @@ public final class PhantomBackgroundDecision
 			{
 				final Directive directive = _service.directive(context.profileId(), context.goal(), context.effectiveState());
 				final boolean visible = visibleEligible(context.effectiveState(), directive);
-				final boolean executable = visible || (directive.kind() == DirectiveKind.FARM) || (directive.kind() == DirectiveKind.TRAVEL) || (directive.kind() == DirectiveKind.RECOVER);
+				final boolean recoverable = recoveryReady(context, directive);
+				final boolean executable = visible || (directive.kind() == DirectiveKind.FARM) || (directive.kind() == DirectiveKind.TRAVEL) || ((directive.kind() == DirectiveKind.RECOVER) && recoverable);
 				return new PhantomConsideration.Evaluation(executable ? 1000 : 0, executable ? "background.explicit.ready" : "background.explicit.blocked");
 			})),
 			1000,
@@ -129,7 +140,27 @@ public final class PhantomBackgroundDecision
 
 	private static boolean visibleEligible(PhantomActivityState state, Directive directive)
 	{
-		return (state.requiresMaterialization() || (state == PhantomActivityState.WARM)) && (directive.kind() == DirectiveKind.REPLAN) && "recovery.not_dead".equals(directive.reason());
+		return (state.requiresMaterialization() || (state == PhantomActivityState.WARM)) && (directive.kind() == DirectiveKind.REPLAN) && ("recovery.not_dead".equals(directive.reason()) || "visible.travel_pending".equals(directive.reason()));
+	}
+
+	private boolean recoveryReady(PhantomPlanningContext context, Directive directive)
+	{
+		if ((directive.kind() != DirectiveKind.RECOVER) || !context.effectiveState().requiresMaterialization())
+		{
+			_deadWindows.remove(context.profileId());
+			return true;
+		}
+		if (_service.normalResurrectionPending(context.profileId()))
+		{
+			_deadWindows.remove(context.profileId());
+			return true;
+		}
+		final DeadWindow window = _deadWindows.compute(context.profileId(), (profileId, existing) -> ((existing != null) && (existing.goalId() == context.goal().goalId()) && (existing.revision() == context.goal().revision()) && (context.logicalNowNanos() >= existing.firstObservedNanos())) ? existing : new DeadWindow(context.goal().goalId(), context.goal().revision(), context.logicalNowNanos()));
+		return (context.logicalNowNanos() - window.firstObservedNanos()) >= VISIBLE_CORPSE_WINDOW_NANOS;
+	}
+
+	private record DeadWindow(long goalId, long revision, long firstObservedNanos)
+	{
 	}
 
 	private PhantomStepResult startVisible(PhantomStepContext context)
@@ -155,6 +186,11 @@ public final class PhantomBackgroundDecision
 		{
 			return PhantomStepResult.of(Type.REPLAN, "background.visible.blocked");
 		}
+		if (!_visibleSuitable.apply(context.profileId(), context.goal()))
+		{
+			_visibleStop.accept(context.profileId());
+			return PhantomStepResult.of(Type.REPLAN, "background.visible.outgrown");
+		}
 		return _visibleStart.apply(context.profileId(), context.goal()) ? PhantomStepResult.of(Type.SUCCESS, "background.visible.autoplay_started") : PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry");
 	}
 
@@ -164,6 +200,11 @@ public final class PhantomBackgroundDecision
 		{
 			_visibleStop.accept(context.profileId());
 			return PhantomStepResult.of(Type.CANCELLED, "background.visible.cancelled");
+		}
+		if (!_visibleSuitable.apply(context.profileId(), context.goal()))
+		{
+			_visibleStop.accept(context.profileId());
+			return PhantomStepResult.of(Type.REPLAN, "background.visible.outgrown");
 		}
 		if (!visibleEligible(context.effectiveState(), _service.directive(context.profileId(), context.goal(), context.effectiveState())) || !_visibleRunning.apply(context.profileId(), context.goal()))
 		{

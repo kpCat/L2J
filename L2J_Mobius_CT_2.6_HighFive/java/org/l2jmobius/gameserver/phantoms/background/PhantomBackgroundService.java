@@ -117,6 +117,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private boolean _presenceInstalled;
 	private volatile LongFunction<OperationResult> _periodicFarm;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, Integer> _nativeTownReturns = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, Boolean> _recoveries = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TransitionKind> _transitions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, Lease> _retainedIdentityLeases = new ConcurrentHashMap<>();
 	private final AtomicInteger _currentOperations = new AtomicInteger();
@@ -259,6 +261,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return false;
 		}
+		_nativeTownReturns.clear();
 		_state = ServiceState.STOPPED;
 		return true;
 	}
@@ -298,8 +301,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final PhantomBackgroundState state = loaded.state();
 		if ((activityState == PhantomActivityState.WARM) || activityState.requiresMaterialization())
 		{
-			final boolean recoverable = (state.state() == State.DEAD) || ((state.state() == State.MATERIALIZED) && (state.vitals().currentHp() == 0));
-			return recoverable ? new Directive(DirectiveKind.RECOVER, "state.dead", spec.anchorId()) : new Directive(DirectiveKind.REPLAN, "recovery.not_dead", state.position().committedAnchorId());
+			final boolean recoverable = (state.state() == State.DEAD) || ((state.state() == State.MATERIALIZED) && ((state.vitals().currentHp() == 0) || nativeDead(profileId) || Objects.equals(_nativeTownReturns.get(profileId), state.identity().characterObjectId())));
+			if (recoverable)
+			{
+				return new Directive(DirectiveKind.RECOVER, "state.dead", spec.anchorId());
+			}
+			return new Directive(DirectiveKind.REPLAN, state.position().committedAnchorId().equals(spec.anchorId()) ? "recovery.not_dead" : "visible.travel_pending", state.position().committedAnchorId());
 		}
 		if (activityState != PhantomActivityState.BACKGROUND)
 		{
@@ -713,6 +720,54 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return loaded.successful() ? Optional.ofNullable(loaded.state()) : Optional.empty();
 	}
 
+	public Optional<PhantomGoal> ordinaryGoal(long profileId)
+	{
+		return _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).filter(goal -> PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()));
+	}
+
+	/** Called under the canonical Player action lease after native route arrival. */
+	public boolean captureVisibleArrival(long profileId, Player player, PhantomGoal goal, String anchorId)
+	{
+		if ((_state != ServiceState.RUNNING) || player.isDead() || player.isInParty() || !player.hasHeadlessOutboundSession() || _transitions.containsKey(profileId) || (_operations.putIfAbsent(profileId, Boolean.TRUE) != null))
+		{
+			return false;
+		}
+		try
+		{
+			final PhantomBackgroundState previous = acquisitionSnapshot(profileId).orElse(null);
+			if ((previous == null) || (previous.state() != State.MATERIALIZED) || (previous.identity().characterObjectId() != player.getObjectId()))
+			{
+				return false;
+			}
+			final var position = new PhantomBackgroundState.Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchorId);
+			final var hint = new PhantomBackgroundState(previous.state(), previous.identity(), previous.progress(), previous.vitals(), position, previous.combat(), previous.loadout(), previous.inventory(), previous.autoGetSkills(), previous.clock(), previous.receipt(), previous.hashes());
+			final PhantomBackgroundState captured = _authority.capture(profileId, player, goal, hint);
+			// Use the existing native store/capture boundary; never project route coordinates into SQL.
+			player.storeMe();
+			final var stored = transaction(() -> _transactions.captureBaseline(captured, goal));
+			if (!stored.successful())
+			{
+				return false;
+			}
+			final var marked = transaction(() -> _transactions.markMaterialized(profileId, player.getObjectId()));
+			if (!marked.successful())
+			{
+				failStop();
+				return false;
+			}
+			_committedPosition.accept(profileId, captured.position());
+			return true;
+		}
+		catch (RuntimeException exception)
+		{
+			return false;
+		}
+		finally
+		{
+			_operations.remove(profileId);
+		}
+	}
+
 	public Optional<AcquisitionEligibilitySnapshot> acquisitionEligibility(long profileId, PhantomBackgroundState state, List<Integer> requestedSkillIds, String progressionHash)
 	{
 		if ((state == null) || (state.identity().profileId() != profileId))
@@ -806,7 +861,85 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return recover(profileId, goal, activityState, () -> false);
 	}
 
+	public boolean normalResurrectionPending(long profileId)
+	{
+		final PhantomMaterializationService materialization = _materialization.get();
+		if (materialization == null)
+		{
+			return false;
+		}
+		try (ActionLease action = materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			return (action != null) && !action.player().isDead();
+		}
+	}
+
+	private boolean nativeDead(long profileId)
+	{
+		final PhantomMaterializationService materialization = _materialization.get();
+		if (materialization == null)
+		{
+			return false;
+		}
+		try (ActionLease action = materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			return (action != null) && action.player().isDead();
+		}
+	}
+
+	/** Starts the native corpse fallback without waiting for JDBC or background work. */
+	public OperationResult recoverOrdinaryNativeCorpse(long profileId, int characterObjectId)
+	{
+		final PhantomMaterializationService materialization = _materialization.get();
+		if ((materialization == null) || !_ordinaryPresence.test(profileId))
+		{
+			return retry("recovery.ordinary_presence");
+		}
+		try (ActionLease action = materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if ((action == null) || (action.player().getObjectId() != characterObjectId) || (action.player().getParty() != null))
+			{
+				return retry("recovery.action_lease");
+			}
+			if (!action.player().isDead())
+			{
+				return OperationResult.replan("death.resurrected");
+			}
+			final OperationResult result = recoverNativeTown(action.player(), () -> false);
+			if ("death.resurrected".equals(result.reason()))
+			{
+				return OperationResult.replan(result.reason());
+			}
+			if (result.successful())
+			{
+				_nativeTownReturns.put(profileId, characterObjectId);
+			}
+			return result;
+		}
+	}
+
 	public OperationResult recover(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled)
+	{
+		synchronized (this)
+		{
+			if ((_state != ServiceState.RUNNING) || (_recoveries.putIfAbsent(profileId, Boolean.TRUE) != null))
+			{
+				return retry("recovery.busy_or_stopping");
+			}
+			increment(_currentOperations, _peakOperations);
+		}
+		try
+		{
+			return recoverOwned(profileId, goal, activityState, cancelled);
+		}
+		finally
+		{
+			_recoveries.remove(profileId);
+			_currentOperations.decrementAndGet();
+		}
+	}
+
+	private OperationResult recoverOwned(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled)
 	{
 		Objects.requireNonNull(cancelled, "cancelled");
 		if ((activityState != PhantomActivityState.WARM) && !activityState.requiresMaterialization())
@@ -822,7 +955,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return OperationResult.replan("recovery.goal");
 		}
 		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
-		if (!loaded.successful() || (loaded.state() == null) || ((loaded.state().state() != State.DEAD) && !((loaded.state().state() == State.MATERIALIZED) && (loaded.state().vitals().currentHp() == 0))))
+		if (loaded.successful() && (loaded.state() != null) && (loaded.state().state() == State.READY) && _nativeTownReturns.remove(profileId, loaded.state().identity().characterObjectId()))
+		{
+			return OperationResult.success("death.recovered_at_town");
+		}
+		if (!loaded.successful() || (loaded.state() == null) || ((loaded.state().state() != State.DEAD) && !((loaded.state().state() == State.MATERIALIZED) && ((loaded.state().vitals().currentHp() == 0) || nativeDead(profileId) || Objects.equals(_nativeTownReturns.get(profileId), loaded.state().identity().characterObjectId())))))
 		{
 			return OperationResult.replan("recovery.not_dead");
 		}
@@ -851,59 +988,23 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return retry("recovery.action_lease");
 		}
+		boolean resumedFromResurrection = false;
 		try (ActionLease lease = action.get())
 		{
 			final Player player = lease.player();
 			final boolean resumeBoundary = !player.isDead() && (loaded.state().state() == State.MATERIALIZED);
+			resumedFromResurrection = resumeBoundary;
 			if (!player.isDead() && !resumeBoundary)
 			{
 				return OperationResult.inconsistent("recovery.runtime_not_dead");
 			}
-			final Location town = MapRegionData.getInstance().getTeleToLocation(player, TeleportWhereType.TOWN);
-			if (town == null)
-			{
-				return retry("recovery.town_absent");
-			}
-			final var canonicalDestination = _authority.canonicalRecoveryPosition(town.getX(), town.getY(), town.getZ(), town.getInstanceId(), player.getHeading()).orElse(null);
-			if (canonicalDestination == null)
-			{
-				return retry("recovery.canonical_town_absent");
-			}
-			final Location destination = new Location(canonicalDestination.x(), canonicalDestination.y(), canonicalDestination.z(), canonicalDestination.heading(), canonicalDestination.instanceId());
 			if (!resumeBoundary)
 			{
-				player.doRevive();
-				player.teleToLocation(destination, false);
-			}
-			final int expectedInstanceId = destination.getInstanceId();
-			final int expectedX = destination.getX();
-			final int expectedY = destination.getY();
-			final int expectedZ = GeoEngine.getInstance().getHeight(expectedX, expectedY, destination.getZ());
-			final int teleportedZ = expectedZ + 5;
-			if (player.hasHeadlessOutboundSession() && player.isTeleporting())
-			{
-				player.onTeleported();
-			}
-			final long deadline = System.nanoTime() + RECOVERY_TELEPORT_TIMEOUT_NANOS;
-			while (player.isTeleporting())
-			{
-				if (cancelled.getAsBoolean())
+				final OperationResult nativeRecovery = recoverNativeTown(player, cancelled);
+				if (!nativeRecovery.successful())
 				{
-					return retry("recovery.teleport_cancelled");
+					return nativeRecovery;
 				}
-				if (System.nanoTime() >= deadline)
-				{
-					return retry("recovery.teleport_timeout");
-				}
-				LockSupport.parkNanos(1_000_000L);
-			}
-			if ((player.getInstanceId() != expectedInstanceId) || (player.getX() != expectedX) || (player.getY() != expectedY) || ((player.getZ() != teleportedZ) && (player.getZ() != expectedZ)))
-			{
-				return OperationResult.inconsistent("recovery.teleport_destination_mismatch");
-			}
-			if (player.getZ() != expectedZ)
-			{
-				player.setXYZInvisible(expectedX, expectedY, expectedZ);
 			}
 		}
 		final PhantomMaterializationService.DematerializeResult dematerialized = materialization.dematerialize(profileId);
@@ -924,7 +1025,64 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				return OperationResult.inconsistent("recovery.rematerialization_" + restored.status().name().toLowerCase());
 			}
 		}
-		return OperationResult.success("death.recovered_at_town");
+		final boolean nativeTownReturn = _nativeTownReturns.remove(profileId, loaded.state().identity().characterObjectId());
+		return OperationResult.success(resumedFromResurrection && !nativeTownReturn ? "death.resurrected" : "death.recovered_at_town");
+	}
+
+	private OperationResult recoverNativeTown(Player player, BooleanSupplier cancelled)
+	{
+		synchronized (player)
+		{
+			return recoverNativeTownLocked(player, cancelled);
+		}
+	}
+
+	private OperationResult recoverNativeTownLocked(Player player, BooleanSupplier cancelled)
+	{
+		if (!player.isDead())
+		{
+			return OperationResult.success("death.resurrected");
+		}
+		final Location town = MapRegionData.getInstance().getTeleToLocation(player, TeleportWhereType.TOWN);
+		if (town == null)
+		{
+			return retry("recovery.town_absent");
+		}
+		final var canonical = _authority.canonicalRecoveryPosition(town.getX(), town.getY(), town.getZ(), town.getInstanceId(), player.getHeading()).orElse(null);
+		if (canonical == null)
+		{
+			return retry("recovery.canonical_town_absent");
+		}
+		final Location destination = new Location(canonical.x(), canonical.y(), canonical.z(), canonical.heading(), canonical.instanceId());
+		player.doRevive();
+		player.teleToLocation(destination, false);
+		final int expectedZ = GeoEngine.getInstance().getHeight(destination.getX(), destination.getY(), destination.getZ());
+		if (player.hasHeadlessOutboundSession() && player.isTeleporting())
+		{
+			player.onTeleported();
+		}
+		final long deadline = System.nanoTime() + RECOVERY_TELEPORT_TIMEOUT_NANOS;
+		while (player.isTeleporting())
+		{
+			if (cancelled.getAsBoolean())
+			{
+				return retry("recovery.teleport_cancelled");
+			}
+			if (System.nanoTime() >= deadline)
+			{
+				return retry("recovery.teleport_timeout");
+			}
+			LockSupport.parkNanos(1_000_000L);
+		}
+		if ((player.getInstanceId() != destination.getInstanceId()) || (player.getX() != destination.getX()) || (player.getY() != destination.getY()) || ((player.getZ() != expectedZ + 5) && (player.getZ() != expectedZ)))
+		{
+			return OperationResult.inconsistent("recovery.teleport_destination_mismatch");
+		}
+		if (player.getZ() != expectedZ)
+		{
+			player.setXYZInvisible(destination.getX(), destination.getY(), expectedZ);
+		}
+		return OperationResult.success("death.native_town_return");
 	}
 
 	@Override

@@ -98,6 +98,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		registry.add("29-human-point-locality-and-committed-boundaries", _ -> testHumanPointLocality());
 		registry.add("29a-ground-normalized-route-human-locality", _ -> testGroundNormalizedRouteHumanLocality());
 		registry.add("29b-native-region-prewarm-and-exit-grace", _ -> testNativeRegionPrewarm());
+		registry.add("29c-live-native-region-retains-locality-after-anchor-shift", _ -> testLiveNativeRegionLocality());
 		registry.add("30-existing-registry-10000-local-bucket-bound", _ -> testScaleRegistry());
 	}
 
@@ -499,6 +500,31 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		now.addAndGet(1000);
 		locality.onPulse();
 		PhantomAssertions.assertFalse(locality.isLocal(77), "Profile beyond the bounded prewarm edge stayed locally admitted.");
+		stop(fixture);
+	}
+
+	private void testLiveNativeRegionLocality()
+	{
+		final Fixture fixture = fixture();
+		final PhantomTopologyPoint committed = PhantomTopologyCoreSuite.RIGHT_POINT;
+		final PhantomTopologyPoint human = PhantomTopologyCoreSuite.LEFT_POINT;
+		register(fixture, 177, committed);
+		final AtomicReference<PhantomTopologyPoint> humanPoint = new AtomicReference<>(human);
+		final AtomicReference<Map<Long, PhantomTopologyPoint>> live = new AtomicReference<>(Map.of(177L, human));
+		final AtomicLong now = new AtomicLong(1000);
+		final PhantomHumanLocalityControl locality = new PhantomHumanLocalityControl(fixture.service, fixture.port, () -> List.of(humanPoint.get()), now::get, _ -> true, live::get);
+		locality.onPulse();
+		PhantomAssertions.assertTrue(locality.isLocal(177), "Visible live Player lost locality because its committed topology anchor was elsewhere.");
+		PhantomAssertions.assertTrue(locality.isNativeVisible(177), "Native could-know region was not recognized for an active Player.");
+		humanPoint.set(new PhantomTopologyPoint(200000, 200000, human.z(), human.instanceId()));
+		now.addAndGet(1000);
+		locality.onPulse();
+		PhantomAssertions.assertFalse(locality.isNativeVisible(177), "Native region pin survived real client exit.");
+		PhantomAssertions.assertFalse(locality.isLocal(177), "Exited live Player remained freshly local.");
+		humanPoint.set(human);
+		now.addAndGet(1000);
+		locality.onPulse();
+		PhantomAssertions.assertTrue(locality.isLocal(177), "Re-entry did not reuse the live native-region signal.");
 		stop(fixture);
 	}
 

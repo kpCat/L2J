@@ -32,6 +32,8 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.Status;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.PlannedSnapshot;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.Snapshot;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progress;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal;
@@ -462,6 +464,55 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		catch (RuntimeException exception)
 		{
 			return Optional.empty();
+		}
+	}
+
+	/** Reuses the catch-up planner when a materialized Player outgrows its exact farm target. */
+	public boolean replanVisibleFarmIfOutgrown(long profileId, PhantomGoal goal, PhantomDecisionEngine decision)
+	{
+		final Snapshot catchup = status(profileId).orElse(null);
+		if ((catchup == null) || (catchup.state().status() != Status.COMPLETE) || (catchup.state().goalId() != goal.goalId()))
+		{
+			return true;
+		}
+		final PhantomBackgroundState baseline = _background.acquisitionSnapshot(profileId).orElse(null);
+		if (baseline == null)
+		{
+			return true;
+		}
+		try (ActionLease action = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if ((action == null) || action.player().isDead())
+			{
+				return true;
+			}
+			final Player player = action.player();
+			if ((player.getObjectId() != baseline.identity().characterObjectId()) || (player.getActiveClass() != baseline.identity().activeClassId()))
+			{
+				return true;
+			}
+			final Progress progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
+			final PhantomBackgroundState projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, baseline.vitals(), baseline.position(), baseline.combat(), baseline.loadout(), baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
+			if (_planner.remainsSuitable(projected, goal))
+			{
+				return true;
+			}
+			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
+			final var replacement = _planner.replan(profileId, projected, goal, catchup.state().deterministicSeed(), nextOrdinal);
+			if (!replacement.ready() || (decision.setGoal(profileId, replacement.goal()) != PhantomDecisionEngine.MutationResult.APPLIED))
+			{
+				return false;
+			}
+			try
+			{
+				final PhantomBackgroundCatchupState updated = catchup.state().withPlan(replacement.goal().goalId(), replacement.goal().revision(), nextOrdinal, replacement.planIdentity(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.generation().authorityHashes());
+				_store.replace(profileId, catchup, updated);
+			}
+			catch (RuntimeException exception)
+			{
+				// The next completed catch-up renewal resolves a stale plan revision.
+			}
+			return false;
 		}
 	}
 

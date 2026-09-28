@@ -805,6 +805,15 @@
 		</java>
 	</target>
 
+	<target name="phantom-activity-scheduler-local-priority-test" depends="compile-tests" description="Run focused human-local priority scheduler regression.">
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<arg value="activity-scheduler-local-priority" />
+			<arg value="${phantom.test.seed}" />
+		</java>
+	</target>
+
 	<target name="phantom-activity-scheduler-performance-smoke" depends="compile-tests" description="Run deterministic 10000-profile activity scheduler structural smoke.">
 		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="120000">
 			<jvmarg value="-Dphantom.module.root=${basedir}" />
@@ -922,6 +931,7 @@
 			<arg value="2002002" />
 		</java>
 	</target>
+
 
 	<target name="phantom-normal-gatekeeper-d2-focused-test" depends="phantom-normal-gatekeeper-travel-test,phantom-historical-background-goal033a-test,phantom-topology-generation-test,phantom-topology-production-corpus-test,phantom-background-transaction-test,phantom-background-decision-test,phantom-economy-reservation-concurrency-test" description="Run bounded D2 travel, historical, topology, transaction, Decision and economy regressions." />
 

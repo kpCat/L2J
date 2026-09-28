@@ -997,7 +997,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		if (previous != null)
 		{
 			final PhantomTopologyAnchor previousAnchor = topology.findAnchor(previous.position().committedAnchorId()).orElse(null);
-			if ((previousAnchor != null) && atAnchor(player, previousAnchor))
+			if ((previousAnchor != null) && (atAnchor(player, previousAnchor) || inFarmingArea(player.getX(), player.getY(), player.getZ(), player.getInstanceId(), previousAnchor)))
 			{
 				return previousAnchor;
 			}
@@ -1020,10 +1020,15 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		return withinAnchorTolerance(player.getX(), player.getY(), player.getZ(), canonical.get(), anchor.validationTolerance());
 	}
 
-	private static boolean atCanonicalAnchor(Position position, PhantomTopologyAnchor anchor)
+	private boolean atCanonicalAnchor(Position position, PhantomTopologyAnchor anchor)
 	{
 		final Optional<Position> canonical = canonicalCommittedAnchorPosition(anchor, position.heading());
-		return canonical.isPresent() && (position.instanceId() == canonical.get().instanceId()) && position.committedAnchorId().equals(anchor.id()) && withinAnchorTolerance(position.x(), position.y(), position.z(), canonical.get(), anchor.validationTolerance());
+		return canonical.isPresent() && (position.instanceId() == canonical.get().instanceId()) && position.committedAnchorId().equals(anchor.id()) && (withinAnchorTolerance(position.x(), position.y(), position.z(), canonical.get(), anchor.validationTolerance()) || inFarmingArea(position.x(), position.y(), position.z(), position.instanceId(), anchor));
+	}
+
+	private boolean inFarmingArea(int x, int y, int z, int instanceId, PhantomTopologyAnchor anchor)
+	{
+		return (anchor.role() == PhantomTopologyAnchorRole.FARMING) && _topology.get().findNode(anchor.nodeId()).map(node -> node.area().contains(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(x, y, z, instanceId))).orElse(false);
 	}
 
 	private static boolean withinAnchorTolerance(int x, int y, int z, Position canonical, int tolerance)

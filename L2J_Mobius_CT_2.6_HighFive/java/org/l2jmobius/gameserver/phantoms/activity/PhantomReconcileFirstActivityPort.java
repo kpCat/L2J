@@ -11,6 +11,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 {
 	private final PhantomActivityMaterializationPort _delegate;
 	private volatile LongPredicate _reconcile;
+	private volatile LongPredicate _retainNativeVisible;
 
 	public PhantomReconcileFirstActivityPort(PhantomActivityMaterializationPort delegate)
 	{
@@ -26,6 +27,15 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 		_reconcile = Objects.requireNonNull(reconcile, "Materialization reconciliation must not be null.");
 	}
 
+	public synchronized void installRetention(LongPredicate retainNativeVisible)
+	{
+		if (_retainNativeVisible != null)
+		{
+			throw new IllegalStateException("Native visibility retention can only be installed once.");
+		}
+		_retainNativeVisible = Objects.requireNonNull(retainNativeVisible, "Native visibility retention must not be null.");
+	}
+
 	@Override
 	public TransitionOutcome materialize(long profileId)
 	{
@@ -36,7 +46,8 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 	@Override
 	public TransitionOutcome dematerialize(long profileId)
 	{
-		return _delegate.dematerialize(profileId);
+		final LongPredicate retainNativeVisible = _retainNativeVisible;
+		return ((retainNativeVisible != null) && retainNativeVisible.test(profileId)) ? TransitionOutcome.transientBlock() : _delegate.dematerialize(profileId);
 	}
 
 	@Override

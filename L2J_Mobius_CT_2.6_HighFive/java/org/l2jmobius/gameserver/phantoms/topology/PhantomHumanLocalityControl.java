@@ -5,6 +5,7 @@ package org.l2jmobius.gameserver.phantoms.topology;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -13,6 +14,7 @@ import java.util.function.LongPredicate;
 import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.WorldRegion;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
@@ -33,6 +35,7 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 	private final Supplier<List<PhantomTopologyPoint>> _humans;
 	private final LongSupplier _clock;
 	private final LongPredicate _online;
+	private final Supplier<Map<Long, PhantomTopologyPoint>> _livePlayers;
 	private volatile Set<Long> _local = Set.of();
 	private long _nextRefresh;
 	private long _sequence;
@@ -44,11 +47,17 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 
 	public PhantomHumanLocalityControl(PhantomTopologyService topology, PhantomRelevanceSignalPort signals, Supplier<List<PhantomTopologyPoint>> humans, LongSupplier clock, LongPredicate online)
 	{
+		this(topology, signals, humans, clock, online, Map::of);
+	}
+
+	public PhantomHumanLocalityControl(PhantomTopologyService topology, PhantomRelevanceSignalPort signals, Supplier<List<PhantomTopologyPoint>> humans, LongSupplier clock, LongPredicate online, Supplier<Map<Long, PhantomTopologyPoint>> livePlayers)
+	{
 		_topology = Objects.requireNonNull(topology, "topology");
 		_signals = Objects.requireNonNull(signals, "signals");
 		_humans = Objects.requireNonNull(humans, "humans");
 		_clock = Objects.requireNonNull(clock, "clock");
 		_online = Objects.requireNonNull(online, "online");
+		_livePlayers = Objects.requireNonNull(livePlayers, "livePlayers");
 	}
 
 	@Override
@@ -62,8 +71,16 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 		_nextRefresh = now + REFRESH_MILLIS;
 		_local = Set.of();
 		final TreeSet<Long> candidates = new TreeSet<>();
+		final Map<Long, PhantomTopologyPoint> livePlayers = _livePlayers.get();
 		for (PhantomTopologyPoint human : _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).toList())
 		{
+			for (var entry : livePlayers.entrySet())
+			{
+				if (nativeVisible(human, entry.getValue()))
+				{
+					candidates.add(entry.getKey());
+				}
+			}
 			for (PhantomTopologyPoint probe : probes(human))
 			{
 				for (var profile : _topology.perceptibleProfilesAt(probe, PhantomPerceptionChannel.TARGETABILITY, MAXIMUM_PROFILES_PER_HUMAN))
@@ -119,6 +136,28 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 	public boolean isLocal(long profileId)
 	{
 		return _local.contains(profileId) && _online.test(profileId) && (_clock.getAsLong() < (_nextRefresh - REFRESH_MILLIS + SIGNAL_TTL_MILLIS));
+	}
+
+	public boolean isNativeVisible(long profileId)
+	{
+		if (!_online.test(profileId))
+		{
+			return false;
+		}
+		final PhantomTopologyPoint live = _livePlayers.get().get(profileId);
+		return (live != null) && _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).anyMatch(human -> nativeVisible(human, live));
+	}
+
+	private static boolean nativeVisible(PhantomTopologyPoint human, PhantomTopologyPoint live)
+	{
+		if ((live == null) || (human.instanceId() != live.instanceId()))
+		{
+			return false;
+		}
+		final World world = World.getInstance();
+		final WorldRegion humanRegion = world.getRegion(human.x(), human.y(), human.z());
+		final WorldRegion liveRegion = world.getRegion(live.x(), live.y(), live.z());
+		return (humanRegion != null) && humanRegion.isSurroundingRegion(liveRegion);
 	}
 
 	public int localCount()

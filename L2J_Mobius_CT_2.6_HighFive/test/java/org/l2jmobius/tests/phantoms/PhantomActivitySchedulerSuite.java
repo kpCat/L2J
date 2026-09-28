@@ -79,15 +79,33 @@ import org.l2jmobius.tests.phantoms.PhantomTestSuite;
 
 public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 {
+	private final boolean _localPriorityOnly;
+
+	public PhantomActivitySchedulerSuite()
+	{
+		this(false);
+	}
+
+	public PhantomActivitySchedulerSuite(boolean localPriorityOnly)
+	{
+		_localPriorityOnly = localPriorityOnly;
+	}
+
 	@Override
 	public String id()
 	{
-		return "activity-scheduler";
+		return _localPriorityOnly ? "activity-scheduler-local-priority" : "activity-scheduler";
 	}
 
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_localPriorityOnly)
+		{
+			registry.add("01-local-promotion-progresses-while-general-pulse-blocked", _ -> testLocalPromotionUnderBlockedPulse());
+			registry.add("02-same-profile-local-promotion-progresses-during-background-work", _ -> testLocalPromotionDuringBackgroundWork());
+			return;
+		}
 		registry.add("01-start-zero-and-registration-bounds", _ -> testRegistration());
 		registry.add("02-signal-validation-source-sequence-and-coalescing", _ -> testSignals());
 		registry.add("03-queue-backpressure-leaves-signal-unchanged", _ -> testBackpressureAtomicity());
@@ -111,6 +129,76 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("21-production-background-first-due-waits-5-to-15-minutes", _ -> testProductionBackgroundDue());
 		registry.add("22-materialization-reconciles-before-canonical-player", _ -> testReconcileFirstMaterialization());
 		registry.add("23-production-policy-10000-profiles-24h", this::testProductionPolicy10000);
+	}
+
+	private void testLocalPromotionUnderBlockedPulse() throws InterruptedException
+	{
+		final ManualClock clock = new ManualClock();
+		final FakeMaterializationPort port = new FakeMaterializationPort();
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final CountDownLatch generalEntered = new CountDownLatch(1);
+		final CountDownLatch releaseGeneral = new CountDownLatch(1);
+		final AtomicInteger ordinaryWork = new AtomicInteger();
+		final PhantomScheduler scheduler = new PhantomScheduler(2, 100, 2, PhantomSchedulerPolicy.productionDefaults(100), clock, (pulse, period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 16, 1, metrics), port, _ -> ordinaryWork.incrementAndGet());
+		PhantomAssertions.assertTrue(scheduler.installControlPort(() ->
+		{
+			generalEntered.countDown();
+			await(releaseGeneral, "Timed out waiting to release blocked general pulse.");
+		}), "General control port could not be installed.");
+		PhantomAssertions.assertTrue(scheduler.installLocalControlPort(() -> scheduler.submitSignal(2, signal("human.local", 1, PhantomActivityState.NEARBY_PERCEPTIBLE, 10_000))), "Local control port could not be installed.");
+		PhantomAssertions.assertTrue(scheduler.start(), "Priority-lane scheduler did not start.");
+		scheduler.register(1);
+		scheduler.register(2);
+		final Thread general = pulseThread(scheduler, "blocked-general-pulse");
+		general.start();
+		try
+		{
+			await(generalEntered, "General pulse did not enter its blocking control stage.");
+			scheduler.localPulse();
+			PhantomAssertions.assertEquals(PhantomActivityState.NEARBY_PERCEPTIBLE, scheduler.find(2).orElseThrow().effectiveState(), "Human-local signal waited for the blocked general pulse.");
+			PhantomAssertions.assertEquals(1, port.materializeCalls, "Human-local signal was not materialized exactly once.");
+			PhantomAssertions.assertEquals(0, ordinaryWork.get(), "Priority lane dispatched ordinary work.");
+		}
+		finally
+		{
+			releaseGeneral.countDown();
+			join(general);
+		}
+		stop(scheduler);
+	}
+
+	private void testLocalPromotionDuringBackgroundWork() throws InterruptedException
+	{
+		final ManualClock clock = new ManualClock();
+		final FakeMaterializationPort port = new FakeMaterializationPort();
+		final PhantomMetrics metrics = new PhantomMetrics();
+		final CountDownLatch workEntered = new CountDownLatch(1);
+		final CountDownLatch releaseWork = new CountDownLatch(1);
+		final PhantomSchedulerPolicy policy = new PhantomSchedulerPolicy(16, 10_000, 2000, 1000, 30_000, 100, 250, 1000, 1, 50);
+		final PhantomScheduler scheduler = new PhantomScheduler(1, 100, 1, policy, clock, (pulse, period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 16, 1, metrics), port, _ ->
+		{
+			workEntered.countDown();
+			await(releaseWork, "Timed out waiting to release background work.");
+		});
+		PhantomAssertions.assertTrue(scheduler.installLocalControlPort(() -> scheduler.submitSignal(1, signal("human.local", 1, PhantomActivityState.NEARBY_PERCEPTIBLE, 10_000))), "Same-profile local control port could not be installed.");
+		PhantomAssertions.assertTrue(scheduler.start(), "Same-profile priority fixture did not start.");
+		scheduler.register(1);
+		scheduler.submitSignal(1, signal("background", 1, PhantomActivityState.BACKGROUND, 10_000));
+		final Thread general = pulseThread(scheduler, "blocked-background-work");
+		general.start();
+		try
+		{
+			await(workEntered, "Background work did not block the general pulse.");
+			scheduler.localPulse();
+			PhantomAssertions.assertEquals(PhantomActivityState.NEARBY_PERCEPTIBLE, scheduler.find(1).orElseThrow().effectiveState(), "Same-profile background work delayed local materialization.");
+			PhantomAssertions.assertEquals(1, port.materializeCalls, "Same-profile priority promotion was not exactly once.");
+		}
+		finally
+		{
+			releaseWork.countDown();
+			join(general);
+		}
+		stop(scheduler);
 	}
 
 	private void testProductionPolicy10000(PhantomTestContext context) throws Exception
@@ -183,10 +271,18 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		final FakeMaterializationPort delegate = new FakeMaterializationPort();
 		final PhantomReconcileFirstActivityPort port = new PhantomReconcileFirstActivityPort(delegate);
 		final java.util.concurrent.atomic.AtomicBoolean cursorCurrent = new java.util.concurrent.atomic.AtomicBoolean();
+		final java.util.concurrent.atomic.AtomicBoolean nativeVisible = new java.util.concurrent.atomic.AtomicBoolean();
 		port.install(profileId -> (profileId == 1) && cursorCurrent.get());
+		port.installRetention(profileId -> (profileId == 1) && nativeVisible.get());
 		PhantomAssertions.assertEquals(Outcome.TRANSIENT_BLOCK, port.materialize(1).outcome(), "Stale cursor admitted canonical Player materialization.");
 		PhantomAssertions.assertEquals(0, delegate.materializeCalls, "Blocked materialization reached the Player owner.");
 		cursorCurrent.set(true);
+		nativeVisible.set(true);
+		PhantomAssertions.assertEquals(Outcome.SUCCESS, port.materialize(1).outcome(), "Reconciled visible profile did not materialize.");
+		PhantomAssertions.assertEquals(Outcome.TRANSIENT_BLOCK, port.dematerialize(1).outcome(), "Native-visible Player was stored after topology locality expired.");
+		PhantomAssertions.assertEquals(0, delegate.dematerializeCalls, "Visible retention reached the Player owner.");
+		nativeVisible.set(false);
+		PhantomAssertions.assertEquals(Outcome.SUCCESS, port.dematerialize(1).outcome(), "Exited Player did not store after the visible retention cleared.");
 		for (int cycle = 0; cycle < 100; cycle++)
 		{
 			PhantomAssertions.assertEquals(Outcome.SUCCESS, port.materialize(1).outcome(), "Reconciled profile did not materialize.");
@@ -194,7 +290,7 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(Outcome.SUCCESS, port.dematerialize(1).outcome(), "Canonical dematerialization failed.");
 			PhantomAssertions.assertFalse(port.isMaterialized(1) || port.hasLifecycleOwnership(1), "Lifecycle ownership leaked after dematerialization.");
 		}
-		PhantomAssertions.assertEquals(100, delegate.materializeCalls, "Materialization was duplicated after reconciliation.");
+		PhantomAssertions.assertEquals(101, delegate.materializeCalls, "Materialization was duplicated after reconciliation.");
 	}
 
 	private void testProductionBackgroundDue()

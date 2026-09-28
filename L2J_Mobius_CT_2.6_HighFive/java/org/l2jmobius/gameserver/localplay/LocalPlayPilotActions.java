@@ -52,7 +52,7 @@ public final class LocalPlayPilotActions
 
 	public LocalPlayPilotActions(Player actor)
 	{
-		_origin = actor.getLocation();
+		_origin = actor.getLocation().clone();
 	}
 
 	public static Map<String, String> snapshot(Player player)
@@ -260,6 +260,7 @@ public final class LocalPlayPilotActions
 			data.put("activeSignalSources", Integer.toString(profile.scheduler().activeSignalSources()));
 			data.put("boundaryInFlight", Boolean.toString(profile.scheduler().boundaryInFlight()));
 		}
+		data.putAll(PhantomSystem.operatorVisibleLifeCensus(actor));
 		return new Outcome("SUCCEEDED", "M1_ENVELOPE_SNAPSHOT", Map.copyOf(data));
 	}
 

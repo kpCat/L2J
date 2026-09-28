@@ -68,6 +68,112 @@ public final class PhantomLive003RuntimeAuthorityProofSuite implements PhantomTe
 		});
 		registry.add("fifteen-production-planner-routes", this::proveRoutes);
 		registry.add("native-target-page-reachability", this::measureTargetPages);
+		registry.add("canonical-farm-routes-cover-levels-1-through-85", this::coverLevelDomain);
+		registry.add("outgrown-farm-replans-and-routes-from-old-spot", this::proveOutgrownHandoff);
+	}
+
+	private void proveOutgrownHandoff(PhantomTestContext context) throws Exception
+	{
+		try (var fixture = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
+		{
+			final var travel = PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), fixture.topology());
+			final var authority = new L2jPhantomBackgroundAuthority(fixture::knowledge, fixture::topology, fixture::progression, fixture::commerce, travel);
+			final var planner = new PhantomHistoricalBackgroundPlanner(fixture.knowledge(), fixture.topology(), authority);
+			final var ingress = fixture.topology().findAnchor("population.ingress.dwarf.01").orElseThrow();
+			final var initial = PhantomBackgroundSuite.productionState(ingress, authority.hashes());
+			final var levelFive = initial.after(new PhantomBackgroundState.Progress(5, 0, 0, 0), initial.vitals(), initial.position(), initial.inventory(), initial.autoGetSkills(), initial.clock(), initial.receipt());
+			final var first = planner.replan(levelFive.identity().profileId(), levelFive, previousGoal(levelFive.identity().profileId(), 1, ingress.id()), context.seed(), 1);
+			PhantomAssertions.assertTrue(first.ready(), "Initial normal farm route is absent.");
+			final var oldAnchor = fixture.topology().findAnchor(first.spec().anchorId()).orElseThrow();
+			final var atOldSpot = PhantomBackgroundSuite.productionState(oldAnchor, authority.hashes());
+			final var levelTwenty = atOldSpot.after(new PhantomBackgroundState.Progress(20, 0, 0, 0), atOldSpot.vitals(), atOldSpot.position(), atOldSpot.inventory(), atOldSpot.autoGetSkills(), atOldSpot.clock(), atOldSpot.receipt());
+			PhantomAssertions.assertFalse(planner.remainsSuitable(levelTwenty, first.goal()), "Outgrown exact NPC stayed suitable at level 20.");
+			final var replacement = planner.replan(levelTwenty.identity().profileId(), levelTwenty, first.goal(), context.seed(), 2);
+			PhantomAssertions.assertTrue(replacement.ready() && !replacement.routeEdgeIds().isEmpty(), "Outgrown farm has no normal route from " + first.spec().anchorId() + ": " + replacement.reasonKey());
+			PhantomAssertions.assertTrue(replacement.spec().npcId() != first.spec().npcId(), "Outgrown farm retained the old exact NPC.");
+			PhantomAssertions.assertTrue(!replacement.spec().anchorId().equals(first.spec().anchorId()), "Outgrown farm retained the old spot.");
+		}
+	}
+
+	private void coverLevelDomain(PhantomTestContext context) throws Exception
+	{
+		final List<String> gaps = new ArrayList<>();
+		try (var fixture = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
+		{
+			final PhantomNormalGatekeeperTravel travel = PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), fixture.topology());
+			final var authority = new L2jPhantomBackgroundAuthority(fixture::knowledge, fixture::topology, fixture::progression, fixture::commerce, travel);
+			final var planner = new PhantomHistoricalBackgroundPlanner(fixture.knowledge(), fixture.topology(), authority);
+			final var routes = authority.travelQuery(fixture.topology());
+			final var source = fixture.topology().findAnchor("population.ingress.dwarf.01").orElseThrow();
+			final var baseline = PhantomBackgroundSuite.productionState(source, authority.hashes());
+			for (int level = 1; level <= 85; level++)
+			{
+				final var state = baseline.after(new PhantomBackgroundState.Progress(level, 0, 0, 0), baseline.vitals(), baseline.position(), baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt());
+				final var plan = planner.replan(state.identity().profileId(), state, previousGoal(state.identity().profileId(), 1, source.id()), context.seed() + level, level);
+				if (!plan.ready() || !planner.remainsSuitable(state, plan.goal()) || plan.routeEdgeIds().isEmpty())
+				{
+					int targets = 0;
+					int mapped = 0;
+					int routed = 0;
+					String cursor = null;
+					for (int pageIndex = 0; pageIndex < 8; pageIndex++)
+					{
+						final var page = fixture.knowledge().suitableTargets(new TargetQuery(Math.max(1, level - 2), level + 2, level, null, null, Set.of(NpcKind.MONSTER), true, true, null, null, null, new PageRequest(256, cursor)));
+						for (var target : page.values())
+						{
+							targets++;
+							for (var area : target.representativeAreas())
+							{
+								if (area.topologyNodeId() == null)
+								{
+									continue;
+								}
+								for (var anchor : fixture.topology().snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()))
+								{
+									if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && ((anchor.npcId() == null) || (anchor.npcId() == target.npc().npcId())))
+									{
+										mapped++;
+										if (routes.route(source.id(), anchor.id()).isPresent())
+										{
+											routed++;
+										}
+									}
+								}
+							}
+						}
+						if ((page.nextCursor() == null) || (routed > 0))
+						{
+							break;
+						}
+						cursor = page.nextCursor();
+					}
+					gaps.add(level + ":" + plan.reasonKey() + ":targets=" + targets + ":mapped=" + mapped + ":routed=" + routed);
+				}
+			}
+			String currentAnchorId = source.id();
+			PhantomGoal currentGoal = previousGoal(baseline.identity().profileId(), 1, source.id());
+			long ordinal = 0;
+			for (int level = 1; level <= 85; level++)
+			{
+				final var currentAnchor = fixture.topology().findAnchor(currentAnchorId).orElseThrow();
+				final var atSpot = PhantomBackgroundSuite.productionState(currentAnchor, authority.hashes());
+				final var state = atSpot.after(new PhantomBackgroundState.Progress(level, 0, 0, 0), atSpot.vitals(), atSpot.position(), atSpot.inventory(), atSpot.autoGetSkills(), atSpot.clock(), atSpot.receipt());
+				if (planner.remainsSuitable(state, currentGoal))
+				{
+					continue;
+				}
+				final var replacement = planner.replan(state.identity().profileId(), state, currentGoal, context.seed(), ++ordinal);
+				if (!replacement.ready() || (!currentAnchorId.equals(replacement.spec().anchorId()) && replacement.routeEdgeIds().isEmpty()))
+				{
+					gaps.add("sequential." + level + ":from=" + currentAnchorId + ":" + replacement.reasonKey());
+					break;
+				}
+				currentGoal = replacement.goal();
+				currentAnchorId = replacement.spec().anchorId();
+			}
+		}
+		context.record("m1.farmCoverageLevels", 85 - gaps.size());
+		PhantomAssertions.assertTrue(gaps.isEmpty(), "Canonical farm planner lacks suitable routed targets at levels " + gaps);
 	}
 
 	private void measureTargetPages(PhantomTestContext context) throws Exception

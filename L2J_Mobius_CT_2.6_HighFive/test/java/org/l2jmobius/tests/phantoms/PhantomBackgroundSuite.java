@@ -98,6 +98,8 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundLoginGuard;
@@ -119,6 +121,8 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKe
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundOperationKey.ActionKind;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
+import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
+import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.OperationStatus;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.AutoGetSkill;
@@ -151,6 +155,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomPlan;
@@ -281,7 +286,15 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			}
 			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
 			{
-				_production = ProductionAuthorityFixture.start();
+				try
+				{
+					_production = ProductionAuthorityFixture.start();
+				}
+				catch (RuntimeException exception)
+				{
+					context.record("background.productionLoadCause", String.valueOf(exception.getCause()));
+					throw exception;
+				}
 				context.record("background.productionKnowledgeHash", _production.knowledge().snapshot().combinedHash());
 				context.record("background.productionTopologyHash", _production.topology().snapshot().canonicalHash());
 			}
@@ -419,6 +432,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("04-visible-alive-ordinary-farm-candidate", _ -> testVisibleAliveCandidate());
 		registry.add("05-phantom-autoplay-admission-with-user-play-disabled", _ -> testPhantomAutoPlayAdmission());
 		registry.add("06-instant-self-heal-is-not-auto-buff", _ -> testInstantSelfHealIsNotAutoBuff());
+		registry.add("07-visible-death-waits-before-town-recovery", _ -> testVisibleDeathWindow());
+		registry.add("08-outgrown-visible-goal-stops-old-autoplay", _ -> testVisibleOutgrownStopsAutoPlay());
 	}
 
 	private void registerServerIntegration(PhantomTestRegistry registry)
@@ -470,6 +485,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	{
 		registry.add("01-canonical-anchor-policy-and-negative-controls", this::testCanonicalAnchorPolicy);
 		registry.add("02-real-player-travel-materialization-restart", this::testProductionPositionTransition);
+		registry.add("03-native-farm-movement-keeps-real-position", _ -> testNativeFarmAreaCapture());
+		registry.add("04-visible-travel-native-movement-and-cancellation", this::testVisibleNativeTravel);
 	}
 
 	private void registerProductionLootUnblock(PhantomTestRegistry registry)
@@ -485,6 +502,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("02-recovery-cancellation", _ -> testRecoveryCancellation());
 		registry.add("03-production-town-recovery-remains-canonical", _ -> testProductionDeathRecovery());
 		registry.add("04-recovery-preserves-preexisting-materialization", _ -> testPreexistingMaterializationRecovery());
+		registry.add("05-normal-resurrection-cancels-town-return", _ -> testNormalResurrectionCancelsTownReturn());
+		registry.add("06-native-death-timer-and-resurrection-cancellation", _ -> testNativeDeathTimer());
 	}
 
 	private void registerRealLogin(PhantomTestRegistry registry)
@@ -1029,10 +1048,186 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals(arrival, arrived.position(), "Canonical travel completion must commit the canonical position.");
 		PhantomAssertions.assertEquals(liveGeoZ, arrived.position().z(), "ARRIVED did not persist the current GeoEngine canonical Z.");
 
-		final Position outsideFarmPosition = new Position(0, arrival.x(), arrival.y(), arrival.z() + travel.arrival().validationTolerance() + 1, 0, travel.arrival().id());
+		final Position outsideFarmPosition = new Position(0, arrival.x() + 10_000, arrival.y(), arrival.z(), 0, travel.arrival().id());
 		final PhantomBackgroundState outsideFarmState = productionState(travel.arrival(), hashes).after(initial.progress(), initial.vitals(), outsideFarmPosition, initial.inventory(), initial.autoGetSkills(), initial.clock(), initial.receipt());
-		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.farmInput(outsideFarmState, spec), "Farm position outside canonical tolerance must be rejected.");
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.farmInput(outsideFarmState, spec), "Farm position outside the native farming area must be rejected.");
 		PhantomAssertions.assertEquals(outsideFarmPosition, outsideFarmState.position(), "Rejected farm position must remain unchanged.");
+	}
+
+	private void testNativeFarmAreaCapture() throws Exception
+	{
+		try (var fixture = openProductionPlayerFixture())
+		{
+			final var authority = _production.authority();
+			final var player = fixture.player();
+			final var baseline = authority.capture(PRODUCTION_LOOT_UNBLOCK_SEED, player, fixture.goal(), null);
+			final var anchor = _production.topology().findAnchor(baseline.position().committedAnchorId()).orElseThrow();
+			final var area = _production.topology().findNode(anchor.nodeId()).orElseThrow().area();
+			final int movedX = baseline.position().x() + 64;
+			final var point = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(movedX, baseline.position().y(), baseline.position().z(), 0);
+			PhantomAssertions.assertTrue(area.contains(point), "Focused movement point is outside its factual farming area.");
+			player.setXYZInvisible(point.x(), point.y(), point.z());
+			final var captured = authority.capture(PRODUCTION_LOOT_UNBLOCK_SEED, player, fixture.goal(), baseline);
+			PhantomAssertions.assertEquals(movedX, captured.position().x(), "Native movement was snapped to the anchor.");
+			PhantomAssertions.assertEquals(anchor.id(), captured.position().committedAnchorId(), "Movement inside the same native spawn area lost farm ownership.");
+			PhantomAssertions.assertTrue(authority.matchesRuntime(player, captured), "Captured movement differs from the native Player.");
+			final var spec = PhantomBackgroundGoalSpec.parse(fixture.goal());
+			PhantomAssertions.assertTrue(authority.farmInput(captured, spec).target().npcId() == spec.npcId(), "Native movement stranded ordinary farming.");
+			player.setXYZInvisible(baseline.position().x() + 10_000, baseline.position().y(), baseline.position().z());
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> authority.capture(PRODUCTION_LOOT_UNBLOCK_SEED, player, fixture.goal(), captured), "Unrelated world position retained the old farming area.");
+		}
+	}
+
+	private void testVisibleNativeTravel(PhantomTestContext context) throws Exception
+	{
+		final var topology = _production.topology();
+		final var routeQuery = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
+		final var authority = new L2jPhantomBackgroundAuthority(_production::knowledge, _production::topology, _production::progression, _production::commerce, routeQuery);
+		final var edge = topology.snapshot().edges().stream().filter(value -> value.backgroundEligible() && (value.fromAnchorId() != null) && (value.toAnchorId() != null)).filter(value ->
+		{
+			final var from = topology.findAnchor(value.fromAnchorId()).orElseThrow();
+			final var to = topology.findAnchor(value.toAnchorId()).orElseThrow();
+			final double distance = Math.hypot((long) from.point().x() - to.point().x(), (long) from.point().y() - to.point().y());
+			return (from.role() == PhantomTopologyAnchorRole.ROUTE) && (to.role() == PhantomTopologyAnchorRole.FARMING) && (distance > 50) && (distance < 180);
+		}).sorted(Comparator.comparing(PhantomTopologyEdge::id)).findFirst().orElseThrow();
+		final var departure = topology.findAnchor(edge.fromAnchorId()).orElseThrow();
+		final var arrival = topology.findAnchor(edge.toAnchorId()).orElseThrow();
+		final int npcId = _production.knowledge().snapshot().spawnAreasByNpc().entrySet().stream().filter(value -> value.getValue().stream().anyMatch(area -> arrival.nodeId().equals(area.topologyNodeId()))).mapToInt(Map.Entry::getKey).sorted().findFirst().orElseThrow();
+		ProductionPlayerFixture playerFixture = null;
+		PhantomProfile profile = null;
+		PhantomBackgroundService background = null;
+		PhantomMaterializationService materialization = null;
+		final var navigation = new PhantomNavigationService(new PhantomMetrics());
+		try
+		{
+			playerFixture = openProductionPlayerFixture(departure);
+			final int objectId = playerFixture.player().getObjectId();
+			profile = _repository.create(objectId);
+			final var goal = goal(npcId, arrival.id());
+			final var goals = new PhantomGoalStateStore(_repository);
+			goals.insert(profile.profileId(), goal);
+			final var transaction = new PhantomBackgroundTransaction();
+			final var materializationRef = new AtomicReference<PhantomMaterializationService>();
+			background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, authority, new PhantomBackgroundCompetitionRegistry(), noSignals(), materializationRef::get);
+			PhantomAssertions.assertTrue(background.start(), "Visible travel background did not start.");
+			final var metrics = new PhantomMetrics();
+			materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, _ -> { }, background, 5_000, 10_000);
+			PhantomAssertions.assertTrue(materialization.start(), "Visible travel materialization did not start.");
+			materializationRef.set(materialization);
+			final var captured = authority.capture(profile.profileId(), playerFixture.player(), goal, null);
+			playerFixture.player().storeMe();
+			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, goal).status(), "Visible travel baseline failed.");
+			playerFixture.releaseRuntime();
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(profile.profileId()).status(), "Visible travel did not materialize.");
+			PhantomAssertions.assertTrue(navigation.start(), "Visible travel navigation did not start.");
+			final var permitted = new java.util.concurrent.atomic.AtomicBoolean(true);
+			final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, navigation, _ -> permitted.get(), noSignals());
+			PhantomAssertions.assertFalse(travel.arrive(profile.profileId(), goal), "Visible travel arrived without native movement.");
+			PhantomAssertions.assertEquals(departure.id(), transaction.load(profile.profileId()).state().position().committedAnchorId(), "Visible travel committed arrival before moving.");
+			final long movementDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+			boolean moving = false;
+			while (!moving && (System.nanoTime() < movementDeadline))
+			{
+				travel.arrive(profile.profileId(), goal);
+				try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+				{
+					moving = action.player().isMoving();
+				}
+				if (!moving) { Thread.sleep(10); }
+			}
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.ai.Intention.MOVE_TO, action.player().getAI().getIntention(), "Visible travel did not enter native MOVE_TO: " + navigation.snapshot());
+			}
+			permitted.set(false);
+			PhantomAssertions.assertFalse(travel.arrive(profile.profileId(), goal), "Lost ordinary ownership retained travel.");
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertFalse(action.player().isMoving(), "Cancelled farm travel left native movement running.");
+			}
+			permitted.set(true);
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+			boolean arrived = false;
+			while (!arrived && (System.nanoTime() < deadline))
+			{
+				arrived = travel.arrive(profile.profileId(), goal);
+				if (!arrived)
+				{
+					Thread.sleep(100);
+				}
+			}
+			PhantomAssertions.assertTrue(arrived, "Native visible travel did not arrive within its short walking bound.");
+			final var state = transaction.load(profile.profileId()).state();
+			PhantomAssertions.assertEquals(arrival.id(), state.position().committedAnchorId(), "Native arrival did not commit its anchor.");
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertEquals(action.player().getX(), state.position().x(), "Arrival capture differs from native Player X.");
+				PhantomAssertions.assertEquals(action.player().getY(), state.position().y(), "Arrival capture differs from native Player Y.");
+			}
+			context.record("m1.nativeVisibleTravel", departure.id() + "->" + arrival.id());
+			final var planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority);
+			PhantomAssertions.assertFalse(planner.remainsSuitable(state, goal), "Fixture must have a persisted target outgrown by its live Player.");
+			final var generation = planner.generation();
+			final var completed = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.COMPLETE, "v".repeat(64), context.seed(), 0, 1, 1, 0, 1, 1, generation.knowledgeGeneration(), generation.topologyGeneration(), goal.goalId(), goal.revision(), "a".repeat(64), PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), "");
+			final var catchupStore = new PhantomBackgroundCatchupStore(_repository, goals);
+			catchupStore.claim(profile.profileId(), completed);
+			final var historical = new PhantomHistoricalBackgroundService(_repository, goals, planner, background, materialization);
+			final var engineCandidates = new PhantomCandidateRegistry();
+			engineCandidates.seal();
+			final var engineHandlers = new PhantomStepHandlerRegistry();
+			engineHandlers.seal();
+			final var engine = new PhantomDecisionEngine(goals, engineCandidates, engineHandlers, new PhantomMetrics(), 1);
+			engine.start();
+			final var autoPlay = new PhantomVisibleAutoPlay(materialization, () -> engine, _ -> true);
+			try
+			{
+				PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profile.profileId()), "Outgrown handoff did not attach its real goal store.");
+				PhantomAssertions.assertTrue(autoPlay.start(profile.profileId(), goal), "Old visible goal did not enter native AutoPlay.");
+				final var publicationEngine = new AtomicReference<>(new PhantomDecisionEngine(goals, engineCandidates, engineHandlers, new PhantomMetrics(), 1));
+				final var decision = new PhantomBackgroundDecision(background, autoPlay::start, autoPlay::running, (id, currentGoal) -> historical.replanVisibleFarmIfOutgrown(id, currentGoal, publicationEngine.get()), autoPlay::stop);
+				final var candidates = new PhantomCandidateRegistry();
+				decision.registerCandidates(candidates);
+				candidates.seal();
+				final var handlers = new PhantomStepHandlerRegistry();
+				decision.registerHandlers(handlers);
+				handlers.seal();
+				final var plan = candidates.snapshot().getFirst().planFactory().create(new PhantomPlanningContext(profile.profileId(), goal, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, 1, 1, 1, 1));
+				final var await = plan.steps().get(1);
+				final var start = plan.steps().getFirst();
+				final var rejected = handlers.snapshot().get(start.actionKey()).execute(new PhantomStepContext(profile.profileId(), goal, plan, start, PhantomActivityState.ACTIVE, 1, 2, 2, 1, () -> false));
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, rejected.type(), "Rejected renewal allowed the unsuitable target to continue.");
+				PhantomAssertions.assertEquals(goal.revision(), goals.load(profile.profileId()).orElseThrow().goal().revision(), "Rejected renewal changed durable goal revision.");
+				PhantomAssertions.assertFalse(autoPlay.running(profile.profileId(), goal), "Rejected renewal left outgrown AutoPlay running.");
+				publicationEngine.set(engine);
+				PhantomAssertions.assertTrue(autoPlay.start(profile.profileId(), goal), "Retry fixture did not resume its old policy before renewal.");
+				final var handoff = handlers.snapshot().get(await.actionKey()).execute(new PhantomStepContext(profile.profileId(), goal, plan, await, PhantomActivityState.ACTIVE, 1, 2, 2, 1, () -> false));
+				PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, handoff.type(), "Outgrown live target did not leave the old AutoPlay plan.");
+				final var renewed = goals.load(profile.profileId()).orElseThrow().goal();
+				PhantomAssertions.assertEquals(goal.goalId(), renewed.goalId(), "Visible handoff replaced canonical goal identity.");
+				PhantomAssertions.assertEquals(goal.revision() + 1, renewed.revision(), "Visible handoff did not persist the next goal revision.");
+				PhantomAssertions.assertTrue(planner.remainsSuitable(state, renewed), "Persisted replacement is unsuitable for the native Player level.");
+				PhantomAssertions.assertFalse(autoPlay.running(profile.profileId(), goal), "Outgrown exact-NPC policy remained running.");
+				final var renewedCatchup = catchupStore.load(profile.profileId()).orElseThrow().state();
+				PhantomAssertions.assertEquals(PhantomBackgroundCatchupState.Status.COMPLETE, renewedCatchup.status(), "Visible renewal reopened completed catch-up time.");
+				PhantomAssertions.assertEquals(renewed.revision(), renewedCatchup.goalRevision(), "Visible goal and catch-up revision differ.");
+				context.record("m1.durableVisibleHandoff", goal.revision() + "->" + renewed.revision());
+			}
+			finally
+			{
+				autoPlay.stop(profile.profileId());
+				engine.beginStop();
+				engine.finishStop();
+			}
+		}
+		finally
+		{
+			navigation.beginStop();
+			navigation.finishStop();
+			if (materialization != null) { materialization.shutdown(); }
+			if (background != null) { background.beginStop(); background.finishStop(); }
+			if (profile != null) { deleteProfile(profile); }
+			if (playerFixture != null) { playerFixture.close(); }
+		}
 	}
 
 	private void testProductionPositionTransition(PhantomTestContext context) throws Exception
@@ -2057,6 +2252,62 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 	}
 
+	private void testNativeDeathTimer() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		final java.util.concurrent.atomic.AtomicLong clock = new java.util.concurrent.atomic.AtomicLong(1_000_000_000L);
+		final List<Runnable> deferredRecovery = new java.util.concurrent.CopyOnWriteArrayList<>();
+		try (var observer = new org.l2jmobius.gameserver.phantoms.background.PhantomOrdinaryDeathRecovery(runtime.materialization(), new PhantomGoalStateStore(_repository), runtime.background(), clock::get, deferredRecovery::add))
+		{
+			runtime.materialization().materialize(runtime.profileId());
+			runtime.materialization().dematerialize(runtime.profileId());
+			runtime.materialization().materialize(runtime.profileId());
+			PhantomAssertions.assertTrue(observer.install(), "Native death timer did not install.");
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertTrue(action.player().doDie(null), "Native Player death did not publish its lifecycle event.");
+			}
+			PhantomAssertions.assertTrue(runtime.transaction().load(runtime.profileId()).state().vitals().currentHp() > 0, "Fixture must retain its pre-death durable vitals.");
+			PhantomAssertions.assertEquals(PhantomBackgroundService.DirectiveKind.RECOVER, runtime.background().directive(runtime.profileId(), runtime.goal(), PhantomActivityState.ACTIVE).kind(), "Native dead Player was hidden by stale materialized vitals.");
+			clock.addAndGet(44_000_000_000L);
+			observer.pulse();
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertTrue(action.player().isDead(), "Native corpse recovered before its resurrection window.");
+			}
+			clock.addAndGet(1_000_000_000L);
+			observer.pulse();
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertFalse(action.player().isDead(), "Deferred database reconciliation delayed native corpse recovery.");
+			}
+			PhantomAssertions.assertEquals(1, deferredRecovery.size(), "Native town return did not enqueue one durable reconciliation.");
+			PhantomAssertions.assertEquals(PhantomBackgroundService.DirectiveKind.RECOVER, runtime.background().directive(runtime.profileId(), runtime.goal(), PhantomActivityState.ACTIVE).kind(), "Pending native town recovery was classified as ordinary farming before reconciliation.");
+			deferredRecovery.remove(0).run();
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertFalse(action.player().isDead(), "Native death event did not recover at 45 seconds.");
+				PhantomAssertions.assertTrue(action.player().doDie(null), "Second native Player death did not publish its lifecycle event.");
+				clock.addAndGet(10_000_000_000L);
+				action.player().doRevive();
+			}
+			observer.pulse();
+			final var resurrected = runtime.transaction().load(runtime.profileId()).state().position();
+			clock.addAndGet(40_000_000_000L);
+			observer.pulse();
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertFalse(action.player().isDead(), "Normal resurrection was lost.");
+				PhantomAssertions.assertEquals(resurrected.x(), action.player().getX(), "Normal resurrection did not cancel the old town-return timer.");
+				PhantomAssertions.assertEquals(resurrected.y(), action.player().getY(), "Normal resurrection did not cancel the old town-return timer.");
+			}
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
 	private void testDeathRecovery() throws Exception
 	{
 		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
@@ -2120,6 +2371,30 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(OperationStatus.SUCCESS, recovered.status(), "Preexisting materialization recovery must keep the ordinary farming goal active: " + recovered.reason());
 			PhantomAssertions.assertTrue(runtime.materialization().find(runtime.profileId()).filter(snapshot -> snapshot.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE).isPresent(), "Recovery dematerialized a Player owned by the existing ACTIVE lifecycle.");
 			PhantomAssertions.assertEquals(State.MATERIALIZED, runtime.transaction().load(runtime.profileId()).state().state(), "Restored ACTIVE recovery did not retain matching MATERIALIZED background state.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testNormalResurrectionCancelsTownReturn() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		try
+		{
+			makeDead(runtime);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Resurrection fixture did not materialize.");
+			final Position before;
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				before = runtime.transaction().load(runtime.profileId()).state().position();
+				action.player().doRevive();
+			}
+			final PhantomBackgroundService.OperationResult resumed = runtime.background().recover(runtime.profileId(), runtime.goal(), PhantomActivityState.ACTIVE);
+			PhantomAssertions.assertEquals(OperationStatus.SUCCESS, resumed.status(), "Normal resurrection did not reconcile without town return: " + resumed.reason());
+			PhantomAssertions.assertEquals(before, runtime.transaction().load(runtime.profileId()).state().position(), "Normal resurrection incorrectly teleported to town.");
+			PhantomAssertions.assertTrue(runtime.materialization().find(runtime.profileId()).isPresent(), "Resurrected Player did not resume materialized life.");
 		}
 		finally
 		{
@@ -2345,6 +2620,62 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			handlers.seal();
 			final PhantomStepResult started = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(new PhantomStepContext(runtime.profileId(), runtime.goal(), plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, 7, 9, 1234, 1, () -> false));
 			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, started.type(), "Visible farm did not start AutoPlay through its registered handler.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testVisibleOutgrownStopsAutoPlay() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		try
+		{
+			runtime.materialization().materialize(runtime.profileId());
+			runtime.materialization().dematerialize(runtime.profileId());
+			runtime.materialization().materialize(runtime.profileId());
+			final java.util.concurrent.atomic.AtomicInteger suitabilityChecks = new java.util.concurrent.atomic.AtomicInteger();
+			final java.util.concurrent.atomic.AtomicInteger stops = new java.util.concurrent.atomic.AtomicInteger();
+			final PhantomBackgroundDecision decision = new PhantomBackgroundDecision(runtime.background(), (profileId, goal) -> true, (profileId, goal) -> true, (profileId, goal) -> suitabilityChecks.incrementAndGet() == 1, profileId -> stops.incrementAndGet());
+			final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
+			decision.registerCandidates(candidates);
+			candidates.seal();
+			final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
+			decision.registerHandlers(handlers);
+			handlers.seal();
+			final PhantomPlanningContext planning = new PhantomPlanningContext(runtime.profileId(), runtime.goal(), PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, 7, 9, 1234, 1);
+			final PhantomPlan plan = candidates.snapshot().getFirst().planFactory().create(planning);
+			final var start = plan.steps().getFirst();
+			final var await = plan.steps().get(1);
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.SUCCESS, handlers.snapshot().get(start.actionKey()).execute(new PhantomStepContext(runtime.profileId(), runtime.goal(), plan, start, PhantomActivityState.ACTIVE, 7, 9, 1234, 1, () -> false)).type(), "Visible farm did not start.");
+			PhantomAssertions.assertEquals(PhantomStepResult.Type.REPLAN, handlers.snapshot().get(await.actionKey()).execute(new PhantomStepContext(runtime.profileId(), runtime.goal(), plan, await, PhantomActivityState.ACTIVE, 7, 10, 2234, 2, () -> false)).type(), "Outgrown farm did not replan.");
+			PhantomAssertions.assertEquals(1, stops.get(), "Old exact-NPC AutoPlay was not stopped.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private void testVisibleDeathWindow() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		try
+		{
+			makeDead(runtime);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Dead visible fixture did not materialize.");
+			final PhantomBackgroundDecision decision = new PhantomBackgroundDecision(runtime.background());
+			final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
+			decision.registerCandidates(candidates);
+			candidates.seal();
+			final var candidate = candidates.snapshot().getFirst();
+			final long first = 1_000_000_000L;
+			final PhantomPlanningContext early = new PhantomPlanningContext(runtime.profileId(), runtime.goal(), PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, 1, 1, first, 1);
+			PhantomAssertions.assertEquals(null, new PhantomUtilitySelector().select(candidates.snapshot(), early).candidate(), "Dead Player was offered immediate town recovery without a resurrection window.");
+			final PhantomPlanningContext due = new PhantomPlanningContext(runtime.profileId(), runtime.goal(), PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, 1, 2, first + 45_000_000_000L, 2);
+			PhantomAssertions.assertEquals(candidate, new PhantomUtilitySelector().select(candidates.snapshot(), due).candidate(), "Unattended dead Player did not become recovery eligible at 45 seconds.");
+			PhantomAssertions.assertEquals(PhantomBackgroundGoalSpec.RECOVER_ACTION, candidate.planFactory().create(due).steps().getFirst().actionKey(), "Death timeout did not select native town recovery.");
 		}
 		finally
 		{

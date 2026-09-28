@@ -2,7 +2,8 @@
 param(
     [string]$WorkDirectory = '',
     [switch]$SkipCompile,
-    [switch]$ProofOnly
+    [switch]$ProofOnly,
+    [switch]$HeightOnly
 )
 $ErrorActionPreference = 'Stop'
 $module = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -18,11 +19,16 @@ $libs = @(Get-ChildItem (Join-Path $module 'dist/libs') -Filter '*.jar' -File | 
 $classpath = (@((Join-Path $build 'bin'), (Join-Path $build 'phantom-test/bin')) + $libs) -join ';'
 Push-Location (Join-Path $module 'dist/game')
 try {
-    & java -cp $classpath org.l2jmobius.tests.phantoms.PhantomTravelGeoProbe (Join-Path $work 'adaptive-geo-input.tsv') (Join-Path $work 'adaptive-geo-proof.tsv')
+    if ($HeightOnly) {
+        & java -cp $classpath org.l2jmobius.tests.phantoms.PhantomTravelGeoProbe (Join-Path $work 'height-input.tsv') (Join-Path $work 'height-proof.tsv') --heights
+    }
+    else {
+        & java -cp $classpath org.l2jmobius.tests.phantoms.PhantomTravelGeoProbe (Join-Path $work 'adaptive-geo-input.tsv') (Join-Path $work 'adaptive-geo-proof.tsv')
+    }
     if ($LASTEXITCODE -ne 0) { throw 'Native GeoEngine bridge probe failed.' }
 }
 finally { Pop-Location }
-if (-not $ProofOnly) {
+if (-not $ProofOnly -and -not $HeightOnly) {
     & python (Join-Path $PSScriptRoot 'final_geo.py') finalize-adaptive --module $module --work $work
     if ($LASTEXITCODE -ne 0) { throw 'Adaptive bridge proof accounting failed.' }
 }

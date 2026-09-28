@@ -21,9 +21,9 @@ public final class PhantomTravelGeoProbe
 {
 	public static void main(String[] args) throws Exception
 	{
-		if (args.length != 2)
+		if ((args.length != 2) && ((args.length != 3) || !"--heights".equals(args[2])))
 		{
-			throw new IllegalArgumentException("Usage: candidate-tsv proof-tsv");
+			throw new IllegalArgumentException("Usage: candidate-tsv proof-tsv [--heights]");
 		}
 		ServerConfig.DATAPACK_ROOT = new File(".").getCanonicalFile();
 		GeoEngineConfig.load();
@@ -33,6 +33,33 @@ public final class PhantomTravelGeoProbe
 			throw new IllegalStateException("PathFinding=2 required");
 		}
 		final GeoEngine geo = GeoEngine.getInstance();
+		if (args.length == 3)
+		{
+			final List<String> points = Files.readAllLines(Path.of(args[0]), StandardCharsets.UTF_8);
+			if (!points.getFirst().equals("point_id\tx\ty\tseed_z"))
+			{
+				throw new IllegalArgumentException("Unexpected height candidate header");
+			}
+			final List<String> heights = new ArrayList<>();
+			heights.add("point_id\tx\ty\tz\tstable");
+			for (int i = 1; i < points.size(); i++)
+			{
+				final String[] row = points.get(i).split("\t", -1);
+				if (row.length != 4)
+				{
+					throw new IllegalArgumentException("Malformed height candidate: " + i);
+				}
+				final int x = Integer.parseInt(row[1]);
+				final int y = Integer.parseInt(row[2]);
+				final int seedZ = Integer.parseInt(row[3]);
+				final int z = geo.getHeight(x, y, seedZ);
+				final boolean stable = geo.hasGeo(x, y) && (z == geo.getHeight(x, y, z));
+				heights.add(String.join("\t", row[0], row[1], row[2], Integer.toString(z), Boolean.toString(stable)));
+			}
+			Files.writeString(Path.of(args[1]), String.join("\n", heights) + "\n", StandardCharsets.UTF_8);
+			System.out.println("TRAVEL_GEO_HEIGHTS candidates=" + (points.size() - 1));
+			return;
+		}
 		final PathFinding finder = PathFinding.getInstance();
 		final StaticXmlCollisionOracle collision = StaticXmlCollisionOracle.load(ServerConfig.DATAPACK_ROOT.toPath().resolve("data/Doors.xml"), ServerConfig.DATAPACK_ROOT.toPath().resolve("data/FenceData.xml"));
 		final PhantomGeoValidationRules.Probe probe = new PhantomGeoValidationRules.Probe()

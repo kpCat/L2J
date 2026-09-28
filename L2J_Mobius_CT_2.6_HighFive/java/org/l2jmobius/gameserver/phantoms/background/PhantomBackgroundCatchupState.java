@@ -75,7 +75,7 @@ public record PhantomBackgroundCatchupState(Status status, String requestId, lon
 
 	public PhantomBackgroundCatchupState withPlan(long replacementGoalId, long replacementGoalRevision, long replacementPlanOrdinal, String replacementPlanIdentity, long replacementKnowledgeGeneration, long replacementTopologyGeneration, Hashes replacementHashes)
 	{
-		return new PhantomBackgroundCatchupState(status == Status.PENDING ? Status.PENDING : Status.RUNNING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, replacementPlanOrdinal, intervalOrdinal, generation, replacementKnowledgeGeneration, replacementTopologyGeneration, replacementGoalId, replacementGoalRevision, replacementPlanIdentity, modelVersion, replacementHashes, "");
+		return new PhantomBackgroundCatchupState(status == Status.FAILED_REPLAN_REQUIRED ? Status.RUNNING : status, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, replacementPlanOrdinal, intervalOrdinal, generation, replacementKnowledgeGeneration, replacementTopologyGeneration, replacementGoalId, replacementGoalRevision, replacementPlanIdentity, modelVersion, replacementHashes, "");
 	}
 
 	public PhantomBackgroundCatchupState running()

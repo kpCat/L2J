@@ -254,6 +254,7 @@ public final class PhantomTestLauncher
 			case "production-materialization-performance" -> new PhantomProductionMaterializationPerformanceSuite();
 			case "server-shutdown-handoff" -> new PhantomServerShutdownHandoffSuite();
 			case "activity-scheduler" -> new PhantomActivitySchedulerSuite();
+			case "activity-scheduler-local-priority" -> new PhantomActivitySchedulerSuite(true);
 			case "activity-scheduler-performance" -> new PhantomActivitySchedulerPerformanceSuite();
 			case "decision-core" -> new PhantomDecisionCoreSuite();
 			case "decision-persistence" -> new PhantomDecisionPersistenceSuite();

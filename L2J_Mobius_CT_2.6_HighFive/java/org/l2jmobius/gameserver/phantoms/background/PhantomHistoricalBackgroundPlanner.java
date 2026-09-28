@@ -56,6 +56,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	private static final int LEVEL_RADIUS = 2;
 	private static final int MAXIMUM_TARGETS = 64;
 	private static final int FALLBACK_TARGETS = 256;
+	private static final int MAXIMUM_TARGET_PAGES = 8;
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomTopologyQuery _topology;
 	private final PhantomBackgroundAuthority _authority;
@@ -113,13 +114,22 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		final int minimum = Math.max(1, state.progress().level() - LEVEL_RADIUS);
 		final int maximum = state.progress().level() + LEVEL_RADIUS;
-		final KnowledgePage<TargetFact> first = targets(minimum, maximum, state.progress().level(), PageRequest.first(MAXIMUM_TARGETS));
-		TargetFact target = first.values().stream().filter(value -> value.npc().npcId() == spec.npcId()).findFirst().orElse(null);
-		if ((target == null) && (first.nextCursor() != null))
+		String cursor = null;
+		for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)
 		{
-			target = targets(minimum, maximum, state.progress().level(), new PageRequest(FALLBACK_TARGETS, first.nextCursor())).values().stream().filter(value -> value.npc().npcId() == spec.npcId()).findFirst().orElse(null);
+			final KnowledgePage<TargetFact> page = targets(minimum, maximum, state.progress().level(), cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
+			final TargetFact target = page.values().stream().filter(value -> value.npc().npcId() == spec.npcId()).findFirst().orElse(null);
+			if (target != null)
+			{
+				return candidate(state.position().committedAnchorId(), target, spec.anchorId()) != null;
+			}
+			cursor = page.nextCursor();
+			if (cursor == null)
+			{
+				break;
+			}
 		}
-		return (target != null) && (candidate(state.position().committedAnchorId(), target, spec.anchorId()) != null);
+		return false;
 	}
 
 	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision)
@@ -136,11 +146,16 @@ public final class PhantomHistoricalBackgroundPlanner
 		final int minimum = Math.max(1, level - LEVEL_RADIUS);
 		final int maximum = level + LEVEL_RADIUS;
 		final List<Candidate> candidates = new ArrayList<>();
-		final KnowledgePage<TargetFact> first = targets(minimum, maximum, level, PageRequest.first(MAXIMUM_TARGETS));
-		addCandidates(candidates, currentAnchorId, first.values());
-		if (candidates.isEmpty() && (first.nextCursor() != null))
+		String cursor = null;
+		for (int pageIndex = 0; (pageIndex < MAXIMUM_TARGET_PAGES) && candidates.isEmpty(); pageIndex++)
 		{
-			addCandidates(candidates, currentAnchorId, targets(minimum, maximum, level, new PageRequest(FALLBACK_TARGETS, first.nextCursor())).values());
+			final KnowledgePage<TargetFact> page = targets(minimum, maximum, level, cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
+			addCandidates(candidates, currentAnchorId, page.values());
+			cursor = page.nextCursor();
+			if (cursor == null)
+			{
+				break;
+			}
 		}
 		if (candidates.isEmpty())
 		{
@@ -194,7 +209,8 @@ public final class PhantomHistoricalBackgroundPlanner
 		{
 			return null;
 		}
-		final List<PhantomNormalGatekeeperTravel.Step> route = _authority.travelQuery(_topology).route(currentAnchorId, anchorId).orElse(null);
+		final PhantomNormalGatekeeperTravel travel = _authority.travelQuery(_topology);
+		final List<PhantomNormalGatekeeperTravel.Step> route = travel.route(currentAnchorId, anchorId).orElse(null);
 		if ((route == null) || (!currentAnchorId.equals(anchorId) && route.isEmpty()))
 		{
 			return null;
