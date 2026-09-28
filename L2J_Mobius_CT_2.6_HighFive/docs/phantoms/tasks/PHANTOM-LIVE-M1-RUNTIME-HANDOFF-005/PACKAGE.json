@@ -1,0 +1,54 @@
+{
+  "task": "PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005",
+  "baseline_remote_sha": "82fae37aff225e959213e1d0432b53d50360318a",
+  "prior_deployed_source_sha": "de40c81411cf6501cb9446840aef98f7dd9369e2",
+  "kind": "implementation_instructions_not_applied_patch",
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "bytes": 9425,
+      "sha256": "cce8ae4e18e4f6b19cf33ce55761089bf36e33f7abba9ce1d3fc05c88f1992bb"
+    },
+    {
+      "path": "DESIGN.md",
+      "bytes": 17233,
+      "sha256": "2307bc6513aa41c6e37b123aaf899a5d61a47c10d538e1d13e1699b583e13413"
+    },
+    {
+      "path": "EVIDENCE.md",
+      "bytes": 801,
+      "sha256": "b8e50e97f88297ae300338535c53e17c1fabbf41af321b2bf853831d1168ec5b"
+    },
+    {
+      "path": "GOAL.txt",
+      "bytes": 624,
+      "sha256": "37c1c1f1ddb181a37c0661a620bce5259ddfc842c70bc88c5fe155a6d9bf8f61"
+    },
+    {
+      "path": "HANDOFF.md",
+      "bytes": 5199,
+      "sha256": "85f771464559ff7f8ac37ed5340cf4f280798ea3969d8eaf5e49c102237c22d7"
+    },
+    {
+      "path": "PLAN.md",
+      "bytes": 6193,
+      "sha256": "a0461c270bea8ea679d89f694844c692b95c17edb727255724c31c84f0112ff1"
+    },
+    {
+      "path": "SOURCE_MAP.tsv",
+      "bytes": 11928,
+      "sha256": "89dc87d409ba94ce94a63095dd15fe03bb956406e4425f151d2d9b317f74e922"
+    },
+    {
+      "path": "STATE.md",
+      "bytes": 503,
+      "sha256": "500119c6060a9c84751c45434e280cdc1bb30c38c13d880486103aaad8471c16"
+    },
+    {
+      "path": "TASK.md",
+      "bytes": 10167,
+      "sha256": "018fe5d4cc53f380d46463e25927c3cb6f50a428e75fe0f486999f1cce9a181c"
+    }
+  ],
+  "verification_note": "Repository review only; Java/Windows runtime not executed by package author."
+}
