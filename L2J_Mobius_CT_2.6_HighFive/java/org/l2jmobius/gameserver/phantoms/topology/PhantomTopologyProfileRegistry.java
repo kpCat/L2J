@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.LongPredicate;
 
 /**
  * Explicit bounded profile-position ownership. Mutation is service-owned.
@@ -261,6 +262,11 @@ public final class PhantomTopologyProfileRegistry
 
 	List<ProfileTopologySnapshot> listForNodes(Set<String> nodeIds, int limit, long requiredGeneration)
 	{
+		return listForNodes(nodeIds, limit, requiredGeneration, profileId -> true);
+	}
+
+	List<ProfileTopologySnapshot> listForNodes(Set<String> nodeIds, int limit, long requiredGeneration, LongPredicate eligible)
+	{
 		if ((limit < 1) || (limit > 1024))
 		{
 			throw new IllegalArgumentException("Invalid topology recipient limit.");
@@ -282,7 +288,7 @@ public final class PhantomTopologyProfileRegistry
 			_lastCandidatesExamined = profileIds.size();
 			_maximumCandidatesExamined = Math.max(_maximumCandidatesExamined, _lastCandidatesExamined);
 			final ArrayList<ProfileTopologySnapshot> result = new ArrayList<>(Math.min(limit, profileIds.size()));
-			profileIds.stream().limit(limit).forEach(profileId ->
+			profileIds.stream().filter(eligible::test).limit(limit).forEach(profileId ->
 			{
 				final Entry entry = _entries.get(profileId);
 				if ((entry != null) && (entry._topologyGeneration == requiredGeneration))

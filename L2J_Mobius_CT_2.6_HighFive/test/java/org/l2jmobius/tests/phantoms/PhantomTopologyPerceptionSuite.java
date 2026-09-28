@@ -99,6 +99,7 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 		registry.add("29a-ground-normalized-route-human-locality", _ -> testGroundNormalizedRouteHumanLocality());
 		registry.add("29b-native-region-prewarm-and-exit-grace", _ -> testNativeRegionPrewarm());
 		registry.add("29c-live-native-region-retains-locality-after-anchor-shift", _ -> testLiveNativeRegionLocality());
+		registry.add("29d-offline-profiles-do-not-consume-human-locality-bound", _ -> testOfflineLocalityBound());
 		registry.add("30-existing-registry-10000-local-bucket-bound", _ -> testScaleRegistry());
 	}
 
@@ -449,6 +450,22 @@ public final class PhantomTopologyPerceptionSuite implements PhantomTestSuite
 			publisher.committed(1, position(PhantomTopologyCoreSuite.LEFT_POINT));
 			PhantomAssertions.assertEquals(2, fixture.service.registrySnapshot().registered(), "Materialize/dematerialize cycle leaked duplicate topology ownership.");
 		}
+		stop(fixture);
+	}
+
+	private void testOfflineLocalityBound()
+	{
+		final Fixture fixture = fixture(policyWith(1030, 32));
+		for (long profileId = 1; profileId <= 1025; profileId++)
+		{
+			register(fixture, profileId, PhantomTopologyCoreSuite.LEFT_POINT);
+		}
+		final PhantomHumanLocalityControl locality = new PhantomHumanLocalityControl(fixture.service, fixture.port, () -> List.of(PhantomTopologyCoreSuite.LEFT_POINT), () -> 1000, profileId -> profileId == 1025);
+		locality.onPulse();
+		PhantomAssertions.assertTrue(locality.isLocal(1025), "Lower-ID OFFLINE profiles consumed the bounded human locality page before its online filter.");
+		PhantomAssertions.assertEquals(1, fixture.port.signals().size(), "OFFLINE bucket profiles received human locality signals.");
+		PhantomAssertions.assertTrue(locality.canPrewarmAt(1025, PhantomTopologyCoreSuite.LEFT_POINT), "Read-only Pilot prewarm gate disagrees with online production locality.");
+		PhantomAssertions.assertFalse(locality.canPrewarmAt(1, PhantomTopologyCoreSuite.LEFT_POINT), "Read-only prewarm admitted an OFFLINE profile.");
 		stop(fixture);
 	}
 

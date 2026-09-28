@@ -5,9 +5,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
@@ -29,9 +32,7 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 /** Narrow native actions on the already connected, consented Player. */
 public final class LocalPlayPilotActions
 {
-	private static final PhantomTopologyPoint M1_TARGET_ANCHOR = new PhantomTopologyPoint(39050, 41882, -3592, 0);
-	private static final Location M1_ROUTE_START = new Location(45085, 42001, -3496, 0);
-	private static final int M1_ANCHOR_TOLERANCE = 64;
+	private static final int M1_TARGET_SEARCH_RADIUS = 8000;
 	public record Outcome(String status, String reason, Map<String, String> candidate)
 	{
 		public static Outcome of(String status, String reason)
@@ -85,7 +86,8 @@ public final class LocalPlayPilotActions
 		{
 			return switch (request.operation())
 			{
-				case STATUS, CAPABILITIES -> Outcome.of("SUCCEEDED", request.operation() == LocalPlayPilotProtocol.Operation.CAPABILITIES ? "STATUS,SNAPSHOT_PHANTOMS,PREPARE_M1_ENVELOPE,SNAPSHOT_M1_ENVELOPE,SELECT_VISIBLE_PHANTOM_TRACE,SNAPSHOT_SELECTED_PHANTOM_TRACE,REPLAY_SELECTED_PHANTOM_TRACE,SNAPSHOT_TARGETS,TELEPORT_SELF,MOVE_SELF,STOP_MOVE,SIT,STAND,SELECT_TARGET,SAY,PARTY_INVITE,PARTY_RESPOND,PARTY_LEAVE,ATTACK_NPC,CAST_LEARNED_SKILL" : "SNAPSHOT");
+				case STATUS -> new Outcome("SUCCEEDED", "SNAPSHOT", Map.of("originX", Integer.toString(_origin.getX()), "originY", Integer.toString(_origin.getY()), "originZ", Integer.toString(_origin.getZ()), "originInstanceId", Integer.toString(_origin.getInstanceId())));
+				case CAPABILITIES -> Outcome.of("SUCCEEDED", "STATUS,SNAPSHOT_PHANTOMS,PREPARE_M1_ENVELOPE,SNAPSHOT_M1_ENVELOPE,SELECT_VISIBLE_PHANTOM_TRACE,SNAPSHOT_SELECTED_PHANTOM_TRACE,REPLAY_SELECTED_PHANTOM_TRACE,SNAPSHOT_TARGETS,TELEPORT_SELF,MOVE_SELF,STOP_MOVE,SIT,STAND,SELECT_TARGET,SAY,PARTY_INVITE,PARTY_RESPOND,PARTY_LEAVE,ATTACK_NPC,CAST_LEARNED_SKILL");
 				case SNAPSHOT_PHANTOMS -> candidate(actor);
 				case PREPARE_M1_ENVELOPE -> prepareM1Envelope(actor, args);
 				case SNAPSHOT_M1_ENVELOPE -> snapshotM1Envelope(actor);
@@ -187,19 +189,146 @@ public final class LocalPlayPilotActions
 		{
 			return Outcome.of("REJECTED", "ACTOR_BUSY");
 		}
-		final OperatorLocalityTarget target = PhantomSystem.operatorNearestReadyLocalityTarget(M1_TARGET_ANCHOR, M1_ANCHOR_TOLERANCE * M1_ANCHOR_TOLERANCE, afterProfileId).orElse(null);
-		if (target == null)
+		final long selectedProfileId = Long.parseLong(args.getOrDefault("profileId", "0"));
+		if ((selectedProfileId < 0) || ((selectedProfileId > 0) && (selectedProfileId != _envelopeProfileId)))
 		{
-			return Outcome.of("REJECTED", "NO_ORDINARY_TARGET_AT_PROOF_ANCHOR");
+			return Outcome.of("REJECTED", "INVALID_ARGUMENT");
 		}
-		final OperatorAdmissionProfile admission = PhantomSystem.operatorAdmissionProfile(target.profileId()).orElse(null);
-		if ((admission == null) || !"none".equals(admission.busyReason()) || !GeoEngine.getInstance().hasGeo(M1_ROUTE_START.getX(), M1_ROUTE_START.getY()) || (GeoEngine.getInstance().getHeight(M1_ROUTE_START.getX(), M1_ROUTE_START.getY(), M1_ROUTE_START.getZ()) != M1_ROUTE_START.getZ()))
+		long after = afterProfileId;
+		final PhantomTopologyPoint here = new PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId());
+		for (int attempt = 0; attempt < 8; attempt++)
 		{
-			return Outcome.of("REJECTED", "PROOF_TARGET_OR_ANCHOR_UNAVAILABLE");
+			final OperatorLocalityTarget target = (selectedProfileId > 0 ? PhantomSystem.operatorLocalityTarget(selectedProfileId) : PhantomSystem.operatorNearestReadyLocalityTarget(here, (long) M1_TARGET_SEARCH_RADIUS * M1_TARGET_SEARCH_RADIUS, after)).orElse(null);
+			if (target == null)
+			{
+				return Outcome.of("REJECTED", "NO_ORDINARY_READY_TARGET");
+			}
+			after = target.profileId();
+			final OperatorAdmissionProfile admission = PhantomSystem.operatorAdmissionProfile(target.profileId()).orElse(null);
+			final EnvelopeRoute route = (admission != null) && "READY".equals(admission.admission().populationState().name()) && "none".equals(admission.busyReason()) ? envelopeRoute(target) : null;
+			if (route != null)
+			{
+				_envelopeProfileId = target.profileId();
+				final Map<String, String> data = new LinkedHashMap<>();
+				data.put("profileId", Long.toString(_envelopeProfileId));
+				putPoint(data, "start", route.outside());
+				putPoint(data, "prewarm", route.prewarm());
+				putPoint(data, "inside", route.inside());
+				data.put("route", route.path().stream().map(point -> point.getX() + "," + point.getY() + "," + point.getZ()).collect(java.util.stream.Collectors.joining(";")));
+				actor.teleToLocation(route.outside(), false);
+				return new Outcome("ACCEPTED", "M1_NATURAL_GEO_PROVEN_ENVELOPE", Map.copyOf(data));
+			}
+			if (selectedProfileId > 0)
+			{
+				break;
+			}
 		}
-		_envelopeProfileId = target.profileId();
-		actor.teleToLocation(M1_ROUTE_START, false);
-		return new Outcome("ACCEPTED", "M1_FIXED_GEO_PROVEN_ANCHOR", Map.of("profileId", Long.toString(_envelopeProfileId), "committedX", Integer.toString(target.committedPosition().x()), "committedY", Integer.toString(target.committedPosition().y()), "committedZ", Integer.toString(target.committedPosition().z()), "startX", Integer.toString(M1_ROUTE_START.getX()), "startY", Integer.toString(M1_ROUTE_START.getY()), "startZ", Integer.toString(M1_ROUTE_START.getZ())));
+		return Outcome.of("REJECTED", "NO_NATIVE_PREWARM_ROUTE");
+	}
+
+	private record EnvelopeRoute(Location outside, Location prewarm, Location inside, List<Location> path)
+	{
+	}
+
+	private static void putPoint(Map<String, String> data, String prefix, Location point)
+	{
+		data.put(prefix + "X", Integer.toString(point.getX()));
+		data.put(prefix + "Y", Integer.toString(point.getY()));
+		data.put(prefix + "Z", Integer.toString(point.getZ()));
+	}
+
+	private static EnvelopeRoute envelopeRoute(OperatorLocalityTarget target)
+	{
+		final PhantomTopologyPoint point = target.committedPosition();
+		if (point.instanceId() != 0)
+		{
+			return null;
+		}
+		final int size = 1 << World.SHIFT_BY;
+		final Location inside = new Location(point.x(), point.y(), point.z(), 0);
+		for (int direction = 0; direction < 4; direction++)
+		{
+			final boolean horizontal = direction < 2;
+			final int sign = (direction & 1) == 0 ? 1 : -1;
+			final int axis = horizontal ? point.x() : point.y();
+			final int base = ((axis >> World.SHIFT_BY) + (2 * sign)) * size;
+			for (int lateral : new int[] {0, 512, -512, 1024, -1024})
+			{
+				for (int inset : new int[] {256, 448, 768})
+				{
+					final int candidateAxis = base + (sign > 0 ? inset : size - inset);
+					final Location prewarm = grounded(horizontal ? candidateAxis : point.x() + lateral, horizontal ? point.y() + lateral : candidateAxis, point.z());
+					final int outsideAxis = sign > 0 ? base + size + 64 : base - 64;
+					final Location outside = grounded(horizontal ? outsideAxis : point.x() + lateral, horizontal ? point.y() + lateral : outsideAxis, point.z());
+					if ((prewarm == null) || (outside == null) || (Math.hypot(prewarm.getX() - outside.getX(), prewarm.getY() - outside.getY()) > 2000) || couldKnow(prewarm, inside) || couldKnow(outside, inside) || !PhantomSystem.operatorCanPrewarmAt(target.profileId(), topologyPoint(prewarm)) || PhantomSystem.operatorCanPrewarmAt(target.profileId(), topologyPoint(outside)) || !nativeBothWays(outside, prewarm))
+					{
+						continue;
+					}
+					final List<Location> path = nativePath(prewarm, inside);
+					if (path != null)
+					{
+						return new EnvelopeRoute(outside, prewarm, inside, path);
+					}
+				}
+			}
+		}
+		return null;
+	}
+
+	private static Location grounded(int x, int y, int sourceZ)
+	{
+		final GeoEngine geo = GeoEngine.getInstance();
+		if (!geo.hasGeo(x, y))
+		{
+			return null;
+		}
+		final int z = geo.getHeight(x, y, sourceZ);
+		return Math.abs(z - sourceZ) <= 200 ? new Location(x, y, z, 0) : null;
+	}
+
+	private static List<Location> nativePath(Location first, Location last)
+	{
+		final List<Location> points = new ArrayList<>();
+		points.add(first);
+		if (!nativeBothWays(first, last))
+		{
+			final var path = PathFinding.getInstance().findPath(first.getX(), first.getY(), first.getZ(), last.getX(), last.getY(), last.getZ(), 0, true);
+			if ((path == null) || (path.size() > 62))
+			{
+				return null;
+			}
+			path.forEach(point -> points.add(new Location(point.getX(), point.getY(), point.getZ(), 0)));
+		}
+		points.add(last);
+		double distance = 0;
+		for (int index = 1; index < points.size(); index++)
+		{
+			final Location previous = points.get(index - 1);
+			final Location point = points.get(index);
+			distance += Math.hypot(point.getX() - previous.getX(), point.getY() - previous.getY());
+			if ((distance > 10_000) || !nativeBothWays(previous, point))
+			{
+				return null;
+			}
+		}
+		return List.copyOf(points);
+	}
+
+	private static PhantomTopologyPoint topologyPoint(Location point)
+	{
+		return new PhantomTopologyPoint(point.getX(), point.getY(), point.getZ() + 5, 0);
+	}
+
+	private static boolean couldKnow(Location human, Location target)
+	{
+		final var region = World.getInstance().getRegion(human.getX(), human.getY(), human.getZ());
+		return (region != null) && region.isSurroundingRegion(World.getInstance().getRegion(target.getX(), target.getY(), target.getZ()));
+	}
+
+	private static boolean nativeBothWays(Location first, Location second)
+	{
+		final GeoEngine geo = GeoEngine.getInstance();
+		return geo.canMoveToTarget(first.getX(), first.getY(), first.getZ(), second.getX(), second.getY(), second.getZ(), 0) && geo.canMoveToTarget(second.getX(), second.getY(), second.getZ(), first.getX(), first.getY(), first.getZ(), 0);
 	}
 
 	private Outcome snapshotM1Envelope(Player actor)
@@ -246,6 +375,8 @@ public final class LocalPlayPilotActions
 		data.put("materializedAgeMillis", (materialization == null) || (materialization.materializedAtNanos() <= 0) ? "-1" : Long.toString(Math.max(0, (System.nanoTime() - materialization.materializedAtNanos()) / 1_000_000L)));
 		data.put("localityCurrent", Boolean.toString(PhantomSystem.operatorHumanLocality(_envelopeProfileId)));
 		data.put("presenceReason", profile.busyReason());
+		data.put("admitted", Boolean.toString(profile.admission().admitted()));
+		data.put("lastMaterializationFailure", String.valueOf(profile.lastMaterializationFailure()));
 		data.put("distance2D", Long.toString(Math.round(Math.hypot(actor.getX() - (worldPresent ? player.getX() : point.x()), actor.getY() - (worldPresent ? player.getY() : point.y())))));
 		if (worldPresent)
 		{
@@ -259,6 +390,7 @@ public final class LocalPlayPilotActions
 			data.put("requestedState", profile.scheduler().requestedState().name());
 			data.put("activeSignalSources", Integer.toString(profile.scheduler().activeSignalSources()));
 			data.put("boundaryInFlight", Boolean.toString(profile.scheduler().boundaryInFlight()));
+			data.put("transitionStatus", profile.scheduler().transitionStatus().name());
 		}
 		data.putAll(PhantomSystem.operatorVisibleLifeCensus(actor));
 		return new Outcome("SUCCEEDED", "M1_ENVELOPE_SNAPSHOT", Map.copyOf(data));

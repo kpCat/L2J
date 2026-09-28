@@ -147,6 +147,13 @@ public final class PhantomPresenceRegistry
 		return "offline".equals(reason) ? Presence.OFFLINE : "none".equals(reason) ? Presence.AVAILABLE : Presence.BUSY;
 	}
 
+	/** Schedule state only, without invoking external ownership callbacks under a topology query. */
+	public synchronized boolean isOnline(long profileId)
+	{
+		final Slot slot = _slots.get(profileId);
+		return (slot != null) && slot._online;
+	}
+
 	public boolean permitsOrdinaryFarm(long profileId)
 	{
 		return state(profileId) == Presence.AVAILABLE;

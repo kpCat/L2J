@@ -83,7 +83,7 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 			}
 			for (PhantomTopologyPoint probe : probes(human))
 			{
-				for (var profile : _topology.perceptibleProfilesAt(probe, PhantomPerceptionChannel.TARGETABILITY, MAXIMUM_PROFILES_PER_HUMAN))
+				for (var profile : _topology.perceptibleProfilesAt(probe, PhantomPerceptionChannel.TARGETABILITY, MAXIMUM_PROFILES_PER_HUMAN, _online))
 				{
 					final PhantomTopologyPoint point = profile.point();
 					if ((point != null) && (point.instanceId() == human.instanceId()) && (Math.abs((point.x() >> World.SHIFT_BY) - (human.x() >> World.SHIFT_BY)) <= PREWARM_REGION_DISTANCE) && (Math.abs((point.y() >> World.SHIFT_BY) - (human.y() >> World.SHIFT_BY)) <= PREWARM_REGION_DISTANCE))
@@ -136,6 +136,18 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 	public boolean isLocal(long profileId)
 	{
 		return _local.contains(profileId) && _online.test(profileId) && (_clock.getAsLong() < (_nextRefresh - REFRESH_MILLIS + SIGNAL_TTL_MILLIS));
+	}
+
+	/** Read-only use of the same prewarm gates when preparing a consented human route. */
+	public boolean canPrewarmAt(long profileId, PhantomTopologyPoint human)
+	{
+		final var profile = _topology.findProfile(profileId).orElse(null);
+		final PhantomTopologyPoint point = profile == null ? null : profile.point();
+		if (!_online.test(profileId) || (point == null) || (point.instanceId() != human.instanceId()) || (Math.abs((point.x() >> World.SHIFT_BY) - (human.x() >> World.SHIFT_BY)) > PREWARM_REGION_DISTANCE) || (Math.abs((point.y() >> World.SHIFT_BY) - (human.y() >> World.SHIFT_BY)) > PREWARM_REGION_DISTANCE))
+		{
+			return false;
+		}
+		return probes(human).stream().anyMatch(probe -> !_topology.perceptibleProfilesAt(probe, PhantomPerceptionChannel.TARGETABILITY, 1, id -> id == profileId).isEmpty());
 	}
 
 	public boolean isNativeVisible(long profileId)

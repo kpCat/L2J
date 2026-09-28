@@ -98,6 +98,9 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		try
 		{
 			_actor.getLocation().setLocation(new Location(original.getX() + 3000, original.getY(), original.getZ(), original.getHeading(), original.getInstanceId()));
+			final var snapshotOrigin = execute(LocalPlayPilotProtocol.Operation.STATUS, Map.of()).candidate();
+			PhantomAssertions.assertEquals(Integer.toString(original.getX()), snapshotOrigin.get("originX"), "Pilot STATUS returned the moved actor as its origin.");
+			PhantomAssertions.assertEquals(Integer.toString(original.getZ()), snapshotOrigin.get("originZ"), "Pilot STATUS lost the exact captured origin Z after native ground normalization.");
 			final LocalPlayPilotActions.Outcome result = execute(LocalPlayPilotProtocol.Operation.TELEPORT_SELF, Map.of("x", Integer.toString(original.getX()), "y", Integer.toString(original.getY()), "z", Integer.toString(original.getZ()), "instanceId", Integer.toString(original.getInstanceId())));
 			PhantomAssertions.assertEquals("ACCEPTED", result.status(), "Pilot lost its original return point when the actor's mutable Location changed.");
 		}

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.LongPredicate;
 
 import org.l2jmobius.gameserver.phantoms.topology.PhantomPerceptionProvider.CleanupStatus;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomPerceptionProvider.CombatEvent;
@@ -355,6 +356,11 @@ public final class PhantomTopologyService
 	/** A human is a query point, never a registered phantom profile. */
 	public List<ProfileTopologySnapshot> perceptibleProfilesAt(PhantomTopologyPoint point, PhantomPerceptionChannel channel, int limit)
 	{
+		return perceptibleProfilesAt(point, channel, limit, profileId -> true);
+	}
+
+	public List<ProfileTopologySnapshot> perceptibleProfilesAt(PhantomTopologyPoint point, PhantomPerceptionChannel channel, int limit, LongPredicate eligible)
+	{
 		Objects.requireNonNull(point, "Human point must not be null.");
 		Objects.requireNonNull(channel, "Perception channel must not be null.");
 		if ((limit < 1) || (limit > 1024))
@@ -386,7 +392,7 @@ public final class PhantomTopologyService
 					}
 				}
 			}
-			return _profileRegistry.listForNodes(nodes, limit, view.generation());
+			return _profileRegistry.listForNodes(nodes, limit, view.generation(), Objects.requireNonNull(eligible, "Eligibility predicate must not be null."));
 		}
 	}
 
