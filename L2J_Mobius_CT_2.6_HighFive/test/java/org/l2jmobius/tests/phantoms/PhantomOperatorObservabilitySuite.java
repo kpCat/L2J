@@ -35,6 +35,7 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.localplay.LocalPlayM1Observation;
 import org.l2jmobius.gameserver.phantoms.PhantomLocalProofSelector;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace.SelectionStatus;
@@ -80,6 +81,44 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 		registry.add("07-local-proof-nearest-committed-admitted", _ -> testNearestLocalProof());
 		registry.add("08-local-proof-no-remote-or-unresolved-fallback", _ -> testLocalProofFailClosed());
 		registry.add("09-envelope-ready-without-active-admission", _ -> testEnvelopeReadySelection());
+		registry.add("10-m1-observed-position-and-contact-decisions", _ -> testM1ObservationDecisions());
+		registry.add("11-m1-transport-ticket-bindings", _ -> testM1TicketBindings());
+	}
+
+	private static void testM1ObservationDecisions()
+	{
+		final PhantomTopologyPoint committed = new PhantomTopologyPoint(44126, 42751, -3000, 0);
+		final PhantomTopologyPoint live = new PhantomTopologyPoint(45975, 47879, -3000, 0);
+		final var stored = LocalPlayM1Observation.select(committed, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.STORED, false, null, true);
+		final var active = LocalPlayM1Observation.select(committed, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE, true, live, false);
+		final var transition = LocalPlayM1Observation.select(committed, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.MATERIALIZING, false, null, false);
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.PositionSource.COMMITTED, stored.source(), "STORED lost its committed prediction.");
+		PhantomAssertions.assertEquals(committed, stored.observed(), "STORED prediction changed its committed position.");
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.PositionSource.LIVE, active.source(), "Verified ACTIVE Player was routed to stale committed coordinates.");
+		PhantomAssertions.assertEquals(live, active.observed(), "Verified ACTIVE Player position did not reach observer decisions.");
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.PositionSource.TRANSITION, transition.source(), "Materializing Player fell back to committed coordinates.");
+		PhantomAssertions.assertEquals(null, transition.observed(), "Transition invented a destination.");
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.PositionSource.TRANSITION, LocalPlayM1Observation.select(committed, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.STORED, false, null, false).source(), "STORED with retained World ownership fell back to committed coordinates.");
+		PhantomAssertions.assertFalse(LocalPlayM1Observation.contact(true, false, 200), "Region eligibility was mistaken for client visibility.");
+		PhantomAssertions.assertTrue(LocalPlayM1Observation.contact(true, true, 900), "Verified visible contact was missed.");
+		PhantomAssertions.assertFalse(LocalPlayM1Observation.contact(true, true, 901), "Distant visibility passed contact.");
+	}
+
+	private static void testM1TicketBindings()
+	{
+		final PhantomTopologyPoint point = new PhantomTopologyPoint(100, 200, -300, 0);
+		final var ticket = new LocalPlayM1Observation.Ticket("token", "run", 7, 9, 11, 13, LocalPlayM1Observation.Purpose.RETURN, point, 1000);
+		PhantomAssertions.assertTrue(ticket.valid("token", "run", 7, 9, 11, 13, LocalPlayM1Observation.Purpose.RETURN, point, 999), "Exact M1 transport ticket was rejected.");
+		PhantomAssertions.assertFalse(ticket.valid("wrong", "run", 7, 9, 11, 13, LocalPlayM1Observation.Purpose.RETURN, point, 999), "Wrong ticket token was accepted.");
+		PhantomAssertions.assertFalse(ticket.valid("token", "other", 7, 9, 11, 13, LocalPlayM1Observation.Purpose.RETURN, point, 999), "Wrong run was accepted.");
+		PhantomAssertions.assertFalse(ticket.valid("token", "run", 8, 9, 11, 13, LocalPlayM1Observation.Purpose.RETURN, point, 999), "Wrong actor was accepted.");
+		PhantomAssertions.assertFalse(ticket.valid("token", "run", 7, 10, 11, 13, LocalPlayM1Observation.Purpose.RETURN, point, 999), "Wrong profile was accepted.");
+		PhantomAssertions.assertFalse(ticket.valid("token", "run", 7, 9, 12, 13, LocalPlayM1Observation.Purpose.RETURN, point, 999), "Wrong object was accepted.");
+		PhantomAssertions.assertFalse(ticket.valid("token", "run", 7, 9, 11, 14, LocalPlayM1Observation.Purpose.RETURN, point, 999), "Wrong materialization epoch was accepted.");
+		PhantomAssertions.assertFalse(ticket.valid("token", "run", 7, 9, 11, 13, LocalPlayM1Observation.Purpose.LEAVE, point, 999), "Wrong purpose was accepted.");
+		PhantomAssertions.assertFalse(ticket.valid("token", "run", 7, 9, 11, 13, LocalPlayM1Observation.Purpose.RETURN, new PhantomTopologyPoint(100, 200, -300, 1), 999), "Wrong instance was accepted.");
+		PhantomAssertions.assertFalse(ticket.valid("token", "run", 7, 9, 11, 13, LocalPlayM1Observation.Purpose.RETURN, new PhantomTopologyPoint(101, 200, -300, 0), 999), "Wrong coordinate was accepted.");
+		PhantomAssertions.assertFalse(ticket.valid("token", "run", 7, 9, 11, 13, LocalPlayM1Observation.Purpose.RETURN, point, 1000), "Expired ticket was accepted.");
 	}
 
 	private static void testNearestLocalProof()

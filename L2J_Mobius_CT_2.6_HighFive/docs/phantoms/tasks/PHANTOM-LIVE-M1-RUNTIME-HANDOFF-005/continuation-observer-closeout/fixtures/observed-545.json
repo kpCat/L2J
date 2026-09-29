@@ -1,0 +1,37 @@
+{
+  "kind": "reported_runtime_excerpt_not_full_trace",
+  "source_commit": "4e461f3fbf15828de9ddf62ff5f0d53574a31768",
+  "source_file": "docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-history-self-heal/RESULT.md",
+  "runId": "1ae855b5-db2e-47d0-9eb2-bd1e4fe0cf2b",
+  "profileId": 545,
+  "objectId": 268489445,
+  "historicalStatus": "COMPLETE",
+  "reportedSnapshots": 49,
+  "committedXY": {
+    "x": 44126,
+    "y": 42751
+  },
+  "liveXY": {
+    "x": 45975,
+    "y": 47879
+  },
+  "outside": {
+    "worldPresent": true,
+    "regionCanKnow": false,
+    "clientVisible": false,
+    "distance2D": 6066
+  },
+  "visibleEntry": {
+    "worldPresent": true,
+    "regionCanKnow": false,
+    "clientVisible": false,
+    "distance2D": 5460
+  },
+  "unknown": [
+    "z",
+    "complete_actor_track",
+    "materializedAtNanos",
+    "per-snapshot_native_actions"
+  ],
+  "regression_rule": "Use supplied XY as reported facts. Supply synthetic Z/clock/actor explicitly as TEST inputs; do not label them captured PLAY data."
+}

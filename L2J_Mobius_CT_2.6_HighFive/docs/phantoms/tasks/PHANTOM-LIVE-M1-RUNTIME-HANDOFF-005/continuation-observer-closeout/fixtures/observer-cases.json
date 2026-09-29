@@ -1,0 +1,85 @@
+{
+  "kind": "synthetic_test_specification_not_test_results",
+  "cases": [
+    {
+      "id": "stored-start",
+      "expected": "COMMITTED, NEW timing not yet proven"
+    },
+    {
+      "id": "live-drift-from-committed",
+      "expected": "LIVE destination; zero durable writes"
+    },
+    {
+      "id": "moving-before-contact",
+      "expected": "bounded replan, no blind completion at old XY"
+    },
+    {
+      "id": "existing-world-before-demand",
+      "expected": "EXISTING_START; not NEW_MATERIALIZATION_PASS"
+    },
+    {
+      "id": "epoch-changed-same-object-id",
+      "expected": "continuity failure after lock"
+    },
+    {
+      "id": "committed-version-changed-before-contact",
+      "expected": "bounded route refresh for same profile"
+    },
+    {
+      "id": "transition-no-live-fallback",
+      "expected": "TRANSITION, not old committed destination"
+    },
+    {
+      "id": "could-know-without-client-visible",
+      "expected": "no CONTACT PASS"
+    },
+    {
+      "id": "materialized-first-seen-at-visibility",
+      "expected": "PREWARM_TIMING_UNPROVEN"
+    },
+    {
+      "id": "old-outside-now-near-player",
+      "expected": "do not start absence timer"
+    },
+    {
+      "id": "return-ticket-stale",
+      "expected": "one reprepare or typed failure"
+    },
+    {
+      "id": "ticket-wrong-run-actor-coords-epoch-instance",
+      "expected": "reject; no fallback"
+    },
+    {
+      "id": "ticket-expired-or-reused",
+      "expected": "reject"
+    },
+    {
+      "id": "iso-datetime-offset-null",
+      "expected": "parse supported inputs or typed required-field failure"
+    },
+    {
+      "id": "self-heal-only",
+      "expected": "no NATIVE_FARM_PASS"
+    },
+    {
+      "id": "census-lightweight",
+      "expected": "no goal SQL/mob scan"
+    },
+    {
+      "id": "tsv-write-failure",
+      "expected": "stop still attempted; preserve primary failure"
+    },
+    {
+      "id": "mailbox-budget",
+      "expected": "cleanup reserved and no size-limit increase"
+    },
+    {
+      "id": "uncertain-action",
+      "expected": "stop, no blind mutation retry or fabricated restore"
+    },
+    {
+      "id": "full-stored-contact-life-leave-return",
+      "expected": "all matrix fields true only from corresponding observations"
+    }
+  ]
+}

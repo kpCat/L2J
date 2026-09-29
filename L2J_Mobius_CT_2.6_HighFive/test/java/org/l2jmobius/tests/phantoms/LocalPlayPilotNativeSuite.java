@@ -48,6 +48,7 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		registry.add("learned-skill-native-path", this::learnedSkill);
 		registry.add("envelope-proof-requires-natural-target", this::envelopeProofRequiresNaturalTarget);
 		registry.add("origin-remains-returnable-after-actor-location-changes", this::originRemainsReturnable);
+		registry.add("m1-invalid-token-never-falls-back-to-origin", this::invalidM1TokenNeverFallsBack);
 	}
 
 	private void poseAndSnapshot(PhantomTestContext context) throws Exception
@@ -108,6 +109,15 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		{
 			_actor.getLocation().setLocation(original);
 		}
+	}
+
+	private void invalidM1TokenNeverFallsBack(PhantomTestContext context)
+	{
+		final Location origin = _actor.getLocation().clone();
+		final LocalPlayPilotActions.Outcome result = execute(LocalPlayPilotProtocol.Operation.TELEPORT_SELF, Map.of("x", Integer.toString(origin.getX()), "y", Integer.toString(origin.getY()), "z", Integer.toString(origin.getZ()), "instanceId", Integer.toString(origin.getInstanceId()), "m1Token", "wrong"));
+		PhantomAssertions.assertEquals("REJECTED", result.status(), "Invalid M1 token fell through to the ordinary origin teleport allowance.");
+		PhantomAssertions.assertEquals("M1_TICKET_INVALID", result.reason(), "Invalid M1 token used an unrelated refusal path.");
+		PhantomAssertions.assertEquals(origin, _actor.getLocation(), "Invalid M1 transport moved the actor.");
 	}
 
 	private LocalPlayPilotActions.Outcome execute(LocalPlayPilotProtocol.Operation operation, Map<String, String> args)

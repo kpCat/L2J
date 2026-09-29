@@ -29,6 +29,10 @@ import java.util.Objects;
 import org.l2jmobius.gameserver.config.NpcConfig;
 import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig;
+import org.l2jmobius.gameserver.localplay.LocalPlayM1Observation;
+import org.l2jmobius.gameserver.model.Location;
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort;
@@ -1817,6 +1821,67 @@ public final class PhantomSystem
 			.map(profile -> new OperatorLocalityTarget(profile.profileId(), profile.point(), profile.nodeId(), profile.topologyGeneration()));
 	}
 
+	/** Addressable M1 read: a live Player wins over the durable anchor only with a stable lifecycle epoch. */
+	public static synchronized java.util.Optional<OperatorM1TargetSnapshot> operatorM1TargetSnapshot(long profileId)
+	{
+		return operatorM1TargetSnapshot(profileId, null);
+	}
+
+	/** Capture client eligibility with the same verified Player and lifecycle epoch as its live position. */
+	public static synchronized java.util.Optional<OperatorM1TargetSnapshot> operatorM1TargetSnapshot(long profileId, Player human)
+	{
+		final PhantomSystem configured = _configuredInstance;
+		if ((profileId <= 0) || (configured == null) || (configured._state != State.RUNNING) || (configured._topologyService == null) || (configured._materializationService == null) || (configured._populationManager == null))
+		{
+			return java.util.Optional.empty();
+		}
+		return configured._topologyService.findProfile(profileId).filter(profile -> profile.point() != null).map(profile -> m1TargetSnapshot(configured, profile.profileId(), profile.point(), profile.topologyGeneration(), human));
+	}
+
+	/** One bounded INITIAL scan; later M1 phases use operatorM1TargetSnapshot for one selected id. */
+	public static synchronized java.util.List<OperatorM1TargetSnapshot> operatorM1CandidateSnapshots(PhantomTopologyPoint human, long maxDistanceSquared2D)
+	{
+		Objects.requireNonNull(human);
+		final PhantomSystem configured = _configuredInstance;
+		if ((configured == null) || (configured._state != State.RUNNING) || (configured._topologyService == null) || (configured._materializationService == null) || (configured._populationManager == null) || (maxDistanceSquared2D < 0))
+		{
+			return java.util.List.of();
+		}
+		final java.util.List<OperatorM1TargetSnapshot> candidates = new java.util.ArrayList<>();
+		for (var profile : configured._topologyService.listProfiles())
+		{
+			if ((profile.point() == null) || configured._populationManager.admissionProfile(profile.profileId()).filter(admission -> admission.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).isEmpty())
+			{
+				continue;
+			}
+			final OperatorM1TargetSnapshot candidate = m1TargetSnapshot(configured, profile.profileId(), profile.point(), profile.topologyGeneration(), null);
+			if ((candidate.observedPosition() != null) && (candidate.observedPosition().instanceId() == human.instanceId()) && (human.distanceSquared2D(candidate.observedPosition()) <= maxDistanceSquared2D))
+			{
+				candidates.add(candidate);
+			}
+		}
+		candidates.sort(java.util.Comparator.comparingLong((OperatorM1TargetSnapshot candidate) -> human.distanceSquared2D(candidate.observedPosition())).thenComparingLong(OperatorM1TargetSnapshot::profileId));
+		return java.util.List.copyOf(candidates.subList(0, Math.min(128, candidates.size())));
+	}
+
+	private static OperatorM1TargetSnapshot m1TargetSnapshot(PhantomSystem configured, long profileId, PhantomTopologyPoint committed, long committedSequence, Player human)
+	{
+		final var first = configured._materializationService.find(profileId).orElse(null);
+		final int objectId = first == null ? 0 : first.characterObjectId();
+		final WorldObject worldObject = objectId <= 0 ? null : World.getInstance().findObject(objectId);
+		final Player player = worldObject instanceof Player live ? live : null;
+		final boolean verified = (first != null) && (first.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE) && first.worldPresent() && first.identityLeaseRetained() && first.outboundAttached() && (player != null) && (player.getClient() == null) && player.isOnline() && (World.getInstance().getPlayer(objectId) == player) && (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM);
+		final Location location = verified ? player.getLocation().clone() : null;
+		final var second = configured._materializationService.find(profileId).orElse(null);
+		final boolean stable = verified && (second != null) && (second.state() == first.state()) && (second.characterObjectId() == objectId) && (second.materializedAtNanos() == first.materializedAtNanos()) && second.worldPresent() && (World.getInstance().findObject(objectId) == player);
+		final boolean safelyStored = first == null ? configured._populationManager.presence().state(profileId) == PhantomPresenceRegistry.Presence.AVAILABLE : (first.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.STORED) && !first.worldPresent() && !first.identityLeaseRetained() && (worldObject == null) && (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == null);
+		final var state = first == null ? safelyStored ? org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.STORED : null : first.state();
+		final PhantomTopologyPoint livePoint = stable ? new PhantomTopologyPoint(location.getX(), location.getY(), location.getZ(), location.getInstanceId()) : null;
+		final var choice = LocalPlayM1Observation.select(committed, state, stable, livePoint, safelyStored);
+		final WorldObject nativeTarget = stable ? player.getTarget() : null;
+		return new OperatorM1TargetSnapshot(profileId, objectId, first == null ? 0 : first.materializedAtNanos(), System.nanoTime(), committed, committedSequence, choice.observed(), choice.source(), stable, first != null && first.worldPresent(), first == null ? (safelyStored ? "STORED" : "UNAVAILABLE") : first.state().name(), stable && player.isOnline(), stable && (human != null) && player.isVisibleFor(human), stable && player.isMoving(), stable && player.isAttackingNow(), stable && player.isCastingNow(), stable && player.isAutoPlaying(), nativeTarget == null ? 0 : nativeTarget.getObjectId(), (nativeTarget instanceof org.l2jmobius.gameserver.model.actor.Attackable attackable) && attackable.isMonster() && !attackable.isDead());
+	}
+
 	public static synchronized boolean operatorHumanLocality(long profileId)
 	{
 		final PhantomSystem configured = _configuredInstance;
@@ -1935,6 +2000,7 @@ public final class PhantomSystem
 			result.put(prefix + "y", Integer.toString(player.getY()));
 			result.put(prefix + "z", Integer.toString(player.getZ()));
 			result.put(prefix + "targetObjectId", Integer.toString(player.getTarget() == null ? 0 : player.getTarget().getObjectId()));
+			result.put(prefix + "targetMonsterAlive", Boolean.toString((player.getTarget() instanceof org.l2jmobius.gameserver.model.actor.Attackable attackable) && attackable.isMonster() && !attackable.isDead()));
 			final boolean ordinaryEligible = (goal != null) && (goal.status() == PhantomGoalStatus.ACTIVE) && !player.isDead() && !player.isInParty() && !player.isInStoreMode();
 			if (ordinaryEligible) { eligible++; }
 			result.put(prefix + "eligible", Boolean.toString(ordinaryEligible));
@@ -2587,6 +2653,10 @@ public final class PhantomSystem
 	}
 
 	public record OperatorLocalityTarget(long profileId, PhantomTopologyPoint committedPosition, String topologyNodeId, long topologyGeneration)
+	{
+	}
+
+	public record OperatorM1TargetSnapshot(long profileId, int objectId, long materializedAtNanos, long sampledAtNanos, PhantomTopologyPoint committedPosition, long committedSequence, PhantomTopologyPoint observedPosition, LocalPlayM1Observation.PositionSource positionSource, boolean worldPresent, boolean snapshotWorldPresent, String materializationState, boolean online, boolean visibleForHuman, boolean moving, boolean attacking, boolean casting, boolean autoPlay, int targetObjectId, boolean targetMonsterAlive)
 	{
 	}
 

@@ -66,6 +66,7 @@ import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.managers.IdManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.localplay.LocalPlayM1Observation;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.enums.player.MountType;
@@ -1654,6 +1655,15 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 						final var current = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(action.player().getX(), action.player().getY(), action.player().getZ(), action.player().getInstanceId());
 						if ((observed != null) && (Math.hypot((long)action.player().getX() - departure.point().x(), (long)action.player().getY() - departure.point().y()) >= defaults.minimumProgress()) && (((observed.bestDistance() - current.distanceTo(observed.destination())) >= defaults.minimumProgress()) || (current.distanceTo(observed.destination()) <= defaults.arrivalRadius())))
 						{
+							final var durableBefore = transaction.load(profile.profileId()).state().position();
+							final var live = action.player().getLocation().clone();
+							final var materialized = materialization.find(profile.profileId()).orElseThrow();
+							PhantomAssertions.assertTrue(materialized.worldPresent() && (World.getInstance().findObject(materialized.characterObjectId()) == action.player()), "M1 native observer fixture lost its verified World Player.");
+							final var choice = LocalPlayM1Observation.select(new PhantomTopologyPoint(durableBefore.x(), durableBefore.y(), durableBefore.z(), live.getInstanceId()), materialized.state(), true, new PhantomTopologyPoint(live.getX(), live.getY(), live.getZ(), live.getInstanceId()), false);
+							PhantomAssertions.assertEquals(LocalPlayM1Observation.PositionSource.LIVE, choice.source(), "M1 observer ignored a moving native Player.");
+							PhantomAssertions.assertEquals(live.getX(), choice.observed().x(), "M1 observer chose a stale committed X during native movement.");
+							PhantomAssertions.assertFalse((durableBefore.x() == live.getX()) && (durableBefore.y() == live.getY()), "M1 native fixture did not separate live and committed positions.");
+							PhantomAssertions.assertEquals(durableBefore, transaction.load(profile.profileId()).state().position(), "M1 observation wrote a live step into durable history.");
 							travelClock.addAndGet(TimeUnit.SECONDS.toNanos(65));
 							crossedMinute = true;
 						}

@@ -1,0 +1,21 @@
+permission	module_relative_path	methods	role	baseline_blob_sha_when_verified
+modify	java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java	execute; prepareM1Envelope; envelopeRoute; snapshotM1Envelope; teleport	LIVE resolver; stages; transport ticket; includeCensus; actual visibility	d8e5b9d6c7dead65495e76a2db3b232bcae55940
+modify-narrow	java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	operatorLocalityTarget; operatorNearestReadyLocalityTarget; operatorNaturalCohortSize; operatorReadinessProgress	Add M1-only addressable observation/candidate methods; do not alter core lifecycle	-
+create	java/org/l2jmobius/gameserver/localplay/LocalPlayM1Observation.java	new pure helper	Immutable observation choices and tested ticket/phase decisions; no I/O/tasks	-
+modify	docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/Run-M1RuntimeHandoff.ps1	Capture; Walk-To; Follow-Native; Teleport-To; try/finally	Tracked approach; three census; phase identity; current leave/return; independent cleanup	-
+test	test/java/org/l2jmobius/tests/phantoms/PhantomOperatorObservabilitySuite.java	register and parameterized cases	Keep legacy selection semantics; cover new M1-only helper negative cases	8dee7bfee44c00b05d97e744fd56a5bae5ceec91
+test	test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java	POSITION_CANONICALIZATION registration	One actual native Player observation/permission integration case	-
+create-test	docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-observer-closeout/Test-M1ObserverOffline.ps1	actual runner functions with fake transport/clock	Full phase transitions/finally, not source-string checks	-
+conditional	build.xml	compile-tests; existing observability/native target wiring	Only alias if needed; no full aggregate added	303473f95a2e37ab94aa781a10f1379b0bf1362a
+read-only	test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java	suite(mode); main(mode,seed)	Find exact existing mode and reuse; no extra framework	8f5d5162614094d2505a1cf3efc8f1e53a59a7b0
+read-only	java/org/l2jmobius/gameserver/localplay/LocalPlayPilotProtocol.java	Operation; Request; read; writeResult	Existing args <=16 and 64KiB; no new op or consent bypass	564c46857b5c0655a1d580992588e86127ecdb20
+read-only	java/org/l2jmobius/gameserver/phantoms/topology/PhantomTopologyPositionPublisher.java	committed; materializeSucceeded; afterStore	Preserve durable-only position publication	04fa582a630a4972ddd63affd43f2e8289db2251
+read-only	java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	onPulse; canPrewarmAt	Production live position precedence remains unchanged	-
+read-only	java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	arrive; walk; captureVisibleArrival call	Do not synchronize coordinates per step	-
+read-only	tools/phantom-local-play/Stop-LocalPlayPilot.ps1	stop.properties and stopped-state verification	Stop is not necessarily consent OFF	289fb654130e4136573a433c270a12c8b2642c94
+read-only	tools/phantom-local-play/Invoke-LocalPlayPilot.ps1	mailbox request/response handling	Respect current session/run/deadline/uncertainty	-
+read-only	tools/phantom-local-play/Get-LocalPlayPilot.ps1	current context	Validate current consent and owned PID	-
+read-only	tools/phantom-local-play/LocalPlay-Pilot.ps1	Get-PilotContext; Get-PilotSession	Do not edit active lease/journal for headroom	-
+read-only	docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-history-self-heal/RESULT.md	PLAY and connected RED	Last reported evidence; not a complete runtime trace	e8c24d22fa91a319746ff992c5c0bf497e80dc01
+report	docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/STATE.md	M1 status	Accurate closeout, M2 not started	-
+report	docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-observer-closeout/RESULT.md	create after execution	Six proof dimensions and limitations, <=100 lines
