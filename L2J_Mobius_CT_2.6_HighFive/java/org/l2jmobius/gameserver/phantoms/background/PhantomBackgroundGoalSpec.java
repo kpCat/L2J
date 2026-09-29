@@ -33,6 +33,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 public record PhantomBackgroundGoalSpec(int npcId, String anchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter)
 {
 	public static final String GOAL_TYPE = "farm.background";
+	public static final String HISTORICAL_IDLE_GOAL_TYPE = "idle.background.history";
 	public static final String SOURCE_NAMESPACE = "background.farm";
 	public static final String CANDIDATE_KEY = "candidate.background.farm";
 	public static final String TRAVEL_ACTION = "background.travel";
@@ -49,7 +50,7 @@ public record PhantomBackgroundGoalSpec(int npcId, String anchorId, int shotItem
 
 	public PhantomBackgroundGoalSpec
 	{
-		if ((npcId <= 0) || (anchorId == null) || anchorId.isBlank() || (shotItemId < 0) || (shotsPerEncounter < 0) || (summonNpcId < 0) || (summonResourceItemId < 0) || (summonResourcesPerEncounter < 0))
+		if ((npcId < 0) || (anchorId == null) || anchorId.isBlank() || (shotItemId < 0) || (shotsPerEncounter < 0) || (summonNpcId < 0) || (summonResourceItemId < 0) || (summonResourcesPerEncounter < 0))
 		{
 			throw new IllegalArgumentException("Invalid persisted background farm goal.");
 		}
@@ -74,6 +75,14 @@ public record PhantomBackgroundGoalSpec(int npcId, String anchorId, int shotItem
 
 	static PhantomBackgroundGoalSpec parseLifecycle(PhantomGoal goal)
 	{
+		if ((goal != null) && HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goalType()))
+		{
+			if (!goal.validSources().isEmpty() || !goal.constraints().isEmpty() || (goal.target() == null) || !"profile".equals(goal.target().namespace()) || !goal.target().equals(goal.subject()) || (goal.selectedAnchor() == null) || !ANCHOR_NAMESPACE.equals(goal.selectedAnchor().namespace()))
+			{
+				throw new IllegalArgumentException("Invalid canonical historical idle goal.");
+			}
+			return new PhantomBackgroundGoalSpec(0, goal.selectedAnchor().key(), 0, 0, 0, 0, 0);
+		}
 		if ((goal == null) || !GOAL_TYPE.equals(goal.goalType()))
 		{
 			throw new IllegalArgumentException("Background lifecycle requires a farm.background goal.");
@@ -99,6 +108,7 @@ public record PhantomBackgroundGoalSpec(int npcId, String anchorId, int shotItem
 			throw new IllegalArgumentException("Background farm source contains an invalid NPC ID.", exception);
 		}
 		final String anchorId = sourceKey.substring(separator + 1);
+		if (npcId <= 0) { throw new IllegalArgumentException("Farm goal requires an authoritative NPC."); }
 		final PhantomDomainRef selectedAnchor = goal.selectedAnchor();
 		if ((selectedAnchor == null) || !ANCHOR_NAMESPACE.equals(selectedAnchor.namespace()) || !anchorId.equals(selectedAnchor.key()))
 		{

@@ -1,0 +1,17 @@
+scope	path	focus
+MODIFY	java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	ordinary loot overflow under model mutation caps
+MODIFY	java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java	typed farm input attempt/result
+MODIFY	java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	classify authority/position/target/resource/loot failures at source
+MODIFY	java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	consume typed authority result; historical idle transaction entry
+MODIFY	java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundGoalSpec.java	canonical idle goal parsing required by the existing lifecycle contract
+MODIFY	java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	strict + bounded lower-level fallback tiers; target exclusion
+MODIFY	java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	recover persisted known FAILED_REPLAN_REQUIRED reasons
+READ_OR_MODIFY	java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundOperationKey.java	new HISTORICAL_IDLE only if action kind contract requires
+READ_OR_MODIFY	java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	idle replay/idempotency; accept production uppercase progression hash for durable skill evidence
+TEST	test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java	model/authority/native regressions
+TEST	test/java/org/l2jmobius/tests/phantoms/PhantomHistoricalBackgroundGoal033ASuite.java	failed history recovery/replan/idle
+TEST	test/java/org/l2jmobius/tests/phantoms/PhantomM1RuntimeHandoffSuite.java	mixed cohort + connected handoff preparation
+MODIFY	docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/Run-M1RuntimeHandoff.ps1	remove global-zero-failure gate; keep one connected runner
+READ_OR_MODIFY	java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java	only if preparation API itself globally fences healthy local candidate
+MODIFY	java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	mixed-cohort regression proved recoverable history must defer retry instead of terminally fencing demand
+READ	java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationManager.java	preserve 1280/8720 resize semantics

@@ -181,6 +181,121 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("11-d2-managed-dwarf-normal-gk", this::testD2ManagedDwarfNormalGatekeeper);
 		registry.add("12-d2-paid-gk-atomic-replay", this::testD2PaidGatekeeperAtomicReplay);
 		registry.add("13-complete-stale-authority-renews-next-due", this::testCompleteStaleAuthorityRenewsNextDue);
+		registry.add("14-durable-object-cap-resumes-same-cursor", context -> testRecoverableFailure(context, "model.object_cap_indivisible"));
+		registry.add("15-legacy-authority-retries-same-request", context -> testRecoverableFailure(context, "catchup.authority.unsupported"));
+		registry.add("16-durable-planner-absence-retries", context -> testRecoverableFailure(context, "planner.target_or_route.absent"));
+		registry.add("17-unknown-history-stays-failed", context -> testRecoverableFailure(context, "catchup.authority.unknown"));
+		registry.add("18-no-route-idle-is-atomic-and-replayable", this::testNoRouteHistoricalIdle);
+		registry.add("19-planner-lower-tier-and-exclusion", this::testPlannerLowerTier);
+		registry.add("20-durable-authority-hash-refresh", context -> testRecoverableFailure(context, "catchup.authority.authority_stale"));
+		registry.add("21-durable-position-refresh", context -> testRecoverableFailure(context, "catchup.authority.position_stale"));
+		registry.add("22-durable-target-exclusion", context -> testRecoverableFailure(context, "catchup.authority.target_stale"));
+		registry.add("23-durable-loadout-replan", context -> testRecoverableFailure(context, "catchup.authority.resource_stale"));
+	}
+
+	private void testRecoverableFailure(PhantomTestContext context, String reason) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + reason.hashCode()).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed()).status(), "Recovery baseline failed.");
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().advance(profileId, 1, 1).status(), "Recovery prefix failed.");
+			final var store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			final Snapshot prefix = store.load(profileId).orElseThrow();
+			final byte[] canonical = componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+			final Snapshot failed = store.replace(profileId, prefix, prefix.state().failed(reason));
+			final var result = runtime.historical().advance(profileId, 1, 1);
+			if (reason.endsWith("unknown"))
+			{
+				PhantomAssertions.assertEquals(ResultStatusCode.REPLAN_REQUIRED, result.status(), "Unknown authority failure became successful.");
+				PhantomAssertions.assertEquals(failed, result.snapshot(), "Unknown failure changed history ownership.");
+				PhantomAssertions.assertTrue(Arrays.equals(canonical, componentPayload(profileId, PhantomBackgroundState.COMPONENT_TYPE)), "Unknown failure changed canonical character facts.");
+				final Hashes currentHashes = prefix.state().authorityHashes();
+				final Hashes staleHashes = new Hashes("old-" + currentHashes.knowledge(), currentHashes.topology(), currentHashes.progression(), currentHashes.commerce());
+				final Snapshot staleUnknown = store.replace(profileId, failed, copyWithHashes(failed.state(), staleHashes));
+				final var staleResult = runtime.historical().advance(profileId, 1, 1);
+				PhantomAssertions.assertEquals(ResultStatusCode.REPLAN_REQUIRED, staleResult.status(), "Stale generation erased an unknown failure.");
+				PhantomAssertions.assertEquals(staleUnknown, staleResult.snapshot(), "Unknown failure changed history ownership during stale-generation recovery.");
+				return;
+			}
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, result.status(), "Recoverable durable failure remained terminal: " + reason + ":" + result.reason());
+			PhantomAssertions.assertEquals(prefix.state().requestId(), result.snapshot().state().requestId(), "Recovery recreated the history request.");
+			PhantomAssertions.assertEquals(prefix.state().cursorEpochMinute() + 1, result.snapshot().state().cursorEpochMinute(), "Recovery replayed or skipped a minute.");
+			PhantomAssertions.assertEquals(prefix.state().intervalOrdinal() + 1, result.snapshot().state().intervalOrdinal(), "Recovery reset the interval ordinal.");
+			PhantomAssertions.assertEquals(prefix.state().generation(), result.snapshot().state().generation(), "Recovery replaced cursor ownership.");
+		}
+	}
+
+	private void testNoRouteHistoricalIdle(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 18).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 3, context.seed()).status(), "Idle baseline failed.");
+			final var state = runtime.transaction().load(profileId).state();
+			final var topology = isolatedTopology(state.position().committedAnchorId());
+			final var planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, _production.authority());
+			final var historical = new PhantomHistoricalBackgroundService(_profiles, runtime.goals(), planner, runtime.background(), runtime.materialization());
+			final var store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			final Snapshot prefix = store.load(profileId).orElseThrow();
+			store.replace(profileId, prefix, prefix.state().failed("planner.target_or_route.absent"));
+			final var result = historical.advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, result.status(), "No-route historical time remained permanently fenced: " + result.reason());
+			final var after = runtime.transaction().load(profileId).state();
+			PhantomAssertions.assertEquals(state.progress(), after.progress(), "Idle granted experience or SP.");
+			PhantomAssertions.assertEquals(state.vitals(), after.vitals(), "Idle changed vitals.");
+			PhantomAssertions.assertEquals(state.inventory(), after.inventory(), "Idle changed inventory or adena.");
+			PhantomAssertions.assertEquals(state.position(), after.position(), "Idle moved the character.");
+			PhantomAssertions.assertEquals(state.clock(), after.clock(), "Idle consumed RNG or combat time.");
+			PhantomAssertions.assertEquals(prefix.state().requestId(), result.snapshot().state().requestId(), "Idle recreated history.");
+			PhantomAssertions.assertEquals(FROM_MINUTE + 1, result.snapshot().state().cursorEpochMinute(), "Idle did not advance exactly one minute.");
+			final var idleGoal = runtime.goals().load(profileId).orElseThrow().goal();
+			final var committed = result.snapshot().state();
+			final var identity = new HistoricalIdentity(committed.requestId(), committed.generation(), committed.intervalOrdinal() - 1, committed.cursorEpochMinute() - 1, committed.cursorEpochMinute(), committed.planIdentity());
+			final var key = new PhantomBackgroundOperationKey(profileId, state.identity().characterObjectId(), idleGoal.goalId(), idleGoal.revision(), 0, 0, ActionKind.HISTORICAL_IDLE, 0, state.position().committedAnchorId(), PhantomBackgroundState.MODEL_VERSION, committed.authorityHashes(), null, identity);
+			PhantomAssertions.assertEquals(key.digest(), after.receipt().operationKey(), "Idle receipt lost its distinct replay identity.");
+			final var beforeIdle = prefix.state().withPlan(idleGoal.goalId(), idleGoal.revision(), committed.planOrdinal(), committed.planIdentity(), committed.knowledgeGeneration(), committed.topologyGeneration(), committed.authorityHashes());
+			final var replay = runtime.transaction().verifyCommittedHistoricalReplay(profileId, state.identity().characterObjectId(), idleGoal, key, new PhantomBackgroundTransaction.CatchupMutation(beforeIdle, result.snapshot().rowVersion() - 1, committed));
+			PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.IDEMPOTENT, replay.status(), "Historical idle replay was not idempotent.");
+			PhantomAssertions.assertEquals(after, replay.state(), "Idle replay changed canonical character facts.");
+			PhantomAssertions.assertEquals(result.snapshot(), store.load(profileId).orElseThrow(), "Idle replay changed catch-up ownership.");
+		}
+	}
+
+	private org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery isolatedTopology(String anchorId)
+	{
+		final var source = _production.topology().snapshot();
+		final var backend = new org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend();
+		final var snapshot = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologySnapshot.create(1, "test-isolated-history", 1, source.generation(), source.nodes(), List.of(_production.topology().findAnchor(anchorId).orElseThrow()), List.of(), backend, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy.productionDefaults());
+		return new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery(snapshot, backend, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics());
+	}
+
+	private void testPlannerLowerTier(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 19).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 16, context.seed()).status(), "Tier baseline failed.");
+			final var goal = runtime.goals().load(profileId).orElseThrow().goal();
+			final var spec = PhantomBackgroundGoalSpec.parse(goal);
+			for (int step = 0; step < 15 && !runtime.transaction().load(profileId).state().position().committedAnchorId().equals(spec.anchorId()); step++)
+			{
+				PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().advance(profileId, 1, 1).status(), "Tier fixture travel failed.");
+			}
+			final var state = runtime.transaction().load(profileId).state();
+			final var planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), isolatedTopology(spec.anchorId()), _production.authority());
+			final int targetLevel = _production.knowledge().findNpc(spec.npcId()).orElseThrow().level();
+			for (int difference : List.of(0, 5, 10))
+			{
+				final var progress = new PhantomBackgroundState.Progress(targetLevel + difference, state.progress().experience(), state.progress().skillPoints(), state.progress().experienceBeforeDeath());
+				final var projected = state.after(progress, state.vitals(), state.position(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt());
+				final var result = planner.replan(profileId, projected, goal, context.seed(), 1);
+				PhantomAssertions.assertTrue(result.ready(), "Reachable lower-tier target was excluded: L-" + difference);
+				PhantomAssertions.assertEquals(spec.npcId(), result.spec().npcId(), "Isolated tier selected a non-authoritative target.");
+				PhantomAssertions.assertTrue(planner.remainsSuitable(projected, result.goal()), "Lower-tier target was immediately considered unsuitable.");
+			}
+			PhantomAssertions.assertFalse(planner.replan(profileId, state, goal, context.seed(), 1, Set.of(spec.npcId() + "@" + spec.anchorId()), Set.of()).ready(), "Target-specific exclusion selected the same isolated target.");
+		}
 	}
 
 	private void testCompleteStaleAuthorityRenewsNextDue(PhantomTestContext context) throws Exception
@@ -748,14 +863,15 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 			}
 			final Target oversized = new Target(original.npcId(), original.level(), original.normalMonster(), original.maximumHp(), original.maximumMp(), original.physicalOffense(), original.magicOffense(), original.physicalDefense(), original.magicDefense(), original.attackSpeed(), original.castSpeed(), original.baseExperience(), original.baseSkillPoints(), drops, 17);
 			final var batch = new PhantomBackgroundModel().evaluate(new BatchRequest(baseline, oversized, input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
-			PhantomAssertions.assertTrue(batch.indivisibleObjectCap(), "A single oversized encounter was not classified as bounded unsupported input.");
-			PhantomAssertions.assertFalse(batch.mutated(), "An indivisible object-cap encounter partially mutated rewards.");
+			PhantomAssertions.assertTrue(batch.mutated(), "A single oversized ordinary encounter still blocked history.");
+			PhantomAssertions.assertEquals(16, batch.inventoryDelta().itemDeltas().size(), "Ordinary encounter exceeded the canonical mutation envelope.");
+			PhantomAssertions.assertEquals((long) batch.encounters(), batch.groundLosses().get(73), "Excess ordinary loot was not recorded as ground loss.");
 			final Drop oneObject = new Drop(500000, 0, 0, 100, 100, 1, 1, 1, null, 1, 100, false, 0);
 			final Target cumulative = new Target(original.npcId(), original.level(), true, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, List.of(oneObject), 1);
 			final var bounded = new PhantomBackgroundModel().evaluate(new BatchRequest(baseline, cumulative, input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
-			PhantomAssertions.assertEquals(PhantomBackgroundModel.ResultReason.OBJECT_CAP, bounded.reason(), "Cumulative object safety cap did not stop the bounded batch.");
+			PhantomAssertions.assertTrue(bounded.encounters() > PhantomBackgroundModel.MAX_NEW_NON_STACKABLE_OBJECTS, "Cumulative ordinary loot overflow stopped historical time.");
 			PhantomAssertions.assertTrue(bounded.mutated(), "A completed prefix was discarded at the object safety cap.");
-			PhantomAssertions.assertFalse(bounded.indivisibleObjectCap(), "A completed prefix was mistaken for an indivisible encounter.");
+			PhantomAssertions.assertEquals((long) bounded.encounters() - PhantomBackgroundModel.MAX_NEW_NON_STACKABLE_OBJECTS, bounded.groundLosses().get(500000), "Cumulative overflow did not conserve ordinary drops.");
 			PhantomAssertions.assertEquals(baseline, runtime.transaction().load(profileId).state(), "An uncommitted object-cap encounter changed canonical state.");
 		}
 	}

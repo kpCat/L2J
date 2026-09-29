@@ -60,7 +60,7 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 			throw new IllegalArgumentException("Invalid NORMAL GK travel leg identity.");
 		}
 		final boolean acquisitionAction = (actionKind == ActionKind.ACQUISITION_DEATH_DROP) || (actionKind == ActionKind.ACQUISITION_SPOIL_SWEEP) || (actionKind == ActionKind.ACQUISITION_MANOR_CROP) || (actionKind == ActionKind.ACQUISITION_QUEST_COLLECTION) || (actionKind == ActionKind.ACQUISITION_TRAVEL);
-		final boolean historicalAction = (actionKind == ActionKind.HISTORICAL_FARM) || (actionKind == ActionKind.HISTORICAL_TRAVEL) || (actionKind == ActionKind.HISTORICAL_DEAD_IDLE);
+		final boolean historicalAction = (actionKind == ActionKind.HISTORICAL_FARM) || (actionKind == ActionKind.HISTORICAL_TRAVEL) || (actionKind == ActionKind.HISTORICAL_DEAD_IDLE) || (actionKind == ActionKind.HISTORICAL_IDLE);
 		if (((acquisition != null) != acquisitionAction) || ((historical != null) != historicalAction) || ((acquisition != null) && (historical != null)))
 		{
 			throw new IllegalArgumentException("Background operation identity does not match its action family.");
@@ -128,6 +128,7 @@ public record PhantomBackgroundOperationKey(long profileId, int characterObjectI
 		HISTORICAL_TRAVEL,
 		HISTORICAL_FARM,
 		HISTORICAL_DEAD_IDLE,
+		HISTORICAL_IDLE,
 		ACQUISITION_DEATH_DROP,
 		ACQUISITION_SPOIL_SWEEP,
 		ACQUISITION_MANOR_CROP,

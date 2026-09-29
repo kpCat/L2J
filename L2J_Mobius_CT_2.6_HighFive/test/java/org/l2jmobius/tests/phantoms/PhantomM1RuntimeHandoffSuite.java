@@ -62,6 +62,55 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 		registry.add("12-late-near-preparation-keeps-ordinary-budget", this::lateNear);
 		registry.add("13-protected-resize-rechecks-without-exhaustion", this::protectedResize);
 		registry.add("14-outer-save-failure-keeps-committed-budget", this::outerSaveBudget);
+		registry.add("15-mixed-recoverable-history-keeps-demand-and-ordinary-live", this::mixedRecoverableHistory);
+	}
+
+	private void mixedRecoverableHistory(PhantomTestContext context)
+	{
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null);
+		final var backing = new PhantomPopulationEcologyGoal033Suite.HistoricalMemoryPort();
+		final var failures = new java.util.HashMap<Long, String>();
+		final var attempted = new java.util.HashSet<Long>();
+		final var history = new PhantomPopulationEcologyService.HistoricalPort()
+		{
+			@Override public Optional<org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.Snapshot> status(long id)
+			{
+				return backing.status(id).map(snapshot -> failures.containsKey(id) ? new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.Snapshot(snapshot.state().failed(failures.get(id)), snapshot.rowVersion()) : snapshot);
+			}
+			@Override public org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result begin(long id, long from, long target, long seed) { return backing.begin(id, from, target, seed); }
+			@Override public org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes)
+			{
+				if (failures.containsKey(id) && attempted.add(id))
+				{
+					return org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result.rejected(org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode.REPLAN_REQUIRED, failures.get(id), status(id).orElseThrow());
+				}
+				failures.remove(id);
+				return backing.advance(id, intervals, minutes);
+			}
+		};
+		for (long id = 1; id <= 32; id++)
+		{
+			final var initial = state(population.seedReady(id, 1));
+			final var begun = backing.begin(id, initial.calendarCursorEpochMinute(), initial.calendarCursorEpochMinute() + 100, id);
+			store.insert(id, initial.beginRequest(begun.snapshot().state().requestId(), initial.calendarCursorEpochMinute() + 100));
+			if (id <= 30) { failures.put(id, id <= 18 ? "model.object_cap_indivisible" : id <= 24 ? "catchup.authority.unsupported" : "planner.target_or_route.absent"); }
+		}
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(NOW.plusSeconds(40 * 60));
+		final var ecology = new PhantomPopulationEcologyService(_catalog, _population, store, history, _ -> false, _ -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 32, 4, 64, 4, 2, 64);
+		manager.installEcology(ecology); manager.start();
+		try
+		{
+			ecology.updateMaterializationDemand(java.util.List.of(new PhantomPopulationEcologyService.DemandFact(30, 1, true, 1, 1)), 4);
+			for (int batch = 0; batch < 280; batch++) { ecology.onPopulationPulse(); }
+			final var focused = backing.status(30).orElseThrow().state();
+			PhantomAssertions.assertTrue(focused.cursorEpochMinute() > focused.fromEpochMinute(), "Recoverable demand candidate became terminal behind mixed historical failures.");
+			final var ordinary = backing.status(31).orElseThrow().state();
+			PhantomAssertions.assertTrue(ordinary.cursorEpochMinute() > ordinary.fromEpochMinute(), "Mixed recovery starved ordinary work.");
+			PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseProfiles() <= 4 && ecology.snapshot().maximumPulseIntervals() <= 16, "Mixed recovery multiplied the shared worker budget.");
+		}
+		finally { ecology.beginStop(); manager.beginStop(); manager.finishStop(); }
 	}
 
 	private void lateNear(PhantomTestContext context)

@@ -189,7 +189,7 @@ public final class PhantomBackgroundModel
 				final boolean granted = (quest.rollBound() == 0) || (random.nextInt(quest.rollBound()) < quest.rollThreshold());
 				methodTargetDelta = granted ? Math.min(quest.maximumGrant(), quest.itemCap() - quest.expectedItemCount()) : 0;
 			}
-			final DropRoll effectiveRoll = methodTargetDelta > 0 ? addAcquisitionAward(roll, request.targetItemId(), methodTargetDelta, request.itemStackable(), request.itemWeight()) : roll;
+			DropRoll effectiveRoll = methodTargetDelta > 0 ? addAcquisitionAward(roll, request.targetItemId(), methodTargetDelta, request.itemStackable(), request.itemWeight()) : roll;
 			final Map<Integer, Long> prospectiveDeltas = new LinkedHashMap<>(deltas);
 			if (consumedSeeds > 0)
 			{
@@ -197,6 +197,10 @@ public final class PhantomBackgroundModel
 			}
 			mergeDelta(prospectiveDeltas, loadout.shotItemId(), -loadout.shotsPerEncounter());
 			mergeDelta(prospectiveDeltas, loadout.summonResourceItemId(), -loadout.summonResourcesPerEncounter());
+			if (request.mode() == BatchMode.ORDINARY_DEATH_DROP)
+			{
+				effectiveRoll = ordinaryLootWithinEnvelope(state.inventory(), effectiveRoll, prospectiveDeltas, newNonStackable, groundLosses);
+			}
 			for (Map.Entry<Integer, Long> drop : effectiveRoll.acquiredItemCounts().entrySet())
 			{
 				mergeDelta(prospectiveDeltas, drop.getKey(), drop.getValue());
@@ -255,8 +259,49 @@ public final class PhantomBackgroundModel
 		final int nextLevel = request.levelForExperience().levelFor(experience);
 		final Progress progress = new Progress(nextLevel, experience, skillPoints, experienceBeforeDeath);
 		final Vitals vitals = new Vitals(hp, state.vitals().maximumHp(), mp, state.vitals().maximumMp(), dead ? 0 : state.vitals().currentCp(), state.vitals().maximumCp());
+		deltas.values().removeIf(value -> value == 0);
 		final InventoryDelta inventoryDelta = new InventoryDelta(Map.copyOf(deltas), addedWeight, addedSlots, newNonStackable);
 		return new BatchResult(reason, encounters, elapsed, progress, vitals, inventoryDelta, Map.copyOf(groundLosses), random.state(), dead, acquisitionTargetDelta, manorSowAttempts, manorHarvestAttempts);
+	}
+
+	/** Mandatory consumption is reserved first; only ordinary pickup overflows the transaction envelope. */
+	private static DropRoll ordinaryLootWithinEnvelope(InventoryFacts inventory, DropRoll roll, Map<Integer, Long> mandatoryDeltas, int priorNewNonStackable, Map<Integer, Long> priorLosses)
+	{
+		final Map<Integer, Long> accepted = new LinkedHashMap<>();
+		final Map<Integer, Long> losses = new LinkedHashMap<>(roll.groundLosses());
+		final Map<Integer, Long> prospective = new LinkedHashMap<>(mandatoryDeltas);
+		int newObjects = priorNewNonStackable;
+		final Comparator<Drop> order = Comparator.comparingInt(Drop::groupOrdinal).thenComparingInt(Drop::itemOrdinal).thenComparingInt(Drop::itemId);
+		for (Drop drop : roll.facts().values().stream().sorted(order).toList())
+		{
+			final long awarded = roll.acquiredItemCounts().getOrDefault(drop.itemId(), 0L);
+			long pickup = drop.stackable() ? awarded : Math.min(awarded, MAX_NEW_NON_STACKABLE_OBJECTS - newObjects);
+			while (pickup > 0)
+			{
+				final Map<Integer, Long> trial = new LinkedHashMap<>(prospective);
+				mergeDelta(trial, drop.itemId(), pickup);
+				trial.values().removeIf(value -> value == 0);
+				if ((trial.size() <= MAX_CHANGED_ITEM_OBJECTS) && (changedObjectCount(inventory, trial, roll.facts()) <= MAX_CHANGED_ITEM_OBJECTS))
+				{
+					prospective.clear();
+					prospective.putAll(trial);
+					break;
+				}
+				pickup = drop.stackable() ? 0 : pickup - 1;
+			}
+			if (pickup < awarded)
+			{
+				if ((drop.origin() != DropOrigin.ORDINARY) && (drop.origin() != DropOrigin.ORDINARY_SPOIL)) { return roll; }
+				losses.merge(drop.itemId(), awarded - pickup, Math::addExact);
+				if (java.util.stream.Stream.concat(priorLosses.keySet().stream(), losses.keySet().stream()).distinct().count() > MAX_GROUND_LOSS_ITEM_IDS) { return roll; }
+			}
+			if (pickup > 0)
+			{
+				accepted.put(drop.itemId(), pickup);
+				if (!drop.stackable()) { newObjects += (int) pickup; }
+			}
+		}
+		return new DropRoll(Map.copyOf(accepted), roll.acquisitionCounts(), Map.copyOf(losses), roll.facts());
 	}
 
 	private static DropRoll addAcquisitionAward(DropRoll roll, int itemId, long count, boolean stackable, int weight)
@@ -509,7 +554,7 @@ public final class PhantomBackgroundModel
 				{
 					acquisitionCounts.merge(award.drop().itemId(), award.amount(), Math::addExact);
 				}
-				facts.put(award.drop().itemId(), award.drop());
+				facts.merge(award.drop().itemId(), award.drop(), (first, next) -> Comparator.comparingInt(Drop::groupOrdinal).thenComparingInt(Drop::itemOrdinal).thenComparingInt(Drop::itemId).compare(first, next) <= 0 ? first : next);
 			}
 			else
 			{

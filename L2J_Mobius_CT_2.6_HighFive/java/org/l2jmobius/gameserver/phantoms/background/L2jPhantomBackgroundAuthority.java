@@ -284,28 +284,58 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	@Override
 	public FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, Map<Integer, Integer> learnedSkills)
 	{
+		final FarmInputAttempt attempt = tryFarmInput(state, goal, learnedSkills);
+		if (attempt.successful()) { return attempt.input(); }
+		if (attempt.failure() == FarmInputFailure.AUTHORITY_STALE) { throw new IllegalStateException(attempt.reason()); }
+		throw new IllegalArgumentException(attempt.reason());
+	}
+
+	@Override
+	public FarmInputAttempt tryFarmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, Map<Integer, Integer> learnedSkills)
+	{
+		try
+		{
+			return FarmInputAttempt.ready(currentFarmInput(state, goal, learnedSkills));
+		}
+		catch (FarmInputRejected exception)
+		{
+			return FarmInputAttempt.failed(exception._failure, exception.getMessage());
+		}
+		catch (RuntimeException exception)
+		{
+			return FarmInputAttempt.failed(FarmInputFailure.UNKNOWN, exception.getClass().getSimpleName());
+		}
+	}
+
+	private FarmInput currentFarmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, Map<Integer, Integer> learnedSkills)
+	{
 		learnedSkills = Map.copyOf(learnedSkills);
 		if (!state.hashes().equals(hashes()))
 		{
-			throw new IllegalStateException("Background authority generation changed.");
+			throw new FarmInputRejected(FarmInputFailure.AUTHORITY_STALE, "farm.generation_changed");
 		}
 		final PhantomGameKnowledgeSnapshot knowledge = _knowledge.get().snapshot();
-		final PhantomTopologyAnchor anchor = _topology.get().findAnchor(goal.anchorId()).orElseThrow(() -> new IllegalArgumentException("Persisted farm anchor is absent."));
+		final PhantomTopologyAnchor anchor = _topology.get().findAnchor(goal.anchorId()).orElseThrow(() -> new FarmInputRejected(FarmInputFailure.POSITION_STALE, "farm.anchor_absent"));
 		if ((anchor.point().instanceId() != 0) || !anchor.id().equals(state.position().committedAnchorId()) || !atCanonicalAnchor(state.position(), anchor))
 		{
-			throw new IllegalArgumentException("Background farm requires the exact committed instance-zero anchor.");
+			throw new FarmInputRejected(FarmInputFailure.POSITION_STALE, "farm.position_not_canonical");
+		}
+		final Loadout loadout = state.loadout();
+		if ((goal.shotItemId() != loadout.shotItemId()) || (goal.shotsPerEncounter() != loadout.shotsPerEncounter()) || (goal.summonNpcId() != loadout.summonNpcId()) || (goal.summonResourceItemId() != loadout.summonResourceItemId()) || (goal.summonResourcesPerEncounter() != loadout.summonResourcesPerEncounter()) || (!learnedSkills.isEmpty() && (loadout.selectedSkillId() > 0) && (learnedSkills.getOrDefault(loadout.selectedSkillId(), 0) < loadout.selectedSkillLevel())))
+		{
+			throw new FarmInputRejected(FarmInputFailure.RESOURCE_STALE, "farm.durable_loadout_changed");
 		}
 		final var npc = knowledge.npcById().get(goal.npcId());
 		final NpcTemplate template = NpcData.getInstance().getTemplate(goal.npcId());
 		if ((npc == null) || (template == null) || (npc.kind() != NpcKind.MONSTER) || !npc.attackable() || !npc.targetable() || (npc.level() != template.getLevel()))
 		{
-			throw new IllegalArgumentException("Persisted target is not an authoritative normal monster.");
+			throw new FarmInputRejected(FarmInputFailure.TARGET_STALE, "farm.target_not_authoritative");
 		}
 		final List<SpawnAreaFact> areas = knowledge.spawnAreasByNpc().getOrDefault(goal.npcId(), List.of()).stream().filter(area -> (area.instanceId() == 0) && anchor.nodeId().equals(area.topologyNodeId())).toList();
 		final long configuredAmount = areas.stream().mapToLong(SpawnAreaFact::totalConfiguredAmount).sum();
 		if (configuredAmount <= 0)
 		{
-			throw new IllegalArgumentException("Persisted target has no authoritative spawn capacity at the farm anchor.");
+			throw new FarmInputRejected(FarmInputFailure.TARGET_STALE, "farm.spawn_absent");
 		}
 		final List<Drop> drops = new ArrayList<>(drops(state, npc.level(), knowledge.dropFactsByNpc().getOrDefault(goal.npcId(), List.of())));
 		if (PhantomOrdinarySpoilEvidence.eligible(_progression.get().capabilities(state.identity().activeClassId()), learnedSkills))
@@ -314,6 +344,10 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			{
 				drops.add(drop(state, npc.level(), fact, DropOrigin.ORDINARY_SPOIL, true));
 			}
+		}
+		if (drops.stream().map(Drop::itemId).distinct().count() > PhantomBackgroundModel.MAX_GROUND_LOSS_ITEM_IDS)
+		{
+			throw new FarmInputRejected(FarmInputFailure.UNSUPPORTED_LOOT, "farm.loot_evidence_bound");
 		}
 		final Target target = new Target(goal.npcId(), npc.level(), true, template.getBaseHpMax(), template.getBaseMpMax(), template.getBasePAtk(), template.getBaseMAtk(), template.getBasePDef(), template.getBaseMDef(), template.getBasePAtkSpd(), template.getBaseMAtkSpd(), npc.exp(), npc.sp(), drops, RatesConfig.DROP_MAX_OCCURRENCES_NORMAL);
 		final double expRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicExpRate(state.progress().level()) : RatesConfig.RATE_XP;
@@ -686,6 +720,11 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
 	private Tracking tracking(Player player, PhantomBackgroundGoalSpec goal, Capability capability)
 	{
+		if (goal.npcId() == 0)
+		{
+			final List<ItemObject> equipment = player.getInventory().getPaperdollItems().stream().sorted(Comparator.comparingInt(Item::getObjectId)).map(item -> new ItemObject(item.getObjectId(), item.getId(), item.getCount(), item.isStackable(), ItemLocation.PAPERDOLL)).toList();
+			return new Tracking(List.of(), equipment);
+		}
 		final PhantomGameKnowledgeSnapshot knowledge = _knowledge.get().snapshot();
 		final PhantomTopologyAnchor farmAnchor = _topology.get().findAnchor(goal.anchorId()).orElseThrow(() -> new IllegalArgumentException("Persisted farm anchor is absent."));
 		final var npc = knowledge.npcById().get(goal.npcId());
@@ -848,7 +887,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final ItemTemplate item = ItemData.getInstance().getTemplate(fact.itemId());
 		if (item == null)
 		{
-			throw new IllegalArgumentException("Background target contains an unsupported drop.");
+			throw new FarmInputRejected(FarmInputFailure.UNSUPPORTED_LOOT, "farm.item_absent");
 		}
 		final DropDisposition disposition = spoil ? DropDisposition.ACQUIRE : dropDisposition(item);
 		final Float configuredChance = spoil ? null : RatesConfig.RATE_DROP_CHANCE_BY_ID.get(fact.itemId());
@@ -892,9 +931,19 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final boolean autoLoot = specificAutoLoot || (!item.hasExImmediateEffect() && PlayerConfig.AUTO_LOOT) || (item.hasExImmediateEffect() && PlayerConfig.AUTO_LOOT_HERBS);
 		if (autoLoot)
 		{
-			throw new IllegalArgumentException("Background target contains an auto-acquired immediate or time-limited death drop.");
+			throw new FarmInputRejected(FarmInputFailure.UNSUPPORTED_LOOT, "farm.immediate_or_timed_autoloot");
 		}
 		return DropDisposition.LEAVE_ON_GROUND;
+	}
+
+	private static final class FarmInputRejected extends IllegalArgumentException
+	{
+		private final FarmInputFailure _failure;
+		private FarmInputRejected(FarmInputFailure failure, String reason)
+		{
+			super(reason);
+			_failure = failure;
+		}
 	}
 
 	private static String compositeKnowledgeHash(String knowledgeHash)

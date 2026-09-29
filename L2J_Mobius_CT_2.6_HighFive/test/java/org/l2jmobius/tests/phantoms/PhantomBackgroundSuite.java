@@ -2505,8 +2505,17 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			tooMany.add(new Drop(100 + index, -1, index, 100, 100, 1, 1, 1, null, 1, 100, true, 0));
 		}
 		final BatchResult objectRejected = new PhantomBackgroundModel().evaluate(request(state, target(1, 1, 0, tooMany)));
-		PhantomAssertions.assertEquals(PhantomBackgroundModel.ResultReason.OBJECT_CAP, objectRejected.reason(), "Changed-item-object limit did not stop before mutation.");
-		PhantomAssertions.assertEquals(0, objectRejected.encounters(), "Changed-item-object limit mutated an encounter.");
+		PhantomAssertions.assertTrue(objectRejected.encounters() > 0, "Ordinary object overflow permanently fenced the first encounter.");
+		PhantomAssertions.assertEquals(16, objectRejected.inventoryDelta().itemDeltas().size(), "Ordinary overflow did not keep the bounded prefix.");
+		PhantomAssertions.assertEquals((long) objectRejected.encounters(), objectRejected.groundLosses().get(116), "The excess ordinary item was not left on the ground.");
+		PhantomAssertions.assertEquals(objectRejected, new PhantomBackgroundModel().evaluate(request(state, target(1, 1, 0, tooMany))), "Overflow partition changed deterministic replay.");
+		final Drop manyObjects = new Drop(10, -1, 0, 100, 100, 12, 12, 1, null, 1, 100, false, 0);
+		final BatchRequest ordinary = request(state, target(1, 1, 0, List.of(manyObjects)));
+		final BatchResult spilled = new PhantomBackgroundModel().evaluate(ordinary);
+		PhantomAssertions.assertEquals(8L, spilled.inventoryDelta().itemDeltas().get(10), "Ordinary non-stackable overflow exceeded or discarded the collectible prefix.");
+		PhantomAssertions.assertEquals((12L * spilled.encounters()) - 8, spilled.groundLosses().get(10), "Non-stackable overflow did not conserve loot.");
+		final BatchRequest acquisition = new BatchRequest(state, ordinary.target(), ordinary.rewardPolicy(), ordinary.deathPolicy(), ordinary.experienceTable(), ordinary.levelForExperience(), false, BatchMode.ACQUISITION_DEATH_DROP, 10, 12, true);
+		PhantomAssertions.assertTrue(new PhantomBackgroundModel().evaluate(acquisition).indivisibleObjectCap(), "Acquisition overflow lost its strict transaction contract.");
 	}
 
 	private void testCausalDeath()

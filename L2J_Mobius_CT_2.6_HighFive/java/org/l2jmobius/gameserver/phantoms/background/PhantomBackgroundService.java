@@ -49,6 +49,8 @@ import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.FarmInput;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.FarmInputAttempt;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.FarmInputFailure;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.TravelAdvance;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchRequest;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.BatchMode;
@@ -369,15 +371,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return OperationResult.replan("travel.required");
 			}
-			final FarmInput input;
-			try
-			{
-				input = ordinaryFarmInput(profileId, claim.characterObjectId(), state, spec);
-			}
-			catch (RuntimeException exception)
-			{
-				return OperationResult.replan("authority.unsupported");
-			}
+			final FarmInputAttempt attempt = ordinaryFarmAttempt(profileId, claim.characterObjectId(), state, spec);
+			if (!attempt.successful()) { return OperationResult.replan(farmFailureReason(attempt)); }
+			final FarmInput input = attempt.input();
 			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, ActionKind.FARM, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes());
 			try (PhantomBackgroundCompetitionRegistry.Reservation reservation = _competition.tryReserve(input.topologyNodeId(), spec.npcId(), input.spawnCapacity()))
 			{
@@ -420,7 +416,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return retry("party.materialized_only");
 		}
-		final OperationClaim claim = acquire(profileId, goal, expectedCatchup.generation(), Math.addExact(expectedCatchup.intervalOrdinal(), 1));
+		final OperationClaim claim = acquire(profileId, goal, expectedCatchup.generation(), Math.addExact(expectedCatchup.intervalOrdinal(), 1), true);
 		if (!claim.acquired())
 		{
 			return claim.failure();
@@ -446,6 +442,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), state.position(), state.clock(), Map.of(), state.autoGetSkills(), List.of(), null, mutation);
 				return commit(claim, command);
 			}
+			if (PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goalType()))
+			{
+				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_IDLE, 0, state.position().committedAnchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
+				return commit(claim, new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), state.position(), state.clock(), Map.of(), state.autoGetSkills(), List.of(), null, mutation));
+			}
 			if (!state.position().committedAnchorId().equals(spec.anchorId()))
 			{
 				final TravelAdvance advance;
@@ -470,15 +471,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), advance.feeAdena() == 0 ? Map.of() : Map.of(57, -advance.feeAdena()), state.autoGetSkills(), List.of(), null, mutation);
 				return commit(claim, command);
 			}
-			final FarmInput input;
-			try
-			{
-				input = ordinaryFarmInput(profileId, claim.characterObjectId(), state, spec);
-			}
-			catch (RuntimeException exception)
-			{
-				return OperationResult.replan("catchup.authority.unsupported");
-			}
+			final FarmInputAttempt attempt = ordinaryFarmAttempt(profileId, claim.characterObjectId(), state, spec);
+			if (!attempt.successful()) { return OperationResult.replan(farmFailureReason(attempt)); }
+			final FarmInput input = attempt.input();
 			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_FARM, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
 			try (PhantomBackgroundCompetitionRegistry.Reservation reservation = _competition.tryReserve(input.topologyNodeId(), spec.npcId(), input.spawnCapacity()))
 			{
@@ -505,7 +500,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	private OperationResult reconcileHistoricalReplay(OperationClaim claim, PhantomGoal goal, PhantomBackgroundGoalSpec spec, HistoricalIdentity historical, PhantomBackgroundTransaction.CatchupMutation catchup)
 	{
-		for (ActionKind actionKind : List.of(ActionKind.HISTORICAL_TRAVEL, ActionKind.HISTORICAL_FARM, ActionKind.HISTORICAL_DEAD_IDLE))
+		for (ActionKind actionKind : List.of(ActionKind.HISTORICAL_TRAVEL, ActionKind.HISTORICAL_FARM, ActionKind.HISTORICAL_DEAD_IDLE, ActionKind.HISTORICAL_IDLE))
 		{
 			for (String legId : actionKind == ActionKind.HISTORICAL_TRAVEL ? java.util.stream.Stream.concat(java.util.stream.Stream.of(""), _authority.travelLegIds().stream()).toList() : List.of(""))
 			{
@@ -1304,6 +1299,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	private OperationClaim acquire(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence)
 	{
+		return acquire(profileId, goal, activityGeneration, tickSequence, false);
+	}
+
+	private OperationClaim acquire(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, boolean historical)
+	{
 		if ((activityGeneration <= 0) || (tickSequence <= 0))
 		{
 			return OperationClaim.failed(OperationResult.replan("activity.identity_invalid"));
@@ -1350,7 +1350,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final PhantomBackgroundGoalSpec spec;
 			try
 			{
-				spec = PhantomBackgroundGoalSpec.parse(actual);
+				spec = historical && (actual != null) && (actual.status() == PhantomGoalStatus.ACTIVE) && PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(actual.goalType()) ? PhantomBackgroundGoalSpec.parseLifecycle(actual) : PhantomBackgroundGoalSpec.parse(actual);
 			}
 			catch (IllegalArgumentException exception)
 			{
@@ -1465,19 +1465,37 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
-	private FarmInput ordinaryFarmInput(long profileId, int characterObjectId, PhantomBackgroundState state, PhantomBackgroundGoalSpec spec)
+	public FarmInputAttempt historicalFarmAttempt(long profileId, PhantomGoal goal)
 	{
-		final List<Integer> skillIds = _authority.ordinarySpoilSkillIds(state.identity().activeClassId());
-		if (skillIds.isEmpty())
+		final PhantomBackgroundState state = acquisitionSnapshot(profileId).orElseThrow();
+		return ordinaryFarmAttempt(profileId, state.identity().characterObjectId(), state, PhantomBackgroundGoalSpec.parse(goal));
+	}
+
+	private FarmInputAttempt ordinaryFarmAttempt(long profileId, int characterObjectId, PhantomBackgroundState state, PhantomBackgroundGoalSpec spec)
+	{
+		try
 		{
-			return _authority.farmInput(state, spec);
+			if (!state.hashes().equals(_authority.hashes())) { return FarmInputAttempt.failed(FarmInputFailure.AUTHORITY_STALE, "farm.generation_changed"); }
+			final List<Integer> skillIds = java.util.stream.Stream.concat(_authority.ordinarySpoilSkillIds(state.identity().activeClassId()).stream(), java.util.stream.Stream.of(state.loadout().selectedSkillId())).filter(id -> id > 0).distinct().sorted().toList();
+			Map<Integer, Integer> skills = Map.of();
+			if (!skillIds.isEmpty())
+			{
+				final var eligibility = transaction(() -> _transactions.readAcquisitionEligibility(profileId, characterObjectId, state.identity().classIndex(), state.identity().activeClassId(), skillIds, state.hashes().progression(), _authority.hashes()));
+				if (!eligibility.successful()) { return FarmInputAttempt.failed(FarmInputFailure.RESOURCE_STALE, "farm.durable_skill_evidence_unavailable:" + eligibility.status()); }
+				skills = eligibility.snapshot().skillLevels();
+				if ((state.loadout().selectedSkillId() > 0) && (skills.getOrDefault(state.loadout().selectedSkillId(), 0) < state.loadout().selectedSkillLevel())) { return FarmInputAttempt.failed(FarmInputFailure.RESOURCE_STALE, "farm.durable_skill_changed"); }
+			}
+			return _authority.tryFarmInput(state, spec, skills);
 		}
-		final var eligibility = transaction(() -> _transactions.readAcquisitionEligibility(profileId, characterObjectId, state.identity().classIndex(), state.identity().activeClassId(), skillIds, state.hashes().progression(), _authority.hashes()));
-		if (!eligibility.successful())
+		catch (RuntimeException exception)
 		{
-			throw new IllegalStateException("Ordinary spoil capability evidence is unavailable.");
+			return FarmInputAttempt.failed(FarmInputFailure.UNKNOWN, exception.getClass().getSimpleName());
 		}
-		return _authority.farmInput(state, spec, eligibility.snapshot().skillLevels());
+	}
+
+	public static String farmFailureReason(FarmInputAttempt attempt)
+	{
+		return "catchup.authority." + attempt.failure().name().toLowerCase(java.util.Locale.ROOT) + (attempt.failure() == FarmInputFailure.UNKNOWN ? ":" + attempt.reason() : "");
 	}
 
 	private OperationResult commit(OperationClaim claim, PhantomBackgroundTransaction.Command command)

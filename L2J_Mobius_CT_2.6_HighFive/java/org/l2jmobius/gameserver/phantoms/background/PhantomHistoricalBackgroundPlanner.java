@@ -54,6 +54,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 public final class PhantomHistoricalBackgroundPlanner
 {
 	private static final int LEVEL_RADIUS = 2;
+	private static final List<Integer> LOWER_LEVEL_TIERS = List.of(2, 5, 10);
 	private static final int MAXIMUM_TARGETS = 64;
 	private static final int FALLBACK_TARGETS = 256;
 	private static final int MAXIMUM_TARGET_PAGES = 8;
@@ -94,7 +95,7 @@ public final class PhantomHistoricalBackgroundPlanner
 	{
 		Objects.requireNonNull(state, "state");
 		Objects.requireNonNull(previousGoal, "previousGoal");
-		if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(previousGoal.goalType()))
+		if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(previousGoal.goalType()) && !PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(previousGoal.goalType()))
 		{
 			return Result.blocked("planner.previous_goal.unsupported");
 		}
@@ -117,7 +118,7 @@ public final class PhantomHistoricalBackgroundPlanner
 		{
 			return false;
 		}
-		final int minimum = Math.max(1, state.progress().level() - LEVEL_RADIUS);
+		final int minimum = Math.max(1, state.progress().level() - LOWER_LEVEL_TIERS.getLast());
 		final int maximum = state.progress().level() + LEVEL_RADIUS;
 		String cursor = null;
 		for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)
@@ -153,20 +154,20 @@ public final class PhantomHistoricalBackgroundPlanner
 		{
 			return Result.blocked("planner.ingress.absent");
 		}
-		final int minimum = Math.max(1, level - LEVEL_RADIUS);
 		final int maximum = level + LEVEL_RADIUS;
 		final List<Candidate> candidates = new ArrayList<>();
-		String cursor = null;
-		for (int pageIndex = 0; (pageIndex < MAXIMUM_TARGET_PAGES) && candidates.isEmpty(); pageIndex++)
+		for (int radius : LOWER_LEVEL_TIERS)
 		{
-			final KnowledgePage<TargetFact> page = targets(minimum, maximum, level, cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
-			addCandidates(candidates, currentAnchorId, page.values());
-			candidates.removeIf(candidate -> excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id()) || candidate.routeEdgeIds().stream().anyMatch(excludedSteps::contains));
-			cursor = page.nextCursor();
-			if (cursor == null)
+			String cursor = null;
+			for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)
 			{
-				break;
+				final KnowledgePage<TargetFact> page = targets(Math.max(1, level - radius), maximum, level, cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
+				addCandidates(candidates, currentAnchorId, page.values());
+				candidates.removeIf(candidate -> excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id()) || candidate.routeEdgeIds().stream().anyMatch(excludedSteps::contains));
+				cursor = page.nextCursor();
+				if (cursor == null) { break; }
 			}
+			if (!candidates.isEmpty()) { break; }
 		}
 		if (candidates.isEmpty())
 		{
@@ -188,6 +189,27 @@ public final class PhantomHistoricalBackgroundPlanner
 		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parse(goal);
 		final String identity = digest("BACKGROUND_CATCHUP_PLAN_V1", profileId, level, activeClassId, currentAnchorId, deterministicSeed, planOrdinal, generation.knowledgeGeneration(), generation.topologyGeneration(), generation.authorityHashes(), npcId, anchorId, selected.routeEdgeIds(), constraints);
 		return new Result(goal, spec, identity, generation, selected.routeEdgeIds(), "planner.ready");
+	}
+
+	public Result idleInitial(long profileId, Player player, long deterministicSeed, long planOrdinal)
+	{
+		final PlanningSnapshot facts = _authority.planningSnapshot(player);
+		return idlePlan(profileId, facts.currentAnchorId(), deterministicSeed, planOrdinal, 0, 0);
+	}
+
+	public Result idleFromState(long profileId, PhantomBackgroundState state, PhantomGoal previous, long deterministicSeed, long planOrdinal)
+	{
+		return idlePlan(profileId, state.position().committedAnchorId(), deterministicSeed, planOrdinal, previous.goalId(), Math.addExact(previous.revision(), 1));
+	}
+
+	private Result idlePlan(long profileId, String currentAnchorId, long seed, long ordinal, long previousGoalId, long revision)
+	{
+		if (_topology.findAnchor(currentAnchorId).isEmpty()) { return Result.blocked("planner.ingress.absent"); }
+		final PlanningGeneration generation = generation();
+		final long goalId = previousGoalId > 0 ? previousGoalId : positiveLong(digest("BACKGROUND_CATCHUP_GOAL_V1", profileId, seed, generation.knowledgeGeneration(), generation.topologyGeneration()));
+		final PhantomDomainRef owner = new PhantomDomainRef("profile", Long.toString(profileId));
+		final PhantomGoal goal = new PhantomGoal(goalId, PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE, PhantomGoalStatus.ACTIVE, owner, owner, 1, 0, "background.idle", List.of(), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, currentAnchorId), "background.history", 500, 0, 0, 0, Map.of(), "planner.target_or_route.absent", revision);
+		return new Result(goal, PhantomBackgroundGoalSpec.parseLifecycle(goal), digest("BACKGROUND_CATCHUP_IDLE_V1", profileId, seed, ordinal, currentAnchorId, generation), generation, List.of(), "planner.historical_idle");
 	}
 
 	private KnowledgePage<TargetFact> targets(int minimum, int maximum, int level, PageRequest page)

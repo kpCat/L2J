@@ -64,6 +64,18 @@ public interface PhantomBackgroundAuthority
 
 	FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal);
 
+	default FarmInputAttempt tryFarmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, Map<Integer, Integer> learnedSkills)
+	{
+		try
+		{
+			return FarmInputAttempt.ready(farmInput(state, goal, learnedSkills));
+		}
+		catch (RuntimeException exception)
+		{
+			return FarmInputAttempt.failed(FarmInputFailure.UNKNOWN, exception.getClass().getSimpleName());
+		}
+	}
+
 	default List<Integer> ordinarySpoilSkillIds(int activeClassId)
 	{
 		return List.of();
@@ -119,6 +131,25 @@ public interface PhantomBackgroundAuthority
 				throw new IllegalArgumentException("Invalid Background planning snapshot.");
 			}
 		}
+	}
+
+	enum FarmInputFailure
+	{
+		NONE, AUTHORITY_STALE, POSITION_STALE, TARGET_STALE, RESOURCE_STALE, UNSUPPORTED_LOOT, UNKNOWN
+	}
+
+	record FarmInputAttempt(FarmInput input, FarmInputFailure failure, String reason)
+	{
+		public FarmInputAttempt
+		{
+			Objects.requireNonNull(failure, "failure");
+			reason = Objects.requireNonNull(reason, "reason");
+			if ((input != null) != (failure == FarmInputFailure.NONE)) { throw new IllegalArgumentException("Partially populated farm authority attempt."); }
+		}
+
+		public static FarmInputAttempt ready(FarmInput input) { return new FarmInputAttempt(Objects.requireNonNull(input), FarmInputFailure.NONE, "farm.ready"); }
+		public static FarmInputAttempt failed(FarmInputFailure failure, String reason) { return new FarmInputAttempt(null, failure, reason); }
+		public boolean successful() { return failure == FarmInputFailure.NONE; }
 	}
 
 	record FarmInput(Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, String topologyNodeId, int spawnCapacity)

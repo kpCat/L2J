@@ -136,7 +136,7 @@ public final class PhantomBackgroundTransaction
 	public EligibilityResult readAcquisitionEligibility(long profileId, int characterObjectId, int classIndex, int activeClassId, List<Integer> requestedSkillIds, String progressionHash, PhantomBackgroundState.Hashes expectedBackgroundHashes)
 	{
 		final List<Integer> requested = requestedSkillIds == null ? List.of() : requestedSkillIds.stream().distinct().sorted().toList();
-		if ((profileId <= 0) || (characterObjectId <= 0) || (classIndex < 0) || (activeClassId < 0) || requested.isEmpty() || (requested.size() > 8) || requested.stream().anyMatch(skillId -> skillId <= 0) || (progressionHash == null) || !progressionHash.matches("[0-9a-f]{64}") || (expectedBackgroundHashes == null))
+		if ((profileId <= 0) || (characterObjectId <= 0) || (classIndex < 0) || (activeClassId < 0) || requested.isEmpty() || (requested.size() > 8) || requested.stream().anyMatch(skillId -> skillId <= 0) || (progressionHash == null) || !progressionHash.matches("[0-9A-Fa-f]{64}") || (expectedBackgroundHashes == null))
 		{
 			return EligibilityResult.rejected(Status.PROGRESSION_CONFLICT);
 		}
@@ -1926,6 +1926,13 @@ public final class PhantomBackgroundTransaction
 			Objects.requireNonNull(clock, "clock");
 			itemDeltas = Map.copyOf(itemDeltas);
 			autoGetSkills = List.copyOf(autoGetSkills);
+			if (operationKey.actionKind() == PhantomBackgroundOperationKey.ActionKind.HISTORICAL_IDLE)
+			{
+				if ((catchup == null) || (expectedState.state() != State.READY) || !progress.equals(expectedState.progress()) || !vitals.equals(expectedState.vitals()) || !position.equals(expectedState.position()) || !clock.equals(expectedState.clock()) || !itemDeltas.isEmpty() || !autoGetSkills.equals(expectedState.autoGetSkills()) || (acquisition != null) || !additionalMutableItemIds.isEmpty() || (operationKey.targetNpcId() != 0) || !operationKey.anchorId().equals(expectedState.position().committedAnchorId()))
+				{
+					throw new IllegalArgumentException("Historical idle may only advance catch-up ownership.");
+				}
+			}
 			additionalMutableItemIds = additionalMutableItemIds.stream().distinct().sorted().toList();
 			if ((operationKey.profileId() != expectedState.identity().profileId()) || (operationKey.characterObjectId() != expectedState.identity().characterObjectId()))
 			{

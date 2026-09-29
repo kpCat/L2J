@@ -152,7 +152,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 						}
 					}
 					final long nextPlanOrdinal = Math.addExact(existing.state().planOrdinal(), 1);
-					final var replacement = _planner.replaceFromState(profileId, backgroundState, currentGoal.goal(), deterministicSeed, nextPlanOrdinal);
+					final var replacement = planOrIdle(profileId, backgroundState, currentGoal.goal(), deterministicSeed, nextPlanOrdinal, Set.of());
 					if (!replacement.ready())
 					{
 						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, replacement.reasonKey(), existing);
@@ -184,6 +184,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		if (claimed.state().status() == Status.FAILED_REPLAN_REQUIRED)
 		{
+			if (isRecoverableFailure(claimed.state().failureReason())) { return Result.success(claimed, 0); }
 			return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, claimed.state().failureReason(), claimed);
 		}
 		return ensureBaseline(profileId, claimed);
@@ -248,7 +249,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				{
 					try (ActionLease lease = action.get())
 					{
-						final var plan = _planner.planInitial(profileId, lease.player(), current.state().deterministicSeed(), current.state().planOrdinal());
+						var plan = _planner.planInitial(profileId, lease.player(), current.state().deterministicSeed(), current.state().planOrdinal());
+						if ("planner.target_or_route.absent".equals(plan.reasonKey())) { plan = _planner.idleInitial(profileId, lease.player(), current.state().deterministicSeed(), current.state().planOrdinal()); }
 						if (!plan.ready())
 						{
 							deferredFailure = plan.reasonKey();
@@ -313,29 +315,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		final var generation = _planner.generation();
 		final boolean stale = !current.state().authorityHashes().equals(generation.authorityHashes()) || (current.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (current.state().topologyGeneration() != generation.topologyGeneration());
+		if ((current.state().status() == Status.FAILED_REPLAN_REQUIRED) && !isRecoverableFailure(current.state().failureReason()) && !"catchup.authority_hash_or_generation_stale".equals(current.state().failureReason()))
+		{
+			return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, current.state().failureReason(), current);
+		}
 		if ((current.state().status() == Status.FAILED_REPLAN_REQUIRED) || stale)
 		{
 			if (!stale)
 			{
-				if ("transaction.item_conflict".equals(current.state().failureReason()))
-				{
-					try
-					{
-						current = _store.replace(profileId, current, current.state().retryRunning());
-					}
-					catch (RuntimeException exception)
-					{
-						return Result.rejected(ResultStatusCode.RETRY, "catchup.item_conflict.retry_publish", _store.load(profileId).orElse(current));
-					}
-				}
-				else if ("model.object_cap".equals(current.state().failureReason()))
-				{
-					return fail(profileId, current, "model.object_cap_indivisible");
-				}
-				else
-				{
-					return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, current.state().failureReason(), current);
-				}
+				final Result recovered = recoverKnown(profileId, current);
+				if (!recovered.successful()) { return recovered; }
+				current = recovered.snapshot();
 			}
 			else
 			{
@@ -348,10 +338,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 		}
 		int advanced = 0;
+		boolean repairedInterval = false;
 		final int limit = Math.min(maximumIntervals, maximumSimulatedMinutes);
 		while ((advanced < limit) && (current.state().status() == Status.RUNNING))
 		{
-			final PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+			PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
 			StoredGoal storedGoal = _goals.load(profileId).orElse(null);
 			if ((backgroundState == null) || (storedGoal == null) || (storedGoal.goal().goalId() != current.state().goalId()) || (storedGoal.goal().revision() != current.state().goalRevision()))
 			{
@@ -364,7 +355,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if ((backgroundState.state() == PhantomBackgroundState.State.READY) && !_planner.remainsSuitable(backgroundState, storedGoal.goal()))
 			{
 				final long nextPlanOrdinal = Math.addExact(current.state().planOrdinal(), 1);
-				final var replanned = _planner.replan(profileId, backgroundState, storedGoal.goal(), current.state().deterministicSeed(), nextPlanOrdinal);
+				final var replanned = planOrIdle(profileId, backgroundState, storedGoal.goal(), current.state().deterministicSeed(), nextPlanOrdinal, Set.of());
 				if (!replanned.ready())
 				{
 					return fail(profileId, current, replanned.reasonKey());
@@ -374,6 +365,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					final PhantomBackgroundCatchupState replannedState = current.state().withPlan(replanned.goal().goalId(), replanned.goal().revision(), nextPlanOrdinal, replanned.planIdentity(), replanned.generation().knowledgeGeneration(), replanned.generation().topologyGeneration());
 					final PlannedSnapshot persisted = _store.replacePlan(profileId, current, replannedState, storedGoal, replanned.goal());
 					current = persisted.catchup();
+					if (farmProjectionChanged(storedGoal.goal(), replanned.goal()))
+					{
+						final Result refreshed = refreshCanonicalBaseline(profileId, current);
+						if (!refreshed.successful()) { return refreshed; }
+						backgroundState = _background.acquisitionSnapshot(profileId).orElseThrow();
+					}
 					storedGoal = persisted.goal();
 				}
 				catch (RuntimeException exception)
@@ -388,15 +385,94 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{
 				current = observed;
 				advanced++;
+				repairedInterval = false;
 				continue;
 			}
 			if (operation.status() == PhantomBackgroundService.OperationStatus.RETRY)
 			{
 				return Result.rejected(ResultStatusCode.RETRY, operation.reason(), observed);
 			}
-			return fail(profileId, observed, operation.reason());
+			final String failureReason = repairedInterval && operation.reason().startsWith("model.object_cap") ? "model.object_cap_internal" : operation.reason();
+			final Result failed = fail(profileId, observed, failureReason);
+			if (!repairedInterval && (failed.status() == ResultStatusCode.REPLAN_REQUIRED) && isRecoverableFailure(operation.reason()))
+			{
+				repairedInterval = true;
+				final Result repaired = recoverKnown(profileId, failed.snapshot());
+				if (repaired.successful()) { current = repaired.snapshot(); continue; }
+				return repaired;
+			}
+			return failed;
 		}
 		return Result.success(current, advanced);
+	}
+
+	/** Only classified recoverable failures may re-enter the same optimistic history ownership. */
+	public static boolean isRecoverableFailure(String reason)
+	{
+		return Set.of("transaction.item_conflict", "model.object_cap", "model.object_cap_indivisible", "catchup.authority.unsupported", "planner.target_or_route.absent", "authority.hash_stale", "catchup.authority.authority_stale", "catchup.authority.position_stale", "catchup.authority.target_stale", "catchup.authority.resource_stale", "catchup.authority.unsupported_loot").contains(reason);
+	}
+
+	private Result recoverKnown(long profileId, Snapshot current)
+	{
+		String reason = current.state().failureReason();
+		if (!isRecoverableFailure(reason)) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, reason, current); }
+		if (current.state().goalId() == 0)
+		{
+			return recoverStale(profileId, current, _planner.generation());
+		}
+		PhantomBackgroundState state = _background.acquisitionSnapshot(profileId).orElse(null);
+		final StoredGoal goal = _goals.load(profileId).orElse(null);
+		if ((state == null) || (goal == null) || (goal.goal().goalId() != current.state().goalId()) || (goal.goal().revision() != current.state().goalRevision()) || ((state.state() != PhantomBackgroundState.State.READY) && (state.state() != PhantomBackgroundState.State.DEAD)))
+		{
+			return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.recovery.baseline_or_goal_missing", current);
+		}
+		if ("catchup.authority.unsupported".equals(reason) && (state.state() == PhantomBackgroundState.State.READY))
+		{
+			final var attempt = _background.historicalFarmAttempt(profileId, goal.goal());
+			reason = attempt.successful() ? "model.object_cap" : PhantomBackgroundService.farmFailureReason(attempt);
+			if (!isRecoverableFailure(reason)) { return fail(profileId, current, reason); }
+		}
+		if ("authority.hash_stale".equals(reason) || "catchup.authority.authority_stale".equals(reason)) { return recoverStale(profileId, current, _planner.generation()); }
+		if ("catchup.authority.position_stale".equals(reason))
+		{
+			final Result refreshed = refreshCanonicalBaseline(profileId, current);
+			if (!refreshed.successful()) { return refreshed; }
+			state = _background.acquisitionSnapshot(profileId).orElseThrow();
+		}
+		if ("transaction.item_conflict".equals(reason) || reason.startsWith("model.object_cap") || (state.state() == PhantomBackgroundState.State.DEAD))
+		{
+			try { return Result.success(_store.replace(profileId, current, current.state().retryRunning()), 0); }
+			catch (RuntimeException exception) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.retry_publish", _store.load(profileId).orElse(current)); }
+		}
+		Set<String> exclusions = Set.of();
+		if ("catchup.authority.target_stale".equals(reason) || "catchup.authority.unsupported_loot".equals(reason))
+		{
+			final var spec = PhantomBackgroundGoalSpec.parse(goal.goal());
+			exclusions = Set.of(spec.npcId() + "@" + spec.anchorId());
+		}
+		final long ordinal = Math.addExact(current.state().planOrdinal(), 1);
+		final var plan = planOrIdle(profileId, state, goal.goal(), current.state().deterministicSeed(), ordinal, exclusions);
+		if (!plan.ready()) { return fail(profileId, current, plan.reasonKey()); }
+		try
+		{
+			final var renewed = current.state().withPlan(plan.goal().goalId(), plan.goal().revision(), ordinal, plan.planIdentity(), plan.generation().knowledgeGeneration(), plan.generation().topologyGeneration(), plan.generation().authorityHashes());
+			final Snapshot persisted = _store.replacePlan(profileId, current, renewed, goal, plan.goal()).catchup();
+			if (farmProjectionChanged(goal.goal(), plan.goal()) || ("catchup.authority.resource_stale".equals(reason) && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(plan.goal().goalType()))) { return refreshCanonicalBaseline(profileId, persisted); }
+			return Result.success(persisted, 0);
+		}
+		catch (RuntimeException exception) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.persistence_retry", _store.load(profileId).orElse(current)); }
+	}
+
+	private static boolean farmProjectionChanged(PhantomGoal previous, PhantomGoal replacement)
+	{
+		return PhantomBackgroundGoalSpec.GOAL_TYPE.equals(replacement.goalType()) && (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(previous.goalType()) || !PhantomBackgroundGoalSpec.parse(previous).equals(PhantomBackgroundGoalSpec.parse(replacement)));
+	}
+
+	private PhantomHistoricalBackgroundPlanner.Result planOrIdle(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal, Set<String> excludedTargets)
+	{
+		var plan = excludedTargets.isEmpty() ? _planner.replaceFromState(profileId, state, previous, seed, ordinal) : _planner.replan(profileId, state, previous, seed, ordinal, excludedTargets, Set.of());
+		if ("planner.target_or_route.absent".equals(plan.reasonKey())) { plan = _planner.idleFromState(profileId, state, previous, seed, ordinal); }
+		return plan;
 	}
 
 	private Result recoverStale(long profileId, Snapshot current, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation)
@@ -433,7 +509,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 		}
 		final long nextPlanOrdinal = Math.addExact(current.state().planOrdinal(), 1);
-		final var replanned = _planner.replaceFromState(profileId, backgroundState, storedGoal.goal(), current.state().deterministicSeed(), nextPlanOrdinal);
+		final var replanned = planOrIdle(profileId, backgroundState, storedGoal.goal(), current.state().deterministicSeed(), nextPlanOrdinal, Set.of());
 		if (!replanned.ready())
 		{
 			try

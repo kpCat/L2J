@@ -1456,7 +1456,7 @@ public final class PhantomPopulationEcologyService
 	{
 		final String reason = result.successful() ? fallback : result.reason();
 		recordFailureOnce(profileId, reason);
-		if ((result.status() == ResultStatusCode.RETRY) || (result.status() == ResultStatusCode.NORMAL_MATERIALIZED) || ((result.status() == ResultStatusCode.REPLAN_REQUIRED) && ("authority.hash_stale".equals(reason) || "transaction.item_conflict".equals(reason)))) { deferRetry(profileId); }
+		if ((result.status() == ResultStatusCode.RETRY) || (result.status() == ResultStatusCode.NORMAL_MATERIALIZED) || ((result.status() == ResultStatusCode.REPLAN_REQUIRED) && PhantomHistoricalBackgroundService.isRecoverableFailure(reason))) { deferRetry(profileId); }
 		else { synchronized (_monitor) { final Entry entry = _entries.get(profileId); if (entry != null) { entry._terminal = true; entry._stage = "blocked"; } } }
 	}
 
