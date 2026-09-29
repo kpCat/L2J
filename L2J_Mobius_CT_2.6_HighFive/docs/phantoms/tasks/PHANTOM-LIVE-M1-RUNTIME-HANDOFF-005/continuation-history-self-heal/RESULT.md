@@ -1,6 +1,6 @@
 # Результат continuation-history-self-heal
 
-Статус: IMPLEMENTED_AND_DEPLOYED; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
+Статус: CONNECTED_RED_M1_OPEN; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
 Код: `9e3576311af6ef8c53e662955e2330b7cee00143`, опубликован в `origin/feature/phantom-world`.
 
 ## Реализация
@@ -19,7 +19,11 @@ Controlled deploy после остановки обоих owned servers и со
 
 Read-only PLAY 2026-09-29 17:36:52 UTC: `READY=1280`, `RETIRED=8720`, retired pending 6641 и reserve ecology/history SHA256 `0659577b3b92f7708bebb3e4688a0d8ac9065714654e6736064b8343dffd1a68` сохранены. Active history: COMPLETE 501, RUNNING 229, FAILED_REPLAN_REQUIRED 550; до deploy baseline был 303/387/590. Причины: authority unsupported 93, stale 1, object cap 330, planner absent 116, item conflict canonical 10. Последние 10 остаются видимым unknown/inconsistent blocker, не исправлялись SQL. `activePending=779`, `currentHorizon=9`; worker/recovery работает. Нулевой глобальный failure count не требовался.
 
-Свежий 10-минутный TestAdmin arm был подготовлен после health/snapshot, но не активирован настоящим клиентом до истечения 2026-09-29 17:48:59 UTC. `Get-LocalPlayPilot` после срока не подтвердил новую session. Connected runner не запускался, TestAdmin не перемещался, Pilot scene/census/restore не наблюдались. Для завершения M1 нужен новый свежий arm при присутствующем TestAdmin и ровно один запуск существующего `Run-M1RuntimeHandoff.ps1`; затем записать фактический connected результат. Если connected RED — остановиться на фактической границе. M2 запрещён.
+Первый 10-минутный TestAdmin arm истёк неактивированным 2026-09-29 17:48:59 UTC. Когда TestAdmin вошёл, выдан новый arm; `Get-LocalPlayPilot` подтвердил `ARMED_IDLE` на текущем GameServer и настоящем actor 268492939. Существующий `Run-M1RuntimeHandoff.ps1` запущен ровно один раз. Результат — `NORMAL_MATERIALIZATION_DURING_APPROACH_NOT_OBSERVED`, exit 1. Runner подтвердил `ORIGIN RESTORED: REAL_LOGIN confirmed`, записал evidence и вызвал `Stop-LocalPlayPilot.ps1`. TestAdmin затем выполнил `.playtest off`; read-only `Get-LocalPlayPilot` подтвердил `OFF`.
+
+Evidence: `.phantom-local/m1-005-connected-1ae855b5-db2e-47d0-9eb2-bd1e4fe0cf2b/` в исходном модуле, `M1_CONNECTED_RESULT.txt`, `M1_CONNECTED_WORLD.tsv` (49 снимков), `M1_VISIBLE_LIFE_CENSUS.tsv`. Выбран профиль 545, Player object 268489445; `historicalStatus=COMPLETE`. Уже в OUTSIDE `worldPresent=true`, `regionCanKnow=false`, `clientVisible=false`, `distance2D=6066`; в VISIBLE_ENTRY тот же object и `worldPresent=true`, но `regionCanKnow=false`, `clientVisible=false`, `distance2D=5460`. Committed point `(44126,42751)` и live point `(45975,47879)` разошлись; к концу подхода readiness перешла с `ecology.cursor_pending` на `ecology.cursor_current`. Runner не наблюдал client visibility, полезную native life, soft return и итоговое coverage. Это фактическая connected RED boundary; второй run и дополнительные proof-подзадачи не запускались.
+
+Read-only PLAY после run, 2026-09-29 17:57:48 UTC: `READY=1280`, `RETIRED=8720`, retired pending 6641, тот же reserve digest. History COMPLETE 381, RUNNING 886, FAILED_REPLAN_REQUIRED 13; причины stale 1, `transaction.item_conflict_canonical` 12. Снижение известных recoverable failures подтверждено, но не меняет connected RED. CONFIG/ownership после run PASS, Login PID 7860 и Game PID 16908. M2 запрещён.
 
 ## Scope и процесс
 
