@@ -1,5 +1,23 @@
 # STATE
 
+Status: HISTORY_SELF_HEAL_IMPLEMENTED_DEPLOYED; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
+Продолжение: continuation-history-self-heal/RESULT.md; TASK/DESIGN/PLAN реализованы, TEST aggregate 205/205 PASS.
+Code/deployed source: 9e3576311af6ef8c53e662955e2330b7cee00143, origin feature/phantom-world опубликован.
+Clean detached `ant jar` PASS; GameServer SHA256 FA609D7E5E3B8A269500F54D03C339C65C40A560569C7D5927FB0639EC7CD3EE.
+Controlled deployment backup: artifacts/local-play/m1-005-backup-9e35763-20260929-203534; native PLAY dump 63502509 bytes.
+CONFIG/ownership PASS: Login PID7860, Game PID16908; 1280/64/128/100, maxScheduled10000.
+PLAY read-only 2026-09-29 17:36:52 UTC: READY1280/RETIRED8720, retired pending6641, reserve digest0659577b3b92f7708bebb3e4688a0d8ac9065714654e6736064b8343dffd1a68.
+History COMPLETE501/RUNNING229/FAILED_REPLAN_REQUIRED550; known recoverable failures remain observable and are not a global M1 gate.
+Unknown/inconsistent `transaction.item_conflict_canonical=10` remains visible; selected connected candidate must be checked.
+Fresh TestAdmin arm expired unused at 2026-09-29 17:48:59 UTC. Connected runner NOT_RUN; no TestAdmin movement, census or Pilot scene.
+Next required action: with TestAdmin present, create a new fresh arm and run existing connected M1 runner exactly once. Record result; stop on RED. No M2.
+Source scope: 10 production Java + 3 focused test Java + task docs/STATE; unrelated original checkout hunks preserved.
+SQL differences in managed TEST worktree are only EOL and unstaged; no schema/world data mutation.
+mojibake-маркеры в изменённых файлах проверены.
+escaped Cyrillic в изменённых файлах проверены.
+
+## Previous continuation
+
 Status: PLAYABLE1280_RUNTIME_PREPARATION_RED_M1_OPEN; final manual gate REQUIRED.
 Последнее продолжение: continuation-playable-1280/RESULT.md; TASK/DESIGN/PLAN реализованы в bounded scope.
 Code/deployed source: ca2dbc753106d165dc73a1b03ba89aadc69f917e; ordinary push origin feature/phantom-world выполнен.
