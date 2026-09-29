@@ -1,5 +1,18 @@
 # STATE
 
+Status: WAITING_ARM_M1_OPEN; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
+Продолжение: continuation-observer-closeout/RESULT.md; выбранные DESIGN/PLAN реализованы в bounded M1 observer scope.
+Code/deployed source: eb4a98f77e91f97cf9c6a5c54748a7d2be98f11d; clean `ant jar` PASS; GameServer SHA256 7496414678163E62203ED0440D4FDE1643C9FE20F4F23C504A82E8C7A14461A9.
+Focused observability11/11, native position7/7, native Pilot6/6, actual offline runner PASS.
+Один owned backup/deploy/restart выполнен; Login JAR сохранён. CONFIG PASS, Login/Game RUNNING, Pilot OFF, runActive=false.
+PLAY read-only: READY1280/RETIRED8720. INI 1280/64/128/100 ms, profilesPerPulse256, maxScheduled10000; manifest metadata исправлена до INI без изменения runtime настройки.
+NEW_MATERIALIZATION, CONTACT, NATIVE_LIFE, COHORT, SOFT_RETURN — NOT_RUN; RESTORE/STOP нового consent-сеанса — NOT_APPLICABLE_PRE_ARM.
+Новый arm-код, PREPARE и connected-run не запускались; TestAdmin не перемещался. Только свежий consent пользователя позволяет один connected-сеанс.
+mojibake-маркеры в изменённых файлах проверены.
+escaped Cyrillic в изменённых файлах проверены.
+
+## Previous state
+
 Status: CONNECTED_RED_M1_OPEN; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
 Продолжение: continuation-history-self-heal/RESULT.md; TASK/DESIGN/PLAN реализованы, TEST aggregate 205/205 PASS.
 Code/deployed source: 9e3576311af6ef8c53e662955e2330b7cee00143, origin feature/phantom-world опубликован.
