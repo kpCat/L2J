@@ -1,6 +1,13 @@
 # PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005 — observer closeout
 
-Status: **WAITING_ARM; M1 OPEN**. Production recovery проверен offline/native TEST, clean JAR развёрнут, source опубликован. Новый arm и connected-run после исправления не выполнялись; M2 не начат.
+Status: **CONNECTED RED; M1 OPEN; STOPPED**. После свежего arm выполнен ровно один connected-run после recovery. Второй run и дальнейшие исправления не выполнялись; M2 не начат.
+
+## Единственный connected-run после recovery: RED
+
+- Run ID `314658b3-a72c-4a7c-b9fd-ae7d11de09ce`, profile13, `STORED_START`, committedSequence1; primaryFailure `APPROACH_DEADLINE_EXPIRED`, requests114, `approachRouteFailures` пуст. Приватное evidence: `.phantom-local/m1-005-connected-314658b3-a72c-4a7c-b9fd-ae7d11de09ce/M1_CONNECTED_RESULT.txt` и `M1_CONNECTED_WORLD.tsv`.
+- Все 87 снимков: `COMMITTED/STORED`, objectId0, World=false, clientVisible=false, `historicalStatus=COMPLETE`, `currentStage=blocked`, один typed `readinessReason=catchup.renewal.background_state_invalid`. FirstLocal 10:27:16 UTC, firstCouldKnow 10:27:47 UTC; firstMaterialized отсутствует. TestAdmin прошёл cached APPROACH от outside (49216,42751,-3491) до (44120,42744,-3488), 9 единиц от committed (44126,42751,-3488), но natural Player не появился до 120 s deadline.
+- Адресный read-only PLAY SELECT после run: profile13 READY, linked characterObjectId268484332; `background.catchup`, `goal.runtime`, `background.state` присутствуют. Persisted `background.state` ordinal4=`INCONSISTENT` с теми же profileId/characterObjectId; renewal допускает READY/DEAD и выдаёт typed `background_state_invalid`. Когда именно состояние стало INCONSISTENT, этот run не устанавливает; различие state-машин само по себе дефектом не объявляется.
+- Матрица NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN=`NOT_OBSERVED`; RESTORE=PASS, STOP=PASS, cleanupFailures пусты. Runner подтвердил возврат TestAdmin к origin с REAL_LOGIN; Pilot run STOPPED, после него consent session `ARMED_IDLE`/runActive=false. Game PID19724 прежний, Login/Game healthy, CONFIG PASS. Полный M1 GREEN не заявлен; второго run и самостоятельного исправления не будет.
 
 ## Recovery после RED 278deadf
 

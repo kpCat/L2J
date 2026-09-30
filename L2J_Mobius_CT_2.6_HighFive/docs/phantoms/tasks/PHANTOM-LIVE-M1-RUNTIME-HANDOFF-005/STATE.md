@@ -1,5 +1,13 @@
 # STATE
 
+Status: CONNECTED_RED_M1_OPEN; STOPPED; final manual gate FAILED. Ровно один connected-run после recovery, второй run и самостоятельные исправления запрещены; M2 не начат.
+Run 314658b3-a72c-4a7c-b9fd-ae7d11de09ce profile13 STORED_START: APPROACH_DEADLINE_EXPIRED после cached movement до 9 единиц. Все 87 снимков COMMITTED/STORED без World Player; historical COMPLETE/currentStage blocked/readinessReason catchup.renewal.background_state_invalid. READ-ONLY PLAY после run: profile13 linked character268484332, background.state INCONSISTENT (ordinal4), goal/catchup существуют; момент перехода в INCONSISTENT не доказан.
+Матрица NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN NOT_OBSERVED; RESTORE/STOP PASS, cleanupFailures пусты. TestAdmin возвращён к origin с REAL_LOGIN, Pilot run STOPPED; consent session ARMED_IDLE/runActive=false до `.playtest off`. Game/Login healthy, CONFIG PASS. Evidence приватно в .phantom-local/m1-005-connected-314658b3-a72c-4a7c-b9fd-ae7d11de09ce; summary в continuation-observer-closeout/RESULT.md.
+mojibake-маркеры в изменённых файлах проверены.
+escaped Cyrillic в изменённых файлах проверены.
+
+## Previous state
+
 Status: WAITING_ARM_M1_OPEN; final manual gate REQUIRED. Новый arm и connected-run после recovery не выполнялись, M2 не начат.
 Continuation: continuation-observer-closeout/RESULT.md. Исправлен exact historical renewal/recovery boundary после connected RED 278deadf: completed catch-up с отсутствующим goal/background; сохранена адресная guarded orphan MATERIALIZED recovery.
 Linked native TEST profile70665: READY human demand → ecology due → renewed goal 3342617053714661885/0/ACTIVE/farm.background → cursor complete → NORMAL Player objectId268482063 → Decision goal.reloaded → AutoPlay.current/start true → native attack damage5 → cleanup READY/no Player. Exact переходы и reasons в RESULT; SOURCE_MAP дополнен.
