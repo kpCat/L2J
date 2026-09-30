@@ -1,5 +1,17 @@
 # STATE
 
+Status: CONNECTED_RED_M1_OPEN; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
+Continuation: continuation-observer-closeout/RESULT.md; свежий TestAdmin arm, ровно один connected-run `23360eec-d7d8-442f-8da9-e37770b209bb`.
+Boundary: `PREPARE_APPROACH_REJECTED:NO_NATIVE_APPROACH_ROUTE` для profile882, `STORED_START`, committed (44126,42751,-3488), outside TestAdmin (49216,42751,-3491).
+До выдачи native маршрута Player не материализовался, подход MOVE_SELF и visibility не наблюдались. Внутренняя причина nativePath null этими данными не различена.
+NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN — NOT_OBSERVED. TestAdmin RESTORE=PASS, Pilot run STOP=PASS, cleanupFailures пусты.
+Pilot после stop: ARMED_IDLE, runActive=false; не OFF. Owned Login/Game RUNNING, CONFIG PASS. Второй run и исправления не выполнялись.
+Локальное evidence: M1_CONNECTED_RESULT.txt и M1_CONNECTED_WORLD.tsv; raw записи и секреты не опубликованы.
+mojibake-маркеры в изменённых файлах проверены.
+escaped Cyrillic в изменённых файлах проверены.
+
+## Previous state
+
 Status: WAITING_ARM_M1_OPEN; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
 Продолжение: continuation-observer-closeout/RESULT.md; выбранные DESIGN/PLAN реализованы в bounded M1 observer scope.
 Code/deployed source: eb4a98f77e91f97cf9c6a5c54748a7d2be98f11d; clean `ant jar` PASS; GameServer SHA256 7496414678163E62203ED0440D4FDE1643C9FE20F4F23C504A82E8C7A14461A9.
