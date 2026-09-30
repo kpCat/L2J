@@ -442,6 +442,7 @@ public final class PhantomSystem
 				try
 				{
 					PhantomLegacyHeadlessRecovery.apply(new File(ServerConfig.DATAPACK_ROOT, PhantomLegacyHeadlessRecovery.RELATIVE_PATH).toPath(), _backgroundService);
+					PhantomLegacyHeadlessRecovery.applyMaterialized(new File(ServerConfig.DATAPACK_ROOT, PhantomLegacyHeadlessRecovery.MATERIALIZED_RELATIVE_PATH).toPath(), _backgroundService);
 				}
 				catch (java.io.IOException failure)
 				{

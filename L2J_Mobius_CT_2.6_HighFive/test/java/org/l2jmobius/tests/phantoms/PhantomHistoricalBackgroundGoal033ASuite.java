@@ -214,13 +214,14 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("26-complete-renewal-replans-stale-goal", this::testRenewalWithStaleGoal);
 		registry.add("27-complete-renewal-classifies-invalid-background", this::testRenewalWithInvalidBackground);
 		registry.add("28-complete-renewal-recovers-orphaned-materialized-background", this::testRenewalWithOrphanedMaterializedBackground);
-		registry.add("29-ready-local-demand-rebuilds-history-then-native-player", context -> testReadyLocalDemandRebuild(context, false));
-		registry.add("29a-legacy-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, true));
+		registry.add("29-ready-local-demand-rebuilds-history-then-native-player", context -> testReadyLocalDemandRebuild(context, false, false));
+		registry.add("29a-legacy-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, true, false));
+		registry.add("29b-latent-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, false, true));
 		registry.add("30-complete-renewal-rebuilds-absent-goal-with-background", this::testRenewalWithoutGoalWithBackground);
 		registry.add("31-complete-renewal-rejects-unverifiable-goalless-dead-baseline", this::testRenewalWithoutGoalWithDeadBackground);
 	}
 
-	private void testReadyLocalDemandRebuild(PhantomTestContext context, boolean legacyRecovery) throws Exception
+	private void testReadyLocalDemandRebuild(PhantomTestContext context, boolean legacyRecovery, boolean latentRecovery) throws Exception
 	{
 		final ManagedSnapshot managed = createManaged(context.seed() + 29);
 		final long profileId = managed.profile().profileId();
@@ -286,9 +287,21 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 				{
 					recoverLegacyFixture(profileId, managed.profile().characterObjectId(), runtime, context);
 				}
+				if (latentRecovery)
+				{
+					recoverLatentFixture(profileId, managed.profile().characterObjectId(), runtime, context);
+				}
 				final var normal = runtime.materialization().materialize(profileId);
 				recordLinkedTransition(context, "05-normal-materialization", profileId, runtime, normal.status().name(), normal.status().name());
 				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, normal.status(), "Complete readiness did not admit a real NORMAL Player.");
+				if (latentRecovery)
+				{
+					final var busyWitness = latentWitness(profileId, managed.profile().characterObjectId());
+					final long beforeBusy = componentRowVersion(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+					final var busy = runtime.background().recoverAttestedLegacyMaterializedDrift(busyWitness);
+					PhantomAssertions.assertEquals("recovery.legacy.identity_busy", busy.reason(), "Runtime Player identity lease did not fence latent repair.");
+					PhantomAssertions.assertEquals(beforeBusy, componentRowVersion(profileId, PhantomBackgroundState.COMPONENT_TYPE), "Runtime-busy latent repair wrote a component.");
+				}
 				final Player nativePlayer;
 				try (var action = runtime.materialization().tryAcquireAction(profileId).orElseThrow())
 				{
@@ -393,6 +406,54 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		final var recovered = runtime.background().recoverAttestedLegacyHeadlessDrift(witness);
 		recordLinkedTransition(context, "04a-legacy-recovery", profileId, runtime, recovered.status().name(), recovered.reason());
 		PhantomAssertions.assertTrue(recovered.successful(), "Attested linked legacy fixture did not recover: " + recovered.reason());
+	}
+
+	private static void recoverLatentFixture(long profileId, int objectId, RuntimeHarness runtime, PhantomTestContext context) throws Exception
+	{
+		PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, runtime.transaction().markMaterialized(profileId, objectId).status(), "Linked latent fixture could not enter MATERIALIZED.");
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("UPDATE characters SET x=x+16,heading=heading+1 WHERE charId=?"))
+		{
+			statement.setInt(1, objectId);
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Linked latent fixture did not drift canonical position.");
+		}
+		final var recovered = runtime.background().recoverAttestedLegacyMaterializedDrift(latentWitness(profileId, objectId));
+		recordLinkedTransition(context, "04b-latent-recovery", profileId, runtime, recovered.status().name(), recovered.reason());
+		PhantomAssertions.assertTrue(recovered.successful(), "Attested linked latent fixture did not recover: " + recovered.reason());
+	}
+
+	private static PhantomBackgroundTransaction.LegacyMaterializedWitness latentWitness(long profileId, int objectId) throws Exception
+	{
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("SELECT pc.row_version,pc.payload,c.curHp,c.curMp,c.curCp,c.x,c.y,c.z,c.heading FROM phantom_profile_components pc JOIN characters c ON c.charId=? WHERE pc.profile_id=? AND pc.component_type='background.state'"))
+		{
+			statement.setInt(1, objectId);
+			statement.setLong(2, profileId);
+			try (ResultSet result = statement.executeQuery())
+			{
+				PhantomAssertions.assertTrue(result.next(), "Linked latent fixture witness is absent.");
+				final byte[] payload = result.getBytes("payload");
+				PhantomAssertions.assertEquals(0, (int) payload[8], "Linked latent fixture was not MATERIALIZED.");
+				final byte[] marker = payload.clone();
+				marker[8] = 4;
+				return new PhantomBackgroundTransaction.LegacyMaterializedWitness(profileId, objectId, result.getLong("row_version"), HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(payload)), HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(marker)), result.getDouble("curHp"), result.getDouble("curMp"), result.getDouble("curCp"), result.getInt("x"), result.getInt("y"), result.getInt("z"), result.getInt("heading"));
+			}
+		}
+	}
+
+	private static long componentRowVersion(long profileId, String type) throws Exception
+	{
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("SELECT row_version FROM phantom_profile_components WHERE profile_id=? AND component_type=?"))
+		{
+			statement.setLong(1, profileId);
+			statement.setString(2, type);
+			try (ResultSet result = statement.executeQuery())
+			{
+				PhantomAssertions.assertTrue(result.next(), "Linked component row is absent.");
+				return result.getLong(1);
+			}
+		}
 	}
 
 	private static void recordLinkedTransition(PhantomTestContext context, String step, long profileId, RuntimeHarness runtime, String owner, String reason)

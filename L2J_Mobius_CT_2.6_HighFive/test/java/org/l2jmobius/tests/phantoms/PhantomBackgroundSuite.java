@@ -418,6 +418,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("03-verify-pending-restart-and-inconsistent", _ -> testVerifyPending());
 		registry.add("03a-profile13-shaped-materialized-mismatch", _ -> testProfile13ShapedMaterializedMismatch());
 		registry.add("03b-attested-legacy-headless-recovery", _ -> testAttestedLegacyHeadlessRecovery());
+		registry.add("03d-attested-latent-materialized-recovery", _ -> testAttestedLatentMaterializedRecovery());
 		registry.add("03c-legacy-witness-bounded-loader", _ -> testLegacyWitnessLoader());
 		registry.add("04-main-subclass-sql-isolation", _ -> testSubclassIsolation());
 		registry.add("05-stale-goal-generation-and-hash", _ -> testOperationIdentityGuards());
@@ -2811,6 +2812,114 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 	}
 
+	private void testAttestedLatentMaterializedRecovery() throws Exception
+	{
+		final int objectId = _environment.primary().objectId();
+		final Canonical original = canonical(objectId);
+		final int originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId = ?", objectId);
+		try
+		{
+			try (Connection connection = DatabaseFactory.getConnection();
+				PreparedStatement statement = connection.prepareStatement("UPDATE characters SET curHp=128,maxHp=180,curMp=67,maxMp=67,curCp=8,maxCp=72,x=44126,y=42751,z=-3488,heading=25847 WHERE charId=?"))
+			{
+				statement.setInt(1, objectId);
+				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Latent TEST baseline was not installed.");
+			}
+			try (Fixture fixture = createFixture(objectId, null))
+			{
+				final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction();
+				for (int phase = 0; phase < 2; phase++)
+				{
+					PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(fixture.profileId(), objectId).status(), "Latent TEST did not enter MATERIALIZED.");
+					final long version;
+					final byte[] payload;
+					try (Connection connection = DatabaseFactory.getConnection();
+						PreparedStatement statement = connection.prepareStatement("SELECT row_version,payload FROM phantom_profile_components WHERE profile_id=? AND component_type='background.state'"))
+					{
+						statement.setLong(1, fixture.profileId());
+						try (ResultSet result = statement.executeQuery())
+						{
+							PhantomAssertions.assertTrue(result.next(), "Latent TEST component disappeared.");
+							version = result.getLong("row_version");
+							payload = result.getBytes("payload");
+						}
+					}
+					final byte[] marker = payload.clone();
+					marker[8] = 4;
+					try (Connection connection = DatabaseFactory.getConnection();
+						PreparedStatement statement = connection.prepareStatement("UPDATE characters SET curHp=180,curCp=72,x=45975,y=47879,heading=12772 WHERE charId=?"))
+					{
+						statement.setInt(1, objectId);
+						PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Latent TEST canonical drift was not installed.");
+					}
+					final Canonical drifted = canonical(objectId);
+					final var witness = new PhantomBackgroundTransaction.LegacyMaterializedWitness(fixture.profileId(), objectId, version, HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(payload)), HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(marker)), drifted.currentHp(), drifted.currentMp(), drifted.currentCp(), drifted.x(), drifted.y(), drifted.z(), drifted.heading());
+					final var stale = new PhantomBackgroundTransaction.LegacyMaterializedWitness(witness.profileId(), objectId, version + 2, witness.materializedPayloadSha256(), witness.inconsistentPayloadSha256(), witness.canonicalHp(), witness.canonicalMp(), witness.canonicalCp(), witness.canonicalX(), witness.canonicalY(), witness.canonicalZ(), witness.canonicalHeading());
+					PhantomAssertions.assertEquals(Status.STATE_CONFLICT, transaction.recoverAttestedLegacyMaterializedDrift(stale).status(), "Stale latent rowVersion was admitted.");
+					final var changed = new PhantomBackgroundTransaction.LegacyMaterializedWitness(witness.profileId(), objectId, version, "a".repeat(64), witness.inconsistentPayloadSha256(), witness.canonicalHp(), witness.canonicalMp(), witness.canonicalCp(), witness.canonicalX(), witness.canonicalY(), witness.canonicalZ(), witness.canonicalHeading());
+					PhantomAssertions.assertEquals(Status.STATE_CONFLICT, transaction.recoverAttestedLegacyMaterializedDrift(changed).status(), "Changed latent payload was admitted.");
+					try (Connection connection = DatabaseFactory.getConnection();
+						PreparedStatement statement = connection.prepareStatement("UPDATE characters SET exp=exp+1 WHERE charId=?"))
+					{
+						statement.setInt(1, objectId);
+						statement.executeUpdate();
+					}
+					PhantomAssertions.assertEquals(Status.CANONICAL_MISMATCH, transaction.recoverAttestedLegacyMaterializedDrift(witness).status(), "Mixed latent progress was silently healed.");
+					try (Connection connection = DatabaseFactory.getConnection();
+						PreparedStatement statement = connection.prepareStatement("UPDATE characters SET exp=exp-1 WHERE charId=?"))
+					{
+						statement.setInt(1, objectId);
+						statement.executeUpdate();
+					}
+					try (Connection connection = DatabaseFactory.getConnection();
+						PreparedStatement statement = connection.prepareStatement("UPDATE items SET count=count+1 WHERE owner_id=? AND item_id=?"))
+					{
+						statement.setInt(1, objectId);
+						statement.setInt(2, PhantomActionFacade.FIXTURE_ITEM_ID);
+						PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Mixed latent inventory fixture was not installed.");
+					}
+					PhantomAssertions.assertEquals(Status.CANONICAL_MISMATCH, transaction.recoverAttestedLegacyMaterializedDrift(witness).status(), "Mixed latent inventory was silently healed.");
+					try (Connection connection = DatabaseFactory.getConnection();
+						PreparedStatement statement = connection.prepareStatement("UPDATE items SET count=count-1 WHERE owner_id=? AND item_id=?"))
+					{
+						statement.setInt(1, objectId);
+						statement.setInt(2, PhantomActionFacade.FIXTURE_ITEM_ID);
+						PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Mixed latent inventory fixture was not restored.");
+					}
+					if (phase == 1)
+					{
+						PhantomAssertions.assertEquals(Status.INCONSISTENT, transaction.abortMaterialization(fixture.profileId(), objectId).status(), "Latent TEST marker transition was not recorded.");
+					}
+					if (phase == 0)
+					{
+						final PhantomBackgroundTransaction interrupted = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+						{
+							if (point == FaultPoint.AFTER_CANONICAL_WRITES)
+							{
+								throw new InjectedFailure();
+							}
+						});
+						PhantomAssertions.assertTrue(!interrupted.recoverAttestedLegacyMaterializedDrift(witness).successful(), "Interrupted latent repair unexpectedly committed.");
+						PhantomAssertions.assertEquals(drifted, canonical(objectId), "Interrupted latent repair changed canonical character.");
+						PhantomAssertions.assertEquals(State.MATERIALIZED, transaction.load(fixture.profileId()).state().state(), "Interrupted latent repair changed background state.");
+					}
+					final Result recovered = transaction.recoverAttestedLegacyMaterializedDrift(witness);
+					PhantomAssertions.assertEquals(Status.SUCCESS, recovered.status(), "Exact latent witness did not recover.");
+					PhantomAssertions.assertEquals(State.READY, recovered.state().state(), "Latent witness did not become READY.");
+					PhantomAssertions.assertEquals(128.0, canonical(objectId).currentHp(), "Latent repair lost HP projection.");
+					PhantomAssertions.assertEquals(44126, canonical(objectId).x(), "Latent repair lost position projection.");
+					PhantomAssertions.assertEquals(Status.STATE_CONFLICT, transaction.recoverAttestedLegacyMaterializedDrift(witness).status(), "Consumed latent witness was reused.");
+				}
+				PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(fixture.profileId(), objectId).status(), "Recovered latent profile cannot materialize normally.");
+				PhantomAssertions.assertEquals(Status.SUCCESS, transaction.abortMaterialization(fixture.profileId(), objectId).status(), "Recovered latent profile cannot complete owned restart recovery.");
+			}
+		}
+		finally
+		{
+			restoreCharacter(objectId, original, originalBaseClass);
+		}
+	}
+
 	private static void testLegacyWitnessLoader() throws Exception
 	{
 		final Path witnessFile = Files.createTempFile("m1-legacy-witness-", ".tsv");
@@ -2821,6 +2930,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(1, PhantomLegacyHeadlessRecovery.load(witnessFile).size(), "Bounded witness did not load.");
 			Files.writeString(witnessFile, "M1_LEGACY_HEADLESS_AUTOSAVE_V1\n" + row + row, StandardCharsets.UTF_8);
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomLegacyHeadlessRecovery.load(witnessFile), "Duplicate legacy witness was admitted.");
+			final String materialized = "13\t10013\t4\t" + "a".repeat(64) + "\t" + "b".repeat(64) + "\t180\t67\t72\t45975\t47879\t-3488\t12772\n";
+			Files.writeString(witnessFile, "M1_LEGACY_MATERIALIZED_37_V1\n" + materialized, StandardCharsets.UTF_8);
+			PhantomAssertions.assertEquals(1, PhantomLegacyHeadlessRecovery.loadMaterialized(witnessFile).size(), "Bounded materialized witness did not load.");
+			Files.writeString(witnessFile, "M1_LEGACY_MATERIALIZED_37_V1\n" + materialized + materialized, StandardCharsets.UTF_8);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomLegacyHeadlessRecovery.loadMaterialized(witnessFile), "Duplicate materialized witness was admitted.");
 		}
 		finally
 		{

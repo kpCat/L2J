@@ -424,6 +424,19 @@ public final class PhantomBackgroundTransaction
 	public Result recoverAttestedLegacyHeadlessDrift(LegacyHeadlessWitness witness)
 	{
 		Objects.requireNonNull(witness, "witness");
+		return recoverAttestedLegacyVolatile(witness, null);
+	}
+
+	/** The second pinned cohort may retain MATERIALIZED or its single fail-closed marker transition. */
+	public Result recoverAttestedLegacyMaterializedDrift(LegacyMaterializedWitness witness)
+	{
+		Objects.requireNonNull(witness, "witness");
+		final LegacyHeadlessWitness canonical = new LegacyHeadlessWitness(witness.profileId(), witness.characterObjectId(), witness.materializedRowVersion(), witness.materializedPayloadSha256(), witness.canonicalHp(), witness.canonicalMp(), witness.canonicalCp(), witness.canonicalX(), witness.canonicalY(), witness.canonicalZ(), witness.canonicalHeading());
+		return recoverAttestedLegacyVolatile(canonical, witness);
+	}
+
+	private Result recoverAttestedLegacyVolatile(LegacyHeadlessWitness witness, LegacyMaterializedWitness materialized)
+	{
 		try (Connection connection = _connections.open())
 		{
 			connection.setAutoCommit(false);
@@ -431,12 +444,16 @@ public final class PhantomBackgroundTransaction
 			{
 				requireProfileLink(lockProfile(connection, witness.profileId()), witness.characterObjectId());
 				final LockedComponent component = requireStateComponent(lockComponent(connection, witness.profileId(), PhantomBackgroundState.COMPONENT_TYPE));
-				if ((component.rowVersion() != witness.rowVersion()) || !sha256(component.payload()).equals(witness.backgroundPayloadSha256()))
+				final String payloadHash = sha256(component.payload());
+				final boolean baseMatch = (component.rowVersion() == witness.rowVersion()) && payloadHash.equals(witness.backgroundPayloadSha256());
+				final boolean markerMatch = (materialized != null) && (component.rowVersion() == (witness.rowVersion() + 1)) && payloadHash.equals(materialized.inconsistentPayloadSha256());
+				if ((materialized == null && !baseMatch) || (materialized != null && !baseMatch && !markerMatch))
 				{
 					throw new StateConflict(Status.STATE_CONFLICT);
 				}
 				final PhantomBackgroundState current = decodeState(component);
-				if ((current.state() != State.INCONSISTENT) || (current.identity().characterObjectId() != witness.characterObjectId()) || (current.identity().classIndex() != 0) || (current.position().instanceId() != 0))
+				final boolean expectedState = (materialized == null) ? (current.state() == State.INCONSISTENT) : ((baseMatch && (current.state() == State.MATERIALIZED)) || (markerMatch && (current.state() == State.INCONSISTENT)));
+				if (!expectedState || (current.identity().characterObjectId() != witness.characterObjectId()) || (current.identity().classIndex() != 0) || (current.position().instanceId() != 0))
 				{
 					throw new StateConflict(Status.STATE_CONFLICT);
 				}
@@ -522,6 +539,18 @@ public final class PhantomBackgroundTransaction
 			{
 				throw new IllegalArgumentException("Invalid attested legacy witness.");
 			}
+		}
+	}
+
+	public record LegacyMaterializedWitness(long profileId, int characterObjectId, long materializedRowVersion, String materializedPayloadSha256, String inconsistentPayloadSha256, double canonicalHp, double canonicalMp, double canonicalCp, int canonicalX, int canonicalY, int canonicalZ, int canonicalHeading)
+	{
+		public LegacyMaterializedWitness
+		{
+			if ((materializedRowVersion >= Long.MAX_VALUE) || (inconsistentPayloadSha256 == null) || !inconsistentPayloadSha256.matches("[0-9a-f]{64}"))
+			{
+				throw new IllegalArgumentException("Invalid attested materialized witness.");
+			}
+			new LegacyHeadlessWitness(profileId, characterObjectId, materializedRowVersion, materializedPayloadSha256, canonicalHp, canonicalMp, canonicalCp, canonicalX, canonicalY, canonicalZ, canonicalHeading);
 		}
 	}
 
