@@ -760,6 +760,47 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
+	/** Apply one externally attested legacy repair only when the runtime no longer owns the Player. */
+	public OperationResult recoverAttestedLegacyHeadlessDrift(PhantomBackgroundTransaction.LegacyHeadlessWitness witness)
+	{
+		final long profileId = witness.profileId();
+		if (!claimTransition(profileId, TransitionKind.MATERIALIZING))
+		{
+			return retry("recovery.legacy.transition_busy");
+		}
+		Lease lease = null;
+		try
+		{
+			final PhantomProfile profile = _profiles.find(profileId).orElse(null);
+			if ((profile == null) || (profile.characterObjectId() == null) || (profile.characterObjectId() != witness.characterObjectId()))
+			{
+				return OperationResult.replan("recovery.legacy.profile_unlinked");
+			}
+			final int characterObjectId = witness.characterObjectId();
+			lease = _identities.tryAcquire(characterObjectId, OwnerKind.BACKGROUND);
+			if (lease == null)
+			{
+				return retry("recovery.legacy.identity_busy");
+			}
+			increment(_currentIdentityLeases, _peakIdentityLeases);
+			if ((_materialization.get().find(profileId).isPresent()) || (World.getInstance().getPlayer(characterObjectId) != null) || (World.getInstance().findObject(characterObjectId) != null) || PlayerAutoSaveTaskManager.getInstance().containsObjectId(characterObjectId))
+			{
+				return retry("recovery.legacy.runtime_busy");
+			}
+			final PhantomBackgroundTransaction.Result recovered = transaction(() -> _transactions.recoverAttestedLegacyHeadlessDrift(witness));
+			if (recovered.successful() && (recovered.state() != null) && ((recovered.state().state() == State.READY) || (recovered.state().state() == State.DEAD)))
+			{
+				return OperationResult.success("recovery.legacy.attested_reconciled");
+			}
+			return OperationResult.inconsistent("recovery.legacy." + recovered.status().name().toLowerCase());
+		}
+		finally
+		{
+			closeLease(lease);
+			releaseTransition(profileId, TransitionKind.MATERIALIZING);
+		}
+	}
+
 	public Optional<PhantomGoal> ordinaryGoal(long profileId)
 	{
 		return _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).filter(goal -> PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()));

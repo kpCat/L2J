@@ -147,6 +147,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Vitals;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
+import org.l2jmobius.gameserver.phantoms.background.PhantomLegacyHeadlessRecovery;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultPoint;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.Result;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.Status;
@@ -416,6 +417,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("02-precommit-fault-rollback", _ -> testPrecommitFaults());
 		registry.add("03-verify-pending-restart-and-inconsistent", _ -> testVerifyPending());
 		registry.add("03a-profile13-shaped-materialized-mismatch", _ -> testProfile13ShapedMaterializedMismatch());
+		registry.add("03b-attested-legacy-headless-recovery", _ -> testAttestedLegacyHeadlessRecovery());
+		registry.add("03c-legacy-witness-bounded-loader", _ -> testLegacyWitnessLoader());
 		registry.add("04-main-subclass-sql-isolation", _ -> testSubclassIsolation());
 		registry.add("05-stale-goal-generation-and-hash", _ -> testOperationIdentityGuards());
 		registry.add("06-transition-and-postcommit-faults", _ -> testTransitionFaults());
@@ -2727,6 +2730,101 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		finally
 		{
 			restoreCharacter(objectId, original, originalBaseClass);
+		}
+	}
+
+	private void testAttestedLegacyHeadlessRecovery() throws Exception
+	{
+		final int objectId = _environment.primary().objectId();
+		final Canonical original = canonical(objectId);
+		final int originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId = ?", objectId);
+		try
+		{
+			try (Connection connection = DatabaseFactory.getConnection();
+				PreparedStatement statement = connection.prepareStatement("UPDATE characters SET curHp=128,maxHp=180,curMp=67,maxMp=67,curCp=8,maxCp=72,x=44126,y=42751,z=-3488,heading=25847 WHERE charId=?"))
+			{
+				statement.setInt(1, objectId);
+				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Legacy TEST baseline was not installed.");
+			}
+			try (Fixture fixture = createFixture(objectId, null))
+			{
+				final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction();
+				PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(fixture.profileId(), objectId).status(), "Legacy TEST did not enter MATERIALIZED.");
+				try (Connection connection = DatabaseFactory.getConnection();
+					PreparedStatement statement = connection.prepareStatement("UPDATE characters SET curHp=180,curCp=72,x=45975,y=47879,heading=12772 WHERE charId=?"))
+				{
+					statement.setInt(1, objectId);
+					PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Legacy TEST canonical drift was not installed.");
+				}
+				PhantomAssertions.assertEquals(Status.INCONSISTENT, transaction.abortMaterialization(fixture.profileId(), objectId).status(), "Legacy TEST did not fail closed first.");
+				final Canonical drifted = canonical(objectId);
+				final PhantomBackgroundTransaction.LegacyHeadlessWitness witness;
+				try (Connection connection = DatabaseFactory.getConnection();
+					PreparedStatement statement = connection.prepareStatement("SELECT row_version,payload FROM phantom_profile_components WHERE profile_id=? AND component_type='background.state'"))
+				{
+					statement.setLong(1, fixture.profileId());
+					try (ResultSet result = statement.executeQuery())
+					{
+						PhantomAssertions.assertTrue(result.next(), "Legacy TEST component disappeared.");
+						witness = new PhantomBackgroundTransaction.LegacyHeadlessWitness(fixture.profileId(), objectId, result.getLong("row_version"), HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(result.getBytes("payload"))), drifted.currentHp(), drifted.currentMp(), drifted.currentCp(), drifted.x(), drifted.y(), drifted.z(), drifted.heading());
+					}
+				}
+				final var stale = new PhantomBackgroundTransaction.LegacyHeadlessWitness(witness.profileId(), objectId, witness.rowVersion() + 1, witness.backgroundPayloadSha256(), witness.canonicalHp(), witness.canonicalMp(), witness.canonicalCp(), witness.canonicalX(), witness.canonicalY(), witness.canonicalZ(), witness.canonicalHeading());
+				PhantomAssertions.assertTrue(!transaction.recoverAttestedLegacyHeadlessDrift(stale).successful(), "Stale legacy witness recovered a profile.");
+				try (Connection connection = DatabaseFactory.getConnection();
+					PreparedStatement statement = connection.prepareStatement("UPDATE characters SET exp=exp+1 WHERE charId=?"))
+				{
+					statement.setInt(1, objectId);
+					statement.executeUpdate();
+				}
+				PhantomAssertions.assertEquals(Status.CANONICAL_MISMATCH, transaction.recoverAttestedLegacyHeadlessDrift(witness).status(), "Mixed progress mismatch was silently healed.");
+				try (Connection connection = DatabaseFactory.getConnection();
+					PreparedStatement statement = connection.prepareStatement("UPDATE characters SET exp=exp-1 WHERE charId=?"))
+				{
+					statement.setInt(1, objectId);
+					statement.executeUpdate();
+				}
+				final PhantomBackgroundTransaction interrupted = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+				{
+					if (point == FaultPoint.AFTER_CANONICAL_WRITES)
+					{
+						throw new InjectedFailure();
+					}
+				});
+				PhantomAssertions.assertTrue(!interrupted.recoverAttestedLegacyHeadlessDrift(witness).successful(), "Interrupted legacy repair unexpectedly committed.");
+				PhantomAssertions.assertEquals(drifted, canonical(objectId), "Interrupted legacy repair changed canonical character.");
+				PhantomAssertions.assertEquals(State.INCONSISTENT, transaction.load(fixture.profileId()).state().state(), "Interrupted legacy repair changed background state.");
+				final Result recovered = transaction.recoverAttestedLegacyHeadlessDrift(witness);
+				PhantomAssertions.assertEquals(Status.SUCCESS, recovered.status(), "Attested legacy drift did not recover.");
+				PhantomAssertions.assertEquals(State.READY, recovered.state().state(), "Attested legacy drift did not become READY.");
+				PhantomAssertions.assertEquals(128.0, canonical(objectId).currentHp(), "Recovery did not restore the owned HP projection.");
+				PhantomAssertions.assertEquals(8.0, canonical(objectId).currentCp(), "Recovery did not restore the owned CP projection.");
+				PhantomAssertions.assertEquals(44126, canonical(objectId).x(), "Recovery did not restore the owned position.");
+				PhantomAssertions.assertTrue(!transaction.recoverAttestedLegacyHeadlessDrift(witness).successful(), "Consumed legacy witness was reused.");
+				PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(fixture.profileId(), objectId).status(), "Recovered legacy profile cannot materialize normally.");
+				PhantomAssertions.assertEquals(Status.SUCCESS, transaction.abortMaterialization(fixture.profileId(), objectId).status(), "Recovered legacy profile cannot complete owned restart recovery.");
+			}
+		}
+		finally
+		{
+			restoreCharacter(objectId, original, originalBaseClass);
+		}
+	}
+
+	private static void testLegacyWitnessLoader() throws Exception
+	{
+		final Path witnessFile = Files.createTempFile("m1-legacy-witness-", ".tsv");
+		try
+		{
+			final String row = "13\t10013\t4\t" + "a".repeat(64) + "\t180\t67\t72\t45975\t47879\t-3488\t12772\n";
+			Files.writeString(witnessFile, "M1_LEGACY_HEADLESS_AUTOSAVE_V1\n" + row, StandardCharsets.UTF_8);
+			PhantomAssertions.assertEquals(1, PhantomLegacyHeadlessRecovery.load(witnessFile).size(), "Bounded witness did not load.");
+			Files.writeString(witnessFile, "M1_LEGACY_HEADLESS_AUTOSAVE_V1\n" + row + row, StandardCharsets.UTF_8);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> PhantomLegacyHeadlessRecovery.load(witnessFile), "Duplicate legacy witness was admitted.");
+		}
+		finally
+		{
+			Files.deleteIfExists(witnessFile);
 		}
 	}
 

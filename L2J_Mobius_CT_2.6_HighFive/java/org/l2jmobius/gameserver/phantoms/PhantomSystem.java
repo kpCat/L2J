@@ -57,6 +57,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService;
+import org.l2jmobius.gameserver.phantoms.background.PhantomLegacyHeadlessRecovery;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
@@ -437,6 +438,14 @@ public final class PhantomSystem
 				if (!_backgroundService.start())
 				{
 					throw new IllegalStateException("Phantom background service could not enter the running state.");
+				}
+				try
+				{
+					PhantomLegacyHeadlessRecovery.apply(new File(ServerConfig.DATAPACK_ROOT, PhantomLegacyHeadlessRecovery.RELATIVE_PATH).toPath(), _backgroundService);
+				}
+				catch (java.io.IOException failure)
+				{
+					throw new IllegalStateException("M1 legacy recovery witness file could not be read.", failure);
 				}
 				final PhantomTopologyPositionPublisher positionPublisher = new PhantomTopologyPositionPublisher(_topologyService, _backgroundService::acquisitionSnapshot);
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);

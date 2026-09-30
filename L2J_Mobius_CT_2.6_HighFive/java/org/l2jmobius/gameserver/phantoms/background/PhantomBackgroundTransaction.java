@@ -88,6 +88,7 @@ public final class PhantomBackgroundTransaction
 	private static final String LOCK_CHARACTER = "SELECT level, exp, expBeforeDeath, sp, curHp, maxHp, curMp, maxMp, curCp, maxCp, x, y, z, heading, classid, race FROM characters WHERE charId = ? FOR UPDATE";
 	private static final String LOCK_SUBCLASS = "SELECT level, exp, sp, class_id FROM character_subclasses WHERE charId = ? AND class_index = ? FOR UPDATE";
 	private static final String UPDATE_MAIN = "UPDATE characters SET level = ?, exp = ?, expBeforeDeath = ?, sp = ?, curHp = ?, curMp = ?, curCp = ?, x = ?, y = ?, z = ?, heading = ? WHERE charId = ?";
+	private static final String UPDATE_LEGACY_VOLATILE = "UPDATE characters SET curHp = ?, curMp = ?, curCp = ?, x = ?, y = ?, z = ?, heading = ? WHERE charId = ?";
 	private static final String UPDATE_SUBCLASS = "UPDATE character_subclasses SET level = ?, exp = ?, sp = ? WHERE charId = ? AND class_index = ?";
 	private static final String LOCK_SKILLS = "SELECT skill_id, skill_level FROM character_skills WHERE charId = ? AND class_index = ? ORDER BY skill_id FOR UPDATE";
 	private static final String LOCK_SKILL_EXACT = "SELECT skill_level FROM character_skills WHERE charId = ? AND class_index = ? AND skill_id = ? FOR UPDATE";
@@ -416,6 +417,111 @@ public final class PhantomBackgroundTransaction
 		catch (SQLException | RuntimeException failure)
 		{
 			return failureResult(failure);
+		}
+	}
+
+	/** One-time repair of a profile attested before the headless autosave producer was removed. */
+	public Result recoverAttestedLegacyHeadlessDrift(LegacyHeadlessWitness witness)
+	{
+		Objects.requireNonNull(witness, "witness");
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, witness.profileId()), witness.characterObjectId());
+				final LockedComponent component = requireStateComponent(lockComponent(connection, witness.profileId(), PhantomBackgroundState.COMPONENT_TYPE));
+				if ((component.rowVersion() != witness.rowVersion()) || !sha256(component.payload()).equals(witness.backgroundPayloadSha256()))
+				{
+					throw new StateConflict(Status.STATE_CONFLICT);
+				}
+				final PhantomBackgroundState current = decodeState(component);
+				if ((current.state() != State.INCONSISTENT) || (current.identity().characterObjectId() != witness.characterObjectId()) || (current.identity().classIndex() != 0) || (current.position().instanceId() != 0))
+				{
+					throw new StateConflict(Status.STATE_CONFLICT);
+				}
+				final Canonical canonical = lockCanonical(connection, current.identity());
+				final List<ItemRow> items = lockItems(connection, witness.characterObjectId());
+				final Map<Integer, Integer> skills = lockSkills(connection, current.identity());
+				if ((canonical.level() != current.progress().level()) || (canonical.experience() != current.progress().experience()) || (canonical.skillPoints() != current.progress().skillPoints()) || (canonical.experienceBeforeDeath() != current.progress().experienceBeforeDeath()) || !close(canonical.vitals().maximumHp(), current.vitals().maximumHp()) || !close(canonical.vitals().maximumMp(), current.vitals().maximumMp()) || !close(canonical.vitals().maximumCp(), current.vitals().maximumCp()) || (canonical.classId() != current.identity().activeClassId()) || (canonical.raceOrdinal() != current.identity().raceOrdinal()) || !inventoryFacts(items, current.inventory()).equals(current.inventory()) || !skillsMatch(current, skills))
+				{
+					throw new StateConflict(Status.CANONICAL_MISMATCH);
+				}
+				if (!close(canonical.vitals().currentHp(), witness.canonicalHp()) || !close(canonical.vitals().currentMp(), witness.canonicalMp()) || !close(canonical.vitals().currentCp(), witness.canonicalCp()) || (canonical.position().x() != witness.canonicalX()) || (canonical.position().y() != witness.canonicalY()) || (canonical.position().z() != witness.canonicalZ()) || (canonical.position().heading() != witness.canonicalHeading()) || (vitalsEqual(canonical.vitals(), current.vitals()) && sameCoordinates(canonical.position(), current.position())))
+				{
+					throw new StateConflict(Status.CANONICAL_MISMATCH);
+				}
+				try (PreparedStatement statement = prepare(connection, UPDATE_LEGACY_VOLATILE))
+				{
+					statement.setDouble(1, current.vitals().currentHp());
+					statement.setDouble(2, current.vitals().currentMp());
+					statement.setDouble(3, current.vitals().currentCp());
+					statement.setInt(4, current.position().x());
+					statement.setInt(5, current.position().y());
+					statement.setInt(6, current.position().z());
+					statement.setInt(7, current.position().heading());
+					statement.setInt(8, witness.characterObjectId());
+					requireOne(statement.executeUpdate(), "attested legacy volatile repair");
+				}
+				_faultInjector.inject(FaultPoint.AFTER_CANONICAL_WRITES);
+				if (!durableMatches(current, lockCanonical(connection, current.identity()), items, skills))
+				{
+					throw new StateConflict(Status.CANONICAL_MISMATCH);
+				}
+				final PhantomBackgroundState recovered = current.withState(current.vitals().currentHp() == 0 ? State.DEAD : State.READY);
+				writeComponent(connection, component, recovered);
+				connection.commit();
+				return new Result(Status.SUCCESS, recovered);
+			}
+			catch (Throwable failure)
+			{
+				rollback(connection, failure);
+				return failureResult(failure);
+			}
+		}
+		catch (SQLException | RuntimeException failure)
+		{
+			return failureResult(failure);
+		}
+	}
+
+	private static boolean sameCoordinates(Position left, Position right)
+	{
+		return (left.x() == right.x()) && (left.y() == right.y()) && (left.z() == right.z()) && (left.heading() == right.heading());
+	}
+
+	private static String sha256(byte[] bytes)
+	{
+		try
+		{
+			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+		}
+		catch (NoSuchAlgorithmException failure)
+		{
+			throw new IllegalStateException("SHA-256 is unavailable.", failure);
+		}
+	}
+
+	private static boolean skillsMatch(PhantomBackgroundState state, Map<Integer, Integer> skills)
+	{
+		for (AutoGetSkill skill : state.autoGetSkills())
+		{
+			if (!Integer.valueOf(skill.skillLevel()).equals(skills.get(skill.skillId())))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public record LegacyHeadlessWitness(long profileId, int characterObjectId, long rowVersion, String backgroundPayloadSha256, double canonicalHp, double canonicalMp, double canonicalCp, int canonicalX, int canonicalY, int canonicalZ, int canonicalHeading)
+	{
+		public LegacyHeadlessWitness
+		{
+			if ((profileId <= 0) || (characterObjectId <= 0) || (rowVersion <= 0) || (backgroundPayloadSha256 == null) || !backgroundPayloadSha256.matches("[0-9a-f]{64}") || !Double.isFinite(canonicalHp) || !Double.isFinite(canonicalMp) || !Double.isFinite(canonicalCp))
+			{
+				throw new IllegalArgumentException("Invalid attested legacy witness.");
+			}
 		}
 	}
 

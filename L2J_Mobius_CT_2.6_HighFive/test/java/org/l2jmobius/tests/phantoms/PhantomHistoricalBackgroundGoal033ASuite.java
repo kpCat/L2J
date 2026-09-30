@@ -22,14 +22,17 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -211,12 +214,13 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("26-complete-renewal-replans-stale-goal", this::testRenewalWithStaleGoal);
 		registry.add("27-complete-renewal-classifies-invalid-background", this::testRenewalWithInvalidBackground);
 		registry.add("28-complete-renewal-recovers-orphaned-materialized-background", this::testRenewalWithOrphanedMaterializedBackground);
-		registry.add("29-ready-local-demand-rebuilds-history-then-native-player", this::testReadyLocalDemandRebuild);
+		registry.add("29-ready-local-demand-rebuilds-history-then-native-player", context -> testReadyLocalDemandRebuild(context, false));
+		registry.add("29a-legacy-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, true));
 		registry.add("30-complete-renewal-rebuilds-absent-goal-with-background", this::testRenewalWithoutGoalWithBackground);
 		registry.add("31-complete-renewal-rejects-unverifiable-goalless-dead-baseline", this::testRenewalWithoutGoalWithDeadBackground);
 	}
 
-	private void testReadyLocalDemandRebuild(PhantomTestContext context) throws Exception
+	private void testReadyLocalDemandRebuild(PhantomTestContext context, boolean legacyRecovery) throws Exception
 	{
 		final ManagedSnapshot managed = createManaged(context.seed() + 29);
 		final long profileId = managed.profile().profileId();
@@ -278,6 +282,10 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 				PhantomAssertions.assertTrue(!old.state().requestId().equals(renewed.state().requestId()), "Demand reused prior completed request.");
 				PhantomAssertions.assertEquals(renewed.state().targetEpochMinute(), ecologyStore.load(profileId).orElseThrow().state().calendarCursorEpochMinute(), "Ecology lost the requested horizon.");
 				PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "Historical baseline Player remained before NORMAL admission.");
+				if (legacyRecovery)
+				{
+					recoverLegacyFixture(profileId, managed.profile().characterObjectId(), runtime, context);
+				}
 				final var normal = runtime.materialization().materialize(profileId);
 				recordLinkedTransition(context, "05-normal-materialization", profileId, runtime, normal.status().name(), normal.status().name());
 				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, normal.status(), "Complete readiness did not admit a real NORMAL Player.");
@@ -358,6 +366,33 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 			}
 			finally { ecology.beginStop(); ecology.finishStop(); }
 		}
+	}
+
+	private static void recoverLegacyFixture(long profileId, int objectId, RuntimeHarness runtime, PhantomTestContext context) throws Exception
+	{
+		PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, runtime.transaction().markMaterialized(profileId, objectId).status(), "Linked legacy fixture could not enter MATERIALIZED.");
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("UPDATE characters SET x=x+16,heading=heading+1 WHERE charId=?"))
+		{
+			statement.setInt(1, objectId);
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Linked legacy fixture did not drift canonical position.");
+		}
+		PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.INCONSISTENT, runtime.transaction().abortMaterialization(profileId, objectId).status(), "Linked legacy fixture did not fail closed before repair.");
+		final PhantomBackgroundTransaction.LegacyHeadlessWitness witness;
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("SELECT pc.row_version,pc.payload,c.curHp,c.curMp,c.curCp,c.x,c.y,c.z,c.heading FROM phantom_profile_components pc JOIN characters c ON c.charId=? WHERE pc.profile_id=? AND pc.component_type='background.state'"))
+		{
+			statement.setInt(1, objectId);
+			statement.setLong(2, profileId);
+			try (ResultSet result = statement.executeQuery())
+			{
+				PhantomAssertions.assertTrue(result.next(), "Linked legacy fixture witness is absent.");
+				witness = new PhantomBackgroundTransaction.LegacyHeadlessWitness(profileId, objectId, result.getLong("row_version"), HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(result.getBytes("payload"))), result.getDouble("curHp"), result.getDouble("curMp"), result.getDouble("curCp"), result.getInt("x"), result.getInt("y"), result.getInt("z"), result.getInt("heading"));
+			}
+		}
+		final var recovered = runtime.background().recoverAttestedLegacyHeadlessDrift(witness);
+		recordLinkedTransition(context, "04a-legacy-recovery", profileId, runtime, recovered.status().name(), recovered.reason());
+		PhantomAssertions.assertTrue(recovered.successful(), "Attested linked legacy fixture did not recover: " + recovered.reason());
 	}
 
 	private static void recordLinkedTransition(PhantomTestContext context, String step, long profileId, RuntimeHarness runtime, String owner, String reason)
