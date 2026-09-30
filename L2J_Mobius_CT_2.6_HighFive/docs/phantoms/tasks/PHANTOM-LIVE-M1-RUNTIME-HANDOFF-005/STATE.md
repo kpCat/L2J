@@ -1,5 +1,14 @@
 # STATE
 
+Status: PRE_ARM_BLOCKED_M1_OPEN; existing profile13 remains fail-closed INCONSISTENT. Новый arm и connected-run после producer fix не запускались; M2 не начат.
+Phase1 read-only PLAY: exact `BACKGROUND_CANONICAL_MISMATCH:CURRENT_HP_CURRENT_CP_POSITION_X_Y_HEADING`; background expected HP128 CP8 x44126 y42751 heading25847, canonical actual HP180 CP72 x45975 y47879 heading12772. RowVersion9791/INCONSISTENT уже существовал до connected run 314658b3; historical writer UNKNOWN. Census READY1280: background ABSENT0/READY419/DEAD626/MATERIALIZED30/VERIFY_PENDING4/INCONSISTENT201. Runtime World split UNKNOWN: `.phantomstatus` дал personal access denied; guard не менялся.
+Native TEST доказал воспроизводимый producer: periodic Player.autoSave→storeMe во время headless MATERIALIZED записывал canonical без background capture. Минимальный guard исправлен, exact profile13-shaped mismatch остаётся fail-closed; linked native TEST profile70733 дошёл до NORMAL Player, DecisionEngine goal, AutoPlay start и первой атаки. Focused TEST, actual offline fake runner, clean JAR прошли. Source f9562c8002f4d2487baae6840c99001b743d0a83 опубликован; deployed GameServer SHA256 EF10CA499A82174199D8C13D85346D10D86C4038AA5DDAC9E6361E662E8D6D44. Coherent backup/owned restart выполнены; Login25456/Game20600 healthy, Pilot OFF, READY1280/RETIRED8720.
+После restart profile13 остаётся INCONSISTENT; authoritative side старого drift не доказана. Не сбрасывать и не подменять профиль, не выдавать arm для blocked path. Полные evidence, typed mismatch, linked transition table и ограничение World split — в continuation-observer-closeout/RESULT.md и SOURCE_MAP.tsv.
+mojibake-маркеры в изменённых файлах проверены.
+escaped Cyrillic в изменённых файлах проверены.
+
+## Previous state
+
 Status: CONNECTED_RED_M1_OPEN; STOPPED; final manual gate FAILED. Ровно один connected-run после recovery, второй run и самостоятельные исправления запрещены; M2 не начат.
 Run 314658b3-a72c-4a7c-b9fd-ae7d11de09ce profile13 STORED_START: APPROACH_DEADLINE_EXPIRED после cached movement до 9 единиц. Все 87 снимков COMMITTED/STORED без World Player; historical COMPLETE/currentStage blocked/readinessReason catchup.renewal.background_state_invalid. READ-ONLY PLAY после run: profile13 linked character268484332, background.state INCONSISTENT (ordinal4), goal/catchup существуют; момент перехода в INCONSISTENT не доказан.
 Матрица NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN NOT_OBSERVED; RESTORE/STOP PASS, cleanupFailures пусты. TestAdmin возвращён к origin с REAL_LOGIN, Pilot run STOPPED; consent session ARMED_IDLE/runActive=false до `.playtest off`. Game/Login healthy, CONFIG PASS. Evidence приватно в .phantom-local/m1-005-connected-314658b3-a72c-4a7c-b9fd-ae7d11de09ce; summary в continuation-observer-closeout/RESULT.md.
