@@ -1,7 +1,7 @@
 # STATE
 
 Status: M1_OPEN_PRE_ARM_BLOCKED_LATENT_LEGACY_MATERIALIZED; final manual gate REQUIRED; M2 not started.
-Continuation: continuation-observer-closeout/RESULT.md. Source/remote `0b8fdf1048161b3c66ff9b1c5b422012f0461210`; clean/deployed Game JAR SHA-256 `741EDA61FBE34AE06F10A639549DBB4184280E21C614C7E31CED34F1504C00AB`.
+Continuation: continuation-observer-closeout/RESULT.md. Deployed code commit `0b8fdf1048161b3c66ff9b1c5b422012f0461210` was independently verified on remote before documentation; clean/deployed Game JAR SHA-256 `741EDA61FBE34AE06F10A639549DBB4184280E21C614C7E31CED34F1504C00AB`.
 Read-only PLAY proved 216/223 INCONSISTENT strict pre-fix volatile drift, 7 mixed fail-closed. One controlled backup/deploy/start applied exact witness: startup 216/216 recovered; profile13 READY then ordinary DEAD. Backup: artifacts/local-play/m1-005-backup-legacy216-20260930-232633, coherent PLAY dump SHA-256 `941D33B7875E96CCF7288CE2F6D9DA282DB5056F8AFECAAC6B583AA120FE915D`.
 Focused TEST transaction10/10, linked native legacy vertical32/32, native position7/7, Pilot native PASS, actual fake M1 runner PASS. Login/Game owned RUNNING, CONFIG PASS, Pilot OFF. PLAY READY1280/RETIRED8720; 7 mixed stayed fail-closed.
 After several minutes one pre-fix MATERIALIZED volatile-only row became INCONSISTENT (count8). It belongs to the 37 strict pre-fix latent MATERIALIZED cohort; no new autosave producer established. Auto-review rejected expanding recovery to MATERIALIZED without explicit authorization; that edit was not applied. Awaiting user scope decision before another deploy, arm or connected run. No TestAdmin movement, new arm or connected run.
