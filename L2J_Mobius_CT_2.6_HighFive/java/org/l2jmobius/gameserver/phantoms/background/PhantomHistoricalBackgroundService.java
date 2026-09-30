@@ -36,8 +36,10 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStat
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.PlannedSnapshot;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.Snapshot;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progress;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.OperationStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
@@ -102,7 +104,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		{
 			return Result.rejected(ResultStatusCode.INVALID_REQUEST, "catchup.request.invalid", null);
 		}
-		if (_profiles.find(profileId).filter(profile -> profile.characterObjectId() != null).isEmpty())
+		final var linkedProfile = _profiles.find(profileId).filter(profile -> profile.characterObjectId() != null).orElse(null);
+		if (linkedProfile == null)
 		{
 			return Result.rejected(ResultStatusCode.PROFILE_UNAVAILABLE, "catchup.profile.unlinked", null);
 		}
@@ -116,6 +119,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final long catchupGeneration = positiveLong(digest("BACKGROUND_CATCHUP_GENERATION_V1", requestId));
 		PhantomBackgroundCatchupState initial = new PhantomBackgroundCatchupState(Status.PENDING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, fromEpochMinute, 0, 0, catchupGeneration, generation.knowledgeGeneration(), generation.topologyGeneration(), 0, 0, "", PhantomBackgroundState.MODEL_VERSION, generation.authorityHashes(), "");
 		final Snapshot claimed;
+		String renewalRecovery = "";
 		try
 		{
 			if ((existing != null) && !sameRequest(existing.state(), initial))
@@ -126,43 +130,85 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				}
 				final StoredGoal currentGoal = _goals.load(profileId).orElse(null);
 				final boolean currentAuthority = existing.state().authorityHashes().equals(generation.authorityHashes()) && (existing.state().knowledgeGeneration() == generation.knowledgeGeneration()) && (existing.state().topologyGeneration() == generation.topologyGeneration());
-				if (currentAuthority && (currentGoal != null) && (currentGoal.goal().goalId() == existing.state().goalId()) && (currentGoal.goal().revision() == existing.state().goalRevision()))
+				PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+				if ((backgroundState != null) && (backgroundState.state() == PhantomBackgroundState.State.MATERIALIZED))
 				{
-					initial = initial.withPlan(existing.state().goalId(), existing.state().goalRevision(), existing.state().planOrdinal(), existing.state().planIdentity(), generation.knowledgeGeneration(), generation.topologyGeneration());
-					claimed = _store.renewCompleted(profileId, existing, initial);
+					final var recovery = _background.recoverAbandonedMaterialization(profileId);
+					if (recovery.status() == OperationStatus.RETRY)
+					{
+						return Result.rejected(ResultStatusCode.RETRY, "catchup.renewal.background_recovery_busy", existing);
+					}
+					if (recovery.status() != OperationStatus.SUCCESS)
+					{
+						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.background_state_invalid", existing);
+					}
+					backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+					renewalRecovery = "catchup.renewal.background_state_invalid";
+				}
+				if ((backgroundState != null) && (((backgroundState.state() != PhantomBackgroundState.State.READY) && (backgroundState.state() != PhantomBackgroundState.State.DEAD)) || (backgroundState.identity().profileId() != profileId) || (backgroundState.identity().characterObjectId() != linkedProfile.characterObjectId())))
+				{
+					return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.background_state_invalid", existing);
+				}
+				if (currentGoal == null)
+				{
+					if ((backgroundState != null) && ((backgroundState.state() == PhantomBackgroundState.State.DEAD) || !backgroundState.hashes().equals(generation.authorityHashes())))
+					{
+						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.background_state_invalid", existing);
+					}
+					renewalRecovery = backgroundState == null ? "catchup.renewal.goal_missing.background_missing" : "catchup.renewal.goal_missing";
+					initial = new PhantomBackgroundCatchupState(Status.PENDING, initial.requestId(), initial.deterministicSeed(), initial.fromEpochMinute(), initial.targetEpochMinute(), initial.cursorEpochMinute(), Math.addExact(existing.state().planOrdinal(), 1), 0, initial.generation(), initial.knowledgeGeneration(), initial.topologyGeneration(), 0, 0, "", initial.modelVersion(), initial.authorityHashes(), "");
+					claimed = _store.renewCompletedUnplanned(profileId, existing, initial);
 				}
 				else
 				{
-					PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
-					if ((currentGoal == null) || (backgroundState == null) || ((backgroundState.state() != PhantomBackgroundState.State.READY) && (backgroundState.state() != PhantomBackgroundState.State.DEAD)))
+					if ((currentGoal.goal().goalId() != existing.state().goalId()) || (currentGoal.goal().revision() < existing.state().goalRevision()) || (currentGoal.goal().status() != PhantomGoalStatus.ACTIVE))
 					{
-						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.baseline_or_goal_missing", existing);
+						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.goal_mismatch", existing);
 					}
-					if (!backgroundState.hashes().equals(generation.authorityHashes()))
+					if (backgroundState == null)
 					{
-						final Result refresh = refreshCanonicalBaseline(profileId, existing);
-						if (!refresh.successful())
+						renewalRecovery = "catchup.renewal.background_missing";
+						if (currentGoal.goal().revision() != existing.state().goalRevision())
 						{
-							return refresh;
+							return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.goal_mismatch", existing);
 						}
-						backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
-						if ((backgroundState == null) || !backgroundState.hashes().equals(generation.authorityHashes()))
+						initial = initial.withPlan(existing.state().goalId(), existing.state().goalRevision(), existing.state().planOrdinal(), existing.state().planIdentity(), generation.knowledgeGeneration(), generation.topologyGeneration());
+						claimed = _store.renewCompleted(profileId, existing, initial);
+					}
+					else if (currentAuthority && backgroundState.hashes().equals(generation.authorityHashes()) && (currentGoal.goal().revision() == existing.state().goalRevision()))
+					{
+						initial = initial.withPlan(existing.state().goalId(), existing.state().goalRevision(), existing.state().planOrdinal(), existing.state().planIdentity(), generation.knowledgeGeneration(), generation.topologyGeneration());
+						claimed = _store.renewCompleted(profileId, existing, initial);
+					}
+					else
+					{
+						if (currentGoal.goal().revision() != existing.state().goalRevision()) { renewalRecovery = "catchup.renewal.goal_mismatch"; }
+						if (!backgroundState.hashes().equals(generation.authorityHashes()))
 						{
-							return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.canonical_refresh_unverified", existing);
+							final Result refresh = refreshCanonicalBaseline(profileId, existing);
+							if (!refresh.successful())
+							{
+								return refresh;
+							}
+							backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+							if ((backgroundState == null) || !backgroundState.hashes().equals(generation.authorityHashes()))
+							{
+								return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.canonical_refresh_unverified", existing);
+							}
 						}
+						final long nextPlanOrdinal = Math.addExact(existing.state().planOrdinal(), 1);
+						final var replacement = planOrIdle(profileId, backgroundState, currentGoal.goal(), deterministicSeed, nextPlanOrdinal, Set.of());
+						if (!replacement.ready())
+						{
+							return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, replacement.reasonKey(), existing);
+						}
+						if (!_planner.generation().equals(generation))
+						{
+							return Result.rejected(ResultStatusCode.RETRY, "catchup.renewal.generation_changed", existing);
+						}
+						initial = initial.withPlan(replacement.goal().goalId(), replacement.goal().revision(), nextPlanOrdinal, replacement.planIdentity(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration());
+						claimed = _store.renewCompletedWithPlan(profileId, existing, initial, currentGoal, replacement.goal()).catchup();
 					}
-					final long nextPlanOrdinal = Math.addExact(existing.state().planOrdinal(), 1);
-					final var replacement = planOrIdle(profileId, backgroundState, currentGoal.goal(), deterministicSeed, nextPlanOrdinal, Set.of());
-					if (!replacement.ready())
-					{
-						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, replacement.reasonKey(), existing);
-					}
-					if (!_planner.generation().equals(generation))
-					{
-						return Result.rejected(ResultStatusCode.RETRY, "catchup.renewal.generation_changed", existing);
-					}
-					initial = initial.withPlan(replacement.goal().goalId(), replacement.goal().revision(), nextPlanOrdinal, replacement.planIdentity(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration());
-					claimed = _store.renewCompletedWithPlan(profileId, existing, initial, currentGoal, replacement.goal()).catchup();
 				}
 			}
 			else
@@ -187,7 +233,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if (isRecoverableFailure(claimed.state().failureReason())) { return Result.success(claimed, 0); }
 			return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, claimed.state().failureReason(), claimed);
 		}
-		return ensureBaseline(profileId, claimed);
+		final Result baseline = ensureBaseline(profileId, claimed);
+		if (renewalRecovery.isEmpty()) { return baseline; }
+		final ResultStatusCode status = (baseline.status() == ResultStatusCode.REPLAN_REQUIRED) && isRecoverableFailure(baseline.reason()) ? ResultStatusCode.RETRY : baseline.status();
+		return new Result(status, renewalRecovery + (baseline.successful() ? ".recovered" : "." + baseline.reason()), baseline.snapshot(), baseline.advancedIntervals());
 	}
 
 	private Result ensureBaseline(long profileId, Snapshot claimed)
@@ -195,7 +244,31 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		Snapshot current = claimed;
 		StoredGoal storedGoal = _goals.load(profileId).orElse(null);
 		final Optional<PhantomBackgroundState> existingBackground = _background.acquisitionSnapshot(profileId);
-		if (existingBackground.isPresent())
+		if (existingBackground.isPresent() && (existingBackground.get().state() == PhantomBackgroundState.State.MATERIALIZED) && (current.state().status() == Status.PENDING) && (current.state().goalId() > 0) && (storedGoal != null) && (storedGoal.goal().goalId() == current.state().goalId()) && (storedGoal.goal().revision() == current.state().goalRevision()))
+		{
+			if (_materialization.find(profileId).isPresent())
+			{
+				final var cleaned = _materialization.retryCleanup(profileId);
+				if (cleaned.status() != ResultStatus.SUCCESS)
+				{
+					return Result.rejected(ResultStatusCode.RETRY, "catchup.baseline.cleanup_retry", current);
+				}
+			}
+			else
+			{
+				final var recovered = _background.recoverAbandonedMaterialization(profileId);
+				if (recovered.status() == OperationStatus.RETRY)
+				{
+					return Result.rejected(ResultStatusCode.RETRY, "catchup.baseline.background_recovery_busy", current);
+				}
+				if (recovered.status() != OperationStatus.SUCCESS)
+				{
+					return fail(profileId, current, "catchup.baseline.materialized_unreconciled");
+				}
+			}
+			return ensureBaseline(profileId, _store.load(profileId).orElse(current));
+		}
+		if (existingBackground.isPresent() && (current.state().goalId() > 0))
 		{
 			if ((current.state().goalId() <= 0) || (storedGoal == null) || (storedGoal.goal().goalId() != current.state().goalId()) || (storedGoal.goal().revision() != current.state().goalRevision()) || ((existingBackground.get().state() != PhantomBackgroundState.State.READY) && (existingBackground.get().state() != PhantomBackgroundState.State.DEAD)))
 			{
@@ -213,6 +286,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				}
 			}
 			return Result.success(current, 0);
+		}
+		if (existingBackground.isPresent() && ((existingBackground.get().state() != PhantomBackgroundState.State.READY) && (existingBackground.get().state() != PhantomBackgroundState.State.DEAD)))
+		{
+			return fail(profileId, current, "catchup.baseline.conflict");
 		}
 
 		if (_materialization.find(profileId).isPresent())

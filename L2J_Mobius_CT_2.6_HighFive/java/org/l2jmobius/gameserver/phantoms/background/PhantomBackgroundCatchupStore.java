@@ -93,6 +93,17 @@ public final class PhantomBackgroundCatchupStore
 		return decode(_profiles.updateComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE, expected.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, _codec.encode(replacement)));
 	}
 
+	/** Rebuild an absent goal through the ordinary historical baseline lifecycle. */
+	public Snapshot renewCompletedUnplanned(long profileId, Snapshot expected, PhantomBackgroundCatchupState replacement)
+	{
+		requireSequentialRenewal(expected, replacement);
+		if ((replacement.goalId() != 0) || (replacement.goalRevision() != 0) || !replacement.planIdentity().isEmpty() || (replacement.planOrdinal() != Math.addExact(expected.state().planOrdinal(), 1)) || (_goals.load(profileId).isPresent()))
+		{
+			throw new IllegalArgumentException("Unplanned Background catch-up renewal requires an absent goal and next plan ordinal.");
+		}
+		return decode(_profiles.updateComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE, expected.rowVersion(), PhantomBackgroundCatchupState.SCHEMA_VERSION, _codec.encode(replacement)));
+	}
+
 	public PlannedSnapshot renewCompletedWithPlan(long profileId, Snapshot expected, PhantomBackgroundCatchupState replacement, StoredGoal expectedGoal, PhantomGoal replacementGoal)
 	{
 		requireSequentialRenewal(expected, replacement);

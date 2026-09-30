@@ -1,6 +1,31 @@
 # PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005 — observer closeout
 
-Status: **CONNECTED RED; M1 OPEN; final manual gate REQUIRED**. После свежего arm выполнен ровно один новый connected-run. Второй run и дальнейшие исправления не выполнялись; M2 не начат.
+Status: **PRE_ARM VERIFIED; SOURCE PUBLICATION BLOCKED; M1 OPEN**. Production recovery проверен offline/native TEST, clean JAR развёрнут. Новый arm и connected-run после исправления не выполнялись; M2 не начат.
+
+## Recovery после RED 278deadf
+
+- Root cause: completed catch-up у READY linked profile мог остаться без runtime goal/background; прежний renewal требовал baseline и goal до их восстановления. Новый строгий COMPLETE→unplanned PENDING сохраняет очередность и атомарную публикацию goal/catch-up. `begin/ensureBaseline` восстанавливает baseline и различает отсутствующий goal, background, stale goal и orphan `MATERIALIZED` без runtime Player. Orphan допускается к существующему guarded abort только после адресных проверок snapshot, World, autosave и identity lease; production guards не ослаблены.
+- Изменены три production файла: `PhantomBackgroundCatchupStore.java`, `PhantomHistoricalBackgroundService.java`, `PhantomBackgroundService.java`; два существующих test suite, этот RESULT, root STATE и существующий SOURCE_MAP. Ни одного DB position UPDATE на движении, нового потока/таймера, полного скана 1280/10000 или изменения caps. Новых task/proof нет.
+- Focused TEST: historical-background-goal033a **31/31**, m1-runtime-handoff **15/15**, population-ecology-handoff-regression **6/6**, production-materialization **22/22**, background-recovery-teleport **6/6** PASS. Независимый полный population-ecology-goal033 **15/17 RED** в прежних case05 veteran archive и case09 schedule fence; затронутая handoff subset 6/6 PASS. Aggregate205 не повторялся.
+- Linked native TEST profile70665: переходы ниже сняты из `historical-background-goal033a.txt`; один и тот же goal `3342617053714661885/0/ACTIVE/farm.background` и Player objectId268482063. Здесь `owner` означает результат названного owner API, `reason` — его конкретный ответ; отсутствие отказа указано явно.
+
+| Переход | Owner/state на входе → выходе | Goal; background; materialization | Reason |
+|---|---|---|---|
+| human demand | READY linked, calendar online → local demand pending | absent; absent; absent/0 | local demand pending |
+| ecology due | due queued, cursor0 → ecology request | absent; absent; absent/0 | ecology.inventory_pending |
+| historical renewal/recovery | COMPLETE без goal/background → SUCCESS | 3342617053714661885/0/ACTIVE/farm.background; DEAD; absent/0 | catchup.renewal.goal_missing.background_missing.recovered |
+| readiness complete | cursor29460650, revision9 → complete | тот же goal; DEAD; absent/0 | ecology.cursor_current |
+| NORMAL materialization | READY admission → SUCCESS | тот же goal; MATERIALIZED; ACTIVE/268482063, World=true | SUCCESS |
+| DecisionEngine runtime goal | attach/find → NEEDS_REPLAN | тот же goal; MATERIALIZED; ACTIVE/268482063 | goal.reloaded |
+| AutoPlay.current() | current guards → true | тот же goal; MATERIALIZED; ACTIVE/268482063 | all current() guards satisfied |
+| AutoPlay.start() | native pools → true | тот же goal; MATERIALIZED; ACTIVE/268482063 | native pools admitted |
+| первое native действие | native tick → NPC HP57, damage5 | тот же goal; MATERIALIZED; ACTIVE/268482063 | native attack damage=5 |
+| cleanup | guarded dematerialize → SUCCESS | тот же goal; READY; absent/0 | SUCCESS |
+
+- `current()` и `start()` в этой сцене вернули true, failed guard отсутствует. Прерванный TEST capture на `BEFORE_CAPTURE_COMMIT` воспроизводит retry того же pending request; orphan `MATERIALIZED` case28 восстанавливает именно нарушенный переход после потери runtime Player. Различие state-машин само по себе ошибкой не объявлено.
+- Clean `ant -q -Dbuild=.phantom-local/m1-005-recovery-clean jar` **BUILD SUCCESSFUL**; GameServer.jar SHA-256 `651683ECD7FBC560743BF47517908F5439D1A28DF8A60CD13F076C167A8AAED1`, Login JAR прежний. Source content digest трёх production файлов `9C1E04F5EE1CC64D13D61398508F24AA44330027874A5BD7DF3122A5FF307FBF`; это **не commit SHA**. Controlled stop/backup/native dump/deploy/start выполнен один раз, dump 46995365 байт, SHA-256 `B351593C0E6DB4A2905111FAE5D3EB78C74D73B9B6331B2CB9ED38F6AE00B567`.
+- После restart `Check-LocalPlay.ps1`: CONFIG PASS, Login4480/Game19724 owned/RUNNING и порты healthy; Pilot OFF/runActive=false. Read-only PLAY: READY1280/RETIRED8720, profile278 READY; INI 1280/64/128/100 ms, profilesPerPulse256, maxScheduled10000. Глобальный FAILED_REPLAN_REQUIRED=0 не требуется.
+- Exact six-file stage и whitespace проверены, но `git commit` отклонён auto-review: изменение истории сочтено не авторизованным, несмотря на разрешение TASK.md. Commit/push не выполнены и не будут обходиться; опубликованный source SHA отсутствует. Следующий шаг — явное разрешение на source publication, затем свежий arm consent для **одного** connected Run-M1RuntimeHandoff. До него TestAdmin не перемещать.
 
 ## Единственный новый connected-run: RED
 

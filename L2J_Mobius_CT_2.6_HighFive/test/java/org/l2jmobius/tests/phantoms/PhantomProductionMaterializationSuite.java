@@ -206,7 +206,7 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		PhantomAssertions.assertEquals(ResultStatus.PROFILE_UNLINKED, port.diagnosticFailures().get(target.profileId()), "Last failure was not available with diagnostics disabled.");
 		PhantomAssertions.assertEquals(Outcome.SUCCESS, port.materialize(occupant.profileId()).outcome(), "Occupant did not use the only materialization permit.");
 		_repository.updateCharacterLink(target.profileId(), target.rowVersion(), _environment.observer().objectId());
-		PhantomAssertions.assertEquals(Outcome.TRANSIENT_BLOCK, port.materialize(target.profileId()).outcome(), "Full capacity did not reject the linked target.");
+		PhantomAssertions.assertEquals(Outcome.DEFERRED, port.materialize(target.profileId()).outcome(), "Full capacity did not defer the linked target.");
 		PhantomAssertions.assertEquals(ResultStatus.CAPACITY_REACHED, port.diagnosticFailures().get(target.profileId()), "Status retained the obsolete first failure instead of the latest boundary.");
 		PhantomAssertions.assertEquals(Outcome.SUCCESS, port.dematerialize(occupant.profileId()).outcome(), "Occupant cleanup did not release the permit.");
 		PhantomAssertions.assertEquals(Outcome.SUCCESS, port.materialize(target.profileId()).outcome(), "Target did not recover after permit release.");

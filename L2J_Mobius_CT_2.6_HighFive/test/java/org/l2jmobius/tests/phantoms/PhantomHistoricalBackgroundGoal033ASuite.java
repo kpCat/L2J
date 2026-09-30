@@ -24,7 +24,9 @@ package org.l2jmobius.tests.phantoms;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -37,9 +39,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
+import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.managers.IdManager;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.instance.Monster;
+import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
@@ -66,6 +71,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashe
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Position;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
+import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultPoint;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.ObjectIdAllocator;
@@ -76,6 +82,9 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery;
@@ -95,12 +104,18 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationPurpose;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyCatalog;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState;
+import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStore;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.CreationOutcome;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore.ManagedSnapshot;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdgeMode;
@@ -191,6 +206,324 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("21-durable-position-refresh", context -> testRecoverableFailure(context, "catchup.authority.position_stale"));
 		registry.add("22-durable-target-exclusion", context -> testRecoverableFailure(context, "catchup.authority.target_stale"));
 		registry.add("23-durable-loadout-replan", context -> testRecoverableFailure(context, "catchup.authority.resource_stale"));
+		registry.add("24-complete-renewal-rebuilds-absent-goal-and-background", this::testRenewalWithoutGoalAndBackground);
+		registry.add("25-complete-renewal-rebuilds-background-with-goal", this::testRenewalWithoutBackground);
+		registry.add("26-complete-renewal-replans-stale-goal", this::testRenewalWithStaleGoal);
+		registry.add("27-complete-renewal-classifies-invalid-background", this::testRenewalWithInvalidBackground);
+		registry.add("28-complete-renewal-recovers-orphaned-materialized-background", this::testRenewalWithOrphanedMaterializedBackground);
+		registry.add("29-ready-local-demand-rebuilds-history-then-native-player", this::testReadyLocalDemandRebuild);
+		registry.add("30-complete-renewal-rebuilds-absent-goal-with-background", this::testRenewalWithoutGoalWithBackground);
+		registry.add("31-complete-renewal-rejects-unverifiable-goalless-dead-baseline", this::testRenewalWithoutGoalWithDeadBackground);
+	}
+
+	private void testReadyLocalDemandRebuild(PhantomTestContext context) throws Exception
+	{
+		final ManagedSnapshot managed = createManaged(context.seed() + 29);
+		final long profileId = managed.profile().profileId();
+		final var ecologyCatalog = PhantomPopulationEcologyCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-ecology-v1.xml"), _catalog, PhantomSocialCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/social/high-five-social-v1.xml")));
+		final long day = Instant.parse("2026-01-05T00:00:00Z").getEpochSecond() / 60;
+		long from = 0;
+		for (int offset = 0; offset < 7 * 1440; offset += 5)
+		{
+			final long minute = day + offset;
+			final var schedule = _catalog.evaluate(managed.state().scheduleTemplate(), Instant.ofEpochSecond(minute * 60), ZoneOffset.UTC, managed.state().schedulePhaseMinutes());
+			if ((schedule.state() == PhantomActivityState.ACTIVE) && (schedule.nextBoundary().getEpochSecond() >= (minute + 20) * 60)) { from = minute; break; }
+		}
+		PhantomAssertions.assertTrue(from > 0, "TEST profile has no bounded calendar-online interval.");
+		final long completedAt = from;
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, completedAt - 4, completedAt, context.seed()).status(), "Local-demand fixture did not begin history.");
+			final Snapshot old = runtime.historical().advance(profileId, 4, 4).snapshot();
+			PhantomAssertions.assertEquals(Status.COMPLETE, old.state().status(), "Local-demand fixture has no completed window.");
+			deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+			deleteComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+			recordLinkedTransition(context, "01-human-demand", profileId, runtime, "READY linked, calendar online", "local demand pending");
+			final var assignment = ecologyCatalog.assign(PhantomPopulationEcologyState.Preset.LIVING, managed.state().populationGeneration(), managed.state().creationOrdinal(), context.seed(), completedAt, 0, 0, managed.state().scheduleTemplate());
+			final var ecologyState = new PhantomPopulationEcologyState(assignment.catalogHash(), assignment.preset(), assignment.ecologyGeneration(), assignment.assignmentOrdinal(), assignment.assignedAtEpochMinute(), assignment.virtualJoinEpochMinute(), completedAt, completedAt, PhantomPopulationEcologyState.Pace.OUTLIER, 10000, assignment.productiveBlockMinutes(), assignment.personality(), assignment.initialSocialTraits(), assignment.scheduleTemplate(), assignment.disposition(), assignment.turnoverEligibleEpochMinute(), assignment.replacesProfileId(), "", 0, 0, 0, "");
+			final var ecologyStore = new PhantomPopulationEcologyStore(_profiles);
+			ecologyStore.insert(profileId, ecologyState);
+			final var historicalPort = new PhantomPopulationEcologyService.HistoricalPort()
+			{
+				@Override public Optional<Snapshot> status(long id) { return runtime.historical().status(id); }
+				@Override public PhantomHistoricalBackgroundService.Result begin(long id, long start, long target, long seed)
+				{
+					final var begun = runtime.historical().begin(id, start, target, seed);
+					if ((id == profileId) && begun.reason().startsWith("catchup.renewal.")) { recordLinkedTransition(context, "03-historical-renewal", id, runtime, begun.status().name(), begun.reason()); }
+					return begun;
+				}
+				@Override public PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes) { return runtime.historical().advance(id, intervals, minutes); }
+			};
+			final var ecology = new PhantomPopulationEcologyService(ecologyCatalog, _catalog, ecologyStore, historicalPort, id -> runtime.materialization().find(id).isPresent(), id -> "", java.time.Clock.fixed(Instant.ofEpochSecond((completedAt + 10) * 60), ZoneOffset.UTC), ZoneOffset.UTC, PhantomPopulationEcologyState.Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+			ecology.installRuntime(id -> id == profileId ? Optional.of(managed) : Optional.empty(), new PhantomPopulationEcologyService.PopulationEvents()
+			{
+				@Override public void requestArchive(long id) {}
+				@Override public void reconcilePopulation() {}
+				@Override public void ecologyFenceChanged(long id) {}
+			});
+			ecology.enablePeriodicDueMode();
+			ecology.register(managed);
+			try
+			{
+				ecology.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(profileId, 1, true, 1, 1)), 1);
+				PhantomAssertions.assertFalse(ecology.requestMaterializationDue(profileId).complete(), "Missing renewal crossed readiness before repair.");
+				recordLinkedTransition(context, "02-ecology-due", profileId, runtime, ecology.dueSnapshot(profileId).toString(), ecology.dueSnapshot(profileId).reason());
+				PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "NORMAL Player appeared before readiness.");
+				for (int pulse = 0; (pulse < 512) && !ecology.requestMaterializationDue(profileId).complete(); pulse++) { ecology.onPopulationPulse(); }
+				PhantomAssertions.assertTrue(context.measurements().containsKey("m1.linked.03-historical-renewal"), "Ecology did not publish a typed historical renewal result.");
+				PhantomAssertions.assertTrue(ecology.requestMaterializationDue(profileId).complete(), "Local demand did not finish the same renewal: due=" + ecology.dueSnapshot(profileId) + ",progress=" + ecology.progressSnapshot(profileId) + ",preparation=" + ecology.preparationSnapshot() + ",failure=" + ecology.snapshot().lastFailure());
+				recordLinkedTransition(context, "04-readiness-complete", profileId, runtime, ecology.dueSnapshot(profileId).toString(), ecology.dueSnapshot(profileId).reason());
+				final Snapshot renewed = runtime.historical().status(profileId).orElseThrow();
+				PhantomAssertions.assertEquals(Status.COMPLETE, renewed.state().status(), "Demand did not finish historical window.");
+				PhantomAssertions.assertTrue(!old.state().requestId().equals(renewed.state().requestId()), "Demand reused prior completed request.");
+				PhantomAssertions.assertEquals(renewed.state().targetEpochMinute(), ecologyStore.load(profileId).orElseThrow().state().calendarCursorEpochMinute(), "Ecology lost the requested horizon.");
+				PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "Historical baseline Player remained before NORMAL admission.");
+				final var normal = runtime.materialization().materialize(profileId);
+				recordLinkedTransition(context, "05-normal-materialization", profileId, runtime, normal.status().name(), normal.status().name());
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, normal.status(), "Complete readiness did not admit a real NORMAL Player.");
+				final Player nativePlayer;
+				try (var action = runtime.materialization().tryAcquireAction(profileId).orElseThrow())
+				{
+					nativePlayer = action.player();
+					PhantomAssertions.assertEquals(managed.profile().characterObjectId(), action.player().getObjectId(), "NORMAL Player changed the linked identity.");
+					PhantomAssertions.assertTrue(World.getInstance().getPlayer(action.player().getObjectId()) == action.player(), "NORMAL Player is absent from World.");
+				}
+				final var goal = runtime.goals().load(profileId).orElseThrow().goal();
+				PhantomAssertions.assertEquals(PhantomBackgroundGoalSpec.GOAL_TYPE, goal.goalType(), "Rebuilt local goal did not select native farm AutoPlay.");
+				if (runtime.materialization().tryAcquireAction(profileId).map(action -> { try (action) { return action.player().isDead(); } }).orElse(false))
+				{
+					final var recovered = runtime.background().recover(profileId, goal, PhantomActivityState.ACTIVE);
+					PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.SUCCESS, recovered.status(), "Native death recovery failed before AutoPlay: " + recovered.reason());
+				}
+				final var candidates = new PhantomCandidateRegistry();
+				candidates.seal();
+				final var handlers = new PhantomStepHandlerRegistry();
+				handlers.seal();
+				final var engine = new PhantomDecisionEngine(runtime.goals(), candidates, handlers, new PhantomMetrics(), 1);
+				engine.start();
+				final var autoPlay = new PhantomVisibleAutoPlay(runtime.materialization(), () -> engine, id -> ecology.requestMaterializationDue(id).complete());
+				Monster monster = null;
+				try
+				{
+					PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profileId), "Rebuilt goal did not attach to Decision.");
+					final var decision = engine.find(profileId).orElseThrow();
+					recordLinkedTransition(context, "06-decision-runtime", profileId, runtime, decision.runtimeState().name(), decision.reasonKey());
+					final boolean current = (decision.goalId() == goal.goalId()) && (decision.goalRevision() == goal.revision()) && (decision.goalStatus() == PhantomGoalStatus.ACTIVE) && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(decision.goalType()) && ecology.requestMaterializationDue(profileId).complete();
+					recordLinkedTransition(context, "07-autoplay-current", profileId, runtime, Boolean.toString(current), current ? "all current() guards satisfied" : "decision goal or readiness mismatch");
+					PhantomAssertions.assertTrue(current, "AutoPlay.current guard did not match the active Decision goal and readiness.");
+					final var nativeSnapshot = runtime.materialization().find(profileId).orElseThrow();
+					try (var action = runtime.materialization().tryAcquireAction(profileId).orElseThrow())
+					{
+						PhantomAssertions.assertTrue(action.player().hasHeadlessOutboundSession() && action.player().isOnline() && !action.player().isDead(), "Rebuilt Player lacks native AutoPlay admission: headless=" + action.player().hasHeadlessOutboundSession() + ",online=" + action.player().isOnline() + ",dead=" + action.player().isDead());
+					}
+					monster = new Monster(NpcData.getInstance().getTemplate(PhantomBackgroundGoalSpec.parse(goal).npcId()));
+					monster.setInstanceId(nativePlayer.getInstanceId());
+					final var nativeSpawn = new Spawn(monster.getTemplate());
+					nativeSpawn.setXYZ(nativePlayer.getX() + 20, nativePlayer.getY(), nativePlayer.getZ());
+					monster.setSpawn(nativeSpawn);
+					monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp());
+					monster.spawnMe(nativePlayer.getX() + 20, nativePlayer.getY(), nativePlayer.getZ());
+					final double initialHp = monster.getCurrentHp();
+					final boolean started = autoPlay.start(profileId, goal);
+					recordLinkedTransition(context, "08-autoplay-start", profileId, runtime, Boolean.toString(started), started ? "native pools admitted" : "start guard: snapshot=" + nativeSnapshot + ",decision=" + decision + ",headless=" + nativePlayer.hasHeadlessOutboundSession() + ",online=" + nativePlayer.isOnline() + ",dead=" + nativePlayer.isDead());
+					PhantomAssertions.assertTrue(started, "Rebuilt goal did not start native AutoPlay: materialization=" + nativeSnapshot + ",decision=" + decision + ",goal=" + goal.goalType() + "/" + goal.revision());
+					PhantomAssertions.assertTrue(autoPlay.running(profileId, goal), "Native AutoPlay was not running for rebuilt Player.");
+					final long actionDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+					while ((monster.getCurrentHp() >= initialHp) && (System.nanoTime() < actionDeadline)) { Thread.sleep(20); }
+					recordLinkedTransition(context, "09-first-native-action", profileId, runtime, "monsterHp=" + monster.getCurrentHp(), monster.getCurrentHp() < initialHp ? "native attack damage=" + (initialHp - monster.getCurrentHp()) : "no attack: online=" + nativePlayer.isOnline() + ",dead=" + nativePlayer.isDead() + ",moving=" + nativePlayer.isMoving() + ",auto=" + nativePlayer.isAutoPlaying() + ",target=" + nativePlayer.getTarget() + ",peace=" + nativePlayer.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE));
+					PhantomAssertions.assertTrue(monster.getCurrentHp() < initialHp, "Native AutoPlay did not perform its first attack.");
+				}
+				finally
+				{
+					autoPlay.stop(profileId);
+					if (monster != null) { monster.deleteMe(); }
+					try (var action = runtime.materialization().tryAcquireAction(profileId).orElse(null))
+					{
+						if (action != null)
+						{
+							final var player = action.player();
+							player.abortAttack(); player.abortCast(); player.stopMove(null); player.setTarget(null);
+							player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE);
+							player.getAI().setAutoAttacking(false);
+							org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager.getInstance().removeAttackStanceTask(player);
+						}
+					}
+					engine.beginStop(); engine.finishStop();
+					final var cleanup = runtime.materialization().dematerialize(profileId);
+					recordLinkedTransition(context, "10-cleanup", profileId, runtime, cleanup.status().name(), cleanup.status().name());
+					PhantomAssertions.assertEquals(ResultStatus.SUCCESS, cleanup.status(), "Native action cleanup retained Player: " + cleanup + ", lifecycle=" + runtime.lifecycleFailure());
+					PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty() && World.getInstance().getPlayer(managed.profile().characterObjectId()) == null, "Native action cleanup left a runtime Player.");
+					PhantomAssertions.assertTrue(runtime.transaction().load(profileId).state().state() != PhantomBackgroundState.State.MATERIALIZED, "Native action cleanup left an orphaned MATERIALIZED background state.");
+				}
+			}
+			finally { ecology.beginStop(); ecology.finishStop(); }
+		}
+	}
+
+	private static void recordLinkedTransition(PhantomTestContext context, String step, long profileId, RuntimeHarness runtime, String owner, String reason)
+	{
+		final var goal = runtime.goals().load(profileId).map(stored -> stored.goal()).orElse(null);
+		final var background = runtime.transaction().load(profileId).state();
+		final var materialization = runtime.materialization().find(profileId).orElse(null);
+		context.record("m1.linked." + step, "profile=" + profileId + " owner=" + owner + " goal=" + (goal == null ? "absent" : goal.goalId() + "/" + goal.revision() + "/" + goal.status() + "/" + goal.goalType()) + " background=" + (background == null ? "absent" : background.state()) + " materialization=" + (materialization == null ? "absent/objectId=0" : materialization.state() + "/objectId=" + materialization.characterObjectId() + "/world=" + materialization.worldPresent()) + " reason=" + reason);
+	}
+
+	private void testRenewalWithoutGoalAndBackground(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 24).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final Snapshot complete = completeWindow(runtime, profileId, context.seed());
+			deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+			deleteComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+			final var store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			final var invalid = new PhantomBackgroundCatchupState(Status.PENDING, complete.state().requestId(), context.seed(), FROM_MINUTE + 4, FROM_MINUTE + 8, FROM_MINUTE + 4, complete.state().planOrdinal() + 1, 0, complete.state().generation() + 1, complete.state().knowledgeGeneration(), complete.state().topologyGeneration(), 0, 0, "", complete.state().modelVersion(), complete.state().authorityHashes(), "");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> store.renewCompletedUnplanned(profileId, complete, invalid), "Unplanned renewal reused a completed request ID.");
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Absent goal/background renewal failed: " + begun.reason());
+			PhantomAssertions.assertEquals("catchup.renewal.goal_missing.background_missing.recovered", begun.reason(), "Missing goal/background recovery was not typed.");
+			PhantomAssertions.assertEquals(Status.RUNNING, begun.snapshot().state().status(), "Rebuilt renewal did not enter RUNNING.");
+			PhantomAssertions.assertEquals(FROM_MINUTE + 4, begun.snapshot().state().cursorEpochMinute(), "Rebuild advanced the historical cursor.");
+			PhantomAssertions.assertTrue(!complete.state().requestId().equals(begun.snapshot().state().requestId()), "Renewal reused the completed request.");
+			PhantomAssertions.assertEquals(begun.snapshot().state().requestId(), runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed()).snapshot().state().requestId(), "Rebuild did not retain the same new request.");
+			PhantomAssertions.assertEquals(Status.COMPLETE, runtime.historical().advance(profileId, 4, 4).snapshot().state().status(), "Rebuilt history did not complete.");
+			PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "Historical baseline retained a Player.");
+		}
+	}
+
+	private void testRenewalWithoutGoalWithBackground(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 30).profile().profileId();
+		final var fault = new AtomicReference<FaultPoint>();
+		final var transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, ObjectIdAllocator.production(), point ->
+		{
+			if (fault.compareAndSet(point, null)) { throw new IllegalStateException("Injected one-time baseline capture interruption."); }
+		});
+		try (RuntimeHarness runtime = openRuntime(profileId, transaction))
+		{
+			completeWindow(runtime, profileId, context.seed());
+			PhantomBackgroundState before = runtime.transaction().load(profileId).state();
+			if (before.state() == PhantomBackgroundState.State.DEAD)
+			{
+				final var goal = runtime.goals().load(profileId).orElseThrow().goal();
+				final var recovery = runtime.background().recover(profileId, goal, PhantomActivityState.WARM);
+				PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.SUCCESS, recovery.status(), "Goal-only fixture could not complete native death recovery: " + recovery.reason());
+				before = runtime.transaction().load(profileId).state();
+			}
+			PhantomAssertions.assertEquals(PhantomBackgroundState.State.READY, before.state(), "Goal-only fixture is not a safe READY baseline.");
+			deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+			fault.set(FaultPoint.BEFORE_CAPTURE_COMMIT);
+			final var interrupted = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.RETRY, interrupted.status(), "One-time baseline capture failure did not retain the same renewal.");
+			PhantomAssertions.assertTrue(interrupted.reason().endsWith("catchup.baseline.store_retry"), "Interrupted baseline did not report the store boundary: " + interrupted.reason());
+			context.record("m1.goalOnlyRetry", "reason=" + interrupted.reason() + " background=" + runtime.transaction().load(profileId).state().state() + " materialization=" + runtime.materialization().find(profileId) + " lifecycle=" + runtime.lifecycleFailure());
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Absent goal with canonical baseline did not rebuild: " + begun.reason());
+			PhantomAssertions.assertEquals("catchup.ready", begun.reason(), "Retried goal-only recovery did not resume the same ready request.");
+			final PhantomBackgroundState after = runtime.transaction().load(profileId).state();
+			PhantomAssertions.assertEquals(before.progress(), after.progress(), "Goal rebuild fabricated progression.");
+			PhantomAssertions.assertEquals(before.inventory().canonicalHash(), after.inventory().canonicalHash(), "Goal rebuild changed canonical item counts.");
+			PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "Goal rebuild retained historical Player.");
+			PhantomAssertions.assertEquals(Status.COMPLETE, runtime.historical().advance(profileId, 4, 4).snapshot().state().status(), "Goal-only renewal did not finish.");
+		}
+	}
+
+	private void testRenewalWithoutGoalWithDeadBackground(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 31).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final Snapshot complete = completeWindow(runtime, profileId, context.seed());
+			final var component = _profiles.findComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+			final var before = runtime.transaction().load(profileId).state();
+			final var vitals = before.vitals();
+			final var deadVitals = new PhantomBackgroundState.Vitals(0, vitals.maximumHp(), vitals.currentMp(), vitals.maximumMp(), vitals.currentCp(), vitals.maximumCp());
+			final var dead = before.after(before.progress(), deadVitals, before.position(), before.inventory(), before.autoGetSkills(), before.clock(), before.receipt());
+			_profiles.updateComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE, component.rowVersion(), PhantomBackgroundState.SCHEMA_VERSION, new PhantomBackgroundStateCodec().encode(dead));
+			deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+			final var rejected = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.REPLAN_REQUIRED, rejected.status(), "Goal-free DEAD baseline entered an unbounded retry.");
+			PhantomAssertions.assertEquals("catchup.renewal.background_state_invalid", rejected.reason(), "Unverifiable DEAD baseline was not typed.");
+			PhantomAssertions.assertEquals(complete, runtime.historical().status(profileId).orElseThrow(), "Rejected DEAD baseline mutated completed history.");
+		}
+	}
+
+	private void testRenewalWithoutBackground(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 25).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final Snapshot complete = completeWindow(runtime, profileId, context.seed());
+			final var goal = runtime.goals().load(profileId).orElseThrow().goal();
+			deleteComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Absent background renewal failed: " + begun.reason());
+			PhantomAssertions.assertEquals("catchup.renewal.background_missing.recovered", begun.reason(), "Missing background recovery was not typed.");
+			PhantomAssertions.assertEquals(complete.state().goalId(), begun.snapshot().state().goalId(), "Background rebuild replaced goal identity.");
+			PhantomAssertions.assertEquals(goal, runtime.goals().load(profileId).orElseThrow().goal(), "Background rebuild changed the valid goal.");
+			PhantomAssertions.assertEquals(Status.COMPLETE, runtime.historical().advance(profileId, 4, 4).snapshot().state().status(), "Background rebuild did not finish history.");
+		}
+	}
+
+	private void testRenewalWithStaleGoal(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 26).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final Snapshot complete = completeWindow(runtime, profileId, context.seed());
+			final var storedGoal = runtime.goals().load(profileId).orElseThrow();
+			runtime.goals().replace(profileId, storedGoal.rowVersion(), storedGoal.goal().withStatus(PhantomGoalStatus.ACTIVE));
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Safe stale goal did not replan: " + begun.reason());
+			PhantomAssertions.assertEquals("catchup.renewal.goal_mismatch.recovered", begun.reason(), "Safe stale goal recovery was not typed.");
+			PhantomAssertions.assertEquals(complete.state().goalId(), begun.snapshot().state().goalId(), "Stale renewal replaced goal identity.");
+			PhantomAssertions.assertEquals(Status.COMPLETE, runtime.historical().advance(profileId, 4, 4).snapshot().state().status(), "Replanned history did not complete.");
+		}
+	}
+
+	private void testRenewalWithInvalidBackground(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 27).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final Snapshot complete = completeWindow(runtime, profileId, context.seed());
+			final var component = _profiles.findComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+			final var invalid = runtime.transaction().load(profileId).state().withState(PhantomBackgroundState.State.INCONSISTENT);
+			_profiles.updateComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE, component.rowVersion(), PhantomBackgroundState.SCHEMA_VERSION, new PhantomBackgroundStateCodec().encode(invalid));
+			final var rejected = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.REPLAN_REQUIRED, rejected.status(), "Inconsistent background was accepted.");
+			PhantomAssertions.assertEquals("catchup.renewal.background_state_invalid", rejected.reason(), "Invalid background was not typed.");
+			PhantomAssertions.assertEquals(complete, new PhantomBackgroundCatchupStore(_profiles, runtime.goals()).load(profileId).orElseThrow(), "Invalid background changed completed history.");
+		}
+	}
+
+	private void testRenewalWithOrphanedMaterializedBackground(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 28).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			completeWindow(runtime, profileId, context.seed());
+			final int objectId = _profiles.find(profileId).orElseThrow().characterObjectId();
+			PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, runtime.transaction().markMaterialized(profileId, objectId).status(), "TEST orphan fixture was not created.");
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "Verified orphaned MATERIALIZED state was not recovered: " + begun.reason());
+			PhantomAssertions.assertEquals("catchup.renewal.background_state_invalid.recovered", begun.reason(), "Orphaned state recovery was not typed.");
+			PhantomAssertions.assertEquals(Status.COMPLETE, runtime.historical().advance(profileId, 4, 4).snapshot().state().status(), "Recovered orphan did not finish history.");
+		}
+	}
+
+	private Snapshot completeWindow(RuntimeHarness runtime, long profileId, long seed)
+	{
+		PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, seed).status(), "Renewal fixture baseline failed.");
+		final var complete = runtime.historical().advance(profileId, 4, 4);
+		PhantomAssertions.assertEquals(Status.COMPLETE, complete.snapshot().state().status(), "Renewal fixture did not complete.");
+		return complete.snapshot();
+	}
+
+	private void deleteComponent(long profileId, String componentType)
+	{
+		final var component = _profiles.findComponent(profileId, componentType).orElseThrow();
+		_profiles.deleteComponent(profileId, componentType, component.rowVersion());
 	}
 
 	private void testRecoverableFailure(PhantomTestContext context, String reason) throws Exception
@@ -291,10 +624,11 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 				final var projected = state.after(progress, state.vitals(), state.position(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt());
 				final var result = planner.replan(profileId, projected, goal, context.seed(), 1);
 				PhantomAssertions.assertTrue(result.ready(), "Reachable lower-tier target was excluded: L-" + difference);
-				PhantomAssertions.assertEquals(spec.npcId(), result.spec().npcId(), "Isolated tier selected a non-authoritative target.");
+				PhantomAssertions.assertEquals(spec.anchorId(), result.spec().anchorId(), "Isolated tier selected a target outside the only authoritative anchor.");
 				PhantomAssertions.assertTrue(planner.remainsSuitable(projected, result.goal()), "Lower-tier target was immediately considered unsuitable.");
 			}
-			PhantomAssertions.assertFalse(planner.replan(profileId, state, goal, context.seed(), 1, Set.of(spec.npcId() + "@" + spec.anchorId()), Set.of()).ready(), "Target-specific exclusion selected the same isolated target.");
+			final var excluded = planner.replan(profileId, state, goal, context.seed(), 1, Set.of(spec.npcId() + "@" + spec.anchorId()), Set.of());
+			PhantomAssertions.assertTrue(!excluded.ready() || (excluded.spec().npcId() != spec.npcId()) || !excluded.spec().anchorId().equals(spec.anchorId()), "Target-specific exclusion selected the excluded NPC and anchor.");
 		}
 	}
 
@@ -578,6 +912,11 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 			PhantomAssertions.assertEquals(Status.COMPLETE, advanced.snapshot().state().status(), "Catch-up did not stop exactly at its target cursor.");
 			PhantomAssertions.assertTrue(runtime.historical().permitsNormalOperation(profileId), "COMPLETE catch-up did not reopen normal Decision work.");
 			PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, runtime.transaction().reconcileVerifyPending(profileId, baseline.identity().characterObjectId()).status(), "COMPLETE catch-up left an unreconciled canonical Background state.");
+			if (runtime.transaction().load(profileId).state().state() == PhantomBackgroundState.State.DEAD)
+			{
+				final var recovery = runtime.background().recover(profileId, runtime.goals().load(profileId).orElseThrow().goal(), PhantomActivityState.WARM);
+				PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.SUCCESS, recovery.status(), "Post-catch-up native death recovery failed: " + recovery.reason());
+			}
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, runtime.materialization().materialize(profileId).status(), "COMPLETE catch-up did not reopen NORMAL materialization.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, runtime.materialization().dematerialize(profileId).status(), "Post-catch-up ordinary dematerialization failed.");
 			context.record("goal033a.selectedNpcId", spec.npcId());
@@ -1139,9 +1478,24 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		PhantomAssertions.assertTrue(background.start(), "Goal033A Background service did not start.");
 		final PhantomHistoricalBackgroundPlanner planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), _production.topology(), authority);
 		final PhantomHistoricalBackgroundService historical = new PhantomHistoricalBackgroundService(_profiles, goals, planner, background, materialization);
-		lifecycle.install(PhantomMaterializationLifecyclePort.chain(historical, background));
+		final var lifecycleFailure = new AtomicReference<String>();
+		final var delegated = PhantomMaterializationLifecyclePort.chain(historical, background);
+		lifecycle.install(new PhantomMaterializationLifecyclePort()
+		{
+			@Override public void beforeMaterialize(long id, int objectId) { delegated.beforeMaterialize(id, objectId); }
+			@Override public void beforeMaterialize(long id, int objectId, MaterializationPurpose purpose, String claim) { delegated.beforeMaterialize(id, objectId, purpose, claim); }
+			@Override public void afterPlayerLoad(long id, Player player) { delegated.afterPlayerLoad(id, player); }
+			@Override public void materializeSucceeded(long id, int objectId) { delegated.materializeSucceeded(id, objectId); }
+			@Override public void materializeAborted(long id, int objectId) { delegated.materializeAborted(id, objectId); }
+			@Override public void beforeStore(long id, Player player) { delegated.beforeStore(id, player); }
+			@Override public void afterStore(long id, Player player)
+			{
+				try { delegated.afterStore(id, player); }
+				catch (RuntimeException exception) { lifecycleFailure.set(exception.toString()); throw exception; }
+			}
+		});
 		PhantomAssertions.assertTrue(materialization.start(), "Goal033A materialization service did not start.");
-		return new RuntimeHarness(profileId, goals, transaction, background, materialization, planner, historical);
+		return new RuntimeHarness(profileId, goals, transaction, background, materialization, planner, historical, lifecycleFailure);
 	}
 
 	private byte[] componentPayload(long profileId, String componentType)
@@ -1254,9 +1608,10 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		private final PhantomMaterializationService _materialization;
 		private final PhantomHistoricalBackgroundPlanner _planner;
 		private final PhantomHistoricalBackgroundService _historical;
+		private final AtomicReference<String> _lifecycleFailure;
 		private boolean _closed;
 
-		private RuntimeHarness(long profileId, PhantomGoalStateStore goals, PhantomBackgroundTransaction transaction, PhantomBackgroundService background, PhantomMaterializationService materialization, PhantomHistoricalBackgroundPlanner planner, PhantomHistoricalBackgroundService historical)
+		private RuntimeHarness(long profileId, PhantomGoalStateStore goals, PhantomBackgroundTransaction transaction, PhantomBackgroundService background, PhantomMaterializationService materialization, PhantomHistoricalBackgroundPlanner planner, PhantomHistoricalBackgroundService historical, AtomicReference<String> lifecycleFailure)
 		{
 			_profileId = profileId;
 			_goals = goals;
@@ -1265,6 +1620,7 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 			_materialization = materialization;
 			_planner = planner;
 			_historical = historical;
+			_lifecycleFailure = lifecycleFailure;
 		}
 
 		private PhantomGoalStateStore goals()
@@ -1295,6 +1651,11 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		private PhantomHistoricalBackgroundService historical()
 		{
 			return _historical;
+		}
+
+		private String lifecycleFailure()
+		{
+			return _lifecycleFailure.get();
 		}
 
 		@Override

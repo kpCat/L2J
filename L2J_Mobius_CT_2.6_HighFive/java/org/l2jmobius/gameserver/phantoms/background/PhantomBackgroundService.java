@@ -715,6 +715,51 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return loaded.successful() ? Optional.ofNullable(loaded.state()) : Optional.empty();
 	}
 
+	/** Reconcile a durable MATERIALIZED marker only after proving that no Player owns the character. */
+	public OperationResult recoverAbandonedMaterialization(long profileId)
+	{
+		if (!claimTransition(profileId, TransitionKind.MATERIALIZING))
+		{
+			return retry("recovery.transition_busy");
+		}
+		Lease lease = null;
+		try
+		{
+			final PhantomProfile profile = _profiles.find(profileId).orElse(null);
+			if ((profile == null) || (profile.characterObjectId() == null))
+			{
+				return OperationResult.replan("recovery.profile_unlinked");
+			}
+			final int characterObjectId = profile.characterObjectId();
+			lease = _identities.tryAcquire(characterObjectId, OwnerKind.BACKGROUND);
+			if (lease == null)
+			{
+				return retry("recovery.identity_busy");
+			}
+			increment(_currentIdentityLeases, _peakIdentityLeases);
+			if ((_materialization.get().find(profileId).isPresent()) || (World.getInstance().getPlayer(characterObjectId) != null) || (World.getInstance().findObject(characterObjectId) != null) || PlayerAutoSaveTaskManager.getInstance().containsObjectId(characterObjectId))
+			{
+				return retry("recovery.runtime_busy");
+			}
+			final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
+			if (!loaded.successful() || (loaded.state() == null) || (loaded.state().state() != State.MATERIALIZED) || (loaded.state().identity().characterObjectId() != characterObjectId))
+			{
+				return OperationResult.replan("recovery.background_state_invalid");
+			}
+			final PhantomBackgroundTransaction.Result recovered = transaction(() -> _transactions.abortMaterialization(profileId, characterObjectId));
+			if (recovered.successful() && (recovered.state() != null) && ((recovered.state().state() == State.READY) || (recovered.state().state() == State.DEAD)))
+			{
+				return OperationResult.success("recovery.abandoned_materialization_reconciled");
+			}
+			return mapTransactionFailure(recovered.status());
+		}
+		finally
+		{
+			closeLease(lease);
+			releaseTransition(profileId, TransitionKind.MATERIALIZING);
+		}
+	}
+
 	public Optional<PhantomGoal> ordinaryGoal(long profileId)
 	{
 		return _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).filter(goal -> PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()));
@@ -1276,7 +1321,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final PhantomBackgroundTransaction.Result stored = transaction(() -> goal.status() == PhantomGoalStatus.ACTIVE ? _transactions.captureBaseline(captured, goal) : _transactions.captureLifecycleBaseline(captured, goal));
 		if (!stored.successful())
 		{
-			throw new IllegalStateException("Canonical background baseline capture failed.");
+			throw new IllegalStateException("Canonical background baseline capture failed: " + stored.status());
 		}
 		final PhantomBackgroundTransaction.Result verified = transaction(() -> _transactions.reconcileVerifyPending(profileId, player.getObjectId()));
 		if (!verified.successful() || (verified.state() == null) || ((verified.state().state() != State.READY) && (verified.state().state() != State.DEAD)))
