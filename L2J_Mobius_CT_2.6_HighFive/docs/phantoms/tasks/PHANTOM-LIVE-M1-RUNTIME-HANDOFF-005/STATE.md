@@ -1,5 +1,15 @@
 # STATE
 
+Status: M1_OPEN_PRE_ARM_BLOCKED_LATENT_LEGACY_MATERIALIZED; final manual gate REQUIRED; M2 not started.
+Continuation: continuation-observer-closeout/RESULT.md. Source/remote `0b8fdf1048161b3c66ff9b1c5b422012f0461210`; clean/deployed Game JAR SHA-256 `741EDA61FBE34AE06F10A639549DBB4184280E21C614C7E31CED34F1504C00AB`.
+Read-only PLAY proved 216/223 INCONSISTENT strict pre-fix volatile drift, 7 mixed fail-closed. One controlled backup/deploy/start applied exact witness: startup 216/216 recovered; profile13 READY then ordinary DEAD. Backup: artifacts/local-play/m1-005-backup-legacy216-20260930-232633, coherent PLAY dump SHA-256 `941D33B7875E96CCF7288CE2F6D9DA282DB5056F8AFECAAC6B583AA120FE915D`.
+Focused TEST transaction10/10, linked native legacy vertical32/32, native position7/7, Pilot native PASS, actual fake M1 runner PASS. Login/Game owned RUNNING, CONFIG PASS, Pilot OFF. PLAY READY1280/RETIRED8720; 7 mixed stayed fail-closed.
+After several minutes one pre-fix MATERIALIZED volatile-only row became INCONSISTENT (count8). It belongs to the 37 strict pre-fix latent MATERIALIZED cohort; no new autosave producer established. Auto-review rejected expanding recovery to MATERIALIZED without explicit authorization; that edit was not applied. Awaiting user scope decision before another deploy, arm or connected run. No TestAdmin movement, new arm or connected run.
+mojibake-маркеры в изменённых файлах проверены.
+escaped Cyrillic в изменённых файлах проверены.
+
+## Previous state
+
 Status: PRE_ARM_BLOCKED_M1_OPEN; existing profile13 remains fail-closed INCONSISTENT. Новый arm и connected-run после producer fix не запускались; M2 не начат.
 Phase1 read-only PLAY: exact `BACKGROUND_CANONICAL_MISMATCH:CURRENT_HP_CURRENT_CP_POSITION_X_Y_HEADING`; background expected HP128 CP8 x44126 y42751 heading25847, canonical actual HP180 CP72 x45975 y47879 heading12772. RowVersion9791/INCONSISTENT уже существовал до connected run 314658b3; historical writer UNKNOWN. Census READY1280: background ABSENT0/READY419/DEAD626/MATERIALIZED30/VERIFY_PENDING4/INCONSISTENT201. Runtime World split UNKNOWN: `.phantomstatus` дал personal access denied; guard не менялся.
 Native TEST доказал воспроизводимый producer: periodic Player.autoSave→storeMe во время headless MATERIALIZED записывал canonical без background capture. Минимальный guard исправлен, exact profile13-shaped mismatch остаётся fail-closed; linked native TEST profile70733 дошёл до NORMAL Player, DecisionEngine goal, AutoPlay start и первой атаки. Focused TEST, actual offline fake runner, clean JAR прошли. Source f9562c8002f4d2487baae6840c99001b743d0a83 опубликован; deployed GameServer SHA256 EF10CA499A82174199D8C13D85346D10D86C4038AA5DDAC9E6361E662E8D6D44. Coherent backup/owned restart выполнены; Login25456/Game20600 healthy, Pilot OFF, READY1280/RETIRED8720.
