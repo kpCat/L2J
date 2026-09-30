@@ -1,5 +1,17 @@
 # STATE
 
+Status: CONNECTED_RED_M1_OPEN; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
+Continuation: continuation-observer-closeout/RESULT.md; ровно один новый connected-run после свежего arm, runId 278deadf-3c62-454c-809f-e24c56165dec, profile278 STORED_START.
+Exact boundary: APPROACH_DEADLINE_EXPIRED после успешного cached envelope и MOVE_SELF. TestAdmin дошёл до 9 единиц от committed (44126,42751,-3488); все 84 снимка target оставался COMMITTED/STORED, objectId0, worldPresent=false, clientVisible=false. FirstCouldKnow 06:59:27 UTC; natural materialization до 120 s deadline не случилась.
+Typed approachRouteFailures пуст; прежний NO_NATIVE_APPROACH_ROUTE не повторился. Последний historicalStatus=COMPLETE, readinessReason=catchup.renewal.baseline_or_goal_missing; причинность не доказана.
+NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN — NOT_OBSERVED. TestAdmin RESTORE=PASS с REAL_LOGIN STATUS у origin; Pilot STOP=PASS, cleanupFailures пусты.
+Pilot runActive=false, session ARMED_IDLE после stop (не OFF). Login/Game owned RUNNING, CONFIG PASS; Game PID29396 прежний. Evidence: приватные M1_CONNECTED_RESULT.txt и M1_CONNECTED_WORLD.tsv для этого runId; raw записи не опубликованы.
+По указанию пользователя второй connected-run и самостоятельные исправления не выполнялись. Для полного OFF нужен `.playtest off` в игре; M1 остаётся OPEN.
+mojibake-маркеры в изменённых файлах проверены.
+escaped Cyrillic в изменённых файлах проверены.
+
+## Previous state
+
 Status: WAITING_ARM_M1_OPEN; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
 Continuation: continuation-observer-closeout/RESULT.md; исправлена точная APPROACH boundary предыдущего connected RED внутри текущей задачи.
 Code/deployed source: 7653282fccfec15a1d62a2d0ea6b5382f81073a5; clean Ant JAR SHA-256 8A7638F563612D810B43070C6151F45FA9FE8117A7D4BC581F6667DE183C34DC; runner hash совпадает с source.
