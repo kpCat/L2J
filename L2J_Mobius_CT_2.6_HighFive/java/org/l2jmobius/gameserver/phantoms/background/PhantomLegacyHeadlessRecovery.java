@@ -40,8 +40,8 @@ public final class PhantomLegacyHeadlessRecovery
 	public static final String RELATIVE_PATH = "data/phantoms/recovery/m1-005-legacy-headless-autosave.tsv";
 	private static final String HEADER = "M1_LEGACY_HEADLESS_AUTOSAVE_V1";
 	private static final int MAX_WITNESSES = 256;
-	private static final int ATTESTED_WITNESSES = 205;
-	private static final String ATTESTED_MANIFEST_SHA256 = "2b7850c737b5f5d7529fc215c5a723a1777083709af9e637c7cf373e0d8249b1";
+	private static final int ATTESTED_WITNESSES = 216;
+	private static final String ATTESTED_MANIFEST_SHA256 = "05c92c224b3a07e7fb5f4ccb5c65b92eca3b190712c8f9e010f88a4398e1aad1";
 	private static final Logger LOGGER = Logger.getLogger(PhantomLegacyHeadlessRecovery.class.getName());
 
 	private PhantomLegacyHeadlessRecovery()
