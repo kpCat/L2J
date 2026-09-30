@@ -1,5 +1,18 @@
 # STATE
 
+Status: WAITING_ARM_M1_OPEN; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
+Continuation: continuation-observer-closeout/RESULT.md; исправлена точная APPROACH boundary предыдущего connected RED внутри текущей задачи.
+Code/deployed source: 7653282fccfec15a1d62a2d0ea6b5382f81073a5; clean Ant JAR SHA-256 8A7638F563612D810B43070C6151F45FA9FE8117A7D4BC581F6667DE183C34DC; runner hash совпадает с source.
+Focused observability12/12, native Pilot7/7, native position7/7, actual offline fake runner PASS. Aggregate205 не повторялся.
+Owned backup/deploy/restart: artifacts/local-play/m1-005-backup-7653282-20260930; native PLAY dump64420864 bytes, marker/stderr0, SHA-256 C958FC8EB1F8EF6C6258A785322F1DBAEEA9CB738822A8CC00EF465B97378848.
+CONFIG PASS, Login21388/Game29396 owned RUNNING, Pilot OFF/runActive=false. Read-only PLAY: READY1280/RETIRED8720. Caps 1280/64/128/100 ms и maxScheduled10000 сохранены.
+NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN нового run — NOT_RUN; RESTORE/STOP — NOT_APPLICABLE_PRE_ARM. Новый arm-код и connected-run не выполнялись.
+Единственный следующий шаг: свежий consent для ровно одного connected Run-M1RuntimeHandoff. При GREEN полный M1 closeout; при RED typed exact boundary и остановка без второго run.
+mojibake-маркеры в изменённых файлах проверены.
+escaped Cyrillic в изменённых файлах проверены.
+
+## Previous state
+
 Status: CONNECTED_RED_M1_OPEN; final manual gate REQUIRED. M1 GREEN не заявлен, M2 не начат.
 Continuation: continuation-observer-closeout/RESULT.md; свежий TestAdmin arm, ровно один connected-run `23360eec-d7d8-442f-8da9-e37770b209bb`.
 Boundary: `PREPARE_APPROACH_REJECTED:NO_NATIVE_APPROACH_ROUTE` для profile882, `STORED_START`, committed (44126,42751,-3488), outside TestAdmin (49216,42751,-3491).
