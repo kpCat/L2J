@@ -8704,6 +8704,11 @@ public class Player extends Playable
 	
 	public void autoSave()
 	{
+		// A headless materialization publishes its canonical Player state at the owned store/capture boundary.
+		if (hasHeadlessOutboundSession())
+		{
+			return;
+		}
 		storeMe();
 		storeRecommendations(false);
 		

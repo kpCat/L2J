@@ -415,6 +415,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("01-atomic-canonical-batch-and-duplicate", _ -> testCanonicalBatch());
 		registry.add("02-precommit-fault-rollback", _ -> testPrecommitFaults());
 		registry.add("03-verify-pending-restart-and-inconsistent", _ -> testVerifyPending());
+		registry.add("03a-profile13-shaped-materialized-mismatch", _ -> testProfile13ShapedMaterializedMismatch());
 		registry.add("04-main-subclass-sql-isolation", _ -> testSubclassIsolation());
 		registry.add("05-stale-goal-generation-and-hash", _ -> testOperationIdentityGuards());
 		registry.add("06-transition-and-postcommit-faults", _ -> testTransitionFaults());
@@ -1903,6 +1904,24 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(expectedArrival.x(), action.player().getX(), "Materialized ARRIVED Player X differs.");
 				PhantomAssertions.assertEquals(expectedArrival.y(), action.player().getY(), "Materialized ARRIVED Player Y differs.");
 				PhantomAssertions.assertEquals(expectedArrival.z(), action.player().getZ(), "Materialized ARRIVED Player Z differs.");
+				final Canonical stored = canonical(objectId);
+				final Player nativePlayer = action.player();
+				try
+				{
+					nativePlayer.setXYZInvisible(45975, 47879, -3488);
+					nativePlayer.setHeading(12772);
+					nativePlayer.setCurrentHp(Math.max(1, nativePlayer.getMaxHp() - 52));
+					nativePlayer.setCurrentCp(Math.max(0, nativePlayer.getMaxCp() - 64));
+					nativePlayer.autoSave();
+					PhantomAssertions.assertEquals(stored, canonical(objectId), "Headless native autosave persisted HP/CP/position while MATERIALIZED projection still owned the canonical snapshot.");
+				}
+				finally
+				{
+					nativePlayer.setXYZInvisible(expectedArrival.x(), expectedArrival.y(), expectedArrival.z());
+					nativePlayer.setHeading(stored.heading());
+					nativePlayer.setCurrentHp(stored.currentHp());
+					nativePlayer.setCurrentCp(stored.currentCp());
+				}
 			}
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(profile.profileId()).status(), "Canonical ARRIVED dematerialization failed.");
 			final PhantomBackgroundState firstReload = transaction.load(profile.profileId()).state();
@@ -2667,6 +2686,47 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		finally
 		{
 			fixture.close();
+		}
+	}
+
+	private void testProfile13ShapedMaterializedMismatch() throws Exception
+	{
+		final int objectId = _environment.primary().objectId();
+		final Canonical original = canonical(objectId);
+		final int originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId = ?", objectId);
+		try
+		{
+			try (Connection connection = DatabaseFactory.getConnection();
+				PreparedStatement statement = connection.prepareStatement("UPDATE characters SET curHp=128,maxHp=180,curMp=67,maxMp=67,curCp=8,maxCp=72,x=44126,y=42751,z=-3488,heading=25847 WHERE charId=?"))
+			{
+				statement.setInt(1, objectId);
+				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Profile13-shaped TEST baseline was not installed.");
+			}
+			try (Fixture fixture = createFixture(objectId, null))
+			{
+				PhantomAssertions.assertEquals(Status.SUCCESS, fixture.transaction().markMaterialized(fixture.profileId(), objectId).status(), "Profile13-shaped TEST did not enter MATERIALIZED.");
+				final Result interrupted = new PhantomBackgroundTransaction().abortMaterialization(fixture.profileId(), objectId);
+				PhantomAssertions.assertEquals(Status.SUCCESS, interrupted.status(), "Matching MATERIALIZED projection did not recover after an interrupted runtime.");
+				PhantomAssertions.assertEquals(State.READY, interrupted.state().state(), "Matching interrupted runtime did not recover to READY.");
+				PhantomAssertions.assertEquals(128.0, canonical(objectId).currentHp(), "Matching restart recovery changed canonical HP.");
+				PhantomAssertions.assertEquals(Status.SUCCESS, fixture.transaction().markMaterialized(fixture.profileId(), objectId).status(), "Recovered TEST did not re-enter MATERIALIZED.");
+				try (Connection connection = DatabaseFactory.getConnection();
+					PreparedStatement statement = connection.prepareStatement("UPDATE characters SET curHp=180,curCp=72,x=45975,y=47879,heading=12772 WHERE charId=?"))
+				{
+					statement.setInt(1, objectId);
+					PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Profile13-shaped TEST canonical delta was not installed.");
+				}
+				final Result recovered = new PhantomBackgroundTransaction().abortMaterialization(fixture.profileId(), objectId);
+				PhantomAssertions.assertEquals(Status.INCONSISTENT, recovered.status(), "Exact profile13 HP/CP/position mismatch did not fail closed.");
+				PhantomAssertions.assertEquals(State.INCONSISTENT, recovered.state().state(), "Profile13-shaped mismatch changed the wrong background state.");
+				PhantomAssertions.assertEquals(128.0, recovered.state().vitals().currentHp(), "Profile13-shaped expected HP was lost.");
+				PhantomAssertions.assertEquals(8.0, recovered.state().vitals().currentCp(), "Profile13-shaped expected CP was lost.");
+				PhantomAssertions.assertEquals(new Position(0, 44126, 42751, -3488, 25847, ANCHOR_ID), recovered.state().position(), "Profile13-shaped expected position was lost.");
+			}
+		}
+		finally
+		{
+			restoreCharacter(objectId, original, originalBaseClass);
 		}
 	}
 
