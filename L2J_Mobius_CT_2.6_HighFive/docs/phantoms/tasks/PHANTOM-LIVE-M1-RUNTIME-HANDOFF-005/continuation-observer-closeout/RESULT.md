@@ -1,6 +1,6 @@
 # PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005 — observer closeout
 
-Status: **PRE_ARM VERIFIED; SOURCE PUBLICATION BLOCKED; M1 OPEN**. Production recovery проверен offline/native TEST, clean JAR развёрнут. Новый arm и connected-run после исправления не выполнялись; M2 не начат.
+Status: **WAITING_ARM; M1 OPEN**. Production recovery проверен offline/native TEST, clean JAR развёрнут, source опубликован. Новый arm и connected-run после исправления не выполнялись; M2 не начат.
 
 ## Recovery после RED 278deadf
 
@@ -23,9 +23,9 @@ Status: **PRE_ARM VERIFIED; SOURCE PUBLICATION BLOCKED; M1 OPEN**. Production re
 | cleanup | guarded dematerialize → SUCCESS | тот же goal; READY; absent/0 | SUCCESS |
 
 - `current()` и `start()` в этой сцене вернули true, failed guard отсутствует. Прерванный TEST capture на `BEFORE_CAPTURE_COMMIT` воспроизводит retry того же pending request; orphan `MATERIALIZED` case28 восстанавливает именно нарушенный переход после потери runtime Player. Различие state-машин само по себе ошибкой не объявлено.
-- Clean `ant -q -Dbuild=.phantom-local/m1-005-recovery-clean jar` **BUILD SUCCESSFUL**; GameServer.jar SHA-256 `651683ECD7FBC560743BF47517908F5439D1A28DF8A60CD13F076C167A8AAED1`, Login JAR прежний. Source content digest трёх production файлов `9C1E04F5EE1CC64D13D61398508F24AA44330027874A5BD7DF3122A5FF307FBF`; это **не commit SHA**. Controlled stop/backup/native dump/deploy/start выполнен один раз, dump 46995365 байт, SHA-256 `B351593C0E6DB4A2905111FAE5D3EB78C74D73B9B6331B2CB9ED38F6AE00B567`.
+- Clean `ant -q -Dbuild=.phantom-local/m1-005-recovery-clean jar` **BUILD SUCCESSFUL**; GameServer.jar SHA-256 `651683ECD7FBC560743BF47517908F5439D1A28DF8A60CD13F076C167A8AAED1`, Login JAR прежний. Source commit `f29142c598d7380ed5ac6afc7df4796772603435` опубликован в `feature/phantom-world`; clean JAR собран из тех же production source bytes (content digest `9C1E04F5EE1CC64D13D61398508F24AA44330027874A5BD7DF3122A5FF307FBF`). Runtime manifest source metadata обновлена до commit SHA без изменения JAR. Controlled stop/backup/native dump/deploy/start выполнен один раз, dump 46995365 байт, SHA-256 `B351593C0E6DB4A2905111FAE5D3EB78C74D73B9B6331B2CB9ED38F6AE00B567`.
 - После restart `Check-LocalPlay.ps1`: CONFIG PASS, Login4480/Game19724 owned/RUNNING и порты healthy; Pilot OFF/runActive=false. Read-only PLAY: READY1280/RETIRED8720, profile278 READY; INI 1280/64/128/100 ms, profilesPerPulse256, maxScheduled10000. Глобальный FAILED_REPLAN_REQUIRED=0 не требуется.
-- Exact six-file stage и whitespace проверены, но `git commit` отклонён auto-review: изменение истории сочтено не авторизованным, несмотря на разрешение TASK.md. Commit/push не выполнены и не будут обходиться; опубликованный source SHA отсутствует. Следующий шаг — явное разрешение на source publication, затем свежий arm consent для **одного** connected Run-M1RuntimeHandoff. До него TestAdmin не перемещать.
+- Exact eight-file stage и whitespace проверены. Первая попытка `git commit` была отклонена auto-review; после отдельного явного разрешения пользователя commit/push выполнены обычным способом. Единственный следующий шаг — свежий arm consent для **одного** connected Run-M1RuntimeHandoff. До него TestAdmin не перемещать.
 
 ## Единственный новый connected-run: RED
 

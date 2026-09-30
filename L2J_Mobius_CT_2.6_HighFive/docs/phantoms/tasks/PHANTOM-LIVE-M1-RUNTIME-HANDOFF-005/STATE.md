@@ -1,11 +1,11 @@
 # STATE
 
-Status: PRE_ARM_VERIFIED_SOURCE_PUBLICATION_BLOCKED; M1_OPEN; final manual gate REQUIRED. Новый arm и connected-run после recovery не выполнялись, M2 не начат.
+Status: WAITING_ARM_M1_OPEN; final manual gate REQUIRED. Новый arm и connected-run после recovery не выполнялись, M2 не начат.
 Continuation: continuation-observer-closeout/RESULT.md. Исправлен exact historical renewal/recovery boundary после connected RED 278deadf: completed catch-up с отсутствующим goal/background; сохранена адресная guarded orphan MATERIALIZED recovery.
 Linked native TEST profile70665: READY human demand → ecology due → renewed goal 3342617053714661885/0/ACTIVE/farm.background → cursor complete → NORMAL Player objectId268482063 → Decision goal.reloaded → AutoPlay.current/start true → native attack damage5 → cleanup READY/no Player. Exact переходы и reasons в RESULT; SOURCE_MAP дополнен.
-Focused TEST 31/31 historical, 15/15 M1, 6/6 ecology handoff, 22/22 materialization, 6/6 background recovery PASS; полный независимый ecology suite 15/17 RED в существующих case05/09. Clean JAR SHA-256 651683ECD7FBC560743BF47517908F5439D1A28DF8A60CD13F076C167A8AAED1 развёрнут; source content digest 9C1E04F5EE1CC64D13D61398508F24AA44330027874A5BD7DF3122A5FF307FBF, не commit SHA.
+Focused TEST 31/31 historical, 15/15 M1, 6/6 ecology handoff, 22/22 materialization, 6/6 background recovery PASS; полный независимый ecology suite 15/17 RED в существующих case05/09. Clean JAR SHA-256 651683ECD7FBC560743BF47517908F5439D1A28DF8A60CD13F076C167A8AAED1 развёрнут; source commit f29142c598d7380ed5ac6afc7df4796772603435 опубликован, production content digest 9C1E04F5EE1CC64D13D61398508F24AA44330027874A5BD7DF3122A5FF307FBF.
 Owned backup/dump/deploy/restart завершён. CONFIG PASS, Login4480/Game19724 healthy, Pilot OFF/runActive=false. Read-only PLAY READY1280/RETIRED8720, profile278 READY; caps 1280/64/128/100 ms, maxScheduled10000.
-Git commit auto-review отклонил как неавторизованную мутацию истории вопреки TASK.md; push не выполнен, шесть exact files staged. До source publication нельзя заявить complete pre-arm gate. Следующий шаг: явное разрешение commit/push, затем свежий consent на ровно один connected M1 run.
+Git commit сначала был отклонён auto-review; после явного разрешения пользователя восемь exact files зафиксированы и опубликованы. Runtime manifest source metadata соответствует commit SHA, JAR bytes не менялись. Следующий шаг: свежий consent на ровно один connected M1 run.
 mojibake-маркеры в изменённых файлах проверены.
 escaped Cyrillic в изменённых файлах проверены.
 
