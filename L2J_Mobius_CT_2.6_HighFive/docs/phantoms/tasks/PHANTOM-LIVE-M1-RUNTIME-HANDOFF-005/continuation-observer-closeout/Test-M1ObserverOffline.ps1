@@ -89,8 +89,32 @@ Assert-True (-not (Route-Stale $planned $near)) 'SMALL_LIVE_DRIFT_REUSES_ROUTE'
 Assert-True (Route-Stale $planned $far) 'LARGE_LIVE_DRIFT_REPLANS'
 Assert-True (Route-Stale $planned ([pscustomobject]@{ positionSource = 'COMMITTED'; committedSequence = '2'; observedX = '200'; observedY = '200' })) 'SOURCE_CHANGE_REPLANS'
 
+# Six transient LIVE failures consume the existing bounded replan budget.
+$script:clockMs = 0L; $script:failedPlans = 0; $script:cleanup = $false; $script:requestCount = 0
+$script:approachRouteFailures = [Collections.Generic.List[string]]::new()
+$script:profileId = 545L; $script:selectionKind = 'STORED_START'; $script:continuityLocked = $false
+$script:rows.Clear(); $script:census.Clear()
+$script:firstLocalUtc = $null; $script:firstMaterializedUtc = $null; $script:firstClientVisibleUtc = $null; $script:firstCouldKnowUtc = $null
+$script:utcNow = { ([DateTimeOffset]::Parse('2026-09-29T09:00:00Z')).AddMilliseconds($script:clockMs) }
+$script:elapsed = { $script:clockMs }
+$script:delay = { param($ms) $script:clockMs += $ms }
+$script:transport = {
+	param($op, $operationArgs, $id)
+	if ($op -eq 'PREPARE_M1_ENVELOPE') { $script:failedPlans++; return [pscustomobject]@{ status = 'REJECTED'; reason = 'PATHFIND_NULL' } }
+	if ($op -ne 'SNAPSHOT_M1_ENVELOPE') { throw "UNEXPECTED_BOUNDED_OP:$op" }
+	return [pscustomobject]@{
+		status = 'SUCCEEDED'; endUtc = (& $script:utcNow).ToString('o')
+		after = [pscustomobject]@{ identityOwner = 'REAL_LOGIN'; x = '-3000'; y = '0'; z = '0'; instanceId = '0' }
+		candidate = [pscustomobject]@{ profileId = '545'; selectionKind = 'STORED_START'; positionSource = 'LIVE'; committedSequence = '1'; observedX = '0'; observedY = '0'; observedZ = '0'; objectId = '777'; materializedAtNanos = '900'; worldPresent = 'true'; clientVisible = 'false'; localityCurrent = 'false'; distance2D = '3000' }
+	}
+}
+Assert-Throws { Approach-Tracked } 'APPROACH_REPLAN_BUDGET_EXHAUSTED:PATHFIND_NULL'
+Assert-True ($script:failedPlans -eq 6) 'LIVE_REPLAN_BUDGET_EXACT'
+Assert-True ($script:clockMs -lt 120000) 'LIVE_REPLAN_BUDGET_BEFORE_DEADLINE'
+
 # Exercise the complete runner with virtual time and a naturally materializing moving target.
 $script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false
+$script:liveRouteFailures = 0; $script:liveRelocated = $false
 $script:pilotRunning = $true
 $script:utcNow = { ([DateTimeOffset]::Parse('2026-09-29T09:00:00Z')).AddMilliseconds($script:clockMs) }
 $script:elapsed = { $script:clockMs }
@@ -111,12 +135,26 @@ $script:transport = {
 			$script:actorX = -3000
 			return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; selectionKind = 'STORED_START'; committedSequence = '1'; nextBoundary = '2026-09-29T10:00:00Z' } }
 		}
-		if ($operationArgs.stage -eq 'APPROACH') { return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; route = "$script:actorX,0,0;$script:targetX,0,0"; observedX = [string]$script:targetX; observedY = '0'; positionSource = $(if ($script:materialized) { 'LIVE' } else { 'COMMITTED' }); committedSequence = '1' } } }
+		if ($operationArgs.stage -eq 'APPROACH')
+		{
+			if ($script:materialized -and ($script:liveRouteFailures -eq 0))
+			{
+				$script:liveRouteFailures++
+				return [pscustomobject]@{ status = 'REJECTED'; reason = 'PATHFIND_NULL' }
+			}
+			$route = if ($script:materialized) { "$script:actorX,0,0;$script:targetX,0,0" } else { "$script:actorX,0,0;-2000,0,0;$script:targetX,0,0" }
+			return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; route = $route; observedX = [string]$script:targetX; observedY = '0'; positionSource = $(if ($script:materialized) { 'LIVE' } else { 'COMMITTED' }); committedSequence = '1' } }
+		}
 		if ($operationArgs.stage -eq 'LEAVE') { return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; destinationX = '-5000'; destinationY = '0'; destinationZ = '0'; destinationInstanceId = '0'; m1Token = 'leave' } } }
 		if ($operationArgs.stage -eq 'RETURN') { return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; destinationX = [string]($script:targetX - 200); destinationY = '0'; destinationZ = '0'; destinationInstanceId = '0'; m1Token = 'return' } } }
 	}
 	if ($op -ne 'SNAPSHOT_M1_ENVELOPE') { throw "UNEXPECTED_OFFLINE_OP:$op" }
-	if ((-not $script:materialized) -and ([Math]::Abs($script:actorX - $script:targetX) -le 1800)) { $script:materialized = $true }
+	if ((-not $script:materialized) -and ([Math]::Abs($script:actorX - $script:targetX) -le 1800))
+	{
+		$script:materialized = $true
+		$script:targetX = 300
+		$script:liveRelocated = $true
+	}
 	if ($script:contact) { $script:targetX += 40 }
 	$distance = [Math]::Abs($script:actorX - $script:targetX)
 	$know = $distance -le 800
@@ -150,5 +188,8 @@ $result = Get-Content (Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt')
 Assert-True ($result -match 'result=GREEN') 'COMPLETE_FAKE_SCENE_GREEN'
 Assert-True ($result -match 'NEW_MATERIALIZATION=PASS') 'STORED_PREWARM_PROVEN'
 Assert-True ($result -match 'SOFT_RETURN=PASS') 'SAME_PLAYER_RETURN_PROVEN'
+Assert-True ($result -match 'approachRouteFailures=PATHFIND_NULL') 'TYPED_LIVE_ROUTE_EVIDENCE'
+Assert-True ($script:liveRouteFailures -eq 1) 'TRANSIENT_LIVE_NO_PATH_DEFERRED'
+Assert-True ($script:liveRelocated) 'LIVE_TARGET_RELOCATED_DURING_APPROACH'
 Assert-True ($script:clockMs -ge 55000) 'VIRTUAL_OBSERVATION_AND_ABSENCE_ELAPSED'
 Write-Output 'M1_OBSERVER_OFFLINE_PASS'

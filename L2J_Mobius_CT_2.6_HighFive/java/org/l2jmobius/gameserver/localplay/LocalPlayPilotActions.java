@@ -34,6 +34,21 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 public final class LocalPlayPilotActions
 {
 	private static final int M1_TARGET_SEARCH_RADIUS = 8000;
+	private static final LocalPlayM1Observation.ApproachNavigation M1_APPROACH_NAVIGATION = new LocalPlayM1Observation.ApproachNavigation()
+	{
+		@Override
+		public boolean forward(PhantomTopologyPoint first, PhantomTopologyPoint last)
+		{
+			return GeoEngine.getInstance().canMoveToTarget(first.x(), first.y(), first.z(), last.x(), last.y(), last.z(), first.instanceId());
+		}
+
+		@Override
+		public List<PhantomTopologyPoint> findPath(PhantomTopologyPoint first, PhantomTopologyPoint last)
+		{
+			final var path = PathFinding.getInstance().findPath(first.x(), first.y(), first.z(), last.x(), last.y(), last.z(), first.instanceId(), true);
+			return path == null ? null : path.stream().map(point -> new PhantomTopologyPoint(point.getX(), point.getY(), point.getZ(), first.instanceId())).toList();
+		}
+	};
 	public record Outcome(String status, String reason, Map<String, String> candidate)
 	{
 		public static Outcome of(String status, String reason)
@@ -51,6 +66,10 @@ public final class LocalPlayPilotActions
 	private String _envelopeRunId;
 	private String _envelopeSelectionKind;
 	private PhantomTopologyPoint _envelopePosition;
+	private LocalPlayM1Observation.ApproachEnvelope _m1ApproachEnvelope;
+	private int _m1ApproachCursor;
+	private int _m1ApproachObjectId;
+	private long _m1ApproachEpoch;
 	private LocalPlayM1Observation.Ticket _m1Ticket;
 	private boolean _m1ApproachStarted;
 	private boolean _m1ContactObserved;
@@ -233,7 +252,7 @@ public final class LocalPlayPilotActions
 			final OperatorM1TargetSnapshot target = PhantomSystem.operatorM1TargetSnapshot(_envelopeProfileId).orElse(null);
 			if ((target == null) || (target.observedPosition() == null))
 			{
-				return Outcome.of("REJECTED", "M1_TARGET_TRANSITION");
+				return Outcome.of("REJECTED", "TARGET_TRANSITION");
 			}
 			final PhantomTopologyPoint point = target.observedPosition();
 			final Map<String, String> data = new LinkedHashMap<>();
@@ -247,11 +266,23 @@ public final class LocalPlayPilotActions
 			putPoint(data, "observed", new Location(point.x(), point.y(), point.z(), 0, point.instanceId()));
 			if ("APPROACH".equals(stage))
 			{
-				final List<Location> path = nativePath(actor.getLocation().clone(), new Location(point.x(), point.y(), point.z(), 0, point.instanceId()));
-				if (path == null) { return Outcome.of("REJECTED", "NO_NATIVE_APPROACH_ROUTE"); }
+				final Location here = actor.getLocation().clone();
+				if ((target.positionSource() == LocalPlayM1Observation.PositionSource.LIVE) && (_m1ApproachObjectId == 0) && (target.objectId() > 0) && (target.materializedAtNanos() > 0))
+				{
+					_m1ApproachObjectId = target.objectId();
+					_m1ApproachEpoch = target.materializedAtNanos();
+				}
+				final var route = LocalPlayM1Observation.planApproach(_m1ApproachEnvelope, runId, _envelopeProfileId, target.committedSequence(), target.positionSource(), target.objectId(), target.materializedAtNanos(), _m1ApproachObjectId, _m1ApproachEpoch, routePoint(here), point, _m1ApproachCursor, M1_APPROACH_NAVIGATION);
+				if (!route.accepted())
+				{
+					if ((route.reason() == LocalPlayM1Observation.RouteReason.ENVELOPE_STALE) && (_m1ApproachEnvelope != null) && (_m1ApproachEnvelope.committedSequence() != target.committedSequence()) && (target.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED)) { _m1ApproachEnvelope = null; }
+					return Outcome.of("REJECTED", route.reason().name());
+				}
+				if (target.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED) { _m1ApproachCursor = route.cursor(); }
 				_m1ApproachStarted = true;
-				data.put("route", routeText(path));
-				return new Outcome("ACCEPTED", "M1_APPROACH_ROUTE", Map.copyOf(data));
+				data.put("route", routeTextPoints(route.points()));
+				data.put("routeKind", route.reason().name());
+				return new Outcome("ACCEPTED", route.reason().name(), Map.copyOf(data));
 			}
 			if (target.positionSource() != LocalPlayM1Observation.PositionSource.LIVE) { return Outcome.of("REJECTED", "M1_LIVE_TARGET_REQUIRED"); }
 			final Location destination;
@@ -314,6 +345,10 @@ public final class LocalPlayPilotActions
 		_envelopeProfileId = selected.profileId();
 		if (!reprepareInitial) { _envelopeSelectionKind = selected.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED ? "STORED_START" : "EXISTING_START"; }
 		_envelopePosition = selected.observedPosition();
+		_m1ApproachEnvelope = new LocalPlayM1Observation.ApproachEnvelope(runId, selected.profileId(), selected.committedSequence(), routePoint(selectedRoute.outside()), routePoint(selectedRoute.prewarm()), selectedRoute.path().stream().map(LocalPlayPilotActions::routePoint).toList());
+		_m1ApproachCursor = 0;
+		_m1ApproachObjectId = selected.positionSource() == LocalPlayM1Observation.PositionSource.LIVE ? selected.objectId() : 0;
+		_m1ApproachEpoch = selected.positionSource() == LocalPlayM1Observation.PositionSource.LIVE ? selected.materializedAtNanos() : 0;
 		_m1Ticket = null;
 		_m1ApproachStarted = false;
 		_m1ContactObserved = false;
@@ -354,6 +389,16 @@ public final class LocalPlayPilotActions
 	private static String routeText(List<Location> route)
 	{
 		return route.stream().map(point -> point.getX() + "," + point.getY() + "," + point.getZ()).collect(java.util.stream.Collectors.joining(";"));
+	}
+
+	private static PhantomTopologyPoint routePoint(Location point)
+	{
+		return new PhantomTopologyPoint(point.getX(), point.getY(), point.getZ(), point.getInstanceId());
+	}
+
+	private static String routeTextPoints(List<PhantomTopologyPoint> route)
+	{
+		return route.stream().map(point -> point.x() + "," + point.y() + "," + point.z()).collect(java.util.stream.Collectors.joining(";"));
 	}
 
 	private static Location outsidePoint(PhantomTopologyPoint point)

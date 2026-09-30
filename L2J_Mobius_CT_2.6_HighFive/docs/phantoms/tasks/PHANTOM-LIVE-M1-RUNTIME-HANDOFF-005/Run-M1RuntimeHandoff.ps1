@@ -198,20 +198,41 @@ function Contact($sample)
 function Approach-Tracked
 {
 	$start = Elapsed-Ms; $lastPlan = -2000L; $plans = 0; $index = 1; $stalled = 0
+	$lastRouteFailure = ''
 	$planned = $null; $points = @(); $script:approachMoveConfirmed = $false
 	while (((Elapsed-Ms) - $start) -lt 120000)
 	{
 		$sample = Capture 'APPROACH'
 		if (Contact $sample) { $script:contact = $true; return $sample }
+		if (($null -ne $planned) -and ($index -ge $points.Count) -and ($sample.candidate.positionSource -ceq 'COMMITTED') -and (-not (Route-Stale $planned $sample.candidate)) -and ([Math]::Abs((Required-Int $sample.after 'x') - (Required-Int $sample.candidate 'observedX')) -le 32) -and ([Math]::Abs((Required-Int $sample.after 'y') - (Required-Int $sample.candidate 'observedY')) -le 32) -and ([Math]::Abs((Required-Int $sample.after 'z') - (Required-Int $sample.candidate 'observedZ')) -le 100))
+		{
+			Pause-Ms 1000
+			continue
+		}
 		$needPlan = ($null -eq $planned) -or (Route-Stale $planned $sample.candidate) -or ($index -ge $points.Count)
 		if ($needPlan)
 		{
-			if ($plans -ge 6) { throw 'APPROACH_REPLAN_BUDGET_EXHAUSTED' }
+			if ($plans -ge 6) { throw "APPROACH_REPLAN_BUDGET_EXHAUSTED:$lastRouteFailure" }
 			$remaining = 2000 - ((Elapsed-Ms) - $lastPlan)
 			if ($remaining -gt 0) { Pause-Ms ([int]$remaining) }
-			$planned = Prepare-Phase 'APPROACH'
+			$prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' @{ stage = 'APPROACH'; profileId = [string]$script:profileId }
+			$plans++; $lastPlan = Elapsed-Ms
+			if ($prepared.status -cne 'ACCEPTED')
+			{
+				$lastRouteFailure = Read-Field $prepared 'reason' 'UNKNOWN'
+				$script:approachRouteFailures.Add($lastRouteFailure)
+				if (($prepared.status -ceq 'REJECTED') -and ($sample.candidate.positionSource -cin @('LIVE', 'TRANSITION')) -and ($lastRouteFailure -cin @('PATHFIND_NULL', 'PATH_TOO_LONG', 'DISTANCE_LIMIT', 'FORWARD_SEGMENT_REJECTED', 'TARGET_TRANSITION')))
+				{
+					$planned = $null; $points = @()
+					Pause-Ms 1000
+					continue
+				}
+				throw "PREPARE_APPROACH_REJECTED:$lastRouteFailure"
+			}
+			if ((Required-Int $prepared.candidate 'profileId') -ne $script:profileId) { throw 'PREPARE_APPROACH_REJECTED:PROFILE_CHANGED' }
+			$planned = $prepared.candidate
 			$points = @(Route-Points $planned)
-			$index = 1; $plans++; $lastPlan = Elapsed-Ms
+			$index = 1
 			continue
 		}
 		$hereX = Required-Int $sample.after 'x'; $hereY = Required-Int $sample.after 'y'; $hereZ = Required-Int $sample.after 'z'
@@ -263,6 +284,7 @@ function Invoke-M1Run
 	if ($null -eq $script:stopPilot) { $script:stopPilot = { & $script:stopTool } }
 	if ($null -eq $script:gameMetrics) { $script:gameMetrics = { $pilot = & (Join-Path $script:module 'tools/phantom-local-play/Get-LocalPlayPilot.ps1') | ConvertFrom-Json; $game = Get-Process -Id ([int]$pilot.gamePid) -ErrorAction Stop; [pscustomobject]@{ pid = $game.Id; cpuMillis = [long]$game.TotalProcessorTime.TotalMilliseconds; privateBytes = [long]$game.PrivateMemorySize64; pilotState = $pilot.state } } }
 	$script:rows = [Collections.Generic.List[object]]::new(); $script:census = [Collections.Generic.List[object]]::new()
+	$script:approachRouteFailures = [Collections.Generic.List[string]]::new()
 	$script:cleanup = $false; $script:cleanupClock = $null; $script:uncertain = $false; $script:requestCount = 0
 	$script:profileId = 0L; $script:selectionKind = ''; $script:origin = $null; $script:restored = $false
 	$script:firstLocalUtc = $null; $script:firstCouldKnowUtc = $null; $script:firstClientVisibleUtc = $null; $script:firstMaterializedUtc = $null
@@ -383,7 +405,7 @@ function Invoke-M1Run
 		{
 			$complete = @($matrix.Values | Where-Object { $_ -cne 'PASS' }).Count -eq 0
 			$grade = if ($complete -and (-not $primaryFailure) -and ($cleanupFailures.Count -eq 0)) { 'GREEN — M1 VISIBLE WORLD COMPLETE (1280)' } elseif (($matrix.CONTACT -ceq 'PASS') -and ($matrix.SOFT_RETURN -ceq 'PASS')) { 'PARTIAL — EXISTING_PLAYER_CONTINUITY_PASS; M1_OPEN' } else { 'RED_OR_UNPROVEN — M1_OPEN' }
-			$lines = @("runId=$script:runId", "result=$grade", "primaryFailure=$primaryFailure", "cleanupFailures=$($cleanupFailures -join ';')", "selectionKind=$script:selectionKind", "profileId=$script:profileId", "requests=$script:requestCount", "firstLocalUtc=$script:firstLocalUtc", "firstMaterializedUtc=$script:firstMaterializedUtc", "firstCouldKnowUtc=$script:firstCouldKnowUtc", "firstClientVisibleUtc=$script:firstClientVisibleUtc", "stopState=$script:stopState", "gamePid=$(Read-Field $script:startMetrics 'pid')", "cpuStartMillis=$(Read-Field $script:startMetrics 'cpuMillis')", "cpuEndMillis=$(Read-Field $script:endMetrics 'cpuMillis')", "privateStartBytes=$(Read-Field $script:startMetrics 'privateBytes')", "privateEndBytes=$(Read-Field $script:endMetrics 'privateBytes')", "pilotStateAfterStop=$(Read-Field $script:endMetrics 'pilotState' 'UNVERIFIED')")
+			$lines = @("runId=$script:runId", "result=$grade", "primaryFailure=$primaryFailure", "cleanupFailures=$($cleanupFailures -join ';')", "selectionKind=$script:selectionKind", "profileId=$script:profileId", "requests=$script:requestCount", "approachRouteFailures=$($script:approachRouteFailures -join ';')", "firstLocalUtc=$script:firstLocalUtc", "firstMaterializedUtc=$script:firstMaterializedUtc", "firstCouldKnowUtc=$script:firstCouldKnowUtc", "firstClientVisibleUtc=$script:firstClientVisibleUtc", "stopState=$script:stopState", "gamePid=$(Read-Field $script:startMetrics 'pid')", "cpuStartMillis=$(Read-Field $script:startMetrics 'cpuMillis')", "cpuEndMillis=$(Read-Field $script:endMetrics 'cpuMillis')", "privateStartBytes=$(Read-Field $script:startMetrics 'privateBytes')", "privateEndBytes=$(Read-Field $script:endMetrics 'privateBytes')", "pilotStateAfterStop=$(Read-Field $script:endMetrics 'pilotState' 'UNVERIFIED')")
 			foreach ($key in $matrix.Keys) { $lines += "${key}=$($matrix[$key])" }
 			[IO.File]::WriteAllLines((Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt'), $lines, [Text.UTF8Encoding]::new($false))
 		}

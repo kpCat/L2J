@@ -83,6 +83,107 @@ public final class PhantomOperatorObservabilitySuite implements PhantomTestSuite
 		registry.add("09-envelope-ready-without-active-admission", _ -> testEnvelopeReadySelection());
 		registry.add("10-m1-observed-position-and-contact-decisions", _ -> testM1ObservationDecisions());
 		registry.add("11-m1-transport-ticket-bindings", _ -> testM1TicketBindings());
+		registry.add("12-m1-cached-approach-and-typed-live-routes", _ -> testM1ApproachRoutes());
+	}
+
+	private static void testM1ApproachRoutes()
+	{
+		final PhantomTopologyPoint outside = new PhantomTopologyPoint(0, 0, 0, 0);
+		final PhantomTopologyPoint prewarm = new PhantomTopologyPoint(600, 0, 0, 0);
+		final PhantomTopologyPoint inside = new PhantomTopologyPoint(1200, 0, 0, 0);
+		final var envelope = new LocalPlayM1Observation.ApproachEnvelope("run", 882, 1, outside, prewarm, List.of(prewarm, new PhantomTopologyPoint(900, 0, 0, 0), inside));
+		final AtomicInteger pathfinding = new AtomicInteger();
+		final AtomicInteger reverseChecks = new AtomicInteger();
+		final LocalPlayM1Observation.ApproachNavigation forwardOnly = new LocalPlayM1Observation.ApproachNavigation()
+		{
+			@Override
+			public boolean forward(PhantomTopologyPoint first, PhantomTopologyPoint last)
+			{
+				if (!first.equals(outside) && last.equals(outside)) { reverseChecks.incrementAndGet(); return false; }
+				return !first.equals(outside) || !last.equals(inside);
+			}
+
+			@Override
+			public List<PhantomTopologyPoint> findPath(PhantomTopologyPoint first, PhantomTopologyPoint last)
+			{
+				pathfinding.incrementAndGet();
+				return null;
+			}
+		};
+		final var cached = LocalPlayM1Observation.planApproach(envelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.COMMITTED, 0, 0, 0, 0, outside, inside, 0, forwardOnly);
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.CACHED_ENVELOPE, cached.reason(), "APPROACH retried the rejected full outside-to-target path.");
+		PhantomAssertions.assertEquals(prewarm, cached.points().get(1), "Cached route skipped the proven prewarm segment.");
+		PhantomAssertions.assertEquals(inside, cached.points().get(cached.points().size() - 1), "Cached route lost its inside endpoint.");
+		PhantomAssertions.assertEquals(0, pathfinding.get(), "COMMITTED approach invoked PathFinding after INITIAL.");
+		PhantomAssertions.assertEquals(0, reverseChecks.get(), "APPROACH checked reverse movement.");
+		final var suffix = LocalPlayM1Observation.planApproach(envelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.COMMITTED, 0, 0, 0, 0, new PhantomTopologyPoint(700, 0, 0, 0), inside, cached.cursor(), forwardOnly);
+		PhantomAssertions.assertEquals(new PhantomTopologyPoint(900, 0, 0, 0), suffix.points().get(1), "Current actor did not get the remaining cached suffix.");
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.ENVELOPE_STALE, LocalPlayM1Observation.planApproach(envelope, "other", 882, 1, LocalPlayM1Observation.PositionSource.COMMITTED, 0, 0, 0, 0, outside, inside, 0, forwardOnly).reason(), "Wrong run reused the envelope.");
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.ENVELOPE_STALE, LocalPlayM1Observation.planApproach(envelope, "run", 883, 1, LocalPlayM1Observation.PositionSource.COMMITTED, 0, 0, 0, 0, outside, inside, 0, forwardOnly).reason(), "Wrong profile reused the envelope.");
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.ENVELOPE_STALE, LocalPlayM1Observation.planApproach(envelope, "run", 882, 2, LocalPlayM1Observation.PositionSource.COMMITTED, 0, 0, 0, 0, outside, inside, 0, forwardOnly).reason(), "Stale committed sequence reused the envelope.");
+		final PhantomTopologyPoint live = new PhantomTopologyPoint(1500, 100, 0, 0);
+		final var dynamic = LocalPlayM1Observation.planApproach(envelope, "run", 882, 2, LocalPlayM1Observation.PositionSource.LIVE, 777, 900, 0, 0, outside, live, 0, forwardOnly);
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.DIRECT_FORWARD, dynamic.reason(), "LIVE target did not switch to its current position.");
+		PhantomAssertions.assertEquals(live, dynamic.points().get(1), "LIVE route retained the committed point.");
+		PhantomAssertions.assertEquals(0, reverseChecks.get(), "LIVE approach checked reverse movement.");
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.TARGET_IDENTITY_CHANGED, LocalPlayM1Observation.planApproach(envelope, "run", 882, 2, LocalPlayM1Observation.PositionSource.LIVE, 777, 901, 777, 900, outside, live, 0, forwardOnly).reason(), "Rematerialized Player reused the locked route.");
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.TARGET_TRANSITION, LocalPlayM1Observation.planApproach(envelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.TRANSITION, 0, 0, 0, 0, outside, null, 0, forwardOnly).reason(), "Transition invented a route.");
+		final LocalPlayM1Observation.ApproachNavigation missingPath = new LocalPlayM1Observation.ApproachNavigation()
+		{
+			@Override
+			public boolean forward(PhantomTopologyPoint first, PhantomTopologyPoint last) { return false; }
+			@Override
+			public List<PhantomTopologyPoint> findPath(PhantomTopologyPoint first, PhantomTopologyPoint last) { return null; }
+		};
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.PATHFIND_NULL, LocalPlayM1Observation.planApproach(envelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.LIVE, 777, 900, 777, 900, outside, live, 0, missingPath).reason(), "Missing LIVE route lost its typed reason.");
+		final LocalPlayM1Observation.ApproachNavigation longPath = new LocalPlayM1Observation.ApproachNavigation()
+		{
+			@Override
+			public boolean forward(PhantomTopologyPoint first, PhantomTopologyPoint last) { return true; }
+
+			@Override
+			public List<PhantomTopologyPoint> findPath(PhantomTopologyPoint first, PhantomTopologyPoint last) { throw new AssertionError("Direct forward route invoked PathFinding."); }
+		};
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.DISTANCE_LIMIT, LocalPlayM1Observation.planApproach(envelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.LIVE, 777, 900, 777, 900, outside, new PhantomTopologyPoint(10001, 0, 0, 0), 0, longPath).reason(), "Overlong direct route was accepted.");
+		final LocalPlayM1Observation.ApproachNavigation oversizedPath = new LocalPlayM1Observation.ApproachNavigation()
+		{
+			@Override
+			public boolean forward(PhantomTopologyPoint first, PhantomTopologyPoint last) { return false; }
+
+			@Override
+			public List<PhantomTopologyPoint> findPath(PhantomTopologyPoint first, PhantomTopologyPoint last)
+			{
+				final List<PhantomTopologyPoint> points = new java.util.ArrayList<>();
+				for (int index = 0; index < 63; index++) { points.add(new PhantomTopologyPoint(index + 1, 0, 0, 0)); }
+				return points;
+			}
+		};
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.PATH_TOO_LONG, LocalPlayM1Observation.planApproach(envelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.LIVE, 777, 900, 777, 900, outside, live, 0, oversizedPath).reason(), "Oversized PathFinding route lost its typed reason.");
+		final LocalPlayM1Observation.ApproachNavigation rejectedSegment = new LocalPlayM1Observation.ApproachNavigation()
+		{
+			@Override
+			public boolean forward(PhantomTopologyPoint first, PhantomTopologyPoint last) { return false; }
+
+			@Override
+			public List<PhantomTopologyPoint> findPath(PhantomTopologyPoint first, PhantomTopologyPoint last) { return List.of(new PhantomTopologyPoint(300, 0, 0, 0)); }
+		};
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.FORWARD_SEGMENT_REJECTED, LocalPlayM1Observation.planApproach(envelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.LIVE, 777, 900, 777, 900, outside, live, 0, rejectedSegment).reason(), "Rejected forward segment lost its typed reason.");
+		final LocalPlayM1Observation.ApproachNavigation routedForward = new LocalPlayM1Observation.ApproachNavigation()
+		{
+			@Override
+			public boolean forward(PhantomTopologyPoint first, PhantomTopologyPoint last) { return !first.equals(outside) || !last.equals(live); }
+
+			@Override
+			public List<PhantomTopologyPoint> findPath(PhantomTopologyPoint first, PhantomTopologyPoint last) { return List.of(new PhantomTopologyPoint(750, 100, 0, 0)); }
+		};
+		PhantomAssertions.assertEquals(LocalPlayM1Observation.RouteReason.PATHFIND_FORWARD, LocalPlayM1Observation.planApproach(envelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.LIVE, 777, 900, 777, 900, outside, live, 0, routedForward).reason(), "Forward-only LIVE PathFinding route was not accepted.");
+		final List<PhantomTopologyPoint> maximumPath = new java.util.ArrayList<>();
+		for (int index = 0; index < 64; index++) { maximumPath.add(new PhantomTopologyPoint(600 + (index * 100), 0, 0, 0)); }
+		final var longEnvelope = new LocalPlayM1Observation.ApproachEnvelope("run", 882, 1, outside, prewarm, maximumPath);
+		final var firstChunk = LocalPlayM1Observation.planApproach(longEnvelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.COMMITTED, 0, 0, 0, 0, outside, maximumPath.get(63), 0, forwardOnly);
+		PhantomAssertions.assertEquals(64, firstChunk.points().size(), "Cached route exceeded the existing 64-point transport limit.");
+		final var lastChunk = LocalPlayM1Observation.planApproach(longEnvelope, "run", 882, 1, LocalPlayM1Observation.PositionSource.COMMITTED, 0, 0, 0, 0, maximumPath.get(62), maximumPath.get(63), firstChunk.cursor(), forwardOnly);
+		PhantomAssertions.assertEquals(maximumPath.get(63), lastChunk.points().get(1), "Cached suffix lost the inside endpoint after a bounded chunk.");
 	}
 
 	private static void testM1ObservationDecisions()

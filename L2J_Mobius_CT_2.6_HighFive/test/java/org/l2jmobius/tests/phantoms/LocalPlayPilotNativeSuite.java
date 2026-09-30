@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.l2jmobius.gameserver.localplay.LocalPlayPilotActions;
 import org.l2jmobius.gameserver.localplay.LocalPlayPilotProtocol;
 import org.l2jmobius.gameserver.data.xml.SkillData;
+import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.skill.Skill;
@@ -49,6 +50,7 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		registry.add("envelope-proof-requires-natural-target", this::envelopeProofRequiresNaturalTarget);
 		registry.add("origin-remains-returnable-after-actor-location-changes", this::originRemainsReturnable);
 		registry.add("m1-invalid-token-never-falls-back-to-origin", this::invalidM1TokenNeverFallsBack);
+		registry.add("m1-forward-move-uses-native-guard", this::forwardMoveUsesNativeGuard);
 	}
 
 	private void poseAndSnapshot(PhantomTestContext context) throws Exception
@@ -118,6 +120,39 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		PhantomAssertions.assertEquals("REJECTED", result.status(), "Invalid M1 token fell through to the ordinary origin teleport allowance.");
 		PhantomAssertions.assertEquals("M1_TICKET_INVALID", result.reason(), "Invalid M1 token used an unrelated refusal path.");
 		PhantomAssertions.assertEquals(origin, _actor.getLocation(), "Invalid M1 transport moved the actor.");
+	}
+
+	private void forwardMoveUsesNativeGuard(PhantomTestContext context)
+	{
+		final Location origin = _actor.getLocation().clone();
+		Location destination = null;
+		for (int distance : new int[] {32, 64, 128})
+		{
+			for (int[] offset : new int[][] {{distance, 0}, {0, distance}, {-distance, 0}, {0, -distance}})
+			{
+				final int x = origin.getX() + offset[0];
+				final int y = origin.getY() + offset[1];
+				if (!GeoEngine.getInstance().hasGeo(x, y)) { continue; }
+				final int z = GeoEngine.getInstance().getHeight(x, y, origin.getZ());
+				if ((Math.abs(z - origin.getZ()) <= 150) && GeoEngine.getInstance().canMoveToTarget(origin.getX(), origin.getY(), origin.getZ(), x, y, z, origin.getInstanceId()))
+				{
+					destination = new Location(x, y, z, origin.getHeading(), origin.getInstanceId());
+					break;
+				}
+			}
+			if (destination != null) { break; }
+		}
+		PhantomAssertions.assertTrue(destination != null, "Native TEST actor has no short forward geodata segment.");
+		try
+		{
+			final LocalPlayPilotActions.Outcome moved = execute(LocalPlayPilotProtocol.Operation.MOVE_SELF, Map.of("x", Integer.toString(destination.getX()), "y", Integer.toString(destination.getY()), "z", Integer.toString(destination.getZ())));
+			PhantomAssertions.assertEquals("ACCEPTED", moved.status(), "Pilot rejected a forward-valid native MOVE_SELF step.");
+		}
+		finally
+		{
+			execute(LocalPlayPilotProtocol.Operation.STOP_MOVE, Map.of());
+			_actor.getLocation().setLocation(origin);
+		}
 	}
 
 	private LocalPlayPilotActions.Outcome execute(LocalPlayPilotProtocol.Operation operation, Map<String, String> args)
