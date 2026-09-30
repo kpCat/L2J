@@ -1,6 +1,6 @@
 # PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005 — observer closeout
 
-Status: **M1 OPEN; bounded legacy37 fix verified in TEST; controlled deploy pending**. Profile13 recovered; новый arm и connected-run после producer fix не выполнялись; M2 и новые task/proof не начаты.
+Status: **WAITING_ARM; M1 OPEN, connected gate REQUIRED**. Exact legacy37 recovery завершён; новый arm и connected-run после producer fix не выполнялись; M2 и новые task/proof не начаты.
 
 ## Последний connected boundary
 
@@ -34,9 +34,9 @@ Status: **M1 OPEN; bounded legacy37 fix verified in TEST; controlled deploy pend
 - Existing controlled deploy сделал owned stop, coherent native PLAY dump 66 344 905 bytes (completion marker, stderr0, SHA-256 `8CDAA9DB0A16F92C0302BC9A50B2D0E20596687C36CE66C225CD043858076478`), backup `artifacts/local-play/m1-005-backup-f9562c8-20260930-184320`, один deploy/restart. `Check-LocalPlay.ps1`: CONFIG PASS, Login PID25456/Game PID20600 owned/RUNNING, ports healthy; Pilot OFF/runActive=false. Caps 1280/64/128/100 ms, profilesPerPulse256, maxScheduled10000 сохранены.
 - Read-only immediately after restart: population READY1280/RETIRED8720; background MATERIALIZED25/READY850/VERIFY_PENDING4/DEAD195/INCONSISTENT206. Последующий адресный export во время обычной работы: MATERIALIZED21/READY842/VERIFY_PENDING4/DEAD203/INCONSISTENT210. Из pre-deploy snapshot девять MATERIALIZED стали INCONSISTENT с rowVersion +1; это совместимо с recovery сохранённого drift, но момент mismatch и writer этих девяти — UNKNOWN. Profile13 по-прежнему INCONSISTENT/rowVersion9791.
 
-## Gate
+## Предыдущий gate до разрешения latent37
 
-- **Не WAITING_ARM**: новый read-only аудит и controlled deploy ниже восстановили profile13, но после старта одна из 37 старых MATERIALIZED строк уже перешла в INCONSISTENT. Не выдавать arm, пока не решён этот latent pre-fix cohort. Только настоящий клиент ещё может подтвердить NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN. Connected-run без свежего consent не запускать.
+- Ранее **не WAITING_ARM**: новый read-only аудит и первый controlled deploy восстановили profile13, но после старта одна из 37 старых MATERIALIZED строк перешла в INCONSISTENT. Этот исторический boundary закрыт ниже с отдельным разрешением пользователя. Только настоящий клиент может подтвердить NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN.
 
 ## Bounded legacy recovery после producer fix
 
@@ -52,4 +52,11 @@ Status: **M1 OPEN; bounded legacy37 fix verified in TEST; controlled deploy pend
 - Пользователь явно разрешил только **exact 37** свидетелей старого read-only аудита и один controlled deploy. Приватный manifest SHA-256 `D150D55A0143D51A1A249B0245A29306DB68496252CF500241AC325C7A8DF797`, 37 уникальных sorted profileId, 6780 bytes; raw records остаются вне Git. Адресный read-only PLAY SELECT перед build: **31 exact MATERIALIZED**, **6 exact marker-only INCONSISTENT** с rowVersion+1; 0 missing/changed. Этим составом ограничена новая recovery path.
 - Transaction использует прежние locks/identity/profile/canonical/inventory/skills guards, exact base payload или только attested state-byte marker, atomic volatile restore, `durableMatches`, READY/DEAD и rollback; service использует прежние transition/lease/World/Materialization/AutoSave guards. Никаких scan-and-repair, background worker, movement DB writes или general INCONSISTENT admission.
 - Guarded TEST transaction **11/11 PASS**: state0 и marker-only state4, stale rowVersion, changed payload, mixed progress/inventory, fault rollback, consumed witness, subsequent materialization/abort. Linked native **33/33 PASS** на повторном запуске: profile71125 прошёл human demand→ecology due→historical renewal→readiness→attested recovery→NORMAL Player→Decision→AutoPlay current/start→native damage6→cleanup READY; при runtime Player repair вернул `identity_busy` без write. Первый linked прогон имел RED только в прежнем `29` по transient `ecology.preparation_capacity`; 29b PASS, последующий полный suite GREEN. Native position/autosave BUILD SUCCESSFUL, Pilot native 7/7 PASS, actual offline fake runner `M1_OBSERVER_OFFLINE_PASS` (его `CONNECTED PASS` — только fake transport).
-- Следующий шаг до arm: clean JAR, точный source commit/push, один approved controlled backup/deploy/start, read-only 37/mixed/census/health. Новый arm не создан, connected-run не запускался.
+- После TEST были запланированы clean JAR, source commit/push, один approved controlled backup/deploy/start и read-only 37/mixed/census/health; их итог ниже. Новый arm не создан, connected-run не запускался.
+
+## Итог единственного дополнительного deploy
+
+- Code commit `538cf3e9cbe22361bcaba778f6af01d2f802ac65` опубликован обычным fast-forward и независимо сверен с remote HEAD; staged были ровно 8 M1 файлов, чужие 6 SQL/EOL файлов не включены. Clean `ant -q -Dbuild=.phantom-local/m1-legacy37-clean jar` BUILD SUCCESSFUL; Game JAR SHA-256 `B6AC3DEB046C5BD93AF5E91BA48F909A8378ECF7723C63C3255CBE40EE0B8596` совпал с deployed manifest. Login JAR сохранён SHA-256 `3B79A86276AA544E6886881F54814BE159FAC1412241852408781E86EF64A9E8`.
+- Один owned stop/backup/deploy/start: `artifacts/local-play/m1-005-backup-legacy37-20261001-003142`; coherent PLAY dump 69 314 709 bytes, SHA-256 `97434BF6D4FE013F3DA77110279BC4FEE28E4A6129F8FC5552A7FD1383F8238B`. Startup log: **37/37 recovered, 0 rejected**; причин отказа нет. One-time runtime witness удалён после success, приватный attested source сохранён.
+- Два read-only postdeploy census дали одинаковые counts среди 1280 READY: **ABSENT0 / READY856 / DEAD379 / MATERIALIZED34 / VERIFY_PENDING4 / INCONSISTENT7**. Population **READY1280 / RETIRED8720**. Из exact37 после startup recovery 33 READY, 1 DEAD, 3 снова MATERIALIZED при обычной работе; ни один не INCONSISTENT. Прежние **18 mixed latent MATERIALIZED все 18 остаются MATERIALIZED**, прежние **7 mixed INCONSISTENT все 7 остаются INCONSISTENT**. Иных INCONSISTENT нет. Profile13 READY, rowVersion10275. Runtime World owner для текущих MATERIALIZED адресно не наблюдался; DB `online` не выдаётся за World proof.
+- `Check-LocalPlay.ps1`: **CONFIG PASS**, Login PID18492/Game PID1580 owned/RUNNING, ports healthy; Pilot **OFF/runActive=false**. Caps 1280/64/128/100 ms, profilesPerPulse256, maxScheduled10000 без изменений. За интервал двух census нового необъяснимого post-fix INCONSISTENT не выявлено. **WAITING_ARM**: нужен только fresh client consent для ровно одного существующего connected M1 run; после GREEN закрыть M1, после RED сохранить exact boundary и остановиться.

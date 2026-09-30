@@ -1,10 +1,10 @@
 # STATE
 
-Status: M1_OPEN_PRE_ARM_BLOCKED_LATENT_LEGACY_MATERIALIZED; final manual gate REQUIRED; M2 not started.
-Continuation: continuation-observer-closeout/RESULT.md. Deployed code commit `0b8fdf1048161b3c66ff9b1c5b422012f0461210` was independently verified on remote before documentation; clean/deployed Game JAR SHA-256 `741EDA61FBE34AE06F10A639549DBB4184280E21C614C7E31CED34F1504C00AB`.
-Read-only PLAY proved 216/223 INCONSISTENT strict pre-fix volatile drift, 7 mixed fail-closed. One controlled backup/deploy/start applied exact witness: startup 216/216 recovered; profile13 READY then ordinary DEAD. Backup: artifacts/local-play/m1-005-backup-legacy216-20260930-232633, coherent PLAY dump SHA-256 `941D33B7875E96CCF7288CE2F6D9DA282DB5056F8AFECAAC6B583AA120FE915D`.
-Focused TEST transaction10/10, linked native legacy vertical32/32, native position7/7, Pilot native PASS, actual fake M1 runner PASS. Login/Game owned RUNNING, CONFIG PASS, Pilot OFF. PLAY READY1280/RETIRED8720; 7 mixed stayed fail-closed.
-After several minutes one pre-fix MATERIALIZED volatile-only row became INCONSISTENT (count8). It belongs to the 37 strict pre-fix latent MATERIALIZED cohort; no new autosave producer established. Auto-review rejected expanding recovery to MATERIALIZED without explicit authorization; that edit was not applied. Awaiting user scope decision before another deploy, arm or connected run. No TestAdmin movement, new arm or connected run.
+Status: WAITING_ARM_M1_OPEN; final connected client gate REQUIRED; M2 not started.
+Continuation: continuation-observer-closeout/RESULT.md. User-authorized exact latent 37 recovery code commit `538cf3e9cbe22361bcaba778f6af01d2f802ac65` independently verified on remote; clean/deployed Game JAR SHA-256 `B6AC3DEB046C5BD93AF5E91BA48F909A8378ECF7723C63C3255CBE40EE0B8596`.
+Read-only predeploy: 31 exact MATERIALIZED + 6 exact marker-only INCONSISTENT in pinned 37; no changed witness. One additional owned backup/deploy/start used coherent PLAY dump SHA-256 `97434BF6D4FE013F3DA77110279BC4FEE28E4A6129F8FC5552A7FD1383F8238B`; startup 37/37 recovered, 0 rejected. Mixed/unknown were not changed by repair.
+Guarded TEST transaction 11/11, linked native 33/33, native position/autosave BUILD SUCCESSFUL, Pilot native 7/7, actual fake runner PASS. Two read-only postdeploy census: READY1280/RETIRED8720; background ABSENT0/READY856/DEAD379/MATERIALIZED34/VERIFY_PENDING4/INCONSISTENT7. Exact mixed18 remain MATERIALIZED; mixed7 remain INCONSISTENT; no other INCONSISTENT. Profile13 READY rowVersion10275. CONFIG PASS, Login/Game owned RUNNING, Pilot OFF; caps preserved.
+No fresh arm or connected run after producer fix. Next and only action: user fresh consent for one existing connected M1 closeout. GREEN closes M1; RED records exact boundary and stops. No new task/proof or M2.
 mojibake-маркеры в изменённых файлах проверены.
 escaped Cyrillic в изменённых файлах проверены.
 
