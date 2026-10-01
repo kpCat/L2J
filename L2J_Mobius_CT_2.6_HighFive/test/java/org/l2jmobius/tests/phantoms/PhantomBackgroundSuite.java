@@ -880,7 +880,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("04-recovery-preserves-preexisting-materialization", _ -> testPreexistingMaterializationRecovery());
 		registry.add("05-normal-resurrection-cancels-town-return", _ -> testNormalResurrectionCancelsTownReturn());
 		registry.add("06-native-death-timer-and-resurrection-cancellation", _ -> testNativeDeathTimer());
-		registry.add("07-retired-autosave-cannot-overwrite-next-epoch", _ -> testRetiredAutoSaveEpoch());
+		registry.add("07-retired-autosave-cannot-overwrite-next-epoch", this::testRetiredAutoSaveEpoch);
 	}
 
 	private void registerRealLogin(PhantomTestRegistry registry)
@@ -3089,11 +3089,29 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 	}
 
-	private void testRetiredAutoSaveEpoch() throws Exception
+	private void testRetiredAutoSaveEpoch(PhantomTestContext context) throws Exception
 	{
-		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
-		try
+		final int objectId = _environment.primary().objectId();
+		final Canonical original = canonical(objectId);
+		final int originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId = ?", objectId);
+		// Exact profile129 class/progression/max-vitals shape; only the owned TEST identity differs.
+		restoreCharacter(objectId, new Canonical(6, 7209, 7701, 460, 0, 170, 158, 158, 0, 85, 44126, 42751, -3488, 25847, 25, 1), 25);
+		try (RuntimeFixture runtime = createRuntimeFixture(objectId))
 		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Coherent dead native fixture did not materialize.");
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				for (int itemId : List.of(6, 425, 461))
+				{
+					final var item = action.player().getInventory().addItem(ItemProcessType.REWARD, itemId, 1, action.player(), this);
+					PhantomAssertions.assertTrue(item != null, "Profile129 native paperdoll fixture item is absent.");
+					action.player().getInventory().equipItem(item);
+				}
+			}
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "Coherent dead native fixture did not store.");
+			PhantomAssertions.assertEquals(State.DEAD, runtime.transaction().load(runtime.profileId()).state().state(), "Profile129 sequence did not start from coherent DEAD.");
+			PhantomAssertions.assertTrue(runtime.background().recover(runtime.profileId(), runtime.goal(), PhantomActivityState.WARM).successful(), "Native DEAD recovery did not produce the prior town epoch.");
+			context.record("profile129.sequence.start", "coherent DEAD -> native recovery -> READY town");
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "First native epoch did not materialize.");
 			final Player retired;
 			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
@@ -3102,24 +3120,36 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				retired.teleToLocation(45978, 47886, -3488); retired.onTeleported();
 				// The small TEST geodata fixture resolves the teleport Z differently from PLAY.
 				retired.setXYZInvisible(45978, 47886, -3488);
-				retired.setHeading(12773); retired.setCurrentHp(retired.getMaxHp()); retired.setCurrentCp(retired.getMaxCp());
+				retired.setHeading(12773); retired.setCurrentHp(retired.getMaxHp()); retired.setCurrentMp(retired.getMaxMp()); retired.setCurrentCp(retired.getMaxCp());
 			}
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "First native epoch did not clean up.");
 			PhantomAssertions.assertTrue(!retired.isOnline() && !retired.hasHeadlessOutboundSession(), "Retired epoch did not detach its outbound ownership.");
 			final var ready = runtime.transaction().load(runtime.profileId()).state();
-			final var nextVitals = new Vitals(Math.max(1, ready.vitals().maximumHp() - 47), ready.vitals().maximumHp(), ready.vitals().currentMp(), ready.vitals().maximumMp(), 7, ready.vitals().maximumCp());
+			PhantomAssertions.assertEquals(170.0, ready.vitals().maximumHp(), "Profile129 native max HP differs.");
+			PhantomAssertions.assertEquals(85.0, ready.vitals().maximumCp(), "Profile129 native max CP differs.");
+			PhantomAssertions.assertEquals(158.0, ready.vitals().maximumMp(), "Profile129 native max MP differs.");
+			final var nextVitals = new Vitals(123, ready.vitals().maximumHp(), ready.vitals().currentMp(), ready.vitals().maximumMp(), 7, ready.vitals().maximumCp());
 			final var nextPosition = new Position(0, 44126, 42751, -3488, 25847, ANCHOR_ID);
 			final var advanced = runtime.transaction().execute(new PhantomBackgroundTransaction.Command(ready, runtime.goal(), key(runtime.fixture(), 2, 1, ActionKind.FARM), ready.progress(), nextVitals, nextPosition, ready.clock(), Map.of(), ready.autoGetSkills()));
 			PhantomAssertions.assertEquals(Status.SUCCESS, advanced.status(), "Guarded background work did not commit the next epoch facts.");
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Second native epoch did not materialize.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "Second native epoch did not cleanly store.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, runtime.transaction().markMaterialized(runtime.profileId(), objectId).status(), "Persisted next epoch did not enter MATERIALIZED.");
 			final Canonical before = canonical(runtime.characterObjectId());
 			// The manager can already hold an iterator entry when cleanup removes it.
 			// This invokes that delayed callback after the old outbound attachment closed.
 			retired.autoSave();
+			final Canonical afterCallback = canonical(objectId);
+			final var verified = runtime.transaction().abortMaterialization(runtime.profileId(), objectId);
+			context.record("profile129.sequence.callback", "before=" + before + " after=" + afterCallback + " verification=" + verified.status() + "/" + (verified.state() == null ? "absent" : verified.state().state()));
 			PhantomAssertions.assertEquals(before, canonical(runtime.characterObjectId()), "Retired autosave overwrote the next Player epoch with profile129-shaped town/vitals drift.");
-			PhantomAssertions.assertEquals(Status.SUCCESS, runtime.transaction().reconcileVerifyPending(runtime.profileId(), runtime.characterObjectId()).status(), "Next epoch became INCONSISTENT after delayed autosave.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, verified.status(), "Next epoch became INCONSISTENT after delayed autosave.");
 		}
-		finally { runtime.close(); }
+		finally
+		{
+			restoreCharacter(objectId, original, originalBaseClass);
+			restorePrimaryInventoryAndSkills(objectId);
+		}
 	}
 
 	private void testLifecycleLoop(int transitions, int ticks) throws Exception

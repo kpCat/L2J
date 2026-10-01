@@ -1238,7 +1238,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		if (loaded.successful() && (loaded.state() != null) && !_authority.matchesRuntime(player, loaded.state()))
 		{
-			loaded = refreshDeadNativeVitals(profileId, player, loaded);
+			loaded = refreshNativeVitals(profileId, player, loaded);
 		}
 		if (!loaded.successful() || (loaded.state() == null) || !_authority.matchesRuntime(player, loaded.state()))
 		{
@@ -1256,20 +1256,32 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
-	/** Native maxima are derived on DEAD Player load; preserve every durable reward/death fact. */
-	private PhantomBackgroundTransaction.Result refreshDeadNativeVitals(long profileId, Player player, PhantomBackgroundTransaction.Result loaded)
+	/** Native maxima are derived on Player load after background level changes; preserve durable facts. */
+	private PhantomBackgroundTransaction.Result refreshNativeVitals(long profileId, Player player, PhantomBackgroundTransaction.Result loaded)
+	{
+		// Native current-vitals setters share this monitor; regeneration cannot race capture/store.
+		synchronized (player.getStatus())
+		{
+			return refreshNativeVitalsLocked(profileId, player, loaded);
+		}
+	}
+
+	private PhantomBackgroundTransaction.Result refreshNativeVitalsLocked(long profileId, Player player, PhantomBackgroundTransaction.Result loaded)
 	{
 		final PhantomBackgroundState state = loaded.state();
 		final var progress = state.progress();
-		if ((state.state() != State.DEAD) || !state.hashes().equals(_authority.hashes())) { return loaded; }
+		if (((state.state() != State.DEAD) && (state.state() != State.READY)) || !state.hashes().equals(_authority.hashes())) { return loaded; }
 		if (state.vitals().currentCp() > player.getMaxCp()) { return loaded; }
-		final var vitals = new PhantomBackgroundState.Vitals(0, player.getMaxHp(), Math.min(state.vitals().currentMp(), player.getMaxMp()), player.getMaxMp(), state.vitals().currentCp(), player.getMaxCp());
+		if ((state.state() == State.READY) && ((state.vitals().currentHp() > player.getMaxHp()) || (state.vitals().currentMp() > player.getMaxMp()))) { return loaded; }
+		final var vitals = new PhantomBackgroundState.Vitals(state.vitals().currentHp(), player.getMaxHp(), state.state() == State.DEAD ? Math.min(state.vitals().currentMp(), player.getMaxMp()) : state.vitals().currentMp(), player.getMaxMp(), state.vitals().currentCp(), player.getMaxCp());
 		final var normalized = new PhantomBackgroundState(state.state(), state.identity(), progress, vitals, state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
 		if (!_authority.matchesRuntime(player, normalized)) { return loaded; }
 		final var goal = _goals.load(profileId).orElse(null);
 		if ((goal == null) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) || (goal.goal().status() != PhantomGoalStatus.ACTIVE)) { return loaded; }
 		final var captured = _authority.capture(profileId, player, goal.goal(), normalized);
+		if (!captured.vitals().equals(vitals)) { return loaded; }
 		if (!captured.progress().equals(progress) || !captured.identity().equals(state.identity()) || !captured.position().equals(state.position()) || !captured.receipt().equals(state.receipt()) || !captured.clock().equals(state.clock()) || !captured.hashes().equals(state.hashes())) { return loaded; }
+		if (!captured.inventory().objects().equals(state.inventory().objects()) || !captured.autoGetSkills().equals(state.autoGetSkills())) { return loaded; }
 		// Existing native store/capture boundary under the materialization claim, with no historical replay.
 		player.storeMe();
 		return transaction(() -> _transactions.captureBaseline(captured, goal.goal()));

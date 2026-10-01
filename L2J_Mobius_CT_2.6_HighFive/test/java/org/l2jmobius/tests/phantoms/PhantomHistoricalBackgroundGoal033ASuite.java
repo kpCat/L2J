@@ -41,6 +41,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.gameserver.config.custom.StartingLocationConfig;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.managers.IdManager;
@@ -135,6 +136,10 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 	private PhantomProfileRepository _profiles;
 	private PhantomPopulationCatalog _catalog;
 	private final List<ManagedSnapshot> _managed = new ArrayList<>();
+	private final List<RuntimeHarness> _runtimes = new ArrayList<>();
+	private final List<String> _testOrder = new ArrayList<>();
+	private boolean _firstFailure;
+	private long _profileIdBase;
 	private long _creationOrdinal;
 
 	@Override
@@ -147,8 +152,14 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
 		PhantomAssertions.assertEquals(SEED, context.seed(), "Goal033A deterministic seed changed.");
+		_creationOrdinal = Long.getLong("phantom.historical.creationOrdinal", 0L);
+		_profileIdBase = Long.getLong("phantom.historical.profileIdBase", 0L);
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
+		if (_profileIdBase > 0)
+		{
+			pinNextProfileId(_profileIdBase + _creationOrdinal, true);
+		}
 		_production = PhantomBackgroundSuite.ProductionAuthorityFixture.start();
 		_profiles = PhantomProfileRepository.open();
 		_catalog = PhantomPopulationCatalog.load(POPULATION_CATALOG, ZoneId.of("UTC"));
@@ -162,7 +173,9 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 	{
 		try
 		{
-			cleanupManaged();
+			try { recordOwnershipSafely(context, "afterAll.beforeCleanup", true); }
+			finally { cleanupManaged(); }
+			recordOwnershipSafely(context, "afterAll.afterManagedCleanup", false);
 		}
 		finally
 		{
@@ -185,6 +198,121 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 
 	@Override
 	public void register(PhantomTestRegistry registry)
+	{
+		final PhantomTestRegistry all = new PhantomTestRegistry(id());
+		registerHistoricalTests(all);
+		final String selection = System.getProperty("phantom.historical.include", "");
+		final Set<String> requested = selection.isBlank() ? Set.of() : new java.util.HashSet<>(List.of(selection.split(",")));
+		final Set<String> matched = new java.util.HashSet<>();
+		for (var test : all.orderedTests())
+		{
+			final String shortId = test.identity().substring(id().length() + 1);
+			final String number = shortId.substring(0, shortId.indexOf('-'));
+			if (!requested.isEmpty() && !requested.contains(number)) { continue; }
+			matched.add(number);
+			registry.add(shortId, context ->
+			{
+				for (String pair : System.getProperty("phantom.historical.originalOrdinals", "").split(","))
+				{
+					if (pair.startsWith(number + ":"))
+					{
+						_creationOrdinal = Long.parseLong(pair.substring(number.length() + 1));
+						if (_profileIdBase <= 0) { throw new IllegalArgumentException("Original ordinals require an explicit TEST profile ID base."); }
+						pinNextProfileId(_profileIdBase + _creationOrdinal, false);
+					}
+				}
+				_testOrder.add(number);
+				context.record("historical.selection", selection.isBlank() ? "FULL" : selection);
+				context.record("historical.testOrder", String.join(",", _testOrder));
+				context.record("historical.creationOrdinal.before." + number, _creationOrdinal);
+				recordOwnershipSafely(context, "before." + number, false);
+				try { test.testCase().run(context); }
+				catch (Exception | Error failure)
+				{
+					if (!_firstFailure)
+					{
+						_firstFailure = true;
+						context.record("historical.firstRed", test.identity() + ":" + failure);
+						try { recordOwnership(context, "firstRed", true); }
+						catch (Exception diagnosticFailure) { failure.addSuppressed(diagnosticFailure); }
+					}
+					throw failure;
+				}
+				finally { recordOwnershipSafely(context, "after." + number, false); }
+			});
+		}
+		if (!requested.isEmpty() && !matched.equals(requested)) { throw new IllegalArgumentException("Unknown exact historical test selection: " + selection); }
+	}
+
+	private void recordOwnershipSafely(PhantomTestContext context, String phase, boolean durable)
+	{
+		try { recordOwnership(context, phase, durable); }
+		catch (Exception failure) { context.record("historical." + phase + ".diagnosticFailure", failure.toString()); }
+	}
+
+	private void recordOwnership(PhantomTestContext context, String phase, boolean durable) throws Exception
+	{
+		final List<String> retained = new ArrayList<>();
+		for (RuntimeHarness runtime : _runtimes)
+		{
+			final long id = runtime._profileId;
+			final var materialized = runtime.materialization().find(id);
+			final var backgroundClaims = diagnosticField(runtime.background(), "_transitions");
+			final var recoveries = diagnosticField(runtime.historical(), "_recoveryClaims");
+			final var operations = diagnosticField(runtime.background(), "_operations");
+			final var nativeRecoveries = diagnosticField(runtime.background(), "_recoveries");
+			if (materialized.isPresent() || !backgroundClaims.equals("{}") || !recoveries.equals("{}") || !operations.equals("{}") || !nativeRecoveries.equals("{}"))
+			{
+				retained.add("profile=" + id + " materialization=" + materialized + " backgroundTransitions=" + backgroundClaims + " backgroundOperations=" + operations + " nativeRecovery=" + nativeRecoveries + " historicalRecovery=" + recoveries + " lifecycle=" + runtime.lifecycleFailure());
+			}
+			if (durable && (runtime.lifecycleFailure() != null)) { context.record("historical." + phase + ".lifecycle." + id, runtime.lifecycleFailure()); }
+		}
+		for (ManagedSnapshot saved : _managed)
+		{
+			final long id = saved.profile().profileId();
+			final Integer objectId = saved.state().actualCharacterObjectId();
+			if (objectId == null) { continue; }
+			final var owner = PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(objectId);
+			final Player player = World.getInstance().getPlayer(objectId);
+			final var object = World.getInstance().findObject(objectId);
+			final boolean autoSave = org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(objectId);
+			if ((owner != null) || (player != null) || (object != null) || autoSave)
+			{
+				retained.add("profile=" + id + " object=" + objectId + " owner=" + owner + " worldPlayer=" + (player != null) + " worldObject=" + (object != null) + " autoSave=" + autoSave + (player == null ? "" : " native=" + player.isOnline() + "/" + player.hasHeadlessOutboundSession() + "/" + player.getX() + "," + player.getY() + "," + player.getZ() + "/HP" + player.getCurrentHp() + "/CP" + player.getCurrentCp()));
+			}
+			if (durable)
+			{
+				final var background = _profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE);
+				final var catchup = _profiles.findComponent(id, PhantomBackgroundCatchupState.COMPONENT_TYPE);
+				context.record("historical." + phase + ".durable." + id, "object=" + objectId + " background=" + background.map(row -> row.rowVersion() + "/" + new PhantomBackgroundStateCodec().decode(row.payload())) + " catchup=" + catchup.map(row -> row.rowVersion() + "/" + new PhantomBackgroundCatchupStateCodec().decode(row.payload())));
+			}
+		}
+		context.record("historical." + phase + ".owners", "registry=" + PhantomIdentityLeaseRegistry.getInstance().getActiveLeaseCount() + " retained=" + retained);
+	}
+
+	private static String diagnosticField(Object owner, String name) throws Exception
+	{
+		final var field = owner.getClass().getDeclaredField(name);
+		field.setAccessible(true);
+		return String.valueOf(field.get(owner));
+	}
+
+	private static void pinNextProfileId(long nextId, boolean emptyRequired) throws Exception
+	{
+		if (nextId <= 0) { throw new IllegalArgumentException("TEST profile ID must be positive."); }
+		try (Connection connection = DatabaseFactory.getConnection(); var statement = connection.createStatement())
+		{
+			PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, connection.getCatalog(), "Historical identity fixture touched a non-test database.");
+			try (var rows = statement.executeQuery("SELECT COUNT(*) FROM phantom_profiles" + (emptyRequired ? "" : " WHERE profile_id >= " + nextId)))
+			{
+				rows.next();
+				PhantomAssertions.assertEquals(0L, rows.getLong(1), "Historical identity fixture requires clean, unoccupied TEST profile IDs.");
+			}
+			statement.execute("ALTER TABLE phantom_profiles AUTO_INCREMENT=" + nextId);
+		}
+	}
+
+	private void registerHistoricalTests(PhantomTestRegistry registry)
 	{
 		registry.add("01-strict-codec-and-disjoint-operation-identity", this::testCodecAndIdentity);
 		registry.add("02-canonical-planner-baseline-and-fences", this::testPlannerBaselineAndFences);
@@ -219,6 +347,7 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("29b-latent-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, false, true, false));
 		registry.add("29c-running-pending-recovery-to-linked-native-player", context -> testReadyLocalDemandRebuild(context, false, false, true));
 		registry.add("29d-synthetic-world-human-to-linked-native-player", context -> testReadyLocalDemandRebuild(context, false, false, false, true));
+		registry.add("40-ambiguous-baseline-cleanup-then-unambiguous-retry", this::testAmbiguousBaselineCleanup);
 		registry.add("30-complete-renewal-rebuilds-absent-goal-with-background", this::testRenewalWithoutGoalWithBackground);
 		registry.add("31-complete-renewal-rejects-unverifiable-goalless-dead-baseline", this::testRenewalWithoutGoalWithDeadBackground);
 		registry.add("32-running-verify-pending-reconciles-without-cursor-loss", this::testRunningVerifyPending);
@@ -346,10 +475,19 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()); var humanSession = new org.l2jmobius.gameserver.localplay.LocalPlaySyntheticHumanSession(_environment.observer().objectId(), _environment.observer().characterName()))
 		{
 			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, completedAt - 4, completedAt, context.seed()).status(), "Local-demand fixture did not begin history.");
+			final Position provenIngress = runtime.transaction().load(profileId).state().position();
 			final Snapshot old = runtime.historical().advance(profileId, 4, 4).snapshot();
 			PhantomAssertions.assertEquals(Status.COMPLETE, old.state().status(), "Local-demand fixture has no completed window.");
+			context.record("historical.linkedBaseline." + profileId, runtime.transaction().load(profileId).state());
 			deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
 			deleteComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+			// Native creation origins are random; four intervals can end at an overlapping route/farm anchor.
+			// This missing-projection fixture requires an unambiguous canonical ingress already proven by begin().
+			PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "Fixture reset retained a baseline owner.");
+			PhantomAssertions.assertEquals(null, PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(managed.profile().characterObjectId()), "Fixture reset retained an identity owner.");
+			PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(managed.profile().characterObjectId()), "Fixture reset retained a World Player.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(managed.profile().characterObjectId()), "Fixture reset retained an autosave owner.");
+			moveCanonicalFixture(managed.profile().characterObjectId(), provenIngress);
 			if (syntheticHuman)
 			{
 				final Player human = humanSession.start();
@@ -363,12 +501,15 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 			final var ecologyStore = new PhantomPopulationEcologyStore(_profiles);
 			ecologyStore.insert(profileId, ecologyState);
 			final boolean[] injectedPending = {false};
+			final List<String> historyCalls = new ArrayList<>();
 			final var historicalPort = new PhantomPopulationEcologyService.HistoricalPort()
 			{
 				@Override public Optional<Snapshot> status(long id) { return runtime.historical().status(id); }
 				@Override public PhantomHistoricalBackgroundService.Result begin(long id, long start, long target, long seed)
 				{
 					final var begun = runtime.historical().begin(id, start, target, seed);
+					historyCalls.add("begin=" + begun.status() + "/" + begun.reason() + "/" + (begun.snapshot() == null ? "absent" : begun.snapshot().state().status()));
+					context.record("historical.linkedCalls." + profileId, String.join(";", historyCalls));
 					if ((id == profileId) && begun.reason().startsWith("catchup.renewal.")) { recordLinkedTransition(context, "03-historical-renewal", id, runtime, begun.status().name(), begun.reason()); }
 					if (runningPendingRecovery && (id == profileId) && begun.successful() && !injectedPending[0])
 					{
@@ -384,7 +525,13 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 					}
 					return begun;
 				}
-				@Override public PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes) { return runtime.historical().advance(id, intervals, minutes); }
+				@Override public PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes)
+				{
+					final var advanced = runtime.historical().advance(id, intervals, minutes);
+					historyCalls.add("advance=" + advanced.status() + "/" + advanced.reason() + "/" + (advanced.snapshot() == null ? "absent" : advanced.snapshot().state().status()));
+					context.record("historical.linkedCalls." + profileId, String.join(";", historyCalls));
+					return advanced;
+				}
 			};
 			final var ecology = new PhantomPopulationEcologyService(ecologyCatalog, _catalog, ecologyStore, historicalPort, id -> runtime.materialization().find(id).isPresent(), id -> "", java.time.Clock.fixed(Instant.ofEpochSecond((completedAt + 10) * 60), ZoneOffset.UTC), ZoneOffset.UTC, PhantomPopulationEcologyState.Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
 			ecology.installRuntime(id -> id == profileId ? Optional.of(managed) : Optional.empty(), new PhantomPopulationEcologyService.PopulationEvents()
@@ -635,6 +782,29 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		}
 	}
 
+	private void testAmbiguousBaselineCleanup(PhantomTestContext context) throws Exception
+	{
+		final var managed = createManaged(context.seed() + 40);
+		final long profileId = managed.profile().profileId();
+		final int objectId = managed.profile().characterObjectId();
+		final var ambiguous = _production.topology().findAnchor("population.route.human-fighter.c3").orElseThrow();
+		moveCanonicalFixture(objectId, L2jPhantomBackgroundAuthority.canonicalCommittedAnchorPosition(ambiguous, 0).orElseThrow());
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final var rejected = runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.RETRY, rejected.status(), "Ambiguous baseline weakened the production anchor guard.");
+			PhantomAssertions.assertEquals("catchup.baseline.plan_or_persist_retry", rejected.reason(), "Ambiguous baseline lost its existing boundary.");
+			PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "Rejected baseline retained materialization ownership.");
+			PhantomAssertions.assertEquals(null, PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(objectId), "Rejected baseline retained identity ownership.");
+			PhantomAssertions.assertEquals(null, World.getInstance().findObject(objectId), "Rejected baseline retained a World object.");
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(objectId), "Rejected baseline retained autosave ownership.");
+			moveCanonicalFixture(objectId, new Position(0, managed.state().creationX(), managed.state().creationY(), managed.state().creationZ(), 0, ambiguous.id()));
+			final var retried = runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed());
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, retried.status(), "Unambiguous TEST retry inherited a retained baseline: " + retried.reason());
+			PhantomAssertions.assertEquals(rejected.snapshot().state().requestId(), retried.snapshot().state().requestId(), "Baseline retry replaced the owned request.");
+		}
+	}
+
 	private void testRenewalWithoutGoalWithBackground(PhantomTestContext context) throws Exception
 	{
 		final long profileId = createManaged(context.seed() + 30).profile().profileId();
@@ -655,6 +825,10 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 				before = runtime.transaction().load(profileId).state();
 			}
 			PhantomAssertions.assertEquals(PhantomBackgroundState.State.READY, before.state(), "Goal-only fixture is not a safe READY baseline.");
+			// Historical work can cross a level boundary; prove the ordinary native baseline before deleting its goal.
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(profileId).status(), "Levelled READY baseline failed NORMAL admission: " + runtime.lifecycleFailure());
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(profileId).status(), "Levelled READY baseline failed owned store.");
+			before = runtime.transaction().load(profileId).state();
 			deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
 			fault.set(FaultPoint.BEFORE_CAPTURE_COMMIT);
 			final var interrupted = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
@@ -1689,7 +1863,33 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 	private ManagedSnapshot createManaged(long seed)
 	{
 		final PhantomPopulationStore store = new PhantomPopulationStore(_profiles, _catalog);
-		ManagedSnapshot snapshot = store.createShell(1, ++_creationOrdinal, seed);
+		ManagedSnapshot snapshot;
+		final String origin = System.getProperty("phantom.historical.creationOrigin", "");
+		final boolean custom = StartingLocationConfig.CUSTOM_STARTING_LOC;
+		final int previousX = StartingLocationConfig.CUSTOM_STARTING_LOC_X;
+		final int previousY = StartingLocationConfig.CUSTOM_STARTING_LOC_Y;
+		final int previousZ = StartingLocationConfig.CUSTOM_STARTING_LOC_Z;
+		try
+		{
+			if (!origin.isBlank())
+			{
+				final String[] coordinates = origin.split(",");
+				if (coordinates.length != 3) { throw new IllegalArgumentException("TEST creation origin requires x,y,z."); }
+				StartingLocationConfig.CUSTOM_STARTING_LOC = true;
+				StartingLocationConfig.CUSTOM_STARTING_LOC_X = Integer.parseInt(coordinates[0]);
+				StartingLocationConfig.CUSTOM_STARTING_LOC_Y = Integer.parseInt(coordinates[1]);
+				StartingLocationConfig.CUSTOM_STARTING_LOC_Z = Integer.parseInt(coordinates[2]);
+			}
+			snapshot = store.createShell(1, ++_creationOrdinal, seed);
+		}
+		finally
+		{
+			StartingLocationConfig.CUSTOM_STARTING_LOC = custom;
+			StartingLocationConfig.CUSTOM_STARTING_LOC_X = previousX;
+			StartingLocationConfig.CUSTOM_STARTING_LOC_Y = previousY;
+			StartingLocationConfig.CUSTOM_STARTING_LOC_Z = previousZ;
+		}
+		contextRecordFixture(snapshot);
 		final int ownerIndex = _managed.size();
 		_managed.add(snapshot);
 		for (int step = 0; (step < 20) && (snapshot.state().state() != PhantomPopulationState.State.READY) && (snapshot.state().state() != PhantomPopulationState.State.INCONSISTENT); step++)
@@ -1702,6 +1902,15 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		PhantomAssertions.assertEquals(PhantomPopulationState.State.READY, snapshot.state().state(), "Goal033A population creation did not reach READY.");
 		PhantomAssertions.assertEquals(snapshot.profile().characterObjectId(), snapshot.state().actualCharacterObjectId(), "Goal033A managed profile link differs from the created character.");
 		return snapshot;
+	}
+
+	private void contextRecordFixture(ManagedSnapshot snapshot)
+	{
+		// Fixture class/schedule also depend on profileId, not only the advertised suite seed.
+		if (!_testOrder.isEmpty())
+		{
+			System.out.println("HISTORICAL_FIXTURE test=" + _testOrder.getLast() + " ordinal=" + _creationOrdinal + " profile=" + snapshot.profile().profileId() + " class=" + snapshot.state().classId() + " schedule=" + snapshot.state().scheduleTemplate());
+		}
 	}
 
 	private RuntimeHarness openRuntime(long profileId, PhantomBackgroundTransaction transaction)
@@ -1728,18 +1937,32 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		{
 			@Override public void beforeMaterialize(long id, int objectId) { delegated.beforeMaterialize(id, objectId); }
 			@Override public void beforeMaterialize(long id, int objectId, MaterializationPurpose purpose, String claim) { delegated.beforeMaterialize(id, objectId, purpose, claim); }
-			@Override public void afterPlayerLoad(long id, Player player) { delegated.afterPlayerLoad(id, player); }
+			@Override public void afterPlayerLoad(long id, Player player)
+			{
+				try
+				{
+					delegated.afterPlayerLoad(id, player);
+					System.out.println("HISTORICAL_NATIVE profile=" + id + " object=" + player.getObjectId() + " level=" + player.getLevel() + " dead=" + player.isDead() + " xyz=" + player.getX() + "," + player.getY() + "," + player.getZ() + " heading=" + player.getHeading());
+				}
+				catch (RuntimeException exception)
+				{
+					lifecycleFailure.set("afterPlayerLoad:" + exception + " background=" + transaction.load(id).state() + " native=" + player.getLevel() + "/" + player.getExp() + "/HP" + player.getCurrentHp() + "/" + player.getMaxHp() + "/MP" + player.getCurrentMp() + "/" + player.getMaxMp() + "/CP" + player.getCurrentCp() + "/" + player.getMaxCp() + "/XYZ" + player.getX() + "," + player.getY() + "," + player.getZ());
+					throw exception;
+				}
+			}
 			@Override public void materializeSucceeded(long id, int objectId) { delegated.materializeSucceeded(id, objectId); }
 			@Override public void materializeAborted(long id, int objectId) { delegated.materializeAborted(id, objectId); }
 			@Override public void beforeStore(long id, Player player) { delegated.beforeStore(id, player); }
 			@Override public void afterStore(long id, Player player)
 			{
 				try { delegated.afterStore(id, player); }
-				catch (RuntimeException exception) { lifecycleFailure.set(exception.toString()); throw exception; }
+				catch (RuntimeException exception) { lifecycleFailure.compareAndSet(null, exception.toString()); throw exception; }
 			}
 		});
 		PhantomAssertions.assertTrue(materialization.start(), "Goal033A materialization service did not start.");
-		return new RuntimeHarness(profileId, goals, transaction, background, materialization, planner, historical, lifecycleFailure);
+		final RuntimeHarness runtime = new RuntimeHarness(profileId, goals, transaction, background, materialization, planner, historical, lifecycleFailure);
+		_runtimes.add(runtime);
+		return runtime;
 	}
 
 	private byte[] componentPayload(long profileId, String componentType)
