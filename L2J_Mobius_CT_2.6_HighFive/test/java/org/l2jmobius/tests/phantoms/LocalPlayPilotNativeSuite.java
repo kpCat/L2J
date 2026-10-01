@@ -51,6 +51,87 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		registry.add("origin-remains-returnable-after-actor-location-changes", this::originRemainsReturnable);
 		registry.add("m1-invalid-token-never-falls-back-to-origin", this::invalidM1TokenNeverFallsBack);
 		registry.add("m1-forward-move-uses-native-guard", this::forwardMoveUsesNativeGuard);
+		registry.add("synthetic-identity-is-separate-from-real-login", context ->
+		{
+			final var kind = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.valueOf("LOCALPLAY_TEST_HUMAN");
+			PhantomAssertions.assertTrue(kind != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.REAL_LOGIN, "Synthetic identity must not impersonate real login.");
+		});
+		registry.add("synthetic-native-lifecycle-locality-and-cleanup", this::syntheticLifecycle);
+		registry.add("known-legacy-quarantine-is-exact-and-fail-closed", context ->
+		{
+			final var witness = new org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.Witness(30, 1234, 19, "payload", "canonical");
+			final var known = org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.Decision.KNOWN_LEGACY_FAIL_CLOSED;
+			PhantomAssertions.assertEquals(known, org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(witness, 30, 1234, 19, "payload", "canonical"), "Exact known witness was not classified.");
+			PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(witness, 30, 1234, 20, "payload", "canonical"), "New rowVersion was silently skipped.");
+			PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(witness, 30, 1234, 19, "new", "canonical"), "New background was silently skipped.");
+			PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(witness, 30, 1234, 19, "payload", "new"), "New canonical corruption was silently skipped.");
+			PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(null, 30, 1234, 19, "payload", "canonical"), "Unknown corruption was silently skipped.");
+		});
+	}
+
+	private void syntheticLifecycle(PhantomTestContext context) throws Exception
+	{
+		final var fixture = _environment.observer();
+		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET curHp=50,curMp=25,curCp=10 WHERE charId=?"))
+		{
+			statement.setInt(1, fixture.objectId());
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Guarded TEST submax fixture was not configured.");
+		}
+		final var session = new org.l2jmobius.gameserver.localplay.LocalPlaySyntheticHumanSession(fixture.objectId(), fixture.characterName());
+		Player actor = null;
+		Location origin = null;
+		try
+		{
+			actor = session.start(); origin = actor.getLocation().clone();
+			PhantomAssertions.assertTrue(session.valid() && (actor.getClient() == null) && !actor.hasHeadlessOutboundSession(), "Synthetic actor did not use ordinary native Player lifecycle.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.PhantomSystem.onlineHumanPoints().contains(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId())), "Production human supplier omitted the native synthetic Player.");
+			final var realClient = org.l2jmobius.gameserver.localplay.LocalPlayPilotService.class.getDeclaredMethod("realClient", Player.class);
+			realClient.setAccessible(true);
+			PhantomAssertions.assertEquals(false, realClient.invoke(null, actor), "Synthetic actor passed realClient guard.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().arm(actor, "ABCD2345").contains("недоступен"), "Synthetic actor was armed.");
+			PhantomAssertions.assertEquals(null, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().tryAcquire(actor.getObjectId(), org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.REAL_LOGIN), "Real login stole synthetic lease.");
+			PhantomAssertions.assertTrue(session.valid(), "Login contention deleted the synthetic Player.");
+			final var loginBusy = org.l2jmobius.gameserver.network.GameClient.class.getDeclaredMethod("localPlayIdentityBusy", int.class);
+			loginBusy.setAccessible(true);
+			PhantomAssertions.assertEquals(true, loginBusy.invoke(null, actor.getObjectId()), "GameClient pre-load arbitration did not reject the synthetic owner.");
+			final var backend = new PhantomTopologyCoreSuite.TestBackend();
+			final var port = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
+			{
+				public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+				public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+			};
+			final var topology = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService.fromSnapshotForTesting(PhantomTopologyCoreSuite.snapshot(backend), backend, PhantomTopologyCoreSuite.POLICY, port);
+			PhantomAssertions.assertTrue(topology.start(), "Native human locality TEST topology failed to start.");
+			final var clock = new java.util.concurrent.atomic.AtomicLong(1000);
+			final var target = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId());
+			final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, port, org.l2jmobius.gameserver.phantoms.PhantomSystem::onlineHumanPoints, clock::get, id -> id == 1, () -> Map.of(1L, target));
+			locality.onPulse();
+			PhantomAssertions.assertTrue(locality.isLocal(1), "Actual World human did not produce native locality demand.");
+			final var before = org.l2jmobius.gameserver.phantoms.PhantomSystem.onlineHumanPoints();
+			actor.teleToLocation(origin.getX() + 20000, origin.getY(), origin.getZ()); actor.onTeleported();
+			PhantomAssertions.assertTrue(!before.equals(org.l2jmobius.gameserver.phantoms.PhantomSystem.onlineHumanPoints()), "Native relocation did not change the production human supplier.");
+			clock.addAndGet(1000); locality.onPulse();
+			PhantomAssertions.assertTrue(!locality.isLocal(1), "Native relocation left the same production human demand active.");
+			topology.beginStop(); PhantomAssertions.assertTrue(topology.finishStop(), "Native locality topology did not clean up.");
+			PhantomAssertions.assertTrue(!actor.isTeleporting(), "Native null-client teleport remained pending.");
+		}
+		finally { session.close(); session.close(); }
+		_environment.assertClean(fixture, actor);
+		final var loginBusyAfter = org.l2jmobius.gameserver.network.GameClient.class.getDeclaredMethod("localPlayIdentityBusy", int.class);
+		loginBusyAfter.setAccessible(true);
+		PhantomAssertions.assertEquals(false, loginBusyAfter.invoke(null, fixture.objectId()), "GameClient login remained busy after synthetic cleanup.");
+		PhantomAssertions.assertEquals(origin, actor.getLocation(), "Synthetic cleanup lost immutable origin/heading/instance.");
+		try (var lease = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().tryAcquire(fixture.objectId(), org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.REAL_LOGIN)) { PhantomAssertions.assertTrue(lease != null, "Cleanup did not release login arbitration."); }
+		try
+		{
+			final Player again = session.start();
+			PhantomAssertions.assertEquals(origin, again.getLocation(), "Repeat start loaded a changed origin.");
+			PhantomAssertions.assertEquals(50.0, again.getCurrentHp(), "Cleanup did not persist exact submax HP.");
+			PhantomAssertions.assertEquals(25.0, again.getCurrentMp(), "Cleanup did not persist exact submax MP.");
+			PhantomAssertions.assertEquals(10.0, again.getCurrentCp(), "Cleanup did not persist exact submax CP.");
+		}
+		finally { session.close(); }
+		_environment.assertClean(fixture, actor);
 	}
 
 	private void poseAndSnapshot(PhantomTestContext context) throws Exception

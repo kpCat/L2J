@@ -65,6 +65,7 @@ public final class LocalPlayPilotService
 	private String _stoppedRunId;
 	private long _lastHeartbeatNanos;
 	private long _runDeadlineNanos;
+	private LocalPlaySyntheticHumanService _synthetic;
 
 	private LocalPlayPilotService()
 	{
@@ -77,7 +78,7 @@ public final class LocalPlayPilotService
 
 	public synchronized boolean startConfigured()
 	{
-		if (!LocalPlayPilotConfig.isEnabled())
+		if (!LocalPlayPilotConfig.isEnabled() && !LocalPlayPilotConfig.isSyntheticEnabled())
 		{
 			return false;
 		}
@@ -99,6 +100,17 @@ public final class LocalPlayPilotService
 				throw new IllegalStateException("GameServer ownership incarnation is not current.");
 			}
 			_pilotRoot = _runtimeRoot.resolve("playtest-pilot");
+			LocalPlayM1LegacyQuarantine.configure(_runtimeRoot);
+			if (LocalPlayPilotConfig.isSyntheticEnabled())
+			{
+				_synthetic = new LocalPlaySyntheticHumanService(_runtimeRoot, _runtimeId, _pid, _startTicks, () ->
+				{
+					try { return ownedProcess(); } catch (IOException exception) { return false; }
+				}, () ->
+				{
+					try { return validManifest() && ownedProcess() && privateAcl(_runtimeRoot.resolve("game/config/Custom/LocalPlayPilot.ini")); } catch (Exception exception) { return false; }
+				});
+			}
 			_poller = ThreadPool.scheduleAtFixedRate(this::safePoll, 100, 200);
 			LOGGER.info("LocalPlay pilot mailbox enabled for one real-client consent lease.");
 			return true;
@@ -119,7 +131,8 @@ public final class LocalPlayPilotService
 			_poller.cancel(false);
 			_poller = null;
 		}
-		revoke();
+		try { if (_synthetic != null) { _synthetic.close(); } }
+		finally { revoke(); }
 	}
 
 	private static String runtimeId(Path root) throws Exception
@@ -241,7 +254,7 @@ public final class LocalPlayPilotService
 		return HexFormat.of().formatHex(digest.digest()).equalsIgnoreCase(fields.getProperty("gameJarSha256", ""));
 	}
 
-	private static Properties readProperties(Path file) throws IOException
+	static Properties readProperties(Path file) throws IOException
 	{
 		if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(file) || (Files.size(file) > 8192))
 		{
@@ -257,13 +270,18 @@ public final class LocalPlayPilotService
 
 	private boolean mailboxSafe()
 	{
-		if (!safeDirectory(_pilotRoot) || !privateAcl(_pilotRoot))
+		return mailboxSafe(_pilotRoot);
+	}
+
+	static boolean mailboxSafe(Path root)
+	{
+		if (!safeDirectory(root) || !privateAcl(root))
 		{
 			return false;
 		}
 		for (String name : List.of("inbox", "processing", "results", "journal"))
 		{
-			final Path child = _pilotRoot.resolve(name);
+			final Path child = root.resolve(name);
 			if (!safeDirectory(child) || !privateAcl(child))
 			{
 				return false;
@@ -272,7 +290,7 @@ public final class LocalPlayPilotService
 		return true;
 	}
 
-	private static boolean privateAcl(Path path)
+	static boolean privateAcl(Path path)
 	{
 		try
 		{
@@ -304,7 +322,7 @@ public final class LocalPlayPilotService
 		}
 	}
 
-	private static boolean safeDirectory(Path path)
+	static boolean safeDirectory(Path path)
 	{
 		try
 		{
@@ -316,7 +334,7 @@ public final class LocalPlayPilotService
 		}
 	}
 
-	private static void writeProperties(Path file, Properties properties) throws IOException
+	static void writeProperties(Path file, Properties properties) throws IOException
 	{
 		final Path temporary = file.resolveSibling(file.getFileName() + ".tmp");
 		try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8))
@@ -328,7 +346,7 @@ public final class LocalPlayPilotService
 
 	public synchronized String arm(Player player, String armCode)
 	{
-		if ((_poller == null) || !mailboxSafe() || (player == null) || !LocalPlayPilotArmCode.isValid(armCode) || !realClient(player))
+		if (!LocalPlayPilotConfig.isEnabled() || (_poller == null) || !mailboxSafe() || (player == null) || !LocalPlayPilotArmCode.isValid(armCode) || !realClient(player))
 		{
 			return "Пилот недоступен или настоящий клиент не подтверждён.";
 		}
@@ -560,6 +578,7 @@ public final class LocalPlayPilotService
 		{
 			synchronized (this)
 			{
+				if (_synthetic != null) { _synthetic.poll(); }
 				poll();
 			}
 		}

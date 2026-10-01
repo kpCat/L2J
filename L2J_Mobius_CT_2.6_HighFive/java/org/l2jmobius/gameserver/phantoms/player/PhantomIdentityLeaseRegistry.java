@@ -35,7 +35,8 @@ public final class PhantomIdentityLeaseRegistry
 	{
 		REAL_LOGIN,
 		PHANTOM,
-		BACKGROUND
+		BACKGROUND,
+		LOCALPLAY_TEST_HUMAN
 	}
 
 	public enum OwnerState

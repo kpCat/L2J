@@ -1,11 +1,11 @@
 ﻿[CmdletBinding()]
-param([ValidatePattern('^[0-9a-fA-F-]{36}$')][string] $RequestId)
+param([ValidatePattern('^[0-9a-fA-F-]{36}$')][string] $RequestId, [ValidateSet('RealClient','Synthetic')][string] $ActorMode = 'RealClient')
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'LocalPlay-Pilot.ps1')
 
-$context = Get-PilotContext
+$context = Get-PilotContext -ActorMode $ActorMode
 if ($RequestId)
 {
 	$path = Join-Path $context.PilotRoot ("results\$RequestId.xml")
@@ -22,7 +22,7 @@ if (Test-Path -LiteralPath $sessionPath)
 	try
 	{
 		$session = Get-PilotSession $context
-		$state = if ($session.state -cin @('ARMED_IDLE', 'RUNNING')) { [string] $session.state } else { 'UNKNOWN' }
+		$state = if ($session.state -cin @('ARMED_IDLE', 'RUNNING', 'STOPPED', 'REJECTED', 'CLEANUP_FAILED')) { [string] $session.state } else { 'UNKNOWN' }
 		$expiry = [DateTimeOffset]::FromUnixTimeMilliseconds([long] $session.expiresUtcMillis).UtcDateTime.ToString('o')
 		$actor = [int] $session.objectId
 	}

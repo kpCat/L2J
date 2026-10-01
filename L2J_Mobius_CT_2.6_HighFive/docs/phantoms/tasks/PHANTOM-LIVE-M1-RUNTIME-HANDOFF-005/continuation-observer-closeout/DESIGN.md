@@ -180,3 +180,34 @@ failures; не терять первоначальную причину при �
 невозможен: сообщить это явно, без обхода ограничений.
 Stop-LocalPlayPilot останавливает run, но ARMED_IDLE может остаться. OFF писать только
 после действительного штатного отзыва. Не вводить `.playtest off` за пользователя.
+
+## Synthetic human lane (2026-10-01, согласованный scope)
+
+Один обычный Player.load configured character, GameClient=null, без headless sink.
+LOCALPLAY_TEST_HUMAN lease берётся до load; real login при этом owner отклоняется
+до legacy double-login cleanup. Native online/spawn естественно проходят существующий
+World human supplier. Runtime не получает новый gameplay policy или scheduler.
+
+LocalPlaySyntheticHumanService использует существующий Pilot poller и отдельный
+private mailbox. EnableLocalPlaySyntheticHuman по умолчанию False; exact objectId/name
+задаются private ini. Owned manifest/hash/PID/incarnation и ACL проверяются до START.
+START только по private control, server startup человека не создаёт. Lease, World,
+autosave и отсутствие Phantom profile проверяются до load и повторно после lease.
+Load использует существующий PopulationLoadSuppression. Origin/vitals сохраняются
+до spawn. STOP/watchdog/shutdown выполняют owned cleanup: отмена действий/invite,
+restore instance/location/vitals, единственный storeMe, deleteMe, World/autosave checks,
+release lease. Повторный STOP идемпотентен; неполный cleanup удерживает ownership.
+
+Run-M1RuntimeHandoff -ActorMode Synthetic меняет только START/transport/STOP/owner
+и evidence grade. Phase engine и семь matrix guards общие. REAL_CLIENT realClient()
+и arm/consent неизменны. Synthetic grade = SYNTHETIC_SERVER_GREEN, M1 остаётся OPEN.
+Максимум пять синтетических runs; новые UUID и bounded mailbox/deadline/heartbeat.
+
+INITIAL имеет адресную read-only проверку attested legacy quarantine: exact profile,
+character, background payload/state/rowVersion и canonical witness. До movement
+допустимы максимум восемь KNOWN_LEGACY_FAIL_CLOSED skips; unknown INCONSISTENT = RED.
+Quarantine private и включает только доказанные mixed pre-fix witnesses, без recovery.
+
+Bounded exception >10 файлов: единый LocalPlay lane затрагивает config/service,
+identity arbitration, private tooling/shared runner, focused tests и текущие docs.
+Новые task/stage/proof, gameplay core, schema, caps и чужие SQL/EOL исключены.

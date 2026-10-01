@@ -450,7 +450,7 @@ public final class PhantomSystem
 				}
 				final PhantomTopologyPositionPublisher positionPublisher = new PhantomTopologyPositionPublisher(_topologyService, _backgroundService::acquisitionSnapshot);
 				_backgroundService.installCommittedPositionPublisher(positionPublisher::committed);
-				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), () -> World.getInstance().getPlayers().stream().filter(player -> player.isOnline() && !player.hasHeadlessOutboundSession()).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList(), System::currentTimeMillis, profileId -> (_populationManager != null) && _populationManager.presence().isOnline(profileId), this::liveMaterializedPoints);
+				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> (_populationManager != null) && _populationManager.presence().isOnline(profileId), this::liveMaterializedPoints);
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority), _backgroundService, _materializationService);
 				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
 				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), (profileId, failure) ->
@@ -2664,6 +2664,12 @@ public final class PhantomSystem
 
 	public record OperatorLocalityTarget(long profileId, PhantomTopologyPoint committedPosition, String topologyNodeId, long topologyGeneration)
 	{
+	}
+
+	/** The production locality supplier; bounded and independent of transport/identity kind. */
+	public static java.util.List<PhantomTopologyPoint> onlineHumanPoints()
+	{
+		return World.getInstance().getPlayers().stream().filter(player -> player.isOnline() && !player.hasHeadlessOutboundSession()).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList();
 	}
 
 	public record OperatorM1TargetSnapshot(long profileId, int objectId, long materializedAtNanos, long sampledAtNanos, PhantomTopologyPoint committedPosition, long committedSequence, PhantomTopologyPoint observedPosition, LocalPlayM1Observation.PositionSource positionSource, boolean worldPresent, boolean snapshotWorldPresent, String materializationState, boolean online, boolean visibleForHuman, boolean moving, boolean attacking, boolean casting, boolean autoPlay, int targetObjectId, boolean targetMonsterAlive)

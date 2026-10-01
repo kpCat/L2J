@@ -5,14 +5,15 @@ param(
 	[string] $Operation,
 	[hashtable] $Arguments = @{},
 	[ValidateRange(1, 120)][int] $TimeoutSeconds = 30,
-	[ValidatePattern('^[0-9a-fA-F-]{36}$')][string] $RunId
+	[ValidatePattern('^[0-9a-fA-F-]{36}$')][string] $RunId,
+	[ValidateSet('RealClient', 'Synthetic')][string] $ActorMode = 'RealClient'
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'LocalPlay-Pilot.ps1')
 
-$context = Get-PilotContext -RequireEnabled
+$context = Get-PilotContext -RequireEnabled -ActorMode $ActorMode
 $lock = Enter-PilotOperatorLock $context
 $effectiveRunId = if ($RunId) { $RunId } else { [guid]::NewGuid().ToString('D') }
 try

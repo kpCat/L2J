@@ -1,5 +1,17 @@
 # STATE
 
+Status: SYNTHETIC_IMPLEMENTED_ACTUAL_MATRIX_REQUIRED_M1_OPEN.
+01.10.2026: continuation-observer-closeout/DESIGN.md и PLAN.md расширены по прямому
+разрешению пользователя на автономный LocalPlay synthetic lane. Native Player,
+LOCALPLAY_TEST_HUMAN, strict realClient/arm, private IPC существующего worker,
+shared M1 phases, exact known-mixed legacy skip cap8. Profile30 доказан mixed18
+pre-fix witness; producer mixed corruption UNKNOWN, repair запрещён и не выполнен.
+Focused/native/linked TEST и offline fake runner PASS; clean build/deploy и actual
+server matrix ещё REQUIRED. До server GREEN не заявлять WAITING_FINAL_CLIENT.
+Новый arm и real connected-run не запускать без fresh final consent. M2 не начинать.
+
+## Previous state
+
 Status: STOPPED_ON_CONNECTED_RED_M1_OPEN; final client gate not passed; M2 not started.
 Continuation: continuation-observer-closeout/RESULT.md. After code commit `af15a1c21ad0d178790a14f2892148f2ee386b9f`/deployed JAR SHA-256 `276D98CA2248B465A08DDBE94CAB92AB3169BCB1A9B9A81CA9934B962077C0A5`, one fresh TestAdmin arm led to exactly one connected run `1cff2c4e-c622-46f0-afc9-1c4726ac68a6`. Selected profile30 STORED_START; TestAdmin reached distance7. RED `APPROACH_DEADLINE_EXPIRED`: all 77 observations `catchup.renewal.background_state_invalid`, STORED/objectId0/World=false, historical COMPLETE.
 Read-only PLAY: profile30 background.state INCONSISTENT rowVersion12119 (recorded before run), catchup COMPLETE rowVersion7662, matching active goal. Exact canonical mismatch producer UNKNOWN; no production fix attempted. Matrix NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN NOT_OBSERVED; RESTORE/STOP PASS, cleanupFailures empty. TestAdmin returned to origin/REAL_LOGIN, Pilot run stopped; session ARMED_IDLE/runActive=false (not OFF), Game/Login owned RUNNING, CONFIG PASS. User can revoke consent with `.playtest off`.

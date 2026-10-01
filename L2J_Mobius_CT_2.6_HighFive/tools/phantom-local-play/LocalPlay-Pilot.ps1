@@ -29,7 +29,7 @@ function Get-PilotIniValue([string] $Path, [string] $Key)
 	return $match.Groups[1].Value.Trim()
 }
 
-function Get-PilotContext([switch] $RequireEnabled)
+function Get-PilotContext([switch] $RequireEnabled, [ValidateSet('RealClient', 'Synthetic')][string] $ActorMode = 'RealClient', [string] $SessionId = '')
 {
 	$runtimeRoot = Get-PilotRuntimeRoot
 	Assert-PilotNoReparse $runtimeRoot
@@ -38,13 +38,27 @@ function Get-PilotContext([switch] $RequireEnabled)
 	$null = [IO.File]::ReadAllText($manifestPath) | ConvertFrom-Json
 	$configPath = Join-Path $runtimeRoot 'game\config\Custom\LocalPlayPilot.ini'
 	if (-not (Test-Path -LiteralPath $configPath)) { throw 'Private LocalPlayPilot.ini не найден.' }
-	if ($RequireEnabled -and ((Get-PilotIniValue $configPath 'EnableLocalPlayPilot') -cne 'True')) { throw 'LocalPlayPilot выключен в private runtime.' }
+	$key = if ($ActorMode -ceq 'Synthetic') { 'EnableLocalPlaySyntheticHuman' } else { 'EnableLocalPlayPilot' }
+	if ($RequireEnabled -and ((Get-PilotIniValue $configPath $key) -cne 'True')) { throw "$key выключен в private runtime." }
 	$gamePort = [int] (Get-PilotIniValue (Join-Path $runtimeRoot 'game\config\Server.ini') 'GameserverPort')
 	$state = Get-LocalPlayRoleState $runtimeRoot 'GameServer' 'GameServer.jar' @($gamePort)
 	if (($state.state -cne 'RUNNING') -or (-not $state.recordVerified)) { throw "GameServer не имеет подтверждённого LocalPlay ownership: $($state.state)." }
 	$pilotRoot = Join-Path $runtimeRoot 'playtest-pilot'
+	$syntheticRoot = Join-Path $runtimeRoot 'playtest-synthetic'
+	if ($ActorMode -ceq 'Synthetic')
+	{
+		Assert-PilotNoReparse $syntheticRoot
+		if (-not $SessionId)
+		{
+			$syntheticState = Read-PilotProperties (Join-Path $syntheticRoot 'session.properties')
+			if (([int]$syntheticState.pid -ne [int]$state.pid) -or ([long]$syntheticState.startTimeUtcTicks -ne [long]$state.startTimeUtcTicks)) { throw 'Synthetic state belongs to another incarnation.' }
+			$SessionId = $syntheticState.sessionId
+		}
+		if ($SessionId -cnotmatch '^[0-9a-fA-F-]{36}$') { throw 'Invalid synthetic session ID.' }
+		$pilotRoot = Join-Path $syntheticRoot $SessionId
+	}
 	Assert-PilotNoReparse $pilotRoot
-	return [pscustomobject]@{ RuntimeRoot = $runtimeRoot; PilotRoot = $pilotRoot; RuntimeId = (Get-LocalPlayRuntimeId $runtimeRoot); Pid = [int] $state.pid; StartTimeUtcTicks = [long] $state.startTimeUtcTicks }
+	return [pscustomobject]@{ RuntimeRoot = $runtimeRoot; PilotRoot = $pilotRoot; SyntheticRoot = $syntheticRoot; RuntimeId = (Get-LocalPlayRuntimeId $runtimeRoot); Pid = [int] $state.pid; StartTimeUtcTicks = [long] $state.startTimeUtcTicks; ActorMode = $ActorMode }
 }
 
 function Protect-PilotDirectory([string] $Path)

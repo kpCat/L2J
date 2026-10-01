@@ -1,5 +1,25 @@
 # План одной реализации
 
+## Дополнение 01.10.2026 — autonomous synthetic lane
+
+Пользователь разрешил эту continuation, exact-path commit/push и controlled deploy.
+Не создавать arm, настоящий connected-run требует последнего fresh consent.
+
+1. READ-ONLY profile30 и attested mixed cohort; unknown не skip и не repair.
+2. Separate LOCALPLAY_TEST_HUMAN lease, native load/World/cleanup, private IPC
+   через существующий Pilot worker. realClient/arm остаются строгими.
+3. Shared M1 phase engine для Synthetic/RealClient; natural candidate selection,
+   максимум восемь exact legacy skips и пять synthetic runs с новыми UUID.
+4. Focused identity/lifecycle/native/human locality/linked historical TEST,
+   actual fake runner, единый review и clean ant jar.
+5. Backup/deploy/CONFIG PASS, actual synthetic server matrix. При RED доказать
+   boundary и producer в TEST до следующего fix/run; максимум три разных fixes.
+6. После server GREEN cleanup/Pilot OFF/health/read-only sanity и
+   WAITING_FINAL_CLIENT. M1 OPEN; M2 не начинать.
+
+Implementation и focused TEST выполнены; controlled deploy/actual synthetic
+matrix ещё REQUIRED. Итог фиксировать в существующих RESULT/STATE/SOURCE_MAP.
+
 > Исполнитель: Codex; inline execution по `superpowers:executing-plans`.
 > Не создавать команды subagents/reviewers на каждый пункт. Один итоговый обзор diff.
 

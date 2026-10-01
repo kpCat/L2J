@@ -205,7 +205,7 @@ foreach ($entry in $patches.GetEnumerator())
 	Assert-CommentsPreserved -Source (Join-Path $sourceDist $relativePath) -Copy $entry.Key
 }
 
-$toolFiles = @("LocalPlay-Ownership.ps1", "Start-LocalPlay.ps1", "Stop-LocalPlay.ps1", "Check-LocalPlay.ps1", "LocalPlay-Pilot.ps1", "Prepare-LocalPlayPilot.ps1", "Get-LocalPlayPilot.ps1", "Invoke-LocalPlayPilot.ps1", "Stop-LocalPlayPilot.ps1", "Run-LocalPlayPilotScenario.ps1")
+$toolFiles = @("LocalPlay-Ownership.ps1", "Start-LocalPlay.ps1", "Stop-LocalPlay.ps1", "Check-LocalPlay.ps1", "LocalPlay-Pilot.ps1", "Prepare-LocalPlayPilot.ps1", "Get-LocalPlayPilot.ps1", "Invoke-LocalPlayPilot.ps1", "Stop-LocalPlayPilot.ps1", "Run-LocalPlayPilotScenario.ps1", "Start-LocalPlaySynthetic.ps1")
 foreach ($toolFile in $toolFiles)
 {
 	Copy-Item -LiteralPath (Join-Path $PSScriptRoot $toolFile) -Destination (Join-Path $temporaryRuntime $toolFile) -Force

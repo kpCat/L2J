@@ -218,6 +218,7 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("29a-legacy-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, true, false, false));
 		registry.add("29b-latent-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, false, true, false));
 		registry.add("29c-running-pending-recovery-to-linked-native-player", context -> testReadyLocalDemandRebuild(context, false, false, true));
+		registry.add("29d-synthetic-world-human-to-linked-native-player", context -> testReadyLocalDemandRebuild(context, false, false, false, true));
 		registry.add("30-complete-renewal-rebuilds-absent-goal-with-background", this::testRenewalWithoutGoalWithBackground);
 		registry.add("31-complete-renewal-rejects-unverifiable-goalless-dead-baseline", this::testRenewalWithoutGoalWithDeadBackground);
 		registry.add("32-running-verify-pending-reconciles-without-cursor-loss", this::testRunningVerifyPending);
@@ -324,6 +325,11 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 
 	private void testReadyLocalDemandRebuild(PhantomTestContext context, boolean legacyRecovery, boolean latentRecovery, boolean runningPendingRecovery) throws Exception
 	{
+		testReadyLocalDemandRebuild(context, legacyRecovery, latentRecovery, runningPendingRecovery, false);
+	}
+
+	private void testReadyLocalDemandRebuild(PhantomTestContext context, boolean legacyRecovery, boolean latentRecovery, boolean runningPendingRecovery, boolean syntheticHuman) throws Exception
+	{
 		final ManagedSnapshot managed = createManaged(context.seed() + 29);
 		final long profileId = managed.profile().profileId();
 		final var ecologyCatalog = PhantomPopulationEcologyCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-ecology-v1.xml"), _catalog, PhantomSocialCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/social/high-five-social-v1.xml")));
@@ -337,13 +343,20 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		}
 		PhantomAssertions.assertTrue(from > 0, "TEST profile has no bounded calendar-online interval.");
 		final long completedAt = from;
-		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()); var humanSession = new org.l2jmobius.gameserver.localplay.LocalPlaySyntheticHumanSession(_environment.observer().objectId(), _environment.observer().characterName()))
 		{
 			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, completedAt - 4, completedAt, context.seed()).status(), "Local-demand fixture did not begin history.");
 			final Snapshot old = runtime.historical().advance(profileId, 4, 4).snapshot();
 			PhantomAssertions.assertEquals(Status.COMPLETE, old.state().status(), "Local-demand fixture has no completed window.");
 			deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
 			deleteComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+			if (syntheticHuman)
+			{
+				final Player human = humanSession.start();
+				human.teleToLocation(managed.state().creationX(), managed.state().creationY(), managed.state().creationZ()); human.onTeleported();
+				PhantomAssertions.assertTrue(humanSession.valid(), "Linked TEST synthetic human was not an ordinary World Player.");
+				context.record("synthetic.linkedHuman", org.l2jmobius.gameserver.localplay.LocalPlayPilotActions.snapshot(human));
+			}
 			recordLinkedTransition(context, "01-human-demand", profileId, runtime, "READY linked, calendar online", "local demand pending");
 			final var assignment = ecologyCatalog.assign(PhantomPopulationEcologyState.Preset.LIVING, managed.state().populationGeneration(), managed.state().creationOrdinal(), context.seed(), completedAt, 0, 0, managed.state().scheduleTemplate());
 			final var ecologyState = new PhantomPopulationEcologyState(assignment.catalogHash(), assignment.preset(), assignment.ecologyGeneration(), assignment.assignmentOrdinal(), assignment.assignedAtEpochMinute(), assignment.virtualJoinEpochMinute(), completedAt, completedAt, PhantomPopulationEcologyState.Pace.OUTLIER, 10000, assignment.productiveBlockMinutes(), assignment.personality(), assignment.initialSocialTraits(), assignment.scheduleTemplate(), assignment.disposition(), assignment.turnoverEligibleEpochMinute(), assignment.replacesProfileId(), "", 0, 0, 0, "");
@@ -384,7 +397,27 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 			ecology.register(managed);
 			try
 			{
-				ecology.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(profileId, 1, true, 1, 1)), 1);
+				if (syntheticHuman)
+				{
+					final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
+					{
+						public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+						public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+					};
+					final var topology = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService.fromSnapshotForTesting(_production.topology().snapshot(), _production.topologyBackend(), org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy.productionDefaults(), signals);
+					PhantomAssertions.assertTrue(topology.start(), "Linked native human topology did not start.");
+					try
+					{
+						topology.registerProfile(profileId);
+						topology.updateProfile(profileId, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(managed.state().creationX(), managed.state().creationY(), managed.state().creationZ(), 0), 1);
+						final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, signals, org.l2jmobius.gameserver.phantoms.PhantomSystem::onlineHumanPoints, System::currentTimeMillis, id -> id == profileId);
+						locality.installPreparationDemand(ecology::updateMaterializationDemand, () -> 1);
+						locality.onPulse();
+						PhantomAssertions.assertTrue(locality.isLocal(profileId), "Production World human supplier did not drive linked ecology demand.");
+					}
+					finally { topology.beginStop(); topology.finishStop(); }
+				}
+				else { ecology.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(profileId, 1, true, 1, 1)), 1); }
 				PhantomAssertions.assertFalse(ecology.requestMaterializationDue(profileId).complete(), "Missing renewal crossed readiness before repair.");
 				recordLinkedTransition(context, "02-ecology-due", profileId, runtime, ecology.dueSnapshot(profileId).toString(), ecology.dueSnapshot(profileId).reason());
 				PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "NORMAL Player appeared before readiness.");

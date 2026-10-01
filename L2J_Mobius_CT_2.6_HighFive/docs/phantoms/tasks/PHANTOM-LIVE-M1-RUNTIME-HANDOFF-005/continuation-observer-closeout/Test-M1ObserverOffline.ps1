@@ -113,6 +113,7 @@ Assert-True ($script:failedPlans -eq 6) 'LIVE_REPLAN_BUDGET_EXACT'
 Assert-True ($script:clockMs -lt 120000) 'LIVE_REPLAN_BUDGET_BEFORE_DEADLINE'
 
 # Exercise the complete runner with virtual time and a naturally materializing moving target.
+$script:fakeOwner = 'REAL_LOGIN'
 $script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false
 $script:liveRouteFailures = 0; $script:liveRelocated = $false
 $script:pilotRunning = $true
@@ -123,7 +124,7 @@ $script:gameMetrics = { [pscustomobject]@{ pid = 123; cpuMillis = $script:clockM
 $script:transport = {
 	param($op, $operationArgs, $id)
 	$now = (& $script:utcNow).ToString('o')
-	$actor = [pscustomobject]@{ identityOwner = 'REAL_LOGIN'; worldPresent = 'true'; teleporting = 'false'; moving = 'false'; x = [string]$script:actorX; y = '0'; z = '0'; instanceId = '0' }
+	$actor = [pscustomobject]@{ identityOwner = $script:fakeOwner; clientIdentity = 'none'; worldPresent = 'true'; teleporting = 'false'; moving = 'false'; x = [string]$script:actorX; y = '0'; z = '0'; instanceId = '0' }
 	if ($op -eq 'STATUS') { return [pscustomobject]@{ status = 'SUCCEEDED'; after = $actor; candidate = [pscustomobject]@{ originX = '1000'; originY = '0'; originZ = '0'; originInstanceId = '0' } } }
 	if ($op -eq 'STOP_MOVE') { return [pscustomobject]@{ status = 'SUCCEEDED' } }
 	if ($op -eq 'MOVE_SELF') { $script:actorX = [int]$operationArgs.x; return [pscustomobject]@{ status = 'ACCEPTED' } }
@@ -181,7 +182,7 @@ $script:transport = {
 			$data["census${n}.idleReason"] = 'NONE'
 		}
 	}
-	return [pscustomobject]@{ status = 'SUCCEEDED'; endUtc = $now; after = ([pscustomobject]@{ identityOwner = 'REAL_LOGIN'; worldPresent = 'true'; teleporting = 'false'; moving = 'false'; x = [string]$script:actorX; y = '0'; z = '0'; instanceId = '0' }); candidate = [pscustomobject]$data }
+	return [pscustomobject]@{ status = 'SUCCEEDED'; endUtc = $now; after = ([pscustomobject]@{ identityOwner = $script:fakeOwner; clientIdentity = 'none'; worldPresent = 'true'; teleporting = 'false'; moving = 'false'; x = [string]$script:actorX; y = '0'; z = '0'; instanceId = '0' }); candidate = [pscustomobject]$data }
 }
 Invoke-M1Run
 $result = Get-Content (Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt') -Raw
@@ -192,4 +193,18 @@ Assert-True ($result -match 'approachRouteFailures=PATHFIND_NULL') 'TYPED_LIVE_R
 Assert-True ($script:liveRouteFailures -eq 1) 'TRANSIENT_LIVE_NO_PATH_DEFERRED'
 Assert-True ($script:liveRelocated) 'LIVE_TARGET_RELOCATED_DURING_APPROACH'
 Assert-True ($script:clockMs -ge 55000) 'VIRTUAL_OBSERVATION_AND_ABSENCE_ELAPSED'
+
+# The same phase engine accepts the separate owner and never grades it as real client M1 GREEN.
+$script:actorMode = 'Synthetic'; $script:fakeOwner = 'LOCALPLAY_TEST_HUMAN'
+$script:syntheticStarts = 0; $script:startActor = { $script:syntheticStarts++ }
+$script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false
+$script:liveRouteFailures = 0; $script:liveRelocated = $false; $script:pilotRunning = $true
+Invoke-M1Run
+$syntheticResult = Get-Content (Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt') -Raw
+Assert-True ($syntheticResult -match 'result=SYNTHETIC_SERVER_GREEN; M1_OPEN; FINAL_CLIENT_REQUIRED') 'SYNTHETIC_IS_NOT_FINAL_M1_GREEN'
+Assert-True ($script:syntheticStarts -eq 1) 'EXACT_ONE_SYNTHETIC_START'
+Assert-True ($syntheticResult -match 'SOFT_RETURN=PASS') 'SYNTHETIC_SHARED_ENGINE_RETURN'
+Assert-True ($syntheticResult -match 'STOP=PASS') 'SYNTHETIC_SHARED_ENGINE_STOP'
+$script:fakeOwner = 'REAL_LOGIN'; $script:pilotRunning = $true
+Assert-Throws { Invoke-M1Run } 'NO_OWNED_SYNTHETIC_HUMAN'
 Write-Output 'M1_OBSERVER_OFFLINE_PASS'

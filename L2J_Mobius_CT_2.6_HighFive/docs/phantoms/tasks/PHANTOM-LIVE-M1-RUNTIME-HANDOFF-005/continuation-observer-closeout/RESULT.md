@@ -1,6 +1,19 @@
 # PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005 — observer closeout
 
-Status: **CONNECTED RED; M1 OPEN; STOPPED**. Ровно один run после fresh arm завершён, TestAdmin восстановлен, Pilot run остановлен. Второго run и самостоятельного исправления не было; M2 и новые task/proof не начаты.
+Status: **SYNTHETIC_IMPLEMENTED; ACTUAL_SERVER_MATRIX_REQUIRED; M1 OPEN**.
+
+## Autonomous synthetic continuation — 01.10.2026
+
+- По разрешению пользователя: ordinary Player.load/client=null/non-headless/LOCALPLAY_TEST_HUMAN; естественный production World human supplier; existing Pilot poller/private IPC; startup не спавнит actor. realClient/arm не ослаблены.
+- Shared Synthetic/RealClient runner: одинаковые семь phases/guards; synthetic grade не закрывает M1, настоящий клиент остаётся final gate.
+- Profile30 — exact mixed18 pre-fix witness: MATERIALIZED12118 -> INCONSISTENT12119, тот же payload кроме state и тот же canonical witness. Mismatch EXP_BEFORE_DEATH,CURRENT_HP,CURRENT_CP,POSITION_X,POSITION_Y,HEADING: background expBeforeDeath43640 HP162/249 CP0/99 x46045 y41251 heading13903; canonical expBeforeDeath0 HP0/249 CP95/99 x34663 y54297 heading23866. MP97/max97, progression/class/race/inventory/skills совпали. Producer mixed legacy UNKNOWN; repair не выполнен.
+- Private attestation ровно mixed7+18: адресные exact identity/version/payload/canonical guards до movement, skip cap8; unknown INCONSISTENT -> typed RED. Recovery/readiness-filter не добавлены.
+- TEST PASS: Pilot6/6, native10/10, linked historical43/43, actual fake runner RealClient/Synthetic и negative synthetic REAL_LOGIN. Topology perception/operator command exit0; operator12/12. Aggregate205 не запускался. Linked profile71769/goal3563586199596126343/0/ACTIVE/farm.background: NORMAL268482871 -> AutoPlay current/start -> native damage7 -> cleanup READY/no Player; exact table SOURCE_MAP.tsv.
+- Review cleanup: native regen quiescence, actor->status locks, immutable submax vitals restore/store, removed-instance tombstone; reload TEST PASS. Clean ant jar PASS, SHA256 B8C608A8C48B2CFF0A1A2642563B136D7641D39B36EB494AAF1F78E1B56A5A0B.
+- Read-only pre-deploy census: READY1280/RETIRED8720; background ABSENT0/READY743/DEAD460/MATERIALIZED68/VERIFY_PENDING0/INCONSISTENT9. PLAY вручную не менялась.
+- Controlled deploy и actual synthetic matrix REQUIRED; arm/connected-run не выполнялись, новых task/proof и M2 нет.
+
+## Previous connected result
 
 ## Предыдущий connected boundary до legacy37
 

@@ -132,6 +132,11 @@ public final class LocalPlayPilotProtocol
 
 	public static void writeResult(Path path, Request request, String status, String reason, Instant started, Instant ended, int actorObjectId, Map<String, String> before, Map<String, String> after, Map<String, String> candidate) throws Exception
 	{
+		writeResult(path, request, status, reason, started, ended, actorObjectId, before, after, candidate, "CONNECTED_SERVER", "LOCALPLAY_PILOT");
+	}
+
+	static void writeResult(Path path, Request request, String status, String reason, Instant started, Instant ended, int actorObjectId, Map<String, String> before, Map<String, String> after, Map<String, String> candidate, String evidenceLevel, String driver) throws Exception
+	{
 		final Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
 		try (OutputStreamWriter writer = new OutputStreamWriter(Files.newOutputStream(temporary), StandardCharsets.UTF_8))
 		{
@@ -149,8 +154,8 @@ public final class LocalPlayPilotProtocol
 			attribute(xml, "startUtc", started.toString());
 			attribute(xml, "endUtc", ended.toString());
 			attribute(xml, "actorObjectId", Integer.toString(actorObjectId));
-			attribute(xml, "evidenceLevel", "CONNECTED_SERVER");
-			attribute(xml, "driver", "LOCALPLAY_PILOT");
+			attribute(xml, "evidenceLevel", evidenceLevel);
+			attribute(xml, "driver", driver);
 			attribute(xml, "harnessResult", status);
 			attribute(xml, "gameplayResult", "NOT_OBSERVED");
 			writeMap(xml, "before", before);

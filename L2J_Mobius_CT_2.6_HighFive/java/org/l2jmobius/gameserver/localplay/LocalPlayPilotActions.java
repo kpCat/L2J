@@ -311,9 +311,8 @@ public final class LocalPlayPilotActions
 		OperatorM1TargetSnapshot selected = null;
 		OperatorAdmissionProfile selectedAdmission = null;
 		EnvelopeRoute selectedRoute = null;
-		int selectedCohort = -1;
-		int selectedRank = -1;
 		int attempts = 0;
+		final List<String> legacySkips = new ArrayList<>();
 		if (reprepareInitial)
 		{
 			selected = PhantomSystem.operatorM1TargetSnapshot(selectedProfileId).orElse(null);
@@ -329,15 +328,19 @@ public final class LocalPlayPilotActions
 				if (attempts >= 8) { break; }
 				final OperatorAdmissionProfile admission = PhantomSystem.operatorAdmissionProfile(candidate.profileId()).orElse(null);
 				if ((admission == null) || !admission.admission().calendarOnline() || !admission.admission().nextBoundary().isAfter(java.time.Instant.now().plusSeconds(240)) || ((candidate.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED) && !"none".equals(admission.busyReason()))) { continue; }
+				final var quarantine = LocalPlayM1LegacyQuarantine.inspect(candidate.profileId());
+				if (quarantine == LocalPlayM1LegacyQuarantine.Decision.UNKNOWN_INCONSISTENT) { return new Outcome("REJECTED", "UNKNOWN_INCONSISTENT:" + candidate.profileId(), Map.of("legacySkips", String.join(";", legacySkips))); }
+				if (quarantine == LocalPlayM1LegacyQuarantine.Decision.KNOWN_LEGACY_FAIL_CLOSED)
+				{
+					if (legacySkips.size() >= 8) { return new Outcome("REJECTED", "KNOWN_LEGACY_SKIP_CAP", Map.of("legacySkips", String.join(";", legacySkips))); }
+					legacySkips.add(candidate.profileId() + ":KNOWN_LEGACY_FAIL_CLOSED");
+					continue;
+				}
 				attempts++;
 				final EnvelopeRoute route = envelopeRoute(candidate.profileId(), candidate.observedPosition());
 				if (route == null) { continue; }
-				final int cohort = (int) candidates.stream().filter(other -> org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(topologyPoint(route.inside()), other.observedPosition())).count();
-				final int rank = (candidate.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED ? 2 : 0) + (cohort >= 4 ? 4 : 0);
-				if ((rank > selectedRank) || ((rank == selectedRank) && (cohort > selectedCohort)))
-				{
-					selected = candidate; selectedAdmission = admission; selectedRoute = route; selectedCohort = cohort; selectedRank = rank;
-				}
+				selected = candidate; selectedAdmission = admission; selectedRoute = route;
+				break;
 			}
 		}
 		if (selected == null) { return Outcome.of("REJECTED", "NO_NATIVE_PREWARM_ROUTE"); }
@@ -363,7 +366,8 @@ public final class LocalPlayPilotActions
 		data.put("initialWorldPresent", Boolean.toString(selected.worldPresent()));
 		data.put("materializedAtNanos", Long.toString(selected.materializedAtNanos()));
 		data.put("objectId", Integer.toString(selected.objectId()));
-		data.put("naturalCohortPrepared", Integer.toString(selectedCohort));
+		final PhantomTopologyPoint cohortInside = topologyPoint(selectedRoute.inside());
+		data.put("naturalCohortPrepared", Long.toString(candidates.stream().filter(other -> org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(cohortInside, other.observedPosition())).count()));
 		data.put("calendarState", selectedAdmission.admission().desiredState().name());
 		data.put("nextBoundary", selectedAdmission.admission().nextBoundary().toString());
 		data.put("readinessReason", selectedAdmission.readiness() == null ? "ecology.disabled" : selectedAdmission.readiness().reason());
@@ -371,6 +375,7 @@ public final class LocalPlayPilotActions
 		putPoint(data, "prewarm", selectedRoute.prewarm());
 		putPoint(data, "inside", selectedRoute.inside());
 		data.put("route", routeText(selectedRoute.path()));
+		data.put("legacySkips", String.join(";", legacySkips));
 		actor.teleToLocation(selectedRoute.outside(), false);
 		return new Outcome("ACCEPTED", "M1_NATURAL_GEO_PROVEN_ENVELOPE", Map.copyOf(data));
 	}

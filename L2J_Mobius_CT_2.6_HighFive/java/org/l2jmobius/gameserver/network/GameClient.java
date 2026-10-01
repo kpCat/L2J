@@ -527,12 +527,13 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 		{
 			return null;
 		}
+		if (localPlayIdentityBusy(objectId)) { LOGGER.warning("LOCALPLAY_TEST_HUMAN_IDENTITY_BUSY:" + objectId); return null; }
 
 		final PhantomIdentityLeaseRegistry identityRegistry = PhantomIdentityLeaseRegistry.getInstance();
 		final OwnerKind currentOwner = identityRegistry.getOwnerKind(objectId);
 		final boolean phantomEnabled = PhantomPlayersConfig.isEnabled();
 		final PhantomBackgroundLoginGuard.Decision preflight = phantomEnabled ? PhantomBackgroundLoginGuard.Decision.ALLOW_ABSENT : PhantomBackgroundLoginGuard.inspect(objectId);
-		if (!PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(phantomEnabled, currentOwner) && !preflight.requiresArbitration())
+		if (!PhantomIdentityLeaseRegistry.requiresRealLoginArbitration(phantomEnabled || org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.isSyntheticEnabled(), currentOwner) && !preflight.requiresArbitration())
 		{
 			return loadWithoutIdentityArbitration(objectId, characterSlot);
 		}
@@ -548,6 +549,10 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 			else if (failedOwner == OwnerKind.BACKGROUND)
 			{
 				LOGGER.warning("Character identity is owned by Phantom background reconciliation: " + objectId);
+			}
+			else if (failedOwner == OwnerKind.LOCALPLAY_TEST_HUMAN)
+			{
+				LOGGER.warning("Character identity is busy in owned LocalPlay test: " + objectId);
 			}
 			else
 			{
@@ -674,6 +679,11 @@ public class GameClient extends Client<org.l2jmobius.commons.network.Connection<
 		}
 
 		return player;
+	}
+
+	private static boolean localPlayIdentityBusy(int objectId)
+	{
+		return PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == OwnerKind.LOCALPLAY_TEST_HUMAN;
 	}
 
 	private synchronized void attachPlayerIdentityLease(Lease identityLease)

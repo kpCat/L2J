@@ -1,17 +1,24 @@
 [CmdletBinding()]
-param([string] $ModuleRoot = '')
+param([string] $ModuleRoot = '', [ValidateSet('RealClient','Synthetic')][string] $ActorMode = 'RealClient')
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $script:module = if ($ModuleRoot) { [IO.Path]::GetFullPath($ModuleRoot) } else { [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..')) }
-$script:invoke = Join-Path $script:module 'tools/phantom-local-play/Invoke-LocalPlayPilot.ps1'
-$script:stopTool = Join-Path $script:module 'tools/phantom-local-play/Stop-LocalPlayPilot.ps1'
+$script:toolsRoot = Join-Path $script:module 'tools/phantom-local-play'
+$privateTools = Join-Path $script:module 'artifacts/local-play/runtime'
+if (Test-Path -LiteralPath (Join-Path $privateTools 'local-play.json')) { $script:toolsRoot = $privateTools }
+$script:invoke = Join-Path $script:toolsRoot 'Invoke-LocalPlayPilot.ps1'
+$script:stopTool = Join-Path $script:toolsRoot 'Stop-LocalPlayPilot.ps1'
 $script:transport = $null
 $script:utcNow = $null
 $script:elapsed = $null
 $script:delay = $null
 $script:stopPilot = $null
 $script:gameMetrics = $null
+$script:actorMode = $ActorMode
+$script:startActor = $null
+
+function Expected-ActorOwner { if ($script:actorMode -ceq 'Synthetic') { return 'LOCALPLAY_TEST_HUMAN' }; return 'REAL_LOGIN' }
 
 function Now-Utc { return (& $script:utcNow) }
 function Elapsed-Ms { return [long](& $script:elapsed) }
@@ -70,7 +77,7 @@ function Capture([string] $phase, [bool] $includeCensus = $false, [string] $tran
 	}
 	$actor = $result.after
 	$target = $result.candidate
-	if (((Read-Field $actor 'identityOwner') -cne 'REAL_LOGIN') -or ((Required-Int $target 'profileId') -ne $script:profileId)) { throw 'ACTOR_OR_TARGET_IDENTITY_CHANGED' }
+	if (((Read-Field $actor 'identityOwner') -cne (Expected-ActorOwner)) -or ((Required-Int $target 'profileId') -ne $script:profileId)) { throw 'ACTOR_OR_TARGET_IDENTITY_CHANGED' }
 	if ((Read-Field $target 'selectionKind') -cne $script:selectionKind) { throw 'SELECTION_KIND_CHANGED' }
 	$utc = (Required-Utc $result 'endUtc').ToString('o')
 	$record = [ordered]@{ utc = $utc; phase = $phase; transition = $transition; humanX = (Required-Int $actor 'x'); humanY = (Required-Int $actor 'y'); humanZ = (Required-Int $actor 'z') }
@@ -274,19 +281,22 @@ function Save-Tsv($data, [string] $name)
 function Invoke-M1Run
 {
 	$script:runId = [guid]::NewGuid().ToString('D')
-	$script:evidenceRoot = Join-Path $script:module ('.phantom-local/m1-005-connected-' + $script:runId)
+	$lane = if ($script:actorMode -ceq 'Synthetic') { 'synthetic' } else { 'connected' }
+	$script:evidenceRoot = Join-Path $script:module ('.phantom-local/m1-005-' + $lane + '-' + $script:runId)
 	[IO.Directory]::CreateDirectory($script:evidenceRoot) | Out-Null
 	$clock = [Diagnostics.Stopwatch]::StartNew()
-	if ($null -eq $script:transport) { $script:transport = { param($op, $operationArgs, $id) & $script:invoke -Operation $op -Arguments $operationArgs -RunId $id } }
+	if ($null -eq $script:transport) { $script:transport = { param($op, $operationArgs, $id) & $script:invoke -Operation $op -Arguments $operationArgs -RunId $id -ActorMode $script:actorMode } }
 	if ($null -eq $script:utcNow) { $script:utcNow = { [DateTimeOffset]::UtcNow } }
 	if ($null -eq $script:elapsed) { $script:elapsed = { $clock.ElapsedMilliseconds }.GetNewClosure() }
 	if ($null -eq $script:delay) { $script:delay = { param($ms) Start-Sleep -Milliseconds $ms } }
-	if ($null -eq $script:stopPilot) { $script:stopPilot = { & $script:stopTool } }
-	if ($null -eq $script:gameMetrics) { $script:gameMetrics = { $pilot = & (Join-Path $script:module 'tools/phantom-local-play/Get-LocalPlayPilot.ps1') | ConvertFrom-Json; $game = Get-Process -Id ([int]$pilot.gamePid) -ErrorAction Stop; [pscustomobject]@{ pid = $game.Id; cpuMillis = [long]$game.TotalProcessorTime.TotalMilliseconds; privateBytes = [long]$game.PrivateMemorySize64; pilotState = $pilot.state } } }
+	if ($null -eq $script:stopPilot) { $script:stopPilot = { & $script:stopTool -ActorMode $script:actorMode -RunId $script:runId } }
+	if (($script:actorMode -ceq 'Synthetic') -and ($null -eq $script:startActor)) { $script:startActor = { & (Join-Path $script:toolsRoot 'Start-LocalPlaySynthetic.ps1') -RunId $script:runId | Out-Null } }
+	if ($null -eq $script:gameMetrics) { $script:gameMetrics = { $pilot = & (Join-Path $script:toolsRoot 'Get-LocalPlayPilot.ps1') -ActorMode $script:actorMode | ConvertFrom-Json; $game = Get-Process -Id ([int]$pilot.gamePid) -ErrorAction Stop; [pscustomobject]@{ pid = $game.Id; cpuMillis = [long]$game.TotalProcessorTime.TotalMilliseconds; privateBytes = [long]$game.PrivateMemorySize64; pilotState = $pilot.state } } }
 	$script:rows = [Collections.Generic.List[object]]::new(); $script:census = [Collections.Generic.List[object]]::new()
 	$script:approachRouteFailures = [Collections.Generic.List[string]]::new()
 	$script:cleanup = $false; $script:cleanupClock = $null; $script:uncertain = $false; $script:requestCount = 0
 	$script:profileId = 0L; $script:selectionKind = ''; $script:origin = $null; $script:restored = $false
+	$script:legacySkips = ''
 	$script:firstLocalUtc = $null; $script:firstCouldKnowUtc = $null; $script:firstClientVisibleUtc = $null; $script:firstMaterializedUtc = $null
 	$script:prewarmMaterialized = $false; $script:prewarmTimingUnproven = $false; $script:continuityLocked = $false
 	$script:lockedObjectId = 0; $script:lockedEpoch = $null; $script:lastNativePoint = $null
@@ -296,13 +306,15 @@ function Invoke-M1Run
 	$matrix = [ordered]@{ NEW_MATERIALIZATION = 'NOT_OBSERVED'; CONTACT = 'NOT_OBSERVED'; NATIVE_LIFE = 'NOT_OBSERVED'; COHORT = 'NOT_OBSERVED'; SOFT_RETURN = 'NOT_OBSERVED'; RESTORE = 'NOT_CONFIRMED'; STOP = 'NOT_CONFIRMED' }
 	try
 	{
+		if ($null -ne $script:startActor) { & $script:startActor }
 		$initial = Invoke-Proof 'STATUS'
-		if (($initial.status -cne 'SUCCEEDED') -or ((Read-Field $initial.after 'identityOwner') -cne 'REAL_LOGIN') -or ((Read-Field $initial.after 'worldPresent') -cne 'true')) { throw 'NO_CONSENTED_REAL_LOGIN' }
+		if (($initial.status -cne 'SUCCEEDED') -or ((Read-Field $initial.after 'identityOwner') -cne (Expected-ActorOwner)) -or ((Read-Field $initial.after 'worldPresent') -cne 'true')) { throw $(if ($script:actorMode -ceq 'Synthetic') { 'NO_OWNED_SYNTHETIC_HUMAN' } else { 'NO_CONSENTED_REAL_LOGIN' }) }
 		$script:startMetrics = & $script:gameMetrics
 		if (($null -eq $script:startMetrics) -or ($script:startMetrics.pilotState -cne 'RUNNING')) { throw 'OWNED_GAME_METRICS_UNAVAILABLE' }
 		$script:origin = [pscustomobject]@{ x = (Required-Int $initial.candidate 'originX'); y = (Required-Int $initial.candidate 'originY'); z = (Required-Int $initial.candidate 'originZ'); instanceId = (Required-Int $initial.candidate 'originInstanceId') }
 		$prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' @{ stage = 'INITIAL' }
 		if ($prepared.status -cne 'ACCEPTED') { throw "PREPARE_INITIAL_REJECTED:$($prepared.reason)" }
+		$script:legacySkips = Read-Field $prepared.candidate 'legacySkips' ''
 		$script:profileId = [long](Required-Int $prepared.candidate 'profileId')
 		$script:selectionKind = Read-Field $prepared.candidate 'selectionKind'
 		if ($script:selectionKind -cnotin @('STORED_START', 'EXISTING_START')) { throw 'INVALID_SELECTION_KIND' }
@@ -365,7 +377,7 @@ function Invoke-M1Run
 		$failedIdle = @($script:census | Where-Object { ($_.eligible -ceq 'true') -and ($_.idleReason -ceq 'ACTIVE_IDLE') -and ($_.travelFailureReason -match '(navigation_|native_progress_|route_absent)') } | Group-Object profileId | Where-Object { $_.Count -ge 2 })
 		$matrix.COHORT = if ($script:censusComplete -and ($eligibleProfiles -ge 4) -and ($failedIdle.Count -eq 0)) { 'PASS' } else { 'INSUFFICIENT_OR_FAILED' }
 	}
-	catch { $primaryFailure = $_.Exception.Message; Write-Warning "CONNECTED FAILED: $primaryFailure" }
+	catch { $primaryFailure = $_.Exception.Message; Write-Warning "$($script:actorMode) FAILED: $primaryFailure" }
 	finally
 	{
 		$script:cleanup = $true; $script:cleanupClock = [Diagnostics.Stopwatch]::StartNew()
@@ -381,7 +393,7 @@ function Invoke-M1Run
 				{
 					Pause-Ms 1000
 					$check = Invoke-Proof 'STATUS'
-					if (($check.status -ceq 'SUCCEEDED') -and ((Read-Field $check.after 'identityOwner') -ceq 'REAL_LOGIN') -and ((Required-Int $check.after 'instanceId') -eq $script:origin.instanceId) -and ([Math]::Abs((Required-Int $check.after 'x') - $script:origin.x) -le 64) -and ([Math]::Abs((Required-Int $check.after 'y') - $script:origin.y) -le 64) -and ([Math]::Abs((Required-Int $check.after 'z') - $script:origin.z) -le 120)) { $script:restored = $true; break }
+					if (($check.status -ceq 'SUCCEEDED') -and ((Read-Field $check.after 'identityOwner') -ceq (Expected-ActorOwner)) -and ((Required-Int $check.after 'instanceId') -eq $script:origin.instanceId) -and ([Math]::Abs((Required-Int $check.after 'x') - $script:origin.x) -le 64) -and ([Math]::Abs((Required-Int $check.after 'y') - $script:origin.y) -le 64) -and ([Math]::Abs((Required-Int $check.after 'z') - $script:origin.z) -le 120)) { $script:restored = $true; break }
 				}
 				if (-not $script:restored) { throw 'ORIGIN_RETURN_NOT_CONFIRMED' }
 				$matrix.RESTORE = 'PASS'
@@ -405,14 +417,16 @@ function Invoke-M1Run
 		{
 			$complete = @($matrix.Values | Where-Object { $_ -cne 'PASS' }).Count -eq 0
 			$grade = if ($complete -and (-not $primaryFailure) -and ($cleanupFailures.Count -eq 0)) { 'GREEN — M1 VISIBLE WORLD COMPLETE (1280)' } elseif (($matrix.CONTACT -ceq 'PASS') -and ($matrix.SOFT_RETURN -ceq 'PASS')) { 'PARTIAL — EXISTING_PLAYER_CONTINUITY_PASS; M1_OPEN' } else { 'RED_OR_UNPROVEN — M1_OPEN' }
+			if ($script:actorMode -ceq 'Synthetic') { $grade = if ($complete -and (-not $primaryFailure) -and ($cleanupFailures.Count -eq 0)) { 'SYNTHETIC_SERVER_GREEN; M1_OPEN; FINAL_CLIENT_REQUIRED' } else { 'SYNTHETIC_SERVER_RED_OR_UNPROVEN; M1_OPEN' } }
 			$lines = @("runId=$script:runId", "result=$grade", "primaryFailure=$primaryFailure", "cleanupFailures=$($cleanupFailures -join ';')", "selectionKind=$script:selectionKind", "profileId=$script:profileId", "requests=$script:requestCount", "approachRouteFailures=$($script:approachRouteFailures -join ';')", "firstLocalUtc=$script:firstLocalUtc", "firstMaterializedUtc=$script:firstMaterializedUtc", "firstCouldKnowUtc=$script:firstCouldKnowUtc", "firstClientVisibleUtc=$script:firstClientVisibleUtc", "stopState=$script:stopState", "gamePid=$(Read-Field $script:startMetrics 'pid')", "cpuStartMillis=$(Read-Field $script:startMetrics 'cpuMillis')", "cpuEndMillis=$(Read-Field $script:endMetrics 'cpuMillis')", "privateStartBytes=$(Read-Field $script:startMetrics 'privateBytes')", "privateEndBytes=$(Read-Field $script:endMetrics 'privateBytes')", "pilotStateAfterStop=$(Read-Field $script:endMetrics 'pilotState' 'UNVERIFIED')")
 			foreach ($key in $matrix.Keys) { $lines += "${key}=$($matrix[$key])" }
+			$lines += @("actorMode=$script:actorMode", "legacySkips=$script:legacySkips")
 			[IO.File]::WriteAllLines((Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt'), $lines, [Text.UTF8Encoding]::new($false))
 		}
 		catch { $cleanupFailures.Add("RESULT_WRITE:$($_.Exception.Message)") }
 	}
 	if ($primaryFailure -or ($cleanupFailures.Count -gt 0) -or (@($matrix.Values | Where-Object { $_ -cne 'PASS' }).Count -gt 0)) { throw "M1_CLOSEOUT_INCOMPLETE:primary=$primaryFailure;cleanup=$($cleanupFailures -join ';');evidence=$script:evidenceRoot" }
-	Write-Host "CONNECTED PASS: profile=$script:profileId evidence=$script:evidenceRoot"
+	Write-Host "$($script:actorMode) SERVER PASS: profile=$script:profileId evidence=$script:evidenceRoot"
 }
 
 if ($MyInvocation.InvocationName -ne '.') { Invoke-M1Run }
