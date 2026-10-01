@@ -1,14 +1,15 @@
 # STATE
 
-Status: CONNECTED_RED_M1_OPEN_STOPPED; final client gate not passed; M2 not started.
-Continuation: continuation-observer-closeout/RESULT.md. Exact latent 37 recovery code commit `538cf3e9cbe22361bcaba778f6af01d2f802ac65` deployed as Game JAR SHA-256 `B6AC3DEB046C5BD93AF5E91BA48F909A8378ECF7723C63C3255CBE40EE0B8596`; startup 37/37 recovered, 0 rejected. Mixed18/Mixed7 remained fail-closed; pre-arm PLAY READY1280/RETIRED8720, CONFIG PASS, Pilot OFF.
-One fresh arm was entered by TestAdmin. Exactly one connected run `5f6a8a74-4433-4758-95af-6b6fd0451d8e` selected STORED_START profile882 and ended `APPROACH_DEADLINE_EXPIRED`. TestAdmin reached distance9; all 95 observations COMMITTED/STORED, objectId0, World=false, readinessReason=catchup.recovery.baseline_or_goal_missing, historical RUNNING with inner cursor29824211/target29824215 unchanged. Cause of historical stall remains UNKNOWN; no repair attempted.
-Matrix NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN NOT_OBSERVED; RESTORE/STOP PASS, cleanupFailures empty. TestAdmin returned to origin with REAL_LOGIN; Pilot ARMED_IDLE/runActive=false (not OFF), Game/Login owned RUNNING, CONFIG PASS. Evidence private under `.phantom-local/m1-005-connected-5f6a8a74-4433-4758-95af-6b6fd0451d8e/`.
-No second connected run, no new arm, no new task/proof, no M2. Stop at exact RED boundary as requested.
+Status: WAITING_ARM_M1_OPEN; final client gate not passed; M2 not started.
+Continuation: continuation-observer-closeout/RESULT.md. Connected RED `5f6a8a74-4433-4758-95af-6b6fd0451d8e` profile882 traced read-only to durable RUNNING catchup + VERIFY_PENDING background/receipt; old historical `advance` rejected the pending marker before strict transaction reconciliation. Historical/background producer path fixed with typed prereq recovery and fail-closed guards; in-memory terminal latch during old run remains UNKNOWN.
+Code commit `af15a1c21ad0d178790a14f2892148f2ee386b9f` matches remote HEAD and deployed Game JAR SHA-256 `276D98CA2248B465A08DDBE94CAB92AB3169BCB1A9B9A81CA9934B962077C0A5`. Guarded TEST historical 42/42 with linked native Player/attack/cleanup, M1 handoff15/15, ecology handoff6/6, background transaction11/11; actual offline fake runner PASS. One controlled deploy from stopped old LocalPlay after coherent PLAY backup. New Login22616/Game25408 healthy; CONFIG PASS, Pilot OFF/runActive=false. Read-only PLAY READY1280/RETIRED8720. Profile882 durable rows unchanged without new human demand; only real-client connected run can close the M1 matrix.
+No new arm or connected run after this fix. Await fresh consent for exactly one existing M1 run; no new task/proof or M2.
 mojibake-маркеры в изменённых файлах проверены.
 escaped Cyrillic в изменённых файлах проверены.
 
 ## Previous state
+
+Prior RED after latent37: source `538cf3e9cbe22361bcaba778f6af01d2f802ac65`, Game JAR SHA-256 `B6AC3DEB046C5BD93AF5E91BA48F909A8378ECF7723C63C3255CBE40EE0B8596`; startup 37/37 recovered, mixed18/mixed7 fail-closed. Connected profile882 reached distance9, remained COMMITTED/STORED in 95/95 observations; NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN NOT_OBSERVED, RESTORE/STOP PASS. Private run evidence remains under `.phantom-local/m1-005-connected-5f6a8a74-4433-4758-95af-6b6fd0451d8e/`.
 
 Status: PRE_ARM_BLOCKED_M1_OPEN; existing profile13 remains fail-closed INCONSISTENT. Новый arm и connected-run после producer fix не запускались; M2 не начат.
 Phase1 read-only PLAY: exact `BACKGROUND_CANONICAL_MISMATCH:CURRENT_HP_CURRENT_CP_POSITION_X_Y_HEADING`; background expected HP128 CP8 x44126 y42751 heading25847, canonical actual HP180 CP72 x45975 y47879 heading12772. RowVersion9791/INCONSISTENT уже существовал до connected run 314658b3; historical writer UNKNOWN. Census READY1280: background ABSENT0/READY419/DEAD626/MATERIALIZED30/VERIFY_PENDING4/INCONSISTENT201. Runtime World split UNKNOWN: `.phantomstatus` дал personal access denied; guard не менялся.
