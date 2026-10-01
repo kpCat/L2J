@@ -1,9 +1,9 @@
 # STATE
 
-Status: WAITING_ARM_M1_OPEN; final client gate not passed; M2 not started.
-Continuation: continuation-observer-closeout/RESULT.md. Connected RED `5f6a8a74-4433-4758-95af-6b6fd0451d8e` profile882 traced read-only to durable RUNNING catchup + VERIFY_PENDING background/receipt; old historical `advance` rejected the pending marker before strict transaction reconciliation. Historical/background producer path fixed with typed prereq recovery and fail-closed guards; in-memory terminal latch during old run remains UNKNOWN.
-Code commit `af15a1c21ad0d178790a14f2892148f2ee386b9f` is published and deployed as Game JAR SHA-256 `276D98CA2248B465A08DDBE94CAB92AB3169BCB1A9B9A81CA9934B962077C0A5`. Guarded TEST historical 42/42 with linked native Player/attack/cleanup, M1 handoff15/15, ecology handoff6/6, background transaction11/11; actual offline fake runner PASS. One controlled deploy from stopped old LocalPlay after coherent PLAY backup. New Login22616/Game25408 healthy; CONFIG PASS, Pilot OFF/runActive=false. Read-only PLAY READY1280/RETIRED8720. Profile882 durable rows unchanged; no addressed human demand was initiated for it in preflight, so its production transition remains unobserved. Only a real-client connected run can close the M1 matrix.
-No new arm or connected run after this fix. Await fresh consent for exactly one existing M1 run; no new task/proof or M2.
+Status: STOPPED_ON_CONNECTED_RED_M1_OPEN; final client gate not passed; M2 not started.
+Continuation: continuation-observer-closeout/RESULT.md. After code commit `af15a1c21ad0d178790a14f2892148f2ee386b9f`/deployed JAR SHA-256 `276D98CA2248B465A08DDBE94CAB92AB3169BCB1A9B9A81CA9934B962077C0A5`, one fresh TestAdmin arm led to exactly one connected run `1cff2c4e-c622-46f0-afc9-1c4726ac68a6`. Selected profile30 STORED_START; TestAdmin reached distance7. RED `APPROACH_DEADLINE_EXPIRED`: all 77 observations `catchup.renewal.background_state_invalid`, STORED/objectId0/World=false, historical COMPLETE.
+Read-only PLAY: profile30 background.state INCONSISTENT rowVersion12119 (recorded before run), catchup COMPLETE rowVersion7662, matching active goal. Exact canonical mismatch producer UNKNOWN; no production fix attempted. Matrix NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN NOT_OBSERVED; RESTORE/STOP PASS, cleanupFailures empty. TestAdmin returned to origin/REAL_LOGIN, Pilot run stopped; session ARMED_IDLE/runActive=false (not OFF), Game/Login owned RUNNING, CONFIG PASS. User can revoke consent with `.playtest off`.
+No second run, no new arm, no new proof/task, no M2. Stop at RED boundary.
 mojibake-маркеры в изменённых файлах проверены.
 escaped Cyrillic в изменённых файлах проверены.
 
