@@ -8705,7 +8705,8 @@ public class Player extends Playable
 	public void autoSave()
 	{
 		// A headless materialization publishes its canonical Player state at the owned store/capture boundary.
-		if (hasHeadlessOutboundSession())
+		// Check headless first: cleanup marks offline before detach, so a retired callback cannot pass both guards.
+		if (hasHeadlessOutboundSession() || !isOnline())
 		{
 			return;
 		}
