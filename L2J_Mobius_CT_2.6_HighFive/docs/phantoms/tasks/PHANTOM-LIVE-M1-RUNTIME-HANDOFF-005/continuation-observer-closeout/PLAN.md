@@ -17,8 +17,10 @@
 6. После server GREEN cleanup/Pilot OFF/health/read-only sanity и
    WAITING_FINAL_CLIENT. M1 OPEN; M2 не начинать.
 
-Implementation и focused TEST выполнены; controlled deploy/actual synthetic
-matrix ещё REQUIRED. Итог фиксировать в существующих RESULT/STATE/SOURCE_MAP.
+Implementation/build/deploy выполнены; actual synthetic run1 RED UNKNOWN_INCONSISTENT:129.
+Доказанный retired autosave producer этой формы TEST GREEN/deployed; current129 authority
+UNKNOWN и full historical gate RED. BLOCKED; run2/arm не запускать. RESULT/STATE/SOURCE_MAP
+содержат evidence; WAITING_FINAL_CLIENT остаётся недостигнутым gate.
 
 > Исполнитель: Codex; inline execution по `superpowers:executing-plans`.
 > Не создавать команды subagents/reviewers на каждый пункт. Один итоговый обзор diff.

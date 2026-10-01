@@ -1,14 +1,20 @@
 # STATE
 
-Status: SYNTHETIC_IMPLEMENTED_ACTUAL_MATRIX_REQUIRED_M1_OPEN.
-01.10.2026: continuation-observer-closeout/DESIGN.md и PLAN.md расширены по прямому
-разрешению пользователя на автономный LocalPlay synthetic lane. Native Player,
-LOCALPLAY_TEST_HUMAN, strict realClient/arm, private IPC существующего worker,
-shared M1 phases, exact known-mixed legacy skip cap8. Profile30 доказан mixed18
-pre-fix witness; producer mixed corruption UNKNOWN, repair запрещён и не выполнен.
-Focused/native/linked TEST и offline fake runner PASS; clean build/deploy и actual
-server matrix ещё REQUIRED. До server GREEN не заявлять WAITING_FINAL_CLIENT.
-Новый arm и real connected-run не запускать без fresh final consent. M2 не начинать.
+Status: BLOCKED_PROFILE129_AUTHORITY_UNKNOWN_SYNTHETIC_RED_M1_OPEN.
+01.10.2026: synthetic lane implemented/published/deployed090373; один actual run
+400ef620-bb76-43f4-9b46-d77a1ab0c801 RED UNKNOWN_INCONSISTENT:129 до movement.
+RESTORE/STOP PASS. Новый post-fix129: coherent DEAD5669 -> divergent MATERIALIZED5706
+-> INCONSISTENT5707; exact HP/CP/XY/heading mismatch. Writer/authoritative side UNKNOWN;
+no recovery/skip. Known mixed25 attestation не расширена, profile30 fail-closed.
+Доказанный retired autosave callback producer этой формы закрыт headless-first/offline
+guard, native RED->GREEN7/7, position7/7/native10/10. Fix9050c5d9d910c004fd42cef961ad2d89e52aba45
+published/remote verified/clean built/deployed; full historical RED42/44, old JAR RED42/43
+на другой boundary. Linked29d отдельно PASS, exact profile71959 table SOURCE_MAP.
+Backup/controlled deploy после ACL rollback: CONFIG PASS, Login27612/Game30272 healthy.
+Pilot OFF/synthetic STOPPED/TestAdmin online0/origin restored. Population1280/8720;
+background READY1017/DEAD187/MATERIALIZED37/INCONSISTENT39, others0.
+BLOCKED; не WAITING_FINAL_CLIENT. Следующий synthetic/arm/connected не выполнялся.
+M1 OPEN; M2 не начинать. Current RESULT содержит exact evidence и границы UNKNOWN.
 
 ## Previous state
 
