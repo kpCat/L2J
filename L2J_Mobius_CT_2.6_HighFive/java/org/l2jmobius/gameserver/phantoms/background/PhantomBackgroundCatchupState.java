@@ -120,6 +120,16 @@ public record PhantomBackgroundCatchupState(Status status, String requestId, lon
 		return new PhantomBackgroundCatchupState(Status.PENDING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, planOrdinal, intervalOrdinal, generation, nextKnowledgeGeneration, nextTopologyGeneration, 0, 0, "", modelVersion, nextHashes, "");
 	}
 
+	/** A lost goal may be rebuilt through baseline planning only before any interval was awarded. */
+	public PhantomBackgroundCatchupState reopenUnplanned(long nextKnowledgeGeneration, long nextTopologyGeneration, Hashes nextHashes)
+	{
+		if (((status != Status.RUNNING) && (status != Status.FAILED_REPLAN_REQUIRED)) || (goalId <= 0) || (cursorEpochMinute != fromEpochMinute) || (intervalOrdinal != 0))
+		{
+			throw new IllegalStateException("Only an unadvanced catch-up can reopen baseline planning.");
+		}
+		return new PhantomBackgroundCatchupState(Status.PENDING, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, Math.addExact(planOrdinal, 1), 0, generation, nextKnowledgeGeneration, nextTopologyGeneration, 0, 0, "", modelVersion, nextHashes, "");
+	}
+
 	public PhantomBackgroundCatchupState blockedForGeneration(String reason, long nextKnowledgeGeneration, long nextTopologyGeneration, Hashes nextHashes)
 	{
 		return new PhantomBackgroundCatchupState(Status.FAILED_REPLAN_REQUIRED, requestId, deterministicSeed, fromEpochMinute, targetEpochMinute, cursorEpochMinute, planOrdinal, intervalOrdinal, generation, nextKnowledgeGeneration, nextTopologyGeneration, goalId, goalRevision, planIdentity, modelVersion, nextHashes, requireBounded(reason, MAX_FAILURE_REASON_LENGTH, "failureReason"));

@@ -421,9 +421,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		{
 			PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
 			StoredGoal storedGoal = _goals.load(profileId).orElse(null);
-			if ((backgroundState == null) || (storedGoal == null) || (storedGoal.goal().goalId() != current.state().goalId()) || (storedGoal.goal().revision() != current.state().goalRevision()))
+			if ((backgroundState == null) || (storedGoal == null) || (storedGoal.goal().goalId() != current.state().goalId()) || (storedGoal.goal().revision() != current.state().goalRevision()) || ((backgroundState.state() != PhantomBackgroundState.State.READY) && (backgroundState.state() != PhantomBackgroundState.State.DEAD)))
 			{
-				return fail(profileId, current, "catchup.runtime_state_or_goal_conflict");
+				final Result restored = restorePrerequisite(profileId, current, backgroundState, storedGoal);
+				if (!restored.successful()) { return restored; }
+				current = restored.snapshot();
+				backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+				storedGoal = _goals.load(profileId).orElse(null);
+				final String remaining = recoveryPrerequisite(profileId, current, backgroundState, storedGoal);
+				if (!remaining.isEmpty()) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, remaining, current); }
 			}
 			if (((backgroundState.state() != PhantomBackgroundState.State.READY) && (backgroundState.state() != PhantomBackgroundState.State.DEAD)) || !backgroundState.hashes().equals(current.state().authorityHashes()))
 			{
@@ -489,6 +495,79 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		return Set.of("transaction.item_conflict", "model.object_cap", "model.object_cap_indivisible", "catchup.authority.unsupported", "planner.target_or_route.absent", "authority.hash_stale", "catchup.authority.authority_stale", "catchup.authority.position_stale", "catchup.authority.target_stale", "catchup.authority.resource_stale", "catchup.authority.unsupported_loot").contains(reason);
 	}
 
+	private String recoveryPrerequisite(long profileId, Snapshot current, PhantomBackgroundState state, StoredGoal goal)
+	{
+		if (state == null) { return "catchup.recovery.background_missing"; }
+		final var profile = _profiles.find(profileId).orElse(null);
+		if ((profile == null) || (profile.characterObjectId() == null) || (state.identity().profileId() != profileId) || (state.identity().characterObjectId() != profile.characterObjectId())) { return "catchup.recovery.background_state_invalid"; }
+		if (goal == null) { return "catchup.recovery.goal_missing"; }
+		if (goal.goal().goalId() != current.state().goalId()) { return "catchup.recovery.goal_id_mismatch"; }
+		if (goal.goal().revision() != current.state().goalRevision()) { return "catchup.recovery.goal_revision_mismatch"; }
+		if (goal.goal().status() != PhantomGoalStatus.ACTIVE) { return "catchup.recovery.goal_status_invalid"; }
+		if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) && !PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goal().goalType())) { return "catchup.recovery.goal_type_invalid"; }
+		if ((state.state() != PhantomBackgroundState.State.READY) && (state.state() != PhantomBackgroundState.State.DEAD)) { return "catchup.recovery.background_state_invalid"; }
+		return "";
+	}
+
+	private Result restorePrerequisite(long profileId, Snapshot current, PhantomBackgroundState state, StoredGoal goal)
+	{
+		final String missing = recoveryPrerequisite(profileId, current, state, goal);
+		if (missing.isEmpty()) { return Result.success(current, 0); }
+		final Result restored;
+		switch (missing)
+		{
+			case "catchup.recovery.background_missing" -> restored = refreshCanonicalBaseline(profileId, current);
+			case "catchup.recovery.goal_missing" -> restored = restoreMissingGoal(profileId, current, state);
+			case "catchup.recovery.goal_revision_mismatch" -> restored = replanStaleGoal(profileId, current, state, goal);
+			case "catchup.recovery.background_state_invalid" ->
+			{
+				if ((state != null) && (state.state() == PhantomBackgroundState.State.VERIFY_PENDING) && (goal != null))
+				{
+					final var reconciled = _background.reconcileHistoricalPending(profileId, goal.goal(), current.state().generation(), Math.addExact(current.state().intervalOrdinal(), 1));
+					restored = reconciled.successful() ? Result.success(current, 0) : Result.rejected(reconciled.status() == OperationStatus.RETRY ? ResultStatusCode.RETRY : ResultStatusCode.REPLAN_REQUIRED, missing, current);
+				}
+				else if ((state != null) && (state.state() == PhantomBackgroundState.State.MATERIALIZED))
+				{
+					final var recovered = _background.recoverAbandonedMaterialization(profileId);
+					restored = recovered.successful() ? Result.success(current, 0) : Result.rejected(recovered.status() == OperationStatus.RETRY ? ResultStatusCode.RETRY : ResultStatusCode.REPLAN_REQUIRED, missing, current);
+				}
+				else { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, missing, current); }
+			}
+			default -> { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, missing, current); }
+		}
+		if (!restored.successful()) { return restored; }
+		final Snapshot updated = _store.load(profileId).orElse(restored.snapshot());
+		final String remaining = recoveryPrerequisite(profileId, updated, _background.acquisitionSnapshot(profileId).orElse(null), _goals.load(profileId).orElse(null));
+		return remaining.isEmpty() ? Result.success(updated, 0) : Result.rejected(ResultStatusCode.REPLAN_REQUIRED, remaining, updated);
+	}
+
+	private Result restoreMissingGoal(long profileId, Snapshot current, PhantomBackgroundState state)
+	{
+		if ((state == null) || (state.state() != PhantomBackgroundState.State.READY)) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.recovery.background_state_invalid", current); }
+		if ((current.state().cursorEpochMinute() != current.state().fromEpochMinute()) || (current.state().intervalOrdinal() != 0)) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.recovery.goal_missing", current); }
+		try
+		{
+			final var generation = _planner.generation();
+			final Snapshot pending = _store.replace(profileId, current, current.state().reopenUnplanned(generation.knowledgeGeneration(), generation.topologyGeneration(), generation.authorityHashes()));
+			return ensureBaseline(profileId, pending);
+		}
+		catch (RuntimeException exception) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.pending_publish_retry", _store.load(profileId).orElse(current)); }
+	}
+
+	private Result replanStaleGoal(long profileId, Snapshot current, PhantomBackgroundState state, StoredGoal goal)
+	{
+		if ((state == null) || (goal == null) || ((state.state() != PhantomBackgroundState.State.READY) && (state.state() != PhantomBackgroundState.State.DEAD))) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.recovery.background_state_invalid", current); }
+		final long ordinal = Math.addExact(current.state().planOrdinal(), 1);
+		final var plan = planOrIdle(profileId, state, goal.goal(), current.state().deterministicSeed(), ordinal, Set.of());
+		if (!plan.ready()) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, plan.reasonKey(), current); }
+		try
+		{
+			final PhantomBackgroundCatchupState replacement = current.state().withPlan(plan.goal().goalId(), plan.goal().revision(), ordinal, plan.planIdentity(), plan.generation().knowledgeGeneration(), plan.generation().topologyGeneration(), plan.generation().authorityHashes());
+			return Result.success(_store.replacePlan(profileId, current, replacement, goal, plan.goal()).catchup(), 0);
+		}
+		catch (RuntimeException exception) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.persistence_retry", _store.load(profileId).orElse(current)); }
+	}
+
 	private Result recoverKnown(long profileId, Snapshot current)
 	{
 		String reason = current.state().failureReason();
@@ -498,11 +577,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			return recoverStale(profileId, current, _planner.generation());
 		}
 		PhantomBackgroundState state = _background.acquisitionSnapshot(profileId).orElse(null);
-		final StoredGoal goal = _goals.load(profileId).orElse(null);
-		if ((state == null) || (goal == null) || (goal.goal().goalId() != current.state().goalId()) || (goal.goal().revision() != current.state().goalRevision()) || ((state.state() != PhantomBackgroundState.State.READY) && (state.state() != PhantomBackgroundState.State.DEAD)))
-		{
-			return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.recovery.baseline_or_goal_missing", current);
-		}
+		StoredGoal goal = _goals.load(profileId).orElse(null);
+		final Result prerequisite = restorePrerequisite(profileId, current, state, goal);
+		if (!prerequisite.successful()) { return prerequisite; }
+		current = prerequisite.snapshot();
+		if (current.state().status() == Status.RUNNING) { return Result.success(current, 0); }
+		state = _background.acquisitionSnapshot(profileId).orElse(null);
+		goal = _goals.load(profileId).orElse(null);
 		if ("catchup.authority.unsupported".equals(reason) && (state.state() == PhantomBackgroundState.State.READY))
 		{
 			final var attempt = _background.historicalFarmAttempt(profileId, goal.goal());
@@ -567,11 +648,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 		}
 		PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
-		final StoredGoal storedGoal = _goals.load(profileId).orElse(null);
-		if ((backgroundState == null) || (storedGoal == null) || (storedGoal.goal().goalId() != current.state().goalId()) || (storedGoal.goal().revision() != current.state().goalRevision()) || ((backgroundState.state() != PhantomBackgroundState.State.READY) && (backgroundState.state() != PhantomBackgroundState.State.DEAD)))
-		{
-			return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.recovery.baseline_or_goal_missing", current);
-		}
+		StoredGoal storedGoal = _goals.load(profileId).orElse(null);
+		final Result prerequisite = restorePrerequisite(profileId, current, backgroundState, storedGoal);
+		if (!prerequisite.successful()) { return prerequisite; }
+		current = prerequisite.snapshot();
+		if ((current.state().status() == Status.RUNNING) && current.state().authorityHashes().equals(generation.authorityHashes())) { return Result.success(current, 0); }
+		backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+		storedGoal = _goals.load(profileId).orElse(null);
 		if (!backgroundState.hashes().equals(generation.authorityHashes()))
 		{
 			final Result refresh = refreshCanonicalBaseline(profileId, current);

@@ -715,6 +715,17 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return loaded.successful() ? Optional.ofNullable(loaded.state()) : Optional.empty();
 	}
 
+	/** Uses the ordinary historical identity lease and transaction receipt to finish a pending commit. */
+	public OperationResult reconcileHistoricalPending(long profileId, PhantomGoal goal, long generation, long nextOrdinal)
+	{
+		final OperationClaim claim = acquire(profileId, goal, generation, nextOrdinal, true);
+		if (!claim.acquired()) { return claim.failure(); }
+		try (claim)
+		{
+			return ((claim.state().state() == State.READY) || (claim.state().state() == State.DEAD)) ? OperationResult.success("background.verify_pending_reconciled") : OperationResult.replan("background.state_invalid");
+		}
+	}
+
 	/** Reconcile a durable MATERIALIZED marker only after proving that no Player owns the character. */
 	public OperationResult recoverAbandonedMaterialization(long profileId)
 	{

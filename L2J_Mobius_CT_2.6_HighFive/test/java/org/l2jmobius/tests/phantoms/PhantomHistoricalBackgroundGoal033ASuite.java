@@ -214,14 +214,115 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("26-complete-renewal-replans-stale-goal", this::testRenewalWithStaleGoal);
 		registry.add("27-complete-renewal-classifies-invalid-background", this::testRenewalWithInvalidBackground);
 		registry.add("28-complete-renewal-recovers-orphaned-materialized-background", this::testRenewalWithOrphanedMaterializedBackground);
-		registry.add("29-ready-local-demand-rebuilds-history-then-native-player", context -> testReadyLocalDemandRebuild(context, false, false));
-		registry.add("29a-legacy-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, true, false));
-		registry.add("29b-latent-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, false, true));
+		registry.add("29-ready-local-demand-rebuilds-history-then-native-player", context -> testReadyLocalDemandRebuild(context, false, false, false));
+		registry.add("29a-legacy-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, true, false, false));
+		registry.add("29b-latent-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, false, true, false));
+		registry.add("29c-running-pending-recovery-to-linked-native-player", context -> testReadyLocalDemandRebuild(context, false, false, true));
 		registry.add("30-complete-renewal-rebuilds-absent-goal-with-background", this::testRenewalWithoutGoalWithBackground);
 		registry.add("31-complete-renewal-rejects-unverifiable-goalless-dead-baseline", this::testRenewalWithoutGoalWithDeadBackground);
+		registry.add("32-running-verify-pending-reconciles-without-cursor-loss", this::testRunningVerifyPending);
+		registry.add("33-failed-recovery-verify-pending-resumes-same-request", this::testFailedRecoveryVerifyPending);
+		registry.add("34-failed-recovery-background-missing", context -> testPrerequisiteRecovery(context, "background", true));
+		registry.add("35-failed-recovery-goal-missing", context -> testPrerequisiteRecovery(context, "goal", true));
+		registry.add("36-failed-recovery-goal-revision-stale", context -> testPrerequisiteRecovery(context, "revision", true));
+		registry.add("37-midstream-goal-missing-remains-fail-closed", this::testMidstreamGoalMissing);
+		registry.add("38-running-recovery-background-missing", context -> testPrerequisiteRecovery(context, "background", false));
+		registry.add("39-running-recovery-goal-missing", context -> testPrerequisiteRecovery(context, "goal", false));
 	}
 
-	private void testReadyLocalDemandRebuild(PhantomTestContext context, boolean legacyRecovery, boolean latentRecovery) throws Exception
+	private void testRunningVerifyPending(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 32).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed()).status(), "VERIFY_PENDING fixture did not begin history.");
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().advance(profileId, 1, 1).status(), "VERIFY_PENDING fixture did not commit its first interval.");
+			final Snapshot before = runtime.historical().status(profileId).orElseThrow();
+			final var component = _profiles.findComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+			final var codec = new PhantomBackgroundStateCodec();
+			final PhantomBackgroundState committed = codec.decode(component.payload());
+			_profiles.updateComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE, component.rowVersion(), PhantomBackgroundState.SCHEMA_VERSION, codec.encode(committed.withState(PhantomBackgroundState.State.VERIFY_PENDING)));
+			PhantomAssertions.assertEquals(PhantomBackgroundState.State.VERIFY_PENDING, runtime.transaction().load(profileId).state().state(), "TEST did not expose a committed pending marker.");
+			final var resumed = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, resumed.status(), "RUNNING history rejected a verifiable pending commit: " + resumed.reason());
+			PhantomAssertions.assertEquals(before.state().requestId(), resumed.snapshot().state().requestId(), "Pending reconciliation replaced request ownership.");
+			PhantomAssertions.assertEquals(before.state().cursorEpochMinute() + 1, resumed.snapshot().state().cursorEpochMinute(), "Pending reconciliation did not advance the same cursor once.");
+		}
+	}
+
+	private void testFailedRecoveryVerifyPending(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 33).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed()).status(), "Failed pending fixture did not begin history.");
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().advance(profileId, 1, 1).status(), "Failed pending fixture did not commit its first interval.");
+			final Snapshot before = runtime.historical().status(profileId).orElseThrow();
+			final var store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			store.replace(profileId, before, before.state().failed("transaction.item_conflict"));
+			final var component = _profiles.findComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+			final var codec = new PhantomBackgroundStateCodec();
+			_profiles.updateComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE, component.rowVersion(), PhantomBackgroundState.SCHEMA_VERSION, codec.encode(codec.decode(component.payload()).withState(PhantomBackgroundState.State.VERIFY_PENDING)));
+			final var resumed = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, resumed.status(), "Failed recovery rejected a verifiable pending commit: " + resumed.reason());
+			PhantomAssertions.assertEquals(before.state().requestId(), resumed.snapshot().state().requestId(), "Failed pending recovery replaced the request.");
+			PhantomAssertions.assertEquals(before.state().cursorEpochMinute() + 1, resumed.snapshot().state().cursorEpochMinute(), "Failed pending recovery lost the cursor.");
+		}
+	}
+
+	private void testPrerequisiteRecovery(PhantomTestContext context, String missing, boolean durableFailure) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + missing.hashCode() + (durableFailure ? 0 : 40)).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed()).status(), "Prerequisite fixture did not begin history.");
+			if (!"goal".equals(missing)) { PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().advance(profileId, 1, 1).status(), "Prerequisite fixture did not commit its prefix."); }
+			final Snapshot before = runtime.historical().status(profileId).orElseThrow();
+			if (durableFailure)
+			{
+				final var store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+				store.replace(profileId, before, before.state().failed("transaction.item_conflict"));
+			}
+			switch (missing)
+			{
+				case "background" -> deleteComponent(profileId, PhantomBackgroundState.COMPONENT_TYPE);
+				case "goal" -> deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+				case "revision" ->
+				{
+					final var current = runtime.goals().load(profileId).orElseThrow();
+					final var state = runtime.background().acquisitionSnapshot(profileId).orElseThrow();
+					final var plan = runtime.planner().replaceFromState(profileId, state, current.goal(), context.seed(), before.state().planOrdinal() + 1);
+					PhantomAssertions.assertTrue(plan.ready(), "Stale revision fixture had no deterministic replacement.");
+					runtime.goals().replace(profileId, current.rowVersion(), plan.goal());
+				}
+				default -> throw new IllegalArgumentException(missing);
+			}
+			final var resumed = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, resumed.status(), "Known " + missing + " recovery remained terminal: " + resumed.reason());
+			PhantomAssertions.assertEquals(before.state().requestId(), resumed.snapshot().state().requestId(), "Known " + missing + " recovery replaced the request.");
+			PhantomAssertions.assertEquals(before.state().cursorEpochMinute() + 1, resumed.snapshot().state().cursorEpochMinute(), "Known " + missing + " recovery lost the cursor.");
+		}
+	}
+
+	private void testMidstreamGoalMissing(PhantomTestContext context) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 37).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().begin(profileId, FROM_MINUTE, FROM_MINUTE + 4, context.seed()).status(), "Midstream fixture did not begin.");
+			PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, runtime.historical().advance(profileId, 1, 1).status(), "Midstream fixture did not commit a prefix.");
+			final var store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+			final Snapshot before = store.load(profileId).orElseThrow();
+			final Snapshot failed = store.replace(profileId, before, before.state().failed("transaction.item_conflict"));
+			deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
+			final var rejected = runtime.historical().advance(profileId, 1, 1);
+			PhantomAssertions.assertEquals(ResultStatusCode.REPLAN_REQUIRED, rejected.status(), "Midstream missing goal silently recreated a possibly different plan.");
+			PhantomAssertions.assertEquals("catchup.recovery.goal_missing", rejected.reason(), "Midstream missing goal lost its typed boundary.");
+			PhantomAssertions.assertEquals(failed, store.load(profileId).orElseThrow(), "Midstream missing goal rewrote the accepted cursor.");
+		}
+	}
+
+	private void testReadyLocalDemandRebuild(PhantomTestContext context, boolean legacyRecovery, boolean latentRecovery, boolean runningPendingRecovery) throws Exception
 	{
 		final ManagedSnapshot managed = createManaged(context.seed() + 29);
 		final long profileId = managed.profile().profileId();
@@ -248,6 +349,7 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 			final var ecologyState = new PhantomPopulationEcologyState(assignment.catalogHash(), assignment.preset(), assignment.ecologyGeneration(), assignment.assignmentOrdinal(), assignment.assignedAtEpochMinute(), assignment.virtualJoinEpochMinute(), completedAt, completedAt, PhantomPopulationEcologyState.Pace.OUTLIER, 10000, assignment.productiveBlockMinutes(), assignment.personality(), assignment.initialSocialTraits(), assignment.scheduleTemplate(), assignment.disposition(), assignment.turnoverEligibleEpochMinute(), assignment.replacesProfileId(), "", 0, 0, 0, "");
 			final var ecologyStore = new PhantomPopulationEcologyStore(_profiles);
 			ecologyStore.insert(profileId, ecologyState);
+			final boolean[] injectedPending = {false};
 			final var historicalPort = new PhantomPopulationEcologyService.HistoricalPort()
 			{
 				@Override public Optional<Snapshot> status(long id) { return runtime.historical().status(id); }
@@ -255,6 +357,18 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 				{
 					final var begun = runtime.historical().begin(id, start, target, seed);
 					if ((id == profileId) && begun.reason().startsWith("catchup.renewal.")) { recordLinkedTransition(context, "03-historical-renewal", id, runtime, begun.status().name(), begun.reason()); }
+					if (runningPendingRecovery && (id == profileId) && begun.successful() && !injectedPending[0])
+					{
+						injectedPending[0] = true;
+						final var prefix = runtime.historical().advance(id, 1, 1);
+						PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, prefix.status(), "Linked RUNNING fixture did not commit a prefix interval.");
+						final var store = new PhantomBackgroundCatchupStore(_profiles, runtime.goals());
+						store.replace(id, prefix.snapshot(), prefix.snapshot().state().failed("transaction.item_conflict"));
+						final var component = _profiles.findComponent(id, PhantomBackgroundState.COMPONENT_TYPE).orElseThrow();
+						final var codec = new PhantomBackgroundStateCodec();
+						_profiles.updateComponent(id, PhantomBackgroundState.COMPONENT_TYPE, component.rowVersion(), PhantomBackgroundState.SCHEMA_VERSION, codec.encode(codec.decode(component.payload()).withState(PhantomBackgroundState.State.VERIFY_PENDING)));
+						recordLinkedTransition(context, "03a-running-pending", id, runtime, "RUNNING_PREFIX_VERIFY_PENDING", "transaction.item_conflict");
+					}
 					return begun;
 				}
 				@Override public PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes) { return runtime.historical().advance(id, intervals, minutes); }
@@ -276,6 +390,7 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 				PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "NORMAL Player appeared before readiness.");
 				for (int pulse = 0; (pulse < 512) && !ecology.requestMaterializationDue(profileId).complete(); pulse++) { ecology.onPopulationPulse(); }
 				PhantomAssertions.assertTrue(context.measurements().containsKey("m1.linked.03-historical-renewal"), "Ecology did not publish a typed historical renewal result.");
+				if (runningPendingRecovery) { PhantomAssertions.assertTrue(injectedPending[0], "Linked fixture did not exercise an already RUNNING request."); }
 				PhantomAssertions.assertTrue(ecology.requestMaterializationDue(profileId).complete(), "Local demand did not finish the same renewal: due=" + ecology.dueSnapshot(profileId) + ",progress=" + ecology.progressSnapshot(profileId) + ",preparation=" + ecology.preparationSnapshot() + ",failure=" + ecology.snapshot().lastFailure());
 				recordLinkedTransition(context, "04-readiness-complete", profileId, runtime, ecology.dueSnapshot(profileId).toString(), ecology.dueSnapshot(profileId).reason());
 				final Snapshot renewed = runtime.historical().status(profileId).orElseThrow();
