@@ -1,10 +1,10 @@
 # STATE
 
-Status: WAITING_ARM_M1_OPEN; final connected client gate REQUIRED; M2 not started.
-Continuation: continuation-observer-closeout/RESULT.md. User-authorized exact latent 37 recovery code commit `538cf3e9cbe22361bcaba778f6af01d2f802ac65` independently verified on remote; clean/deployed Game JAR SHA-256 `B6AC3DEB046C5BD93AF5E91BA48F909A8378ECF7723C63C3255CBE40EE0B8596`.
-Read-only predeploy: 31 exact MATERIALIZED + 6 exact marker-only INCONSISTENT in pinned 37; no changed witness. One additional owned backup/deploy/start used coherent PLAY dump SHA-256 `97434BF6D4FE013F3DA77110279BC4FEE28E4A6129F8FC5552A7FD1383F8238B`; startup 37/37 recovered, 0 rejected. Mixed/unknown were not changed by repair.
-Guarded TEST transaction 11/11, linked native 33/33, native position/autosave BUILD SUCCESSFUL, Pilot native 7/7, actual fake runner PASS. Two read-only postdeploy census: READY1280/RETIRED8720; background ABSENT0/READY856/DEAD379/MATERIALIZED34/VERIFY_PENDING4/INCONSISTENT7. Exact mixed18 remain MATERIALIZED; mixed7 remain INCONSISTENT; no other INCONSISTENT. Profile13 READY rowVersion10275. CONFIG PASS, Login/Game owned RUNNING, Pilot OFF; caps preserved.
-No fresh arm or connected run after producer fix. Next and only action: user fresh consent for one existing connected M1 closeout. GREEN closes M1; RED records exact boundary and stops. No new task/proof or M2.
+Status: CONNECTED_RED_M1_OPEN_STOPPED; final client gate not passed; M2 not started.
+Continuation: continuation-observer-closeout/RESULT.md. Exact latent 37 recovery code commit `538cf3e9cbe22361bcaba778f6af01d2f802ac65` deployed as Game JAR SHA-256 `B6AC3DEB046C5BD93AF5E91BA48F909A8378ECF7723C63C3255CBE40EE0B8596`; startup 37/37 recovered, 0 rejected. Mixed18/Mixed7 remained fail-closed; pre-arm PLAY READY1280/RETIRED8720, CONFIG PASS, Pilot OFF.
+One fresh arm was entered by TestAdmin. Exactly one connected run `5f6a8a74-4433-4758-95af-6b6fd0451d8e` selected STORED_START profile882 and ended `APPROACH_DEADLINE_EXPIRED`. TestAdmin reached distance9; all 95 observations COMMITTED/STORED, objectId0, World=false, readinessReason=catchup.recovery.baseline_or_goal_missing, historical RUNNING with inner cursor29824211/target29824215 unchanged. Cause of historical stall remains UNKNOWN; no repair attempted.
+Matrix NEW_MATERIALIZATION/CONTACT/NATIVE_LIFE/COHORT/SOFT_RETURN NOT_OBSERVED; RESTORE/STOP PASS, cleanupFailures empty. TestAdmin returned to origin with REAL_LOGIN; Pilot ARMED_IDLE/runActive=false (not OFF), Game/Login owned RUNNING, CONFIG PASS. Evidence private under `.phantom-local/m1-005-connected-5f6a8a74-4433-4758-95af-6b6fd0451d8e/`.
+No second connected run, no new arm, no new task/proof, no M2. Stop at exact RED boundary as requested.
 mojibake-маркеры в изменённых файлах проверены.
 escaped Cyrillic в изменённых файлах проверены.
 
