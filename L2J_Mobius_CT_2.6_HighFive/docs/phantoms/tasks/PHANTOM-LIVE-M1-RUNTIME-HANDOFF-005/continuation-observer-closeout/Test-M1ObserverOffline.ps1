@@ -134,7 +134,7 @@ $script:transport = {
 		if ($operationArgs.stage -eq 'INITIAL')
 		{
 			$script:actorX = -3000
-			return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; selectionKind = 'STORED_START'; committedSequence = '1'; nextBoundary = '2026-09-29T10:00:00Z' } }
+			return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; selectionKind = 'STORED_START'; committedSequence = '1'; nextBoundary = '2026-09-29T10:00:00Z'; legacySkips = '71:KNOWN_PREFIX_FAIL_CLOSED' } }
 		}
 		if ($operationArgs.stage -eq 'APPROACH')
 		{
@@ -187,6 +187,7 @@ $script:transport = {
 Invoke-M1Run
 $result = Get-Content (Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt') -Raw
 Assert-True ($result -match 'result=GREEN') 'COMPLETE_FAKE_SCENE_GREEN'
+Assert-True ($result -match 'legacySkips=71:KNOWN_PREFIX_FAIL_CLOSED') 'KNOWN_PREFIX_EVIDENCE_RETAINED'
 Assert-True ($result -match 'NEW_MATERIALIZATION=PASS') 'STORED_PREWARM_PROVEN'
 Assert-True ($result -match 'SOFT_RETURN=PASS') 'SAME_PLAYER_RETURN_PROVEN'
 Assert-True ($result -match 'approachRouteFailures=PATHFIND_NULL') 'TYPED_LIVE_ROUTE_EVIDENCE'
@@ -205,6 +206,19 @@ Assert-True ($syntheticResult -match 'result=SYNTHETIC_SERVER_GREEN; M1_OPEN; FI
 Assert-True ($script:syntheticStarts -eq 1) 'EXACT_ONE_SYNTHETIC_START'
 Assert-True ($syntheticResult -match 'SOFT_RETURN=PASS') 'SYNTHETIC_SHARED_ENGINE_RETURN'
 Assert-True ($syntheticResult -match 'STOP=PASS') 'SYNTHETIC_SHARED_ENGINE_STOP'
+$script:validTransport = $script:transport
+$script:transport = {
+	param($op, $operationArgs, $id)
+	if (($op -eq 'PREPARE_M1_ENVELOPE') -and ($operationArgs.stage -eq 'INITIAL')) { return [pscustomobject]@{ status = 'REJECTED'; reason = 'UNKNOWN_INCONSISTENT:5'; candidate = [pscustomobject]@{ legacySkips = '71:KNOWN_PREFIX_FAIL_CLOSED' } } }
+	if ($op -eq 'MOVE_SELF') { throw 'UNKNOWN_CANDIDATE_MOVED' }
+	return & $script:validTransport $op $operationArgs $id
+}
+$script:pilotRunning = $true
+Assert-Throws { Invoke-M1Run } 'PREPARE_INITIAL_REJECTED:UNKNOWN_INCONSISTENT:5'
+$unknownResult = Get-Content (Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt') -Raw
+Assert-True ($unknownResult -match 'legacySkips=71:KNOWN_PREFIX_FAIL_CLOSED') 'REJECTED_INITIAL_PREFIX_EVIDENCE_RETAINED'
+Assert-True ($unknownResult -notmatch '5:KNOWN_PREFIX_FAIL_CLOSED') 'UNKNOWN_NEVER_SKIPPED'
+$script:transport = $script:validTransport
 $script:fakeOwner = 'REAL_LOGIN'; $script:pilotRunning = $true
 Assert-Throws { Invoke-M1Run } 'NO_OWNED_SYNTHETIC_HUMAN'
 Write-Output 'M1_OBSERVER_OFFLINE_PASS'

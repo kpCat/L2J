@@ -60,12 +60,54 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		registry.add("known-legacy-quarantine-is-exact-and-fail-closed", context ->
 		{
 			final var witness = new org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.Witness(30, 1234, 19, "payload", "canonical");
-			final var known = org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.Decision.KNOWN_LEGACY_FAIL_CLOSED;
+			final var known = org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.Decision.KNOWN_PREFIX_FAIL_CLOSED;
+			final var parser = org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.class.getDeclaredMethod("parseWitnesses", java.util.List.class);
+			parser.setAccessible(true);
+			final String first = "29\t1233\t18\t" + "a".repeat(64) + "\t" + "b".repeat(64);
+			final String second = "30\t1234\t19\t" + "a".repeat(64) + "\t" + "b".repeat(64);
+			final var parsed = (Map<?, ?>) parser.invoke(null, java.util.List.of("M1_KNOWN_PREFIX_FAIL_CLOSED_V2", first, second));
+			PhantomAssertions.assertEquals(2, parsed.size(), "V2 witnesses were not loaded.");
+			for (var invalid : java.util.List.of(java.util.List.of("M1_KNOWN_MIXED_LEGACY_V1", first), java.util.List.of("M1_KNOWN_PREFIX_FAIL_CLOSED_V2", second, first), java.util.List.of("M1_KNOWN_PREFIX_FAIL_CLOSED_V2", first, first)))
+			{
+				PhantomAssertions.assertThrows(java.lang.reflect.InvocationTargetException.class, () -> parser.invoke(null, invalid), "Old/unsorted/duplicate witness manifest was accepted.");
+			}
 			PhantomAssertions.assertEquals(known, org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(witness, 30, 1234, 19, "payload", "canonical"), "Exact known witness was not classified.");
 			PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(witness, 30, 1234, 20, "payload", "canonical"), "New rowVersion was silently skipped.");
 			PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(witness, 30, 1234, 19, "new", "canonical"), "New background was silently skipped.");
 			PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(witness, 30, 1234, 19, "payload", "new"), "New canonical corruption was silently skipped.");
 			PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(null, 30, 1234, 19, "payload", "canonical"), "Unknown corruption was silently skipped.");
+			final var owned = new org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.Witness(31, _actor.getObjectId(), 19, "payload", "canonical");
+			final var autosave = org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance();
+			PhantomAssertions.assertTrue(autosave.contains(_actor), "Native fixture has no autosave owner.");
+			PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(owned, 31, _actor.getObjectId(), 19, "payload", "canonical"), "Autosave owner was silently quarantined.");
+			autosave.remove(_actor);
+			try
+			{
+				try (var lease = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().tryAcquire(_actor.getObjectId(), org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.REAL_LOGIN))
+				{
+					PhantomAssertions.assertTrue(lease != null, "Fixture lease unavailable.");
+					PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(owned, 31, _actor.getObjectId(), 19, "payload", "canonical"), "Identity owner was silently quarantined.");
+				}
+				_actor.spawnMe();
+				try { PhantomAssertions.assertTrue(known != org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.attested(owned, 31, _actor.getObjectId(), 19, "payload", "canonical"), "World owner was silently quarantined."); }
+				finally { _actor.decayMe(); }
+			}
+			finally { autosave.add(_actor); }
+			final var selector = LocalPlayPilotActions.class.getDeclaredMethod("quarantineCandidate", long.class, org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.Decision.class, java.util.List.class);
+			selector.setAccessible(true);
+			final var skips = new java.util.ArrayList<String>();
+			final var skipped = (LocalPlayPilotActions.Outcome) selector.invoke(null, 71L, known, skips);
+			PhantomAssertions.assertEquals("SKIPPED", skipped.status(), "Known prefix did not continue natural order.");
+			PhantomAssertions.assertEquals(java.util.List.of("71:KNOWN_PREFIX_FAIL_CLOSED"), skips, "Typed prefix evidence absent.");
+			PhantomAssertions.assertEquals(null, selector.invoke(null, 9L, org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.Decision.ELIGIBLE, skips), "Next natural eligible candidate was skipped.");
+			final var unknown = (LocalPlayPilotActions.Outcome) selector.invoke(null, 5L, org.l2jmobius.gameserver.localplay.LocalPlayM1LegacyQuarantine.Decision.UNKNOWN_INCONSISTENT, skips);
+			PhantomAssertions.assertEquals("REJECTED", unknown.status(), "Unknown corruption continued selection.");
+			PhantomAssertions.assertEquals("UNKNOWN_INCONSISTENT:5", unknown.reason(), "Unknown boundary lost identity.");
+			PhantomAssertions.assertEquals(1, skips.size(), "Unknown corruption was recorded as known.");
+			for (long id = 100; id < 107; id++) { selector.invoke(null, id, known, skips); }
+			final var capped = (LocalPlayPilotActions.Outcome) selector.invoke(null, 107L, known, skips);
+			PhantomAssertions.assertEquals("KNOWN_PREFIX_SKIP_CAP", capped.reason(), "Existing eight-skip cap changed.");
+			PhantomAssertions.assertEquals(8, skips.size(), "Skip cap expanded silently.");
 		});
 	}
 

@@ -205,8 +205,11 @@ Run-M1RuntimeHandoff -ActorMode Synthetic меняет только START/transp
 
 INITIAL имеет адресную read-only проверку attested legacy quarantine: exact profile,
 character, background payload/state/rowVersion и canonical witness. До movement
-допустимы максимум восемь KNOWN_LEGACY_FAIL_CLOSED skips; unknown INCONSISTENT = RED.
-Quarantine private и включает только доказанные mixed pre-fix witnesses, без recovery.
+допустимы максимум восемь KNOWN_PREFIX_FAIL_CLOSED skips; unknown INCONSISTENT = RED.
+Quarantine V2 private: ровно42 exact pre-9050 durable/canonical пары, pinned SHA,
+sorted unique ids; historical writer/authority UNKNOWN допустимы только для этого
+read-only исключения из evidence. Recovery и production данные не изменяются.
+Любой новый post-9050 unknown drift останавливает synthetic loop до root cause.
 
 Bounded exception >10 файлов: единый LocalPlay lane затрагивает config/service,
 identity arbitration, private tooling/shared runner, focused tests и текущие docs.

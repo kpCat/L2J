@@ -329,11 +329,10 @@ public final class LocalPlayPilotActions
 				final OperatorAdmissionProfile admission = PhantomSystem.operatorAdmissionProfile(candidate.profileId()).orElse(null);
 				if ((admission == null) || !admission.admission().calendarOnline() || !admission.admission().nextBoundary().isAfter(java.time.Instant.now().plusSeconds(240)) || ((candidate.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED) && !"none".equals(admission.busyReason()))) { continue; }
 				final var quarantine = LocalPlayM1LegacyQuarantine.inspect(candidate.profileId());
-				if (quarantine == LocalPlayM1LegacyQuarantine.Decision.UNKNOWN_INCONSISTENT) { return new Outcome("REJECTED", "UNKNOWN_INCONSISTENT:" + candidate.profileId(), Map.of("legacySkips", String.join(";", legacySkips))); }
-				if (quarantine == LocalPlayM1LegacyQuarantine.Decision.KNOWN_LEGACY_FAIL_CLOSED)
+				final Outcome quarantineOutcome = quarantineCandidate(candidate.profileId(), quarantine, legacySkips);
+				if (quarantineOutcome != null)
 				{
-					if (legacySkips.size() >= 8) { return new Outcome("REJECTED", "KNOWN_LEGACY_SKIP_CAP", Map.of("legacySkips", String.join(";", legacySkips))); }
-					legacySkips.add(candidate.profileId() + ":KNOWN_LEGACY_FAIL_CLOSED");
+					if ("REJECTED".equals(quarantineOutcome.status())) { return quarantineOutcome; }
 					continue;
 				}
 				attempts++;
@@ -389,6 +388,16 @@ public final class LocalPlayPilotActions
 		data.put(prefix + "X", Integer.toString(point.getX()));
 		data.put(prefix + "Y", Integer.toString(point.getY()));
 		data.put(prefix + "Z", Integer.toString(point.getZ()));
+	}
+
+	/** Records only exact known witnesses; the caller continues its existing natural candidate order. */
+	private static Outcome quarantineCandidate(long profileId, LocalPlayM1LegacyQuarantine.Decision decision, List<String> skips)
+	{
+		if (decision == LocalPlayM1LegacyQuarantine.Decision.ELIGIBLE) { return null; }
+		if (decision == LocalPlayM1LegacyQuarantine.Decision.UNKNOWN_INCONSISTENT) { return new Outcome("REJECTED", "UNKNOWN_INCONSISTENT:" + profileId, Map.of("legacySkips", String.join(";", skips))); }
+		if (skips.size() >= 8) { return new Outcome("REJECTED", "KNOWN_PREFIX_SKIP_CAP", Map.of("legacySkips", String.join(";", skips))); }
+		skips.add(profileId + ":KNOWN_PREFIX_FAIL_CLOSED");
+		return Outcome.of("SKIPPED", "KNOWN_PREFIX_FAIL_CLOSED");
 	}
 
 	private static String routeText(List<Location> route)

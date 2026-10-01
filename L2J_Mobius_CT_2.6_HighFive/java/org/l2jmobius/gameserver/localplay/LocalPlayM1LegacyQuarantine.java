@@ -18,10 +18,10 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec;
 /** Addressable read-only attestation for operator selection; never repairs or changes readiness. */
 public final class LocalPlayM1LegacyQuarantine
 {
-	public enum Decision { ELIGIBLE, KNOWN_LEGACY_FAIL_CLOSED, UNKNOWN_INCONSISTENT }
+	public enum Decision { ELIGIBLE, KNOWN_PREFIX_FAIL_CLOSED, UNKNOWN_INCONSISTENT }
 	public record Witness(long profileId, int objectId, long rowVersion, String payloadSha256, String canonicalSha256) {}
 	private static volatile Map<Long, Witness> _witnesses = Map.of();
-	private static final String ATTESTED_SHA256 = "c1279ddd0792b699ab0e3f48e66a58b2018187f08a6bb594f49d52f70c74c764";
+	private static final String ATTESTED_SHA256 = "4ed5c029bd6ec495a2ed6910c7ff0f04ce6664121f30df13f396f0c6968a5847";
 
 	private LocalPlayM1LegacyQuarantine() {}
 
@@ -32,23 +32,32 @@ public final class LocalPlayM1LegacyQuarantine
 		final Path file = root.resolve("witnesses.tsv");
 		if (!Files.exists(file)) { return; }
 		if (!LocalPlayPilotService.safeDirectory(root) || !LocalPlayPilotService.privateAcl(root) || !LocalPlayPilotService.privateAcl(file) || Files.isSymbolicLink(file) || !Files.isRegularFile(file) || (Files.size(file) > 16384)) { throw new IllegalArgumentException("M1_QUARANTINE_PRIVATE_GUARD"); }
-		final var lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-		if (!ATTESTED_SHA256.equals(hash(Files.readAllBytes(file)))) { throw new IllegalArgumentException("M1_QUARANTINE_ATTESTATION_CHANGED"); }
-		if (lines.isEmpty() || !"M1_KNOWN_MIXED_LEGACY_V1".equals(lines.get(0)) || (lines.size() > 26)) { throw new IllegalArgumentException("M1_QUARANTINE_HEADER_OR_CAP"); }
+		final byte[] bytes = Files.readAllBytes(file);
+		if (!ATTESTED_SHA256.equals(hash(bytes))) { throw new IllegalArgumentException("M1_QUARANTINE_ATTESTATION_CHANGED"); }
+		_witnesses = parseWitnesses(new String(bytes, StandardCharsets.UTF_8).lines().toList());
+	}
+
+	private static Map<Long, Witness> parseWitnesses(java.util.List<String> lines)
+	{
+		if (lines.isEmpty() || !"M1_KNOWN_PREFIX_FAIL_CLOSED_V2".equals(lines.get(0)) || (lines.size() > 43)) { throw new IllegalArgumentException("M1_QUARANTINE_HEADER_OR_CAP"); }
 		final Map<Long, Witness> values = new HashMap<>();
+		long previous = 0;
 		for (String line : lines.subList(1, lines.size()))
 		{
 			final String[] p = line.split("\t", -1);
 			if ((p.length != 5) || !p[3].matches("[0-9a-f]{64}") || !p[4].matches("[0-9a-f]{64}")) { throw new IllegalArgumentException("M1_QUARANTINE_WITNESS_INVALID"); }
 			final Witness witness = new Witness(Long.parseLong(p[0]), Integer.parseInt(p[1]), Long.parseLong(p[2]), p[3], p[4]);
-			if ((witness.profileId() <= 0) || (witness.objectId() <= 0) || (witness.rowVersion() <= 0) || (values.put(witness.profileId(), witness) != null)) { throw new IllegalArgumentException("M1_QUARANTINE_IDENTITY_INVALID"); }
+			if ((witness.profileId() <= previous) || (witness.objectId() <= 0) || (witness.rowVersion() <= 0) || (values.put(witness.profileId(), witness) != null)) { throw new IllegalArgumentException("M1_QUARANTINE_IDENTITY_INVALID"); }
+			previous = witness.profileId();
 		}
-		_witnesses = Map.copyOf(values);
+		return Map.copyOf(values);
 	}
 
 	public static Decision attested(Witness witness, long profileId, int objectId, long rowVersion, String payloadHash, String canonicalHash)
 	{
-		return (witness != null) && (witness.profileId() == profileId) && (witness.objectId() == objectId) && (witness.rowVersion() == rowVersion) && witness.payloadSha256().equals(payloadHash) && witness.canonicalSha256().equals(canonicalHash) ? Decision.KNOWN_LEGACY_FAIL_CLOSED : Decision.UNKNOWN_INCONSISTENT;
+		if ((witness == null) || (witness.profileId() != profileId) || (witness.objectId() != objectId) || (witness.rowVersion() != rowVersion) || !witness.payloadSha256().equals(payloadHash) || !witness.canonicalSha256().equals(canonicalHash)) { return Decision.UNKNOWN_INCONSISTENT; }
+		if ((org.l2jmobius.gameserver.model.World.getInstance().findObject(objectId) != null) || (org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) != null) || org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(objectId)) { return Decision.UNKNOWN_INCONSISTENT; }
+		return Decision.KNOWN_PREFIX_FAIL_CLOSED;
 	}
 
 	public static Decision inspect(long profileId)

@@ -313,8 +313,8 @@ function Invoke-M1Run
 		if (($null -eq $script:startMetrics) -or ($script:startMetrics.pilotState -cne 'RUNNING')) { throw 'OWNED_GAME_METRICS_UNAVAILABLE' }
 		$script:origin = [pscustomobject]@{ x = (Required-Int $initial.candidate 'originX'); y = (Required-Int $initial.candidate 'originY'); z = (Required-Int $initial.candidate 'originZ'); instanceId = (Required-Int $initial.candidate 'originInstanceId') }
 		$prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' @{ stage = 'INITIAL' }
-		if ($prepared.status -cne 'ACCEPTED') { throw "PREPARE_INITIAL_REJECTED:$($prepared.reason)" }
 		$script:legacySkips = Read-Field $prepared.candidate 'legacySkips' ''
+		if ($prepared.status -cne 'ACCEPTED') { throw "PREPARE_INITIAL_REJECTED:$($prepared.reason)" }
 		$script:profileId = [long](Required-Int $prepared.candidate 'profileId')
 		$script:selectionKind = Read-Field $prepared.candidate 'selectionKind'
 		if ($script:selectionKind -cnotin @('STORED_START', 'EXISTING_START')) { throw 'INVALID_SELECTION_KIND' }
