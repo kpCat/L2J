@@ -59,6 +59,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		AFTER_WORLD_SPAWN,
 		AFTER_ACTION_ADMISSION,
 		BEFORE_STORE_OPERATION,
+		AFTER_NATIVE_STORE,
 		AFTER_STORE_BEFORE_DELETE,
 		BEFORE_DELETE_OPERATION,
 		AFTER_DELETE_BEFORE_IDENTITY_RELEASE
@@ -315,6 +316,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 					_lifecycleSupport.beforeStore(cleanupPlayer);
 					failAfter(FailurePoint.BEFORE_STORE_OPERATION);
 					cleanupPlayer.storeMe();
+					failAfter(FailurePoint.AFTER_NATIVE_STORE);
 					_lifecycleSupport.afterStore(cleanupPlayer);
 				}
 				finally

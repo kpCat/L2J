@@ -101,6 +101,7 @@ public final class LocalPlayPilotService
 			}
 			_pilotRoot = _runtimeRoot.resolve("playtest-pilot");
 			LocalPlayM1LegacyQuarantine.configure(_runtimeRoot);
+			LocalPlayPhantomStoreJournal.configure(_runtimeRoot);
 			if (LocalPlayPilotConfig.isSyntheticEnabled())
 			{
 				_synthetic = new LocalPlaySyntheticHumanService(_runtimeRoot, _runtimeId, _pid, _startTicks, () ->

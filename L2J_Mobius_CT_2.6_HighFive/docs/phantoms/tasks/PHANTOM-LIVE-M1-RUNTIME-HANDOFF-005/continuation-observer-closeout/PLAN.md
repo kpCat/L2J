@@ -1,5 +1,21 @@
 # План одной реализации
 
+## Дополнение 02.10.2026 — один owned store protocol
+
+Используются writing-plans/executing-plans внутри существующей continuation; новая task/proof папка не создаётся.
+RED native matrix: ARRIVAL_AFTER_STORE, CLEANUP_AFTER_STORE, CLEANUP_CAPTURE_COMMIT и ARRIVAL_MUTATION оставляют старый MAT payload против новых canonical vitals/XYZH. Исторический writer PLAY352 остаётся UNKNOWN.
+
+- [x] Trace native store/capture, воспроизвести crash и mutation в существующем guarded native suite.
+- [x] В существующем PhantomBackgroundTransaction: PREPARE отдельного bounded component `background.owned-store`, одновременно BG VERIFY_PENDING; BEFORE/AFTER snapshots, exact rowVersion/payload, epoch/target. Native store не выполняется под DB row locks.
+- [x] FINALIZE и restart reconciliation: canonical AFTER → intended; BEFORE → coherent before; neither → INCONSISTENT, intent сохраняется для diagnostics. Никакого восстановления PLAY352.
+- [x] Один per-Player native store boundary охватывает ARRIVAL/CLEANUP/derived-vitals и другие owned store вызовы. Snapshot проверяется до store и canonical проверяется после; retired/native foreign owner отклоняется.
+- [x] LocalPlay-only private rotating synchronous journal: PREPARE и completion, ownership/epoch/sequence/background version/digest/native before/after/status. Нет worker/timer/scan/endpoint; provision/deploy ещё required.
+- [x] Focused fault/negative matrix, historical44, linked native, synthetic lifecycle и offline runner; clean Ant; whole-change review. Exact-path commit/push ещё required.
+- [ ] Controlled backup/deploy; несколько read-only observations новых post-fix epochs, zero unexplained drift. Только после этого exact prefix352 update и оставшийся synthetic budget3/5 (цель два GREEN, разные natural candidates).
+- [ ] WAITING_FINAL_CLIENT: real arm не создавать, M1 не закрывать synthetic evidence, M2 не начинать.
+
+Bounded exception >10 файлов относится к одному store contract: Player boundary, background service/transaction, bounded intent codec/journal, LocalPlay configuration hook, existing native tests и эти существующие docs. Historical ensureBaseline получил только retained-owner VERIFY_PENDING cleanup retry: PENDING/same goal/lease/admission guards; awards/planning/ecology algorithms, caps1280/64/128/100/maxScheduled10000, foreign SQL/EOL не изменяются.
+
 ## Дополнение 01.10.2026 — autonomous synthetic lane
 
 Пользователь разрешил эту continuation, exact-path commit/push и controlled deploy.

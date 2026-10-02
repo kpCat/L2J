@@ -244,6 +244,16 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		Snapshot current = claimed;
 		StoredGoal storedGoal = _goals.load(profileId).orElse(null);
 		final Optional<PhantomBackgroundState> existingBackground = _background.acquisitionSnapshot(profileId);
+		if (existingBackground.isPresent() && (existingBackground.get().state() == PhantomBackgroundState.State.VERIFY_PENDING) && (current.state().status() == Status.PENDING) && (current.state().goalId() > 0) && (storedGoal != null) && (storedGoal.goal().goalId() == current.state().goalId()) && (storedGoal.goal().revision() == current.state().goalRevision()) && _materialization.find(profileId).filter(owner -> owner.playerRetained() && owner.identityLeaseRetained() && !owner.actionAdmissionOpen()).isPresent())
+		{
+			// The retained Player resolves its exact owned-store receipt before a historical baseline can resume.
+			final var cleaned = _materialization.retryCleanup(profileId);
+			if (cleaned.status() != ResultStatus.SUCCESS)
+			{
+				return Result.rejected(ResultStatusCode.RETRY, "catchup.baseline.cleanup_retry", current);
+			}
+			return ensureBaseline(profileId, _store.load(profileId).orElse(current));
+		}
 		if (existingBackground.isPresent() && (existingBackground.get().state() == PhantomBackgroundState.State.MATERIALIZED) && (current.state().status() == Status.PENDING) && (current.state().goalId() > 0) && (storedGoal != null) && (storedGoal.goal().goalId() == current.state().goalId()) && (storedGoal.goal().revision() == current.state().goalRevision()))
 		{
 			if (_materialization.find(profileId).isPresent())

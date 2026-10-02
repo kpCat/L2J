@@ -281,6 +281,180 @@ public final class PhantomBackgroundTransaction
 		return Map.copyOf(counts);
 	}
 
+	public OwnedStorePreparation prepareOwnedStore(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target)
+	{
+		final long profileId = captured.identity().profileId();
+		final int objectId = captured.identity().characterObjectId();
+		boolean commitAttempted = false;
+		PhantomOwnedStoreIntent preparedIntent = null;
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, profileId), objectId);
+				lockAndValidateGoal(connection, profileId, goal, false);
+				final LockedComponent component = lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE);
+				if (lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE) != null) { throw new StateConflict(Status.STATE_CONFLICT); }
+				final var previous = component == null ? null : decodeState(component);
+				if ((previous != null) && (!previous.identity().equals(captured.identity()) || ((previous.state() != State.MATERIALIZED) && (previous.state() != State.READY) && (previous.state() != State.DEAD)))) { throw new StateConflict(Status.STATE_CONFLICT); }
+				final Canonical canonical = lockCanonical(connection, captured.identity());
+				final List<ItemRow> items = lockItems(connection, objectId);
+				final Map<Integer, Integer> skills = lockSkills(connection, captured.identity());
+				if ((canonical.classId() != captured.identity().activeClassId()) || (canonical.raceOrdinal() != captured.identity().raceOrdinal()) || (captured.position().instanceId() != 0)) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
+				// BEFORE is an exact canonical witness, not an assertion that native skills have already caught up with the stored level.
+				final var beforeTemplate = previous == null ? captured : previous;
+				final var before = new PhantomBackgroundState(canonical.vitals().currentHp() == 0 ? State.DEAD : State.READY, captured.identity(), new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), canonical.vitals(), new Position(0, canonical.position().x(), canonical.position().y(), canonical.position().z(), canonical.position().heading(), beforeTemplate.position().committedAnchorId()), beforeTemplate.combat(), beforeTemplate.loadout(), inventoryFacts(items, beforeTemplate.inventory()), canonicalAutoGetSkills(captured.identity(), canonical.level()), beforeTemplate.clock(), beforeTemplate.receipt(), beforeTemplate.hashes());
+				final var progress = captured.progress();
+				final var intendedCanonical = new Canonical(progress.level(), progress.experience(), progress.skillPoints(), progress.experienceBeforeDeath(), canonicalVitals(captured.vitals()), captured.position(), captured.identity().activeClassId(), captured.identity().raceOrdinal());
+				final var after = capturedState(captured, intendedCanonical, items, skills);
+				if (!captured.inventory().canonicalHash().isEmpty() && !captured.inventory().equals(after.inventory())) { throw new StateConflict(Status.ITEM_CONFLICT); }
+				final var intent = new PhantomOwnedStoreIntent(component == null ? 0 : Math.addExact(component.rowVersion(), 1), epoch, target, previous == null ? "ABSENT" : previous.state().name(), component == null ? "ABSENT" : payloadDigest(component.payload()), ownedSkillsHash(skills), before, after);
+				preparedIntent = intent;
+				writeComponent(connection, component, after.withState(State.VERIFY_PENDING));
+				try (var statement = prepare(connection, INSERT_COMPONENT))
+				{
+					statement.setLong(1, profileId); statement.setString(2, PhantomOwnedStoreIntent.COMPONENT_TYPE); statement.setInt(3, PhantomOwnedStoreIntent.SCHEMA_VERSION); statement.setBytes(4, intent.encode()); requireOne(statement.executeUpdate(), "owned store prepare");
+				}
+				_faultInjector.inject(FaultPoint.BEFORE_OWNED_PREPARE_COMMIT);
+				commitAttempted = true;
+				connection.commit();
+				_faultInjector.inject(FaultPoint.AFTER_OWNED_PREPARE_COMMIT);
+				return new OwnedStorePreparation(Status.SUCCESS, intent);
+			}
+			catch (Throwable failure) { if (!commitAttempted) { rollback(connection, failure); } return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), commitAttempted ? preparedIntent : null); }
+		}
+		catch (SQLException | RuntimeException failure) { return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), commitAttempted ? preparedIntent : null); }
+	}
+
+	public Result finalizeOwnedStore(long profileId, int objectId, long epoch)
+	{
+		boolean commitAttempted = false;
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, profileId), objectId);
+				final var component = requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE));
+				final var intent = lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE);
+				if (intent == null) { throw new StateConflict(Status.STATE_CONFLICT); }
+				final Result result = resolveOwnedStore(connection, component, intent, profileId, objectId, epoch, false);
+				_faultInjector.inject(FaultPoint.BEFORE_OWNED_FINALIZE_COMMIT);
+				commitAttempted = true; connection.commit();
+				_faultInjector.inject(FaultPoint.AFTER_OWNED_FINALIZE_COMMIT);
+				return result;
+			}
+			catch (Throwable failure) { if (!commitAttempted) { rollback(connection, failure); } return commitAttempted ? Result.rejected(Status.COMMIT_OUTCOME_UNKNOWN) : failureResult(failure); }
+		}
+		catch (SQLException | RuntimeException failure) { return commitAttempted ? Result.rejected(Status.COMMIT_OUTCOME_UNKNOWN) : failureResult(failure); }
+	}
+
+	private Result resolveOwnedStore(Connection connection, LockedComponent component, LockedComponent receipt, long profileId, int objectId, long epoch, boolean restart) throws SQLException
+	{
+		if (receipt.schemaVersion() != PhantomOwnedStoreIntent.SCHEMA_VERSION) { throw new StateConflict(Status.STATE_CONFLICT); }
+		final var intent = PhantomOwnedStoreIntent.decode(receipt.payload());
+		final var current = decodeState(component);
+		if ((intent.after().identity().profileId() != profileId) || (intent.after().identity().characterObjectId() != objectId) || (!restart && (intent.materializedAtNanos() != epoch)) || (component.rowVersion() != intent.preparedRowVersion()) || !Arrays.equals(component.payload(), _stateCodec.encode(intent.after().withState(State.VERIFY_PENDING)))) { throw new StateConflict(Status.STATE_CONFLICT); }
+		final var canonical = lockCanonical(connection, current.identity());
+		final var items = lockItems(connection, objectId);
+		final var skills = lockSkills(connection, current.identity());
+		boolean afterMatches = intent.skillsHash().equals(ownedSkillsHash(skills)) && durableMatches(intent.after(), canonical, items, skills);
+		final boolean beforeMatches = intent.skillsHash().equals(ownedSkillsHash(skills)) && ownedCanonicalFactsMatch(intent.before(), canonical, items);
+		if (!afterMatches && !beforeMatches)
+		{
+			final var inconsistent = current.withState(State.INCONSISTENT);
+			writeComponent(connection, component, inconsistent);
+			return new Result(Status.OWNED_STORE_CANONICAL_NEITHER, inconsistent);
+		}
+		if (!restart && !afterMatches) { return Result.rejected(Status.POST_COMMIT_VERIFICATION_FAILED); }
+		if (restart && !afterMatches && !durableMatches(intent.before(), canonical, items, skills))
+		{
+			// Native level-up may have stored its skills before the character base row. Only an exact attested intermediate can be replayed.
+			if ((intent.before().progress().level() >= intent.after().progress().level()) || !canonicalAutoGetSkills(intent.after().identity(), intent.after().progress().level()).equals(intent.after().autoGetSkills()) || !inventoryFacts(items, intent.after().inventory()).equals(intent.after().inventory()) || !ownedSkillsMatch(intent.after(), skills)) { throw new StateConflict(Status.PROGRESSION_CONFLICT); }
+			final int id = intent.after().identity().characterObjectId();
+			final var leaseOwner = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(id);
+			if ((leaseOwner != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND) && (leaseOwner != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM)) { throw new StateConflict(Status.STATE_CONFLICT); }
+			if ((org.l2jmobius.gameserver.model.World.getInstance().findObject(id) != null) || (org.l2jmobius.gameserver.model.World.getInstance().getPlayer(id) != null) || org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(id)) { throw new StateConflict(Status.STATE_CONFLICT); }
+			mutateProgressAndVitals(connection, intent.after().identity(), intent.after().progress(), intent.after().vitals(), intent.after().position());
+			try (var statement = prepare(connection, "UPDATE characters SET maxHp=?,maxMp=?,maxCp=? WHERE charId=?"))
+			{
+				statement.setDouble(1, intent.after().vitals().maximumHp()); statement.setDouble(2, intent.after().vitals().maximumMp()); statement.setDouble(3, intent.after().vitals().maximumCp()); statement.setInt(4, id); requireOne(statement.executeUpdate(), "owned replay maxima");
+			}
+			afterMatches = durableMatches(intent.after(), lockCanonical(connection, intent.after().identity()), items, skills);
+			if (!afterMatches) { throw new StateConflict(Status.POST_COMMIT_VERIFICATION_FAILED); }
+		}
+		final var chosen = afterMatches ? intent.after() : intent.before();
+		final var completed = chosen.withState(restart ? (chosen.vitals().currentHp() == 0 ? State.DEAD : State.READY) : intent.targetState());
+		writeComponent(connection, component, completed);
+		try (var statement = prepare(connection, "DELETE FROM phantom_profile_components WHERE profile_id=? AND component_type=? AND row_version=?"))
+		{
+			statement.setLong(1, profileId); statement.setString(2, PhantomOwnedStoreIntent.COMPONENT_TYPE); statement.setLong(3, receipt.rowVersion()); requireOne(statement.executeUpdate(), "owned store finalize");
+		}
+		return new Result(Status.SUCCESS, completed);
+	}
+
+	/** Bounded retry of exactly this Player's receipt; never replaces another pending operation. */
+	public OwnedStorePreparation resumeOwnedStore(PhantomOwnedStoreIntent expected)
+	{
+		boolean commitAttempted = false;
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				final var identity = expected.after().identity();
+				requireProfileLink(lockProfile(connection, identity.profileId()), identity.characterObjectId());
+				final var component = lockComponent(connection, identity.profileId(), PhantomBackgroundState.COMPONENT_TYPE);
+				final var receipt = lockComponent(connection, identity.profileId(), PhantomOwnedStoreIntent.COMPONENT_TYPE);
+				if (receipt == null)
+				{
+					final var completed = expected.after().withState(expected.targetState());
+					final var canonical = lockCanonical(connection, identity); final var items = lockItems(connection, identity.characterObjectId()); final var skills = lockSkills(connection, identity);
+					final boolean originalComponent = component == null ? expected.previousState().equals("ABSENT") && (expected.preparedRowVersion() == 0) : (component.rowVersion() == expected.preparedRowVersion() - 1) && expected.previousPayloadHash().equals(payloadDigest(component.payload())) && expected.previousState().equals(decodeState(component).state().name());
+					if (originalComponent && expected.skillsHash().equals(ownedSkillsHash(skills)) && ownedCanonicalFactsMatch(expected.before(), canonical, items)) { connection.rollback(); return new OwnedStorePreparation(Status.SUCCESS, null); }
+					if (component == null) { throw new StateConflict(Status.STATE_CONFLICT); }
+					if ((component.rowVersion() != Math.addExact(expected.preparedRowVersion(), 1)) || !Arrays.equals(component.payload(), _stateCodec.encode(completed)) || !expected.skillsHash().equals(ownedSkillsHash(skills)) || !durableMatches(completed, canonical, items, skills)) { throw new StateConflict(Status.STATE_CONFLICT); }
+					connection.rollback(); return new OwnedStorePreparation(Status.SUCCESS, null);
+				}
+				if (component == null) { throw new StateConflict(Status.STATE_CONFLICT); }
+				if ((receipt.schemaVersion() != PhantomOwnedStoreIntent.SCHEMA_VERSION) || !Arrays.equals(receipt.payload(), expected.encode())) { throw new StateConflict(Status.STATE_CONFLICT); }
+				final var result = resolveOwnedStore(connection, component, receipt, identity.profileId(), identity.characterObjectId(), expected.materializedAtNanos(), false);
+				if (result.status() == Status.POST_COMMIT_VERIFICATION_FAILED) { connection.rollback(); return new OwnedStorePreparation(result.status(), expected); }
+				commitAttempted = true; connection.commit();
+				return new OwnedStorePreparation(result.status(), null);
+			}
+			catch (Throwable failure) { if (!commitAttempted) { rollback(connection, failure); } return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), expected); }
+		}
+		catch (SQLException | RuntimeException failure) { return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), expected); }
+	}
+
+	private static String ownedSkillsHash(Map<Integer, Integer> skills)
+	{
+		return payloadDigest(skills.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(entry -> entry.getKey() + ":" + entry.getValue() + "\n").collect(java.util.stream.Collectors.joining()).getBytes(StandardCharsets.US_ASCII));
+	}
+
+	private static boolean ownedSkillsMatch(PhantomBackgroundState state, Map<Integer, Integer> skills)
+	{
+		return state.autoGetSkills().stream().allMatch(skill -> Integer.valueOf(skill.skillLevel()).equals(skills.get(skill.skillId())));
+	}
+
+	private boolean ownedCanonicalFactsMatch(PhantomBackgroundState state, Canonical canonical, List<ItemRow> items)
+	{
+		return (canonical.classId() == state.identity().activeClassId()) && (canonical.raceOrdinal() == state.identity().raceOrdinal()) && new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()).equals(state.progress()) && vitalsEqual(canonical.vitals(), state.vitals()) && (canonical.position().x() == state.position().x()) && (canonical.position().y() == state.position().y()) && (canonical.position().z() == state.position().z()) && (canonical.position().heading() == state.position().heading()) && inventoryFacts(items, state.inventory()).equals(state.inventory());
+	}
+
+	public record OwnedStorePreparation(Status status, PhantomOwnedStoreIntent intent)
+	{
+		public boolean successful() { return status == Status.SUCCESS; }
+	}
+
+	public static String payloadDigest(byte[] payload)
+	{
+		try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(payload)); }
+		catch (NoSuchAlgorithmException failure) { throw new IllegalStateException(failure); }
+	}
+
 	public Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)
 	{
 		return captureBaseline(materializedState, goal, true);
@@ -380,6 +554,12 @@ public final class PhantomBackgroundTransaction
 			{
 				requireProfileLink(lockProfile(connection, profileId), characterObjectId);
 				final LockedComponent component = requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE));
+				final var ownedReceipt = lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE);
+				if (ownedReceipt != null)
+				{
+					final Result resolved = resolveOwnedStore(connection, component, ownedReceipt, profileId, characterObjectId, 0, true);
+					connection.commit(); return resolved;
+				}
 				final PhantomBackgroundState current = decodeState(component);
 				if (current.state() == State.INCONSISTENT)
 				{
@@ -757,6 +937,12 @@ public final class PhantomBackgroundTransaction
 			{
 				requireProfileLink(lockProfile(connection, profileId), characterObjectId);
 				final LockedComponent component = requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE));
+				final var ownedReceipt = lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE);
+				if (ownedReceipt != null)
+				{
+					final Result resolved = resolveOwnedStore(connection, component, ownedReceipt, profileId, characterObjectId, 0, true);
+					connection.commit(); return resolved;
+				}
 				final PhantomBackgroundState pending = decodeState(component);
 				if (pending.state() == State.INCONSISTENT)
 				{
@@ -1968,11 +2154,21 @@ public final class PhantomBackgroundTransaction
 		INCONSISTENT,
 		BACKEND_FAILURE,
 		COMMIT_OUTCOME_UNKNOWN,
-		POST_COMMIT_VERIFICATION_FAILED
+		POST_COMMIT_VERIFICATION_FAILED,
+		OWNED_STORE_CANONICAL_NEITHER
 	}
 
 	public enum FaultPoint
 	{
+		BEFORE_OWNED_PREPARE_COMMIT,
+		AFTER_OWNED_PREPARE_COMMIT,
+		AFTER_OWNED_PREPARE,
+		AFTER_OWNED_NATIVE_STORE,
+		BEFORE_OWNED_FINALIZE_COMMIT,
+		AFTER_OWNED_FINALIZE_COMMIT,
+		ARRIVAL_AFTER_CAPTURE,
+		ARRIVAL_AFTER_STORE,
+		ARRIVAL_AFTER_BASELINE,
 		AFTER_PROFILE_LOCK,
 		AFTER_GOAL_LOCK,
 		AFTER_CATCHUP_LOCK,
@@ -1992,6 +2188,12 @@ public final class PhantomBackgroundTransaction
 		BEFORE_VERIFY_COMMIT,
 		BEFORE_CAPTURE_COMMIT,
 		BEFORE_MATERIALIZED_COMMIT
+	}
+
+	/** Existing guarded TEST injector; production default is a no-op. */
+	public void lifecycleCheckpoint(FaultPoint point)
+	{
+		_faultInjector.inject(point);
 	}
 
 	@FunctionalInterface

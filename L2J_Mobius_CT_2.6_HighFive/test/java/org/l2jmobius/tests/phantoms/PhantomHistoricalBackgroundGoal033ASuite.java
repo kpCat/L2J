@@ -830,7 +830,7 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(profileId).status(), "Levelled READY baseline failed owned store.");
 			before = runtime.transaction().load(profileId).state();
 			deleteComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE);
-			fault.set(FaultPoint.BEFORE_CAPTURE_COMMIT);
+			fault.set(FaultPoint.BEFORE_OWNED_FINALIZE_COMMIT);
 			final var interrupted = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
 			PhantomAssertions.assertEquals(ResultStatusCode.RETRY, interrupted.status(), "One-time baseline capture failure did not retain the same renewal.");
 			PhantomAssertions.assertTrue(interrupted.reason().endsWith("catchup.baseline.store_retry"), "Interrupted baseline did not report the store boundary: " + interrupted.reason());

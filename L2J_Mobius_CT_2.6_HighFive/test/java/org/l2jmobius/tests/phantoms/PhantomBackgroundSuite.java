@@ -493,6 +493,16 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private void registerPositionCanonicalization(PhantomTestRegistry registry)
 	{
+		if ("owned-store-transaction".equals(System.getProperty("phantom.background.position.focus", "")))
+		{
+			registry.add("09-owned-store-before-after-neither-and-snapshot", this::testOwnedStoreProtocol);
+			return;
+		}
+		if ("owned-store".equals(System.getProperty("phantom.background.position.focus", "")))
+		{
+			registry.add("08-owned-store-crash-and-mutation-matrix", this::testOwnedStoreCrashMatrix);
+			return;
+		}
 		registry.add("01-canonical-anchor-policy-and-negative-controls", this::testCanonicalAnchorPolicy);
 		registry.add("02-real-player-travel-materialization-restart", this::testProductionPositionTransition);
 		registry.add("03-native-farm-movement-keeps-real-position", _ -> testNativeFarmAreaCapture());
@@ -500,6 +510,262 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("05-restored-pending-cold-queue-to-native-player", context -> testPendingNativeHandoff(context, false));
 		registry.add("06-complete-history-uncommitted-outer-cursor", context -> testPendingNativeHandoff(context, true));
 		registry.add("07-dead-level-loss-native-load-and-progress-fence", context -> testPendingNativeHandoff(context, true, true));
+		registry.add("08-owned-store-crash-and-mutation-matrix", this::testOwnedStoreCrashMatrix);
+		registry.add("09-owned-store-before-after-neither-and-snapshot", this::testOwnedStoreProtocol);
+	}
+
+	private void testOwnedStoreProtocol(PhantomTestContext context) throws Exception
+	{
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		for (String scenario : List.of("NORMAL_ARRIVAL", "NORMAL_CLEANUP", "BEFORE_STORE", "AFTER_STORE", "FINALIZE_COMMIT", "SNAPSHOT_MUTATION", "SNAPSHOT_PROGRESSION", "PARTIAL_UNKNOWN", "STALE_EPOCH", "LEVEL_UP_BEFORE", "LEVEL_UP_AFTER", "PREPARE_ACK_UNKNOWN", "FINALIZE_ACK_UNKNOWN", "PREPARE_UNCOMMITTED", "STALE_VERSION", "CHANGED_PAYLOAD", "PARTIAL_ITEM"))
+		{
+			try (var fixture = openProductionPlayerFixture(farm.anchor(), scenario.startsWith("LEVEL_UP") ? 19 : 7, PlayerClass.ELVEN_MAGE, farm))
+			{
+				final Player player = fixture.player();
+				final var profile = _repository.create(player.getObjectId());
+				final long id = profile.profileId(); final int objectId = player.getObjectId(); final long epoch = 123456789;
+				final var goals = new PhantomGoalStateStore(_repository); goals.insert(id, fixture.goal());
+				final var faults = new java.util.concurrent.atomic.AtomicBoolean();
+				final var transaction = new PhantomBackgroundTransaction(() ->
+				{
+					final var delegate = DatabaseFactory.getConnection();
+					if (!scenario.equals("PREPARE_UNCOMMITTED")) { return delegate; }
+					// Reuse the existing Economy suite Connection proxy pattern, entirely inside guarded TEST.
+					return (java.sql.Connection) java.lang.reflect.Proxy.newProxyInstance(java.sql.Connection.class.getClassLoader(), new Class<?>[] { java.sql.Connection.class }, (_, method, arguments) ->
+					{
+						if (method.getName().equals("commit") && faults.compareAndSet(true, false)) { delegate.rollback(); throw new java.sql.SQLException("TEST_COMMIT_NOT_DURABLE"); }
+						try { return method.invoke(delegate, arguments); } catch (java.lang.reflect.InvocationTargetException failure) { throw failure.getCause(); }
+					});
+				}, allocator(new AtomicInteger()), point ->
+				{
+					if (faults.get() && scenario.equals("FINALIZE_COMMIT") && (point == FaultPoint.BEFORE_OWNED_FINALIZE_COMMIT)) { throw new InjectedFailure(); }
+					if (scenario.equals("PREPARE_ACK_UNKNOWN") && (point == FaultPoint.AFTER_OWNED_PREPARE_COMMIT)) { throw new InjectedFailure(); }
+					if (scenario.equals("FINALIZE_ACK_UNKNOWN") && (point == FaultPoint.AFTER_OWNED_FINALIZE_COMMIT)) { throw new InjectedFailure(); }
+				});
+				try
+				{
+					player.setCurrentHp(133); player.setCurrentCp(7); player.setHeading(25847);
+					final var captured = _production.authority().capture(id, player, fixture.goal(), null);
+					player.storeMe();
+					PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, fixture.goal()).status(), "Protocol seed failed.");
+					PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(id, objectId).status(), "Protocol MAT seed failed.");
+					final var before = transaction.load(id).state();
+					final Canonical beforeCanonical = canonical(objectId);
+					if (scenario.startsWith("LEVEL_UP"))
+					{
+						PhantomAssertions.assertTrue(player.getStat().addExpAndSp(ExperienceData.getInstance().getExpForLevel(20) - player.getExp(), 1, false), "Native level-up was rejected.");
+						PhantomAssertions.assertEquals(20, player.getLevel(), "Native level-up did not advance to 20.");
+						PhantomAssertions.assertEquals(19, canonical(objectId).level(), "Native level-up unexpectedly persisted character base before owned store.");
+					}
+					player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp()); player.setCurrentCp(54);
+					player.setXYZInvisible(player.getX() + 10, player.getY() + 10, player.getZ()); player.setHeading(12773);
+					final var intended = _production.authority().capture(id, player, fixture.goal(), before);
+					final State target = scenario.equals("NORMAL_CLEANUP") ? State.READY : State.MATERIALIZED;
+					if (scenario.equals("PREPARE_UNCOMMITTED")) { faults.set(true); }
+					var prepared = transaction.prepareOwnedStore(intended, fixture.goal(), epoch, target);
+					PhantomAssertions.assertEquals(scenario.equals("PREPARE_ACK_UNKNOWN") || scenario.equals("PREPARE_UNCOMMITTED") ? Status.COMMIT_OUTCOME_UNKNOWN : Status.SUCCESS, prepared.status(), "Protocol PREPARE rejected: " + scenario);
+					if (scenario.equals("PREPARE_UNCOMMITTED")) { PhantomAssertions.assertEquals(before, transaction.load(id).state(), "Uncommitted PREPARE changed background."); PhantomAssertions.assertTrue(transaction.resumeOwnedStore(prepared.intent()).successful(), "Exact uncommitted PREPARE could not resume."); prepared = transaction.prepareOwnedStore(intended, fixture.goal(), epoch, target); PhantomAssertions.assertTrue(prepared.successful(), "PREPARE retry failed."); }
+					PhantomAssertions.assertEquals(prepared.intent(), org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.decode(prepared.intent().encode()), "Intent roundtrip changed epoch/projections.");
+					PhantomAssertions.assertEquals(beforeCanonical, canonical(objectId), "PREPARE wrote native canonical rows.");
+					if (!scenario.equals("BEFORE_STORE") && !scenario.equals("LEVEL_UP_BEFORE"))
+					{
+						try (var lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
+						{
+							PhantomAssertions.assertTrue(lease != null, "Protocol TEST lease rejected.");
+							try (var attachment = player.attachOwnedStoreBoundary(new Player.OwnedStoreBoundary()
+							{
+								@Override public Player.OwnedStoreSnapshot beforeStore()
+								{
+									final var v = intended.vitals(); final var p = intended.position();
+									if (scenario.equals("SNAPSHOT_MUTATION")) { setOwnedStoreTown(player); }
+									if (scenario.equals("SNAPSHOT_PROGRESSION")) { player.getStat().setExp(player.getExp() + 1); player.getStat().setSp(player.getSp() + 1); }
+									final var progress = intended.progress(); final var identity = intended.identity();
+									return new Player.OwnedStoreSnapshot(v.currentHp(), (int) v.maximumHp(), v.currentMp(), (int) v.maximumMp(), v.currentCp(), (int) v.maximumCp(), p.x(), p.y(), p.z(), p.heading(), progress.level(), progress.experience(), progress.skillPoints(), progress.experienceBeforeDeath(), identity.activeClassId(), identity.raceOrdinal(), identity.classIndex(), progress.level(), progress.experience(), progress.skillPoints());
+								}
+								@Override public void afterStore(boolean completed) { PhantomAssertions.assertTrue(completed, "Native protocol TEST store threw."); }
+							})) { player.storeMe(); }
+						}
+					}
+					if (scenario.equals("PARTIAL_UNKNOWN"))
+					{
+						try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET heading=heading+1 WHERE charId=?")) { statement.setInt(1, objectId); statement.executeUpdate(); }
+					}
+					if (scenario.equals("PARTIAL_ITEM")) { player.getInventory().addItem(ItemProcessType.REWARD, 57, 3, player, this); player.getInventory().updateDatabase(); }
+					if (scenario.equals("STALE_VERSION") || scenario.equals("CHANGED_PAYLOAD"))
+					{
+						try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement(scenario.equals("STALE_VERSION") ? "UPDATE phantom_profile_components SET row_version=row_version+1 WHERE profile_id=? AND component_type=?" : "UPDATE phantom_profile_components SET payload=? WHERE profile_id=? AND component_type=?"))
+						{
+							int offset = 1; if (scenario.equals("CHANGED_PAYLOAD")) { statement.setBytes(offset++, new PhantomBackgroundStateCodec().encode(prepared.intent().after().withState(State.READY))); } statement.setLong(offset++, id); statement.setString(offset, PhantomBackgroundState.COMPONENT_TYPE); PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Stale component TEST fixture missing.");
+						}
+						final var pinnedCanonical = canonical(objectId); final var pinnedBackground = transaction.load(id).state();
+						PhantomAssertions.assertEquals(Status.STATE_CONFLICT, transaction.finalizeOwnedStore(id, objectId, epoch).status(), "Stale component finalized."); PhantomAssertions.assertEquals(Status.STATE_CONFLICT, transaction.resumeOwnedStore(prepared.intent()).status(), "Stale component resumed.");
+						PhantomAssertions.assertEquals(pinnedCanonical, canonical(objectId), "Stale rejection wrote canonical rows."); PhantomAssertions.assertEquals(pinnedBackground, transaction.load(id).state(), "Stale rejection wrote background."); context.record("ownedProtocol." + scenario, "STATE_CONFLICT/no write"); continue;
+					}
+					if (scenario.equals("STALE_EPOCH")) { PhantomAssertions.assertEquals(Status.STATE_CONFLICT, transaction.finalizeOwnedStore(id, objectId, epoch + 1).status(), "Stale epoch finalized intent."); }
+					faults.set(true);
+					if (scenario.startsWith("NORMAL") || scenario.equals("FINALIZE_COMMIT") || scenario.startsWith("SNAPSHOT_") || scenario.equals("FINALIZE_ACK_UNKNOWN"))
+					{
+						final var finalized = transaction.finalizeOwnedStore(id, objectId, epoch);
+						if (scenario.equals("FINALIZE_COMMIT")) { PhantomAssertions.assertEquals(Status.BACKEND_FAILURE, finalized.status(), "Finalization fault did not rollback."); }
+						else if (scenario.equals("FINALIZE_ACK_UNKNOWN")) { PhantomAssertions.assertEquals(Status.COMMIT_OUTCOME_UNKNOWN, finalized.status(), "Lost commit acknowledgement was presented as rollback."); PhantomAssertions.assertTrue(transaction.resumeOwnedStore(prepared.intent()).successful(), "Exact completed commit was not recognized."); }
+						else { PhantomAssertions.assertEquals(Status.SUCCESS, finalized.status(), "Protocol finalize failed: " + scenario + ":" + finalized.status()); PhantomAssertions.assertEquals(target, finalized.state().state(), "Wrong live lifecycle target."); }
+					}
+					if (scenario.equals("LEVEL_UP_BEFORE")) { fixture.releaseRuntime(); }
+					try (var recoveryLease = scenario.equals("LEVEL_UP_BEFORE") ? PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND) : null)
+					{
+					final var restarted = new PhantomBackgroundTransaction().abortMaterialization(id, objectId);
+					context.record("ownedProtocol." + scenario, restarted.status() + "/" + restarted.state().state());
+					if (scenario.startsWith("PARTIAL_")) { PhantomAssertions.assertEquals(Status.OWNED_STORE_CANONICAL_NEITHER, restarted.status(), "Unknown partial canonical was guessed."); PhantomAssertions.assertEquals(State.INCONSISTENT, restarted.state().state(), "Unknown partial was admitted."); }
+					else
+					{
+						PhantomAssertions.assertEquals(Status.SUCCESS, restarted.status(), "Fresh restart could not prove canonical side: " + scenario);
+						PhantomAssertions.assertEquals(State.READY, restarted.state().state(), "Restart retained live marker without owner.");
+						final var expected = scenario.equals("BEFORE_STORE") ? prepared.intent().before() : prepared.intent().after();
+						PhantomAssertions.assertEquals(expected, restarted.state(), "Restart selected wrong projection or changed receipts/effects.");
+					}
+					}
+				}
+				finally { faults.set(false); deleteProfile(profile); }
+			}
+		}
+	}
+
+	private void testOwnedStoreCrashMatrix(PhantomTestContext context) throws Exception
+	{
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		final List<String> unsafe = new ArrayList<>();
+		for (String boundary : List.of("ARRIVAL_AFTER_CAPTURE", "ARRIVAL_AFTER_STORE", "ARRIVAL_AFTER_BASELINE", "CLEANUP_BEFORE_STORE", "CLEANUP_AFTER_STORE", "CLEANUP_CAPTURE_COMMIT", "CLEANUP_AFTER_CAPTURE", "ARRIVAL_MUTATION", "BEFORE_OWNED_PREPARE_COMMIT", "AFTER_OWNED_PREPARE", "AFTER_OWNED_NATIVE_STORE", "BEFORE_OWNED_FINALIZE_COMMIT", "NORMAL_ARRIVAL", "NORMAL_CLEANUP", "RETRY_PREPARE", "RETRY_FINALIZE", "LAZY_INVENTORY", "WORLD_OWNER", "UNSUPPORTED_ABSENT", "ARRIVAL_RETRY_MOVED"))
+		{
+			try (var fixture = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm))
+			{
+				final var profile = _repository.create(fixture.player().getObjectId());
+				final long id = profile.profileId();
+				final int objectId = fixture.player().getObjectId();
+				final var goals = new PhantomGoalStateStore(_repository);
+				final var nativeGoal = fixture.goal();
+				goals.insert(id, boundary.equals("UNSUPPORTED_ABSENT") ? new PhantomGoal(nativeGoal.goalId(), "enchant.item", nativeGoal.status(), nativeGoal.subject(), nativeGoal.target(), nativeGoal.requiredAmount(), nativeGoal.currentAmount(), nativeGoal.acquisitionMethod(), nativeGoal.validSources(), nativeGoal.selectedAnchor(), nativeGoal.purposeKey(), nativeGoal.priority(), nativeGoal.riskBudget(), nativeGoal.expenseBudget(), nativeGoal.deadlineEpochMillis(), nativeGoal.constraints(), nativeGoal.reasonKey(), nativeGoal.revision()) : nativeGoal);
+				final var armed = new java.util.concurrent.atomic.AtomicBoolean();
+				final var live = new AtomicReference<Player>();
+				final var transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+				{
+					if (!armed.get()) { return; }
+					if ((boundary.equals("RETRY_PREPARE") && (point == FaultPoint.AFTER_OWNED_PREPARE)) || (boundary.equals("RETRY_FINALIZE") && (point == FaultPoint.BEFORE_OWNED_FINALIZE_COMMIT))) { throw new InjectedFailure(); }
+					if (boundary.equals("ARRIVAL_RETRY_MOVED") && (point == FaultPoint.AFTER_OWNED_PREPARE)) { throw new InjectedFailure(); }
+					if ((boundary.equals("ARRIVAL_MUTATION") || boundary.equals("ARRIVAL_AFTER_STORE")) && (point == FaultPoint.ARRIVAL_AFTER_CAPTURE))
+					{
+						setOwnedStoreTown(live.get());
+						return;
+					}
+					if (boundary.equals(point.name()) || (boundary.equals("CLEANUP_CAPTURE_COMMIT") && (point == FaultPoint.BEFORE_OWNED_FINALIZE_COMMIT))) { throw new InjectedFailure(); }
+				});
+				final var owner = new AtomicReference<PhantomMaterializationService>();
+				final var background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), owner::get);
+				final var metrics = new PhantomMetrics();
+				final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, point ->
+				{
+					if (armed.get() && ((boundary.equals("CLEANUP_BEFORE_STORE") && (point == FailurePoint.BEFORE_STORE_OPERATION)) || (boundary.equals("CLEANUP_AFTER_STORE") && (point == FailurePoint.AFTER_NATIVE_STORE)) || (boundary.equals("CLEANUP_AFTER_CAPTURE") && (point == FailurePoint.AFTER_STORE_BEFORE_DELETE)))) { throw new InjectedFailure(); }
+				}, background, 5000, 10000);
+				owner.set(materialization);
+				background.start(); materialization.start();
+				try
+				{
+					final Player seed = fixture.player();
+					seed.setCurrentHp(Math.min(133, seed.getMaxHp() - 1));
+					seed.setCurrentMp(Math.min(166, seed.getMaxMp() - 1));
+					seed.setCurrentCp(7);
+					seed.setHeading(25847);
+					final var captured = _production.authority().capture(id, seed, fixture.goal(), null);
+					seed.storeMe();
+					if (!boundary.equals("UNSUPPORTED_ABSENT")) { PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, fixture.goal()).status(), "Coherent farm baseline failed."); }
+					fixture.releaseRuntime();
+					PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "NORMAL matrix materialization rejected.");
+					try (var action = materialization.tryAcquireAction(id).orElseThrow())
+					{
+						live.set(action.player());
+						if (boundary.equals("CLEANUP_BEFORE_STORE") || boundary.equals("CLEANUP_AFTER_STORE")) { setOwnedStoreTown(action.player()); }
+						else if (!boundary.equals("ARRIVAL_MUTATION"))
+						{
+							action.player().setCurrentHp(action.player().getMaxHp());
+							action.player().setCurrentMp(action.player().getMaxMp());
+							action.player().setCurrentCp(Math.min(54, action.player().getMaxCp()));
+						}
+					}
+					armed.set(true);
+					if (boundary.equals("WORLD_OWNER"))
+					{
+						final Player actor = live.get(); final Canonical pinned = canonical(objectId);
+						final var foreign = new org.l2jmobius.gameserver.model.WorldObject(objectId) { @Override public boolean isAutoAttackable(org.l2jmobius.gameserver.model.actor.Creature attacker) { return false; } @Override public void sendInfo(Player observer) {} };
+						org.l2jmobius.gameserver.model.World.getInstance().removeObject(actor); org.l2jmobius.gameserver.model.World.getInstance().addObject(foreign);
+						try { PhantomAssertions.assertThrows(IllegalStateException.class, actor::storeMe, "Foreign World owner crossed owned store guard."); PhantomAssertions.assertEquals(pinned, canonical(objectId), "Foreign World rejection wrote canonical rows."); }
+						finally { org.l2jmobius.gameserver.model.World.getInstance().removeObject(foreign); org.l2jmobius.gameserver.model.World.getInstance().addObject(actor); }
+						try (var competing = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(objectId, PhantomIdentityLeaseRegistry.OwnerKind.REAL_LOGIN)) { PhantomAssertions.assertTrue(competing == null, "Concurrent real login bypassed Phantom identity owner."); }
+					}
+					if (boundary.equals("LAZY_INVENTORY"))
+					{
+						final var actor = live.get(); final var stack = actor.getInventory().addItem(ItemProcessType.REWARD, 57, 10, actor, this); final long oldCount = stack.getCount(); stack.changeCount(ItemProcessType.REWARD, 3, actor, this); PhantomAssertions.assertEquals(oldCount + 3, stack.getCount(), "Lazy runtime inventory mutation failed.");
+					}
+					if (boundary.startsWith("ARRIVAL") || boundary.equals("NORMAL_ARRIVAL"))
+					{
+						try (var action = materialization.tryAcquireAction(id).orElseThrow())
+						{
+							final boolean result = background.captureVisibleArrival(id, action.player(), fixture.goal(), farm.anchor().id());
+							if (boundary.equals("NORMAL_ARRIVAL")) { PhantomAssertions.assertTrue(result, "Normal owned arrival was rejected."); }
+						}
+					}
+					else
+					{
+						final var result = materialization.dematerialize(id);
+						if (boundary.equals("NORMAL_CLEANUP") || boundary.equals("LAZY_INVENTORY") || boundary.equals("WORLD_OWNER") || boundary.equals("UNSUPPORTED_ABSENT")) { PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, result.status(), "Normal owned cleanup was rejected: " + boundary); }
+					}
+					if (boundary.equals("UNSUPPORTED_ABSENT")) { PhantomAssertions.assertEquals(Status.STATE_ABSENT, transaction.load(id).status(), "Unsupported goal acquired background ownership."); continue; }
+					final var atFailure = transaction.load(id).state();
+					final var canonicalAtFailure = canonical(objectId);
+					context.record("ownedStore." + boundary + ".failure", atFailure.state() + " BG=" + atFailure.vitals() + "/" + atFailure.position() + " CANONICAL=" + canonicalAtFailure);
+					// Simulate loss of this process's Player without a further native store.
+					armed.set(false);
+					if (boundary.equals("ARRIVAL_RETRY_MOVED"))
+					{
+						live.get().setXYZInvisible(live.get().getX() + 10, live.get().getY() + 10, live.get().getZ()); live.get().setCurrentHp(100); live.get().setHeading(3276);
+						final int latestX = live.get().getX(); final int latestY = live.get().getY();
+						PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Old arrival receipt prevented fresh cleanup.");
+						PhantomAssertions.assertEquals(latestX, canonical(objectId).x(), "Cleanup replay lost latest native X."); PhantomAssertions.assertEquals(latestY, canonical(objectId).y(), "Cleanup replay lost latest native Y."); PhantomAssertions.assertEquals(3276, canonical(objectId).heading(), "Cleanup replay lost latest native heading.");
+					}
+					if (boundary.startsWith("RETRY_"))
+					{
+						PhantomAssertions.assertTrue(live.get().isOnline(), "Retry regression lost the retained live Player before retry.");
+						PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.retryCleanup(id).status(), "Retained Player cleanup retry failed: " + boundary);
+						PhantomAssertions.assertTrue(!live.get().isOnline(), "Retry retained the native Player.");
+					}
+					if (live.get().isOnline()) { live.get().deleteMe(); }
+					materialization.retryCleanup(id);
+					final Canonical atRetirement = canonical(objectId);
+					PhantomAssertions.assertThrows(IllegalStateException.class, () -> live.get().storeMe(), "Retired Player crossed a new identity/epoch store boundary.");
+					PhantomAssertions.assertEquals(atRetirement, canonical(objectId), "Retired store callback wrote canonical rows.");
+					final var recovered = new PhantomBackgroundTransaction().abortMaterialization(id, objectId);
+					context.record("ownedStore." + boundary + ".restart", recovered.status() + "/" + (recovered.state() == null ? "null" : recovered.state().state()));
+					if (!recovered.successful()) { unsafe.add(boundary); }
+				}
+				finally
+				{
+					armed.set(false);
+					if ((live.get() != null) && live.get().isOnline()) { live.get().deleteMe(); }
+					materialization.retryCleanup(id); materialization.shutdown();
+					background.beginStop(); background.finishStop();
+					deleteProfile(profile);
+				}
+			}
+		}
+		PhantomAssertions.assertEquals(List.of(), unsafe, "Owned native store lost a provable restart projection: " + unsafe);
+	}
+
+	private static void setOwnedStoreTown(Player player)
+	{
+		player.stopAllTasks();
+		player.setXYZInvisible(45978, 47886, -3488);
+		player.setHeading(12773);
+		player.setCurrentHp(player.getMaxHp());
+		player.setCurrentMp(player.getMaxMp());
+		player.setCurrentCp(Math.min(54, player.getMaxCp()));
 	}
 
 	private void testPendingNativeHandoff(PhantomTestContext context, boolean alreadyComplete) throws Exception

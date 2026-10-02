@@ -119,6 +119,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private boolean _presenceInstalled;
 	private volatile LongFunction<OperationResult> _periodicFarm;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, PhantomBackgroundState> _arrivalCaptures = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, Boolean> _cleanupStores = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, Integer> _nativeTownReturns = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, Boolean> _recoveries = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TransitionKind> _transitions = new ConcurrentHashMap<>();
@@ -844,20 +846,17 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final var position = new PhantomBackgroundState.Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchorId);
 			final var hint = new PhantomBackgroundState(previous.state(), previous.identity(), previous.progress(), previous.vitals(), position, previous.combat(), previous.loadout(), previous.inventory(), previous.autoGetSkills(), previous.clock(), previous.receipt(), previous.hashes());
 			final PhantomBackgroundState captured = _authority.capture(profileId, player, goal, hint);
-			// Use the existing native store/capture boundary; never project route coordinates into SQL.
+			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_CAPTURE);
+			_arrivalCaptures.put(profileId, captured);
 			player.storeMe();
-			final var stored = transaction(() -> _transactions.captureBaseline(captured, goal));
-			if (!stored.successful())
+			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_STORE);
+			final var stored = transaction(() -> _transactions.load(profileId));
+			if (!stored.successful() || (stored.state() == null) || (stored.state().state() != State.MATERIALIZED))
 			{
 				return false;
 			}
-			final var marked = transaction(() -> _transactions.markMaterialized(profileId, player.getObjectId()));
-			if (!marked.successful())
-			{
-				failStop();
-				return false;
-			}
-			_committedPosition.accept(profileId, captured.position());
+			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_BASELINE);
+			_committedPosition.accept(profileId, stored.state().position());
 			return true;
 		}
 		catch (RuntimeException exception)
@@ -866,8 +865,145 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		finally
 		{
+			_arrivalCaptures.remove(profileId);
 			_operations.remove(profileId);
 		}
+	}
+
+	/** Owned store integration explicitly authorized after the guarded protocol matrix passed. */
+	private void installOwnedStoreBoundary(long profileId, Player player)
+	{
+		final var owner = _identities.getOwnerSnapshot(player.getObjectId());
+		if ((owner == null) || (owner.ownerKind() != OwnerKind.PHANTOM)) { throw new IllegalStateException("OWNED_STORE_IDENTITY_MISSING"); }
+		if (player.hasOwnedStoreBoundary(this)) { return; }
+		player.attachOwnedStoreBoundary(new Player.OwnedStoreBoundary()
+		{
+			@Override public Object ownerKey() { return PhantomBackgroundService.this; }
+			private PhantomOwnedStoreIntent _intent;
+			private long _sequence;
+			private String _before;
+			private String _kind;
+			private boolean _recaptureAfterResume;
+
+			@Override
+			public Player.OwnedStoreSnapshot beforeStore()
+			{
+				try { return prepareStore(); }
+				catch (RuntimeException failure) { org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.rejected(profileId, player, _intent, failure.getClass().getSimpleName() + ":" + failure.getMessage()); throw failure; }
+			}
+
+			private Player.OwnedStoreSnapshot prepareStore()
+			{
+				final int objectId = player.getObjectId();
+				final var entry = _materialization.get().find(profileId).orElse(null);
+				if (!owner.equals(_identities.getOwnerSnapshot(objectId)) || (entry == null) || (entry.characterObjectId() != objectId) || (player.getClient() != null) || ((World.getInstance().findObject(objectId) != null) && (World.getInstance().findObject(objectId) != player)) || PlayerAutoSaveTaskManager.getInstance().containsOtherObjectId(objectId, player)) { throw new IllegalStateException("OWNED_STORE_RUNTIME_OWNER_REJECTED"); }
+				if (_intent != null)
+				{
+					final var resumed = transaction(() -> _transactions.resumeOwnedStore(_intent));
+					if (resumed.status() == PhantomBackgroundTransaction.Status.POST_COMMIT_VERIFICATION_FAILED)
+					{
+						_recaptureAfterResume = _cleanupStores.containsKey(profileId);
+						if ((!_recaptureAfterResume && !ownedProgressMatches(player, _intent.after())) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { throw new IllegalStateException("OWNED_STORE_RETRY_RUNTIME_CHANGED"); }
+						_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player);
+						_sequence = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.begin(profileId, player, _kind, _intent);
+						return ownedSnapshot(player, _intent.after());
+					}
+					if (!resumed.successful()) { throw new IllegalStateException("OWNED_STORE_RESUME:" + resumed.status()); }
+					_intent = null;
+				}
+				final var loaded = transaction(() -> _transactions.load(profileId));
+				final var previous = loaded.successful() ? loaded.state() : null;
+				if (!loaded.successful() && (loaded.status() != PhantomBackgroundTransaction.Status.STATE_ABSENT)) { throw new IllegalStateException("OWNED_STORE_BACKGROUND_READ:" + loaded.status()); }
+				final var goal = _goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null);
+				if ((goal == null) && (previous == null)) { return null; }
+				if (goal == null) { throw new IllegalStateException("OWNED_STORE_GOAL_MISSING"); }
+				if (!PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType()))
+				{
+					try { PhantomBackgroundGoalSpec.parseLifecycle(goal); }
+					catch (IllegalArgumentException unsupported) { if (previous == null) { return null; } throw new IllegalStateException("OWNED_STORE_UNSUPPORTED_GOAL", unsupported); }
+				}
+				final boolean cleanup = _cleanupStores.containsKey(profileId);
+				final var arrival = _arrivalCaptures.get(profileId);
+				player.getInventory().updateDatabase();
+				final PhantomBackgroundState captured;
+				synchronized (player.getStatus())
+				{
+					if (arrival != null)
+					{
+						if (!_authority.matchesRuntime(player, arrival)) { throw new IllegalStateException("OWNED_STORE_CAPTURE_STALE"); }
+						captured = arrival;
+					}
+					else if (PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType())) { captured = _authority.captureAcquisition(profileId, player, goal, previous, PhantomAcquisitionGoalSpec.parse(goal).itemId()); }
+					else { PhantomBackgroundGoalSpec.parseLifecycle(goal); captured = _authority.capture(profileId, player, goal, previous); }
+				}
+				final State target = cleanup || (previous == null) || (previous.state() != State.MATERIALIZED) ? (captured.vitals().currentHp() == 0 ? State.DEAD : State.READY) : State.MATERIALIZED;
+				final var witnessed = captureOwnedInventory(player, captured);
+				final var prepared = transaction(() -> _transactions.prepareOwnedStore(witnessed, goal, entry.materializedAtNanos(), target));
+				_intent = prepared.intent();
+				_kind = arrival != null ? "ARRIVAL_CAPTURE" : cleanup ? "CLEANUP_STORE" : "OTHER_OWNED_STORE";
+				if (!prepared.successful()) { throw new IllegalStateException("OWNED_STORE_PREPARE:" + prepared.status()); }
+				_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player);
+				_sequence = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.begin(profileId, player, _kind, _intent);
+				_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.AFTER_OWNED_PREPARE);
+				return ownedSnapshot(player, _intent.after());
+			}
+
+			@Override
+			public void afterStore(boolean nativeStoreCompleted)
+			{
+				if (_intent == null) { return; }
+				String status = nativeStoreCompleted ? "FINALIZE_NOT_REACHED" : "NATIVE_STORE_THROW";
+				boolean finalizedSuccessfully = false;
+				final boolean recaptureCleanup = _recaptureAfterResume;
+				_recaptureAfterResume = false;
+				PhantomBackgroundState completedState = null;
+				final String after = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player);
+				try
+				{
+					if (!nativeStoreCompleted) { return; }
+					_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.AFTER_OWNED_NATIVE_STORE);
+					final var finalized = transaction(() -> _transactions.finalizeOwnedStore(profileId, player.getObjectId(), _intent.materializedAtNanos()));
+					status = finalized.status().name();
+					completedState = finalized.state();
+					if (!finalized.successful()) { throw new IllegalStateException("OWNED_STORE_FINALIZE:" + status); }
+					finalizedSuccessfully = true;
+					if ((!recaptureCleanup && !ownedProgressMatches(player, _intent.after())) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { status = "RUNTIME_CHANGED_AFTER_FINALIZE"; throw new IllegalStateException("OWNED_STORE_RUNTIME_CHANGED_AFTER_FINALIZE"); }
+				}
+				finally
+				{
+					org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.end(profileId, player, _kind, _intent, _sequence, _before, after, status, completedState);
+					if (finalizedSuccessfully) { _intent = null; }
+				}
+				// Finish the old receipt first, then take one fresh cleanup snapshot. The second call cannot recursively resume this completed receipt.
+				if (recaptureCleanup && finalizedSuccessfully) { player.storeMe(); }
+			}
+		});
+	}
+
+	private static boolean ownedProgressMatches(Player player, PhantomBackgroundState state)
+	{
+		return (player.getClassIndex() == state.identity().classIndex()) && (player.getActiveClass() == state.identity().activeClassId()) && (player.getRace().ordinal() == state.identity().raceOrdinal()) && (player.getLevel() == state.progress().level()) && (player.getExp() == state.progress().experience()) && (player.getSp() == state.progress().skillPoints()) && (player.getExpBeforeDeath() == state.progress().experienceBeforeDeath());
+	}
+
+	private static Player.OwnedStoreSnapshot ownedSnapshot(Player player, PhantomBackgroundState state)
+	{
+		final var v = state.vitals(); final var p = state.position(); final var progress = state.progress(); final var identity = state.identity();
+		return new Player.OwnedStoreSnapshot(v.currentHp(), (int) v.maximumHp(), v.currentMp(), (int) v.maximumMp(), v.currentCp(), (int) v.maximumCp(), p.x(), p.y(), p.z(), p.heading(), progress.level(), progress.experience(), progress.skillPoints(), progress.experienceBeforeDeath(), identity.activeClassId(), identity.raceOrdinal(), identity.classIndex(), identity.classIndex() == 0 ? progress.level() : player.getStat().getBaseLevel(), identity.classIndex() == 0 ? progress.experience() : player.getStat().getBaseExp(), identity.classIndex() == 0 ? progress.skillPoints() : player.getStat().getBaseSp());
+	}
+
+	/** One immutable enumeration; compare the same INVENTORY/PAPERDOLL facts as the durable transaction. */
+	private static PhantomBackgroundState captureOwnedInventory(Player player, PhantomBackgroundState state)
+	{
+		final var items = player.getInventory().getItems().stream().filter(item -> (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY) || (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.PAPERDOLL)).map(item -> new PhantomBackgroundState.ItemObject(item.getObjectId(), item.getId(), item.getCount(), item.isStackable(), PhantomBackgroundState.ItemLocation.valueOf(item.getItemLocation().name()))).sorted(java.util.Comparator.comparingInt(PhantomBackgroundState.ItemObject::objectId)).toList();
+		final var mutable = java.util.Set.copyOf(state.inventory().mutableItemIds());
+		final var equipped = state.inventory().objects().stream().filter(item -> item.location() == PhantomBackgroundState.ItemLocation.PAPERDOLL).map(PhantomBackgroundState.ItemObject::objectId).collect(java.util.stream.Collectors.toSet());
+		final var tracked = items.stream().filter(item -> (item.location() == PhantomBackgroundState.ItemLocation.INVENTORY) ? mutable.contains(item.itemId()) : equipped.contains(item.objectId())).toList();
+		if (!tracked.equals(state.inventory().objects())) { throw new IllegalStateException("OWNED_STORE_INVENTORY_CAPTURE_STALE"); }
+		long load = 0; int slots = 0;
+		for (var item : items) { load = Math.addExact(load, Math.multiplyExact(item.count(), org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(item.itemId()).getWeight())); if (item.location() == PhantomBackgroundState.ItemLocation.INVENTORY) { slots++; } }
+		final String hash = PhantomBackgroundInventoryHash.compute(items.stream().map(item -> new PhantomBackgroundInventoryHash.CanonicalItem(item.objectId(), item.itemId(), item.count(), item.location())).toList());
+		final var inventory = new PhantomBackgroundState.InventoryFacts(state.inventory().mutableItemIds(), tracked, hash, load, state.inventory().maximumLoad(), slots, state.inventory().maximumSlots());
+		return new PhantomBackgroundState(state.state(), state.identity(), state.progress(), state.vitals(), state.position(), state.combat(), state.loadout(), inventory, state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
 	}
 
 	public Optional<AcquisitionEligibilitySnapshot> acquisitionEligibility(long profileId, PhantomBackgroundState state, List<Integer> requestedSkillIds, String progressionHash)
@@ -1231,6 +1367,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public void afterPlayerLoad(long profileId, Player player)
 	{
 		requireTransition(profileId, TransitionKind.MATERIALIZING);
+		installOwnedStoreBoundary(profileId, player);
 		PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 		if (loaded.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT)
 		{
@@ -1284,7 +1421,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (!captured.inventory().objects().equals(state.inventory().objects()) || !captured.autoGetSkills().equals(state.autoGetSkills())) { return loaded; }
 		// Existing native store/capture boundary under the materialization claim, with no historical replay.
 		player.storeMe();
-		return transaction(() -> _transactions.captureBaseline(captured, goal.goal()));
+		return transaction(() -> _transactions.load(profileId));
 	}
 
 	@Override
@@ -1327,6 +1464,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			throw new IllegalStateException("Background transition is already owned.");
 		}
+		_cleanupStores.put(profileId, Boolean.TRUE);
 	}
 
 	@Override
@@ -1338,6 +1476,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		finally
 		{
+			_cleanupStores.remove(profileId);
 			releaseStoreTransition(profileId);
 		}
 	}
@@ -1345,6 +1484,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private void afterStoreInternal(long profileId, Player player)
 	{
 		requireStoreTransition(profileId);
+		if (player.hasOwnedStoreBoundary())
+		{
+			var completed = transaction(() -> _transactions.load(profileId));
+			if (completed.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT) { return; }
+			if (completed.successful() && (completed.state() != null) && (completed.state().state() == State.MATERIALIZED)) { completed = transaction(() -> _transactions.abortMaterialization(profileId, player.getObjectId())); }
+			if (!completed.successful() || (completed.state() == null) || ((completed.state().state() != State.READY) && (completed.state().state() != State.DEAD))) { throw new IllegalStateException("OWNED_STORE_CLEANUP_NOT_FINALIZED"); }
+			return;
+		}
 		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 		final PhantomBackgroundState previous = loaded.successful() ? loaded.state() : null;
 		if ((loaded.status() != PhantomBackgroundTransaction.Status.STATE_ABSENT) && !loaded.successful())

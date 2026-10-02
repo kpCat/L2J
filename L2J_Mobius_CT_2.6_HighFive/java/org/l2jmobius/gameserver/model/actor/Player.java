@@ -457,6 +457,30 @@ public class Player extends Playable
 	private GameClient _client;
 	private volatile PlayerOutboundSession _outboundSession = PlayerOutboundSession.clientBound();
 	private long _outboundSessionToken;
+	private volatile OwnedStoreBoundary _ownedStoreBoundary;
+
+	/** One immutable volatile projection shared by owned canonical and durable stores. */
+	public record OwnedStoreSnapshot(double hp, int maxHp, double mp, int maxMp, double cp, int maxCp, int x, int y, int z, int heading, int level, long experience, long skillPoints, long experienceBeforeDeath, int classId, int race, int classIndex, int baseLevel, long baseExperience, long baseSkillPoints) {}
+
+	public interface OwnedStoreBoundary
+	{
+		default Object ownerKey() { return this; }
+		OwnedStoreSnapshot beforeStore();
+		void afterStore(boolean nativeStoreCompleted);
+	}
+
+	public synchronized AutoCloseable attachOwnedStoreBoundary(OwnedStoreBoundary boundary)
+	{
+		if ((_ownedStoreBoundary != null) || (_client != null) || (org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(getObjectId()) != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
+		{
+			throw new IllegalStateException("OWNED_STORE_ATTACHMENT_REJECTED");
+		}
+		_ownedStoreBoundary = java.util.Objects.requireNonNull(boundary);
+		return () -> { synchronized (Player.this) { if (_ownedStoreBoundary == boundary) { _ownedStoreBoundary = null; } } };
+	}
+
+	public boolean hasOwnedStoreBoundary() { return _ownedStoreBoundary != null; }
+	public boolean hasOwnedStoreBoundary(Object ownerKey) { final var boundary = _ownedStoreBoundary; return (boundary != null) && (boundary.ownerKey() == ownerKey); }
 	private String _ip = "N/A";
 	
 	private final String _accountName;
@@ -7675,8 +7699,18 @@ public class Player extends Playable
 	 */
 	public synchronized void store(boolean storeActiveEffects)
 	{
-		storeCharBase();
-		storeCharSub();
+		final OwnedStoreBoundary boundary = _ownedStoreBoundary;
+		if (boundary == null) { storeNative(storeActiveEffects, null); return; }
+		final OwnedStoreSnapshot snapshot = boundary.beforeStore();
+		boolean completed = false;
+		try { storeNative(storeActiveEffects, snapshot); completed = true; }
+		finally { boundary.afterStore(completed); }
+	}
+
+	private void storeNative(boolean storeActiveEffects, OwnedStoreSnapshot snapshot)
+	{
+		storeCharBase(snapshot);
+		storeCharSub(snapshot);
 		storeEffect(storeActiveEffects);
 		storeItemReuseDelay();
 		
@@ -7699,7 +7733,8 @@ public class Player extends Playable
 			aVars.storeMe();
 		}
 		
-		getInventory().updateDatabase();
+		// Owned inventory was flushed and attested before durable PREPARE. Do not create a second inventory writer inside the pending boundary.
+		if (snapshot == null) { getInventory().updateDatabase(); }
 		getWarehouse().updateDatabase();
 		getFreight().updateDatabase();
 	}
@@ -7710,40 +7745,40 @@ public class Player extends Playable
 		store(true);
 	}
 	
-	private void storeCharBase()
+	private void storeCharBase(OwnedStoreSnapshot snapshot)
 	{
 		// Get the exp, level, and sp of base class to store in base table
-		final long exp = getStat().getBaseExp();
-		final int level = getStat().getBaseLevel();
-		final long sp = getStat().getBaseSp();
+		final long exp = snapshot == null ? getStat().getBaseExp() : snapshot.baseExperience();
+		final int level = snapshot == null ? getStat().getBaseLevel() : snapshot.baseLevel();
+		final long sp = snapshot == null ? getStat().getBaseSp() : snapshot.baseSkillPoints();
 		try (Connection con = DatabaseFactory.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_CHARACTER))
 		{
 			ps.setInt(1, level);
-			ps.setInt(2, getMaxHp());
-			ps.setDouble(3, getCurrentHp());
-			ps.setInt(4, getMaxCp());
-			ps.setDouble(5, getCurrentCp());
-			ps.setInt(6, getMaxMp());
-			ps.setDouble(7, getCurrentMp());
+			ps.setInt(2, snapshot == null ? getMaxHp() : snapshot.maxHp());
+			ps.setDouble(3, snapshot == null ? getCurrentHp() : snapshot.hp());
+			ps.setInt(4, snapshot == null ? getMaxCp() : snapshot.maxCp());
+			ps.setDouble(5, snapshot == null ? getCurrentCp() : snapshot.cp());
+			ps.setInt(6, snapshot == null ? getMaxMp() : snapshot.maxMp());
+			ps.setDouble(7, snapshot == null ? getCurrentMp() : snapshot.mp());
 			ps.setInt(8, _appearance.getFace());
 			ps.setInt(9, _appearance.getHairStyle());
 			ps.setInt(10, _appearance.getHairColor());
 			ps.setInt(11, _appearance.isFemale() ? 1 : 0);
-			ps.setInt(12, getHeading());
-			ps.setInt(13, _observerMode ? _lastLoc.getX() : getX());
-			ps.setInt(14, _observerMode ? _lastLoc.getY() : getY());
-			ps.setInt(15, _observerMode ? _lastLoc.getZ() : getZ());
+			ps.setInt(12, snapshot == null ? getHeading() : snapshot.heading());
+			ps.setInt(13, snapshot == null ? (_observerMode ? _lastLoc.getX() : getX()) : snapshot.x());
+			ps.setInt(14, snapshot == null ? (_observerMode ? _lastLoc.getY() : getY()) : snapshot.y());
+			ps.setInt(15, snapshot == null ? (_observerMode ? _lastLoc.getZ() : getZ()) : snapshot.z());
 			ps.setLong(16, exp);
-			ps.setLong(17, _expBeforeDeath);
+			ps.setLong(17, snapshot == null ? _expBeforeDeath : snapshot.experienceBeforeDeath());
 			ps.setLong(18, sp);
 			ps.setInt(19, getKarma());
 			ps.setInt(20, _fame);
 			ps.setInt(21, _pvpKills);
 			ps.setInt(22, _pkKills);
 			ps.setInt(23, _clanId);
-			ps.setInt(24, getRace().ordinal());
-			ps.setInt(25, getPlayerClass().getId());
+			ps.setInt(24, snapshot == null ? getRace().ordinal() : snapshot.race());
+			ps.setInt(25, snapshot == null ? getPlayerClass().getId() : snapshot.classId());
 			ps.setLong(26, _deleteTimer);
 			ps.setString(27, getTitle());
 			ps.setInt(28, _appearance.getTitleColor());
@@ -7796,7 +7831,7 @@ public class Player extends Playable
 		}
 	}
 	
-	private void storeCharSub()
+	private void storeCharSub(OwnedStoreSnapshot snapshot)
 	{
 		if (getTotalSubClasses() <= 0)
 		{
@@ -7809,9 +7844,10 @@ public class Player extends Playable
 		{
 			for (SubClassHolder subClass : getSubClasses().values())
 			{
-				ps.setLong(1, subClass.getExp());
-				ps.setLong(2, subClass.getSp());
-				ps.setInt(3, subClass.getLevel());
+				final boolean ownedActive = (snapshot != null) && (snapshot.classIndex() == subClass.getClassIndex());
+				ps.setLong(1, ownedActive ? snapshot.experience() : subClass.getExp());
+				ps.setLong(2, ownedActive ? snapshot.skillPoints() : subClass.getSp());
+				ps.setInt(3, ownedActive ? snapshot.level() : subClass.getLevel());
 				ps.setInt(4, subClass.getId());
 				ps.setInt(5, getObjectId());
 				ps.setInt(6, subClass.getClassIndex());
