@@ -117,6 +117,7 @@ $script:fakeOwner = 'REAL_LOGIN'
 $script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false
 $script:liveRouteFailures = 0; $script:liveRelocated = $false
 $script:pilotRunning = $true
+$script:neverMaterialize = $false
 $script:utcNow = { ([DateTimeOffset]::Parse('2026-09-29T09:00:00Z')).AddMilliseconds($script:clockMs) }
 $script:elapsed = { $script:clockMs }
 $script:delay = { param($ms) $script:clockMs += $ms }
@@ -150,7 +151,7 @@ $script:transport = {
 		if ($operationArgs.stage -eq 'RETURN') { return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; destinationX = [string]($script:targetX - 200); destinationY = '0'; destinationZ = '0'; destinationInstanceId = '0'; m1Token = 'return' } } }
 	}
 	if ($op -ne 'SNAPSHOT_M1_ENVELOPE') { throw "UNEXPECTED_OFFLINE_OP:$op" }
-	if ((-not $script:materialized) -and ([Math]::Abs($script:actorX - $script:targetX) -le 1800))
+	if ((-not $script:neverMaterialize) -and (-not $script:materialized) -and ([Math]::Abs($script:actorX - $script:targetX) -le 1800))
 	{
 		$script:materialized = $true
 		$script:targetX = 300
@@ -207,6 +208,14 @@ Assert-True ($script:syntheticStarts -eq 1) 'EXACT_ONE_SYNTHETIC_START'
 Assert-True ($syntheticResult -match 'SOFT_RETURN=PASS') 'SYNTHETIC_SHARED_ENGINE_RETURN'
 Assert-True ($syntheticResult -match 'STOP=PASS') 'SYNTHETIC_SHARED_ENGINE_STOP'
 $script:validTransport = $script:transport
+$script:neverMaterialize = $true; $script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false; $script:pilotRunning = $true
+Assert-Throws { Invoke-M1Run } 'APPROACH_DEADLINE_EXPIRED'
+$capacityResult = Get-Content (Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt') -Raw
+Assert-True ($capacityResult -match 'primaryFailure=APPROACH_DEADLINE_EXPIRED') 'CAPACITY_PRIMARY_RETAINED'
+Assert-True ($capacityResult -match 'COHORT=NOT_OBSERVED') 'DIAGNOSTIC_CENSUS_NEVER_GRADES_ACCEPTANCE'
+Assert-True (@($script:census | Where-Object { $_.phase -like 'DIAGNOSTIC_APPROACH_FAILURE_*' } | Select-Object -ExpandProperty phase -Unique).Count -eq 3) 'FAILED_APPROACH_THREE_DIAGNOSTIC_CENSUS'
+Assert-True ($capacityResult -match 'RESTORE=PASS' -and $capacityResult -match 'STOP=PASS') 'CAPACITY_CLEANUP_RETAINED'
+$script:neverMaterialize = $false
 $script:transport = {
 	param($op, $operationArgs, $id)
 	if (($op -eq 'PREPARE_M1_ENVELOPE') -and ($operationArgs.stage -eq 'INITIAL')) { return [pscustomobject]@{ status = 'REJECTED'; reason = 'UNKNOWN_INCONSISTENT:5'; candidate = [pscustomobject]@{ legacySkips = '71:KNOWN_PREFIX_FAIL_CLOSED' } } }

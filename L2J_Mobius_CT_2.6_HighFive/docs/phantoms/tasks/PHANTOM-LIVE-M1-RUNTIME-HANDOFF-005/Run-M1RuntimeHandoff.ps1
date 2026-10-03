@@ -377,7 +377,22 @@ function Invoke-M1Run
 		$failedIdle = @($script:census | Where-Object { ($_.eligible -ceq 'true') -and ($_.idleReason -ceq 'ACTIVE_IDLE') -and ($_.travelFailureReason -match '(navigation_|native_progress_|route_absent)') } | Group-Object profileId | Where-Object { $_.Count -ge 2 })
 		$matrix.COHORT = if ($script:censusComplete -and ($eligibleProfiles -ge 4) -and ($failedIdle.Count -eq 0)) { 'PASS' } else { 'INSUFFICIENT_OR_FAILED' }
 	}
-	catch { $primaryFailure = $_.Exception.Message; Write-Warning "$($script:actorMode) FAILED: $primaryFailure" }
+	catch
+	{
+		$primaryFailure = $_.Exception.Message; Write-Warning "$($script:actorMode) FAILED: $primaryFailure"
+		if (($script:actorMode -ceq 'Synthetic') -and ($primaryFailure -ceq 'APPROACH_DEADLINE_EXPIRED') -and (-not $script:uncertain) -and ($script:profileId -gt 0) -and ($script:census.Count -eq 0) -and ($script:rows.Count -gt 0) -and ($script:rows[$script:rows.Count - 1].regionCanKnow -ceq 'true'))
+		{
+			try
+			{
+				for ($sample = 1; $sample -le 3; $sample++)
+				{
+					$null = Capture "DIAGNOSTIC_APPROACH_FAILURE_$sample" $true
+					if ($sample -lt 3) { Pause-Ms 1000 }
+				}
+			}
+			catch { Write-Warning "APPROACH_DIAGNOSTIC_FAILED:$($_.Exception.Message)" }
+		}
+	}
 	finally
 	{
 		$script:cleanup = $true; $script:cleanupClock = [Diagnostics.Stopwatch]::StartNew()
