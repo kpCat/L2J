@@ -1,0 +1,30 @@
+scenario	current_failure	candidate_change	retest_status	evidence
+P01	invalid initial AutoPlay observer target; corrected fixture PASS	sticky managed null-policy skip	GREEN_ONLY_BASELINE_RED_REQUIRED	green-session; green-incident-mage
+P02/P03/P06	NOT_RUN	conditional registration candidate	REQUIRED	none
+P04	stale rejection removes P2 in both real managers	expected-policy stop	RED_TO_GREEN_CANDIDATE	red-ownership-lf → green-session
+P05	stale throw removes P2 in both real managers	expected-policy stop	RED_TO_GREEN_CANDIDATE	red-ownership-lf → green-session
+P07	real native contains barrier lets stale start remove Session	Session token; exact conditional rollback	RED_TO_GREEN_CANDIDATE	red-session-overlap → green-session
+P08	running claims healthy while AutoUse absent	exact both-pool health and repair	RED_TO_GREEN_CANDIDATE	red-session-green-pools → green-session
+P09	initial capability/autoGet/handler fixture failures excluded	reuse stock native handler and exact1177:1	PARTIAL_PASS_OLD_EPOCH_REQUIRED	green-stock-mage 1/1 actual cast/reward
+E01	latest retry overwrites first incident	detached immutable first/latest	RED_TO_GREEN_CANDIDATE	red-first-incident → green-incident-mage
+E02	native stopAllTasks cancel Error masks beforeStore primary	primary + suppressed	RED_TO_GREEN_CANDIDATE	red-cleanup-finalizer → green-incident-mage
+E03	actual store/resume SQL fault masked by boundary finalizer	primary + suppressed	RED_TO_GREEN_CANDIDATE	red-errors-and-context → red-cleanup-finalizer; green-incident-mage
+E04	actual materialization primary Error swallowed/masked by abort	record/rethrow primary; suppressed abort	RED_TO_GREEN_CANDIDATE	red-cleanup-finalizer → green-incident-mage
+E05	diagnostic disappears on runtime entry removal	bounded detached service archive	RED_TO_GREEN_CANDIDATE	red-first-incident → green-incident-mage
+E06	no valid baseline RED captured	bounded Unicode/cause/suppressed formatter	GREEN_ONLY_EXACT_HOOK_OPEN	green-incident-mage; review stale ACTION_DRAIN hook
+T01	native FarmTravel deadline loses feedback via mirrored callback	none	RED_UNFIXED_FULL_COMPOSITION_REQUIRED	red-terminal-travel-assets
+T02/T03	same revision creates fresh Journey after deadline	none	RED_UNFIXED	red-terminal-travel-assets
+T04/T05	full production executor/continuation not proved	none	REQUIRED	existing normal native travel substeps not full acceptance
+Q01/Q02-hit	real lethal-hit reward active while PREPARE crosses	Player native completion leases	RED_TO_GREEN_PATH_ONLY	red-native-prepare-overlap → green-incident-mage hit
+Q01/Q02-cast	initial mage fixture errors excluded	same completion lease + corrected TEST bootstrap	PARTIAL_PASS	green-stock-mage 1/1 EXP70/SP2
+Q01/Q05-delayed-quest	native ON_ATTACKABLE_KILL writer after SUCCESS/ownership release	no allowed finite producer drain	BLOCKED_CRITICAL_RED	red-delayed-native-quest
+Q03/Q04	owned restart/immutable/mismatch negative controls not run anew	b4f guard not modified	REQUIRED	previous reported C/D not reused
+Q05-timeout	real Player reward callback blocks drain	retain actor/World/identity/outbound until completion	PATH_PASS_NOT_ALL_PRODUCERS	green-incident-mage timeout
+A01	FAILED/admissionclosed cohort false PASS	extraction only; grading unchanged	RED_UNFIXED	red-native-grading-captured
+A02	selfheal/target flags without attributed progress false PASS	none	RED_UNFIXED	red-native-grading-captured
+A03	other actor cast supplies selected proof false PASS	none	RED_UNFIXED	red-native-grading-captured
+A04	missing fresh baseline interval false PASS	none	RED_UNFIXED	red-native-grading-captured
+A05/A06/A07/A08	native passive sensor/attribution controls not run	none	REQUIRED	none
+R-ordinary	generation check precedes SQL/followOwner side effect	no further fix after D5 stop	STATIC_REVIEW_RISK_TEST_REQUIRED	REVIEW.md
+R-hook	ACTION_DRAIN uses previous AFTER_ACTION_ADMISSION hook	no further fix after D5 stop	OBSERVED_REVIEW_DEFECT	green-incident-mage report
+Regression/Artifact	integration stopped at D5	safe docs-only publication	NOT_RUN_NOT_FULFILLED	VERIFY.md

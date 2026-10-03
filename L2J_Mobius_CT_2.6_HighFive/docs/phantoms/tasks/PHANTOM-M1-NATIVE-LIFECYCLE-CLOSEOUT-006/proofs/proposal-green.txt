@@ -1,0 +1,13 @@
+CONTROL_FLOW_MODEL_ONLY mode=fixed-proposal
+PASS policy_missing_after_stop
+PASS stale_stop_preserves_replacement
+PASS autouse_missing_is_not_healthy
+PASS first_exception_is_immutable
+PASS finally_preserves_primary
+PASS failed_cohort_cannot_pass
+PASS self_cast_is_not_native_progress
+PASS terminal_deadline_is_consumed
+PASS stock_player_without_policy_keeps_tick
+PASS healthy_pools_are_healthy
+PASS positive_native_progress
+SUMMARY passed=11 failed=0 scope=standalone-model-not-L2J

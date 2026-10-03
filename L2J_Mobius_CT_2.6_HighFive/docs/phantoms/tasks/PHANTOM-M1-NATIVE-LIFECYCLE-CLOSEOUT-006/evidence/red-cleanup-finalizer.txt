@@ -1,0 +1,18 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=4
+passed=2
+failed=2
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL m1-native-lifecycle.E02-cleanup-primary-survives-native-task-finalizer elapsedNanos=125725900 type=java.lang.AssertionError message=Native stopAllTasks finalizer masked cleanup primary: java.lang.AssertionError: TEST_CANCEL_TASK_B seed=15001501
+PASS m1-native-lifecycle.E03-native-resume-primary-survives-boundary-finalizer elapsedNanos=15408900
+PASS m1-native-lifecycle.E03-native-store-primary-survives-boundary-finalizer elapsedNanos=8689600
+FAIL m1-native-lifecycle.E04-materialize-error-survives-abort-error elapsedNanos=24746100 type=java.lang.AssertionError message=Materialization/abort swallowed or masked primary Error: null seed=15001501

@@ -1,0 +1,99 @@
+PHANTOM-M1-NATIVE-LIFECYCLE-CLOSEOUT-006 — COMMANDS
+
+MODULE=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive
+REPO=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius
+ORIGINAL=C:/Users/ZBook/L2J_Mobius
+BASE=461a4abe32be4aa08532b8417a6147684a8889c6
+
+Read-first: Get-Content local AGENTS/README/master/workflow/task/docs/previous SUMMARY/source/build/tests; scoped rg / rg --files. java -version; javac -version; ant -version: JDK25.0.4.1/Ant1.10.17. Native create_worktree от BASE — по прямому разрешению пользователя; original checkout не переключался.
+
+ACTUAL NATIVE RUNS
+Canonical exact Ant commands без оболочки capture; рабочие commands перенаправляли stdout/stderr в .phantom-local/m1-native-closeout-006-<run>.log, сохраняли LASTEXITCODE, выводили tail. Reports скопированы до следующего compile-tests; каждый output отдельный. Не все early shell completion receipts сохранены; Java status в execution tail отдельно, без выдуманного exit.
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-ownership-lf' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=6/0/6; P04/P05 native RED; invalid P01 AutoPlay fixture excluded
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-session-green-pools' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=7/5/2; partial-pair RED; fixture limitation
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-session-overlap' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=8/4/4; Session rollback/partial-pair RED
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/green-session' phantom-m1-native-lifecycle-test
+exit=0; total/pass/fail=8/8/0; candidate ownership/session assertions
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-errors-and-context' phantom-m1-native-lifecycle-test
+exit=UNRECORDED; Java3/BUILD_FAILED; total/pass/fail=12/8/4; E03 RED; context fixture failures excluded
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-native-prepare-overlap' '-Dphantom.m1.native.focus=store' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=1/0/1; actual native hit reward crosses PREPARE
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/green-native-completion' '-Dphantom.m1.native.focus=store' phantom-m1-native-lifecycle-test
+exit=0; total/pass/fail=1/1/0; first completion retest; not all Q
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/green-hit-cast-owned' '-Dphantom.m1.native.focus=store' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=3/2/1; hit/timeout PASS; invalid mage capability fixture excluded
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-cleanup-finalizer' '-Dphantom.m1.native.focus=errors' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=4/2/2; E02/E04 RED; E03 PASS
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/green-native-errors-mage' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=15/14/1; E02–E04 PASS; invalid mage canonical fixture excluded
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-first-incident' '-Dphantom.m1.native.focus=errors' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=6/4/2; E01/E05 RED
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/green-incident-mage' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=18/17/1; E7/P8/hit/timeout PASS; incomplete mage TEST bootstrap
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/green-stock-mage' '-Dphantom.m1.native.focus=cast' phantom-m1-native-lifecycle-test
+exit=0; total/pass/fail=1/1/0; corrected native MasterHandler; actual cast reward
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-terminal-travel-assets' '-Dphantom.m1.native.focus=travel' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=1/0/1; FarmTravel/mirrored callback RED; full composition not run
+
+ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-delayed-native-quest' '-Dphantom.m1.native.focus=async' phantom-m1-native-lifecycle-test
+exit=1; total/pass/fail=1/0/1; critical delayed native writer BLOCKER
+
+& (Get-Command pwsh).Source -NoProfile -File ./docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-observer-closeout/Test-M1ObserverOffline.ps1 > .phantom-local/m1-native-closeout-006-red-native-grading-captured.log 2>&1
+$taskTestExit=$LASTEXITCODE
+Get-Content .phantom-local/m1-native-closeout-006-red-native-grading-captured.log -Tail 7
+exit $taskTestExit
+exit=1; four false-PASS controls A01–A04; captured621B. Existing later offline checks not executed after assertion.
+
+EARLY RUNS НЕ PRODUCTION RED:
+red-ownership / red-ownership-validated: Java guard2, до fixture, prepared manifest byte mismatch.
+red-native-reward / red-native-reward-valid / red-native-reward-diagnostic: fixture/context diagnostics.
+red-native-completion: unquoted PowerShell property split; parse failure.
+red-native-completion-valid / red-native-drain: native context / barrier-monitor fixture diagnostics.
+green-hit-cast-reward: earlier fixture without complete persistence assertions.
+diagnostic-native-mage: incomplete native handler bootstrap; not production RED.
+red-terminal-travel: absent isolated ignored geodata; not production RED.
+First grading log0B: discarded; only captured child-pwsh rerun published.
+Exact retained early shell invocation metadata: evidence/EARLY_COMMAND_RECORDS.json. Yielded sessions in that file are not completion receipts. Sources changed between runs; final candidate manifest does not identify each earlier compiled version.
+
+PREPARATION / PRESERVATION
+Existing Java guard validated TEST l2jmobiush5_phantom_test, hash394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E, 121scripts/214statements. Private ini/manifest not published.
+Six named SQL inventory files CRLF→LF only in isolated worktree; no semantic SQL/schema/manifest/guard change. Exact files in CHANGED_FILES.tsv, excluded from commit.
+Copy-Item existing203 geodata files original→isolated ignored TEST; total1063452308B; per-file Get-FileHash equality. No geodata rewrite/publication.
+Get-FileHash original five foreign files vs foreign-before.json; all equal. Get-Process -Id24248,33368 PID/start unchanged. Get-FileHash original dist/libs/GameServer.jar, PhantomPlayers.ini, LocalPlayPilot.ini equal.
+
+GIT
+TASK разрешает read-only scoped inspection, exact-path publication; AGENTS требует docs commit/push при BLOCKED. Production candidate commit после GREEN не выполняется. No add ., reset, clean, stash, rebase, force или broad restore.
+git -c safe.directory=C:/Users/ZBook/L2J_Mobius -C C:/Users/ZBook/L2J_Mobius status --short
+git -c safe.directory=C:/Users/ZBook/L2J_Mobius -C C:/Users/ZBook/L2J_Mobius rev-parse HEAD
+git -c safe.directory=C:/Users/ZBook/L2J_Mobius -C C:/Users/ZBook/L2J_Mobius diff --cached --name-only
+git -c safe.directory=C:/Users/ZBook/L2J_Mobius -C C:/Users/ZBook/L2J_Mobius diff --binary
+git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius status --short
+git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius rev-parse HEAD
+git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius log --oneline -6
+git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius show --stat 461a4abe32be4aa08532b8417a6147684a8889c6
+git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius ls-tree -r --name-only 461a4abe32be4aa08532b8417a6147684a8889c6 -- L2J_Mobius_CT_2.6_HighFive
+git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius ls-remote origin refs/heads/feature/phantom-world
+git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius diff --name-only
+git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius diff --stat
+git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius diff --binary --output=L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-LIFECYCLE-CLOSEOUT-006/evidence/CANDIDATE.patch -- L2J_Mobius_CT_2.6_HighFive/build.xml L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/Run-M1RuntimeHandoff.ps1 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-observer-closeout/Test-M1ObserverOffline.ps1 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java
+Untracked DTO appended from actual source normal file I/O; SQL excluded. Final audit export adds --unified=0 to the exact diff command above; this removes patch-context whitespace without changing source hunks. Initial staged diff --check exit2 on patch context and one execution tail; corrected U0 export and trailing-whitespace-only tail cleanup were rechecked. Scoped source diff reads повторялись; не заявляется exhaustive machine transcript. Exact baseline SQL git archive invocation — EARLY_COMMAND_RECORDS.json. Managed worktree использовал app tool.
+Docs exact add list/commit/push/final remote verification recorded after execution in PUBLICATION.md. Staged full diff-check=2 solely for four deleted baseline tab-only lines captured literally in audit patch; 89 other docs standard check=0, exact patch check with per-command core.whitespace=-blank-at-eol=0, candidate additions standard check=0. This bounded raw-evidence exception does not weaken source checks. SOURCE_MAP two final empty URL columns quoted as empty TSV fields; permissions unchanged. Per-command core.safecrlf=false only suppresses conversion warnings, no persistent Git config changed.
+
+NOT_RUN after D5 BLOCKED: proofs model, VERIFY11-target broad regression, new owned C/D/restart/mismatch controls, performance smoke, bounded stress, accepted-code clean build, deploy, synthetic5, real arm, M2.

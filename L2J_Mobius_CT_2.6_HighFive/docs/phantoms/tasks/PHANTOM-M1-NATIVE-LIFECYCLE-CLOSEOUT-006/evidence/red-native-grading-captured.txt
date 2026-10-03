@@ -1,0 +1,7 @@
+Exception: C:\Users\ZBook\.codex\worktrees\m1-native-closeout-006\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005\continuation-observer-closeout\Test-M1ObserverOffline.ps1:10
+Line |
+  10 |      if (-not $condition) { throw "OFFLINE_ASSERT:$reason" }
+     |                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | OFFLINE_ASSERT:NATIVE_GRADING_FALSE_PASS:A03 another actor cast supplies selected proof;A01
+     | FAILED/admissionclosed cohort passes;A02 selfheal/target flags without attributed progress pass;A04 missing
+     | fresh interval baseline passes

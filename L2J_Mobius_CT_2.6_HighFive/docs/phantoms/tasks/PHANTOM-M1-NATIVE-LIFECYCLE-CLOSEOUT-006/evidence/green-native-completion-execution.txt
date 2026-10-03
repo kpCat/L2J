@@ -1,0 +1,6 @@
+     [java] [main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+     [java] ???. 03, 2026 7:30:05 PM org.l2jmobius.commons.database.DatabaseFactory close
+     [java] INFO: Database: HikariCP pool closed successfully.
+
+BUILD SUCCESSFUL
+Total time: 1 minute 6 seconds

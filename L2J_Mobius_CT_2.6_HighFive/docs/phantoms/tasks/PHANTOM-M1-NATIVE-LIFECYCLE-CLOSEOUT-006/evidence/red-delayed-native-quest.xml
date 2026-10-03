@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="1" passed="0" failures="1">
+  <properties>
+    <property name="Q05.asyncQuest.backgroundInventory" value="InventoryFacts[mutableItemIds=[21, 28, 57, 1788, 1868, 1873], objects=[ItemObject[objectId=268435466, itemId=57, count=7, stackable=true, location=INVENTORY]], canonicalHash=f9cb4f5c4dd06e09c4ec5412374b3c3690b42356c6d4c4707c2ba47a7f3d6d44, currentLoad=0, maximumLoad=88320, usedSlots=1, maximumSlots=80]"/>
+    <property name="Q05.asyncQuest.cleanup" value="SUCCESS"/>
+    <property name="Q05.asyncQuest.contextBeforeAttack" value="instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0"/>
+    <property name="Q05.asyncQuest.nativeQuestReward" value="before=0 after=1 pendingOwnedStore=false"/>
+    <property name="Q05.asyncQuest.nativeState" value="mage=false hp=0.0/75 damage=88 mp=82.0 skills=[] action=ATTACK casting=false attack=true target=:Red Keltir(20534)[268481775] pair=true"/>
+    <property name="Q05.asyncQuest.ownershipBeforeReward" value="entry=false world=false identity=null outbound=false"/>
+    <property name="Q05.asyncQuest.pendingSnapshot" value="MaterializationSnapshot[profileId=73434, characterObjectId=268435465, state=DEMATERIALIZING, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=0, worldPresent=true, materializedAtNanos=635971541604800, dematerializedAtNanos=0, cleanupPhase=NATIVE_STORE, cleanupFailurePhase=NONE, cleanupFailureClass=, cleanupFailureMessage=, cleanupFailureSequence=0, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=, firstCleanupIncident=null, latestCleanupIncident=null]"/>
+    <property name="Q05.asyncQuest.preparedWhileQuestActive" value="true"/>
+    <property name="Q05.asyncQuest.retry" value="NOT_ACTIVE"/>
+    <property name="Q05.asyncQuest.retrySnapshot" value="removed"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q01-Q05-delayed-native-kill-quest-reward" elapsedNanos="20397614000"><failure type="java.lang.AssertionError" message="Owned PREPARE crossed an active native ON_ATTACKABLE_KILL quest reward; ownership was released before the earned callback completed." seed="15001501"/></testcase>
+</testsuite>

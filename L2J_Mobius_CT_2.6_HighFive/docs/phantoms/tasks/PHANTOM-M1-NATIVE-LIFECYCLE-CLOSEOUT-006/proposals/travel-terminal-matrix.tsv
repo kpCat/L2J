@@ -1,0 +1,18 @@
+reason	disposition	resolution	permanent_topology_mutation
+travel.route_absent	ROUTE_UNUSABLE	existing target/step exclusion TTL + replan	NO
+travel.destination_unproven	ROUTE_UNUSABLE	incident + existing replan/exclusion TTL	NO
+travel.gatekeeper_unproven	ROUTE_UNUSABLE	incident + existing replan/exclusion TTL	NO
+travel.navigation_no_path	ROUTE_UNUSABLE	existing bounded exclusion/replan	NO
+travel.navigation_route_obstructed	ROUTE_UNUSABLE	existing bounded exclusion/replan	NO
+travel.navigation_route_budget_exceeded	TRANSIENT_SERVICE	bounded same-revision cooldown; surface exhausted budget	NO
+travel.navigation_deadline_expired	TRANSIENT_SERVICE	bounded cooldown without new Journey budget reset	NO
+travel.journey_deadline	NATIVE_ACTION_REJECTED	terminal resolution + existing replan/exclusion TTL	NO
+travel.native_move_rejected	NATIVE_ACTION_REJECTED	bounded attempts then terminal resolution	NO
+travel.native_gatekeeper_absent	NATIVE_ACTION_REJECTED	bounded attempts then target/step replan TTL	NO
+travel.native_teleport_rejected	NATIVE_ACTION_REJECTED	bounded attempts; no fake teleport	NO
+travel.native_progress_stuck	ROUTE_UNUSABLE	bounded target/step replan TTL	NO
+travel.native_progress_timeout	ROUTE_UNUSABLE	bounded target/step replan TTL	NO
+travel.native_progress_stale	PROTOCOL_VIOLATION	exact epoch/request reconciliation or incident	NO
+travel.navigation_terminal_missing	PROTOCOL_VIOLATION	incident; stop identical retry loop	NO
+travel.navigation_protocol_failure	PROTOCOL_VIOLATION	incident; stop identical retry loop	NO
+travel.arrival_capture_pending	STORE_PENDING	resume exact existing owned receipt; never recapture	NO

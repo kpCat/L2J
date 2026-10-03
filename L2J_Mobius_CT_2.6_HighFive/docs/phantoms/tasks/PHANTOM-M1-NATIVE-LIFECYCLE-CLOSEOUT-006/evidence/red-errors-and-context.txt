@@ -1,0 +1,35 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=12
+passed=8
+failed=4
+measurement.Q01.cleanup=CLEANUP_FAILED_RETAINED
+measurement.Q01.cleanupSnapshot=MaterializationSnapshot[profileId=73385, characterObjectId=268435465, state=FAILED, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=0, worldPresent=true, materializedAtNanos=632161286870100, dematerializedAtNanos=0, cleanupPhase=NATIVE_STORE, cleanupFailurePhase=NATIVE_STORE, cleanupFailureClass=java.lang.IllegalArgumentException, cleanupFailureMessage=Canonical Player is in an unsupported background context., cleanupFailureSequence=1, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=]
+measurement.Q01.contextAtStore=instance=0 flying=false flyingMounted=false mounted=false party=false combat=true combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0
+measurement.Q01.contextBeforeAttack=instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0
+measurement.Q01.nativeReward=object=268435465 expDelta=0 spDelta=0 preparedWhileHitActive=false
+measurement.Q01.retry=CLEANUP_FAILED_RETAINED
+measurement.Q01.retrySnapshot=MaterializationSnapshot[profileId=73385, characterObjectId=268435465, state=FAILED, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=0, worldPresent=true, materializedAtNanos=632161286870100, dematerializedAtNanos=0, cleanupPhase=NATIVE_STORE, cleanupFailurePhase=NATIVE_STORE, cleanupFailureClass=java.lang.IllegalArgumentException, cleanupFailureMessage=Canonical Player is in an unsupported background context., cleanupFailureSequence=2, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=]
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL m1-native-lifecycle.E03-native-resume-primary-survives-boundary-finalizer elapsedNanos=55891600 type=java.lang.AssertionError message=Boundary finalizer masked the native SQL primary: java.lang.IllegalArgumentException: TEST_BOUNDARY_AFTER_STORE_B seed=15001501
+FAIL m1-native-lifecycle.E03-native-store-primary-survives-boundary-finalizer elapsedNanos=15205000 type=java.lang.AssertionError message=Boundary finalizer masked the native SQL primary: java.lang.IllegalArgumentException: TEST_BOUNDARY_AFTER_STORE_B seed=15001501
+PASS m1-native-lifecycle.P01-AutoPlayTaskManager-missing-policy-skips-stock-effects elapsedNanos=137926700
+PASS m1-native-lifecycle.P01-AutoUseTaskManager-missing-policy-skips-stock-effects elapsedNanos=57835200
+PASS m1-native-lifecycle.P04-AutoPlayTaskManager-stale-rejection-keeps-replacement elapsedNanos=27181300
+PASS m1-native-lifecycle.P04-AutoUseTaskManager-stale-rejection-keeps-replacement elapsedNanos=27036600
+PASS m1-native-lifecycle.P05-AutoPlayTaskManager-stale-exception-keeps-pair elapsedNanos=61670000
+PASS m1-native-lifecycle.P05-AutoUseTaskManager-stale-exception-keeps-pair elapsedNanos=34263600
+PASS m1-native-lifecycle.P07-stale-visible-start-rollback-keeps-current-session elapsedNanos=50275300
+PASS m1-native-lifecycle.P08-partial-visible-pair-is-unhealthy-and-repaired elapsedNanos=27034400
+FAIL m1-native-lifecycle.Q01-native-reward-completion-drains-before-prepare elapsedNanos=17419452300 type=java.lang.AssertionError message=Native reward cleanup retained a failure; no quiescence PASS is established. Expected <SUCCESS> but was <CLEANUP_FAILED_RETAINED>. seed=15001501
+FAIL m1-native-lifecycle.after-all elapsedNanos=0 type=java.lang.RuntimeException message=java.lang.AssertionError: Identity registry is not empty after final fixture cleanup. Expected <0> but was <1>. seed=15001501

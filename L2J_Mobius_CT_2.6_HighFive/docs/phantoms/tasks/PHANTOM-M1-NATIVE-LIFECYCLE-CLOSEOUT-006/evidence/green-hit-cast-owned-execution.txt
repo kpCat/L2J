@@ -1,0 +1,6 @@
+     [java] INFO: Database: HikariCP pool closed successfully.
+
+BUILD FAILED
+C:\Users\ZBook\.codex\worktrees\m1-native-closeout-006\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml:1512: Java returned: 1
+
+Total time: 1 minute 41 seconds

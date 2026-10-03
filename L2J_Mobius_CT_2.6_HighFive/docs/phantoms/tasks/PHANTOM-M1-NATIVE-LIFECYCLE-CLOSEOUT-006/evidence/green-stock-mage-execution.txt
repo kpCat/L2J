@@ -1,0 +1,6 @@
+     [java]
+     [java] INFO: Database: HikariCP pool closed successfully.
+     [java] SUMMARY: suite=m1-native-lifecycle seed=15001501 total=1 passed=1 failed=0
+
+BUILD SUCCESSFUL
+Total time: 57 seconds

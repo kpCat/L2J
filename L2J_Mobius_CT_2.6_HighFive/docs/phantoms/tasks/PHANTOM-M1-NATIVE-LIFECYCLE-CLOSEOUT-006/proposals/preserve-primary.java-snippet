@@ -1,0 +1,38 @@
+// PROPOSAL ONLY: apply the shape inline to existing boundary methods, not a new engine.
+// checked exceptions are not introduced; RuntimeException and Error retain their types.
+Throwable primary = null;
+try
+{
+    // Existing beforeStore/storeNative/afterStore work, unchanged order.
+    operation();
+}
+catch (RuntimeException | Error failure)
+{
+    primary = failure;
+    throw failure;
+}
+finally
+{
+    try
+    {
+        existingFinalizer();
+    }
+    catch (RuntimeException | Error secondary)
+    {
+        if (primary == null)
+        {
+            throw secondary;
+        }
+        if (primary != secondary)
+        {
+            primary.addSuppressed(secondary);
+        }
+        // Preserve FIRST; detached diagnostic must also record truncation/suppression facts.
+    }
+}
+
+// Player.store / resume: operation=storeNative + completed=true;
+// existingFinalizer=boundary.afterStore(completed). completed is unchanged on throw.
+// cleanup: existingFinalizer=player.stopAllTasks().
+// materialize abort: keep original failure; cleanup failure becomes suppressed.
+// Never throw from the diagnostic formatter and replace the original problem.

@@ -1,0 +1,1524 @@
+diff --git a/L2J_Mobius_CT_2.6_HighFive/build.xml b/L2J_Mobius_CT_2.6_HighFive/build.xml
+index 303473f95a2..77c095da9ef 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/build.xml
++++ b/L2J_Mobius_CT_2.6_HighFive/build.xml
+@@ -51,0 +52 @@
++	<property name="phantom.m1.native.focus" value="all" />
+@@ -1505,0 +1507,16 @@
++	<target name="phantom-m1-native-lifecycle-test" depends="compile-tests" description="Run actual native M1 ownership and lifecycle regressions in guarded TEST.">
++		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
++		<fail unless="phantom.test.config.present" message="Missing guarded TEST configuration." />
++		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
++		<fail unless="phantom.test.schema.manifest.present" message="Missing guarded TEST schema manifest." />
++		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="300000" dir="${datapack}/game">
++			<jvmarg value="-Xmx4096m" />
++			<jvmarg value="-Dphantom.module.root=${basedir}" />
++			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
++			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
++			<sysproperty key="phantom.m1.native.focus" value="${phantom.m1.native.focus}" />
++			<arg value="m1-native-lifecycle" />
++			<arg value="${phantom.goal015.seed}" />
++		</java>
++	</target>
++
+diff --git a/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/Run-M1RuntimeHandoff.ps1 b/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/Run-M1RuntimeHandoff.ps1
+index e6737e00857..3ae498ddf8e 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/Run-M1RuntimeHandoff.ps1
++++ b/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/Run-M1RuntimeHandoff.ps1
+@@ -200,0 +201,11 @@ function Route-Stale($planned, $current)
++function Get-NativeM1Grades
++{
++	$ordinaryFarm = @($script:census | Where-Object { ($_.eligible -ceq 'true') -and ($_.targetMonsterAlive -ceq 'true') -and (($_.attacking -ceq 'true') -or ($_.casting -ceq 'true')) })
++	$nativeAction = $script:nativeDisplacement -or $script:selectedNativeFarm
++	$nativeLife = if ($nativeAction -and ($script:selectedNativeFarm -or ($ordinaryFarm.Count -gt 0))) { 'PASS' } else { 'NOT_OBSERVED' }
++	$eligibleProfiles = @($script:census | Where-Object { $_.eligible -ceq 'true' } | Select-Object -ExpandProperty profileId -Unique).Count
++	$failedIdle = @($script:census | Where-Object { ($_.eligible -ceq 'true') -and ($_.idleReason -ceq 'ACTIVE_IDLE') -and ($_.travelFailureReason -match '(navigation_|native_progress_|route_absent)') } | Group-Object profileId | Where-Object { $_.Count -ge 2 })
++	$cohort = if ($script:censusComplete -and ($eligibleProfiles -ge 4) -and ($failedIdle.Count -eq 0)) { 'PASS' } else { 'INSUFFICIENT_OR_FAILED' }
++	return @{ NATIVE_LIFE = $nativeLife; COHORT = $cohort }
++}
++
+@@ -374,6 +385,3 @@ function Invoke-M1Run
+-		$ordinaryFarm = @($script:census | Where-Object { ($_.eligible -ceq 'true') -and ($_.targetMonsterAlive -ceq 'true') -and (($_.attacking -ceq 'true') -or ($_.casting -ceq 'true')) })
+-		$nativeAction = $script:nativeDisplacement -or $script:selectedNativeFarm
+-		$matrix.NATIVE_LIFE = if ($nativeAction -and ($script:selectedNativeFarm -or ($ordinaryFarm.Count -gt 0))) { 'PASS' } else { 'NOT_OBSERVED' }
+-		$eligibleProfiles = @($script:census | Where-Object { $_.eligible -ceq 'true' } | Select-Object -ExpandProperty profileId -Unique).Count
+-		$failedIdle = @($script:census | Where-Object { ($_.eligible -ceq 'true') -and ($_.idleReason -ceq 'ACTIVE_IDLE') -and ($_.travelFailureReason -match '(navigation_|native_progress_|route_absent)') } | Group-Object profileId | Where-Object { $_.Count -ge 2 })
+-		$matrix.COHORT = if ($script:censusComplete -and ($eligibleProfiles -ge 4) -and ($failedIdle.Count -eq 0)) { 'PASS' } else { 'INSUFFICIENT_OR_FAILED' }
++		$nativeGrades = Get-NativeM1Grades
++		$matrix.NATIVE_LIFE = $nativeGrades.NATIVE_LIFE
++		$matrix.COHORT = $nativeGrades.COHORT
+diff --git a/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-observer-closeout/Test-M1ObserverOffline.ps1 b/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-observer-closeout/Test-M1ObserverOffline.ps1
+index 1c7064e4a5f..56139143c38 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-observer-closeout/Test-M1ObserverOffline.ps1
++++ b/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005/continuation-observer-closeout/Test-M1ObserverOffline.ps1
+@@ -20,0 +21,15 @@ function Assert-Throws([scriptblock] $body, [string] $fragment)
++$nativeFalsePasses = [Collections.Generic.List[string]]::new()
++$script:censusComplete = $true; $script:nativeDisplacement = $true; $script:selectedNativeFarm = $false
++$script:rows = [Collections.Generic.List[object]]::new()
++$script:census = [Collections.Generic.List[object]]::new()
++foreach ($id in 1..4)
++{
++	$script:census.Add([pscustomobject]@{ profileId = [string]$id; eligible = 'true'; targetMonsterAlive = 'true'; attacking = 'false'; casting = 'true'; idleReason = 'NATIVE_ACTION'; travelFailureReason = ''; materializationState = 'FAILED'; actionAdmissionOpen = 'false' })
++}
++if ((Get-NativeM1Grades).NATIVE_LIFE -ceq 'PASS') { $nativeFalsePasses.Add('A03 another actor cast supplies selected proof') }
++if ((Get-NativeM1Grades).COHORT -ceq 'PASS') { $nativeFalsePasses.Add('A01 FAILED/admissionclosed cohort passes') }
++$script:selectedNativeFarm = $true
++if ((Get-NativeM1Grades).NATIVE_LIFE -ceq 'PASS') { $nativeFalsePasses.Add('A02 selfheal/target flags without attributed progress pass') }
++if ((Get-NativeM1Grades).NATIVE_LIFE -ceq 'PASS') { $nativeFalsePasses.Add('A04 missing fresh interval baseline passes') }
++Assert-True ($nativeFalsePasses.Count -eq 0) ('NATIVE_GRADING_FALSE_PASS:' + ($nativeFalsePasses -join ';'))
++
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java
+index d8e46cdbf65..19440a0b011 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java
+@@ -46 +46,2 @@ import java.util.concurrent.TimeUnit;
+-import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.atomic.AtomicLong;
+@@ -460,0 +462,34 @@ public class Player extends Playable
++	private volatile java.util.function.Supplier<AutoPlayTaskManager.TickLease> _phantomNativeActionAdmission;
++	private volatile boolean _phantomNativeActionManaged;
++	private final ThreadLocal<Boolean> _phantomNativeActionActive = new ThreadLocal<>();
++
++	/** Only the materialization owner may install the existing action drain at native completion boundaries. */
++	public void attachPhantomNativeActionAdmission(java.util.function.Supplier<AutoPlayTaskManager.TickLease> admission)
++	{
++		if ((_client != null) || !hasHeadlessOutboundSession() || (org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(getObjectId()) != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
++		{
++			throw new IllegalStateException("PHANTOM_NATIVE_ACTION_OWNER_REJECTED");
++		}
++		_phantomNativeActionManaged = true;
++		_phantomNativeActionAdmission = java.util.Objects.requireNonNull(admission);
++	}
++
++	public void detachPhantomNativeActionAdmission(java.util.function.Supplier<AutoPlayTaskManager.TickLease> expected)
++	{
++		if (_phantomNativeActionAdmission == expected) { _phantomNativeActionAdmission = null; }
++	}
++
++	private void runPhantomNativeAction(Runnable action)
++	{
++		if (!_phantomNativeActionManaged || Boolean.TRUE.equals(_phantomNativeActionActive.get())) { action.run(); return; }
++		final var admission = _phantomNativeActionAdmission;
++		if (admission == null) { return; }
++		final var lease = admission.get();
++		if (lease == null) { return; }
++		try (lease)
++		{
++			_phantomNativeActionActive.set(Boolean.TRUE);
++			try { action.run(); }
++			finally { _phantomNativeActionActive.remove(); }
++		}
++	}
+@@ -495,0 +531 @@ public class Player extends Playable
++		Throwable primary = null;
+@@ -497 +533,10 @@ public class Player extends Playable
+-		finally { boundary.afterStore(completed); }
++		catch (RuntimeException | Error failure) { primary = failure; throw failure; }
++		finally
++		{
++			try { boundary.afterStore(completed); }
++			catch (RuntimeException | Error secondary)
++			{
++				if (primary == null) { throw secondary; }
++				if (primary != secondary) { primary.addSuppressed(secondary); }
++			}
++		}
+@@ -1023 +1068,3 @@ public class Player extends Playable
+-	private final AtomicBoolean _autoPlaying = new AtomicBoolean();
++	private final AtomicBoolean _autoPlaying = new AtomicBoolean();
++	private final AtomicLong _autoPlayRegistrationGeneration = new AtomicLong();
++	private volatile boolean _phantomAutoPlayManaged;
+@@ -4808,3 +4855,8 @@ public class Player extends Playable
+-	public void doAttack(Creature target)
+-	{
+-		super.doAttack(target);
++	public void doAttack(Creature target)
++	{
++		runPhantomNativeAction(() -> doNativeAttack(target));
++	}
++
++	private void doNativeAttack(Creature target)
++	{
++		super.doAttack(target);
+@@ -4819,2 +4871,7 @@ public class Player extends Playable
+-	public void doCast(Skill skill)
+-	{
++	public void doCast(Skill skill)
++	{
++		runPhantomNativeAction(() -> doNativeCast(skill));
++	}
++
++	private void doNativeCast(Skill skill)
++	{
+@@ -4828,3 +4885,45 @@ public class Player extends Playable
+-		super.doCast(skill);
+-		setRecentFakeDeath(false);
+-	}
++		super.doCast(skill);
++		setRecentFakeDeath(false);
++	}
++
++	@Override
++	public void onHitTimer(Creature target, int damage, boolean critical, boolean miss, byte shield, boolean soulshot, boolean rechargeShots)
++	{
++		runPhantomNativeAction(() -> super.onHitTimer(target, damage, critical, miss, shield, soulshot, rechargeShots));
++	}
++
++	@Override
++	public void onMagicLaunchedTimer(org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask task)
++	{
++		runPhantomNativeAction(() -> super.onMagicLaunchedTimer(task));
++	}
++
++	@Override
++	public void onMagicHitTimer(org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask task)
++	{
++		runPhantomNativeAction(() -> super.onMagicHitTimer(task));
++	}
++
++	@Override
++	public void onMagicFinalizer(org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask task)
++	{
++		runPhantomNativeAction(() -> super.onMagicFinalizer(task));
++	}
++
++	@Override
++	public void callSkill(Skill skill, List<WorldObject> targets)
++	{
++		runPhantomNativeAction(() -> super.callSkill(skill, targets));
++	}
++
++	@Override
++	public void doCast(Skill skill, Creature target, List<WorldObject> targets)
++	{
++		runPhantomNativeAction(() -> super.doCast(skill, target, targets));
++	}
++
++	@Override
++	public void doSimultaneousCast(Skill skill, Creature target, List<WorldObject> targets)
++	{
++		runPhantomNativeAction(() -> super.doSimultaneousCast(skill, target, targets));
++	}
+@@ -7723,0 +7823 @@ public class Player extends Playable
++		Throwable primary = null;
+@@ -7725 +7825,10 @@ public class Player extends Playable
+-		finally { boundary.afterStore(completed); }
++		catch (RuntimeException | Error failure) { primary = failure; throw failure; }
++		finally
++		{
++			try { boundary.afterStore(completed); }
++			catch (RuntimeException | Error secondary)
++			{
++				if (primary == null) { throw secondary; }
++				if (primary != secondary) { primary.addSuppressed(secondary); }
++			}
++		}
+@@ -15476,9 +15585,36 @@ public class Player extends Playable
+-	public void setAutoPlaying(boolean value)
+-	{
+-		_autoPlaying.set(value);
+-		
+-		if (!value && _offlinePlay && OfflinePlayConfig.RESTORE_AUTO_PLAY_OFFLINERS)
+-		{
+-			OfflinePlayTable.getInstance().removeOfflinePlay(this);
+-		}
+-	}
++	public void setAutoPlaying(boolean value)
++	{
++		final long generation = setAutoPlayingRegistration(value);
++		if (!value) { finishAutoPlayRegistrationStop(generation, false); }
++	}
++
++	/** Registration mutation is atomic and performs no native callbacks or database I/O. */
++	public final long setAutoPlayingRegistration(boolean value)
++	{
++		_autoPlaying.set(value);
++		return _autoPlayRegistrationGeneration.incrementAndGet();
++	}
++
++	/** Run native cleanup outside the manager monitor, only for the observed registration. */
++	public final void finishAutoPlayRegistrationStop(long generation, boolean followSummon)
++	{
++		if ((generation != _autoPlayRegistrationGeneration.get()) || isAutoPlaying()) { return; }
++		if (_offlinePlay && OfflinePlayConfig.RESTORE_AUTO_PLAY_OFFLINERS)
++		{
++			OfflinePlayTable.getInstance().removeOfflinePlay(this);
++		}
++		if (followSummon && (generation == _autoPlayRegistrationGeneration.get()) && !isAutoPlaying() && (hasServitor() || hasPet()))
++		{
++			getSummon().followOwner();
++		}
++	}
++
++	public final void markPhantomAutoPlayManaged()
++	{
++		_phantomAutoPlayManaged = true;
++	}
++
++	public final boolean isPhantomAutoPlayManaged()
++	{
++		return _phantomAutoPlayManaged;
++	}
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java
+index 01bd3e6068a..0ff42e5072e 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java
+@@ -1989,0 +1990,6 @@ public final class PhantomSystem
++			final var firstIncident = entry.firstCleanupIncident();
++			result.put(prefix + "cleanupIncidentId", firstIncident == null ? "" : firstIncident.id(entry.profileId()));
++			result.put(prefix + "cleanupFirstPhase", firstIncident == null ? "NONE" : firstIncident.phase().name());
++			result.put(prefix + "cleanupFirstClass", firstIncident == null ? "" : firstIncident.exceptionClass());
++			result.put(prefix + "cleanupFirstMessage", firstIncident == null ? "" : firstIncident.message());
++			result.put(prefix + "cleanupFirstUtc", firstIncident == null ? "" : firstIncident.utc());
+@@ -2071,0 +2078,3 @@ public final class PhantomSystem
++		final var diagnostics = configured._materializationService.snapshot();
++		result.put("cleanupIncidentEvictions", Long.toString(diagnostics.cleanupIncidentEvictions()));
++		result.put("cleanupEvidenceIncomplete", Boolean.toString(diagnostics.cleanupEvidenceIncomplete()));
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java
+index 1bfb7d7be77..d26bfbd390a 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java
+@@ -9,0 +10 @@ import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.atomic.AtomicBoolean;
+@@ -43,0 +45 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
++	private final Object[] _sessionOwners = java.util.stream.IntStream.range(0, 64).mapToObj(_ -> new Object()).toArray();
+@@ -87 +89 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-			if ((previous != null) && (previous.player() == player) && (previous.goalId() == goal.goalId()) && (previous.revision() == goal.revision()) && player.isAutoPlaying())
++			if (healthy(profileId, goal, previous, player))
+@@ -89 +91,4 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-				return true;
++				synchronized (owner(profileId))
++				{
++					if ((_sessions.get(profileId) == previous) && previous._current.get()) { return true; }
++				}
+@@ -91 +95,0 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-			stop(profileId);
+@@ -94 +98,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-			_sessions.put(profileId, new Session(player, goal.goalId(), goal.revision()));
++			final Session session = new Session(player, goal.goalId(), goal.revision(), policy);
++			final Session replaced;
++			synchronized (owner(profileId))
++			{
++				replaced = _sessions.put(profileId, session);
++				if (replaced != null) { replaced._current.set(false); }
++			}
+@@ -97,2 +107,6 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-				AutoPlayTaskManager.getInstance().startPhantomAutoPlay(player, policy);
+-				AutoUseTaskManager.getInstance().startPhantomAutoUse(player, policy);
++				stopRegistrations(replaced);
++				if (!AutoPlayTaskManager.getInstance().startPhantomAutoPlay(player, policy, session._current) || !AutoUseTaskManager.getInstance().startPhantomAutoUse(player, policy, session._current) || !healthy(profileId, goal, session, player))
++				{
++					stop(profileId, session);
++					return false;
++				}
+@@ -100 +114 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-			catch (RuntimeException exception)
++			catch (RuntimeException | Error exception)
+@@ -102 +116,2 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-				stop(profileId);
++				try { stop(profileId, session); }
++				catch (RuntimeException | Error secondary) { if (secondary != exception) { exception.addSuppressed(secondary); } }
+@@ -105 +120,4 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-			return true;
++			synchronized (owner(profileId))
++			{
++				return (_sessions.get(profileId) == session) && session._current.get();
++			}
+@@ -111,2 +129,2 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-		final Session session = _sessions.remove(profileId);
+-		if (session != null)
++		final Session session;
++		synchronized (owner(profileId))
+@@ -114,2 +132,2 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-			AutoUseTaskManager.getInstance().stopAutoUseTask(session.player());
+-			AutoPlayTaskManager.getInstance().stopAutoPlay(session.player());
++			session = _sessions.remove(profileId);
++			if (session != null) { session._current.set(false); }
+@@ -116,0 +135,29 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
++		stopRegistrations(session);
++	}
++
++	private void stop(long profileId, Session expected)
++	{
++		synchronized (owner(profileId))
++		{
++			_sessions.remove(profileId, expected);
++			expected._current.set(false);
++		}
++		stopRegistrations(expected);
++	}
++
++	private static void stopRegistrations(Session session)
++	{
++		if (session == null) { return; }
++		try { AutoUseTaskManager.getInstance().stopPhantomAutoUse(session.player(), session._policy); }
++		finally { AutoPlayTaskManager.getInstance().stopPhantomAutoPlay(session.player(), session._policy); }
++	}
++
++	private Object owner(long profileId)
++	{
++		return _sessionOwners[(int) (profileId & 63)];
++	}
++
++	private boolean healthy(long profileId, PhantomGoal goal, Session session, Player player)
++	{
++		return (session != null) && session._current.get() && (_sessions.get(profileId) == session) && (session.player() == player) && (session.goalId() == goal.goalId()) && (session.revision() == goal.revision()) && player.isAutoPlaying() && player.hasHeadlessOutboundSession() && player.isOnline() && !player.isDead() && !player.hasPendingOwnedStore() && current(profileId, goal)
++			&& AutoPlayTaskManager.getInstance().hasPhantomRegistration(player, session._policy) && AutoUseTaskManager.getInstance().hasPhantomRegistration(player, session._policy);
+@@ -122 +169,5 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-		return (session != null) && (session.goalId() == goal.goalId()) && (session.revision() == goal.revision()) && session.player().isAutoPlaying() && current(profileId, goal);
++		if (session == null) { return false; }
++		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
++		{
++			return (action != null) && healthy(profileId, goal, session, action.player()) && (_sessions.get(profileId) == session) && session._current.get();
++		}
+@@ -307,0 +359,2 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
++		private final PhantomPolicy _policy;
++		private final AtomicBoolean _current = new AtomicBoolean(true);
+@@ -311 +364 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
+-		private Session(Player player, long goalId, long revision)
++		private Session(Player player, long goalId, long revision, PhantomPolicy policy)
+@@ -315,0 +369 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
++			_policy = policy;
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java
+index 9f0dfb8473d..8fcf73d25c2 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java
+@@ -104,0 +105,4 @@ public final class PhantomMaterializationService
++	private final Object _incidentMonitor = new Object();
++	private final java.util.LinkedHashMap<String, CleanupIncidentArchiveEntry> _cleanupIncidents = new java.util.LinkedHashMap<>();
++	private long _cleanupIncidentEvictions;
++	private boolean _cleanupEvidenceIncomplete;
+@@ -318,0 +323 @@ public final class PhantomMaterializationService
++				archiveCleanupIncident(entry);
+@@ -344,0 +350 @@ public final class PhantomMaterializationService
++				if (e instanceof Error error) { throw error; }
+@@ -396,0 +403 @@ public final class PhantomMaterializationService
++				archiveCleanupIncident(entry);
+@@ -399,0 +407 @@ public final class PhantomMaterializationService
++					if (e instanceof Error error) { throw error; }
+@@ -403,0 +412 @@ public final class PhantomMaterializationService
++				if (e instanceof Error error) { throw error; }
+@@ -414,0 +424 @@ public final class PhantomMaterializationService
++		archiveCleanupIncident(entry);
+@@ -667 +677,26 @@ public final class PhantomMaterializationService
+-		return new ServiceSnapshot(_state, _maximumMaterialized, _permits.availablePermits(), _activeByProfile.size(), list());
++		final var materializations = list();
++		synchronized (_incidentMonitor)
++		{
++			return new ServiceSnapshot(_state, _maximumMaterialized, _permits.availablePermits(), _activeByProfile.size(), materializations,
++				List.copyOf(_cleanupIncidents.values()), _cleanupIncidentEvictions, _cleanupEvidenceIncomplete);
++		}
++	}
++
++	private void archiveCleanupIncident(Entry entry)
++	{
++		final var actor = entry._materializedPlayer.snapshot();
++		if (actor.firstCleanupIncident() == null) { return; }
++		final String key = actor.firstCleanupIncident().id(entry._profileId);
++		final var record = new CleanupIncidentArchiveEntry(entry._profileId, key, actor.firstCleanupIncident(), actor.latestCleanupIncident(), actor.state() == State.STORED);
++		synchronized (_incidentMonitor)
++		{
++			if (!_cleanupIncidents.containsKey(key) && (_cleanupIncidents.size() >= 256))
++			{
++				final String finished = _cleanupIncidents.entrySet().stream().filter(value -> value.getValue().finished()).map(java.util.Map.Entry::getKey).findFirst().orElse(null);
++				final String evicted = finished == null ? _cleanupIncidents.keySet().iterator().next() : finished;
++				_cleanupIncidents.remove(evicted);
++				_cleanupIncidentEvictions++;
++				if (finished == null) { _cleanupEvidenceIncomplete = true; }
++			}
++			_cleanupIncidents.put(key, record);
++		}
+@@ -707 +742 @@ public final class PhantomMaterializationService
+-			actor.cleanupFailureCause());
++			actor.cleanupFailureCause(), actor.firstCleanupIncident(), actor.latestCleanupIncident());
+@@ -723 +758 @@ public final class PhantomMaterializationService
+-		PhantomMaterializedPlayer.CleanupPhase cleanupPhase, PhantomMaterializedPlayer.CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause)
++		PhantomMaterializedPlayer.CleanupPhase cleanupPhase, PhantomMaterializedPlayer.CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause, PhantomCleanupIncident firstCleanupIncident, PhantomCleanupIncident latestCleanupIncident)
+@@ -735 +770,3 @@ public final class PhantomMaterializationService
+-	public record ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations)
++	public record CleanupIncidentArchiveEntry(long profileId, String incidentId, PhantomCleanupIncident first, PhantomCleanupIncident latest, boolean finished) { }
++
++	public record ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations, List<CleanupIncidentArchiveEntry> cleanupIncidents, long cleanupIncidentEvictions, boolean cleanupEvidenceIncomplete)
+@@ -736,0 +774,5 @@ public final class PhantomMaterializationService
++		public ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations)
++		{
++			this(state, maximumMaterialized, availablePermits, retainedEntries, materializations, List.of(), 0, false);
++		}
++
+@@ -739,0 +782 @@ public final class PhantomMaterializationService
++			cleanupIncidents = List.copyOf(cleanupIncidents);
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java
+index c6bd9dbfaf7..7221eb372e2 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java
+@@ -24,0 +25 @@ import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.logging.Logger;
+@@ -39,0 +41 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++	private static final Logger LOGGER = Logger.getLogger(PhantomMaterializedPlayer.class.getName());
+@@ -142,0 +145 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++	private java.util.function.Supplier<org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickLease> _nativeActionAdmission;
+@@ -152,0 +156,4 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++	private volatile PhantomCleanupIncident _firstCleanupIncident;
++	private volatile PhantomCleanupIncident _latestCleanupIncident;
++	private long _materializationAttemptAtNanos;
++	private String _cleanupHook = "NONE";
+@@ -189,0 +197 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++			_materializationAttemptAtNanos = System.nanoTime();
+@@ -226,0 +235,9 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++			final Player ownedPlayer = _player;
++			_nativeActionAdmission = () ->
++			{
++				final ActionLease lease = tryAcquireAction();
++				if (lease == null) { return null; }
++				if (lease.player() != ownedPlayer) { lease.close(); return null; }
++				return lease::close;
++			};
++			_player.attachPhantomNativeActionAdmission(_nativeActionAdmission);
+@@ -258,0 +276 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++			recordCleanupFailure(e);
+@@ -263 +281 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
+-			catch (RuntimeException cleanupFailure)
++			catch (RuntimeException | Error cleanupFailure)
+@@ -265 +283 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
+-				e.addSuppressed(cleanupFailure);
++				if (cleanupFailure != e) { e.addSuppressed(cleanupFailure); }
+@@ -326,0 +345,10 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++				cleanupPlayer.abortAttack();
++				cleanupPlayer.abortCast();
++				cleanupPlayer.stopMove(null);
++				if (cleanupPlayer.hasAI())
++				{
++					cleanupPlayer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE);
++					cleanupPlayer.getAI().clientStopAutoAttack();
++					org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager.getInstance().removeAttackStanceTask(cleanupPlayer);
++					cleanupPlayer.getAI().setAutoAttacking(false);
++				}
+@@ -327,0 +356 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++				Throwable storeFailure = null;
+@@ -329,0 +359 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++					_cleanupHook = "LIFECYCLE_BEFORE_STORE";
+@@ -332,0 +363 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++					_cleanupHook = "PLAYER_STORE_ME";
+@@ -335,0 +367 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++					_cleanupHook = "LIFECYCLE_AFTER_STORE";
+@@ -337,0 +370,5 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++				catch (RuntimeException | Error failure)
++				{
++					storeFailure = failure;
++					throw failure;
++				}
+@@ -340 +377,6 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
+-					cleanupPlayer.stopAllTasks();
++					try { cleanupPlayer.stopAllTasks(); }
++					catch (RuntimeException | Error finalizerFailure)
++					{
++						if (storeFailure == null) { throw finalizerFailure; }
++						if (storeFailure != finalizerFailure) { storeFailure.addSuppressed(finalizerFailure); }
++					}
+@@ -380,0 +423,5 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++				if ((cleanupPlayer != null) && (_nativeActionAdmission != null))
++				{
++					cleanupPlayer.detachPhantomNativeActionAdmission(_nativeActionAdmission);
++					_nativeActionAdmission = null;
++				}
+@@ -421,0 +469,2 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++		final boolean first;
++		final PhantomCleanupIncident incident;
+@@ -424,19 +473,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
+-			final Throwable cause = failure.getCause();
+-			_cleanupFailure = new CleanupFailure(_cleanupFailure.sequence() + 1, _cleanupPhase, _admittedActionCount,
+-				failure.getClass().getName(), boundedCleanupMessage(failure.getMessage()),
+-				cause == null ? "" : boundedCleanupMessage(cause.getClass().getName() + ":" + cause.getMessage()));
+-		}
+-	}
+-
+-	private static String boundedCleanupMessage(String value)
+-	{
+-		if (value == null) { return ""; }
+-		final StringBuilder result = new StringBuilder(Math.min(value.length(), 160));
+-		for (int index = 0; (index < value.length()) && (result.length() < 160);)
+-		{
+-			final int character = value.codePointAt(index);
+-			final boolean validXml = ((character >= 0x20) && (character <= 0xD7FF)) || ((character >= 0xE000) && (character <= 0xFFFD)) || ((character >= 0x10000) && (character <= 0x10FFFF));
+-			final int sanitized = validXml && !Character.isISOControl(character) ? character : ' ';
+-			if (result.length() + Character.charCount(sanitized) > 160) { break; }
+-			result.appendCodePoint(sanitized);
+-			index += Character.charCount(character);
++			incident = PhantomCleanupIncident.capture(_objectId, _materializedAtNanos == 0 ? _materializationAttemptAtNanos : _materializedAtNanos,
++				_cleanupFailure.sequence() + 1, _cleanupPhase, _cleanupHook, _admittedActionCount, failure);
++			_cleanupFailure = new CleanupFailure(incident.sequence(), incident.phase(), incident.admittedActions(), incident.exceptionClass(), incident.message(),
++				PhantomCleanupIncident.bounded(incident.detail().lines().filter(line -> line.startsWith("cause ")).findFirst().orElse(""), 160));
++			_latestCleanupIncident = incident;
++			first = _firstCleanupIncident == null;
++			if (first) { _firstCleanupIncident = incident; }
+@@ -444 +481 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
+-		return result.toString();
++		if (first) { LOGGER.warning("Phantom cleanup first incident " + incident); }
+@@ -518,0 +556 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
++		_cleanupHook = point.name();
+@@ -539 +577 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
+-				_cleanupPhase, failure.phase(), failure.className(), failure.message(), failure.sequence(), failure.admittedActions(), failure.cause());
++				_cleanupPhase, failure.phase(), failure.className(), failure.message(), failure.sequence(), failure.admittedActions(), failure.cause(), _firstCleanupIncident, _latestCleanupIncident);
+@@ -549 +587 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
+-		CleanupPhase cleanupPhase, CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause)
++		CleanupPhase cleanupPhase, CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause, PhantomCleanupIncident firstCleanupIncident, PhantomCleanupIncident latestCleanupIncident)
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java
+index 567e624eda6..32bdf6f4c77 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java
+@@ -94,0 +95 @@ public class AutoPlayTaskManager
++				if (player.isPhantomAutoPlayManaged() && (phantomPolicy == null)) { continue PLAY; }
+@@ -99 +100 @@ public class AutoPlayTaskManager
+-					stopAutoPlay(player);
++					if (phantomPolicy == null) { stopAutoPlay(player); } else { stopPhantomAutoPlay(player, phantomPolicy); }
+@@ -105 +106 @@ public class AutoPlayTaskManager
+-					stopAutoPlay(player);
++					stopPhantomAutoPlay(player, phantomPolicy);
+@@ -345,2 +346,2 @@ public class AutoPlayTaskManager
+-					stopAutoPlay(player);
+-					AutoUseTaskManager.getInstance().stopAutoUseTask(player);
++					stopPhantomAutoPlay(player, phantomPolicy);
++					AutoUseTaskManager.getInstance().stopPhantomAutoUse(player, phantomPolicy);
+@@ -390 +391 @@ public class AutoPlayTaskManager
+-	public synchronized void startPhantomAutoPlay(Player player, PhantomPolicy policy)
++	public void startPhantomAutoPlay(Player player, PhantomPolicy policy)
+@@ -392,2 +393,17 @@ public class AutoPlayTaskManager
+-		PHANTOM_POLICIES.put(player, policy);
+-		startAutoPlay(player);
++		startPhantomAutoPlay(player, policy, null);
++	}
++
++	/** A revoked Session cannot publish a registration after its replacement. */
++	public boolean startPhantomAutoPlay(Player player, PhantomPolicy policy, java.util.concurrent.atomic.AtomicBoolean sessionCurrent)
++	{
++		java.util.Objects.requireNonNull(policy, "policy");
++		if ((sessionCurrent != null) && !sessionCurrent.get()) { return false; }
++		player.markPhantomAutoPlayManaged();
++		player.onActionRequest();
++		synchronized (this)
++		{
++			if ((sessionCurrent != null) && !sessionCurrent.get()) { return false; }
++			PHANTOM_POLICIES.put(player, policy);
++			registerAutoPlay(player);
++			return true;
++		}
+@@ -396 +412 @@ public class AutoPlayTaskManager
+-	public synchronized void startAutoPlay(Player player)
++	public void startAutoPlay(Player player)
+@@ -397,0 +414,7 @@ public class AutoPlayTaskManager
++		player.onActionRequest();
++		synchronized (this) { registerAutoPlay(player); }
++	}
++
++	private void registerAutoPlay(Player player)
++	{
++		player.setAutoPlayingRegistration(true);
+@@ -406,2 +428,0 @@ public class AutoPlayTaskManager
+-		player.setAutoPlaying(true);
+-		
+@@ -412 +432,0 @@ public class AutoPlayTaskManager
+-				player.onActionRequest();
+@@ -419 +438,0 @@ public class AutoPlayTaskManager
+-		player.onActionRequest();
+@@ -427 +446,30 @@ public class AutoPlayTaskManager
+-		final boolean phantom = PHANTOM_POLICIES.remove(player) != null;
++		final boolean phantom;
++		final long generation;
++		synchronized (this)
++		{
++			phantom = PHANTOM_POLICIES.remove(player) != null;
++			generation = removeAutoPlay(player);
++		}
++		if (generation >= 0) { player.finishAutoPlayRegistrationStop(generation, !phantom); }
++	}
++
++	public boolean stopPhantomAutoPlay(Player player, PhantomPolicy expected)
++	{
++		final long generation;
++		synchronized (this)
++		{
++			if ((expected == null) || (PHANTOM_POLICIES.get(player) != expected)) { return false; }
++			PHANTOM_POLICIES.remove(player);
++			generation = removeAutoPlay(player);
++		}
++		if (generation >= 0) { player.finishAutoPlayRegistrationStop(generation, false); }
++		return true;
++	}
++
++	public synchronized boolean hasPhantomRegistration(Player player, PhantomPolicy expected)
++	{
++		return (expected != null) && (PHANTOM_POLICIES.get(player) == expected) && POOLS.stream().anyMatch(pool -> pool.contains(player));
++	}
++
++	private long removeAutoPlay(Player player)
++	{
+@@ -432,8 +479,0 @@ public class AutoPlayTaskManager
+-				player.setAutoPlaying(false);
+-				
+-				// Pets must follow their owner.
+-				if (!phantom && (player.hasServitor() || player.hasPet()))
+-				{
+-					player.getSummon().followOwner();
+-				}
+-				
+@@ -441 +481 @@ public class AutoPlayTaskManager
+-				return;
++				return player.setAutoPlayingRegistration(false);
+@@ -443,0 +484 @@ public class AutoPlayTaskManager
++		return -1;
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java
+index 39c8375a89d..9f80bc36586 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java
+@@ -83,0 +84 @@ public class AutoUseTaskManager
++				if (player.isPhantomAutoPlayManaged() && (phantomPolicy == null)) { continue; }
+@@ -88 +89 @@ public class AutoUseTaskManager
+-					stopAutoUseTask(player);
++					if (phantomPolicy == null) { stopAutoUseTask(player); } else { stopPhantomAutoUse(player, phantomPolicy); }
+@@ -94 +95 @@ public class AutoUseTaskManager
+-					stopAutoUseTask(player);
++					stopPhantomAutoUse(player, phantomPolicy);
+@@ -385,2 +386,2 @@ public class AutoUseTaskManager
+-					stopAutoUseTask(player);
+-					AutoPlayTaskManager.getInstance().stopAutoPlay(player);
++					stopPhantomAutoUse(player, phantomPolicy);
++					AutoPlayTaskManager.getInstance().stopPhantomAutoPlay(player, phantomPolicy);
+@@ -453 +454 @@ public class AutoUseTaskManager
+-	public synchronized void startPhantomAutoUse(Player player, PhantomPolicy policy)
++	public void startPhantomAutoUse(Player player, PhantomPolicy policy)
+@@ -454,0 +456,8 @@ public class AutoUseTaskManager
++		startPhantomAutoUse(player, policy, null);
++	}
++
++	public synchronized boolean startPhantomAutoUse(Player player, PhantomPolicy policy, java.util.concurrent.atomic.AtomicBoolean sessionCurrent)
++	{
++		java.util.Objects.requireNonNull(policy, "policy");
++		if ((sessionCurrent != null) && !sessionCurrent.get()) { return false; }
++		player.markPhantomAutoPlayManaged();
+@@ -456,0 +466 @@ public class AutoUseTaskManager
++		return true;
+@@ -484 +494 @@ public class AutoUseTaskManager
+-	public void stopAutoUseTask(Player player)
++	public synchronized void stopAutoUseTask(Player player)
+@@ -495,0 +506,12 @@ public class AutoUseTaskManager
++
++	public synchronized boolean stopPhantomAutoUse(Player player, PhantomPolicy expected)
++	{
++		if ((expected == null) || (PHANTOM_POLICIES.get(player) != expected)) { return false; }
++		stopAutoUseTask(player);
++		return true;
++	}
++
++	public synchronized boolean hasPhantomRegistration(Player player, PhantomPolicy expected)
++	{
++		return (expected != null) && (PHANTOM_POLICIES.get(player) == expected) && POOLS.stream().anyMatch(pool -> pool.contains(player));
++	}
+diff --git a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java
+index 890645add71..b589bf2df10 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java
++++ b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java
+@@ -218,0 +219 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
++		NATIVE_LIFECYCLE("m1-native-lifecycle", true),
+@@ -289 +290 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
+-			if (_mode == Mode.AUTHORITATIVE_SHOTS)
++			if ((_mode == Mode.AUTHORITATIVE_SHOTS) || ((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "store", "cast", "async").contains(System.getProperty("phantom.m1.native.focus", "all"))))
+@@ -293 +294 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
+-			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
++			if (((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "store", "cast", "travel", "async").contains(System.getProperty("phantom.m1.native.focus", "all"))) || (_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
+@@ -340,0 +342 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
++			case NATIVE_LIFECYCLE -> registerNativeLifecycle(registry);
+@@ -436,0 +439,650 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
++	private void registerNativeLifecycle(PhantomTestRegistry registry)
++	{
++		final String focus = System.getProperty("phantom.m1.native.focus", "all");
++		if (!Set.of("all", "ownership", "errors", "store", "cast", "travel", "async").contains(focus)) { throw new IllegalArgumentException("Unknown native M1 test focus: " + focus); }
++		if (focus.equals("async")) { registry.add("Q01-Q05-delayed-native-kill-quest-reward", context -> testNativeRewardCompletion(context, false, false, true)); return; }
++		if (focus.equals("travel")) { registry.add("T-native-terminal-and-continuation", this::testVisibleNativeTravel); return; }
++		if (focus.equals("cast")) { registry.add("P09-Q01-Q02-native-mage-reward", context -> testNativeRewardCompletion(context, true, false)); return; }
++		if (focus.equals("all") || focus.equals("errors"))
++		{
++			registry.add("E01-first-cleanup-failure-survives-retry", _ -> testNativeFirstFailure(false));
++			registry.add("E05-detached-cleanup-evidence-survives-entry-removal", _ -> testNativeFirstFailure(true));
++			registry.add("E06-native-incident-bounds-and-hostile-formatter", _ -> testNativeIncidentBounds());
++			registry.add("E02-cleanup-primary-survives-native-task-finalizer", _ -> testNativeCleanupPrimary());
++			registry.add("E04-materialize-error-survives-abort-error", _ -> testNativeAbortPrimary());
++			registry.add("E03-native-store-primary-survives-boundary-finalizer", _ -> testNativeStorePrimary(false));
++			registry.add("E03-native-resume-primary-survives-boundary-finalizer", _ -> testNativeStorePrimary(true));
++		}
++		if (focus.equals("all") || focus.equals("store"))
++		{
++			registry.add("Q01-Q02-native-hit-reward-drains-and-persists", context -> testNativeRewardCompletion(context, false, false));
++			registry.add("Q01-Q02-native-mage-reward-drains-and-persists", context -> testNativeRewardCompletion(context, true, false));
++			registry.add("Q05-native-completion-timeout-retains-ownership", context -> testNativeRewardCompletion(context, false, true));
++		}
++		if (focus.equals("errors") || focus.equals("store")) { return; }
++		registry.add("P07-stale-visible-start-rollback-keeps-current-session", _ -> testNativeSessionOverlap());
++		registry.add("P08-partial-visible-pair-is-unhealthy-and-repaired", _ -> testNativePartialPair());
++		for (Class<?> manager : List.of(AutoPlayTaskManager.class, AutoUseTaskManager.class))
++		{
++			registry.add("P04-" + manager.getSimpleName() + "-stale-rejection-keeps-replacement", _ -> testNativePolicyReplacement(manager, false));
++			registry.add("P05-" + manager.getSimpleName() + "-stale-exception-keeps-pair", _ -> testNativePolicyReplacement(manager, true));
++			registry.add("P01-" + manager.getSimpleName() + "-missing-policy-skips-stock-effects", _ -> testNativeMissingPolicy(manager));
++		}
++	}
++
++	private void testNativeFirstFailure(boolean removed) throws Exception
++	{
++		final var attempt = new AtomicInteger();
++		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
++		{
++			if (point == FailurePoint.BEFORE_STORE_OPERATION)
++			{
++				final int current = attempt.incrementAndGet();
++				if (current <= 2) { throw new IllegalArgumentException(current == 1 ? "FIRST_NATIVE_STORE_A" : "LATEST_NATIVE_STORE_B"); }
++			}
++		}))
++		{
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "First-failure native fixture did not materialize.");
++			final long epoch = runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos();
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, runtime.materialization().dematerialize(runtime.profileId()).status(), "First failure did not retain ownership.");
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, runtime.materialization().retryCleanup(runtime.profileId()).status(), "Second failure did not retain ownership.");
++			if (removed)
++			{
++				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().retryCleanup(runtime.profileId()).status(), "Third native cleanup did not finish.");
++				PhantomAssertions.assertTrue(runtime.materialization().find(runtime.profileId()).isEmpty(), "Completed runtime entry was not removed.");
++			}
++			final String evidence = runtime.materialization().snapshot().toString();
++			PhantomAssertions.assertTrue(evidence.contains("FIRST_NATIVE_STORE_A") && evidence.contains("LATEST_NATIVE_STORE_B"), "Actual lifecycle diagnostics lost first/latest native exceptions after retry/removal: " + evidence);
++			PhantomAssertions.assertTrue(evidence.contains(Long.toString(runtime.profileId())) && evidence.contains(Long.toString(epoch)), "Detached incident lost exact profile/epoch.");
++		}
++	}
++
++	private void testNativeIncidentBounds() throws Exception
++	{
++		final var large = new IllegalArgumentException("Ошибка\n😀".repeat(10000));
++		Throwable cause = large;
++		for (int index = 0; index < 20; index++)
++		{
++			final var next = new IllegalStateException("CAUSE_" + index + "Я".repeat(200));
++			cause.initCause(next); cause = next;
++			large.addSuppressed(new IllegalStateException("SUPPRESSED_" + index));
++		}
++		final var hostile = new IllegalStateException()
++		{
++			@Override public String getMessage() { throw new AssertionError("TEST_DIAGNOSTIC_ACCESSOR"); }
++		};
++		final var attempt = new AtomicInteger();
++		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
++		{
++			if (point == FailurePoint.BEFORE_STORE_OPERATION)
++			{
++				final int current = attempt.incrementAndGet();
++				if (current == 1) { throw large; }
++				if (current == 2) { throw hostile; }
++			}
++		}))
++		{
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Bounded incident fixture did not materialize.");
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, runtime.materialization().dematerialize(runtime.profileId()).status(), "Huge native exception lost ownership.");
++			final var first = runtime.materialization().find(runtime.profileId()).orElseThrow().firstCleanupIncident();
++			PhantomAssertions.assertTrue(first.truncated() && first.nodes() <= 8 && first.frames() <= 32 && first.message().length() <= 160 && first.toString().getBytes(StandardCharsets.UTF_8).length <= 8192, "Native incident exceeded detached bounds.");
++			PhantomAssertions.assertFalse(first.message().contains("\n"), "Native message was not sanitized.");
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, runtime.materialization().retryCleanup(runtime.profileId()).status(), "Diagnostic accessor masked actual native failure.");
++			final var latest = runtime.materialization().find(runtime.profileId()).orElseThrow().latestCleanupIncident();
++			PhantomAssertions.assertTrue(latest.truncated() && latest.detail().contains("DIAGNOSTIC_FORMAT_UNAVAILABLE"), "Hostile diagnostic accessor was not bounded.");
++			for (var component : first.getClass().getRecordComponents())
++			{
++				PhantomAssertions.assertFalse(Player.class.isAssignableFrom(component.getType()) || Throwable.class.isAssignableFrom(component.getType()), "Detached incident retains native runtime objects.");
++			}
++		}
++	}
++
++	private void testNativeAbortPrimary() throws Exception
++	{
++		final var armed = new AtomicBoolean();
++		final var owner = new AtomicReference<PhantomMaterializationService>();
++		final var loadedPlayer = new AtomicReference<Player>();
++		final var primary = new AssertionError("TEST_MATERIALIZE_PRIMARY_A");
++		final var secondary = new AssertionError("TEST_ABORT_CANCEL_B");
++		final Field futureField = Player.class.getDeclaredField("_inventoryUpdateTask"); futureField.setAccessible(true);
++		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
++		{
++			if (armed.get() && (point == FailurePoint.AFTER_PLAYER_LOAD))
++			{
++				try
++				{
++					loadedPlayer.set(nativeActor(owner.get(), _repository.findByCharacterObjectId(_environment.primary().objectId()).orElseThrow().profileId()).getPlayer());
++					futureField.set(loadedPlayer.get(), failingNativeCancellation(secondary));
++				}
++				catch (Exception failure) { throw new AssertionError(failure); }
++				throw primary;
++			}
++		}))
++		{
++			owner.set(runtime.materialization());
++			try
++			{
++				armed.set(true); Throwable observed = null;
++				try { runtime.materialization().materialize(runtime.profileId()); }
++				catch (RuntimeException | Error failure) { observed = failure; }
++				PhantomAssertions.assertTrue(observed == primary, "Materialization/abort swallowed or masked primary Error: " + observed);
++				PhantomAssertions.assertTrue(Arrays.asList(primary.getSuppressed()).contains(secondary), "Materialization primary Error lost abort secondary Error.");
++				PhantomAssertions.assertTrue(runtime.materialization().find(runtime.profileId()).orElseThrow().identityLeaseRetained(), "Abort Error lost retained identity ownership.");
++			}
++			finally { armed.set(false); if (loadedPlayer.get() != null) { futureField.set(loadedPlayer.get(), null); } }
++		}
++	}
++
++	private void testNativeCleanupPrimary() throws Exception
++	{
++		final var armed = new AtomicBoolean();
++		final var player = new AtomicReference<Player>();
++		final var primary = new IllegalArgumentException("TEST_BEFORE_STORE_A");
++		final var secondary = new AssertionError("TEST_CANCEL_TASK_B");
++		final Field futureField = Player.class.getDeclaredField("_inventoryUpdateTask"); futureField.setAccessible(true);
++		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
++		{
++			if (armed.get() && (point == FailurePoint.BEFORE_STORE_OPERATION))
++			{
++				try { futureField.set(player.get(), failingNativeCancellation(secondary)); }
++				catch (IllegalAccessException failure) { throw new AssertionError(failure); }
++				throw primary;
++			}
++		}))
++		{
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Native finalizer fixture did not materialize.");
++			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player.set(action.player()); }
++			try
++			{
++				armed.set(true);
++				Throwable observed = null;
++				try { nativeActor(runtime.materialization(), runtime.profileId()).cleanup(); }
++				catch (RuntimeException | Error failure) { observed = failure; }
++				PhantomAssertions.assertTrue(observed == primary, "Native stopAllTasks finalizer masked cleanup primary: " + observed);
++				PhantomAssertions.assertTrue(Arrays.asList(primary.getSuppressed()).contains(secondary), "Native cleanup primary lost Error from finalizer.");
++			}
++			finally { armed.set(false); futureField.set(player.get(), null); }
++		}
++	}
++
++	private static org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer nativeActor(PhantomMaterializationService service, long profileId) throws Exception
++	{
++		final Field activeField = PhantomMaterializationService.class.getDeclaredField("_activeByProfile"); activeField.setAccessible(true);
++		final Object entry = ((Map<?, ?>) activeField.get(service)).get(profileId);
++		final Field actorField = entry.getClass().getDeclaredField("_materializedPlayer"); actorField.setAccessible(true);
++		return (org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer) actorField.get(entry);
++	}
++
++	private static java.util.concurrent.ScheduledFuture<Object> failingNativeCancellation(Error failure)
++	{
++		return new java.util.concurrent.ScheduledFuture<>()
++		{
++			@Override public long getDelay(TimeUnit unit) { return 0; }
++			@Override public int compareTo(java.util.concurrent.Delayed other) { return 0; }
++			@Override public boolean cancel(boolean interrupt) { throw failure; }
++			@Override public boolean isCancelled() { return false; }
++			@Override public boolean isDone() { return false; }
++			@Override public Object get() { return null; }
++			@Override public Object get(long amount, TimeUnit unit) { return null; }
++		};
++	}
++
++	private void testNativeStorePrimary(boolean resume) throws Exception
++	{
++		final Player player = Player.load(_environment.primary().objectId());
++		final Object ownerKey = new Object();
++		final var secondary = new IllegalArgumentException("TEST_BOUNDARY_AFTER_STORE_B");
++		final var completed = new AtomicBoolean(true);
++		final var faults = new AtomicInteger();
++		final var snapshot = new Player.OwnedStoreSnapshot(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp(), player.getX(), player.getY(), player.getZ(), player.getHeading(), player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath(), player.getActiveClass(), player.getRace().ordinal(), player.getClassIndex(), player.getStat().getBaseLevel(), player.getStat().getBaseExp(), player.getStat().getBaseSp());
++		try
++		{
++			try (var lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(player.getObjectId(), PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM);
++				var attachment = player.attachOwnedStoreBoundary(new Player.OwnedStoreBoundary()
++				{
++					@Override public Object ownerKey() { return ownerKey; }
++					@Override public boolean hasPending() { return resume; }
++					@Override public Player.OwnedStoreSnapshot beforeStore() { return snapshot; }
++					@Override public Player.OwnedStoreSnapshot beforePendingStore(long goalId, long revision) { return snapshot; }
++					@Override public void afterStore(boolean nativeCompleted) { completed.set(nativeCompleted); throw secondary; }
++				});
++				var sqlFailure = injectNativeStoreSqlFailure(false, faults))
++			{
++				Throwable observed = null;
++				try { if (resume) { player.resumePendingOwnedStore(ownerKey, 1, 1); } else { player.store(false); } }
++				catch (RuntimeException | Error failure) { observed = failure; }
++				PhantomAssertions.assertEquals(1, faults.get(), "Primary fixture did not reach the actual native SQL writer.");
++				PhantomAssertions.assertFalse(completed.get(), "Native writer failure was reported completed.");
++				PhantomAssertions.assertTrue((observed instanceof IllegalStateException) && "OWNED_STORE_NATIVE_BASE_FAILED".equals(observed.getMessage()), "Boundary finalizer masked the native SQL primary: " + observed);
++				PhantomAssertions.assertTrue(Arrays.asList(observed.getSuppressed()).contains(secondary), "Native primary did not retain the secondary boundary failure.");
++			}
++		}
++		finally { _environment.cleanupLoadedPlayer(player); }
++	}
++
++	private void testNativeRewardCompletion(PhantomTestContext context, boolean mage, boolean timeout) throws Exception
++	{
++		testNativeRewardCompletion(context, mage, timeout, false);
++	}
++
++	private void testNativeRewardCompletion(PhantomTestContext context, boolean mage, boolean timeout, boolean delayedQuest) throws Exception
++	{
++		final String evidence = delayedQuest ? "Q05.asyncQuest" : timeout ? "Q05" : mage ? "Q01.cast" : "Q01.hit";
++		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
++		try (var fixture = openProductionPlayerFixture(farm.anchor(), 7, mage ? PlayerClass.ELVEN_MAGE : PlayerClass.ELVEN_FIGHTER, farm))
++		{
++			final var profile = _repository.create(fixture.player().getObjectId());
++			final long id = profile.profileId();
++			final var goals = new PhantomGoalStateStore(_repository); goals.insert(id, fixture.goal());
++			final var hitInside = new CountDownLatch(1);
++			final var releaseHit = new CountDownLatch(1);
++			final var hitFinished = new CountDownLatch(1);
++			final var questInside = new CountDownLatch(1);
++			final var releaseQuest = new CountDownLatch(1);
++			final var questFinished = new CountDownLatch(1);
++			final var questFailure = new AtomicReference<Throwable>();
++			final var prepared = new CountDownLatch(1);
++			final var releasePrepare = new CountDownLatch(1);
++			final var armed = new AtomicBoolean();
++			final var livePlayer = new AtomicReference<Player>();
++			final var storeContext = new AtomicReference<String>();
++			final var rewardProducer = new AtomicReference<String>();
++			final var transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
++			{
++				if (armed.get() && (point == FaultPoint.AFTER_OWNED_PREPARE))
++				{
++					prepared.countDown();
++					try { if (!releasePrepare.await(10, TimeUnit.SECONDS)) { throw new AssertionError("Native PREPARE barrier timed out."); } }
++					catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
++				}
++			});
++			final var owner = new AtomicReference<PhantomMaterializationService>();
++			final var background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), owner::get);
++			final var metrics = new PhantomMetrics();
++			final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, point ->
++			{
++				if ((point == FailurePoint.BEFORE_STORE_OPERATION) && (livePlayer.get() != null)) { storeContext.set(nativeBackgroundContext(livePlayer.get())); }
++			}, background, timeout ? 50 : 5000, 10000);
++			owner.set(materialization); background.start(); materialization.start();
++			final var candidates = new PhantomCandidateRegistry(); candidates.seal();
++			final var handlers = new PhantomStepHandlerRegistry(); handlers.seal();
++			final var engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1); engine.start(); engine.attach(id);
++			final var visible = new PhantomVisibleAutoPlay(materialization, () -> engine, _ -> true);
++			final var cleanupResult = new AtomicReference<PhantomMaterializationService.DematerializeResult>();
++			final var cleanupFailure = new AtomicReference<Throwable>();
++			final Thread cleanup = new Thread(() ->
++			{
++				try { cleanupResult.set(materialization.dematerialize(id)); }
++				catch (Throwable failure) { cleanupFailure.set(failure); }
++			}, "m1-native-reward-cleanup");
++			final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(NpcData.getInstance().getTemplate(farm.npcId()))
++			{
++				@Override protected synchronized void calculateRewards(Creature attacker)
++				{
++					rewardProducer.set(Arrays.stream(Thread.currentThread().getStackTrace()).map(StackTraceElement::getMethodName).limit(32).reduce((left, right) -> left + ">" + right).orElse(""));
++					hitInside.countDown();
++					try { if (!releaseHit.await(10, TimeUnit.SECONDS)) { throw new AssertionError("Native reward barrier timed out."); } }
++					catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
++					try { super.calculateRewards(attacker); }
++					finally { hitFinished.countDown(); }
++				}
++			};
++			final var questListener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(monster, org.l2jmobius.gameserver.model.events.EventType.ON_ATTACKABLE_KILL,
++				(org.l2jmobius.gameserver.model.events.holders.actor.npc.attackable.OnAttackableKill event) ->
++				{
++					questInside.countDown();
++					try
++					{
++						if (!releaseQuest.await(10, TimeUnit.SECONDS)) { throw new AssertionError("Native quest callback barrier timed out."); }
++						// Existing native quest reward writer, reached only by Attackable.doDie's real delayed event.
++						org.l2jmobius.gameserver.model.script.Quest.giveItems(event.getAttacker(), 1334, 1);
++					}
++					catch (Throwable failure) { questFailure.set(failure); }
++					finally { questFinished.countDown(); }
++				}, this);
++			if (delayedQuest) { monster.addListener(questListener); }
++			try
++			{
++				if (mage)
++				{
++					final var learn = SkillTreeData.getInstance().getCompleteClassSkillTree(PlayerClass.ELVEN_MAGE).values().stream()
++						.filter(candidate -> (candidate.getSkillId() == 1177) && candidate.isAutoGet() && (candidate.getGetLevel() <= 7))
++						.max(Comparator.comparingInt(candidate -> candidate.getSkillLevel())).orElseThrow(() -> new AssertionError("Native Wind Strike is absent from the current mage class tree."));
++					fixture.player().addSkill(SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel()), true);
++					context.record(evidence + ".stockSkill", learn.getSkillId() + ":" + learn.getSkillLevel());
++				}
++				fixture.player().storeMe();
++				final var baseline = _production.authority().capture(id, fixture.player(), fixture.goal(), null);
++				PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(baseline, fixture.goal()).status(), "Native reward baseline rejected.");
++				fixture.releaseRuntime();
++				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Native reward Player did not materialize.");
++				final Player player;
++				try (var action = materialization.tryAcquireAction(id).orElseThrow()) { player = action.player(); player.getStatus().stopHpMpRegeneration(); }
++				livePlayer.set(player); context.record(evidence + ".contextBeforeAttack", nativeBackgroundContext(player));
++				final long experience = player.getExp(); final long sp = player.getSp();
++				monster.disableCoreAI(true); monster.setInstanceId(player.getInstanceId());
++				final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(player.getX() + 20, player.getY(), player.getZ()); monster.setSpawn(spawn);
++				monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(player.getX() + 20, player.getY(), player.getZ());
++				PhantomAssertions.assertTrue(visible.start(id, fixture.goal()), "Native reward AutoPlay did not start.");
++				if (mage)
++				{
++					final long epoch = materialization.find(id).orElseThrow().materializedAtNanos();
++					AutoUseTaskManager.getInstance().stopAutoUseTask(player);
++					PhantomAssertions.assertFalse(visible.running(id, fixture.goal()), "Native mage partial pair was reported healthy.");
++					PhantomAssertions.assertTrue(visible.start(id, fixture.goal()), "Native mage owner could not repair AutoUse.");
++					PhantomAssertions.assertEquals(epoch, materialization.find(id).orElseThrow().materializedAtNanos(), "Native mage repair changed epoch.");
++				}
++				final boolean lethal = hitInside.await(35, TimeUnit.SECONDS);
++				final var attributed = monster.getAggroList().get(player);
++				context.record(evidence + ".nativeState", "mage=" + player.isMageClass() + " hp=" + monster.getCurrentHp() + "/" + monster.getMaxHp() + " damage=" + (attributed == null ? 0 : attributed.getDamage()) + " mp=" + player.getCurrentMp() + " skills=" + player.getAutoUseSettings().getAutoSkills() + " action=" + player.getAI().getIntention() + " casting=" + player.isCastingNow() + " attack=" + player.isAttackingNow() + " target=" + player.getTarget() + " pair=" + visible.running(id, fixture.goal()));
++				PhantomAssertions.assertTrue(lethal, "Stock native AutoPlay did not reach a real lethal damage callback.");
++				if (delayedQuest)
++				{
++					final long beforeQuest = player.getInventory().getInventoryItemCount(1334, -1);
++					visible.stop(id); releaseHit.countDown();
++					PhantomAssertions.assertTrue(hitFinished.await(5, TimeUnit.SECONDS) && questInside.await(5, TimeUnit.SECONDS), "Actual Attackable delayed quest event was not entered.");
++					armed.set(true); cleanup.start();
++					final boolean crossedQuest = prepared.await(2, TimeUnit.SECONDS);
++					context.record(evidence + ".preparedWhileQuestActive", crossedQuest);
++					context.record(evidence + ".pendingSnapshot", materialization.find(id).map(Object::toString).orElse("removed"));
++					releasePrepare.countDown(); cleanup.join(10000);
++					context.record(evidence + ".cleanup", cleanupResult.get() == null ? String.valueOf(cleanupFailure.get()) : cleanupResult.get().status());
++					context.record(evidence + ".ownershipBeforeReward", "entry=" + materialization.find(id).isPresent() + " world=" + (World.getInstance().getPlayer(player.getObjectId()) == player) + " identity=" + PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) + " outbound=" + player.hasHeadlessOutboundSession());
++					releaseQuest.countDown();
++					PhantomAssertions.assertTrue(questFinished.await(5, TimeUnit.SECONDS) && questFailure.get() == null, "Real native quest reward did not finish: " + questFailure.get());
++					context.record(evidence + ".nativeQuestReward", "before=" + beforeQuest + " after=" + player.getInventory().getInventoryItemCount(1334, -1) + " pendingOwnedStore=" + player.hasPendingOwnedStore());
++					context.record(evidence + ".backgroundInventory", transaction.load(id).state().inventory());
++					PhantomAssertions.assertFalse(crossedQuest, "Owned PREPARE crossed an active native ON_ATTACKABLE_KILL quest reward; ownership was released before the earned callback completed.");
++					return;
++				}
++				visible.stop(id); armed.set(true); cleanup.start();
++				final boolean crossedActiveCompletion = prepared.await(2, TimeUnit.SECONDS);
++				final var draining = materialization.find(id).orElseThrow();
++				context.record(evidence + ".preparedWhileHitActive", crossedActiveCompletion);
++				context.record(evidence + ".draining", draining);
++				if (timeout)
++				{
++					PhantomAssertions.assertTrue(!draining.actionAdmissionOpen() && (draining.admittedActionCount() > 0) && draining.identityLeaseRetained() && draining.worldPresent() && draining.outboundAttached(), "Native timeout lost exact retained ownership before completion.");
++				}
++				releaseHit.countDown();
++				releasePrepare.countDown();
++				PhantomAssertions.assertTrue(hitFinished.await(5, TimeUnit.SECONDS), "Real native reward callback did not finish.");
++				context.record(evidence + ".nativeReward", "object=" + player.getObjectId() + " expDelta=" + (player.getExp() - experience) + " spDelta=" + (player.getSp() - sp) + " preparedWhileHitActive=" + crossedActiveCompletion);
++				releasePrepare.countDown(); cleanup.join(10000);
++				context.record(evidence + ".cleanup", cleanupResult.get() == null ? String.valueOf(cleanupFailure.get()) : cleanupResult.get().status());
++				context.record(evidence + ".cleanupSnapshot", materialization.find(id).map(Object::toString).orElse("removed"));
++				context.record(evidence + ".contextAtStore", storeContext.get());
++				PhantomAssertions.assertFalse(crossedActiveCompletion, "Owned PREPARE crossed an active native lethal-hit/reward completion.");
++				PhantomAssertions.assertTrue(!cleanup.isAlive() && cleanupFailure.get() == null && cleanupResult.get() != null, "Native reward cleanup did not finish safely.");
++				if (timeout)
++				{
++					PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, cleanupResult.get().status(), "Native completion timeout was silently treated as success.");
++					armed.set(false);
++					PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.retryCleanup(id).status(), "Completed native reward could not be safely stored on cleanup retry.");
++				}
++				else { PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, cleanupResult.get().status(), "Native reward cleanup retained a failure; no quiescence PASS is established."); }
++				PhantomAssertions.assertTrue(player.getExp() > experience && player.getSp() > sp, "Actual native kill did not award attributed EXP/SP.");
++				context.record(evidence + ".rewardProducer", rewardProducer.get());
++				if (mage) { PhantomAssertions.assertTrue(rewardProducer.get().contains("onMagicHitTimer"), "Native mage reward did not originate in the stock cast completion."); }
++				final var durable = transaction.load(id).state();
++				final var stored = canonical(player.getObjectId());
++				PhantomAssertions.assertEquals(player.getExp(), durable.progress().experience(), "Native earned EXP was lost from immutable background store.");
++				PhantomAssertions.assertEquals(player.getSp(), durable.progress().skillPoints(), "Native earned SP was lost from immutable background store.");
++				PhantomAssertions.assertEquals(durable.progress().experience(), stored.experience(), "Canonical/background native reward EXP diverged.");
++				PhantomAssertions.assertEquals(durable.progress().skillPoints(), stored.skillPoints(), "Canonical/background native reward SP diverged.");
++			}
++			finally
++			{
++				releaseHit.countDown(); releasePrepare.countDown(); releaseQuest.countDown(); if (cleanup.getState() != Thread.State.NEW) { cleanup.join(10000); }
++				if (delayedQuest) { questFinished.await(5, TimeUnit.SECONDS); monster.removeListener(questListener); }
++				armed.set(false); visible.stop(id); monster.deleteMe(); engine.beginStop(); engine.finishStop();
++				context.record(evidence + ".retry", materialization.retryCleanup(id).status());
++				context.record(evidence + ".retrySnapshot", materialization.find(id).map(Object::toString).orElse("removed"));
++				materialization.shutdown(); background.beginStop(); background.finishStop(); deleteProfile(profile);
++			}
++		}
++	}
++
++	private static String nativeBackgroundContext(Player player)
++	{
++		return "instance=" + player.getInstanceId() + " flying=" + player.isFlying() + " flyingMounted=" + player.isFlyingMounted() + " mounted=" + player.isMounted() + " party=" + player.isInParty() + " combat=" + player.isInCombat() + " combatFlag=" + player.isCombatFlagEquipped() + " gm=" + player.isGM() + " premium=" + player.hasPremiumStatus() + " event=" + player.isOnEvent() + " festival=" + player.isFestivalParticipant() + " karma=" + player.getKarma() + " nevit=" + player.getNevitHourglassMultiplier() + " vitality=" + player.getStat().getVitalityMultiplier();
++	}
++
++	@SuppressWarnings("unchecked")
++	private void testNativeSessionOverlap() throws Exception
++	{
++		try (var runtime = createRuntimeFixture(_environment.primary().objectId()))
++		{
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Session overlap fixture did not materialize.");
++			final Player player;
++			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
++			final var candidates = new PhantomCandidateRegistry(); candidates.seal();
++			final var handlers = new PhantomStepHandlerRegistry(); handlers.seal();
++			final var engine = new PhantomDecisionEngine(new PhantomGoalStateStore(_repository), candidates, handlers, new PhantomMetrics(), 1);
++			engine.start(); engine.attach(runtime.profileId());
++			final var visible = new PhantomVisibleAutoPlay(runtime.materialization(), () -> engine, _ -> true);
++			final var firstInsideUse = new CountDownLatch(1);
++			final var releaseFirst = new CountDownLatch(1);
++			final var firstFailure = new AtomicReference<Throwable>();
++			final var secondFailure = new AtomicReference<Throwable>();
++			final var secondStarted = new AtomicBoolean();
++			final Thread first = new Thread(() ->
++			{
++				try { visible.start(runtime.profileId(), runtime.goal()); }
++				catch (Throwable failure) { firstFailure.set(failure); }
++			}, "m1-session-first");
++			final Thread second = new Thread(() ->
++			{
++				try { secondStarted.set(visible.start(runtime.profileId(), runtime.goal())); }
++				catch (Throwable failure) { secondFailure.set(failure); }
++			}, "m1-session-replacement");
++			final Set<Player> playPool = new java.util.LinkedHashSet<>(List.of(player))
++			{
++				@Override public boolean contains(Object actor)
++				{
++					return super.contains(actor);
++				}
++			};
++			final Set<Player> usePool = new java.util.LinkedHashSet<>(List.of(player))
++			{
++				private boolean injected;
++				@Override public boolean contains(Object actor)
++				{
++					if (!injected && (actor == player) && (Thread.currentThread() == first))
++					{
++						injected = true; firstInsideUse.countDown();
++						try { if (!releaseFirst.await(5, TimeUnit.SECONDS)) { throw new AssertionError("Session barrier timed out."); } }
++						catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
++						throw new InjectedFailure();
++					}
++					return super.contains(actor);
++				}
++			};
++			final Field playPoolsField = AutoPlayTaskManager.class.getDeclaredField("POOLS"); playPoolsField.setAccessible(true);
++			final Field usePoolsField = AutoUseTaskManager.class.getDeclaredField("POOLS"); usePoolsField.setAccessible(true);
++			final var playPools = (Set<Set<Player>>) playPoolsField.get(null);
++			final var usePools = (Set<Set<Player>>) usePoolsField.get(null);
++			playPools.add(playPool); usePools.add(usePool);
++			try
++			{
++				first.start();
++				PhantomAssertions.assertTrue(firstInsideUse.await(5, TimeUnit.SECONDS), "First native start did not reach AutoUse barrier.");
++				final Field sessionsField = PhantomVisibleAutoPlay.class.getDeclaredField("_sessions"); sessionsField.setAccessible(true);
++				final var sessions = (Map<Long, ?>) sessionsField.get(visible);
++				final Object firstSession = sessions.get(runtime.profileId());
++				AutoPlayTaskManager.getInstance().stopAutoPlay(player);
++				second.start();
++				final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
++				while ((sessions.get(runtime.profileId()) == firstSession) && (System.nanoTime() < deadline)) { Thread.onSpinWait(); }
++				PhantomAssertions.assertTrue((sessions.get(runtime.profileId()) != null) && (sessions.get(runtime.profileId()) != firstSession), "Replacement Session was not published before native registration resumed.");
++				releaseFirst.countDown(); first.join(5000); second.join(5000);
++				PhantomAssertions.assertFalse(first.isAlive() || second.isAlive(), "Native session overlap deadlocked.");
++				PhantomAssertions.assertTrue(firstFailure.get() instanceof InjectedFailure, "First native start did not propagate its injected failure.");
++				PhantomAssertions.assertTrue(secondFailure.get() == null && secondStarted.get(), "Replacement native start failed.");
++				PhantomAssertions.assertTrue(visible.running(runtime.profileId(), runtime.goal()), "Stale start rollback deleted the replacement Session or pair.");
++			}
++			finally
++			{
++				releaseFirst.countDown(); first.join(5000); if (second.getState() != Thread.State.NEW) { second.join(5000); }
++				visible.stop(runtime.profileId()); AutoUseTaskManager.getInstance().stopAutoUseTask(player); AutoPlayTaskManager.getInstance().stopAutoPlay(player);
++				playPool.add(player); usePool.add(player); playPools.remove(playPool); usePools.remove(usePool);
++				engine.beginStop(); engine.finishStop();
++			}
++		}
++	}
++
++	private void testNativePartialPair() throws Exception
++	{
++		try (var runtime = createRuntimeFixture(_environment.primary().objectId()))
++		{
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Partial pair fixture did not materialize.");
++			final var candidates = new PhantomCandidateRegistry(); candidates.seal();
++			final var handlers = new PhantomStepHandlerRegistry(); handlers.seal();
++			final var goals = new PhantomGoalStateStore(_repository);
++			final var engine = new PhantomDecisionEngine(goals, candidates, handlers, new PhantomMetrics(), 1);
++			engine.start(); engine.attach(runtime.profileId());
++			final var visible = new PhantomVisibleAutoPlay(runtime.materialization(), () -> engine, _ -> true);
++			final long epoch = runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos();
++			try
++			{
++				PhantomAssertions.assertTrue(visible.start(runtime.profileId(), runtime.goal()), "Initial visible pair did not start.");
++				final Player player;
++				try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
++				AutoUseTaskManager.getInstance().stopAutoUseTask(player);
++				PhantomAssertions.assertTrue(player.isAutoPlaying(), "Missing AutoUse fixture stopped AutoPlay unexpectedly.");
++				PhantomAssertions.assertFalse(visible.running(runtime.profileId(), runtime.goal()), "Partial native pair was falsely healthy.");
++				PhantomAssertions.assertTrue(visible.start(runtime.profileId(), runtime.goal()), "Legal owner could not repair partial native pair.");
++				PhantomAssertions.assertTrue(visible.running(runtime.profileId(), runtime.goal()), "Repaired native pair is not healthy.");
++				PhantomAssertions.assertEquals(epoch, runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos(), "Pair repair changed the materialization epoch.");
++			}
++			finally { visible.stop(runtime.profileId()); engine.beginStop(); engine.finishStop(); }
++		}
++	}
++
++	@SuppressWarnings("unchecked")
++	private void testNativePolicyReplacement(Class<?> managerClass, boolean throwsFailure) throws Exception
++	{
++		try (var runtime = createRuntimeFixture(_environment.primary().objectId()))
++		{
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Native policy fixture failed to materialize.");
++			final Player player;
++			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
++			final var autoPlay = AutoPlayTaskManager.getInstance();
++			final var autoUse = AutoUseTaskManager.getInstance();
++			final Field playPoolsField = AutoPlayTaskManager.class.getDeclaredField("POOLS"); playPoolsField.setAccessible(true);
++			final Field usePoolsField = AutoUseTaskManager.class.getDeclaredField("POOLS"); usePoolsField.setAccessible(true);
++			final var playPools = (Set<Set<Player>>) playPoolsField.get(null);
++			final var usePools = (Set<Set<Player>>) usePoolsField.get(null);
++			final Set<Player> playPool = new java.util.LinkedHashSet<>(List.of(player));
++			final Set<Player> usePool = new java.util.LinkedHashSet<>(List.of(player));
++			playPools.add(playPool); usePools.add(usePool);
++			final AutoPlayTaskManager.PhantomPolicy replacement = new AutoPlayTaskManager.PhantomPolicy()
++			{
++				@Override public AutoPlayTaskManager.TickLease acquire(Player actor) { return () -> {}; }
++				@Override public boolean permitsTarget(Creature target) { return false; }
++			};
++			final var observed = new AtomicInteger();
++			final AutoPlayTaskManager.PhantomPolicy original = new AutoPlayTaskManager.PhantomPolicy()
++			{
++				@Override public AutoPlayTaskManager.TickLease acquire(Player actor)
++				{
++					observed.incrementAndGet();
++					autoPlay.startPhantomAutoPlay(actor, replacement);
++					autoUse.startPhantomAutoUse(actor, replacement);
++					if (throwsFailure) { throw new InjectedFailure(); }
++					return null;
++				}
++				@Override public boolean permitsTarget(Creature target) { return false; }
++			};
++			try
++			{
++				player.setAutoPlaying(true);
++				autoPlay.startPhantomAutoPlay(player, original); autoUse.startPhantomAutoUse(player, original);
++				runNativePool(managerClass, new java.util.LinkedHashSet<>(List.of(player)));
++				PhantomAssertions.assertEquals(1, observed.get(), "Actual native loop did not capture P1.");
++				for (Class<?> paired : List.of(AutoPlayTaskManager.class, AutoUseTaskManager.class))
++				{
++					final Field policiesField = paired.getDeclaredField("PHANTOM_POLICIES"); policiesField.setAccessible(true);
++					final var policies = (Map<Player, AutoPlayTaskManager.PhantomPolicy>) policiesField.get(null);
++					PhantomAssertions.assertTrue(policies.get(player) == replacement, "Stale P1 removed P2 policy in " + paired.getSimpleName());
++				}
++				PhantomAssertions.assertTrue(playPool.contains(player) && usePool.contains(player) && player.isAutoPlaying(), "Stale P1 destroyed replacement native membership or flag.");
++			}
++			finally
++			{
++				autoUse.stopAutoUseTask(player); autoPlay.stopAutoPlay(player);
++				playPool.add(player); usePool.add(player); playPools.remove(playPool); usePools.remove(usePool);
++			}
++		}
++	}
++
++	@SuppressWarnings("unchecked")
++	private void testNativeMissingPolicy(Class<?> managerClass) throws Exception
++	{
++		try (var runtime = createRuntimeFixture(_environment.primary().objectId()))
++		{
++			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Missing policy fixture failed to materialize.");
++			final Player player;
++			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
++			final Field poolsField = managerClass.getDeclaredField("POOLS"); poolsField.setAccessible(true);
++			final var pools = (Set<Set<Player>>) poolsField.get(null);
++			final Set<Player> pool = new java.util.LinkedHashSet<>(List.of(player)); pools.add(pool);
++			final boolean enabled = AutoPlayConfig.ENABLE_AUTO_PLAY;
++			final boolean items = AutoPlayConfig.ENABLE_AUTO_ITEM;
++			final var target = Player.load(_environment.observer().objectId());
++			try
++			{
++				AutoPlayConfig.ENABLE_AUTO_PLAY = true; AutoPlayConfig.ENABLE_AUTO_ITEM = true;
++				target.spawnMe(player.getX() + 40, player.getY(), player.getZ());
++				player.getAutoPlaySettings().setNextTargetMode(1); player.getAutoPlaySettings().setPickup(false);
++				player.getAutoUseSettings().getAutoSupplyItems().add(Integer.MAX_VALUE);
++				final AutoPlayTaskManager.PhantomPolicy policy = new AutoPlayTaskManager.PhantomPolicy()
++				{
++					@Override public AutoPlayTaskManager.TickLease acquire(Player actor) { throw new AssertionError("Removed policy must not be used."); }
++					@Override public boolean permitsTarget(Creature creature) { return false; }
++				};
++				if (managerClass == AutoPlayTaskManager.class) { AutoPlayTaskManager.getInstance().startPhantomAutoPlay(player, policy); }
++				else { AutoUseTaskManager.getInstance().startPhantomAutoUse(player, policy); }
++				player.setTarget(target);
++				PhantomAssertions.assertTrue(player.getTarget() == target, "Missing-policy fixture did not establish its target before the native tick.");
++				// The iterator has already yielded this exact Player when stop removes registration.
++				final Set<Player> staleSelection = new java.util.AbstractSet<>()
++				{
++					@Override public int size() { return 1; }
++					@Override public java.util.Iterator<Player> iterator()
++					{
++						return new java.util.Iterator<>()
++						{
++							private boolean pending = true;
++							@Override public boolean hasNext() { return pending; }
++							@Override public Player next()
++							{
++								pending = false;
++								if (managerClass == AutoPlayTaskManager.class) { AutoPlayTaskManager.getInstance().stopAutoPlay(player); }
++								else { AutoUseTaskManager.getInstance().stopAutoUseTask(player); }
++								return player;
++							}
++						};
++					}
++				};
++				runNativePool(managerClass, staleSelection);
++				if (managerClass == AutoPlayTaskManager.class) { PhantomAssertions.assertTrue(player.getTarget() == target, "Managed missing-policy tick executed stock target mutation."); }
++				else { PhantomAssertions.assertTrue(player.getAutoUseSettings().getAutoSupplyItems().contains(Integer.MAX_VALUE), "Managed missing-policy tick executed stock supply mutation."); }
++			}
++			finally
++			{
++				AutoPlayConfig.ENABLE_AUTO_PLAY = enabled; AutoPlayConfig.ENABLE_AUTO_ITEM = items;
++				player.setTarget(null); player.getAutoUseSettings().getAutoSupplyItems().remove(Integer.MAX_VALUE);
++				AutoUseTaskManager.getInstance().stopAutoUseTask(player); AutoPlayTaskManager.getInstance().stopAutoPlay(player);
++				pool.add(player); pools.remove(pool); _environment.cleanupLoadedPlayer(target);
++			}
++		}
++	}
++
++	private static void runNativePool(Class<?> managerClass, Set<Player> selected) throws Exception
++	{
++		final Class<?> taskClass = Arrays.stream(managerClass.getDeclaredClasses()).filter(type -> type.getSimpleName().equals(managerClass == AutoPlayTaskManager.class ? "AutoPlay" : "AutoUse")).findFirst().orElseThrow();
++		final var constructor = taskClass.getDeclaredConstructor(managerClass, Set.class); constructor.setAccessible(true);
++		((Runnable) constructor.newInstance(managerClass.getMethod("getInstance").invoke(null), selected)).run();
++	}
++
+@@ -2130 +2782,6 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
+-			final var busyTravel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, stuckNavigation, _ -> true, noSignals(), (_, failure) -> busyFailure.set(failure), stuckClock::get);
++			final var terminalHistory = new PhantomHistoricalBackgroundService(_repository, goals, new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority), background, materialization);
++			final var busyTravel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, stuckNavigation, _ -> true, noSignals(), (candidate, failure) ->
++			{
++				busyFailure.set(failure);
++				if (failure.routeFailure()) { terminalHistory.recordVisibleFailure(candidate, failure.goal(), failure.stepId()); }
++			}, stuckClock::get);
+@@ -2138,0 +2796,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
++				if (_mode == Mode.NATIVE_LIFECYCLE)
++				{
++					final Field failuresField = PhantomHistoricalBackgroundService.class.getDeclaredField("_visibleFailures"); failuresField.setAccessible(true);
++					if (!((Map<?, ?>) failuresField.get(terminalHistory)).containsKey(profile.profileId())) { closeoutDefects.add("T01 actual production callback discarded journey_deadline resolution"); }
++					final long terminalSequence = busyTravel.lastFailure(profile.profileId()).sequence();
++					for (int retry = 0; retry < 4; retry++)
++					{
++						stuckClock.addAndGet(stuckNavigation.policy().maximumAttemptDurationNanos() + 1);
++						busyTravel.arrive(profile.profileId(), goal);
++					}
++					if (busyTravel.lastFailure(profile.profileId()).sequence() != terminalSequence) { closeoutDefects.add("T02/T03 same-revision terminal budget restarted with a fresh Journey"); }
++				}
+diff --git a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java
+index 8f5d5162614..daea4bbbb02 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java
++++ b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java
+@@ -343,0 +344 @@ public final class PhantomTestLauncher
++			case "m1-native-lifecycle" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.NATIVE_LIFECYCLE);
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomCleanupIncident.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomCleanupIncident.java
+new file mode 100644
+--- /dev/null
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomCleanupIncident.java
+@@ -0,0 +1,111 @@
++/*
++ * Copyright (c) 2013 L2jMobius
++ */
++package org.l2jmobius.gameserver.phantoms.player;
++
++import java.nio.charset.StandardCharsets;
++import java.time.Instant;
++import java.util.ArrayDeque;
++import java.util.IdentityHashMap;
++
++/** Detached, bounded facts only. Never keeps a native Player or Throwable alive. */
++public record PhantomCleanupIncident(int objectId, long epoch, long sequence, String utc,
++	PhantomMaterializedPlayer.CleanupPhase phase, String hook, int admittedActions,
++	String exceptionClass, String message, String detail, int nodes, int frames, boolean truncated)
++{
++	private static final int MAX_DETAIL_BYTES = 6144;
++
++	public String id(long profileId)
++	{
++		return profileId + ":" + objectId + ":" + epoch;
++	}
++
++	public static PhantomCleanupIncident capture(int objectId, long epoch, long sequence,
++		PhantomMaterializedPlayer.CleanupPhase phase, String hook, int admittedActions, Throwable failure)
++	{
++		final var output = new BoundedDetail();
++		int nodes = 0;
++		int frames = 0;
++		String message = "";
++		try
++		{
++			message = bounded(failure.getMessage(), 160);
++			final var pending = new ArrayDeque<Node>();
++			final var seen = new IdentityHashMap<Throwable, Boolean>();
++			pending.add(new Node("primary", failure));
++			while (!pending.isEmpty() && (nodes < 8))
++			{
++				final Node node = pending.removeFirst();
++				if (seen.put(node.failure(), Boolean.TRUE) != null) { output.truncated = true; continue; }
++				nodes++;
++				output.append(node.kind() + " " + bounded(node.failure().getClass().getName(), 160) + ": " + bounded(node.failure().getMessage(), 160) + "\n");
++				final StackTraceElement[] stack = node.failure().getStackTrace();
++				for (StackTraceElement frame : stack)
++				{
++					if (frames >= 32) { output.truncated = true; break; }
++					frames++;
++					output.append(" at " + bounded(frame.toString(), 240) + "\n");
++				}
++				final Throwable cause = node.failure().getCause();
++				if (cause != null)
++				{
++					if (nodes + pending.size() < 8) { pending.addLast(new Node("cause", cause)); }
++					else { output.truncated = true; }
++				}
++				for (Throwable suppressed : node.failure().getSuppressed())
++				{
++					if (nodes + pending.size() >= 8) { output.truncated = true; break; }
++					pending.addLast(new Node("suppressed", suppressed));
++				}
++			}
++			if (!pending.isEmpty()) { output.truncated = true; }
++		}
++		catch (RuntimeException | Error formattingFailure)
++		{
++			output.truncated = true;
++			output.append("DIAGNOSTIC_FORMAT_UNAVAILABLE " + formattingFailure.getClass().getName());
++		}
++		return new PhantomCleanupIncident(objectId, epoch, sequence, Instant.now().toString(), phase,
++			bounded(hook, 80), admittedActions, bounded(failure.getClass().getName(), 160), message,
++			output.text.toString(), nodes, frames, output.truncated);
++	}
++
++	public static String bounded(String value, int maximumCharacters)
++	{
++		if (value == null) { return ""; }
++		final var result = new StringBuilder(Math.min(value.length(), maximumCharacters));
++		for (int index = 0; (index < value.length()) && (result.length() < maximumCharacters);)
++		{
++			final int character = value.codePointAt(index);
++			final boolean xml = ((character >= 0x20) && (character <= 0xD7FF)) || ((character >= 0xE000) && (character <= 0xFFFD)) || ((character >= 0x10000) && (character <= 0x10FFFF));
++			final int sanitized = xml && !Character.isISOControl(character) ? character : ' ';
++			if (result.length() + Character.charCount(sanitized) > maximumCharacters) { break; }
++			result.appendCodePoint(sanitized);
++			index += Character.charCount(character);
++		}
++		return result.toString();
++	}
++
++	private record Node(String kind, Throwable failure) { }
++
++	private static final class BoundedDetail
++	{
++		private final StringBuilder text = new StringBuilder();
++		private int bytes;
++		private boolean truncated;
++
++		private void append(String value)
++		{
++			for (int index = 0; index < value.length();)
++			{
++				final int character = value.codePointAt(index);
++				final String scalar = new String(Character.toChars(character));
++				final int size = scalar.getBytes(StandardCharsets.UTF_8).length;
++				if (bytes + size > MAX_DETAIL_BYTES) { truncated = true; return; }
++				text.append(scalar);
++				bytes += size;
++				index += Character.charCount(character);
++			}
++		}
++	}
++}

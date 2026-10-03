@@ -1,0 +1,6 @@
+     [java] SUMMARY: suite=m1-native-lifecycle seed=15001501 total=12 passed=8 failed=4
+
+BUILD FAILED
+C:\Users\ZBook\.codex\worktrees\m1-native-closeout-006\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml:1512: Java returned: 3
+
+Total time: 1 minute 15 seconds

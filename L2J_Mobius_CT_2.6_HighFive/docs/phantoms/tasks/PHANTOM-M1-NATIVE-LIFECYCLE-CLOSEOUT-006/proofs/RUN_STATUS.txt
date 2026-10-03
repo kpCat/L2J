@@ -1,0 +1,7 @@
+compile command: javac -Xlint:all M1BoundaryReproducer.java
+compile exit: 0
+legacy command: java M1BoundaryReproducer
+legacy exit: 1 (expected assertions)
+proposal command: java M1BoundaryReproducer --fixed
+proposal exit: 0
+scope: STANDALONE CONTROL-FLOW MODELS ONLY; NOT L2J TESTS

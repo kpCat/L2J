@@ -1,0 +1,35 @@
+// PROPOSAL ONLY. Integrate after RED in the actual manager, preserving existing cleanup.
+// The unconditional stop method must share the monitor already used by start.
+public synchronized boolean stopPhantomAutoPlay(Player player, PhantomPolicy expected)
+{
+    if ((expected == null) || (PHANTOM_POLICIES.get(player) != expected))
+    {
+        return false;
+    }
+    // Do not remove the policy first: existing stop needs the phantom distinction.
+    stopAutoPlay(player); // Make its registration mutation synchronized as well.
+    return true;
+}
+
+public synchronized boolean hasPhantomRegistration(Player player, PhantomPolicy expected)
+{
+    if ((expected == null) || (PHANTOM_POLICIES.get(player) != expected))
+    {
+        return false;
+    }
+    for (Set<Player> pool : POOLS)
+    {
+        if (pool.contains(player))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// AutoUse: same shape, stopPhantomAutoUse -> stopAutoUseTask.
+// Both startPhantom... methods call markPhantomAutoPlayManaged() before publishing.
+// All worker error/rejection paths use expected-policy cleanup, including cross-pool stop.
+// Cross-pool calls happen only AFTER returning from a manager critical section.
+// Audit onActionRequest/followOwner/resetSkillOrder for call-out lock inversion.
+// This snippet alone does NOT solve Session publication races; see DESIGN D3 and P07.

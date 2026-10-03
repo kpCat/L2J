@@ -1,0 +1,20 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=6
+passed=4
+failed=2
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL m1-native-lifecycle.E01-first-cleanup-failure-survives-retry elapsedNanos=150404100 type=java.lang.AssertionError message=Actual lifecycle diagnostics lost first/latest native exceptions after retry/removal: ServiceSnapshot[state=RUNNING, maximumMaterialized=2, availablePermits=1, retainedEntries=1, materializations=[MaterializationSnapshot[profileId=73410, characterObjectId=268435465, state=FAILED, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=0, worldPresent=true, materializedAtNanos=634384042312400, dematerializedAtNanos=0, cleanupPhase=PRE_STORE, cleanupFailurePhase=PRE_STORE, cleanupFailureClass=java.lang.IllegalArgumentException, cleanupFailureMessage=LATEST_NATIVE_STORE_B, cleanupFailureSequence=2, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=]]] seed=15001501
+PASS m1-native-lifecycle.E02-cleanup-primary-survives-native-task-finalizer elapsedNanos=49874800
+PASS m1-native-lifecycle.E03-native-resume-primary-survives-boundary-finalizer elapsedNanos=17640400
+PASS m1-native-lifecycle.E03-native-store-primary-survives-boundary-finalizer elapsedNanos=15779600
+PASS m1-native-lifecycle.E04-materialize-error-survives-abort-error elapsedNanos=28795600
+FAIL m1-native-lifecycle.E05-detached-cleanup-evidence-survives-entry-removal elapsedNanos=21850800 type=java.lang.AssertionError message=Actual lifecycle diagnostics lost first/latest native exceptions after retry/removal: ServiceSnapshot[state=RUNNING, maximumMaterialized=2, availablePermits=2, retainedEntries=0, materializations=[]] seed=15001501

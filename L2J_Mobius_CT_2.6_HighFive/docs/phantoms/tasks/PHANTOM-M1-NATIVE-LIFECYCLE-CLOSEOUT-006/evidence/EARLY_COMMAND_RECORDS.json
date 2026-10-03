@@ -1,0 +1,122 @@
+[
+  {
+    "cmd": "ant -q -Dbuild=.phantom-local/m1-native-closeout-006/red-ownership phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-ownership.log 2>&1; $taskTestExit = $LASTEXITCODE; Get-Content -LiteralPath '.phantom-local/m1-native-closeout-006-red-ownership.log' -Tail 35; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 80964
+  },
+  {
+    "cmd": "git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius archive --format=zip --output=L2J_Mobius_CT_2.6_HighFive/.phantom-local/m1-native-closeout-006-schema-bytes.zip 461a4abe32be4aa08532b8417a6147684a8889c6 -- L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game/clan_social_identity.sql L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game/phantom_profiles.sql L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game/phantom_reservations_checkpoint2.sql L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game/phantom_reservations.sql L2J_Mobius_CT_2.6_HighFive/test/resources/phantoms/db/migrations/001_create_phantom_test_harness.sql L2J_Mobius_CT_2.6_HighFive/test/resources/phantoms/db/migrations/002_create_phantom_test_schema_manifest.sql; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Expand-Archive -LiteralPath 'L2J_Mobius_CT_2.6_HighFive/.phantom-local/m1-native-closeout-006-schema-bytes.zip' -DestinationPath 'C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius' -Force; git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius diff --numstat -- L2J_Mobius_CT_2.6_HighFive/dist/db_installer/sql/game L2J_Mobius_CT_2.6_HighFive/test/resources/phantoms/db/migrations",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius",
+    "initialExit": 0,
+    "yieldedSession": null
+  },
+  {
+    "cmd": "ant -Dbuild=.phantom-local/m1-native-closeout-006/red-ownership-validated phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-ownership-validated.log 2>&1; $taskTestExit = $LASTEXITCODE; Get-Content -LiteralPath '.phantom-local/m1-native-closeout-006-red-ownership-validated.log' -Tail 30; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 81427
+  },
+  {
+    "cmd": "$taskEolPaths = @('dist/db_installer/sql/game/clan_social_identity.sql','dist/db_installer/sql/game/phantom_profiles.sql','dist/db_installer/sql/game/phantom_reservations_checkpoint2.sql','dist/db_installer/sql/game/phantom_reservations.sql','test/resources/phantoms/db/migrations/001_create_phantom_test_harness.sql','test/resources/phantoms/db/migrations/002_create_phantom_test_schema_manifest.sql'); foreach ($taskEolPath in $taskEolPaths) { $taskEolText = [IO.File]::ReadAllText((Join-Path (Get-Location).Path $taskEolPath)); [IO.File]::WriteAllText((Join-Path (Get-Location).Path $taskEolPath), $taskEolText.Replace(\"`r`n\", \"`n\"), [Text.UTF8Encoding]::new($false)) }; Write-Output 'Six TEST schema inventory files normalized to proven prepared LF bytes; SQL text and database unchanged.'; git -c safe.directory=C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius diff --numstat -- dist/db_installer/sql/game test/resources/phantoms/db/migrations",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": 0,
+    "yieldedSession": null
+  },
+  {
+    "cmd": "ant -Dbuild=.phantom-local/m1-native-closeout-006/red-ownership-lf phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-ownership-lf.log 2>&1; $taskTestExit = $LASTEXITCODE; Get-Content -LiteralPath '.phantom-local/m1-native-closeout-006-red-ownership-lf.log' -Tail 25; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 49838
+  },
+  {
+    "cmd": "ant -Dbuild=.phantom-local/m1-native-closeout-006/red-session-green-pools phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-session-green-pools.log 2>&1; $taskTestExit = $LASTEXITCODE; Get-Content -LiteralPath '.phantom-local/m1-native-closeout-006-red-session-green-pools.log' -Tail 22; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 64020
+  },
+  {
+    "cmd": "ant -Dbuild=.phantom-local/m1-native-closeout-006/red-session-overlap phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-session-overlap.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-session-overlap.log -Tail 24; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 53812
+  },
+  {
+    "cmd": "ant -Dbuild=.phantom-local/m1-native-closeout-006/green-session phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-green-session.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-green-session.log -Tail 24; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 66179
+  },
+  {
+    "cmd": "ant -Dbuild=.phantom-local/m1-native-closeout-006/red-native-reward phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-native-reward.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-native-reward.log -Tail 30; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 18702
+  },
+  {
+    "cmd": "ant -Dbuild=.phantom-local/m1-native-closeout-006/red-native-reward-valid phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-native-reward-valid.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-native-reward-valid.log -Tail 30; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 6774
+  },
+  {
+    "cmd": "ant -Dbuild=.phantom-local/m1-native-closeout-006/red-native-reward-diagnostic phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-native-reward-diagnostic.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-native-reward-diagnostic.log -Tail 22; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 80406
+  },
+  {
+    "cmd": "ant -Dbuild=.phantom-local/m1-native-closeout-006/red-native-completion -Dphantom.m1.native.focus=store phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-native-completion.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-native-completion.log -Tail 24; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": 1,
+    "yieldedSession": null
+  },
+  {
+    "cmd": "ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-native-completion-valid' '-Dphantom.m1.native.focus=store' phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-native-completion-valid.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-native-completion-valid.log -Tail 24; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 4071
+  },
+  {
+    "cmd": "ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-errors-and-context' phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-errors-and-context.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-errors-and-context.log -Tail 26; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 43329
+  },
+  {
+    "cmd": "ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-native-drain' '-Dphantom.m1.native.focus=store' phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-native-drain.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-native-drain.log -Tail 24; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 12280
+  },
+  {
+    "cmd": "ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-native-prepare-overlap' '-Dphantom.m1.native.focus=store' phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-native-prepare-overlap.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-native-prepare-overlap.log -Tail 22; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 34401
+  },
+  {
+    "cmd": "ant '-Dbuild=.phantom-local/m1-native-closeout-006/green-native-completion' '-Dphantom.m1.native.focus=store' phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-green-native-completion.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-green-native-completion.log -Tail 22; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 33854
+  },
+  {
+    "cmd": "ant '-Dbuild=.phantom-local/m1-native-closeout-006/green-hit-cast-reward' '-Dphantom.m1.native.focus=store' phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-green-hit-cast-reward.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-green-hit-cast-reward.log -Tail 24; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 56117
+  },
+  {
+    "cmd": "ant '-Dbuild=.phantom-local/m1-native-closeout-006/green-hit-cast-owned' '-Dphantom.m1.native.focus=store' phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-green-hit-cast-owned.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-green-hit-cast-owned.log -Tail 24; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 14189
+  },
+  {
+    "cmd": "ant '-Dbuild=.phantom-local/m1-native-closeout-006/red-cleanup-finalizer' '-Dphantom.m1.native.focus=errors' phantom-m1-native-lifecycle-test > .phantom-local/m1-native-closeout-006-red-cleanup-finalizer.log 2>&1; $taskTestExit=$LASTEXITCODE; Get-Content .phantom-local/m1-native-closeout-006-red-cleanup-finalizer.log -Tail 24; exit $taskTestExit",
+    "workdir": "C:/Users/ZBook/.codex/worktrees/m1-native-closeout-006/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive",
+    "initialExit": null,
+    "yieldedSession": 3634
+  }
+]

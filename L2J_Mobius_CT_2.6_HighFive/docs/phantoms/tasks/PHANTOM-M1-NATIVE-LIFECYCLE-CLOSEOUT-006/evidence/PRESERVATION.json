@@ -1,0 +1,63 @@
+{
+  "verifiedUtc": "2026-10-03T17:48:19.9357455Z",
+  "originalHead": "b80cdf78560c06a9d88b8ec761e1582f0e55afba",
+  "originalStagedCount": 0,
+  "foreignFiles": [
+    {
+      "path": "C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005\\Run-M1RuntimeHandoff.ps1",
+      "before": "1D8BC58614BC7FBA2ED37B11E3B8103220978872E84BD53AFFD3FEFBCCDBA21F",
+      "after": "1D8BC58614BC7FBA2ED37B11E3B8103220978872E84BD53AFFD3FEFBCCDBA21F",
+      "equal": true
+    },
+    {
+      "path": "C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-LIVE-M1-RUNTIME-HANDOFF-005\\STATE.md",
+      "before": "23DC3BC4A6CC81228DD20593215026C2327D958BE28FCAA2BC6DDA98AC55F7A0",
+      "after": "23DC3BC4A6CC81228DD20593215026C2327D958BE28FCAA2BC6DDA98AC55F7A0",
+      "equal": true
+    },
+    {
+      "path": "C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\java\\org\\l2jmobius\\gameserver\\phantoms\\player\\PhantomMaterializationService.java",
+      "before": "B3DA8D6C3CD9313409D62807D2F66FD172771B9867432766FFE3BDD0C467B19B",
+      "after": "B3DA8D6C3CD9313409D62807D2F66FD172771B9867432766FFE3BDD0C467B19B",
+      "equal": true
+    },
+    {
+      "path": "C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\test\\java\\org\\l2jmobius\\gameserver\\phantoms\\PhantomClanDirectiveIntegrationGoal030C2ASuite.java",
+      "before": "0C3BD00C02DABDFBFAC56B497D17245DEB893E9FC130F6D0CE7459087B28E073",
+      "after": "0C3BD00C02DABDFBFAC56B497D17245DEB893E9FC130F6D0CE7459087B28E073",
+      "equal": true
+    },
+    {
+      "path": "C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\test\\java\\org\\l2jmobius\\tests\\phantoms\\PhantomMultipartyEconomySuite.java",
+      "before": "B3CA3ADB6B94F00432853F248EB80E84E02A755F8C70B0A0598FB690622D8B28",
+      "after": "B3CA3ADB6B94F00432853F248EB80E84E02A755F8C70B0A0598FB690622D8B28",
+      "equal": true
+    }
+  ],
+  "jvm": [
+    {
+      "Id": 24248,
+      "StartTime": "2026-10-03T12:23:13.0322444+03:00"
+    },
+    {
+      "Id": 33368,
+      "StartTime": "2026-10-03T12:23:14.8588483+03:00"
+    }
+  ],
+  "originalFiles": [
+    {
+      "path": "dist/libs/GameServer.jar",
+      "sha256": "3AB3E0F94AF06AE0D70D7176CF23C6D8FCAC850B3B240956FD6917E5BED9D0F0"
+    },
+    {
+      "path": "dist/game/config/Custom/PhantomPlayers.ini",
+      "sha256": "C1FB19A5D1EE0FE5F6AC01EA6F57285B02E935D8C878EE721B50B47785692905"
+    },
+    {
+      "path": "dist/game/config/Custom/LocalPlayPilot.ini",
+      "sha256": "D27C43EC7F115AEA35F39BB69DA60BA49F264B7D8F0BA46B322A4D1867F75EF0"
+    }
+  ],
+  "loadedRuntimeJarProvenance": "NOT_REESTABLISHED; original checkout JAR is not claimed as loaded",
+  "playMutation": "NONE"
+}

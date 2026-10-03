@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="8" passed="8" failures="0">
+  <properties>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.P01-AutoPlayTaskManager-missing-policy-skips-stock-effects" elapsedNanos="169937500"></testcase>
+  <testcase name="m1-native-lifecycle.P01-AutoUseTaskManager-missing-policy-skips-stock-effects" elapsedNanos="39629800"></testcase>
+  <testcase name="m1-native-lifecycle.P04-AutoPlayTaskManager-stale-rejection-keeps-replacement" elapsedNanos="28551300"></testcase>
+  <testcase name="m1-native-lifecycle.P04-AutoUseTaskManager-stale-rejection-keeps-replacement" elapsedNanos="28136700"></testcase>
+  <testcase name="m1-native-lifecycle.P05-AutoPlayTaskManager-stale-exception-keeps-pair" elapsedNanos="27022100"></testcase>
+  <testcase name="m1-native-lifecycle.P05-AutoUseTaskManager-stale-exception-keeps-pair" elapsedNanos="24008900"></testcase>
+  <testcase name="m1-native-lifecycle.P07-stale-visible-start-rollback-keeps-current-session" elapsedNanos="41351800"></testcase>
+  <testcase name="m1-native-lifecycle.P08-partial-visible-pair-is-unhealthy-and-repaired" elapsedNanos="27331000"></testcase>
+</testsuite>

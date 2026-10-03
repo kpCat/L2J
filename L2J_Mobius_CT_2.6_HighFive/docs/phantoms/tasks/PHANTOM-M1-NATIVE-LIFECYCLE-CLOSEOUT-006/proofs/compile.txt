@@ -1,0 +1,4 @@
+M1BoundaryReproducer.java:82: warning: [finally] finally clause cannot complete normally
+            finally { throw secondary; }
+                                       ^
+1 warning

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="1" passed="0" failures="1">
+  <properties>
+    <property name="Q01.cleanup" value="SUCCESS"/>
+    <property name="Q01.cleanupSnapshot" value="removed"/>
+    <property name="Q01.contextAtStore" value="instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0"/>
+    <property name="Q01.contextBeforeAttack" value="instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0"/>
+    <property name="Q01.nativeReward" value="object=268435465 expDelta=70 spDelta=2 preparedWhileHitActive=true"/>
+    <property name="Q01.preparedWhileHitActive" value="true"/>
+    <property name="Q01.retry" value="NOT_ACTIVE"/>
+    <property name="Q01.retrySnapshot" value="removed"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q01-native-reward-completion-drains-before-prepare" elapsedNanos="16214190900"><failure type="java.lang.AssertionError" message="Owned PREPARE crossed an active native lethal-hit/reward completion." seed="15001501"/></testcase>
+</testsuite>

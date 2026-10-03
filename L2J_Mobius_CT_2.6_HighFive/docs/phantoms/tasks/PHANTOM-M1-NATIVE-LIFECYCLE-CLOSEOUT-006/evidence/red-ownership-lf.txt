@@ -1,0 +1,20 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=6
+passed=0
+failed=6
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL m1-native-lifecycle.P01-AutoPlayTaskManager-missing-policy-skips-stock-effects elapsedNanos=158770000 type=java.lang.AssertionError message=Managed missing-policy tick executed stock target mutation. seed=15001501
+FAIL m1-native-lifecycle.P01-AutoUseTaskManager-missing-policy-skips-stock-effects elapsedNanos=47669200 type=java.lang.AssertionError message=Managed missing-policy tick executed stock supply mutation. seed=15001501
+FAIL m1-native-lifecycle.P04-AutoPlayTaskManager-stale-rejection-keeps-replacement elapsedNanos=35591300 type=java.lang.AssertionError message=Stale P1 removed P2 policy in AutoPlayTaskManager seed=15001501
+FAIL m1-native-lifecycle.P04-AutoUseTaskManager-stale-rejection-keeps-replacement elapsedNanos=26013600 type=java.lang.AssertionError message=Stale P1 removed P2 policy in AutoUseTaskManager seed=15001501
+FAIL m1-native-lifecycle.P05-AutoPlayTaskManager-stale-exception-keeps-pair elapsedNanos=28682100 type=java.lang.AssertionError message=Stale P1 removed P2 policy in AutoPlayTaskManager seed=15001501
+FAIL m1-native-lifecycle.P05-AutoUseTaskManager-stale-exception-keeps-pair elapsedNanos=28686500 type=java.lang.AssertionError message=Stale P1 removed P2 policy in AutoPlayTaskManager seed=15001501

@@ -1,0 +1,19 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=1
+passed=0
+failed=1
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.closeoutTravelDefects=[T01 actual production callback discarded journey_deadline resolution, T02/T03 same-revision terminal budget restarted with a fresh Journey]
+measurement.m1.nativeVisibleTravel=population.ingress.dwarf.01->generated.farm.dcbfae7bd58c752ca4f1e7ca.anchor
+FAIL m1-native-lifecycle.T-native-terminal-and-continuation elapsedNanos=1119352000 type=java.lang.AssertionError message=Closeout native travel contracts failed. Expected <[]> but was <[T01 actual production callback discarded journey_deadline resolution, T02/T03 same-revision terminal budget restarted with a fresh Journey]>. seed=15001501

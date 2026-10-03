@@ -1,0 +1,13 @@
+CONTROL_FLOW_MODEL_ONLY mode=reviewed-legacy
+FAIL policy_missing_after_stop: java.lang.AssertionError: managed tick executed without policy; effects=1
+FAIL stale_stop_preserves_replacement: java.lang.AssertionError: old tick removed replacement policy
+FAIL autouse_missing_is_not_healthy: java.lang.AssertionError: AutoUse absence ignored
+FAIL first_exception_is_immutable: java.lang.AssertionError: first failure overwritten
+FAIL finally_preserves_primary: java.lang.AssertionError: finally replaced primary with finalizer-second
+FAIL failed_cohort_cannot_pass: java.lang.AssertionError: FAILED/admission-closed cohort graded PASS
+FAIL self_cast_is_not_native_progress: java.lang.AssertionError: casting flag graded PASS without damage or progress
+FAIL terminal_deadline_is_consumed: java.lang.AssertionError: terminal reason dropped by whitelist
+PASS stock_player_without_policy_keeps_tick
+PASS healthy_pools_are_healthy
+PASS positive_native_progress
+SUMMARY passed=3 failed=8 scope=standalone-model-not-L2J

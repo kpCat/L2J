@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="6" passed="4" failures="2">
+  <properties>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="394F26E9792EF56B77E1293DFCB7A336BEFE48F224140CCD7626475EDE1BE04E"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.E01-first-cleanup-failure-survives-retry" elapsedNanos="150404100"><failure type="java.lang.AssertionError" message="Actual lifecycle diagnostics lost first/latest native exceptions after retry/removal: ServiceSnapshot[state=RUNNING, maximumMaterialized=2, availablePermits=1, retainedEntries=1, materializations=[MaterializationSnapshot[profileId=73410, characterObjectId=268435465, state=FAILED, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=0, worldPresent=true, materializedAtNanos=634384042312400, dematerializedAtNanos=0, cleanupPhase=PRE_STORE, cleanupFailurePhase=PRE_STORE, cleanupFailureClass=java.lang.IllegalArgumentException, cleanupFailureMessage=LATEST_NATIVE_STORE_B, cleanupFailureSequence=2, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=]]]" seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.E02-cleanup-primary-survives-native-task-finalizer" elapsedNanos="49874800"></testcase>
+  <testcase name="m1-native-lifecycle.E03-native-resume-primary-survives-boundary-finalizer" elapsedNanos="17640400"></testcase>
+  <testcase name="m1-native-lifecycle.E03-native-store-primary-survives-boundary-finalizer" elapsedNanos="15779600"></testcase>
+  <testcase name="m1-native-lifecycle.E04-materialize-error-survives-abort-error" elapsedNanos="28795600"></testcase>
+  <testcase name="m1-native-lifecycle.E05-detached-cleanup-evidence-survives-entry-removal" elapsedNanos="21850800"><failure type="java.lang.AssertionError" message="Actual lifecycle diagnostics lost first/latest native exceptions after retry/removal: ServiceSnapshot[state=RUNNING, maximumMaterialized=2, availablePermits=2, retainedEntries=0, materializations=[]]" seed="15001501"/></testcase>
+</testsuite>
