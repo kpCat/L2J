@@ -79,33 +79,46 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			}
 			final Player player = action.player();
 			final var spec = PhantomBackgroundGoalSpec.parse(goal);
-			final var state = _background.acquisitionSnapshot(profileId).orElse(null);
+			var state = _background.acquisitionSnapshot(profileId).orElse(null);
+			if (player.hasPendingOwnedStore())
+			{
+				final var resumed = _background.resumeVisibleOwnedStore(profileId, player, goal);
+				if (resumed.status() != PhantomBackgroundService.VisibleStoreStatus.SUCCESS)
+				{
+					rememberFailure(profileId, resumed.reason());
+					return false;
+				}
+				state = _background.acquisitionSnapshot(profileId).orElse(null);
+			}
 			if ((state == null) || (state.state() != PhantomBackgroundState.State.MATERIALIZED) || (state.identity().characterObjectId() != player.getObjectId()))
 			{
 				return false;
 			}
-			if (state.position().committedAnchorId().equals(spec.anchorId()))
+			final var targetAnchor = _travel.topology().findAnchor(spec.anchorId()).orElse(null);
+			final boolean sameAnchor = state.position().committedAnchorId().equals(spec.anchorId());
+			if (sameAnchor && (targetAnchor != null) && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor))
 			{
 				remove(profileId);
 				_terminalReasons.remove(profileId);
 				return true;
 			}
 			Journey journey = _journeys.get(profileId);
-			if ((journey != null) && ((journey.goalId != goal.goalId()) || (journey.revision != goal.revision()) || (journey.objectId != player.getObjectId())))
+			final long epoch = _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L);
+			if ((journey != null) && ((journey.goalId != goal.goalId()) || (journey.revision != goal.revision()) || (journey.player != player) || (journey.epoch != epoch)))
 			{
 				remove(profileId);
 				journey = null;
 			}
 			if (journey == null)
 			{
-				final var route = _travel.route(state.position().committedAnchorId(), spec.anchorId()).orElse(List.of());
+				final var route = sameAnchor && (targetAnchor != null) ? List.of(new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "live.approach." + spec.anchorId(), spec.anchorId(), spec.anchorId(), 0, null)) : _travel.route(state.position().committedAnchorId(), spec.anchorId()).orElse(List.of());
 				if (route.isEmpty())
 				{
 					rememberFailure(profileId, "travel.route_absent");
 					_failure.accept(profileId, new Failure(goal, "", "travel.route_absent"));
 					return false;
 				}
-				journey = new Journey(goal, player, route.getFirst(), _clock.getAsLong());
+				journey = new Journey(goal, player, epoch, route.getFirst(), _clock.getAsLong());
 				_journeys.put(profileId, journey);
 			}
 			if ((_clock.getAsLong() - journey.startedNanos) >= _navigation.policy().maximumAttemptDurationNanos())
@@ -338,7 +351,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	{
 		public boolean routeFailure()
 		{
-			return reason.equals("travel.route_absent") || reason.equals("travel.destination_unproven") || reason.equals("travel.gatekeeper_unproven") || reason.equals("travel.navigation_no_path") || reason.equals("travel.navigation_route_obstructed") || reason.equals("travel.navigation_route_budget_exceeded");
+			return reason.equals("travel.route_absent") || reason.equals("travel.destination_unproven") || reason.equals("travel.gatekeeper_unproven") || reason.equals("travel.navigation_no_path") || reason.equals("travel.navigation_route_obstructed") || reason.equals("travel.navigation_route_budget_exceeded") || reason.equals("travel.native_progress_stuck") || reason.equals("travel.native_progress_timeout");
 		}
 	}
 
@@ -437,6 +450,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private final long goalId;
 		private final long revision;
 		private final int objectId;
+		private final Player player;
+		private final long epoch;
 		private final PhantomNormalGatekeeperTravel.Step step;
 		private final PhantomGoal goal;
 		private final long startedNanos;
@@ -454,11 +469,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private int index;
 		private volatile String reason = "travel.started";
 
-		private Journey(PhantomGoal goal, Player player, PhantomNormalGatekeeperTravel.Step step, long startedNanos)
+		private Journey(PhantomGoal goal, Player player, long epoch, PhantomNormalGatekeeperTravel.Step step, long startedNanos)
 		{
 			goalId = goal.goalId();
 			revision = goal.revision();
 			objectId = player.getObjectId();
+			this.player = player;
+			this.epoch = epoch;
 			this.step = step;
 			this.goal = goal;
 			this.startedNanos = startedNanos;

@@ -80,12 +80,14 @@ public class AutoUseTaskManager
 			
 			for (Player player : _players)
 			{
+				final PhantomPolicy phantomPolicy = PHANTOM_POLICIES.get(player);
+				try
+				{
 				if (!player.isOnline() || (player.isInOfflineMode() && !player.isOfflinePlay()))
 				{
 					stopAutoUseTask(player);
 					continue;
 				}
-				final PhantomPolicy phantomPolicy = PHANTOM_POLICIES.get(player);
 				final TickLease lease = phantomPolicy == null ? () -> {} : phantomPolicy.acquire(player);
 				if (lease == null)
 				{
@@ -375,6 +377,14 @@ public class AutoUseTaskManager
 						break SKILLS;
 					}
 				}
+				}
+				}
+				catch (RuntimeException failure)
+				{
+					if (phantomPolicy == null) { throw failure; }
+					stopAutoUseTask(player);
+					AutoPlayTaskManager.getInstance().stopAutoPlay(player);
+					java.util.logging.Logger.getLogger(AutoUseTaskManager.class.getName()).log(java.util.logging.Level.WARNING, "Phantom AutoUse actor failed: " + player.getObjectId(), failure);
 				}
 			}
 		}

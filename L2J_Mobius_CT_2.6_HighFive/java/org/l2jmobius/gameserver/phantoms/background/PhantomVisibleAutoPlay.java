@@ -79,7 +79,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		try (action)
 		{
 			final Player player = action.player();
-			if (!player.hasHeadlessOutboundSession() || !player.isOnline() || player.isDead() || (player.getObjectId() != snapshot.characterObjectId()) || !current(profileId, goal))
+			if (!player.hasHeadlessOutboundSession() || !player.isOnline() || player.isDead() || player.hasPendingOwnedStore() || (player.getObjectId() != snapshot.characterObjectId()) || !current(profileId, goal))
 			{
 				return false;
 			}
@@ -147,8 +147,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				}
 				final Player player = action.player();
 				final int npcId = PhantomBackgroundGoalSpec.parse(goal).npcId();
-				final boolean busy = player.isMoving() || player.isAttackingNow() || player.isCastingNow() || player.isTeleporting();
-				final boolean target = busy || World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream().anyMatch(creature -> selectableTarget(player, creature, npcId));
+				final var selected = player.getTarget();
+				final boolean offensive = (player.isMoving() || player.isAttackingNow() || player.isCastingNow()) && (selected instanceof Creature creature) && selectableTarget(player, creature, npcId);
+				final boolean target = offensive || World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream().anyMatch(creature -> selectableTarget(player, creature, npcId));
 				if (target)
 				{
 					session.noTargetSince = -1;
@@ -269,6 +270,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		@Override
 		public TickLease acquire(Player player)
 		{
+			if (player != _player)
+			{
+				return null;
+			}
 			final PhantomDecisionEngine engine = _decision.get();
 			final var runtime = engine == null ? null : engine.find(_profileId).orElse(null);
 			if ((runtime == null) || (runtime.goalId() != _goalId) || (runtime.goalRevision() != _revision) || (runtime.goalStatus() != PhantomGoalStatus.ACTIVE) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(runtime.goalType()) || !_permitsOrdinary.test(_profileId))
@@ -280,7 +285,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			{
 				return null;
 			}
-			if ((action.player() != player) || !player.hasHeadlessOutboundSession() || player.isDead())
+			if ((action.player() != player) || !player.hasHeadlessOutboundSession() || player.isDead() || player.hasPendingOwnedStore())
 			{
 				action.close();
 				return null;

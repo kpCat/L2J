@@ -558,6 +558,7 @@ public final class LocalPlayPilotActions
 		final PhantomTopologyPoint point = target.observedPosition();
 		final PhantomTopologyPoint committed = target.committedPosition();
 		final boolean worldPresent = target.worldPresent();
+		LocalPlayPhantomStoreJournal.select(worldPresent && (target.materializedAtNanos() > 0) ? Map.of(_envelopeProfileId, target.materializedAtNanos()) : Map.of());
 		if (!profile.admission().calendarOnline()) { return Outcome.of("REJECTED", "SCENE_INVALIDATED:CALENDAR_OFFLINE"); }
 		if (!"READY".equals(profile.admission().populationState().name())) { return Outcome.of("REJECTED", "SCENE_INVALIDATED:POPULATION_STATE"); }
 		final Location actorLocation = actor.getLocation().clone();
@@ -912,6 +913,7 @@ public final class LocalPlayPilotActions
 
 	public void cancelPendingInvitation()
 	{
+		LocalPlayPhantomStoreJournal.select(Map.of());
 		if (_pendingOwnInvite != null)
 		{
 			PartyInvitationService.getInstance().cancel(_pendingOwnInvite);

@@ -131,6 +131,20 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				final StoredGoal currentGoal = _goals.load(profileId).orElse(null);
 				final boolean currentAuthority = existing.state().authorityHashes().equals(generation.authorityHashes()) && (existing.state().knowledgeGeneration() == generation.knowledgeGeneration()) && (existing.state().topologyGeneration() == generation.topologyGeneration());
 				PhantomBackgroundState backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+				if ((backgroundState != null) && (backgroundState.state() == PhantomBackgroundState.State.VERIFY_PENDING))
+				{
+					if ((currentGoal == null) || (currentGoal.goal().status() != PhantomGoalStatus.ACTIVE) || (currentGoal.goal().goalId() != existing.state().goalId()) || (currentGoal.goal().revision() != existing.state().goalRevision()) || (backgroundState.identity().profileId() != profileId) || (backgroundState.identity().characterObjectId() != linkedProfile.characterObjectId()) || !currentAuthority || !backgroundState.hashes().equals(generation.authorityHashes()))
+					{
+						return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.pending_prerequisite_invalid", existing);
+					}
+					final var reconciled = _background.reconcileHistoricalPending(profileId, currentGoal.goal(), existing.state().generation(), Math.addExact(existing.state().intervalOrdinal(), 1));
+					if (!reconciled.successful())
+					{
+						return Result.rejected(reconciled.status() == OperationStatus.RETRY ? ResultStatusCode.RETRY : ResultStatusCode.REPLAN_REQUIRED, "catchup.renewal.pending." + reconciled.reason(), existing);
+					}
+					backgroundState = _background.acquisitionSnapshot(profileId).orElse(null);
+					renewalRecovery = "catchup.renewal.pending";
+				}
 				if ((backgroundState != null) && (backgroundState.state() == PhantomBackgroundState.State.MATERIALIZED))
 				{
 					final var recovery = _background.recoverAbandonedMaterialization(profileId);

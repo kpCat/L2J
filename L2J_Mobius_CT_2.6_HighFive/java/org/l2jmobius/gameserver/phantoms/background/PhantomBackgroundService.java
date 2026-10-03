@@ -830,6 +830,24 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	}
 
 	/** Called under the canonical Player action lease after native route arrival. */
+	public enum VisibleStoreStatus { SUCCESS, RETRY, PROFILE_FENCED }
+	public record VisibleStoreResult(VisibleStoreStatus status, String reason) { }
+
+	public VisibleStoreResult resumeVisibleOwnedStore(long profileId, Player player, PhantomGoal goal)
+	{
+		if ((_state != ServiceState.RUNNING) || _transitions.containsKey(profileId)) { return new VisibleStoreResult(VisibleStoreStatus.RETRY, "owned_store.service_or_transition"); }
+		try (var action = _materialization.get().tryAcquireAction(profileId).orElse(null))
+		{
+			if ((action == null) || (action.player() != player) || !player.hasOwnedStoreBoundary(this) || !player.hasPendingOwnedStore()) { return new VisibleStoreResult(VisibleStoreStatus.PROFILE_FENCED, "owned_store.live_owner_or_intent_missing"); }
+			if (!Objects.equals(_goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), goal)) { return new VisibleStoreResult(VisibleStoreStatus.PROFILE_FENCED, "owned_store.goal_changed"); }
+			return new VisibleStoreResult(player.resumePendingOwnedStore(this, goal.goalId(), goal.revision()) ? VisibleStoreStatus.SUCCESS : VisibleStoreStatus.RETRY, "owned_store.live_resume");
+		}
+		catch (RuntimeException failure)
+		{
+			return new VisibleStoreResult(VisibleStoreStatus.PROFILE_FENCED, "owned_store.live_resume:" + failure.getMessage());
+		}
+	}
+
 	public boolean captureVisibleArrival(long profileId, Player player, PhantomGoal goal, String anchorId)
 	{
 		if ((_state != ServiceState.RUNNING) || player.isDead() || player.isInParty() || !player.hasHeadlessOutboundSession() || _transitions.containsKey(profileId) || (_operations.putIfAbsent(profileId, Boolean.TRUE) != null))
@@ -879,11 +897,23 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		player.attachOwnedStoreBoundary(new Player.OwnedStoreBoundary()
 		{
 			@Override public Object ownerKey() { return PhantomBackgroundService.this; }
-			private PhantomOwnedStoreIntent _intent;
+			private volatile PhantomOwnedStoreIntent _intent;
+			private PhantomGoal _intentGoal;
 			private long _sequence;
 			private String _before;
 			private String _kind;
 			private boolean _recaptureAfterResume;
+
+			@Override public boolean hasPending() { return _intent != null; }
+
+			@Override
+			public Player.OwnedStoreSnapshot beforePendingStore(long goalId, long revision)
+			{
+				if (_intent == null) { return null; }
+				if ((_intentGoal == null) || (_intentGoal.goalId() != goalId) || (_intentGoal.revision() != revision) || !Objects.equals(_goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), _intentGoal)) { throw new IllegalStateException("OWNED_STORE_PENDING_GOAL_CHANGED"); }
+				checkOwner();
+				return resumeIntent();
+			}
 
 			@Override
 			public Player.OwnedStoreSnapshot beforeStore()
@@ -892,11 +922,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				catch (RuntimeException failure) { org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.rejected(profileId, player, _intent, failure.getClass().getSimpleName() + ":" + failure.getMessage()); throw failure; }
 			}
 
-			private Player.OwnedStoreSnapshot prepareStore()
+			private void checkOwner()
 			{
 				final int objectId = player.getObjectId();
 				final var entry = _materialization.get().find(profileId).orElse(null);
 				if (!owner.equals(_identities.getOwnerSnapshot(objectId)) || (entry == null) || (entry.characterObjectId() != objectId) || (player.getClient() != null) || ((World.getInstance().findObject(objectId) != null) && (World.getInstance().findObject(objectId) != player)) || PlayerAutoSaveTaskManager.getInstance().containsOtherObjectId(objectId, player)) { throw new IllegalStateException("OWNED_STORE_RUNTIME_OWNER_REJECTED"); }
+				if ((_intent != null) && (_intent.materializedAtNanos() != entry.materializedAtNanos())) { throw new IllegalStateException("OWNED_STORE_PENDING_EPOCH_CHANGED"); }
+			}
+
+			private Player.OwnedStoreSnapshot resumeIntent()
+			{
 				if (_intent != null)
 				{
 					final var resumed = transaction(() -> _transactions.resumeOwnedStore(_intent));
@@ -904,13 +939,22 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					{
 						_recaptureAfterResume = _cleanupStores.containsKey(profileId);
 						if ((!_recaptureAfterResume && !ownedProgressMatches(player, _intent.after())) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { throw new IllegalStateException("OWNED_STORE_RETRY_RUNTIME_CHANGED"); }
-						_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player);
+						_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.enabledFor(profileId, _intent.materializedAtNanos()) ? org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player) : null;
 						_sequence = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.begin(profileId, player, _kind, _intent);
 						return ownedSnapshot(player, _intent.after());
 					}
 					if (!resumed.successful()) { throw new IllegalStateException("OWNED_STORE_RESUME:" + resumed.status()); }
 					_intent = null;
 				}
+				return null;
+			}
+
+			private Player.OwnedStoreSnapshot prepareStore()
+			{
+				checkOwner();
+				final var resumed = resumeIntent();
+				if (resumed != null) { return resumed; }
+				final var entry = _materialization.get().find(profileId).orElseThrow();
 				final var loaded = transaction(() -> _transactions.load(profileId));
 				final var previous = loaded.successful() ? loaded.state() : null;
 				if (!loaded.successful() && (loaded.status() != PhantomBackgroundTransaction.Status.STATE_ABSENT)) { throw new IllegalStateException("OWNED_STORE_BACKGROUND_READ:" + loaded.status()); }
@@ -939,10 +983,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final State target = cleanup || (previous == null) || (previous.state() != State.MATERIALIZED) ? (captured.vitals().currentHp() == 0 ? State.DEAD : State.READY) : State.MATERIALIZED;
 				final var witnessed = captureOwnedInventory(player, captured);
 				final var prepared = transaction(() -> _transactions.prepareOwnedStore(witnessed, goal, entry.materializedAtNanos(), target));
+				_intentGoal = goal;
 				_intent = prepared.intent();
 				_kind = arrival != null ? "ARRIVAL_CAPTURE" : cleanup ? "CLEANUP_STORE" : "OTHER_OWNED_STORE";
 				if (!prepared.successful()) { throw new IllegalStateException("OWNED_STORE_PREPARE:" + prepared.status()); }
-				_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player);
+				_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.enabledFor(profileId, _intent.materializedAtNanos()) ? org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player) : null;
 				_sequence = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.begin(profileId, player, _kind, _intent);
 				_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.AFTER_OWNED_PREPARE);
 				return ownedSnapshot(player, _intent.after());
@@ -957,7 +1002,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final boolean recaptureCleanup = _recaptureAfterResume;
 				_recaptureAfterResume = false;
 				PhantomBackgroundState completedState = null;
-				final String after = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player);
+				final String after = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.enabledFor(profileId, _intent.materializedAtNanos()) ? org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player) : null;
 				try
 				{
 					if (!nativeStoreCompleted) { return; }
@@ -1396,10 +1441,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	/** Native maxima are derived on Player load after background level changes; preserve durable facts. */
 	private PhantomBackgroundTransaction.Result refreshNativeVitals(long profileId, Player player, PhantomBackgroundTransaction.Result loaded)
 	{
-		// Native current-vitals setters share this monitor; regeneration cannot race capture/store.
-		synchronized (player.getStatus())
+		// Match Player.store's player -> status order, including the pre-headless autosave window.
+		synchronized (player)
 		{
-			return refreshNativeVitalsLocked(profileId, player, loaded);
+			synchronized (player.getStatus())
+			{
+				return refreshNativeVitalsLocked(profileId, player, loaded);
+			}
 		}
 	}
 
@@ -1448,7 +1496,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final PhantomBackgroundTransaction.Result recovered = transaction(() -> _transactions.abortMaterialization(profileId, characterObjectId));
 			if (!recovered.successful() || (recovered.state() == null) || ((recovered.state().state() != State.READY) && (recovered.state().state() != State.DEAD)))
 			{
-				failStop();
+				final boolean localFence = (recovered.state() != null) && (recovered.state().identity().profileId() == profileId) && (recovered.state().identity().characterObjectId() == characterObjectId) && (recovered.state().state() == State.INCONSISTENT) && ((recovered.status() == PhantomBackgroundTransaction.Status.INCONSISTENT) || (recovered.status() == PhantomBackgroundTransaction.Status.OWNED_STORE_CANONICAL_NEITHER));
+				if (!localFence) { failStop(); }
 			}
 		}
 		finally
@@ -1840,7 +1889,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			case STALE_OPERATION, GOAL_STALE, HASH_STALE, STATE_CONFLICT, STATE_ABSENT, PROFILE_LINK_STALE, CATCHUP_CONFLICT -> OperationResult.replan("transaction." + status.name().toLowerCase());
 			case ITEM_CONFLICT -> OperationResult.inconsistent("transaction.item_conflict_canonical");
-			case INCONSISTENT, CANONICAL_MISMATCH, ITEM_LIMIT, UNSUPPORTED_ITEM, UNSUPPORTED_INSTANCE, OBJECT_ID_EXHAUSTED, PROGRESSION_CONFLICT, ACQUISITION_CONFLICT -> OperationResult.inconsistent("transaction." + status.name().toLowerCase());
+			case INCONSISTENT, OWNED_STORE_CANONICAL_NEITHER, CANONICAL_MISMATCH, ITEM_LIMIT, UNSUPPORTED_ITEM, UNSUPPORTED_INSTANCE, OBJECT_ID_EXHAUSTED, PROGRESSION_CONFLICT, ACQUISITION_CONFLICT -> OperationResult.inconsistent("transaction." + status.name().toLowerCase());
 			case ITEM_BUSY, ITEM_EXPECTED_COUNT_STALE -> retry("transaction." + status.name().toLowerCase());
 			default -> retry("transaction." + status.name().toLowerCase());
 		};

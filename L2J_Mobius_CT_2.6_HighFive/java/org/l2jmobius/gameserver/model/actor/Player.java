@@ -465,6 +465,8 @@ public class Player extends Playable
 	public interface OwnedStoreBoundary
 	{
 		default Object ownerKey() { return this; }
+		default boolean hasPending() { return false; }
+		default OwnedStoreSnapshot beforePendingStore(long goalId, long revision) { throw new IllegalStateException("OWNED_STORE_PENDING_UNSUPPORTED"); }
 		OwnedStoreSnapshot beforeStore();
 		void afterStore(boolean nativeStoreCompleted);
 	}
@@ -480,6 +482,22 @@ public class Player extends Playable
 	}
 
 	public boolean hasOwnedStoreBoundary() { return _ownedStoreBoundary != null; }
+	public boolean hasPendingOwnedStore() { final var boundary = _ownedStoreBoundary; return (boundary != null) && boundary.hasPending(); }
+
+	/** Resume only the attached receipt; this path never captures a fresh store. */
+	public synchronized boolean resumePendingOwnedStore(Object ownerKey, long goalId, long revision)
+	{
+		final var boundary = _ownedStoreBoundary;
+		if ((boundary == null) || (boundary.ownerKey() != ownerKey)) { return false; }
+		if (!boundary.hasPending()) { return true; }
+		final var snapshot = boundary.beforePendingStore(goalId, revision);
+		if (snapshot == null) { return !boundary.hasPending(); }
+		boolean completed = false;
+		try { storeNative(false, snapshot); completed = true; }
+		finally { boundary.afterStore(completed); }
+		return !boundary.hasPending();
+	}
+
 	public boolean hasOwnedStoreBoundary(Object ownerKey) { final var boundary = _ownedStoreBoundary; return (boundary != null) && (boundary.ownerKey() == ownerKey); }
 	private String _ip = "N/A";
 	
@@ -7828,6 +7846,7 @@ public class Player extends Playable
 		catch (Exception e)
 		{
 			LOGGER.log(Level.WARNING, "Could not store char base data: " + this + " - " + e.getMessage(), e);
+			if (snapshot != null) { throw new IllegalStateException("OWNED_STORE_NATIVE_BASE_FAILED", e); }
 		}
 	}
 	
@@ -7859,6 +7878,7 @@ public class Player extends Playable
 		catch (Exception e)
 		{
 			LOGGER.log(Level.WARNING, "Could not store sub class data for " + getName() + ": " + e.getMessage(), e);
+			if (snapshot != null) { throw new IllegalStateException("OWNED_STORE_NATIVE_SUBCLASS_FAILED", e); }
 		}
 	}
 	

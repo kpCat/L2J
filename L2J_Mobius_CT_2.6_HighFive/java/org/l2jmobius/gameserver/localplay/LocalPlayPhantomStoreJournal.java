@@ -27,7 +27,13 @@ public final class LocalPlayPhantomStoreJournal
 	private static final Logger LOGGER = Logger.getLogger(LocalPlayPhantomStoreJournal.class.getName());
 	private static final AtomicLong SEQUENCE = new AtomicLong();
 	private static final long MAX_BYTES = 1024 * 1024;
-	private static Path _root;
+	private static volatile Path _root;
+	private static volatile java.util.Map<Long, Long> _selected = java.util.Map.of();
+	private static final AtomicLong SNAPSHOTS = new AtomicLong();
+	private static final AtomicLong ENCODES = new AtomicLong();
+	private static final AtomicLong HASHES = new AtomicLong();
+	private static final AtomicLong OPENS = new AtomicLong();
+	private static final AtomicLong FORCES = new AtomicLong();
 	private static boolean _reportedFailure;
 
 	private LocalPlayPhantomStoreJournal() {}
@@ -35,6 +41,7 @@ public final class LocalPlayPhantomStoreJournal
 	static synchronized void configure(Path runtime) throws Exception
 	{
 		_root = null;
+		_selected = java.util.Map.of();
 		final Path root = runtime.resolve("playtest-lifecycle");
 		if (!Files.exists(root, LinkOption.NOFOLLOW_LINKS)) { return; }
 		if (!LocalPlayPilotService.safeDirectory(root) || !LocalPlayPilotService.privateAcl(root)) { throw new IllegalArgumentException("OWNED_STORE_JOURNAL_PRIVATE_GUARD"); }
@@ -46,9 +53,24 @@ public final class LocalPlayPhantomStoreJournal
 		_root = root;
 	}
 
+	/** Explicit diagnostic scope; never enables another materialization epoch. */
+	public static synchronized void select(java.util.Map<Long, Long> selected)
+	{
+		if ((selected.size() > 8) || selected.entrySet().stream().anyMatch(entry -> (entry.getKey() <= 0) || (entry.getValue() <= 0))) { throw new IllegalArgumentException("OWNED_STORE_JOURNAL_SCOPE"); }
+		_selected = java.util.Map.copyOf(selected);
+	}
+
+	public static boolean enabledFor(long profileId, long epoch)
+	{
+		return (_root != null) && java.util.Objects.equals(_selected.get(profileId), epoch);
+	}
+
+	public record OperationCounts(long snapshots, long encodes, long hashes, long opens, long forces) { }
+	public static OperationCounts operationCounts() { return new OperationCounts(SNAPSHOTS.get(), ENCODES.get(), HASHES.get(), OPENS.get(), FORCES.get()); }
+
 	public static synchronized long begin(long profileId, Player player, String kind, PhantomOwnedStoreIntent intent)
 	{
-		if (_root == null) { return 0; }
+		if ((intent == null) || !enabledFor(profileId, intent.materializedAtNanos())) { return 0; }
 		final long sequence = SEQUENCE.incrementAndGet();
 		final String current = snapshot(player);
 		write(profileId, player, kind, intent, sequence, "PREPARE", "DURABLE_PREPARE", current, current, null);
@@ -57,13 +79,13 @@ public final class LocalPlayPhantomStoreJournal
 
 	public static synchronized void end(long profileId, Player player, String kind, PhantomOwnedStoreIntent intent, long sequence, String before, String after, String status, PhantomBackgroundState completed)
 	{
-		if ((_root == null) || (sequence == 0)) { return; }
+		if ((intent == null) || !enabledFor(profileId, intent.materializedAtNanos()) || (sequence == 0)) { return; }
 		write(profileId, player, kind, intent, sequence, "COMPLETE", status, before, after, completed);
 	}
 
 	public static synchronized void rejected(long profileId, Player player, PhantomOwnedStoreIntent intent, String reason)
 	{
-		if (_root == null) { return; }
+		if ((intent == null) || !enabledFor(profileId, intent.materializedAtNanos())) { return; }
 		final String current = snapshot(player);
 		write(profileId, player, "OTHER_OWNED_STORE", intent, SEQUENCE.incrementAndGet(), "REJECTED", reason.replace('\t', ' ').replace('\n', ' ').replace('\r', ' '), current, current, null);
 	}
@@ -71,11 +93,13 @@ public final class LocalPlayPhantomStoreJournal
 	private static String projection(PhantomBackgroundState state)
 	{
 		if (state == null) { return "UNKNOWN"; }
+		ENCODES.incrementAndGet(); HASHES.incrementAndGet();
 		return state.state() + "/" + state.progress() + "/" + state.vitals() + "/" + state.position() + "/inventory=" + state.inventory().canonicalHash() + "/payload=" + PhantomBackgroundTransaction.payloadDigest(new PhantomBackgroundStateCodec().encode(state));
 	}
 
 	public static String snapshot(Player player)
 	{
+		SNAPSHOTS.incrementAndGet();
 		return player.getCurrentHp() + "/" + player.getMaxHp() + "," + player.getCurrentMp() + "/" + player.getMaxMp() + "," + player.getCurrentCp() + "/" + player.getMaxCp() + "," + player.getX() + "," + player.getY() + "," + player.getZ() + "," + player.getHeading();
 	}
 
@@ -96,9 +120,10 @@ public final class LocalPlayPhantomStoreJournal
 			final String line = Instant.now() + "\tpid=" + ProcessHandle.current().pid() + "\tseq=" + sequence + "\tprofile=" + profileId + "\tobject=" + player.getObjectId() + "\tkind=" + kind + "\tevent=" + event + "\tbefore=" + before + "\tafter=" + after + "\treceipt=" + receipt + "\tcompleted=" + projection(completed) + "\tstatus=" + status + "\tworld=" + (World.getInstance().getPlayer(player.getObjectId()) == player) + "\tidentity=" + PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(player.getObjectId()) + "\tautosave=" + PlayerAutoSaveTaskManager.getInstance().contains(player) + "\n";
 			final byte[] bytes = line.getBytes(StandardCharsets.UTF_8);
 			if (bytes.length > 8192) { throw new IllegalStateException("OWNED_STORE_JOURNAL_LINE_TOO_LARGE"); }
+			OPENS.incrementAndGet();
 			try (var channel = FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND, LinkOption.NOFOLLOW_LINKS))
 			{
-				final var buffer = ByteBuffer.wrap(bytes); while (buffer.hasRemaining()) { channel.write(buffer); } channel.force(true);
+				final var buffer = ByteBuffer.wrap(bytes); while (buffer.hasRemaining()) { channel.write(buffer); } FORCES.incrementAndGet(); channel.force(true);
 			}
 		}
 		catch (Exception failure)

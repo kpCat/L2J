@@ -92,6 +92,8 @@ public class AutoPlayTaskManager
 			PLAY: for (Player player : _players)
 			{
 				final PhantomPolicy phantomPolicy = PHANTOM_POLICIES.get(player);
+				try
+				{
 				if (!player.isOnline() || (player.isInOfflineMode() && !player.isOfflinePlay()) || (!AutoPlayConfig.ENABLE_AUTO_PLAY && (phantomPolicy == null)))
 				{
 					stopAutoPlay(player);
@@ -335,6 +337,14 @@ public class AutoPlayTaskManager
 					
 					player.getAI().setIntention(Intention.ATTACK, creature);
 				}
+				}
+				}
+				catch (RuntimeException failure)
+				{
+					if (phantomPolicy == null) { throw failure; }
+					stopAutoPlay(player);
+					AutoUseTaskManager.getInstance().stopAutoUseTask(player);
+					java.util.logging.Logger.getLogger(AutoPlayTaskManager.class.getName()).log(java.util.logging.Level.WARNING, "Phantom AutoPlay actor failed: " + player.getObjectId(), failure);
 				}
 			}
 		}

@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.LongConsumer;
+import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.Directive;
@@ -35,6 +36,7 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.Ope
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomConsideration;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionCandidate;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomPlan;
@@ -84,6 +86,30 @@ public final class PhantomBackgroundDecision
 		_visibleRunning = Objects.requireNonNull(visibleRunning, "visibleRunning");
 		_visibleSuitable = Objects.requireNonNull(visibleSuitable, "visibleSuitable");
 		_visibleStop = Objects.requireNonNull(visibleStop, "visibleStop");
+	}
+
+	public static PhantomBackgroundDecision bindVisibleLife(PhantomBackgroundService service, PhantomVisibleFarmTravel travel, PhantomVisibleAutoPlay autoPlay, PhantomHistoricalBackgroundService history, Supplier<PhantomDecisionEngine> engine)
+	{
+		Objects.requireNonNull(travel, "travel");
+		Objects.requireNonNull(autoPlay, "autoPlay");
+		Objects.requireNonNull(history, "history");
+		Objects.requireNonNull(engine, "engine");
+		return new PhantomBackgroundDecision(service, (profileId, goal) ->
+		{
+			if (!travel.arrive(profileId, goal))
+			{
+				autoPlay.stop(profileId);
+				return false;
+			}
+			return autoPlay.start(profileId, goal);
+		}, autoPlay::running, (profileId, goal) ->
+		{
+			if (autoPlay.noTargetExpired(profileId, goal))
+			{
+				history.recordVisibleFailure(profileId, goal, "");
+			}
+			return history.replanVisibleFarmIfOutgrown(profileId, goal, engine.get());
+		}, autoPlay::stop);
 	}
 
 	public void registerCandidates(PhantomCandidateRegistry registry)

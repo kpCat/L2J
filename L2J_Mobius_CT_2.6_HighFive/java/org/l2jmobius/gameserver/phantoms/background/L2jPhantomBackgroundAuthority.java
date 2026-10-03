@@ -1077,7 +1077,17 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
 	private boolean inFarmingArea(int x, int y, int z, int instanceId, PhantomTopologyAnchor anchor)
 	{
-		return (anchor.role() == PhantomTopologyAnchorRole.FARMING) && _topology.get().findNode(anchor.nodeId()).map(node -> node.area().contains(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(x, y, z, instanceId))).orElse(false);
+		return inFarmingArea(_topology.get(), x, y, z, instanceId, anchor);
+	}
+
+	public static boolean livePositionAllowed(PhantomTopologyQuery topology, Player player, PhantomTopologyAnchor anchor)
+	{
+		return atAnchor(player, anchor) || inFarmingArea(topology, player.getX(), player.getY(), player.getZ(), player.getInstanceId(), anchor);
+	}
+
+	private static boolean inFarmingArea(PhantomTopologyQuery topology, int x, int y, int z, int instanceId, PhantomTopologyAnchor anchor)
+	{
+		return (anchor.role() == PhantomTopologyAnchorRole.FARMING) && topology.findNode(anchor.nodeId()).map(node -> node.area().contains(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(x, y, z, instanceId))).orElse(false);
 	}
 
 	private static boolean withinAnchorTolerance(int x, int y, int z, Position canonical, int tolerance)

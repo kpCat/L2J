@@ -474,22 +474,7 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom acquisition service could not enter the running state.");
 				}
 				final PhantomCommerceDecision commerceDecision = new PhantomCommerceDecision(_commerceService);
-				final PhantomBackgroundDecision backgroundDecision = new PhantomBackgroundDecision(_backgroundService, (profileId, goal) ->
-				{
-					if (!_visibleFarmTravel.arrive(profileId, goal))
-					{
-						_visibleAutoPlay.stop(profileId);
-						return false;
-					}
-					return _visibleAutoPlay.start(profileId, goal);
-				}, _visibleAutoPlay::running, (profileId, goal) ->
-				{
-					if (_visibleAutoPlay.noTargetExpired(profileId, goal))
-					{
-						_historicalBackgroundService.recordVisibleFailure(profileId, goal, "");
-					}
-					return _historicalBackgroundService.replanVisibleFarmIfOutgrown(profileId, goal, _decisionEngine);
-				}, _visibleAutoPlay::stop);
+				final PhantomBackgroundDecision backgroundDecision = PhantomBackgroundDecision.bindVisibleLife(_backgroundService, _visibleFarmTravel, _visibleAutoPlay, _historicalBackgroundService, () -> _decisionEngine);
 				_ordinaryDeathRecovery = new PhantomOrdinaryDeathRecovery(_materializationService, productionGoals, _backgroundService);
 				if (!_ordinaryDeathRecovery.install())
 				{
@@ -1967,6 +1952,8 @@ public final class PhantomSystem
 		int count = 0;
 		int eligible = 0;
 		long nextProfileId = 0;
+		final var backgroundStatus = configured._backgroundService.snapshot().state();
+		result.put("censusBackgroundService", backgroundStatus.name());
 		for (var entry : configured._materializationService.snapshot().materializations().stream().filter(value -> value.worldPresent()).sorted(java.util.Comparator.comparingLong(value -> value.profileId())).toList())
 		{
 			if (entry.profileId() <= afterProfileId) { continue; }
@@ -1989,6 +1976,17 @@ public final class PhantomSystem
 			final String prefix = "census" + (++count) + ".";
 			result.put(prefix + "profileId", Long.toString(entry.profileId()));
 			result.put(prefix + "objectId", Integer.toString(player.getObjectId()));
+			result.put(prefix + "materializedAtNanos", Long.toString(entry.materializedAtNanos()));
+			result.put(prefix + "materializationState", entry.state().name());
+			result.put(prefix + "actionAdmissionOpen", Boolean.toString(entry.actionAdmissionOpen()));
+			result.put(prefix + "pendingOwnedStore", Boolean.toString(player.hasPendingOwnedStore()));
+			result.put(prefix + "goalId", goal == null ? "0" : Long.toString(goal.goalId()));
+			result.put(prefix + "goalRevision", goal == null ? "0" : Long.toString(goal.revision()));
+			result.put(prefix + "runtimeGoalRevision", runtime == null ? "0" : Long.toString(runtime.goalRevision()));
+			result.put(prefix + "currentActionGuard", backgroundStatus != PhantomBackgroundService.ServiceState.RUNNING ? "BACKGROUND_SERVICE_" + backgroundStatus : !entry.actionAdmissionOpen() ? "ACTION_ADMISSION_CLOSED" : !player.hasHeadlessOutboundSession() ? "OUTBOUND_MISSING" : player.isDead() ? "DEAD" : player.hasPendingOwnedStore() ? "OWNED_STORE_PENDING" : goal == null ? "GOAL_ABSENT" : goal.status() != PhantomGoalStatus.ACTIVE ? "GOAL_NOT_ACTIVE" : runtime == null ? "DECISION_ABSENT" : ((runtime.goalId() != goal.goalId()) || (runtime.goalRevision() != goal.revision()) || (runtime.goalStatus() != PhantomGoalStatus.ACTIVE)) ? "DECISION_GOAL_MISMATCH" : "COMMON_GUARDS_CLEAR");
+			result.put(prefix + "hp", Double.toString(player.getCurrentHp()));
+			result.put(prefix + "maxHp", Double.toString(player.getMaxHp()));
+			result.put(prefix + "nativeAttackBy", player.getAttackByList().stream().map(value -> Integer.toString(value.getObjectId())).sorted().limit(8).collect(java.util.stream.Collectors.joining(",")));
 			result.put(prefix + "level", Integer.toString(player.getLevel()));
 			result.put(prefix + "npcId", spec == null ? "0" : Integer.toString(spec.npcId()));
 			result.put(prefix + "anchor", spec == null ? "" : spec.anchorId());
@@ -2014,10 +2012,18 @@ public final class PhantomSystem
 			final boolean ordinaryEligible = (goal != null) && (goal.status() == PhantomGoalStatus.ACTIVE) && !player.isDead() && !player.isInParty() && !player.isInStoreMode();
 			if (ordinaryEligible) { eligible++; }
 			result.put(prefix + "eligible", Boolean.toString(ordinaryEligible));
-			final int[] targets = {0, 0};
+			final int[] targets = new int[10];
 			World.getInstance().forEachVisibleObjectInRange(player, org.l2jmobius.gameserver.model.actor.Npc.class, org.l2jmobius.gameserver.config.custom.AutoPlayConfig.AUTO_PLAY_LONG_RANGE, npc ->
 			{
-				if ((spec != null) && (npc.getId() == spec.npcId()) && !npc.isDead() && npc.isMonster() && !npc.isRaid() && npc.isAutoAttackable(player) && (npc.getInstanceId() == player.getInstanceId()) && (Math.abs((long) player.getZ() - npc.getZ()) < 800) && org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().canSeeTarget(player, npc) && org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), npc.getX(), npc.getY(), npc.getZ(), player.getInstanceId()))
+				if ((spec == null) || (npc.getId() != spec.npcId())) { return; }
+				targets[2]++;
+				if (npc.isAlikeDead()) { targets[3]++; return; }
+				if (npc.isInvul()) { targets[4]++; return; }
+				if (!npc.isTargetable() || !npc.isShowName()) { targets[5]++; return; }
+				if (!npc.isMonster() || npc.isRaid() || !npc.isAutoAttackable(player) || (npc.getInstanceId() != player.getInstanceId()) || (Math.abs((long) player.getZ() - npc.getZ()) >= 800)) { targets[6]++; return; }
+				if (player.getAutoPlaySettings().isRespectfulHunting() && (npc.getTarget() != null) && (npc.getTarget() != player) && !(player.hasSummon() && (player.getSummon().getObjectId() == npc.getTarget().getObjectId()))) { targets[9]++; return; }
+				if (!org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().canSeeTarget(player, npc)) { targets[7]++; return; }
+				if (!org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), npc.getX(), npc.getY(), npc.getZ(), player.getInstanceId())) { targets[8]++; return; }
 				{
 					targets[1]++;
 					if (Math.hypot((long) npc.getX() - player.getX(), (long) npc.getY() - player.getY()) <= org.l2jmobius.gameserver.config.custom.AutoPlayConfig.AUTO_PLAY_SHORT_RANGE)
@@ -2028,6 +2034,10 @@ public final class PhantomSystem
 			});
 			result.put(prefix + "shortTargets", Integer.toString(targets[0]));
 			result.put(prefix + "longTargets", Integer.toString(targets[1]));
+			result.put(prefix + "targetRejections", "exact=" + targets[2] + ",dead=" + targets[3] + ",invulnerable=" + targets[4] + ",untargetable=" + targets[5] + ",notAttackable=" + targets[6] + ",noLos=" + targets[7] + ",noForwardPath=" + targets[8] + ",respectful=" + targets[9]);
+			final var pvp = configured._combatService == null ? null : configured._combatService.observePvp(entry.profileId(), java.util.List.of(human.getObjectId()), 8, 4).orElse(null);
+			final var observedHuman = pvp == null ? null : pvp.targets().stream().filter(value -> value.target().objectId() == human.getObjectId()).findFirst().orElse(null);
+			result.put(prefix + "pvpHumanContext", observedHuman == null ? "UNAVAILABLE" : "actualAttacker=" + observedHuman.actualAttacker() + ",canonicalAllowed=" + observedHuman.canonicalContextAllowed() + ",invulnerable=" + observedHuman.target().invulnerable() + ",peace=" + observedHuman.target().peaceRestricted() + ",autoAttackable=" + observedHuman.target().autoAttackable() + ",reachable=" + observedHuman.target().reachable());
 			result.put(prefix + "idleReason", player.isDead() ? "DEATH_RECOVERY" : player.isInParty() || player.isInStoreMode() ? "NATIVE_OWNER" : !ordinaryEligible ? "NO_ACTIVE_FARM" : player.isMoving() ? "NATIVE_MOVEMENT" : player.isAttackingNow() || player.isCastingNow() ? "NATIVE_ACTION" : targets[1] == 0 && player.isAutoPlaying() ? "TARGET_DEFICIT" : "ACTIVE_IDLE");
 			if (count >= Math.min(24, configured._settings.maxMaterializedPhantoms()))
 			{

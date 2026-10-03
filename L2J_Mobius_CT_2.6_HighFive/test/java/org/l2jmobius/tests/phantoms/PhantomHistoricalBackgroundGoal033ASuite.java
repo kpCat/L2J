@@ -347,6 +347,7 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("29b-latent-recovered-local-demand-native-player", context -> testReadyLocalDemandRebuild(context, false, true, false));
 		registry.add("29c-running-pending-recovery-to-linked-native-player", context -> testReadyLocalDemandRebuild(context, false, false, true));
 		registry.add("29d-synthetic-world-human-to-linked-native-player", context -> testReadyLocalDemandRebuild(context, false, false, false, true));
+		registry.add("29e-production-executor-native-contact", context -> testReadyLocalDemandRebuild(context, false, false, false, true, true));
 		registry.add("40-ambiguous-baseline-cleanup-then-unambiguous-retry", this::testAmbiguousBaselineCleanup);
 		registry.add("30-complete-renewal-rebuilds-absent-goal-with-background", this::testRenewalWithoutGoalWithBackground);
 		registry.add("31-complete-renewal-rejects-unverifiable-goalless-dead-baseline", this::testRenewalWithoutGoalWithDeadBackground);
@@ -358,6 +359,44 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 		registry.add("37-midstream-goal-missing-remains-fail-closed", this::testMidstreamGoalMissing);
 		registry.add("38-running-recovery-background-missing", context -> testPrerequisiteRecovery(context, "background", false));
 		registry.add("39-running-recovery-goal-missing", context -> testPrerequisiteRecovery(context, "goal", false));
+		registry.add("41-complete-renewal-owned-pending-before", context -> testRenewalOwnedPending(context, "BEFORE"));
+		registry.add("42-complete-renewal-owned-pending-after", context -> testRenewalOwnedPending(context, "AFTER"));
+		registry.add("43-complete-renewal-owned-pending-neither", context -> testRenewalOwnedPending(context, "NEITHER"));
+	}
+
+	private void testRenewalOwnedPending(PhantomTestContext context, String side) throws Exception
+	{
+		final long profileId = createManaged(context.seed() + 41).profile().profileId();
+		try (RuntimeHarness runtime = openRuntime(profileId, new PhantomBackgroundTransaction()))
+		{
+			final Snapshot complete = completeWindow(runtime, profileId, context.seed());
+			final var goal = runtime.goals().load(profileId).orElseThrow().goal();
+			final var before = runtime.transaction().load(profileId).state();
+			final var position = before.position();
+			final var afterPosition = new Position(position.instanceId(), position.x() + 8, position.y(), position.z(), position.heading(), position.committedAnchorId());
+			final var intended = copyWithPositionAndClock(before, afterPosition, before.clock());
+			final var prepared = runtime.transaction().prepareOwnedStore(intended, goal, 123456789L, before.state());
+			PhantomAssertions.assertTrue(prepared.successful(), "Cold owned-pending fixture rejected PREPARE: " + prepared.status());
+			if (side.equals("AFTER")) { moveCanonicalFixture(before.identity().characterObjectId(), afterPosition); }
+			if (side.equals("NEITHER")) { moveCanonicalFixture(before.identity().characterObjectId(), new Position(position.instanceId(), position.x() + 16, position.y(), position.z(), position.heading(), position.committedAnchorId())); }
+			final var progress = runtime.transaction().load(profileId).state().progress();
+			final var begun = runtime.historical().begin(profileId, FROM_MINUTE + 4, FROM_MINUTE + 8, context.seed());
+			context.record("renewal.owned." + side, begun.status() + "/" + begun.reason());
+			if (side.equals("NEITHER"))
+			{
+				PhantomAssertions.assertEquals(ResultStatusCode.REPLAN_REQUIRED, begun.status(), "Unknown canonical projection was admitted.");
+				PhantomAssertions.assertEquals(complete, runtime.historical().status(profileId).orElseThrow(), "Rejected renewal rewrote the COMPLETE prefix.");
+				PhantomAssertions.assertTrue(_profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent(), "Unknown projection discarded its receipt.");
+			}
+			else
+			{
+				PhantomAssertions.assertEquals(ResultStatusCode.SUCCESS, begun.status(), "COMPLETE renewal rejected recoverable owned " + side + ": " + begun.reason());
+				PhantomAssertions.assertEquals(FROM_MINUTE + 4, begun.snapshot().state().cursorEpochMinute(), "Reconciliation replayed the completed prefix.");
+				PhantomAssertions.assertEquals(complete.state().goalId(), begun.snapshot().state().goalId(), "Reconciliation replaced the owned goal.");
+				PhantomAssertions.assertEquals(progress, runtime.transaction().load(profileId).state().progress(), "Reconciliation awarded progression twice.");
+				PhantomAssertions.assertFalse(_profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent(), "Reconciliation retained a resolved receipt.");
+			}
+		}
 	}
 
 	private void testRunningVerifyPending(PhantomTestContext context) throws Exception
@@ -458,6 +497,11 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 	}
 
 	private void testReadyLocalDemandRebuild(PhantomTestContext context, boolean legacyRecovery, boolean latentRecovery, boolean runningPendingRecovery, boolean syntheticHuman) throws Exception
+	{
+		testReadyLocalDemandRebuild(context, legacyRecovery, latentRecovery, runningPendingRecovery, syntheticHuman, false);
+	}
+
+	private void testReadyLocalDemandRebuild(PhantomTestContext context, boolean legacyRecovery, boolean latentRecovery, boolean runningPendingRecovery, boolean syntheticHuman, boolean executor) throws Exception
 	{
 		final ManagedSnapshot managed = createManaged(context.seed() + 29);
 		final long profileId = managed.profile().profileId();
@@ -586,9 +630,41 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 				{
 					recoverLatentFixture(profileId, managed.profile().characterObjectId(), runtime, context);
 				}
-				final var normal = runtime.materialization().materialize(profileId);
-				recordLinkedTransition(context, "05-normal-materialization", profileId, runtime, normal.status().name(), normal.status().name());
-				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, normal.status(), "Complete readiness did not admit a real NORMAL Player.");
+				final var engineRef = new AtomicReference<PhantomDecisionEngine>();
+				final var navigation = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(new PhantomMetrics());
+				final var travelQuery = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), _production.topology());
+				final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(runtime.materialization(), runtime.background(), travelQuery, navigation, runtime.historical()::permitsNormalOperation, noSignals());
+				final var autoPlay = new PhantomVisibleAutoPlay(runtime.materialization(), engineRef::get, runtime.historical()::permitsNormalOperation);
+				final var candidates = new PhantomCandidateRegistry();
+				final var handlers = new PhantomStepHandlerRegistry();
+				if (executor)
+				{
+					final var binding = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.bindVisibleLife(runtime.background(), travel, autoPlay, runtime.historical(), engineRef::get);
+					binding.registerCandidates(candidates); binding.registerHandlers(handlers);
+				}
+				candidates.seal(); handlers.seal();
+				final var engine = new PhantomDecisionEngine(runtime.goals(), candidates, handlers, new PhantomMetrics(), 1);
+				engineRef.set(engine); engine.start();
+				PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profileId), "Rebuilt goal did not attach to Decision.");
+				final var port = new org.l2jmobius.gameserver.phantoms.activity.PhantomReconcileFirstActivityPort(new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationServiceActivityPort(runtime.materialization()));
+				port.installReadiness(id -> ecology.requestMaterializationDue(id).complete() ? org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.TransitionOutcome.success() : org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.TransitionOutcome.deferred());
+				final var workCount = new java.util.concurrent.atomic.AtomicInteger();
+				final var scheduler = new org.l2jmobius.gameserver.phantoms.PhantomScheduler(1, 100, 1, new PhantomMetrics(), new org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace(false, 64, 16, new PhantomMetrics()), port, item -> { workCount.incrementAndGet(); engine.accept(item); });
+				if (executor)
+				{
+					navigation.start(); scheduler.start(); scheduler.register(profileId);
+					scheduler.submitSignal(profileId, new org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal("test.world.local", 1, PhantomActivityState.ACTIVE, navigation.policy().maximumAttemptDurationMillis() + 20000));
+					final long materializationDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+					while (!runtime.materialization().find(profileId).map(value -> value.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE).orElse(false) && (System.nanoTime() < materializationDeadline)) { Thread.sleep(10); }
+					PhantomAssertions.assertTrue(runtime.materialization().find(profileId).map(value -> value.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE).orElse(false), "Actual activity readiness did not finish materializing the linked Player.");
+					context.record("executor.manualMaterialize", false);
+				}
+				else
+				{
+					final var normal = runtime.materialization().materialize(profileId);
+					recordLinkedTransition(context, "05-normal-materialization", profileId, runtime, normal.status().name(), normal.status().name());
+					PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, normal.status(), "Complete readiness did not admit a real NORMAL Player.");
+				}
 				if (latentRecovery)
 				{
 					final var busyWitness = latentWitness(profileId, managed.profile().characterObjectId());
@@ -597,31 +673,25 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 					PhantomAssertions.assertEquals("recovery.legacy.identity_busy", busy.reason(), "Runtime Player identity lease did not fence latent repair.");
 					PhantomAssertions.assertEquals(beforeBusy, componentRowVersion(profileId, PhantomBackgroundState.COMPONENT_TYPE), "Runtime-busy latent repair wrote a component.");
 				}
-				final Player nativePlayer;
+				Player nativePlayer;
 				try (var action = runtime.materialization().tryAcquireAction(profileId).orElseThrow())
 				{
 					nativePlayer = action.player();
 					PhantomAssertions.assertEquals(managed.profile().characterObjectId(), action.player().getObjectId(), "NORMAL Player changed the linked identity.");
 					PhantomAssertions.assertTrue(World.getInstance().getPlayer(action.player().getObjectId()) == action.player(), "NORMAL Player is absent from World.");
 				}
-				final var goal = runtime.goals().load(profileId).orElseThrow().goal();
+				var goal = runtime.goals().load(profileId).orElseThrow().goal();
 				PhantomAssertions.assertEquals(PhantomBackgroundGoalSpec.GOAL_TYPE, goal.goalType(), "Rebuilt local goal did not select native farm AutoPlay.");
 				if (runtime.materialization().tryAcquireAction(profileId).map(action -> { try (action) { return action.player().isDead(); } }).orElse(false))
 				{
 					final var recovered = runtime.background().recover(profileId, goal, PhantomActivityState.ACTIVE);
 					PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.SUCCESS, recovered.status(), "Native death recovery failed before AutoPlay: " + recovered.reason());
+					try (var action = runtime.materialization().tryAcquireAction(profileId).orElseThrow()) { nativePlayer = action.player(); }
+					goal = runtime.goals().load(profileId).orElseThrow().goal();
 				}
-				final var candidates = new PhantomCandidateRegistry();
-				candidates.seal();
-				final var handlers = new PhantomStepHandlerRegistry();
-				handlers.seal();
-				final var engine = new PhantomDecisionEngine(runtime.goals(), candidates, handlers, new PhantomMetrics(), 1);
-				engine.start();
-				final var autoPlay = new PhantomVisibleAutoPlay(runtime.materialization(), () -> engine, id -> ecology.requestMaterializationDue(id).complete());
 				Monster monster = null;
 				try
 				{
-					PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(profileId), "Rebuilt goal did not attach to Decision.");
 					final var decision = engine.find(profileId).orElseThrow();
 					recordLinkedTransition(context, "06-decision-runtime", profileId, runtime, decision.runtimeState().name(), decision.reasonKey());
 					final boolean current = (decision.goalId() == goal.goalId()) && (decision.goalRevision() == goal.revision()) && (decision.goalStatus() == PhantomGoalStatus.ACTIVE) && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(decision.goalType()) && ecology.requestMaterializationDue(profileId).complete();
@@ -633,6 +703,7 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 						PhantomAssertions.assertTrue(action.player().hasHeadlessOutboundSession() && action.player().isOnline() && !action.player().isDead(), "Rebuilt Player lacks native AutoPlay admission: headless=" + action.player().hasHeadlessOutboundSession() + ",online=" + action.player().isOnline() + ",dead=" + action.player().isDead());
 					}
 					monster = new Monster(NpcData.getInstance().getTemplate(PhantomBackgroundGoalSpec.parse(goal).npcId()));
+					if (executor) { monster.disableCoreAI(true); }
 					monster.setInstanceId(nativePlayer.getInstanceId());
 					final var nativeSpawn = new Spawn(monster.getTemplate());
 					nativeSpawn.setXYZ(nativePlayer.getX() + 20, nativePlayer.getY(), nativePlayer.getZ());
@@ -640,22 +711,54 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 					monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp());
 					monster.spawnMe(nativePlayer.getX() + 20, nativePlayer.getY(), nativePlayer.getZ());
 					final double initialHp = monster.getCurrentHp();
-					final boolean started = autoPlay.start(profileId, goal);
+					final Player nativeActor = nativePlayer;
+					final int exactNpcId = monster.getId();
+					final var damageBefore = new java.util.LinkedHashMap<Monster, Long>();
+					if (executor)
+					{
+						for (Monster target : World.getInstance().getVisibleObjectsInRange(nativeActor, Monster.class, 1000))
+						{
+							if (target.getId() == exactNpcId) { final var aggro = target.getAggroList().get(nativeActor); damageBefore.put(target, aggro == null ? 0L : aggro.getDamage()); }
+						}
+					}
+					final long startDeadline = System.nanoTime() + (executor ? navigation.policy().maximumAttemptDurationNanos() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5) : java.util.concurrent.TimeUnit.SECONDS.toNanos(30));
+					if (executor) { while (!autoPlay.running(profileId, goal) && (System.nanoTime() < startDeadline)) { Thread.sleep(100); goal = runtime.goals().load(profileId).orElseThrow().goal(); } }
+					context.record("executor.firstGuard", runtime.background().directive(profileId, goal, PhantomActivityState.ACTIVE) + "/" + travel.reason(profileId) + "/" + engine.find(profileId));
+					final boolean started = executor ? autoPlay.running(profileId, goal) : autoPlay.start(profileId, goal);
+					if (executor) { context.record("executor.manualAutoPlayStart", false); context.record("executor.activityWorkCount", workCount.get()); PhantomAssertions.assertTrue(workCount.get() > 0, "No actual activity work reached engine."); }
 					recordLinkedTransition(context, "08-autoplay-start", profileId, runtime, Boolean.toString(started), started ? "native pools admitted" : "start guard: snapshot=" + nativeSnapshot + ",decision=" + decision + ",headless=" + nativePlayer.hasHeadlessOutboundSession() + ",online=" + nativePlayer.isOnline() + ",dead=" + nativePlayer.isDead());
 					PhantomAssertions.assertTrue(started, "Rebuilt goal did not start native AutoPlay: materialization=" + nativeSnapshot + ",decision=" + decision + ",goal=" + goal.goalType() + "/" + goal.revision());
 					PhantomAssertions.assertTrue(autoPlay.running(profileId, goal), "Native AutoPlay was not running for rebuilt Player.");
 					final long actionDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
-					while ((monster.getCurrentHp() >= initialHp) && (System.nanoTime() < actionDeadline)) { Thread.sleep(20); }
+					final int activeNpcId = PhantomBackgroundGoalSpec.parse(goal).npcId();
+					Monster damagedTarget = null;
+					while ((System.nanoTime() < actionDeadline) && (executor || (monster.getCurrentHp() >= initialHp)))
+					{
+						if (executor)
+						{
+							for (Monster target : World.getInstance().getVisibleObjectsInRange(nativeActor, Monster.class, 1000)) { if (target.getId() == activeNpcId) { damageBefore.putIfAbsent(target, 0L); } }
+							damagedTarget = damageBefore.entrySet().stream().filter(entry -> (entry.getKey().getId() == activeNpcId) && (entry.getKey().getAggroList().get(nativeActor) != null) && (entry.getKey().getAggroList().get(nativeActor).getDamage() > entry.getValue())).map(Map.Entry::getKey).findFirst().orElse(null);
+							if (damagedTarget != null) { break; }
+						}
+						Thread.sleep(20);
+					}
+					if (executor && (damagedTarget != null)) { context.record("executor.nativeDamage", "actor=" + nativeActor.getObjectId() + ",target=" + damagedTarget.getObjectId() + ",npc=" + damagedTarget.getId() + ",damage=" + damagedTarget.getAggroList().get(nativeActor).getDamage() + ",hp=" + damagedTarget.getCurrentHp()); }
 					recordLinkedTransition(context, "09-first-native-action", profileId, runtime, "monsterHp=" + monster.getCurrentHp(), monster.getCurrentHp() < initialHp ? "native attack damage=" + (initialHp - monster.getCurrentHp()) : "no attack: online=" + nativePlayer.isOnline() + ",dead=" + nativePlayer.isDead() + ",moving=" + nativePlayer.isMoving() + ",auto=" + nativePlayer.isAutoPlaying() + ",target=" + nativePlayer.getTarget() + ",peace=" + nativePlayer.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE));
-					PhantomAssertions.assertTrue(monster.getCurrentHp() < initialHp, "Native AutoPlay did not perform its first attack.");
+					PhantomAssertions.assertTrue(executor ? damagedTarget != null : monster.getCurrentHp() < initialHp, "Native AutoPlay did not perform its first attributed exact-NPC attack.");
+				}
+				catch (Exception | AssertionError failure)
+				{
+					if (executor) { context.record("executor.actionFailure", failure.toString()); }
+					throw failure;
 				}
 				finally
 				{
+					engine.beginStop();
 					autoPlay.stop(profileId);
 					if (monster != null) { monster.deleteMe(); }
 					try (var action = runtime.materialization().tryAcquireAction(profileId).orElse(null))
 					{
-						if (action != null)
+						if ((action != null) && !executor)
 						{
 							final var player = action.player();
 							player.abortAttack(); player.abortCast(); player.stopMove(null); player.setTarget(null);
@@ -665,11 +768,24 @@ public class PhantomHistoricalBackgroundGoal033ASuite implements PhantomTestSuit
 						}
 					}
 					engine.beginStop(); engine.finishStop();
-					final var cleanup = runtime.materialization().dematerialize(profileId);
-					recordLinkedTransition(context, "10-cleanup", profileId, runtime, cleanup.status().name(), cleanup.status().name());
-					PhantomAssertions.assertEquals(ResultStatus.SUCCESS, cleanup.status(), "Native action cleanup retained Player: " + cleanup + ", lifecycle=" + runtime.lifecycleFailure());
+					if (executor)
+					{
+						scheduler.unregister(profileId);
+						final long cleanupDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(45);
+						while (runtime.materialization().find(profileId).isPresent() && (System.nanoTime() < cleanupDeadline)) { scheduler.retryTransition(profileId); Thread.sleep(100); }
+						scheduler.beginStop(); scheduler.finishStop();
+						recordLinkedTransition(context, "10-cleanup", profileId, runtime, scheduler.snapshot().state().name(), "actual activity cleanup");
+						PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty(), "Actual scheduler cleanup retained Player: " + runtime.materialization().find(profileId) + ",lifecycle=" + runtime.lifecycleFailure());
+					}
+					else
+					{
+						final var cleanup = runtime.materialization().dematerialize(profileId);
+						recordLinkedTransition(context, "10-cleanup", profileId, runtime, cleanup.status().name(), cleanup.status().name());
+						PhantomAssertions.assertEquals(ResultStatus.SUCCESS, cleanup.status(), "Native action cleanup retained Player: " + cleanup + ", lifecycle=" + runtime.lifecycleFailure());
+					}
 					PhantomAssertions.assertTrue(runtime.materialization().find(profileId).isEmpty() && World.getInstance().getPlayer(managed.profile().characterObjectId()) == null, "Native action cleanup left a runtime Player.");
 					PhantomAssertions.assertTrue(runtime.transaction().load(profileId).state().state() != PhantomBackgroundState.State.MATERIALIZED, "Native action cleanup left an orphaned MATERIALIZED background state.");
+					if (executor) { scheduler.retryTransition(profileId); scheduler.finishStop(); navigation.beginStop(); navigation.finishStop(); }
 				}
 			}
 			finally { ecology.beginStop(); ecology.finishStop(); }
