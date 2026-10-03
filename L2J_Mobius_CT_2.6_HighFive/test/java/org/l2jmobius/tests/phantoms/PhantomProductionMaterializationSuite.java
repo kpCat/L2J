@@ -157,6 +157,7 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		registry.add("20-real-retained-collision-scheduler-ownership", _ -> testSchedulerRetainedCollisionOwnership());
 		registry.add("21-final-player-task-stop-after-lifecycle-rearm", _ -> testFinalPlayerTaskStopAfterLifecycleRearm());
 		registry.add("22-latest-boundary-failure-clears-after-success", _ -> testLatestBoundaryFailure());
+		registry.add("23-cleanup-phase-and-retained-retry-diagnostics", _ -> testCleanupPhaseDiagnostics());
 	}
 
 	private void testConfig() throws Exception
@@ -557,6 +558,13 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		try
 		{
 			PhantomAssertions.assertEquals(ResultStatus.CLEANUP_FAILED_RETAINED, fixture.service().dematerialize(primary.profileId()).status(), "Action drain timeout did not retain the actor.");
+			final var failed = fixture.service().find(primary.profileId()).orElseThrow();
+			PhantomAssertions.assertEquals(PhantomMaterializedPlayer.State.FAILED, failed.state(), "Drain timeout did not preserve FAILED.");
+			PhantomAssertions.assertFalse(failed.actionAdmissionOpen(), "Failed cleanup reopened action admission.");
+			PhantomAssertions.assertEquals(1, failed.admittedActionCount(), "Held action was not visible at timeout.");
+			PhantomAssertions.assertFalse(held.player().hasPendingOwnedStore(), "Drain failure manufactured a store intent.");
+			assertCleanupFailure(failed, "ACTION_DRAIN", IllegalStateException.class.getName(), "Timed out waiting for admitted Phantom actions");
+			PhantomAssertions.assertEquals(1, cleanupDiagnostic(failed, "cleanupFailureAdmittedActionCount"), "Drain failure lost the count at the failure boundary.");
 			PhantomAssertions.assertEquals(ResultStatus.CAPACITY_REACHED, fixture.service().materialize(observer.profileId()).status(), "Timed-out actor released its permit.");
 			PhantomAssertions.assertEquals(OwnerKind.PHANTOM, PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(_environment.primary().objectId()), "Timed-out actor released identity.");
 		}
@@ -565,6 +573,34 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 			held.close();
 		}
 		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().retryCleanup(primary.profileId()).status(), "Timed-out actor did not clean on explicit retry.");
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().materialize(primary.profileId()).status(), "Frozen drain fixture did not rematerialize.");
+		final var actor = materializedActor(fixture.service(), primary.profileId());
+		final var drain = PhantomMaterializedPlayer.class.getDeclaredMethod("closeActionAdmissionAndDrain", long.class);
+		drain.setAccessible(true);
+		final ActionLease boundaryHeld = fixture.service().tryAcquireAction(primary.profileId()).orElseThrow();
+		Throwable failure = null;
+		try { drain.invoke(actor, System.nanoTime()); }
+		catch (java.lang.reflect.InvocationTargetException error) { failure = error.getCause(); }
+		finally { boundaryHeld.close(); }
+		try
+		{
+			PhantomAssertions.assertTrue((failure instanceof IllegalStateException) && "Timed out waiting for admitted Phantom actions".equals(failure.getMessage()), "Frozen count test did not reach the real drain timeout.");
+			final var diagnostic = actor.snapshot();
+			PhantomAssertions.assertEquals(0, diagnostic.admittedActionCount(), "Released drain action remained admitted.");
+			PhantomAssertions.assertEquals(1, diagnostic.cleanupFailureAdmittedActionCount(), "Drain failure count was sampled after owner release.");
+			PhantomAssertions.assertEquals(1L, diagnostic.cleanupFailureSequence(), "Drain failure was not recorded once at its boundary.");
+		}
+		finally { PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().retryCleanup(primary.profileId()).status(), "Frozen-count fixture did not safely clean."); }
+	}
+
+	private static PhantomMaterializedPlayer materializedActor(PhantomMaterializationService service, long profileId) throws Exception
+	{
+		final var entriesField = PhantomMaterializationService.class.getDeclaredField("_activeByProfile");
+		entriesField.setAccessible(true);
+		final Object entry = ((java.util.Map<?, ?>) entriesField.get(service)).get(profileId);
+		final var actorField = entry.getClass().getDeclaredField("_materializedPlayer");
+		actorField.setAccessible(true);
+		return (PhantomMaterializedPlayer) actorField.get(entry);
 	}
 
 	private void testCleanupOperationFailure() throws Exception
@@ -586,6 +622,85 @@ public final class PhantomProductionMaterializationSuite implements PhantomTestS
 		PhantomAssertions.assertEquals(ResultStatus.CAPACITY_REACHED, fixture.service().materialize(observer.profileId()).status(), "Store failure released capacity.");
 		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().retryCleanup(primary.profileId()).status(), "Store failure did not clean on explicit retry.");
 		PhantomAssertions.assertEquals(1, injected.get(), "Store failure was not injected exactly once.");
+	}
+
+	private static Object cleanupDiagnostic(Object snapshot, String field) throws Exception
+	{
+		try { return snapshot.getClass().getMethod(field).invoke(snapshot); }
+		catch (NoSuchMethodException missing) { throw new AssertionError("M1_CLEANUP_DIAGNOSTIC_MISSING:" + field, missing); }
+	}
+
+	private static void assertCleanupFailure(PhantomMaterializationService.MaterializationSnapshot snapshot, String phase, String failureClass, String message) throws Exception
+	{
+		PhantomAssertions.assertEquals(phase, cleanupDiagnostic(snapshot, "cleanupPhase").toString(), "Cleanup failure phase is not exact.");
+		PhantomAssertions.assertEquals(failureClass, cleanupDiagnostic(snapshot, "cleanupFailureClass"), "Cleanup failure class was lost.");
+		final String actual = (String) cleanupDiagnostic(snapshot, "cleanupFailureMessage");
+		PhantomAssertions.assertTrue(actual.startsWith(message) && (actual.length() <= 160) && actual.chars().noneMatch(Character::isISOControl), "Cleanup message was lost, unbounded or unsanitized: " + actual);
+		PhantomAssertions.assertTrue(actual.codePoints().allMatch(value -> ((value >= 0x20) && (value <= 0xD7FF)) || ((value >= 0xE000) && (value <= 0xFFFD)) || ((value >= 0x10000) && (value <= 0x10FFFF))), "Cleanup diagnostic contains an invalid XML1.0 character.");
+		PhantomAssertions.assertEquals(1L, cleanupDiagnostic(snapshot, "cleanupFailureSequence"), "Cleanup failure sequence was not advanced once.");
+	}
+
+	private void testCleanupPhaseDiagnostics() throws Exception
+	{
+		for (String phase : List.of("PRE_STORE", "POST_STORE", "NATIVE_STORE", "PRE_DELETE", "POSTCONDITION"))
+		{
+			reset();
+			final PhantomProfile profile = createProfile(_environment.primary().objectId());
+			final AtomicBoolean fault = new AtomicBoolean(true);
+			final ObjectIdResidue residue = new ObjectIdResidue(_environment.primary().objectId());
+			final String message = "cleanup." + phase;
+			final var lifecycle = new PhantomMaterializationLifecyclePort()
+			{
+				@Override public void beforeMaterialize(long id, int objectId) { }
+				@Override public void afterPlayerLoad(long id, Player player) { }
+				@Override public void materializeSucceeded(long id, int objectId) { }
+				@Override public void materializeAborted(long id, int objectId) { }
+				@Override public void beforeStore(long id, Player player) { if (phase.equals("PRE_STORE") && fault.get()) { throw new IllegalStateException(message + "\n\t" + new String(new char[] {(char) 0xFFFE, (char) 0xFFFF, (char) 0xD800, 'X', (char) 0xDC00}) + "x".repeat(300)); } }
+				@Override public void afterStore(long id, Player player) { if (phase.equals("POST_STORE") && fault.get()) { throw new IllegalStateException(message); } }
+			};
+			final ServiceFixture fixture = service(1, point ->
+			{
+				if (!fault.get()) { return; }
+				if ((phase.equals("NATIVE_STORE") && (point == FailurePoint.AFTER_NATIVE_STORE)) || (phase.equals("PRE_DELETE") && (point == FailurePoint.BEFORE_DELETE_OPERATION))) { throw new IllegalStateException(message); }
+				if (phase.equals("POSTCONDITION") && (point == FailurePoint.AFTER_DELETE_BEFORE_IDENTITY_RELEASE)) { World.getInstance().addObject(residue); }
+			}, lifecycle, 5000, 10000);
+			try
+			{
+				PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().materialize(profile.profileId()).status(), "Phase fixture failed materialization.");
+				final Player player = World.getInstance().getPlayer(_environment.primary().objectId());
+				PhantomAssertions.assertEquals(ResultStatus.CLEANUP_FAILED_RETAINED, fixture.service().dematerialize(profile.profileId()).status(), "Phase failure was hidden: " + phase);
+				final var failed = fixture.service().find(profile.profileId()).orElseThrow();
+				assertCleanupFailure(failed, phase, IllegalStateException.class.getName(), phase.equals("POSTCONDITION") ? "Canonical Player cleanup postconditions are incomplete" : message);
+				PhantomAssertions.assertEquals(0, failed.admittedActionCount(), "Non-drain failure leaked an action.");
+				PhantomAssertions.assertTrue(failed.playerRetained() && failed.identityLeaseRetained() && failed.outboundAttached(), "Phase failure released retained ownership.");
+				PhantomAssertions.assertFalse(failed.actionAdmissionOpen() || player.hasPendingOwnedStore(), "Phase failure reopened admission or manufactured an intent.");
+				PhantomAssertions.assertEquals(!phase.equals("POSTCONDITION"), failed.worldPresent(), "Partial delete World boundary is wrong.");
+			}
+			finally
+			{
+				fault.set(false);
+				World.getInstance().removeObject(residue);
+				PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().retryCleanup(profile.profileId()).status(), "Safe phase retry failed: " + phase);
+			}
+			PhantomAssertions.assertTrue(fixture.service().find(profile.profileId()).isEmpty(), "Safe retry retained its entry.");
+			PhantomAssertions.assertEquals(null, PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(_environment.primary().objectId()), "Safe retry retained identity.");
+			PhantomAssertions.assertFalse(PlayerAutoSaveTaskManager.getInstance().containsObjectId(_environment.primary().objectId()), "Safe retry retained autosave.");
+		}
+		for (FailurePoint point : List.of(FailurePoint.AFTER_STORE_BEFORE_DELETE, FailurePoint.AFTER_DELETE_BEFORE_IDENTITY_RELEASE))
+		{
+			reset();
+			final PhantomProfile profile = createProfile(_environment.primary().objectId());
+			final ServiceFixture fixture = service(1, boundary -> { if (boundary == point) { throw new IllegalStateException("cleanup.deferred"); } }, 5000, 10000);
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, fixture.service().materialize(profile.profileId()).status(), "Deferred diagnostic fixture did not materialize.");
+			final PhantomMaterializedPlayer actor = materializedActor(fixture.service(), profile.profileId());
+			final var result = fixture.service().dematerialize(profile.profileId());
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, result.status(), "Diagnostic changed existing completed-cleanup semantics.");
+			final var completed = actor.snapshot();
+			PhantomAssertions.assertEquals("COMPLETE", completed.cleanupPhase().name(), "Completed cleanup did not record COMPLETE.");
+			PhantomAssertions.assertEquals(point == FailurePoint.AFTER_STORE_BEFORE_DELETE ? "PRE_DELETE" : "POST_DELETE", completed.cleanupFailurePhase().name(), "Deferred failure lost its original boundary.");
+			PhantomAssertions.assertEquals(1L, completed.cleanupFailureSequence(), "Deferred failure was lost or counted twice.");
+			PhantomAssertions.assertFalse(completed.playerRetained() || completed.identityLeaseRetained() || completed.outboundAttached() || completed.worldPresent(), "Completed cleanup retained ownership.");
+		}
 	}
 
 	private void testShutdownOrderAndRetry() throws Exception

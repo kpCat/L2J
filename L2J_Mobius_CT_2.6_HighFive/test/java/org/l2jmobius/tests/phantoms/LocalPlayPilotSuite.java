@@ -30,6 +30,7 @@ public final class LocalPlayPilotSuite implements PhantomTestSuite
 		registry.add("off-invalidates-consent", this::offInvalidates);
 		registry.add("mailbox-xml-contract", this::mailboxXmlContract);
 		registry.add("mailbox-negative-controls", this::mailboxNegativeControls);
+		registry.add("census-cleanup-xml-page-bound", this::censusCleanupPageBound);
 	}
 
 	private void exactArm(PhantomTestContext context)
@@ -112,6 +113,51 @@ public final class LocalPlayPilotSuite implements PhantomTestSuite
 					Files.delete(file);
 				}
 			}
+			Files.delete(directory);
+		}
+	}
+
+	private void censusCleanupPageBound(PhantomTestContext context) throws Exception
+	{
+		java.lang.reflect.Method budget;
+		try { budget = org.l2jmobius.gameserver.phantoms.PhantomSystem.class.getDeclaredMethod("censusPageBudgetExceeded", Map.class); budget.setAccessible(true); }
+		catch (NoSuchMethodException baselineWithoutBudget) { budget = null; }
+		final Path directory = Files.createTempDirectory("pilot-census-bound-");
+		final var fields = new java.util.LinkedHashMap<String, String>();
+		int included = 0;
+		try
+		{
+			for (int row = 1; row <= 24; row++)
+			{
+				final String prefix = "census" + row + ".";
+				for (String field : new String[] {"profileId", "objectId", "materializedAtNanos", "materializationState", "actionAdmissionOpen", "pendingOwnedStore", "goalId", "goalRevision", "runtimeGoalRevision", "currentActionGuard", "hp", "maxHp", "nativeAttackBy", "targetRejections", "pvpHumanContext", "level", "npcId", "anchor", "goalStatus", "runtimeReason", "travelReason", "travelFailureReason", "travelFailureSequence", "dead", "moving", "attacking", "casting", "autoPlay", "party", "store", "intention", "shortTargets", "longTargets", "x", "y", "z", "targetObjectId", "targetMonsterAlive", "eligible", "idleReason", "admittedActionCount", "cleanupPhase", "cleanupFailurePhase", "cleanupFailureSequence", "cleanupFailureAdmittedActionCount", "playerRetained", "identityLeaseRetained", "outboundAttached", "worldPresent"})
+				{
+					fields.put(prefix + field, "9223372036854775807");
+				}
+				fields.put(prefix + "cleanupFailureClass", IllegalStateException.class.getName());
+				fields.put(prefix + "cleanupFailureMessage", "\"".repeat(160));
+				if ((budget != null) && (boolean) budget.invoke(null, fields))
+				{
+					fields.keySet().removeIf(name -> name.startsWith(prefix));
+					break;
+				}
+				included = row;
+			}
+			fields.put("censusCount", Integer.toString(included));
+			fields.put("censusNextProfileId", Integer.toString(included));
+			fields.put("selectedMetadata", "界".repeat(4096));
+			final Path result = directory.resolve("result.xml");
+			final var request = new LocalPlayPilotProtocol.Request(UUID.randomUUID().toString(), UUID.randomUUID().toString(), UUID.randomUUID().toString(), 1, Instant.now().plusSeconds(30), LocalPlayPilotProtocol.Operation.SNAPSHOT_M1_ENVELOPE, Map.of());
+			LocalPlayPilotProtocol.writeResult(result, request, "SUCCEEDED", "SNAPSHOT", Instant.now(), Instant.now(), 19, Map.of("x", "-2147483648"), Map.of("x", "2147483647"), fields);
+			assertTrue(Files.size(result) < 65536, "census plus envelope exceeded existing64KiB reader contract");
+			assertTrue((included > 0) && (included < 24), "escaping must bound a census page before24 rows");
+			assertTrue(Files.readString(result).contains("&quot;"), "escaping worst case was not serialized");
+			context.record("census.boundedRows", included);
+			context.record("census.serializedBytes", Files.size(result));
+		}
+		finally
+		{
+			try (var files = Files.list(directory)) { for (Path file : files.toList()) { Files.delete(file); } }
 			Files.delete(directory);
 		}
 	}

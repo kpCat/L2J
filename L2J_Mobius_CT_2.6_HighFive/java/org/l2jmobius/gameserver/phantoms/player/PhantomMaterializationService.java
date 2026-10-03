@@ -697,7 +697,14 @@ public final class PhantomMaterializationService
 			actor.admittedActionCount(),
 			actor.worldPresent(),
 			actor.materializedAtNanos(),
-			actor.dematerializedAtNanos());
+			actor.dematerializedAtNanos(),
+			actor.cleanupPhase(),
+			actor.cleanupFailurePhase(),
+			actor.cleanupFailureClass(),
+			actor.cleanupFailureMessage(),
+			actor.cleanupFailureSequence(),
+			actor.cleanupFailureAdmittedActionCount(),
+			actor.cleanupFailureCause());
 	}
 
 	public record MaterializeResult(ResultStatus status, MaterializationSnapshot snapshot)
@@ -712,7 +719,8 @@ public final class PhantomMaterializationService
 	{
 	}
 
-	public record MaterializationSnapshot(long profileId, int characterObjectId, State state, boolean playerRetained, boolean identityLeaseRetained, boolean outboundAttached, boolean actionAdmissionOpen, int admittedActionCount, boolean worldPresent, long materializedAtNanos, long dematerializedAtNanos)
+	public record MaterializationSnapshot(long profileId, int characterObjectId, State state, boolean playerRetained, boolean identityLeaseRetained, boolean outboundAttached, boolean actionAdmissionOpen, int admittedActionCount, boolean worldPresent, long materializedAtNanos, long dematerializedAtNanos,
+		PhantomMaterializedPlayer.CleanupPhase cleanupPhase, PhantomMaterializedPlayer.CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause)
 	{
 	}
 

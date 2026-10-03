@@ -130,6 +130,7 @@ function Read-Census($firstPage, $record)
 		for ($sample = 1; $sample -le $count; $sample++)
 		{
 			$entry = [ordered]@{ utc = $record.utc; phase = $record.phase }
+			foreach ($field in @('admittedActionCount', 'cleanupPhase', 'cleanupFailurePhase', 'cleanupFailureClass', 'cleanupFailureMessage', 'cleanupFailureSequence', 'cleanupFailureAdmittedActionCount', 'playerRetained', 'identityLeaseRetained', 'outboundAttached', 'worldPresent')) { $entry[$field] = Read-Field $page "census${sample}.$field" }
 			foreach ($field in @('profileId', 'objectId', 'materializedAtNanos', 'materializationState', 'actionAdmissionOpen', 'pendingOwnedStore', 'goalId', 'goalRevision', 'runtimeGoalRevision', 'currentActionGuard', 'hp', 'maxHp', 'nativeAttackBy', 'targetRejections', 'pvpHumanContext', 'level', 'npcId', 'anchor', 'goalStatus', 'runtimeReason', 'travelReason', 'travelFailureReason', 'travelFailureSequence', 'dead', 'moving', 'attacking', 'casting', 'autoPlay', 'party', 'store', 'intention', 'shortTargets', 'longTargets', 'x', 'y', 'z', 'targetObjectId', 'targetMonsterAlive', 'eligible', 'idleReason')) { $entry[$field] = Read-Field $page "census${sample}.$field" }
 			$script:census.Add([pscustomobject]$entry)
 		}

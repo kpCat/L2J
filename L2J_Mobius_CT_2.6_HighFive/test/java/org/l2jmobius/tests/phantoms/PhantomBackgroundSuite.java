@@ -516,7 +516,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			registry.add("09-owned-store-before-after-neither-and-snapshot", this::testOwnedStoreProtocol);
 			return;
 		}
-		if ("owned-store".equals(System.getProperty("phantom.background.position.focus", "")))
+		if (List.of("owned-store", "cleanup-diagnostics").contains(System.getProperty("phantom.background.position.focus", "")))
 		{
 			registry.add("08-owned-store-crash-and-mutation-matrix", this::testOwnedStoreCrashMatrix);
 			return;
@@ -836,8 +836,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	{
 		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
 		final List<String> unsafe = new ArrayList<>();
-		for (String boundary : List.of("SQL_BASE", "SQL_SUB", "LIVE_PREPARE", "LIVE_NATIVE_STORE", "LIVE_FINALIZE_ACK", "ARRIVAL_AFTER_CAPTURE", "ARRIVAL_AFTER_STORE", "ARRIVAL_AFTER_BASELINE", "CLEANUP_BEFORE_STORE", "CLEANUP_AFTER_STORE", "CLEANUP_CAPTURE_COMMIT", "CLEANUP_AFTER_CAPTURE", "ARRIVAL_MUTATION", "BEFORE_OWNED_PREPARE_COMMIT", "AFTER_OWNED_PREPARE", "AFTER_OWNED_NATIVE_STORE", "BEFORE_OWNED_FINALIZE_COMMIT", "NORMAL_ARRIVAL", "NORMAL_CLEANUP", "RETRY_PREPARE", "RETRY_FINALIZE", "LAZY_INVENTORY", "WORLD_OWNER", "UNSUPPORTED_ABSENT", "ARRIVAL_RETRY_MOVED"))
+		for (String boundary : List.of("SQL_BASE", "SQL_SUB", "LIVE_PREPARE", "LIVE_NATIVE_STORE", "LIVE_FINALIZE_ACK", "ARRIVAL_AFTER_CAPTURE", "ARRIVAL_AFTER_STORE", "ARRIVAL_AFTER_BASELINE", "CLEANUP_BEFORE_STORE", "CLEANUP_AFTER_STORE", "CLEANUP_CAPTURE_COMMIT", "CLEANUP_AFTER_CAPTURE", "ARRIVAL_MUTATION", "BEFORE_OWNED_PREPARE_COMMIT", "AFTER_OWNED_PREPARE", "AFTER_OWNED_NATIVE_STORE", "BEFORE_OWNED_FINALIZE_COMMIT", "NORMAL_ARRIVAL", "NORMAL_CLEANUP", "RETRY_PREPARE", "RETRY_FINALIZE", "LAZY_INVENTORY", "WORLD_OWNER", "UNSUPPORTED_ABSENT", "ARRIVAL_RETRY_MOVED", "CLEANUP_PREPARE_REJECTION", "CLEANUP_FINALIZED_POST_STORE"))
 		{
+			if ("cleanup-diagnostics".equals(System.getProperty("phantom.background.position.focus", "")) && !boundary.equals("CLEANUP_PREPARE_REJECTION") && !boundary.equals("CLEANUP_FINALIZED_POST_STORE")) { continue; }
 			try (var fixture = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm))
 			{
 				final var profile = _repository.create(fixture.player().getObjectId());
@@ -852,6 +853,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				final var transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
 				{
 					if (!armed.get()) { return; }
+					if (boundary.equals("CLEANUP_PREPARE_REJECTION") && (point == FaultPoint.BEFORE_OWNED_PREPARE_COMMIT)) { throw new InjectedFailure(); }
 					if (boundary.startsWith("SQL_") && (point == FaultPoint.AFTER_OWNED_NATIVE_STORE)) { nativeCompleted.incrementAndGet(); }
 					if ((boundary.equals("LIVE_PREPARE") && (point == FaultPoint.AFTER_OWNED_PREPARE)) || (boundary.equals("LIVE_NATIVE_STORE") && (point == FaultPoint.AFTER_OWNED_NATIVE_STORE)) || (boundary.equals("LIVE_FINALIZE_ACK") && (point == FaultPoint.AFTER_OWNED_FINALIZE_COMMIT))) { throw new InjectedFailure(); }
 					if ((boundary.equals("RETRY_PREPARE") && (point == FaultPoint.AFTER_OWNED_PREPARE)) || (boundary.equals("RETRY_FINALIZE") && (point == FaultPoint.BEFORE_OWNED_FINALIZE_COMMIT))) { throw new InjectedFailure(); }
@@ -866,10 +868,19 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				final var owner = new AtomicReference<PhantomMaterializationService>();
 				final var background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), owner::get);
 				final var metrics = new PhantomMetrics();
+				final var postStoreFailure = new PhantomMaterializationLifecyclePort()
+				{
+					@Override public void beforeMaterialize(long profileId, int characterId) { }
+					@Override public void afterPlayerLoad(long profileId, Player player) { }
+					@Override public void materializeSucceeded(long profileId, int characterId) { }
+					@Override public void materializeAborted(long profileId, int characterId) { }
+					@Override public void beforeStore(long profileId, Player player) { }
+					@Override public void afterStore(long profileId, Player player) { if (armed.get() && boundary.equals("CLEANUP_FINALIZED_POST_STORE")) { throw new InjectedFailure(); } }
+				};
 				final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, point ->
 				{
 					if (armed.get() && ((boundary.equals("CLEANUP_BEFORE_STORE") && (point == FailurePoint.BEFORE_STORE_OPERATION)) || (boundary.equals("CLEANUP_AFTER_STORE") && (point == FailurePoint.AFTER_NATIVE_STORE)) || (boundary.equals("CLEANUP_AFTER_CAPTURE") && (point == FailurePoint.AFTER_STORE_BEFORE_DELETE)))) { throw new InjectedFailure(); }
-				}, background, 5000, 10000);
+				}, PhantomMaterializationLifecyclePort.chain(background, postStoreFailure), 5000, 10000);
 				owner.set(materialization);
 				background.start(); materialization.start();
 				try
@@ -904,6 +915,38 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 						}
 					}
 					armed.set(true);
+					if (boundary.equals("CLEANUP_PREPARE_REJECTION") || boundary.equals("CLEANUP_FINALIZED_POST_STORE"))
+					{
+						final Canonical pinnedCanonical = canonical(objectId);
+						final var pinnedBackground = transaction.load(id).state();
+						PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, materialization.dematerialize(id).status(), "Owned cleanup diagnostic boundary did not retain failure.");
+						final var failed = materialization.find(id).orElseThrow();
+						PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.FAILED, failed.state(), "Owned failure lost FAILED.");
+						PhantomAssertions.assertTrue(!failed.actionAdmissionOpen() && failed.worldPresent() && failed.identityLeaseRetained() && failed.outboundAttached() && (failed.admittedActionCount() == 0), "Owned failure lost fail-closed ownership.");
+						PhantomAssertions.assertEquals(1L, failed.cleanupFailureSequence(), "Owned failure was not recorded once.");
+						PhantomAssertions.assertFalse(live.get().hasPendingOwnedStore() || _repository.findComponent(id, org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent(), "No-intent failure manufactured a receipt.");
+						if (boundary.equals("CLEANUP_PREPARE_REJECTION"))
+						{
+							PhantomAssertions.assertEquals("NATIVE_STORE", failed.cleanupPhase().name(), "PREPARE rejection was assigned to the wrong lifecycle call.");
+							PhantomAssertions.assertEquals(IllegalStateException.class.getName(), failed.cleanupFailureClass(), "PREPARE rejection lost its exact exception type.");
+							PhantomAssertions.assertTrue(failed.cleanupFailureMessage().startsWith("OWNED_STORE_PREPARE:"), "PREPARE rejection lost its typed reason.");
+							PhantomAssertions.assertEquals(pinnedCanonical, canonical(objectId), "Rejected PREPARE wrote canonical rows.");
+							PhantomAssertions.assertEquals(pinnedBackground, transaction.load(id).state(), "Rejected PREPARE wrote background state.");
+						}
+						else
+						{
+							PhantomAssertions.assertEquals("POST_STORE", failed.cleanupPhase().name(), "Post-finalize lifecycle failure lost its exact phase.");
+							PhantomAssertions.assertEquals(InjectedFailure.class.getName(), failed.cleanupFailureClass(), "Post-finalize lifecycle lost its exception type.");
+							PhantomAssertions.assertEquals(State.READY, transaction.load(id).state().state(), "Owned FINALIZE did not reach READY before the callback fault.");
+						}
+						final Canonical afterFailure = canonical(objectId);
+						context.record("cleanupDiagnostic." + boundary, failed.cleanupPhase() + "/" + failed.cleanupFailureClass() + "/" + failed.cleanupFailureMessage());
+						armed.set(false);
+						PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.retryCleanup(id).status(), "Exact no-intent failure shape did not safely retry.");
+						PhantomAssertions.assertTrue(materialization.find(id).isEmpty() && (org.l2jmobius.gameserver.model.World.getInstance().findObject(objectId) == null) && (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == null), "Safe owned retry retained runtime ownership.");
+						if (boundary.equals("CLEANUP_FINALIZED_POST_STORE")) { PhantomAssertions.assertEquals(afterFailure, canonical(objectId), "Post-finalize retry changed canonical gameplay state."); }
+						continue;
+					}
 					if (boundary.startsWith("SQL_"))
 					{
 						final Player actor = live.get();

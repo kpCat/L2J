@@ -1952,6 +1952,7 @@ public final class PhantomSystem
 		int count = 0;
 		int eligible = 0;
 		long nextProfileId = 0;
+		long lastIncludedProfileId = afterProfileId;
 		final var backgroundStatus = configured._backgroundService.snapshot().state();
 		result.put("censusBackgroundService", backgroundStatus.name());
 		for (var entry : configured._materializationService.snapshot().materializations().stream().filter(value -> value.worldPresent()).sorted(java.util.Comparator.comparingLong(value -> value.profileId())).toList())
@@ -1979,6 +1980,17 @@ public final class PhantomSystem
 			result.put(prefix + "materializedAtNanos", Long.toString(entry.materializedAtNanos()));
 			result.put(prefix + "materializationState", entry.state().name());
 			result.put(prefix + "actionAdmissionOpen", Boolean.toString(entry.actionAdmissionOpen()));
+			result.put(prefix + "admittedActionCount", Integer.toString(entry.admittedActionCount()));
+			result.put(prefix + "cleanupPhase", entry.cleanupPhase().name());
+			result.put(prefix + "cleanupFailurePhase", entry.cleanupFailurePhase().name());
+			result.put(prefix + "cleanupFailureClass", entry.cleanupFailureClass());
+			result.put(prefix + "cleanupFailureMessage", entry.cleanupFailureMessage());
+			result.put(prefix + "cleanupFailureSequence", Long.toString(entry.cleanupFailureSequence()));
+			result.put(prefix + "cleanupFailureAdmittedActionCount", Integer.toString(entry.cleanupFailureAdmittedActionCount()));
+			result.put(prefix + "playerRetained", Boolean.toString(entry.playerRetained()));
+			result.put(prefix + "identityLeaseRetained", Boolean.toString(entry.identityLeaseRetained()));
+			result.put(prefix + "outboundAttached", Boolean.toString(entry.outboundAttached()));
+			result.put(prefix + "worldPresent", Boolean.toString(entry.worldPresent()));
 			result.put(prefix + "pendingOwnedStore", Boolean.toString(player.hasPendingOwnedStore()));
 			result.put(prefix + "goalId", goal == null ? "0" : Long.toString(goal.goalId()));
 			result.put(prefix + "goalRevision", goal == null ? "0" : Long.toString(goal.revision()));
@@ -2039,6 +2051,15 @@ public final class PhantomSystem
 			final var observedHuman = pvp == null ? null : pvp.targets().stream().filter(value -> value.target().objectId() == human.getObjectId()).findFirst().orElse(null);
 			result.put(prefix + "pvpHumanContext", observedHuman == null ? "UNAVAILABLE" : "actualAttacker=" + observedHuman.actualAttacker() + ",canonicalAllowed=" + observedHuman.canonicalContextAllowed() + ",invulnerable=" + observedHuman.target().invulnerable() + ",peace=" + observedHuman.target().peaceRestricted() + ",autoAttackable=" + observedHuman.target().autoAttackable() + ",reachable=" + observedHuman.target().reachable());
 			result.put(prefix + "idleReason", player.isDead() ? "DEATH_RECOVERY" : player.isInParty() || player.isInStoreMode() ? "NATIVE_OWNER" : !ordinaryEligible ? "NO_ACTIVE_FARM" : player.isMoving() ? "NATIVE_MOVEMENT" : player.isAttackingNow() || player.isCastingNow() ? "NATIVE_ACTION" : targets[1] == 0 && player.isAutoPlaying() ? "TARGET_DEFICIT" : "ACTIVE_IDLE");
+			if (censusPageBudgetExceeded(result))
+			{
+				result.keySet().removeIf(name -> name.startsWith(prefix));
+				count--;
+				if (ordinaryEligible) { eligible--; }
+				nextProfileId = lastIncludedProfileId;
+				break;
+			}
+			lastIncludedProfileId = entry.profileId();
 			if (count >= Math.min(24, configured._settings.maxMaterializedPhantoms()))
 			{
 				nextProfileId = entry.profileId();
@@ -2049,6 +2070,30 @@ public final class PhantomSystem
 		result.put("censusEligible", Integer.toString(eligible));
 		result.put("censusNextProfileId", Long.toString(nextProfileId));
 		return Map.copyOf(result);
+	}
+
+	/** Reserve 16 KiB for the existing Pilot envelope, with page metadata and XML escaping counted. */
+	private static boolean censusPageBudgetExceeded(Map<String, String> fields)
+	{
+		int bytes = 256;
+		for (var field : fields.entrySet())
+		{
+			bytes += field.getKey().getBytes(java.nio.charset.StandardCharsets.UTF_8).length + 4;
+			final String value = field.getValue();
+			bytes += value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+			for (int index = 0; index < value.length(); index++)
+			{
+				bytes += switch (value.charAt(index))
+				{
+					case '&' -> 4;
+					case '"', '\'' -> 5;
+					case '<', '>' -> 3;
+					default -> 0;
+				};
+			}
+			if (bytes > 48 * 1024) { return true; }
+		}
+		return false;
 	}
 
 	/** Read-only naturally materialized target already visible to the Pilot actor. */

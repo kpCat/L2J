@@ -181,6 +181,14 @@ $script:transport = {
 			$data["census${n}.targetMonsterAlive"] = 'true'
 			$data["census${n}.attacking"] = 'true'
 			$data["census${n}.idleReason"] = 'NONE'
+			$data["census${n}.admittedActionCount"] = '0'
+			$data["census${n}.cleanupPhase"] = $(if ($script:neverMaterialize) { 'POST_STORE' } else { 'NONE' })
+			$data["census${n}.cleanupFailurePhase"] = $(if ($script:neverMaterialize) { 'POST_STORE' } else { 'NONE' })
+			$data["census${n}.cleanupFailureClass"] = $(if ($script:neverMaterialize) { 'java.lang.IllegalStateException' } else { '' })
+			$data["census${n}.cleanupFailureMessage"] = $(if ($script:neverMaterialize) { 'owned cleanup diagnostic fixture' } else { '' })
+			$data["census${n}.cleanupFailureSequence"] = $(if ($script:neverMaterialize) { '1' } else { '0' })
+			$data["census${n}.cleanupFailureAdmittedActionCount"] = '0'
+			foreach ($field in @('playerRetained', 'identityLeaseRetained', 'outboundAttached', 'worldPresent')) { $data["census${n}.$field"] = 'true' }
 		}
 	}
 	return [pscustomobject]@{ status = 'SUCCEEDED'; endUtc = $now; after = ([pscustomobject]@{ identityOwner = $script:fakeOwner; clientIdentity = 'none'; worldPresent = 'true'; teleporting = 'false'; moving = 'false'; x = [string]$script:actorX; y = '0'; z = '0'; instanceId = '0' }); candidate = [pscustomobject]$data }
@@ -214,6 +222,9 @@ $capacityResult = Get-Content (Join-Path $script:evidenceRoot 'M1_CONNECTED_RESU
 Assert-True ($capacityResult -match 'primaryFailure=APPROACH_DEADLINE_EXPIRED') 'CAPACITY_PRIMARY_RETAINED'
 Assert-True ($capacityResult -match 'COHORT=NOT_OBSERVED') 'DIAGNOSTIC_CENSUS_NEVER_GRADES_ACCEPTANCE'
 Assert-True (@($script:census | Where-Object { $_.phase -like 'DIAGNOSTIC_APPROACH_FAILURE_*' } | Select-Object -ExpandProperty phase -Unique).Count -eq 3) 'FAILED_APPROACH_THREE_DIAGNOSTIC_CENSUS'
+$diagnosticSample = $script:census | Where-Object { $_.phase -like 'DIAGNOSTIC_APPROACH_FAILURE_*' } | Select-Object -First 1
+Assert-True ($diagnosticSample.cleanupPhase -ceq 'POST_STORE' -and $diagnosticSample.cleanupFailureClass -ceq 'java.lang.IllegalStateException' -and $diagnosticSample.cleanupFailureMessage -ceq 'owned cleanup diagnostic fixture' -and $diagnosticSample.cleanupFailureSequence -ceq '1' -and $diagnosticSample.admittedActionCount -ceq '0') 'CLEANUP_DIAGNOSTIC_FIELDS_RETAINED'
+Assert-True ($diagnosticSample.playerRetained -ceq 'true' -and $diagnosticSample.identityLeaseRetained -ceq 'true' -and $diagnosticSample.outboundAttached -ceq 'true' -and $diagnosticSample.worldPresent -ceq 'true') 'CLEANUP_OWNERSHIP_FIELDS_RETAINED'
 Assert-True ($capacityResult -match 'RESTORE=PASS' -and $capacityResult -match 'STOP=PASS') 'CAPACITY_CLEANUP_RETAINED'
 $script:neverMaterialize = $false
 $script:transport = {

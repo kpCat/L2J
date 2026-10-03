@@ -65,6 +65,12 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		AFTER_DELETE_BEFORE_IDENTITY_RELEASE
 	}
 
+	public enum CleanupPhase
+	{
+		NONE, ACTION_DRAIN, PRE_STORE, NATIVE_STORE, POST_STORE, PRE_DELETE, DELETE, POST_DELETE,
+		RELEASE_OUTBOUND, RELEASE_IDENTITY, POSTCONDITION, COMPLETE
+	}
+
 	public enum MaterializationFailure
 	{
 		WORLD_PLAYER_IDENTITY_BUSY,
@@ -142,6 +148,12 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	private long _dematerializedAtNanos;
 	private boolean _cleanupStarted;
 	private boolean _cleanupFinished;
+	private volatile CleanupPhase _cleanupPhase = CleanupPhase.NONE;
+	private volatile CleanupFailure _cleanupFailure = new CleanupFailure(0, CleanupPhase.NONE, 0, "", "", "");
+
+	private record CleanupFailure(long sequence, CleanupPhase phase, int admittedActions, String className, String message, String cause)
+	{
+	}
 
 	public PhantomMaterializedPlayer(int objectId, PhantomIdentityLeaseRegistry identityRegistry, HeadlessPlayerOutboundSession outboundSession)
 	{
@@ -302,6 +314,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		_state = State.DEMATERIALIZING;
 
 		RuntimeException afterStepFailure = null;
+		final long failureSequenceBeforeCleanup = _cleanupFailure.sequence();
 		try
 		{
 			closeActionAdmissionAndDrain(Math.min(deadlineNanos, System.nanoTime() + (_actionDrainTimeoutMillis * 1_000_000L)));
@@ -309,14 +322,17 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			final Player cleanupPlayer = _player;
 			if ((cleanupPlayer != null) && !PhantomPlayerCleanupPolicy.isComplete(cleanupPlayer))
 			{
+				_cleanupPhase = CleanupPhase.PRE_STORE;
 				requireNoForeignWorldIdentity(cleanupPlayer);
 				cleanupPlayer.stopAllTasks();
 				try
 				{
 					_lifecycleSupport.beforeStore(cleanupPlayer);
 					failAfter(FailurePoint.BEFORE_STORE_OPERATION);
+					_cleanupPhase = CleanupPhase.NATIVE_STORE;
 					cleanupPlayer.storeMe();
 					failAfter(FailurePoint.AFTER_NATIVE_STORE);
+					_cleanupPhase = CleanupPhase.POST_STORE;
 					_lifecycleSupport.afterStore(cleanupPlayer);
 				}
 				finally
@@ -324,30 +340,36 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 					cleanupPlayer.stopAllTasks();
 				}
 
+				_cleanupPhase = CleanupPhase.PRE_DELETE;
 				try
 				{
 					failAfter(FailurePoint.AFTER_STORE_BEFORE_DELETE);
 				}
 				catch (RuntimeException e)
 				{
+					recordCleanupFailure(e);
 					afterStepFailure = remember(afterStepFailure, e);
 				}
 
 				failAfter(FailurePoint.BEFORE_DELETE_OPERATION);
 				requireNoForeignWorldIdentity(cleanupPlayer);
+				_cleanupPhase = CleanupPhase.DELETE;
 				cleanupPlayer.deleteMe();
 				cleanupPlayer.stopAllTasks();
 
+				_cleanupPhase = CleanupPhase.POST_DELETE;
 				try
 				{
 					failAfter(FailurePoint.AFTER_DELETE_BEFORE_IDENTITY_RELEASE);
 				}
 				catch (RuntimeException e)
 				{
+					recordCleanupFailure(e);
 					afterStepFailure = remember(afterStepFailure, e);
 				}
 			}
 
+			_cleanupPhase = CleanupPhase.POSTCONDITION;
 			if ((cleanupPlayer != null) && !PhantomPlayerCleanupPolicy.isComplete(cleanupPlayer))
 			{
 				throw new IllegalStateException("Canonical Player cleanup postconditions are incomplete");
@@ -355,6 +377,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 
 			if (_outboundAttachment != null)
 			{
+				_cleanupPhase = CleanupPhase.RELEASE_OUTBOUND;
 				_outboundAttachment.close();
 				_outboundAttachment = null;
 			}
@@ -362,6 +385,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 
 			if (_identityLease != null)
 			{
+				_cleanupPhase = CleanupPhase.RELEASE_IDENTITY;
 				_identityLease.close();
 				_identityLease = null;
 			}
@@ -370,9 +394,11 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			_dematerializedAtNanos = System.nanoTime();
 			_state = State.STORED;
 			_cleanupFinished = true;
+			_cleanupPhase = CleanupPhase.COMPLETE;
 		}
 		catch (RuntimeException | Error e)
 		{
+			if ((_cleanupPhase != CleanupPhase.ACTION_DRAIN) || (_cleanupFailure.sequence() == failureSequenceBeforeCleanup)) { recordCleanupFailure(e); }
 			_state = State.FAILED;
 			if ((afterStepFailure != null) && (afterStepFailure != e))
 			{
@@ -389,6 +415,33 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		{
 			throw afterStepFailure;
 		}
+	}
+
+	private void recordCleanupFailure(Throwable failure)
+	{
+		synchronized (_actionMonitor)
+		{
+			final Throwable cause = failure.getCause();
+			_cleanupFailure = new CleanupFailure(_cleanupFailure.sequence() + 1, _cleanupPhase, _admittedActionCount,
+				failure.getClass().getName(), boundedCleanupMessage(failure.getMessage()),
+				cause == null ? "" : boundedCleanupMessage(cause.getClass().getName() + ":" + cause.getMessage()));
+		}
+	}
+
+	private static String boundedCleanupMessage(String value)
+	{
+		if (value == null) { return ""; }
+		final StringBuilder result = new StringBuilder(Math.min(value.length(), 160));
+		for (int index = 0; (index < value.length()) && (result.length() < 160);)
+		{
+			final int character = value.codePointAt(index);
+			final boolean validXml = ((character >= 0x20) && (character <= 0xD7FF)) || ((character >= 0xE000) && (character <= 0xFFFD)) || ((character >= 0x10000) && (character <= 0x10FFFF));
+			final int sanitized = validXml && !Character.isISOControl(character) ? character : ' ';
+			if (result.length() + Character.charCount(sanitized) > 160) { break; }
+			result.appendCodePoint(sanitized);
+			index += Character.charCount(character);
+		}
+		return result.toString();
 	}
 
 	private void requireIdentityRegistriesFree(String phase)
@@ -433,13 +486,16 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	{
 		synchronized (_actionMonitor)
 		{
+			_cleanupPhase = CleanupPhase.ACTION_DRAIN;
 			_actionAdmissionOpen = false;
 			while (_admittedActionCount > 0)
 			{
 				final long remainingNanos = deadlineNanos - System.nanoTime();
 				if (remainingNanos <= 0)
 				{
-					throw new IllegalStateException("Timed out waiting for admitted Phantom actions");
+					final var failure = new IllegalStateException("Timed out waiting for admitted Phantom actions");
+					recordCleanupFailure(failure);
+					throw failure;
 				}
 
 				try
@@ -450,7 +506,9 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				catch (InterruptedException e)
 				{
 					Thread.currentThread().interrupt();
-					throw new IllegalStateException("Interrupted while draining Phantom actions", e);
+					final var failure = new IllegalStateException("Interrupted while draining Phantom actions", e);
+					recordCleanupFailure(failure);
+					throw failure;
 				}
 			}
 		}
@@ -476,7 +534,9 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		synchronized (_actionMonitor)
 		{
 			final Player snapshotPlayer = _player;
-			return new Snapshot(_objectId, _state, snapshotPlayer != null, _identityLease != null, _identityAttached, _outboundAttachment != null, _actionAdmissionOpen, _admittedActionCount, (snapshotPlayer != null) && (World.getInstance().getPlayer(_objectId) == snapshotPlayer), _materializedAtNanos, _dematerializedAtNanos);
+			final CleanupFailure failure = _cleanupFailure;
+			return new Snapshot(_objectId, _state, snapshotPlayer != null, _identityLease != null, _identityAttached, _outboundAttachment != null, _actionAdmissionOpen, _admittedActionCount, (snapshotPlayer != null) && (World.getInstance().getPlayer(_objectId) == snapshotPlayer), _materializedAtNanos, _dematerializedAtNanos,
+				_cleanupPhase, failure.phase(), failure.className(), failure.message(), failure.sequence(), failure.admittedActions(), failure.cause());
 		}
 	}
 
@@ -485,7 +545,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		return _player;
 	}
 
-	public record Snapshot(int objectId, State state, boolean playerRetained, boolean identityLeaseRetained, boolean identityAttached, boolean outboundAttached, boolean actionAdmissionOpen, int admittedActionCount, boolean worldPresent, long materializedAtNanos, long dematerializedAtNanos)
+	public record Snapshot(int objectId, State state, boolean playerRetained, boolean identityLeaseRetained, boolean identityAttached, boolean outboundAttached, boolean actionAdmissionOpen, int admittedActionCount, boolean worldPresent, long materializedAtNanos, long dematerializedAtNanos,
+		CleanupPhase cleanupPhase, CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause)
 	{
 	}
 
