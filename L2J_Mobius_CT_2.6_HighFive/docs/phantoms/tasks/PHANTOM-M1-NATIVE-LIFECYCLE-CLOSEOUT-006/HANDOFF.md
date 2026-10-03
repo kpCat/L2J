@@ -4,8 +4,9 @@
 TASK=PHANTOM-M1-NATIVE-LIFECYCLE-CLOSEOUT-006
 BASE_SHA=461a4abe32be4aa08532b8417a6147684a8889c6
 CODE_SHA=461a4abe32be4aa08532b8417a6147684a8889c6
-REPORT_SHA=commit containing RESULT; exact SHA in PUBLICATION.md
-REMOTE_HEAD=exact verified publication SHA in PUBLICATION.md / final response
+REPORT_SHA=a2c9c3983475e99fc01f8a6ee3718b84b1058502
+OBSERVED_REMOTE_HEAD_AFTER_REPORT_PUSH=a2c9c3983475e99fc01f8a6ee3718b84b1058502
+FINAL_RECEIPT_REMOTE_SHA=commit containing PUBLICATION receipt; exact final SHA in final response
 RESULT=BLOCKED
 M1=OPEN
 HISTORICAL_110_142_175_FIRST_EXCEPTION=UNAVAILABLE
@@ -45,7 +46,8 @@ P09; exact cleanup hook и outer-finally Error audit; T production callback/cont
 broad regression, C/D/mismatch/restart, performance/concurrency, accepted-code clean
 build. green-incident-mage17/18 не объявлен общим GREEN; corrected stock mage1/1 прошёл.
 
-READ_FIRST, RESULT, COMMANDS, CHANGED_FILES, RED_GREEN и sanitised evidence подготовлены
-для совместной публикации. PUBLICATION после push фиксирует docs SHA/remote verification. Historical first exception
+READ_FIRST, RESULT, COMMANDS, CHANGED_FILES, RED_GREEN и sanitised evidence опубликованы
+в report SHA выше. PUBLICATION фиксирует actual docs push; receipt — docs-only descendant.
+Historical first exception
 110/142/175 не найден; новый TEST incident archive его не раскрывает. Текущие PLAY JVM,
 config/JAR сохранены. Следующий runtime/deploy gate сейчас недоступен.

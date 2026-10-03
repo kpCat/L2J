@@ -46,6 +46,11 @@ VERIFY broad regression (11 targets), owned C/D/restart/idempotence/mismatch con
 
 Remote publication подготовлена только для task package, этого отчёта, handoff и sanitised evidence. Production tree report commit должен остаться baseline; после push это проверяется в PUBLICATION.md. Основание commit/push при BLOCKED — High Five AGENTS.md: «При BLOCKED ... оставить безопасный аудит, тесты и документацию ... закоммитить ... запушить» и прямое требование TASK опубликовать результат независимо от gate. Ограничение TASK на production commit после GREEN не обходится.
 
+Первый report commit `a2c9c3983475e99fc01f8a6ee3718b84b1058502` опубликован, normal push exit0;
+ls-remote подтвердил этот SHA. Commit diff содержит только90 docs/evidence paths,
+production tree не изменён. [PUBLICATION](PUBLICATION.md) содержит receipt и точные
+команды; отдельный docs-only receipt descendant не является production fix.
+
 Artifact gate **NOT_FULFILLED**. Clean committed production-fix SHA build/JAR SHA256 = **NOT_RUN / NOT_AVAILABLE**: принятого fix commit нет, VERIFY требует сначала TEST/review/publish production fix. Сборка baseline не подменяла бы эту проверку. TEST компиляция candidate не считается clean production build.
 
 ## Сохранность и ограничения
