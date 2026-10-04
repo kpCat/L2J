@@ -1,0 +1,229 @@
+/*
+ * Copyright (c) 2013 L2jMobius
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+ * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+package org.l2jmobius.gameserver.phantoms.background;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.DeathPolicy;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.ExperienceTable;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.LevelForExperience;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.RewardPolicy;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundModel.Target;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.AutoGetSkill;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Position;
+import org.l2jmobius.gameserver.phantoms.acquisition.PhantomAcquisitionState.Source;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
+
+/**
+ * Read-only authority boundary for canonical runtime facts and immutable loader
+ * generations. Tests may replace it, but production mutations remain owned by
+ * {@link PhantomBackgroundTransaction}.
+ */
+public interface PhantomBackgroundAuthority
+{
+	Hashes hashes();
+
+	PhantomBackgroundState capture(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous);
+
+	/** Native persistence is separate from simulation admission. Defaults never attest an unknown policy. */
+	default NativeCapture captureOwnedNative(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous)
+	{
+		return new NativeCapture(capture(profileId, player, goal, previous), new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN));
+	}
+
+	default NativeCapture captureOwnedNativeAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
+	{
+		return new NativeCapture(captureAcquisition(profileId, player, goal, previous, targetItemId), new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN));
+	}
+
+	record NativeCapture(PhantomBackgroundState state, PhantomNativeContext.Capture context)
+	{
+		public NativeCapture { Objects.requireNonNull(state, "state"); Objects.requireNonNull(context, "context"); }
+	}
+
+	default PhantomNativeContext.Capture captureNativeContext(Player player)
+	{
+		return new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN);
+	}
+
+	default PhantomBackgroundState captureAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
+	{
+		throw new UnsupportedOperationException("Acquisition background capture is unavailable.");
+	}
+
+	default PlanningSnapshot planningSnapshot(Player player)
+	{
+		throw new UnsupportedOperationException("Background planning snapshot is unavailable.");
+	}
+
+	boolean matchesRuntime(Player player, PhantomBackgroundState state);
+
+	FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal);
+
+	default FarmInputAttempt tryFarmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, Map<Integer, Integer> learnedSkills)
+	{
+		try
+		{
+			return FarmInputAttempt.ready(farmInput(state, goal, learnedSkills));
+		}
+		catch (RuntimeException exception)
+		{
+			return FarmInputAttempt.failed(FarmInputFailure.UNKNOWN, exception.getClass().getSimpleName());
+		}
+	}
+
+	default List<Integer> ordinarySpoilSkillIds(int activeClassId)
+	{
+		return List.of();
+	}
+
+	default FarmInput farmInput(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, Map<Integer, Integer> learnedSkills)
+	{
+		return farmInput(state, goal);
+	}
+
+	default FarmInput acquisitionInput(PhantomBackgroundState state, Source source)
+	{
+		throw new UnsupportedOperationException("Acquisition background authority is unavailable.");
+	}
+
+	default FarmInput acquisitionInput(PhantomBackgroundState state, Source source, Map<Integer, Integer> learnedSkills)
+	{
+		return acquisitionInput(state, source);
+	}
+
+	TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis);
+
+	default TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis, long logicalEpochMinute)
+	{
+		return advanceTravel(state, goal, elapsedBudgetMillis);
+	}
+
+	default PhantomNormalGatekeeperTravel travelQuery(PhantomTopologyQuery topology)
+	{
+		return PhantomNormalGatekeeperTravel.empty(topology);
+	}
+
+	default List<String> travelLegIds()
+	{
+		return List.of();
+	}
+
+	Optional<Position> canonicalRecoveryPosition(int x, int y, int z, int instanceId, int heading);
+
+	default TravelAdvance advanceAcquisitionTravel(PhantomBackgroundState state, Source source, long elapsedBudgetMillis)
+	{
+		throw new UnsupportedOperationException("Acquisition background travel is unavailable.");
+	}
+
+	List<AutoGetSkill> autoGetSkills(PhantomBackgroundState.Identity identity, int level);
+
+	record PlanningSnapshot(int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter)
+	{
+		public PlanningSnapshot
+		{
+			if ((level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (shotItemId < 0) || (shotsPerEncounter < 0) || (summonNpcId < 0) || (summonResourceItemId < 0) || (summonResourcesPerEncounter < 0) || ((shotItemId == 0) != (shotsPerEncounter == 0)) || ((summonResourceItemId == 0) != (summonResourcesPerEncounter == 0)))
+			{
+				throw new IllegalArgumentException("Invalid Background planning snapshot.");
+			}
+		}
+	}
+
+	enum FarmInputFailure
+	{
+		NONE, AUTHORITY_STALE, POSITION_STALE, TARGET_STALE, RESOURCE_STALE, UNSUPPORTED_LOOT, UNKNOWN
+	}
+
+	record FarmInputAttempt(FarmInput input, FarmInputFailure failure, String reason)
+	{
+		public FarmInputAttempt
+		{
+			Objects.requireNonNull(failure, "failure");
+			reason = Objects.requireNonNull(reason, "reason");
+			if ((input != null) != (failure == FarmInputFailure.NONE)) { throw new IllegalArgumentException("Partially populated farm authority attempt."); }
+		}
+
+		public static FarmInputAttempt ready(FarmInput input) { return new FarmInputAttempt(Objects.requireNonNull(input), FarmInputFailure.NONE, "farm.ready"); }
+		public static FarmInputAttempt failed(FarmInputFailure failure, String reason) { return new FarmInputAttempt(null, failure, reason); }
+		public boolean successful() { return failure == FarmInputFailure.NONE; }
+	}
+
+	record FarmInput(Target target, RewardPolicy rewardPolicy, DeathPolicy deathPolicy, ExperienceTable experienceTable, LevelForExperience levelForExperience, String topologyNodeId, int spawnCapacity)
+	{
+		public FarmInput
+		{
+			Objects.requireNonNull(target, "target");
+			Objects.requireNonNull(rewardPolicy, "rewardPolicy");
+			Objects.requireNonNull(deathPolicy, "deathPolicy");
+			Objects.requireNonNull(experienceTable, "experienceTable");
+			Objects.requireNonNull(levelForExperience, "levelForExperience");
+			if ((topologyNodeId == null) || topologyNodeId.isBlank() || (spawnCapacity < 1))
+			{
+				throw new IllegalArgumentException("Invalid background farm authority input.");
+			}
+		}
+	}
+
+	record TravelAdvance(Status status, Position position, Clock clock, String edgeId, long feeAdena)
+	{
+		public TravelAdvance(Status status, Position position, Clock clock, String edgeId)
+		{
+			this(status, position, clock, edgeId, 0);
+		}
+
+		public TravelAdvance
+		{
+			Objects.requireNonNull(status, "status");
+			Objects.requireNonNull(position, "position");
+			Objects.requireNonNull(clock, "clock");
+			edgeId = Objects.requireNonNullElse(edgeId, "");
+			if (feeAdena < 0)
+			{
+				throw new IllegalArgumentException("Negative NORMAL GK fee.");
+			}
+		}
+
+		public boolean mutated()
+		{
+			return status == Status.PARTIAL || status == Status.ARRIVED;
+		}
+
+		public enum Status
+		{
+			AT_DESTINATION,
+			PARTIAL,
+			ARRIVED,
+			NO_ROUTE,
+			EDGE_NOT_ELIGIBLE,
+			EDGE_CLOSED,
+			ANCHOR_MISMATCH,
+			INSUFFICIENT_ADENA,
+			UNSUPPORTED_CONDITION
+		}
+	}
+}
