@@ -159,6 +159,7 @@ public final class PhantomTestLauncher
 		boolean lifecycleStarted = false;
 		try
 		{
+			PhantomOwnedStoreProcessCrashChecks.requireNoRetainedNativeSnapshot(context);
 			lifecycleStarted = true;
 			suite.beforeAll(context);
 			for (PhantomTestRegistry.RegisteredTest test : tests)
@@ -173,6 +174,10 @@ public final class PhantomTestLauncher
 				{
 					results.add(PhantomTestResult.failed(test.identity(), System.nanoTime() - start, throwable));
 					exitCode = Math.max(exitCode, (throwable instanceof PhantomTestConfigurationException) ? EXIT_CONFIGURATION_REJECTED : EXIT_TEST_FAILURE);
+					if (throwable instanceof PhantomOwnedStoreProcessCrashChecks.RetainedCleanupException || PhantomOwnedStoreProcessCrashChecks.retainedCleanupRequired())
+					{
+						break;
+					}
 				}
 			}
 		}
@@ -341,6 +346,8 @@ public final class PhantomTestLauncher
 			case "background-transaction" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.TRANSACTION);
 			case "background-lifecycle" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.LIFECYCLE);
 			case "background-decision" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.DECISION);
+			case "m1-native-lifecycle" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.NATIVE_LIFECYCLE);
+			case "m1-production-world" -> new org.l2jmobius.gameserver.phantoms.PhantomM1ProductionWorldSuite(org.l2jmobius.gameserver.phantoms.PhantomM1ProductionWorldSuite.Mode.valueOf(System.getProperty("phantom.m1.world.mode", "world").toUpperCase(Locale.ROOT)));
 			case "background-server-integration" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.SERVER_INTEGRATION);
 			case "background-performance" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.PERFORMANCE);
 			case "background-materialization-abort" -> new PhantomBackgroundSuite(PhantomBackgroundSuite.Mode.MATERIALIZATION_ABORT);

@@ -25,10 +25,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
-import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.commons.util.Rnd;
+import org.l2jmobius.gameserver.model.actor.Attackable;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.stats.Formulas;
 
 public class CreatureStatus
@@ -174,7 +176,14 @@ public class CreatureStatus
 		
 		if (value > 0)
 		{
-			setCurrentHp(Math.max(_currentHp - value, 0));
+			if ((_creature instanceof Attackable target) && target.isMonster() && (attacker instanceof Player player) && player.isNativeWorkManaged() && !isHPConsumption)
+			{
+				setCurrentHp(Math.max(_currentHp - value, 0), true, player);
+			}
+			else
+			{
+				setCurrentHp(Math.max(_currentHp - value, 0));
+			}
 		}
 		
 		if ((_creature.getCurrentHp() < 0.5) && _creature.isMortal()) // Die
@@ -208,7 +217,7 @@ public class CreatureStatus
 			final int period = Formulas.getRegeneratePeriod(_creature);
 			
 			// Create the HP/MP/CP Regeneration task
-			_regTask = ThreadPool.scheduleAtFixedRate(this::doRegeneration, period, period);
+			_regTask = PlayerNativeWork.scheduleAtFixedRate(_creature instanceof Player player ? player : null, "PLAYER_REGEN", this::doRegeneration, period, period);
 		}
 	}
 	
@@ -231,6 +240,11 @@ public class CreatureStatus
 			
 			// Set the RegenActive flag to false
 			_flagsRegenActive = 0;
+		}
+		if (_creature instanceof Player player)
+		{
+			final var evidence = PlayerNativeWork.observationEvidence(player);
+			if (evidence != null) { evidence.pauseRegeneration(nativeVitalsFull(), _creature.isDead()); }
 		}
 	}
 	
@@ -263,6 +277,24 @@ public class CreatureStatus
 	 */
 	public boolean setCurrentHp(double newHp, boolean broadcastPacket)
 	{
+		return setCurrentHp(newHp, broadcastPacket, false);
+	}
+	protected boolean setCurrentHp(double newHp, boolean broadcastPacket, boolean nativeRegeneration)
+	{
+		return setCurrentHp(newHp, broadcastPacket, null, nativeRegeneration);
+	}
+	
+	private boolean setCurrentHp(double newHp, boolean broadcastPacket, Player damageAttacker)
+	{
+		return setCurrentHp(newHp, broadcastPacket, damageAttacker, false);
+	}
+	private boolean setCurrentHp(double newHp, boolean broadcastPacket, Player damageAttacker, boolean nativeRegeneration)
+	{
+		final PlayerNativeWork.Owner damageOwner = damageAttacker == null ? null : damageAttacker.getNativeWorkOwner();
+		final PlayerNativeEvidence damageEvidence = (damageOwner != null) && (damageOwner.player() == damageAttacker) && damageOwner.isCurrent() ? damageOwner.evidence() : null;
+		PlayerNativeEvidence.Target damageTarget = null;
+		double actualHpDelta = 0;
+		
 		// Get the Max HP of the Creature
 		final int currentHp = (int) _currentHp;
 		final double maxHp = _creature.getMaxHp();
@@ -277,6 +309,7 @@ public class CreatureStatus
 			{
 				return false;
 			}
+			final double beforeHp = _currentHp;
 			
 			if (newHp >= maxHp)
 			{
@@ -299,6 +332,18 @@ public class CreatureStatus
 				// Start the HP/MP/CP Regeneration task with Medium priority
 				startHpMpRegeneration();
 			}
+			// Attribute this write, not a before/after read that could include another attacker's hit.
+			if ((damageEvidence != null) && (_creature instanceof Attackable target) && (target.getInstanceId() == damageAttacker.getInstanceId()))
+			{
+				damageTarget = target.getNativeEvidenceTarget();
+				actualHpDelta = beforeHp - _currentHp;
+			}
+			observeRegeneration(nativeRegeneration ? _currentHp - beforeHp : 0, 0);
+		}
+		if ((damageTarget != null) && (damageAttacker.getNativeWorkOwner() == damageOwner) && damageOwner.isCurrent() && damageEvidence.matches(damageAttacker.getObjectId(), damageOwner.epoch()))
+		{
+			damageEvidence.damage(damageTarget, actualHpDelta);
+			PlayerNativeWork.combatDamage(damageAttacker, damageOwner, damageEvidence, actualHpDelta);
 		}
 		
 		final boolean hpWasChanged = currentHp != _currentHp;
@@ -345,6 +390,10 @@ public class CreatureStatus
 	 */
 	public boolean setCurrentMp(double newMp, boolean broadcastPacket)
 	{
+		return setCurrentMp(newMp, broadcastPacket, false);
+	}
+	protected boolean setCurrentMp(double newMp, boolean broadcastPacket, boolean nativeRegeneration)
+	{
 		// Get the Max MP of the Creature
 		final int currentMp = (int) _currentMp;
 		final int maxMp = _creature.getMaxMp();
@@ -355,6 +404,7 @@ public class CreatureStatus
 			{
 				return false;
 			}
+			final double beforeMp = _currentMp;
 			
 			if (newMp >= maxMp)
 			{
@@ -377,6 +427,7 @@ public class CreatureStatus
 				// Start the HP/MP/CP Regeneration task with Medium priority
 				startHpMpRegeneration();
 			}
+			observeRegeneration(0, nativeRegeneration ? _currentMp - beforeMp : 0);
 		}
 		
 		final boolean mpWasChanged = currentMp != _currentMp;
@@ -388,6 +439,18 @@ public class CreatureStatus
 		}
 		
 		return mpWasChanged;
+	}
+	private boolean nativeVitalsFull()
+	{
+		return (_currentHp >= _creature.getMaxRecoverableHp()) && (_currentMp >= _creature.getMaxRecoverableMp());
+	}
+	private void observeRegeneration(double hpGain, double mpGain)
+	{
+		if (_creature instanceof Player player)
+		{
+			final var evidence = PlayerNativeWork.observationEvidence(player);
+			if (evidence != null) { evidence.nativeRegeneration(hpGain, mpGain, nativeVitalsFull(), _creature.isDead()); }
+		}
 	}
 	
 	protected void doRegeneration()

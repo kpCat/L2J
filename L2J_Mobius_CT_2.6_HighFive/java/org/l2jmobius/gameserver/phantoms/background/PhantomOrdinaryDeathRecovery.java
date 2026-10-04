@@ -12,7 +12,10 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.events.Containers;
 import org.l2jmobius.gameserver.model.events.EventType;
 import org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDeath;
@@ -83,7 +86,12 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 		{
 			if (snapshot.worldPresent())
 			{
-				_deaths.put(snapshot.profileId(), new Death(snapshot.characterObjectId(), _clock.getAsLong(), new AtomicBoolean(), new AtomicBoolean()));
+				final NativeDeath nativeDeath = NativeDeath.capture(player);
+				_deaths.compute(snapshot.profileId(), (key, previous) ->
+				{
+					if ((previous != null) && (previous.observation() != null)) { previous.observation().retire(); }
+					return new Death(snapshot.characterObjectId(), _clock.getAsLong(), new AtomicBoolean(), new AtomicBoolean(), nativeDeath);
+				});
 			}
 		});
 	}
@@ -116,11 +124,13 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			return;
 		}
 		final var snapshot = _materialization.find(profileId).orElse(null);
-		if ((snapshot == null) || (snapshot.characterObjectId() != death.characterObjectId()))
+		if ((snapshot == null) || (snapshot.characterObjectId() != death.characterObjectId())
+			|| ((death.observation() != null) && (snapshot.materializedAtNanos() != death.observation().epoch)))
 		{
-			_deaths.remove(profileId, death);
+			forget(profileId, death);
 			return;
 		}
+		if ((death.observation() != null) && !death.observation().owner.nativeObservationHealthy()) { return; }
 		if (!death.nativeRecovery().get())
 		{
 			try (ActionLease action = _materialization.tryAcquireAction(profileId).orElse(null))
@@ -131,8 +141,13 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 				}
 				if (!action.player().isDead() || (action.player().getParty() != null))
 				{
-					_deaths.remove(profileId, death);
+					forget(profileId, death);
 					return;
+				}
+				if (death.observation() != null)
+				{
+					if (!death.observation().matches(action.player())) { forget(profileId, death); return; }
+					death.observation().publish();
 				}
 			}
 			if ((now - death.atNanos()) < CORPSE_WINDOW_NANOS)
@@ -144,11 +159,12 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			{
 				if ("death.resurrected".equals(nativeResult.reason()))
 				{
-					_deaths.remove(profileId, death);
+					forget(profileId, death);
 				}
 				return;
 			}
 			death.nativeRecovery().set(true);
+			if (death.observation() != null) { death.observation().retire(); }
 		}
 		if (death.reconciliation().compareAndSet(false, true))
 		{
@@ -180,7 +196,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			final var goal = _goals.load(profileId).orElse(null);
 			if ((goal != null) && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) && (_background.recover(profileId, goal.goal(), PhantomActivityState.ACTIVE).status() == PhantomBackgroundService.OperationStatus.SUCCESS))
 			{
-				_deaths.remove(profileId, death);
+				forget(profileId, death);
 			}
 		}
 		finally
@@ -208,10 +224,52 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			_listener.unregisterMe();
 			_listener = null;
 		}
+		for (Death death : _deaths.values()) { if (death.observation() != null) { death.observation().retire(); } }
 		_deaths.clear();
 	}
-
-	private record Death(int characterObjectId, long atNanos, AtomicBoolean nativeRecovery, AtomicBoolean reconciliation)
+	private void forget(long profileId, Death death)
+	{
+		if (_deaths.remove(profileId, death) && (death.observation() != null)) { death.observation().retire(); }
+	}
+	/** Capture precedes Playable's accepted dead flag; only the original delayed pulse can publish. */
+	private static final class NativeDeath
+	{
+		private final Player player; private final PlayerNativeWork.Owner owner; private final PlayerNativeEvidence evidence;
+		private final long epoch, since; private boolean retired, published;
+		private NativeDeath(Player player, PlayerNativeWork.Owner owner, PlayerNativeEvidence evidence)
+		{
+			this.player = player; this.owner = owner; this.evidence = evidence; epoch = owner.epoch(); since = System.nanoTime();
+		}
+		private static NativeDeath capture(Player player)
+		{
+			final var owner = player.getNativeWorkOwner();
+			final var evidence = PlayerNativeWork.observationEvidence(player);
+			return (evidence == null) || (owner == null) || (player.getNativeWorkOwner() != owner) || (owner.evidence() != evidence) ? null : new NativeDeath(player, owner, evidence);
+		}
+		private boolean matches(Player candidate)
+		{
+			return (candidate == player) && (player.getNativeWorkOwner() == owner) && (owner.epoch() == epoch) && owner.isCurrent()
+				&& (World.getInstance().getPlayer(player.getObjectId()) == player) && (World.getInstance().findObject(player.getObjectId()) == player)
+				&& (PlayerNativeWork.observationEvidence(player) == evidence);
+		}
+		private synchronized void publish()
+		{
+			if (retired || !player.isDead() || !matches(player)) { return; }
+			if ((since < epoch) || (since > Long.MAX_VALUE - PlayerNativeEvidence.MAX_PHASE_NANOS)) { evidence.markUnproven(); return; }
+			if (since + PlayerNativeEvidence.MAX_PHASE_NANOS <= System.nanoTime()) { evidence.markUnproven(); }
+			evidence.phase(PlayerNativeEvidence.Phase.DEATH_RECOVERY, since, since + PlayerNativeEvidence.MAX_PHASE_NANOS);
+			published = true;
+		}
+		private synchronized void retire()
+		{
+			retired = true;
+			if (!owner.nativeObservationHealthy()) { return; }
+			if (published && ((since > Long.MAX_VALUE - PlayerNativeEvidence.MAX_PHASE_NANOS) || (since + PlayerNativeEvidence.MAX_PHASE_NANOS <= System.nanoTime()))) { evidence.markUnproven(); }
+			evidence.clearPhase(PlayerNativeEvidence.Phase.DEATH_RECOVERY, since);
+		}
+	}
+	
+	private record Death(int characterObjectId, long atNanos, AtomicBoolean nativeRecovery, AtomicBoolean reconciliation, NativeDeath observation)
 	{
 	}
 }

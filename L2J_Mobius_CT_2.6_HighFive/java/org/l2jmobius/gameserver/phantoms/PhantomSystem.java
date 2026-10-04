@@ -230,6 +230,8 @@ public final class PhantomSystem
 	private final PhantomDiagnosticTrace _trace;
 	private final PhantomSelectedDecisionTrace _selectedDecisionTrace;
 	private final boolean _productionMaterialization;
+	private final PhantomMaterializationLifecyclePort _loadObserverForTesting;
+	private final java.util.function.Consumer<PhantomPopulationEcologyService.MetadataObservation> _metadataObserverForTesting;
 	private boolean _shutdownFailureForTesting;
 	private PhantomMaterializationService _materializationService;
 	private PhantomMaterializationServiceActivityPort _materializationActivity;
@@ -285,8 +287,20 @@ public final class PhantomSystem
 
 	private PhantomSystem(PhantomPlayersConfig.Settings settings, boolean productionMaterialization)
 	{
+		this(settings, productionMaterialization, null);
+	}
+
+	private PhantomSystem(PhantomPlayersConfig.Settings settings, boolean productionMaterialization, PhantomMaterializationLifecyclePort loadObserverForTesting)
+	{
+		this(settings, productionMaterialization, loadObserverForTesting, null);
+	}
+
+	private PhantomSystem(PhantomPlayersConfig.Settings settings, boolean productionMaterialization, PhantomMaterializationLifecyclePort loadObserverForTesting, java.util.function.Consumer<PhantomPopulationEcologyService.MetadataObservation> metadataObserverForTesting)
+	{
 		_settings = Objects.requireNonNull(settings);
 		_productionMaterialization = productionMaterialization;
+		_loadObserverForTesting = loadObserverForTesting;
+		_metadataObserverForTesting = metadataObserverForTesting;
 		_metrics = new PhantomMetrics();
 		_selectedDecisionTrace = new PhantomSelectedDecisionTrace(settings.diagnosticsEnabled(), TRACE_CAPACITY);
 		if (settings.enabled())
@@ -453,12 +467,10 @@ public final class PhantomSystem
 				_humanLocality = new PhantomHumanLocalityControl(_topologyService, new PhantomSchedulerRelevanceSignalPort(_scheduler), PhantomSystem::onlineHumanPoints, System::currentTimeMillis, profileId -> (_populationManager != null) && _populationManager.presence().isOnline(profileId), this::liveMaterializedPoints);
 				_historicalBackgroundService = new PhantomHistoricalBackgroundService(productionProfiles, productionGoals, new PhantomHistoricalBackgroundPlanner(_gameKnowledgeService.query(), _topologyService.query(), backgroundAuthority), _backgroundService, _materializationService);
 				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
-				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), (profileId, failure) ->
-				{
-					if (failure.routeFailure()) { _historicalBackgroundService.recordVisibleFailure(profileId, failure.goal(), failure.stepId()); }
-				}, System::nanoTime);
+				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
-				productionLifecycle.install(PhantomMaterializationLifecyclePort.chain(_visibleFarmTravel, PhantomMaterializationLifecyclePort.chain(_visibleAutoPlay, PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge))))));
+				final var productionComposition = PhantomMaterializationLifecyclePort.chain(_visibleFarmTravel, PhantomMaterializationLifecyclePort.chain(_visibleAutoPlay, PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge)))));
+				productionLifecycle.install(_loadObserverForTesting == null ? productionComposition : PhantomMaterializationLifecyclePort.chain(_loadObserverForTesting, productionComposition));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
@@ -568,6 +580,8 @@ public final class PhantomSystem
 						_settings.ecologyWorldAgeDays(),
 						_settings.ecologyArchiveLimit());
 					_populationEcology.enablePeriodicDueMode();
+					_populationEcology.installMetadataBudget(Math.min(256, _settings.schedulerProfilesPerPulse()));
+					if (_metadataObserverForTesting != null) { _populationEcology.installMetadataObserver(_metadataObserverForTesting); }
 					_populationEcology.installDemandPump(_settings.schedulerPulseMillis(), () -> System.nanoTime() / 1_000_000L, (wake, delay) ->
 					{
 						final var future = org.l2jmobius.commons.threads.ThreadPool.schedule(wake, delay);
@@ -1588,6 +1602,18 @@ public final class PhantomSystem
 		return startConfiguredCandidate(new PhantomSystem(Objects.requireNonNull(settings), true));
 	}
 
+	static synchronized boolean startConfiguredForTesting(PhantomPlayersConfig.Settings settings, PhantomMaterializationLifecyclePort loadObserver)
+	{
+		if (_configuredInstance != null) { return false; }
+		return startConfiguredCandidate(new PhantomSystem(Objects.requireNonNull(settings), true, Objects.requireNonNull(loadObserver)));
+	}
+
+	static synchronized boolean startConfiguredForTesting(PhantomPlayersConfig.Settings settings, PhantomMaterializationLifecyclePort loadObserver, java.util.function.Consumer<PhantomPopulationEcologyService.MetadataObservation> metadataObserver)
+	{
+		if (_configuredInstance != null) { return false; }
+		return startConfiguredCandidate(new PhantomSystem(Objects.requireNonNull(settings), true, Objects.requireNonNull(loadObserver), Objects.requireNonNull(metadataObserver)));
+	}
+
 	private static boolean startConfiguredCandidate(PhantomSystem candidate)
 	{
 		try
@@ -1836,7 +1862,15 @@ public final class PhantomSystem
 	/** One bounded INITIAL scan; later M1 phases use operatorM1TargetSnapshot for one selected id. */
 	public static synchronized java.util.List<OperatorM1TargetSnapshot> operatorM1CandidateSnapshots(PhantomTopologyPoint human, long maxDistanceSquared2D)
 	{
+		return operatorM1CandidateSnapshots(human, maxDistanceSquared2D, java.util.Set.of());
+	}
+
+	/** Selector exclusion does not alter the naturally scheduled observation cohort. */
+	public static synchronized java.util.List<OperatorM1TargetSnapshot> operatorM1CandidateSnapshots(PhantomTopologyPoint human, long maxDistanceSquared2D, java.util.Set<Long> excludedProfileIds)
+	{
 		Objects.requireNonNull(human);
+		Objects.requireNonNull(excludedProfileIds);
+		if ((excludedProfileIds.size() > 1) || excludedProfileIds.stream().anyMatch(id -> (id == null) || (id <= 0))) { throw new IllegalArgumentException("M1_SELECTOR_EXCLUSION_INVALID"); }
 		final PhantomSystem configured = _configuredInstance;
 		if ((configured == null) || (configured._state != State.RUNNING) || (configured._topologyService == null) || (configured._materializationService == null) || (configured._populationManager == null) || (maxDistanceSquared2D < 0))
 		{
@@ -1845,7 +1879,7 @@ public final class PhantomSystem
 		final java.util.List<OperatorM1TargetSnapshot> candidates = new java.util.ArrayList<>();
 		for (var profile : configured._topologyService.listProfiles())
 		{
-			if ((profile.point() == null) || configured._populationManager.admissionProfile(profile.profileId()).filter(admission -> admission.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).isEmpty())
+			if (excludedProfileIds.contains(profile.profileId()) || (profile.point() == null) || configured._populationManager.admissionProfile(profile.profileId()).filter(admission -> admission.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY).isEmpty())
 			{
 				continue;
 			}
@@ -1857,6 +1891,31 @@ public final class PhantomSystem
 		}
 		candidates.sort(java.util.Comparator.comparingLong((OperatorM1TargetSnapshot candidate) -> human.distanceSquared2D(candidate.observedPosition())).thenComparingLong(OperatorM1TargetSnapshot::profileId));
 		return java.util.List.copyOf(candidates.subList(0, Math.min(128, candidates.size())));
+	}
+
+	/** Freeze calendar-online READY neighbours even when their technical materialization has failed. */
+	public static synchronized java.util.List<Long> operatorM1NaturalCohortProfileIds(PhantomTopologyPoint human)
+	{
+		Objects.requireNonNull(human);
+		final PhantomSystem configured = _configuredInstance;
+		if ((configured == null) || (configured._state != State.RUNNING) || (configured._topologyService == null) || (configured._materializationService == null) || (configured._populationManager == null)) { return java.util.List.of(); }
+		final java.util.List<Long> cohort = new java.util.ArrayList<>();
+		for (var profile : configured._topologyService.listProfiles())
+		{
+			if ((profile.point() == null) || configured._populationManager.admissionProfile(profile.profileId()).filter(admission -> (admission.populationState() == org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY) && admission.calendarOnline()).isEmpty()) { continue; }
+			final var candidate = m1TargetSnapshot(configured, profile.profileId(), profile.point(), profile.topologyGeneration(), null);
+			final var point = candidate.observedPosition() == null ? profile.point() : candidate.observedPosition();
+			if (org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(human, point)) { cohort.add(profile.profileId()); }
+		}
+		cohort.sort(Long::compare);
+		return java.util.List.copyOf(cohort);
+	}
+
+	private static Map<String, String> nativeEvidence(Player player, long epoch)
+	{
+		final var owner = player.getNativeWorkOwner();
+		if ((owner == null) || !owner.isCurrent() || (owner.player() != player) || (owner.epoch() != epoch) || (owner.evidence() == null) || !owner.evidence().matches(player.getObjectId(), epoch)) { return Map.of(); }
+		return owner.evidence().snapshot().scalarMap();
 	}
 
 	private static OperatorM1TargetSnapshot m1TargetSnapshot(PhantomSystem configured, long profileId, PhantomTopologyPoint committed, long committedSequence, Player human)
@@ -1874,7 +1933,7 @@ public final class PhantomSystem
 		final PhantomTopologyPoint livePoint = stable ? new PhantomTopologyPoint(location.getX(), location.getY(), location.getZ(), location.getInstanceId()) : null;
 		final var choice = LocalPlayM1Observation.select(committed, state, stable, livePoint, safelyStored);
 		final WorldObject nativeTarget = stable ? player.getTarget() : null;
-		return new OperatorM1TargetSnapshot(profileId, objectId, first == null ? 0 : first.materializedAtNanos(), System.nanoTime(), committed, committedSequence, choice.observed(), choice.source(), stable, first != null && first.worldPresent(), first == null ? (safelyStored ? "STORED" : "UNAVAILABLE") : first.state().name(), stable && player.isOnline(), stable && (human != null) && player.isVisibleFor(human), stable && player.isMoving(), stable && player.isAttackingNow(), stable && player.isCastingNow(), stable && player.isAutoPlaying(), nativeTarget == null ? 0 : nativeTarget.getObjectId(), (nativeTarget instanceof org.l2jmobius.gameserver.model.actor.Attackable attackable) && attackable.isMonster() && !attackable.isDead());
+		return new OperatorM1TargetSnapshot(profileId, objectId, first == null ? 0 : first.materializedAtNanos(), System.nanoTime(), committed, committedSequence, choice.observed(), choice.source(), stable, first != null && first.worldPresent(), first == null ? (safelyStored ? "STORED" : "UNAVAILABLE") : first.state().name(), stable && player.isOnline(), stable && (human != null) && player.isVisibleFor(human), stable && player.isMoving(), stable && player.isAttackingNow(), stable && player.isCastingNow(), stable && player.isAutoPlaying(), nativeTarget == null ? 0 : nativeTarget.getObjectId(), (nativeTarget instanceof org.l2jmobius.gameserver.model.actor.Attackable attackable) && attackable.isMonster() && !attackable.isDead(), stable ? nativeEvidence(player, first.materializedAtNanos()) : Map.of());
 	}
 
 	public static synchronized boolean operatorHumanLocality(long profileId)
@@ -1987,6 +2046,12 @@ public final class PhantomSystem
 			result.put(prefix + "cleanupFailureMessage", entry.cleanupFailureMessage());
 			result.put(prefix + "cleanupFailureSequence", Long.toString(entry.cleanupFailureSequence()));
 			result.put(prefix + "cleanupFailureAdmittedActionCount", Integer.toString(entry.cleanupFailureAdmittedActionCount()));
+			final var firstIncident = entry.firstCleanupIncident();
+			result.put(prefix + "cleanupIncidentId", firstIncident == null ? "" : firstIncident.id(entry.profileId()));
+			result.put(prefix + "cleanupFirstPhase", firstIncident == null ? "NONE" : firstIncident.phase().name());
+			result.put(prefix + "cleanupFirstClass", firstIncident == null ? "" : firstIncident.exceptionClass());
+			result.put(prefix + "cleanupFirstMessage", firstIncident == null ? "" : firstIncident.message());
+			result.put(prefix + "cleanupFirstUtc", firstIncident == null ? "" : firstIncident.utc());
 			result.put(prefix + "playerRetained", Boolean.toString(entry.playerRetained()));
 			result.put(prefix + "identityLeaseRetained", Boolean.toString(entry.identityLeaseRetained()));
 			result.put(prefix + "outboundAttached", Boolean.toString(entry.outboundAttached()));
@@ -2021,6 +2086,7 @@ public final class PhantomSystem
 			result.put(prefix + "z", Integer.toString(player.getZ()));
 			result.put(prefix + "targetObjectId", Integer.toString(player.getTarget() == null ? 0 : player.getTarget().getObjectId()));
 			result.put(prefix + "targetMonsterAlive", Boolean.toString((player.getTarget() instanceof org.l2jmobius.gameserver.model.actor.Attackable attackable) && attackable.isMonster() && !attackable.isDead()));
+			nativeEvidence(player, entry.materializedAtNanos()).forEach((name, value) -> result.put(prefix + name, value));
 			final boolean ordinaryEligible = (goal != null) && (goal.status() == PhantomGoalStatus.ACTIVE) && !player.isDead() && !player.isInParty() && !player.isInStoreMode();
 			if (ordinaryEligible) { eligible++; }
 			result.put(prefix + "eligible", Boolean.toString(ordinaryEligible));
@@ -2069,6 +2135,9 @@ public final class PhantomSystem
 		result.put("censusCount", Integer.toString(count));
 		result.put("censusEligible", Integer.toString(eligible));
 		result.put("censusNextProfileId", Long.toString(nextProfileId));
+		final var diagnostics = configured._materializationService.snapshot();
+		result.put("cleanupIncidentEvictions", Long.toString(diagnostics.cleanupIncidentEvictions()));
+		result.put("cleanupEvidenceIncomplete", Boolean.toString(diagnostics.cleanupEvidenceIncomplete()));
 		return Map.copyOf(result);
 	}
 
@@ -2727,7 +2796,7 @@ public final class PhantomSystem
 		return World.getInstance().getPlayers().stream().filter(player -> player.isOnline() && !player.hasHeadlessOutboundSession()).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList();
 	}
 
-	public record OperatorM1TargetSnapshot(long profileId, int objectId, long materializedAtNanos, long sampledAtNanos, PhantomTopologyPoint committedPosition, long committedSequence, PhantomTopologyPoint observedPosition, LocalPlayM1Observation.PositionSource positionSource, boolean worldPresent, boolean snapshotWorldPresent, String materializationState, boolean online, boolean visibleForHuman, boolean moving, boolean attacking, boolean casting, boolean autoPlay, int targetObjectId, boolean targetMonsterAlive)
+	public record OperatorM1TargetSnapshot(long profileId, int objectId, long materializedAtNanos, long sampledAtNanos, PhantomTopologyPoint committedPosition, long committedSequence, PhantomTopologyPoint observedPosition, LocalPlayM1Observation.PositionSource positionSource, boolean worldPresent, boolean snapshotWorldPresent, String materializationState, boolean online, boolean visibleForHuman, boolean moving, boolean attacking, boolean casting, boolean autoPlay, int targetObjectId, boolean targetMonsterAlive, Map<String, String> nativeEvidence)
 	{
 	}
 

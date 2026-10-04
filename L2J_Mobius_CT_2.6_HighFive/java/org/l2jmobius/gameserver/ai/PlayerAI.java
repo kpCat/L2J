@@ -23,6 +23,7 @@ package org.l2jmobius.gameserver.ai;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.holders.player.Duel;
 import org.l2jmobius.gameserver.model.actor.instance.StaticObject;
 import org.l2jmobius.gameserver.model.interfaces.ILocational;
@@ -67,6 +68,7 @@ public class PlayerAI extends PlayableAI
 		{
 			_nextIntention = null;
 			super.changeIntention(intention, arg0, arg1);
+			PlayerNativeWork.probeCombat(_actor.asPlayer());
 			return;
 		}
 		
@@ -74,12 +76,14 @@ public class PlayerAI extends PlayableAI
 		if ((intention == _intention) && (arg0 == _intentionArg0) && (arg1 == _intentionArg1))
 		{
 			super.changeIntention(intention, arg0, arg1);
+			PlayerNativeWork.probeCombat(_actor.asPlayer());
 			return;
 		}
 		
 		// save current intention so it can be used after cast
 		saveNextIntention(_intention, _intentionArg0, _intentionArg1);
 		super.changeIntention(intention, arg0, arg1);
+		PlayerNativeWork.probeCombat(_actor.asPlayer());
 	}
 	
 	/**
@@ -101,6 +105,7 @@ public class PlayerAI extends PlayableAI
 		}
 		
 		super.onActionReadyToAct();
+		PlayerNativeWork.probeCombat(_actor.asPlayer());
 	}
 	
 	@Override
@@ -128,6 +133,7 @@ public class PlayerAI extends PlayableAI
 	{
 		_nextIntention = null;
 		super.onActionCancel();
+		PlayerNativeWork.probeCombat(_actor.asPlayer());
 	}
 	
 	/**
@@ -158,6 +164,7 @@ public class PlayerAI extends PlayableAI
 				setIntention(Intention.IDLE);
 			}
 		}
+		PlayerNativeWork.probeCombat(_actor.asPlayer());
 	}
 	
 	@Override

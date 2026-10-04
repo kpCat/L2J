@@ -21,6 +21,7 @@
 package org.l2jmobius.gameserver.taskmanagers;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -29,6 +30,7 @@ import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.commons.util.TraceUtil;
 import org.l2jmobius.gameserver.ai.Action;
 import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 
 /**
  * Movement task manager class.
@@ -66,18 +68,20 @@ public class MovementTaskManager
 				return;
 			}
 			
-			Creature creature;
 			final Iterator<Creature> iterator = _creatures.iterator();
 			while (iterator.hasNext())
 			{
-				creature = iterator.next();
+				final Creature creature = iterator.next();
 				try
 				{
-					if (creature.updatePosition())
+					PlayerNativeWork.run(creature, List.of(), "MOVEMENT", () ->
 					{
-						iterator.remove();
-						creature.getAI().notifyAction(Action.ARRIVED);
-					}
+						if (creature.updatePosition())
+						{
+							iterator.remove();
+							creature.getAI().notifyAction(Action.ARRIVED);
+						}
+					});
 				}
 				catch (Exception e)
 				{

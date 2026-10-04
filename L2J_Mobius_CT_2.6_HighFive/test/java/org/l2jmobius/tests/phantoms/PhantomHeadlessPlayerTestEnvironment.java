@@ -152,7 +152,13 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		initialize(context, 0L);
 	}
 
-	public void initialize(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
+	/** Native infrastructure only: never deletes, recreates or loads the persisted TEST fixture. */
+	public static BootstrapResult initializeNativeInfrastructure(PhantomTestContext context) throws Exception
+	{
+		return initializeNativeInfrastructure(context, 0L);
+	}
+
+	private static BootstrapResult initializeNativeInfrastructure(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
 	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
 		final Path expectedWorkingDirectory = context.moduleRoot().resolve("dist/game").normalize();
@@ -206,7 +212,12 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		CursedWeaponsManager.getInstance();
 		RecipeManager.getInstance();
 		OlympiadManager.getInstance();
+		return bootstrap;
+	}
 
+	public void initialize(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
+	{
+		final BootstrapResult bootstrap = initializeNativeInfrastructure(context, minimumSevenSignsFestivalManagerStartMillis);
 		_accountName = "phantom_t004_" + context.seed();
 		cleanupOwnedFixtures();
 		insertOwnedAccount();

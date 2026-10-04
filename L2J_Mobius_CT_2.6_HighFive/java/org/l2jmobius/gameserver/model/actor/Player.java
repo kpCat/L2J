@@ -44,6 +44,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -458,9 +459,59 @@ public class Player extends Playable
 	private volatile PlayerOutboundSession _outboundSession = PlayerOutboundSession.clientBound();
 	private long _outboundSessionToken;
 	private volatile OwnedStoreBoundary _ownedStoreBoundary;
+	private volatile java.util.function.Supplier<AutoPlayTaskManager.TickLease> _phantomNativeActionAdmission;
+	private volatile boolean _phantomNativeActionManaged;
+	private volatile PlayerNativeWork.Owner _nativeWorkOwner;
+	private PlayerNativeWork.Ticket _nativeLoadTicket;
+	private PlayerNativeWork.Context _nativeLoadContext;
+
+	public PlayerNativeWork.Owner getNativeWorkOwner() { return _nativeWorkOwner; }
+	public boolean isNativeWorkManaged() { return _phantomNativeActionManaged; }
+	public void attachNativeWorkOwner(PlayerNativeWork.Owner owner)
+	{
+		if ((_nativeWorkOwner != null) || (owner.player() != this)) { throw new IllegalStateException("NATIVE_WORK_OWNER_ATTACHMENT_REJECTED"); }
+		_phantomNativeActionManaged = true;
+		_nativeWorkOwner = java.util.Objects.requireNonNull(owner);
+	}
+	public void detachNativeWorkOwner(PlayerNativeWork.Owner expected)
+	{
+		if (_nativeWorkOwner == expected) { _nativeWorkOwner = null; }
+	}
+
+	/** Only the materialization owner may install the existing action drain at native completion boundaries. */
+	public void attachPhantomNativeActionAdmission(java.util.function.Supplier<AutoPlayTaskManager.TickLease> admission)
+	{
+		if ((_client != null) || !hasHeadlessOutboundSession() || (org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(getObjectId()) != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM))
+		{
+			throw new IllegalStateException("PHANTOM_NATIVE_ACTION_OWNER_REJECTED");
+		}
+		_phantomNativeActionManaged = true;
+		_phantomNativeActionAdmission = java.util.Objects.requireNonNull(admission);
+	}
+
+	public void detachPhantomNativeActionAdmission(java.util.function.Supplier<AutoPlayTaskManager.TickLease> expected)
+	{
+		if (_phantomNativeActionAdmission == expected) { _phantomNativeActionAdmission = null; }
+	}
+
+	private void runPhantomNativeAction(Runnable action)
+	{
+		PlayerNativeWork.run(this, "PLAYER_NATIVE_ACTION", action);
+	}
 
 	/** One immutable volatile projection shared by owned canonical and durable stores. */
-	public record OwnedStoreSnapshot(double hp, int maxHp, double mp, int maxMp, double cp, int maxCp, int x, int y, int z, int heading, int level, long experience, long skillPoints, long experienceBeforeDeath, int classId, int race, int classIndex, int baseLevel, long baseExperience, long baseSkillPoints) {}
+	public record OwnedStoreSnapshot(double hp, int maxHp, double mp, int maxMp, double cp, int maxCp, int x, int y, int z, int heading, int level, long experience, long skillPoints, long experienceBeforeDeath, int classId, int race, int classIndex, int baseLevel, long baseExperience, long baseSkillPoints, int vitalityPoints)
+	{
+		/** Compatibility for an unattested legacy receipt; never supplies simulation eligibility. */
+		public OwnedStoreSnapshot(double hp, int maxHp, double mp, int maxMp, double cp, int maxCp, int x, int y, int z, int heading, int level, long experience, long skillPoints, long experienceBeforeDeath, int classId, int race, int classIndex, int baseLevel, long baseExperience, long baseSkillPoints)
+		{
+			this(hp, maxHp, mp, maxMp, cp, maxCp, x, y, z, heading, level, experience, skillPoints, experienceBeforeDeath, classId, race, classIndex, baseLevel, baseExperience, baseSkillPoints, -1);
+		}
+		public OwnedStoreSnapshot
+		{
+			if ((vitalityPoints < -1) || (vitalityPoints > 20000) || (vitalityPoints == 0)) { throw new IllegalArgumentException("Invalid owned native vitality snapshot."); }
+		}
+	}
 
 	public interface OwnedStoreBoundary
 	{
@@ -485,7 +536,12 @@ public class Player extends Playable
 	public boolean hasPendingOwnedStore() { final var boundary = _ownedStoreBoundary; return (boundary != null) && boundary.hasPending(); }
 
 	/** Resume only the attached receipt; this path never captures a fresh store. */
-	public synchronized boolean resumePendingOwnedStore(Object ownerKey, long goalId, long revision)
+	public boolean resumePendingOwnedStore(Object ownerKey, long goalId, long revision)
+	{
+		return PlayerNativeWork.pendingStoreCheckpoint(this, ownerKey, () -> resumePendingOwnedStoreQuiescent(ownerKey, goalId, revision));
+	}
+
+	private synchronized boolean resumePendingOwnedStoreQuiescent(Object ownerKey, long goalId, long revision)
 	{
 		final var boundary = _ownedStoreBoundary;
 		if ((boundary == null) || (boundary.ownerKey() != ownerKey)) { return false; }
@@ -493,8 +549,18 @@ public class Player extends Playable
 		final var snapshot = boundary.beforePendingStore(goalId, revision);
 		if (snapshot == null) { return !boundary.hasPending(); }
 		boolean completed = false;
+		Throwable primary = null;
 		try { storeNative(false, snapshot); completed = true; }
-		finally { boundary.afterStore(completed); }
+		catch (RuntimeException | Error failure) { primary = failure; throw failure; }
+		finally
+		{
+			try { boundary.afterStore(completed); }
+			catch (RuntimeException | Error secondary)
+			{
+				if (primary == null) { throw secondary; }
+				if (primary != secondary) { primary.addSuppressed(secondary); }
+			}
+		}
 		return !boundary.hasPending();
 	}
 
@@ -523,6 +589,11 @@ public class Player extends Playable
 	private ScheduledFuture<?> _updateAndBroadcastStatusTask;
 	private ScheduledFuture<?> _broadcastCharInfoTask;
 	private ScheduledFuture<?> _broadcastStatusUpdateTask;
+	private final Object _nativeStatusPublicationLock = new Object();
+	private Object _nativeStatusPublication;
+	private final Object _nativeTeleportPublicationLock = new Object();
+	private Object _nativeTeleportPublication;
+	private PlayerNativeTimer _nativeTeleportTimer;
 	
 	private boolean _subclassLock = false;
 	protected int _baseClass;
@@ -941,6 +1012,11 @@ public class Player extends Playable
 	 */
 	private Player(int objectId, PlayerTemplate template, String accountName, PlayerAppearance app)
 	{
+		this(objectId, template, accountName, app, null);
+	}
+
+	private Player(int objectId, PlayerTemplate template, String accountName, PlayerAppearance app, java.util.function.Consumer<Player> beforePublication)
+	{
 		super(objectId, template);
 		setInstanceType(InstanceType.Player);
 		initCharStatusUpdateValues();
@@ -960,7 +1036,25 @@ public class Player extends Playable
 		
 		// Create a Radar object
 		_radar = new Radar(this);
-		startVitalityTask();
+		if (beforePublication != null)
+		{
+			beforePublication.accept(this);
+			final var owner = _nativeWorkOwner;
+			if ((owner == null) || !owner.isCurrent()) { throw new IllegalStateException("NATIVE_LOAD_OWNER_MISSING"); }
+			_nativeLoadTicket = owner.reserve(null, "PLAYER_LOAD", PlayerNativeWork.Semantics.EARNED);
+			if ((_nativeLoadTicket == null) || !_nativeLoadTicket.tryStart()) { throw new IllegalStateException("NATIVE_LOAD_ADMISSION_REJECTED"); }
+			_nativeLoadContext = PlayerNativeWork.enter(_nativeLoadTicket);
+		}
+		try { startVitalityTask(); }
+		catch (RuntimeException | Error failure) { finishNativeLoad(failure); throw failure; }
+	}
+
+	private void finishNativeLoad(Throwable failure)
+	{
+		final var ticket = _nativeLoadTicket;
+		if (ticket == null) { return; }
+		try { if (_nativeLoadContext != null) { _nativeLoadContext.close(); } }
+		finally { _nativeLoadContext = null; _nativeLoadTicket = null; ticket.complete(failure); }
 	}
 	
 	/**
@@ -1021,6 +1115,12 @@ public class Player extends Playable
 	private final AutoPlaySettingsHolder _autoPlaySettings = new AutoPlaySettingsHolder();
 	private final AutoUseSettingsHolder _autoUseSettings = new AutoUseSettingsHolder();
 	private final AtomicBoolean _autoPlaying = new AtomicBoolean();
+	private final AtomicLong _autoPlayRegistrationGeneration = new AtomicLong();
+	private final Object _autoPlayRegistrationMonitor = new Object();
+	private boolean _nativeCleanupStarted;
+	private boolean _nativeCleanupPrepared;
+	private List<BuffInfo> _nativeCleanupEffects;
+	private volatile boolean _phantomAutoPlayManaged;
 	
 	private final List<QuestTimer> _questTimers = new ArrayList<>();
 	private final List<TimerHolder<?>> _timerHolders = new ArrayList<>();
@@ -1257,7 +1357,13 @@ public class Player extends Playable
 	 */
 	public static Player load(int objectId)
 	{
-		return restore(objectId);
+		return restore(objectId, null);
+	}
+
+	/** Optional lifetime initializer runs before constructor task publication. */
+	public static Player load(int objectId, java.util.function.Consumer<Player> beforePublication)
+	{
+		return restore(objectId, java.util.Objects.requireNonNull(beforePublication));
 	}
 	
 	private void initPcStatusUpdateValues()
@@ -3094,6 +3200,11 @@ public class Player extends Playable
 	
 	public void sitDown(boolean checkCast)
 	{
+		PlayerNativeWork.run(this, List.of(), "PLAYER_SIT", () -> sitDownNative(checkCast));
+	}
+
+	private void sitDownNative(boolean checkCast)
+	{
 		if (_sittingInProgress)
 		{
 			return;
@@ -3117,13 +3228,18 @@ public class Player extends Playable
 		broadcastPacket(new ChangeWaitType(this, ChangeWaitType.WT_SITTING));
 		
 		// Schedule a sit down task to wait for the animation to finish.
-		ThreadPool.schedule(new SitDownTask(this), 2500);
+		PlayerNativeWork.schedule(this, List.of(), "PLAYER_SIT_FINISH", PlayerNativeWork.Semantics.EARNED, new SitDownTask(this), 2500);
 	}
 	
 	/**
 	 * Stand up the Player, set the AI Intention to IDLE and send a Server->Client ChangeWaitType packet (broadcast)
 	 */
 	public void standUp()
+	{
+		PlayerNativeWork.run(this, List.of(), "PLAYER_STAND", this::standUpNative);
+	}
+
+	private void standUpNative()
 	{
 		if (_sittingInProgress)
 		{
@@ -3141,7 +3257,7 @@ public class Player extends Playable
 			broadcastPacket(new ChangeWaitType(this, ChangeWaitType.WT_STANDING));
 			
 			// Schedule a stand up task to wait for the animation to finish.
-			ThreadPool.schedule(new StandUpTask(this), 2500);
+			PlayerNativeWork.schedule(this, List.of(), "PLAYER_STAND_FINISH", PlayerNativeWork.Semantics.EARNED, new StandUpTask(this), 2500);
 		}
 	}
 	
@@ -3250,6 +3366,7 @@ public class Player extends Playable
 		if (count > 0)
 		{
 			_inventory.addAdena(process, count, this, reference);
+			recordNativeLoot(process, _inventory.getAdenaInstance(), count, currentAdena);
 			
 			// Send update packet.
 			if (count == getAdena())
@@ -3409,6 +3526,8 @@ public class Player extends Playable
 	{
 		if (item.getCount() > 0)
 		{
+			final long lootRequested = item.getCount();
+			final long lootBefore = nativeLootBefore(process, item.getId());
 			// Sends message to client if requested
 			if (sendMessage)
 			{
@@ -3475,6 +3594,7 @@ public class Player extends Playable
 					ward.activate(this, item);
 				}
 			}
+			recordNativeLoot(process, newitem, lootRequested, lootBefore);
 		}
 	}
 	
@@ -3563,6 +3683,7 @@ public class Player extends Playable
 			else
 			{
 				// Add the item to inventory
+				final long lootBefore = nativeLootBefore(process, itemId);
 				final Item createdItem = _inventory.addItem(process, itemId, count, this, reference);
 				if (enchantLevel > -1)
 				{
@@ -3588,11 +3709,30 @@ public class Player extends Playable
 					}
 				}
 				
+				recordNativeLoot(process, createdItem, count, lootBefore);
 				return createdItem;
 			}
 		}
 		
 		return null;
+	}
+
+	private long nativeLootBefore(ItemProcessType process, int itemId)
+	{
+		if ((process != ItemProcessType.LOOT) && (process != ItemProcessType.PICKUP)) { return -1; }
+		final var owner = getNativeWorkOwner();
+		if ((owner == null) || (owner.player() != this) || !owner.isCurrent() || (PlayerNativeWork.current(owner) == null) || (owner.evidence() == null)) { return -1; }
+		return _inventory.getInventoryItemCount(itemId, -1);
+	}
+
+	private void recordNativeLoot(ItemProcessType process, Item item, long requested, long before)
+	{
+		if ((before < 0) || (requested <= 0) || (item == null) || ((process != ItemProcessType.LOOT) && (process != ItemProcessType.PICKUP))
+			|| (item.getOwnerId() != getObjectId()) || (item.getItemLocation() != org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY) || item.getTemplate().hasExImmediateEffect()) { return; }
+		final var owner = getNativeWorkOwner();
+		if ((owner == null) || (owner.player() != this) || !owner.isCurrent() || (PlayerNativeWork.current(owner) == null) || (owner.evidence() == null) || !owner.evidence().matches(getObjectId(), owner.epoch())) { return; }
+		final long gain = Math.min(requested, Math.max(0, _inventory.getInventoryItemCount(item.getId(), -1) - before));
+		if (gain > 0) { owner.evidence().loot(item.getObjectId(), item.getId(), gain); }
 	}
 	
 	/**
@@ -4620,6 +4760,14 @@ public class Player extends Playable
 	@Override
 	public void doPickupItem(WorldObject object)
 	{
+		final Party party = getParty();
+		final List<Player> recipients = party == null ? List.of() : List.copyOf(party.getMembers());
+		// Admission precedes the original ground monitor; this same roster must select every native recipient.
+		PlayerNativeWork.run(this, recipients, "party-pickup", () -> doPickupItemNative(object, party, recipients));
+	}
+
+	private void doPickupItemNative(WorldObject object, Party party, List<Player> recipients)
+	{
 		if (isAlikeDead() || _isFakeDeath)
 		{
 			return;
@@ -4665,7 +4813,7 @@ public class Player extends Playable
 				return;
 			}
 			
-			if (((isInParty() && (_party.getDistributionType() == PartyDistributionType.FINDERS_KEEPERS)) || !isInParty()) && !_inventory.validateCapacity(target))
+			if (((party != null && (party.getDistributionType() == PartyDistributionType.FINDERS_KEEPERS)) || party == null) && !_inventory.validateCapacity(target))
 			{
 				sendPacket(ActionFailed.STATIC_PACKET);
 				sendPacket(SystemMessageId.YOUR_INVENTORY_IS_FULL);
@@ -4769,9 +4917,9 @@ public class Player extends Playable
 			}
 			
 			// Check if a Party is in progress
-			if (isInParty())
+			if (party != null)
 			{
-				_party.distributeItem(this, target);
+				party.distributeItem(this, target, recipients);
 			}
 			else if ((target.getId() == Inventory.ADENA_ID) && (_inventory.getAdenaInstance() != null))
 			{
@@ -4807,6 +4955,11 @@ public class Player extends Playable
 	@Override
 	public void doAttack(Creature target)
 	{
+		runPhantomNativeAction(() -> doNativeAttack(target));
+	}
+
+	private void doNativeAttack(Creature target)
+	{
 		super.doAttack(target);
 		setRecentFakeDeath(false);
 		if (target.isFakePlayer() && !FakePlayersConfig.FAKE_PLAYER_AUTO_ATTACKABLE)
@@ -4818,6 +4971,11 @@ public class Player extends Playable
 	@Override
 	public void doCast(Skill skill)
 	{
+		runPhantomNativeAction(() -> doNativeCast(skill));
+	}
+
+	private void doNativeCast(Skill skill)
+	{
 		if ((_currentSkill != null) && !checkUseMagicConditions(skill, _currentSkill.isCtrlPressed(), _currentSkill.isShiftPressed()))
 		{
 			setCastingNow(false);
@@ -4827,6 +4985,48 @@ public class Player extends Playable
 		
 		super.doCast(skill);
 		setRecentFakeDeath(false);
+	}
+
+	@Override
+	public void onHitTimer(Creature target, int damage, boolean critical, boolean miss, byte shield, boolean soulshot, boolean rechargeShots)
+	{
+		runPhantomNativeAction(() -> super.onHitTimer(target, damage, critical, miss, shield, soulshot, rechargeShots));
+	}
+
+	@Override
+	public void onMagicLaunchedTimer(org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask task)
+	{
+		runPhantomNativeAction(() -> super.onMagicLaunchedTimer(task));
+	}
+
+	@Override
+	public void onMagicHitTimer(org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask task)
+	{
+		runPhantomNativeAction(() -> super.onMagicHitTimer(task));
+	}
+
+	@Override
+	public void onMagicFinalizer(org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask task)
+	{
+		runPhantomNativeAction(() -> super.onMagicFinalizer(task));
+	}
+
+	@Override
+	public void callSkill(Skill skill, List<WorldObject> targets)
+	{
+		runPhantomNativeAction(() -> super.callSkill(skill, targets));
+	}
+
+	@Override
+	public void doCast(Skill skill, Creature target, List<WorldObject> targets)
+	{
+		runPhantomNativeAction(() -> super.doCast(skill, target, targets));
+	}
+
+	@Override
+	public void doSimultaneousCast(Skill skill, Creature target, List<WorldObject> targets)
+	{
+		runPhantomNativeAction(() -> super.doSimultaneousCast(skill, target, targets));
 	}
 	
 	public boolean canOpenPrivateStore()
@@ -5118,6 +5318,11 @@ public class Player extends Playable
 		
 		// Target the new WorldObject (add the target to the Player _target, _knownObject and Player to _KnownObject of the WorldObject)
 		super.setTarget(newTarget);
+		final var owner = getNativeWorkOwner();
+		if ((owner != null) && owner.isCurrent() && (owner.player() == this) && (PlayerNativeWork.current(owner) != null) && (owner.evidence() != null) && owner.evidence().matches(getObjectId(), owner.epoch()) && (newTarget instanceof Attackable attackable) && attackable.isMonster() && !attackable.isDead())
+		{
+			owner.evidence().selected(attackable.getNativeEvidenceTarget());
+		}
 	}
 	
 	/**
@@ -7053,6 +7258,11 @@ public class Player extends Playable
 	 */
 	public void updateAndBroadcastStatus()
 	{
+		if (isNativeWorkManaged())
+		{
+			PlayerNativeWork.run(this, List.of(), "PLAYER_STATUS_PUBLICATION", this::publishNativeStatus);
+			return;
+		}
 		if (_updateAndBroadcastStatusTask == null)
 		{
 			_updateAndBroadcastStatusTask = ThreadPool.schedule(() ->
@@ -7213,206 +7423,210 @@ public class Player extends Playable
 	 * @param objectId Identifier of the object to initialized
 	 * @return The Player loaded from the database
 	 */
-	private static Player restore(int objectId)
+	private static Player restore(int objectId, java.util.function.Consumer<Player> beforePublication)
 	{
 		Player player = null;
+		Throwable nativeLoadFailure = null;
 		double currentCp = 0;
 		double currentHp = 0;
 		double currentMp = 0;
-		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement(RESTORE_CHARACTER))
+		try
 		{
-			// Retrieve the Player from the characters table of the database
-			ps.setInt(1, objectId);
-			try (ResultSet rset = ps.executeQuery())
+			try (Connection con = DatabaseFactory.getConnection();
+				PreparedStatement ps = con.prepareStatement(RESTORE_CHARACTER))
 			{
-				if (rset.next())
+				// Retrieve the Player from the characters table of the database
+				ps.setInt(1, objectId);
+				try (ResultSet rset = ps.executeQuery())
 				{
-					final int activeClassId = rset.getInt("classid");
-					final boolean female = rset.getInt("sex") != Sex.MALE.ordinal();
-					final PlayerTemplate template = PlayerTemplateData.getInstance().getTemplate(activeClassId);
-					final PlayerAppearance app = new PlayerAppearance(rset.getByte("face"), rset.getByte("hairColor"), rset.getByte("hairStyle"), female);
-					player = new Player(objectId, template, rset.getString("account_name"), app);
-					player.setName(rset.getString("char_name"));
-					player.setLastAccess(rset.getLong("lastAccess"));
-					
-					final PlayerStat stat = player.getStat();
-					stat.setExp(rset.getLong("exp"));
-					player.setExpBeforeDeath(rset.getLong("expBeforeDeath"));
-					stat.setLevel(rset.getByte("level"));
-					stat.setSp(rset.getLong("sp"));
-					
-					player.setWantsPeace(rset.getInt("wantspeace"));
-					
-					player.setHeading(rset.getInt("heading"));
-					
-					player.setKarma(rset.getInt("karma"));
-					player.setFame(rset.getInt("fame"));
-					player.setPvpKills(rset.getInt("pvpkills"));
-					player.setPkKills(rset.getInt("pkkills"));
-					player.setOnlineTime(rset.getLong("onlinetime"));
-					player.setNewbie(rset.getInt("newbie"));
-					player.setNoble(rset.getInt("nobless") == 1);
-					
-					final int factionId = rset.getInt("faction");
-					if (factionId == 1)
+					if (rset.next())
 					{
-						player.setGood();
-					}
-					
-					if (factionId == 2)
-					{
-						player.setEvil();
-					}
-					
-					player.setClanJoinExpiryTime(rset.getLong("clan_join_expiry_time"));
-					if (player.getClanJoinExpiryTime() < System.currentTimeMillis())
-					{
-						player.setClanJoinExpiryTime(0);
-					}
-					
-					player.setClanCreateExpiryTime(rset.getLong("clan_create_expiry_time"));
-					if (player.getClanCreateExpiryTime() < System.currentTimeMillis())
-					{
-						player.setClanCreateExpiryTime(0);
-					}
-					
-					player.setPcCafePoints(rset.getInt("pccafe_points"));
-					player.setPowerGrade(rset.getInt("power_grade"));
-					player.setPledgeType(rset.getInt("subpledge"));
-					// player.setApprentice(rs.getInt("apprentice"));
-					player.setDeleteTimer(rset.getLong("deletetime"));
-					player.setTitle(rset.getString("title"));
-					player.setAccessLevel(rset.getInt("accesslevel"));
-					final int titleColor = rset.getInt("title_color");
-					if (titleColor != PlayerAppearance.DEFAULT_TITLE_COLOR)
-					{
-						player.getAppearance().setTitleColor(titleColor);
-					}
-					
-					player.setFistsWeaponItem(player.findFistsWeaponItem(activeClassId));
-					player.setUptime(System.currentTimeMillis());
-					
-					currentHp = rset.getDouble("curHp");
-					currentCp = rset.getDouble("curCp");
-					currentMp = rset.getDouble("curMp");
-					player._classIndex = 0;
-					try
-					{
-						player.setBaseClass(rset.getInt("base_class"));
-					}
-					catch (Exception e)
-					{
-						// TODO: Should this be logged?
-						player.setBaseClass(activeClassId);
-					}
-					
-					// Restore Subclass Data (cannot be done earlier in function)
-					if (restoreSubClassData(player) && (activeClassId != player.getBaseClass()))
-					{
-						for (SubClassHolder subClass : player.getSubClasses().values())
+						final int activeClassId = rset.getInt("classid");
+						final boolean female = rset.getInt("sex") != Sex.MALE.ordinal();
+						final PlayerTemplate template = PlayerTemplateData.getInstance().getTemplate(activeClassId);
+						final PlayerAppearance app = new PlayerAppearance(rset.getByte("face"), rset.getByte("hairColor"), rset.getByte("hairStyle"), female);
+						player = new Player(objectId, template, rset.getString("account_name"), app, beforePublication);
+						player.setName(rset.getString("char_name"));
+						player.setLastAccess(rset.getLong("lastAccess"));
+						
+						final PlayerStat stat = player.getStat();
+						stat.setExp(rset.getLong("exp"));
+						player.setExpBeforeDeath(rset.getLong("expBeforeDeath"));
+						stat.setLevel(rset.getByte("level"));
+						stat.setSp(rset.getLong("sp"));
+						
+						player.setWantsPeace(rset.getInt("wantspeace"));
+						
+						player.setHeading(rset.getInt("heading"));
+						
+						player.setKarma(rset.getInt("karma"));
+						player.setFame(rset.getInt("fame"));
+						player.setPvpKills(rset.getInt("pvpkills"));
+						player.setPkKills(rset.getInt("pkkills"));
+						player.setOnlineTime(rset.getLong("onlinetime"));
+						player.setNewbie(rset.getInt("newbie"));
+						player.setNoble(rset.getInt("nobless") == 1);
+						
+						final int factionId = rset.getInt("faction");
+						if (factionId == 1)
 						{
-							if (subClass.getId() == activeClassId)
+							player.setGood();
+						}
+						
+						if (factionId == 2)
+						{
+							player.setEvil();
+						}
+						
+						player.setClanJoinExpiryTime(rset.getLong("clan_join_expiry_time"));
+						if (player.getClanJoinExpiryTime() < System.currentTimeMillis())
+						{
+							player.setClanJoinExpiryTime(0);
+						}
+						
+						player.setClanCreateExpiryTime(rset.getLong("clan_create_expiry_time"));
+						if (player.getClanCreateExpiryTime() < System.currentTimeMillis())
+						{
+							player.setClanCreateExpiryTime(0);
+						}
+						
+						player.setPcCafePoints(rset.getInt("pccafe_points"));
+						player.setPowerGrade(rset.getInt("power_grade"));
+						player.setPledgeType(rset.getInt("subpledge"));
+						// player.setApprentice(rs.getInt("apprentice"));
+						player.setDeleteTimer(rset.getLong("deletetime"));
+						player.setTitle(rset.getString("title"));
+						player.setAccessLevel(rset.getInt("accesslevel"));
+						final int titleColor = rset.getInt("title_color");
+						if (titleColor != PlayerAppearance.DEFAULT_TITLE_COLOR)
+						{
+							player.getAppearance().setTitleColor(titleColor);
+						}
+						
+						player.setFistsWeaponItem(player.findFistsWeaponItem(activeClassId));
+						player.setUptime(System.currentTimeMillis());
+						
+						currentHp = rset.getDouble("curHp");
+						currentCp = rset.getDouble("curCp");
+						currentMp = rset.getDouble("curMp");
+						player._classIndex = 0;
+						try
+						{
+							player.setBaseClass(rset.getInt("base_class"));
+						}
+						catch (Exception e)
+						{
+							// TODO: Should this be logged?
+							player.setBaseClass(activeClassId);
+						}
+						
+						// Restore Subclass Data (cannot be done earlier in function)
+						if (restoreSubClassData(player, con) && (activeClassId != player.getBaseClass()))
+						{
+							for (SubClassHolder subClass : player.getSubClasses().values())
 							{
-								player._classIndex = subClass.getClassIndex();
+								if (subClass.getId() == activeClassId)
+								{
+									player._classIndex = subClass.getClassIndex();
+								}
 							}
 						}
-					}
-					
-					if ((player.getClassIndex() == 0) && (activeClassId != player.getBaseClass()))
-					{
-						// Subclass in use but doesn't exist in DB -
-						// a possible restart-while-modifysubclass cheat has been attempted.
-						// Switching to use base class
-						player.setPlayerClass(player.getBaseClass());
-						LOGGER.warning(player + " reverted to base class. Possibly has tried a relogin exploit while subclassing.");
-					}
-					else
-					{
-						player._activeClass = activeClassId;
-					}
-					
-					player.setApprentice(rset.getInt("apprentice"));
-					player.setSponsor(rset.getInt("sponsor"));
-					player.setLvlJoinedAcademy(rset.getInt("lvl_joined_academy"));
-					player.setIn7sDungeon(rset.getInt("isin7sdungeon") == 1);
-					CursedWeaponsManager.getInstance().checkPlayer(player);
-					
-					player.setDeathPenaltyBuffLevel(rset.getInt("death_penalty_level"));
-					
-					player.setVitalityPoints(rset.getInt("vitality_points"), true);
-					
-					// Set the x,y,z position of the Player and make it invisible
-					final int x = rset.getInt("x");
-					final int y = rset.getInt("y");
-					final int z = GeoEngine.getInstance().getHeight(x, y, rset.getInt("z"));
-					player.setXYZInvisible(x, y, z);
-					player.setLastServerPosition(x, y, z);
-					
-					// Set Teleport Bookmark Slot
-					player.setBookmarkSlot(rset.getInt("BookmarkSlot"));
-					
-					// character creation Time
-					player.getCreateDate().setTimeInMillis(rset.getTimestamp("createDate").getTime());
-					
-					// Language
-					player.setLang(rset.getString("language"));
-					
-					// Set Hero status if it applies
-					player.setHero(Hero.getInstance().isHero(objectId));
-					
-					final int clanId = rset.getInt("clanid");
-					Clan clan = null;
-					if (clanId > 0)
-					{
-						clan = ClanTable.getInstance().getClan(clanId);
-						player.setClan(clan);
-						if ((clan != null) && clan.isMember(objectId))
+						
+						if ((player.getClassIndex() == 0) && (activeClassId != player.getBaseClass()))
 						{
-							if (clan.getLeaderId() != player.getObjectId())
+							// Subclass in use but doesn't exist in DB -
+							// a possible restart-while-modifysubclass cheat has been attempted.
+							// Switching to use base class
+							player.setPlayerClass(player.getBaseClass());
+							LOGGER.warning(player + " reverted to base class. Possibly has tried a relogin exploit while subclassing.");
+						}
+						else
+						{
+							player._activeClass = activeClassId;
+						}
+						
+						player.setApprentice(rset.getInt("apprentice"));
+						player.setSponsor(rset.getInt("sponsor"));
+						player.setLvlJoinedAcademy(rset.getInt("lvl_joined_academy"));
+						player.setIn7sDungeon(rset.getInt("isin7sdungeon") == 1);
+						CursedWeaponsManager.getInstance().checkPlayer(player);
+						
+						player.setDeathPenaltyBuffLevel(rset.getInt("death_penalty_level"));
+						
+						player.setVitalityPoints(rset.getInt("vitality_points"), true);
+						
+						// Set the x,y,z position of the Player and make it invisible
+						final int x = rset.getInt("x");
+						final int y = rset.getInt("y");
+						final int z = GeoEngine.getInstance().getHeight(x, y, rset.getInt("z"));
+						player.setXYZInvisible(x, y, z);
+						player.setLastServerPosition(x, y, z);
+						
+						// Set Teleport Bookmark Slot
+						player.setBookmarkSlot(rset.getInt("BookmarkSlot"));
+						
+						// character creation Time
+						player.getCreateDate().setTimeInMillis(rset.getTimestamp("createDate").getTime());
+						
+						// Language
+						player.setLang(rset.getString("language"));
+						
+						// Set Hero status if it applies
+						player.setHero(Hero.getInstance().isHero(objectId));
+						
+						final int clanId = rset.getInt("clanid");
+						Clan clan = null;
+						if (clanId > 0)
+						{
+							clan = ClanTable.getInstance().getClan(clanId);
+							player.setClan(clan);
+							if ((clan != null) && clan.isMember(objectId))
 							{
-								if (player.getPowerGrade() == 0)
+								if (clan.getLeaderId() != player.getObjectId())
 								{
-									player.setPowerGrade(5);
+									if (player.getPowerGrade() == 0)
+									{
+										player.setPowerGrade(5);
+									}
+									
+									player.setClanPrivileges(clan.getRankPrivs(player.getPowerGrade()));
+								}
+								else
+								{
+									player.getClanPrivileges().enableAll();
+									player.setPowerGrade(1);
 								}
 								
-								player.setClanPrivileges(clan.getRankPrivs(player.getPowerGrade()));
+								player.setPledgeClass(ClanMember.calculatePledgeClass(player));
 							}
-							else
+						}
+						
+						if (clan == null)
+						{
+							if (player.isNoble())
 							{
-								player.getClanPrivileges().enableAll();
-								player.setPowerGrade(1);
+								player.setPledgeClass(5);
 							}
 							
-							player.setPledgeClass(ClanMember.calculatePledgeClass(player));
-						}
-					}
-					
-					if (clan == null)
-					{
-						if (player.isNoble())
-						{
-							player.setPledgeClass(5);
-						}
-						
-						if (player.isHero())
-						{
-							player.setPledgeClass(8);
-						}
-						
-						player.getClanPrivileges().disableAll();
-					}
-					
-					// Retrieve the name and ID of the other characters assigned to this account.
-					try (PreparedStatement stmt = con.prepareStatement("SELECT charId, char_name FROM characters WHERE account_name=? AND charId<>?"))
-					{
-						stmt.setString(1, player._accountName);
-						stmt.setInt(2, objectId);
-						try (ResultSet chars = stmt.executeQuery())
-						{
-							while (chars.next())
+							if (player.isHero())
 							{
-								player._chars.put(chars.getInt("charId"), chars.getString("char_name"));
+								player.setPledgeClass(8);
+							}
+							
+							player.getClanPrivileges().disableAll();
+						}
+						
+						// Retrieve the name and ID of the other characters assigned to this account.
+						try (PreparedStatement stmt = con.prepareStatement("SELECT charId, char_name FROM characters WHERE account_name=? AND charId<>?"))
+						{
+							stmt.setString(1, player._accountName);
+							stmt.setInt(2, objectId);
+							try (ResultSet chars = stmt.executeQuery())
+							{
+								while (chars.next())
+								{
+									player._chars.put(chars.getInt("charId"), chars.getString("char_name"));
+								}
 							}
 						}
 					}
@@ -7473,7 +7687,10 @@ public class Player extends Playable
 		catch (Exception e)
 		{
 			LOGGER.log(Level.SEVERE, "Failed loading character.", e);
+			if (beforePublication != null) { nativeLoadFailure = e; throw new IllegalStateException("OWNED_PLAYER_LOAD_FAILED", e); }
 		}
+		catch (Error failure) { nativeLoadFailure = failure; throw failure; }
+		finally { if (player != null) { player.finishNativeLoad(nativeLoadFailure); } }
 		
 		return player;
 	}
@@ -7525,10 +7742,9 @@ public class Player extends Playable
 	 * @param player
 	 * @return
 	 */
-	private static boolean restoreSubClassData(Player player)
+	private static boolean restoreSubClassData(Player player, Connection con)
 	{
-		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps = con.prepareStatement(RESTORE_CHAR_SUBCLASSES))
+		try (PreparedStatement ps = con.prepareStatement(RESTORE_CHAR_SUBCLASSES))
 		{
 			ps.setInt(1, player.getObjectId());
 			try (ResultSet rs = ps.executeQuery())
@@ -7715,14 +7931,77 @@ public class Player extends Playable
 	 * Update Player stats in the characters table of the database.
 	 * @param storeActiveEffects
 	 */
-	public synchronized void store(boolean storeActiveEffects)
+	public void store(boolean storeActiveEffects)
+	{
+		PlayerNativeWork.checkpoint(this, () -> { storeQuiescent(storeActiveEffects); return null; });
+	}
+
+	private void publishNativeStatus()
+	{
+		final Object publication = new Object();
+		synchronized (_nativeStatusPublicationLock)
+		{
+			if (_nativeStatusPublication != null) { return; }
+			_nativeStatusPublication = publication;
+		}
+		try
+		{
+			final ScheduledFuture<?> future = PlayerNativeWork.schedule(this, List.of(), "PLAYER_STATUS", PlayerNativeWork.Semantics.EARNED, () ->
+			{
+				try
+				{
+					refreshOverloaded();
+					refreshExpertisePenalty();
+					broadcastUserInfo();
+				}
+				finally { clearNativeStatusPublication(publication); }
+			}, 50);
+			if (future == null) { throw new IllegalStateException("NATIVE_STATUS_PUBLICATION_REFUSED"); }
+			final boolean retained;
+			synchronized (_nativeStatusPublicationLock)
+			{
+				retained = _nativeStatusPublication == publication;
+				if (retained) { _updateAndBroadcastStatusTask = future; }
+			}
+			if (!retained) { future.cancel(false); }
+		}
+		catch (RuntimeException | Error failure)
+		{
+			clearNativeStatusPublication(publication);
+			throw failure;
+		}
+	}
+
+	private void clearNativeStatusPublication(Object publication)
+	{
+		synchronized (_nativeStatusPublicationLock)
+		{
+			if (_nativeStatusPublication == publication)
+			{
+				_nativeStatusPublication = null;
+				_updateAndBroadcastStatusTask = null;
+			}
+		}
+	}
+
+	private synchronized void storeQuiescent(boolean storeActiveEffects)
 	{
 		final OwnedStoreBoundary boundary = _ownedStoreBoundary;
 		if (boundary == null) { storeNative(storeActiveEffects, null); return; }
 		final OwnedStoreSnapshot snapshot = boundary.beforeStore();
 		boolean completed = false;
+		Throwable primary = null;
 		try { storeNative(storeActiveEffects, snapshot); completed = true; }
-		finally { boundary.afterStore(completed); }
+		catch (RuntimeException | Error failure) { primary = failure; throw failure; }
+		finally
+		{
+			try { boundary.afterStore(completed); }
+			catch (RuntimeException | Error secondary)
+			{
+				if (primary == null) { throw secondary; }
+				if (primary != secondary) { primary.addSuppressed(secondary); }
+			}
+		}
 	}
 
 	private void storeNative(boolean storeActiveEffects, OwnedStoreSnapshot snapshot)
@@ -7825,7 +8104,7 @@ public class Player extends Playable
 			ps.setString(45, getName());
 			ps.setLong(46, _deathPenaltyBuffLevel);
 			ps.setInt(47, _bookmarkSlot);
-			ps.setInt(48, getVitalityPoints());
+			ps.setInt(48, ((snapshot == null) || (snapshot.vitalityPoints() == -1)) ? getVitalityPoints() : snapshot.vitalityPoints());
 			ps.setString(49, _lang);
 			int factionId = 0;
 			if (_isGood)
@@ -7910,7 +8189,7 @@ public class Player extends Playable
 			{
 				if (storeEffects)
 				{
-					for (BuffInfo info : getEffectList().getEffects())
+					for (BuffInfo info : _nativeCleanupEffects == null ? getEffectList().getEffects() : _nativeCleanupEffects)
 					{
 						if (info == null)
 						{
@@ -7918,6 +8197,11 @@ public class Player extends Playable
 						}
 						
 						final Skill skill = info.getSkill();
+						final int remainingTime = info.getTime();
+						if (_nativeCleanupEffects != null && info.getAbnormalTime() > 0 && remainingTime <= 0)
+						{
+							continue;
+						}
 						
 						// Do not save heals.
 						if (skill.getAbnormalType() == AbnormalType.LIFE_FORCE_OTHERS)
@@ -7947,7 +8231,7 @@ public class Player extends Playable
 						statement.setInt(1, getObjectId());
 						statement.setInt(2, skill.getId());
 						statement.setInt(3, skill.getLevel());
-						statement.setInt(4, info.getTime());
+						statement.setInt(4, remainingTime);
 						
 						final TimeStamp t = getSkillReuseTimeStamp(skill.getReuseHashCode());
 						statement.setLong(5, (t != null) && (currentTime < t.getStamp()) ? t.getReuse() : 0);
@@ -11089,7 +11373,7 @@ public class Player extends Playable
 		sendPacket(new SetupGauge(getObjectId(), 2, timeInWater));
 		
 		// Schedule the water task.
-		_taskWater = ThreadPool.scheduleAtFixedRate(new WaterTask(this), timeInWater, 1000);
+		_taskWater = PlayerNativeWork.scheduleAtFixedRate(this, "PLAYER_WATER", new WaterTask(this), timeInWater, 1000);
 	}
 	
 	public boolean isInWater()
@@ -11497,6 +11781,11 @@ public class Player extends Playable
 	
 	public void setTeleporting(boolean teleport, boolean useWatchDog)
 	{
+		PlayerNativeWork.run(this, List.of(), "PLAYER_TELEPORT_STATE", () -> setTeleportingNative(teleport, useWatchDog));
+	}
+
+	private void setTeleportingNative(boolean teleport, boolean useWatchDog)
+	{
 		super.setTeleporting(teleport);
 		if (!useWatchDog)
 		{
@@ -11505,6 +11794,11 @@ public class Player extends Playable
 		
 		if (teleport)
 		{
+			if (isNativeWorkManaged())
+			{
+				if (PlayerConfig.TELEPORT_WATCHDOG_TIMEOUT > 0) { publishNativeTeleportWatchdog(); }
+				return;
+			}
 			if ((_teleportWatchdog == null) && (PlayerConfig.TELEPORT_WATCHDOG_TIMEOUT > 0))
 			{
 				synchronized (this)
@@ -11512,6 +11806,10 @@ public class Player extends Playable
 					_teleportWatchdog = ThreadPool.schedule(new TeleportWatchdogTask(this), PlayerConfig.TELEPORT_WATCHDOG_TIMEOUT * 1000);
 				}
 			}
+		}
+		else if (isNativeWorkManaged())
+		{
+			cancelNativeTeleportWatchdog();
 		}
 		else if (_teleportWatchdog != null)
 		{
@@ -11543,12 +11841,80 @@ public class Player extends Playable
 	@Override
 	public synchronized void addExpAndSp(double addToExp, double addToSp)
 	{
-		getStat().addExpAndSp(addToExp, addToSp, false);
+		addExpAndSp(addToExp, addToSp, false);
 	}
 	
 	public synchronized void addExpAndSp(double addToExp, double addToSp, boolean useVitality)
 	{
+		final long expBefore = getExp();
+		final long spBefore = getSp();
 		getStat().addExpAndSp(addToExp, addToSp, useVitality);
+		final var owner = getNativeWorkOwner();
+		final var rewardTarget = PlayerNativeEvidence.currentRewardTarget();
+		if ((owner != null) && owner.isCurrent() && (owner.player() == this) && (PlayerNativeWork.current(owner) != null) && (owner.evidence() != null) && owner.evidence().matches(getObjectId(), owner.epoch()) && (rewardTarget != null))
+		{
+			owner.evidence().reward(rewardTarget, Math.max(0, getExp() - expBefore), Math.max(0, getSp() - spBefore));
+		}
+	}
+
+	private void publishNativeTeleportWatchdog()
+	{
+		final Object publication = new Object();
+		synchronized (_nativeTeleportPublicationLock)
+		{
+			if (!isTeleporting() || (_nativeTeleportPublication != null)) { return; }
+			_nativeTeleportPublication = publication;
+		}
+		try
+		{
+			final PlayerNativeTimer timer = PlayerNativeTimer.ambient(this, "PLAYER_TELEPORT_WATCHDOG", () -> clearNativeTeleportPublication(publication));
+			final boolean current;
+			synchronized (_nativeTeleportPublicationLock)
+			{
+				current = _nativeTeleportPublication == publication;
+				if (current) { _nativeTeleportTimer = timer; }
+			}
+			if (!current) { timer.cancel(null); return; }
+			timer.submit(new TeleportWatchdogTask(this), PlayerConfig.TELEPORT_WATCHDOG_TIMEOUT * 1000);
+			final boolean retained;
+			synchronized (_nativeTeleportPublicationLock)
+			{
+				retained = _nativeTeleportPublication == publication;
+				if (retained) { _teleportWatchdog = timer.future(); }
+			}
+			if (!retained) { timer.cancel(null); }
+		}
+		catch (RuntimeException | Error failure)
+		{
+			clearNativeTeleportPublication(publication);
+			throw failure;
+		}
+	}
+
+	private void cancelNativeTeleportWatchdog()
+	{
+		final PlayerNativeTimer timer;
+		synchronized (_nativeTeleportPublicationLock)
+		{
+			timer = _nativeTeleportTimer;
+			_nativeTeleportPublication = null;
+			_nativeTeleportTimer = null;
+			_teleportWatchdog = null;
+		}
+		if (timer != null) { timer.cancel(null); }
+	}
+
+	private void clearNativeTeleportPublication(Object publication)
+	{
+		synchronized (_nativeTeleportPublicationLock)
+		{
+			if (_nativeTeleportPublication == publication)
+			{
+				_nativeTeleportPublication = null;
+				_nativeTeleportTimer = null;
+				_teleportWatchdog = null;
+			}
+		}
 	}
 	
 	public void removeExpAndSp(long removeExp, long removeSp)
@@ -11829,6 +12195,12 @@ public class Player extends Playable
 	@Override
 	public boolean deleteMe()
 	{
+		if (!_nativeCleanupPrepared) { notifyNativeLogout(); }
+		return deleteMeNative();
+	}
+
+	private void notifyNativeLogout()
+	{
 		if (EventDispatcher.getInstance().hasListener(EventType.ON_PLAYER_LOGOUT, this))
 		{
 			EventDispatcher.getInstance().notifyEventAsync(new OnPlayerLogout(this), this);
@@ -11843,8 +12215,100 @@ public class Player extends Playable
 		}
 		catch (Exception e)
 		{
+			final var owner = getNativeWorkOwner();
+			if ((owner != null) && (PlayerNativeWork.current(owner) != null)) { owner.recordFailure(e); }
 			LOGGER.log(Level.SEVERE, "deleteMe()", e);
 		}
+	}
+
+	/** Called only inside the exact owner's terminal ticket, before its final native store. */
+	public void prepareNativeCleanup()
+	{
+		requireNativeCleanupContext();
+		if (_nativeCleanupPrepared) { return; }
+		if (_nativeCleanupStarted) { throw new IllegalStateException("NATIVE_TEARDOWN_PARTIAL_NO_REPLAY"); }
+		_nativeCleanupStarted = true;
+		_nativeCleanupEffects = new ArrayList<>(getEffectList().getEffects());
+		notifyNativeLogout();
+		if (GeneralConfig.ENABLE_BLOCK_CHECKER_EVENT && (_handysBlockCheckerEventArena != -1)) { HandysBlockCheckerManager.getInstance().onDisconnect(this); }
+		dropNativeCombatFlag();
+		if (isFlying()) { removeSkill(CommonSkill.WYVERN_BREATH.getSkill()); }
+		RecipeManager.getInstance().requestMakeItemAbort(this);
+		if (isChannelized()) { getSkillChannelized().abortChannelization(); }
+		getEffectList().stopAllToggles();
+		final ZoneRegion region = ZoneManager.getInstance().getRegion(this);
+		if (region != null) { region.removeFromZones(this); }
+		if (isInParty()) { leaveParty(); }
+		stopCubics();
+		if (hasSummon()) { _summon.setRestoreSummon(true); _summon.unSummon(this); }
+		if (getActiveRequester() != null) { setActiveRequester(null); cancelActiveTrade(); }
+		if (_observerMode) { setLocationInvisible(_lastLoc); }
+		if (_vehicle != null) { _vehicle.oustPlayer(this); }
+		detachNativeInstance();
+		completeNativeCleanupEffects();
+		_nativeCleanupPrepared = true;
+	}
+
+	private void requireNativeCleanupContext()
+	{
+		final var owner = getNativeWorkOwner();
+		if (!isNativeWorkManaged() || (owner == null) || (owner.player() != this) || !owner.isCurrent() || (PlayerNativeWork.current(owner) == null)) { throw new IllegalStateException("NATIVE_TEARDOWN_OWNER_CONTEXT_REQUIRED"); }
+	}
+
+	public boolean isNativeCleanupPrepared() { return _nativeCleanupPrepared; }
+
+	public void completeNativeCleanupEffects()
+	{
+		requireNativeCleanupContext();
+		final var combined = new LinkedHashMap<Integer, BuffInfo>();
+		if (_nativeCleanupEffects != null) { for (BuffInfo info : _nativeCleanupEffects) { combined.put(info.getSkill().getReuseHashCode(), info); } }
+		for (BuffInfo info : getEffectList().getEffects()) { combined.put(info.getSkill().getReuseHashCode(), info); }
+		if (combined.size() > 1024) { throw new IllegalStateException("NATIVE_TEARDOWN_EFFECT_SAVE_CAP"); }
+		_nativeCleanupEffects = new ArrayList<>(combined.values());
+		getEffectList().stopAllEffectsWithoutExclusions(false, false);
+		// Stock stat-only buffs can reduce a maximum without an onExit clamp.
+		if (getCurrentHp() > getMaxHp()) { setCurrentHp(getMaxHp()); }
+		if (getCurrentMp() > getMaxMp()) { setCurrentMp(getMaxMp()); }
+		if (getCurrentCp() > getMaxCp()) { setCurrentCp(getMaxCp()); }
+	}
+
+	private void dropNativeCombatFlag()
+	{
+		if (_inventory.getItemByItemId(9819) != null)
+		{
+			final Fort fort = FortManager.getInstance().getFort(this);
+			if (fort != null) { FortSiegeManager.getInstance().dropCombatFlag(this, fort.getResidenceId()); }
+			else
+			{
+				final BodyPart bodyPart = BodyPart.fromItem(_inventory.getItemByItemId(9819));
+				_inventory.unEquipItemInBodySlot(bodyPart);
+				destroyItem(ItemProcessType.DESTROY, _inventory.getItemByItemId(9819), null, true);
+			}
+		}
+		else if (_combatFlagEquippedId) { TerritoryWarManager.getInstance().dropCombatFlag(this, false, false); }
+	}
+
+	private void detachNativeInstance()
+	{
+		final int instanceId = getInstanceId();
+		if ((instanceId != 0) && !GeneralConfig.RESTORE_PLAYER_INSTANCE)
+		{
+			final Instance inst = InstanceManager.getInstance().getInstance(instanceId);
+			if (inst != null)
+			{
+				inst.removePlayer(getObjectId());
+				final Location loc = inst.getExitLoc();
+				if (loc != null)
+				{
+					setXYZInvisible(loc.getX() + Rnd.get(-30, 30), loc.getY() + Rnd.get(-30, 30), loc.getZ());
+					if (hasSummon()) { _summon.teleToLocation(loc, true); _summon.setInstanceId(0); }
+				}
+			}
+		}
+	}
+
+	private boolean deleteMeNative()
+	{
 		
 		// Set the online Flag to True or False and update the characters table of the database with online status and lastAccess (called when login and logout)
 		try
@@ -11863,7 +12327,7 @@ public class Player extends Playable
 		
 		try
 		{
-			if (GeneralConfig.ENABLE_BLOCK_CHECKER_EVENT && (_handysBlockCheckerEventArena != -1))
+			if (!_nativeCleanupPrepared && GeneralConfig.ENABLE_BLOCK_CHECKER_EVENT && (_handysBlockCheckerEventArena != -1))
 			{
 				HandysBlockCheckerManager.getInstance().onDisconnect(this);
 			}
@@ -11889,24 +12353,7 @@ public class Player extends Playable
 		// remove combat flag
 		try
 		{
-			if (_inventory.getItemByItemId(9819) != null)
-			{
-				final Fort fort = FortManager.getInstance().getFort(this);
-				if (fort != null)
-				{
-					FortSiegeManager.getInstance().dropCombatFlag(this, fort.getResidenceId());
-				}
-				else
-				{
-					final BodyPart bodyPart = BodyPart.fromItem(_inventory.getItemByItemId(9819));
-					_inventory.unEquipItemInBodySlot(bodyPart);
-					destroyItem(ItemProcessType.DESTROY, _inventory.getItemByItemId(9819), null, true);
-				}
-			}
-			else if (_combatFlagEquippedId)
-			{
-				TerritoryWarManager.getInstance().dropCombatFlag(this, false, false);
-			}
+			if (!_nativeCleanupPrepared) { dropNativeCombatFlag(); }
 		}
 		catch (Exception e)
 		{
@@ -11932,7 +12379,7 @@ public class Player extends Playable
 		
 		try
 		{
-			if (isFlying())
+			if (!_nativeCleanupPrepared && isFlying())
 			{
 				removeSkill(CommonSkill.WYVERN_BREATH.getSkill());
 			}
@@ -11980,7 +12427,7 @@ public class Player extends Playable
 		// Stop crafting, if in progress
 		try
 		{
-			RecipeManager.getInstance().requestMakeItemAbort(this);
+			if (!_nativeCleanupPrepared) { RecipeManager.getInstance().requestMakeItemAbort(this); }
 		}
 		catch (Exception e)
 		{
@@ -11997,23 +12444,23 @@ public class Player extends Playable
 			LOGGER.log(Level.SEVERE, "deleteMe()", e);
 		}
 		
-		if (isChannelized())
+		if (!_nativeCleanupPrepared && isChannelized())
 		{
 			getSkillChannelized().abortChannelization();
 		}
 		
 		// Stop all toggles.
-		getEffectList().stopAllToggles();
+		if (!_nativeCleanupPrepared) { getEffectList().stopAllToggles(); }
 		
 		// Remove from world regions zones.
 		final ZoneRegion region = ZoneManager.getInstance().getRegion(this);
-		if (region != null)
+		if (!_nativeCleanupPrepared && (region != null))
 		{
 			region.removeFromZones(this);
 		}
 		
 		// If a Party is in progress, leave it (and festival party)
-		if (isInParty())
+		if (!_nativeCleanupPrepared && isInParty())
 		{
 			try
 			{
@@ -12025,7 +12472,7 @@ public class Player extends Playable
 			}
 		}
 		
-		stopCubics();
+		if (!_nativeCleanupPrepared) { stopCubics(); }
 		
 		// Remove the Player from the world
 		try
@@ -12043,7 +12490,7 @@ public class Player extends Playable
 		}
 		
 		// If the Player has Pet, unsummon it
-		if (hasSummon())
+		if (!_nativeCleanupPrepared && hasSummon())
 		{
 			try
 			{
@@ -12104,12 +12551,12 @@ public class Player extends Playable
 		{
 			// Check if the Player is in observer mode to set its position to its position
 			// before entering in observer mode
-			if (_observerMode)
+			if (!_nativeCleanupPrepared && _observerMode)
 			{
 				setLocationInvisible(_lastLoc);
 			}
 			
-			if (_vehicle != null)
+			if (!_nativeCleanupPrepared && (_vehicle != null))
 			{
 				_vehicle.oustPlayer(this);
 			}
@@ -12122,27 +12569,7 @@ public class Player extends Playable
 		// remove player from instance and set spawn location if any
 		try
 		{
-			final int instanceId = getInstanceId();
-			if ((instanceId != 0) && !GeneralConfig.RESTORE_PLAYER_INSTANCE)
-			{
-				final Instance inst = InstanceManager.getInstance().getInstance(instanceId);
-				if (inst != null)
-				{
-					inst.removePlayer(getObjectId());
-					final Location loc = inst.getExitLoc();
-					if (loc != null)
-					{
-						final int x = loc.getX() + Rnd.get(-30, 30);
-						final int y = loc.getY() + Rnd.get(-30, 30);
-						setXYZInvisible(x, y, loc.getZ());
-						if (hasSummon()) // dead pet
-						{
-							_summon.teleToLocation(loc, true);
-							_summon.setInstanceId(0);
-						}
-					}
-				}
-			}
+			if (!_nativeCleanupPrepared) { detachNativeInstance(); }
 		}
 		catch (Exception e)
 		{
@@ -12227,7 +12654,9 @@ public class Player extends Playable
 		
 		PlayerAutoSaveTaskManager.getInstance().remove(this);
 		
-		return super.deleteMe();
+		final boolean deleted = super.deleteMe();
+		if (deleted) { _nativeCleanupEffects = null; }
+		return deleted;
 	}
 	
 	// startFishing() was stripped of any pre-fishing related checks, namely the fishing zone check.
@@ -12885,7 +13314,7 @@ public class Player extends Playable
 	{
 		if (PlayerConfig.ENABLE_VITALITY && (_vitalityTask == null))
 		{
-			_vitalityTask = ThreadPool.scheduleAtFixedRate(new VitalityTask(this), 1000, 60000);
+			_vitalityTask = PlayerNativeWork.scheduleAtFixedRate(this, "PLAYER_VITALITY", new VitalityTask(this), 1000, 60000);
 		}
 	}
 	
@@ -15340,7 +15769,11 @@ public class Player extends Playable
 			_vitalityTask = null;
 		}
 		
-		if ((_teleportWatchdog != null) && !_teleportWatchdog.isDone() && !_teleportWatchdog.isCancelled())
+		if (isNativeWorkManaged())
+		{
+			cancelNativeTeleportWatchdog();
+		}
+		else if ((_teleportWatchdog != null) && !_teleportWatchdog.isDone() && !_teleportWatchdog.isCancelled())
 		{
 			_teleportWatchdog.cancel(false);
 			_teleportWatchdog = null;
@@ -15475,12 +15908,49 @@ public class Player extends Playable
 	
 	public void setAutoPlaying(boolean value)
 	{
-		_autoPlaying.set(value);
-		
-		if (!value && _offlinePlay && OfflinePlayConfig.RESTORE_AUTO_PLAY_OFFLINERS)
+		final long generation = setAutoPlayingRegistration(value);
+		if (!value) { finishAutoPlayRegistrationStop(generation, false); }
+	}
+
+	/** Registration mutation is atomic and performs no native callbacks or database I/O. */
+	public final long setAutoPlayingRegistration(boolean value)
+	{
+		return withAutoPlayRegistration(() -> { _autoPlaying.set(value); return _autoPlayRegistrationGeneration.incrementAndGet(); });
+	}
+
+	/** Serialize native stop effects with replacement publication, without holding a manager monitor. */
+	public final <T> T withAutoPlayRegistration(java.util.function.Supplier<T> action)
+	{
+		synchronized (_autoPlayRegistrationMonitor) { return action.get(); }
+	}
+
+	/** Run native cleanup outside the manager monitor, only for the observed registration. */
+	public final void finishAutoPlayRegistrationStop(long generation, boolean followSummon)
+	{
+		withAutoPlayRegistration(() -> { finishAutoPlayRegistrationStopNative(generation, followSummon); return null; });
+	}
+
+	private void finishAutoPlayRegistrationStopNative(long generation, boolean followSummon)
+	{
+		if ((generation != _autoPlayRegistrationGeneration.get()) || isAutoPlaying()) { return; }
+		if (_offlinePlay && OfflinePlayConfig.RESTORE_AUTO_PLAY_OFFLINERS)
 		{
 			OfflinePlayTable.getInstance().removeOfflinePlay(this);
 		}
+		if (followSummon && (generation == _autoPlayRegistrationGeneration.get()) && !isAutoPlaying() && (hasServitor() || hasPet()))
+		{
+			getSummon().followOwner();
+		}
+	}
+
+	public final void markPhantomAutoPlayManaged()
+	{
+		_phantomAutoPlayManaged = true;
+	}
+
+	public final boolean isPhantomAutoPlayManaged()
+	{
+		return _phantomAutoPlayManaged;
 	}
 	
 	public boolean isAutoPlaying()

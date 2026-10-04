@@ -16,12 +16,14 @@
  */
 package org.l2jmobius.gameserver.model.zone.type;
 
+import java.util.Collections;
 import java.util.concurrent.Future;
 
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.managers.CastleManager;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.enums.creature.InstanceType;
 import org.l2jmobius.gameserver.model.siege.Castle;
 import org.l2jmobius.gameserver.model.stats.Stat;
@@ -189,17 +191,20 @@ public class DamageZone extends ZoneType
 				}
 			}
 			
+			final boolean siegeInProgress = siege;
 			for (Creature character : getCharactersInside())
 			{
-				if ((character != null) && character.isPlayer() && !character.isDead())
+				if (character == null) { continue; }
+				PlayerNativeWork.run(character, Collections.emptyList(), "ZONE_DAMAGE", () ->
 				{
-					if (siege)
+					if (!character.isPlayer() || character.isDead()) { return; }
+					if (siegeInProgress)
 					{
 						// During siege defenders not affected.
 						final Player player = character.asPlayer();
 						if ((player != null) && player.isInSiege() && (player.getSiegeState() == 2))
 						{
-							continue;
+							return;
 						}
 					}
 					
@@ -213,7 +218,7 @@ public class DamageZone extends ZoneType
 					{
 						character.reduceCurrentMp(getMPDamagePerSecond() * multiplier);
 					}
-				}
+				});
 			}
 		}
 	}

@@ -50,6 +50,27 @@ public interface PhantomBackgroundAuthority
 
 	PhantomBackgroundState capture(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous);
 
+	/** Native persistence is separate from simulation admission. Defaults never attest an unknown policy. */
+	default NativeCapture captureOwnedNative(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous)
+	{
+		return new NativeCapture(capture(profileId, player, goal, previous), new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN));
+	}
+
+	default NativeCapture captureOwnedNativeAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
+	{
+		return new NativeCapture(captureAcquisition(profileId, player, goal, previous, targetItemId), new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN));
+	}
+
+	record NativeCapture(PhantomBackgroundState state, PhantomNativeContext.Capture context)
+	{
+		public NativeCapture { Objects.requireNonNull(state, "state"); Objects.requireNonNull(context, "context"); }
+	}
+
+	default PhantomNativeContext.Capture captureNativeContext(Player player)
+	{
+		return new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN);
+	}
+
 	default PhantomBackgroundState captureAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
 	{
 		throw new UnsupportedOperationException("Acquisition background capture is unavailable.");

@@ -29,6 +29,11 @@ import java.util.concurrent.ScheduledFuture;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeTimer;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Semantics;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Ticket;
 import org.l2jmobius.gameserver.model.actor.holders.creature.EffectList;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.effects.EffectTaskInfo;
@@ -58,6 +63,11 @@ public class BuffInfo
 	// Tasks
 	/** Effect tasks for ticks. */
 	private final Map<AbstractEffect, EffectTaskInfo> _tasks = new ConcurrentHashMap<>();
+	private final Map<AbstractEffect, PlayerNativeTimer> _nativeTickTimers = new ConcurrentHashMap<>();
+	private final Player _nativePlayer;
+	private final boolean _nativeManaged;
+	private final PlayerNativeWork.Owner _nativeOwner;
+	private final long _nativeEpoch;
 	
 	// Time and ticks
 	/** Abnormal time. */
@@ -82,6 +92,11 @@ public class BuffInfo
 		_effector = effector;
 		_effected = effected;
 		_skill = skill;
+		// An ordinary NPC receiver never borrows its effector's ambient lifetime.
+		_nativePlayer = effected instanceof Player player ? player : ((effected != null) && effected.isSummon() ? effected.asSummon().getOwner() : null);
+		_nativeManaged = (_nativePlayer != null) && _nativePlayer.isNativeWorkManaged();
+		_nativeOwner = _nativeManaged ? _nativePlayer.getNativeWorkOwner() : null;
+		_nativeEpoch = _nativeOwner == null ? -1 : _nativeOwner.epoch();
 		final int stockAbnormalTime = Formulas.calcEffectAbnormalTime(effector, effected, skill);
 		_abnormalTime = PersonalEffectDurationService.getInstance().adjustAbnormalTime(effected, skill, stockAbnormalTime);
 		_periodStartTicks = GameTimeTaskManager.getInstance().getGameTicks();
@@ -94,6 +109,47 @@ public class BuffInfo
 	public List<AbstractEffect> getEffects()
 	{
 		return _effects;
+	}
+
+	/** The captured receiver owns the whole invocation, including native onExit callbacks. */
+	public void runNative(String kind, Runnable action)
+	{
+		if (!_nativeManaged) { action.run(); return; }
+		if (!nativeOwnerCurrent()) { return; }
+		if (PlayerNativeWork.current(_nativeOwner) != null) { action.run(); return; }
+		final Ticket ticket = reserveNative(kind, Semantics.CANCELLABLE);
+		if (ticket != null) { runNative(ticket, action); }
+	}
+
+	/** Expiry commits a child before executor publication or native list removal. */
+	void executeNative(String kind, Runnable action)
+	{
+		if (!_nativeManaged) { ThreadPool.execute(action); return; }
+		final Ticket ticket = reserveNative(kind, Semantics.EARNED);
+		if (ticket == null) { return; }
+		try { ThreadPool.executeOrThrow(() -> runNative(ticket, action)); }
+		catch (RuntimeException | Error failure) { ticket.rejected(failure); throw failure; }
+	}
+
+	private boolean nativeOwnerCurrent()
+	{
+		return (_nativeOwner != null) && (_nativePlayer.getNativeWorkOwner() == _nativeOwner) && (_nativeOwner.epoch() == _nativeEpoch) && _nativeOwner.isCurrent();
+	}
+
+	private Ticket reserveNative(String kind, Semantics semantics)
+	{
+		if (!nativeOwnerCurrent()) { return null; }
+		try { return _nativeOwner.reserve(PlayerNativeWork.current(_nativeOwner), kind + ":" + _skill.getId(), semantics); }
+		catch (RuntimeException | Error failure) { _nativeOwner.recordFailure(failure); throw failure; }
+	}
+
+	private void runNative(Ticket ticket, Runnable action)
+	{
+		if (!ticket.tryStart()) { return; }
+		Throwable failure = null;
+		try (var context = PlayerNativeWork.enter(ticket)) { action.run(); }
+		catch (RuntimeException | Error thrown) { failure = thrown; throw thrown; }
+		finally { ticket.complete(failure); }
 	}
 	
 	/**
@@ -234,6 +290,11 @@ public class BuffInfo
 	 */
 	public void stopAllEffects(SkillFinishType type, boolean broadcast)
 	{
+		runNative("BUFF_STOP", () -> stopAllEffectsNative(type, broadcast));
+	}
+
+	private void stopAllEffectsNative(SkillFinishType type, boolean broadcast)
+	{
 		setFinishType(type);
 		
 		// Remove this buff info from BuffFinishTask.
@@ -242,6 +303,11 @@ public class BuffInfo
 	}
 	
 	public void initializeEffects()
+	{
+		runNative("BUFF_INITIALIZE", this::initializeEffectsNative);
+	}
+
+	private void initializeEffectsNative()
 	{
 		if ((_effected == null) || (_skill == null))
 		{
@@ -284,7 +350,19 @@ public class BuffInfo
 			{
 				// The task for the effect ticks.
 				final EffectTickTask effectTask = new EffectTickTask(this, effect);
-				addTask(effect, new EffectTaskInfo(effectTask, ThreadPool.scheduleAtFixedRate(effectTask, effect.getTicks() * PlayerConfig.EFFECT_TICK_RATIO, effect.getTicks() * PlayerConfig.EFFECT_TICK_RATIO)));
+				if (_nativeManaged)
+				{
+					final var timer = new PlayerNativeTimer(_nativePlayer, _nativeOwner, "BUFF_TICK:" + _skill.getId(), true, () -> { });
+					_nativeTickTimers.put(effect, timer);
+					// Publish both registries before an inline or zero-delay callback can cancel.
+					addTask(effect, new EffectTaskInfo(effectTask, null));
+					timer.submit(effectTask, effect.getTicks() * PlayerConfig.EFFECT_TICK_RATIO);
+					addTask(effect, new EffectTaskInfo(effectTask, timer.future()));
+				}
+				else
+				{
+					addTask(effect, new EffectTaskInfo(effectTask, ThreadPool.scheduleAtFixedRate(effectTask, effect.getTicks() * PlayerConfig.EFFECT_TICK_RATIO, effect.getTicks() * PlayerConfig.EFFECT_TICK_RATIO)));
+				}
 			}
 			
 			// Add stats.
@@ -306,6 +384,11 @@ public class BuffInfo
 	 * @param effect the effect that is ticking
 	 */
 	public void onTick(AbstractEffect effect)
+	{
+		runNative("BUFF_TICK", () -> onTickNative(effect));
+	}
+
+	private void onTickNative(AbstractEffect effect)
 	{
 		boolean continueForever = false;
 		
@@ -334,6 +417,18 @@ public class BuffInfo
 	
 	public void finishEffects(boolean broadcast)
 	{
+		runNative("BUFF_FINISH", () -> finishEffectsNative(broadcast));
+	}
+
+	private void finishEffectsNative(boolean broadcast)
+	{
+		for (PlayerNativeTimer timer : _nativeTickTimers.values())
+		{
+			final ScheduledFuture<?> future = timer.future();
+			if (future == null) { timer.cancel(null); }
+			else { future.cancel(true); }
+		}
+		_nativeTickTimers.clear();
 		// Cancels the ticking task.
 		for (EffectTaskInfo effectTask : _tasks.values())
 		{

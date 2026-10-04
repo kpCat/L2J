@@ -21,10 +21,14 @@
 package org.l2jmobius.gameserver.phantoms.player;
 
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.Player.OutboundSessionAttachment;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -37,6 +41,7 @@ import org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager;
  */
 public final class PhantomMaterializedPlayer implements AutoCloseable
 {
+	private static final Logger LOGGER = Logger.getLogger(PhantomMaterializedPlayer.class.getName());
 	public enum State
 	{
 		STORED,
@@ -130,6 +135,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	public static final long DEFAULT_ACTION_DRAIN_TIMEOUT_MILLIS = 5000;
 
 	private final Object _actionMonitor = new Object();
+	private final CountDownLatch _materializationCompletion = new CountDownLatch(1);
+	private Thread _materializationThread;
 	private final int _objectId;
 	private final PhantomIdentityLeaseRegistry _identityRegistry;
 	private final HeadlessPlayerOutboundSession _outboundSession;
@@ -140,9 +147,10 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	private volatile Player _player;
 	private Lease _identityLease;
 	private OutboundSessionAttachment _outboundAttachment;
+	private java.util.function.Supplier<org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickLease> _nativeActionAdmission;
 	private boolean _identityAttached;
 	private boolean _actionAdmissionOpen;
-	private int _admittedActionCount;
+	private PhantomNativeWorkScope _nativeWork;
 	private long _actionGeneration;
 	private long _materializedAtNanos;
 	private long _dematerializedAtNanos;
@@ -150,6 +158,10 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	private boolean _cleanupFinished;
 	private volatile CleanupPhase _cleanupPhase = CleanupPhase.NONE;
 	private volatile CleanupFailure _cleanupFailure = new CleanupFailure(0, CleanupPhase.NONE, 0, "", "", "");
+	private volatile PhantomCleanupIncident _firstCleanupIncident;
+	private volatile PhantomCleanupIncident _latestCleanupIncident;
+	private long _materializationAttemptAtNanos;
+	private String _cleanupHook = "NONE";
 
 	private record CleanupFailure(long sequence, CleanupPhase phase, int admittedActions, String className, String message, String cause)
 	{
@@ -178,11 +190,17 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		_actionDrainTimeoutMillis = actionDrainTimeoutMillis;
 	}
 
-	public synchronized void materialize()
+	public void materialize()
 	{
-		if (_state != State.STORED)
+		synchronized (this)
 		{
-			throw new IllegalStateException("Materialization can only start from STORED");
+			if ((_state != State.STORED) || _cleanupStarted || _cleanupFinished || (_materializationThread != null))
+			{
+				throw new IllegalStateException("Materialization can only start from an unused STORED actor");
+			}
+			_materializationThread = Thread.currentThread();
+			_materializationAttemptAtNanos = System.nanoTime();
+			_state = State.CLAIMED;
 		}
 
 		try
@@ -200,7 +218,14 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			requireIdentityRegistriesFree("after identity claim");
 
 			_state = State.LOADING;
-			_player = Player.load(_objectId);
+			_player = Player.load(_objectId, loaded ->
+			{
+				// Retain this exact instance even if constructor/restore aborts later.
+				_player = loaded;
+				_materializedAtNanos = System.nanoTime();
+				_nativeWork = new PhantomNativeWorkScope(_actionMonitor, loaded, _identityLease, _materializedAtNanos);
+				loaded.attachNativeWorkOwner(_nativeWork);
+			});
 			if (_player == null)
 			{
 				throw new MaterializationException(MaterializationFailure.PLAYER_LOAD_FAILED, "Could not load canonical Player");
@@ -215,8 +240,13 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			{
 				throw new MaterializationException(MaterializationFailure.AUTOSAVE_IDENTITY_BUSY, "Loaded Player is not the only autosave owner for the claimed character");
 			}
+			PlayerNativeWork.run(_player, "PLAYER_RESTORE_EFFECTS", _player::restoreEffects);
 			_lifecycleSupport.afterPlayerLoad(_player);
-			PersonalProgressionQoLService.getInstance().tryGrantAutoNoblesse(_player);
+			PlayerNativeWork.run(_player, "PLAYER_LOGIN_DOMAIN", () ->
+			{
+				org.l2jmobius.gameserver.model.script.Quest.playerEnter(_player);
+				PersonalProgressionQoLService.getInstance().tryGrantAutoNoblesse(_player);
+			});
 			failAfter(FailurePoint.AFTER_PLAYER_LOAD);
 
 			_identityAttached = true;
@@ -224,6 +254,15 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			failAfter(FailurePoint.AFTER_IDENTITY_ATTACHMENT);
 
 			_outboundAttachment = _player.attachOutboundSession(_outboundSession);
+			final Player ownedPlayer = _player;
+			_nativeActionAdmission = () ->
+			{
+				final ActionLease lease = tryAcquireAction();
+				if (lease == null) { return null; }
+				if (lease.player() != ownedPlayer) { lease.close(); return null; }
+				return lease::close;
+			};
+			_player.attachPhantomNativeActionAdmission(_nativeActionAdmission);
 			failAfter(FailurePoint.AFTER_HEADLESS_OUTPUT_ATTACHMENT);
 
 			_player.setRunning();
@@ -250,21 +289,26 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				_actionAdmissionOpen = true;
 			}
 			_state = State.ACTIVE;
-			_materializedAtNanos = System.nanoTime();
 			failAfter(FailurePoint.AFTER_ACTION_ADMISSION);
 		}
 		catch (RuntimeException | Error e)
 		{
 			_state = State.FAILED;
+			recordCleanupFailure(e);
 			try
 			{
 				cleanup();
 			}
-			catch (RuntimeException cleanupFailure)
+			catch (RuntimeException | Error cleanupFailure)
 			{
-				e.addSuppressed(cleanupFailure);
+				if (cleanupFailure != e) { e.addSuppressed(cleanupFailure); }
 			}
 			throw e;
+		}
+		finally
+		{
+			synchronized (this) { _materializationThread = null; }
+			_materializationCompletion.countDown();
 		}
 	}
 
@@ -276,42 +320,28 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			{
 				return null;
 			}
-			_admittedActionCount++;
-			return new ActionLease(this, _player, _actionGeneration);
+			final var ticket = _nativeWork.reserve(PlayerNativeWork.current(_nativeWork), "ACTION", PlayerNativeWork.Semantics.CANCELLABLE);
+			if ((ticket == null) || !ticket.tryStart()) { return null; }
+			return new ActionLease(this, _player, _actionGeneration, ticket);
 		}
 	}
 
-	private void releaseAction(long generation)
-	{
-		synchronized (_actionMonitor)
-		{
-			if ((generation == _actionGeneration) && (_admittedActionCount > 0))
-			{
-				_admittedActionCount--;
-				_actionMonitor.notifyAll();
-			}
-		}
-	}
+	private int outstandingWork() { return _nativeWork == null ? 0 : _nativeWork.outstanding(); }
 
 	@Override
-	public synchronized void close()
+	public void close()
 	{
 		cleanup();
 	}
 
-	public synchronized void cleanup()
+	public void cleanup()
 	{
 		cleanup(System.nanoTime() + (_actionDrainTimeoutMillis * 1_000_000L));
 	}
 
-	synchronized void cleanup(long deadlineNanos)
+	void cleanup(long deadlineNanos)
 	{
-		if (_cleanupFinished || _cleanupStarted)
-		{
-			return;
-		}
-		_cleanupStarted = true;
-		_state = State.DEMATERIALIZING;
+		if (!claimCleanup(deadlineNanos)) { return; }
 
 		RuntimeException afterStepFailure = null;
 		final long failureSequenceBeforeCleanup = _cleanupFailure.sequence();
@@ -323,22 +353,58 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			if ((cleanupPlayer != null) && !PhantomPlayerCleanupPolicy.isComplete(cleanupPlayer))
 			{
 				_cleanupPhase = CleanupPhase.PRE_STORE;
+				_cleanupHook = "NATIVE_TEARDOWN";
 				requireNoForeignWorldIdentity(cleanupPlayer);
-				cleanupPlayer.stopAllTasks();
-				try
+				if (!cleanupPlayer.isNativeCleanupPrepared())
 				{
-					_lifecycleSupport.beforeStore(cleanupPlayer);
-					failAfter(FailurePoint.BEFORE_STORE_OPERATION);
-					_cleanupPhase = CleanupPhase.NATIVE_STORE;
-					cleanupPlayer.storeMe();
-					failAfter(FailurePoint.AFTER_NATIVE_STORE);
-					_cleanupPhase = CleanupPhase.POST_STORE;
-					_lifecycleSupport.afterStore(cleanupPlayer);
+					_nativeWork.teardown(() ->
+					{
+						cleanupPlayer.abortAttack(); cleanupPlayer.abortCast(); cleanupPlayer.stopMove(null);
+						if (cleanupPlayer.hasAI())
+						{
+							cleanupPlayer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE);
+							cleanupPlayer.getAI().clientStopAutoAttack();
+							org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager.getInstance().removeAttackStanceTask(cleanupPlayer);
+							cleanupPlayer.getAI().setAutoAttacking(false);
+						}
+						cleanupPlayer.stopAllTasks();
+						cleanupPlayer.prepareNativeCleanup();
+					}, deadlineNanos);
 				}
-				finally
+				// A legitimate descendant may add a fresh effect; dispose each new native body once.
+				for (int pass = 0; !cleanupPlayer.getEffectList().getEffects().isEmpty() && (pass < 3); pass++) { _nativeWork.teardown(cleanupPlayer::completeNativeCleanupEffects, deadlineNanos); }
+				if (!cleanupPlayer.getEffectList().getEffects().isEmpty()) { throw new IllegalStateException("NATIVE_TEARDOWN_EFFECTS_NOT_QUIESCENT"); }
+				_nativeWork.terminalStore(() ->
 				{
-					cleanupPlayer.stopAllTasks();
-				}
+					Throwable storeFailure = null;
+					try
+					{
+						_cleanupHook = "LIFECYCLE_BEFORE_STORE";
+						_lifecycleSupport.beforeStore(cleanupPlayer);
+						failAfter(FailurePoint.BEFORE_STORE_OPERATION);
+						_cleanupPhase = CleanupPhase.NATIVE_STORE;
+						_cleanupHook = "PLAYER_STORE_ME";
+						cleanupPlayer.storeMe();
+						failAfter(FailurePoint.AFTER_NATIVE_STORE);
+						_cleanupPhase = CleanupPhase.POST_STORE;
+						_cleanupHook = "LIFECYCLE_AFTER_STORE";
+						_lifecycleSupport.afterStore(cleanupPlayer);
+					}
+					catch (RuntimeException | Error failure)
+					{
+						storeFailure = failure;
+						throw failure;
+					}
+					finally
+					{
+						try { cleanupPlayer.stopAllTasks(); }
+						catch (RuntimeException | Error finalizerFailure)
+						{
+							if (storeFailure == null) { throw finalizerFailure; }
+							if (storeFailure != finalizerFailure) { storeFailure.addSuppressed(finalizerFailure); }
+						}
+					}
+				});
 
 				_cleanupPhase = CleanupPhase.PRE_DELETE;
 				try
@@ -378,8 +444,18 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			if (_outboundAttachment != null)
 			{
 				_cleanupPhase = CleanupPhase.RELEASE_OUTBOUND;
+				if ((cleanupPlayer != null) && (_nativeActionAdmission != null))
+				{
+					cleanupPlayer.detachPhantomNativeActionAdmission(_nativeActionAdmission);
+					_nativeActionAdmission = null;
+				}
 				_outboundAttachment.close();
 				_outboundAttachment = null;
+			}
+			if ((cleanupPlayer != null) && (_nativeWork != null))
+			{
+				_nativeWork.detach();
+				cleanupPlayer.detachNativeWorkOwner(_nativeWork);
 			}
 			_identityAttached = false;
 
@@ -408,7 +484,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		}
 		finally
 		{
-			_cleanupStarted = false;
+			synchronized (this) { _cleanupStarted = false; }
 		}
 
 		if (afterStepFailure != null)
@@ -417,31 +493,71 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		}
 	}
 
-	private void recordCleanupFailure(Throwable failure)
+	private boolean claimCleanup(long deadlineNanos)
 	{
-		synchronized (_actionMonitor)
+		while (true)
 		{
-			final Throwable cause = failure.getCause();
-			_cleanupFailure = new CleanupFailure(_cleanupFailure.sequence() + 1, _cleanupPhase, _admittedActionCount,
-				failure.getClass().getName(), boundedCleanupMessage(failure.getMessage()),
-				cause == null ? "" : boundedCleanupMessage(cause.getClass().getName() + ":" + cause.getMessage()));
+			synchronized (this)
+			{
+				if (_cleanupFinished) { return false; }
+				if (_materializationThread == Thread.currentThread())
+				{
+					// Only the failed-load owner may abort its own partial native body.
+					if (_state != State.FAILED) { throw new IllegalStateException("NATIVE_MATERIALIZATION_SELF_CLEANUP"); }
+				}
+				if ((_materializationThread == null) || (_materializationThread == Thread.currentThread()))
+				{
+					if (_cleanupStarted) { throw new IllegalStateException("NATIVE_CLEANUP_ALREADY_RUNNING"); }
+					_cleanupStarted = true;
+					_state = State.DEMATERIALIZING;
+					return true;
+				}
+			}
+			final long remainingNanos = deadlineNanos - System.nanoTime();
+			try
+			{
+				if ((remainingNanos <= 0) || !_materializationCompletion.await(remainingNanos, TimeUnit.NANOSECONDS))
+				{
+					throw new IllegalStateException("NATIVE_MATERIALIZATION_COMPLETION_TIMEOUT");
+				}
+			}
+			catch (InterruptedException failure)
+			{
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("NATIVE_MATERIALIZATION_COMPLETION_INTERRUPTED", failure);
+			}
 		}
 	}
 
-	private static String boundedCleanupMessage(String value)
+	private void recordCleanupFailure(Throwable failure)
 	{
-		if (value == null) { return ""; }
-		final StringBuilder result = new StringBuilder(Math.min(value.length(), 160));
-		for (int index = 0; (index < value.length()) && (result.length() < 160);)
+		final boolean first;
+		final PhantomCleanupIncident incident;
+		synchronized (_actionMonitor)
 		{
-			final int character = value.codePointAt(index);
-			final boolean validXml = ((character >= 0x20) && (character <= 0xD7FF)) || ((character >= 0xE000) && (character <= 0xFFFD)) || ((character >= 0x10000) && (character <= 0x10FFFF));
-			final int sanitized = validXml && !Character.isISOControl(character) ? character : ' ';
-			if (result.length() + Character.charCount(sanitized) > 160) { break; }
-			result.appendCodePoint(sanitized);
-			index += Character.charCount(character);
+			final PhantomCleanupIncident nativeFirst = _nativeWork == null ? null : _nativeWork.firstNativeIncident();
+			final PhantomCleanupIncident nativeLatest = _nativeWork == null ? null : _nativeWork.latestNativeIncident();
+			if ((_firstCleanupIncident == null) && (nativeFirst != null)) { _firstCleanupIncident = nativeFirst; }
+			incident = PhantomCleanupIncident.capture(_objectId, _materializedAtNanos == 0 ? _materializationAttemptAtNanos : _materializedAtNanos,
+				Math.max(_cleanupFailure.sequence(), nativeLatest == null ? 0 : nativeLatest.sequence()) + 1, _cleanupPhase, _cleanupHook, outstandingWork(), failure);
+			_cleanupFailure = new CleanupFailure(incident.sequence(), incident.phase(), incident.admittedActions(), incident.exceptionClass(), incident.message(),
+				PhantomCleanupIncident.bounded(incident.detail().lines().filter(line -> line.startsWith("cause ")).findFirst().orElse(""), 160));
+			_latestCleanupIncident = incident;
+			first = _firstCleanupIncident == null;
+			if (first) { _firstCleanupIncident = incident; }
 		}
-		return result.toString();
+		if (first) { LOGGER.warning("Phantom cleanup first incident " + incident); }
+	}
+
+	PhantomNativeWorkScope retryableDrainScope()
+	{
+		synchronized (_actionMonitor)
+		{
+			if ((_state != State.FAILED) || ((_cleanupPhase != CleanupPhase.ACTION_DRAIN) && (_cleanupPhase != CleanupPhase.PRE_STORE)) || (_player == null) || _player.hasPendingOwnedStore()
+				|| !PhantomNativeWorkScope.DrainTimeoutException.class.getName().equals(_cleanupFailure.className())
+				|| (_nativeWork == null) || !_nativeWork.retryableDrain()) { return null; }
+			return _nativeWork;
+		}
 	}
 
 	private void requireIdentityRegistriesFree(String phase)
@@ -487,35 +603,15 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		synchronized (_actionMonitor)
 		{
 			_cleanupPhase = CleanupPhase.ACTION_DRAIN;
+			_cleanupHook = "NATIVE_WORK_DRAIN";
 			_actionAdmissionOpen = false;
-			while (_admittedActionCount > 0)
-			{
-				final long remainingNanos = deadlineNanos - System.nanoTime();
-				if (remainingNanos <= 0)
-				{
-					final var failure = new IllegalStateException("Timed out waiting for admitted Phantom actions");
-					recordCleanupFailure(failure);
-					throw failure;
-				}
-
-				try
-				{
-					final long waitMillis = Math.max(1, remainingNanos / 1_000_000L);
-					_actionMonitor.wait(waitMillis);
-				}
-				catch (InterruptedException e)
-				{
-					Thread.currentThread().interrupt();
-					final var failure = new IllegalStateException("Interrupted while draining Phantom actions", e);
-					recordCleanupFailure(failure);
-					throw failure;
-				}
-			}
 		}
+		if (_nativeWork != null) { _nativeWork.drainAndSeal(deadlineNanos); }
 	}
 
 	private void failAfter(FailurePoint point)
 	{
+		_cleanupHook = point.name();
 		_failureInjector.after(point);
 	}
 
@@ -535,8 +631,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		{
 			final Player snapshotPlayer = _player;
 			final CleanupFailure failure = _cleanupFailure;
-			return new Snapshot(_objectId, _state, snapshotPlayer != null, _identityLease != null, _identityAttached, _outboundAttachment != null, _actionAdmissionOpen, _admittedActionCount, (snapshotPlayer != null) && (World.getInstance().getPlayer(_objectId) == snapshotPlayer), _materializedAtNanos, _dematerializedAtNanos,
-				_cleanupPhase, failure.phase(), failure.className(), failure.message(), failure.sequence(), failure.admittedActions(), failure.cause());
+			return new Snapshot(_objectId, _state, snapshotPlayer != null, _identityLease != null, _identityAttached, _outboundAttachment != null, _actionAdmissionOpen, outstandingWork(), (snapshotPlayer != null) && (World.getInstance().getPlayer(_objectId) == snapshotPlayer), _materializedAtNanos, _dematerializedAtNanos,
+				_cleanupPhase, failure.phase(), failure.className(), failure.message(), failure.sequence(), failure.admittedActions(), failure.cause(), _firstCleanupIncident, _latestCleanupIncident);
 		}
 	}
 
@@ -546,7 +642,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 	}
 
 	public record Snapshot(int objectId, State state, boolean playerRetained, boolean identityLeaseRetained, boolean identityAttached, boolean outboundAttached, boolean actionAdmissionOpen, int admittedActionCount, boolean worldPresent, long materializedAtNanos, long dematerializedAtNanos,
-		CleanupPhase cleanupPhase, CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause)
+		CleanupPhase cleanupPhase, CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause, PhantomCleanupIncident firstCleanupIncident, PhantomCleanupIncident latestCleanupIncident)
 	{
 	}
 
@@ -556,12 +652,16 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		private final Player _player;
 		private final long _generation;
 		private final AtomicBoolean _closed = new AtomicBoolean();
+		private final PlayerNativeWork.Ticket _ticket;
+		private final PlayerNativeWork.Context _context;
 
-		private ActionLease(PhantomMaterializedPlayer owner, Player player, long generation)
+		private ActionLease(PhantomMaterializedPlayer owner, Player player, long generation, PlayerNativeWork.Ticket ticket)
 		{
 			_owner = owner;
 			_player = player;
 			_generation = generation;
+			_ticket = ticket;
+			_context = PlayerNativeWork.enter(ticket);
 		}
 
 		public Player player()
@@ -579,7 +679,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		{
 			if (_closed.compareAndSet(false, true))
 			{
-				_owner.releaseAction(_generation);
+				try { _context.close(); }
+				finally { _ticket.complete(null); }
 			}
 		}
 	}

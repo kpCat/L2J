@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
@@ -120,6 +121,7 @@ public class Attackable extends Npc
 	
 	// Misc
 	private boolean _mustGiveExpSp;
+	private final AtomicLong _nativeSpawnGeneration = new AtomicLong();
 	protected int _onKillDelay = 2500; // L2J uses 5000
 	
 	/**
@@ -311,10 +313,20 @@ public class Attackable extends Npc
 	@Override
 	public boolean doDie(Creature killer)
 	{
+		final Player nativeKiller = killer instanceof Player player ? player : null;
+		final PlayerNativeWork.Owner nativeOwner = nativeKiller == null ? null : nativeKiller.getNativeWorkOwner();
+		final PlayerNativeEvidence nativeEvidence = (nativeOwner != null) && (nativeOwner.player() == nativeKiller) && nativeOwner.isCurrent() ? nativeOwner.evidence() : null;
+		final PlayerNativeEvidence.Target nativeTarget = nativeEvidence == null ? null : getNativeEvidenceTarget();
+		
 		// Kill the Npc (the corpse disappeared after 7 seconds)
 		if (!super.doDie(killer))
 		{
 			return false;
+		}
+		// calculateRewards already ran inside super.doDie; preserve that stock reward-before-kill order.
+		if ((nativeTarget != null) && (nativeKiller.getNativeWorkOwner() == nativeOwner) && nativeOwner.isCurrent() && nativeEvidence.matches(nativeKiller.getObjectId(), nativeOwner.epoch()))
+		{
+			nativeEvidence.killed(nativeTarget);
 		}
 		
 		// Delayed notification.
@@ -1490,9 +1502,16 @@ public class Attackable extends Npc
 		return true;
 	}
 	
+	public PlayerNativeEvidence.Target getNativeEvidenceTarget()
+	{
+		return new PlayerNativeEvidence.Target(getObjectId(), getInstanceId(), _nativeSpawnGeneration.get());
+	}
+	
 	@Override
 	public void onSpawn()
 	{
+		// Spawn.respawnNpc reuses this object and objectId; each spawn is a distinct evidence lifetime.
+		_nativeSpawnGeneration.incrementAndGet();
 		super.onSpawn();
 		
 		// Clear mob spoil, seed

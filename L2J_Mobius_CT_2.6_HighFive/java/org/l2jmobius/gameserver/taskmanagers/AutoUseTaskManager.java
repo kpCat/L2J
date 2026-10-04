@@ -81,17 +81,18 @@ public class AutoUseTaskManager
 			for (Player player : _players)
 			{
 				final PhantomPolicy phantomPolicy = PHANTOM_POLICIES.get(player);
+				if (player.isPhantomAutoPlayManaged() && (phantomPolicy == null)) { continue; }
 				try
 				{
 				if (!player.isOnline() || (player.isInOfflineMode() && !player.isOfflinePlay()))
 				{
-					stopAutoUseTask(player);
+					if (phantomPolicy == null) { stopAutoUseTask(player); } else { stopPhantomAutoUse(player, phantomPolicy); }
 					continue;
 				}
 				final TickLease lease = phantomPolicy == null ? () -> {} : phantomPolicy.acquire(player);
 				if (lease == null)
 				{
-					stopAutoUseTask(player);
+					stopPhantomAutoUse(player, phantomPolicy);
 					continue;
 				}
 				try (lease)
@@ -382,8 +383,8 @@ public class AutoUseTaskManager
 				catch (RuntimeException failure)
 				{
 					if (phantomPolicy == null) { throw failure; }
-					stopAutoUseTask(player);
-					AutoPlayTaskManager.getInstance().stopAutoPlay(player);
+					stopPhantomAutoUse(player, phantomPolicy);
+					AutoPlayTaskManager.getInstance().stopPhantomAutoPlay(player, phantomPolicy);
 					java.util.logging.Logger.getLogger(AutoUseTaskManager.class.getName()).log(java.util.logging.Level.WARNING, "Phantom AutoUse actor failed: " + player.getObjectId(), failure);
 				}
 			}
@@ -450,10 +451,19 @@ public class AutoUseTaskManager
 		}
 	}
 	
-	public synchronized void startPhantomAutoUse(Player player, PhantomPolicy policy)
+	public void startPhantomAutoUse(Player player, PhantomPolicy policy)
 	{
+		startPhantomAutoUse(player, policy, null);
+	}
+
+	public synchronized boolean startPhantomAutoUse(Player player, PhantomPolicy policy, java.util.concurrent.atomic.AtomicBoolean sessionCurrent)
+	{
+		java.util.Objects.requireNonNull(policy, "policy");
+		if ((sessionCurrent != null) && !sessionCurrent.get()) { return false; }
+		player.markPhantomAutoPlayManaged();
 		PHANTOM_POLICIES.put(player, policy);
 		startAutoUseTask(player);
+		return true;
 	}
 
 	public synchronized void startAutoUseTask(Player player)
@@ -481,7 +491,7 @@ public class AutoUseTaskManager
 		POOLS.add(pool);
 	}
 	
-	public void stopAutoUseTask(Player player)
+	public synchronized void stopAutoUseTask(Player player)
 	{
 		PHANTOM_POLICIES.remove(player);
 		player.getAutoUseSettings().resetSkillOrder();
@@ -492,6 +502,18 @@ public class AutoUseTaskManager
 				return;
 			}
 		}
+	}
+
+	public synchronized boolean stopPhantomAutoUse(Player player, PhantomPolicy expected)
+	{
+		if ((expected == null) || (PHANTOM_POLICIES.get(player) != expected)) { return false; }
+		stopAutoUseTask(player);
+		return true;
+	}
+
+	public synchronized boolean hasPhantomRegistration(Player player, PhantomPolicy expected)
+	{
+		return (expected != null) && (PHANTOM_POLICIES.get(player) == expected) && POOLS.stream().anyMatch(pool -> pool.contains(player));
 	}
 	
 	public static AutoUseTaskManager getInstance()

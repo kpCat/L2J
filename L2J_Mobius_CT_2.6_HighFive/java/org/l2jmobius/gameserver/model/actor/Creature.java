@@ -983,7 +983,7 @@ public abstract class Creature extends WorldObject
 				if (_status.getCurrentMp() < mpConsume)
 				{
 					// If Player doesn't have enough MP, stop the attack
-					ThreadPool.schedule(new NotifyAITask(this, Action.READY_TO_ACT), 1000);
+					PlayerNativeWork.schedule(this, Collections.emptyList(), "attack-ready", PlayerNativeWork.Semantics.CANCELLABLE, new NotifyAITask(this, Action.READY_TO_ACT), 1000);
 					sendPacket(SystemMessageId.NOT_ENOUGH_MP);
 					sendPacket(ActionFailed.STATIC_PACKET);
 					return false;
@@ -1001,7 +1001,7 @@ public abstract class Creature extends WorldObject
 			else
 			{
 				// Cancel the action because the bow can't be re-use at this moment
-				ThreadPool.schedule(new NotifyAITask(this, Action.READY_TO_ACT), 1000);
+				PlayerNativeWork.schedule(this, Collections.emptyList(), "attack-ready", PlayerNativeWork.Semantics.CANCELLABLE, new NotifyAITask(this, Action.READY_TO_ACT), 1000);
 				sendPacket(ActionFailed.STATIC_PACKET);
 				return false;
 			}
@@ -1033,6 +1033,11 @@ public abstract class Creature extends WorldObject
 	 * @param target The Creature targeted
 	 */
 	public void doAttack(Creature target)
+	{
+		PlayerNativeWork.runCombat(this, Collections.singletonList(target), "attack-frontend", () -> doAttackNative(target));
+	}
+
+	private void doAttackNative(Creature target)
 	{
 		final long stamp = _attackLock.tryWriteLock();
 		if (stamp == 0)
@@ -1310,7 +1315,7 @@ public abstract class Creature extends WorldObject
 			}
 			
 			// Notify AI with READY_TO_ACT
-			ThreadPool.schedule(new NotifyAITask(this, Action.READY_TO_ACT), timeAtk + reuse);
+			PlayerNativeWork.schedule(this, Collections.emptyList(), "attack-ready", PlayerNativeWork.Semantics.CANCELLABLE, new NotifyAITask(this, Action.READY_TO_ACT), timeAtk + reuse);
 		}
 		finally
 		{
@@ -1380,7 +1385,7 @@ public abstract class Creature extends WorldObject
 		}
 		
 		// Create a new hit task with Medium priority.
-		ThreadPool.schedule(new HitTask(this, target, damage1, crit1, miss1, shld1, attack.hasSoulshot(), true), sAtk);
+		PlayerNativeWork.schedule(this, Collections.singletonList(target), "attack-hit", PlayerNativeWork.Semantics.EARNED, new HitTask(this, target, damage1, crit1, miss1, shld1, attack.hasSoulshot(), true), sAtk);
 		
 		// Calculate and set the disable delay of the bow in function of the Attack Speed.
 		final int gameTime = GameTimeTaskManager.getInstance().getGameTicks();
@@ -1457,7 +1462,7 @@ public abstract class Creature extends WorldObject
 		}
 		
 		// Create a new hit task with Medium priority.
-		ThreadPool.schedule(new HitTask(this, target, damage1, crit1, miss1, shld1, attack.hasSoulshot(), true), sAtk);
+		PlayerNativeWork.schedule(this, Collections.singletonList(target), "attack-hit", PlayerNativeWork.Semantics.EARNED, new HitTask(this, target, damage1, crit1, miss1, shld1, attack.hasSoulshot(), true), sAtk);
 		
 		// Calculate and set the disable delay of the bow in function of the Attack Speed.
 		final int gameTime = GameTimeTaskManager.getInstance().getGameTicks();
@@ -1535,10 +1540,10 @@ public abstract class Creature extends WorldObject
 		}
 		
 		// Create a new hit task with Medium priority for hit 1
-		ThreadPool.schedule(new HitTask(this, target, damage1, crit1, miss1, shld1, attack.hasSoulshot(), true), sAtk / 2);
+		PlayerNativeWork.schedule(this, Collections.singletonList(target), "attack-hit", PlayerNativeWork.Semantics.EARNED, new HitTask(this, target, damage1, crit1, miss1, shld1, attack.hasSoulshot(), true), sAtk / 2);
 		
 		// Create a new hit task with Medium priority for hit 2 with a higher delay
-		ThreadPool.schedule(new HitTask(this, target, damage2, crit2, miss2, shld2, attack.hasSoulshot(), false), sAtk);
+		PlayerNativeWork.schedule(this, Collections.singletonList(target), "attack-hit", PlayerNativeWork.Semantics.EARNED, new HitTask(this, target, damage2, crit2, miss2, shld2, attack.hasSoulshot(), false), sAtk);
 		
 		// Add those hits to the Server-Client packet Attack
 		attack.addHit(target, damage1, miss1, crit1, shld1);
@@ -1682,7 +1687,7 @@ public abstract class Creature extends WorldObject
 		}
 		
 		// Create a new hit task with Medium priority
-		ThreadPool.schedule(new HitTask(this, target, damage1, crit1, miss1, shld1, attack.hasSoulshot(), rechargeShots), sAtk);
+		PlayerNativeWork.schedule(this, Collections.singletonList(target), "attack-hit", PlayerNativeWork.Semantics.EARNED, new HitTask(this, target, damage1, crit1, miss1, shld1, attack.hasSoulshot(), rechargeShots), sAtk);
 		
 		// Add this hit to the Server-Client packet Attack
 		attack.addHit(target, damage1, miss1, crit1, shld1);
@@ -1867,6 +1872,13 @@ public abstract class Creature extends WorldObject
 	
 	private void beginCast(Skill skill, boolean simultaneously, Creature target, List<WorldObject> targets)
 	{
+		final List<WorldObject> participants = targets == null ? new ArrayList<>() : new ArrayList<>(targets);
+		participants.add(target);
+		PlayerNativeWork.runCombat(this, participants, "cast-frontend", () -> beginCastNative(skill, simultaneously, target, targets));
+	}
+
+	private void beginCastNative(Skill skill, boolean simultaneously, Creature target, List<WorldObject> targets)
+	{
 		if (target == null)
 		{
 			if (simultaneously)
@@ -1973,7 +1985,7 @@ public abstract class Creature extends WorldObject
 		// queue herbs and potions
 		if (_isCastingSimultaneouslyNow && simultaneously)
 		{
-			ThreadPool.schedule(() -> beginCast(skill, simultaneously, target, targets), 100);
+			PlayerNativeWork.schedule(this, targets, "cast-simultaneous-retry", PlayerNativeWork.Semantics.EARNED, () -> beginCast(skill, simultaneously, target, targets), 100);
 			return;
 		}
 		
@@ -2166,7 +2178,7 @@ public abstract class Creature extends WorldObject
 				
 				// Create a task MagicUseTask to launch the MagicSkill at the end of the casting time (skillTime)
 				// For client animation reasons (party buffs especially) 400 ms before!
-				_skillCast2 = ThreadPool.schedule(mut, Math.max(0, skillTime - 400));
+				_skillCast2 = PlayerNativeWork.schedule(this, mut.getTargets(), "cast-launch", PlayerNativeWork.Semantics.EARNED, mut, Math.max(0, skillTime - 400));
 			}
 			else
 			{
@@ -2179,7 +2191,7 @@ public abstract class Creature extends WorldObject
 				
 				// Create a task MagicUseTask to launch the MagicSkill at the end of the casting time (skillTime)
 				// For client animation reasons (party buffs especially) 400 ms before!
-				_skillCast = ThreadPool.schedule(mut, Math.max(0, skillTime - 400));
+				_skillCast = PlayerNativeWork.schedule(this, mut.getTargets(), "cast-launch", PlayerNativeWork.Semantics.EARNED, mut, Math.max(0, skillTime - 400));
 			}
 		}
 		else
@@ -2640,7 +2652,20 @@ public abstract class Creature extends WorldObject
 		
 		// Calculate rewards for main damage dealer.
 		final Creature mainDamageDealer = isMonster() ? asMonster().getMainDamageDealer() : null;
-		calculateRewards(mainDamageDealer != null ? mainDamageDealer : killer);
+		final Creature rewardDealer = mainDamageDealer != null ? mainDamageDealer : killer;
+		final Player rewardPlayer = rewardDealer instanceof Player direct ? direct : null;
+		final var rewardOwner = rewardPlayer == null ? null : rewardPlayer.getNativeWorkOwner();
+		if (isMonster() && (rewardOwner != null) && rewardOwner.isCurrent() && (rewardOwner.player() == rewardPlayer) && (PlayerNativeWork.current(rewardOwner) != null) && (rewardOwner.evidence() != null))
+		{
+			try (var rewardContext = PlayerNativeEvidence.enterReward(asAttackable().getNativeEvidenceTarget()))
+			{
+				calculateRewards(rewardDealer);
+			}
+		}
+		else
+		{
+			calculateRewards(rewardDealer);
+		}
 		
 		// Set target to null and cancel Attack or Cast
 		setTarget(null);
@@ -4988,7 +5013,7 @@ public abstract class Creature extends WorldObject
 		// Create a task to notify the AI that Creature arrives at a check point of the movement
 		if ((ticksToMove * GameTimeTaskManager.MILLIS_IN_TICK) > 3000)
 		{
-			ThreadPool.schedule(new NotifyAITask(this, Action.ARRIVED_REVALIDATE), 2000);
+			PlayerNativeWork.schedule(this, Collections.emptyList(), "movement-revalidate", PlayerNativeWork.Semantics.CANCELLABLE, new NotifyAITask(this, Action.ARRIVED_REVALIDATE), 2000);
 		}
 		
 		// the Event.ARRIVED will be sent when the character will actually arrive to destination by MovementTaskManager
@@ -5071,7 +5096,7 @@ public abstract class Creature extends WorldObject
 		// Create a task to notify the AI that Creature arrives at a check point of the movement
 		if ((ticksToMove * GameTimeTaskManager.MILLIS_IN_TICK) > 3000)
 		{
-			ThreadPool.schedule(new NotifyAITask(this, Action.ARRIVED_REVALIDATE), 2000);
+			PlayerNativeWork.schedule(this, Collections.emptyList(), "movement-revalidate", PlayerNativeWork.Semantics.CANCELLABLE, new NotifyAITask(this, Action.ARRIVED_REVALIDATE), 2000);
 		}
 		
 		// the Event.ARRIVED will be sent when the character will actually arrive to destination by MovementTaskManager
@@ -5949,7 +5974,7 @@ public abstract class Creature extends WorldObject
 		}
 		else
 		{
-			_skillCast = ThreadPool.schedule(mut, 400);
+			_skillCast = PlayerNativeWork.schedule(this, mut.getTargets(), "cast-hit", PlayerNativeWork.Semantics.EARNED, mut, 400);
 		}
 	}
 	
@@ -6055,6 +6080,7 @@ public abstract class Creature extends WorldObject
 		}
 		catch (NullPointerException e)
 		{
+			PlayerNativeWork.recordFailure(e);
 			LOGGER.log(Level.WARNING, "", e);
 		}
 		
@@ -6072,11 +6098,11 @@ public abstract class Creature extends WorldObject
 		{
 			if (mut.isSimultaneous())
 			{
-				_skillCast2 = ThreadPool.schedule(mut, 0);
+				_skillCast2 = PlayerNativeWork.schedule(this, mut.getTargets(), "cast-finalizer", PlayerNativeWork.Semantics.EARNED, mut, 0);
 			}
 			else
 			{
-				_skillCast = ThreadPool.schedule(mut, 0);
+				_skillCast = PlayerNativeWork.schedule(this, mut.getTargets(), "cast-finalizer", PlayerNativeWork.Semantics.EARNED, mut, 0);
 			}
 		}
 	}
@@ -6119,7 +6145,7 @@ public abstract class Creature extends WorldObject
 					final SkillUseHolder currSkill = asPlayer().getCurrentSkill();
 					if ((currSkill == null) || !currSkill.isShiftPressed())
 					{
-						ThreadPool.schedule(() ->
+						PlayerNativeWork.schedule(this, Collections.singletonList(target), "cast-next-attack", PlayerNativeWork.Semantics.CANCELLABLE, () ->
 						{
 							if (!isDisabled() && !isAttackingOrCastingNow())
 							{
@@ -6135,7 +6161,7 @@ public abstract class Creature extends WorldObject
 			}
 			else if (isPlayer()) // Player is moving.
 			{
-				ThreadPool.schedule(() -> completeMagicFinalizer(skill, target), 333); // Wait for skill land animation.
+				PlayerNativeWork.schedule(this, mut.getTargets(), "cast-delayed-finalizer", PlayerNativeWork.Semantics.EARNED, () -> completeMagicFinalizer(skill, target), 333); // Wait for skill land animation.
 				return;
 			}
 		}
@@ -6169,7 +6195,7 @@ public abstract class Creature extends WorldObject
 				
 				// DO NOT USE: Recursive call to useMagic() method.
 				// player.useMagic(queuedSkill.getSkill(), queuedSkill.isCtrlPressed(), queuedSkill.isShiftPressed());
-				ThreadPool.execute(new QueuedMagicUseTask(player, queuedSkill.getSkill(), queuedSkill.isCtrlPressed(), queuedSkill.isShiftPressed()));
+				PlayerNativeWork.execute(this, Collections.singletonList(getTarget()), "cast-queued-skill", PlayerNativeWork.Semantics.EARNED, new QueuedMagicUseTask(player, queuedSkill.getSkill(), queuedSkill.isCtrlPressed(), queuedSkill.isShiftPressed()));
 			}
 		}
 		
@@ -6190,6 +6216,11 @@ public abstract class Creature extends WorldObject
 	 * @param targets The table of WorldObject targets
 	 */
 	public void callSkill(Skill skill, List<WorldObject> targets)
+	{
+		PlayerNativeWork.runCombat(this, targets, "cast-skill-effects", () -> callSkillNative(skill, targets));
+	}
+
+	private void callSkillNative(Skill skill, List<WorldObject> targets)
 	{
 		try
 		{
@@ -6429,6 +6460,7 @@ public abstract class Creature extends WorldObject
 		}
 		catch (Exception e)
 		{
+			PlayerNativeWork.recordFailure(e);
 			LOGGER.log(Level.WARNING, getClass().getSimpleName() + ": callSkill() failed.", e);
 		}
 	}
@@ -6990,11 +7022,12 @@ public abstract class Creature extends WorldObject
 				broadcastSkillPacket(new MagicSkillLaunched(this, skill.getDisplayId(), skill.getLevel(), targets), targets);
 				
 				// Launch the magic skill and calculate its effects
-				skill.activateSkill(this, targets);
+				PlayerNativeWork.runCombat(this, targets, "cast-trigger-effects", () -> skill.activateSkill(this, targets));
 			}
 		}
 		catch (Exception e)
 		{
+			PlayerNativeWork.recordFailure(e);
 			LOGGER.log(Level.WARNING, "", e);
 		}
 	}

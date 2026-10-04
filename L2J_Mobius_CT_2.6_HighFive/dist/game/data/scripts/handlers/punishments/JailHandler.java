@@ -20,7 +20,7 @@
  */
 package handlers.punishments;
 
-import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.commons.time.TimeUtil;
 import org.l2jmobius.gameserver.LoginServerThread;
 import org.l2jmobius.gameserver.cache.HtmCache;
@@ -217,7 +217,7 @@ public class JailHandler implements IPunishmentHandler
 			OlympiadManager.getInstance().removeDisconnectedCompetitor(player);
 		}
 		
-		ThreadPool.schedule(new TeleportTask(player, JailZone.getLocationIn()), 2000);
+		PlayerNativeWork.schedule(player, java.util.List.of(), "JAIL_IN_TELEPORT", PlayerNativeWork.Semantics.EARNED, new TeleportTask(player, JailZone.getLocationIn()), 2000);
 		
 		// Show jail reason HTML message.
 		final NpcHtmlMessage msg = new NpcHtmlMessage();
@@ -260,7 +260,7 @@ public class JailHandler implements IPunishmentHandler
 	 */
 	private void removeFromPlayer(Player player)
 	{
-		ThreadPool.schedule(new TeleportTask(player, JailZone.getLocationOut()), 2000);
+		PlayerNativeWork.schedule(player, java.util.List.of(), "JAIL_OUT_TELEPORT", PlayerNativeWork.Semantics.EARNED, new TeleportTask(player, JailZone.getLocationOut()), 2000);
 		
 		// Open a Html message to inform the player
 		final NpcHtmlMessage msg = new NpcHtmlMessage();

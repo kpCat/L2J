@@ -184,9 +184,20 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	@Override
 	public PhantomBackgroundState capture(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous)
 	{
+		return capture(profileId, player, goal, previous, false);
+	}
+
+	@Override
+	public NativeCapture captureOwnedNative(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous)
+	{
+		return new NativeCapture(capture(profileId, player, goal, previous, true), nativeContext(player));
+	}
+
+	private PhantomBackgroundState capture(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, boolean nativePersistence)
+	{
 		Objects.requireNonNull(player, "player");
 		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parseLifecycle(goal);
-		requireSupportedPlayer(player);
+		requireSupportedPlayer(player, nativePersistence);
 		final PhantomTopologyAnchor anchor = exactAnchor(player, previous);
 		final Capability capability = capability(player, spec);
 		final Tracking tracking = tracking(player, spec, capability);
@@ -206,13 +217,24 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	@Override
 	public PhantomBackgroundState captureAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
 	{
+		return captureAcquisition(profileId, player, goal, previous, targetItemId, false);
+	}
+
+	@Override
+	public NativeCapture captureOwnedNativeAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
+	{
+		return new NativeCapture(captureAcquisition(profileId, player, goal, previous, targetItemId, true), nativeContext(player));
+	}
+
+	private PhantomBackgroundState captureAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId, boolean nativePersistence)
+	{
 		Objects.requireNonNull(player, "player");
 		final PhantomAcquisitionGoalSpec spec = PhantomAcquisitionGoalSpec.parse(goal);
 		if (spec.itemId() != targetItemId)
 		{
 			throw new IllegalArgumentException("Acquisition background target item changed.");
 		}
-		requireSupportedPlayer(player);
+		requireSupportedPlayer(player, nativePersistence);
 		final PhantomTopologyAnchor anchor = exactAnchor(player, previous);
 		final Capability capability = capability(player, null);
 		final Identity identity = new Identity(profileId, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
@@ -250,7 +272,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	public PlanningSnapshot planningSnapshot(Player player)
 	{
 		Objects.requireNonNull(player, "player");
-		requireSupportedPlayer(player);
+		// Planning selects original native work too; simulation remains fenced separately.
+		requireSupportedPlayer(player, true);
 		final PhantomTopologyAnchor anchor = exactAnchor(player, null);
 		final Capability capability = capability(player, null);
 		final PhantomBackgroundGoalSpec zeroResourceContract = new PhantomBackgroundGoalSpec(1, anchor.id(), 0, 0, 0, 0, 0);
@@ -1103,10 +1126,53 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
 	private static void requireSupportedPlayer(Player player)
 	{
-		if ((player.getInstanceId() != 0) || player.isFlying() || player.isFlyingMounted() || player.isMounted() || player.isInParty() || player.isInCombat() || player.isCombatFlagEquipped() || player.isGM() || player.hasPremiumStatus() || player.isOnEvent() || player.isFestivalParticipant() || (player.getKarma() != 0) || (player.getNevitHourglassMultiplier() != 1) || (player.getStat().getVitalityMultiplier() != 1))
+		requireSupportedPlayer(player, false);
+	}
+
+	private static PhantomNativeContext.Capture nativeContext(Player player)
+	{
+		final int points = player.getVitalityPoints();
+		final int consume = (int) player.getStat().calcStat(Stat.VITALITY_CONSUME_RATE, 1, player, null);
+		final boolean ordinaryPolicy = !PlayerConfig.ENABLE_VITALITY || ((consume == 1) && !player.getNevitSystem().isAdventBlessingActive());
+		return new PhantomNativeContext.Capture(points, (points == 1) && ordinaryPolicy
+			? PhantomNativeContext.Eligibility.SUPPORTED : PhantomNativeContext.Eligibility.VITALITY_REQUIRES_NATIVE);
+	}
+
+	@Override
+	public PhantomNativeContext.Capture captureNativeContext(Player player)
+	{
+		requireSupportedPlayer(Objects.requireNonNull(player), true);
+		return nativeContext(player);
+	}
+
+	private static void requireSupportedPlayer(Player player, boolean nativePersistence)
+	{
+		final String reason;
+		if (player.getInstanceId() != 0) { reason = "instance"; }
+		else if (player.isFlying()) { reason = "flying"; }
+		else if (player.isFlyingMounted()) { reason = "flyingMounted"; }
+		else if (player.isMounted()) { reason = "mounted"; }
+		else if (player.isInParty()) { reason = "party"; }
+		else if (player.isInCombat()) { reason = "combat"; }
+		else if (player.isCombatFlagEquipped()) { reason = "combatFlag"; }
+		else if (player.isGM()) { reason = "gm"; }
+		else if (player.hasPremiumStatus()) { reason = "premium"; }
+		else if (player.isOnEvent()) { reason = "event"; }
+		else if (player.isFestivalParticipant()) { reason = "festival"; }
+		else if (player.getKarma() != 0) { reason = "karma"; }
+		else
 		{
-			throw new IllegalArgumentException("Canonical Player is in an unsupported background context.");
+			final double nevit = player.getNevitHourglassMultiplier();
+			if (nevit != 1) { reason = "nevit=" + nevit; }
+			else
+			{
+				if (nativePersistence) { return; }
+				final double vitality = player.getStat().getVitalityMultiplier();
+				if (vitality == 1) { return; }
+				reason = "vitality=" + vitality;
+			}
 		}
+		throw new IllegalArgumentException("Canonical Player is in an unsupported background context. firstPredicate=" + reason);
 	}
 
 	private static boolean supportedCapability(String key)

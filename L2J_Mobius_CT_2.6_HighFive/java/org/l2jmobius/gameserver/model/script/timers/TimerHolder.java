@@ -17,13 +17,11 @@
 package org.l2jmobius.gameserver.model.script.timers;
 
 import java.util.Objects;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
-import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.model.StatSet;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeTimer;
 
 /**
  * @author UnAfraid
@@ -40,9 +38,14 @@ public class TimerHolder<T> implements Runnable
 	private final IEventTimerEvent<T> _eventScript;
 	private final IEventTimerCancel<T> _cancelScript;
 	private final TimerExecutor<T> _postExecutor;
-	private final ScheduledFuture<?> _task;
+	private final PlayerNativeTimer _nativeTimer;
 	
 	public TimerHolder(T event, StatSet params, long time, Npc npc, Player player, boolean isRepeating, IEventTimerEvent<T> eventScript, IEventTimerCancel<T> cancelScript, TimerExecutor<T> postExecutor)
+	{
+		this(event, params, time, npc, player, isRepeating, eventScript, cancelScript, postExecutor, false);
+	}
+
+	TimerHolder(T event, StatSet params, long time, Npc npc, Player player, boolean isRepeating, IEventTimerEvent<T> eventScript, IEventTimerCancel<T> cancelScript, TimerExecutor<T> postExecutor, boolean deferred)
 	{
 		Objects.requireNonNull(event, getClass().getSimpleName() + ": \"event\" cannot be null!");
 		Objects.requireNonNull(eventScript, getClass().getSimpleName() + ": \"script\" cannot be null!");
@@ -56,7 +59,8 @@ public class TimerHolder<T> implements Runnable
 		_eventScript = eventScript;
 		_cancelScript = cancelScript;
 		_postExecutor = postExecutor;
-		_task = isRepeating ? ThreadPool.scheduleAtFixedRate(this, _time, _time) : ThreadPool.schedule(this, _time);
+		_nativeTimer = new PlayerNativeTimer(player, "script-timer:" + event, isRepeating, this::removeNative);
+		if (!_nativeTimer.accepted()) { return; }
 		
 		if (npc != null)
 		{
@@ -67,7 +71,19 @@ public class TimerHolder<T> implements Runnable
 		{
 			player.addTimerHolder(this);
 		}
+		if (!deferred) { start(); }
 	}
+
+	boolean accepted() { return _nativeTimer.accepted(); }
+	void start() { _nativeTimer.submit(this::runBody, _time); }
+	void rejectPublication() { _nativeTimer.reject(new IllegalStateException("NATIVE_TIMER_REPLACEMENT_REFUSED")); }
+	private void removeNative()
+	{
+		if (_npc != null) { _npc.removeTimerHolder(this); }
+		if (_player != null) { _player.removeTimerHolder(this); }
+		_postExecutor.onTimerStopped(this);
+	}
+	boolean tryCancelTimer() { return _nativeTimer.cancel(() -> _cancelScript.onTimerCancel(this)); }
 	
 	/**
 	 * @return the event/key of this timer
@@ -114,23 +130,7 @@ public class TimerHolder<T> implements Runnable
 	 */
 	public void cancelTimer()
 	{
-		if (_npc != null)
-		{
-			_npc.removeTimerHolder(this);
-		}
-		
-		if (_player != null)
-		{
-			_player.removeTimerHolder(this);
-		}
-		
-		if ((_task == null) || _task.isCancelled() || _task.isDone())
-		{
-			return;
-		}
-		
-		_task.cancel(false);
-		_cancelScript.onTimerCancel(this);
+		tryCancelTimer();
 	}
 	
 	/**
@@ -138,10 +138,8 @@ public class TimerHolder<T> implements Runnable
 	 */
 	public void cancelTask()
 	{
-		if ((_task != null) && !_task.isDone() && !_task.isCancelled())
-		{
-			_task.cancel(false);
-		}
+		// Player/Npc stopAllTasks iterates its actor list under that list's monitor.
+		if (_nativeTimer.cancel(null, false) && _nativeTimer.managed()) { _postExecutor.onTimerStopped(this); }
 	}
 	
 	/**
@@ -149,12 +147,7 @@ public class TimerHolder<T> implements Runnable
 	 */
 	public long getRemainingTime()
 	{
-		if ((_task == null) || _task.isCancelled() || _task.isDone())
-		{
-			return -1;
-		}
-		
-		return _task.getDelay(TimeUnit.MILLISECONDS);
+		return _nativeTimer.remaining();
 	}
 	
 	/**
@@ -179,6 +172,11 @@ public class TimerHolder<T> implements Runnable
 	
 	@Override
 	public void run()
+	{
+		_nativeTimer.invoke(this::runBody);
+	}
+
+	private void runBody()
 	{
 		// Notify the post executor to remove this timer from the map
 		_postExecutor.onTimerPostExecute(this);

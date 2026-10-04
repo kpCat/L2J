@@ -343,6 +343,9 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 		final var ecology = new PhantomPopulationEcologyService(_catalog, _population, store, history, _ -> false, _ -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { workers.add(worker); return true; });
 		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 1, 1, 16, 4, 2, 64);
 		manager.installEcology(ecology); manager.start(); manager.onPulse(); workers.remove().run();
+		PhantomAssertions.assertEquals(0, ecology.snapshot().lastPulseIntervals(), "Metadata setup advanced partial retry history.");
+		PhantomAssertions.assertEquals(0L, backing.status(1).orElseThrow().state().intervalOrdinal(), "Metadata setup consumed partial retry intervals.");
+		manager.onPulse(); workers.remove().run();
 		try { PhantomAssertions.assertEquals(13, ecology.snapshot().lastPulseIntervals(), "Committed partial retry was omitted from the shared interval budget."); PhantomAssertions.assertEquals(13L, backing.status(1).orElseThrow().state().intervalOrdinal(), "Partial retry replayed history."); }
 		finally { ecology.beginStop(); manager.beginStop(); manager.finishStop(); }
 	}
@@ -365,6 +368,8 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 		final var ecology = new PhantomPopulationEcologyService(_catalog, _population, store, history, _ -> false, _ -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { workers.add(worker); return true; });
 		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 1, 1, 16, 4, 2, 64);
 		manager.installEcology(ecology); manager.start(); manager.onPulse(); workers.remove().run();
+		PhantomAssertions.assertEquals(0, ecology.snapshot().lastPulseIntervals(), "Metadata setup advanced rejected request history.");
+		manager.onPulse(); workers.remove().run();
 		try { PhantomAssertions.assertEquals("catchup.claim.stale", ecology.dueSnapshot(1).reason(), "Rejected restored begin was hidden behind commit_pending."); }
 		finally { ecology.beginStop(); manager.beginStop(); manager.finishStop(); }
 	}

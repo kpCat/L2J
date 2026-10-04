@@ -22,6 +22,7 @@ import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.commons.util.Rnd;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 
 /**
  * Teleport residence zone for clan hall sieges
@@ -82,7 +83,7 @@ public class ResidenceHallTeleportZone extends ResidenceTeleportZone
 			{
 				if (pc != null)
 				{
-					pc.teleToLocation(loc, false);
+					PlayerNativeWork.run(pc, java.util.List.of(), "RESIDENCE_TELEPORT", () -> pc.teleToLocation(loc, false));
 				}
 			}
 		}

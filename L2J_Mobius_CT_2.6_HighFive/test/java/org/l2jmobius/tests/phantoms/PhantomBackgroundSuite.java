@@ -64,11 +64,13 @@ import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.managers.IdManager;
+import org.l2jmobius.gameserver.managers.ItemManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.localplay.LocalPlayM1Observation;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.enums.player.MountType;
 import org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
@@ -102,6 +104,7 @@ import org.l2jmobius.gameserver.phantoms.acquisition.quest.PhantomAcquisitionQue
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority;
+import org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetitionRegistry;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore;
@@ -216,6 +219,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		TRANSACTION("background-transaction", true),
 		LIFECYCLE("background-lifecycle", true),
 		DECISION("background-decision", true),
+		NATIVE_LIFECYCLE("m1-native-lifecycle", true),
 		SERVER_INTEGRATION("background-server-integration", true),
 		PERFORMANCE("background-performance", true),
 		MATERIALIZATION_ABORT("background-materialization-abort", true),
@@ -260,6 +264,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private PhantomHeadlessPlayerTestEnvironment _environment;
 	private PhantomProfileRepository _repository;
 	private ProductionAuthorityFixture _production;
+	private String _retainedSummonCompletion = "";
 
 	public PhantomBackgroundSuite(Mode mode)
 	{
@@ -275,9 +280,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
+		requireSummonCleanupAdmissible(); PhantomM1NativePhaseChecks.requireNoRetainedCompletion(context);
+		PhantomAssertions.assertFalse(PhantomOwnedStoreProcessCrashChecks.retainedCleanupRequired(), "Q14 retained child/snapshot forbids a new native fixture.");
 		final boolean questCap = (_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "quest-cap".equals(System.getProperty("phantom.acquisition.focus", ""));
 		final long expectedSeed = questCap ? QUEST_CAP_SEED : (_mode == Mode.ACQUISITION_PARITY) || (_mode == Mode.ACQUISITION_ATOMIC_RESTART) ? ACQUISITION_SEED : ((_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.POSITION_CANONICALIZATION) ? PRODUCTION_LOOT_UNBLOCK_SEED : SEED);
 		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Goal 015 mode seed changed.");
+		if (_mode == Mode.NATIVE_LIFECYCLE && Set.of("codec", "native-context-contract").contains(System.getProperty("phantom.m1.native.focus", "all"))) { return; }
 		if (_mode._database)
 		{
 			_environment = new PhantomHeadlessPlayerTestEnvironment();
@@ -286,11 +294,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			deleteStaleTestProfile(_environment.primary().objectId());
 			deleteStaleTestProfile(_environment.observer().objectId());
 			context.record("background.database", PhantomTestDatabaseGuard.TARGET_DATABASE);
-			if (_mode == Mode.AUTHORITATIVE_SHOTS)
+			if ((_mode == Mode.AUTHORITATIVE_SHOTS) || ((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "complete", "producer-closeout", "store", "cast", "async", "checkpoint", "drain", "q266", "producer", "queued", "round3", "loot", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "native-phase", "native-summon-phase").contains(System.getProperty("phantom.m1.native.focus", "all"))))
 			{
 				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			}
-			if ((_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
+			if (((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "complete", "producer-closeout", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "producer", "queued", "round3", "loot", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "native-phase", "native-summon-phase").contains(System.getProperty("phantom.m1.native.focus", "all"))) || (_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
 			{
 				try
 				{
@@ -319,6 +327,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	@Override
 	public void afterAll(PhantomTestContext context) throws Exception
 	{
+		requireSummonCleanupAdmissible(); PhantomM1NativePhaseChecks.requireNoRetainedCompletion(context);
+		PhantomAssertions.assertFalse(PhantomOwnedStoreProcessCrashChecks.retainedCleanupRequired(), "Q14 retained child/snapshot forbids native or canonical cleanup; private journal retained.");
 		if (_production != null)
 		{
 			_production.close();
@@ -330,14 +340,16 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	}
 
 	@Override
-	public void register(PhantomTestRegistry registry)
+	public void register(PhantomTestRegistry targetRegistry)
 	{
+		final var registry = new PhantomTestRegistry(id());
 		switch (_mode)
 		{
 			case MODEL -> registerModel(registry);
 			case TRANSACTION -> registerTransaction(registry);
 			case LIFECYCLE -> registerLifecycle(registry);
 			case DECISION -> registerDecision(registry);
+			case NATIVE_LIFECYCLE -> registerNativeLifecycle(registry);
 			case SERVER_INTEGRATION -> registerServerIntegration(registry);
 			case PERFORMANCE -> registerPerformance(registry);
 			case MATERIALIZATION_ABORT -> registerMaterializationAbort(registry);
@@ -352,7 +364,15 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			case ACQUISITION_PARITY -> registerAcquisitionParity(registry);
 			case ACQUISITION_ATOMIC_RESTART -> registerAcquisitionAtomicRestart(registry);
 		}
+		for (var entry : registry.orderedTests())
+		{
+			targetRegistry.add(entry.identity().substring(id().length() + 1), context ->
+			{
+				requireSummonCleanupAdmissible(); PhantomM1NativePhaseChecks.requireNoRetainedCompletion(context); entry.testCase().run(context);
+			});
+		}
 	}
+	private void requireSummonCleanupAdmissible() { PhantomAssertions.assertTrue(_retainedSummonCompletion.isEmpty(), "SUMMON_TEST_RETAINED_CLEANUP_ADMISSION_REFUSED " + _retainedSummonCompletion); }
 
 	private void registerAcquisitionParity(PhantomTestRegistry registry)
 	{
@@ -432,6 +452,2314 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("02-fifty-transition-conservation", _ -> testLifecycleLoop(50, 0));
 		registry.add("03-death-warm-recovery", _ -> testDeathRecovery());
 		registry.add("04-disabled-stop-drain", _ -> testStopDrain());
+	}
+
+	private void registerNativeLifecycle(PhantomTestRegistry registry)
+	{
+		final String focus = System.getProperty("phantom.m1.native.focus", "all");
+		if (focus.equals("complete") || focus.equals("producer-closeout"))
+		{
+			final var families = focus.equals("producer-closeout") ? List.of("raw", "delayed", "publisher", "watchdog-race", "ai-delay", "party-loot", "codec") : List.of("all", "async", "checkpoint", "q266", "timers", "closure", "movement", "dynamic", "extension", "race", "party-loot", "raw", "delayed", "publisher", "watchdog-race", "ai-delay", "codec", "loot", "pool-restore", "process-crash", "load-observer", "native-context-contract", "native-phase", "native-summon-phase");
+			for (String family : families) { registerNativeLifecycle(registry, family); }
+			if (focus.equals("producer-closeout")) { return; }
+			registry.add("A09-native-damage-kill-reward-sensor", context -> testNativeRewardCompletion(context, false, false, false, false, false, true));
+			registry.add("T-native-terminal-and-continuation", this::testVisibleNativeTravel);
+			registry.add("Q10-actual-native-timeout-completion-queues-safe-retry", context -> testNativeRewardCompletion(context, false, true, false, false, false, false, true));
+			registry.add("T07-actual-native-dry-MOVE_TO-water-corridor", context -> testNativeRouteScenario(context, false));
+			registry.add("T03-actual-native-missing-GK-cooldown", context -> testNativeRouteScenario(context, true));
+			registry.add("T08-actual-native-canonical-farm-standpoint", context -> testNativeRouteScenario(context, "standpoint"));
+			registry.add("T07-actual-native-wrong-height-canonical", context -> testNativeRouteScenario(context, "height"));
+			for (boolean ordinary : List.of(false, true))
+			{
+				registry.add("Q12-actual-native-shared-party-exp-" + ordinary, context -> testNativeSecondaryRecipients(context, false, ordinary));
+				registry.add("Q12-actual-native-third-transfer-hp-" + ordinary, context -> testNativeSecondaryRecipients(context, true, ordinary));
+			}
+			return;
+		}
+		registerNativeLifecycle(registry, focus);
+	}
+
+	private void registerNativeLifecycle(PhantomTestRegistry registry, String focus)
+	{
+		if (!Set.of("all", "ownership", "errors", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "timers", "producer", "queued", "p06", "teardown", "round3", "loot", "faults", "closure", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "codec", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "native-phase", "native-summon-phase").contains(focus)) { throw new IllegalArgumentException("Unknown native M1 test focus: " + focus); }
+		if (focus.equals("native-context-contract"))
+		{
+			registry.add("Q14-native-context-unknown-exact-binding-contract", _ -> org.l2jmobius.gameserver.phantoms.PhantomM1NativeContextChecks.unknownAndExactBinding());
+			registry.add("Q14-native-context-pending-zero-native-points-contract", _ -> org.l2jmobius.gameserver.phantoms.PhantomM1NativeContextChecks.pendingZeroAndNativePoints());
+			registry.add("Q14-native-context-exact-load-witness-contract", _ -> org.l2jmobius.gameserver.phantoms.PhantomM1NativeContextChecks.loadedPointsRequireExactWitness(state(7, 100007, State.READY, 100, 100, inventory())));
+			return;
+		}
+		if (focus.equals("native-phase")) { registry.add("A07-actual-native-cast-MP-regen-bounded-phase", this::testNativeRegenPhase); return; }
+		if (focus.equals("native-summon-phase"))
+		{
+			registry.add("A08-0-ordinary-original-native-Servitor-damage-control", this::testOrdinarySummonPhase);
+			registry.add("A08-1-managed-original-native-Servitor-COMBAT", this::testNativeSummonPhase);
+			return;
+		}
+		if (focus.equals("load-observer"))
+		{
+			registry.add("W-native-load-dirty-arrow-reward-lawful-store", this::testNativeLoadObserver);
+			return;
+		}
+		if (focus.equals("process-crash"))
+		{
+			for (var boundary : PhantomOwnedStoreProcessCrashChecks.Boundary.values()) { registry.add("Q14-actual-process-halt-reconcile-reload-" + boundary, context -> testNativeProcessCrash(context, boundary)); }
+			return;
+		}
+		if (focus.equals("watchdog-race"))
+		{
+			for (String kind : List.of("watchdog-claim", "watchdog-registration", "watchdog-stop")) { registry.add("Q07-original-native-" + kind, context -> testNativeDelayedState(context, kind, true)); }
+			return;
+		}
+		if (focus.equals("delayed-watchdog"))
+		{
+			for (boolean managed : List.of(true, false)) { registry.add("Q12-original-running-native-watchdog-" + managed, context -> testNativeDelayedState(context, "watchdog", managed)); }
+			return;
+		}
+		if (focus.equals("publisher"))
+		{
+			for (String kind : List.of("status", "icons"))
+			{
+				for (String mode : List.of("NULL", "INLINE")) { registry.add("Q07-original-native-" + kind + "-" + mode, context -> testNativePublisher(context, kind, mode, false)); }
+			}
+			for (boolean managed : List.of(true, false))
+			{
+				registry.add("Q12-stock-buff-eviction-" + managed, context -> testNativePublisher(context, "eviction", "", managed));
+				registry.add("Q07-optional-watchdog-confirmation-" + managed, context -> testNativeDelayedState(context, "watchdog-cancel", managed));
+			}
+			registry.add("Q07-optional-watchdog-earned-confirmation", context -> testNativeDelayedState(context, "watchdog-earned", true));
+			return;
+		}
+		if (focus.equals("codec")) { new PhantomOwnedStoreIntentCodecChecks().register(registry); return; }
+		if (focus.equals("ai-delay") || focus.equals("ai-cast"))
+		{
+			for (boolean managed : List.of(true, false))
+			{
+				for (String kind : focus.equals("ai-cast") ? List.of("cast") : List.of("ready", "cast", "arrived")) { registry.add("Q12-original-native-AI-delay-" + kind + "-" + managed, context -> testNativeAiDelay(context, kind, managed)); }
+			}
+			return;
+		}
+		if (focus.equals("delayed"))
+		{
+			for (boolean managed : List.of(true, false))
+			{
+				for (String kind : List.of("sit", "stand", "icons", "watchdog")) { registry.add("Q12-native-delayed-" + kind + "-" + managed, context -> testNativeDelayedState(context, kind, managed)); }
+			}
+			return;
+		}
+		if (focus.equals("race"))
+		{
+			for (var stage : PhantomM1MaterializationRaceChecks.Stage.values())
+			{
+				for (boolean shutdown : List.of(false, true)) { registry.add("Q15-native-materialization-race-" + stage + "-" + shutdown, context -> testNativeMaterializationRace(context, stage, shutdown, PhantomM1MaterializationRaceChecks.AbortFailure.NONE)); }
+			}
+			for (var failure : List.of(PhantomM1MaterializationRaceChecks.AbortFailure.ERROR, PhantomM1MaterializationRaceChecks.AbortFailure.RUNTIME)) { registry.add("E04-native-materialization-abort-" + failure, context -> testNativeMaterializationRace(context, PhantomM1MaterializationRaceChecks.Stage.AFTER_PLAYER_LOAD, false, failure)); }
+			return;
+		}
+		if (focus.equals("raw"))
+		{
+			for (boolean managed : List.of(true, false))
+			{
+				for (String kind : List.of("follow", "status", "buff-control", "buff-null")) { registry.add("Q12-actual-native-raw-" + kind + "-" + managed, context -> testNativeRawProducer(context, kind, managed)); }
+			}
+			registry.add("Q07-actual-native-BuffFinish-INLINE-stop-publication", context -> testNativeRawProducer(context, "buff-inline", true));
+			return;
+		}
+		if (focus.equals("party-loot"))
+		{
+			for (boolean ordinary : List.of(false, true))
+			{
+				for (int itemId : List.of(57, 1866)) { registry.add("Q12-actual-native-party-pickup-" + itemId + "-" + ordinary, context -> testNativePartyLoot(context, itemId, ordinary)); }
+				for (int itemId : List.of(57, 1866)) { registry.add("Q12-actual-native-party-autoloot-" + itemId + "-" + ordinary, context -> testNativePartyAutoLoot(context, itemId, ordinary)); }
+			}
+			for (boolean sealed : List.of(false, true)) { registry.add("Q12-actual-native-party-late-" + sealed, context -> testNativePartyLateJoin(context, false, sealed)); }
+			registry.add("Q12-actual-native-party-late-ordinary", context -> testNativePartyLateJoin(context, true, false));
+			return;
+		}
+		if (focus.equals("extension"))
+		{
+			registry.add("Q12-stock-positive-buff-actual-materialization-reload", context -> testNativeBuffReload(context, false));
+			registry.add("Q12-stock-expired-teardown-buff-does-not-resurrect", context -> testNativeBuffReload(context, true));
+			registry.add("Q09-native-production-travel-pending-receipt", context -> testNativeReviewCheckpoint(context, false));
+			registry.add("Q09-native-finalized-mismatch-keeps-fence", context -> testNativeReviewCheckpoint(context, true));
+			for (String producer : List.of("event", "jail", "residence")) { registry.add("Q12-native-teleport-" + producer, context -> testNativeTeleportProducer(context, producer)); }
+			for (String producer : List.of("event", "jail", "residence")) { registry.add("Q12-ordinary-native-teleport-" + producer, context -> testOrdinaryNativeTeleportProducer(context, producer)); }
+			return;
+		}
+		if (focus.equals("dynamic"))
+		{
+			for (boolean transfer : List.of(false, true))
+			{
+				registry.add("Q12-dynamic-native-recipient-ordinary-" + transfer, context -> testNativeDynamicRecipients(context, transfer, false, false));
+				registry.add("Q12-dynamic-native-recipient-open-" + transfer, context -> testNativeDynamicRecipients(context, transfer, true, false));
+				registry.add("Q12-dynamic-native-recipient-sealed-" + transfer, context -> testNativeDynamicRecipients(context, transfer, true, true));
+			}
+			return;
+		}
+		if (focus.equals("buff-reload"))
+		{
+			registry.add("Q12-stock-positive-buff-actual-materialization-reload", context -> testNativeBuffReload(context, false));
+			registry.add("Q12-stock-expired-teardown-buff-does-not-resurrect", context -> testNativeBuffReload(context, true));
+			return;
+		}
+		if (focus.equals("teleport"))
+		{
+			for (String producer : List.of("event", "jail", "residence"))
+			{
+				registry.add("Q12-native-teleport-" + producer, context -> testNativeTeleportProducer(context, producer));
+			}
+			return;
+		}
+		if (focus.equals("secondary"))
+		{
+			registry.add("T06-actual-native-heal-without-work-debt-reset", context -> testNativeLoot(context, "watchdog"));
+			for (boolean ordinary : List.of(false, true))
+			{
+				registry.add("Q12-actual-native-shared-party-exp-" + ordinary, context -> testNativeSecondaryRecipients(context, false, ordinary));
+				registry.add("Q12-actual-native-third-transfer-hp-" + ordinary, context -> testNativeSecondaryRecipients(context, true, ordinary));
+			}
+			return;
+		}
+		if (focus.equals("movement")) { registry.add("Q12-actual-native-movement-zone-exit-before-first-effect-removal", this::testNativeMovementExit); return; }
+		if (focus.equals("review"))
+		{
+			registry.add("Q09-native-live-pending-resume-reopens-exact-lifetime", context -> testNativeReviewCheckpoint(context, false));
+			registry.add("Q09-native-arrival-finalized-mismatch-keeps-fence", context -> testNativeReviewCheckpoint(context, true));
+			return;
+		}
+		if (focus.equals("watchdog")) { registry.add("T06-actual-native-heal-without-work-debt-reset", context -> testNativeLoot(context, "watchdog")); return; }
+		if (focus.equals("faults") || focus.equals("closure"))
+		{
+			registry.add("Q11-actual-native-timer-preserves-primary-and-secondary", context -> org.l2jmobius.gameserver.phantoms.player.PhantomM1NativeScopeChecks.timerPrimary(context, _environment.primary().objectId()));
+			registry.add("Q07-actual-native-scheduler-faults-and-ordinary-control", context -> org.l2jmobius.gameserver.phantoms.player.PhantomM1NativeScopeChecks.scheduler(context, _environment.primary().objectId()));
+			registry.add("Q05-actual-native-1000-owner-start-cancel-interleavings", context -> org.l2jmobius.gameserver.phantoms.player.PhantomM1NativeScopeChecks.interleavings(context, _environment.primary().objectId()));
+			registry.add("Q08-actual-native-old-queued-and-new-REAL-identity", context -> org.l2jmobius.gameserver.phantoms.player.PhantomM1NativeScopeChecks.identityReuse(context, _environment.primary().objectId()));
+			if (focus.equals("closure"))
+			{
+				registry.add("Q12-actual-native-running-effect-and-buff-reload", context -> testNativeTimerCompletion(context, "buff"));
+				for (String producer : List.of("buff-expiry", "zone-effect", "zone-damage")) { registry.add("Q12-actual-native-" + producer, context -> testNativeTimerCompletion(context, producer)); }
+				registry.add("Q15-actual-native-early-load-owner-without-lifecycle-monitor", _ -> testNativeEarlyLoadOwnership());
+			}
+			return;
+		}
+		if (Set.of("all", "queued", "round3").contains(focus))
+		{
+			for (String producer : List.of("attack", "cast", "incomingAttack", "incomingCast")) { registry.add("Q03-Q12-native-queued-" + producer, context -> testNativeQueuedWork(context, producer)); }
+			if (focus.equals("queued")) { return; }
+		}
+		if (Set.of("all", "teardown", "round3").contains(focus)) { registry.add("Q15-native-logout-reward-before-final-store", this::testNativeLogoutOrdering); if (focus.equals("teardown")) { return; } }
+		if (focus.equals("p06")) { registry.add("P06-ordinary-offline-DELETE-keeps-new-registration", this::testNativeOfflineReplacement); return; }
+		if (focus.equals("loot"))
+		{
+			for (String kind : List.of("pickup20", "pickup150", "autoloot", "protected", "concurrent", "capacity", "weight", "watchdog", "excluded")) { registry.add("L-T06-actual-native-" + kind, context -> testNativeLoot(context, kind)); }
+			return;
+		}
+		if (focus.equals("round3"))
+		{
+			registry.add("Q10-actual-native-timeout-completion-queues-safe-retry", context -> testNativeRewardCompletion(context, false, true, false, false, false, false, true));
+			registry.add("P06-ordinary-offline-DELETE-keeps-new-registration", this::testNativeOfflineReplacement);
+			registry.add("T07-actual-native-dry-MOVE_TO-water-corridor", context -> testNativeRouteScenario(context, false));
+			registry.add("T03-actual-native-missing-GK-cooldown", context -> testNativeRouteScenario(context, true));
+			registry.add("T08-actual-native-canonical-farm-standpoint", context -> testNativeRouteScenario(context, "standpoint"));
+			registry.add("T07-actual-native-wrong-height-canonical", context -> testNativeRouteScenario(context, "height"));
+			return;
+		}
+		if (focus.equals("drain")) { registry.add("Q10-actual-native-timeout-completion-queues-safe-retry", context -> testNativeRewardCompletion(context, false, true, false, false, false, false, true)); return; }
+		if (focus.equals("geometry"))
+		{
+			registry.add("T07-actual-native-dry-MOVE_TO-water-corridor", context -> testNativeRouteScenario(context, false));
+			registry.add("T03-actual-native-missing-GK-cooldown", context -> testNativeRouteScenario(context, true));
+			return;
+		}
+		if (focus.equals("producer"))
+		{
+			registry.add("A09-native-damage-kill-reward-sensor", context -> testNativeRewardCompletion(context, false, false, false, false, false, true));
+			registry.add("T-native-terminal-and-continuation", this::testVisibleNativeTravel);
+			registry.add("Q06-native-TimerHolder-body-drains-after-unregister", this::testNativeTimerCompletion);
+			return;
+		}
+		if (focus.equals("timers"))
+		{
+			registry.add("Q04-native-QuestTimer-held-body", context -> testNativeTimerCompletion(context, "quest"));
+			registry.add("Q05-native-pending-cancel-and-long-repeat", context -> testNativeTimerCompletion(context, "cancel"));
+			registry.add("Q06-native-TimerHolder-body-drains-after-unregister", this::testNativeTimerCompletion);
+			registry.add("Q06-native-repeating-body-stops-and-drains", context -> testNativeTimerCompletion(context, "repeat"));
+			registry.add("Q13-native-zero-earned-child-and-grandchild", context -> testNativeTimerCompletion(context, "chain"));
+			return;
+		}
+		if (focus.equals("pool-restore")) { registry.add("Q12-original-pool4-native-duplicate-merge-restore", this::testNativeDuplicatePoolRestore); return; }
+		if (focus.equals("q266")) { registry.add("Q02-actual-stock-Q266-drains-and-persists", context -> testNativeRewardCompletion(context, false, false, true, false, true)); return; }
+		if (focus.equals("checkpoint")) { registry.add("Q09-active-native-store-drains-quest-reward", context -> testNativeRewardCompletion(context, false, false, true, true)); return; }
+		if (focus.equals("async")) { registry.add("Q01-Q05-delayed-native-kill-quest-reward", context -> testNativeRewardCompletion(context, false, false, true)); return; }
+		if (focus.equals("travel")) { registry.add("T-native-terminal-and-continuation", this::testVisibleNativeTravel); return; }
+		if (focus.equals("cast")) { registry.add("P09-Q01-Q02-native-mage-reward", context -> testNativeRewardCompletion(context, true, false)); return; }
+		if (focus.equals("all") || focus.equals("errors"))
+		{
+			registry.add("E01-first-cleanup-failure-survives-retry", _ -> testNativeFirstFailure(false));
+			registry.add("E05-detached-cleanup-evidence-survives-entry-removal", _ -> testNativeFirstFailure(true));
+			registry.add("E06-native-incident-bounds-and-hostile-formatter", _ -> testNativeIncidentBounds());
+			registry.add("E02-cleanup-primary-survives-native-task-finalizer", _ -> testNativeCleanupPrimary());
+			registry.add("E04-materialize-error-survives-abort-error", _ -> testNativeAbortPrimary());
+			registry.add("E03-native-store-primary-survives-boundary-finalizer", _ -> testNativeStorePrimary(false));
+			registry.add("E03-native-resume-primary-survives-boundary-finalizer", _ -> testNativeStorePrimary(true));
+		}
+		if (focus.equals("all") || focus.equals("store"))
+		{
+			registry.add("Q01-Q02-native-hit-reward-drains-and-persists", context -> testNativeRewardCompletion(context, false, false));
+			registry.add("Q01-Q02-native-mage-reward-drains-and-persists", context -> testNativeRewardCompletion(context, true, false));
+			registry.add("Q05-native-completion-timeout-retains-ownership", context -> testNativeRewardCompletion(context, false, true));
+		}
+		if (focus.equals("errors") || focus.equals("store")) { return; }
+		registry.add("P07-stale-visible-start-rollback-keeps-current-session", _ -> testNativeSessionOverlap());
+		registry.add("P06-ordinary-offline-DELETE-keeps-new-registration", this::testNativeOfflineReplacement);
+		registry.add("P08-partial-visible-pair-is-unhealthy-and-repaired", _ -> testNativePartialPair());
+		for (Class<?> manager : List.of(AutoPlayTaskManager.class, AutoUseTaskManager.class))
+		{
+			registry.add("P04-" + manager.getSimpleName() + "-stale-rejection-keeps-replacement", _ -> testNativePolicyReplacement(manager, false));
+			registry.add("P05-" + manager.getSimpleName() + "-stale-exception-keeps-pair", _ -> testNativePolicyReplacement(manager, true));
+			registry.add("P01-" + manager.getSimpleName() + "-missing-policy-skips-stock-effects", _ -> testNativeMissingPolicy(manager));
+		}
+	}
+
+	private void testNativeProcessCrash(PhantomTestContext context, PhantomOwnedStoreProcessCrashChecks.Boundary boundary) throws Exception
+	{
+		PhantomAssertions.assertFalse(PhantomOwnedStoreProcessCrashChecks.retainedCleanupRequired(), "Q14 previous child/snapshot must be reconciled before creating another fixture.");
+		final var fixture = openNativeProductionFixture(context, true, new PhantomBackgroundTransaction(), _environment.primary().objectId(), _ -> {}, null, false);
+		try
+		{
+			fixture.visible.stop(fixture.id());
+			final var stopped = fixture.materialization.shutdown();
+			PhantomAssertions.assertTrue(stopped.failedProfileIds().isEmpty() && fixture.materialization.snapshot().retainedEntries() == 0, "Q14 parent materialization did not drain.");
+			fixture.background.beginStop();
+			PhantomAssertions.assertTrue(fixture.background.finishStop(), "Q14 parent background did not stop.");
+			fixture.engine.beginStop();
+			PhantomAssertions.assertTrue(fixture.engine.finishStop(), "Q14 parent decision did not stop.");
+			final var journal = context.moduleRoot().resolve(".phantom-local/m1-007-q14-" + boundary.name().toLowerCase(java.util.Locale.ROOT) + "-" + System.nanoTime() + ".bin");
+			final var receipt = PhantomOwnedStoreProcessCrashChecks.run(context, fixture.id(), fixture.profile.characterObjectId(), fixture.seed.farm().anchor().id(), boundary, journal);
+			context.record("q14." + boundary + ".receipt", receipt);
+			PhantomAssertions.assertFalse(PhantomOwnedStoreProcessCrashChecks.retainedCleanupRequired(), "Q14 completed case retained its snapshot.");
+			PhantomAssertions.assertFalse(java.nio.file.Files.exists(journal), "Q14 full restored snapshot retained its private journal.");
+		}
+		finally
+		{
+			if (!PhantomOwnedStoreProcessCrashChecks.retainedCleanupRequired()) { fixture.close(); }
+		}
+	}
+
+	private void testNativeLoadObserver(PhantomTestContext context) throws Exception
+	{
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		final var seed = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_FIGHTER, farm);
+		NativeProductionFixture owned = null;
+		try
+		{
+			final Player prepared = seed.player();
+			final Item bow = prepared.getInventory().addItem(ItemProcessType.REWARD, 13, 1, prepared, this);
+			final Item arrows = prepared.getInventory().addItem(ItemProcessType.REWARD, 17, 8, prepared, this);
+			PhantomAssertions.assertTrue(bow != null && arrows != null && arrows.getCount() == 8, "Native load observer stock equipment seed failed.");
+			prepared.getInventory().equipItem(bow);
+			prepared.getInventory().equipItem(arrows);
+			final var bridge = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge();
+			owned = ownNativeFixture(context, seed, false, new PhantomBackgroundTransaction(), _ -> {}, bridge, false);
+			final var observer = new org.l2jmobius.gameserver.phantoms.PhantomM1NativeLoadObserver(Map.of(owned.id(), owned.profile.characterObjectId()));
+			bridge.install(observer);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, owned.materialization.materialize(owned.id()).status(), "Native load observer Player did not materialize.");
+			final var monster = owned.monster(true);
+			try { org.l2jmobius.gameserver.phantoms.PhantomM1NativeLoadObserverChecks.run(context, owned.id(), owned.materialization, observer, monster); }
+			finally { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); }
+		}
+		finally { if (owned != null) { owned.close(); } else { seed.close(); } }
+	}
+
+	private void testNativeDuplicatePoolRestore(PhantomTestContext context) throws Exception
+	{
+		final String primaryInventory = canonicalInventoryHash(_environment.primary().objectId());
+		final String observerInventory = canonicalInventoryHash(_environment.observer().objectId());
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		try (var first = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+			var third = openCreatedNativePartySeed(context, first.player(), farm))
+		{
+			PhantomM1PoolRestoreChecks.ordinaryDuplicate(context, third.player(), _environment.primary().objectId(), _environment.observer().objectId(), _environment::cleanupLoadedPlayer);
+		}
+		finally
+		{
+			PhantomAssertions.assertEquals(primaryInventory, canonicalInventoryHash(_environment.primary().objectId()), "Native duplicate control changed the existing primary inventory.");
+			PhantomAssertions.assertEquals(observerInventory, canonicalInventoryHash(_environment.observer().objectId()), "Native duplicate control changed the existing observer inventory.");
+		}
+	}
+
+	private void testNativeLoot(PhantomTestContext context, String kind) throws Exception
+	{
+		try (var fixture = kind.equals("excluded") ? openExcludedGroundFixture(context) : openNativeProductionFixture(context, kind.equals("watchdog")))
+		{
+			org.l2jmobius.gameserver.model.actor.instance.Monster monster = null;
+			Player foreign = null;
+			try
+			{
+				switch (kind)
+				{
+					case "pickup20", "pickup150" -> PhantomM1LootWatchdogChecks.pickupAndReload(context, fixture.id(), fixture.materialization, fixture.visible, fixture.seed.goal(), fixture.transaction, kind.equals("pickup20") ? 20 : 150, 57);
+					case "autoloot" -> { monster = fixture.monster(true); PhantomM1LootWatchdogChecks.autoLootAndReload(context, fixture.id(), fixture.materialization, fixture.seed.goal(), fixture.transaction, monster, 57); }
+					case "protected" ->
+					{
+						monster = fixture.monster(true); foreign = Player.load(_environment.observer().objectId());
+						final int ignored = AutoPlayConfig.IGNORED_AUTO_PICK_ITEMS.stream().filter(value -> ItemData.getInstance().getTemplate(value) != null).sorted().findFirst().orElseThrow(() -> new AssertionError("Actual ignored pickup config has no native item fixture."));
+						PhantomM1LootWatchdogChecks.protectedAndIgnored(context, fixture.id(), fixture.materialization, fixture.visible, fixture.seed.goal(), foreign, monster, ignored);
+					}
+					case "concurrent" -> PhantomM1LootWatchdogChecks.pickupDuringCleanup(context, fixture.id(), fixture.materialization, fixture.visible, fixture.seed.goal(), fixture.transaction, 1334);
+					case "excluded" ->
+					{
+						final Player player = fixture.player();
+						final var area = _production.topology().findNode(fixture.seed.farm().anchor().nodeId()).orElseThrow().area();
+						final int targetX = player.getX() + 20; final int targetY = player.getY() + 20;
+						final int targetZ = GeoEngine.getInstance().getHeight(targetX, targetY, player.getZ());
+						for (int offset = 0; offset <= 20; offset++)
+						{
+							final int x = player.getX() + offset; final int y = player.getY() + offset;
+							final int z = GeoEngine.getInstance().getHeight(x, y, player.getZ());
+							PhantomAssertions.assertTrue(area.contains(new PhantomTopologyPoint(x, y, z, player.getInstanceId())), "INVALID excluded-ground fixture: lawful native farm segment leaves the original polygon.");
+						}
+						PhantomAssertions.assertTrue(GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), targetX, targetY, targetZ, player.getInstanceId()), "INVALID excluded-ground fixture: original native farm segment is not reachable.");
+						monster = fixture.monster(false);
+						monster.getSpawn().setXYZ(targetX, targetY, targetZ);
+						monster.spawnMe(targetX, targetY, targetZ);
+						context.record("m1.loot.exclusionLawfulSegment", "originalNode=" + fixture.seed.farm().anchor().nodeId() + " source=" + player.getX() + "," + player.getY() + "," + player.getZ() + " target=" + targetX + "," + targetY + "," + targetZ + " originalAreaContainsAll21=true nativeGeo=true toleranceUnchanged=true");
+						PhantomM1LootWatchdogChecks.excludedGroundCreated(context, fixture.player(), fixture.materialization, fixture.id(), fixture.visible, fixture.seed.goal(), monster, 1334);
+					}
+					case "capacity", "weight" ->
+					{
+						final Player player = fixture.player();
+						final boolean weightOnly = kind.equals("weight");
+						final int itemId = weightOnly ? 1866 : 875;
+						try (var action = fixture.materialization.tryAcquireAction(fixture.id()).orElseThrow())
+						{
+							if (weightOnly)
+							{
+								final var item = ItemData.getInstance().getTemplate(itemId);
+								PhantomAssertions.assertTrue(item.isStackable() && (item.getWeight() > 0), "Native weight fixture template is invalid.");
+								final long preload = (player.getMaxLoad() - player.getCurrentLoad()) / item.getWeight();
+								PhantomAssertions.assertTrue(preload > 0, "Native weight fixture has no initial load room.");
+								player.getInventory().addItem(ItemProcessType.REWARD, itemId, preload, player, this);
+							}
+							else
+							{
+								final int slots = player.getInventoryLimit() - player.getInventory().getNonQuestSize();
+								PhantomAssertions.assertTrue((slots > 0) && (slots <= 300) && !ItemData.getInstance().getTemplate(itemId).isStackable(), "Native slot fixture is invalid/unbounded.");
+								for (int slot = 0; slot < slots; slot++) { player.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, player, this); }
+							}
+							PhantomAssertions.assertTrue(player.getCurrentLoad() <= player.getMaxLoad(), "Native inventory fixture itself overweighted the farmer.");
+						}
+						monster = fixture.monster(true);
+						PhantomM1LootWatchdogChecks.blockedInventory(context, fixture.id(), fixture.materialization, fixture.visible, fixture.seed.goal(), itemId, weightOnly, monster);
+					}
+					case "watchdog" ->
+					{
+						monster = fixture.monster(false);
+						final var learned = fixture.player().getAllSkills().stream().filter(skill -> skill.hasEffectType(org.l2jmobius.gameserver.model.effects.EffectType.HEAL)).sorted(Comparator.comparingInt(org.l2jmobius.gameserver.model.skill.Skill::getId)).findFirst().orElseThrow(() -> new AssertionError("Actual native mage class has no learned HEAL fixture."));
+						PhantomM1LootWatchdogChecks.watchdog(context, fixture.id(), fixture.materialization, fixture.visible, fixture.seed.goal(), fixture.clock, monster, learned);
+					}
+					default -> throw new IllegalArgumentException("Unknown native loot fixture");
+				}
+			}
+			finally { if (monster != null) { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); } if (foreign != null) { _environment.cleanupLoadedPlayer(foreign); } }
+		}
+	}
+
+	private void testNativeQueuedWork(PhantomTestContext context, String producer) throws Exception
+	{
+		try (var nativeFixture = openNativeProductionFixture(context, producer.equals("cast")))
+		{
+			final Player player = nativeFixture.player();
+			final var monster = nativeFixture.monster(true);
+			try
+			{
+				switch (producer)
+				{
+					case "attack" -> PhantomM1QueuedWorkChecks.runAttack(context, player, nativeFixture.materialization, nativeFixture.id(), monster);
+					case "cast" -> PhantomM1QueuedWorkChecks.runCast(context, player, nativeFixture.materialization, nativeFixture.id(), monster, player.getKnownSkill(1177));
+					case "incomingAttack" -> PhantomM1QueuedWorkChecks.runIncomingAttack(context, player, nativeFixture.materialization, nativeFixture.id(), monster);
+					case "incomingCast" -> PhantomM1QueuedWorkChecks.runIncomingCast(context, player, nativeFixture.materialization, nativeFixture.id(), monster, SkillData.getInstance().getSkill(1177, 1));
+					default -> throw new IllegalArgumentException("Unknown queued native producer");
+				}
+			}
+			finally { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); }
+		}
+	}
+
+	private void testNativeLogoutOrdering(PhantomTestContext context) throws Exception
+	{
+		final var entered = new CountDownLatch(1); final var release = new CountDownLatch(1); final var finished = new CountDownLatch(1);
+		final var prepared = new AtomicBoolean(); final var callbackFailure = new AtomicReference<Throwable>();
+		final var cleanupResult = new AtomicReference<PhantomMaterializationService.DematerializeResult>();
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point -> { if (point == FailurePoint.BEFORE_STORE_OPERATION) { prepared.set(true); } }))
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Q15 native fixture materialization failed.");
+			final Player player; try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
+			final long before = player.getInventory().getInventoryItemCount(1334, -1);
+			final var listener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(player, org.l2jmobius.gameserver.model.events.EventType.ON_PLAYER_LOGOUT,
+				(org.l2jmobius.gameserver.model.events.holders.actor.player.OnPlayerLogout event) ->
+				{
+					entered.countDown();
+					try { if (!release.await(5, TimeUnit.SECONDS)) { throw new AssertionError("Q15 native logout barrier timed out"); } org.l2jmobius.gameserver.model.script.Quest.giveItems(event.getPlayer(), 1334, 1); }
+					catch (Throwable failure) { callbackFailure.set(failure); }
+					finally { finished.countDown(); }
+				}, this);
+			player.addListener(listener);
+			final Thread cleanup = new Thread(() -> cleanupResult.set(runtime.materialization().dematerialize(runtime.profileId())), "TEST-native-logout-cleanup");
+			try
+			{
+				cleanup.start();
+				PhantomAssertions.assertTrue(entered.await(3, TimeUnit.SECONDS), "Actual native delete/logout event was not observed; Q15 fixture invalid.");
+				context.record("m1.Q15.native", "logoutEntered=true beforeStore=" + prepared.get() + " callbackFinished=" + (finished.getCount() == 0));
+				PhantomAssertions.assertFalse(prepared.get(), "Native logout earned callback was first published after final store boundary.");
+				release.countDown(); PhantomAssertions.assertTrue(finished.await(3, TimeUnit.SECONDS), "Native logout callback did not complete."); cleanup.join(5000);
+				PhantomAssertions.assertFalse(cleanup.isAlive(), "Native logout cleanup deadlocked.");
+				PhantomAssertions.assertEquals(null, callbackFailure.get(), "Native logout writer failed.");
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, cleanupResult.get().status(), "Native logout cleanup failed.");
+				final Player loaded = Player.load(player.getObjectId());
+				try { PhantomAssertions.assertEquals(before + 1, loaded.getInventory().getInventoryItemCount(1334, -1), "Native logout reward was not captured by canonical reload."); }
+				finally { _environment.cleanupLoadedPlayer(loaded); }
+			}
+			finally { release.countDown(); cleanup.join(5000); player.removeListener(listener); }
+		}
+	}
+
+	/** Focused Q/L fixture only; manual decision attachment is never counted as W wiring proof. */
+	private NativeProductionFixture openNativeProductionFixture(PhantomTestContext context, boolean mage) throws Exception
+	{
+		return openNativeProductionFixture(context, mage, new PhantomBackgroundTransaction());
+	}
+
+	private NativeProductionFixture openNativeProductionFixture(PhantomTestContext context, boolean mage, PhantomBackgroundTransaction transaction) throws Exception
+	{
+		return openNativeProductionFixture(context, mage, transaction, _environment.primary().objectId());
+	}
+
+	private NativeProductionFixture openNativeProductionFixture(PhantomTestContext context, boolean mage, PhantomBackgroundTransaction transaction, int objectId) throws Exception
+	{
+		return openNativeProductionFixture(context, mage, transaction, objectId, point -> {});
+	}
+
+	private NativeProductionFixture openNativeProductionFixture(PhantomTestContext context, boolean mage, PhantomBackgroundTransaction transaction, int objectId,
+		org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailureInjector failures) throws Exception
+	{
+		return openNativeProductionFixture(context, mage, transaction, objectId, failures, null, true);
+	}
+
+	private NativeProductionFixture openNativeProductionFixture(PhantomTestContext context, boolean mage, PhantomBackgroundTransaction transaction, int objectId,
+		org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailureInjector failures, PhantomMaterializationLifecyclePort additional, boolean materializeNow) throws Exception
+	{
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		final var seed = openProductionPlayerFixture(farm.anchor(), 7, mage ? PlayerClass.ELVEN_MAGE : PlayerClass.ELVEN_FIGHTER, farm, objectId);
+		return ownNativeFixture(context, seed, mage, transaction, failures, additional, materializeNow);
+	}
+
+	private NativeProductionFixture openExcludedGroundFixture(PhantomTestContext context) throws Exception
+	{
+		final var knowledge = _production.knowledge().snapshot();
+		int tested = 0;
+		for (var npc : knowledge.npcById().values().stream().filter(value -> value.kind() == NpcKind.MONSTER && value.attackable() && value.targetable() && value.level() >= 1 && value.level() <= 8).sorted(Comparator.comparingInt(value -> value.npcId())).toList())
+		{
+			final var template = NpcData.getInstance().getTemplate(npc.npcId());
+			if (template == null || (template.getDropList() != null && template.getDropList().stream().anyMatch(drop -> drop.getItemId() == 1334)) || (template.getDropGroups() != null && template.getDropGroups().stream().anyMatch(group -> group.getDropList().stream().anyMatch(drop -> drop.getItemId() == 1334)))) { continue; }
+			for (var original : _production.topology().snapshot().anchors().stream().filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0)
+				.filter(anchor -> knowledge.spawnAreasByNpc().getOrDefault(npc.npcId(), List.of()).stream().anyMatch(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && anchor.nodeId().equals(area.topologyNodeId())))
+				.sorted(Comparator.comparing(PhantomTopologyAnchor::id)).toList())
+			{
+				if (++tested > 64) { throw new AssertionError("No factual excluded-ground source in the first64 original low-level FARMING pairs."); }
+				final var found = PhantomM1LootWatchdogChecks.excludedGroundSource(original);
+				if (found.isEmpty()) { continue; }
+				final var point = found.orElseThrow();
+				final var seeded = new PhantomTopologyAnchor(original.id(), original.role(), original.nodeId(), new PhantomTopologyPoint(point.getX(), point.getY(), point.getZ(), point.getInstanceId()), original.npcId(), original.mapRegionLocId(), original.validationTolerance(), original.tags(), original.sourceRefs());
+				final var farm = new ProductionFarmSelection(npc.npcId(), seeded);
+				context.record("m1.loot.exclusionSource", "original=" + original.id() + " npc=" + npc.npcId() + " point=" + seeded.point() + " tolerance=" + original.validationTolerance() + " testedPairs=" + tested + " preBaseline=true");
+				return ownNativeFixture(context, openProductionPlayerFixture(seeded, 7, PlayerClass.ELVEN_FIGHTER, farm), false, new PhantomBackgroundTransaction(), _ -> {}, null, true);
+			}
+		}
+		throw new AssertionError("No factual original FARMING source supplies both native blocked and reachable TEST rays.");
+	}
+
+	private NativeProductionFixture ownNativeFixture(PhantomTestContext context, ProductionPlayerFixture seed, boolean mage, PhantomBackgroundTransaction transaction,
+		org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailureInjector failures, PhantomMaterializationLifecyclePort additional, boolean materializeNow) throws Exception
+	{
+		final var profile = _repository.create(seed.player().getObjectId());
+		final var goals = new PhantomGoalStateStore(_repository); goals.insert(profile.profileId(), seed.goal());
+		final var owner = new AtomicReference<PhantomMaterializationService>();
+		final var background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), owner::get);
+		final var metrics = new PhantomMetrics();
+		final var lifecycle = additional == null ? background : PhantomMaterializationLifecyclePort.chain(additional, background);
+		final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, failures, lifecycle, 5000, 10000);
+		owner.set(materialization); background.start(); materialization.start();
+		final var candidates = new PhantomCandidateRegistry(); candidates.seal(); final var handlers = new PhantomStepHandlerRegistry(); handlers.seal();
+		final var engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1); engine.start(); engine.attach(profile.profileId());
+		final var visibleClock = new java.util.concurrent.atomic.AtomicLong(System.nanoTime());
+		final var visible = new PhantomVisibleAutoPlay(materialization, () -> engine, _ -> true, visibleClock::get);
+		final var result = new NativeProductionFixture(seed, profile, transaction, background, materialization, engine, visible, visibleClock);
+		try
+		{
+			if (mage)
+			{
+				final var learned = SkillTreeData.getInstance().getCompleteClassSkillTree(PlayerClass.ELVEN_MAGE).values().stream().filter(value -> (value.getSkillId() == 1177) && value.isAutoGet() && (value.getGetLevel() <= 7)).max(Comparator.comparingInt(value -> value.getSkillLevel())).orElseThrow();
+				seed.player().addSkill(SkillData.getInstance().getSkill(1177, learned.getSkillLevel()), true);
+			}
+			seed.player().storeMe();
+			final var factualCapture = _production.authority().capture(profile.profileId(), seed.player(), seed.goal(), null);
+			final var baselineResult = captureTestBaseline(transaction, factualCapture, seed.goal());
+			if (baselineResult.status() != Status.SUCCESS)
+			{
+				context.record("m1.focusedFixture.baselineMismatch", "status=" + baselineResult.status() + " identity=" + factualCapture.identity() + " progress=" + factualCapture.progress() + " vitals=" + factualCapture.vitals() + " position=" + factualCapture.position() + " canonical=" + canonical(seed.player().getObjectId()));
+			}
+			PhantomAssertions.assertEquals(Status.SUCCESS, baselineResult.status(), "Focused native factual baseline rejected.");
+			seed.releaseRuntime();
+			if (materializeNow) { PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(profile.profileId()).status(), "Focused native Player materialization failed."); }
+			context.record("m1.focusedFixture." + profile.profileId(), "npc20534 anchor=" + seed.farm().anchor().id() + " class=" + (mage ? "ELVEN_MAGE" : "ELVEN_FIGHTER"));
+			return result;
+		}
+		catch (Throwable failure) { try { result.close(); } catch (Throwable cleanup) { if (cleanup != failure) { failure.addSuppressed(cleanup); } } throw failure; }
+	}
+
+	private final class NativeProductionFixture implements AutoCloseable
+	{
+		private final ProductionPlayerFixture seed; private final PhantomProfile profile; private final PhantomBackgroundTransaction transaction;
+		private final PhantomBackgroundService background; private final PhantomMaterializationService materialization; private final PhantomDecisionEngine engine;
+		private final PhantomVisibleAutoPlay visible; private final java.util.concurrent.atomic.AtomicLong clock;
+		private PhantomM1MaterializationRaceChecks.DiscardReceipt expectedDiscard;
+		private PhantomM1MaterializationRaceChecks.Hold expectedDiscardHold;
+		private PhantomTestContext expectedDiscardContext;
+		private NativeProductionFixture(ProductionPlayerFixture seed, PhantomProfile profile, PhantomBackgroundTransaction transaction, PhantomBackgroundService background, PhantomMaterializationService materialization, PhantomDecisionEngine engine, PhantomVisibleAutoPlay visible, java.util.concurrent.atomic.AtomicLong clock)
+		{ this.seed = seed; this.profile = profile; this.transaction = transaction; this.background = background; this.materialization = materialization; this.engine = engine; this.visible = visible; this.clock = clock; }
+		private long id() { return profile.profileId(); }
+		private Player player() { try (var action = materialization.tryAcquireAction(id()).orElseThrow()) { return action.player(); } }
+		private org.l2jmobius.gameserver.model.actor.instance.Monster monster(boolean spawnNow) throws Exception
+		{
+			final Player player = player(); final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(NpcData.getInstance().getTemplate(seed.farm().npcId()));
+			monster.disableCoreAI(true); monster.setInstanceId(player.getInstanceId()); final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate());
+			spawn.setXYZ(player.getX() + 20, player.getY(), player.getZ()); monster.setSpawn(spawn); monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp());
+			if (spawnNow) { monster.spawnMe(player.getX() + 20, player.getY(), player.getZ()); }
+			return monster;
+		}
+		@Override public void close() throws Exception
+		{
+			visible.stop(id());
+			final var stopped = materialization.shutdown();
+			if (expectedDiscard != null)
+			{
+				PhantomM1MaterializationRaceChecks.verifyExpectedDiscard(expectedDiscardContext, materialization, id(), expectedDiscard, stopped);
+				java.lang.ref.Reference.reachabilityFence(expectedDiscardHold);
+				expectedDiscardHold = null;
+			}
+			else if (!stopped.failedProfileIds().isEmpty() || materialization.snapshot().retainedEntries() != 0)
+			{
+				final var retainedPlayer = World.getInstance().getPlayer(profile.characterObjectId());
+				final var retainedState = transaction.load(id()).state();
+				throw new AssertionError("Native fixture cleanup retained its original actor; canonical restore refused. failed=" + stopped.failedProfileIds() + " pose=" + (retainedPlayer == null ? "ABSENT" : retainedPlayer.getX() + "," + retainedPlayer.getY() + "," + retainedPlayer.getZ()) + " baseline=" + (retainedState == null ? "ABSENT" : retainedState.position()));
+			}
+			background.beginStop(); background.finishStop(); engine.beginStop(); engine.finishStop(); deleteProfile(profile); seed.close();
+		}
+	}
+
+	private void testNativeBuffReload(PhantomTestContext context, boolean expired) throws Exception
+	{
+		final var armed = new AtomicBoolean(); final var retained = new AtomicReference<org.l2jmobius.gameserver.model.skill.BuffInfo>();
+		final org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.FailureInjector failures = point ->
+		{
+			if (expired && point == FailurePoint.BEFORE_STORE_OPERATION && armed.compareAndSet(true, false))
+			{
+				try { Thread.sleep(4200L); }
+				catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IllegalStateException(interrupted); }
+				PhantomAssertions.assertTrue(retained.get().getTime() <= 0, "Native stock buff did not actually expire during bounded teardown hold.");
+			}
+		};
+		try (var fixture = openNativeProductionFixture(context, true, new PhantomBackgroundTransaction(), _environment.primary().objectId(), failures))
+		{
+			final Player before = fixture.player(); final long oldEpoch = before.getNativeWorkOwner().epoch();
+			final int skillId = expired ? 3125 : 1045; final var skill = SkillData.getInstance().getSkill(skillId, 1);
+			try (var action = fixture.materialization.tryAcquireAction(fixture.id()).orElseThrow())
+			{
+				if (expired) { skill.applyEffects(before, before, false, 3); }
+				else { skill.applyEffects(before, before); }
+				retained.set(before.getEffectList().getBuffInfoBySkillId(skillId));
+				PhantomAssertions.assertTrue(retained.get() != null && retained.get().getTime() > 0, "Native stock buff failed to install with positive duration.");
+			}
+			armed.set(true);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, fixture.materialization.dematerialize(fixture.id()).status(), "Native buff dematerialization failed.");
+			final long saved = scalarLong("SELECT COUNT(*) FROM character_skills_save WHERE charId = ? AND skill_id = " + skillId + " AND remaining_time <= 0", before.getObjectId());
+			context.record("Q12.buffReload." + skillId + ".expiredRows", saved);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, fixture.materialization.materialize(fixture.id()).status(), "Native buff rematerialization failed.");
+			final Player after = fixture.player(); final var restored = after.getEffectList().getBuffInfoBySkillId(skillId);
+			PhantomAssertions.assertTrue(after != before && after.getObjectId() == before.getObjectId() && after.getNativeWorkOwner().epoch() != oldEpoch, "Buff reload bypassed actual new native materialization.");
+			context.record("Q12.buffReload." + skillId + ".actualRematerialized", true);
+			if (expired) { PhantomAssertions.assertTrue(saved == 0 && restored == null, "Expired retained stock buff was serialized/restarted at full native duration."); }
+			else { PhantomAssertions.assertTrue(restored != null && restored.getTime() > 0 && restored.getTime() <= retained.get().getTime() + 2, "Actual production materialization lost saved native stock buff/remaining time."); }
+		}
+		finally { armed.set(false); }
+	}
+
+	private void testNativeDynamicRecipients(PhantomTestContext context, boolean transfer, boolean managed, boolean sealed) throws Exception
+	{
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		try (var first = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+			var second = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm, _environment.observer().objectId());
+			var firstOutput = first.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128));
+			var secondOutput = second.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			final Player one = first.player(), two = second.player();
+			final var template = org.l2jmobius.gameserver.data.xml.PlayerTemplateData.getInstance().getTemplate(PlayerClass.ELVEN_MAGE.getId());
+			PhantomAssertions.assertTrue(template != null, "Dynamic native third Player template missing.");
+			final Player third = Player.create(template, _environment.primary().accountName(), "PhT007C" + Long.toUnsignedString(System.nanoTime(), 36),
+				new org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+			PhantomAssertions.assertTrue(third != null, "Dynamic native third Player.create failed.");
+			final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(NpcData.getInstance().getTemplate(20534));
+			try (var thirdOutput = third.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+			{
+				third.getStat().setLevel((byte) 7); third.setExp(ExperienceData.getInstance().getExpForLevel(7));
+				third.setXYZInvisible(one.getX() + 30, one.getY(), one.getZ()); third.setInstanceId(one.getInstanceId());
+				for (Player player : List.of(one, two, third)) { player.setOnlineStatus(true, false); player.spawnMe(); }
+				final var magic = SkillData.getInstance().getSkill(1177, 1); one.addSkill(magic, true);
+				monster.disableCoreAI(true); monster.setInstanceId(one.getInstanceId());
+				final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(one.getX() + 20, one.getY(), one.getZ()); monster.setSpawn(spawn);
+				monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(one.getX() + 20, one.getY(), one.getZ());
+				try
+				{
+					if (transfer)
+					{
+						org.l2jmobius.gameserver.model.skill.Skill incoming = null;
+						for (int level = 28; level >= 1; level--)
+						{
+							final var original = SkillData.getInstance().getSkill(1239, level);
+							if (original != null && monster.getStat().getMpConsume(original) + monster.getStat().getMpInitialConsume(original) <= monster.getCurrentMp()) { incoming = original; break; }
+						}
+						PhantomAssertions.assertTrue(incoming != null, "INVALID dynamic transfer: original NPC has no affordable stock Hurricane.");
+						context.record("Q12.dynamic.transfer.incoming", incoming.getId() + ":" + incoming.getLevel() + " nativeMP=" + monster.getCurrentMp());
+						org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks.transferChange(context, one, two, third, monster, incoming, managed, sealed);
+					}
+					else { org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks.partyChange(context, one, two, third, monster, magic, managed, sealed); }
+				}
+				finally
+				{
+					if (managed)
+					{
+						for (var fixture : List.of(first, second))
+						{
+							final Player consumed = fixture.player();
+							if (consumed.getNativeWorkOwner() == null && World.getInstance().getPlayer(consumed.getObjectId()) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(consumed.getObjectId()) == null)
+							{
+								// Failed helper lifetime was explicitly discarded at zero accounting. Restore its exact TEST DB before-image without a second successful store.
+								fixture._player = null;
+							}
+						}
+					}
+				}
+			}
+			finally
+			{
+				monster.abortAttack(); monster.abortCast(); monster.deleteMe();
+				org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(third);
+				_environment.cleanupLoadedPlayer(third);
+				org.l2jmobius.gameserver.network.GameClient.deleteCharByObjId(third.getObjectId());
+			}
+		}
+	}
+
+	private void testNativeTeleportProducer(PhantomTestContext context, String producer) throws Exception
+	{
+		final var armed = new AtomicBoolean(); final var prepared = new CountDownLatch(1); final var release = new CountDownLatch(1);
+		final var transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+		{
+			if (armed.get() && point == FaultPoint.AFTER_OWNED_PREPARE && armed.compareAndSet(true, false))
+			{
+				prepared.countDown();
+				try { if (!release.await(10, TimeUnit.SECONDS)) { throw new IllegalStateException("Teleport TEST PREPARE hold expired"); } }
+				catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IllegalStateException(interrupted); }
+			}
+		});
+		try (var fixture = openNativeProductionFixture(context, true, transaction))
+		{
+			armed.set(producer.equals("residence"));
+			try
+			{
+				if (producer.equals("event")) { PhantomM1TeleportChecks.teleportedEvent(context, fixture.player(), fixture.materialization, fixture.id()); }
+				else if (producer.equals("jail")) { PhantomM1TeleportChecks.jail(context, fixture.player(), fixture.materialization, fixture.id()); }
+				else { PhantomM1TeleportChecks.residence(context, fixture.player(), fixture.materialization, fixture.id(), prepared, release); }
+			}
+			finally { armed.set(false); release.countDown(); }
+		}
+		finally { armed.set(false); release.countDown(); }
+	}
+
+	private void testOrdinaryNativeTeleportProducer(PhantomTestContext context, String producer) throws Exception
+	{
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		try (var fixture = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+			var output = fixture.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			final Player player = fixture.player(); player.setOnlineStatus(true, false); player.spawnMe();
+			if (producer.equals("event")) { PhantomM1TeleportChecks.ordinaryTeleportedEvent(context, player); }
+			else if (producer.equals("jail")) { PhantomM1TeleportChecks.ordinaryJail(context, player); }
+			else { PhantomM1TeleportChecks.ordinaryResidence(context, player); }
+		}
+	}
+
+	private void testNativeRegenPhase(PhantomTestContext context) throws Exception
+	{
+		try (var fixture = openNativeProductionFixture(context, true))
+		{
+			final Player player = fixture.player(); final var monster = fixture.monster(true);
+			try { PhantomM1NativePhaseChecks.regen(context, player, fixture.materialization, fixture.id(), monster, player.getKnownSkill(1177)); }
+			finally { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); }
+		}
+	}
+
+	private void testNativeSummonPhase(PhantomTestContext context) throws Exception
+	{
+		final var fixture = openNativeProductionFixture(context, false);
+		org.l2jmobius.gameserver.model.actor.instance.Monster monster = null;
+		org.l2jmobius.gameserver.model.actor.instance.Servitor summon = null;
+		PhantomM1NativePhaseChecks.CompletionFence completion = null; Throwable primary = null;
+		try
+		{
+			final Player player = fixture.player(); monster = fixture.monster(true);
+			try (var action = fixture.materialization.tryAcquireAction(fixture.id()).orElseThrow()) { summon = PhantomM1NativePhaseChecks.createSummon(action.player()); }
+			completion = new PhantomM1NativePhaseChecks.CompletionFence(context, player, "profile=" + fixture.id() + " character=" + fixture.seed._original + " baseClass=" + fixture.seed._originalBaseClass + " inventoryDigest=" + canonicalInventoryHash(player.getObjectId()));
+			PhantomM1NativePhaseChecks.summon(context, player, fixture.materialization, fixture.id(), summon, monster, completion);
+		}
+		catch (Exception | Error failure) { primary = failure; throw failure; }
+		finally
+		{
+			if (completion != null && !completion.cleanupSafe()) { retainSummonCompletion(context, completion, primary); }
+			else
+			{
+				Throwable cleanup = null;
+				try
+				{
+					if (completion != null) { completion.requireSafeCleanup(); }
+					try (var action = fixture.materialization.tryAcquireAction(fixture.id()).orElseThrow())
+					{
+						if (summon != null) { summon.abortAttack(); summon.abortCast(); summon.unSummon(action.player()); summon.deleteMe(); }
+					}
+				}
+				catch (Exception | Error failure) { cleanup = failure; }
+				try { if (monster != null) { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); } }
+				catch (Exception | Error failure) { cleanup = combineSummonFailure(cleanup, failure); }
+				try { fixture.close(); }
+				catch (Exception | Error failure) { cleanup = combineSummonFailure(cleanup, failure); }
+				if (cleanup == null && completion != null) { try { completion.cleanupFinished(); } catch (Exception | Error failure) { cleanup = failure; } }
+				finishSummonCleanup(context, completion, primary, cleanup);
+			}
+		}
+	}
+
+	private void testOrdinarySummonPhase(PhantomTestContext context) throws Exception
+	{
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		final var fixture = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_FIGHTER, farm, _environment.observer().objectId());
+		AutoCloseable output = null; org.l2jmobius.gameserver.model.actor.instance.Monster monster = null;
+		org.l2jmobius.gameserver.model.actor.instance.Servitor summon = null;
+		PhantomM1NativePhaseChecks.CompletionFence completion = null; Throwable primary = null;
+		try
+		{
+			final Player player = fixture.player(); output = player.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)); player.setOnlineStatus(true, false); player.spawnMe();
+			final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(NpcData.getInstance().getTemplate(20534));
+			spawn.setXYZ(player.getX() + 20, player.getY(), player.getZ());
+			spawn.stopRespawn();
+			monster = (org.l2jmobius.gameserver.model.actor.instance.Monster) spawn.doSpawn(false); monster.disableCoreAI(true);
+			summon = PhantomM1NativePhaseChecks.createSummon(player);
+			completion = new PhantomM1NativePhaseChecks.CompletionFence(context, player, "character=" + fixture._original + " baseClass=" + fixture._originalBaseClass + " inventoryDigest=" + canonicalInventoryHash(player.getObjectId()));
+			PhantomM1NativePhaseChecks.ordinarySummon(context, player, summon, monster, completion);
+		}
+		catch (Exception | Error failure) { primary = failure; throw failure; }
+		finally
+		{
+			if (completion != null && !completion.cleanupSafe()) { retainSummonCompletion(context, completion, primary); }
+			else
+			{
+				Throwable cleanup = null;
+				try { if (completion != null) { completion.requireSafeCleanup(); } if (summon != null) { summon.abortAttack(); summon.abortCast(); summon.unSummon(fixture.player()); summon.deleteMe(); } }
+				catch (Exception | Error failure) { cleanup = failure; }
+				try { if (monster != null) { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); } }
+				catch (Exception | Error failure) { cleanup = combineSummonFailure(cleanup, failure); }
+				try { if (output != null) { output.close(); } }
+				catch (Exception | Error failure) { cleanup = combineSummonFailure(cleanup, failure); }
+				try { fixture.close(); }
+				catch (Exception | Error failure) { cleanup = combineSummonFailure(cleanup, failure); }
+				if (cleanup == null && completion != null) { try { completion.cleanupFinished(); } catch (Exception | Error failure) { cleanup = failure; } }
+				finishSummonCleanup(context, completion, primary, cleanup);
+			}
+		}
+	}
+	private static Throwable combineSummonFailure(Throwable primary, Throwable secondary) { if (primary == null) { return secondary; } if (primary != secondary) { primary.addSuppressed(secondary); } return primary; }
+	private void retainSummonCompletion(PhantomTestContext context, PhantomM1NativePhaseChecks.CompletionFence completion, Throwable primary) throws Exception
+	{
+		_retainedSummonCompletion = "SUMMON_TEST_RETAINED_COMPLETION_UNKNOWN";
+		try { _retainedSummonCompletion = completion.diagnostic(); context.record("A.SUMMON.retained", _retainedSummonCompletion); }
+		catch (Exception | Error failure) { if (primary == null) { if (failure instanceof Error error) { throw error; } throw (Exception) failure; } if (primary != failure) { primary.addSuppressed(failure); } }
+		if (primary == null) { throw new IllegalStateException("SUMMON_TEST_UNKNOWN_COMPLETION_REFUSED " + _retainedSummonCompletion); }
+	}
+	private void finishSummonCleanup(PhantomTestContext context, PhantomM1NativePhaseChecks.CompletionFence completion, Throwable primary, Throwable cleanup) throws Exception
+	{
+		if (cleanup == null) { return; }
+		if (completion != null)
+		{
+			_retainedSummonCompletion = "SUMMON_TEST_RETAINED_CLEANUP_FAILED";
+			try { _retainedSummonCompletion = completion.diagnostic(); context.record("A.SUMMON.retainedCleanupFailure", _retainedSummonCompletion); }
+			catch (Exception | Error diagnostic) { if (cleanup != diagnostic) { cleanup.addSuppressed(diagnostic); } }
+		}
+		if (primary != null) { if (primary != cleanup) { primary.addSuppressed(cleanup); } return; }
+		if (cleanup instanceof Error error) { throw error; } throw (Exception) cleanup;
+	}
+
+	private void testNativeMaterializationRace(PhantomTestContext context, PhantomM1MaterializationRaceChecks.Stage stage, boolean shutdown, PhantomM1MaterializationRaceChecks.AbortFailure failure) throws Exception
+	{
+		final var hold = new PhantomM1MaterializationRaceChecks.Hold(stage, failure);
+		try (var fixture = openNativeProductionFixture(context, true, new PhantomBackgroundTransaction(), _environment.primary().objectId(), hold, hold, false))
+		{
+			Throwable primary = null;
+			try
+			{
+				if (failure == PhantomM1MaterializationRaceChecks.AbortFailure.NONE) { PhantomM1MaterializationRaceChecks.concurrent(context, fixture.materialization, fixture.id(), hold, shutdown); }
+				else { PhantomM1MaterializationRaceChecks.primaryAbort(context, fixture.materialization, fixture.id(), hold); }
+			}
+			catch (Exception | Error thrown) { primary = thrown; throw thrown; }
+			finally
+			{
+				hold.release();
+				if (failure != PhantomM1MaterializationRaceChecks.AbortFailure.NONE && hold.player() != null)
+				{
+					try
+					{
+						final var receipt = PhantomM1MaterializationRaceChecks.discardExpectedFailure(context, fixture.materialization, fixture.id(), hold);
+						fixture.expectedDiscard = receipt; fixture.expectedDiscardHold = hold; fixture.expectedDiscardContext = context;
+					}
+					catch (Exception | Error discardFailure)
+					{
+						if (primary == null) { throw discardFailure; }
+						if (discardFailure != primary) { primary.addSuppressed(discardFailure); }
+					}
+				}
+			}
+		}
+	}
+
+	private void testNativeAiDelay(PhantomTestContext context, String kind, boolean managed) throws Exception
+	{
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		final String originalInventoryHash = canonicalInventoryHash(_environment.primary().objectId());
+		final var seed = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+		NativeProductionFixture owned = null;
+		try
+		{
+			final Player prepared = seed.player();
+			if (!kind.equals("arrived"))
+			{
+				final Item bow = prepared.getInventory().addItem(ItemProcessType.REWARD, 13, 1, prepared, this);
+				final Item arrows = prepared.getInventory().addItem(ItemProcessType.REWARD, 17, 20, prepared, this);
+				PhantomAssertions.assertTrue(bow != null && arrows != null, "Native delayed bow TEST item creation failed.");
+				prepared.getInventory().equipItem(bow);
+				PhantomAssertions.assertTrue(prepared.getActiveWeaponItem() != null && prepared.getActiveWeaponItem().getId() == 13, "Native delayed bow equip did not use stock Inventory.");
+			}
+			prepared.storeMe(); // Actual stock gear precedes factual baseline/canonical Mat seed.
+			if (managed)
+			{
+				owned = ownNativeFixture(context, seed, true, new PhantomBackgroundTransaction(), point -> {}, null, true);
+				runNativeAiDelay(context, owned.player(), owned.materialization, owned.id(), kind);
+			}
+			else
+			{
+				try (var output = prepared.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+				{
+					prepared.setOnlineStatus(true, false); prepared.spawnMe();
+					runNativeAiDelay(context, prepared, null, 0, kind);
+				}
+			}
+		}
+		finally { if (owned == null) { seed.close(); } else { owned.close(); } }
+		PhantomAssertions.assertEquals(originalInventoryHash, canonicalInventoryHash(_environment.primary().objectId()), "Delayed AI fixture did not restore every canonical inventory row.");
+		context.record("Q12.nativeAiDelay." + kind + "." + managed + ".restoredInventoryHash", originalInventoryHash);
+	}
+
+	private static void runNativeAiDelay(PhantomTestContext context, Player player, PhantomMaterializationService service, long profileId, String kind) throws Exception
+	{
+		final var skill = player.getKnownSkill(1177);
+		PhantomAssertions.assertTrue(skill != null, "INVALID native delayed AI: existing stock auto-get1177 missing from exact seeded Player.");
+		final double distance = kind.equals("arrived") ? player.getMagicalAttackRange(skill) + 6.5 * player.getStat().getMoveSpeed() : 128;
+		final Location targetPosition = nativeAiCorridor(player, distance);
+		final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(NpcData.getInstance().getTemplate(20534));
+		monster.disableCoreAI(true); monster.setInstanceId(player.getInstanceId());
+		final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(targetPosition.getX(), targetPosition.getY(), targetPosition.getZ()); monster.setSpawn(spawn);
+		monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(targetPosition.getX(), targetPosition.getY(), targetPosition.getZ());
+		try
+		{
+			context.record("Q12.nativeAiDelay." + kind + ".corridor", "player=" + player.getX() + "," + player.getY() + "," + player.getZ()
+				+ " target=" + targetPosition.getX() + "," + targetPosition.getY() + "," + targetPosition.getZ() + " loadedDryDirect=true actualDistance=" + player.calculateDistance2D(monster));
+			if (kind.equals("ready"))
+			{
+				org.l2jmobius.gameserver.phantoms.player.PhantomM1NativeAiDelayChecks.bowReady(context, player, service, profileId, monster, nativeAiCorridor(player, 160));
+			}
+			else if (kind.equals("cast")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1NativeAiDelayChecks.bowCast(context, player, service, profileId, monster, skill); }
+			else if (kind.equals("arrived")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1NativeAiDelayChecks.longMove(context, player, service, profileId, monster, skill); }
+			else { throw new IllegalArgumentException("Unknown actual native AI delay"); }
+		}
+		finally { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); }
+	}
+
+	private static Location nativeAiCorridor(Player player, double distance)
+	{
+		PhantomAssertions.assertTrue(distance >= 128 && distance < 2500, "INVALID native delayed AI: stock distance outside bounded native corridor.");
+		final var geo = GeoEngine.getInstance();
+		for (int ray = 0; ray < 16; ray++)
+		{
+			final double angle = ray * Math.PI / 8;
+			final int x = player.getX() + (int) Math.round(Math.cos(angle) * distance);
+			final int y = player.getY() + (int) Math.round(Math.sin(angle) * distance);
+			if (!geo.hasGeo(x, y)) { continue; }
+			final int z = geo.getHeight(x, y, player.getZ());
+			if (Math.abs(z - player.getZ()) > 64 || !geo.canMoveToTarget(player.getX(), player.getY(), player.getZ(), x, y, z, player.getInstanceId())
+				|| !geo.canSeeTarget(player.getX(), player.getY(), player.getZ(), x, y, z, player.getInstanceId())) { continue; }
+			boolean dryLoaded = true;
+			for (int step = 0; step <= 32; step++)
+			{
+				final int sampleX = player.getX() + (int) Math.round((x - player.getX()) * step / 32.0);
+				final int sampleY = player.getY() + (int) Math.round((y - player.getY()) * step / 32.0);
+				final int sampleZ = geo.getHeight(sampleX, sampleY, player.getZ());
+				if (!geo.hasGeo(sampleX, sampleY) || Math.abs(sampleZ - player.getZ()) > 64
+					|| org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(sampleX, sampleY, sampleZ, org.l2jmobius.gameserver.model.zone.type.WaterZone.class) != null)
+				{
+					dryLoaded = false; break;
+				}
+			}
+			if (dryLoaded) { return new Location(x, y, z, player.getHeading(), player.getInstanceId()); }
+		}
+		throw new AssertionError("INVALID native delayed AI: no measured loaded direct dry corridor among16 bounded rays.");
+	}
+
+	private void testNativeDelayedState(PhantomTestContext context, String kind, boolean managed) throws Exception
+	{
+		if (managed)
+		{
+			try (var fixture = openNativeProductionFixture(context, true)) { nativeDelayedState(context, fixture.player(), fixture.materialization, fixture.id(), kind); }
+			return;
+		}
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		try (var fixture = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+			var output = fixture.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			final Player player = fixture.player(); player.setOnlineStatus(true, false); player.spawnMe();
+			nativeDelayedState(context, player, null, 0, kind);
+		}
+	}
+
+	private static void nativeDelayedState(PhantomTestContext context, Player player, PhantomMaterializationService service, long profileId, String kind) throws Exception
+	{
+		if (kind.equals("icons")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1DelayedStateChecks.icons(context, player, service, profileId); }
+		else if (kind.startsWith("watchdog"))
+		{
+			final int original = PlayerConfig.TELEPORT_WATCHDOG_TIMEOUT;
+			try
+			{
+				PlayerConfig.TELEPORT_WATCHDOG_TIMEOUT = kind.equals("watchdog") ? 1 : 10;
+				final var destination = new Location(player.getX() + 32, player.getY(), player.getZ(), player.getHeading(), player.getInstanceId());
+				if (kind.equals("watchdog-cancel")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1DelayedStateChecks.watchdogPendingCancellation(context, player, service, profileId, destination); }
+				else if (kind.equals("watchdog-earned")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1DelayedStateChecks.watchdogEarnedConfirmation(context, player, service, profileId, destination); }
+				else if (kind.equals("watchdog-claim")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1DelayedStateChecks.watchdogClaimRace(context, player, service, profileId, destination); }
+				else if (kind.equals("watchdog-registration") || kind.equals("watchdog-stop")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1DelayedStateChecks.watchdogRegistrationRace(context, player, service, profileId, destination, kind.equals("watchdog-stop")); }
+				else { org.l2jmobius.gameserver.phantoms.player.PhantomM1DelayedStateChecks.watchdog(context, player, service, profileId, destination); }
+			}
+			finally { PlayerConfig.TELEPORT_WATCHDOG_TIMEOUT = original; }
+		}
+		else { org.l2jmobius.gameserver.phantoms.player.PhantomM1DelayedStateChecks.sitStand(context, player, service, profileId, kind.equals("stand")); }
+	}
+
+	private void testNativePublisher(PhantomTestContext context, String kind, String mode, boolean managed) throws Exception
+	{
+		if (kind.equals("eviction") && managed)
+		{
+			try (var fixture = openNativeProductionFixture(context, true)) { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.buffEviction(context, fixture.player(), fixture.materialization, fixture.id()); }
+			return;
+		}
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		try (var fixture = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+			var output = fixture.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			final Player player = fixture.player(); player.setOnlineStatus(true, false); player.spawnMe();
+			try
+			{
+				if (kind.equals("status")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.status50Submission(context, player, mode); }
+				else if (kind.equals("icons")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.icons300Submission(context, player, mode); }
+				else if (kind.equals("eviction")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.buffEviction(context, player, null, 0); }
+				else { throw new IllegalArgumentException("Unknown native publisher control"); }
+			}
+			finally
+			{
+				if (World.getInstance().getPlayer(player.getObjectId()) == null && player.getNativeWorkOwner() == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) == null) { fixture._player = null; }
+			}
+		}
+	}
+
+	private void testNativeRawProducer(PhantomTestContext context, String kind, boolean managed) throws Exception
+	{
+		if (managed && (kind.equals("follow") || kind.equals("status")))
+		{
+			try (var fixture = openNativeProductionFixture(context, true))
+			{
+				if (kind.equals("status")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.status50(context, fixture.player(), fixture.materialization, fixture.id()); }
+				else
+				{
+					final var target = nativeFollowTarget(fixture.player());
+					try { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.follow(context, fixture.player(), target, fixture.materialization, fixture.id()); }
+					finally { target.abortAttack(); target.abortCast(); target.deleteMe(); }
+				}
+			}
+			return;
+		}
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		try (var fixture = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+			var output = fixture.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			final Player player = fixture.player(); player.setOnlineStatus(true, false); player.spawnMe();
+			try
+			{
+				if (kind.equals("buff-control")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.buffFinishControl(context, player, managed); }
+				else if (kind.equals("buff-null")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.buffFinishNull(context, player, managed); }
+				else if (kind.equals("buff-inline")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.buffFinishInlineStop(context, player); }
+				else if (kind.equals("status")) { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.status50(context, player, null, 0); }
+				else
+				{
+					final var target = nativeFollowTarget(player);
+					try { org.l2jmobius.gameserver.phantoms.player.PhantomM1RawProducerChecks.follow(context, player, target, null, 0); }
+					finally { target.abortAttack(); target.abortCast(); target.deleteMe(); }
+				}
+			}
+			finally
+			{
+				if (managed && kind.startsWith("buff-") && player.getNativeWorkOwner() == null && World.getInstance().getPlayer(player.getObjectId()) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) == null) { fixture._player = null; }
+			}
+		}
+	}
+
+	private static org.l2jmobius.gameserver.model.actor.instance.Monster nativeFollowTarget(Player player) throws Exception
+	{
+		final int x = player.getX() + 256, y = player.getY(), z = player.getZ();
+		PhantomAssertions.assertTrue(GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), x, y, z, player.getInstanceId()), "INVALID raw follow: controlled original NPC target lacks actual geo corridor.");
+		final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(NpcData.getInstance().getTemplate(20534));
+		monster.disableCoreAI(true); monster.setInstanceId(player.getInstanceId());
+		final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(x, y, z); monster.setSpawn(spawn);
+		monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(x, y, z);
+		return monster;
+	}
+
+	private void testNativePartyLoot(PhantomTestContext context, int itemId, boolean ordinary) throws Exception
+	{
+		if (!ordinary)
+		{
+			try (var first = openNativeProductionFixture(context, true); var second = openNativeProductionFixture(context, true, new PhantomBackgroundTransaction(), _environment.observer().objectId()))
+			{
+				final Item ground = nativePartyGround(first.player(), itemId);
+				try { PhantomM1PartyLootChecks.pickup(context, new PhantomM1SharedRecipientsChecks.Managed(first.player(), first.materialization, first.id()), new PhantomM1SharedRecipientsChecks.Managed(second.player(), second.materialization, second.id()), ground); }
+				finally { destroyNativePartyGround(ground); }
+			}
+			return;
+		}
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		try (var first = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+			var second = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm, _environment.observer().objectId());
+			var oneOutput = first.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128));
+			var twoOutput = second.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			final Player one = first.player(), two = second.player();
+			for (Player player : List.of(one, two)) { player.setOnlineStatus(true, false); player.spawnMe(); }
+			final Item ground = nativePartyGround(one, itemId);
+			try { PhantomM1PartyLootChecks.ordinaryPickup(context, one, two, ground); }
+			finally { destroyNativePartyGround(ground); }
+		}
+	}
+
+	private void testNativePartyLateJoin(PhantomTestContext context, boolean ordinary, boolean sealed) throws Exception
+	{
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		if (!ordinary)
+		{
+			try (var first = openNativeProductionFixture(context, true);
+				var second = openNativeProductionFixture(context, true, new PhantomBackgroundTransaction(), _environment.observer().objectId());
+				var thirdSeed = openCreatedNativePartySeed(context, first.player(), farm);
+				var third = ownNativeFixture(context, thirdSeed, true, new PhantomBackgroundTransaction(), point -> {}, null, true))
+			{
+				final Item ground = nativePartyGround(first.player(), 57);
+				try
+				{
+					PhantomM1PartyLootChecks.lateJoin(context, new PhantomM1SharedRecipientsChecks.Managed(first.player(), first.materialization, first.id()),
+						new PhantomM1SharedRecipientsChecks.Managed(second.player(), second.materialization, second.id()),
+						new PhantomM1SharedRecipientsChecks.Managed(third.player(), third.materialization, third.id()), ground, sealed);
+				}
+				finally { destroyNativePartyGround(ground); }
+			}
+			return;
+		}
+		try (var first = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+			var second = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm, _environment.observer().objectId());
+			var third = openCreatedNativePartySeed(context, first.player(), farm);
+			var oneOutput = first.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128));
+			var twoOutput = second.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128));
+			var threeOutput = third.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			for (Player player : List.of(first.player(), second.player(), third.player())) { player.setOnlineStatus(true, false); player.spawnMe(); }
+			final Item ground = nativePartyGround(first.player(), 57);
+			try { PhantomM1PartyLootChecks.ordinaryLateJoin(context, first.player(), second.player(), third.player(), ground); }
+			finally { destroyNativePartyGround(ground); }
+		}
+	}
+
+	private ProductionPlayerFixture openCreatedNativePartySeed(PhantomTestContext context, Player beside, ProductionFarmSelection farm) throws Exception
+	{
+		PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, context.measurements().get("headless.database"), "Native third identity requires initialized guarded TEST.");
+		final var template = org.l2jmobius.gameserver.data.xml.PlayerTemplateData.getInstance().getTemplate(PlayerClass.ELVEN_MAGE.getId());
+		PhantomAssertions.assertTrue(template != null, "Native third owned Player template missing.");
+		final Player third = Player.create(template, _environment.primary().accountName(), "PhT007L" + Long.toUnsignedString(System.nanoTime(), 36),
+			new org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
+		PhantomAssertions.assertTrue(third != null, "Native third guarded Player.create failed.");
+		try
+		{
+			PhantomAssertions.assertTrue(third.getObjectId() != _environment.primary().objectId() && third.getObjectId() != _environment.observer().objectId()
+				&& _repository.findByCharacterObjectId(third.getObjectId()).isEmpty(), "Native third TEST identity collided with an existing owned character/profile.");
+			// Same native TEST seed setup as the existing dynamic-recipient third Player fixture.
+			third.setPlayerClass(PlayerClass.ELVEN_MAGE.getId());
+			PhantomAssertions.assertEquals(PlayerClass.ELVEN_MAGE.getId(), third.getActiveClass(), "Fresh third native active class was not initialized.");
+			third.getStat().setLevel((byte) 7); third.setExp(ExperienceData.getInstance().getExpForLevel(7));
+			final var expectedSkills = exactAutoGetSkills(new Identity(PRODUCTION_LOOT_UNBLOCK_SEED, third.getObjectId(), 0, PlayerClass.ELVEN_MAGE.getId(), PlayerClass.ELVEN_MAGE.getRace().ordinal()), 7);
+			context.record("Q12.partyLate.missingAutoGetBeforeSeed", expectedSkills.stream().filter(skill -> third.getKnownSkill(skill.skillId()) == null || third.getKnownSkill(skill.skillId()).getLevel() != skill.skillLevel()).toList());
+			third.giveAvailableAutoGetSkills();
+			PhantomAssertions.assertTrue(expectedSkills.stream().allMatch(skill -> third.getKnownSkill(skill.skillId()) != null && third.getKnownSkill(skill.skillId()).getLevel() == skill.skillLevel()), "Fresh third stock auto-get skills were not initialized by native API.");
+			third.setCurrentHp(third.getMaxHp()); third.setCurrentMp(third.getMaxMp()); third.setCurrentCp(third.getMaxCp());
+			third.setXYZInvisible(beside.getX() + 30, beside.getY(), beside.getZ()); third.setInstanceId(beside.getInstanceId()); third.storeMe();
+			context.record("Q12.partyLate.created", "object=" + third.getObjectId() + " nativePlayerCreate=true guardedOwnedAccount=true exactDeleteRequired=true");
+			return new ProductionPlayerFixture(third, farm, goal(farm.npcId(), farm.anchor().id()), canonical(third.getObjectId()), PlayerClass.ELVEN_MAGE.getId(), true);
+		}
+		catch (Throwable failure)
+		{
+			try { _environment.cleanupLoadedPlayer(third); org.l2jmobius.gameserver.network.GameClient.deleteCharByObjId(third.getObjectId()); }
+			catch (Throwable cleanup) { if (cleanup != failure) { failure.addSuppressed(cleanup); } }
+			throw failure;
+		}
+	}
+
+	private void testNativePartyAutoLoot(PhantomTestContext context, int itemId, boolean ordinary) throws Exception
+	{
+		final boolean originalAutoLoot = PlayerConfig.AUTO_LOOT;
+		try
+		{
+			PlayerConfig.AUTO_LOOT = true; // Existing native optional branch, guarded TEST only; exact original restored below.
+			if (!ordinary)
+			{
+				try (var first = openNativeProductionFixture(context, true);
+					var second = openNativeProductionFixture(context, true, new PhantomBackgroundTransaction(), _environment.observer().objectId()))
+				{
+					final var monster = first.monster(true);
+					try
+					{
+						PhantomM1PartyLootChecks.autoLoot(context, new PhantomM1SharedRecipientsChecks.Managed(first.player(), first.materialization, first.id()),
+							new PhantomM1SharedRecipientsChecks.Managed(second.player(), second.materialization, second.id()), monster, nativePartyAutoLootTemplate(monster, itemId), itemId);
+					}
+					finally { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); }
+				}
+				return;
+			}
+			final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+			try (var first = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+				var second = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm, _environment.observer().objectId());
+				var oneOutput = first.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128));
+				var twoOutput = second.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+			{
+				final Player one = first.player(), two = second.player();
+				for (Player player : List.of(one, two)) { player.setOnlineStatus(true, false); player.spawnMe(); }
+				final var monster = nativeFollowTarget(one);
+				try { PhantomM1PartyLootChecks.ordinaryAutoLoot(context, one, two, monster, nativePartyAutoLootTemplate(monster, itemId), itemId); }
+				finally { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); }
+			}
+		}
+		finally { PlayerConfig.AUTO_LOOT = originalAutoLoot; }
+	}
+
+	private static NpcTemplate nativePartyAutoLootTemplate(org.l2jmobius.gameserver.model.actor.instance.Monster target, int itemId)
+	{
+		final var source = target.getTemplate();
+		final var facts = new org.l2jmobius.gameserver.model.StatSet();
+		facts.set("id", source.getId()); facts.set("displayId", source.getDisplayId()); facts.set("level", source.getLevel()); facts.set("type", "Monster"); facts.set("name", source.getName());
+		facts.set("baseHpMax", target.getMaxHp()); facts.set("baseMpMax", target.getMaxMp()); facts.set("collisionRadius", source.getCollisionRadius()); facts.set("collisionHeight", source.getCollisionHeight());
+		final var isolated = new NpcTemplate(facts); isolated.setSkills(Map.of());
+		isolated.addDrop(new DropHolder(org.l2jmobius.gameserver.model.actor.enums.npc.DropType.DROP, itemId, itemId == 57 ? 20 : 1, itemId == 57 ? 20 : 1, 100));
+		return isolated;
+	}
+
+	private static Item nativePartyGround(Player player, int itemId)
+	{
+		final Item item = ItemManager.createItem(ItemProcessType.LOOT, itemId, itemId == 57 ? 20 : 1, player, PhantomM1PartyLootChecks.class);
+		PhantomAssertions.assertTrue(item != null, "Native party ground Item creation failed.");
+		item.dropMe(player, player.getX() + 20, player.getY(), player.getZ());
+		item.setOwnerId(0); item.setProtected(false); item.getDropProtection().unprotect();
+		return item;
+	}
+
+	private static void destroyNativePartyGround(Item item)
+	{
+		if (item != null && item.isSpawned())
+		{
+			item.getDropProtection().unprotect(); item.resetOwnerTimer(); item.decayMe();
+			ItemManager.destroyItem(ItemProcessType.DESTROY, item, null, PhantomM1PartyLootChecks.class);
+		}
+	}
+
+	private void testNativeSecondaryRecipients(PhantomTestContext context, boolean transfer, boolean ordinary) throws Exception
+	{
+		if (!ordinary)
+		{
+			try (var first = openNativeProductionFixture(context, true); var second = openNativeProductionFixture(context, true, new PhantomBackgroundTransaction(), _environment.observer().objectId()))
+			{
+				final var monster = first.monster(true);
+				try
+				{
+					final var one = new PhantomM1SharedRecipientsChecks.Managed(first.player(), first.materialization, first.id());
+					final var two = new PhantomM1SharedRecipientsChecks.Managed(second.player(), second.materialization, second.id());
+					if (transfer) { PhantomM1SharedRecipientsChecks.transferDamage(context, one, two, monster, SkillData.getInstance().getSkill(1239, 1)); }
+					else { PhantomM1SharedRecipientsChecks.partyExp(context, one, two, monster, one.player().getKnownSkill(1177)); }
+				}
+				finally { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); }
+			}
+			return;
+		}
+		final var farm = new ProductionFarmSelection(20534, _production.topology().findAnchor("population.farming.elf.20534").orElseThrow());
+		try (var first = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm);
+			var second = openProductionPlayerFixture(farm.anchor(), 7, PlayerClass.ELVEN_MAGE, farm, _environment.observer().objectId());
+			var oneOutput = first.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128));
+			var twoOutput = second.player().attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			final Player one = first.player(), two = second.player();
+			one.setOnlineStatus(true, false); two.setOnlineStatus(true, false); one.spawnMe(); two.spawnMe();
+			final var magic = SkillData.getInstance().getSkill(1177, 1); one.addSkill(magic, true);
+			final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(NpcData.getInstance().getTemplate(20534));
+			monster.disableCoreAI(true); monster.setInstanceId(one.getInstanceId());
+			final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(one.getX() + 20, one.getY(), one.getZ()); monster.setSpawn(spawn);
+			monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(one.getX() + 20, one.getY(), one.getZ());
+			try
+			{
+				if (transfer) { PhantomM1SharedRecipientsChecks.ordinaryTransferDamage(context, one, two, monster, SkillData.getInstance().getSkill(1239, 1)); }
+				else { PhantomM1SharedRecipientsChecks.ordinaryPartyExp(context, one, two, monster, magic); }
+			}
+			finally { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); }
+		}
+	}
+
+	private void testNativeReviewCheckpoint(PhantomTestContext context, boolean mismatch) throws Exception
+	{
+		final var armed = new AtomicBoolean(); final var reached = new AtomicInteger(); final var live = new AtomicReference<Player>();
+		final var transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+		{
+			if (!armed.get()) { return; }
+			if (!mismatch && (point == FaultPoint.AFTER_OWNED_NATIVE_STORE) && armed.compareAndSet(true, false)) { reached.incrementAndGet(); throw new InjectedFailure(); }
+			if (mismatch && (point == FaultPoint.AFTER_OWNED_FINALIZE_COMMIT) && armed.compareAndSet(true, false)) { reached.incrementAndGet(); live.get().setSp(live.get().getSp() + 1); }
+		});
+		try (var fixture = openNativeProductionFixture(context, true, transaction))
+		{
+			final Player player = fixture.player(); live.set(player); final long sp = player.getSp();
+			final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner();
+			try
+			{
+				armed.set(true);
+				PhantomAssertions.assertFalse(fixture.background.captureVisibleArrival(fixture.id(), player, fixture.seed.goal(), fixture.seed.goal().selectedAnchor().key()), "Q09 native fault arrival claimed success.");
+				PhantomAssertions.assertEquals(1, reached.get(), "Q09 actual native fault boundary was not reached.");
+				PhantomAssertions.assertFalse(scope.open(), "Q09 failed native checkpoint reopened admission.");
+				PhantomAssertions.assertEquals(0, scope.outstanding(), "Q09 checkpoint retained own ticket.");
+				if (mismatch)
+				{
+					PhantomAssertions.assertFalse(player.hasPendingOwnedStore(), "Q09 finalized mismatch retained a replayable receipt.");
+					PhantomAssertions.assertEquals(sp, canonical(player.getObjectId()).skillPoints(), "Q09 mismatch guard wrote post-finalize SP.");
+					final var pinned = canonical(player.getObjectId());
+					PhantomAssertions.assertFalse(fixture.background.captureVisibleArrival(fixture.id(), player, fixture.seed.goal(), fixture.seed.goal().selectedAnchor().key()), "Q09 failed lifetime accepted a fresh arrival capture.");
+					PhantomAssertions.assertEquals(pinned, canonical(player.getObjectId()), "Q09 fresh capture hid finalized mismatch.");
+					PhantomAssertions.assertFalse(player.hasPendingOwnedStore() || scope.open(), "Q09 finalized mismatch became replayable/open.");
+				}
+				else
+				{
+					PhantomAssertions.assertTrue(player.hasPendingOwnedStore(), "Q09 exact native failure lost pending receipt.");
+					final var route = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), _production.topology());
+					final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(fixture.materialization, fixture.background,
+						route, new PhantomNavigationService(new PhantomMetrics()), _ -> true, noSignals());
+					travel.arrive(fixture.id(), fixture.seed.goal());
+					PhantomAssertions.assertFalse(player.hasPendingOwnedStore(), "Q09 production travel consumer cannot resume exact active pending receipt.");
+					PhantomAssertions.assertFalse(player.hasPendingOwnedStore(), "Q09 successful resume retained receipt.");
+					PhantomAssertions.assertTrue(scope.open() && scope.isCurrent(), "Q09 proven resume did not reopen exact original lifetime.");
+					try (var action = fixture.materialization.tryAcquireAction(fixture.id()).orElseThrow())
+					{
+						PhantomAssertions.assertTrue((action.player() == player) && (PlayerNativeWork.current(scope) != null), "Q09 resume did not admit original native action.");
+					}
+				}
+				context.record("m1.Q09.review." + mismatch, "actualBoundary=1 nativeOutstanding=0 pending=" + player.hasPendingOwnedStore() + " open=" + scope.open() + " epoch=" + scope.epoch());
+			}
+			finally { armed.set(false); if (mismatch) { player.setSp(sp); } }
+		}
+	}
+
+	private void testNativeMovementExit(PhantomTestContext context) throws Exception
+	{
+		final var armed = new AtomicBoolean(); final var prepared = new CountDownLatch(1); final var releasePrepare = new CountDownLatch(1);
+		final var transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+		{
+			if (armed.get() && (point == FaultPoint.AFTER_OWNED_PREPARE))
+			{
+				prepared.countDown();
+				try { if (!releasePrepare.await(10, TimeUnit.SECONDS)) { throw new AssertionError("Q12 movement native PREPARE barrier timeout."); } }
+				catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
+			}
+		});
+		try (var fixture = openNativeProductionFixture(context, true, transaction))
+		{
+			armed.set(true);
+			try { PhantomM1BuffChecks.movement(context, fixture.player(), fixture.materialization, fixture.id(), prepared, releasePrepare, _environment::cleanupLoadedPlayer); }
+			finally { armed.set(false); releasePrepare.countDown(); }
+		}
+	}
+
+	private void testNativeOfflineReplacement(PhantomTestContext context) throws Exception
+	{
+		final Player player = Player.load(_environment.primary().objectId());
+		PhantomAssertions.assertTrue((player != null) && !player.isNativeWorkManaged(), "Ordinary offline fixture must be a real native unmanaged load.");
+		final var manager = AutoPlayTaskManager.getInstance();
+		final var table = org.l2jmobius.gameserver.data.sql.OfflinePlayTable.getInstance();
+		final boolean restore = org.l2jmobius.gameserver.config.custom.OfflinePlayConfig.RESTORE_AUTO_PLAY_OFFLINERS;
+		final CountDownLatch oldDelete = new CountDownLatch(1);
+		final CountDownLatch releaseDelete = new CountDownLatch(1);
+		final CountDownLatch replaced = new CountDownLatch(1);
+		final var failures = new AtomicReference<Throwable>();
+		final var oldThread = new AtomicReference<Thread>();
+		final Field field = DatabaseFactory.class.getDeclaredField("DATABASE_POOL"); field.setAccessible(true);
+		final var original = (com.zaxxer.hikari.HikariDataSource) field.get(null);
+		final AutoPlayTaskManager.PhantomPolicy replacement = new AutoPlayTaskManager.PhantomPolicy()
+		{
+			@Override public AutoPlayTaskManager.TickLease acquire(Player actor) { return actor == player ? () -> {} : null; }
+			@Override public boolean permitsTarget(Creature target) { return false; }
+		};
+		Thread stop = null; Thread start = null;
+		try
+		{
+			org.l2jmobius.gameserver.config.custom.OfflinePlayConfig.RESTORE_AUTO_PLAY_OFFLINERS = true;
+			player.stopAllTasks(); player.setOfflinePlay(true); player.getAutoUseSettings().getAutoActions().add(2);
+			manager.startAutoPlay(player); table.storeOfflinePlay(player);
+			PhantomAssertions.assertTrue(nativeOfflineRows(original, player.getObjectId()) > 0, "Ordinary native offline positive control did not persist a row.");
+			field.set(null, new com.zaxxer.hikari.HikariDataSource()
+			{
+				@Override public Connection getConnection() throws java.sql.SQLException
+				{
+					final Connection delegate = original.getConnection();
+					return (Connection) java.lang.reflect.Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[] { Connection.class }, (_, method, args) ->
+					{
+						try
+						{
+							final Object value = method.invoke(delegate, args);
+							if ((Thread.currentThread() == oldThread.get()) && method.getName().equals("prepareStatement") && (args[0] instanceof String sql) && sql.startsWith("DELETE FROM character_offline_play"))
+							{
+								final PreparedStatement statement = (PreparedStatement) value;
+								return java.lang.reflect.Proxy.newProxyInstance(PreparedStatement.class.getClassLoader(), new Class<?>[] { PreparedStatement.class }, (_, operation, parameters) ->
+								{
+									if (operation.getName().equals("execute")) { oldDelete.countDown(); if (!releaseDelete.await(5, TimeUnit.SECONDS)) { throw new AssertionError("TEST old native DELETE barrier timed out"); } }
+									try { return operation.invoke(statement, parameters); } catch (InvocationTargetException failure) { throw failure.getCause(); }
+								});
+							}
+							return value;
+						}
+						catch (InvocationTargetException failure) { throw failure.getCause(); }
+					});
+				}
+			});
+			stop = new Thread(() -> { try { manager.stopAutoPlay(player); } catch (Throwable failure) { failures.compareAndSet(null, failure); } }, "TEST-old-offline-stop");
+			oldThread.set(stop); stop.start();
+			PhantomAssertions.assertTrue(oldDelete.await(3, TimeUnit.SECONDS), "Actual ordinary stop did not reach native DELETE; fixture invalid.");
+			start = new Thread(() -> { try { manager.startPhantomAutoPlay(player, replacement); table.storeOfflinePlay(player); } catch (Throwable failure) { failures.compareAndSet(null, failure); } finally { replaced.countDown(); } }, "TEST-new-offline-registration");
+			start.start(); final boolean concurrentPublish = replaced.await(200, TimeUnit.MILLISECONDS);
+			releaseDelete.countDown(); stop.join(3000); start.join(3000);
+			PhantomAssertions.assertFalse(stop.isAlive() || start.isAlive(), "Actual manager replacement deadlocked around native SQL.");
+			PhantomAssertions.assertEquals(null, failures.get(), "Native manager fixture thread failed.");
+			PhantomAssertions.assertTrue(manager.hasPhantomRegistration(player, replacement) && player.isAutoPlaying(), "Old stop removed new native registration.");
+			final int rows = nativeOfflineRows(original, player.getObjectId());
+			context.record("m1.P06.native", "concurrentPublish=" + concurrentPublish + " replacementRows=" + rows);
+			PhantomAssertions.assertTrue(rows > 0, "Old stop native DELETE erased the replacement offline row after generation check.");
+		}
+		finally
+		{
+			releaseDelete.countDown(); if (stop != null) { stop.join(3000); } if (start != null) { start.join(3000); }
+			field.set(null, original); player.setOfflinePlay(false); manager.stopPhantomAutoPlay(player, replacement); manager.stopAutoPlay(player); table.removeOfflinePlay(player);
+			org.l2jmobius.gameserver.config.custom.OfflinePlayConfig.RESTORE_AUTO_PLAY_OFFLINERS = restore;
+			player.stopAllTasks(); player.deleteMe();
+		}
+	}
+
+	private static int nativeOfflineRows(com.zaxxer.hikari.HikariDataSource source, int objectId) throws Exception
+	{
+		try (var connection = source.getConnection(); var statement = connection.prepareStatement("SELECT COUNT(*) FROM character_offline_play WHERE charId=?"))
+		{
+			statement.setInt(1, objectId); try (var rows = statement.executeQuery()) { rows.next(); return rows.getInt(1); }
+		}
+	}
+
+	/** Fresh native lifetime at an existing factual source; no manual pose or simulated arrival. */
+	private void testNativeRouteScenario(PhantomTestContext context, boolean gatekeeper) throws Exception
+	{
+		testNativeRouteScenario(context, gatekeeper ? "gatekeeper" : "water");
+	}
+
+	private void testNativeRouteScenario(PhantomTestContext context, String mode) throws Exception
+	{
+		final boolean gatekeeper = mode.equals("gatekeeper");
+		final boolean sameAnchor = mode.equals("standpoint") || mode.equals("height");
+		final var topology = _production.topology();
+		final var arrival = topology.findAnchor(sameAnchor ? "population.farming.elf.20534" : gatekeeper ? "generated.farm.ea72d768f3c8ec3d79c1a530.anchor" : "generated.farm.c4067c834f12b99e976909a2.anchor").orElseThrow();
+		final var departure = sameAnchor ? arrival : topology.findAnchor(gatekeeper ? "generated.route.live002.gludio.arrival.anchor" : "population.ingress.elf.03").orElseThrow();
+		final int npcId = _production.knowledge().snapshot().spawnAreasByNpc().entrySet().stream().filter(value -> value.getValue().stream().anyMatch(area -> arrival.nodeId().equals(area.topologyNodeId()))).mapToInt(Map.Entry::getKey).sorted().findFirst().orElseThrow();
+		final var farm = new ProductionFarmSelection(npcId, arrival);
+		final var route = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
+		final var authority = new L2jPhantomBackgroundAuthority(_production::knowledge, _production::topology, _production::progression, _production::commerce, route);
+		PhantomProfile profile = null;
+		PhantomBackgroundService background = null;
+		PhantomMaterializationService materialization = null;
+		ProductionPlayerFixture fixture = null;
+		try
+		{
+			fixture = openProductionPlayerFixture(departure, 7, PlayerClass.ELVEN_FIGHTER, farm);
+			profile = _repository.create(fixture.player().getObjectId());
+			final var goal = goal(npcId, arrival.id());
+			final var goals = new PhantomGoalStateStore(_repository);
+			goals.insert(profile.profileId(), goal);
+			final var transaction = new PhantomBackgroundTransaction();
+			final var ref = new AtomicReference<PhantomMaterializationService>();
+			background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, authority, new PhantomBackgroundCompetitionRegistry(), noSignals(), ref::get);
+			PhantomAssertions.assertTrue(background.start(), "Route scenario native background unavailable.");
+			final var metrics = new PhantomMetrics();
+			materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, _ -> {}, background, 5_000, 10_000);
+			ref.set(materialization);
+			PhantomAssertions.assertTrue(materialization.start(), "Route scenario native materialization unavailable.");
+			final var captured = authority.capture(profile.profileId(), fixture.player(), goal, null);
+			fixture.player().storeMe();
+			PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, captured, goal).status(), "Route scenario factual baseline failed.");
+			fixture.releaseRuntime();
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(profile.profileId()).status(), "Route scenario native materialize failed.");
+			if (mode.equals("standpoint"))
+			{
+				context.record("m1.T08.nativeDestination", PhantomM1GeometryChecks.canonicalFarmStandpoint(context, profile.profileId(), materialization, background, route, goal, noSignals()));
+			}
+			else if (mode.equals("height")) { PhantomM1GeometryChecks.wrongHeightCanonicalFarm(context, profile.profileId(), materialization, background, route, goal, noSignals()); }
+			else if (gatekeeper)
+			{
+				PhantomM1TravelChecks.missingGatekeeper(context, profile.profileId(), _repository, materialization, background, route, goal, new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority), noSignals());
+			}
+			else
+			{
+				PhantomM1GeometryChecks.unsafeWaterRoute(context, profile.profileId(), materialization, background, route, goal, noSignals(), "bridge.099703149806ba77806cce2c");
+			}
+		}
+		finally
+		{
+			if (materialization != null) { materialization.shutdown(); }
+			if (background != null) { background.beginStop(); background.finishStop(); }
+			if (profile != null) { deleteProfile(profile); }
+			if (fixture != null) { fixture.close(); }
+		}
+	}
+
+	private void testNativeTimerCompletion(PhantomTestContext context) throws Exception
+	{
+		testNativeTimerCompletion(context, "holder");
+	}
+
+	private void testNativeTimerCompletion(PhantomTestContext context, String kind) throws Exception
+	{
+		final var beforeStore = new CountDownLatch(1);
+		final var releaseStore = new CountDownLatch(1);
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
+		{
+			if (point == FailurePoint.BEFORE_STORE_OPERATION)
+			{
+				beforeStore.countDown();
+				try { if (!releaseStore.await(10, TimeUnit.SECONDS)) { throw new AssertionError("Q06 native BEFORE_STORE barrier timed out."); } }
+				catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
+			}
+		}))
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Q06 native timer fixture did not materialize.");
+			final Player player;
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
+			try
+			{
+				switch (kind)
+				{
+					case "quest" -> PhantomM1TimerChecks.runQuest(context, player, runtime.materialization(), runtime.profileId(), beforeStore, releaseStore);
+					case "cancel" -> PhantomM1TimerChecks.runCancel(context, player, runtime.materialization(), runtime.profileId(), beforeStore, releaseStore);
+					case "repeat" -> PhantomM1TimerChecks.runRepeating(context, player, runtime.materialization(), runtime.profileId(), beforeStore, releaseStore);
+					case "chain" -> PhantomM1TimerChecks.runEarnedChain(context, player, runtime.materialization(), runtime.profileId(), beforeStore, releaseStore);
+					case "holder" -> PhantomM1TimerChecks.run(context, player, runtime.materialization(), runtime.profileId(), beforeStore, releaseStore);
+					case "buff" -> PhantomM1BuffChecks.run(context, player, runtime.materialization(), runtime.profileId(), beforeStore, releaseStore, _environment::cleanupLoadedPlayer);
+					case "buff-expiry" -> PhantomM1BuffChecks.expiry(context, player, runtime.materialization(), runtime.profileId(), beforeStore, releaseStore);
+					case "zone-effect" -> PhantomM1BuffChecks.zone(context, player, runtime.materialization(), runtime.profileId(), beforeStore, releaseStore, false);
+					case "zone-damage" -> PhantomM1BuffChecks.zone(context, player, runtime.materialization(), runtime.profileId(), beforeStore, releaseStore, true);
+					default -> throw new IllegalArgumentException("Unknown timer fixture: " + kind);
+				}
+			}
+			finally { releaseStore.countDown(); }
+		}
+	}
+
+	private void testNativeEarlyLoadOwnership() throws Exception
+	{
+		final var runtimeRef = new AtomicReference<RuntimeFixture>();
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
+		{
+			if (point == FailurePoint.AFTER_PLAYER_LOAD)
+			{
+				try
+				{
+					final var fixture = runtimeRef.get();
+					final var actor = nativeActor(fixture.materialization(), fixture.profileId());
+					final Player player = actor.getPlayer();
+					PhantomAssertions.assertTrue(player.isNativeWorkManaged() && player.getNativeWorkOwner().isCurrent(), "Q15 native load did not retain exact owner before reachable callbacks.");
+					PhantomAssertions.assertFalse(Thread.holdsLock(actor), "Q15 native materialization holds actor lifecycle monitor across abort/drain-capable native boundary.");
+					final Field field = PhantomMaterializationService.class.getDeclaredField("_activeByProfile"); field.setAccessible(true);
+					final Object entry = ((Map<?, ?>) field.get(fixture.materialization())).get(fixture.profileId());
+					PhantomAssertions.assertFalse(Thread.holdsLock(entry), "Q15 native materialization holds service entry monitor across abort/drain-capable native boundary.");
+				}
+				catch (ReflectiveOperationException failure) { throw new AssertionError("Q15 exact native fixture inspection failed", failure); }
+				catch (Exception failure) { throw new AssertionError(failure); }
+			}
+		}))
+		{
+			runtimeRef.set(runtime);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Q15 native load fixture did not materialize.");
+		}
+	}
+
+	private void testNativeFirstFailure(boolean removed) throws Exception
+	{
+		final var attempt = new AtomicInteger();
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
+		{
+			if (point == FailurePoint.BEFORE_STORE_OPERATION)
+			{
+				final int current = attempt.incrementAndGet();
+				if (current <= 2) { throw new IllegalArgumentException(current == 1 ? "FIRST_NATIVE_STORE_A" : "LATEST_NATIVE_STORE_B"); }
+			}
+		}))
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "First-failure native fixture did not materialize.");
+			final long epoch = runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos();
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, runtime.materialization().dematerialize(runtime.profileId()).status(), "First failure did not retain ownership.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, runtime.materialization().retryCleanup(runtime.profileId()).status(), "Second failure did not retain ownership.");
+			if (removed)
+			{
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().retryCleanup(runtime.profileId()).status(), "Third native cleanup did not finish.");
+				PhantomAssertions.assertTrue(runtime.materialization().find(runtime.profileId()).isEmpty(), "Completed runtime entry was not removed.");
+			}
+			final String evidence = runtime.materialization().snapshot().toString();
+			PhantomAssertions.assertTrue(evidence.contains("FIRST_NATIVE_STORE_A") && evidence.contains("LATEST_NATIVE_STORE_B"), "Actual lifecycle diagnostics lost first/latest native exceptions after retry/removal: " + evidence);
+			PhantomAssertions.assertTrue(evidence.contains(Long.toString(runtime.profileId())) && evidence.contains(Long.toString(epoch)), "Detached incident lost exact profile/epoch.");
+		}
+	}
+
+	private void testNativeIncidentBounds() throws Exception
+	{
+		final var large = new IllegalArgumentException("Ошибка\n😀".repeat(10000));
+		Throwable cause = large;
+		for (int index = 0; index < 20; index++)
+		{
+			final var next = new IllegalStateException("CAUSE_" + index + "Я".repeat(200));
+			cause.initCause(next); cause = next;
+			large.addSuppressed(new IllegalStateException("SUPPRESSED_" + index));
+		}
+		final var hostile = new IllegalStateException()
+		{
+			@Override public String getMessage() { throw new AssertionError("TEST_DIAGNOSTIC_ACCESSOR"); }
+		};
+		final var attempt = new AtomicInteger();
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
+		{
+			if (point == FailurePoint.BEFORE_STORE_OPERATION)
+			{
+				final int current = attempt.incrementAndGet();
+				if (current == 1) { throw large; }
+				if (current == 2) { throw hostile; }
+			}
+		}))
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Bounded incident fixture did not materialize.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, runtime.materialization().dematerialize(runtime.profileId()).status(), "Huge native exception lost ownership.");
+			final var first = runtime.materialization().find(runtime.profileId()).orElseThrow().firstCleanupIncident();
+			PhantomAssertions.assertTrue(first.truncated() && first.nodes() <= 8 && first.frames() <= 32 && first.message().length() <= 160 && first.toString().getBytes(StandardCharsets.UTF_8).length <= 8192, "Native incident exceeded detached bounds.");
+			PhantomAssertions.assertFalse(first.message().contains("\n"), "Native message was not sanitized.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, runtime.materialization().retryCleanup(runtime.profileId()).status(), "Diagnostic accessor masked actual native failure.");
+			final var latest = runtime.materialization().find(runtime.profileId()).orElseThrow().latestCleanupIncident();
+			PhantomAssertions.assertTrue(latest.truncated() && latest.detail().contains("DIAGNOSTIC_FORMAT_UNAVAILABLE"), "Hostile diagnostic accessor was not bounded.");
+			for (var component : first.getClass().getRecordComponents())
+			{
+				PhantomAssertions.assertFalse(Player.class.isAssignableFrom(component.getType()) || Throwable.class.isAssignableFrom(component.getType()), "Detached incident retains native runtime objects.");
+			}
+		}
+	}
+
+	private void testNativeAbortPrimary() throws Exception
+	{
+		final var armed = new AtomicBoolean();
+		final var owner = new AtomicReference<PhantomMaterializationService>();
+		final var loadedPlayer = new AtomicReference<Player>();
+		final var primary = new AssertionError("TEST_MATERIALIZE_PRIMARY_A");
+		final var secondary = new AssertionError("TEST_ABORT_CANCEL_B");
+		final Field futureField = Player.class.getDeclaredField("_inventoryUpdateTask"); futureField.setAccessible(true);
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
+		{
+			if (armed.get() && (point == FailurePoint.AFTER_PLAYER_LOAD))
+			{
+				try
+				{
+					loadedPlayer.set(nativeActor(owner.get(), _repository.findByCharacterObjectId(_environment.primary().objectId()).orElseThrow().profileId()).getPlayer());
+					futureField.set(loadedPlayer.get(), failingNativeCancellation(secondary));
+				}
+				catch (Exception failure) { throw new AssertionError(failure); }
+				throw primary;
+			}
+		}))
+		{
+			owner.set(runtime.materialization());
+			try
+			{
+				armed.set(true); Throwable observed = null;
+				try { runtime.materialization().materialize(runtime.profileId()); }
+				catch (RuntimeException | Error failure) { observed = failure; }
+				PhantomAssertions.assertTrue(observed == primary, "Materialization/abort swallowed or masked primary Error: " + observed);
+				PhantomAssertions.assertTrue(Arrays.asList(primary.getSuppressed()).contains(secondary), "Materialization primary Error lost abort secondary Error.");
+				PhantomAssertions.assertTrue(runtime.materialization().find(runtime.profileId()).orElseThrow().identityLeaseRetained(), "Abort Error lost retained identity ownership.");
+			}
+			finally
+			{
+				armed.set(false);
+				if (loadedPlayer.get() != null)
+				{
+					futureField.set(loadedPlayer.get(), null);
+					final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) loadedPlayer.get().getNativeWorkOwner();
+					if (scope.firstNativeIncident() != null)
+					{
+						// Expected negative TEST lifetime is discarded; its native failure stays fenced.
+						PhantomAssertions.assertEquals(0, scope.outstanding(), "E04 failed TEST discard requires zero running/queued work.");
+						PhantomAssertions.assertEquals(0, scope.pendingTimers(), "E04 failed TEST discard requires zero native producers.");
+						final var actor = nativeActor(runtime.materialization(), runtime.profileId());
+						PhantomAssertions.assertTrue(actor.getPlayer() == loadedPlayer.get() && !loadedPlayer.get().hasHeadlessOutboundSession(), "E04 exact early TEST lifetime changed.");
+						final Field leaseField = actor.getClass().getDeclaredField("_identityLease"); leaseField.setAccessible(true);
+						final var identity = (PhantomIdentityLeaseRegistry.Lease) leaseField.get(actor);
+						PhantomAssertions.assertTrue(identity != null && identity.objectId() == loadedPlayer.get().getObjectId() && !identity.isClosed(), "E04 retained TEST lease changed.");
+						loadedPlayer.get().stopAllTasks(); loadedPlayer.get().deleteMe(); loadedPlayer.get().detachNativeWorkOwner(scope); identity.close();
+						PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(identity.objectId()), "E04 failed TEST lifetime retained World identity.");
+						PhantomAssertions.assertFalse(scope.open(), "E04 discard reopened failed native scope.");
+					}
+				}
+			}
+		}
+	}
+
+	private void testNativeCleanupPrimary() throws Exception
+	{
+		final var armed = new AtomicBoolean();
+		final var player = new AtomicReference<Player>();
+		final var primary = new IllegalArgumentException("TEST_BEFORE_STORE_A");
+		final var secondary = new AssertionError("TEST_CANCEL_TASK_B");
+		final Field futureField = Player.class.getDeclaredField("_inventoryUpdateTask"); futureField.setAccessible(true);
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point ->
+		{
+			if (armed.get() && (point == FailurePoint.BEFORE_STORE_OPERATION))
+			{
+				try { futureField.set(player.get(), failingNativeCancellation(secondary)); }
+				catch (IllegalAccessException failure) { throw new AssertionError(failure); }
+				throw primary;
+			}
+		}))
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Native finalizer fixture did not materialize.");
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player.set(action.player()); }
+			try
+			{
+				armed.set(true);
+				Throwable observed = null;
+				try { nativeActor(runtime.materialization(), runtime.profileId()).cleanup(); }
+				catch (RuntimeException | Error failure) { observed = failure; }
+				PhantomAssertions.assertTrue(observed == primary, "Native stopAllTasks finalizer masked cleanup primary: " + observed);
+				PhantomAssertions.assertTrue(Arrays.asList(primary.getSuppressed()).contains(secondary), "Native cleanup primary lost Error from finalizer.");
+			}
+			finally { armed.set(false); futureField.set(player.get(), null); }
+		}
+	}
+
+	private static org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer nativeActor(PhantomMaterializationService service, long profileId) throws Exception
+	{
+		final Field activeField = PhantomMaterializationService.class.getDeclaredField("_activeByProfile"); activeField.setAccessible(true);
+		final Object entry = ((Map<?, ?>) activeField.get(service)).get(profileId);
+		final Field actorField = entry.getClass().getDeclaredField("_materializedPlayer"); actorField.setAccessible(true);
+		return (org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer) actorField.get(entry);
+	}
+
+	private static java.util.concurrent.ScheduledFuture<Object> failingNativeCancellation(Error failure)
+	{
+		return new java.util.concurrent.ScheduledFuture<>()
+		{
+			@Override public long getDelay(TimeUnit unit) { return 0; }
+			@Override public int compareTo(java.util.concurrent.Delayed other) { return 0; }
+			@Override public boolean cancel(boolean interrupt) { throw failure; }
+			@Override public boolean isCancelled() { return false; }
+			@Override public boolean isDone() { return false; }
+			@Override public Object get() { return null; }
+			@Override public Object get(long amount, TimeUnit unit) { return null; }
+		};
+	}
+
+	private void testNativeStorePrimary(boolean resume) throws Exception
+	{
+		final Player player = Player.load(_environment.primary().objectId());
+		final Object ownerKey = new Object();
+		final var secondary = new IllegalArgumentException("TEST_BOUNDARY_AFTER_STORE_B");
+		final var completed = new AtomicBoolean(true);
+		final var faults = new AtomicInteger();
+		final var snapshot = new Player.OwnedStoreSnapshot(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp(), player.getX(), player.getY(), player.getZ(), player.getHeading(), player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath(), player.getActiveClass(), player.getRace().ordinal(), player.getClassIndex(), player.getStat().getBaseLevel(), player.getStat().getBaseExp(), player.getStat().getBaseSp());
+		try
+		{
+			try (var lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(player.getObjectId(), PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM);
+				var attachment = player.attachOwnedStoreBoundary(new Player.OwnedStoreBoundary()
+				{
+					@Override public Object ownerKey() { return ownerKey; }
+					@Override public boolean hasPending() { return resume; }
+					@Override public Player.OwnedStoreSnapshot beforeStore() { return snapshot; }
+					@Override public Player.OwnedStoreSnapshot beforePendingStore(long goalId, long revision) { return snapshot; }
+					@Override public void afterStore(boolean nativeCompleted) { completed.set(nativeCompleted); throw secondary; }
+				});
+				var sqlFailure = injectNativeStoreSqlFailure(false, faults))
+			{
+				Throwable observed = null;
+				try { if (resume) { player.resumePendingOwnedStore(ownerKey, 1, 1); } else { player.store(false); } }
+				catch (RuntimeException | Error failure) { observed = failure; }
+				PhantomAssertions.assertEquals(1, faults.get(), "Primary fixture did not reach the actual native SQL writer.");
+				PhantomAssertions.assertFalse(completed.get(), "Native writer failure was reported completed.");
+				PhantomAssertions.assertTrue((observed instanceof IllegalStateException) && "OWNED_STORE_NATIVE_BASE_FAILED".equals(observed.getMessage()), "Boundary finalizer masked the native SQL primary: " + observed);
+				PhantomAssertions.assertTrue(Arrays.asList(observed.getSuppressed()).contains(secondary), "Native primary did not retain the secondary boundary failure.");
+			}
+		}
+		finally { _environment.cleanupLoadedPlayer(player); }
+	}
+
+	private void testNativeRewardCompletion(PhantomTestContext context, boolean mage, boolean timeout) throws Exception
+	{
+		testNativeRewardCompletion(context, mage, timeout, false);
+	}
+
+	private void testNativeRewardCompletion(PhantomTestContext context, boolean mage, boolean timeout, boolean delayedQuest) throws Exception
+	{
+		testNativeRewardCompletion(context, mage, timeout, delayedQuest, false);
+	}
+
+	private void testNativeRewardCompletion(PhantomTestContext context, boolean mage, boolean timeout, boolean delayedQuest, boolean activeCheckpoint) throws Exception
+	{
+		testNativeRewardCompletion(context, mage, timeout, delayedQuest, activeCheckpoint, false);
+	}
+
+	private void testNativeRewardCompletion(PhantomTestContext context, boolean mage, boolean timeout, boolean delayedQuest, boolean activeCheckpoint, boolean stockQuest) throws Exception
+	{
+		testNativeRewardCompletion(context, mage, timeout, delayedQuest, activeCheckpoint, stockQuest, false);
+	}
+
+	private void testNativeRewardCompletion(PhantomTestContext context, boolean mage, boolean timeout, boolean delayedQuest, boolean activeCheckpoint, boolean stockQuest, boolean nativeSensor) throws Exception
+	{
+		testNativeRewardCompletion(context, mage, timeout, delayedQuest, activeCheckpoint, stockQuest, nativeSensor, false);
+	}
+
+	private void testNativeRewardCompletion(PhantomTestContext context, boolean mage, boolean timeout, boolean delayedQuest, boolean activeCheckpoint, boolean stockQuest, boolean nativeSensor, boolean automaticRetry) throws Exception
+	{
+		if (stockQuest) { PhantomM1Q266NativeFixture.load(context); }
+		final String evidence = delayedQuest ? "Q05.asyncQuest" : timeout ? "Q05" : mage ? "Q01.cast" : "Q01.hit";
+		final var elvenFarm = _production.topology().findAnchor("population.farming.elf.20534").orElseThrow();
+		final int nativeNpcId = stockQuest ? PhantomM1Q266NativeFixture.MONSTER_ID : 20534;
+		final var nativeAnchor = stockQuest ? _production.topology().snapshot().anchors().stream()
+			.filter(anchor -> (anchor.role() == PhantomTopologyAnchorRole.FARMING) && (anchor.point().instanceId() == 0))
+			.filter(anchor -> _production.knowledge().snapshot().spawnAreasByNpc().getOrDefault(nativeNpcId, List.of()).stream().anyMatch(area -> (area.totalConfiguredAmount() > 0) && anchor.nodeId().equals(area.topologyNodeId())))
+			.min(Comparator.comparingLong((PhantomTopologyAnchor anchor) -> elvenFarm.point().distanceSquared2D(anchor.point())).thenComparing(PhantomTopologyAnchor::id)).orElseThrow() : elvenFarm;
+		final var farm = new ProductionFarmSelection(nativeNpcId, nativeAnchor);
+		context.record(evidence + ".exactNativeTarget", "npc=" + nativeNpcId + " anchor=" + nativeAnchor.id());
+		try (var fixture = openProductionPlayerFixture(farm.anchor(), 7, mage ? PlayerClass.ELVEN_MAGE : PlayerClass.ELVEN_FIGHTER, farm))
+		{
+			final var profile = _repository.create(fixture.player().getObjectId());
+			final long id = profile.profileId();
+			final var goals = new PhantomGoalStateStore(_repository); goals.insert(id, fixture.goal());
+			final var hitInside = new CountDownLatch(1);
+			final var releaseHit = new CountDownLatch(1);
+			final var hitFinished = new CountDownLatch(1);
+			final var questInside = new CountDownLatch(1);
+			final var releaseQuest = new CountDownLatch(1);
+			final var questFinished = new CountDownLatch(1);
+			final var questFailure = new AtomicReference<Throwable>();
+			final var questRewardCount = new java.util.concurrent.atomic.AtomicLong(-1);
+			final var prepared = new CountDownLatch(1);
+			final var releasePrepare = new CountDownLatch(1);
+			final var armed = new AtomicBoolean();
+			final var livePlayer = new AtomicReference<Player>();
+			final var storeContext = new AtomicReference<String>();
+			final var rewardProducer = new AtomicReference<String>();
+			final var transaction = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, allocator(new AtomicInteger()), point ->
+			{
+				if (armed.get() && (point == FaultPoint.AFTER_OWNED_PREPARE))
+				{
+					prepared.countDown();
+					try { if (!releasePrepare.await(10, TimeUnit.SECONDS)) { throw new AssertionError("Native PREPARE barrier timed out."); } }
+					catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
+				}
+			});
+			final var owner = new AtomicReference<PhantomMaterializationService>();
+			final var background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), owner::get);
+			final var metrics = new PhantomMetrics();
+			final var materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 64, 16, metrics), 1, point ->
+			{
+				if ((point == FailurePoint.BEFORE_STORE_OPERATION) && (livePlayer.get() != null)) { storeContext.set(nativeBackgroundContext(livePlayer.get())); }
+			}, background, timeout ? 50 : 5000, 10000);
+			owner.set(materialization); background.start(); materialization.start();
+			final var candidates = new PhantomCandidateRegistry(); candidates.seal();
+			final var handlers = new PhantomStepHandlerRegistry(); handlers.seal();
+			final var engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1); engine.start(); engine.attach(id);
+			final var visible = new PhantomVisibleAutoPlay(materialization, () -> engine, _ -> true);
+			final var cleanupResult = new AtomicReference<PhantomMaterializationService.DematerializeResult>();
+			final var cleanupFailure = new AtomicReference<Throwable>();
+			final var activeStoreCompleted = new AtomicBoolean();
+			final Thread cleanup = new Thread(() ->
+			{
+				try
+				{
+					if (activeCheckpoint) { livePlayer.get().store(false); activeStoreCompleted.set(true); }
+					else { cleanupResult.set(materialization.dematerialize(id)); }
+				}
+				catch (Throwable failure) { cleanupFailure.set(failure); }
+			}, "m1-native-reward-cleanup");
+			final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(NpcData.getInstance().getTemplate(stockQuest ? PhantomM1Q266NativeFixture.MONSTER_ID : farm.npcId()))
+			{
+				@Override protected synchronized void calculateRewards(Creature attacker)
+				{
+					rewardProducer.set(Arrays.stream(Thread.currentThread().getStackTrace()).map(StackTraceElement::getMethodName).limit(32).reduce((left, right) -> left + ">" + right).orElse(""));
+					hitInside.countDown();
+					try { if (!releaseHit.await(10, TimeUnit.SECONDS)) { throw new AssertionError("Native reward barrier timed out."); } }
+					catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
+					try { super.calculateRewards(attacker); }
+					finally { hitFinished.countDown(); }
+				}
+			};
+			final var questListener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(monster, org.l2jmobius.gameserver.model.events.EventType.ON_ATTACKABLE_KILL,
+				(org.l2jmobius.gameserver.model.events.holders.actor.npc.attackable.OnAttackableKill event) ->
+				{
+					questInside.countDown();
+					try
+					{
+						if (!releaseQuest.await(10, TimeUnit.SECONDS)) { throw new AssertionError("Native quest callback barrier timed out."); }
+						// Existing native quest reward writer, reached only by Attackable.doDie's real delayed event.
+						if (!stockQuest) { org.l2jmobius.gameserver.model.script.Quest.giveItems(event.getAttacker(), 1334, 1); }
+						questRewardCount.set(event.getAttacker().getInventory().getInventoryItemCount(1334, -1));
+					}
+					catch (Throwable failure) { questFailure.set(failure); }
+					finally { questFinished.countDown(); }
+				}, this);
+			if (delayedQuest) { monster.addListener(questListener); }
+			try
+			{
+				if (mage)
+				{
+					final var learn = SkillTreeData.getInstance().getCompleteClassSkillTree(PlayerClass.ELVEN_MAGE).values().stream()
+						.filter(candidate -> (candidate.getSkillId() == 1177) && candidate.isAutoGet() && (candidate.getGetLevel() <= 7))
+						.max(Comparator.comparingInt(candidate -> candidate.getSkillLevel())).orElseThrow(() -> new AssertionError("Native Wind Strike is absent from the current mage class tree."));
+					fixture.player().addSkill(SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel()), true);
+					context.record(evidence + ".stockSkill", learn.getSkillId() + ":" + learn.getSkillLevel());
+				}
+				if (stockQuest) { PhantomM1Q266NativeFixture.prepare(context, fixture.player()); }
+				fixture.player().storeMe();
+				final var baseline = _production.authority().capture(id, fixture.player(), fixture.goal(), null);
+				PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, baseline, fixture.goal()).status(), "Native reward baseline rejected.");
+				fixture.releaseRuntime();
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Native reward Player did not materialize.");
+				final Player player;
+				try (var action = materialization.tryAcquireAction(id).orElseThrow()) { player = action.player(); player.getStatus().stopHpMpRegeneration(); }
+				livePlayer.set(player); context.record(evidence + ".contextBeforeAttack", nativeBackgroundContext(player));
+				final var evidenceOwner = player.getNativeWorkOwner();
+				if (stockQuest) { PhantomM1Q266NativeFixture.assertStarted(context, player); }
+				final long experience = player.getExp(); final long sp = player.getSp();
+				monster.disableCoreAI(true); monster.setInstanceId(player.getInstanceId());
+				final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(monster.getTemplate()); spawn.setXYZ(player.getX() + 20, player.getY(), player.getZ()); monster.setSpawn(spawn);
+				monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(player.getX() + 20, player.getY(), player.getZ());
+				if (stockQuest) { PhantomM1Q266NativeFixture.assertKillReady(context, player, monster); }
+				PhantomAssertions.assertTrue(visible.start(id, fixture.goal()), "Native reward AutoPlay did not start.");
+				if (mage)
+				{
+					final long epoch = materialization.find(id).orElseThrow().materializedAtNanos();
+					AutoUseTaskManager.getInstance().stopAutoUseTask(player);
+					PhantomAssertions.assertFalse(visible.running(id, fixture.goal()), "Native mage partial pair was reported healthy.");
+					PhantomAssertions.assertTrue(visible.start(id, fixture.goal()), "Native mage owner could not repair AutoUse.");
+					PhantomAssertions.assertEquals(epoch, materialization.find(id).orElseThrow().materializedAtNanos(), "Native mage repair changed epoch.");
+				}
+				final boolean lethal = hitInside.await(35, TimeUnit.SECONDS);
+				final var attributed = monster.getAggroList().get(player);
+				context.record(evidence + ".nativeState", "mage=" + player.isMageClass() + " hp=" + monster.getCurrentHp() + "/" + monster.getMaxHp() + " damage=" + (attributed == null ? 0 : attributed.getDamage()) + " mp=" + player.getCurrentMp() + " skills=" + player.getAutoUseSettings().getAutoSkills() + " action=" + player.getAI().getIntention() + " casting=" + player.isCastingNow() + " attack=" + player.isAttackingNow() + " target=" + player.getTarget() + " pair=" + visible.running(id, fixture.goal()));
+				PhantomAssertions.assertTrue(lethal, "Stock native AutoPlay did not reach a real lethal damage callback.");
+				if (delayedQuest)
+				{
+					final long beforeQuest = player.getInventory().getInventoryItemCount(1334, -1);
+					visible.stop(id); releaseHit.countDown();
+					PhantomAssertions.assertTrue(hitFinished.await(5, TimeUnit.SECONDS) && questInside.await(5, TimeUnit.SECONDS), "Actual Attackable delayed quest event was not entered.");
+					if (activeCheckpoint)
+					{
+						try (var action = materialization.tryAcquireAction(id).orElseThrow())
+						{
+							player.abortAttack(); player.abortCast(); player.stopMove(null);
+							player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE);
+							player.getAI().clientStopAutoAttack();
+							org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager.getInstance().removeAttackStanceTask(player);
+							player.getAI().setAutoAttacking(false);
+						}
+						context.record(evidence + ".activeStoreContext", nativeBackgroundContext(player));
+					}
+					armed.set(true); cleanup.start();
+					final boolean crossedQuest = prepared.await(2, TimeUnit.SECONDS);
+					context.record(evidence + ".preparedWhileQuestActive", crossedQuest);
+					context.record(evidence + ".pendingSnapshot", materialization.find(id).map(Object::toString).orElse("removed"));
+					context.record(evidence + ".ownershipBeforeReward", "entry=" + materialization.find(id).isPresent() + " world=" + (World.getInstance().getPlayer(player.getObjectId()) == player) + " identity=" + PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) + " outbound=" + player.hasHeadlessOutboundSession());
+					releaseQuest.countDown();
+					PhantomAssertions.assertTrue(questFinished.await(5, TimeUnit.SECONDS) && questFailure.get() == null, "Real native quest reward did not finish: " + questFailure.get());
+					releasePrepare.countDown(); cleanup.join(10000);
+					if (activeCheckpoint)
+					{
+						PhantomAssertions.assertTrue(activeStoreCompleted.get() && cleanupFailure.get() == null, "Actual active owned store did not complete: " + cleanupFailure.get());
+						PhantomAssertions.assertTrue(materialization.find(id).isPresent() && (World.getInstance().getPlayer(player.getObjectId()) == player), "Active checkpoint released the materialized lifetime.");
+						cleanupResult.set(materialization.dematerialize(id));
+					}
+					context.record(evidence + ".cleanup", cleanupResult.get() == null ? String.valueOf(cleanupFailure.get()) : cleanupResult.get().status());
+					context.record(evidence + ".nativeQuestReward", "before=" + beforeQuest + " afterCallback=" + questRewardCount.get() + " pendingOwnedStore=" + player.hasPendingOwnedStore());
+					context.record(evidence + ".backgroundInventory", transaction.load(id).state().inventory());
+					PhantomAssertions.assertFalse(crossedQuest, "Owned PREPARE crossed an active native ON_ATTACKABLE_KILL quest reward; ownership was released before the earned callback completed.");
+					PhantomAssertions.assertTrue(cleanupFailure.get() == null && cleanupResult.get() != null, "Native delayed reward cleanup did not complete: " + cleanupFailure.get());
+					PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, cleanupResult.get().status(), "Native delayed reward retained a failure.");
+					if (!stockQuest) { PhantomAssertions.assertEquals(beforeQuest + 1, questRewardCount.get(), "Native quest reward was not applied exactly once before canonical delete."); }
+					final Player reloaded = stockQuest ? PhantomM1Q266NativeFixture.reloadAndAssert(context, player) : Player.load(player.getObjectId());
+					try
+					{
+						if (!stockQuest) { PhantomAssertions.assertEquals(beforeQuest + 1, reloaded.getInventory().getInventoryItemCount(1334, -1), "Native quest reward was lost after Player.load."); }
+						PhantomAssertions.assertEquals(player.getExp(), reloaded.getExp(), "Native delayed reward EXP diverged after reload.");
+						if (stockQuest) { PhantomM1Q266NativeFixture.cleanupQuest(context, reloaded); }
+					}
+					finally { _environment.cleanupLoadedPlayer(reloaded); }
+					return;
+				}
+				visible.stop(id); armed.set(true); cleanup.start();
+				final boolean crossedActiveCompletion = prepared.await(2, TimeUnit.SECONDS);
+				final var draining = materialization.find(id).orElseThrow();
+				context.record(evidence + ".preparedWhileHitActive", crossedActiveCompletion);
+				context.record(evidence + ".draining", draining);
+				if (timeout)
+				{
+					PhantomAssertions.assertTrue(!draining.actionAdmissionOpen() && (draining.admittedActionCount() > 0) && draining.identityLeaseRetained() && draining.worldPresent() && draining.outboundAttached(), "Native timeout lost exact retained ownership before completion.");
+				}
+				releaseHit.countDown();
+				releasePrepare.countDown();
+				PhantomAssertions.assertTrue(hitFinished.await(5, TimeUnit.SECONDS), "Real native reward callback did not finish.");
+				context.record(evidence + ".nativeReward", "object=" + player.getObjectId() + " expDelta=" + (player.getExp() - experience) + " spDelta=" + (player.getSp() - sp) + " preparedWhileHitActive=" + crossedActiveCompletion);
+				releasePrepare.countDown(); cleanup.join(10000);
+				context.record(evidence + ".cleanup", cleanupResult.get() == null ? String.valueOf(cleanupFailure.get()) : cleanupResult.get().status());
+				context.record(evidence + ".cleanupSnapshot", materialization.find(id).map(Object::toString).orElse("removed"));
+				context.record(evidence + ".contextAtStore", storeContext.get());
+				PhantomAssertions.assertFalse(crossedActiveCompletion, "Owned PREPARE crossed an active native lethal-hit/reward completion.");
+				PhantomAssertions.assertTrue(!cleanup.isAlive() && cleanupFailure.get() == null && cleanupResult.get() != null, "Native reward cleanup did not finish safely.");
+				if (timeout)
+				{
+					PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CLEANUP_FAILED_RETAINED, cleanupResult.get().status(), "Native completion timeout was silently treated as success.");
+					armed.set(false);
+					if (automaticRetry)
+					{
+						final long retryDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+						while (materialization.find(id).isPresent() && (System.nanoTime() < retryDeadline)) { Thread.sleep(10); }
+						context.record("Q10.afterActualCompletion", materialization.find(id).map(Object::toString).orElse("stored-and-released"));
+						PhantomAssertions.assertTrue(materialization.find(id).isEmpty(), "Actual last native completion did not enqueue a bounded safe cleanup retry after typed drain timeout.");
+					}
+					else { PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.retryCleanup(id).status(), "Completed native reward could not be safely stored on cleanup retry."); }
+				}
+				else { PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, cleanupResult.get().status(), "Native reward cleanup retained a failure; no quiescence PASS is established."); }
+				PhantomAssertions.assertTrue(player.getExp() > experience && player.getSp() > sp, "Actual native kill did not award attributed EXP/SP.");
+				if (nativeSensor)
+				{
+					PhantomAssertions.assertTrue((evidenceOwner != null) && (evidenceOwner.evidence() != null), "Successful actual native hit/kill/reward lacks its exact lifetime sensor.");
+					final var observed = evidenceOwner.evidence().snapshot();
+					context.record("A09.actualNativeSensor", observed.scalarMap());
+					PhantomAssertions.assertTrue((observed.damageSequence() > 0) && (observed.killSequence() > 0) && (observed.rewardSequence() > 0) && (observed.expGained() > 0) && (observed.spGained() > 0), "Successful actual native writers were not attributed to their exact owner.");
+				}
+				context.record(evidence + ".rewardProducer", rewardProducer.get());
+				if (mage) { PhantomAssertions.assertTrue(rewardProducer.get().contains("onMagicHitTimer"), "Native mage reward did not originate in the stock cast completion."); }
+				final var durable = transaction.load(id).state();
+				final var stored = canonical(player.getObjectId());
+				PhantomAssertions.assertEquals(player.getExp(), durable.progress().experience(), "Native earned EXP was lost from immutable background store.");
+				PhantomAssertions.assertEquals(player.getSp(), durable.progress().skillPoints(), "Native earned SP was lost from immutable background store.");
+				PhantomAssertions.assertEquals(durable.progress().experience(), stored.experience(), "Canonical/background native reward EXP diverged.");
+				PhantomAssertions.assertEquals(durable.progress().skillPoints(), stored.skillPoints(), "Canonical/background native reward SP diverged.");
+			}
+			finally
+			{
+				releaseHit.countDown(); releasePrepare.countDown(); releaseQuest.countDown(); if (cleanup.getState() != Thread.State.NEW) { cleanup.join(10000); }
+				if (delayedQuest) { questFinished.await(5, TimeUnit.SECONDS); monster.removeListener(questListener); }
+				armed.set(false); visible.stop(id); monster.deleteMe(); engine.beginStop(); engine.finishStop();
+				context.record(evidence + ".retry", materialization.retryCleanup(id).status());
+				context.record(evidence + ".retrySnapshot", materialization.find(id).map(Object::toString).orElse("removed"));
+				materialization.shutdown(); background.beginStop(); background.finishStop(); deleteProfile(profile);
+				if (stockQuest)
+				{
+					if (materialization.find(id).isEmpty())
+					{
+						final Player questCleanup = Player.load(profile.characterObjectId());
+						try { org.l2jmobius.gameserver.model.script.Quest.playerEnter(questCleanup); PhantomM1Q266NativeFixture.cleanupQuest(context, questCleanup); }
+						finally { _environment.cleanupLoadedPlayer(questCleanup); }
+					}
+					PhantomM1Q266NativeFixture.unload(context);
+				}
+			}
+		}
+	}
+
+	private static String nativeBackgroundContext(Player player)
+	{
+		return "instance=" + player.getInstanceId() + " flying=" + player.isFlying() + " flyingMounted=" + player.isFlyingMounted() + " mounted=" + player.isMounted() + " party=" + player.isInParty() + " combat=" + player.isInCombat() + " combatFlag=" + player.isCombatFlagEquipped() + " gm=" + player.isGM() + " premium=" + player.hasPremiumStatus() + " event=" + player.isOnEvent() + " festival=" + player.isFestivalParticipant() + " karma=" + player.getKarma() + " nevit=" + player.getNevitHourglassMultiplier() + " vitality=" + player.getStat().getVitalityMultiplier();
+	}
+
+	@SuppressWarnings("unchecked")
+	private void testNativeSessionOverlap() throws Exception
+	{
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId()))
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Session overlap fixture did not materialize.");
+			final Player player;
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
+			final var candidates = new PhantomCandidateRegistry(); candidates.seal();
+			final var handlers = new PhantomStepHandlerRegistry(); handlers.seal();
+			final var engine = new PhantomDecisionEngine(new PhantomGoalStateStore(_repository), candidates, handlers, new PhantomMetrics(), 1);
+			engine.start(); engine.attach(runtime.profileId());
+			final var visible = new PhantomVisibleAutoPlay(runtime.materialization(), () -> engine, _ -> true);
+			final var firstInsideUse = new CountDownLatch(1);
+			final var releaseFirst = new CountDownLatch(1);
+			final var firstFailure = new AtomicReference<Throwable>();
+			final var secondFailure = new AtomicReference<Throwable>();
+			final var secondStarted = new AtomicBoolean();
+			final Thread first = new Thread(() ->
+			{
+				try { visible.start(runtime.profileId(), runtime.goal()); }
+				catch (Throwable failure) { firstFailure.set(failure); }
+			}, "m1-session-first");
+			final Thread second = new Thread(() ->
+			{
+				try { secondStarted.set(visible.start(runtime.profileId(), runtime.goal())); }
+				catch (Throwable failure) { secondFailure.set(failure); }
+			}, "m1-session-replacement");
+			final Set<Player> playPool = new java.util.LinkedHashSet<>(List.of(player))
+			{
+				@Override public boolean contains(Object actor)
+				{
+					return super.contains(actor);
+				}
+			};
+			final Set<Player> usePool = new java.util.LinkedHashSet<>(List.of(player))
+			{
+				private boolean injected;
+				@Override public boolean contains(Object actor)
+				{
+					if (!injected && (actor == player) && (Thread.currentThread() == first))
+					{
+						injected = true; firstInsideUse.countDown();
+						try { if (!releaseFirst.await(5, TimeUnit.SECONDS)) { throw new AssertionError("Session barrier timed out."); } }
+						catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
+						throw new InjectedFailure();
+					}
+					return super.contains(actor);
+				}
+			};
+			final Field playPoolsField = AutoPlayTaskManager.class.getDeclaredField("POOLS"); playPoolsField.setAccessible(true);
+			final Field usePoolsField = AutoUseTaskManager.class.getDeclaredField("POOLS"); usePoolsField.setAccessible(true);
+			final var playPools = (Set<Set<Player>>) playPoolsField.get(null);
+			final var usePools = (Set<Set<Player>>) usePoolsField.get(null);
+			playPools.add(playPool); usePools.add(usePool);
+			try
+			{
+				first.start();
+				PhantomAssertions.assertTrue(firstInsideUse.await(5, TimeUnit.SECONDS), "First native start did not reach AutoUse barrier.");
+				final Field sessionsField = PhantomVisibleAutoPlay.class.getDeclaredField("_sessions"); sessionsField.setAccessible(true);
+				final var sessions = (Map<Long, ?>) sessionsField.get(visible);
+				final Object firstSession = sessions.get(runtime.profileId());
+				AutoPlayTaskManager.getInstance().stopAutoPlay(player);
+				second.start();
+				final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+				while ((sessions.get(runtime.profileId()) == firstSession) && (System.nanoTime() < deadline)) { Thread.onSpinWait(); }
+				PhantomAssertions.assertTrue((sessions.get(runtime.profileId()) != null) && (sessions.get(runtime.profileId()) != firstSession), "Replacement Session was not published before native registration resumed.");
+				releaseFirst.countDown(); first.join(5000); second.join(5000);
+				PhantomAssertions.assertFalse(first.isAlive() || second.isAlive(), "Native session overlap deadlocked.");
+				PhantomAssertions.assertTrue(firstFailure.get() instanceof InjectedFailure, "First native start did not propagate its injected failure.");
+				PhantomAssertions.assertTrue(secondFailure.get() == null && secondStarted.get(), "Replacement native start failed.");
+				PhantomAssertions.assertTrue(visible.running(runtime.profileId(), runtime.goal()), "Stale start rollback deleted the replacement Session or pair.");
+			}
+			finally
+			{
+				releaseFirst.countDown(); first.join(5000); if (second.getState() != Thread.State.NEW) { second.join(5000); }
+				visible.stop(runtime.profileId()); AutoUseTaskManager.getInstance().stopAutoUseTask(player); AutoPlayTaskManager.getInstance().stopAutoPlay(player);
+				playPool.add(player); usePool.add(player); playPools.remove(playPool); usePools.remove(usePool);
+				engine.beginStop(); engine.finishStop();
+			}
+		}
+	}
+
+	private void testNativePartialPair() throws Exception
+	{
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId()))
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Partial pair fixture did not materialize.");
+			final var candidates = new PhantomCandidateRegistry(); candidates.seal();
+			final var handlers = new PhantomStepHandlerRegistry(); handlers.seal();
+			final var goals = new PhantomGoalStateStore(_repository);
+			final var engine = new PhantomDecisionEngine(goals, candidates, handlers, new PhantomMetrics(), 1);
+			engine.start(); engine.attach(runtime.profileId());
+			final var visible = new PhantomVisibleAutoPlay(runtime.materialization(), () -> engine, _ -> true);
+			final long epoch = runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos();
+			try
+			{
+				PhantomAssertions.assertTrue(visible.start(runtime.profileId(), runtime.goal()), "Initial visible pair did not start.");
+				final Player player;
+				try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
+				AutoUseTaskManager.getInstance().stopAutoUseTask(player);
+				PhantomAssertions.assertTrue(player.isAutoPlaying(), "Missing AutoUse fixture stopped AutoPlay unexpectedly.");
+				PhantomAssertions.assertFalse(visible.running(runtime.profileId(), runtime.goal()), "Partial native pair was falsely healthy.");
+				PhantomAssertions.assertTrue(visible.start(runtime.profileId(), runtime.goal()), "Legal owner could not repair partial native pair.");
+				PhantomAssertions.assertTrue(visible.running(runtime.profileId(), runtime.goal()), "Repaired native pair is not healthy.");
+				PhantomAssertions.assertEquals(epoch, runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos(), "Pair repair changed the materialization epoch.");
+			}
+			finally { visible.stop(runtime.profileId()); engine.beginStop(); engine.finishStop(); }
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void testNativePolicyReplacement(Class<?> managerClass, boolean throwsFailure) throws Exception
+	{
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId()))
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Native policy fixture failed to materialize.");
+			final Player player;
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
+			final var autoPlay = AutoPlayTaskManager.getInstance();
+			final var autoUse = AutoUseTaskManager.getInstance();
+			final Field playPoolsField = AutoPlayTaskManager.class.getDeclaredField("POOLS"); playPoolsField.setAccessible(true);
+			final Field usePoolsField = AutoUseTaskManager.class.getDeclaredField("POOLS"); usePoolsField.setAccessible(true);
+			final var playPools = (Set<Set<Player>>) playPoolsField.get(null);
+			final var usePools = (Set<Set<Player>>) usePoolsField.get(null);
+			final Set<Player> playPool = new java.util.LinkedHashSet<>(List.of(player));
+			final Set<Player> usePool = new java.util.LinkedHashSet<>(List.of(player));
+			playPools.add(playPool); usePools.add(usePool);
+			final AutoPlayTaskManager.PhantomPolicy replacement = new AutoPlayTaskManager.PhantomPolicy()
+			{
+				@Override public AutoPlayTaskManager.TickLease acquire(Player actor) { return () -> {}; }
+				@Override public boolean permitsTarget(Creature target) { return false; }
+			};
+			final var observed = new AtomicInteger();
+			final AutoPlayTaskManager.PhantomPolicy original = new AutoPlayTaskManager.PhantomPolicy()
+			{
+				@Override public AutoPlayTaskManager.TickLease acquire(Player actor)
+				{
+					observed.incrementAndGet();
+					autoPlay.startPhantomAutoPlay(actor, replacement);
+					autoUse.startPhantomAutoUse(actor, replacement);
+					if (throwsFailure) { throw new InjectedFailure(); }
+					return null;
+				}
+				@Override public boolean permitsTarget(Creature target) { return false; }
+			};
+			try
+			{
+				player.setAutoPlaying(true);
+				autoPlay.startPhantomAutoPlay(player, original); autoUse.startPhantomAutoUse(player, original);
+				runNativePool(managerClass, new java.util.LinkedHashSet<>(List.of(player)));
+				PhantomAssertions.assertEquals(1, observed.get(), "Actual native loop did not capture P1.");
+				for (Class<?> paired : List.of(AutoPlayTaskManager.class, AutoUseTaskManager.class))
+				{
+					final Field policiesField = paired.getDeclaredField("PHANTOM_POLICIES"); policiesField.setAccessible(true);
+					final var policies = (Map<Player, AutoPlayTaskManager.PhantomPolicy>) policiesField.get(null);
+					PhantomAssertions.assertTrue(policies.get(player) == replacement, "Stale P1 removed P2 policy in " + paired.getSimpleName());
+				}
+				PhantomAssertions.assertTrue(playPool.contains(player) && usePool.contains(player) && player.isAutoPlaying(), "Stale P1 destroyed replacement native membership or flag.");
+			}
+			finally
+			{
+				autoUse.stopAutoUseTask(player); autoPlay.stopAutoPlay(player);
+				playPool.add(player); usePool.add(player); playPools.remove(playPool); usePools.remove(usePool);
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void testNativeMissingPolicy(Class<?> managerClass) throws Exception
+	{
+		try (var runtime = createRuntimeFixture(_environment.primary().objectId()))
+		{
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Missing policy fixture failed to materialize.");
+			final Player player;
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
+			final Field poolsField = managerClass.getDeclaredField("POOLS"); poolsField.setAccessible(true);
+			final var pools = (Set<Set<Player>>) poolsField.get(null);
+			final Set<Player> pool = new java.util.LinkedHashSet<>(List.of(player)); pools.add(pool);
+			final boolean enabled = AutoPlayConfig.ENABLE_AUTO_PLAY;
+			final boolean items = AutoPlayConfig.ENABLE_AUTO_ITEM;
+			final var target = Player.load(_environment.observer().objectId());
+			try
+			{
+				AutoPlayConfig.ENABLE_AUTO_PLAY = true; AutoPlayConfig.ENABLE_AUTO_ITEM = true;
+				target.spawnMe(player.getX() + 40, player.getY(), player.getZ());
+				player.getAutoPlaySettings().setNextTargetMode(1); player.getAutoPlaySettings().setPickup(false);
+				player.getAutoUseSettings().getAutoSupplyItems().add(Integer.MAX_VALUE);
+				final AutoPlayTaskManager.PhantomPolicy policy = new AutoPlayTaskManager.PhantomPolicy()
+				{
+					@Override public AutoPlayTaskManager.TickLease acquire(Player actor) { throw new AssertionError("Removed policy must not be used."); }
+					@Override public boolean permitsTarget(Creature creature) { return false; }
+				};
+				if (managerClass == AutoPlayTaskManager.class) { AutoPlayTaskManager.getInstance().startPhantomAutoPlay(player, policy); }
+				else { AutoUseTaskManager.getInstance().startPhantomAutoUse(player, policy); }
+				player.setTarget(target);
+				PhantomAssertions.assertTrue(player.getTarget() == target, "Missing-policy fixture did not establish its target before the native tick.");
+				// The iterator has already yielded this exact Player when stop removes registration.
+				final Set<Player> staleSelection = new java.util.AbstractSet<>()
+				{
+					@Override public int size() { return 1; }
+					@Override public java.util.Iterator<Player> iterator()
+					{
+						return new java.util.Iterator<>()
+						{
+							private boolean pending = true;
+							@Override public boolean hasNext() { return pending; }
+							@Override public Player next()
+							{
+								pending = false;
+								if (managerClass == AutoPlayTaskManager.class) { AutoPlayTaskManager.getInstance().stopAutoPlay(player); }
+								else { AutoUseTaskManager.getInstance().stopAutoUseTask(player); }
+								return player;
+							}
+						};
+					}
+				};
+				runNativePool(managerClass, staleSelection);
+				if (managerClass == AutoPlayTaskManager.class) { PhantomAssertions.assertTrue(player.getTarget() == target, "Managed missing-policy tick executed stock target mutation."); }
+				else { PhantomAssertions.assertTrue(player.getAutoUseSettings().getAutoSupplyItems().contains(Integer.MAX_VALUE), "Managed missing-policy tick executed stock supply mutation."); }
+			}
+			finally
+			{
+				AutoPlayConfig.ENABLE_AUTO_PLAY = enabled; AutoPlayConfig.ENABLE_AUTO_ITEM = items;
+				player.setTarget(null); player.getAutoUseSettings().getAutoSupplyItems().remove(Integer.MAX_VALUE);
+				AutoUseTaskManager.getInstance().stopAutoUseTask(player); AutoPlayTaskManager.getInstance().stopAutoPlay(player);
+				pool.add(player); pools.remove(pool); _environment.cleanupLoadedPlayer(target);
+			}
+		}
+	}
+
+	private static void runNativePool(Class<?> managerClass, Set<Player> selected) throws Exception
+	{
+		final Class<?> taskClass = Arrays.stream(managerClass.getDeclaredClasses()).filter(type -> type.getSimpleName().equals(managerClass == AutoPlayTaskManager.class ? "AutoPlay" : "AutoUse")).findFirst().orElseThrow();
+		final var constructor = taskClass.getDeclaredConstructor(managerClass, Set.class); constructor.setAccessible(true);
+		((Runnable) constructor.newInstance(managerClass.getMethod("getInstance").invoke(null), selected)).run();
 	}
 
 	private void registerDecision(PhantomTestRegistry registry)
@@ -574,7 +2902,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final var navigation = new PhantomNavigationService(metrics);
 			final var engineRef = new AtomicReference<PhantomDecisionEngine>();
 			final var autoPlay = new PhantomVisibleAutoPlay(materialization, engineRef::get, history::permitsNormalOperation);
-			final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, navigation, history::permitsNormalOperation, noSignals(), (candidate, failure) -> { if (failure.routeFailure()) { history.recordVisibleFailure(candidate, failure.goal(), failure.stepId()); } }, System::nanoTime);
+			final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, navigation, history::permitsNormalOperation, noSignals(), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(history), System::nanoTime);
 			lifecycle.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(history, background), org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(autoPlay, travel)));
 			final var candidates = new PhantomCandidateRegistry(); final var handlers = new PhantomStepHandlerRegistry();
 			final var binding = PhantomBackgroundDecision.bindVisibleLife(background, travel, autoPlay, history, engineRef::get);
@@ -589,7 +2917,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				PhantomAssertions.assertTrue(background.start() && materialization.start() && navigation.start(), "Executor services did not start."); engine.start(); engine.attach(id);
 				final var captured = authority.capture(id, fixture.player(), goal, null); fixture.player().storeMe();
-				PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, goal).status(), "Executor production baseline failed.");
+				PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, captured, goal).status(), "Executor production baseline failed.");
 				fixture.releaseRuntime();
 				final var human = humanSession.start(); human.teleToLocation(departure.point().x(), departure.point().y(), departure.point().z()); human.onTeleported();
 				PhantomAssertions.assertTrue(humanSession.valid() && !org.l2jmobius.gameserver.phantoms.PhantomSystem.onlineHumanPoints().isEmpty(), "Executor requires an ordinary World human.");
@@ -679,35 +3007,41 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		{
 			try { configure.invoke(null, runtimeRoot); } catch (java.lang.reflect.InvocationTargetException failure) { throw new IllegalStateException("Journal fixture private guard failed", failure.getCause()); }
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Journal fixture did not materialize.");
+			final Player player;
+			final PlayerNativeWork.Owner nativeOwner;
+			final long epoch;
 			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
 			{
-				final long epoch = runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos();
-				final var off = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts();
-				action.player().storeMe();
-				PhantomAssertions.assertEquals(off, org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts(), "Configured journal default OFF performed work.");
-				org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(Map.of(runtime.profileId(), epoch));
-				action.player().storeMe();
-				final var on = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts();
-				PhantomAssertions.assertTrue((on.snapshots() > off.snapshots()) && (on.encodes() > off.encodes()) && (on.hashes() > off.hashes()) && (on.opens() > off.opens()) && (on.forces() > off.forces()), "Selected journal did not attest/force both boundary events.");
-				org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(Map.of(runtime.profileId(), epoch + 1));
-				action.player().storeMe();
-				PhantomAssertions.assertEquals(on, org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts(), "Wrong epoch performed diagnostic work.");
-				org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(Map.of(runtime.profileId() + 1, epoch));
-				action.player().storeMe();
-				PhantomAssertions.assertEquals(on, org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts(), "Unselected profile performed diagnostic work.");
-				final var oversized = new LinkedHashMap<Long, Long>(); for (long id = 1; id <= 9; id++) { oversized.put(id, epoch); }
-				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(oversized), "Journal allowed more than eight selected epochs.");
-				context.record("m1.journalOff", off); context.record("m1.journalOn", on);
-				org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(Map.of(runtime.profileId(), epoch));
-				Files.write(root.resolve("stores.log"), new byte[1024 * 1024], java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
-				action.player().storeMe();
-				PhantomAssertions.assertTrue(Files.size(root.resolve("stores.1.log")) >= 1024 * 1024 && Files.size(root.resolve("stores.log")) < 1024 * 1024, "Journal rotation was not bounded.");
-				final State beforeJournalFault = runtime.transaction().load(runtime.profileId()).state().state();
-				Files.delete(root.resolve("stores.log")); Files.createDirectory(root.resolve("stores.log"));
-				action.player().storeMe();
-				PhantomAssertions.assertFalse(org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.enabledFor(runtime.profileId(), epoch), "Journal I/O failure remained enabled.");
-				PhantomAssertions.assertEquals(beforeJournalFault, runtime.transaction().load(runtime.profileId()).state().state(), "Diagnostic failure claimed gameplay authority.");
+				player = action.player(); nativeOwner = player.getNativeWorkOwner();
+				epoch = runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos();
 			}
+			PhantomAssertions.assertTrue(nativeOwner != null && nativeOwner.player() == player && nativeOwner.isCurrent() && nativeOwner.epoch() == epoch && PlayerNativeWork.current(nativeOwner) == null, "Journal STORE did not retain exact lifetime outside ActionLease.");
+			final var off = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts();
+			player.storeMe();
+			PhantomAssertions.assertEquals(off, org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts(), "Configured journal default OFF performed work.");
+			org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(Map.of(runtime.profileId(), epoch));
+			player.storeMe();
+			final var on = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts();
+			PhantomAssertions.assertTrue((on.snapshots() > off.snapshots()) && (on.encodes() > off.encodes()) && (on.hashes() > off.hashes()) && (on.opens() > off.opens()) && (on.forces() > off.forces()), "Selected journal did not attest/force both boundary events.");
+			org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(Map.of(runtime.profileId(), epoch + 1));
+			player.storeMe();
+			PhantomAssertions.assertEquals(on, org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts(), "Wrong epoch performed diagnostic work.");
+			org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(Map.of(runtime.profileId() + 1, epoch));
+			player.storeMe();
+			PhantomAssertions.assertEquals(on, org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.operationCounts(), "Unselected profile performed diagnostic work.");
+			final var oversized = new LinkedHashMap<Long, Long>(); for (long id = 1; id <= 9; id++) { oversized.put(id, epoch); }
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(oversized), "Journal allowed more than eight selected epochs.");
+			context.record("m1.journalOff", off); context.record("m1.journalOn", on);
+			org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.select(Map.of(runtime.profileId(), epoch));
+			Files.write(root.resolve("stores.log"), new byte[1024 * 1024], java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
+			player.storeMe();
+			PhantomAssertions.assertTrue(Files.size(root.resolve("stores.1.log")) >= 1024 * 1024 && Files.size(root.resolve("stores.log")) < 1024 * 1024, "Journal rotation was not bounded.");
+			final State beforeJournalFault = runtime.transaction().load(runtime.profileId()).state().state();
+			Files.delete(root.resolve("stores.log")); Files.createDirectory(root.resolve("stores.log"));
+			player.storeMe();
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.enabledFor(runtime.profileId(), epoch), "Journal I/O failure remained enabled.");
+			PhantomAssertions.assertEquals(beforeJournalFault, runtime.transaction().load(runtime.profileId()).state().state(), "Diagnostic failure claimed gameplay authority.");
+			PhantomAssertions.assertTrue(player.getNativeWorkOwner() == nativeOwner && nativeOwner.isCurrent() && nativeOwner.epoch() == runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos(), "Journal STORE changed native Player owner/epoch.");
 		}
 		finally
 		{
@@ -749,7 +3083,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 					player.setCurrentHp(133); player.setCurrentCp(7); player.setHeading(25847);
 					final var captured = _production.authority().capture(id, player, fixture.goal(), null);
 					player.storeMe();
-					PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, fixture.goal()).status(), "Protocol seed failed.");
+					PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, captured, fixture.goal()).status(), "Protocol seed failed.");
 					PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(id, objectId).status(), "Protocol MAT seed failed.");
 					final var before = transaction.load(id).state();
 					final Canonical beforeCanonical = canonical(objectId);
@@ -900,7 +3234,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 					seed.setHeading(25847);
 					final var captured = _production.authority().capture(id, seed, fixture.goal(), null);
 					seed.storeMe();
-					if (!boundary.equals("UNSUPPORTED_ABSENT")) { PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, fixture.goal()).status(), "Coherent farm baseline failed."); }
+					if (!boundary.equals("UNSUPPORTED_ABSENT")) { PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, captured, fixture.goal()).status(), "Coherent farm baseline failed."); }
 					fixture.releaseRuntime();
 					PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "NORMAL matrix materialization rejected.");
 					try (var action = materialization.tryAcquireAction(id).orElseThrow())
@@ -979,11 +3313,18 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 					}
 					if (boundary.startsWith("LIVE_") || boundary.startsWith("ARRIVAL") || boundary.equals("NORMAL_ARRIVAL"))
 					{
+						final Player actor;
+						final PlayerNativeWork.Owner nativeOwner;
+						final long epoch;
 						try (var action = materialization.tryAcquireAction(id).orElseThrow())
 						{
-							final boolean result = background.captureVisibleArrival(id, action.player(), fixture.goal(), farm.anchor().id());
-							if (boundary.equals("NORMAL_ARRIVAL")) { PhantomAssertions.assertTrue(result, "Normal owned arrival was rejected."); }
+							actor = action.player(); nativeOwner = actor.getNativeWorkOwner();
+							epoch = materialization.find(id).orElseThrow().materializedAtNanos();
 						}
+						PhantomAssertions.assertTrue(actor == live.get() && nativeOwner != null && nativeOwner.player() == actor && nativeOwner.isCurrent() && nativeOwner.epoch() == epoch && PlayerNativeWork.current(nativeOwner) == null, "Matrix arrival did not retain exact lifetime outside ActionLease.");
+						final boolean result = background.captureVisibleArrival(id, actor, fixture.goal(), farm.anchor().id());
+						PhantomAssertions.assertTrue(actor.getNativeWorkOwner() == nativeOwner && nativeOwner.isCurrent() && nativeOwner.epoch() == materialization.find(id).orElseThrow().materializedAtNanos(), "Matrix arrival changed native Player owner/epoch.");
+						if (boundary.equals("NORMAL_ARRIVAL")) { PhantomAssertions.assertTrue(result, "Normal owned arrival was rejected."); }
 					}
 					else if (!boundary.startsWith("SQL_"))
 					{
@@ -1155,7 +3496,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				final var captured = authority.capture(id, fixture.player(), fixture.goal(), null);
 				PhantomAssertions.assertTrue(new PhantomHistoricalBackgroundPlanner(_production.knowledge(), _production.topology(), authority).remainsSuitable(captured, fixture.goal()), "Pending fixture target must match its configured TEST level.");
 				fixture.player().storeMe();
-				PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, fixture.goal()).status(), "Pending replay baseline failed.");
+				PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, captured, fixture.goal()).status(), "Pending replay baseline failed.");
 				publisher.committed(id, captured.position());
 				fixture.releaseRuntime();
 				final var planner = new PhantomHistoricalBackgroundPlanner(_production.knowledge(), _production.topology(), authority);
@@ -2042,6 +4383,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private void testVisibleNativeTravel(PhantomTestContext context) throws Exception
 	{
 		final var topology = _production.topology();
+		if (_mode == Mode.NATIVE_LIFECYCLE) { PhantomM1GeometryChecks.measure(context, topology); }
 		final var routeQuery = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
 		final var authority = new L2jPhantomBackgroundAuthority(_production::knowledge, _production::topology, _production::progression, _production::commerce, routeQuery);
 		final var edge = topology.snapshot().edges().stream().filter(value -> value.backgroundEligible() && (value.fromAnchorId() != null) && (value.toAnchorId() != null)).filter(value ->
@@ -2077,9 +4419,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			materializationRef.set(materialization);
 			final var captured = authority.capture(profile.profileId(), playerFixture.player(), goal, null);
 			playerFixture.player().storeMe();
-			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, goal).status(), "Visible travel baseline failed.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, captured, goal).status(), "Visible travel baseline failed.");
 			playerFixture.releaseRuntime();
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(profile.profileId()).status(), "Visible travel did not materialize.");
+			if (_mode == Mode.NATIVE_LIFECYCLE) { PhantomM1TravelChecks.run(context, profile.profileId(), _repository, materialization, background, routeQuery, goal, new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority), noSignals()); }
 			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
 			{
 				final Player phantom = action.player();
@@ -2127,7 +4470,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			if (!stuckFailure.get().routeFailure()) { closeoutDefects.add("STUCK route feedback excluded from existing TTL replanner"); }
 			stuckTravel.beforeMaterialize(profile.profileId(), objectId);
 			final var busyFailure = new AtomicReference<org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.Failure>();
-			final var busyTravel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, stuckNavigation, _ -> true, noSignals(), (_, failure) -> busyFailure.set(failure), stuckClock::get);
+			final var terminalHistory = new PhantomHistoricalBackgroundService(_repository, goals, new PhantomHistoricalBackgroundPlanner(_production.knowledge(), topology, authority), background, materialization);
+			final var busyTravel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(materialization, background, routeQuery, stuckNavigation, _ -> true, noSignals(), (candidate, failure) ->
+			{
+				busyFailure.set(failure);
+				org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(terminalHistory).accept(candidate, failure);
+			}, stuckClock::get);
 			try
 			{
 				try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow()) { action.player().setCastingNow(true); }
@@ -2136,6 +4484,17 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				busyTravel.arrive(profile.profileId(), goal);
 				PhantomAssertions.assertTrue(busyFailure.get() != null, "Native busy did not terminate at the bounded journey deadline.");
 				if (busyFailure.get().routeFailure()) { closeoutDefects.add("Native busy journey deadline falsely excludes healthy geometry"); }
+				if (_mode == Mode.NATIVE_LIFECYCLE)
+				{
+					if (terminalHistory.replanVisibleFarmIfOutgrown(profile.profileId(), goal, null)) { closeoutDefects.add("T01 shared production binding discarded journey_deadline resolution"); }
+					final long terminalSequence = busyTravel.lastFailure(profile.profileId()).sequence();
+					for (int retry = 0; retry < 4; retry++)
+					{
+						stuckClock.addAndGet(stuckNavigation.policy().maximumAttemptDurationNanos() + 1);
+						busyTravel.arrive(profile.profileId(), goal);
+					}
+					if (busyTravel.lastFailure(profile.profileId()).sequence() != terminalSequence) { closeoutDefects.add("T02/T03 same-revision terminal budget restarted with a fresh Journey"); }
+				}
 			}
 			finally { try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow()) { action.player().setCastingNow(false); } busyTravel.beforeMaterialize(profile.profileId(), objectId); }
 		}
@@ -2234,15 +4593,41 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				}
 				if (!moving) { Thread.sleep(10); }
 			}
+			final Player routePlayer;
+			final PlayerNativeWork.Owner routeOwner;
+			final org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Snapshot routePhase;
 			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
 			{
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.ai.Intention.MOVE_TO, action.player().getAI().getIntention(), "Visible travel did not enter native MOVE_TO: " + navigation.snapshot());
+				final var owner = action.player().getNativeWorkOwner();
+				PhantomAssertions.assertTrue(moving && owner != null && owner.isCurrent() && owner.player() == action.player(), "Route phase fixture lacks its actual moving native lifetime.");
+				final var phase = owner.evidence().snapshot();
+				context.record("T07.nativeRoutePhase", phase);
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Phase.ROUTE, phase.phase(), "Actual native MOVE_TO lacks bounded ROUTE evidence.");
+				PhantomAssertions.assertTrue(!phase.overflow() && phase.objectId() == objectId && phase.epoch() == owner.epoch() && phase.phaseSinceNanos() >= owner.epoch() && phase.phaseDeadlineNanos() > phase.sampleNanos(), "Route phase does not attest exact live Player/epoch and remaining bound.");
+				PhantomAssertions.assertEquals(defaults.maximumAttemptDurationNanos(), phase.phaseDeadlineNanos() - phase.phaseSinceNanos(), "Route phase changed original immutable attempt budget.");
+				routePlayer = action.player(); routeOwner = owner; routePhase = phase;
+			}
+			final boolean repeatedArrival = travel.arrive(profile.profileId(), goal);
+			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertTrue(action.player() == routePlayer && action.player().getNativeWorkOwner() == routeOwner && routeOwner.isCurrent() && routeOwner.epoch() == routePhase.epoch(), "Route repeat changed the exact native lifetime.");
+				final var repeated = routeOwner.evidence().snapshot();
+				if (repeatedArrival) { PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Phase.NONE, repeated.phase(), "Real arrival retained route phase."); }
+				else
+				{
+					PhantomAssertions.assertEquals(routePhase.phaseSinceNanos(), repeated.phaseSinceNanos(), "Retry renewed route episode start.");
+					PhantomAssertions.assertEquals(routePhase.phaseDeadlineNanos(), repeated.phaseDeadlineNanos(), "Retry renewed route deadline.");
+				}
 			}
 			permitted.set(false);
 			PhantomAssertions.assertFalse(travel.arrive(profile.profileId(), goal), "Lost ordinary ownership retained travel.");
 			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
 			{
 				PhantomAssertions.assertFalse(action.player().isMoving(), "Cancelled farm travel left native movement running.");
+				final var cancelledPhase = action.player().getNativeWorkOwner().evidence().snapshot();
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.Phase.NONE, cancelledPhase.phase(), "Cancelled route retained a bounded phase.");
+				PhantomAssertions.assertTrue(cancelledPhase.phaseSinceNanos() == 0 && cancelledPhase.phaseDeadlineNanos() == 0 && !cancelledPhase.overflow(), "Cancelled route phase did not clear exact episode.");
 			}
 			permitted.set(true);
 			try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow()) { action.player().setWalking(); }
@@ -2347,7 +4732,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
 				{
 					// Keep this absence check idle while advancing its clock, rather than racing native autobuffs.
-					org.l2jmobius.gameserver.taskmanagers.AutoUseTaskManager.getInstance().stopAutoUseTask(action.player());
+					action.player().getAutoUseSettings().getAutoBuffs().clear();
+					action.player().getAutoUseSettings().getAutoSkills().clear();
+					action.player().getAutoUseSettings().getAutoActions().clear();
+					action.player().getAutoUseSettings().getAutoSupplyItems().clear();
+					action.player().getAutoUseSettings().setAutoPotionItem(0);
 					action.player().abortCast();
 					final int exactNpc = PhantomBackgroundGoalSpec.parse(goal).npcId();
 					for (var npc : org.l2jmobius.gameserver.model.World.getInstance().getVisibleObjectsInRange(action.player(), org.l2jmobius.gameserver.model.actor.Npc.class, org.l2jmobius.gameserver.config.custom.AutoPlayConfig.AUTO_PLAY_LONG_RANGE))
@@ -2370,7 +4759,15 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 					PhantomAssertions.assertTrue(autoPlay.running(profile.profileId(), goal), "Native tick stopped the session before absence could be measured.");
 					PhantomAssertions.assertTrue(autoPlay.start(profile.profileId(), goal), "Repeated visible start lost native session.");
 					visibleClock.addAndGet(2_000_000_000L);
-					PhantomAssertions.assertTrue(autoPlay.noTargetExpired(profile.profileId(), goal), "Unavailable exact NPCs kept unexplained IDLE beyond 30 seconds.");
+					PhantomAssertions.assertFalse(autoPlay.noTargetExpired(profile.profileId(), goal), "First native absence recovery prematurely terminated at31s.");
+					try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow())
+					{
+						PhantomAssertions.assertEquals(org.l2jmobius.gameserver.ai.Intention.IDLE, action.player().getAI().getIntention(), "Missing-target31s recovery did not perform original native IDLE repair.");
+						context.record("T06.absence31.native", action.player().getNativeWorkOwner().evidence().snapshot());
+					}
+					visibleClock.addAndGet(60_000_000_000L);
+					PhantomAssertions.assertTrue(autoPlay.noTargetExpired(profile.profileId(), goal), "Unavailable exact NPCs kept unexplained IDLE beyond90s debt.");
+					try (var action = materialization.tryAcquireAction(profile.profileId()).orElseThrow()) { context.record("T06.absence91.native", action.player().getNativeWorkOwner().evidence().snapshot()); }
 				}
 				finally
 				{
@@ -2497,7 +4894,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final PhantomBackgroundState seededPrevious = firstCapture.after(firstCapture.progress(), firstCapture.vitals(), firstCapture.position(), firstCapture.inventory(), firstCapture.autoGetSkills(), new Clock(context.seed(), 0, 0), firstCapture.receipt());
 			final PhantomBackgroundState seededCapture = _production.authority().capture(profile.profileId(), playerFixture.player(), goal, seededPrevious);
 			playerFixture.player().storeMe();
-			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(seededCapture, goal).status(), "Seeded production position baseline capture failed.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, seededCapture, goal).status(), "Seeded production position baseline capture failed.");
 			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(profile.profileId(), objectId).status(), "Seeded production position baseline did not enter MATERIALIZED.");
 			background.beforeStore(profile.profileId(), playerFixture.player());
 			playerFixture.player().storeMe();
@@ -2652,7 +5049,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final PhantomBackgroundState seededPrevious = firstCapture.after(firstCapture.progress(), firstCapture.vitals(), firstCapture.position(), firstCapture.inventory(), firstCapture.autoGetSkills(), new Clock(context.seed(), 0, 0), firstCapture.receipt());
 			final PhantomBackgroundState seededCapture = malformedAuthority.capture(profile.profileId(), playerFixture.player(), goal, seededPrevious);
 			playerFixture.player().storeMe();
-			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(seededCapture, goal).status(), "Malformed-arrival baseline capture failed.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, seededCapture, goal).status(), "Malformed-arrival baseline capture failed.");
 			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(profile.profileId(), objectId).status(), "Malformed-arrival baseline did not enter MATERIALIZED.");
 			background.beforeStore(profile.profileId(), playerFixture.player());
 			playerFixture.player().storeMe();
@@ -2911,7 +5308,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final long residualEncounterMillis = largestSuccessfulResidual(zeroResidual, zeroResidualInput);
 			final PhantomBackgroundState seededPrevious = initialCapture.after(initialCapture.progress(), initialCapture.vitals(), initialCapture.position(), initialCapture.inventory(), initialCapture.autoGetSkills(), new Clock(context.seed(), 0, residualEncounterMillis), initialCapture.receipt());
 			final PhantomBackgroundState seededCapture = _production.authority().capture(profile.profileId(), playerFixture.player(), goal, seededPrevious);
-			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(seededCapture, goal).status(), "Seeded real production baseline capture failed.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, seededCapture, goal).status(), "Seeded real production baseline capture failed.");
 			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.markMaterialized(profile.profileId(), objectId).status(), "Seeded real production baseline did not enter MATERIALIZED.");
 			background.beforeStore(profile.profileId(), playerFixture.player());
 			playerFixture.player().storeMe();
@@ -3648,7 +6045,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		{
 			final PhantomGoal actualGoal = baseline.goal();
 			final PhantomGoal staleGoal = new PhantomGoal(actualGoal.goalId(), actualGoal.goalType(), actualGoal.status(), actualGoal.subject(), actualGoal.target(), actualGoal.requiredAmount(), actualGoal.currentAmount(), actualGoal.acquisitionMethod(), actualGoal.validSources(), actualGoal.selectedAnchor(), actualGoal.purposeKey(), actualGoal.priority(), actualGoal.riskBudget(), actualGoal.expenseBudget(), actualGoal.deadlineEpochMillis(), actualGoal.constraints(), actualGoal.reasonKey(), actualGoal.revision() + 1);
-			final Result staleCapture = baseline.transaction().captureBaseline(baseline.ready().withState(State.MATERIALIZED), staleGoal);
+			final Result staleCapture = captureTestBaseline(baseline.transaction(), baseline.ready().withState(State.MATERIALIZED), staleGoal);
 			PhantomAssertions.assertEquals(Status.GOAL_STALE, staleCapture.status(), "Baseline capture did not lock and reject a stale persisted goal.");
 			PhantomAssertions.assertEquals(baseline.ready(), baseline.transaction().load(baseline.profileId()).state(), "Stale baseline capture changed durable state.");
 			for (FaultPoint point : List.of(FaultPoint.BEFORE_CAPTURE_COMMIT, FaultPoint.BEFORE_MATERIALIZED_COMMIT))
@@ -3660,7 +6057,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 						throw new InjectedFailure();
 					}
 				});
-				final Result failed = point == FaultPoint.BEFORE_CAPTURE_COMMIT ? faulting.captureBaseline(baseline.ready().withState(State.MATERIALIZED), baseline.goal()) : faulting.markMaterialized(baseline.profileId(), baseline.characterObjectId());
+				final Result failed = point == FaultPoint.BEFORE_CAPTURE_COMMIT ? captureTestBaseline(faulting, baseline.ready().withState(State.MATERIALIZED), baseline.goal()) : faulting.markMaterialized(baseline.profileId(), baseline.characterObjectId());
 				PhantomAssertions.assertTrue(!failed.successful(), "Transition fault unexpectedly committed: " + point);
 				PhantomAssertions.assertEquals(baseline.ready(), baseline.transaction().load(baseline.profileId()).state(), "Transition fault changed durable state: " + point);
 			}
@@ -4025,7 +6422,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 			final PhantomBackgroundState captured = _production.authority().capture(profileId, playerFixture.player(), goal, null);
 			playerFixture.player().storeMe();
-			PhantomAssertions.assertEquals(Status.SUCCESS, transaction.captureBaseline(captured, goal).status(), "Production recovery baseline capture failed.");
+			PhantomAssertions.assertEquals(Status.SUCCESS, captureTestBaseline(transaction, captured, goal).status(), "Production recovery baseline capture failed.");
 			playerFixture.releaseRuntime();
 			final PhantomBackgroundState ready = transaction.load(profileId).state();
 			final Vitals deadVitals = new Vitals(0, ready.vitals().maximumHp(), ready.vitals().currentMp(), ready.vitals().maximumMp(), 0, ready.vitals().maximumCp());
@@ -4303,16 +6700,23 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), transaction, _ -> {}); var neighbor = createFixture(_environment.observer().objectId(), runtime.transaction()))
 		{
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Abort fixture did not establish a baseline.");
+			final Player player;
+			final PlayerNativeWork.Owner nativeOwner;
+			final long epoch;
 			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
 			{
-				action.player().storeMe(); runtime.transaction().markMaterialized(runtime.profileId(), runtime.characterObjectId());
-				pendingFault.set(true);
-				PhantomAssertions.assertFalse(runtime.background().captureVisibleArrival(runtime.profileId(), action.player(), runtime.goal(), ANCHOR_ID), "Injected live PREPARE unexpectedly completed.");
-				PhantomAssertions.assertTrue(action.player().hasPendingOwnedStore(), "Local pending actor lost its fence.");
-				PhantomAssertions.assertEquals(OperationStatus.SUCCESS, runtime.background().farm(neighbor.profileId(), neighbor.goal(), 1, 1, PhantomActivityState.BACKGROUND, 1).status(), "Local pending stopped healthy neighbor.");
-				pendingFault.set(false);
-				PhantomAssertions.assertEquals(PhantomBackgroundService.VisibleStoreStatus.SUCCESS, runtime.background().resumeVisibleOwnedStore(runtime.profileId(), action.player(), runtime.goal()).status(), "Local pending did not resolve through its attached owner.");
+				player = action.player(); nativeOwner = player.getNativeWorkOwner();
+				epoch = runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos();
 			}
+			PhantomAssertions.assertTrue(nativeOwner != null && nativeOwner.player() == player && nativeOwner.isCurrent() && nativeOwner.epoch() == epoch && PlayerNativeWork.current(nativeOwner) == null, "Local pending STORE did not retain exact lifetime outside ActionLease.");
+			player.storeMe(); runtime.transaction().markMaterialized(runtime.profileId(), runtime.characterObjectId());
+			pendingFault.set(true);
+			PhantomAssertions.assertFalse(runtime.background().captureVisibleArrival(runtime.profileId(), player, runtime.goal(), ANCHOR_ID), "Injected live PREPARE unexpectedly completed.");
+			PhantomAssertions.assertTrue(player.hasPendingOwnedStore(), "Local pending actor lost its fence.");
+			PhantomAssertions.assertEquals(OperationStatus.SUCCESS, runtime.background().farm(neighbor.profileId(), neighbor.goal(), 1, 1, PhantomActivityState.BACKGROUND, 1).status(), "Local pending stopped healthy neighbor.");
+			pendingFault.set(false);
+			PhantomAssertions.assertTrue(player.getNativeWorkOwner() == nativeOwner && nativeOwner.isCurrent() && nativeOwner.epoch() == runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos() && PlayerNativeWork.current(nativeOwner) == null, "Local pending resume changed native Player owner/epoch or retained ActionLease.");
+			PhantomAssertions.assertEquals(PhantomBackgroundService.VisibleStoreStatus.SUCCESS, runtime.background().resumeVisibleOwnedStore(runtime.profileId(), player, runtime.goal()).status(), "Local pending did not resolve through its attached owner.");
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().dematerialize(runtime.profileId()).status(), "Abort fixture did not release Player.");
 			runtime.background().beforeMaterialize(runtime.profileId(), runtime.characterObjectId());
 			runtime.transaction().markMaterialized(runtime.profileId(), runtime.characterObjectId());
@@ -4384,11 +6788,16 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		{
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Lock fixture did not materialize.");
 			final Player player;
-			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); player.getStatus().stopHpMpRegeneration(); player.storeMe(); }
+			final PlayerNativeWork.Owner nativeOwner;
+			final long epoch;
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); player.getStatus().stopHpMpRegeneration(); nativeOwner = player.getNativeWorkOwner(); epoch = runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos(); }
+			PhantomAssertions.assertTrue(nativeOwner != null && nativeOwner.player() == player && nativeOwner.isCurrent() && nativeOwner.epoch() == epoch && PlayerNativeWork.current(nativeOwner) == null, "Lock fixture STORE did not retain exact lifetime outside ActionLease.");
+			player.storeMe();
+			PhantomAssertions.assertTrue(player.getNativeWorkOwner() == nativeOwner && nativeOwner.isCurrent() && nativeOwner.epoch() == runtime.materialization().find(runtime.profileId()).orElseThrow().materializedAtNanos(), "Lock fixture STORE changed native Player owner/epoch.");
 			final var loaded = runtime.transaction().load(runtime.profileId());
-			final Method refresh = PhantomBackgroundService.class.getDeclaredMethod("refreshNativeVitals", long.class, Player.class, Result.class); refresh.setAccessible(true);
+			final Method refresh = PhantomBackgroundService.class.getDeclaredMethod("refreshNativeVitals", long.class, Player.class, Result.class, StringBuilder.class); refresh.setAccessible(true);
 			final var started = new CountDownLatch(1); final var failure = new AtomicReference<Throwable>();
-			final Thread worker = Thread.ofPlatform().daemon().unstarted(() -> { started.countDown(); try { refresh.invoke(runtime.background(), runtime.profileId(), player, loaded); } catch (Throwable exception) { failure.set(exception); } });
+			final Thread worker = Thread.ofPlatform().daemon().unstarted(() -> { started.countDown(); try { refresh.invoke(runtime.background(), runtime.profileId(), player, loaded, new StringBuilder()); } catch (Throwable exception) { failure.set(exception); } });
 			boolean statusHeld = false;
 			boolean blocked = false;
 			synchronized (player)
@@ -4536,9 +6945,14 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private ProductionPlayerFixture openProductionPlayerFixture(PhantomTopologyAnchor initialAnchor, int level, PlayerClass basicAttackClass, ProductionFarmSelection farm) throws Exception
 	{
+		return openProductionPlayerFixture(initialAnchor, level, basicAttackClass, farm, _environment.primary().objectId());
+	}
+
+	private ProductionPlayerFixture openProductionPlayerFixture(PhantomTopologyAnchor initialAnchor, int level, PlayerClass basicAttackClass, ProductionFarmSelection farm, int objectId) throws Exception
+	{
 		final CapabilitySelection selection = basicAttackClass == null ? productionCapability(level) : null;
 		final PlayerClass fixtureClass = selection == null ? basicAttackClass : selection.playerClass();
-		final int objectId = _environment.primary().objectId();
+		PhantomAssertions.assertTrue(objectId == _environment.primary().objectId() || objectId == _environment.observer().objectId(), "Only the existing two owned TEST fixtures may be configured.");
 		final Canonical original = canonical(objectId);
 		final int originalBaseClass = (int) scalarLong("SELECT base_class FROM characters WHERE charId = ?", objectId);
 		final Position canonicalInitial = canonicalAnchorPosition(initialAnchor, 0);
@@ -5208,7 +7622,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final Hashes hashes = _production.authority().hashes();
 			final PhantomBackgroundTransaction transaction = new PhantomBackgroundTransaction();
 			final PhantomBackgroundState materialized = new PhantomBackgroundState(State.MATERIALIZED, identity, new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), new Vitals(canonical.currentHp(), canonical.maximumHp(), canonical.currentMp(), canonical.maximumMp(), canonical.currentCp(), canonical.maximumCp()), new Position(0, canonical.x(), canonical.y(), canonical.z(), canonical.heading(), _production.topology().snapshot().anchors().getFirst().id()), combat(ModelKind.MELEE, 1, 1, 100), Loadout.none(), new InventoryFacts(List.of(57, ingredientItemId, recipe.productItemId()).stream().distinct().sorted().toList(), List.of(), "", 0, 1_000_000, 0, 100), skills, new Clock(ACQUISITION_SEED, 0, 0), Receipt.empty(), hashes);
-			final Result captured = transaction.captureBaseline(materialized, goal);
+			final Result captured = captureTestBaseline(transaction, materialized, goal);
 			PhantomAssertions.assertEquals(Status.SUCCESS, captured.status(), "Background recipe service fixture capture failed.");
 			final PhantomBackgroundState backgroundBefore = captured.state();
 			final PhantomBackgroundService background = new PhantomBackgroundService(_repository, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, _production.authority(), new PhantomBackgroundCompetitionRegistry(), noSignals(), () -> null);
@@ -5346,12 +7760,12 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final List<AutoGetSkill> skills = exactAutoGetSkills(identity, canonical.level());
 			ensureAutoGetSkills(identity, skills);
 			final PhantomBackgroundState materialized = new PhantomBackgroundState(State.MATERIALIZED, identity, new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), new Vitals(canonical.currentHp(), canonical.maximumHp(), canonical.currentMp(), canonical.maximumMp(), canonical.currentCp(), canonical.maximumCp()), new Position(0, canonical.x(), canonical.y(), canonical.z(), canonical.heading(), ANCHOR_ID), combat(ModelKind.MELEE, 1, 1, 100), Loadout.none(), new InventoryFacts(List.of(rule.questItemId()), List.of(), "", 0, 1_000_000, 0, 100), skills, new Clock(QUEST_CAP_SEED, 0, 0), Receipt.empty(), HASHES);
-			Result captured = transaction.captureBaseline(materialized, goal);
+			Result captured = captureTestBaseline(transaction, materialized, goal);
 			PhantomAssertions.assertEquals(Status.SUCCESS, captured.status(), "Quest cap fixture background capture failed.");
 			final long grantRng = questGrantRng(captured.state(), rule);
 			if (grantRng != captured.state().clock().rngState())
 			{
-				captured = transaction.captureBaseline(withQuestClock(captured.state(), State.MATERIALIZED, grantRng), goal);
+				captured = captureTestBaseline(transaction, withQuestClock(captured.state(), State.MATERIALIZED, grantRng), goal);
 				PhantomAssertions.assertEquals(Status.SUCCESS, captured.status(), "Quest cap fixture deterministic RNG recapture failed.");
 			}
 			final int targetNpcId = rule.targetNpcIds().getFirst();
@@ -5506,7 +7920,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			final List<AutoGetSkill> skills = exactAutoGetSkills(identity, canonical.level());
 			ensureAutoGetSkills(identity, skills);
 			final PhantomBackgroundState materialized = new PhantomBackgroundState(State.MATERIALIZED, identity, new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), new Vitals(canonical.currentHp(), canonical.maximumHp(), canonical.currentMp(), canonical.maximumMp(), canonical.currentCp(), canonical.maximumCp()), new Position(0, canonical.x(), canonical.y(), canonical.z(), canonical.heading(), ANCHOR_ID), combat(ModelKind.MELEE, 1, 1, 100), Loadout.none(), new InventoryFacts(List.of(57), List.of(), "", 0, 1_000_000, 0, 100), skills, new Clock(ACQUISITION_SEED, 0, 0), Receipt.empty(), HASHES);
-			final Result captured = transaction.captureBaseline(materialized, goal);
+			final Result captured = captureTestBaseline(transaction, materialized, goal);
 			PhantomAssertions.assertEquals(Status.SUCCESS, captured.status(), "Acquisition atomic fixture background capture failed.");
 			final Source source = method == PhantomAcquisitionCatalog.Method.SPOIL_SWEEP ? new Source("2".repeat(64), method, TARGET_NPC_ID, 57, "test:spoil:57", "test.node", ANCHOR_ID, 0, 254, 11, 42, 1) : new Source("1".repeat(64), method, TARGET_NPC_ID, 57, "test:death-drop:57", "test.node", ANCHOR_ID, 0, 0, 0, 0, 0);
 			final Candidate candidate = new Candidate(source.sourceId(), source.method(), 100, 0, 0, "");
@@ -5546,6 +7960,14 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		return new AcquisitionAtomicSnapshot(fixture.transaction().load(fixture.profileId()).state(), fixture.goals().load(fixture.profileId()).orElseThrow(), fixture.acquisition().load(fixture.profileId()).orElseThrow(), scalarLong("SELECT COALESCE(SUM(count),0) FROM items WHERE owner_id=? AND item_id=57 AND loc='INVENTORY'", fixture.characterObjectId()));
 	}
 
+	/** Explicit controlled TEST policy; it cannot invent support for a legacy zero/boosted native row. */
+	private static Result captureTestBaseline(PhantomBackgroundTransaction transaction, PhantomBackgroundState state, PhantomGoal goal) throws Exception
+	{
+		final long points = scalarLong("SELECT vitality_points FROM characters WHERE charId=?", state.identity().characterObjectId());
+		PhantomAssertions.assertEquals(1L, points, "Controlled B4 baseline requires the actual ordinary native minimum; no vitality normalization is allowed here.");
+		return transaction.captureBaseline(state, goal, new PhantomNativeContext.Capture(1, PhantomNativeContext.Eligibility.SUPPORTED));
+	}
+
 	private Fixture createFixture(int characterObjectId, PhantomBackgroundTransaction transaction) throws Exception
 	{
 		final Canonical canonical = canonical(characterObjectId);
@@ -5575,7 +7997,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			new Clock(SEED, 0, 0),
 			Receipt.empty(),
 			HASHES);
-		final Result captured = transaction.captureBaseline(materialized, goal);
+		final Result captured = captureTestBaseline(transaction, materialized, goal);
 		PhantomAssertions.assertEquals(Status.SUCCESS, captured.status(), "Fixture baseline capture failed.");
 		return new Fixture(profile.profileId(), characterObjectId, goal, transaction, captured.state(), canonical);
 	}
@@ -5815,6 +8237,21 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		};
 	}
 
+	private static String canonicalInventoryHash(int objectId) throws Exception
+	{
+		final var items = new ArrayList<org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundInventoryHash.CanonicalItem>();
+		try (Connection connection = DatabaseFactory.getConnection();
+			PreparedStatement statement = connection.prepareStatement("SELECT object_id,item_id,count,loc FROM items WHERE owner_id=? AND loc IN ('INVENTORY','PAPERDOLL') AND count>0"))
+		{
+			statement.setInt(1, objectId);
+			try (ResultSet rows = statement.executeQuery())
+			{
+				while (rows.next()) { items.add(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundInventoryHash.CanonicalItem(rows.getInt("object_id"), rows.getInt("item_id"), rows.getLong("count"), ItemLocation.valueOf(rows.getString("loc")))); }
+			}
+		}
+		return org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundInventoryHash.compute(items);
+	}
+
 	private Canonical canonical(int objectId) throws Exception
 	{
 		try (Connection connection = DatabaseFactory.getConnection();
@@ -5905,6 +8342,8 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private void restorePrimaryInventoryAndSkills(int objectId) throws Exception
 	{
+		final var ownedFixture = objectId == _environment.primary().objectId() ? _environment.primary() : _environment.observer();
+		PhantomAssertions.assertEquals(ownedFixture.objectId(), objectId, "Only an exact owned TEST fixture may be restored.");
 		final List<Integer> removedObjectIds = new ArrayList<>();
 		try (Connection connection = DatabaseFactory.getConnection();
 			PreparedStatement select = connection.prepareStatement("SELECT object_id FROM items WHERE owner_id=? AND item_id<>? ORDER BY object_id");
@@ -5929,15 +8368,15 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PreparedStatement skills = connection.prepareStatement("DELETE FROM character_skills WHERE charId=? AND NOT (class_index=0 AND skill_id=?)");
 			PreparedStatement restoreSkill = connection.prepareStatement("INSERT INTO character_skills (charId,skill_id,skill_level,class_index) VALUES (?,?,1,0) ON DUPLICATE KEY UPDATE skill_level=1"))
 		{
-			item.setLong(1, _environment.primary().fixtureItemBaseline());
+			item.setLong(1, ownedFixture.fixtureItemBaseline());
 			item.setInt(2, objectId);
 			item.setInt(3, PhantomActionFacade.FIXTURE_ITEM_ID);
 			PhantomAssertions.assertEquals(1, item.executeUpdate(), "Primary fixture item restore failed.");
 			skills.setInt(1, objectId);
-			skills.setInt(2, _environment.primary().skillId());
+			skills.setInt(2, ownedFixture.skillId());
 			skills.executeUpdate();
 			restoreSkill.setInt(1, objectId);
-			restoreSkill.setInt(2, _environment.primary().skillId());
+			restoreSkill.setInt(2, ownedFixture.skillId());
 			restoreSkill.executeUpdate();
 		}
 	}
@@ -6078,18 +8517,31 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private final class ProductionPlayerFixture implements AutoCloseable
 	{
 		private Player _player;
+		private final int _objectId;
 		private final ProductionFarmSelection _farm;
 		private final PhantomGoal _goal;
 		private final Canonical _original;
 		private final int _originalBaseClass;
+		private final boolean _createdTestIdentity;
+		private final String _createdTestName, _createdTestAccount;
+		private boolean _createdTestDeleted;
 
 		private ProductionPlayerFixture(Player player, ProductionFarmSelection farm, PhantomGoal goal, Canonical original, int originalBaseClass)
 		{
+			this(player, farm, goal, original, originalBaseClass, false);
+		}
+
+		private ProductionPlayerFixture(Player player, ProductionFarmSelection farm, PhantomGoal goal, Canonical original, int originalBaseClass, boolean createdTestIdentity)
+		{
 			_player = player;
+			_objectId = player.getObjectId();
 			_farm = farm;
 			_goal = goal;
 			_original = original;
 			_originalBaseClass = originalBaseClass;
+			_createdTestIdentity = createdTestIdentity;
+			_createdTestName = createdTestIdentity ? player.getName() : null;
+			_createdTestAccount = createdTestIdentity ? player.getAccountName() : null;
 		}
 
 		private Player player()
@@ -6123,8 +8575,31 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		@Override
 		public void close() throws Exception
 		{
-			final int objectId = _player == null ? _environment.primary().objectId() : _player.getObjectId();
+			if (_createdTestDeleted) { return; }
+			final int objectId = _objectId;
 			releaseRuntime();
+			if (_createdTestIdentity)
+			{
+				PhantomAssertions.assertTrue(World.getInstance().getPlayer(objectId) == null && PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) == null,
+					"Native third exact TEST identity still has a World Player or lease before deletion.");
+				try (Connection connection = DatabaseFactory.getConnection();
+					PreparedStatement statement = connection.prepareStatement("SELECT account_name,char_name FROM characters WHERE charId=?"))
+				{
+					statement.setInt(1, objectId);
+					try (ResultSet rows = statement.executeQuery())
+					{
+						PhantomAssertions.assertTrue(rows.next() && _createdTestName.equals(rows.getString("char_name")) && _createdTestAccount.equals(rows.getString("account_name")),
+							"Native third TEST deletion refused changed exact character identity.");
+					}
+				}
+				_repository.findByCharacterObjectId(objectId).ifPresent(PhantomBackgroundSuite.this::deleteProfile);
+				org.l2jmobius.gameserver.network.GameClient.deleteCharByObjId(objectId);
+				PhantomAssertions.assertTrue(scalarLong("SELECT COUNT(*) FROM characters WHERE charId=?", objectId) == 0
+					&& scalarLong("SELECT COUNT(*) FROM items WHERE owner_id=?", objectId) == 0 && _repository.findByCharacterObjectId(objectId).isEmpty(),
+					"Native third exact TEST character/items/profile deletion did not complete.");
+				_createdTestDeleted = true;
+				return;
+			}
 			restoreCharacter(objectId, _original, _originalBaseClass);
 			restorePrimaryInventoryAndSkills(objectId);
 		}
@@ -6168,6 +8643,19 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private static final class FakeAuthority implements PhantomBackgroundAuthority
 	{
+		@Override
+		public PhantomNativeContext.Capture captureNativeContext(Player player)
+		{
+			PhantomAssertions.assertEquals(1, player.getVitalityPoints(), "Controlled FakeAuthority requires actual ordinary native minimum points.");
+			return new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.SUPPORTED);
+		}
+
+		@Override
+		public NativeCapture captureOwnedNative(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous)
+		{
+			return new NativeCapture(capture(profileId, player, goal, previous), captureNativeContext(player));
+		}
+
 		@Override
 		public Hashes hashes()
 		{

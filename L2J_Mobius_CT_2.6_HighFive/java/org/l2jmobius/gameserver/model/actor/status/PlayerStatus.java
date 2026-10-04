@@ -20,6 +20,9 @@
  */
 package org.l2jmobius.gameserver.model.actor.status;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.l2jmobius.commons.util.Rnd;
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.config.PlayerConfig;
@@ -29,6 +32,7 @@ import org.l2jmobius.gameserver.data.xml.NpcNameLocalisationData;
 import org.l2jmobius.gameserver.managers.DuelManager;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.enums.player.PrivateStoreType;
 import org.l2jmobius.gameserver.model.actor.holders.player.Duel;
@@ -54,7 +58,7 @@ public class PlayerStatus extends PlayableStatus
 	@Override
 	public void reduceCp(int value)
 	{
-		setCurrentCp(_currentCp > value ? _currentCp - value : 0);
+		PlayerNativeWork.run(getActiveChar(), List.of(), "player-reduce-cp", () -> setCurrentCp(_currentCp > value ? _currentCp - value : 0));
 	}
 	
 	@Override
@@ -70,6 +74,13 @@ public class PlayerStatus extends PlayableStatus
 	}
 	
 	public void reduceHp(double value, Creature attacker, boolean awake, boolean isDOT, boolean isHPConsumption, boolean ignoreCP)
+	{
+		final Player receiver = getActiveChar();
+		final Player caster = receiver.getTransferingDamageTo();
+		PlayerNativeWork.run(receiver, Arrays.asList(receiver.getSummon(), caster), "player-damage", () -> reduceHpNative(value, attacker, awake, isDOT, isHPConsumption, ignoreCP, caster));
+	}
+
+	private void reduceHpNative(double value, Creature attacker, boolean awake, boolean isDOT, boolean isHPConsumption, boolean ignoreCP, Player caster)
 	{
 		final Player player = getActiveChar();
 		if (player.isDead())
@@ -181,7 +192,6 @@ public class PlayerStatus extends PlayableStatus
 				}
 			}
 			
-			final Player caster = player.getTransferingDamageTo();
 			if ((caster != null) && (player.getParty() != null) && LocationUtil.checkIfInRange(1000, player, caster, true) && !caster.isDead() && (player != caster) && player.getParty().getMembers().contains(caster))
 			{
 				int transferDmg = Math.min((int) caster.getCurrentHp() - 1, ((int) amount * (int) stat.calcStat(Stat.TRANSFER_DAMAGE_TO_PLAYER, 0, null, null)) / 100);
@@ -325,7 +335,12 @@ public class PlayerStatus extends PlayableStatus
 	@Override
 	public boolean setCurrentHp(double newHp, boolean broadcastPacket)
 	{
-		final boolean result = super.setCurrentHp(newHp, broadcastPacket);
+		return setCurrentHp(newHp, broadcastPacket, false);
+	}
+	@Override
+	protected boolean setCurrentHp(double newHp, boolean broadcastPacket, boolean nativeRegeneration)
+	{
+		final boolean result = super.setCurrentHp(newHp, broadcastPacket, nativeRegeneration);
 		final Player player = getActiveChar();
 		if (!PlayerConfig.DISABLE_TUTORIAL && (getCurrentHp() <= (player.getStat().getMaxHp() * .3)))
 		{
@@ -411,13 +426,13 @@ public class PlayerStatus extends PlayableStatus
 		// Modify the current HP of the Creature and broadcast Server->Client packet StatusUpdate
 		if (getCurrentHp() < stat.getMaxRecoverableHp())
 		{
-			setCurrentHp(getCurrentHp() + Formulas.calcHpRegen(player), false);
+			setCurrentHp(getCurrentHp() + Formulas.calcHpRegen(player), false, true);
 		}
 		
 		// Modify the current MP of the Creature and broadcast Server->Client packet StatusUpdate
 		if (getCurrentMp() < stat.getMaxRecoverableMp())
 		{
-			setCurrentMp(getCurrentMp() + Formulas.calcMpRegen(player), false);
+			setCurrentMp(getCurrentMp() + Formulas.calcMpRegen(player), false, true);
 		}
 		
 		player.broadcastStatusUpdate(); // send the StatusUpdate packet

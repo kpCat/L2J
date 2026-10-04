@@ -18,6 +18,136 @@ function Assert-Throws([scriptblock] $body, [string] $fragment)
 	if (($null -eq $failure) -or ($failure -notlike "*$fragment*")) { throw "EXPECTED_FAILURE:$fragment;actual=$failure" }
 }
 
+$nativeFalsePasses = [Collections.Generic.List[string]]::new()
+$script:censusComplete = $true; $script:nativeDisplacement = $true; $script:selectedNativeFarm = $false
+$script:rows = [Collections.Generic.List[object]]::new()
+$script:census = [Collections.Generic.List[object]]::new()
+foreach ($id in 1..4)
+{
+	$script:census.Add([pscustomobject]@{ profileId = [string]$id; eligible = 'true'; targetMonsterAlive = 'true'; attacking = 'false'; casting = 'true'; idleReason = 'NATIVE_ACTION'; travelFailureReason = ''; materializationState = 'FAILED'; actionAdmissionOpen = 'false' })
+}
+if ((Get-NativeM1Grades).NATIVE_LIFE -ceq 'PASS') { $nativeFalsePasses.Add('A03 another actor cast supplies selected proof') }
+if ((Get-NativeM1Grades).COHORT -ceq 'PASS') { $nativeFalsePasses.Add('A01 FAILED/admissionclosed cohort passes') }
+$script:selectedNativeFarm = $true
+if ((Get-NativeM1Grades).NATIVE_LIFE -ceq 'PASS') { $nativeFalsePasses.Add('A02 selfheal/target flags without attributed progress pass') }
+if ((Get-NativeM1Grades).NATIVE_LIFE -ceq 'PASS') { $nativeFalsePasses.Add('A04 missing fresh interval baseline passes') }
+Assert-True ($nativeFalsePasses.Count -eq 0) ('NATIVE_GRADING_FALSE_PASS:' + ($nativeFalsePasses -join ';'))
+
+function New-NativeFixture([long] $profile, [long] $sampleNanos, [long] $cycles, [string] $phase = 'NONE')
+{
+	return [pscustomobject]@{
+		profileId = [string]$profile; objectId = [string](1000 + $profile); materializedAtNanos = '900'
+		materializationState = 'ACTIVE'; actionAdmissionOpen = 'true'; pendingOwnedStore = 'false'; worldPresent = 'true'
+		eligible = 'true'; dead = 'false'; hp = '100'; maxHp = '100'; nativeAttackBy = ''
+		nativeEvidenceVersion = '1'; nativeEvidenceOwner = 'PHANTOM'; nativeEvidenceObjectId = [string](1000 + $profile); nativeEvidenceEpoch = '900'
+		nativeEvidenceSampleNanos = [string]$sampleNanos; nativeEvidenceOverflow = 'false'; nativeEvidenceSequence = [string]($cycles * 5)
+		nativeDamageSequence = [string]($cycles * 2); nativeKillSequence = [string]$cycles; nativeRewardSequence = [string]$cycles
+		nativeTargetSequence = [string]$cycles; nativeFarmCycleSequence = [string]$cycles; nativeExpGained = [string]($cycles * 70); nativeSpGained = [string]($cycles * 2)
+		nativeLootSequence = '0'; nativeLastProgressNanos = $(if ($cycles -gt 0) { [string]$sampleNanos } else { '0' })
+		nativePhase = $phase; nativePhaseSinceNanos = $(if ($phase -ceq 'NONE') { '0' } else { '900' }); nativePhaseDeadlineNanos = $(if ($phase -ceq 'NONE') { '0' } else { '90000000900' })
+	}
+}
+
+function New-CensusFixture([object[]] $members, [long] $next = 0)
+{
+	$data = @{ censusCount = [string]$members.Count; censusEligible = [string]@($members | Where-Object { $_.eligible -ceq 'true' }).Count; censusNextProfileId = [string]$next }
+	for ($index = 0; $index -lt $members.Count; $index++)
+	{
+		foreach ($property in $members[$index].PSObject.Properties) { $data["census$($index + 1).$($property.Name)"] = [string]$property.Value }
+	}
+	return [pscustomobject]$data
+}
+
+# A04 cumulative values at the first sample are a baseline, including already completed cycles.
+$script:profileId = 545L
+Initialize-NativeM1Evidence ([pscustomobject]@{ naturalCohortProfileIds = '545,546,547,548' })
+$baseline = New-NativeFixture 545 10000000900 50
+$script:selectedEvidence = Add-NativeEvidence $null $baseline
+Assert-True ((Get-NativeM1Grades).NATIVE_LIFE -cne 'PASS') 'A04_CUMULATIVE_BASELINE_NOT_NEW'
+$still = New-NativeFixture 545 12000000900 50
+$still.nativeLastProgressNanos = $baseline.nativeLastProgressNanos
+$script:selectedEvidence = Add-NativeEvidence $script:selectedEvidence $still
+Assert-True ((Get-NativeM1Grades).NATIVE_LIFE -cne 'PASS') 'A02_SELF_HEAL_OR_FLAGS_NOT_EFFECT'
+
+# A03/A05/A10 exact scalar owner/epoch/time and numeric contracts fail closed.
+$wrong = New-NativeFixture 545 14000000900 51; $wrong.nativeEvidenceObjectId = '1546'
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'ACTOR_OR_EPOCH_MISMATCH'
+$wrong = New-NativeFixture 545 14000000900 51; $wrong.nativeEvidenceOwner = 'LOCALPLAY_TEST_HUMAN'
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'UNPROVEN_OR_OVERFLOW'
+$wrong = New-NativeFixture 545 14000000900 51; $wrong.nativeEvidenceOverflow = 'true'
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'UNPROVEN_OR_OVERFLOW'
+$wrong = New-NativeFixture 545 14000000900 51; $wrong.PSObject.Properties.Remove('nativeDamageSequence')
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'INVALID_REQUIRED_LONG:nativeDamageSequence'
+foreach ($invalid in @('NaN', 'Infinity', '-1', '9223372036854775808', '1.5'))
+{
+	$wrong = New-NativeFixture 545 14000000900 51; $wrong.nativeDamageSequence = $invalid
+	Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'INVALID_REQUIRED_LONG:nativeDamageSequence'
+}
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $still } 'STALE_SAMPLE'
+$wrong = New-NativeFixture 545 14000000900 51; $wrong.nativeLastProgressNanos = '11000000900'
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'STALE_EVENT'
+$wrong = New-NativeFixture 545 14000000900 51; $wrong.nativeLastProgressNanos = '899'
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'INVALID_TIME'
+$wrong = New-NativeFixture 545 14000000900 51; $wrong.nativePhaseSinceNanos = '900'
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'INVALID_PHASE_TIME'
+$wrong = New-NativeFixture 545 14000000900 49
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'SEQUENCE_REGRESSED'
+$wrong = New-NativeFixture 545 14000000900 51; $wrong.materializedAtNanos = '901'; $wrong.nativeEvidenceEpoch = '901'
+Assert-Throws { Add-NativeEvidence $script:selectedEvidence $wrong } 'EPOCH_CHANGED'
+
+# A06/A08 two fresh selected cycles survive aggro clearing; two distinct other actors progress.
+Initialize-NativeM1Evidence ([pscustomobject]@{ naturalCohortProfileIds = '545,546,547,548' })
+$script:selectedEvidence = Add-NativeEvidence $null (New-NativeFixture 545 10000000900 0)
+$script:selectedEvidence = Add-NativeEvidence $script:selectedEvidence (New-NativeFixture 545 20000000900 2)
+$before = @(545..548 | ForEach-Object { New-NativeFixture $_ 10000000900 0 'REGEN' })
+$after = @(545..548 | ForEach-Object { New-NativeFixture $_ 20000000900 $(if ($_ -eq 545) { 2 } elseif ($_ -lt 548) { 1 } else { 0 }) 'REGEN' })
+Read-Census (New-CensusFixture $before) ([ordered]@{ utc = '2026-09-29T09:00:00Z'; phase = 'OBSERVE'; censusCount = ''; censusEligible = '' })
+Read-Census (New-CensusFixture $after) ([ordered]@{ utc = '2026-09-29T09:00:10Z'; phase = 'OBSERVE'; censusCount = ''; censusEligible = '' })
+Assert-True ((Get-NativeM1Grades).NATIVE_LIFE -ceq 'PASS') 'A06_TWO_OWN_CYCLES_WITH_CLEARED_AGGRO'
+Assert-True ((Get-NativeM1Grades).COHORT -ceq 'PASS') 'A08_FROZEN_FOUR_TWO_OTHER_PROGRESS'
+$state = $script:cohortEvidence['547']; $script:cohortEvidence['547'].useful = $false
+Assert-True ((Get-NativeM1Grades).COHORT -cne 'PASS') 'A08_ONE_OTHER_ACTOR_INSUFFICIENT'
+$script:cohortEvidence['547'].useful = $true
+$record = [ordered]@{ utc = '2026-09-29T09:00:20Z'; phase = 'OBSERVE'; censusCount = ''; censusEligible = '' }
+Assert-Throws { Read-Census (New-CensusFixture @($after | Select-Object -First 3)) $record } 'FROZEN_COHORT_ROW_LOST:548'
+$unsafe = @($after | ForEach-Object { New-NativeFixture ([long]$_.profileId) 30000000900 3 'REGEN' }); $unsafe[3].materializationState = 'FAILED'
+Assert-Throws { Read-Census (New-CensusFixture $unsafe) $record } 'FROZEN_COHORT_UNSAFE:548'
+$unsafe[3].materializationState = 'ACTIVE'; $unsafe[3].actionAdmissionOpen = 'false'
+Assert-Throws { Read-Census (New-CensusFixture $unsafe) $record } 'FROZEN_COHORT_UNSAFE:548'
+$unsafe[3].actionAdmissionOpen = 'true'; $unsafe[3].hp = 'NaN'
+Assert-Throws { Read-Census (New-CensusFixture $unsafe) $record } 'FROZEN_COHORT_INVALID_HP:548'
+$script:transport = { param($op, $operationArgs, $id) return [pscustomobject]@{ status = 'REJECTED'; reason = 'OFFLINE_PAGE_LOST' } }
+$script:cleanup = $false; $script:requestCount = 0; $script:elapsed = { 0L }; $script:runId = 'offline-pagination'
+Assert-Throws { Read-Census (New-CensusFixture $before 548) $record } 'CENSUS_PAGE_FAILED'
+
+# A07 a bounded death/recovery is visible in the frozen denominator; endless recovery is RED.
+Initialize-NativeM1Evidence ([pscustomobject]@{ naturalCohortProfileIds = '545,546,547,548' })
+$before[3].dead = 'true'; $before[3].eligible = 'false'; $before[3].nativePhase = 'DEATH_RECOVERY'
+Read-Census (New-CensusFixture $before) $record
+$after[3].dead = 'true'; $after[3].eligible = 'false'; $after[3].nativePhase = 'DEATH_RECOVERY'
+Read-Census (New-CensusFixture $after) $record
+Assert-True ($script:cohortEvidence.ContainsKey('548')) 'A07_DEAD_ACTOR_RETAINS_DENOMINATOR'
+$endless = New-NativeFixture 548 101000000900 0 'DEATH_RECOVERY'; $endless.nativePhaseSinceNanos = '20000000900'; $endless.nativePhaseDeadlineNanos = '110000000900'
+Assert-Throws { Add-NativeEvidence $script:cohortEvidence['548'] $endless } 'PROGRESS_DEADLINE'
+$script:actorMode = 'RealClient'
+Assert-Throws { Initialize-NativeM1Evidence ([pscustomobject]@{}) } 'FROZEN_COHORT_MISSING'
+Assert-Throws { Initialize-NativeM1Evidence ([pscustomobject]@{ naturalCohortProfileIds = '545,546,547,547' }) } 'FROZEN_COHORT_DUPLICATE'
+Assert-Throws { Initialize-NativeM1Evidence ([pscustomobject]@{ naturalCohortProfileIds = '545,546,547' }) } 'FROZEN_COHORT_INSUFFICIENT'
+
+# Actual transport guard reserves cleanup requests and enforces the unchanged time limits.
+$script:proofCalls = 0; $script:cleanup = $false; $script:requestCount = 559; $script:runId = 'offline-budget'
+$script:elapsed = { 0L }; $script:transport = { param($op, $operationArgs, $id) $script:proofCalls++; return [pscustomobject]@{ status = 'SUCCEEDED' } }
+$null = Invoke-Proof 'STATUS'
+Assert-Throws { Invoke-Proof 'STATUS' } 'MAILBOX_BUDGET_EXHAUSTED'
+Assert-True ($script:proofCalls -eq 1) 'MAILBOX_NORMAL_BOUND_PREVENTS_TRANSPORT'
+$script:cleanup = $true; $script:cleanupClock = [Diagnostics.Stopwatch]::StartNew()
+foreach ($request in 1..32) { $null = Invoke-Proof 'STATUS' }
+Assert-Throws { Invoke-Proof 'STATUS' } 'MAILBOX_BUDGET_EXHAUSTED'
+Assert-True ($script:proofCalls -eq 33) 'MAILBOX_EXACT_32_CLEANUP_RESERVE'
+$script:cleanup = $false; $script:requestCount = 0; $script:elapsed = { 480000L }
+Assert-Throws { Invoke-Proof 'STATUS' } 'ACCEPTANCE_DEADLINE_EXPIRED'
+$script:elapsed = { 0L }
+
 $script:stopCalls = 0
 $script:transport = { param($op, $operationArgs, $id) if ($op -eq 'STATUS') { return [pscustomobject]@{ status = 'REJECTED'; reason = 'OFFLINE_NO_LOGIN' } }; return [pscustomobject]@{ status = 'ACCEPTED' } }
 $script:stopPilot = { $script:stopCalls++; $script:pilotRunning = $false; return [pscustomobject]@{ state = 'STOPPED' } }
@@ -135,7 +265,7 @@ $script:transport = {
 		if ($operationArgs.stage -eq 'INITIAL')
 		{
 			$script:actorX = -3000
-			return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; selectionKind = 'STORED_START'; committedSequence = '1'; nextBoundary = '2026-09-29T10:00:00Z'; legacySkips = '71:KNOWN_PREFIX_FAIL_CLOSED' } }
+			return [pscustomobject]@{ status = 'ACCEPTED'; candidate = [pscustomobject]@{ profileId = '545'; selectionKind = 'STORED_START'; committedSequence = '1'; nextBoundary = '2026-09-29T10:00:00Z'; legacySkips = '71:KNOWN_PREFIX_FAIL_CLOSED'; naturalCohortProfileIds = '545,546,547,548' } }
 		}
 		if ($operationArgs.stage -eq 'APPROACH')
 		{
@@ -171,12 +301,21 @@ $script:transport = {
 		clientVisible = $visible.ToString().ToLowerInvariant(); localityCurrent = ($distance -le 2200).ToString().ToLowerInvariant(); distance2D = [string]$distance
 		nativeMoving = 'true'; nativeAttacking = 'true'; nativeTargetMonsterAlive = 'true'
 	}
+	$cycles = [long][Math]::Floor($script:clockMs / 10000.0)
+	$sensor = New-NativeFixture 545 (900L + (($script:clockMs + 1) * 1000000L)) $cycles
+	$sensor.objectId = '777'; $sensor.nativeEvidenceObjectId = '777'
+	$sensor.nativeLastProgressNanos = $(if ($cycles -gt 0) { [string](900L + ($cycles * 10000000000L)) } else { '0' })
+	foreach ($field in (Native-EvidenceFields)) { $data[$field] = Read-Field $sensor $field }
 	if ($operationArgs.includeCensus -eq 'true')
 	{
 		$data.censusCount = '4'; $data.censusEligible = '4'; $data.censusNextProfileId = '0'
 		for ($n = 1; $n -le 4; $n++)
 		{
 			$data["census${n}.profileId"] = [string](544 + $n)
+			$member = New-NativeFixture (544 + $n) (900L + (($script:clockMs + 1) * 1000000L)) $cycles
+			$member.nativeLastProgressNanos = $sensor.nativeLastProgressNanos
+			if ($n -eq 1) { $member.objectId = '777'; $member.nativeEvidenceObjectId = '777' }
+			foreach ($property in $member.PSObject.Properties) { $data["census${n}.$($property.Name)"] = [string]$property.Value }
 			$data["census${n}.eligible"] = 'true'
 			$data["census${n}.targetMonsterAlive"] = 'true'
 			$data["census${n}.attacking"] = 'true'
@@ -202,7 +341,61 @@ Assert-True ($result -match 'SOFT_RETURN=PASS') 'SAME_PLAYER_RETURN_PROVEN'
 Assert-True ($result -match 'approachRouteFailures=PATHFIND_NULL') 'TYPED_LIVE_ROUTE_EVIDENCE'
 Assert-True ($script:liveRouteFailures -eq 1) 'TRANSIENT_LIVE_NO_PATH_DEFERRED'
 Assert-True ($script:liveRelocated) 'LIVE_TARGET_RELOCATED_DURING_APPROACH'
-Assert-True ($script:clockMs -ge 55000) 'VIRTUAL_OBSERVATION_AND_ABSENCE_ELAPSED'
+Assert-True ($script:clockMs -ge 35000) 'VIRTUAL_OBSERVATION_AND_ABSENCE_ELAPSED'
+$earlyObserve = @($script:rows | Where-Object { $_.phase -ceq 'OBSERVE' })
+Assert-True (([DateTimeOffset]::Parse($earlyObserve[-1].utc) - [DateTimeOffset]::Parse($earlyObserve[0].utc)).TotalSeconds -lt 180) 'EARLY_EXIT_ONLY_AFTER_COMPLETE_NATIVE_GRADES'
+
+# Two slow cycles remain observable beyond the former 40s window, with fresh damage meanwhile.
+$script:ordinaryTransport = $script:transport
+$script:transport = {
+	param($op, $operationArgs, $id)
+	$reply = & $script:ordinaryTransport $op $operationArgs $id
+	if ($op -eq 'SNAPSHOT_M1_ENVELOPE')
+	{
+		$slowCycles = [string][long][Math]::Floor($script:clockMs / 80000.0)
+		foreach ($field in @('nativeKillSequence', 'nativeRewardSequence', 'nativeTargetSequence', 'nativeFarmCycleSequence')) { $reply.candidate.$field = $slowCycles }
+		if ($operationArgs.includeCensus -eq 'true')
+		{
+			for ($member = 1; $member -le 4; $member++)
+			{
+				foreach ($field in @('nativeKillSequence', 'nativeRewardSequence', 'nativeTargetSequence', 'nativeFarmCycleSequence')) { $reply.candidate."census${member}.$field" = $slowCycles }
+			}
+		}
+	}
+	return $reply
+}
+$script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false
+$script:liveRouteFailures = 0; $script:liveRelocated = $false; $script:pilotRunning = $true
+Invoke-M1Run
+$slowObserve = @($script:rows | Where-Object { $_.phase -ceq 'OBSERVE' })
+$slowSeconds = ([DateTimeOffset]::Parse($slowObserve[-1].utc) - [DateTimeOffset]::Parse($slowObserve[0].utc)).TotalSeconds
+Assert-True (($slowSeconds -ge 120) -and ($slowSeconds -le 180)) 'OBSERVE_EXTENDED_BOUNDED_180'
+Assert-True (($script:clockMs -lt 480000) -and ($script:requestCount -le 560)) 'EXTENDED_OBSERVE_FITS_TOTAL_AND_MAILBOX'
+$script:transport = $script:ordinaryTransport
+
+# A transport reply arriving after the observation deadline cannot contribute proof.
+$script:transport = {
+	param($op, $operationArgs, $id)
+	$reply = & $script:ordinaryTransport $op $operationArgs $id
+	if (($op -eq 'SNAPSHOT_M1_ENVELOPE') -and $script:contact) { $script:clockMs += 180001L }
+	return $reply
+}
+$script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false; $script:pilotRunning = $true
+Assert-Throws { Invoke-M1Run } 'OBSERVATION_DEADLINE_EXPIRED'
+Assert-True ($null -eq $script:selectedEvidence) 'LATE_OBSERVE_REPLY_NEVER_CREDITS_SENSOR'
+$script:transport = $script:ordinaryTransport
+
+# A 250-second calendar horizon no longer permits a worst-case extended scene.
+$script:transport = {
+	param($op, $operationArgs, $id)
+	$reply = & $script:ordinaryTransport $op $operationArgs $id
+	if (($op -eq 'PREPARE_M1_ENVELOPE') -and ($operationArgs.stage -eq 'INITIAL')) { $reply.candidate.nextBoundary = (& $script:utcNow).AddSeconds(250).ToString('o') }
+	return $reply
+}
+$script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false; $script:pilotRunning = $true
+Assert-Throws { Invoke-M1Run } 'SCENE_INVALIDATED:CALENDAR_HORIZON'
+Assert-True ($script:restored -and ($script:stopState -ceq 'STOPPED')) 'SHORT_CALENDAR_STILL_RESTORES_AND_STOPS'
+$script:transport = $script:ordinaryTransport
 
 # The same phase engine accepts the separate owner and never grades it as real client M1 GREEN.
 $script:actorMode = 'Synthetic'; $script:fakeOwner = 'LOCALPLAY_TEST_HUMAN'
@@ -215,6 +408,30 @@ Assert-True ($syntheticResult -match 'result=SYNTHETIC_SERVER_GREEN; M1_OPEN; FI
 Assert-True ($script:syntheticStarts -eq 1) 'EXACT_ONE_SYNTHETIC_START'
 Assert-True ($syntheticResult -match 'SOFT_RETURN=PASS') 'SYNTHETIC_SHARED_ENGINE_RETURN'
 Assert-True ($syntheticResult -match 'STOP=PASS') 'SYNTHETIC_SHARED_ENGINE_STOP'
+$script:firstGreenReceipt = Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt'
+$script:previouslyCompletedProfileId = 545L; $script:previousCompletedEvidencePath = ''
+Assert-Throws { Read-PreviousM1Completion } 'PREVIOUS_COMPLETION_EVIDENCE_REQUIRED'
+$script:previousCompletedEvidencePath = $script:firstGreenReceipt
+$receipt = Read-PreviousM1Completion
+Assert-True (($receipt.path -ceq $script:firstGreenReceipt) -and ($receipt.sha256 -match '^[0-9A-F]{64}$')) 'FIRST_GREEN_RECEIPT_EXACT_HASH'
+$script:previouslyCompletedProfileId = 546L
+Assert-Throws { Read-PreviousM1Completion } 'NOT_FIRST_GREEN_OR_SAME_RUNNER'
+$script:previouslyCompletedProfileId = 545L
+$invalidReceipt = Join-Path ([IO.Path]::GetDirectoryName($script:firstGreenReceipt)) 'OFFLINE_INVALID_PREVIOUS_RESULT.txt'
+[IO.File]::WriteAllLines($invalidReceipt, ($syntheticResult.Replace('COHORT=PASS', 'COHORT=INSUFFICIENT_OR_FAILED').TrimEnd() -split '\r?\n'), [Text.UTF8Encoding]::new($false))
+$script:previousCompletedEvidencePath = $invalidReceipt
+Assert-Throws { Read-PreviousM1Completion } 'PREVIOUS_COMPLETION_GRADE_FAILED:COHORT'
+$script:previousCompletedEvidencePath = $script:firstGreenReceipt
+$script:selectorTransport = $script:transport; $script:excludedIdsSeen = ''
+$script:transport = {
+	param($op, $operationArgs, $id)
+	if (($op -eq 'PREPARE_M1_ENVELOPE') -and ($operationArgs.stage -eq 'INITIAL')) { $script:excludedIdsSeen = [string]$operationArgs.excludePreviouslySelectedProfileIds }
+	return & $script:selectorTransport $op $operationArgs $id
+}
+$script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false; $script:pilotRunning = $true
+Assert-Throws { Invoke-M1Run } 'PREVIOUS_SELECTED_PROFILE_REUSED'
+Assert-True ($script:excludedIdsSeen -ceq '545') 'EXCLUSION_ONLY_EXACT_COMPLETED_SELECTED_ID'
+$script:previouslyCompletedProfileId = 0L; $script:previousCompletedEvidencePath = ''; $script:transport = $script:selectorTransport
 $script:validTransport = $script:transport
 $script:neverMaterialize = $true; $script:clockMs = 0L; $script:actorX = 1000; $script:targetX = 0; $script:materialized = $false; $script:pilotRunning = $true
 Assert-Throws { Invoke-M1Run } 'APPROACH_DEADLINE_EXPIRED'

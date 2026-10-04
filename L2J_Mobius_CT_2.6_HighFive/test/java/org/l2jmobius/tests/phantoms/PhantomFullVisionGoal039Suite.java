@@ -140,6 +140,7 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 	private static final Set<String> FULL_RUNTIME_BOOTSTRAP_SUITES = Set.of(
 		"test/java/org/l2jmobius/gameserver/phantoms/PhantomCrossDomainAutonomousAlphaGoal030Checkpoint2Suite.java",
 		"test/java/org/l2jmobius/gameserver/phantoms/PhantomLocalPlayReadinessGoal031Suite.java",
+		"test/java/org/l2jmobius/gameserver/phantoms/PhantomM1ProductionWorldSuite.java",
 		"test/java/org/l2jmobius/gameserver/phantoms/PhantomPopulationEcologyProductionGoal033Suite.java",
 		"test/java/org/l2jmobius/gameserver/phantoms/PhantomPopulationResetOwnershipGoal032Suite.java",
 		"test/java/org/l2jmobius/gameserver/phantoms/PhantomPopulationResetReseedGoal032Suite.java",
@@ -430,8 +431,8 @@ public final class PhantomFullVisionGoal039Suite implements PhantomTestSuite
 			}
 		}
 		PhantomAssertions.assertEquals(FULL_RUNTIME_BOOTSTRAP_SUITES, audited, "Full PhantomSystem test startup census drifted.");
-		PhantomAssertions.assertEquals(9, startupCalls, "Full PhantomSystem test startup call-site count drifted.");
-		context.record("goal039.headlessFullRuntimeCensus", "suites=7,startupCalls=9,helperInvocationsPerSuite=1");
+		PhantomAssertions.assertEquals(10, startupCalls, "Full PhantomSystem test startup call-site count drifted.");
+		context.record("goal039.headlessFullRuntimeCensus", "suites=8,startupCalls=10,helperInvocationsPerSuite=1");
 	}
 
 	private void testGoal016CommitBackedHistoricalVerifier(PhantomTestContext context) throws Exception

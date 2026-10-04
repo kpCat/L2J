@@ -55,9 +55,13 @@ public class TimerExecutor<T>
 	 */
 	private boolean addTimer(TimerHolder<T> holder)
 	{
+		if (!holder.accepted()) { holder.cancelTimer(); return false; }
 		final Set<TimerHolder<T>> timers = _timers.computeIfAbsent(holder.getEvent(), _ -> ConcurrentHashMap.newKeySet());
 		removeAndCancelTimers(timers, holder::isEqual);
-		return timers.add(holder);
+		if (timers.stream().anyMatch(holder::isEqual)) { holder.rejectPublication(); return false; }
+		final boolean added = timers.add(holder);
+		if (added) { holder.start(); }
+		return added;
 	}
 	
 	/**
@@ -72,7 +76,7 @@ public class TimerExecutor<T>
 	 */
 	public boolean addTimer(T event, StatSet params, long time, Npc npc, Player player, IEventTimerEvent<T> eventTimer)
 	{
-		return addTimer(new TimerHolder<>(event, params, time, npc, player, false, eventTimer, _cancelListener, this));
+		return addTimer(new TimerHolder<>(event, params, time, npc, player, false, eventTimer, _cancelListener, this, true));
 	}
 	
 	/**
@@ -84,7 +88,7 @@ public class TimerExecutor<T>
 	 */
 	public boolean addTimer(T event, long time, IEventTimerEvent<T> eventTimer)
 	{
-		return addTimer(new TimerHolder<>(event, null, time, null, null, false, eventTimer, _cancelListener, this));
+		return addTimer(new TimerHolder<>(event, null, time, null, null, false, eventTimer, _cancelListener, this, true));
 	}
 	
 	/**
@@ -126,7 +130,7 @@ public class TimerExecutor<T>
 	 */
 	private boolean addRepeatingTimer(T event, StatSet params, long time, Npc npc, Player player, IEventTimerEvent<T> eventTimer)
 	{
-		return addTimer(new TimerHolder<>(event, params, time, npc, player, true, eventTimer, _cancelListener, this));
+		return addTimer(new TimerHolder<>(event, params, time, npc, player, true, eventTimer, _cancelListener, this, true));
 	}
 	
 	/**
@@ -173,15 +177,15 @@ public class TimerExecutor<T>
 	 */
 	public void cancelAllTimers()
 	{
-		for (Set<TimerHolder<T>> set : _timers.values())
-		{
-			for (TimerHolder<T> timer : set)
-			{
-				timer.cancelTimer();
-			}
-		}
-		
-		_timers.clear();
+		removeAndCancelTimers(_ -> true);
+		_timers.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+	}
+
+	/** Callback-free removal for owner cleanup; never invokes script code. */
+	void onTimerStopped(TimerHolder<T> holder)
+	{
+		final Set<TimerHolder<T>> timers = _timers.get(holder.getEvent());
+		if (timers != null) { timers.remove(holder); }
 	}
 	
 	/**
@@ -215,13 +219,14 @@ public class TimerExecutor<T>
 	 */
 	public boolean cancelTimers(T event)
 	{
-		final Set<TimerHolder<T>> timers = _timers.remove(event);
+		final Set<TimerHolder<T>> timers = _timers.get(event);
 		if ((timers == null) || timers.isEmpty())
 		{
 			return false;
 		}
 		
-		timers.forEach(TimerHolder::cancelTimer);
+		removeAndCancelTimers(timers, _ -> true);
+		if (timers.isEmpty()) { _timers.remove(event, timers); }
 		return true;
 	}
 	
@@ -278,8 +283,7 @@ public class TimerExecutor<T>
 			final TimerHolder<T> timer = it.next();
 			if (condition.test(timer))
 			{
-				it.remove();
-				timer.cancelTimer();
+				if (timer.tryCancelTimer()) { it.remove(); }
 			}
 		}
 	}

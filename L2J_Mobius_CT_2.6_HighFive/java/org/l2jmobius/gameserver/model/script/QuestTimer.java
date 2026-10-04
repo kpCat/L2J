@@ -22,9 +22,9 @@ package org.l2jmobius.gameserver.model.script;
 
 import java.util.concurrent.ScheduledFuture;
 
-import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeTimer;
 
 public class QuestTimer
 {
@@ -33,24 +33,25 @@ public class QuestTimer
 	protected final Npc _npc;
 	protected final Player _player;
 	protected final boolean _isRepeating;
-	protected ScheduledFuture<?> _scheduler;
+	protected volatile ScheduledFuture<?> _scheduler;
+	private final PlayerNativeTimer _nativeTimer;
+	private final long _time;
 	
 	public QuestTimer(Quest quest, String name, long time, Npc npc, Player player, boolean repeating)
+	{
+		this(quest, name, time, npc, player, repeating, false);
+	}
+
+	QuestTimer(Quest quest, String name, long time, Npc npc, Player player, boolean repeating, boolean deferred)
 	{
 		_quest = quest;
 		_name = name;
 		_npc = npc;
 		_player = player;
 		_isRepeating = repeating;
-		
-		if (repeating)
-		{
-			_scheduler = ThreadPool.scheduleAtFixedRate(new ScheduleTimerTask(), time, time); // Prepare auto end task
-		}
-		else
-		{
-			_scheduler = ThreadPool.schedule(new ScheduleTimerTask(), time); // Prepare auto end task
-		}
+		_time = time;
+		_nativeTimer = new PlayerNativeTimer(player, "quest-timer:" + name, repeating, this::removeNative);
+		if (!_nativeTimer.accepted()) { return; }
 		
 		if (npc != null)
 		{
@@ -61,32 +62,30 @@ public class QuestTimer
 		{
 			player.addQuestTimer(this);
 		}
+		if (!deferred) { start(); }
+	}
+
+	boolean accepted() { return _nativeTimer.accepted(); }
+	void start()
+	{
+		_nativeTimer.submit(new ScheduleTimerTask()::runBody, _time);
+		_scheduler = _nativeTimer.isActive() ? _nativeTimer.future() : null;
+	}
+	private void removeNative()
+	{
+		_quest.removeQuestTimer(this);
+		if (_npc != null) { _npc.removeQuestTimer(this); }
+		if (_player != null) { _player.removeQuestTimer(this); }
 	}
 	
 	public void cancel()
 	{
-		cancelTask();
-		
-		if (_npc != null)
-		{
-			_npc.removeQuestTimer(this);
-		}
-		
-		if (_player != null)
-		{
-			_player.removeQuestTimer(this);
-		}
+		_nativeTimer.cancel(null);
 	}
 	
 	public void cancelTask()
 	{
-		if ((_scheduler != null) && !_scheduler.isDone() && !_scheduler.isCancelled())
-		{
-			_scheduler.cancel(false);
-			_scheduler = null;
-		}
-		
-		_quest.removeQuestTimer(this);
+		if (_nativeTimer.cancel(null, false)) { _scheduler = null; _quest.removeQuestTimer(this); }
 	}
 	
 	/**
@@ -114,7 +113,7 @@ public class QuestTimer
 	
 	public boolean isActive()
 	{
-		return (_scheduler != null) && !_scheduler.isCancelled() && !_scheduler.isDone();
+		return _nativeTimer.isActive();
 	}
 	
 	public boolean isRepeating()
@@ -148,11 +147,11 @@ public class QuestTimer
 		@Override
 		public void run()
 		{
-			if (_scheduler == null)
-			{
-				return;
-			}
-			
+			_nativeTimer.invoke(this::runBody);
+		}
+
+		private void runBody()
+		{
 			if (!_isRepeating)
 			{
 				cancel();

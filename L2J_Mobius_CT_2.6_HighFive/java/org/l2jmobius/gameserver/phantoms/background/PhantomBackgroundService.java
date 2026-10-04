@@ -44,6 +44,7 @@ import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
@@ -81,10 +82,12 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lea
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationPurpose;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyParticipationPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfile;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 import org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager;
@@ -98,6 +101,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public static final long FARM_TRAVEL_BUDGET_MILLIS = 60_000;
 	public static final long DEATH_SIGNAL_TTL_MILLIS = 60_000;
 	public static final String DEATH_SIGNAL_SOURCE = "background.death";
+	public static final String NATIVE_CONTEXT_SIGNAL_SOURCE = "background.native_context";
+	public static final long NATIVE_CONTEXT_SIGNAL_TTL_MILLIS = 60_000;
 	private static final long RECOVERY_TELEPORT_TIMEOUT_NANOS = 250_000_000L;
 
 	private final PhantomProfileRepository _profiles;
@@ -124,6 +129,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private final ConcurrentHashMap<Long, Integer> _nativeTownReturns = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, Boolean> _recoveries = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TransitionKind> _transitions = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, HistoricalAdmission> _historicalAdmissions = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, NativeContextSignal> _nativeContextSignals = new ConcurrentHashMap<>();
+	private int _currentContextSignals;
 	private final ConcurrentHashMap<Integer, Lease> _retainedIdentityLeases = new ConcurrentHashMap<>();
 	private final AtomicInteger _currentOperations = new AtomicInteger();
 	private final AtomicInteger _currentIdentityLeases = new AtomicInteger();
@@ -261,11 +269,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return false;
 		}
-		if ((_currentOperations.get() != 0) || (_currentIdentityLeases.get() != 0) || (_currentTransactions.get() != 0) || (_currentTransitionClaims.get() != 0) || !_retainedIdentityLeases.isEmpty())
+		if ((_currentOperations.get() != 0) || (_currentIdentityLeases.get() != 0) || (_currentTransactions.get() != 0) || (_currentTransitionClaims.get() != 0) || (_currentContextSignals != 0) || !_retainedIdentityLeases.isEmpty())
 		{
 			return false;
 		}
 		_nativeTownReturns.clear();
+		_nativeContextSignals.clear();
 		_state = ServiceState.STOPPED;
 		return true;
 	}
@@ -303,6 +312,20 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return new Directive(loaded.status() == PhantomBackgroundTransaction.Status.INCONSISTENT ? DirectiveKind.INCONSISTENT : DirectiveKind.RETRY, "state." + loaded.status().name().toLowerCase(), "");
 		}
 		final PhantomBackgroundState state = loaded.state();
+		final var context = transaction(() -> _transactions.nativeContext(profileId, state.identity().characterObjectId()));
+		if ((context.status() != PhantomBackgroundTransaction.Status.SUCCESS) && (context.status() != PhantomBackgroundTransaction.Status.NATIVE_CONTEXT_REQUIRED))
+		{
+			final var failure = mapTransactionFailure(context.status());
+			return new Directive(failure.status() == OperationStatus.INCONSISTENT ? DirectiveKind.INCONSISTENT : DirectiveKind.RETRY, "native_context." + context.status().name().toLowerCase(java.util.Locale.ROOT), state.position().committedAnchorId());
+		}
+		if (!state.equals(context.state())) { return new Directive(DirectiveKind.RETRY, "native_context.state_changed", state.position().committedAnchorId()); }
+		if ((state.state() == State.VERIFY_PENDING) || (context.context().phase() == PhantomNativeContext.Phase.PENDING)) { return new Directive(DirectiveKind.RETRY, "native_context.pending", state.position().committedAnchorId()); }
+		final boolean nativeRequired = !context.context().simulationEligible();
+		final var delivery = updateNativeContextSignal(profileId, context, nativeRequired);
+		if (nativeRequired && (activityState == PhantomActivityState.BACKGROUND))
+		{
+			return new Directive(DirectiveKind.NATIVE_REQUIRED, nativeContextReason(delivery), state.position().committedAnchorId());
+		}
 		if ((activityState == PhantomActivityState.WARM) || activityState.requiresMaterialization())
 		{
 			final boolean recoverable = (state.state() == State.DEAD) || ((state.state() == State.MATERIALIZED) && ((state.vitals().currentHp() == 0) || nativeDead(profileId) || Objects.equals(_nativeTownReturns.get(profileId), state.identity().characterObjectId())));
@@ -368,6 +391,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return retry("state.not_ready");
 			}
+			final var nativeGate = nativeContextGate(profileId, state);
+			if (nativeGate != null) { return nativeGate; }
 			final PhantomBackgroundGoalSpec spec = claim.spec();
 			if (!state.position().committedAnchorId().equals(spec.anchorId()))
 			{
@@ -438,6 +463,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return replay;
 			}
+			final var nativeGate = nativeContextGate(profileId, state);
+			if (nativeGate != null) { return nativeGate; }
 			if (state.state() == State.DEAD)
 			{
 				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_DEAD_IDLE, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
@@ -548,6 +575,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		try (claim)
 		{
 			final PhantomBackgroundState background = claim.state();
+			final var nativeGate = nativeContextGate(profileId, background);
+			if (nativeGate != null) { return nativeGate; }
 			if (!background.acceptsBackgroundWork() || !background.position().committedAnchorId().equals(acquisitionState.selectedSource().anchorId()))
 			{
 				return OperationResult.replan("acquisition.travel.required");
@@ -690,6 +719,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final TravelAdvance advance;
 			try
 			{
+				final var nativeGate = nativeContextGate(profileId, state);
+				if (nativeGate != null) { return nativeGate; }
 				advance = _authority.advanceAcquisitionTravel(state, acquisitionState.selectedSource(), FARM_TRAVEL_BUDGET_MILLIS);
 			}
 			catch (RuntimeException exception)
@@ -715,6 +746,22 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 		return loaded.successful() ? Optional.ofNullable(loaded.state()) : Optional.empty();
+	}
+
+	/** Exact historical prerequisite; signal delivery follows the completed scalar read outside DB locks. */
+	PhantomBackgroundTransaction.NativeContextResult historicalNativeContext(long profileId, PhantomBackgroundState expected)
+	{
+		Objects.requireNonNull(expected, "expected");
+		if (_state != ServiceState.RUNNING) { return PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE); }
+		final var proof = transaction(() -> _transactions.nativeContext(profileId, expected.identity().characterObjectId()));
+		if ((proof.status() != PhantomBackgroundTransaction.Status.SUCCESS) && (proof.status() != PhantomBackgroundTransaction.Status.NATIVE_CONTEXT_REQUIRED)) { return proof; }
+		if (!expected.equals(proof.state())) { return PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.STATE_CONFLICT); }
+		if ((_state != ServiceState.RUNNING) || (proof.context() == null)) { return PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE); }
+		if ((expected.state() != State.VERIFY_PENDING) && (proof.context().phase() != PhantomNativeContext.Phase.PENDING))
+		{
+			updateNativeContextSignal(profileId, proof, !proof.context().simulationEligible());
+		}
+		return _state == ServiceState.RUNNING ? proof : PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE);
 	}
 
 	/** Uses the ordinary historical identity lease and transaction receipt to finish a pending commit. */
@@ -836,11 +883,15 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public VisibleStoreResult resumeVisibleOwnedStore(long profileId, Player player, PhantomGoal goal)
 	{
 		if ((_state != ServiceState.RUNNING) || _transitions.containsKey(profileId)) { return new VisibleStoreResult(VisibleStoreStatus.RETRY, "owned_store.service_or_transition"); }
-		try (var action = _materialization.get().tryAcquireAction(profileId).orElse(null))
+		// A failed checkpoint has no ordinary ActionLease. Validate its exact control lifetime.
+		if (!pendingStoreOwnerCurrent(profileId, player, goal)) { return new VisibleStoreResult(VisibleStoreStatus.PROFILE_FENCED, "owned_store.live_owner_or_intent_missing"); }
+		try
 		{
-			if ((action == null) || (action.player() != player) || !player.hasOwnedStoreBoundary(this) || !player.hasPendingOwnedStore()) { return new VisibleStoreResult(VisibleStoreStatus.PROFILE_FENCED, "owned_store.live_owner_or_intent_missing"); }
-			if (!Objects.equals(_goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), goal)) { return new VisibleStoreResult(VisibleStoreStatus.PROFILE_FENCED, "owned_store.goal_changed"); }
-			return new VisibleStoreResult(player.resumePendingOwnedStore(this, goal.goalId(), goal.revision()) ? VisibleStoreStatus.SUCCESS : VisibleStoreStatus.RETRY, "owned_store.live_resume");
+			return org.l2jmobius.gameserver.model.actor.PlayerNativeWork.pendingStoreCheckpoint(player, this, () ->
+			{
+				if (!pendingStoreOwnerCurrent(profileId, player, goal)) { return new VisibleStoreResult(VisibleStoreStatus.PROFILE_FENCED, "owned_store.checkpoint_owner_changed"); }
+				return new VisibleStoreResult(player.resumePendingOwnedStore(this, goal.goalId(), goal.revision()) ? VisibleStoreStatus.SUCCESS : VisibleStoreStatus.RETRY, "owned_store.live_resume");
+			});
 		}
 		catch (RuntimeException failure)
 		{
@@ -848,7 +899,29 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
+	private boolean pendingStoreOwnerCurrent(long profileId, Player player, PhantomGoal goal)
+	{
+		final var entry = _materialization.get().find(profileId).orElse(null);
+		final var owner = player.getNativeWorkOwner();
+		return (_state == ServiceState.RUNNING) && !_transitions.containsKey(profileId) && (entry != null)
+			&& (entry.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE)
+			&& (entry.characterObjectId() == player.getObjectId()) && entry.identityLeaseRetained() && entry.outboundAttached()
+			&& (owner != null) && (owner.player() == player) && owner.isCurrent() && (owner.epoch() == entry.materializedAtNanos())
+			&& (World.getInstance().getPlayer(player.getObjectId()) == player) && (World.getInstance().findObject(player.getObjectId()) == player)
+			&& player.hasHeadlessOutboundSession() && player.hasOwnedStoreBoundary(this) && player.hasPendingOwnedStore()
+			&& Objects.equals(_goals.load(profileId).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), goal);
+	}
+
 	public boolean captureVisibleArrival(long profileId, Player player, PhantomGoal goal, String anchorId)
+	{
+		try
+		{
+			return org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(player, () -> captureVisibleArrivalQuiescent(profileId, player, goal, anchorId));
+		}
+		catch (RuntimeException failure) { return false; }
+	}
+
+	private boolean captureVisibleArrivalQuiescent(long profileId, Player player, PhantomGoal goal, String anchorId)
 	{
 		if ((_state != ServiceState.RUNNING) || player.isDead() || player.isInParty() || !player.hasHeadlessOutboundSession() || _transitions.containsKey(profileId) || (_operations.putIfAbsent(profileId, Boolean.TRUE) != null))
 		{
@@ -863,7 +936,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			final var position = new PhantomBackgroundState.Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchorId);
 			final var hint = new PhantomBackgroundState(previous.state(), previous.identity(), previous.progress(), previous.vitals(), position, previous.combat(), previous.loadout(), previous.inventory(), previous.autoGetSkills(), previous.clock(), previous.receipt(), previous.hashes());
-			final PhantomBackgroundState captured = _authority.capture(profileId, player, goal, hint);
+			final PhantomBackgroundState captured = _authority.captureOwnedNative(profileId, player, goal, hint).state();
 			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_CAPTURE);
 			_arrivalCaptures.put(profileId, captured);
 			player.storeMe();
@@ -876,10 +949,6 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_BASELINE);
 			_committedPosition.accept(profileId, stored.state().position());
 			return true;
-		}
-		catch (RuntimeException exception)
-		{
-			return false;
 		}
 		finally
 		{
@@ -898,6 +967,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			@Override public Object ownerKey() { return PhantomBackgroundService.this; }
 			private volatile PhantomOwnedStoreIntent _intent;
+			private PhantomNativeContext.Capture _nativeCapture;
 			private PhantomGoal _intentGoal;
 			private long _sequence;
 			private String _before;
@@ -924,6 +994,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 			private void checkOwner()
 			{
+				if (player.isNativeWorkManaged() && ((player.getNativeWorkOwner() == null) || !player.getNativeWorkOwner().sealed())) { throw new IllegalStateException("OWNED_STORE_NATIVE_NOT_SEALED"); }
 				final int objectId = player.getObjectId();
 				final var entry = _materialization.get().find(profileId).orElse(null);
 				if (!owner.equals(_identities.getOwnerSnapshot(objectId)) || (entry == null) || (entry.characterObjectId() != objectId) || (player.getClient() != null) || ((World.getInstance().findObject(objectId) != null) && (World.getInstance().findObject(objectId) != player)) || PlayerAutoSaveTaskManager.getInstance().containsOtherObjectId(objectId, player)) { throw new IllegalStateException("OWNED_STORE_RUNTIME_OWNER_REJECTED"); }
@@ -938,13 +1009,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					if (resumed.status() == PhantomBackgroundTransaction.Status.POST_COMMIT_VERIFICATION_FAILED)
 					{
 						_recaptureAfterResume = _cleanupStores.containsKey(profileId);
-						if ((!_recaptureAfterResume && !ownedProgressMatches(player, _intent.after())) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { throw new IllegalStateException("OWNED_STORE_RETRY_RUNTIME_CHANGED"); }
+						if ((!_recaptureAfterResume && (!ownedProgressMatches(player, _intent.after()) || ((_nativeCapture != null) && (player.getVitalityPoints() != _nativeCapture.vitalityPoints())))) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { throw new IllegalStateException("OWNED_STORE_RETRY_RUNTIME_CHANGED"); }
 						_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.enabledFor(profileId, _intent.materializedAtNanos()) ? org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player) : null;
 						_sequence = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.begin(profileId, player, _kind, _intent);
-						return ownedSnapshot(player, _intent.after());
+						return ownedSnapshot(player, _intent.after(), _nativeCapture == null ? -1 : _nativeCapture.vitalityPoints());
 					}
 					if (!resumed.successful()) { throw new IllegalStateException("OWNED_STORE_RESUME:" + resumed.status()); }
 					_intent = null;
+					_nativeCapture = null;
 				}
 				return null;
 			}
@@ -970,27 +1042,35 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final var arrival = _arrivalCaptures.get(profileId);
 				player.getInventory().updateDatabase();
 				final PhantomBackgroundState captured;
+				final PhantomNativeContext.Capture nativeCapture;
 				synchronized (player.getStatus())
 				{
 					if (arrival != null)
 					{
 						if (!_authority.matchesRuntime(player, arrival)) { throw new IllegalStateException("OWNED_STORE_CAPTURE_STALE"); }
 						captured = arrival;
+						nativeCapture = _authority.captureNativeContext(player);
 					}
-					else if (PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType())) { captured = _authority.captureAcquisition(profileId, player, goal, previous, PhantomAcquisitionGoalSpec.parse(goal).itemId()); }
-					else { PhantomBackgroundGoalSpec.parseLifecycle(goal); captured = _authority.capture(profileId, player, goal, previous); }
+					else
+					{
+						final var capture = PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType())
+							? _authority.captureOwnedNativeAcquisition(profileId, player, goal, previous, PhantomAcquisitionGoalSpec.parse(goal).itemId())
+							: _authority.captureOwnedNative(profileId, player, goal, previous);
+						captured = capture.state(); nativeCapture = capture.context();
+					}
 				}
 				final State target = cleanup || (previous == null) || (previous.state() != State.MATERIALIZED) ? (captured.vitals().currentHp() == 0 ? State.DEAD : State.READY) : State.MATERIALIZED;
 				final var witnessed = captureOwnedInventory(player, captured);
-				final var prepared = transaction(() -> _transactions.prepareOwnedStore(witnessed, goal, entry.materializedAtNanos(), target));
+				final var prepared = transaction(() -> _transactions.prepareOwnedStore(witnessed, goal, entry.materializedAtNanos(), target, nativeCapture));
 				_intentGoal = goal;
 				_intent = prepared.intent();
+				_nativeCapture = _intent == null ? null : nativeCapture;
 				_kind = arrival != null ? "ARRIVAL_CAPTURE" : cleanup ? "CLEANUP_STORE" : "OTHER_OWNED_STORE";
 				if (!prepared.successful()) { throw new IllegalStateException("OWNED_STORE_PREPARE:" + prepared.status()); }
 				_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.enabledFor(profileId, _intent.materializedAtNanos()) ? org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player) : null;
 				_sequence = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.begin(profileId, player, _kind, _intent);
 				_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.AFTER_OWNED_PREPARE);
-				return ownedSnapshot(player, _intent.after());
+				return ownedSnapshot(player, _intent.after(), _nativeCapture.vitalityPoints());
 			}
 
 			@Override
@@ -1012,12 +1092,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					completedState = finalized.state();
 					if (!finalized.successful()) { throw new IllegalStateException("OWNED_STORE_FINALIZE:" + status); }
 					finalizedSuccessfully = true;
-					if ((!recaptureCleanup && !ownedProgressMatches(player, _intent.after())) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { status = "RUNTIME_CHANGED_AFTER_FINALIZE"; throw new IllegalStateException("OWNED_STORE_RUNTIME_CHANGED_AFTER_FINALIZE"); }
+					if ((!recaptureCleanup && (!ownedProgressMatches(player, _intent.after()) || ((_nativeCapture != null) && (player.getVitalityPoints() != _nativeCapture.vitalityPoints())))) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { status = "RUNTIME_CHANGED_AFTER_FINALIZE"; throw new IllegalStateException("OWNED_STORE_RUNTIME_CHANGED_AFTER_FINALIZE"); }
 				}
 				finally
 				{
 					org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.end(profileId, player, _kind, _intent, _sequence, _before, after, status, completedState);
-					if (finalizedSuccessfully) { _intent = null; }
+					if (finalizedSuccessfully) { _intent = null; _nativeCapture = null; }
 				}
 				// Finish the old receipt first, then take one fresh cleanup snapshot. The second call cannot recursively resume this completed receipt.
 				if (recaptureCleanup && finalizedSuccessfully) { player.storeMe(); }
@@ -1030,10 +1110,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return (player.getClassIndex() == state.identity().classIndex()) && (player.getActiveClass() == state.identity().activeClassId()) && (player.getRace().ordinal() == state.identity().raceOrdinal()) && (player.getLevel() == state.progress().level()) && (player.getExp() == state.progress().experience()) && (player.getSp() == state.progress().skillPoints()) && (player.getExpBeforeDeath() == state.progress().experienceBeforeDeath());
 	}
 
-	private static Player.OwnedStoreSnapshot ownedSnapshot(Player player, PhantomBackgroundState state)
+	private static Player.OwnedStoreSnapshot ownedSnapshot(Player player, PhantomBackgroundState state, int vitalityPoints)
 	{
 		final var v = state.vitals(); final var p = state.position(); final var progress = state.progress(); final var identity = state.identity();
-		return new Player.OwnedStoreSnapshot(v.currentHp(), (int) v.maximumHp(), v.currentMp(), (int) v.maximumMp(), v.currentCp(), (int) v.maximumCp(), p.x(), p.y(), p.z(), p.heading(), progress.level(), progress.experience(), progress.skillPoints(), progress.experienceBeforeDeath(), identity.activeClassId(), identity.raceOrdinal(), identity.classIndex(), identity.classIndex() == 0 ? progress.level() : player.getStat().getBaseLevel(), identity.classIndex() == 0 ? progress.experience() : player.getStat().getBaseExp(), identity.classIndex() == 0 ? progress.skillPoints() : player.getStat().getBaseSp());
+		return new Player.OwnedStoreSnapshot(v.currentHp(), (int) v.maximumHp(), v.currentMp(), (int) v.maximumMp(), v.currentCp(), (int) v.maximumCp(), p.x(), p.y(), p.z(), p.heading(), progress.level(), progress.experience(), progress.skillPoints(), progress.experienceBeforeDeath(), identity.activeClassId(), identity.raceOrdinal(), identity.classIndex(), identity.classIndex() == 0 ? progress.level() : player.getStat().getBaseLevel(), identity.classIndex() == 0 ? progress.experience() : player.getStat().getBaseExp(), identity.classIndex() == 0 ? progress.skillPoints() : player.getStat().getBaseSp(), vitalityPoints);
 	}
 
 	/** One immutable enumeration; compare the same INVENTORY/PAPERDOLL facts as the durable transaction. */
@@ -1122,6 +1202,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return retry("state.not_ready");
 			}
+			final var nativeGate = nativeContextGate(profileId, state);
+			if (nativeGate != null) { return nativeGate; }
 			final TravelAdvance advance = _authority.advanceTravel(state, claim.spec(), FARM_TRAVEL_BUDGET_MILLIS, logicalEpochMinute);
 			if (!advance.mutated())
 			{
@@ -1371,6 +1453,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	@Override
 	public void beforeMaterialize(long profileId, int characterObjectId)
 	{
+		beforeMaterialize(profileId, characterObjectId, MaterializationPurpose.NORMAL, "");
+	}
+
+	@Override
+	public void beforeMaterialize(long profileId, int characterObjectId, MaterializationPurpose purpose, String ownerClaim)
+	{
+		Objects.requireNonNull(purpose, "purpose");
 		if (!claimTransition(profileId, TransitionKind.MATERIALIZING))
 		{
 			throw new IllegalStateException("Background transition is already owned.");
@@ -1381,6 +1470,15 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			if (_operations.containsKey(profileId))
 			{
 				throw new IllegalStateException("Background operation has not drained.");
+			}
+			if (purpose == MaterializationPurpose.HISTORICAL_BASELINE)
+			{
+				final var component = _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null);
+				if ((component == null) || (component.profileId() != profileId) || (component.componentSchemaVersion() != PhantomBackgroundCatchupState.SCHEMA_VERSION) || (ownerClaim == null) || ownerClaim.isBlank()) { throw new AdmissionRejectedException("background.historical_claim_invalid"); }
+				final var catchup = new PhantomBackgroundCatchupStateCodec().decode(component.payload());
+				if (!catchup.owns(ownerClaim) || (catchup.modelVersion() != PhantomBackgroundState.MODEL_VERSION)) { throw new AdmissionRejectedException("background.historical_claim_invalid"); }
+				final var admission = new HistoricalAdmission(characterObjectId, ownerClaim, component.rowVersion(), PhantomBackgroundTransaction.payloadDigest(component.payload()), _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null));
+				if (_historicalAdmissions.putIfAbsent(profileId, admission) != null) { throw new AdmissionRejectedException("background.historical_claim_busy"); }
 			}
 			final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 			if (loaded.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT)
@@ -1418,13 +1516,29 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return;
 		}
-		if (loaded.successful() && (loaded.state() != null) && !_authority.matchesRuntime(player, loaded.state()))
+		final var nativeContext = transaction(() -> _transactions.nativeContext(profileId, player.getObjectId()));
+		if (!nativeContext.matchesNativeLoad(player.getVitalityPoints())) { throw new IllegalStateException("Loaded Player differs from canonical native context: " + nativeContext.status()); }
+		final var historicalAdmission = _historicalAdmissions.get(profileId);
+		// The original unplanned/goal-less native baseline first creates its plan, then attests in cleanup STORE.
+		final boolean attestHistoricalContext = (historicalAdmission != null) && (historicalAdmission.goal() != null) && (nativeContext.context() != null) && (nativeContext.context().phase() == PhantomNativeContext.Phase.UNKNOWN);
+		if ((historicalAdmission != null) && !Objects.equals(loaded.state(), nativeContext.state())) { throw new IllegalStateException("Historical background state changed before native attestation."); }
+		final StringBuilder refreshReason = new StringBuilder();
+		if (loaded.successful() && (loaded.state() != null) && (!_authority.matchesRuntime(player, loaded.state()) || attestHistoricalContext))
 		{
-			loaded = refreshNativeVitals(profileId, player, loaded);
+			loaded = refreshNativeVitals(profileId, player, loaded, refreshReason);
 		}
 		if (!loaded.successful() || (loaded.state() == null) || !_authority.matchesRuntime(player, loaded.state()))
 		{
-			throw new IllegalStateException("Loaded Player differs from committed background state.");
+			throw new IllegalStateException("Loaded Player differs from committed background state. " + runtimeMismatch(player, loaded.state()) + ";refresh=" + refreshReason + ";status=" + loaded.status() + ";nonAtomic");
+		}
+		if (attestHistoricalContext)
+		{
+			final var attested = transaction(() -> _transactions.nativeContext(profileId, player.getObjectId()));
+			if ((attested.status() != PhantomBackgroundTransaction.Status.SUCCESS) || (attested.context() == null) || (attested.context().phase() != PhantomNativeContext.Phase.COMPLETED)
+				|| !loaded.state().equals(attested.state()) || !attested.matchesNativeLoad(player.getVitalityPoints()) || !currentHistoricalAdmission(profileId, player, player.getNativeWorkOwner(), historicalAdmission))
+			{
+				throw new IllegalStateException("Historical native context attestation did not complete under the exact claim: " + attested.status() + ";refresh=" + refreshReason);
+			}
 		}
 		final PhantomBackgroundTransaction.Result marked = transaction(() -> _transactions.markMaterialized(profileId, player.getObjectId()));
 		if (!marked.successful())
@@ -1438,38 +1552,84 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
-	/** Native maxima are derived on Player load after background level changes; preserve durable facts. */
-	private PhantomBackgroundTransaction.Result refreshNativeVitals(long profileId, Player player, PhantomBackgroundTransaction.Result loaded)
+	private static String runtimeMismatch(Player player, PhantomBackgroundState state)
 	{
-		// Match Player.store's player -> status order, including the pre-headless autosave window.
-		synchronized (player)
-		{
-			synchronized (player.getStatus())
-			{
-				return refreshNativeVitalsLocked(profileId, player, loaded);
-			}
-		}
+		if (state == null) { return "ABSENT"; }
+		final StringBuilder result = new StringBuilder();
+		final String[] labels = { "object", "classIndex", "class", "race", "level", "exp", "sp", "expBeforeDeath", "instance", "x", "y", "z", "heading" };
+		final long[] runtime = { player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal(), player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading() };
+		final long[] committed = { state.identity().characterObjectId(), state.identity().classIndex(), state.identity().activeClassId(), state.identity().raceOrdinal(), state.progress().level(), state.progress().experience(), state.progress().skillPoints(), state.progress().experienceBeforeDeath(), state.position().instanceId(), state.position().x(), state.position().y(), state.position().z(), state.position().heading() };
+		for (int index = 0; index < labels.length; index++) { if (runtime[index] != committed[index]) { result.append(labels[index]).append('=').append(runtime[index]).append('/').append(committed[index]).append(';'); } }
+		final String[] vitalLabels = { "hp", "maxHp", "mp", "maxMp", "cp", "maxCp" };
+		final double[] runtimeVitals = { player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp() };
+		final double[] committedVitals = { state.vitals().currentHp(), state.vitals().maximumHp(), state.vitals().currentMp(), state.vitals().maximumMp(), state.vitals().currentCp(), state.vitals().maximumCp() };
+		for (int index = 0; index < vitalLabels.length; index++) { if (Math.abs(runtimeVitals[index] - committedVitals[index]) > 0.000001d) { result.append(vitalLabels[index]).append('=').append(runtimeVitals[index]).append('/').append(committedVitals[index]).append(';'); } }
+		return result.toString();
 	}
 
-	private PhantomBackgroundTransaction.Result refreshNativeVitalsLocked(long profileId, Player player, PhantomBackgroundTransaction.Result loaded)
+	/** Native maxima are derived on Player load after background level changes; preserve durable facts. */
+	private PhantomBackgroundTransaction.Result refreshNativeVitals(long profileId, Player player, PhantomBackgroundTransaction.Result loaded, StringBuilder reason)
+	{
+		return PlayerNativeWork.checkpoint(player, () ->
+		{
+			final var admission = _historicalAdmissions.get(profileId);
+			final var owner = player.getNativeWorkOwner();
+			final var hashes = _authority.hashes();
+			final boolean historical = currentHistoricalAdmission(profileId, player, owner, admission);
+			if ((admission != null) && !historical) { reason.append("HISTORICAL_ADMISSION_STALE"); return loaded; }
+			final PhantomBackgroundState captured;
+			// Match the native player's original player -> status order after exclusive admission/drain.
+			synchronized (player)
+			{
+				synchronized (player.getStatus())
+				{
+					captured = refreshNativeVitalsLocked(profileId, player, loaded, reason, hashes, historical);
+				}
+			}
+			if (captured == null) { return loaded; }
+			if (!hashes.equals(_authority.hashes()) || (historical && !currentHistoricalAdmission(profileId, player, owner, admission))) { reason.append("REFRESH_AUTHORITY_OR_CLAIM_CHANGED"); return loaded; }
+			if (_arrivalCaptures.putIfAbsent(profileId, captured) != null) { throw new IllegalStateException("NATIVE_VITALS_CAPTURE_ALREADY_OWNED"); }
+			try
+			{
+				// Reuse this exact validated capture; native STORE runs after both monitors have been released.
+				player.storeMe();
+				return transaction(() -> _transactions.load(profileId));
+			}
+			finally { _arrivalCaptures.remove(profileId, captured); }
+		});
+	}
+
+	private boolean currentHistoricalAdmission(long profileId, Player player, PlayerNativeWork.Owner owner, HistoricalAdmission admission)
+	{
+		if ((admission == null) || (_historicalAdmissions.get(profileId) != admission) || (_transitions.get(profileId) != TransitionKind.MATERIALIZING) || (admission.characterObjectId() != player.getObjectId()) || (owner == null) || (player.getNativeWorkOwner() != owner) || (owner.player() != player) || !owner.isCurrent()) { return false; }
+		final var entry = _materialization.get().find(profileId).orElse(null);
+		if ((entry == null) || (entry.characterObjectId() != player.getObjectId()) || (entry.materializedAtNanos() != owner.epoch())) { return false; }
+		final var component = _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null);
+		if ((component == null) || (component.profileId() != profileId) || (component.componentSchemaVersion() != PhantomBackgroundCatchupState.SCHEMA_VERSION) || (component.rowVersion() != admission.rowVersion()) || !PhantomBackgroundTransaction.payloadDigest(component.payload()).equals(admission.payloadDigest())) { return false; }
+		final var catchup = new PhantomBackgroundCatchupStateCodec().decode(component.payload());
+		return !admission.requestId().isBlank() && catchup.owns(admission.requestId()) && (catchup.modelVersion() == PhantomBackgroundState.MODEL_VERSION)
+			&& Objects.equals(admission.goal(), _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null));
+	}
+
+	private PhantomBackgroundState refreshNativeVitalsLocked(long profileId, Player player, PhantomBackgroundTransaction.Result loaded, StringBuilder reason, PhantomBackgroundState.Hashes hashes, boolean historical)
 	{
 		final PhantomBackgroundState state = loaded.state();
 		final var progress = state.progress();
-		if (((state.state() != State.DEAD) && (state.state() != State.READY)) || !state.hashes().equals(_authority.hashes())) { return loaded; }
-		if (state.vitals().currentCp() > player.getMaxCp()) { return loaded; }
-		if ((state.state() == State.READY) && ((state.vitals().currentHp() > player.getMaxHp()) || (state.vitals().currentMp() > player.getMaxMp()))) { return loaded; }
+		if (((state.state() != State.DEAD) && (state.state() != State.READY)) || (!state.hashes().equals(hashes) && !historical)) { reason.append("state=").append(state.state()).append(",hashMatch=").append(state.hashes().equals(hashes)); return null; }
+		if (state.vitals().currentCp() > player.getMaxCp()) { reason.append("CP_ABOVE_MAX"); return null; }
+		if ((state.state() == State.READY) && ((state.vitals().currentHp() > player.getMaxHp()) || (state.vitals().currentMp() > player.getMaxMp()))) { reason.append("HP_MP_ABOVE_MAX"); return null; }
 		final var vitals = new PhantomBackgroundState.Vitals(state.vitals().currentHp(), player.getMaxHp(), state.state() == State.DEAD ? Math.min(state.vitals().currentMp(), player.getMaxMp()) : state.vitals().currentMp(), player.getMaxMp(), state.vitals().currentCp(), player.getMaxCp());
 		final var normalized = new PhantomBackgroundState(state.state(), state.identity(), progress, vitals, state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
-		if (!_authority.matchesRuntime(player, normalized)) { return loaded; }
+		if (!_authority.matchesRuntime(player, normalized)) { reason.append("OTHER_RUNTIME_FIELDS"); return null; }
 		final var goal = _goals.load(profileId).orElse(null);
-		if ((goal == null) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) || (goal.goal().status() != PhantomGoalStatus.ACTIVE)) { return loaded; }
-		final var captured = _authority.capture(profileId, player, goal.goal(), normalized);
-		if (!captured.vitals().equals(vitals)) { return loaded; }
-		if (!captured.progress().equals(progress) || !captured.identity().equals(state.identity()) || !captured.position().equals(state.position()) || !captured.receipt().equals(state.receipt()) || !captured.clock().equals(state.clock()) || !captured.hashes().equals(state.hashes())) { return loaded; }
-		if (!captured.inventory().objects().equals(state.inventory().objects()) || !captured.autoGetSkills().equals(state.autoGetSkills())) { return loaded; }
-		// Existing native store/capture boundary under the materialization claim, with no historical replay.
-		player.storeMe();
-		return transaction(() -> _transactions.load(profileId));
+		if ((goal == null) || (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) && !(historical && PhantomBackgroundGoalSpec.HISTORICAL_IDLE_GOAL_TYPE.equals(goal.goal().goalType()))) || (goal.goal().status() != PhantomGoalStatus.ACTIVE)) { reason.append("GOAL:").append(goal == null ? "ABSENT" : goal.goal().goalType() + "/" + goal.goal().status()); return null; }
+		final var captured = _authority.captureOwnedNative(profileId, player, goal.goal(), normalized).state();
+		if (!captured.vitals().equals(vitals)) { reason.append("CAPTURE_VITALS"); return null; }
+		if (!captured.progress().equals(progress) || !captured.identity().equals(state.identity()) || !captured.position().equals(state.position()) || !captured.receipt().equals(state.receipt()) || !captured.clock().equals(state.clock()) || !captured.hashes().equals(hashes)) { reason.append("CAPTURE_DURABLE_FIELDS"); return null; }
+		if (!captured.inventory().objects().equals(state.inventory().objects()) || !captured.autoGetSkills().equals(state.autoGetSkills())) { reason.append("CAPTURE_INVENTORY_OR_AUTOGET"); return null; }
+		final var witnessed = captureOwnedInventory(player, captured);
+		if (!witnessed.inventory().canonicalHash().equals(state.inventory().canonicalHash())) { reason.append("CAPTURE_FULL_INVENTORY_HASH"); return null; }
+		return witnessed;
 	}
 
 	@Override
@@ -1560,8 +1720,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (PhantomAcquisitionGoalSpec.GOAL_TYPE.equals(goal.goalType()))
 		{
 			final PhantomAcquisitionGoalSpec acquisition = PhantomAcquisitionGoalSpec.parse(goal);
-			final PhantomBackgroundState captured = _authority.captureAcquisition(profileId, player, goal, previous, acquisition.itemId());
-			final PhantomBackgroundTransaction.Result stored = transaction(() -> _transactions.captureBaseline(captured, goal));
+			final var capture = _authority.captureOwnedNativeAcquisition(profileId, player, goal, previous, acquisition.itemId());
+			final PhantomBackgroundTransaction.Result stored = transaction(() -> _transactions.captureBaseline(capture.state(), goal, capture.context()));
 			if (!stored.successful())
 			{
 				throw new IllegalStateException("Canonical acquisition background baseline capture failed.");
@@ -1587,8 +1747,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			releaseStoreTransition(profileId);
 			return;
 		}
-		final PhantomBackgroundState captured = _authority.capture(profileId, player, goal, previous);
-		final PhantomBackgroundTransaction.Result stored = transaction(() -> goal.status() == PhantomGoalStatus.ACTIVE ? _transactions.captureBaseline(captured, goal) : _transactions.captureLifecycleBaseline(captured, goal));
+		final var capture = _authority.captureOwnedNative(profileId, player, goal, previous);
+		final PhantomBackgroundTransaction.Result stored = transaction(() -> goal.status() == PhantomGoalStatus.ACTIVE ? _transactions.captureBaseline(capture.state(), goal, capture.context()) : _transactions.captureLifecycleBaseline(capture.state(), goal, capture.context()));
 		if (!stored.successful())
 		{
 			throw new IllegalStateException("Canonical background baseline capture failed: " + stored.status());
@@ -1887,7 +2047,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		return switch (status)
 		{
-			case STALE_OPERATION, GOAL_STALE, HASH_STALE, STATE_CONFLICT, STATE_ABSENT, PROFILE_LINK_STALE, CATCHUP_CONFLICT -> OperationResult.replan("transaction." + status.name().toLowerCase());
+			case STALE_OPERATION, GOAL_STALE, HASH_STALE, STATE_CONFLICT, STATE_ABSENT, PROFILE_LINK_STALE, CATCHUP_CONFLICT, NATIVE_CONTEXT_REQUIRED -> OperationResult.replan("transaction." + status.name().toLowerCase());
 			case ITEM_CONFLICT -> OperationResult.inconsistent("transaction.item_conflict_canonical");
 			case INCONSISTENT, OWNED_STORE_CANONICAL_NEITHER, CANONICAL_MISMATCH, ITEM_LIMIT, UNSUPPORTED_ITEM, UNSUPPORTED_INSTANCE, OBJECT_ID_EXHAUSTED, PROGRESSION_CONFLICT, ACQUISITION_CONFLICT -> OperationResult.inconsistent("transaction." + status.name().toLowerCase());
 			case ITEM_BUSY, ITEM_EXPECTED_COUNT_STALE -> retry("transaction." + status.name().toLowerCase());
@@ -1972,10 +2132,15 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
-	private void releaseTransition(long profileId, TransitionKind kind)
+	private synchronized void releaseTransition(long profileId, TransitionKind kind)
 	{
 		if (_transitions.remove(profileId, kind))
 		{
+			if (kind == TransitionKind.MATERIALIZING)
+			{
+				final var admission = _historicalAdmissions.get(profileId);
+				if (admission != null) { _historicalAdmissions.remove(profileId, admission); }
+			}
 			_currentTransitionClaims.decrementAndGet();
 		}
 	}
@@ -2029,8 +2194,62 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		RECOVER,
 		RETRY,
 		REPLAN,
-		INCONSISTENT
+		INCONSISTENT,
+		NATIVE_REQUIRED
 	}
+
+	private OperationResult nativeContextGate(long profileId, PhantomBackgroundState state)
+	{
+		final var proof = transaction(() -> _transactions.nativeContext(profileId, state.identity().characterObjectId()));
+		if ((proof.status() != PhantomBackgroundTransaction.Status.SUCCESS) && (proof.status() != PhantomBackgroundTransaction.Status.NATIVE_CONTEXT_REQUIRED)) { return mapTransactionFailure(proof.status()); }
+		if (!state.equals(proof.state())) { return OperationResult.replan("native_context.state_changed"); }
+		if ((state.state() == State.VERIFY_PENDING) || (proof.context().phase() == PhantomNativeContext.Phase.PENDING)) { return retry("native_context.pending"); }
+		final boolean required = !proof.context().simulationEligible();
+		final var delivery = updateNativeContextSignal(profileId, proof, required);
+		return required ? OperationResult.replan(nativeContextReason(delivery)) : null;
+	}
+
+	private static String nativeContextReason(PhantomRelevanceSignalPort.SignalDelivery delivery)
+	{
+		return "native_context.required:" + (delivery == null ? "not_delivered" : delivery.name().toLowerCase(java.util.Locale.ROOT));
+	}
+
+	/** Claim only sequence/binding under a short monitor; deliver outside all native and DB monitors. */
+	private PhantomRelevanceSignalPort.SignalDelivery updateNativeContextSignal(long profileId, PhantomBackgroundTransaction.NativeContextResult proof, boolean required)
+	{
+		final long sequence;
+		final long version = proof.context().stateRowVersion();
+		synchronized (this)
+		{
+			if (_state != ServiceState.RUNNING) { return PhantomRelevanceSignalPort.SignalDelivery.NOT_RUNNING; }
+			final var previous = _nativeContextSignals.get(profileId);
+			if ((previous != null) && (previous.stateRowVersion() > version)) { return PhantomRelevanceSignalPort.SignalDelivery.STALE; }
+			if (!required && ((previous == null) || !previous.requested())) { return null; }
+			if ((previous != null) && (previous.sequence() == Long.MAX_VALUE)) { return PhantomRelevanceSignalPort.SignalDelivery.SEQUENCE_EXHAUSTED; }
+			sequence = Math.max(Math.max(1, System.nanoTime()), previous == null ? 1 : previous.sequence() + 1);
+			_nativeContextSignals.put(profileId, new NativeContextSignal(sequence, version, required, null));
+			_currentContextSignals++;
+		}
+		try
+		{
+			final var delivery = required
+				? _signals.submit(profileId, new PhantomRelevanceSignal(NATIVE_CONTEXT_SIGNAL_SOURCE, sequence, PhantomActivityState.ACTIVE, NATIVE_CONTEXT_SIGNAL_TTL_MILLIS))
+				: _signals.withdraw(profileId, NATIVE_CONTEXT_SIGNAL_SOURCE, sequence);
+			_nativeContextSignals.computeIfPresent(profileId, (id, current) -> current.sequence() == sequence
+				? new NativeContextSignal(sequence, version, required || ((delivery != PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED) && (delivery != PhantomRelevanceSignalPort.SignalDelivery.COALESCED)), delivery) : current);
+			return delivery;
+		}
+		finally { synchronized (this) { _currentContextSignals--; } }
+	}
+
+	/** Passive delivery fact for bounded native acceptance; it is not a liveness assertion. */
+	public Optional<PhantomRelevanceSignalPort.SignalDelivery> nativeContextSignalDelivery(long profileId)
+	{
+		final var signal = _nativeContextSignals.get(profileId);
+		return signal == null ? Optional.empty() : Optional.ofNullable(signal.delivery());
+	}
+
+	private record NativeContextSignal(long sequence, long stateRowVersion, boolean requested, PhantomRelevanceSignalPort.SignalDelivery delivery) {}
 
 	public enum OperationStatus
 	{
@@ -2041,6 +2260,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		INCONSISTENT,
 		FAIL_GOAL
 	}
+
+	private record HistoricalAdmission(int characterObjectId, String requestId, long rowVersion, String payloadDigest, PhantomProfileComponent goal) { }
 
 	private enum TransitionKind
 	{

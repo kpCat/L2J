@@ -23,10 +23,12 @@ package org.l2jmobius.commons.threads;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import org.l2jmobius.commons.config.ThreadConfig;
@@ -125,6 +127,31 @@ public class ThreadPool
 			LOGGER.warning(StringUtil.concat("ThreadPool: Failed to schedule task ", runnable.getClass().getSimpleName(), " with delay ", String.valueOf(delay), "ms: ", e.getMessage(), System.lineSeparator(), String.valueOf(e.getStackTrace())));
 			return null;
 		}
+	}
+
+	/** Observable submission for lifetime-owned native work; legacy wrappers retain their contract. */
+	public static ScheduledFuture<?> scheduleOrThrow(Runnable runnable, long delay)
+	{
+		return strictSubmission(() -> SCHEDULED_POOL.schedule(new StrictRunnableWrapper(runnable), validateDelay(delay), TimeUnit.MILLISECONDS));
+	}
+
+	public static void executeOrThrow(Runnable runnable)
+	{
+		strictSubmission(() -> { INSTANT_POOL.execute(new StrictRunnableWrapper(runnable)); return null; });
+	}
+
+	public static ScheduledFuture<?> scheduleAtFixedRateOrThrow(Runnable runnable, long initialDelay, long period)
+	{
+		return strictSubmission(() -> SCHEDULED_POOL.scheduleAtFixedRate(new StrictRunnableWrapper(runnable), validateDelay(initialDelay), validateDelay(period), TimeUnit.MILLISECONDS));
+	}
+
+	private static final ThreadLocal<Integer> STRICT_SUBMISSION = new ThreadLocal<>();
+	private static <T> T strictSubmission(Supplier<T> submission)
+	{
+		final Integer previous = STRICT_SUBMISSION.get();
+		STRICT_SUBMISSION.set(previous == null ? 1 : previous + 1);
+		try { return submission.get(); }
+		finally { if (previous == null) { STRICT_SUBMISSION.remove(); } else { STRICT_SUBMISSION.set(previous); } }
 	}
 	
 	/**
@@ -247,6 +274,12 @@ public class ThreadPool
 		{
 			if (executor.isShutdown())
 			{
+				throw new RejectedExecutionException("Native executor is shut down");
+			}
+			// Scheduled executors reject a Future wrapper, rather than our inner Runnable.
+			if ((STRICT_SUBMISSION.get() != null) || (runnable instanceof StrictRunnableWrapper))
+			{
+				runnable.run();
 				return;
 			}
 			
@@ -268,6 +301,11 @@ public class ThreadPool
 	 * Wraps a Runnable to handle uncaught exceptions during execution.<br>
 	 * Passes exceptions to the thread's uncaught exception handler for proper error management.
 	 */
+	private static final class StrictRunnableWrapper extends RunnableWrapper
+	{
+		private StrictRunnableWrapper(Runnable runnable) { super(runnable); }
+	}
+
 	private static class RunnableWrapper implements Runnable
 	{
 		private final Runnable _wrappedRunnable;

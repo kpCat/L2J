@@ -112,7 +112,8 @@ public final class LocalPlayPilotProtocol
 			}
 			final String name = arg.getAttribute("name");
 			final String value = arg.getAttribute("value");
-			if (!name.matches("[A-Za-z][A-Za-z0-9]{0,31}") || (value.length() > 4096) || args.putIfAbsent(name, value) != null)
+			final boolean m1SelectorOption = (operation == Operation.PREPARE_M1_ENVELOPE) && "excludePreviouslySelectedProfileIds".equals(name);
+			if ((!name.matches("[A-Za-z][A-Za-z0-9]{0,31}") && !m1SelectorOption) || (value.length() > 4096) || args.putIfAbsent(name, value) != null)
 			{
 				throw new IllegalArgumentException("Invalid or duplicate argument.");
 			}

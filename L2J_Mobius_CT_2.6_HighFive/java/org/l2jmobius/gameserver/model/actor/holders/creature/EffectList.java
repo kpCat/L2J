@@ -39,6 +39,7 @@ import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.effects.AbstractEffect;
 import org.l2jmobius.gameserver.model.effects.EffectFlag;
 import org.l2jmobius.gameserver.model.effects.EffectType;
@@ -99,6 +100,8 @@ public class EffectList
 	private final AtomicInteger _hiddenBuffs = new AtomicInteger();
 	/** Delay task **/
 	private ScheduledFuture<?> _updateEffectIconTask;
+	private final Object _nativeIconPublicationLock = new Object();
+	private Object _nativeIconPublication;
 	
 	/**
 	 * Constructor for effect list.
@@ -602,6 +605,11 @@ public class EffectList
 		{
 			return;
 		}
+		info.runNative("EFFECT_REMOVE", () -> stopAndRemoveNative(broadcast, type, info, buffs));
+	}
+
+	private void stopAndRemoveNative(boolean broadcast, SkillFinishType type, BuffInfo info, Queue<BuffInfo> buffs)
+	{
 		
 		// Removes the buff from the given effect list.
 		buffs.remove(info);
@@ -653,6 +661,11 @@ public class EffectList
 	 * Stops all the effects, clear the effect lists and updates the effect flags and icons.
 	 */
 	public void stopAllEffects()
+	{
+		PlayerNativeWork.run(_owner, List.of(), "EFFECT_STOP_ALL", this::stopAllEffectsNative);
+	}
+
+	private void stopAllEffectsNative()
 	{
 		// Stop buffs.
 		stopAllBuffs(false, true);
@@ -1079,11 +1092,19 @@ public class EffectList
 	 */
 	public boolean stopSkillEffects(SkillFinishType removeType, AbnormalType abnormalType)
 	{
-		final BuffInfo old = _stackedEffects.remove(abnormalType);
+		final BuffInfo old = _stackedEffects.get(abnormalType);
 		if (old != null)
 		{
-			stopSkillEffects(removeType, old.getSkill());
-			return true;
+			final boolean[] removed = { false };
+			old.runNative("EFFECT_REMOVE_ABNORMAL", () ->
+			{
+				if (_stackedEffects.remove(abnormalType, old))
+				{
+					stopSkillEffects(removeType, old.getSkill());
+					removed[0] = true;
+				}
+			});
+			return removed[0];
 		}
 		
 		return false;
@@ -1399,6 +1420,11 @@ public class EffectList
 		{
 			return;
 		}
+		info.runNative("EFFECT_LIST_REMOVE", () -> removeNative(type, info));
+	}
+
+	private void removeNative(SkillFinishType type, BuffInfo info)
+	{
 		
 		// Remove the effect from creature effects.
 		stopAndRemove(true, type, info, getEffectList(info.getSkill()));
@@ -1417,6 +1443,11 @@ public class EffectList
 		{
 			return;
 		}
+		info.runNative("EFFECT_LIST_ADD", () -> addNative(info));
+	}
+
+	private void addNative(BuffInfo info)
+	{
 		
 		// Support for blocked buff slots.
 		final Skill skill = info.getSkill();
@@ -1590,10 +1621,24 @@ public class EffectList
 			return;
 		}
 		
-		if (_updateEffectIconTask == null)
+		final Player nativePlayer = _owner.isPlayer() ? _owner.asPlayer() : _owner.isSummon() ? _owner.asSummon().getOwner() : null;
+		final boolean managed = nativePlayer != null && nativePlayer.isNativeWorkManaged();
+		if (managed || (_updateEffectIconTask == null))
 		{
-			_updateEffectIconTask = ThreadPool.schedule(() ->
+			final Object publication = new Object();
+			if (managed)
 			{
+				synchronized (_nativeIconPublicationLock)
+				{
+					if (_nativeIconPublication != null) { return; }
+					_nativeIconPublication = publication;
+				}
+			}
+			final Runnable update = () ->
+			{
+				boolean completed = false;
+				try
+				{
 				AbnormalStatusUpdate asu = null;
 				PartySpelled ps = null;
 				PartySpelled psSummon = null;
@@ -1718,9 +1763,49 @@ public class EffectList
 						game.getZone().broadcastPacketToObservers(os);
 					}
 				}
-				
+				completed = true;
+				}
+				finally
+				{
+					if (managed) { clearNativeIconPublication(publication); }
+					else if (completed) { _updateEffectIconTask = null; }
+				}
+			};
+			try
+			{
+				final ScheduledFuture<?> future = managed
+					? PlayerNativeWork.schedule(_owner, List.of(), "EFFECT_ICONS", PlayerNativeWork.Semantics.EARNED, update, 300)
+					: ThreadPool.schedule(update, 300);
+				if (managed && (future == null)) { throw new IllegalStateException("NATIVE_ICON_PUBLICATION_REFUSED"); }
+				if (managed)
+				{
+					final boolean retained;
+					synchronized (_nativeIconPublicationLock)
+					{
+						retained = _nativeIconPublication == publication;
+						if (retained) { _updateEffectIconTask = future; }
+					}
+					if (!retained) { future.cancel(false); }
+				}
+				else { _updateEffectIconTask = future; }
+			}
+			catch (RuntimeException | Error failure)
+			{
+				if (managed) { clearNativeIconPublication(publication); }
+				throw failure;
+			}
+		}
+	}
+
+	private void clearNativeIconPublication(Object publication)
+	{
+		synchronized (_nativeIconPublicationLock)
+		{
+			if (_nativeIconPublication == publication)
+			{
+				_nativeIconPublication = null;
 				_updateEffectIconTask = null;
-			}, 300);
+			}
 		}
 	}
 	
@@ -1759,6 +1844,11 @@ public class EffectList
 	 * @param update if {@code true} performs an update
 	 */
 	private void updateEffectList(boolean update)
+	{
+		PlayerNativeWork.run(_owner, List.of(), "EFFECT_LIST_UPDATE", () -> updateEffectListNative(update));
+	}
+
+	private void updateEffectListNative(boolean update)
 	{
 		if (update)
 		{

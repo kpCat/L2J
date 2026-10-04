@@ -42,6 +42,7 @@ import org.l2jmobius.gameserver.managers.PcCafePointsManager;
 import org.l2jmobius.gameserver.model.actor.Attackable;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.groups.matching.PartyMatchRoomList;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
@@ -150,10 +151,10 @@ public class Party extends AbstractPlayerGroup
 	 * @param target the object of which the member must be within a certain range (must not be null)
 	 * @return a random member from this party or {@code null} if none of the members have inventory space for the specified item
 	 */
-	private Player getCheckedRandomMember(int itemId, Creature target)
+	private Player getCheckedRandomMember(int itemId, Creature target, List<Player> recipients)
 	{
 		final List<Player> availableMembers = new ArrayList<>();
-		for (Player member : _members)
+		for (Player member : recipients)
 		{
 			if (member.getInventory().validateCapacityByItemId(itemId) && LocationUtil.checkIfInRange(PlayerConfig.ALT_PARTY_RANGE, target, member, true))
 			{
@@ -170,11 +171,11 @@ public class Party extends AbstractPlayerGroup
 	 * @param target
 	 * @return
 	 */
-	private Player getCheckedNextLooter(int itemId, Creature target)
+	private Player getCheckedNextLooter(int itemId, Creature target, List<Player> recipients)
 	{
-		for (int i = 0; i < getMemberCount(); i++)
+		for (int i = 0; i < recipients.size(); i++)
 		{
-			if (++_itemLastLoot >= getMemberCount())
+			if (++_itemLastLoot >= recipients.size())
 			{
 				_itemLastLoot = 0;
 			}
@@ -182,7 +183,7 @@ public class Party extends AbstractPlayerGroup
 			Player member;
 			try
 			{
-				member = _members.get(_itemLastLoot);
+				member = recipients.get(_itemLastLoot);
 				if (member.getInventory().validateCapacityByItemId(itemId) && LocationUtil.checkIfInRange(PlayerConfig.ALT_PARTY_RANGE, target, member, true))
 				{
 					return member;
@@ -205,7 +206,7 @@ public class Party extends AbstractPlayerGroup
 	 * @param target
 	 * @return
 	 */
-	private Player getActualLooter(Player player, int itemId, boolean spoil, Creature target)
+	private Player getActualLooter(Player player, int itemId, boolean spoil, Creature target, List<Player> recipients)
 	{
 		Player looter = null;
 		
@@ -215,26 +216,26 @@ public class Party extends AbstractPlayerGroup
 			{
 				if (!spoil)
 				{
-					looter = getCheckedRandomMember(itemId, target);
+					looter = getCheckedRandomMember(itemId, target, recipients);
 				}
 				break;
 			}
 			case RANDOM_INCLUDING_SPOIL:
 			{
-				looter = getCheckedRandomMember(itemId, target);
+				looter = getCheckedRandomMember(itemId, target, recipients);
 				break;
 			}
 			case BY_TURN:
 			{
 				if (!spoil)
 				{
-					looter = getCheckedNextLooter(itemId, target);
+					looter = getCheckedNextLooter(itemId, target, recipients);
 				}
 				break;
 			}
 			case BY_TURN_INCLUDING_SPOIL:
 			{
-				looter = getCheckedNextLooter(itemId, target);
+				looter = getCheckedNextLooter(itemId, target, recipients);
 				break;
 			}
 		}
@@ -618,14 +619,26 @@ public class Party extends AbstractPlayerGroup
 	 */
 	public void distributeItem(Player player, Item item)
 	{
+		distributeItem(player, item, List.copyOf(_members));
+	}
+
+	/** Ground pickup supplies the immutable roster admitted before pickupMe; never discover another recipient here. */
+	public void distributeItem(Player player, Item item, List<Player> capturedRecipients)
+	{
+		final List<Player> recipients = List.copyOf(capturedRecipients);
+		PlayerNativeWork.run(player, recipients, "party-item", () -> distributeItemNative(player, item, recipients));
+	}
+
+	private void distributeItemNative(Player player, Item item, List<Player> recipients)
+	{
 		if (item.getId() == Inventory.ADENA_ID)
 		{
-			distributeAdena(player, item.getCount(), player);
+			distributeAdenaNative(player, item.getCount(), player, recipients);
 			ItemManager.destroyItem(ItemProcessType.LOOT, item, player, null);
 			return;
 		}
 		
-		final Player target = getActualLooter(player, item.getId(), false, player);
+		final Player target = getActualLooter(player, item.getId(), false, player, recipients);
 		target.addItem(ItemProcessType.LOOT, item, player, true);
 		
 		// Send messages to other party members about reward
@@ -656,13 +669,19 @@ public class Party extends AbstractPlayerGroup
 	 */
 	public void distributeItem(Player player, int itemId, long itemCount, boolean spoil, Attackable target)
 	{
+		final List<Player> recipients = List.copyOf(_members);
+		PlayerNativeWork.run(player, recipients, "party-item-drop", () -> distributeItemNative(player, itemId, itemCount, spoil, target, recipients));
+	}
+
+	private void distributeItemNative(Player player, int itemId, long itemCount, boolean spoil, Attackable target, List<Player> recipients)
+	{
 		if (itemId == Inventory.ADENA_ID)
 		{
-			distributeAdena(player, itemCount, target);
+			distributeAdenaNative(player, itemCount, target, recipients);
 			return;
 		}
 		
-		final Player looter = getActualLooter(player, itemId, spoil, target);
+		final Player looter = getActualLooter(player, itemId, spoil, target, recipients);
 		looter.addItem(spoil ? ItemProcessType.SWEEP : ItemProcessType.LOOT, itemId, itemCount, target, true);
 		
 		// Send messages to other party members about reward
@@ -703,11 +722,17 @@ public class Party extends AbstractPlayerGroup
 	 */
 	public void distributeAdena(Player player, long adena, Creature target)
 	{
+		final List<Player> recipients = List.copyOf(_members);
+		PlayerNativeWork.run(player, recipients, "party-adena", () -> distributeAdenaNative(player, adena, target, recipients));
+	}
+
+	private void distributeAdenaNative(Player player, long adena, Creature target, List<Player> recipients)
+	{
 		// List to collect party members eligible to receive adena.
 		final List<Player> toReward = new LinkedList<>();
 		
 		// Iterate over all party members to find those within the allowed party range of the target.
-		for (Player member : _members)
+		for (Player member : recipients)
 		{
 			if (LocationUtil.checkIfInRange(PlayerConfig.ALT_PARTY_RANGE, target, member, true))
 			{
@@ -769,6 +794,12 @@ public class Party extends AbstractPlayerGroup
 	 * @param target
 	 */
 	public void distributeXpAndSp(double xpRewardValue, double spRewardValue, List<Player> rewardedMembers, int topLvl, long partyDmg, Attackable target)
+	{
+		final List<Player> recipients = List.copyOf(rewardedMembers);
+		PlayerNativeWork.run(null, recipients, "party-exp", () -> distributeXpAndSpNative(xpRewardValue, spRewardValue, recipients, topLvl, partyDmg, target));
+	}
+
+	private void distributeXpAndSpNative(double xpRewardValue, double spRewardValue, List<Player> rewardedMembers, int topLvl, long partyDmg, Attackable target)
 	{
 		final List<Player> validMembers = getValidMembers(rewardedMembers, topLvl, target);
 		double xpReward = xpRewardValue * getExpBonus(validMembers.size());

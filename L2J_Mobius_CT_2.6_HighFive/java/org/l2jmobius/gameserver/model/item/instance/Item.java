@@ -1027,8 +1027,19 @@ public class Item extends WorldObject
 	
 	public void restoreAttributes()
 	{
-		try (Connection con = DatabaseFactory.getConnection();
-			PreparedStatement ps1 = con.prepareStatement("SELECT augAttributes FROM item_attributes WHERE itemId=?");
+		try (Connection con = DatabaseFactory.getConnection())
+		{
+			restoreAttributes(con);
+		}
+		catch (Exception e)
+		{
+			LOGGER.log(Level.SEVERE, "Could not restore augmentation and elemental data for item " + this + " from DB: " + e.getMessage(), e);
+		}
+	}
+	
+	private void restoreAttributes(Connection con) throws SQLException
+	{
+		try (PreparedStatement ps1 = con.prepareStatement("SELECT augAttributes FROM item_attributes WHERE itemId=?");
 			PreparedStatement ps2 = con.prepareStatement("SELECT elemType,elemValue FROM item_elementals WHERE itemId=?"))
 		{
 			ps1.setInt(1, getObjectId());
@@ -1057,10 +1068,6 @@ public class Item extends WorldObject
 					}
 				}
 			}
-		}
-		catch (Exception e)
-		{
-			LOGGER.log(Level.SEVERE, "Could not restore augmentation and elemental data for item " + this + " from DB: " + e.getMessage(), e);
 		}
 	}
 	
@@ -1519,7 +1526,21 @@ public class Item extends WorldObject
 	 */
 	public static Item restoreFromDb(int ownerId, ResultSet rs)
 	{
-		Item inst = null;
+		return restoreFromDb(ownerId, rs, null);
+	}
+	
+	/** The container owns this connection; restoring attributes must not borrow another pool entry. */
+	public static Item restoreFromDb(int ownerId, ResultSet rs, Connection con)
+	{
+		return restoreFromDb(ownerId, readRestoreRow(ownerId, rs), con);
+	}
+	
+	public record RestoreRow(int objectId, int itemId, long count, ItemLocation loc, int locData, int enchantLevel, int customType1, int customType2, int manaLeft, long time)
+	{
+	}
+	
+	public static RestoreRow readRestoreRow(int ownerId, ResultSet rs)
+	{
 		int objectId;
 		int itemId;
 		int locData;
@@ -1542,12 +1563,37 @@ public class Item extends WorldObject
 			customType2 = rs.getInt("custom_type2");
 			manaLeft = rs.getInt("mana_left");
 			time = rs.getLong("time");
+			return new RestoreRow(objectId, itemId, count, loc, locData, enchantLevel, customType1, customType2, manaLeft, time);
 		}
 		catch (Exception e)
 		{
 			LOGGER.log(Level.SEVERE, "Could not restore an item owned by " + ownerId + " from DB:", e);
 			return null;
 		}
+	}
+	
+	public static Item restoreFromDb(int ownerId, RestoreRow row)
+	{
+		return restoreFromDb(ownerId, row, null);
+	}
+	
+	private static Item restoreFromDb(int ownerId, RestoreRow row, Connection con)
+	{
+		if (row == null)
+		{
+			return null;
+		}
+		Item inst = null;
+		final int objectId = row.objectId();
+		final int itemId = row.itemId();
+		final long count = row.count();
+		final ItemLocation loc = row.loc();
+		final int locData = row.locData();
+		final int enchantLevel = row.enchantLevel();
+		final int customType1 = row.customType1();
+		final int customType2 = row.customType2();
+		final int manaLeft = row.manaLeft();
+		final long time = row.time();
 		
 		final ItemTemplate item = ItemData.getInstance().getTemplate(itemId);
 		if (item == null)
@@ -1574,7 +1620,21 @@ public class Item extends WorldObject
 		// load augmentation and elemental enchant
 		if (inst.isEquipable())
 		{
-			inst.restoreAttributes();
+			if (con == null)
+			{
+				inst.restoreAttributes();
+			}
+			else
+			{
+				try
+				{
+					inst.restoreAttributes(con);
+				}
+				catch (Exception e)
+				{
+					LOGGER.log(Level.SEVERE, "Could not restore augmentation and elemental data for item " + inst + " from DB: " + e.getMessage(), e);
+				}
+			}
 		}
 		
 		return inst;

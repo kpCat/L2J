@@ -7,15 +7,19 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
+import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.config.custom.AutoPlayConfig;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.skill.AbnormalType;
@@ -36,11 +40,15 @@ import org.l2jmobius.gameserver.taskmanagers.AutoUseTaskManager;
 /** Runs the existing AutoPlay and AutoUse pools only while an ordinary visible goal owns the materialized Player. */
 public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifecyclePort
 {
+	private static final Logger LOGGER = Logger.getLogger(PhantomVisibleAutoPlay.class.getName());
+	private static final long RECOVERY_DELAY_NANOS = 30_000_000_000L;
+	private static final long STALL_DELAY_NANOS = 90_000_000_000L;
 	private final PhantomMaterializationService _materialization;
 	private final Supplier<PhantomDecisionEngine> _decision;
 	private final LongPredicate _permitsOrdinary;
 	private final Map<Long, Session> _sessions = new ConcurrentHashMap<>();
 	private final LongSupplier _clock;
+	private final Object[] _sessionOwners = java.util.stream.IntStream.range(0, 64).mapToObj(_ -> new Object()).toArray();
 
 	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary)
 	{
@@ -84,45 +92,94 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				return false;
 			}
 			final Session previous = _sessions.get(profileId);
-			if ((previous != null) && (previous.player() == player) && (previous.goalId() == goal.goalId()) && (previous.revision() == goal.revision()) && player.isAutoPlaying())
+			if (healthy(profileId, goal, previous, player))
 			{
-				return true;
+				synchronized (owner(profileId))
+				{
+					if ((_sessions.get(profileId) == previous) && previous._current.get()) { return true; }
+				}
 			}
-			stop(profileId);
 			configure(player);
 			final PhantomPolicy policy = new Policy(player, profileId, goal.goalId(), goal.revision(), spec.npcId());
-			_sessions.put(profileId, new Session(player, goal.goalId(), goal.revision()));
+			final Session session = new Session(player, goal.goalId(), goal.revision(), policy, snapshot.materializedAtNanos(), _clock.getAsLong(), previous);
+			final Session replaced;
+			synchronized (owner(profileId))
+			{
+				replaced = _sessions.put(profileId, session);
+				if (replaced != null) { replaced._current.set(false); }
+			}
 			try
 			{
-				AutoPlayTaskManager.getInstance().startPhantomAutoPlay(player, policy);
-				AutoUseTaskManager.getInstance().startPhantomAutoUse(player, policy);
+				stopRegistrations(replaced);
+				if (!AutoPlayTaskManager.getInstance().startPhantomAutoPlay(player, policy, session._current) || !AutoUseTaskManager.getInstance().startPhantomAutoUse(player, policy, session._current) || !healthy(profileId, goal, session, player))
+				{
+					stop(profileId, session);
+					return false;
+				}
 			}
-			catch (RuntimeException exception)
+			catch (RuntimeException | Error exception)
 			{
-				stop(profileId);
+				try { stop(profileId, session); }
+				catch (RuntimeException | Error secondary) { if (secondary != exception) { exception.addSuppressed(secondary); } }
 				throw exception;
 			}
-			return true;
+			synchronized (owner(profileId))
+			{
+				return (_sessions.get(profileId) == session) && session._current.get();
+			}
 		}
 	}
 
 	public void stop(long profileId)
 	{
-		final Session session = _sessions.remove(profileId);
-		if (session != null)
+		final Session session;
+		synchronized (owner(profileId))
 		{
-			AutoUseTaskManager.getInstance().stopAutoUseTask(session.player());
-			AutoPlayTaskManager.getInstance().stopAutoPlay(session.player());
+			session = _sessions.remove(profileId);
+			if (session != null) { session._current.set(false); }
 		}
+		stopRegistrations(session);
+	}
+
+	private void stop(long profileId, Session expected)
+	{
+		synchronized (owner(profileId))
+		{
+			_sessions.remove(profileId, expected);
+			expected._current.set(false);
+		}
+		stopRegistrations(expected);
+	}
+
+	private static void stopRegistrations(Session session)
+	{
+		if (session == null) { return; }
+		try { AutoUseTaskManager.getInstance().stopPhantomAutoUse(session.player(), session._policy); }
+		finally { AutoPlayTaskManager.getInstance().stopPhantomAutoPlay(session.player(), session._policy); }
+	}
+
+	private Object owner(long profileId)
+	{
+		return _sessionOwners[(int) (profileId & 63)];
+	}
+
+	private boolean healthy(long profileId, PhantomGoal goal, Session session, Player player)
+	{
+		return (session != null) && session._current.get() && (_sessions.get(profileId) == session) && (session.player() == player) && (session.goalId() == goal.goalId()) && (session.revision() == goal.revision()) && player.isAutoPlaying() && player.hasHeadlessOutboundSession() && player.isOnline() && !player.isDead() && !player.hasPendingOwnedStore() && current(profileId, goal)
+			&& AutoPlayTaskManager.getInstance().hasPhantomRegistration(player, session._policy) && AutoUseTaskManager.getInstance().hasPhantomRegistration(player, session._policy);
 	}
 
 	public boolean running(long profileId, PhantomGoal goal)
 	{
 		final Session session = _sessions.get(profileId);
-		return (session != null) && (session.goalId() == goal.goalId()) && (session.revision() == goal.revision()) && session.player().isAutoPlaying() && current(profileId, goal);
+		if (session == null) { return false; }
+		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			return (action != null) && healthy(profileId, goal, session, action.player()) && (_sessions.get(profileId) == session) && session._current.get();
+		}
 	}
 
-	/** Detects absence under the same native range/geo gates as stock AutoPlay. */
+	/** Target availability and flags cannot erase independently witnessed useful farm debt. */
 	public boolean noTargetExpired(long profileId, PhantomGoal goal)
 	{
 		final Session session = _sessions.get(profileId);
@@ -130,38 +187,84 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			return false;
 		}
-		synchronized (session)
+		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
-			final long now = _clock.getAsLong();
-			if (now < session.nextTargetCheck)
+			if ((action == null) || !healthy(profileId, goal, session, action.player())) { return false; }
+			final Player player = action.player();
+			final int npcId = PhantomBackgroundGoalSpec.parse(goal).npcId();
+			final var progress = nativeProgress(player, session._epoch);
+			final boolean repair;
+			final boolean expired;
+			final boolean reportStall;
+			final String reason;
+			synchronized (session)
 			{
-				return (session.noTargetSince >= 0) && ((now - session.noTargetSince) >= 30_000_000_000L);
-			}
-			session.nextTargetCheck = now + 1_000_000_000L;
-			try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
-			{
-				if ((action == null) || (action.player() != session.player()) || action.player().isDead())
+				if (!session._current.get() || (_sessions.get(profileId) != session)) { return false; }
+				final long now = _clock.getAsLong();
+				observeProgress(session, progress, now);
+				if (now < session.nextTargetCheck)
 				{
-					session.noTargetSince = -1;
-					return false;
+					return stalled(session, now);
 				}
-				final Player player = action.player();
-				final int npcId = PhantomBackgroundGoalSpec.parse(goal).npcId();
+				session.nextTargetCheck = now + 1_000_000_000L;
 				final var selected = player.getTarget();
 				final boolean offensive = (player.isMoving() || player.isAttackingNow() || player.isCastingNow()) && (selected instanceof Creature creature) && selectableTarget(player, creature, npcId);
 				final boolean target = offensive || World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream().anyMatch(creature -> selectableTarget(player, creature, npcId));
-				if (target)
-				{
-					session.noTargetSince = -1;
-					return false;
-				}
-				if (session.noTargetSince < 0)
-				{
-					session.noTargetSince = now;
-				}
-				return (now - session.noTargetSince) >= 30_000_000_000L;
+				if (target) { session.noTargetSince = -1; }
+				else if (session.noTargetSince < 0) { session.noTargetSince = now; }
+				expired = stalled(session, now);
+				repair = !expired && !session._repairAttempted && (((now - session._usefulSince) >= RECOVERY_DELAY_NANOS) || ((session.noTargetSince >= 0) && ((now - session.noTargetSince) >= RECOVERY_DELAY_NANOS)));
+				if (repair) { session._repairAttempted = true; }
+				reportStall = expired && !session._stallReported;
+				if (reportStall) { session._stallReported = true; }
+				reason = target ? "NO_USEFUL_NATIVE_FARM_PROGRESS" : "NO_SELECTABLE_NATIVE_FARM_TARGET";
 			}
+			if (repair && healthy(profileId, goal, session, player))
+			{
+				// One native repair, outside the Session monitor, never a registration restart or debt reset.
+				player.abortAttack(); player.abortCast(); player.stopMove(null);
+				player.getAI().setIntention(Intention.IDLE);
+				if (!(player.getTarget() instanceof Creature selected) || !selectableTarget(player, selected, npcId)) { player.setTarget(null); }
+				LOGGER.info("Phantom visible farm repair profile=" + profileId + " object=" + player.getObjectId() + " epoch=" + session._epoch + " reason=" + reason);
+			}
+			if (reportStall) { LOGGER.warning("Phantom visible farm stalled profile=" + profileId + " object=" + player.getObjectId() + " epoch=" + session._epoch + " reason=" + reason); }
+			return expired;
 		}
+	}
+
+	private static PlayerNativeEvidence.Snapshot nativeProgress(Player player, long epoch)
+	{
+		final var owner = player.getNativeWorkOwner();
+		if ((owner == null) || (owner.player() != player) || !owner.isCurrent() || (owner.epoch() != epoch)) { return null; }
+		final var sensor = owner.evidence();
+		if ((sensor == null) || !sensor.matches(player.getObjectId(), epoch)) { return null; }
+		final var sample = sensor.snapshot();
+		return !sample.overflow() && (sample.objectId() == player.getObjectId()) && (sample.epoch() == epoch) ? sample : null;
+	}
+
+	private static void observeProgress(Session session, PlayerNativeEvidence.Snapshot progress, long now)
+	{
+		if (progress == null) { return; }
+		if (!session._nativeBaseline)
+		{
+			session.baseline(progress);
+			return;
+		}
+		if ((progress.damageSequence() < session._damageSequence) || (progress.rewardSequence() < session._rewardSequence) || (progress.farmCycleSequence() < session._cycleSequence) || (progress.lootSequence() < session._lootSequence)) { return; }
+		// A reward on an undamaged target is not useful; concurrent loot makes its timestamp ambiguous.
+		final boolean reward = (progress.rewardSequence() > session._rewardSequence) && (progress.usefulProgressNanos() > session._nativeUsefulNanos) && (progress.lootSequence() == session._lootSequence);
+		if ((progress.damageSequence() > session._damageSequence) || (progress.farmCycleSequence() > session._cycleSequence) || reward)
+		{
+			session._usefulSince = now;
+			session._repairAttempted = false;
+			session._stallReported = false;
+		}
+		session.baseline(progress);
+	}
+
+	private static boolean stalled(Session session, long now)
+	{
+		return ((now - session._usefulSince) >= STALL_DELAY_NANOS) || ((session.noTargetSince >= 0) && ((now - session.noTargetSince) >= STALL_DELAY_NANOS));
 	}
 
 	private static boolean selectableTarget(Player player, Creature creature, int npcId)
@@ -305,14 +408,47 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private final Player _player;
 		private final long _goalId;
 		private final long _revision;
+		private final PhantomPolicy _policy;
+		private final long _epoch;
+		private final AtomicBoolean _current = new AtomicBoolean(true);
 		private long nextTargetCheck;
 		private long noTargetSince = -1;
+		private long _usefulSince;
+		private long _damageSequence;
+		private long _rewardSequence;
+		private long _cycleSequence;
+		private long _lootSequence;
+		private long _nativeUsefulNanos;
+		private boolean _nativeBaseline;
+		private boolean _repairAttempted;
+		private boolean _stallReported;
 
-		private Session(Player player, long goalId, long revision)
+		private Session(Player player, long goalId, long revision, PhantomPolicy policy, long epoch, long now, Session previous)
 		{
 			_player = player;
 			_goalId = goalId;
 			_revision = revision;
+			_policy = policy;
+			_epoch = epoch;
+			_usefulSince = now;
+			baseline(nativeProgress(player, epoch));
+			if ((previous != null) && (previous.player() == player) && (previous.goalId() == goalId) && (previous.revision() == revision) && (previous._epoch == epoch))
+			{
+				synchronized (previous)
+				{
+					_usefulSince = previous._usefulSince; noTargetSince = previous.noTargetSince;
+					_damageSequence = previous._damageSequence; _rewardSequence = previous._rewardSequence; _cycleSequence = previous._cycleSequence;
+					_lootSequence = previous._lootSequence; _nativeUsefulNanos = previous._nativeUsefulNanos; _nativeBaseline = previous._nativeBaseline;
+					_repairAttempted = previous._repairAttempted; _stallReported = previous._stallReported;
+				}
+			}
+		}
+
+		private void baseline(PlayerNativeEvidence.Snapshot progress)
+		{
+			if (progress == null) { return; }
+			_damageSequence = progress.damageSequence(); _rewardSequence = progress.rewardSequence(); _cycleSequence = progress.farmCycleSequence();
+			_lootSequence = progress.lootSequence(); _nativeUsefulNanos = progress.usefulProgressNanos(); _nativeBaseline = true;
 		}
 
 		private Player player()

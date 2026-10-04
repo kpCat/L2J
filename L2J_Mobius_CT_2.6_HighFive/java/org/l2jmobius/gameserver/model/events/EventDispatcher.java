@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.events.holders.IBaseEvent;
 import org.l2jmobius.gameserver.model.events.listeners.AbstractEventListener;
 import org.l2jmobius.gameserver.model.events.returns.AbstractEventReturn;
@@ -148,7 +148,7 @@ public class EventDispatcher
 			throw new NullPointerException("Event cannot be null!");
 		}
 		
-		ThreadPool.schedule(() -> notifyEvent(event, container, null), delay);
+		NativeEventWork.schedule(event, () -> notifyEvent(event, container, null), delay);
 	}
 	
 	/**
@@ -163,7 +163,7 @@ public class EventDispatcher
 			throw new NullPointerException("Event cannot be null!");
 		}
 		
-		ThreadPool.execute(() -> notifyEventToSingleContainer(event, container, null));
+		NativeEventWork.execute(event, () -> notifyEventToSingleContainer(event, container, null));
 	}
 	
 	/**
@@ -178,7 +178,7 @@ public class EventDispatcher
 			throw new NullPointerException("Event cannot be null!");
 		}
 		
-		ThreadPool.execute(() -> notifyEventToMultipleContainers(event, containers, null));
+		NativeEventWork.execute(event, () -> notifyEventToMultipleContainers(event, containers, null));
 	}
 	
 	/**
@@ -326,6 +326,7 @@ public class EventDispatcher
 			}
 			catch (Exception e)
 			{
+				PlayerNativeWork.recordFailure(e);
 				LOGGER.log(Level.WARNING, getClass().getSimpleName() + ": Exception during notification of event: " + event.getClass().getSimpleName() + " listener: " + listener.getClass().getSimpleName(), e);
 			}
 		}

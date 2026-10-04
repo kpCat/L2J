@@ -102,6 +102,10 @@ public final class PhantomMaterializationService
 	private final Semaphore _permits;
 	private final ConcurrentHashMap<Long, Entry> _activeByProfile = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Integer, Entry> _activeByCharacter = new ConcurrentHashMap<>();
+	private final Object _incidentMonitor = new Object();
+	private final java.util.LinkedHashMap<String, CleanupIncidentArchiveEntry> _cleanupIncidents = new java.util.LinkedHashMap<>();
+	private long _cleanupIncidentEvictions;
+	private boolean _cleanupEvidenceIncomplete;
 	private final FailureInjector _failureInjector;
 	private final PhantomMaterializationLifecyclePort _lifecyclePort;
 	private final long _actionDrainTimeoutMillis;
@@ -219,14 +223,21 @@ public final class PhantomMaterializationService
 		}
 		catch (PhantomMaterializationLifecyclePort.AdmissionRejectedException exception)
 		{
-			lifecycleAttempt.abortUnlessCompleted();
+			abortPreserving(lifecycleAttempt, exception);
 			return rejectMaterialization(ResultStatus.CATCHUP_FENCED);
 		}
 		catch (RuntimeException exception)
 		{
-			lifecycleAttempt.abortUnlessCompleted();
+			abortPreserving(lifecycleAttempt, exception);
 			return rejectMaterialization(ResultStatus.BACKGROUND_RECONCILIATION_BLOCKED);
 		}
+		catch (Error error)
+		{
+			abortPreserving(lifecycleAttempt, error);
+			throw error;
+		}
+		Entry ownedEntry = null;
+		Throwable primaryFailure = null;
 		try
 		{
 		final PhantomMaterializedPlayer.LifecycleSupport lifecycleSupport = new PhantomMaterializedPlayer.LifecycleSupport()
@@ -256,6 +267,7 @@ public final class PhantomMaterializationService
 			_failureInjector,
 			lifecycleSupport,
 			_actionDrainTimeoutMillis));
+		ownedEntry = entry;
 
 		synchronized (_stateMonitor)
 		{
@@ -281,74 +293,106 @@ public final class PhantomMaterializationService
 			entry._permitHeld = true;
 		}
 
-		synchronized (entry)
+		final boolean shutdownRequested;
+		synchronized (entry) { shutdownRequested = (_state != ServiceState.RUNNING) || entry._shutdownRequested; }
+		if (shutdownRequested)
 		{
-			if ((_state != ServiceState.RUNNING) || entry._shutdownRequested)
+			releaseStoredEntry(entry);
+			return rejectMaterialization(ResultStatus.SERVICE_NOT_RUNNING);
+		}
+
+		final OwnerSnapshot owner = _identityRegistry.getOwnerSnapshot(characterObjectId);
+		if ((owner != null) && (owner.ownerKind() == OwnerKind.REAL_LOGIN) && (owner.state() == OwnerState.RETAINED))
+		{
+			final PhantomRetainedIdentityRecovery.Result recovery = recoverRetainedIdentityInternal(characterObjectId);
+			if (!recovery.recovered())
 			{
 				releaseStoredEntry(entry);
-				return rejectMaterialization(ResultStatus.SERVICE_NOT_RUNNING);
-			}
-
-			final OwnerSnapshot owner = _identityRegistry.getOwnerSnapshot(characterObjectId);
-			if ((owner != null) && (owner.ownerKind() == OwnerKind.REAL_LOGIN) && (owner.state() == OwnerState.RETAINED))
-			{
-				final PhantomRetainedIdentityRecovery.Result recovery = recoverRetainedIdentityInternal(characterObjectId);
-				if (!recovery.recovered())
-				{
-					releaseStoredEntry(entry);
-					return rejectMaterialization(ResultStatus.RETAINED_IDENTITY_NOT_RECOVERABLE);
-				}
-			}
-			else if (owner != null)
-			{
-				releaseStoredEntry(entry);
-				return rejectMaterialization(ResultStatus.IDENTITY_BUSY);
-			}
-
-			try
-			{
-				entry._materializedPlayer.materialize();
-				entry._countedActive = true;
-				_metrics.recordMaterializationSucceeded();
-				_trace.record("mat.success." + profileId);
-				lifecycleAttempt.succeed();
-				return new MaterializeResult(ResultStatus.SUCCESS, snapshot(entry));
-			}
-			catch (RuntimeException | Error e)
-			{
-				final boolean retained = entry._materializedPlayer.snapshot().state() != State.STORED;
-				if (!retained)
-				{
-					releaseStoredEntry(entry);
-				}
-				else
-				{
-					_metrics.recordMaterializationFailureRetained();
-				}
-				if (e instanceof MaterializationException materializationFailure)
-				{
-					final ResultStatus status = switch (materializationFailure.failure())
-					{
-						case IDENTITY_BUSY -> ResultStatus.IDENTITY_BUSY;
-						case WORLD_PLAYER_IDENTITY_BUSY -> ResultStatus.WORLD_PLAYER_IDENTITY_BUSY;
-						case WORLD_OBJECT_IDENTITY_BUSY -> ResultStatus.WORLD_OBJECT_IDENTITY_BUSY;
-						case AUTOSAVE_IDENTITY_BUSY -> ResultStatus.AUTOSAVE_IDENTITY_BUSY;
-						case WORLD_REGISTRATION_MISMATCH -> ResultStatus.WORLD_REGISTRATION_MISMATCH;
-						default -> null;
-					};
-					if (status != null)
-					{
-						return rejectMaterialization(status, retained ? snapshot(entry) : null);
-					}
-				}
-				_metrics.recordMaterializationRejected();
-				return new MaterializeResult(retained ? ResultStatus.MATERIALIZATION_FAILED_RETAINED : ResultStatus.MATERIALIZATION_FAILED_CLEAN, retained ? snapshot(entry) : null);
+				return rejectMaterialization(ResultStatus.RETAINED_IDENTITY_NOT_RECOVERABLE);
 			}
 		}
+		else if (owner != null)
+		{
+			releaseStoredEntry(entry);
+			return rejectMaterialization(ResultStatus.IDENTITY_BUSY);
+		}
+
+		try
+		{
+			entry._materializedPlayer.materialize();
+			synchronized (entry) { entry._countedActive = true; }
+			_metrics.recordMaterializationSucceeded();
+			_trace.record("mat.success." + profileId);
+			lifecycleAttempt.succeed();
+			return new MaterializeResult(ResultStatus.SUCCESS, snapshot(entry));
+		}
+		catch (RuntimeException | Error e)
+		{
+			primaryFailure = e;
+			archiveCleanupIncident(entry);
+			final boolean retained = entry._materializedPlayer.snapshot().state() != State.STORED;
+			if (!retained) { releaseStoredEntry(entry); }
+			else { _metrics.recordMaterializationFailureRetained(); }
+			if (e instanceof MaterializationException materializationFailure)
+			{
+				final ResultStatus status = switch (materializationFailure.failure())
+				{
+					case IDENTITY_BUSY -> ResultStatus.IDENTITY_BUSY;
+					case WORLD_PLAYER_IDENTITY_BUSY -> ResultStatus.WORLD_PLAYER_IDENTITY_BUSY;
+					case WORLD_OBJECT_IDENTITY_BUSY -> ResultStatus.WORLD_OBJECT_IDENTITY_BUSY;
+					case AUTOSAVE_IDENTITY_BUSY -> ResultStatus.AUTOSAVE_IDENTITY_BUSY;
+					case WORLD_REGISTRATION_MISMATCH -> ResultStatus.WORLD_REGISTRATION_MISMATCH;
+					default -> null;
+				};
+				if (status != null) { return rejectMaterialization(status, retained ? snapshot(entry) : null); }
+			}
+			_metrics.recordMaterializationRejected();
+			if (e instanceof Error error) { throw error; }
+			return new MaterializeResult(retained ? ResultStatus.MATERIALIZATION_FAILED_RETAINED : ResultStatus.MATERIALIZATION_FAILED_CLEAN, retained ? snapshot(entry) : null);
+		}
+		}
+		catch (RuntimeException | Error failure)
+		{
+			primaryFailure = failure;
+			throw failure;
 		}
 		finally
 		{
-			lifecycleAttempt.abortUnlessCompleted();
+			Throwable terminalFailure = primaryFailure;
+			try
+			{
+				if (primaryFailure == null) { lifecycleAttempt.abortUnlessCompleted(); }
+				else { abortPreserving(lifecycleAttempt, primaryFailure); }
+			}
+			catch (RuntimeException | Error failure)
+			{
+				terminalFailure = failure;
+				throw failure;
+			}
+			finally
+			{
+				if (ownedEntry != null)
+				{
+					// Terminal native abort and lifecycle hooks precede cleanup admission and permit reuse.
+					synchronized (ownedEntry) { ownedEntry._materializationThread = null; }
+					ownedEntry._materializationCompletion.countDown();
+					try { releaseStoredEntry(ownedEntry); }
+					catch (RuntimeException | Error failure)
+					{
+						if (terminalFailure == null) { throw failure; }
+						if (terminalFailure != failure) { terminalFailure.addSuppressed(failure); }
+					}
+				}
+			}
+		}
+	}
+
+	private static void abortPreserving(MaterializationLifecycleAttempt attempt, Throwable primary)
+	{
+		try { attempt.abortUnlessCompleted(); }
+		catch (RuntimeException | Error secondary)
+		{
+			if (primary != secondary) { primary.addSuppressed(secondary); }
 		}
 	}
 
@@ -384,37 +428,94 @@ public final class PhantomMaterializationService
 	{
 		synchronized (entry)
 		{
-			if (shutdown)
-			{
-				entry._shutdownRequested = true;
-			}
+			if (shutdown) { entry._shutdownRequested = true; }
+			if (entry._released) { return new DematerializeResult(ResultStatus.NOT_ACTIVE, null); }
+			if (entry._cleanupInProgress) { return new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry)); }
+			entry._cleanupInProgress = true;
+		}
+		final DematerializeResult result;
+		try
+		{
+			result = awaitMaterialization(entry, deadlineNanos) ? performCleanupEntry(entry, deadlineNanos) : new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry));
+		}
+		finally { synchronized (entry) { entry._cleanupInProgress = false; } }
+		if (result.status() == ResultStatus.CLEANUP_FAILED_RETAINED) { registerDrainRetry(entry); }
+		return result;
+	}
+
+	private static boolean awaitMaterialization(Entry entry, long deadlineNanos)
+	{
+		if (entry._materializationCompletion.getCount() == 0) { return true; }
+		if (entry._materializationThread == Thread.currentThread()) { return false; }
+		final long remainingNanos = deadlineNanos - System.nanoTime();
+		if (remainingNanos <= 0) { return false; }
+		try { return entry._materializationCompletion.await(remainingNanos, TimeUnit.NANOSECONDS); }
+		catch (InterruptedException failure) { Thread.currentThread().interrupt(); return false; }
+	}
+
+	private DematerializeResult performCleanupEntry(Entry entry, long deadlineNanos)
+	{
 			try
 			{
 				entry._materializedPlayer.cleanup(deadlineNanos);
 			}
 			catch (RuntimeException | Error e)
 			{
+				archiveCleanupIncident(entry);
 				if (entry._materializedPlayer.snapshot().state() == State.STORED)
 				{
 					releaseStoredEntry(entry);
+					if (e instanceof Error error) { throw error; }
 					return new DematerializeResult(ResultStatus.SUCCESS, null);
 				}
 				_metrics.recordCleanupFailureRetained();
 				_trace.record("cleanup.failed." + entry._profileId);
+				if (e instanceof Error error) { throw error; }
 				return new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry));
 			}
 
 			releaseStoredEntry(entry);
 			_trace.record("cleanup.success." + entry._profileId);
 			return new DematerializeResult(ResultStatus.SUCCESS, null);
+	}
+
+	private void registerDrainRetry(Entry entry)
+	{
+		final PhantomNativeWorkScope scope = entry._materializedPlayer.retryableDrainScope();
+		if (scope == null) { return; }
+		synchronized (entry)
+		{
+			if (entry._released || entry._retryRegistered || (entry._automaticCleanupAttempts >= 2) || (_activeByProfile.get(entry._profileId) != entry)) { return; }
+			entry._retryRegistered = true;
 		}
+		scope.onQuiescent(() ->
+		{
+			synchronized (entry)
+			{
+				if (entry._released || (entry._automaticCleanupAttempts >= 2)) { entry._retryRegistered = false; return; }
+				entry._automaticCleanupAttempts++;
+			}
+			// The ordinary scheduler publishes the control body. Never use strict inline fallback here.
+			final var future = ThreadPool.schedule(() ->
+			{
+				synchronized (entry) { entry._retryRegistered = false; }
+				if ((_activeByProfile.get(entry._profileId) != entry) || (entry._materializedPlayer.retryableDrainScope() != scope) || (scope.outstanding() != 0)) { return; }
+				cleanupEntry(entry, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(_actionDrainTimeoutMillis), entry._shutdownRequested);
+			}, 0);
+			if (future == null)
+			{
+				synchronized (entry) { entry._retryRegistered = false; }
+				_trace.record("cleanup.retry.submit.failed." + entry._profileId);
+			}
+		});
 	}
 
 	private void releaseStoredEntry(Entry entry)
 	{
+		archiveCleanupIncident(entry);
 		synchronized (entry)
 		{
-			if (entry._released || (entry._materializedPlayer.snapshot().state() != State.STORED))
+			if (entry._released || (entry._materializationCompletion.getCount() != 0) || (entry._materializedPlayer.snapshot().state() != State.STORED))
 			{
 				return;
 			}
@@ -664,7 +765,32 @@ public final class PhantomMaterializationService
 
 	public ServiceSnapshot snapshot()
 	{
-		return new ServiceSnapshot(_state, _maximumMaterialized, _permits.availablePermits(), _activeByProfile.size(), list());
+		final var materializations = list();
+		synchronized (_incidentMonitor)
+		{
+			return new ServiceSnapshot(_state, _maximumMaterialized, _permits.availablePermits(), _activeByProfile.size(), materializations,
+				List.copyOf(_cleanupIncidents.values()), _cleanupIncidentEvictions, _cleanupEvidenceIncomplete);
+		}
+	}
+
+	private void archiveCleanupIncident(Entry entry)
+	{
+		final var actor = entry._materializedPlayer.snapshot();
+		if (actor.firstCleanupIncident() == null) { return; }
+		final String key = actor.firstCleanupIncident().id(entry._profileId);
+		final var record = new CleanupIncidentArchiveEntry(entry._profileId, key, actor.firstCleanupIncident(), actor.latestCleanupIncident(), actor.state() == State.STORED);
+		synchronized (_incidentMonitor)
+		{
+			if (!_cleanupIncidents.containsKey(key) && (_cleanupIncidents.size() >= 256))
+			{
+				final String finished = _cleanupIncidents.entrySet().stream().filter(value -> value.getValue().finished()).map(java.util.Map.Entry::getKey).findFirst().orElse(null);
+				final String evicted = finished == null ? _cleanupIncidents.keySet().iterator().next() : finished;
+				_cleanupIncidents.remove(evicted);
+				_cleanupIncidentEvictions++;
+				if (finished == null) { _cleanupEvidenceIncomplete = true; }
+			}
+			_cleanupIncidents.put(key, record);
+		}
 	}
 
 	public ShutdownSnapshot shutdownSnapshot()
@@ -704,7 +830,7 @@ public final class PhantomMaterializationService
 			actor.cleanupFailureMessage(),
 			actor.cleanupFailureSequence(),
 			actor.cleanupFailureAdmittedActionCount(),
-			actor.cleanupFailureCause());
+			actor.cleanupFailureCause(), actor.firstCleanupIncident(), actor.latestCleanupIncident());
 	}
 
 	public record MaterializeResult(ResultStatus status, MaterializationSnapshot snapshot)
@@ -720,7 +846,7 @@ public final class PhantomMaterializationService
 	}
 
 	public record MaterializationSnapshot(long profileId, int characterObjectId, State state, boolean playerRetained, boolean identityLeaseRetained, boolean outboundAttached, boolean actionAdmissionOpen, int admittedActionCount, boolean worldPresent, long materializedAtNanos, long dematerializedAtNanos,
-		PhantomMaterializedPlayer.CleanupPhase cleanupPhase, PhantomMaterializedPlayer.CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause)
+		PhantomMaterializedPlayer.CleanupPhase cleanupPhase, PhantomMaterializedPlayer.CleanupPhase cleanupFailurePhase, String cleanupFailureClass, String cleanupFailureMessage, long cleanupFailureSequence, int cleanupFailureAdmittedActionCount, String cleanupFailureCause, PhantomCleanupIncident firstCleanupIncident, PhantomCleanupIncident latestCleanupIncident)
 	{
 	}
 
@@ -732,11 +858,19 @@ public final class PhantomMaterializationService
 		}
 	}
 
-	public record ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations)
+	public record CleanupIncidentArchiveEntry(long profileId, String incidentId, PhantomCleanupIncident first, PhantomCleanupIncident latest, boolean finished) { }
+
+	public record ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations, List<CleanupIncidentArchiveEntry> cleanupIncidents, long cleanupIncidentEvictions, boolean cleanupEvidenceIncomplete)
 	{
+		public ServiceSnapshot(ServiceState state, int maximumMaterialized, int availablePermits, int retainedEntries, List<MaterializationSnapshot> materializations)
+		{
+			this(state, maximumMaterialized, availablePermits, retainedEntries, materializations, List.of(), 0, false);
+		}
+
 		public ServiceSnapshot
 		{
 			materializations = List.copyOf(materializations);
+			cleanupIncidents = List.copyOf(cleanupIncidents);
 		}
 	}
 
@@ -783,10 +917,15 @@ public final class PhantomMaterializationService
 		private final long _profileId;
 		private final int _characterObjectId;
 		private final PhantomMaterializedPlayer _materializedPlayer;
+		private final CountDownLatch _materializationCompletion = new CountDownLatch(1);
+		private volatile Thread _materializationThread = Thread.currentThread();
 		private boolean _permitHeld;
 		private boolean _countedActive;
 		private boolean _released;
-		private boolean _shutdownRequested;
+		private volatile boolean _shutdownRequested;
+		private boolean _cleanupInProgress;
+		private boolean _retryRegistered;
+		private int _automaticCleanupAttempts;
 
 		private Entry(long profileId, int characterObjectId, PhantomMaterializedPlayer materializedPlayer)
 		{

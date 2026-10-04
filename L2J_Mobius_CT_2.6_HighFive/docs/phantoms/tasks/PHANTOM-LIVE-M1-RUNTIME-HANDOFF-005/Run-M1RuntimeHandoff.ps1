@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string] $ModuleRoot = '', [ValidateSet('RealClient','Synthetic')][string] $ActorMode = 'RealClient')
+param([string] $ModuleRoot = '', [ValidateSet('RealClient','Synthetic')][string] $ActorMode = 'RealClient', [ValidateRange(0, [long]::MaxValue)][long] $PreviouslyCompletedProfileId = 0, [string] $PreviousCompletedEvidencePath = '')
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -17,6 +17,9 @@ $script:stopPilot = $null
 $script:gameMetrics = $null
 $script:actorMode = $ActorMode
 $script:startActor = $null
+$script:previouslyCompletedProfileId = $PreviouslyCompletedProfileId
+$script:previousCompletedEvidencePath = $PreviousCompletedEvidencePath
+$script:runnerPath = $PSCommandPath
 
 function Expected-ActorOwner { if ($script:actorMode -ceq 'Synthetic') { return 'LOCALPLAY_TEST_HUMAN' }; return 'REAL_LOGIN' }
 
@@ -30,7 +33,9 @@ function Invoke-Proof([string] $operation, [hashtable] $arguments = @{})
 	if ($script:cleanup -and ($operation -cnotin @('STOP_MOVE', 'TELEPORT_SELF', 'STATUS'))) { throw 'CLEANUP_OPERATION_REJECTED' }
 	if ((-not $script:cleanup) -and ((Elapsed-Ms) -ge 480000)) { throw 'ACCEPTANCE_DEADLINE_EXPIRED' }
 	if ($script:cleanup -and ($script:cleanupClock.ElapsedMilliseconds -ge 45000)) { throw 'CLEANUP_DEADLINE_EXPIRED' }
-	$limit = if ($script:cleanup) { 400 } else { 368 }
+	# OBSERVE can require 90 selected snapshots and 18 six-page census rounds.
+	# Keep 32 requests reserved for the existing finite cleanup lane.
+	$limit = if ($script:cleanup) { 592 } else { 560 }
 	if ($script:requestCount -ge $limit) { throw 'MAILBOX_BUDGET_EXHAUSTED' }
 	$script:requestCount++
 	try { $result = & $script:transport $operation $arguments $script:runId }
@@ -64,6 +69,97 @@ function Required-Utc($object, [string] $name)
 	return $parsed.ToUniversalTime()
 }
 
+function Required-Long($object, [string] $name, [long] $minimum = 0)
+{
+	$value = Read-Field $object $name
+	$parsed = 0L
+	if (($null -eq $value) -or ($value -cnotmatch '^[0-9]+$') -or (-not [long]::TryParse($value, [Globalization.NumberStyles]::None, [Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) -or ($parsed -lt $minimum)) { throw "INVALID_REQUIRED_LONG:$name" }
+	return $parsed
+}
+
+function Native-EvidenceFields
+{
+	return @('nativeEvidenceVersion', 'nativeEvidenceOwner', 'nativeEvidenceObjectId', 'nativeEvidenceEpoch', 'nativeEvidenceSampleNanos', 'nativeEvidenceOverflow', 'nativeEvidenceSequence', 'nativeDamageSequence', 'nativeKillSequence', 'nativeRewardSequence', 'nativeTargetSequence', 'nativeFarmCycleSequence', 'nativeExpGained', 'nativeSpGained', 'nativeLootSequence', 'nativeLastProgressNanos', 'nativePhase', 'nativePhaseSinceNanos', 'nativePhaseDeadlineNanos')
+}
+
+function Read-PreviousM1Completion
+{
+	if ($script:previouslyCompletedProfileId -eq 0)
+	{
+		if ($script:previousCompletedEvidencePath) { throw 'PREVIOUS_COMPLETION_ID_MISSING' }
+		return $null
+	}
+	if (($script:actorMode -cne 'Synthetic') -or [string]::IsNullOrWhiteSpace($script:previousCompletedEvidencePath)) { throw 'PREVIOUS_COMPLETION_EVIDENCE_REQUIRED' }
+	$path = [IO.Path]::GetFullPath($script:previousCompletedEvidencePath)
+	$facts = @{}
+	foreach ($line in [IO.File]::ReadAllLines($path))
+	{
+		$separator = $line.IndexOf('=')
+		if ($separator -lt 1) { throw 'PREVIOUS_COMPLETION_INVALID_RECEIPT' }
+		$key = $line.Substring(0, $separator)
+		if ($facts.ContainsKey($key)) { throw 'PREVIOUS_COMPLETION_DUPLICATE_FACT' }
+		$facts[$key] = $line.Substring($separator + 1)
+	}
+	foreach ($required in @('profileId', 'result', 'actorMode', 'primaryFailure', 'cleanupFailures', 'previouslyCompletedProfileId', 'runnerSha256', 'NEW_MATERIALIZATION', 'CONTACT', 'NATIVE_LIFE', 'COHORT', 'SOFT_RETURN', 'RESTORE', 'STOP')) { if (-not $facts.ContainsKey($required)) { throw "PREVIOUS_COMPLETION_MISSING_FACT:$required" } }
+	if (($facts.profileId -cne [string]$script:previouslyCompletedProfileId) -or ($facts.result -cne 'SYNTHETIC_SERVER_GREEN; M1_OPEN; FINAL_CLIENT_REQUIRED') -or ($facts.actorMode -cne 'Synthetic') -or ($facts.primaryFailure -cne '') -or ($facts.cleanupFailures -cne '') -or ($facts.previouslyCompletedProfileId -cne '0') -or ($facts.runnerSha256 -cne (Get-FileHash -Algorithm SHA256 -LiteralPath $script:runnerPath).Hash)) { throw 'PREVIOUS_COMPLETION_NOT_FIRST_GREEN_OR_SAME_RUNNER' }
+	foreach ($grade in @('NEW_MATERIALIZATION', 'CONTACT', 'NATIVE_LIFE', 'COHORT', 'SOFT_RETURN', 'RESTORE', 'STOP')) { if ($facts[$grade] -cne 'PASS') { throw "PREVIOUS_COMPLETION_GRADE_FAILED:$grade" } }
+	return [pscustomobject]@{ path = $path; sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash }
+}
+
+function Initialize-NativeM1Evidence($prepared)
+{
+	$script:frozenCohort = [Collections.Generic.List[string]]::new()
+	$script:cohortEvidence = @{}; $script:selectedEvidence = $null
+	$text = Read-Field $prepared 'naturalCohortProfileIds'
+	if ([string]::IsNullOrWhiteSpace($text)) { throw 'FROZEN_COHORT_MISSING' }
+	foreach ($id in $text.Split(','))
+	{
+		$value = Required-Long ([pscustomobject]@{ id = $id }) 'id' 1
+		$key = $value.ToString([Globalization.CultureInfo]::InvariantCulture)
+		if ($script:frozenCohort.Contains($key)) { throw 'FROZEN_COHORT_DUPLICATE' }
+		$script:frozenCohort.Add($key)
+	}
+	if (($script:frozenCohort.Count -lt 4) -or (-not $script:frozenCohort.Contains([string]$script:profileId))) { throw 'FROZEN_COHORT_INSUFFICIENT_OR_SELECTED_MISSING' }
+}
+
+function Read-NativeEvidence($row)
+{
+	$id = Required-Long $row 'objectId' 1; $epoch = Required-Long $row 'materializedAtNanos' 1
+	if (((Read-Field $row 'nativeEvidenceVersion') -cne '1') -or ((Read-Field $row 'nativeEvidenceOwner') -cne 'PHANTOM') -or ((Read-Field $row 'nativeEvidenceOverflow') -cne 'false')) { throw 'NATIVE_EVIDENCE_UNPROVEN_OR_OVERFLOW' }
+	if (((Required-Long $row 'nativeEvidenceObjectId' 1) -ne $id) -or ((Required-Long $row 'nativeEvidenceEpoch' 1) -ne $epoch)) { throw 'NATIVE_EVIDENCE_ACTOR_OR_EPOCH_MISMATCH' }
+	$values = [ordered]@{ objectId = $id; epoch = $epoch }
+	foreach ($field in @('nativeEvidenceSampleNanos', 'nativeEvidenceSequence', 'nativeDamageSequence', 'nativeKillSequence', 'nativeRewardSequence', 'nativeTargetSequence', 'nativeFarmCycleSequence', 'nativeExpGained', 'nativeSpGained', 'nativeLootSequence', 'nativeLastProgressNanos', 'nativePhaseSinceNanos', 'nativePhaseDeadlineNanos')) { $values[$field] = Required-Long $row $field }
+	if (($values.nativeEvidenceSampleNanos -lt $epoch) -or ($values.nativeLastProgressNanos -gt $values.nativeEvidenceSampleNanos) -or (($values.nativeLastProgressNanos -ne 0) -and ($values.nativeLastProgressNanos -lt $epoch))) { throw 'NATIVE_EVIDENCE_INVALID_TIME' }
+	$phase = Read-Field $row 'nativePhase'
+	if ($phase -cnotin @('NONE', 'ROUTE', 'COMBAT', 'REGEN', 'DEATH_RECOVERY')) { throw 'NATIVE_EVIDENCE_INVALID_PHASE' }
+	if (($phase -ceq 'NONE') -and (($values.nativePhaseSinceNanos -ne 0) -or ($values.nativePhaseDeadlineNanos -ne 0))) { throw 'NATIVE_EVIDENCE_INVALID_PHASE_TIME' }
+	if (($phase -cne 'NONE') -and (($values.nativePhaseSinceNanos -lt $epoch) -or ($values.nativePhaseSinceNanos -gt $values.nativeEvidenceSampleNanos) -or ($values.nativePhaseDeadlineNanos -le $values.nativeEvidenceSampleNanos) -or (($values.nativePhaseDeadlineNanos - $values.nativePhaseSinceNanos) -gt 120000000000L))) { throw 'NATIVE_EVIDENCE_UNBOUNDED_PHASE' }
+	$values.nativePhase = $phase
+	return [pscustomobject]$values
+}
+
+function Add-NativeEvidence($previous, $row)
+{
+	$current = Read-NativeEvidence $row
+	if ($null -eq $previous) { return [pscustomobject]@{ baseline = $current; latest = $current; useful = $false; lastUsefulNanos = $current.nativeEvidenceSampleNanos } }
+	$previous = [pscustomobject]@{ baseline = $previous.baseline; latest = $previous.latest; useful = $previous.useful; lastUsefulNanos = $previous.lastUsefulNanos }
+	$last = $previous.latest
+	if (($last.objectId -ne $current.objectId) -or ($last.epoch -ne $current.epoch)) { throw 'FROZEN_COHORT_EPOCH_CHANGED' }
+	if ($current.nativeEvidenceSampleNanos -le $last.nativeEvidenceSampleNanos) { throw 'NATIVE_EVIDENCE_STALE_SAMPLE' }
+	$changed = $false
+	foreach ($field in @('nativeEvidenceSequence', 'nativeDamageSequence', 'nativeKillSequence', 'nativeRewardSequence', 'nativeTargetSequence', 'nativeFarmCycleSequence', 'nativeExpGained', 'nativeSpGained', 'nativeLootSequence', 'nativeLastProgressNanos'))
+	{
+		if ($current.$field -lt $last.$field) { throw "NATIVE_EVIDENCE_SEQUENCE_REGRESSED:$field" }
+		if (($field -cne 'nativeEvidenceSequence') -and ($current.$field -gt $last.$field)) { $changed = $true }
+	}
+	if ($changed -and (($current.nativeEvidenceSequence -le $last.nativeEvidenceSequence) -or ($current.nativeLastProgressNanos -le $last.nativeEvidenceSampleNanos))) { throw 'NATIVE_EVIDENCE_STALE_EVENT' }
+	if (($current.nativeDamageSequence -gt $last.nativeDamageSequence) -and $changed) { $previous.useful = $true; $previous.lastUsefulNanos = $current.nativeLastProgressNanos }
+	# Phase changes/self-heal/flags cannot restart the useful farm debt.
+	if (($current.nativeEvidenceSampleNanos - $previous.lastUsefulNanos) -ge 90000000000L) { throw 'NATIVE_EVIDENCE_PROGRESS_DEADLINE' }
+	$previous.latest = $current
+	return $previous
+}
+
 function Capture([string] $phase, [bool] $includeCensus = $false, [string] $transition = '')
 {
 	$result = $null
@@ -75,6 +171,7 @@ function Capture([string] $phase, [bool] $includeCensus = $false, [string] $tran
 		if ($retry -eq 3) { throw "M1_TARGET_TRANSITION_TIMEOUT:$phase" }
 		Pause-Ms 1000
 	}
+	if (($phase -ceq 'OBSERVE') -and ((Elapsed-Ms) -gt $script:observationDeadlineMs)) { throw 'OBSERVATION_DEADLINE_EXPIRED' }
 	$actor = $result.after
 	$target = $result.candidate
 	if (((Read-Field $actor 'identityOwner') -cne (Expected-ActorOwner)) -or ((Required-Int $target 'profileId') -ne $script:profileId)) { throw 'ACTOR_OR_TARGET_IDENTITY_CHANGED' }
@@ -83,6 +180,8 @@ function Capture([string] $phase, [bool] $includeCensus = $false, [string] $tran
 	$record = [ordered]@{ utc = $utc; phase = $phase; transition = $transition; humanX = (Required-Int $actor 'x'); humanY = (Required-Int $actor 'y'); humanZ = (Required-Int $actor 'z') }
 	foreach ($field in @('profileId', 'objectId', 'materializedAtNanos', 'selectionKind', 'positionSource', 'observationChanged', 'committedSequence', 'committedX', 'committedY', 'committedZ', 'observedX', 'observedY', 'observedZ', 'liveX', 'liveY', 'liveZ', 'worldPresent', 'snapshotWorldPresent', 'regionCanKnow', 'humanPrewarm', 'clientVisible', 'distance2D', 'localityCurrent', 'materializationState', 'nativeMoving', 'nativeAttacking', 'nativeCasting', 'nativeAutoPlay', 'nativeTargetObjectId', 'nativeTargetMonsterAlive', 'activityState', 'busyReason', 'retentionPins', 'readinessReason', 'historicalStatus', 'ordinaryQueued', 'urgentQueued', 'workerState', 'physicalCount', 'runnableOrdinary', 'travelReason', 'travelFailureReason', 'censusCount', 'censusEligible')) { $record[$field] = Read-Field $target $field }
 	foreach ($field in @('signalDelivery', 'localityOverflow', 'activeProfile', 'currentStage', 'enqueueAgeMillis', 'lastProgressAgeMillis', 'nextWakeMillis', 'nextRetryMillis', 'historicalRequestId', 'innerCursorMinute', 'innerTargetMinute', 'innerRevision', 'admittedPreparationCount', 'waitingPreparationCount', 'focusId', 'focusAgeMillis', 'oldestWaitMillis', 'reservedPaused', 'committedIntervals', 'elapsedBatchMillis', 'participants', 'resizePending', 'retiredReserve', 'resizePhase')) { $record[$field] = Read-Field $target $field }
+	foreach ($field in (Native-EvidenceFields)) { $record[$field] = Read-Field $target $field }
+	if ($phase -ceq 'OBSERVE') { $script:selectedEvidence = Add-NativeEvidence $script:selectedEvidence ([pscustomobject]$record) }
 	if ($includeCensus) { Read-Census $target $record }
 	$script:rows.Add([pscustomobject]$record)
 	$priorLocal = $script:firstLocalUtc
@@ -113,7 +212,6 @@ function Capture([string] $phase, [bool] $includeCensus = $false, [string] $tran
 		{
 			if (($null -ne $script:lastNativePoint) -and ($record.nativeMoving -ceq 'true') -and ([Math]::Sqrt([Math]::Pow((Required-Int $target 'observedX') - $script:lastNativePoint.x, 2) + [Math]::Pow((Required-Int $target 'observedY') - $script:lastNativePoint.y, 2)) -ge 32)) { $script:nativeDisplacement = $true }
 			$script:lastNativePoint = [pscustomobject]@{ x = (Required-Int $target 'observedX'); y = (Required-Int $target 'observedY') }
-			if (($record.nativeTargetMonsterAlive -ceq 'true') -and (($record.nativeAttacking -ceq 'true') -or ($record.nativeCasting -ceq 'true'))) { $script:selectedNativeFarm = $true }
 		}
 	}
 	return $result
@@ -123,27 +221,61 @@ function Read-Census($firstPage, $record)
 {
 	$page = $firstPage
 	$total = 0; $eligible = 0; $cursor = 0L
+	$round = @{}
 	for ($pageNumber = 0; $pageNumber -lt 6; $pageNumber++)
 	{
 		$count = Required-Int $page 'censusCount'
-		$total += $count; $eligible += Required-Int $page 'censusEligible'
+		$pageEligible = Required-Int $page 'censusEligible'
+		if (($count -lt 0) -or ($count -gt 24) -or ($pageEligible -lt 0) -or ($pageEligible -gt $count)) { throw 'INVALID_CENSUS_COUNT' }
+		$total += $count; $eligible += $pageEligible; $actualEligible = 0
 		for ($sample = 1; $sample -le $count; $sample++)
 		{
 			$entry = [ordered]@{ utc = $record.utc; phase = $record.phase }
 			foreach ($field in @('admittedActionCount', 'cleanupPhase', 'cleanupFailurePhase', 'cleanupFailureClass', 'cleanupFailureMessage', 'cleanupFailureSequence', 'cleanupFailureAdmittedActionCount', 'playerRetained', 'identityLeaseRetained', 'outboundAttached', 'worldPresent')) { $entry[$field] = Read-Field $page "census${sample}.$field" }
 			foreach ($field in @('profileId', 'objectId', 'materializedAtNanos', 'materializationState', 'actionAdmissionOpen', 'pendingOwnedStore', 'goalId', 'goalRevision', 'runtimeGoalRevision', 'currentActionGuard', 'hp', 'maxHp', 'nativeAttackBy', 'targetRejections', 'pvpHumanContext', 'level', 'npcId', 'anchor', 'goalStatus', 'runtimeReason', 'travelReason', 'travelFailureReason', 'travelFailureSequence', 'dead', 'moving', 'attacking', 'casting', 'autoPlay', 'party', 'store', 'intention', 'shortTargets', 'longTargets', 'x', 'y', 'z', 'targetObjectId', 'targetMonsterAlive', 'eligible', 'idleReason')) { $entry[$field] = Read-Field $page "census${sample}.$field" }
+			foreach ($field in (Native-EvidenceFields)) { $entry[$field] = Read-Field $page "census${sample}.$field" }
 			$script:census.Add([pscustomobject]$entry)
+			$key = [string](Required-Long ([pscustomobject]$entry) 'profileId' 1)
+			if (($key -in $round.Keys) -or ([long]$key -le $cursor)) { throw 'CENSUS_DUPLICATE_OR_CURSOR_ORDER' }
+			$round[$key] = [pscustomobject]$entry
+			if ($entry.eligible -ceq 'true') { $actualEligible++ }
+			elseif ($entry.eligible -cne 'false') { throw 'INVALID_CENSUS_ELIGIBILITY' }
 		}
-		$cursorText = Read-Field $page 'censusNextProfileId' '0'
-		if (-not [long]::TryParse([string]$cursorText, [ref]$cursor)) { throw 'INVALID_CENSUS_CURSOR' }
+		if ($actualEligible -ne $pageEligible) { throw 'CENSUS_ELIGIBILITY_COUNT_MISMATCH' }
+		$nextCursor = Required-Long $page 'censusNextProfileId'
+		if (($nextCursor -ne 0) -and (($nextCursor -le $cursor) -or ($count -eq 0) -or (-not $round.ContainsKey([string]$nextCursor)))) { throw 'INVALID_CENSUS_CURSOR' }
+		$cursor = $nextCursor
 		if ($cursor -eq 0) { break }
-		if ($pageNumber -eq 5) { $script:censusComplete = $false; break }
+		if ($pageNumber -eq 5) { $script:censusComplete = $false; throw 'CENSUS_PAGE_LIMIT_EXCEEDED' }
 		$pageResult = Invoke-Proof 'SNAPSHOT_M1_ENVELOPE' @{ includeCensus = 'true'; censusAfterProfileId = [string]$cursor }
 		if ($pageResult.status -cne 'SUCCEEDED') { throw "CENSUS_PAGE_FAILED:$($pageResult.reason)" }
+		if (($record.phase -ceq 'OBSERVE') -and ((Elapsed-Ms) -gt $script:observationDeadlineMs)) { throw 'OBSERVATION_DEADLINE_EXPIRED' }
 		$page = $pageResult.candidate
 	}
 	$record.censusCount = [string]$total
 	$record.censusEligible = [string]$eligible
+	if ($record.phase -cin @('OBSERVE', 'RETURN_VISIBLE'))
+	{
+		foreach ($id in $script:frozenCohort) { if (-not $round.ContainsKey($id)) { throw "FROZEN_COHORT_ROW_LOST:$id" } }
+		$nextStates = @{}
+		foreach ($id in $script:frozenCohort)
+		{
+			$row = $round[$id]
+			if (($row.materializationState -cne 'ACTIVE') -or ($row.actionAdmissionOpen -cne 'true') -or ($row.pendingOwnedStore -cne 'false') -or ($row.worldPresent -cne 'true')) { throw "FROZEN_COHORT_UNSAFE:$id" }
+			if (($row.dead -cnotin @('true', 'false')) -or (($row.dead -ceq 'true') -and ($row.nativePhase -cne 'DEATH_RECOVERY'))) { throw "FROZEN_COHORT_DEATH_UNPROVEN:$id" }
+			if (($row.eligible -cne 'true') -and ($row.dead -cne 'true')) { throw "FROZEN_COHORT_ELIGIBILITY_LOST:$id" }
+			$hp = 0.0; $maxHp = 0.0
+			if ((-not [double]::TryParse($row.hp, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$hp)) -or (-not [double]::TryParse($row.maxHp, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$maxHp)) -or [double]::IsNaN($hp) -or [double]::IsInfinity($hp) -or [double]::IsNaN($maxHp) -or [double]::IsInfinity($maxHp) -or ($hp -lt 0) -or ($maxHp -le 0) -or ($hp -gt $maxHp)) { throw "FROZEN_COHORT_INVALID_HP:$id" }
+			if ($record.phase -ceq 'OBSERVE') { $nextStates[$id] = Add-NativeEvidence $script:cohortEvidence[$id] $row }
+			else
+			{
+				$final = Read-NativeEvidence $row
+				$last = $script:cohortEvidence[$id].latest
+				if (($last.objectId -ne $final.objectId) -or ($last.epoch -ne $final.epoch)) { throw 'FROZEN_COHORT_EPOCH_CHANGED' }
+			}
+		}
+		if ($record.phase -ceq 'OBSERVE') { $script:cohortEvidence = $nextStates }
+	}
 }
 
 function Wait-For([string] $phase, [scriptblock] $predicate, [int] $seconds)
@@ -196,6 +328,33 @@ function Route-Stale($planned, $current)
 	$x = Required-Int $current 'observedX'; $y = Required-Int $current 'observedY'
 	$px = Required-Int $planned 'observedX'; $py = Required-Int $planned 'observedY'
 	return ((($x -shr 11) -ne ($px -shr 11)) -or (($y -shr 11) -ne ($py -shr 11)) -or (([Math]::Pow($x - $px, 2) + [Math]::Pow($y - $py, 2)) -gt (256 * 256)))
+}
+
+function Get-NativeM1Grades
+{
+	$nativeLife = 'NOT_OBSERVED'; $cohort = 'INSUFFICIENT_OR_FAILED'
+	$selected = Get-Variable -Name selectedEvidence -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+	$frozen = Get-Variable -Name frozenCohort -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+	$states = Get-Variable -Name cohortEvidence -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+	if ($null -ne $selected)
+	{
+		$before = $selected.baseline; $after = $selected.latest
+		if ((($after.nativeFarmCycleSequence - $before.nativeFarmCycleSequence) -ge 2) -and (($after.nativeKillSequence - $before.nativeKillSequence) -ge 2) -and (($after.nativeRewardSequence - $before.nativeRewardSequence) -ge 2) -and (($after.nativeTargetSequence - $before.nativeTargetSequence) -ge 2) -and ($after.nativeDamageSequence -gt $before.nativeDamageSequence) -and ($after.nativeExpGained -gt $before.nativeExpGained) -and ($after.nativeSpGained -gt $before.nativeSpGained)) { $nativeLife = 'PASS' }
+	}
+	if ($script:censusComplete -and ($null -ne $frozen) -and ($frozen.Count -ge 4) -and ($null -ne $states) -and ($nativeLife -ceq 'PASS'))
+	{
+		$others = 0; $allObserved = $true
+		foreach ($id in $frozen)
+		{
+			if (-not $states.ContainsKey($id)) { $allObserved = $false; continue }
+			$state = $states[$id]
+			if (($id -cne [string]$script:profileId) -and $state.useful) { $others++ }
+			if (($state.latest.nativeEvidenceSampleNanos - $state.baseline.nativeEvidenceSampleNanos) -le 0) { $allObserved = $false }
+			if ((-not $state.useful) -and ($state.latest.nativePhase -ceq 'NONE')) { $allObserved = $false }
+		}
+		if ($allObserved -and ($others -ge 2)) { $cohort = 'PASS' }
+	}
+	return @{ NATIVE_LIFE = $nativeLife; COHORT = $cohort }
 }
 
 function Contact($sample)
@@ -301,46 +460,61 @@ function Invoke-M1Run
 	$script:firstLocalUtc = $null; $script:firstCouldKnowUtc = $null; $script:firstClientVisibleUtc = $null; $script:firstMaterializedUtc = $null
 	$script:prewarmMaterialized = $false; $script:prewarmTimingUnproven = $false; $script:continuityLocked = $false
 	$script:lockedObjectId = 0; $script:lockedEpoch = $null; $script:lastNativePoint = $null
-	$script:approachMoveConfirmed = $false; $script:contact = $false; $script:nativeDisplacement = $false; $script:selectedNativeFarm = $false
+	$script:approachMoveConfirmed = $false; $script:contact = $false; $script:nativeDisplacement = $false
+	$script:frozenCohort = [Collections.Generic.List[string]]::new(); $script:cohortEvidence = @{}; $script:selectedEvidence = $null
+	$script:observationDeadlineMs = 0L
 	$script:censusComplete = $true; $script:stopState = 'NOT_CONFIRMED'; $primaryFailure = ''; $cleanupFailures = [Collections.Generic.List[string]]::new()
 	$script:startMetrics = $null; $script:endMetrics = $null
+	$script:previousCompletionReceipt = $null
 	$matrix = [ordered]@{ NEW_MATERIALIZATION = 'NOT_OBSERVED'; CONTACT = 'NOT_OBSERVED'; NATIVE_LIFE = 'NOT_OBSERVED'; COHORT = 'NOT_OBSERVED'; SOFT_RETURN = 'NOT_OBSERVED'; RESTORE = 'NOT_CONFIRMED'; STOP = 'NOT_CONFIRMED' }
 	try
 	{
+		$script:previousCompletionReceipt = Read-PreviousM1Completion
 		if ($null -ne $script:startActor) { & $script:startActor }
 		$initial = Invoke-Proof 'STATUS'
 		if (($initial.status -cne 'SUCCEEDED') -or ((Read-Field $initial.after 'identityOwner') -cne (Expected-ActorOwner)) -or ((Read-Field $initial.after 'worldPresent') -cne 'true')) { throw $(if ($script:actorMode -ceq 'Synthetic') { 'NO_OWNED_SYNTHETIC_HUMAN' } else { 'NO_CONSENTED_REAL_LOGIN' }) }
 		$script:startMetrics = & $script:gameMetrics
 		if (($null -eq $script:startMetrics) -or ($script:startMetrics.pilotState -cne 'RUNNING')) { throw 'OWNED_GAME_METRICS_UNAVAILABLE' }
 		$script:origin = [pscustomobject]@{ x = (Required-Int $initial.candidate 'originX'); y = (Required-Int $initial.candidate 'originY'); z = (Required-Int $initial.candidate 'originZ'); instanceId = (Required-Int $initial.candidate 'originInstanceId') }
-		$prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' @{ stage = 'INITIAL' }
+		$initialArguments = @{ stage = 'INITIAL' }
+		if ($script:previouslyCompletedProfileId -gt 0) { $initialArguments.excludePreviouslySelectedProfileIds = [string]$script:previouslyCompletedProfileId }
+		$prepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' $initialArguments
 		$script:legacySkips = Read-Field $prepared.candidate 'legacySkips' ''
 		if ($prepared.status -cne 'ACCEPTED') { throw "PREPARE_INITIAL_REJECTED:$($prepared.reason)" }
 		$script:profileId = [long](Required-Int $prepared.candidate 'profileId')
 		$script:selectionKind = Read-Field $prepared.candidate 'selectionKind'
 		if ($script:selectionKind -cnotin @('STORED_START', 'EXISTING_START')) { throw 'INVALID_SELECTION_KIND' }
+		if ($script:profileId -eq $script:previouslyCompletedProfileId) { throw 'PREVIOUS_SELECTED_PROFILE_REUSED' }
+		Initialize-NativeM1Evidence $prepared.candidate
 		$boundary = Required-Utc $prepared.candidate 'nextBoundary'
-		if ($boundary -le (Now-Utc).AddSeconds(240)) { throw 'SCENE_INVALIDATED:CALENDAR_HORIZON' }
+		$remainingSceneMillis = [Math]::Max(0L, 480000L - (Elapsed-Ms)) + 45000L
+		if ($boundary -le (Now-Utc).AddMilliseconds($remainingSceneMillis)) { throw 'SCENE_INVALIDATED:CALENDAR_HORIZON' }
 		$outside = Wait-For 'OUTSIDE' { param($s) $s.after.teleporting -cne 'true' } 10
 		if (((Read-Field $outside.candidate 'positionSource') -ceq 'COMMITTED') -and ((Read-Field $outside.candidate 'committedSequence') -cne (Read-Field $prepared.candidate 'committedSequence')) -or ($outside.candidate.humanPrewarm -ceq 'true') -or ($outside.candidate.regionCanKnow -ceq 'true'))
 		{
 			$reprepared = Invoke-Proof 'PREPARE_M1_ENVELOPE' @{ stage = 'INITIAL'; profileId = [string]$script:profileId }
 			if (($reprepared.status -cne 'ACCEPTED') -or ((Required-Int $reprepared.candidate 'profileId') -ne $script:profileId) -or ((Read-Field $reprepared.candidate 'selectionKind') -cne $script:selectionKind)) { throw "SCENE_INVALIDATED:SAME_TARGET_REPREPARE:$($reprepared.reason)" }
+			if ((Read-Field $reprepared.candidate 'naturalCohortProfileIds') -cne (Read-Field $prepared.candidate 'naturalCohortProfileIds')) { throw 'FROZEN_COHORT_REPREPARE_CHANGED' }
 			$outside = Wait-For 'OUTSIDE' { param($s) $s.after.teleporting -cne 'true' } 10
 		}
 		if (($outside.candidate.humanPrewarm -cne 'false') -or ($outside.candidate.regionCanKnow -cne 'false') -or ($outside.candidate.clientVisible -cne 'false')) { throw 'SCENE_INVALIDATED:OUTSIDE_NOT_PROVEN' }
 		if (($script:selectionKind -ceq 'STORED_START') -and ($outside.candidate.worldPresent -ceq 'true')) { $script:prewarmTimingUnproven = $true }
 		$null = Approach-Tracked
 		$matrix.CONTACT = if ($script:contact) { 'PASS' } else { 'NOT_OBSERVED' }
+		$observationStart = Elapsed-Ms; $script:observationDeadlineMs = $observationStart + 180000L; $lastCensus = 0L
 		$entry = Capture 'OBSERVE' $true 'CONTACT'
-		$observationStart = Elapsed-Ms; $middleCensus = $false
-		while (((Elapsed-Ms) - $observationStart) -lt 40000)
+		while (((Elapsed-Ms) - $observationStart) -lt 180000)
 		{
 			Pause-Ms 2000
 			$elapsedObserve = (Elapsed-Ms) - $observationStart
-			$takeCensus = (-not $middleCensus) -and ($elapsedObserve -ge 20000)
+			$takeCensus = ($elapsedObserve - $lastCensus) -ge 10000
 			$null = Capture 'OBSERVE' $takeCensus
-			if ($takeCensus) { $middleCensus = $true }
+			if ($takeCensus)
+			{
+				$lastCensus = $elapsedObserve
+				$observedGrades = Get-NativeM1Grades
+				if (($observedGrades.NATIVE_LIFE -ceq 'PASS') -and ($observedGrades.COHORT -ceq 'PASS')) { break }
+			}
 		}
 		$matrix.NEW_MATERIALIZATION = if (($script:selectionKind -ceq 'STORED_START') -and $script:prewarmMaterialized -and (-not $script:prewarmTimingUnproven) -and ($null -ne $script:firstClientVisibleUtc)) { 'PASS' } elseif ($script:selectionKind -ceq 'EXISTING_START') { 'EXISTING_START' } else { 'UNPROVEN' }
 		$leaveStart = Elapsed-Ms; $left = $false
@@ -371,12 +545,9 @@ function Invoke-M1Run
 		if (((Elapsed-Ms) - $absenceStart) -gt 45000) { throw 'SOFT_RETURN_DEADLINE_EXPIRED' }
 		$null = Capture 'RETURN_VISIBLE' $true 'SAME_PLAYER_NO_CHURN'
 		$matrix.SOFT_RETURN = if ($script:continuityLocked -and ((Read-Field $visibleAgain.candidate 'materializedAtNanos') -ceq $script:lockedEpoch)) { 'PASS' } else { 'NOT_PROVEN' }
-		$ordinaryFarm = @($script:census | Where-Object { ($_.eligible -ceq 'true') -and ($_.targetMonsterAlive -ceq 'true') -and (($_.attacking -ceq 'true') -or ($_.casting -ceq 'true')) })
-		$nativeAction = $script:nativeDisplacement -or $script:selectedNativeFarm
-		$matrix.NATIVE_LIFE = if ($nativeAction -and ($script:selectedNativeFarm -or ($ordinaryFarm.Count -gt 0))) { 'PASS' } else { 'NOT_OBSERVED' }
-		$eligibleProfiles = @($script:census | Where-Object { $_.eligible -ceq 'true' } | Select-Object -ExpandProperty profileId -Unique).Count
-		$failedIdle = @($script:census | Where-Object { ($_.eligible -ceq 'true') -and ($_.idleReason -ceq 'ACTIVE_IDLE') -and ($_.travelFailureReason -match '(navigation_|native_progress_|route_absent)') } | Group-Object profileId | Where-Object { $_.Count -ge 2 })
-		$matrix.COHORT = if ($script:censusComplete -and ($eligibleProfiles -ge 4) -and ($failedIdle.Count -eq 0)) { 'PASS' } else { 'INSUFFICIENT_OR_FAILED' }
+		$nativeGrades = Get-NativeM1Grades
+		$matrix.NATIVE_LIFE = $nativeGrades.NATIVE_LIFE
+		$matrix.COHORT = $nativeGrades.COHORT
 	}
 	catch
 	{
@@ -436,7 +607,7 @@ function Invoke-M1Run
 			if ($script:actorMode -ceq 'Synthetic') { $grade = if ($complete -and (-not $primaryFailure) -and ($cleanupFailures.Count -eq 0)) { 'SYNTHETIC_SERVER_GREEN; M1_OPEN; FINAL_CLIENT_REQUIRED' } else { 'SYNTHETIC_SERVER_RED_OR_UNPROVEN; M1_OPEN' } }
 			$lines = @("runId=$script:runId", "result=$grade", "primaryFailure=$primaryFailure", "cleanupFailures=$($cleanupFailures -join ';')", "selectionKind=$script:selectionKind", "profileId=$script:profileId", "requests=$script:requestCount", "approachRouteFailures=$($script:approachRouteFailures -join ';')", "firstLocalUtc=$script:firstLocalUtc", "firstMaterializedUtc=$script:firstMaterializedUtc", "firstCouldKnowUtc=$script:firstCouldKnowUtc", "firstClientVisibleUtc=$script:firstClientVisibleUtc", "stopState=$script:stopState", "gamePid=$(Read-Field $script:startMetrics 'pid')", "cpuStartMillis=$(Read-Field $script:startMetrics 'cpuMillis')", "cpuEndMillis=$(Read-Field $script:endMetrics 'cpuMillis')", "privateStartBytes=$(Read-Field $script:startMetrics 'privateBytes')", "privateEndBytes=$(Read-Field $script:endMetrics 'privateBytes')", "pilotStateAfterStop=$(Read-Field $script:endMetrics 'pilotState' 'UNVERIFIED')")
 			foreach ($key in $matrix.Keys) { $lines += "${key}=$($matrix[$key])" }
-			$lines += @("actorMode=$script:actorMode", "legacySkips=$script:legacySkips")
+			$lines += @("actorMode=$script:actorMode", "legacySkips=$script:legacySkips", "frozenCohortProfileIds=$($script:frozenCohort -join ',')", "previouslyCompletedProfileId=$script:previouslyCompletedProfileId", "previousCompletionReceiptPath=$(Read-Field $script:previousCompletionReceipt 'path' '')", "previousCompletionReceiptSha256=$(Read-Field $script:previousCompletionReceipt 'sha256' '')", "runnerSha256=$((Get-FileHash -Algorithm SHA256 -LiteralPath $script:runnerPath).Hash)", 'observationLimitMillis=180000', 'acceptanceLimitMillis=480000', 'cleanupLimitMillis=45000')
 			[IO.File]::WriteAllLines((Join-Path $script:evidenceRoot 'M1_CONNECTED_RESULT.txt'), $lines, [Text.UTF8Encoding]::new($false))
 		}
 		catch { $cleanupFailures.Add("RESULT_WRITE:$($_.Exception.Message)") }

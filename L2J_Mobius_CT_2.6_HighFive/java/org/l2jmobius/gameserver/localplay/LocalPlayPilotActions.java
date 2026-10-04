@@ -34,6 +34,8 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 public final class LocalPlayPilotActions
 {
 	private static final int M1_TARGET_SEARCH_RADIUS = 8000;
+	private static final long M1_SCENE_NANOS = 480_000_000_000L;
+	private static final long M1_CLEANUP_SECONDS = 45;
 	private static final LocalPlayM1Observation.ApproachNavigation M1_APPROACH_NAVIGATION = new LocalPlayM1Observation.ApproachNavigation()
 	{
 		@Override
@@ -66,6 +68,9 @@ public final class LocalPlayPilotActions
 	private String _envelopeRunId;
 	private String _envelopeSelectionKind;
 	private PhantomTopologyPoint _envelopePosition;
+	private List<Long> _m1NaturalCohortProfileIds = List.of();
+	private Set<Long> _m1ExcludedProfileIds = Set.of();
+	private long _m1SceneDeadlineNanos;
 	private LocalPlayM1Observation.ApproachEnvelope _m1ApproachEnvelope;
 	private int _m1ApproachCursor;
 	private int _m1ApproachObjectId;
@@ -234,6 +239,7 @@ public final class LocalPlayPilotActions
 		{
 			return Outcome.of("REJECTED", "INVALID_STAGE");
 		}
+		if (args.containsKey("excludePreviouslySelectedProfileIds") && !"INITIAL".equals(stage)) { return Outcome.of("REJECTED", "INVALID_ARGUMENT"); }
 		if (actor.isDead() || actor.isInStoreMode() || actor.isTeleporting() || (actor.getInstanceId() != 0) || ("INITIAL".equals(stage) && actor.isMoving()))
 		{
 			return Outcome.of("REJECTED", "ACTOR_BUSY");
@@ -307,7 +313,16 @@ public final class LocalPlayPilotActions
 			return new Outcome("ACCEPTED", "M1_" + stage + "_TICKET", Map.copyOf(data));
 		}
 		final PhantomTopologyPoint here = new PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId());
-		final List<OperatorM1TargetSnapshot> candidates = reprepareInitial ? List.of() : PhantomSystem.operatorM1CandidateSnapshots(here, (long) M1_TARGET_SEARCH_RADIUS * M1_TARGET_SEARCH_RADIUS);
+		final Set<Long> requestedExclusions = m1SelectorExclusions(args);
+		final Set<Long> selectorExclusions = reprepareInitial && !args.containsKey("excludePreviouslySelectedProfileIds") ? _m1ExcludedProfileIds : requestedExclusions;
+		if (reprepareInitial && !selectorExclusions.equals(_m1ExcludedProfileIds)) { return Outcome.of("REJECTED", "M1_SELECTOR_INPUT_CHANGED"); }
+		final long now = System.nanoTime();
+		final long sceneDeadline = reprepareInitial ? _m1SceneDeadlineNanos : now + M1_SCENE_NANOS;
+		final long remainingNanos = sceneDeadline - now;
+		if (remainingNanos <= 0) { return Outcome.of("REJECTED", "M1_SCENE_DEADLINE"); }
+		final long horizonSeconds = ((remainingNanos + 999_999_999L) / 1_000_000_000L) + M1_CLEANUP_SECONDS;
+		final java.time.Instant calendarHorizon = java.time.Instant.now().plusSeconds(horizonSeconds);
+		final List<OperatorM1TargetSnapshot> candidates = reprepareInitial ? List.of() : PhantomSystem.operatorM1CandidateSnapshots(here, (long) M1_TARGET_SEARCH_RADIUS * M1_TARGET_SEARCH_RADIUS, selectorExclusions);
 		OperatorM1TargetSnapshot selected = null;
 		OperatorAdmissionProfile selectedAdmission = null;
 		EnvelopeRoute selectedRoute = null;
@@ -317,7 +332,7 @@ public final class LocalPlayPilotActions
 		{
 			selected = PhantomSystem.operatorM1TargetSnapshot(selectedProfileId).orElse(null);
 			selectedAdmission = PhantomSystem.operatorAdmissionProfile(selectedProfileId).orElse(null);
-			if ((selected == null) || (selected.observedPosition() == null) || (selectedAdmission == null) || !selectedAdmission.admission().calendarOnline() || !selectedAdmission.admission().nextBoundary().isAfter(java.time.Instant.now().plusSeconds(240))) { return Outcome.of("REJECTED", "M1_SAME_TARGET_INVALIDATED"); }
+			if ((selected == null) || (selected.observedPosition() == null) || (selectedAdmission == null) || !selectedAdmission.admission().calendarOnline() || !selectedAdmission.admission().nextBoundary().isAfter(calendarHorizon)) { return Outcome.of("REJECTED", "M1_SAME_TARGET_INVALIDATED"); }
 			selectedRoute = envelopeRoute(selectedProfileId, selected.observedPosition());
 			if (selectedRoute == null) { return Outcome.of("REJECTED", "NO_NATIVE_PREWARM_ROUTE"); }
 		}
@@ -327,7 +342,7 @@ public final class LocalPlayPilotActions
 			{
 				if (attempts >= 8) { break; }
 				final OperatorAdmissionProfile admission = PhantomSystem.operatorAdmissionProfile(candidate.profileId()).orElse(null);
-				if ((admission == null) || !admission.admission().calendarOnline() || !admission.admission().nextBoundary().isAfter(java.time.Instant.now().plusSeconds(240)) || ((candidate.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED) && !"none".equals(admission.busyReason()))) { continue; }
+				if (selectorExclusions.contains(candidate.profileId()) || (admission == null) || !admission.admission().calendarOnline() || !admission.admission().nextBoundary().isAfter(calendarHorizon) || ((candidate.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED) && !"none".equals(admission.busyReason()))) { continue; }
 				final var quarantine = LocalPlayM1LegacyQuarantine.inspect(candidate.profileId());
 				final Outcome quarantineOutcome = quarantineCandidate(candidate.profileId(), quarantine, legacySkips);
 				if (quarantineOutcome != null)
@@ -343,9 +358,19 @@ public final class LocalPlayPilotActions
 			}
 		}
 		if (selected == null) { return Outcome.of("REJECTED", "NO_NATIVE_PREWARM_ROUTE"); }
+		if (selectorExclusions.contains(selected.profileId())) { return Outcome.of("REJECTED", "M1_PREVIOUS_TARGET_EXCLUDED"); }
+		final PhantomTopologyPoint cohortInside = topologyPoint(selectedRoute.inside());
+		final List<Long> cohort = reprepareInitial ? _m1NaturalCohortProfileIds : PhantomSystem.operatorM1NaturalCohortProfileIds(cohortInside);
+		if ((cohort == null) || (cohort.size() < 4) || cohort.stream().anyMatch(id -> (id == null) || (id <= 0)) || (new HashSet<>(cohort).size() != cohort.size()) || !cohort.contains(selected.profileId())) { return Outcome.of("REJECTED", "M1_NATURAL_COHORT_UNPROVEN"); }
 		_envelopeRunId = runId;
 		_envelopeProfileId = selected.profileId();
-		if (!reprepareInitial) { _envelopeSelectionKind = selected.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED ? "STORED_START" : "EXISTING_START"; }
+		if (!reprepareInitial)
+		{
+			_envelopeSelectionKind = selected.positionSource() == LocalPlayM1Observation.PositionSource.COMMITTED ? "STORED_START" : "EXISTING_START";
+			_m1NaturalCohortProfileIds = List.copyOf(cohort);
+			_m1ExcludedProfileIds = Set.copyOf(selectorExclusions);
+			_m1SceneDeadlineNanos = sceneDeadline;
+		}
 		_envelopePosition = selected.observedPosition();
 		_m1ApproachEnvelope = new LocalPlayM1Observation.ApproachEnvelope(runId, selected.profileId(), selected.committedSequence(), routePoint(selectedRoute.outside()), routePoint(selectedRoute.prewarm()), selectedRoute.path().stream().map(LocalPlayPilotActions::routePoint).toList());
 		_m1ApproachCursor = 0;
@@ -365,8 +390,11 @@ public final class LocalPlayPilotActions
 		data.put("initialWorldPresent", Boolean.toString(selected.worldPresent()));
 		data.put("materializedAtNanos", Long.toString(selected.materializedAtNanos()));
 		data.put("objectId", Integer.toString(selected.objectId()));
-		final PhantomTopologyPoint cohortInside = topologyPoint(selectedRoute.inside());
-		data.put("naturalCohortPrepared", Long.toString(candidates.stream().filter(other -> org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(cohortInside, other.observedPosition())).count()));
+		data.put("naturalCohortPrepared", Integer.toString(_m1NaturalCohortProfileIds.size()));
+		data.put("naturalCohortProfileIds", _m1NaturalCohortProfileIds.stream().map(id -> Long.toString(id)).collect(java.util.stream.Collectors.joining(",")));
+		data.put("selectorExcludedProfileIds", _m1ExcludedProfileIds.stream().sorted().map(id -> Long.toString(id)).collect(java.util.stream.Collectors.joining(",")));
+		data.put("calendarHorizonSeconds", Long.toString(horizonSeconds));
+		data.put("sceneDeadlineNanos", Long.toString(_m1SceneDeadlineNanos));
 		data.put("calendarState", selectedAdmission.admission().desiredState().name());
 		data.put("nextBoundary", selectedAdmission.admission().nextBoundary().toString());
 		data.put("readinessReason", selectedAdmission.readiness() == null ? "ecology.disabled" : selectedAdmission.readiness().reason());
@@ -377,6 +405,17 @@ public final class LocalPlayPilotActions
 		data.put("legacySkips", String.join(";", legacySkips));
 		actor.teleToLocation(selectedRoute.outside(), false);
 		return new Outcome("ACCEPTED", "M1_NATURAL_GEO_PROVEN_ENVELOPE", Map.copyOf(data));
+	}
+
+	private static Set<Long> m1SelectorExclusions(Map<String, String> args)
+	{
+		final String value = args.get("excludePreviouslySelectedProfileIds");
+		if (value == null) { return Set.of(); }
+		// The optional prior receipt is validated by the runner; this is only a bounded selector input.
+		if (!value.matches("[0-9]+")) { throw new IllegalArgumentException("M1_SELECTOR_EXCLUSION"); }
+		final long profileId = Long.parseLong(value);
+		if (profileId <= 0) { throw new IllegalArgumentException("M1_SELECTOR_EXCLUSION"); }
+		return Set.of(profileId);
 	}
 
 	private record EnvelopeRoute(Location outside, Location prewarm, Location inside, List<Location> path)
@@ -638,6 +677,7 @@ public final class LocalPlayPilotActions
 		data.put("nativeAutoPlay", Boolean.toString(target.autoPlay()));
 		data.put("nativeTargetObjectId", Integer.toString(target.targetObjectId()));
 		data.put("nativeTargetMonsterAlive", Boolean.toString(target.targetMonsterAlive()));
+		data.putAll(target.nativeEvidence());
 		if (profile.scheduler() != null)
 		{
 			data.put("activityState", profile.scheduler().effectiveState().name());

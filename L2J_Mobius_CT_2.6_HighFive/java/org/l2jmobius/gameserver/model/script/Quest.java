@@ -76,6 +76,7 @@ import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Playable;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.actor.enums.creature.Race;
 import org.l2jmobius.gameserver.model.actor.enums.creature.TrapAction;
@@ -372,10 +373,10 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 				timer.cancel();
 			}
 			
-			timers.clear();
+			// Pending earned callbacks retain their list until native completion.
 		}
 		
-		_questTimers.clear();
+		_questTimers.entrySet().removeIf(entry -> entry.getValue().isEmpty());
 		
 		if (removeFromList)
 		{
@@ -477,6 +478,7 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 			return;
 		}
 		
+		QuestTimer created = null;
 		synchronized (_questTimers)
 		{
 			if (!_questTimers.containsKey(name))
@@ -487,9 +489,11 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 			// If there exists a timer with this name, allow the timer only if the [npc, player] set is unique nulls act as wildcards.
 			if (getQuestTimer(name, npc, player) == null)
 			{
-				_questTimers.get(name).add(new QuestTimer(this, name, time, npc, player, repeating));
+				created = new QuestTimer(this, name, time, npc, player, repeating, true);
+				if (created.accepted()) { _questTimers.get(name).add(created); }
 			}
 		}
+		if (created != null) { created.start(); }
 	}
 	
 	/**
@@ -548,7 +552,7 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 			}
 		}
 		
-		timers.clear();
+		// Accepted cancellations remove themselves; pending earned children retain registration.
 	}
 	
 	/**
@@ -629,6 +633,7 @@ public class Quest implements IEventTimerEvent<String>, IEventTimerCancel<String
 		}
 		catch (Exception e)
 		{
+			PlayerNativeWork.recordFailure(e);
 			showError(player, e);
 			return;
 		}

@@ -16,6 +16,7 @@
  */
 package org.l2jmobius.gameserver.model.zone.type;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +26,7 @@ import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.commons.util.Rnd;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.enums.creature.InstanceType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
@@ -282,20 +284,24 @@ public class EffectZone extends ZoneType
 			
 			for (Creature character : getCharactersInside())
 			{
-				if ((character != null) && character.isPlayer() && !character.isDead() && (Rnd.get(100) < _chance))
+				if (character == null) { continue; }
+				PlayerNativeWork.run(character, Collections.emptyList(), "ZONE_EFFECT", () ->
 				{
-					for (Entry<Integer, Integer> e : _skills.entrySet())
+					if (character.isPlayer() && !character.isDead() && (Rnd.get(100) < _chance))
 					{
-						final Skill skill = SkillData.getInstance().getSkill(e.getKey().intValue(), e.getValue().intValue());
-						if ((skill != null) && (_bypassConditions || skill.checkCondition(character, character, false)))
+						for (Entry<Integer, Integer> e : _skills.entrySet())
 						{
-							if (!character.isAffectedBySkill(skill.getId()))
+							final Skill skill = SkillData.getInstance().getSkill(e.getKey().intValue(), e.getValue().intValue());
+							if ((skill != null) && (_bypassConditions || skill.checkCondition(character, character, false)))
 							{
-								skill.applyEffects(character, character);
+								if (!character.isAffectedBySkill(skill.getId()))
+								{
+									skill.applyEffects(character, character);
+								}
 							}
 						}
 					}
-				}
+				});
 			}
 		}
 	}

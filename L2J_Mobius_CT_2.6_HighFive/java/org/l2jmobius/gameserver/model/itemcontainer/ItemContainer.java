@@ -591,6 +591,9 @@ public abstract class ItemContainer
 	 */
 	public void restore()
 	{
+		final List<Item.RestoreRow> rows = new LinkedList<>();
+		Exception readFailure = null;
+		boolean rowsRead = false;
 		try (Connection con = DatabaseFactory.getConnection();
 			PreparedStatement ps = con.prepareStatement("SELECT object_id, item_id, count, enchant_level, loc, loc_data, custom_type1, custom_type2, mana_left, time FROM items WHERE owner_id=? AND (loc=?)"))
 		{
@@ -598,36 +601,72 @@ public abstract class ItemContainer
 			ps.setString(2, getBaseLocation().name());
 			try (ResultSet rs = ps.executeQuery())
 			{
-				Item item;
 				while (rs.next())
 				{
-					item = Item.restoreFromDb(getOwnerId(), rs);
-					if (item == null)
+					final Item.RestoreRow row = Item.readRestoreRow(getOwnerId(), rs);
+					if (row != null)
 					{
-						continue;
-					}
-					
-					World.getInstance().addObject(item);
-					
-					final Player owner = getOwner() != null ? getOwner().asPlayer() : null;
-					
-					// If stackable item is found in inventory just add to current quantity
-					if (item.isStackable() && (getItemByItemId(item.getId()) != null))
-					{
-						addItem(ItemProcessType.RESTORE, item, owner, null);
-					}
-					else
-					{
-						addItem(item);
+						rows.add(row);
 					}
 				}
 			}
-			
-			refreshWeight();
+			rowsRead = true;
 		}
 		catch (Exception e)
 		{
+			readFailure = e;
+		}
+		
+		// Native Item construction and callbacks must not retain the SELECT connection.
+		try
+		{
+			for (Item.RestoreRow row : rows)
+			{
+				final Item item = Item.restoreFromDb(getOwnerId(), row);
+				if (item == null)
+				{
+					continue;
+				}
+				
+				World.getInstance().addObject(item);
+				
+				final Player owner = getOwner() != null ? getOwner().asPlayer() : null;
+				
+				// If stackable item is found in inventory just add to current quantity
+				if (item.isStackable() && (getItemByItemId(item.getId()) != null))
+				{
+					addItem(ItemProcessType.RESTORE, item, owner, null);
+				}
+				else
+				{
+					addItem(item);
+				}
+			}
+			
+			if (rowsRead)
+			{
+				refreshWeight();
+			}
+			if (readFailure != null)
+			{
+				throw readFailure;
+			}
+		}
+		catch (Exception e)
+		{
+			if ((readFailure != null) && (readFailure != e))
+			{
+				e.addSuppressed(readFailure);
+			}
 			LOGGER.log(Level.WARNING, "Could not restore container:", e);
+		}
+		catch (Error e)
+		{
+			if (readFailure != null)
+			{
+				e.addSuppressed(readFailure);
+			}
+			throw e;
 		}
 	}
 	

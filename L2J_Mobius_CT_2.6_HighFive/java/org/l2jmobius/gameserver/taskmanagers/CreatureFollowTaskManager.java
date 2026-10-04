@@ -30,6 +30,7 @@ import org.l2jmobius.gameserver.ai.CreatureAI;
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 
 /**
  * @author Mobius
@@ -97,6 +98,11 @@ public class CreatureFollowTaskManager
 	
 	protected void follow(Creature creature, int range)
 	{
+		PlayerNativeWork.run(creature, java.util.List.of(), "NATIVE_FOLLOW", () -> followNative(creature, range));
+	}
+
+	private void followNative(Creature creature, int range)
+	{
 		try
 		{
 			if (creature.hasAI())
@@ -144,8 +150,10 @@ public class CreatureFollowTaskManager
 				remove(creature);
 			}
 		}
-		catch (Exception e)
+		catch (RuntimeException e)
 		{
+			final var player = creature.isPlayer() ? creature.asPlayer() : creature.isSummon() ? creature.asSummon().getOwner() : null;
+			if (player != null && player.isNativeWorkManaged()) { throw e; }
 			// Ignore.
 		}
 	}

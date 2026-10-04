@@ -23,11 +23,13 @@ package org.l2jmobius.gameserver.model.skill;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.model.actor.Creature;
+import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.skill.enums.SkillFinishType;
 
 /**
@@ -38,6 +40,7 @@ public class BuffFinishTask
 	private final Map<BuffInfo, AtomicInteger> _buffInfos = new ConcurrentHashMap<>();
 	private ScheduledFuture<?> _task = null;
 	private boolean _stopped = false;
+	private Object _publication;
 	
 	private class BuffFinishRunnable implements Runnable
 	{
@@ -48,9 +51,15 @@ public class BuffFinishTask
 			{
 				final BuffInfo info = entry.getKey();
 				final Creature effected = info.getEffected();
-				if ((effected != null) && (entry.getValue().incrementAndGet() > info.getAbnormalTime()))
+				if (effected != null)
 				{
-					ThreadPool.execute(() -> effected.getEffectList().stopSkillEffects(SkillFinishType.NORMAL, info.getSkill().getId()));
+					info.runNative("BUFF_EXPIRY_PULSE", () ->
+					{
+						if (entry.getValue().incrementAndGet() > info.getAbnormalTime())
+						{
+							info.executeNative("BUFF_EXPIRY", () -> effected.getEffectList().stopSkillEffects(SkillFinishType.NORMAL, info.getSkill().getId()));
+						}
+					});
 				}
 			}
 		}
@@ -67,24 +76,91 @@ public class BuffFinishTask
 		}
 	}
 	
-	public synchronized void addBuffInfo(BuffInfo info)
+	public void addBuffInfo(BuffInfo info)
 	{
-		_buffInfos.put(info, new AtomicInteger());
-		
-		if ((_task == null) && !_stopped)
+		info.runNative("BUFF_FINISH_REGISTER", () -> addBuffInfoNative(info));
+	}
+
+	private void addBuffInfoNative(BuffInfo info)
+	{
+		if (!nativeManaged(info))
 		{
-			_task = ThreadPool.scheduleAtFixedRate(new BuffFinishRunnable(), 0, 1000);
+			synchronized (this)
+			{
+				_buffInfos.put(info, new AtomicInteger());
+				if ((_task == null) && !_stopped) { _task = ThreadPool.scheduleAtFixedRate(new BuffFinishRunnable(), 0, 1000); }
+			}
+			return;
 		}
+		synchronized (this) { _buffInfos.put(info, new AtomicInteger()); }
+		publishPulse(info);
 	}
 	
-	public synchronized void start()
+	public void start()
 	{
-		_stopped = false;
-		
-		if (!_buffInfos.isEmpty() && (_task == null))
+		final BuffInfo info;
+		synchronized (this)
 		{
-			_task = ThreadPool.scheduleAtFixedRate(new BuffFinishRunnable(), 0, 1000);
+			info = _buffInfos.keySet().stream().findFirst().orElse(null);
+			if (info == null) { _stopped = false; return; }
 		}
+		info.runNative("BUFF_FINISH_START", () -> startNative(info));
+	}
+
+	private void startNative(BuffInfo info)
+	{
+		if (!nativeManaged(info))
+		{
+			synchronized (this)
+			{
+				_stopped = false;
+				if (!_buffInfos.isEmpty() && (_task == null)) { _task = ThreadPool.scheduleAtFixedRate(new BuffFinishRunnable(), 0, 1000); }
+			}
+			return;
+		}
+		synchronized (this) { _stopped = false; }
+		publishPulse(info);
+	}
+
+	private void publishPulse(BuffInfo info)
+	{
+		final Object publication = new Object();
+		synchronized (this)
+		{
+			if (_stopped || _buffInfos.isEmpty() || (_task != null) || (_publication != null)) { return; }
+			_publication = publication;
+		}
+		try
+		{
+			final ScheduledFuture<?> future = schedulePulse(info);
+			final boolean retained;
+			synchronized (this)
+			{
+				retained = (_publication == publication) && !_stopped && !_buffInfos.isEmpty();
+				if (retained) { _task = future; }
+				if (_publication == publication) { _publication = null; }
+			}
+			if (!retained && (future != null)) { future.cancel(false); }
+		}
+		catch (RuntimeException | Error failure)
+		{
+			synchronized (this) { if (_publication == publication) { _publication = null; } }
+			throw failure;
+		}
+	}
+
+	private static boolean nativeManaged(BuffInfo info)
+	{
+		final Creature effected = info.getEffected();
+		final Player player = effected instanceof Player actor ? actor : effected != null && effected.isSummon() ? effected.asSummon().getOwner() : null;
+		return player != null && player.isNativeWorkManaged();
+	}
+
+	private ScheduledFuture<?> schedulePulse(BuffInfo info)
+	{
+		final ScheduledFuture<?> future = ThreadPool.scheduleAtFixedRateOrThrow(new BuffFinishRunnable(), 0, 1000);
+		if (future == null) { throw new RejectedExecutionException("NATIVE_BUFF_FINISH_SUBMIT_NULL"); }
+		return future;
 	}
 	
 	public synchronized void stop()

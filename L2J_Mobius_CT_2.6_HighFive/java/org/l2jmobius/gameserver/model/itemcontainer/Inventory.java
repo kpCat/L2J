@@ -1566,6 +1566,9 @@ public abstract class Inventory extends ItemContainer
 	@Override
 	public void restore()
 	{
+		final List<Item.RestoreRow> rows = new LinkedList<>();
+		Exception readFailure = null;
+		boolean rowsRead = false;
 		try (Connection con = DatabaseFactory.getConnection();
 			PreparedStatement statement = con.prepareStatement("SELECT object_id, item_id, count, enchant_level, loc, loc_data, custom_type1, custom_type2, mana_left, time FROM items WHERE owner_id=? AND (loc=? OR loc=?) ORDER BY loc_data"))
 		{
@@ -1574,43 +1577,79 @@ public abstract class Inventory extends ItemContainer
 			statement.setString(3, getEquipLocation().name());
 			try (ResultSet inv = statement.executeQuery())
 			{
-				Item item;
 				while (inv.next())
 				{
-					item = Item.restoreFromDb(getOwnerId(), inv);
-					if (item == null)
+					final Item.RestoreRow row = Item.readRestoreRow(getOwnerId(), inv);
+					if (row != null)
 					{
-						continue;
-					}
-					
-					if (getOwner().isPlayer())
-					{
-						final Player player = getOwner().asPlayer();
-						if (!player.isGM() && !player.isHero() && item.isHeroItem())
-						{
-							item.setItemLocation(ItemLocation.INVENTORY);
-						}
-					}
-					
-					World.getInstance().addObject(item);
-					
-					// If stackable item is found in inventory just add to current quantity
-					if (item.isStackable() && (getItemByItemId(item.getId()) != null))
-					{
-						addItem(ItemProcessType.RESTORE, item, getOwner().asPlayer(), null);
-					}
-					else
-					{
-						addItem(item);
+						rows.add(row);
 					}
 				}
 			}
-			
-			refreshWeight();
+			rowsRead = true;
 		}
 		catch (Exception e)
 		{
+			readFailure = e;
+		}
+		
+		// Native Item construction and callbacks must not retain the SELECT connection.
+		try
+		{
+			for (Item.RestoreRow row : rows)
+			{
+				final Item item = Item.restoreFromDb(getOwnerId(), row);
+				if (item == null)
+				{
+					continue;
+				}
+				
+				if (getOwner().isPlayer())
+				{
+					final Player player = getOwner().asPlayer();
+					if (!player.isGM() && !player.isHero() && item.isHeroItem())
+					{
+						item.setItemLocation(ItemLocation.INVENTORY);
+					}
+				}
+				
+				World.getInstance().addObject(item);
+				
+				// If stackable item is found in inventory just add to current quantity
+				if (item.isStackable() && (getItemByItemId(item.getId()) != null))
+				{
+					addItem(ItemProcessType.RESTORE, item, getOwner().asPlayer(), null);
+				}
+				else
+				{
+					addItem(item);
+				}
+			}
+			
+			if (rowsRead)
+			{
+				refreshWeight();
+			}
+			if (readFailure != null)
+			{
+				throw readFailure;
+			}
+		}
+		catch (Exception e)
+		{
+			if ((readFailure != null) && (readFailure != e))
+			{
+				e.addSuppressed(readFailure);
+			}
 			LOGGER.log(Level.WARNING, "Could not restore inventory: " + e.getMessage(), e);
+		}
+		catch (Error e)
+		{
+			if (readFailure != null)
+			{
+				e.addSuppressed(readFailure);
+			}
+			throw e;
 		}
 	}
 	

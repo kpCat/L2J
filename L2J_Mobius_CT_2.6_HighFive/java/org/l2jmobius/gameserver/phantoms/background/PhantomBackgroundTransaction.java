@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
@@ -85,7 +86,7 @@ public final class PhantomBackgroundTransaction
 	private static final String LOCK_COMPONENT = "SELECT component_schema_version, row_version, payload FROM phantom_profile_components WHERE profile_id = ? AND component_type = ? FOR UPDATE";
 	private static final String INSERT_COMPONENT = "INSERT INTO phantom_profile_components (profile_id, component_type, component_schema_version, payload) VALUES (?, ?, ?, ?)";
 	private static final String UPDATE_COMPONENT = "UPDATE phantom_profile_components SET component_schema_version = ?, payload = ?, row_version = row_version + 1 WHERE profile_id = ? AND component_type = ? AND row_version = ?";
-	private static final String LOCK_CHARACTER = "SELECT level, exp, expBeforeDeath, sp, curHp, maxHp, curMp, maxMp, curCp, maxCp, x, y, z, heading, classid, race FROM characters WHERE charId = ? FOR UPDATE";
+	private static final String LOCK_CHARACTER = "SELECT level, exp, expBeforeDeath, sp, curHp, maxHp, curMp, maxMp, curCp, maxCp, x, y, z, heading, classid, race, vitality_points FROM characters WHERE charId = ? FOR UPDATE";
 	private static final String LOCK_SUBCLASS = "SELECT level, exp, sp, class_id FROM character_subclasses WHERE charId = ? AND class_index = ? FOR UPDATE";
 	private static final String UPDATE_MAIN = "UPDATE characters SET level = ?, exp = ?, expBeforeDeath = ?, sp = ?, curHp = ?, curMp = ?, curCp = ?, x = ?, y = ?, z = ?, heading = ? WHERE charId = ?";
 	private static final String UPDATE_LEGACY_VOLATILE = "UPDATE characters SET curHp = ?, curMp = ?, curCp = ?, x = ?, y = ?, z = ?, heading = ? WHERE charId = ?";
@@ -108,6 +109,7 @@ public final class PhantomBackgroundTransaction
 	private final PhantomGoalStateCodec _goalCodec;
 	private final PhantomAcquisitionStateCodec _acquisitionCodec;
 	private final PhantomBackgroundCatchupStateCodec _catchupCodec = new PhantomBackgroundCatchupStateCodec();
+	private final AtomicReference<ItemConflictWitness> _firstItemConflict = new AtomicReference<>();
 
 	public PhantomBackgroundTransaction()
 	{
@@ -283,22 +285,32 @@ public final class PhantomBackgroundTransaction
 
 	public OwnedStorePreparation prepareOwnedStore(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target)
 	{
+		return prepareOwnedStore(captured, goal, epoch, target, null);
+	}
+
+	public OwnedStorePreparation prepareOwnedStore(PhantomBackgroundState captured, PhantomGoal goal, long epoch, State target, PhantomNativeContext.Capture nativeCapture)
+	{
 		final long profileId = captured.identity().profileId();
 		final int objectId = captured.identity().characterObjectId();
 		boolean commitAttempted = false;
 		PhantomOwnedStoreIntent preparedIntent = null;
+		ItemConflictWitness itemWitness = null;
 		try (Connection connection = _connections.open())
 		{
 			connection.setAutoCommit(false);
 			try
 			{
 				requireProfileLink(lockProfile(connection, profileId), objectId);
-				lockAndValidateGoal(connection, profileId, goal, false);
+				final LockedComponent goalComponent = lockAndValidateGoal(connection, profileId, goal, false);
 				final LockedComponent component = lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE);
 				if (lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE) != null) { throw new StateConflict(Status.STATE_CONFLICT); }
 				final var previous = component == null ? null : decodeState(component);
 				if ((previous != null) && (!previous.identity().equals(captured.identity()) || ((previous.state() != State.MATERIALIZED) && (previous.state() != State.READY) && (previous.state() != State.DEAD)))) { throw new StateConflict(Status.STATE_CONFLICT); }
+				final var contextComponent = lockComponent(connection, profileId, PhantomNativeContext.COMPONENT_TYPE);
+				final var previousContext = boundContext(contextComponent, component, captured.identity());
+				if ((previousContext != null) && (previousContext.phase() == PhantomNativeContext.Phase.PENDING)) { throw new StateConflict(Status.STATE_CONFLICT); }
 				final Canonical canonical = lockCanonical(connection, captured.identity());
+				if ((previousContext != null) && !previousContext.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 				final List<ItemRow> items = lockItems(connection, objectId);
 				final Map<Integer, Integer> skills = lockSkills(connection, captured.identity());
 				if ((canonical.classId() != captured.identity().activeClassId()) || (canonical.raceOrdinal() != captured.identity().raceOrdinal()) || (captured.position().instanceId() != 0)) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
@@ -306,12 +318,17 @@ public final class PhantomBackgroundTransaction
 				final var beforeTemplate = previous == null ? captured : previous;
 				final var before = new PhantomBackgroundState(canonical.vitals().currentHp() == 0 ? State.DEAD : State.READY, captured.identity(), new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), canonical.vitals(), new Position(0, canonical.position().x(), canonical.position().y(), canonical.position().z(), canonical.position().heading(), beforeTemplate.position().committedAnchorId()), beforeTemplate.combat(), beforeTemplate.loadout(), inventoryFacts(items, beforeTemplate.inventory()), canonicalAutoGetSkills(captured.identity(), canonical.level()), beforeTemplate.clock(), beforeTemplate.receipt(), beforeTemplate.hashes());
 				final var progress = captured.progress();
-				final var intendedCanonical = new Canonical(progress.level(), progress.experience(), progress.skillPoints(), progress.experienceBeforeDeath(), canonicalVitals(captured.vitals()), captured.position(), captured.identity().activeClassId(), captured.identity().raceOrdinal());
+				final var intendedCanonical = new Canonical(progress.level(), progress.experience(), progress.skillPoints(), progress.experienceBeforeDeath(), canonicalVitals(captured.vitals()), captured.position(), captured.identity().activeClassId(), captured.identity().raceOrdinal(), nativeCapture == null ? canonical.vitalityPoints() : nativeCapture.vitalityPoints());
 				final var after = capturedState(captured, intendedCanonical, items, skills);
-				if (!captured.inventory().canonicalHash().isEmpty() && !captured.inventory().equals(after.inventory())) { throw new StateConflict(Status.ITEM_CONFLICT); }
+				if (!captured.inventory().canonicalHash().isEmpty() && !captured.inventory().equals(after.inventory())) { throw ownedItemConflict(captured, after, previous, goal, epoch, target, items, component, goalComponent, contextComponent); }
 				final var intent = new PhantomOwnedStoreIntent(component == null ? 0 : Math.addExact(component.rowVersion(), 1), epoch, target, previous == null ? "ABSENT" : previous.state().name(), component == null ? "ABSENT" : payloadDigest(component.payload()), ownedSkillsHash(skills), before, after);
 				preparedIntent = intent;
-				writeComponent(connection, component, after.withState(State.VERIFY_PENDING));
+				final byte[] pendingPayload = _stateCodec.encode(after.withState(State.VERIFY_PENDING));
+				writeStateOnly(connection, component, after.withState(State.VERIFY_PENDING));
+				final var nativeContext = nativeCapture == null
+					? PhantomNativeContext.completed(captured.identity(), canonical.vitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN, intent.preparedRowVersion(), pendingPayload)
+					: PhantomNativeContext.pending(captured.identity(), canonical.vitalityPoints(), previousContext == null ? PhantomNativeContext.Eligibility.UNKNOWN : previousContext.afterEligibility(), nativeCapture, intent.preparedRowVersion(), pendingPayload, epoch, intent.encode());
+				writeNativeContext(connection, contextComponent, nativeContext);
 				try (var statement = prepare(connection, INSERT_COMPONENT))
 				{
 					statement.setLong(1, profileId); statement.setString(2, PhantomOwnedStoreIntent.COMPONENT_TYPE); statement.setInt(3, PhantomOwnedStoreIntent.SCHEMA_VERSION); statement.setBytes(4, intent.encode()); requireOne(statement.executeUpdate(), "owned store prepare");
@@ -322,9 +339,20 @@ public final class PhantomBackgroundTransaction
 				_faultInjector.inject(FaultPoint.AFTER_OWNED_PREPARE_COMMIT);
 				return new OwnedStorePreparation(Status.SUCCESS, intent);
 			}
-			catch (Throwable failure) { if (!commitAttempted) { rollback(connection, failure); } return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), commitAttempted ? preparedIntent : null); }
+			catch (Throwable failure)
+			{
+				if (!commitAttempted)
+				{
+					final int suppressedBefore = itemWitnessSuppressedCount(failure);
+					rollback(connection, failure);
+					itemWitness = rolledBackItemWitness(failure, suppressedBefore);
+				}
+				return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), commitAttempted ? preparedIntent : null);
+			}
 		}
-		catch (SQLException | RuntimeException failure) { return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), commitAttempted ? preparedIntent : null); }
+		catch (SQLException | RuntimeException failure) { itemWitness = null; return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), commitAttempted ? preparedIntent : null); }
+		catch (Error failure) { itemWitness = null; throw failure; }
+		finally { publishFirstItemWitness(itemWitness); }
 	}
 
 	public Result finalizeOwnedStore(long profileId, int objectId, long epoch)
@@ -356,11 +384,16 @@ public final class PhantomBackgroundTransaction
 		final var intent = PhantomOwnedStoreIntent.decode(receipt.payload());
 		final var current = decodeState(component);
 		if ((intent.after().identity().profileId() != profileId) || (intent.after().identity().characterObjectId() != objectId) || (!restart && (intent.materializedAtNanos() != epoch)) || (component.rowVersion() != intent.preparedRowVersion()) || !Arrays.equals(component.payload(), _stateCodec.encode(intent.after().withState(State.VERIFY_PENDING)))) { throw new StateConflict(Status.STATE_CONFLICT); }
+		final var scalar = lockComponent(connection, profileId, PhantomNativeContext.COMPONENT_TYPE);
+		final var context = boundContext(scalar, component, current.identity());
+		final boolean attested = (context != null) && (context.phase() == PhantomNativeContext.Phase.PENDING);
+		if (attested && !context.matchesReceipt(intent.preparedRowVersion(), intent.materializedAtNanos(), receipt.payload())) { throw new StateConflict(Status.STATE_CONFLICT); }
+		if ((context != null) && !attested && (context.phase() != PhantomNativeContext.Phase.UNKNOWN)) { throw new StateConflict(Status.STATE_CONFLICT); }
 		final var canonical = lockCanonical(connection, current.identity());
 		final var items = lockItems(connection, objectId);
 		final var skills = lockSkills(connection, current.identity());
-		boolean afterMatches = intent.skillsHash().equals(ownedSkillsHash(skills)) && durableMatches(intent.after(), canonical, items, skills);
-		final boolean beforeMatches = intent.skillsHash().equals(ownedSkillsHash(skills)) && ownedCanonicalFactsMatch(intent.before(), canonical, items);
+		boolean afterMatches = intent.skillsHash().equals(ownedSkillsHash(skills)) && durableMatches(intent.after(), canonical, items, skills) && (!attested || context.matchesAfter(canonical.vitalityPoints()));
+		final boolean beforeMatches = intent.skillsHash().equals(ownedSkillsHash(skills)) && ownedCanonicalFactsMatch(intent.before(), canonical, items) && (!attested || context.matchesBefore(canonical.vitalityPoints()));
 		if (!afterMatches && !beforeMatches)
 		{
 			final var inconsistent = current.withState(State.INCONSISTENT);
@@ -377,16 +410,27 @@ public final class PhantomBackgroundTransaction
 			if ((leaseOwner != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND) && (leaseOwner != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM)) { throw new StateConflict(Status.STATE_CONFLICT); }
 			if ((org.l2jmobius.gameserver.model.World.getInstance().findObject(id) != null) || (org.l2jmobius.gameserver.model.World.getInstance().getPlayer(id) != null) || org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(id)) { throw new StateConflict(Status.STATE_CONFLICT); }
 			mutateProgressAndVitals(connection, intent.after().identity(), intent.after().progress(), intent.after().vitals(), intent.after().position());
+			if (attested && (context.beforePoints() != context.afterPoints()))
+			{
+				try (var statement = prepare(connection, "UPDATE characters SET vitality_points=? WHERE charId=? AND vitality_points=?"))
+				{
+					statement.setInt(1, context.afterPoints()); statement.setInt(2, id); statement.setInt(3, context.beforePoints()); requireOne(statement.executeUpdate(), "owned replay exact vitality");
+				}
+			}
 			try (var statement = prepare(connection, "UPDATE characters SET maxHp=?,maxMp=?,maxCp=? WHERE charId=?"))
 			{
 				statement.setDouble(1, intent.after().vitals().maximumHp()); statement.setDouble(2, intent.after().vitals().maximumMp()); statement.setDouble(3, intent.after().vitals().maximumCp()); statement.setInt(4, id); requireOne(statement.executeUpdate(), "owned replay maxima");
 			}
-			afterMatches = durableMatches(intent.after(), lockCanonical(connection, intent.after().identity()), items, skills);
+			final var replayed = lockCanonical(connection, intent.after().identity());
+			afterMatches = durableMatches(intent.after(), replayed, items, skills) && (!attested || context.matchesAfter(replayed.vitalityPoints()));
 			if (!afterMatches) { throw new StateConflict(Status.POST_COMMIT_VERIFICATION_FAILED); }
 		}
 		final var chosen = afterMatches ? intent.after() : intent.before();
 		final var completed = chosen.withState(restart ? (chosen.vitals().currentHp() == 0 ? State.DEAD : State.READY) : intent.targetState());
-		writeComponent(connection, component, completed);
+		writeStateOnly(connection, component, completed);
+		final var completedContext = attested ? context.complete(afterMatches, nextVersion(component), _stateCodec.encode(completed))
+			: PhantomNativeContext.completed(completed.identity(), lockCanonical(connection, completed.identity()).vitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN, nextVersion(component), _stateCodec.encode(completed));
+		writeNativeContext(connection, scalar, completedContext);
 		try (var statement = prepare(connection, "DELETE FROM phantom_profile_components WHERE profile_id=? AND component_type=? AND row_version=?"))
 		{
 			statement.setLong(1, profileId); statement.setString(2, PhantomOwnedStoreIntent.COMPONENT_TYPE); statement.setLong(3, receipt.rowVersion()); requireOne(statement.executeUpdate(), "owned store finalize");
@@ -411,6 +455,8 @@ public final class PhantomBackgroundTransaction
 				{
 					final var completed = expected.after().withState(expected.targetState());
 					final var canonical = lockCanonical(connection, identity); final var items = lockItems(connection, identity.characterObjectId()); final var skills = lockSkills(connection, identity);
+					final var completedContext = boundContext(lockComponent(connection, identity.profileId(), PhantomNativeContext.COMPONENT_TYPE), component, identity);
+					if ((completedContext != null) && ((completedContext.phase() == PhantomNativeContext.Phase.PENDING) || !completedContext.matchesAfter(canonical.vitalityPoints()))) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 					final boolean originalComponent = component == null ? expected.previousState().equals("ABSENT") && (expected.preparedRowVersion() == 0) : (component.rowVersion() == expected.preparedRowVersion() - 1) && expected.previousPayloadHash().equals(payloadDigest(component.payload())) && expected.previousState().equals(decodeState(component).state().name());
 					if (originalComponent && expected.skillsHash().equals(ownedSkillsHash(skills)) && ownedCanonicalFactsMatch(expected.before(), canonical, items)) { connection.rollback(); return new OwnedStorePreparation(Status.SUCCESS, null); }
 					if (component == null) { throw new StateConflict(Status.STATE_CONFLICT); }
@@ -457,15 +503,26 @@ public final class PhantomBackgroundTransaction
 
 	public Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)
 	{
-		return captureBaseline(materializedState, goal, true);
+		return captureBaseline(materializedState, goal, true, null);
+	}
+
+	/** Explicit native/fixture attestation; the legacy overload never invents policy eligibility. */
+	public Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal, PhantomNativeContext.Capture nativeCapture)
+	{
+		return captureBaseline(materializedState, goal, true, Objects.requireNonNull(nativeCapture));
 	}
 
 	public Result captureLifecycleBaseline(PhantomBackgroundState materializedState, PhantomGoal goal)
 	{
-		return captureBaseline(materializedState, goal, false);
+		return captureBaseline(materializedState, goal, false, null);
 	}
 
-	private Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal, boolean requireActiveGoal)
+	public Result captureLifecycleBaseline(PhantomBackgroundState materializedState, PhantomGoal goal, PhantomNativeContext.Capture nativeCapture)
+	{
+		return captureBaseline(materializedState, goal, false, Objects.requireNonNull(nativeCapture));
+	}
+
+	private Result captureBaseline(PhantomBackgroundState materializedState, PhantomGoal goal, boolean requireActiveGoal, PhantomNativeContext.Capture nativeCapture)
 	{
 		Objects.requireNonNull(materializedState, "materializedState");
 		Objects.requireNonNull(goal, "goal");
@@ -481,7 +538,14 @@ public final class PhantomBackgroundTransaction
 				requireProfileLink(lockProfile(connection, materializedState.identity().profileId()), materializedState.identity().characterObjectId());
 				lockAndValidateGoal(connection, materializedState.identity().profileId(), goal, requireActiveGoal);
 				final LockedComponent component = lockComponent(connection, materializedState.identity().profileId(), PhantomBackgroundState.COMPONENT_TYPE);
+				if (lockComponent(connection, materializedState.identity().profileId(), PhantomOwnedStoreIntent.COMPONENT_TYPE) != null) { throw new StateConflict(Status.STATE_CONFLICT); }
+				final var scalar = lockComponent(connection, materializedState.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE);
+				final var previousContext = boundContext(scalar, component, materializedState.identity());
+				if ((previousContext != null) && (previousContext.phase() == PhantomNativeContext.Phase.PENDING)) { throw new StateConflict(Status.STATE_CONFLICT); }
 				final Canonical canonical = lockCanonical(connection, materializedState.identity());
+				if ((previousContext != null) && !previousContext.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
+				final boolean normalization = (nativeCapture != null) && (canonical.vitalityPoints() == 0) && (nativeCapture.vitalityPoints() == 1) && ((previousContext == null) || (previousContext.phase() == PhantomNativeContext.Phase.UNKNOWN));
+				if ((nativeCapture != null) && (nativeCapture.vitalityPoints() != canonical.vitalityPoints()) && !normalization) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 				final List<ItemRow> items = lockItems(connection, materializedState.identity().characterObjectId());
 				final Map<Integer, Integer> skills = lockSkills(connection, materializedState.identity());
 				final PhantomBackgroundState captured = capturedState(materializedState, canonical, items, skills);
@@ -489,7 +553,8 @@ public final class PhantomBackgroundTransaction
 				{
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
 				}
-				writeComponent(connection, component, captured);
+				writeStateOnly(connection, component, captured);
+				writeNativeContext(connection, scalar, PhantomNativeContext.completed(captured.identity(), canonical.vitalityPoints(), nativeCapture == null || normalization ? PhantomNativeContext.Eligibility.UNKNOWN : nativeCapture.eligibility(), nextVersion(component), _stateCodec.encode(captured)));
 				_faultInjector.inject(FaultPoint.BEFORE_CAPTURE_COMMIT);
 				connection.commit();
 				return new Result(Status.SUCCESS, captured);
@@ -523,6 +588,7 @@ public final class PhantomBackgroundTransaction
 				final Canonical canonical = lockCanonical(connection, current.identity());
 				final List<ItemRow> items = lockItems(connection, characterObjectId);
 				final Map<Integer, Integer> skills = lockSkills(connection, current.identity());
+				verifyCompletedPoints(connection, component, current, canonical);
 				if (!durableMatches(current, canonical, items, skills))
 				{
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
@@ -568,6 +634,7 @@ public final class PhantomBackgroundTransaction
 				final Canonical canonical = lockCanonical(connection, current.identity());
 				final Map<Integer, Integer> skills = lockSkills(connection, current.identity());
 				final List<ItemRow> items = lockItems(connection, characterObjectId);
+				verifyCompletedPoints(connection, component, current, canonical);
 				final boolean pendingReceiptMatches = (current.state() != State.VERIFY_PENDING) || current.receipt().expectedAfterHash().equals(expectedAfterHash(current));
 				if (!durableMatches(current, canonical, items, skills) || !pendingReceiptMatches)
 				{
@@ -640,6 +707,7 @@ public final class PhantomBackgroundTransaction
 				final Canonical canonical = lockCanonical(connection, current.identity());
 				final List<ItemRow> items = lockItems(connection, witness.characterObjectId());
 				final Map<Integer, Integer> skills = lockSkills(connection, current.identity());
+				verifyCompletedPoints(connection, component, current, canonical);
 				if ((canonical.level() != current.progress().level()) || (canonical.experience() != current.progress().experience()) || (canonical.skillPoints() != current.progress().skillPoints()) || (canonical.experienceBeforeDeath() != current.progress().experienceBeforeDeath()) || !close(canonical.vitals().maximumHp(), current.vitals().maximumHp()) || !close(canonical.vitals().maximumMp(), current.vitals().maximumMp()) || !close(canonical.vitals().maximumCp(), current.vitals().maximumCp()) || (canonical.classId() != current.identity().activeClassId()) || (canonical.raceOrdinal() != current.identity().raceOrdinal()) || !inventoryFacts(items, current.inventory()).equals(current.inventory()) || !skillsMatch(current, skills))
 				{
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
@@ -740,6 +808,7 @@ public final class PhantomBackgroundTransaction
 		final List<Integer> reservedIds = new ArrayList<>();
 		final List<Integer> releasedIds = new ArrayList<>();
 		boolean commitAttempted = false;
+		ItemConflictWitness itemWitness = null;
 		final PhantomEconomyConflictPort.Claim economyClaim;
 		if (command.itemDeltas().isEmpty())
 		{
@@ -826,6 +895,7 @@ public final class PhantomBackgroundTransaction
 				}
 				_faultInjector.inject(FaultPoint.AFTER_BACKGROUND_LOCK);
 				final Canonical canonical = lockCanonical(connection, expected.identity());
+				requireSimulationContext(connection, component, stored, canonical);
 				_faultInjector.inject(FaultPoint.AFTER_CHARACTER_LOCK);
 				final Map<Integer, Integer> skillRows = lockSkills(connection, expected.identity());
 				_faultInjector.inject(FaultPoint.AFTER_SKILL_LOCKS);
@@ -851,7 +921,7 @@ public final class PhantomBackgroundTransaction
 				}
 				validateAcquisitionResources(command.acquisition(), itemRows);
 				final Set<Integer> mutableItemIds = expandedMutableItemIds(expected.inventory(), command.additionalMutableItemIds());
-				final ItemMutationResult itemMutation = mutateItems(connection, expected, itemRows, command.itemDeltas(), mutableItemIds, reservedIds, releasedIds);
+				final ItemMutationResult itemMutation = mutateItems(connection, expected, itemRows, command.itemDeltas(), mutableItemIds, reservedIds, releasedIds, command, component, lockedGoal.component(), catchupComponent, acquisitionComponent);
 				final Vitals canonicalVitals = canonicalVitals(command.vitals());
 				mutateProgressAndVitals(connection, expected.identity(), command.progress(), canonicalVitals, command.position());
 				mutateAutoGetSkills(connection, expected.identity(), skillRows, expected.autoGetSkills(), command.autoGetSkills());
@@ -905,7 +975,9 @@ public final class PhantomBackgroundTransaction
 			{
 				if (!commitAttempted)
 				{
+					final int suppressedBefore = itemWitnessSuppressedCount(failure);
 					rollback(connection, failure);
+					itemWitness = rolledBackItemWitness(failure, suppressedBefore);
 					for (int objectId : reservedIds)
 					{
 						_ids.release(objectId);
@@ -917,6 +989,7 @@ public final class PhantomBackgroundTransaction
 		}
 		catch (SQLException | RuntimeException failure)
 		{
+			itemWitness = null;
 			if (!commitAttempted)
 			{
 				for (int objectId : reservedIds)
@@ -926,6 +999,8 @@ public final class PhantomBackgroundTransaction
 			}
 			return new Result(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : Status.BACKEND_FAILURE, null);
 		}
+		catch (Error failure) { itemWitness = null; throw failure; }
+		finally { publishFirstItemWitness(itemWitness); }
 	}
 
 	public Result reconcileVerifyPending(long profileId, int characterObjectId)
@@ -951,6 +1026,7 @@ public final class PhantomBackgroundTransaction
 				final Canonical canonical = lockCanonical(connection, pending.identity());
 				final Map<Integer, Integer> skills = lockSkills(connection, pending.identity());
 				final List<ItemRow> items = lockItems(connection, characterObjectId);
+				verifyCompletedPoints(connection, component, pending, canonical);
 				final boolean pendingReceiptMatches = (pending.state() != State.VERIFY_PENDING) || pending.receipt().expectedAfterHash().equals(expectedAfterHash(pending));
 				if (!durableMatches(pending, canonical, items, skills) || !pendingReceiptMatches)
 				{
@@ -1378,6 +1454,8 @@ public final class PhantomBackgroundTransaction
 
 	private Canonical lockCanonical(Connection connection, Identity identity) throws SQLException
 	{
+		// Profile serializes this row; take scalar before character/subclass locks on every path.
+		lockComponent(connection, identity.profileId(), PhantomNativeContext.COMPONENT_TYPE);
 		final CharacterRow character = lockCharacter(connection, identity.characterObjectId());
 		if (character == null)
 		{
@@ -1393,7 +1471,7 @@ public final class PhantomBackgroundTransaction
 			{
 				throw new StateConflict(Status.CANONICAL_MISMATCH);
 			}
-			return new Canonical(character.level(), character.experience(), character.skillPoints(), character.experienceBeforeDeath(), character.vitals(), character.position(), character.classId(), character.raceOrdinal());
+			return new Canonical(character.level(), character.experience(), character.skillPoints(), character.experienceBeforeDeath(), character.vitals(), character.position(), character.classId(), character.raceOrdinal(), character.vitalityPoints());
 		}
 		final SubclassRow subclass = lockSubclass(connection, identity.characterObjectId(), identity.classIndex());
 		if ((subclass == null) || (subclass.classId() != identity.activeClassId()))
@@ -1404,7 +1482,7 @@ public final class PhantomBackgroundTransaction
 		{
 			throw new StateConflict(Status.CANONICAL_MISMATCH);
 		}
-		return new Canonical(subclass.level(), subclass.experience(), subclass.skillPoints(), character.experienceBeforeDeath(), character.vitals(), character.position(), subclass.classId(), character.raceOrdinal());
+		return new Canonical(subclass.level(), subclass.experience(), subclass.skillPoints(), character.experienceBeforeDeath(), character.vitals(), character.position(), subclass.classId(), character.raceOrdinal(), character.vitalityPoints());
 	}
 
 	private CharacterRow lockCharacter(Connection connection, int characterObjectId) throws SQLException
@@ -1420,7 +1498,10 @@ public final class PhantomBackgroundTransaction
 				}
 				final Vitals vitals = new Vitals(result.getDouble("curHp"), result.getDouble("maxHp"), result.getDouble("curMp"), result.getDouble("maxMp"), result.getDouble("curCp"), result.getDouble("maxCp"));
 				final Position position = new Position(0, result.getInt("x"), result.getInt("y"), result.getInt("z"), result.getInt("heading"), "pending");
-				final CharacterRow row = new CharacterRow(result.getInt("level"), result.getLong("exp"), result.getLong("sp"), result.getLong("expBeforeDeath"), vitals, position, result.getInt("classid"), result.getInt("race"));
+				final int vitalityPoints = result.getInt("vitality_points");
+				if (result.wasNull() || (vitalityPoints < 0) || (vitalityPoints > 20000)) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
+				PhantomNativeContext.validatePoints(vitalityPoints);
+				final CharacterRow row = new CharacterRow(result.getInt("level"), result.getLong("exp"), result.getLong("sp"), result.getLong("expBeforeDeath"), vitals, position, result.getInt("classid"), result.getInt("race"), vitalityPoints);
 				if (result.next())
 				{
 					throw new SQLException("Duplicate character row.");
@@ -1514,7 +1595,7 @@ public final class PhantomBackgroundTransaction
 		return result;
 	}
 
-	private ItemMutationResult mutateItems(Connection connection, PhantomBackgroundState expected, List<ItemRow> lockedRows, Map<Integer, Long> deltas, Set<Integer> mutableItemIds, List<Integer> reservedIds, List<Integer> releasedIds) throws SQLException
+	private ItemMutationResult mutateItems(Connection connection, PhantomBackgroundState expected, List<ItemRow> lockedRows, Map<Integer, Long> deltas, Set<Integer> mutableItemIds, List<Integer> reservedIds, List<Integer> releasedIds, Command command, LockedComponent backgroundComponent, LockedComponent goalComponent, LockedComponent catchupComponent, LockedComponent acquisitionComponent) throws SQLException
 	{
 		if (deltas.size() > PhantomBackgroundModel.MAX_CHANGED_ITEM_OBJECTS)
 		{
@@ -1533,7 +1614,7 @@ public final class PhantomBackgroundTransaction
 			}
 			if (!mutableItemIds.contains(itemId))
 			{
-				throw new StateConflict(Status.ITEM_CONFLICT);
+				throw mutationItemConflict("NON_MUTABLE_ID", command, lockedRows, mutableItemIds, itemId, delta, "NOT_APPLICABLE", backgroundComponent, goalComponent, catchupComponent, acquisitionComponent);
 			}
 			final ItemTemplate template = ItemData.getInstance().getTemplate(itemId);
 			if ((template == null) || (template.getTime() != -1))
@@ -1568,7 +1649,7 @@ public final class PhantomBackgroundTransaction
 				}
 				if (remaining != 0)
 				{
-					throw new StateConflict(Status.ITEM_CONFLICT);
+					throw mutationItemConflict("INVENTORY_UNDERFLOW", command, lockedRows, mutableItemIds, itemId, mutation.getValue(), Long.toString(remaining), backgroundComponent, goalComponent, catchupComponent, acquisitionComponent);
 				}
 			}
 			else if (template.isStackable())
@@ -1987,6 +2068,65 @@ public final class PhantomBackgroundTransaction
 
 	private void writeComponent(Connection connection, LockedComponent existing, PhantomBackgroundState state) throws SQLException
 	{
+		final var scalar = lockComponent(connection, state.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE);
+		final var context = boundContext(scalar, existing, state.identity());
+		writeStateOnly(connection, existing, state);
+		if (context != null)
+		{
+			writeNativeContext(connection, scalar, context.rebind(nextVersion(existing), _stateCodec.encode(state)));
+		}
+	}
+
+	/** Profile-serialized scalar/state/canonical read; no native callback executes under these locks. */
+	public NativeContextResult nativeContext(long profileId, int objectId)
+	{
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, profileId), objectId);
+				final var component = requireStateComponent(lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE));
+				final var state = decodeState(component);
+				if (state.identity().characterObjectId() != objectId) { throw new StateConflict(Status.PROFILE_LINK_STALE); }
+				if (state.state() == State.INCONSISTENT) { throw new StateConflict(Status.INCONSISTENT); }
+				final var receipt = lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE);
+				final var context = boundContext(lockComponent(connection, profileId, PhantomNativeContext.COMPONENT_TYPE), component, state.identity());
+				final var canonical = lockCanonical(connection, state.identity());
+				if (context != null)
+				{
+					if (context.phase() == PhantomNativeContext.Phase.PENDING)
+					{
+						if (receipt == null) { throw new StateConflict(Status.STATE_CONFLICT); }
+						final var intent = PhantomOwnedStoreIntent.decode(receipt.payload());
+						if ((receipt.schemaVersion() != PhantomOwnedStoreIntent.SCHEMA_VERSION) || !context.matchesReceipt(intent.preparedRowVersion(), intent.materializedAtNanos(), receipt.payload())) { throw new StateConflict(Status.STATE_CONFLICT); }
+						if (!context.matchesBefore(canonical.vitalityPoints()) && !context.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
+					}
+					else if (!((context.phase() == PhantomNativeContext.Phase.UNKNOWN) && (receipt != null)) && !context.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
+				}
+				connection.rollback();
+				final var observed = context == null ? PhantomNativeContext.completed(state.identity(), canonical.vitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN, component.rowVersion(), component.payload()) : context;
+				return new NativeContextResult(context == null || context.phase() == PhantomNativeContext.Phase.UNKNOWN ? Status.NATIVE_CONTEXT_REQUIRED : Status.SUCCESS, state, observed, canonical.vitalityPoints());
+			}
+			catch (Throwable failure) { rollback(connection, failure); return NativeContextResult.rejected(failureResult(failure).status()); }
+		}
+		catch (SQLException | RuntimeException failure) { return NativeContextResult.rejected(failureResult(failure).status()); }
+	}
+
+	public record NativeContextResult(Status status, PhantomBackgroundState state, PhantomNativeContext context, int canonicalPoints)
+	{
+		public static NativeContextResult rejected(Status status) { return new NativeContextResult(status, null, null, -1); }
+		public boolean simulationEligible() { return (status == Status.SUCCESS) && (state != null) && state.acceptsBackgroundWork() && (context != null) && context.simulationEligible(); }
+		public boolean matchesNativeLoad(int points)
+		{
+			if ((points < 1) || (points > 20000) || (state == null) || (state.state() == State.INCONSISTENT) || (state.state() == State.VERIFY_PENDING) || ((status != Status.SUCCESS) && (status != Status.NATIVE_CONTEXT_REQUIRED)) || ((context != null) && (context.phase() == PhantomNativeContext.Phase.PENDING))) { return false; }
+			// Exact zero remains the canonical witness; stock normalization is allowed only without fresh policy proof.
+			return (points == canonicalPoints) || ((canonicalPoints == 0) && (points == 1) && ((context == null) || (context.phase() == PhantomNativeContext.Phase.UNKNOWN)));
+		}
+	}
+
+	private void writeStateOnly(Connection connection, LockedComponent existing, PhantomBackgroundState state) throws SQLException
+	{
 		final byte[] payload = _stateCodec.encode(state);
 		if (existing == null)
 		{
@@ -2011,6 +2151,51 @@ public final class PhantomBackgroundTransaction
 				requireOne(statement.executeUpdate(), "background state update");
 			}
 		}
+	}
+
+	private static long nextVersion(LockedComponent component) { return component == null ? 0 : Math.addExact(component.rowVersion(), 1); }
+
+	private PhantomNativeContext boundContext(LockedComponent scalar, LockedComponent state, Identity identity)
+	{
+		if (scalar == null) { return null; }
+		try
+		{
+			if ((scalar.schemaVersion() != PhantomNativeContext.SCHEMA_VERSION) || (state == null)) { throw new IllegalArgumentException("Unbound native scalar."); }
+			final var context = PhantomNativeContext.decode(scalar.payload());
+			if (!context.binds(identity, state.rowVersion(), state.payload())) { throw new IllegalArgumentException("Stale native scalar."); }
+			return context;
+		}
+		catch (RuntimeException failure) { throw new StateConflict(Status.STATE_CONFLICT); }
+	}
+
+	private static void writeNativeContext(Connection connection, LockedComponent existing, PhantomNativeContext context) throws SQLException
+	{
+		if (existing == null)
+		{
+			try (var statement = prepare(connection, INSERT_COMPONENT))
+			{
+				statement.setLong(1, context.identity().profileId()); statement.setString(2, PhantomNativeContext.COMPONENT_TYPE);
+				statement.setInt(3, PhantomNativeContext.SCHEMA_VERSION); statement.setBytes(4, context.encode());
+				requireOne(statement.executeUpdate(), "native scalar insert");
+			}
+		}
+		else { writeRawComponent(connection, existing, context.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE, PhantomNativeContext.SCHEMA_VERSION, context.encode()); }
+	}
+
+	private void verifyCompletedPoints(Connection connection, LockedComponent component, PhantomBackgroundState state, Canonical canonical) throws SQLException
+	{
+		final var context = boundContext(lockComponent(connection, state.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE), component, state.identity());
+		if ((context != null) && ((context.phase() == PhantomNativeContext.Phase.PENDING) || !context.matchesAfter(canonical.vitalityPoints())))
+		{
+			throw new StateConflict(Status.CANONICAL_MISMATCH);
+		}
+	}
+
+	private void requireSimulationContext(Connection connection, LockedComponent component, PhantomBackgroundState state, Canonical canonical) throws SQLException
+	{
+		final var context = boundContext(lockComponent(connection, state.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE), component, state.identity());
+		if ((context != null) && !context.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
+		if ((context == null) || !context.simulationEligible()) { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
 	}
 
 	private static void writeRawComponent(Connection connection, LockedComponent existing, long profileId, String componentType, int schemaVersion, byte[] payload) throws SQLException
@@ -2125,6 +2310,80 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
+	/** Scalar diagnostic only. Original ITEM_CONFLICT and cleanup semantics do not depend on it. */
+	private StateConflict mutationItemConflict(String branch, Command command, List<ItemRow> rows, Set<Integer> mutableItemIds, int itemId, long delta, String shortage, LockedComponent background, LockedComponent goal, LockedComponent catchup, LockedComponent acquisition)
+	{
+		ItemConflictWitness witness = null;
+		try
+		{
+			if (_firstItemConflict.get() == null)
+			{
+				final var state = command.expectedState();
+				final int firstObject = rows.stream().filter(row -> row.itemId() == itemId && row.location() == ItemLocation.INVENTORY).mapToInt(ItemRow::objectId).min().orElse(0);
+				witness = new ItemConflictWitness("EXECUTE_" + branch, "INVENTORY", state.identity().profileId(), state.identity().characterObjectId(), state.identity().classIndex(), command.goal().goalId(), command.goal().revision(), command.operationKey().actionKind().name(), command.operationKey().digest(), state.receipt().operationKey(), "NOT_APPLICABLE", state.state().name(), state.state().name(), itemId, firstObject, "SORTED_DELTA_ITEM", Long.toString(delta), Boolean.toString(mutableItemIds.contains(itemId)), expectedItemCount(state.inventory(), itemId, ItemLocation.INVENTORY), expectedItemCount(state.inventory(), itemId, ItemLocation.PAPERDOLL), lockedItemCount(rows, itemId, ItemLocation.INVENTORY), lockedItemCount(rows, itemId, ItemLocation.PAPERDOLL), shortage, state.inventory().canonicalHash(), "DURABLE_MATCH_GUARD_PASSED", itemComponentWitness(background), itemComponentWitness(goal), itemComponentWitness(catchup), itemComponentWitness(acquisition), "NOT_EXPOSED_BY_ORIGINAL_CONTEXT_GUARD");
+			}
+		}
+		catch (RuntimeException | Error ignored) { /* Diagnostics cannot replace the original conflict. */ }
+		return new StateConflict(Status.ITEM_CONFLICT, witness);
+	}
+
+	private StateConflict ownedItemConflict(PhantomBackgroundState captured, PhantomBackgroundState after, PhantomBackgroundState previous, PhantomGoal goal, long epoch, State target, List<ItemRow> rows, LockedComponent background, LockedComponent goalComponent, LockedComponent nativeContext)
+	{
+		ItemConflictWitness witness = null;
+		try
+		{
+			if (_firstItemConflict.get() == null)
+			{
+				ItemObject selected = captured.inventory().objects().stream().filter(object -> rows.stream().noneMatch(row -> row.objectId() == object.objectId() && row.itemId() == object.itemId() && row.count() == object.count() && row.location() == object.location())).findFirst().orElse(null);
+				if (selected == null) { selected = after.inventory().objects().stream().filter(object -> !captured.inventory().objects().contains(object)).findFirst().orElse(null); }
+				final int itemId = selected == null ? 0 : selected.itemId();
+				witness = new ItemConflictWitness("OWNED_PREPARE_INVENTORY_MISMATCH", "INVENTORY_AND_PAPERDOLL", captured.identity().profileId(), captured.identity().characterObjectId(), captured.identity().classIndex(), goal.goalId(), goal.revision(), "OWNED_PREPARE_" + target.name(), "NOT_CREATED_BEFORE_PREPARE", captured.receipt().operationKey(), Long.toString(epoch), captured.state().name(), previous == null ? "NOT_LOCKED" : previous.state().name(), itemId, selected == null ? 0 : selected.objectId(), selected == null ? "NO_TRACKED_OBJECT_MISMATCH" : "FIRST_TRACKED_OBJECT_MISMATCH", "NOT_APPLICABLE", "NOT_APPLICABLE", expectedItemCount(captured.inventory(), itemId, ItemLocation.INVENTORY), expectedItemCount(captured.inventory(), itemId, ItemLocation.PAPERDOLL), lockedItemCount(rows, itemId, ItemLocation.INVENTORY), lockedItemCount(rows, itemId, ItemLocation.PAPERDOLL), "NOT_APPLICABLE", captured.inventory().canonicalHash(), after.inventory().canonicalHash(), itemComponentWitness(background), itemComponentWitness(goalComponent), "NOT_LOCKED", "NOT_LOCKED", itemComponentWitness(nativeContext));
+			}
+		}
+		catch (RuntimeException | Error ignored) { /* Diagnostics cannot replace the original conflict. */ }
+		return new StateConflict(Status.ITEM_CONFLICT, witness);
+	}
+
+	private static long expectedItemCount(InventoryFacts inventory, int itemId, ItemLocation location)
+	{
+		long count = 0;
+		for (ItemObject object : inventory.objects()) { if (object.itemId() == itemId && object.location() == location) { count = Math.addExact(count, object.count()); } }
+		return count;
+	}
+
+	private static long lockedItemCount(List<ItemRow> rows, int itemId, ItemLocation location)
+	{
+		long count = 0;
+		for (ItemRow row : rows) { if (row.itemId() == itemId && row.location() == location) { count = Math.addExact(count, row.count()); } }
+		return count;
+	}
+
+	private static String itemComponentWitness(LockedComponent component)
+	{
+		return component == null ? "NOT_LOCKED" : component.schemaVersion() + "/" + component.rowVersion() + "/" + payloadDigest(component.payload());
+	}
+
+	private static int itemWitnessSuppressedCount(Throwable failure)
+	{
+		try { return failure instanceof StateConflict conflict && conflict._itemWitness != null ? failure.getSuppressed().length : -1; }
+		catch (RuntimeException | Error ignored) { return -1; }
+	}
+
+	private static ItemConflictWitness rolledBackItemWitness(Throwable failure, int suppressedBefore)
+	{
+		return suppressedBefore >= 0 && itemWitnessSuppressedCount(failure) == suppressedBefore ? ((StateConflict) failure)._itemWitness : null;
+	}
+
+	/** Called only by outer finally, after successful original rollback and all resource closes. */
+	private void publishFirstItemWitness(ItemConflictWitness witness)
+	{
+		try
+		{
+			if (witness != null && _firstItemConflict.compareAndSet(null, witness)) { System.err.println("PHANTOM_BACKGROUND_ITEM_CONFLICT_FIRST " + witness); }
+		}
+		catch (RuntimeException | Error ignored) { /* Keep the original result; never reset/spam the diagnostic latch. */ }
+	}
+
 	private static Result failureResult(Throwable failure)
 	{
 		return failure instanceof StateConflict conflict ? Result.rejected(conflict._status) : Result.rejected(Status.BACKEND_FAILURE);
@@ -2155,7 +2414,8 @@ public final class PhantomBackgroundTransaction
 		BACKEND_FAILURE,
 		COMMIT_OUTCOME_UNKNOWN,
 		POST_COMMIT_VERIFICATION_FAILED,
-		OWNED_STORE_CANONICAL_NEITHER
+		OWNED_STORE_CANONICAL_NEITHER,
+		NATIVE_CONTEXT_REQUIRED
 	}
 
 	public enum FaultPoint
@@ -2419,7 +2679,7 @@ public final class PhantomBackgroundTransaction
 	{
 	}
 
-	private record CharacterRow(int level, long experience, long skillPoints, long experienceBeforeDeath, Vitals vitals, Position position, int classId, int raceOrdinal)
+	private record CharacterRow(int level, long experience, long skillPoints, long experienceBeforeDeath, Vitals vitals, Position position, int classId, int raceOrdinal, int vitalityPoints)
 	{
 	}
 
@@ -2427,7 +2687,7 @@ public final class PhantomBackgroundTransaction
 	{
 	}
 
-	private record Canonical(int level, long experience, long skillPoints, long experienceBeforeDeath, Vitals vitals, Position position, int classId, int raceOrdinal)
+	private record Canonical(int level, long experience, long skillPoints, long experienceBeforeDeath, Vitals vitals, Position position, int classId, int raceOrdinal, int vitalityPoints)
 	{
 	}
 
@@ -2443,14 +2703,25 @@ public final class PhantomBackgroundTransaction
 	{
 	}
 
+	private record ItemConflictWitness(String branch, String domain, long profileId, int characterObjectId, int classIndex, long goalId, long goalRevision, String action, String operationDigest, String previousReceiptOperation, String nativeEpoch, String state, String previousState, int itemId, int itemObjectId, String itemSelection, String originalDelta, String mutableAdmitted, long expectedInventoryCount, long expectedPaperdollCount, long lockedInventoryCount, long lockedPaperdollCount, String shortage, String expectedInventoryHash, String lockedInventoryHash, String backgroundComponent, String goalComponent, String catchupComponent, String acquisitionComponent, String nativeContextComponent)
+	{
+	}
+
 	private static final class StateConflict extends RuntimeException
 	{
 		private static final long serialVersionUID = 1L;
 		private final Status _status;
+		private final ItemConflictWitness _itemWitness;
 
 		private StateConflict(Status status)
 		{
+			this(status, null);
+		}
+
+		private StateConflict(Status status, ItemConflictWitness itemWitness)
+		{
 			_status = status;
+			_itemWitness = itemWitness;
 		}
 	}
 }

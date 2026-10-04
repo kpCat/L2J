@@ -16,7 +16,7 @@
  */
 package org.l2jmobius.gameserver.model.zone.type;
 
-import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.config.GeneralConfig;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.actor.Creature;
@@ -78,7 +78,7 @@ public class JailZone extends ZoneType
 			if (player.isJailed())
 			{
 				// when a player wants to exit jail even if he is still jailed, teleport him back to jail
-				ThreadPool.schedule(new TeleportTask(player, JAIL_IN_LOC), 2000);
+				PlayerNativeWork.schedule(player, java.util.List.of(), "JAIL_EXIT_TELEPORT", PlayerNativeWork.Semantics.EARNED, new TeleportTask(player, JAIL_IN_LOC), 2000);
 				creature.sendMessage("You cannot cheat your way out of here. You must wait until your jail time is over.");
 			}
 			

@@ -49,6 +49,7 @@
 	<property name="phantom.goal014.seed" value="140014" />
 	<property name="phantom.goal014a.seed" value="14001401" />
 	<property name="phantom.goal015.seed" value="15001501" />
+	<property name="phantom.m1.native.focus" value="all" />
 	<property name="phantom.goal016.seed" value="16001601" />
 	<property name="phantom.goal017.seed" value="17001701" />
 	<property name="phantom.goal018.seed" value="18001801" />
@@ -1499,6 +1500,40 @@
 			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
 			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
 			<arg value="background-lifecycle" />
+			<arg value="${phantom.goal015.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-m1-native-lifecycle-test" depends="compile-tests" description="Run actual native M1 ownership and lifecycle regressions in guarded TEST.">
+		<property name="phantom.m1.native.timeout" value="300000" />
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing guarded TEST configuration." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing guarded TEST schema manifest." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="${phantom.m1.native.timeout}" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<sysproperty key="phantom.m1.native.focus" value="${phantom.m1.native.focus}" />
+			<arg value="m1-native-lifecycle" />
+			<arg value="${phantom.goal015.seed}" />
+		</java>
+	</target>
+
+	<target name="phantom-m1-production-world-test" depends="compile-tests" description="Run bounded actual production M1 TEST scene with factual full population and exact-row restore.">
+		<property name="phantom.m1.world.mode" value="world" />
+		<available file="${phantom.test.config}" type="file" property="phantom.test.config.present" />
+		<fail unless="phantom.test.config.present" message="Missing guarded TEST configuration." />
+		<available file="${phantom.test.schema.manifest}" type="file" property="phantom.test.schema.manifest.present" />
+		<fail unless="phantom.test.schema.manifest.present" message="Missing guarded TEST schema manifest." />
+		<java classname="org.l2jmobius.tests.phantoms.PhantomTestLauncher" classpathref="test.classpath" fork="true" failonerror="true" timeout="900000" dir="${datapack}/game">
+			<jvmarg value="-Xmx4096m" />
+			<jvmarg value="-Dphantom.module.root=${basedir}" />
+			<jvmarg value="-Dphantom.test.reports=${build.test.reports}" />
+			<jvmarg value="-Dphantom.test.config=${phantom.test.config}" />
+			<sysproperty key="phantom.m1.world.mode" value="${phantom.m1.world.mode}" />
+			<arg value="m1-production-world" />
 			<arg value="${phantom.goal015.seed}" />
 		</java>
 	</target>

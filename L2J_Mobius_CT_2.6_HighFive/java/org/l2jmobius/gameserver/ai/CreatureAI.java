@@ -31,6 +31,7 @@ import org.l2jmobius.gameserver.model.WorldRegion;
 import org.l2jmobius.gameserver.model.actor.Attackable;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Npc;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.events.EventDispatcher;
@@ -311,7 +312,7 @@ public class CreatureAI extends AbstractAI
 		final int bowAttackEndTime = _actor.getBowAttackEndTime();
 		if (bowAttackEndTime > gameTime)
 		{
-			ThreadPool.schedule(new CastTask(_actor, skill, target), (bowAttackEndTime - gameTime) * GameTimeTaskManager.MILLIS_IN_TICK);
+			PlayerNativeWork.schedule(_actor, target == null ? List.of() : List.of(target), "cast-bow-reuse", PlayerNativeWork.Semantics.CANCELLABLE, new CastTask(_actor, skill, target), (bowAttackEndTime - gameTime) * GameTimeTaskManager.MILLIS_IN_TICK);
 		}
 		else
 		{

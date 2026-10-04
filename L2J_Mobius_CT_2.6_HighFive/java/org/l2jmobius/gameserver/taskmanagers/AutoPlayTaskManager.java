@@ -92,17 +92,18 @@ public class AutoPlayTaskManager
 			PLAY: for (Player player : _players)
 			{
 				final PhantomPolicy phantomPolicy = PHANTOM_POLICIES.get(player);
+				if (player.isPhantomAutoPlayManaged() && (phantomPolicy == null)) { continue PLAY; }
 				try
 				{
 				if (!player.isOnline() || (player.isInOfflineMode() && !player.isOfflinePlay()) || (!AutoPlayConfig.ENABLE_AUTO_PLAY && (phantomPolicy == null)))
 				{
-					stopAutoPlay(player);
+					if (phantomPolicy == null) { stopAutoPlay(player); } else { stopPhantomAutoPlay(player, phantomPolicy); }
 					continue PLAY;
 				}
 				final TickLease lease = phantomPolicy == null ? () -> {} : phantomPolicy.acquire(player);
 				if (lease == null)
 				{
-					stopAutoPlay(player);
+					stopPhantomAutoPlay(player, phantomPolicy);
 					continue PLAY;
 				}
 				try (lease)
@@ -243,7 +244,13 @@ public class AutoPlayTaskManager
 						// Check if item is reachable.
 						if ((droppedItem == null) //
 							|| (!droppedItem.isSpawned()) //
+							|| (droppedItem.getInstanceId() != player.getInstanceId()) //
 							|| AutoPlayConfig.IGNORED_AUTO_PICK_ITEMS.contains(droppedItem.getId()) //
+							|| (droppedItem.isProtected() && (droppedItem.getOwnerId() != player.getObjectId())) //
+							|| !droppedItem.getDropProtection().tryPickUp(player) //
+							|| ((droppedItem.getOwnerId() != 0) && (droppedItem.getOwnerId() != player.getObjectId()) && !player.isInLooterParty(droppedItem.getOwnerId())) //
+							|| !player.getInventory().validateCapacity(droppedItem) //
+							|| !player.getInventory().validateWeightByItemId(droppedItem.getId(), droppedItem.getCount()) //
 							|| !GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), droppedItem.getX(), droppedItem.getY(), droppedItem.getZ(), player.getInstanceId()))
 						{
 							continue PICKUP;
@@ -342,8 +349,8 @@ public class AutoPlayTaskManager
 				catch (RuntimeException failure)
 				{
 					if (phantomPolicy == null) { throw failure; }
-					stopAutoPlay(player);
-					AutoUseTaskManager.getInstance().stopAutoUseTask(player);
+					stopPhantomAutoPlay(player, phantomPolicy);
+					AutoUseTaskManager.getInstance().stopPhantomAutoUse(player, phantomPolicy);
 					java.util.logging.Logger.getLogger(AutoPlayTaskManager.class.getName()).log(java.util.logging.Level.WARNING, "Phantom AutoPlay actor failed: " + player.getObjectId(), failure);
 				}
 			}
@@ -387,14 +394,39 @@ public class AutoPlayTaskManager
 		}
 	}
 
-	public synchronized void startPhantomAutoPlay(Player player, PhantomPolicy policy)
+	public void startPhantomAutoPlay(Player player, PhantomPolicy policy)
 	{
-		PHANTOM_POLICIES.put(player, policy);
-		startAutoPlay(player);
+		startPhantomAutoPlay(player, policy, null);
+	}
+
+	/** A revoked Session cannot publish a registration after its replacement. */
+	public boolean startPhantomAutoPlay(Player player, PhantomPolicy policy, java.util.concurrent.atomic.AtomicBoolean sessionCurrent)
+	{
+		java.util.Objects.requireNonNull(policy, "policy");
+		if ((sessionCurrent != null) && !sessionCurrent.get()) { return false; }
+		player.markPhantomAutoPlayManaged();
+		player.onActionRequest();
+		return player.withAutoPlayRegistration(() ->
+		{
+			synchronized (this)
+			{
+				if ((sessionCurrent != null) && !sessionCurrent.get()) { return false; }
+				PHANTOM_POLICIES.put(player, policy);
+				registerAutoPlay(player);
+				return true;
+			}
+		});
 	}
 	
-	public synchronized void startAutoPlay(Player player)
+	public void startAutoPlay(Player player)
 	{
+		player.onActionRequest();
+		player.withAutoPlayRegistration(() -> { synchronized (this) { registerAutoPlay(player); } return null; });
+	}
+
+	private void registerAutoPlay(Player player)
+	{
+		player.setAutoPlayingRegistration(true);
 		for (Set<Player> pool : POOLS)
 		{
 			if (pool.contains(player))
@@ -403,20 +435,16 @@ public class AutoPlayTaskManager
 			}
 		}
 		
-		player.setAutoPlaying(true);
-		
 		for (Set<Player> pool : POOLS)
 		{
 			if (pool.size() < POOL_SIZE)
 			{
-				player.onActionRequest();
 				pool.add(player);
 				return;
 			}
 		}
 		
 		final Set<Player> pool = ConcurrentHashMap.newKeySet(POOL_SIZE);
-		player.onActionRequest();
 		pool.add(player);
 		ThreadPool.schedulePriorityTaskAtFixedRate(new AutoPlay(pool), TASK_DELAY, TASK_DELAY);
 		POOLS.add(pool);
@@ -424,23 +452,52 @@ public class AutoPlayTaskManager
 	
 	public void stopAutoPlay(Player player)
 	{
-		final boolean phantom = PHANTOM_POLICIES.remove(player) != null;
+		player.withAutoPlayRegistration(() ->
+		{
+			final boolean phantom;
+			final long generation;
+			synchronized (this)
+			{
+				phantom = PHANTOM_POLICIES.remove(player) != null;
+				generation = removeAutoPlay(player);
+			}
+			if (generation >= 0) { player.finishAutoPlayRegistrationStop(generation, !phantom); }
+			return null;
+		});
+	}
+
+	public boolean stopPhantomAutoPlay(Player player, PhantomPolicy expected)
+	{
+		return player.withAutoPlayRegistration(() ->
+		{
+			final long generation;
+			synchronized (this)
+			{
+				if ((expected == null) || (PHANTOM_POLICIES.get(player) != expected)) { return false; }
+				PHANTOM_POLICIES.remove(player);
+				generation = removeAutoPlay(player);
+			}
+			if (generation >= 0) { player.finishAutoPlayRegistrationStop(generation, false); }
+			return true;
+		});
+	}
+
+	public synchronized boolean hasPhantomRegistration(Player player, PhantomPolicy expected)
+	{
+		return (expected != null) && (PHANTOM_POLICIES.get(player) == expected) && POOLS.stream().anyMatch(pool -> pool.contains(player));
+	}
+
+	private long removeAutoPlay(Player player)
+	{
 		for (Set<Player> pool : POOLS)
 		{
 			if (pool.remove(player))
 			{
-				player.setAutoPlaying(false);
-				
-				// Pets must follow their owner.
-				if (!phantom && (player.hasServitor() || player.hasPet()))
-				{
-					player.getSummon().followOwner();
-				}
-				
 				IDLE_COUNT.remove(player);
-				return;
+				return player.setAutoPlayingRegistration(false);
 			}
 		}
+		return -1;
 	}
 	
 	public static AutoPlayTaskManager getInstance()

@@ -256,6 +256,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		service.enablePeriodicDueMode();
 		service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
 		service.register(population);
+		loadMetadata(service, 1);
 		PhantomAssertions.assertTrue(drainDue(service, 1).complete(), "First ten-minute due did not complete.");
 		PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "First ten-minute due did not award exactly once.");
 		materialized.set(true);
@@ -288,18 +289,23 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			first.enablePeriodicDueMode();
 			first.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
 			first.register(population);
+			loadMetadata(first, 1);
+			PhantomAssertions.assertEquals(0, historical.requestIds().size(), "Metadata setup began history before the crash boundary.");
 			historical.crashNextAdvance(afterSave);
 			PhantomAssertions.assertFalse(drainDue(first, 1).complete(), "Injected crash was reported as a complete due.");
+			PhantomAssertions.assertEquals(1, historical.injectedCrashes(), "Crash fixture did not enter historical advance after metadata.");
 			PhantomAssertions.assertTrue(store.require(1).state().calendarCursorEpochMinute() >= fromMinute, "Crash moved durable ecology cursor backwards.");
 			final PhantomPopulationEcologyService restarted = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), clock, Preset.LIVING, 0, 10);
 			restarted.enablePeriodicDueMode();
 			restarted.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
 			restarted.register(population);
+			loadMetadata(restarted, 1);
 			final var recovered = drainDue(restarted, 1);
 			PhantomAssertions.assertTrue(recovered.complete(), "Restart did not reconcile the durable request after injected crash.");
 			PhantomAssertions.assertEquals(fromMinute + 10, store.require(1).state().calendarCursorEpochMinute(), "Recovery did not commit the whole ten-minute cursor.");
 			PhantomAssertions.assertEquals(10L, historical.advancedMinutes(), "Crash/retry double-awarded or lost model minutes.");
 			PhantomAssertions.assertEquals(1, historical.requestIds().size(), "Crash/retry created a second request identity.");
+			PhantomAssertions.assertEquals(1, historical.injectedCrashes(), "Recovery replayed the injected fault.");
 			PhantomAssertions.assertEquals(0, drainDue(restarted, 1).advancedIntervals(), "Scheduler ack retry advanced a completed request.");
 		}
 		context.record("goal033.periodicCrashRecovery", "before_save,after_save");
@@ -632,12 +638,15 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		PhantomAssertions.assertEquals(0, firstEcology.snapshot().archived(), "Party-blocked profile archived.");
 		materialized.set(true);
 		safety.set("");
+		// The original ownership/archive probe refreshes on a calendar-minute edge.
+		clock.set(clock.instant().plusSeconds(60));
 		for (int index = 0; index < 8; index++)
 		{
 			manager.onPulse();
 		}
 		PhantomAssertions.assertEquals(0, firstEcology.snapshot().archived(), "Materialized profile archived.");
 		materialized.set(false);
+		clock.set(clock.instant().plusSeconds(60));
 		pulseUntil(manager, () -> firstEcology.snapshot().archived() == 1, 256, "Safe eligible veteran did not archive.");
 		pulseUntil(manager, () -> populationStore.size() == 2, 256, "PopulationManager did not create a replacement shell.");
 		final long replacement = populationStore.loadManagedAfter(veteran, 16).get(0).profile().profileId();
@@ -752,6 +761,8 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		});
 		service.register(population);
 		PhantomAssertions.assertFalse(service.permitsScheduling(1), "Stale idle ecology cursor unexpectedly permitted scheduling.");
+		loadMetadata(service, 1);
+		PhantomAssertions.assertEquals(0, fenceChanges.get(), "Metadata setup opened the stale idle schedule fence.");
 		service.onPopulationPulse();
 		PhantomAssertions.assertTrue(service.permitsScheduling(1), "Idle ecology calendar did not catch up to the current minute.");
 		PhantomAssertions.assertEquals(1, fenceChanges.get(), "Idle ecology permit transition did not reopen the population schedule fence exactly once.");
@@ -806,12 +817,25 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		for (int pulse = 0; (pulse < 32) && !service.inventoryReady(); pulse++)
 		{
 			service.onPopulationPulse();
+			if (!service.inventoryReady())
+			{
+				PhantomAssertions.assertFalse(service.requestBackgroundReadiness(1).complete(), "Partial restored census admitted direct background readiness.");
+				PhantomAssertions.assertEquals(0, fenceChanges.size(), "Partial restored census published a native schedule permit.");
+			}
 		}
 		PhantomAssertions.assertTrue(service.inventoryReady(), "Restart ecology inventory did not load through bounded population pulses.");
 		PhantomAssertions.assertEquals(1, reconciliations.get(), "Restored inventory readiness did not reconcile population exactly once.");
 		for (long profileId : eligible)
 		{
 			PhantomAssertions.assertTrue(service.permitsScheduling(profileId), "Loaded eligible ecology row did not permit scheduling: " + profileId);
+		}
+		// Completion notifications use the retained ordinary queue, bounded by the original profile budget.
+		final int notificationBatches = (populations.size() + _ecology.limits().maximumProfilesPerPulse() - 1) / _ecology.limits().maximumProfilesPerPulse();
+		for (int batch = 0; batch < notificationBatches; batch++)
+		{
+			final int before = fenceChanges.size();
+			service.onPopulationPulse();
+			PhantomAssertions.assertTrue(fenceChanges.size() - before <= _ecology.limits().maximumProfilesPerPulse(), "Restore permission notifications exceeded the ordinary profile budget.");
 		}
 		final List<Long> distinctFenceChanges = fenceChanges.stream().distinct().sorted().toList();
 		PhantomAssertions.assertEquals(eligible, distinctFenceChanges, "Restart restore did not reopen every eligible READY schedule fence.");
@@ -955,6 +979,24 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 	}
 
 	/** Deterministic dispatcher drain belongs to the fixture, never to production request APIs. */
+	private static void loadMetadata(PhantomPopulationEcologyService service, int profiles)
+	{
+		final int allowance = service.snapshot().metadataAllowance();
+		final int batches = (profiles + allowance - 1) / allowance;
+		for (int batch = 0; batch < batches; batch++) { service.onPopulationPulse(); }
+		final var metadata = service.snapshot();
+		PhantomAssertions.assertTrue(metadata.inventoryReady(), "Explicit metadata setup did not complete its bounded full census.");
+		PhantomAssertions.assertEquals(profiles, metadata.registeredProfiles(), "Metadata setup changed the registered denominator.");
+		PhantomAssertions.assertEquals(0, metadata.unloadedProfiles(), "Metadata setup retained unloaded rows.");
+		PhantomAssertions.assertEquals((long) profiles, metadata.metadataPublications(), "Metadata setup did not publish each identity once.");
+		PhantomAssertions.assertTrue(metadata.maximumMetadataBatch() <= allowance, "Metadata setup exceeded its allowance.");
+		PhantomAssertions.assertEquals(0L, metadata.profileOperations(), "Metadata setup entered the ordinary route.");
+		PhantomAssertions.assertEquals(0L, metadata.historicalIntervals(), "Metadata setup advanced historical intervals.");
+		PhantomAssertions.assertEquals(0L, metadata.productiveMinutes(), "Metadata setup awarded productive minutes.");
+		PhantomAssertions.assertEquals(0L, metadata.calendarMinutes(), "Metadata setup changed the calendar cursor.");
+	}
+
+	/** One original ordinary pulse; metadata setup is explicit at relevant cold-start callsites. */
 	private static PhantomPopulationEcologyService.DueReconciliation drainDue(PhantomPopulationEcologyService service, long profileId)
 	{
 		final var requested = service.requestBackgroundDue(profileId);
@@ -1136,6 +1178,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		private final List<String> _requestIds = new ArrayList<>();
 		private long _advancedMinutes;
 		private Boolean _crashAfterSaveOnce;
+		private int _injectedCrashes;
 
 		private synchronized void crashNextAdvance(boolean afterSave)
 		{
@@ -1177,6 +1220,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			if (Boolean.FALSE.equals(_crashAfterSaveOnce))
 			{
 				_crashAfterSaveOnce = null;
+				_injectedCrashes++;
 				throw new IllegalStateException("synthetic.crash_before_durable_save");
 			}
 			final Snapshot saved = new Snapshot(current.state().advanceTo(current.state().cursorEpochMinute() + advanced), current.rowVersion() + 1);
@@ -1185,9 +1229,15 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			if (Boolean.TRUE.equals(_crashAfterSaveOnce))
 			{
 				_crashAfterSaveOnce = null;
+				_injectedCrashes++;
 				throw new IllegalStateException("synthetic.crash_after_durable_save");
 			}
 			return PhantomHistoricalBackgroundService.Result.success(saved, advanced);
+		}
+
+		private synchronized int injectedCrashes()
+		{
+			return _injectedCrashes;
 		}
 
 		private synchronized long advancedMinutes()

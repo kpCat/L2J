@@ -103,6 +103,8 @@ public final class LocalPlayPilotSuite implements PhantomTestSuite
 			LocalPlayPilotProtocol.writeResult(result, parsed, "SUCCEEDED", "SNAPSHOT", Instant.now(), Instant.now(), 19, Map.of("x", "1"), Map.of("x", "2"), null);
 			final String serialized = Files.readString(result);
 			assertTrue(serialized.contains("status=\"SUCCEEDED\"") && serialized.contains("<before x=\"1\"/>") && serialized.contains("<after x=\"2\"/>"), "result serialization");
+			Files.writeString(request, xml(requestId, sessionId, runId, "PREPARE_M1_ENVELOPE", "<arg name=\"excludePreviouslySelectedProfileIds\" value=\"17\"/>"));
+			assertTrue("17".equals(LocalPlayPilotProtocol.read(request).args().get("excludePreviouslySelectedProfileIds")), "exact M1 selector option accepted");
 		}
 		finally
 		{
@@ -175,6 +177,9 @@ public final class LocalPlayPilotSuite implements PhantomTestSuite
 			{
 				xml(requestId, sessionId, runId, "ARBITRARY_COMMAND", ""),
 				xml(requestId, sessionId, runId, "STATUS", "<arg name=\"x\" value=\"1\"/><arg name=\"x\" value=\"2\"/>"),
+				xml(requestId, sessionId, runId, "STATUS", "<arg name=\"excludePreviouslySelectedProfileIds\" value=\"17\"/>"),
+				xml(requestId, sessionId, runId, "SNAPSHOT_M1_ENVELOPE", "<arg name=\"excludePreviouslySelectedProfileIds\" value=\"17\"/>"),
+				xml(requestId, sessionId, runId, "PREPARE_M1_ENVELOPE", "<arg name=\"unknownLongArgumentNameNotPermitted\" value=\"17\"/>"),
 				"<!DOCTYPE pilotRequest [<!ENTITY xxe SYSTEM \"file:///C:/Windows/win.ini\">]>" + xml(requestId, sessionId, runId, "STATUS", ""),
 				xml(UUID.randomUUID().toString(), sessionId, runId, "STATUS", "")
 			})
