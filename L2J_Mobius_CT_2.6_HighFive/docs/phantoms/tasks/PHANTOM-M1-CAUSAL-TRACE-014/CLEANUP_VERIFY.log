@@ -1,0 +1,7 @@
+POST_STOP_SAVED 268492939	TestAdmin	0	12	138026	13880	44131	42673	-3488; total_online=0; original_PLAY_hashes_preserved=304
+CONFIG PASS
+Preset=Lively Population=1280 Active=8 MaterializedCap=8 PulseMs=100
+Ecology=LIVING HumanizedV3=True CustomOverlay=True Mature=True Diagnostics=True
+DatabaseConfig=USER_CONFIRMED_EXISTING
+LoginServer=STALE_RECORD(pid=0, staleRecord=True) Port2106=False owner= Port9014=False owner=
+GameServer=STALE_RECORD(pid=0, staleRecord=True) Port7777=False owner=

@@ -1,12 +1,13 @@
 # HANDOFF014
 
-Return exactly:
-1. FIRST_LOST_EDGE.
-2. Exact current methods forming that edge.
-3. Trace seq range proving it.
-4. <=12 suspect GOOD->BAD commits touching that edge.
-5. Whether one bounded fix is justified or behavioral bisect is required.
+1. FIRST_LOST_EDGE: local scheduler promotion → ecology/readiness DEFER before materialize. Exact reason `native_context.required:coalesced`.
+2. Current methods: `PhantomScheduler.localPulseSafely/processLocalPromotion/executeBoundary` → `PhantomReconcileFirstActivityPort.materialize/installPopulationReadiness` → `PhantomPopulationEcologyService.requestMaterializationDue/requestDue/registerDue/dueSnapshotLocked`. Gate producer/prerequisite: `PhantomHistoricalBackgroundService.ensureNativeContext/requiresNativeMaterialization`; current-demand composition in `PhantomSystem.start` uses `presence.isOnline && locality.isCurrentLocal`.
+3. Trace proof: seq6–27 profile110, seq11/16/19–20/28–33 profile175; complete seq1–3739, dropped0. Human/candidate/signal/promotion pass. 223 ecology INCOMPLETE/DEFER outcomes, no watched READY_PASS/materialize call. 89 World samples report0 active online Phantoms.
+4. Five suspects, causality UNPROVEN: `8457b90723e3c8ff6b419080bb2f84bfd80d6638` exact native-demand gate; `dd58a512c4cb9c6a5318d7320633a35ae849dbf0` native-context prerequisite/reason; `e92d7d438641f3f13158021675bd99e2489a7042` readiness gate; `6f6dec73495657da0d09f8ced328eba6b5083ad2` current-demand/wake; `ca2dbc753106d165dc73a1b03ba89aadc69f917e` preparation/pending-request ownership. SUSPECT_COMMITS.tsv supplies rank/ordinal/date/relation.
+5. A bounded gameplay fix is not yet justified: the exact false native-materialization guard operand is unobserved. For commit attribution, separately authorize a bounded behavioral bisect at seven checkpoints, with comparable fresh DB/time/position fixtures: GOOD `561c84a2dc23d6dd953e755e2fafcfbddcd5d395`; `e92d7d438641f3f13158021675bd99e2489a7042`; `6f6dec73495657da0d09f8ced328eba6b5083ad2`; `ca2dbc753106d165dc73a1b03ba89aadc69f917e`; `dd58a512c4cb9c6a5318d7320633a35ae849dbf0`; `8457b90723e3c8ff6b419080bb2f84bfd80d6638`; BAD `c23915df10239bfab15ae49276e14833268b9afc`. No bisect was run.
 
-No automatic continuation.
-No generic audit.
-No rewrite recommendation without trace/history evidence.
+Recorder source commit `af45c122db394568e413bebcba8e929a04428926` normal-pushed before runtime. Fresh observe014 was gracefully stopped after owner character-select confirmation, online0 and saved level12/exp138026/sp13880/44131/42673/-3488. No force. Original PLAY304 hashes preserved. Private DB/JFR/raw mailbox retained; binaries/secrets not committed.
+
+Timing exception:90-second passive-loop target; server BEGIN-to-END91.6045 seconds including capture/transport overhead. Original stopwatch value was not persisted because initial TSV export failed; raw frozen XML recovery retained3739/3739 events without new BEGIN. Exact90.000-second server capture and unconditional task GREEN are not claimed.
+
+M1=OPEN. No automatic continuation, gameplay fix, generic audit or rewrite.

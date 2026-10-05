@@ -1,0 +1,94 @@
+JFR_FILE_INTERVAL=2026-10-05T22:29:10.297506768Z..2026-10-05T22:37:26.724065369Z
+TRACE_INTERVAL=2026-10-05T22:34:07.046766700Z..2026-10-05T22:35:38.651268600Z
+THREAD_IDS_FILE=234 TRACE=134 (observed in selected event thread fields, not total live thread census)
+TRACE_LIVE_ACTIVE_THREADS=204..205 PEAK_SINCE_START=205
+TRACE_JAVA_EXCEPTION_THROW_EVENTS=23822
+OVERLAPPING_MONITOR_ENTER=0 PHANTOM_STACK=0
+MAX_OVERLAPPING_WAIT_MS=91885.135122 PHANTOM_STACK_MS=299.21489
+MAX_OVERLAPPING_WAIT_FACT=2026-10-05T22:33:24.772127526Z | jdk.ThreadPark | Server-MMO-pool-2-thread-64 | jdk.internal.misc.Unsafe.park | phantomStack=false
+TRACE_EVENT_COUNTS
+29779	jdk.ThreadPark
+25652	jdk.ObjectAllocationSample
+23822	jdk.JavaExceptionThrow
+4370	jdk.NativeMethodSample
+1667	jdk.ExecutionSample
+1471	jdk.JavaMonitorWait
+912	jdk.ThreadSleep
+508	jdk.ThreadCPULoad
+268	jdk.SocketRead
+215	jdk.ExecuteVMOperation
+111	jdk.GCPhaseConcurrent
+90	jdk.MetaspaceChunkFreeListSummary
+TRACE_EXCEPTION_CLASSES
+23412	java.lang.Exception
+116	org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction$StateConflict
+104	java.nio.file.NoSuchFileException
+90	sun.nio.fs.WindowsException
+66	java.lang.IllegalArgumentException
+34	java.util.NoSuchElementException
+FILE_EXCEPTION_CLASSES
+114101	java.lang.Exception
+1784	com.sun.tools.javac.code.Types$FunctionDescriptorLookupError
+1471	com.sun.org.apache.xerces.internal.xni.parser.XMLConfigurationException
+1143	java.lang.IllegalArgumentException
+806	java.lang.NullPointerException
+794	java.nio.file.NoSuchFileException
+767	com.sun.tools.javac.comp.Resolve$InapplicableMethodException
+584	sun.nio.fs.WindowsException
+488	java.util.MissingResourceException
+435	java.lang.ClassNotFoundException
+428	org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction$StateConflict
+393	com.sun.tools.javac.comp.Infer$InferenceException
+TRACE_CPU_SAMPLE_THREAD_TOPFRAME
+1284	LoginServerThread | sun.nio.ch.SocketDispatcher.read0
+1283	AWT-Windows | sun.awt.windows.WToolkit.eventLoop
+1283	InnocuousThread-1 | sun.nio.ch.Iocp.getQueuedCompletionStatus
+62	JFR Periodic Tasks | jdk.jfr.internal.JVM.emitEvent
+20	L2jMobius Thread 10 | sun.nio.ch.Net.poll
+16	L2jMobius Thread 25 | sun.nio.ch.Net.poll
+16	L2jMobius Thread 27 | sun.nio.ch.Net.poll
+15	L2jMobius Thread 16 | sun.nio.ch.Net.poll
+13	L2jMobius Thread 1 | sun.nio.ch.Net.poll
+13	L2jMobius Thread 3 | sun.nio.ch.Net.poll
+13	L2jMobius Thread 32 | sun.nio.ch.Net.poll
+12	L2jMobius Thread 19 | sun.nio.ch.Net.poll
+TRACE_PHANTOM_CPU_SAMPLE_THREAD_TOPFRAME
+20	L2jMobius Thread 10 | sun.nio.ch.Net.poll
+16	L2jMobius Thread 25 | sun.nio.ch.Net.poll
+16	L2jMobius Thread 27 | sun.nio.ch.Net.poll
+15	L2jMobius Thread 16 | sun.nio.ch.Net.poll
+13	L2jMobius Thread 1 | sun.nio.ch.Net.poll
+13	L2jMobius Thread 3 | sun.nio.ch.Net.poll
+13	L2jMobius Thread 32 | sun.nio.ch.Net.poll
+12	L2jMobius Thread 19 | sun.nio.ch.Net.poll
+12	L2jMobius Thread 21 | sun.nio.ch.Net.poll
+12	L2jMobius Thread 28 | sun.nio.ch.Net.poll
+11	L2jMobius Thread 29 | sun.nio.ch.Net.poll
+10	L2jMobius Thread 11 | sun.nio.ch.Net.poll
+LONG_OVERLAPPING_WAIT_GROUPS_GE100MS
+893	jdk.JavaMonitorWait | MySQL Statement Cancellation Timer | java.lang.Object.wait0 | phantomStack=false
+328	jdk.ThreadPark | L2jMobius ScheduledThread 49 | jdk.internal.misc.Unsafe.park | phantomStack=false
+327	jdk.ThreadPark | L2jMobius ScheduledThread 17 | jdk.internal.misc.Unsafe.park | phantomStack=false
+327	jdk.ThreadPark | L2jMobius ScheduledThread 45 | jdk.internal.misc.Unsafe.park | phantomStack=false
+327	jdk.ThreadPark | L2jMobius ScheduledThread 57 | jdk.internal.misc.Unsafe.park | phantomStack=false
+326	jdk.ThreadPark | L2jMobius ScheduledThread 26 | jdk.internal.misc.Unsafe.park | phantomStack=false
+326	jdk.ThreadPark | L2jMobius ScheduledThread 30 | jdk.internal.misc.Unsafe.park | phantomStack=false
+326	jdk.ThreadPark | L2jMobius ScheduledThread 41 | jdk.internal.misc.Unsafe.park | phantomStack=false
+326	jdk.ThreadPark | L2jMobius ScheduledThread 46 | jdk.internal.misc.Unsafe.park | phantomStack=false
+326	jdk.ThreadPark | L2jMobius ScheduledThread 50 | jdk.internal.misc.Unsafe.park | phantomStack=false
+326	jdk.ThreadPark | L2jMobius ScheduledThread 62 | jdk.internal.misc.Unsafe.park | phantomStack=false
+325	jdk.ThreadPark | L2jMobius ScheduledThread 13 | jdk.internal.misc.Unsafe.park | phantomStack=false
+LONG_PHANTOM_STACK_WAITS_GE100MS=[2026-10-05T22:35:32.257004476Z | jdk.JavaMonitorWait | L2jMobius ScheduledThread 6 | durationMs=299.21489 | java.lang.Object.wait0 | [org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.await, org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drain, org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drainAndSeal, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.closeActionAdmissionAndDrain, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup]]
+TRACE_RECORDED_THREAD_CPU_LOAD_AVERAGES (JFR fractions, not wall-clock CPU proof)
+JFR Periodic Tasks user=0.000371 system=0.002647 samples=9
+C2 CompilerThread0 user=0.001623 system=0.000000 samples=8
+L2jMobius Thread 32 user=0.000911 system=0.000251 samples=7
+L2jMobius Thread 3 user=0.000795 system=0.000132 samples=7
+L2jMobius Thread 10 user=0.000614 system=0.000220 samples=8
+L2jMobius Thread 11 user=0.000694 system=0.000127 samples=8
+L2jMobius Thread 5 user=0.000622 system=0.000199 samples=7
+L2jMobius Thread 31 user=0.000681 system=0.000139 samples=6
+L2jMobius Thread 25 user=0.000498 system=0.000278 samples=8
+L2jMobius Thread 27 user=0.000639 system=0.000124 samples=9
+L2jMobius Thread 1 user=0.000615 system=0.000127 samples=8
+L2jMobius Thread 21 user=0.000534 system=0.000186 samples=8

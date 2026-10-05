@@ -1,0 +1,8 @@
+warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CAUSAL-TRACE-014/EXECUTION_PLAN.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CAUSAL-TRACE-014/HANDOFF.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CAUSAL-TRACE-014/Verify-Task014.py', LF will be replaced by CRLF the next time Git touches it
+SCOPE_PASS: exact code allowlist + TASK014 artifacts; changed paths=63
+RECORDER_STATIC_PASS: no I/O, waits, gameplay locks or logger
+MOJIBAKE_CHECK: []
+ESCAPED_CYRILLIC_CHECK: []
+TRACE_EXPORT_PASS: 3739 contiguous events, dropped0, max8, bounded11 fields, stopped; 223 exact defer outcomes; five unique suspects

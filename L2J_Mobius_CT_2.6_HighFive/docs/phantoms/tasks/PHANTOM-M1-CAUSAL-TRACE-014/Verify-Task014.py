@@ -1,6 +1,8 @@
 """Exact TASK014 scope, recorder static invariants and two separate encoding checks."""
 import re
 import subprocess
+import csv
+import json
 from pathlib import Path
 
 TASK = Path(__file__).resolve().parent
@@ -23,6 +25,7 @@ def git(*args):
 
 task_prefix = str(TASK.relative_to(ROOT)).replace('\\', '/') + '/'
 paths = [line[3:].strip('"') for line in git('status', '--porcelain', '--untracked-files=all').splitlines()]
+paths = sorted(set(paths) | set(git('diff', '--name-only', 'ccacd6c5bf8fa1234a5559ece708ee3a35efd536').splitlines()))
 unexpected = [p for p in paths if p not in [MODULE + c for c in CODE] and not p.startswith(task_prefix)]
 if unexpected:
     raise SystemExit('SCOPE_FAIL: ' + repr(unexpected))
@@ -53,3 +56,18 @@ print('MOJIBAKE_CHECK: ' + repr(moji))
 print('ESCAPED_CYRILLIC_CHECK: ' + repr(escapes))
 if moji or escapes:
     raise SystemExit(1)
+trace_path = TASK / 'CAUSAL_TRACE.tsv'
+if trace_path.exists():
+    rows = list(csv.DictReader(trace_path.open(encoding='utf-8-sig'), delimiter='\t'))
+    meta = json.loads((TASK / 'CAUSAL_META.json').read_text(encoding='utf-8'))
+    seqs = [int(r['seq']) for r in rows]
+    watched = json.loads(meta['watched'])
+    assert len(rows) == int(meta['retained']) == 3739 and int(meta['dropped']) == 0
+    assert seqs == list(range(1, int(meta['attempts']) + 1))
+    assert len(watched) <= 8 and len(rows) <= 8192 and meta['active'] == 'false'
+    assert all(None not in r and len(r) == 11 and len(r['reason']) <= 96 and (int(r['profileId']) == 0 or int(r['profileId']) in watched) for r in rows)
+    assert sum(r['event']=='READY_ECOLOGY_DEFER' and r['reason']=='native_context.required:coalesced' for r in rows) == 223
+    assert not any(r['event'] in ('READY_PASS', 'MATERIALIZE_CALL', 'MATERIALIZE_RESULT') or r['event'].startswith('MAT_') for r in rows)
+    suspects = list(csv.DictReader((TASK / 'SUSPECT_COMMITS.tsv').open(encoding='utf-8'), delimiter='\t'))
+    assert len(suspects) == 5 and len({r['sha'] for r in suspects}) == 5
+    print('TRACE_EXPORT_PASS: 3739 contiguous events, dropped0, max8, bounded11 fields, stopped; 223 exact defer outcomes; five unique suspects')
