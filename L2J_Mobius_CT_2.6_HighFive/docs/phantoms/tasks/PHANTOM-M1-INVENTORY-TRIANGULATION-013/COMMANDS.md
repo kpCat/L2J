@@ -51,4 +51,40 @@ Private Set-ExactTestAdmin013.ps1: exact PLAY SELECT→CAS UPDATE with observed 
 Private Stop-ExactOwnedGracefully.ps1: exact clone DB logout/store/real-online checks, PID/incarnation/runtime checks, Attach public stock shutdown request, port absence. Game old14472/Login old17672; no force. Login-only retry after classloader failure.
 Private Prepare-Runtime.ps1 is adapted from existing observe011 script with clone013 and GM four startup flagsFalse, preserving source PLAY file hashes.
 
-Publication commands and final scope verification will be recorded when executed.
+## Publication / final verification
+
+Executed in the isolated worktree:
+
+```text
+git add -- java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java test/java/org/l2jmobius/gameserver/phantoms/PhantomM1HistoricalNativeContextChecks.java test/java/org/l2jmobius/tests/phantoms/PhantomM1PopulationFixture.java <each of the 24 enumerated task013 docs files>
+git diff --cached --check
+git diff --cached --name-status
+git commit -m 'Fix committed inventory projection at Phantom native arrival'
+git rev-parse HEAD
+git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+```
+
+Source commit c23915df10239bfab15ae49276e14833268b9afc, normal push ae6f0236→c23915df102. The 24 exact doc paths are the task directory paths in FINAL_SCOPE.tsv excluding later RUNTIME_READY/OBSERVATION/REAL_LOGOUT/GRACEFUL_STOP_RESULT/FINAL_SCOPE. No directory-wide or wildcard stage, no add-dot.
+
+Runtime operations actually issued:
+
+```powershell
+& ./.phantom-local/observe013/tools/Prepare-Runtime.ps1 -ModuleRoot $PWD
+& ./.phantom-local/observe013/runtime/Start-LocalPlay.ps1 -Background
+& ./.phantom-local/observe013/runtime/Check-LocalPlay.ps1
+& ./.phantom-local/observe013/runtime/Get-LocalPlayPilot.ps1
+& ./.phantom-local/observe013/runtime/Invoke-LocalPlayPilot.ps1 -Operation STATUS -TimeoutSeconds 10
+& ./.phantom-local/observe013/runtime/Invoke-LocalPlayPilot.ps1 -Operation SELECT_VISIBLE_PHANTOM_TRACE -TimeoutSeconds 10
+& ./.phantom-local/observe013/runtime/Invoke-LocalPlayPilot.ps1 -Operation SELECT_VISIBLE_PHANTOM_TRACE -RunId 1439a53b-521a-47b7-b02a-0be01c9b9b92 -TimeoutSeconds 10
+& ./.phantom-local/observe013/runtime/Invoke-LocalPlayPilot.ps1 -Operation SELECT_VISIBLE_PHANTOM_TRACE -RunId 902b2528-1983-4797-9dcf-1650e25c5c8d -TimeoutSeconds 10
+& ./.phantom-local/observe013/runtime/Invoke-LocalPlayPilot.ps1 -Operation SNAPSHOT_PHANTOMS -RunId 902b2528-1983-4797-9dcf-1650e25c5c8d -TimeoutSeconds 10
+& ./.phantom-local/observe013/runtime/Invoke-LocalPlayPilot.ps1 -Operation SNAPSHOT_M1_ENVELOPE -RunId 902b2528-1983-4797-9dcf-1650e25c5c8d -TimeoutSeconds 10
+& ./.phantom-local/observe013/runtime/Invoke-LocalPlayPilot.ps1 -Operation SELECT_VISIBLE_PHANTOM_TRACE -RunId 902b2528-1983-4797-9dcf-1650e25c5c8d -TimeoutSeconds 5
+& ./.phantom-local/ops013/Stop-ExactOwnedGracefully.ps1 -RuntimeRoot <exact observe013 private runtime>
+```
+
+Last SELECT occurred after120s and is explicitly excluded. No arm/PREPARE/gameplay operation. Full results in OBSERVATION.tsv; source-only read confirmed locality snapshot limits. Final stop after user's «вышел» checked exact DB offline/store first, then stock graceful Game26344/Login18056, no force.
+
+Final docs-only stage uses these exact task paths: COMMANDS.md, HANDOFF_RESULT.md, RESULT.md, WORK_LOG.md, RUNTIME_READY.md, OBSERVATION.tsv, REAL_LOGOUT.tsv, GRACEFUL_STOP_RESULT.txt, FINAL_SCOPE.tsv. Final commit message 'Record observe013 runtime boundary and safe real-player logout'. Normal push uses the same HEAD:refs/heads/experiment/m1-candidate007-observe008 destination.
+
+Final read checks: git diff --name-only ae6f0236f7f16039eb4b1e03f4df009943c59b91 HEAD; git diff --cached --name-only; git diff --cached --check; git diff --exit-code -- java test/java; git diff --exit-code -- dist/db_installer/sql test/resources/phantoms/db/migrations; git status --short; git rev-parse HEAD; git ls-remote origin refs/heads/experiment/m1-candidate007-observe008. All are authorized exact scope/publication checks. FINAL_SCOPE enumerates committed paths; no SQL/private runtime/config/dump/binary stage.

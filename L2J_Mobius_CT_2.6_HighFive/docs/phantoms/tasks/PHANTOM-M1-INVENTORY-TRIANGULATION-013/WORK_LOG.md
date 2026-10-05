@@ -93,3 +93,11 @@ Old observe011 Game14472/Login17672 штатно остановлены посл
 - escaped Cyrillic в изменённых файлах проверены: отдельный rg exit1, совпадений нет.
 
 Self-review exact diff: production1 file, actual counts/locations read from Player, no fallback copying state objects; current goal tracking still validated; core/canonical/store guards untouched. Test corrections correspond to existing historical producer code, retain exact admitted goal instead of discarding goal protection. Runtime gate remains REQUIRED.
+
+## Runtime и STOP
+
+Source/evidence commit c23915df102 normal-pushed на ту же experiment branch. Fresh clone013 унаследовал accesslevel100. Runtime сначала отказал raw-hash guards v1/v2 из-за Windows CRLF/LF. Обе private XML сравнили с working observe011 по полному normalized text, восстановили только exact existing bytes с hash23B12F…/D555AB…. Production guards и source XML не менялись. Partial startups drained через stock graceful после DB online0/store. Private Stop-LocalPlay early delegates to no-force helper, включая startup orchestrator fallback. Game26344/Login18056 finally ready/owned; code/jar/config evidence RUNTIME_READY.md.
+
+Получено «в игре». ARMED_IDLE без arm до RPC, STATUS IN_GAME/REAL_LOGIN actor268492939 succeeded. Gate start21:08:19.9637223Z. First SELECT rejected SESSION_OR_DEADLINE (different runId), old run retry CANCELLED; fresh valid run дал NO_VISIBLE_MATERIALIZED_PHANTOM78.322s и SNAPSHOT_PHANTOMS NO_CANDIDATE79.128s. Snapshot envelope111.125s отказал ENVELOPE_NOT_PREPARED; preparation не вызывалась. Late final sample141.722s исключён; это нарушение window bound, не positive gate evidence. Sampling не непрерывный и locality-only, поэтому отсутствие global live Phantom не доказано. Exact live tuple/PASS не получен. Следующий gameplay blocker не исправляется, additional3min observation не проводится. TASK_RESULT=BLOCKED_OTHER, M1=OPEN.
+
+После «вышел» exact observe013 DB online0 и сохранённые level12/exp138026/sp13880/x44131/y42673/z-3488 подтверждены; REAL online1 count0. Штатный graceful Game26344/Login18056 exit/ports verified, no force. Final report publication остаётся разрешённым шагом; runtime больше не запускать в task013.

@@ -1,7 +1,7 @@
 # RESULT013
 
 ```text
-TASK_RESULT=ENGINEERING_GREEN_RUNTIME_REQUIRED
+TASK_RESULT=BLOCKED_OTHER
 REQUIRED_BASE_SHA=88b7dd76643cb80b78246668cd16052e740a55aa
 BASE_SHA=ae6f0236f7f16039eb4b1e03f4df009943c59b91
 BASE_EXCEPTION=USER_APPROVED_AFTER_EXACT_EVIDENCE_ONLY_DIFF
@@ -19,18 +19,18 @@ CORE_FILES_CHANGED=0
 TESTADMIN_PLAY_BEFORE_ACCESS=0
 TESTADMIN_PLAY_AFTER_ACCESS=100
 KPCAT_TOUCHED=false
-OBSERVE013_CLONE=REQUIRED
-USER_LOGIN=REQUIRED
-REAL_LOGIN=REQUIRED
-AUTOATTACH=REQUIRED
-MATERIALIZATION_120S=REQUIRED
-FIRST_PROFILE=REQUIRED
-FIRST_OBJECT=REQUIRED
-FIRST_EPOCH=REQUIRED
-WORLD_PRESENT=REQUIRED
-REAL_LOGOUT_CONFIRMED=OBSERVE011_ONLY
-PERSISTED_AFTER_LOGOUT=OBSERVE011_ONLINE0_LEVEL12_EXP138026_SP13880_X44131_Y42673_Z-3488
-RUNTIME_STOP=OBSERVE011_STOCK_GRACEFUL_GAME14472_LOGIN17672
+OBSERVE013_CLONE=FRESH_READY
+USER_LOGIN=USER_CONFIRMED_IN_GAME
+REAL_LOGIN=VERIFIED_IN_GAME
+AUTOATTACH=ARMED_IDLE_NO_ARM
+MATERIALIZATION_120S=PASS_NOT_PROVEN
+FIRST_PROFILE=NONE_OBSERVED
+FIRST_OBJECT=NONE_OBSERVED
+FIRST_EPOCH=NONE_OBSERVED
+WORLD_PRESENT=NO_PHANTOM_PROOF
+REAL_LOGOUT_CONFIRMED=USER_CONFIRMED_OBSERVE013_ONLINE0
+PERSISTED_AFTER_LOGOUT=OBSERVE013_LEVEL12_EXP138026_SP13880_X44131_Y42673_Z-3488
+RUNTIME_STOP=OBSERVE013_STOCK_GRACEFUL_GAME26344_LOGIN18056
 M1=OPEN
 ```
 
@@ -53,4 +53,16 @@ Full historical-context suite: exit0, 1/1. Exact pre-load admitted goal/claim н
 Exact PLAY SELECT/CAS/SELECT: только charId268492939/nameTestAdmin/accounttestadmin, accesslevel0→100, affectedRows1. online0/level12/exp138026/sp13880/x44131/y42673/z-3488 неизменны. Другие characters не входят в UPDATE predicate.
 Пользователь подтвердил logout observe011 словом «вышел». Перед shutdown повторно проверены online0 и сохранённые поля, DB real-online count0; private agent также отказал бы при online REAL Player в World. Использованы штатные public shutdown методы без force. Game14472 и Login17672 завершены, listeners освобождены. Первый общий agent не загрузился в Login JVM из-за отсутствия Player classes; отдельный Login-only helper завершил штатный stop. Original PLAY runtime files и FOREIGN012R evidence не редактировались.
 
-Runtime gate observe013 пока REQUIRED. До готовности сервера не заявляется materialization PASS или M1 closure.
+## Runtime gate и exact next boundary
+
+Observe013 был готов; exact ownership/config/jar/clone evidence в RUNTIME_READY.md. Пользователь ответил «в игре». До первого RPC Get-LocalPlayPilot подтвердил ARMED_IDLE, runActive=false, real actor268492939; arm не создавался и не выполнялся. STATUS succeeded только при существующем sessionValid()/IN_GAME real client: online=true, worldPresent=true, identityOwner=REAL_LOGIN, accounttestadmin, x44131/y42673/z-3488. Master access подтверждён clone accesslevel100 и startup log; isGM не снимался отдельным live scalar.
+
+Gate start 2026-10-05T21:08:19.9637223Z; deadline +120s. Внутри окна SELECT_VISIBLE_PHANTOM_TRACE дал NO_VISIBLE_MATERIALIZED_PHANTOM на78.322s, SNAPSHOT_PHANTOMS дал NO_CANDIDATE на79.128s. Это exact observable boundary locality candidate/visible world selection. Нет proof tuple profile/object/epoch/worldPresent, поэтому PASS не заявлен. Эти locality snapshots не доказывают отсутствие всех global Phantom; sampling не был непрерывным.
+
+Первый SELECT после STATUS был SESSION_OR_DEADLINE из-за смены runId; повтор старого run был CANCELLED, затем fresh valid run успешно дал фактические snapshots. Это operator protocol observation, production не менялся. Passive SNAPSHOT_M1_ENVELOPE на111.125s отказал ENVELOPE_NOT_PREPARED; PREPARE/arm/gameplay операции не выполнялись. Последний SELECT получен на141.722s из-за задержки оркестрации: это превышение требуемого окна, строка явно inside120s=false и исключена из gate evidence. Не используется для PASS или компенсации неполного наблюдения.
+
+Стоп BLOCKED_OTHER: NATURAL_MATERIALIZATION_PASS_NOT_PROVEN, earliest valid world selection boundary NO_VISIBLE_MATERIALIZED_PHANTOM / NO_CANDIDATE. Native load gate error/TRUE inventory conflict в этом runtime не доказаны. Следующий gameplay blocker не исправлялся; дополнительные3min Decision/AutoPlay не запускались без PASS. M1=OPEN.
+
+## Observe013 safe logout / shutdown
+
+После exact logout question пользователь ответил «вышел». До shutdown DB exact TestAdmin SELECT подтвердил online0 и сохранённые level12/exp138026/sp13880/x44131/y42673/z-3488; REAL online1 rows=0. Private agent дополнительно отказал бы при любом online REAL Player в World. Game26344 и Login18056 остановлены штатными public lifecycle methods; exit/ports проверены, no force. Evidence: REAL_LOGOUT.tsv и GRACEFUL_STOP_RESULT.txt. Данные source PLAY и kpCat при runtime cleanup не менялись.
