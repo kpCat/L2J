@@ -1,0 +1,8 @@
+warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomScheduler.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationServiceActivityPort.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java', LF will be replaced by CRLF the next time Git touches it
+SCOPE_PASS: exact code allowlist + TASK014 artifacts; changed paths=40
+RECORDER_STATIC_PASS: no I/O, waits, gameplay locks or logger
+MOJIBAKE_CHECK: []
+ESCAPED_CYRILLIC_CHECK: []

@@ -48,6 +48,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSink;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerPolicy;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
+import org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder;
 
 /**
  * Single shared, bounded activity scheduler. Slots contain no Player, task,
@@ -346,32 +347,38 @@ public final class PhantomScheduler
 		{
 			if (_state != SchedulerState.RUNNING)
 			{
+				PhantomRuntimeFlightRecorder.getInstance().record(profileId, "SCHED_SIGNAL_REJECTED", _state.name(), "NOT_RUNNING", signal.sourceKey(), signal.sequence(), 0, 0);
 				return new SignalResult(SignalStatus.NOT_RUNNING, null);
 			}
 			final Slot slot = _slots.get(profileId);
 			if (slot == null)
 			{
+				PhantomRuntimeFlightRecorder.getInstance().record(profileId, "SCHED_SIGNAL_REJECTED", "", "NOT_REGISTERED", signal.sourceKey(), signal.sequence(), 0, 0);
 				return new SignalResult(SignalStatus.NOT_REGISTERED, null);
 			}
 			if (slot._unregisterRequested || (signal.ttlMillis() > _policy.maximumSignalTtlMillis()))
 			{
+				PhantomRuntimeFlightRecorder.getInstance().record(profileId, "SCHED_SIGNAL_REJECTED", slot._effectiveState.name(), "REJECTED", "unregister.or.ttl", signal.sequence(), slot._generation, 0);
 				_metrics.recordActivitySignalRejected();
 				return new SignalResult(SignalStatus.REJECTED, snapshotLocked(slot));
 			}
 			final SourceEntry existing = slot._sources.get(signal.sourceKey());
 			if ((existing != null) && (signal.sequence() <= existing._sequence))
 			{
+				PhantomRuntimeFlightRecorder.getInstance().record(profileId, "SCHED_SIGNAL_REJECTED", slot._effectiveState.name(), "STALE", signal.sourceKey(), signal.sequence(), existing._sequence, 0);
 				_metrics.recordActivitySignalStale();
 				return new SignalResult(SignalStatus.STALE, snapshotLocked(slot));
 			}
 			if ((existing == null) && (slot._sources.size() >= _policy.maximumSignalSources()))
 			{
+				PhantomRuntimeFlightRecorder.getInstance().record(profileId, "SCHED_SIGNAL_REJECTED", slot._effectiveState.name(), "REJECTED", "source.cap", signal.sequence(), slot._generation, 0);
 				_metrics.recordActivitySignalRejected();
 				return new SignalResult(SignalStatus.REJECTED, snapshotLocked(slot));
 			}
 			final boolean coalesced = slot._enqueued;
 			if (!reserveReadyLocked(slot))
 			{
+				PhantomRuntimeFlightRecorder.getInstance().record(profileId, "SCHED_SIGNAL_BACKPRESSURE", slot._effectiveState.name(), signal.requiredState().name(), signal.sourceKey(), signal.sequence(), slot._generation, 0);
 				_metrics.recordActivityReadyBackpressure();
 				return new SignalResult(SignalStatus.BACKPRESSURE, snapshotLocked(slot));
 			}
@@ -395,10 +402,12 @@ public final class PhantomScheduler
 			}
 			if (coalesced)
 			{
+				PhantomRuntimeFlightRecorder.getInstance().record(profileId, "SCHED_SIGNAL_COALESCED", slot._effectiveState.name(), signal.requiredState().name(), signal.sourceKey(), signal.sequence(), slot._generation, 0);
 				_metrics.recordActivitySignalCoalesced();
 				return new SignalResult(SignalStatus.COALESCED, snapshotLocked(slot));
 			}
 			_metrics.recordActivitySignalAccepted();
+			PhantomRuntimeFlightRecorder.getInstance().record(profileId, "SCHED_SIGNAL_ACCEPTED", slot._effectiveState.name(), signal.requiredState().name(), signal.sourceKey(), signal.sequence(), slot._generation, 0);
 			return new SignalResult(SignalStatus.ACCEPTED, snapshotLocked(slot));
 		}
 	}
@@ -605,6 +614,7 @@ public final class PhantomScheduler
 			}
 			final long logicalNow = _clock.nanoTime();
 			int processed = 0;
+			PhantomRuntimeFlightRecorder.getInstance().record(0, "SCHED_LOCAL_SCAN", _state.name(), "", "ready.queue", _readyQueue.size(), _profilesPerPulse, logicalNow);
 			for (Long profileId : _readyQueue)
 			{
 				if (processed >= _profilesPerPulse)
@@ -615,11 +625,17 @@ public final class PhantomScheduler
 				synchronized (_monitor)
 				{
 					slot = _slots.get(profileId);
+					if (slot != null)
+					{
+						PhantomRuntimeFlightRecorder.getInstance().recordScan(profileId, slot._effectiveState.name(), slot._requestedState.name(), slot._transitionStatus.name(), slot._generation,
+							(slot._enqueued ? 1 : 0) | (slot._localProcessing ? 2 : 0) | (slot._processing ? 4 : 0) | (slot._workInFlight ? 8 : 0) | (slot._boundaryInFlight ? 16 : 0) | (slot._unregisterRequested ? 32 : 0) | (slot._retainedFailureKind != RetainedFailureKind.NONE ? 64 : 0), slot._retryDueNanos);
+					}
 					if ((_state != SchedulerState.RUNNING) || (slot == null) || !slot._enqueued || slot._localProcessing || (slot._processing && !slot._workInFlight) || slot._boundaryInFlight || slot._unregisterRequested || slot._effectiveState.requiresMaterialization() || !requestedStateLocked(slot).requiresMaterialization() || (slot._retainedFailureKind != RetainedFailureKind.NONE) || ((slot._transitionStatus == PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED) && (logicalNow < slot._retryDueNanos)))
 					{
 						continue;
 					}
 					slot._localProcessing = true;
+					PhantomRuntimeFlightRecorder.getInstance().record(profileId, "SCHED_LOCAL_PROMOTION_SELECTED", slot._effectiveState.name(), slot._requestedState.name(), slot._transitionStatus.name(), slot._generation, logicalNow, 0);
 				}
 				try
 				{
@@ -661,6 +677,7 @@ public final class PhantomScheduler
 			final PhantomActivityState requested = slot._unregisterRequested ? PhantomActivityState.SLEEPING : requestedStateLocked(slot);
 			slot._requestedState = requested;
 			plan = requested.requiresMaterialization() ? transitionPlanLocked(slot, requested, logicalNow) : null;
+			if (plan == null) { PhantomRuntimeFlightRecorder.getInstance().record(slot._profileId, "SCHED_BOUNDARY_PLAN", "NO_PLAN", requested.name(), slot._transitionStatus.name(), slot._generation, slot._retryDueNanos, logicalNow); }
 			if ((plan != null) && (plan._action != BoundaryAction.NONE))
 			{
 				slot._boundaryInFlight = true;
@@ -1050,6 +1067,7 @@ public final class PhantomScheduler
 
 	private TransitionOutcome executeBoundary(TransitionPlan plan)
 	{
+		PhantomRuntimeFlightRecorder.getInstance().record(plan._profileTargetId, "SCHED_BOUNDARY_PLAN", plan._action.name(), plan._targetState.name(), "execute", plan._generation, 0, 0);
 		try
 		{
 			return switch (plan._action)
@@ -1094,6 +1112,7 @@ public final class PhantomScheduler
 
 	private void applyTransitionOutcomeLocked(Slot slot, TransitionPlan plan, TransitionOutcome outcome, long logicalNow)
 	{
+		PhantomRuntimeFlightRecorder.getInstance().record(slot._profileId, "SCHED_BOUNDARY_RESULT", plan._action.name(), outcome == null ? "NULL" : outcome.outcome().name(), outcome == null ? "" : outcome.reason(), plan._generation, logicalNow, 0);
 		if (outcome == null)
 		{
 			outcome = TransitionOutcome.transientBlock();

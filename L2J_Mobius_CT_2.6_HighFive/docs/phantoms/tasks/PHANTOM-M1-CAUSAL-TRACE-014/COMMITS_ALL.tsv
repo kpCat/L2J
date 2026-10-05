@@ -1,0 +1,74 @@
+sha	date	subject
+28655aa9524d44600a9f0412e046ae89f5cc74f7	2026-09-27	docs(phantoms): record M1 connected evidence and unresolved envelope
+1388bd3566701c0faea84a3b129854e04509d686	2026-09-27	docs(phantoms): record bounded region crossing without prewarm proof
+8609ca630df29d27dfe3b8b0c58b50ca20ed9c11	2026-09-27	Prove M1 materialization with bounded LocalPlay Pilot route
+ad4c2394e180d27f7201e29323edb55b1496f7bc	2026-09-27	Allow READY local targets for M1 Pilot envelope proof
+686761a73f1abe9a0d06821d98e18009f0ccad6c	2026-09-27	Permit bounded M1 target fallback within proven lane
+fcd948906a470baf863fc23b19a792bdc9799c5f	2026-09-27	Record blocked M1 connected materialization proof
+27846c3ff3de29dbbd8c9196e2f66b0510b9a663	2026-09-27	Record live scheduler control-path diagnosis for M1 proof
+13acb284e010dff6cb73eab03762dca1af05f326	2026-09-27	Record connected M1 anchor shift and visible store RED
+033ee7aab7f493fed7a9e41618759fd04ce38e39	2026-09-28	Complete M1 living-world lifecycle integration and native farm routes
+c28c5d9999f184aefb7092343548e00a27ca8246	2026-09-28	Fix offline locality starvation and prepare natural M1 envelopes
+0c2d305ca1759fbdfadf487e584409db4c7ee71b	2026-09-28	Record final M1 connected RED and preserve same-lease census
+de40c81411cf6501cb9446840aef98f7dd9369e2	2026-09-28	Fix generic phantom smart continuity
+73233dd1853985070818b464b197cd86dde5ea51	2026-09-28	Record verified M1 continuity build and deployment
+82fae37aff225e959213e1d0432b53d50360318a	2026-09-28	Record single M1 connected acceptance failure
+e92d7d438641f3f13158021675bd99e2489a7042	2026-09-28	Separate phantom calendar presence from async ecology readiness and native travel handoff
+af30457de36cc9f19534f413d92df060518ce696	2026-09-28	Record M1 runtime handoff readiness and exact deployment evidence
+752047c3d80f4ae10c6665857da5bda727b5e0be	2026-09-28	Fix M1 connected runner calendar timestamp parsing and record aborted gate
+50600cefa3da849f231e3883ecdda5a31800b699	2026-09-28	Record M1 connected runtime RED and restored TestAdmin after authorized repeat
+6f6dec73495657da0d09f8ced328eba6b5083ad2	2026-09-28	fix(phantoms): complete pending handoff under native locality
+908e97a9dd8ee36e717810620f862a13d15cddeb	2026-09-29	docs(phantoms): record continuation 005 deployment readiness
+b80cdf78560c06a9d88b8ec761e1582f0e55afba	2026-09-29	docs(phantoms): record continuation 005 connected red
+ca2dbc753106d165dc73a1b03ba89aadc69f917e	2026-09-29	Complete bounded M1 population and readiness preparation
+e281250817d78927aec905aeb1e0c58b5612c97a	2026-09-29	Record M1 1280 deployment and pre-arm readiness RED
+9e3576311af6ef8c53e662955e2330b7cee00143	2026-09-29	Recover historical phantom background failures for M1
+5573c40e68c2ae5bcbf63dd6f18ab0c5739cbdcf	2026-09-29	Record M1 self-heal deployment and pending connected gate
+4e461f3fbf15828de9ddf62ff5f0d53574a31768	2026-09-29	Record single connected M1 materialization RED
+309e5ab3ab713e6e3e46035d7a2f60e01257a063	2026-09-29	Implement M1 live observer and bounded handoff runner
+eb4a98f77e91f97cf9c6a5c54748a7d2be98f11d	2026-09-29	Preserve M1 runner progress evidence
+fd6922c639f2f8549bbb21154e8cd0a599b06a4b	2026-09-29	Record M1 observer closeout waiting for arm
+c867a021474b05c91f5057540b559caf8c4b304e	2026-09-30	Record single connected M1 observer RED
+7653282fccfec15a1d62a2d0ea6b5382f81073a5	2026-09-30	Fix M1 observer approach envelope reuse and typed replans
+05ed0d84f57fa9b531e0b0be7bce5fd0d13e5f64	2026-09-30	Record M1 observer pre-arm closeout readiness
+33278db01ec6d241ade7f72ab2bed213a3bf0b7f	2026-09-30	Record exact M1 connected materialization RED
+f29142c598d7380ed5ac6afc7df4796772603435	2026-09-30	Recover bounded M1 historical renewal baseline
+1f5afebcc15b8448e7285dc843237cf0b765c5ec	2026-09-30	Record M1 recovery publication and waiting arm
+e995480710e348da19181e8f602d4e09a0432d40	2026-09-30	Record single connected M1 recovery RED
+f9562c8002f4d2487baae6840c99001b743d0a83	2026-09-30	Fix headless autosave projection drift and cover profile13 mismatch
+3a9bfa52fb2cf3414b2e247e6d3f15d87ed60348	2026-09-30	Record profile13 canonical mismatch and pre-arm boundary
+9a9dfb5167ef00ce16af88e01d0df7e9665b41c3	2026-09-30	Recover attested legacy headless background drift
+0b8fdf1048161b3c66ff9b1c5b422012f0461210	2026-09-30	Pin expanded attested inconsistent witness set
+4794240b39b40c7823daec4dca9c61bdd5c15c5b	2026-09-30	Record legacy recovery and latent boundary
+2371cb85524253ba72a0827058c0b5f9f41a1dca	2026-09-30	Clarify deployed code and documentation heads
+538cf3e9cbe22361bcaba778f6af01d2f802ac65	2026-10-01	phantom(task-005): recover exact latent materialized cohort
+21eed9adb67ac00ad9d1de9309eb57153f1649c5	2026-10-01	phantom(task-005): record latent recovery waiting arm
+5f61370862fc981dabe5bebb20d15dbd27ec7697	2026-10-01	phantom(task-005): record connected runtime red boundary
+af15a1c21ad0d178790a14f2892148f2ee386b9f	2026-10-01	Recover verifiable M1 historical pending state
+4b07e9b94d37c8587ace0ecfda8435a9bccf0ee0	2026-10-01	Document M1 profile882 pre-arm closeout
+d13e406a37f6adf25183dd36e14dcf5ad66ab2ab	2026-10-01	Clarify profile882 preflight evidence boundary
+3f8b4ddae3600f5e5804eade23fefa5edbf6a045	2026-10-01	Record connected M1 profile30 RED boundary
+0903733363514df5433808e8faf00b2f7a5a3078	2026-10-01	Add owned LocalPlay synthetic M1 server lane and exact legacy quarantine
+9050c5d9d910c004fd42cef961ad2d89e52aba45	2026-10-01	Reject retired Player autosave callbacks after headless cleanup
+36bb557faef1045e74ef32d5ffa1a5475032ac7b	2026-10-01	Record synthetic RED profile129 authority boundary and deployed producer fix
+3f9d79a42436f488b3d9db9fb8898cf3e69abd66	2026-10-01	Guard native maxima refresh after background level changes
+b343ed6d18a9c9603f7f0b2b8561090ce41e022a	2026-10-01	Record historical convergence and unknown legacy synthetic boundary
+ff5cb16467712f1e5d21c6188e2dff8e6f213476	2026-10-01	Attest exact pre-9050 M1 observer prefix quarantine V2
+56c1781a3d614c7a80878e93fe17cabf6ad6866f	2026-10-01	Record deployed M1 quarantine and unknown profile352 boundary
+b4f1f03d7407897f50bd3131f40d6e19011116e1	2026-10-02	Make owned Phantom stores crash consistent with native snapshots
+ea56bef1381c05b70f6e5da72e07004d53655be7	2026-10-03	fix(phantoms): close M1 owned recovery and visible executor handoff
+51f092538a7d4d85e92305926a1f9c935dd8a18b	2026-10-03	fix(phantoms): retain census after synthetic approach failure
+461a4abe32be4aa08532b8417a6147684a8889c6	2026-10-03	fix(phantoms): expose bounded cleanup failure diagnostics
+a2c9c3983475e99fc01f8a6ee3718b84b1058502	2026-10-03	phantom(task-006): publish blocked native lifecycle audit
+d924a7d2c2f1e06af1cd54bedf1bee861560044f	2026-10-03	phantom(task-006): record blocked audit publication receipt
+3fd4aa5f29cf23c1c06cc91ae7b1016c820acb25	2026-10-04	docs(phantoms): pause task007 and preserve unaccepted candidate
+dd58a512c4cb9c6a5318d7320633a35ae849dbf0	2026-10-05	experiment(phantoms): UNACCEPTED candidate007 / observation008 frozen snapshot
+778613a9d39c358dbd982bdc677558a6e356762f	2026-10-05	docs(phantoms): record observation008 client transport blocker and cleanup
+78cfd521174e383b5054efdc2ceb644c9d09646c	2026-10-05	docs(phantoms): record observation009 pilot config blocker
+ffc0b97e2eeccc42b362418524f5ba4829e65f46	2026-10-05	phantom(task-010): allowlisted real-client pilot auto-attach
+26061ccff5aa22450ff3c4a01a2636e660f879e9	2026-10-05	phantom(task-010): record real-client observation boundary
+8457b90723e3c8ff6b419080bb2f84bfd80d6638	2026-10-05	phantom(task-011): unblock native-context materialization demand
+95ba1150d67b6ba0adaef96158651a1ef4df277e	2026-10-05	docs(phantoms): record observe011 prelogin gate
+88b7dd76643cb80b78246668cd16052e740a55aa	2026-10-05	docs(phantoms): record observe011 materialization boundary and stop
+ae6f0236f7f16039eb4b1e03f4df009943c59b91	2026-10-05	phantom(task-012): record guarded TEST restore blocker
+c23915df10239bfab15ae49276e14833268b9afc	2026-10-05	Fix committed inventory projection at Phantom native arrival

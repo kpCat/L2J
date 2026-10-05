@@ -1,0 +1,27 @@
+{
+  "task": "PHANTOM-M1-CAUSAL-TRACE-014",
+  "required_base": "ccacd6c5bf8fa1234a5559ece708ee3a35efd536",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "High",
+  "subagents": false,
+  "known_good": "561c84a2dc23d6dd953e755e2fafcfbddcd5d395",
+  "known_bad_source": "c23915df10239bfab15ae49276e14833268b9afc",
+  "good_to_bad_commits": 73,
+  "semantic_fixes_allowed": false,
+  "files": [
+    "ACCEPTANCE.md",
+    "CODEMAP_SPEC.md",
+    "GIT.md",
+    "GOAL.md",
+    "HANDOFF.md",
+    "JFR_SPEC.md",
+    "MODEL.md",
+    "PLAN.md",
+    "README.md",
+    "REGRESSION_SPEC.md",
+    "RESULT_TEMPLATE.md",
+    "SOURCE_MAP.tsv",
+    "TRACE_SPEC.md"
+  ]
+}

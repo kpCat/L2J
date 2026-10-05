@@ -32,6 +32,7 @@ import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.Player.OutboundSessionAttachment;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
+import org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder;
 import org.l2jmobius.gameserver.qol.PersonalProgressionQoLService;
 import org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager;
 
@@ -214,10 +215,12 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			}
 			_state = State.CLAIMED;
 			failAfter(FailurePoint.AFTER_IDENTITY_CLAIM);
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_IDENTITY_CLAIMED", _state.name(), "PHANTOM", _objectId);
 
 			requireIdentityRegistriesFree("after identity claim");
 
 			_state = State.LOADING;
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_PLAYER_LOAD_BEGIN", _state.name(), "", _objectId);
 			_player = Player.load(_objectId, loaded ->
 			{
 				// Retain this exact instance even if constructor/restore aborts later.
@@ -235,6 +238,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				throw new MaterializationException(MaterializationFailure.OBJECT_ID_MISMATCH, "Loaded Player object ID does not match the claimed character");
 			}
 			requireWorldIdentityFree("during Player load");
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_PLAYER_LOAD_OK", _state.name(), "", _objectId);
 			final PlayerAutoSaveTaskManager autoSaveManager = PlayerAutoSaveTaskManager.getInstance();
 			if (!autoSaveManager.contains(_player) || autoSaveManager.containsOtherObjectId(_objectId, _player))
 			{
@@ -242,6 +246,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			}
 			PlayerNativeWork.run(_player, "PLAYER_RESTORE_EFFECTS", _player::restoreEffects);
 			_lifecycleSupport.afterPlayerLoad(_player);
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_AFTER_PLAYER_LOAD_OK", _state.name(), "", _objectId);
 			PlayerNativeWork.run(_player, "PLAYER_LOGIN_DOMAIN", () ->
 			{
 				org.l2jmobius.gameserver.model.script.Quest.playerEnter(_player);
@@ -272,6 +277,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			failAfter(FailurePoint.AFTER_DOMAIN_INITIALIZATION);
 
 			_player.setOnlineStatus(true, true);
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_ONLINE", _state.name(), "", _objectId);
 			failAfter(FailurePoint.AFTER_ONLINE_ACTIVATION);
 
 			requireWorldIdentityFree("immediately before World spawn");
@@ -282,6 +288,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				throw new MaterializationException(MaterializationFailure.WORLD_REGISTRATION_MISMATCH, "World did not register the exact materialized Player in both identity maps");
 			}
 			failAfter(FailurePoint.AFTER_WORLD_SPAWN);
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_WORLD_SPAWN", _state.name(), "exact.World.Player", _objectId);
 
 			synchronized (_actionMonitor)
 			{
@@ -289,11 +296,13 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 				_actionAdmissionOpen = true;
 			}
 			_state = State.ACTIVE;
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_ACTION_ADMISSION_OPEN", _state.name(), "", _objectId);
 			failAfter(FailurePoint.AFTER_ACTION_ADMISSION);
 		}
 		catch (RuntimeException | Error e)
 		{
 			_state = State.FAILED;
+			PhantomRuntimeFlightRecorder.getInstance().recordCurrent("MAT_ABORT", _state.name(), e.getClass().getName(), _objectId);
 			recordCleanupFailure(e);
 			try
 			{

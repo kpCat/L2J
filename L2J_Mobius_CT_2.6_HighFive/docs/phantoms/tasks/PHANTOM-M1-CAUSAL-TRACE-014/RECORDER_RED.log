@@ -1,0 +1,4 @@
+[FAIL] phantom-runtime-flight-recorder.activation-and-fail-closed - java.lang.AssertionError: Consented BEGIN. seed=14001401
+[FAIL] phantom-runtime-flight-recorder.bounds-reset-and-correlation - java.lang.AssertionError: Capacity bound. Expected java.lang.IllegalArgumentException but no exception was thrown. seed=14001401
+[FAIL] phantom-runtime-flight-recorder.concurrent-recording-and-delegate-exception - java.lang.AssertionError: All concurrent attempts counted. Expected <10000> but was <0>. seed=14001401
+SUMMARY: suite=phantom-runtime-flight-recorder seed=14001401 total=3 passed=0 failed=3

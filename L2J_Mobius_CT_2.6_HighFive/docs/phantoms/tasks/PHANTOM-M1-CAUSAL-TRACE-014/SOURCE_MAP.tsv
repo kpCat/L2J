@@ -1,0 +1,12 @@
+mode	path	purpose
+NEW	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/diagnostics/PhantomRuntimeFlightRecorder.java	bounded causal recorder
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	observation hooks only
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomScheduler.java	observation hooks only
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java	readiness hooks only
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationServiceActivityPort.java	materialization call/result hooks
+OPTIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	major lifecycle markers only
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java	begin/snapshot/end trace operations
+NEW_OR_MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomRuntimeFlightRecorderSuite.java	recorder contracts
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-LIVE-M1-VISIBLE-WORLD-001/**	exact GOOD evidence
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-INVENTORY-TRIANGULATION-013/RESULT.md	current BAD evidence
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CAUSAL-TRACE-014/**	diagnostics/results

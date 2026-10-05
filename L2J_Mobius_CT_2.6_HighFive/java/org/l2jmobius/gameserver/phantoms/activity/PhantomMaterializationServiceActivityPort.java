@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.logging.Logger;
 
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State;
 
@@ -55,7 +56,12 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 	@Override
 	public TransitionOutcome materialize(long profileId)
 	{
-		final PhantomMaterializationService.MaterializeResult result = _service.materialize(profileId);
+		final var recorder = PhantomRuntimeFlightRecorder.getInstance();
+		recorder.record(profileId, "MATERIALIZE_CALL", "", "", "service.NORMAL", 0, 0, 0);
+		final PhantomMaterializationService.MaterializeResult result = recorder.withProfile(profileId, () -> _service.materialize(profileId));
+		final var observed = result.snapshot();
+		recorder.record(profileId, "MATERIALIZE_RESULT", result.status().name(), observed == null ? "" : observed.state().name(), result.status().name(),
+			observed == null ? 0 : observed.characterObjectId(), observed == null ? 0 : observed.materializedAtNanos(), observed != null && observed.worldPresent() ? 1 : 0);
 		if (result.status() == ResultStatus.SUCCESS)
 		{
 			clearDiagnosticFailure(profileId);

@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
+import org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact;
 
 /** One bounded human-local refresh stage in the shared scheduler pulse. */
@@ -82,6 +83,8 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 			return;
 		}
 		_nextRefresh = now + REFRESH_MILLIS;
+		final var recorder = PhantomRuntimeFlightRecorder.getInstance();
+		recorder.record(0, "HUMAN_REFRESH_BEGIN", "", "", "local.pulse", now, _local.size(), 0);
 		final TreeSet<Long> candidates = new TreeSet<>();
 		final Map<Long, Long> revisions = new HashMap<>();
 		boolean overflow = false;
@@ -96,7 +99,13 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 					candidates.add(entry.getKey());
 				}
 			}
-			final var query = _topology.nativeProfilesAt(human, MAXIMUM_PROFILES_PER_HUMAN, _online);
+			final var query = _topology.nativeProfilesAt(human, MAXIMUM_PROFILES_PER_HUMAN, profileId ->
+			{
+				final boolean online = _online.test(profileId);
+				recorder.watch(profileId);
+				recorder.record(profileId, "LOCAL_CANDIDATE", online ? "ONLINE" : "OFFLINE", "", "topology.eligible", human.x(), human.y(), human.z());
+				return online;
+			});
 			overflow |= query.overflow();
 			for (var profile : query.candidates())
 			{
@@ -134,7 +143,20 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 			facts.add(new DemandFact(id, revisions.getOrDefault(id, 0L), couldKnow, distance, ages.getOrDefault(id, System.nanoTime())));
 		}
 		_physical = new PhysicalDemand(now, Map.copyOf(revisions), overflow, List.copyOf(facts));
+		if (recorder.isRecording())
+		{
+			for (long id : _local)
+			{
+				if (!candidates.contains(id)) { recorder.record(id, "LOCAL_CANDIDATE_REMOVED", "LOCAL", "REMOVED", "current.prewarm", 0, 0, 0); }
+			}
+		}
 		_local = Set.copyOf(candidates);
+		recorder.record(0, "HUMAN_REFRESH_SUMMARY", "", "", overflow ? "overflow" : "bounded", humans.size(), candidates.size(), livePlayers.size());
+		if (recorder.isRecording()) { for (long profileId : candidates)
+		{
+			recorder.watch(profileId);
+			recorder.record(profileId, "LOCAL_CANDIDATE", "LOCAL", "", "physical.demand", revisions.getOrDefault(profileId, 0L), 0, 0);
+		} }
 		if (_preparationDemand != null) { _preparationDemand.accept(_physical.facts(), _preparationSlots.getAsInt()); }
 		else { for (long profileId : candidates) { _physicalDemand.accept(profileId); } }
 		final long sequence = ++_sequence;
@@ -143,10 +165,12 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 		{
 			if (!_online.test(profileId))
 			{
+				recorder.record(profileId, "LOCAL_SIGNAL_RESULT", "OFFLINE", "SKIPPED", "presence.offline", sequence, 0, 0);
 				continue;
 			}
 			final var delivered = _signals.submit(profileId, new PhantomRelevanceSignal(SOURCE, sequence, PhantomActivityState.NEARBY_PERCEPTIBLE, SIGNAL_TTL_MILLIS));
 			delivery.put(profileId, delivered);
+			recorder.record(profileId, "LOCAL_SIGNAL_RESULT", "NEARBY_PERCEPTIBLE", delivered == null ? "NULL" : delivered.name(), SOURCE, sequence, SIGNAL_TTL_MILLIS, 0);
 		}
 		_delivery = Map.copyOf(delivery);
 	}

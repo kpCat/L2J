@@ -27,6 +27,7 @@ import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorAdmissionProfile;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorLocalityTarget;
 import org.l2jmobius.gameserver.phantoms.PhantomSystem.OperatorM1TargetSnapshot;
 import org.l2jmobius.gameserver.phantoms.PhantomSelectedDecisionTrace;
+import org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 
@@ -60,6 +61,8 @@ public final class LocalPlayPilotActions
 	}
 
 	private final Location _origin;
+	private String _causalConsent;
+	private PhantomRuntimeFlightRecorder.Snapshot _causalSnapshot;
 	private Location _candidatePosition;
 	private int _candidateObjectId;
 	private int _selectedMobObjectId;
@@ -120,8 +123,9 @@ public final class LocalPlayPilotActions
 			return switch (request.operation())
 			{
 				case STATUS -> new Outcome("SUCCEEDED", "SNAPSHOT", Map.of("originX", Integer.toString(_origin.getX()), "originY", Integer.toString(_origin.getY()), "originZ", Integer.toString(_origin.getZ()), "originInstanceId", Integer.toString(_origin.getInstanceId())));
-				case CAPABILITIES -> Outcome.of("SUCCEEDED", "STATUS,SNAPSHOT_PHANTOMS,PREPARE_M1_ENVELOPE,SNAPSHOT_M1_ENVELOPE,SELECT_VISIBLE_PHANTOM_TRACE,SNAPSHOT_SELECTED_PHANTOM_TRACE,REPLAY_SELECTED_PHANTOM_TRACE,SNAPSHOT_TARGETS,TELEPORT_SELF,MOVE_SELF,STOP_MOVE,SIT,STAND,SELECT_TARGET,SAY,PARTY_INVITE,PARTY_RESPOND,PARTY_LEAVE,ATTACK_NPC,CAST_LEARNED_SKILL");
+				case CAPABILITIES -> Outcome.of("SUCCEEDED", "STATUS,BEGIN_PHANTOM_CAUSAL_TRACE,SNAPSHOT_PHANTOM_CAUSAL_TRACE,END_PHANTOM_CAUSAL_TRACE,SNAPSHOT_PHANTOMS,PREPARE_M1_ENVELOPE,SNAPSHOT_M1_ENVELOPE,SELECT_VISIBLE_PHANTOM_TRACE,SNAPSHOT_SELECTED_PHANTOM_TRACE,REPLAY_SELECTED_PHANTOM_TRACE,SNAPSHOT_TARGETS,TELEPORT_SELF,MOVE_SELF,STOP_MOVE,SIT,STAND,SELECT_TARGET,SAY,PARTY_INVITE,PARTY_RESPOND,PARTY_LEAVE,ATTACK_NPC,CAST_LEARNED_SKILL");
 				case SNAPSHOT_PHANTOMS -> candidate(actor);
+				case BEGIN_PHANTOM_CAUSAL_TRACE, SNAPSHOT_PHANTOM_CAUSAL_TRACE, END_PHANTOM_CAUSAL_TRACE -> causalTrace(request);
 				case PREPARE_M1_ENVELOPE -> prepareM1Envelope(actor, request.runId(), args);
 				case SNAPSHOT_M1_ENVELOPE -> snapshotM1Envelope(actor, request.runId(), args);
 				case SELECT_VISIBLE_PHANTOM_TRACE -> selectVisibleTrace(actor);
@@ -146,6 +150,53 @@ public final class LocalPlayPilotActions
 		{
 			return Outcome.of("REJECTED", "INVALID_ARGUMENT");
 		}
+	}
+
+	private Outcome causalTrace(LocalPlayPilotProtocol.Request request)
+	{
+		final var recorder = PhantomRuntimeFlightRecorder.getInstance();
+		final String consent = request.sessionId() + ":" + request.runId();
+		if (request.operation() == LocalPlayPilotProtocol.Operation.BEGIN_PHANTOM_CAUSAL_TRACE)
+		{
+			if (!recorder.begin(consent)) { return Outcome.of("REJECTED", "CAUSAL_TRACE_DISABLED_OR_ACTIVE"); }
+			_causalConsent = consent;
+			_causalSnapshot = null;
+			return new Outcome("SUCCEEDED", "CAUSAL_TRACE_BEGUN", Map.of("startedNanos", Long.toString(recorder.snapshot(consent).startedNanos()), "capacity", "8192", "maxWatched", "8", "durationLimitSeconds", "120"));
+		}
+		if (!consent.equals(_causalConsent)) { return Outcome.of("REJECTED", "CAUSAL_TRACE_SESSION_MISMATCH"); }
+		if (request.operation() == LocalPlayPilotProtocol.Operation.END_PHANTOM_CAUSAL_TRACE) { _causalSnapshot = recorder.end(consent); }
+		final var snapshot = _causalSnapshot == null ? recorder.snapshot(consent) : _causalSnapshot;
+		final long afterSeq = Long.parseLong(request.args().getOrDefault("afterSeq", "0"));
+		final int maximum = Integer.parseInt(request.args().getOrDefault("maxEvents", "64"));
+		if ((afterSeq < 0) || (maximum < 1) || (maximum > 128)) { return Outcome.of("REJECTED", "CAUSAL_TRACE_PAGE_BOUND"); }
+		final Map<String, String> values = new LinkedHashMap<>();
+		values.put("watched", snapshot.watched().toString());
+		values.put("attempts", Long.toString(snapshot.attempts()));
+		values.put("dropped", Long.toString(snapshot.dropped()));
+		values.put("active", Boolean.toString(snapshot.active()));
+		values.put("startedNanos", Long.toString(snapshot.startedNanos()));
+		values.put("snapshotNanos", Long.toString(System.nanoTime()));
+		values.put("header", "seq\tnanoTime\tthreadName\tprofileId\tevent\tstateA\tstateB\treason\tvalue1\tvalue2\tvalue3");
+		int bytes = 0;
+		int count = 0;
+		long last = afterSeq;
+		for (var event : snapshot.events())
+		{
+			if (event.seq() <= afterSeq) { continue; }
+			final String value = event.tsv();
+			// Conservative XML escaping expansion; leave 24 KiB for protocol/session/actor metadata.
+			final int encodedBound = value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length * 6 + 64;
+			if ((count >= maximum) || (bytes + encodedBound > 40_000)) { break; }
+			values.put("event." + event.seq(), value);
+			last = event.seq();
+			bytes += encodedBound;
+			count++;
+		}
+		final long cursor = last;
+		values.put("nextSeq", Long.toString(last));
+		values.put("hasMore", Boolean.toString(snapshot.events().stream().anyMatch(event -> event.seq() > cursor)));
+		values.put("retained", Integer.toString(snapshot.events().size()));
+		return new Outcome("SUCCEEDED", "CAUSAL_TRACE_SNAPSHOT", Map.copyOf(values));
 	}
 
 	private static Outcome sit(Player actor)
@@ -953,6 +1004,7 @@ public final class LocalPlayPilotActions
 
 	public void cancelPendingInvitation()
 	{
+		if (_causalConsent != null) { PhantomRuntimeFlightRecorder.getInstance().stop(_causalConsent); }
 		LocalPlayPhantomStoreJournal.select(Map.of());
 		if (_pendingOwnInvite != null)
 		{

@@ -1,0 +1,4 @@
+[PASS] phantom-runtime-flight-recorder.activation-and-fail-closed
+[PASS] phantom-runtime-flight-recorder.bounds-reset-and-correlation
+[PASS] phantom-runtime-flight-recorder.concurrent-recording-and-delegate-exception
+SUMMARY: suite=phantom-runtime-flight-recorder seed=14001401 total=3 passed=3 failed=0
