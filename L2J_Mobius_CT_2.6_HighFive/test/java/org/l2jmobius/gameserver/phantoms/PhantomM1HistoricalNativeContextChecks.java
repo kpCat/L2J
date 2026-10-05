@@ -6,6 +6,8 @@ package org.l2jmobius.gameserver.phantoms;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.lang.ref.WeakReference;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -54,20 +56,20 @@ public final class PhantomM1HistoricalNativeContextChecks
 	{
 		PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, context.measurements().get("headless.database"), "Historical context requires original guarded TEST.");
 		PhantomAssertions.assertTrue(Objects.toString(context.measurements().get("w.fixture.beforeHash"), "").matches("[0-9A-Fa-f]{64}"), "INVALID historical context: original full population before-image is absent.");
-		for (var identity : fixture.readyIdentities())
+		for (var identity : fixture.readyIdentities().stream().filter(identity -> identity.profileId() == 68L).toList())
 		{
 			final var loaded = new PhantomBackgroundTransaction().load(identity.profileId());
 			final var claim = new PhantomBackgroundCatchupStore(profiles, goals).load(identity.profileId()).orElse(null);
 			final var goal = goals.load(identity.profileId()).orElse(null);
 			if (!loaded.successful() || loaded.state() == null || claim == null || goal == null) { continue; }
-			if (loaded.state().state() == PhantomBackgroundState.State.READY && claim.state().status() == PhantomBackgroundCatchupState.Status.COMPLETE
+			if ((loaded.state().state() == PhantomBackgroundState.State.READY || loaded.state().state() == PhantomBackgroundState.State.DEAD) && claim.state().status() == PhantomBackgroundCatchupState.Status.COMPLETE
 				&& goal.goal().status() == PhantomGoalStatus.ACTIVE && goal.goal().goalId() == claim.state().goalId() && goal.goal().revision() == claim.state().goalRevision()
 				&& loaded.state().identity().characterObjectId() == identity.characterObjectId())
 			{
 				return new Probe(context, identity.profileId(), identity.characterObjectId(), profiles, goals, authority);
 			}
 		}
-		throw new AssertionError("INVALID historical context: no factual imported READY/COMPLETE/ACTIVE profile; no manufactured substitute.");
+		throw new AssertionError("INVALID historical context: exact profile68 READY|DEAD/COMPLETE/ACTIVE absent; no substitute.");
 	}
 
 	public record Receipt(long profileId, int objectId, long epoch, int testNativeLoads, String beginStatus, String advanceStatus, boolean attestedBeforeRunning) { }
@@ -78,7 +80,12 @@ public final class PhantomM1HistoricalNativeContextChecks
 		private final long _id;
 		private final int _objectId;
 		private final PhantomProfileRepository _profiles;
+		private final PhantomGoalStateStore _goals;
 		private final PhantomBackgroundAuthority _authority;
+		private PhantomBackgroundState _beforeState;
+		private List<InventoryRow> _beforeItems;
+		private Object _beforeClaim, _beforeGoal;
+		private Facts _testAdmission;
 		private final Facts _imported;
 		private final EnumMap<FaultPoint, Integer> _markers = new EnumMap<>(FaultPoint.class);
 		private PhantomMaterializationService _materialization;
@@ -98,7 +105,7 @@ public final class PhantomM1HistoricalNativeContextChecks
 
 		private Probe(PhantomTestContext context, long id, int objectId, PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomBackgroundAuthority authority) throws Exception
 		{
-			_context = context; _id = id; _objectId = objectId; _profiles = profiles; _authority = authority;
+			_context = context; _id = id; _objectId = objectId; _profiles = profiles; _goals = goals; _authority = authority;
 			_imported = facts(false);
 			PhantomAssertions.assertEquals(profiles.find(id).orElseThrow().characterObjectId(), objectId, "INVALID context fixture: imported link differs.");
 			PhantomAssertions.assertTrue(goals.load(id).isPresent() && _imported.components().stream().noneMatch(row -> row.type().equals(PhantomOwnedStoreIntent.COMPONENT_TYPE)), "INVALID context fixture: goal absent or original owned receipt is pending.");
@@ -156,7 +163,11 @@ public final class PhantomM1HistoricalNativeContextChecks
 				final var baseline = facts(false);
 				assertPreflight(baseline);
 				final var proof = _transactions.nativeContext(_id, _objectId);
-				PhantomAssertions.assertTrue(_setupLoads == 1 && proof.simulationEligible() && proof.context().phase() == PhantomNativeContext.Phase.COMPLETED && proof.canonicalPoints() == 1
+				_context.record(key("preflightProof"), "loads=" + _setupLoads + " status=" + proof.status() + " eligible=" + proof.simulationEligible()
+					+ " context=" + proof.context() + " canonicalPoints=" + proof.canonicalPoints() + " stateEquals=" + proof.state().equals(baseline.state())
+					+ " hashesEqual=" + baseline.state().hashes().equals(_authority.hashes()));
+				// Historical native eligibility also applies to DEAD recovery; background work eligibility requires READY.
+				PhantomAssertions.assertTrue(_setupLoads == 1 && proof.status() == PhantomBackgroundTransaction.Status.SUCCESS && proof.context().simulationEligible() && proof.context().phase() == PhantomNativeContext.Phase.COMPLETED && proof.canonicalPoints() == 1
 					&& proof.state().equals(baseline.state()) && baseline.state().hashes().equals(_authority.hashes()), "INVALID context preflight: exact current supported native baseline was not obtained.");
 				_context.record(key("preflight"), "originalNativeLoads=" + _setupLoads + " beforePoints=" + _imported.nativeRow().get(16) + " afterPoints=" + baseline.nativeRow().get(16) + " nativeClampWitnessOnly=true noOldLoadParityClaim=true zeroHistoricalIntervals=true");
 				deleteExactFreshScalar(baseline);
@@ -169,7 +180,7 @@ public final class PhantomM1HistoricalNativeContextChecks
 				final var begun = _historical.begin(_id, claim.targetEpochMinute(), Math.addExact(claim.targetEpochMinute(), 1), claim.deterministicSeed());
 				final var atRunning = facts(false);
 				final var fresh = _transactions.nativeContext(_id, _objectId);
-				final boolean attested = _testLoads == 1 && _epoch > 0 && _finalizedBeforeRunning && fresh.simulationEligible() && fresh.context().phase() == PhantomNativeContext.Phase.COMPLETED
+				final boolean attested = _testLoads == 1 && _epoch > 0 && _finalizedBeforeRunning && fresh.status() == PhantomBackgroundTransaction.Status.SUCCESS && fresh.context().simulationEligible() && fresh.context().phase() == PhantomNativeContext.Phase.COMPLETED
 					&& fresh.state().equals(atRunning.state()) && "1".equals(atRunning.nativeRow().get(16))
 					&& _markers.getOrDefault(FaultPoint.AFTER_OWNED_PREPARE, 0) > 0 && _markers.getOrDefault(FaultPoint.AFTER_OWNED_NATIVE_STORE, 0) > 0 && _markers.getOrDefault(FaultPoint.AFTER_OWNED_FINALIZE_COMMIT, 0) > 0;
 				PhantomAssertions.assertTrue(begun.successful() && begun.advancedIntervals() == 0 && atRunning.catchup().state().status() == PhantomBackgroundCatchupState.Status.RUNNING
@@ -224,13 +235,21 @@ public final class PhantomM1HistoricalNativeContextChecks
 			PhantomAssertions.assertEquals(legacy.nativeRow(), atRunning.nativeRow(), "Historical attestation changed original 17 canonical native scalar facts, including vitality points.");
 			PhantomAssertions.assertEquals(legacy.items(), atRunning.items(), "Historical attestation changed original full items/attributes/elements/variables.");
 			PhantomAssertions.assertEquals(legacy.skills(), atRunning.skills(), "Historical attestation changed original full skills.");
-			PhantomAssertions.assertEquals(legacy.components().stream().filter(Probe::attestationProtectedComponent).toList(), atRunning.components().stream().filter(Probe::attestationProtectedComponent).toList(), "Historical attestation changed protected original non-B4/context/catchup components.");
+			PhantomAssertions.assertTrue(_testAdmission != null && _testAdmission.catchup().state().status() == PhantomBackgroundCatchupState.Status.PENDING, "Historical exact pre-load admission absent.");
+			PhantomAssertions.assertEquals(legacy.components().stream().filter(Probe::attestationProtectedComponent).filter(row -> !row.type().equals(PhantomGoalStateStore.COMPONENT_TYPE)).toList(), atRunning.components().stream().filter(Probe::attestationProtectedComponent).filter(row -> !row.type().equals(PhantomGoalStateStore.COMPONENT_TYPE)).toList(), "Historical attestation changed original protected population components.");
+			PhantomAssertions.assertEquals(_testAdmission.components().stream().filter(Probe::attestationProtectedComponent).toList(), atRunning.components().stream().filter(Probe::attestationProtectedComponent).toList(), "Native attestation changed exact admitted goal or protected components.");
 			final var before = legacy.catchup().state(); final var renewed = atRunning.catchup().state();
+			final var admitted = _testAdmission.catchup().state();
+			final boolean samePlan = renewed.goalId() == before.goalId() && renewed.goalRevision() == before.goalRevision() && renewed.planOrdinal() == before.planOrdinal() && renewed.planIdentity().equals(before.planIdentity());
+			final boolean staleRenewal = !before.authorityHashes().equals(_authority.hashes()) && renewed.goalId() == before.goalId()
+				&& renewed.goalRevision() == Math.addExact(before.goalRevision(), 1) && renewed.planOrdinal() == Math.addExact(before.planOrdinal(), 1);
+			PhantomAssertions.assertTrue(samePlan || staleRenewal, "Historical renewal changed plan outside exact existing stale-authority renewal.");
+			PhantomAssertions.assertTrue(admitted.goalId() == renewed.goalId() && admitted.goalRevision() == renewed.goalRevision() && admitted.planOrdinal() == renewed.planOrdinal() && admitted.planIdentity().equals(renewed.planIdentity()), "Native attestation changed exact admitted plan binding.");
+			_context.record(key("renewalPlan"), "samePlan=" + samePlan + " staleAuthorityRenewal=" + staleRenewal + " originalGoalRevision=" + before.goalRevision() + " admittedGoalRevision=" + admitted.goalRevision() + " nativeGoalUnchanged=true");
 			PhantomAssertions.assertTrue(Objects.equals(_testRequest, renewed.requestId()) && renewed.deterministicSeed() == before.deterministicSeed()
 				&& renewed.fromEpochMinute() == before.targetEpochMinute() && renewed.targetEpochMinute() == Math.addExact(before.targetEpochMinute(), 1)
 				&& renewed.cursorEpochMinute() == before.targetEpochMinute() && renewed.intervalOrdinal() == 0
-				&& renewed.goalId() == before.goalId() && renewed.goalRevision() == before.goalRevision() && renewed.planOrdinal() == before.planOrdinal()
-				&& renewed.planIdentity().equals(before.planIdentity()), "Historical attestation changed the original requested calendar/seed/plan beyond legitimate unadvanced catchup renewal.");
+				&& admitted.requestId().equals(renewed.requestId()) && admitted.cursorEpochMinute() == renewed.cursorEpochMinute() && admitted.intervalOrdinal() == 0, "Historical attestation changed original requested calendar/seed or exact admitted unadvanced claim.");
 		}
 
 		private static boolean attestationProtectedComponent(Component row) { return fixedComponent(row) && !row.type().equals(PhantomBackgroundCatchupState.COMPONENT_TYPE); }
@@ -287,6 +306,15 @@ public final class PhantomM1HistoricalNativeContextChecks
 			PhantomAssertions.assertTrue(!_testPhase || purpose == PhantomMaterializationService.MaterializationPurpose.HISTORICAL_BASELINE, "UNKNOWN control reached NORMAL instead of original historical claim.");
 			if (_testPhase) { PhantomAssertions.assertTrue(_testRequest == null || _testRequest.equals(claim), "UNKNOWN handoff changed original request identity."); _testRequest = claim; }
 			_delegate.beforeMaterialize(id, objectId, purpose, claim);
+			_beforeState = _transactions.load(_id).state();
+			_beforeItems = nativeInventory();
+			_beforeClaim = _profiles.findComponent(_id, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElseThrow();
+			_beforeGoal = _goals.load(_id).orElseThrow();
+			if (_testPhase)
+			{
+				try { _testAdmission = facts(false); }
+				catch (Exception failure) { throw new IllegalStateException("Exact historical admission snapshot failed.", failure); }
+			}
 		}
 		@Override public void afterPlayerLoad(long id, Player player)
 		{
@@ -296,7 +324,112 @@ public final class PhantomM1HistoricalNativeContextChecks
 			_player = new WeakReference<>(player); _owner = new WeakReference<>(owner); _epoch = owner.epoch();
 			if (_testPhase) { _testLoads++; } else { _setupLoads++; }
 			_context.record(key("nativeLoad"), "phase=" + (_testPhase ? "UNKNOWN_HANDOFF" : "ORIGINAL_PREFLIGHT") + " object=" + _objectId + " epoch=" + _epoch + " points=" + player.getVitalityPoints() + " maxima=" + player.getMaxHp() + "/" + player.getMaxMp() + "/" + player.getMaxCp());
+			triangulateInventory(player);
 			_delegate.afterPlayerLoad(id, player);
+		}
+
+		private List<InventoryRow> nativeInventory()
+		{
+			try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT object_id,item_id,count,loc FROM items WHERE owner_id=? ORDER BY object_id"))
+			{
+				statement.setInt(1, _objectId); statement.setQueryTimeout(5);
+				final var result = new ArrayList<InventoryRow>();
+				try (var rows = statement.executeQuery())
+				{
+					while (rows.next()) { PhantomAssertions.assertTrue(result.size() < 10000, "Inventory probe row bound."); result.add(new InventoryRow(rows.getInt(1), rows.getInt(2), rows.getLong(3), rows.getString(4))); }
+				}
+				return List.copyOf(result);
+			}
+			catch (Exception failure) { throw new IllegalStateException("Inventory probe canonical SELECT failed.", failure); }
+		}
+
+		private void triangulateInventory(Player player)
+		{
+			PhantomAssertions.assertEquals(_beforeState, _transactions.load(_id).state(), "Inventory A changed during native load.");
+			PhantomAssertions.assertEquals(_beforeClaim, _profiles.findComponent(_id, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElseThrow(), "Inventory claim changed during native load.");
+			PhantomAssertions.assertEquals(_beforeGoal, _goals.load(_id).orElseThrow(), "Inventory goal changed during native load.");
+			final var background = _beforeState.inventory().objects().stream().map(item -> new InventoryRow(item.objectId(), item.itemId(), item.count(), item.location().name())).toList();
+			final List<InventoryRow> runtime, projected;
+			final PhantomBackgroundState captured;
+			synchronized (player)
+			{
+				synchronized (player.getStatus())
+				{
+					runtime = player.getInventory().getItems().stream().map(item -> new InventoryRow(item.getObjectId(), item.getId(), item.getCount(), item.getItemLocation().name())).sorted(java.util.Comparator.comparingInt(InventoryRow::objectId)).toList();
+					final var old = _beforeState.vitals();
+					final var vitals = new PhantomBackgroundState.Vitals(old.currentHp(), player.getMaxHp(), _beforeState.state() == PhantomBackgroundState.State.DEAD ? Math.min(old.currentMp(), player.getMaxMp()) : old.currentMp(), player.getMaxMp(), old.currentCp(), player.getMaxCp());
+					final var hint = new PhantomBackgroundState(_beforeState.state(), _beforeState.identity(), _beforeState.progress(), vitals, _beforeState.position(), _beforeState.combat(), _beforeState.loadout(), _beforeState.inventory(), _beforeState.autoGetSkills(), _beforeState.clock(), _beforeState.receipt(), _beforeState.hashes());
+					captured = _authority.captureOwnedNative(_id, player, _goals.load(_id).orElseThrow().goal(), hint).state();
+					projected = captured.inventory().objects().stream().map(item -> new InventoryRow(item.objectId(), item.itemId(), item.count(), item.location().name())).toList();
+					// A conflicting count hint must never overwrite or conceal the actual native count.
+					final var original = hint.inventory(); final var first = original.objects().stream().filter(PhantomBackgroundState.ItemObject::stackable).findFirst().orElseThrow();
+					final var conflictObjects = original.objects().stream().map(item -> item.objectId() == first.objectId()
+						? new PhantomBackgroundState.ItemObject(item.objectId(), item.itemId(), Math.addExact(item.count(), 1), item.stackable(), item.location()) : item).toList();
+					final var conflictInventory = PhantomBackgroundState.InventoryFacts.sorted(original.mutableItemIds(), conflictObjects, original.canonicalHash(), original.currentLoad(), original.maximumLoad(), original.usedSlots(), original.maximumSlots());
+					final var conflict = new PhantomBackgroundState(hint.state(), hint.identity(), hint.progress(), hint.vitals(), hint.position(), hint.combat(), hint.loadout(), conflictInventory, hint.autoGetSkills(), hint.clock(), hint.receipt(), hint.hashes());
+					final var conflictCapture = _authority.captureOwnedNative(_id, player, _goals.load(_id).orElseThrow().goal(), conflict).state();
+					PhantomAssertions.assertEquals(captured.inventory().objects(), conflictCapture.inventory().objects(), "Arrival capture must read actual Player item facts despite a conflicting hint.");
+					PhantomAssertions.assertFalse(conflictObjects.equals(conflictCapture.inventory().objects()), "Arrival projection concealed a real item/count difference.");
+					_context.record(key("inventoryCountConflictControl"), "conflictingHintRejectedByExactComparison=true nativeItemsNotMutated=true");
+				}
+			}
+			final var afterItems = nativeInventory();
+			final var nativeLocations = _beforeItems.stream().filter(item -> item.location().equals("INVENTORY") || item.location().equals("PAPERDOLL")).toList();
+			final var baselineProjection = nativeLocations.stream().filter(item -> item.location().equals("PAPERDOLL") || _beforeState.inventory().mutableItemIds().contains(item.itemId())).toList();
+			final boolean canonicalStable = _beforeItems.equals(afterItems);
+			final boolean nativeExact = nativeLocations.equals(runtime);
+			final boolean backgroundExact = background.equals(baselineProjection);
+			final var expectedSkills = _authority.autoGetSkills(_beforeState.identity(), _beforeState.progress().level());
+			final boolean autoGetExact = captured.autoGetSkills().equals(_beforeState.autoGetSkills()) && captured.autoGetSkills().equals(expectedSkills)
+				&& expectedSkills.stream().allMatch(skill -> player.getKnownSkill(skill.skillId()) != null && player.getKnownSkill(skill.skillId()).getLevel() == skill.skillLevel());
+			final var beforeMap = inventoryMap(background); final var projectionMap = inventoryMap(projected);
+			final var ids = new java.util.TreeSet<Integer>(beforeMap.keySet()); ids.addAll(projectionMap.keySet());
+			final var differences = ids.stream().filter(id -> !Objects.equals(beforeMap.get(id), projectionMap.get(id))).toList();
+			final String classification = canonicalStable && nativeExact && backgroundExact ? "CAPTURE_PROJECTION_DRIFT" : (!backgroundExact && canonicalStable && nativeExact ? "TRUE_GAMEPLAY_CONFLICT" : "BLOCKED_ARCHITECTURE");
+			_context.record(key("inventoryTriangulation"), "A_matches_B_under_committed_tracking=" + backgroundExact + " B_equals_D=" + canonicalStable + " C_equals_B_native_locations=" + nativeExact + " classification=" + classification + " diffs=" + differences.size() + " autoGetExact=" + autoGetExact);
+			_context.record(key("inventoryTracking"), "committed=" + _beforeState.inventory().mutableItemIds() + " captured=" + captured.inventory().mutableItemIds());
+			if (!_testPhase)
+			{
+				final var evidence = new ArrayList<String>(); evidence.add("view\tprofileId\tcharacterObjectId\tepoch\tobjectId\titemId\tcount\tItemLocation");
+				appendInventory(evidence, "A_BACKGROUND", background); appendInventory(evidence, "B_DB_PRE_LOAD", _beforeItems);
+				appendInventory(evidence, "C_PLAYER_LOADED", runtime); appendInventory(evidence, "D_DB_POST_LOAD", afterItems); appendInventory(evidence, "P_CAPTURE_PROJECTION", projected);
+				evidence.add("# committedMutableItemIds=" + _beforeState.inventory().mutableItemIds()); evidence.add("# capturedMutableItemIds=" + captured.inventory().mutableItemIds());
+				final var witness = java.util.Map.of(268496061, 1795, 268567849, 1868, 268568616, 1864, 270235841, 1833, 270570952, 1873);
+				for (var entry : new java.util.TreeMap<>(witness).entrySet())
+				{
+					final int objectId = entry.getKey();
+					evidence.add("# classification object=" + objectId + " item=" + entry.getValue() + " A=" + beforeMap.get(objectId) + " B=" + inventoryMap(_beforeItems).get(objectId) + " C=" + inventoryMap(runtime).get(objectId) + " D=" + inventoryMap(afterItems).get(objectId) + " P=" + projectionMap.get(objectId) + " class=" + classification);
+				}
+				for (var view : java.util.Map.of("A", background, "B", _beforeItems, "C", runtime, "D", afterItems, "P", projected).entrySet())
+				{
+					final var counts = new java.util.TreeMap<Integer, Long>(); view.getValue().forEach(item -> counts.merge(item.itemId(), item.count(), Math::addExact)); evidence.add("# itemIdTotals " + view.getKey() + "=" + counts);
+				}
+				evidence.add("# result=" + classification + " differences=" + differences + " autoGetExact=" + autoGetExact);
+				try
+				{
+					final var output = _context.reportsDirectory().resolve("INVENTORY_TRIANGULATION.tsv"); Files.createDirectories(output.getParent()); Files.write(output, evidence, StandardCharsets.UTF_8);
+				}
+				catch (Exception failure) { throw new IllegalStateException("Inventory triangulation evidence write failed.", failure); }
+				final int expected = Integer.getInteger("phantom.m1.inventory.expectedDiffs", 0);
+				PhantomAssertions.assertEquals(expected, differences.size(), "Exact profile68 inventory difference count changed.");
+				if (expected == 5) { PhantomAssertions.assertEquals(new java.util.TreeSet<>(witness.keySet()), new java.util.TreeSet<>(differences), "Prior exact five object IDs not reproduced."); }
+			}
+			PhantomAssertions.assertTrue(canonicalStable && nativeExact, "BLOCKED_ARCHITECTURE: native load changed canonical inventory semantics.");
+			PhantomAssertions.assertTrue(backgroundExact, "BLOCKED_TRUE_INVENTORY_CONFLICT: committed background objects differ from canonical item/count/location.");
+			PhantomAssertions.assertTrue(autoGetExact, "Inventory probe autoGet ceased to be exact.");
+			PhantomAssertions.assertTrue(differences.isEmpty(), "INVENTORY_PROJECTION_RED: " + classification + " " + differences);
+		}
+
+		private void appendInventory(List<String> evidence, String view, List<InventoryRow> items)
+		{
+			for (var item : items) { evidence.add(view + "\t" + _id + "\t" + _objectId + "\t" + _epoch + "\t" + item.objectId() + "\t" + item.itemId() + "\t" + item.count() + "\t" + item.location()); }
+		}
+
+		private static java.util.Map<Integer, InventoryRow> inventoryMap(List<InventoryRow> items)
+		{
+			final var result = new java.util.TreeMap<Integer, InventoryRow>();
+			for (var item : items) { PhantomAssertions.assertTrue(result.put(item.objectId(), item) == null, "Duplicate inventory object."); }
+			return result;
 		}
 		@Override public void materializeSucceeded(long id, int objectId) { _delegate.materializeSucceeded(id, objectId); }
 		@Override public void materializeAborted(long id, int objectId) { _delegate.materializeAborted(id, objectId); }
@@ -378,6 +511,7 @@ public final class PhantomM1HistoricalNativeContextChecks
 		return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray()));
 	}
 	private record Component(String type, int schema, long version, String payload, String fullRow) { }
+	private record InventoryRow(int objectId, int itemId, long count, String location) { }
 	private record Facts(String profile, PhantomBackgroundState state, PhantomBackgroundCatchupStore.Snapshot catchup, List<Component> components, List<String> nativeRow, String character, String skills, String items)
 	{
 		Facts withoutScalar() { return new Facts(profile, state, catchup, components.stream().filter(row -> !row.type().equals(PhantomNativeContext.COMPONENT_TYPE)).toList(), nativeRow, character, skills, items); }

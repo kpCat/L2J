@@ -1,0 +1,25 @@
+{
+  "task": "PHANTOM-M1-INVENTORY-TRIANGULATION-013",
+  "required_base": "88b7dd76643cb80b78246668cd16052e740a55aa",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "High",
+  "subagents": false,
+  "runtime_gate_seconds": 120,
+  "production_max_files": 2,
+  "testadmin_char_id": 268492939,
+  "testadmin_accesslevel": 100,
+  "files": [
+    "ACCEPTANCE.md",
+    "ADMIN.md",
+    "DESIGN.md",
+    "GIT.md",
+    "GOAL.md",
+    "HANDOFF.md",
+    "MODEL.md",
+    "PLAN.md",
+    "README.md",
+    "RESULT_TEMPLATE.md",
+    "SOURCE_MAP.tsv"
+  ]
+}

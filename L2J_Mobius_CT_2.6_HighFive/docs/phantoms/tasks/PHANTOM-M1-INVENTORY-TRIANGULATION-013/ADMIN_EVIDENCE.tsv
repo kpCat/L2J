@@ -1,0 +1,3 @@
+view	charId	char_name	account_name	accesslevel	online	level	exp	sp	x	y	z
+PLAY_BEFORE	268492939	TestAdmin	testadmin	0	0	12	138026	13880	44131	42673	-3488
+PLAY_AFTER	268492939	TestAdmin	testadmin	100	0	12	138026	13880	44131	42673	-3488

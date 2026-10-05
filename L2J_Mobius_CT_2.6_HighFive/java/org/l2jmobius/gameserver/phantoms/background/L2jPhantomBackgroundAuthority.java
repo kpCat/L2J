@@ -200,7 +200,11 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		requireSupportedPlayer(player, nativePersistence);
 		final PhantomTopologyAnchor anchor = exactAnchor(player, previous);
 		final Capability capability = capability(player, spec);
-		final Tracking tracking = tracking(player, spec, capability);
+		final Tracking currentTracking = tracking(player, spec, capability);
+		// Arrival attests the committed projection before a new goal projection can replace it.
+		// Read actual native counts/locations; the caller still verifies objects and full inventory hash.
+		final Tracking tracking = nativePersistence && (previous != null) && ((previous.state() == State.READY) || (previous.state() == State.DEAD))
+			? tracking(player, previous.inventory().mutableItemIds()) : currentTracking;
 		final Identity identity = new Identity(profileId, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
 		final Progress progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
 		final Vitals vitals = new Vitals(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp());
@@ -814,13 +818,18 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			throw new IllegalArgumentException("Exact farm projection has too many mutable item IDs.");
 		}
 
+		return tracking(player, List.copyOf(mutableItemIds));
+	}
+
+	private Tracking tracking(Player player, List<Integer> mutableItemIds)
+	{
 		final Set<Integer> mutable = Set.copyOf(mutableItemIds);
 		final List<ItemObject> objects = player.getInventory().getItems().stream()
 			.filter(item -> ((item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY) && mutable.contains(item.getId())) || (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.PAPERDOLL))
 			.sorted(Comparator.comparingInt(Item::getObjectId))
 			.map(item -> new ItemObject(item.getObjectId(), item.getId(), item.getCount(), item.isStackable(), ItemLocation.valueOf(item.getItemLocation().name())))
 			.toList();
-		return new Tracking(List.copyOf(mutableItemIds), objects);
+		return new Tracking(mutableItemIds, objects);
 	}
 
 	private void validateShot(Player player, PhantomBackgroundGoalSpec goal, Capability capability)

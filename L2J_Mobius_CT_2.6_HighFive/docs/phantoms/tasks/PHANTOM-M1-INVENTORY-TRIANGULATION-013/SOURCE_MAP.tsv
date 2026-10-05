@@ -1,0 +1,12 @@
+mode	path	purpose
+READ	C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-ATTESTATION-012R/RESULT.md	five exact diffs/evidence
+READ	C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-ATTESTATION-012R/HANDOFF_RESULT.md	prior boundary
+MODIFY	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/PhantomM1HistoricalNativeContextChecks.java	A/B/C/D native probe
+OPTIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomM1PopulationFixture.java	exact profile68 selector only
+OPTIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java	focused mode only if required
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	only STATE_STALE/materialization verification fix
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	only proven canonical writer bug
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	only projection drift
+FORBIDDEN_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java	core out of scope
+FORBIDDEN_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/item/**	core out of scope
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-INVENTORY-TRIANGULATION-013/**	evidence/result

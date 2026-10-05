@@ -1,0 +1,8 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=3
+passed=3
+failed=0
+PASS m1-native-lifecycle.Q14-native-context-exact-load-witness-contract elapsedNanos=20496700
+PASS m1-native-lifecycle.Q14-native-context-pending-zero-native-points-contract elapsedNanos=15218500
+PASS m1-native-lifecycle.Q14-native-context-unknown-exact-binding-contract elapsedNanos=1926400

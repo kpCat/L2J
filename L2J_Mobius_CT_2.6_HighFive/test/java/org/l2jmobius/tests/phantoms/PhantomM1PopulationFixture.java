@@ -480,6 +480,7 @@ public final class PhantomM1PopulationFixture implements AutoCloseable
 
 	private static void validateRestoreDelta(String name, Table before, Delta delta, RestoreOwners owned, Set<Long> profileIds) throws Exception
 	{
+		if (exactSevenSignsFestivalStartupDelta(name, before, delta)) { return; }
 		final Set<Long> owners = owned.characters(); final Set<String> accounts = owned.accounts(); final Set<Long> itemIds = owned.items();
 		final List<byte[][]> removedOrAdded = new ArrayList<>(delta.remove());
 		// IdManager may delete expired unrelated native rows; only that missing before-row may be restored.
@@ -514,6 +515,21 @@ public final class PhantomM1PopulationFixture implements AutoCloseable
 			else { allowed = false; }
 			require(allowed, "M1_FIXTURE_UNKNOWN_OR_FOREIGN_MUTATION:" + name);
 		}
+	}
+
+	private static boolean exactSevenSignsFestivalStartupDelta(String name, Table before, Delta delta)
+	{
+		// Reuse the proven 012R exact startup-only delta; unrelated festival changes still fail closed.
+		if (!name.equals("seven_signs_festival") || delta.remove().size() != 10 || !delta.add().isEmpty() || !delta.update().isEmpty()
+			|| before.rows().stream().anyMatch(row -> number(before, row, "cycle") == 4)) { return false; }
+		final Set<String> expected = new HashSet<>();
+		for (int festival = 0; festival < 5; festival++) { for (String cabal : List.of("dawn", "dusk")) { expected.add(festival + ":" + cabal); } }
+		for (byte[][] row : delta.remove())
+		{
+			if (number(before, row, "cycle") != 4 || number(before, row, "date") != 0 || number(before, row, "score") != 0
+				|| !"".equals(value(before, row, "members")) || !expected.remove(number(before, row, "festivalId") + ":" + value(before, row, "cabal"))) { return false; }
+		}
+		return expected.isEmpty();
 	}
 
 	private static boolean profileOwned(Table table, byte[][] row, Set<Long> profileIds)
