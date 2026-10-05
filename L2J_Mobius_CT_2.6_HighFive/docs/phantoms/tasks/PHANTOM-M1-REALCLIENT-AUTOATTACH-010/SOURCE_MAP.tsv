@@ -1,0 +1,10 @@
+mode	path	purpose
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/config/custom/LocalPlayPilotConfig.java	parse auto-attach allowlist
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotService.java	server-side allowlisted attach
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/network/clientpackets/EnterWorld.java	one post-enter hook
+MODIFY	L2J_Mobius_CT_2.6_HighFive/dist/game/config/Custom/LocalPlayPilot.ini	shipped fail-closed keys
+MODIFY	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/LocalPlayPilotSuite.java	targeted contract tests
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/network/GameClient.java	verify REAL_LOGIN acquisition
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomIdentityLeaseRegistry.java	verify ownership semantics
+READ	L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/*.ps1	reuse private runtime tooling
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-REALCLIENT-AUTOATTACH-010/**	report/evidence

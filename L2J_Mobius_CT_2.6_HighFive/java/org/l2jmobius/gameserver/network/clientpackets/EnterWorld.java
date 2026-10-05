@@ -784,6 +784,7 @@ public class EnterWorld extends ClientPacket
 		
 		// EnterWorld has finished.
 		player.setEnteredWorld();
+		org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().onRealClientEntered(player);
 		
 		// Wedding checks.
 		if (WeddingConfig.ALLOW_WEDDING)

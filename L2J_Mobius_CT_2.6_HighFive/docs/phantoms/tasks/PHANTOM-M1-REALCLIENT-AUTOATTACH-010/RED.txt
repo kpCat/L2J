@@ -1,0 +1,22 @@
+suite=localplay-pilot
+seed=40004001
+total=15
+passed=7
+failed=8
+measurement.census.boundedRows=15
+measurement.census.serializedBytes=60649
+FAIL localplay-pilot.A01-autoattach-contract elapsedNanos=1553300 type=java.lang.NoSuchMethodException message=org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.loadAutoAttach(java.lang.String,java.lang.String) seed=40004001
+FAIL localplay-pilot.A02-autoattach-contract elapsedNanos=38700 type=java.lang.NoSuchMethodException message=org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.loadAutoAttach(java.lang.String,java.lang.String) seed=40004001
+FAIL localplay-pilot.A03-autoattach-contract elapsedNanos=21500 type=java.lang.NoSuchMethodException message=org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.loadAutoAttach(java.lang.String,java.lang.String) seed=40004001
+FAIL localplay-pilot.A04-autoattach-contract elapsedNanos=18000 type=java.lang.NoSuchMethodException message=org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.loadAutoAttach(java.lang.String,java.lang.String) seed=40004001
+FAIL localplay-pilot.A05-autoattach-contract elapsedNanos=19600 type=java.lang.NoSuchMethodException message=org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.loadAutoAttach(java.lang.String,java.lang.String) seed=40004001
+FAIL localplay-pilot.A06-autoattach-contract elapsedNanos=17900 type=java.lang.NoSuchMethodException message=org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.loadAutoAttach(java.lang.String,java.lang.String) seed=40004001
+FAIL localplay-pilot.A07-autoattach-contract elapsedNanos=18600 type=java.lang.NoSuchMethodException message=org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.loadAutoAttach(java.lang.String,java.lang.String) seed=40004001
+FAIL localplay-pilot.A08-autoattach-contract elapsedNanos=22600 type=java.lang.NoSuchMethodException message=org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.loadAutoAttach(java.lang.String,java.lang.String) seed=40004001
+PASS localplay-pilot.census-cleanup-xml-page-bound elapsedNanos=113325300
+PASS localplay-pilot.exact-client-and-process-arm elapsedNanos=1705400
+PASS localplay-pilot.mailbox-negative-controls elapsedNanos=52226400
+PASS localplay-pilot.mailbox-xml-contract elapsedNanos=14034500
+PASS localplay-pilot.off-invalidates-consent elapsedNanos=984200
+PASS localplay-pilot.sequence-stop-and-expiry elapsedNanos=787600
+PASS localplay-pilot.short-human-arm-code elapsedNanos=1172400

@@ -1,0 +1,22 @@
+{
+  "task": "PHANTOM-M1-REALCLIENT-AUTOATTACH-010",
+  "required_base": "78cfd521174e383b5054efdc2ceb644c9d09646c",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "Medium",
+  "subagents": false,
+  "files": [
+    "ACCEPTANCE.md",
+    "DESIGN.md",
+    "GIT.md",
+    "GOAL.md",
+    "HANDOFF.md",
+    "MODEL.md",
+    "OBSERVATION.md",
+    "PATCH_GUIDE.md",
+    "PLAN.md",
+    "README.md",
+    "RESULT_TEMPLATE.md",
+    "SOURCE_MAP.tsv"
+  ]
+}

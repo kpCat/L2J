@@ -31,6 +31,77 @@ public final class LocalPlayPilotSuite implements PhantomTestSuite
 		registry.add("mailbox-xml-contract", this::mailboxXmlContract);
 		registry.add("mailbox-negative-controls", this::mailboxNegativeControls);
 		registry.add("census-cleanup-xml-page-bound", this::censusCleanupPageBound);
+		for (int number = 1; number <= 8; number++)
+		{
+			final int test = number;
+			registry.add("A0" + number + "-autoattach-contract", context -> autoAttachContract(context, test));
+		}
+	}
+
+	private void autoAttachContract(PhantomTestContext context, int test) throws Exception
+	{
+		final Class<?> config = org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.class;
+		final var parse = config.getDeclaredMethod("loadAutoAttach", String.class, String.class);
+		parse.setAccessible(true);
+		final var enabled = config.getMethod("isAutoAttachEnabled");
+		final var character = config.getMethod("isAutoAttachCharacter", String.class);
+		final String source = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/localplay/LocalPlayPilotService.java"));
+		final int start = source.indexOf("public synchronized boolean onRealClientEntered(Player player)");
+		assertTrue(start >= 0, "post-enter service hook exists");
+		final String attach = source.substring(start, source.indexOf("private static boolean realClient", start));
+		try
+		{
+			parse.invoke(null, "False", "TestAdmin");
+			if (test == 1)
+			{
+				assertFalse((boolean) enabled.invoke(null), "A01 disabled");
+				assertTrue(attach.contains("!LocalPlayPilotConfig.isEnabled()") && attach.contains("!LocalPlayPilotConfig.isAutoAttachEnabled()"), "A01 both feature gates");
+			}
+			parse.invoke(null, "True", " , TestAdmin, Other, ");
+			if (test == 2)
+			{
+				assertFalse((boolean) character.invoke(null, "Unlisted"), "A02 allowlist miss");
+				assertTrue((boolean) character.invoke(null, "testadmin"), "case-insensitive match");
+				for (String invalid : new String[] { "x".repeat(33), String.join(",", java.util.Collections.nCopies(33, "TestAdmin")) })
+				{
+					parse.invoke(null, "True", invalid);
+					assertFalse((boolean) enabled.invoke(null), "invalid allowlist fails closed");
+					assertFalse((boolean) character.invoke(null, "TestAdmin"), "invalid list discarded");
+				}
+			}
+			if (test == 3)
+			{
+				exactArm(context);
+				assertTrue(attach.contains("lease.arm(") && attach.contains("writeSession();") && !attach.contains("arm.properties"), "A03 session without permit");
+				final String enter = Files.readString(context.moduleRoot().resolve("java/org/l2jmobius/gameserver/network/clientpackets/EnterWorld.java"));
+				assertTrue(enter.indexOf("onRealClientEntered(player)") > enter.indexOf("player.setEnteredWorld();"), "post-enter hook");
+			}
+			if (test == 4)
+			{
+				assertTrue(attach.contains("!realClient(player)") && attach.contains("mailboxSafe()") && attach.contains("validManifest()") && attach.contains("ownedProcess()"), "A04 strict gates");
+				assertTrue(source.contains("!player.hasHeadlessOutboundSession()") && source.contains("!client.isDetached()") && source.contains("ConnectionState.IN_GAME") && source.contains("OwnerKind.REAL_LOGIN"), "native REAL client invariant");
+			}
+			if ((test == 5) || (test == 6))
+			{
+				assertTrue(attach.contains("_lease.state() != LocalPlayPilotLease.State.OFF") && attach.contains("return (_player == player) && (_client == player.getClient()) && sessionValid();"), "A05/A06 no stealing and exact-pair idempotence");
+			}
+			if (test == 7)
+			{
+				offInvalidates(context);
+				final String disconnect = source.substring(source.indexOf("public synchronized void onDisconnect("), source.indexOf("public synchronized void onManualAction("));
+				assertTrue(disconnect.contains("_client == client") && disconnect.contains("revoke();"), "A07 disconnect revoke");
+			}
+			if (test == 8)
+			{
+				exactArm(context);
+				final String manual = source.substring(source.indexOf("public synchronized String arm("), start);
+				assertTrue(manual.contains("arm.properties") && manual.contains("LocalPlayPilotArmCode.matches") && !manual.contains("isAutoAttachEnabled"), "A08 independent manual permit");
+			}
+		}
+		finally
+		{
+			parse.invoke(null, "False", "");
+		}
 	}
 
 	private void exactArm(PhantomTestContext context)

@@ -400,6 +400,52 @@ public final class LocalPlayPilotService
 		}
 	}
 
+	public synchronized boolean onRealClientEntered(Player player)
+	{
+		try
+		{
+			if (!LocalPlayPilotConfig.isEnabled() || !LocalPlayPilotConfig.isAutoAttachEnabled() || (player == null) || !LocalPlayPilotConfig.isAutoAttachCharacter(player.getName()) || (_poller == null) || _poller.isCancelled() || _poller.isDone() || !mailboxSafe() || !realClient(player))
+			{
+				return false;
+			}
+			if (!validManifest() || !ownedProcess())
+			{
+				return false;
+			}
+			if ((_lease != null) && (_lease.state() != LocalPlayPilotLease.State.OFF))
+			{
+				return (_player == player) && (_client == player.getClient()) && sessionValid();
+			}
+			if (_lease != null)
+			{
+				revoke();
+			}
+			final String nonce = UUID.randomUUID().toString();
+			final long now = System.currentTimeMillis();
+			final LocalPlayPilotLease lease = new LocalPlayPilotLease(nonce, player.getName(), _pid, _startTicks, System.nanoTime() + CONSENT_NANOS, System::nanoTime);
+			if (!lease.arm(nonce, player.getName(), player.getAccountName(), player.getObjectId(), player.getClient(), _pid, _startTicks, CONSENT_NANOS))
+			{
+				return false;
+			}
+			_client = player.getClient();
+			_player = player;
+			_lease = lease;
+			_actions = new LocalPlayPilotActions(player);
+			_expiresUtcMillis = now + (CONSENT_NANOS / 1000000L);
+			writeSession();
+			return true;
+		}
+		catch (Exception exception)
+		{
+			// A failed hook must neither fail login nor revoke another client's consent.
+			if (_player == player)
+			{
+				revoke();
+			}
+			return false;
+		}
+	}
+
 	private static boolean realClient(Player player)
 	{
 		final GameClient client = player.getClient();
