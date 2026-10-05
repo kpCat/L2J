@@ -1,0 +1,4 @@
+TOTAL=10000 COUNTS={COMPLETE_HISTORY_IDLE=2145, ORPHAN_EXACT_ADOPTABLE=55, OWNED_EXACT=7800} ROUNDTRIPS=30000
+profile110 class=ORPHAN_EXACT_ADOPTABLE ecologyVersion=8001 historicalVersion=20153 cursor=29852110 from=29852110 target=29852115 seedMatch=true expectedSeed=6374293272387424671 historicalSeed=6374293272387424671
+profile175 class=ORPHAN_EXACT_ADOPTABLE ecologyVersion=7214 historicalVersion=12948 cursor=29852109 from=29852109 target=29852115 seedMatch=true expectedSeed=2947913232220838056 historicalSeed=2947913232220838056
+Runtime owner/safeBoundary/CAS safety UNKNOWN offline; ORPHAN_EXACT_ADOPTABLE is a persisted candidate only.

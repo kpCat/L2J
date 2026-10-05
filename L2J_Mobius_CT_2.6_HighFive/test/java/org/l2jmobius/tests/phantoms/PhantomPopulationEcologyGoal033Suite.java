@@ -111,6 +111,159 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("16-incomplete-periodic-due-continues-under-pulse-budgets", this::testIncompletePeriodicDueContinues);
 		registry.add("17-restored-inventory-readiness-starts-bounded-target-creation", this::testRestoredInventoryReadinessStartsCreation);
 		registry.add("18-native-context-releases-only-materialization-gate", this::testNativeMaterializationReadiness);
+		for (int control = 1; control <= 12; control++)
+		{
+			final int selected = control;
+			registry.add("O%02d-orphan-ownership-contract".formatted(control), context -> testOrphanOwnership(context, selected));
+		}
+	}
+
+	private void testOrphanOwnership(PhantomTestContext context, int control)
+	{
+		final OrphanFixture f = new OrphanFixture(control);
+		if (control == 10)
+		{
+			for (boolean owner : List.of(true, false))
+			{
+				f.materialized.set(owner);
+				f.safety.set(owner ? "" : "critical_goal");
+				f.turn();
+				PhantomAssertions.assertEquals(f.original, f.store.require(1), "O10 unsafe adoption changed ecology.");
+				PhantomAssertions.assertEquals(f.historyBefore, f.history.get(), "O10 unsafe adoption changed history.");
+			}
+			f.materialized.set(false); f.safety.set("");
+		}
+		if (control == 11) { f.store._raceNextSave = true; }
+		f.turn();
+		if (control == 10)
+		{
+			for (int pulse = 0; pulse < 256 && !f.store.require(1).state().requestPending(); pulse++) { f.turn(); }
+		}
+		if ((control >= 5) && (control <= 7))
+		{
+			PhantomAssertions.assertEquals(f.original, f.store.require(1), "Conflicting orphan changed ecology.");
+			PhantomAssertions.assertEquals("ecology.orphan_historical_conflict", f.service.snapshot().lastFailure(), "Orphan conflict is not typed.");
+			PhantomAssertions.assertEquals(0, f.begins.get(), "Conflicting orphan called historical begin.");
+			PhantomAssertions.assertEquals(f.historyBefore, f.history.get(), "Conflicting orphan rewrote history.");
+			return;
+		}
+		if (control == 4)
+		{
+			PhantomAssertions.assertTrue(f.begins.get() > 0, "COMPLETE history prevented ordinary sequential renewal.");
+			PhantomAssertions.assertFalse(f.historyBefore.state().requestId().equals(f.store.require(1).state().currentRequestId()), "COMPLETE request was adopted.");
+			return;
+		}
+		if (control == 9)
+		{
+			PhantomAssertions.assertEquals(f.original, f.store.require(1), "Different owned request was stolen.");
+			PhantomAssertions.assertEquals(f.historyBefore, f.history.get(), "Ownership disagreement rewrote history.");
+			return;
+		}
+		if (control == 8)
+		{
+			PhantomAssertions.assertEquals(f.original, f.store.require(1), "Already-owned request added an ecology write.");
+			PhantomAssertions.assertTrue(f.advances.get() > 0, "Already-owned request did not use normal advance.");
+			return;
+		}
+		if (control == 11)
+		{
+			PhantomAssertions.assertFalse(f.store.require(1).state().requestPending(), "CAS loser fabricated ownership.");
+			PhantomAssertions.assertEquals(f.historyBefore, f.history.get(), "CAS loser changed historical payload/version.");
+			for (int pulse = 0; pulse < 256 && !f.store.require(1).state().requestPending(); pulse++) { f.turn(); }
+		}
+		final StoredState adopted = f.store.require(1);
+		PhantomAssertions.assertTrue(adopted.state().requestPending(), "Exact orphan was not adopted.");
+		PhantomAssertions.assertEquals(f.historyBefore.state().requestId(), adopted.state().currentRequestId(), "Adoption minted a request ID.");
+		PhantomAssertions.assertEquals(f.historyBefore.state().targetEpochMinute(), adopted.state().currentWindowTargetEpochMinute(), "Adoption changed target.");
+		PhantomAssertions.assertEquals(f.original.state().calendarCursorEpochMinute(), adopted.state().calendarCursorEpochMinute(), "Adoption moved outer cursor.");
+		PhantomAssertions.assertEquals(f.historyBefore, f.history.get(), "Adoption changed historical row/version/progress.");
+		PhantomAssertions.assertEquals(0, f.begins.get(), "Adoption called historical begin.");
+		PhantomAssertions.assertEquals(0, f.advances.get(), "Adoption fell through into advance in the same worker turn.");
+		PhantomAssertions.assertEquals(f.original.rowVersion() + (control == 11 ? 2 : 1), adopted.rowVersion(), "Adoption added duplicate ecology writes.");
+		if (control == 3)
+		{
+			f.turn();
+			f.demand.set(true);
+			final var permission = f.service.requestMaterializationDue(1);
+			PhantomAssertions.assertTrue(permission.complete(), "Adopted native-context failure did not reach foreground gate.");
+			PhantomAssertions.assertEquals("ecology.native_materialization_required", permission.reason(), "Native gate lost exact reason.");
+			PhantomAssertions.assertFalse(f.service.requestBackgroundDue(1).complete(), "Native exception opened background due.");
+			PhantomAssertions.assertFalse(f.service.requestBackgroundReadiness(1).complete(), "Native exception opened background readiness.");
+		}
+		if (control == 12)
+		{
+			f.service.beginStop();
+			f.start();
+			f.turn();
+			PhantomAssertions.assertEquals(adopted, f.store.require(1), "Restart adopted the same request twice.");
+			PhantomAssertions.assertTrue(f.advances.get() > 0, "Restart did not resume normal historical request.");
+			PhantomAssertions.assertEquals(f.historyBefore.state().requestId(), f.history.get().state().requestId(), "Restart replaced historical identity.");
+		}
+		context.record("task016.O%02d".formatted(control), "exact ownership preserved");
+	}
+
+	private final class OrphanFixture
+	{
+		private final Instant now = Instant.parse("2026-01-05T20:30:00Z");
+		private final long from = minute(now) - 10;
+		private final ManagedSnapshot population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash()).seedReady(1, 1);
+		private final EcologyMemoryStore store = new EcologyMemoryStore(null);
+		private final AtomicBoolean materialized = new AtomicBoolean();
+		private final AtomicBoolean demand = new AtomicBoolean();
+		private final AtomicReference<String> safety = new AtomicReference<>("");
+		private final AtomicReference<Snapshot> history = new AtomicReference<>();
+		private final AtomicInteger begins = new AtomicInteger();
+		private final AtomicInteger advances = new AtomicInteger();
+		private final StoredState original;
+		private final Snapshot historyBefore;
+		private PhantomPopulationEcologyService service;
+		private final HistoricalPort port = new HistoricalPort()
+		{
+			@Override public Optional<Snapshot> status(long id) { return Optional.of(history.get()); }
+			@Override public PhantomHistoricalBackgroundService.Result begin(long id, long start, long end, long seed)
+			{
+				begins.incrementAndGet();
+				if (history.get().state().status() != Status.COMPLETE) { return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.CONFLICT, "synthetic.conflict", history.get()); }
+				final var previous = history.get();
+				final var replacement = new PhantomBackgroundCatchupState(Status.PENDING, "b".repeat(64), seed, start, end, start, 0, 0, 1, 1, 1, 0, 0, "", PhantomBackgroundState.MODEL_VERSION, previous.state().authorityHashes(), "");
+				history.set(new Snapshot(replacement, previous.rowVersion() + 1));
+				return PhantomHistoricalBackgroundService.Result.success(history.get(), 0);
+			}
+			@Override public PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes)
+			{
+				advances.incrementAndGet();
+				final var current = history.get();
+				if (current.state().status() == Status.FAILED_REPLAN_REQUIRED) { return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.REPLAN_REQUIRED, current.state().failureReason(), current); }
+				return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.RETRY, "transaction.items.retry", current);
+			}
+		};
+		private OrphanFixture(int control)
+		{
+			var ecology = stateAt(from, Pace.OUTLIER, 10_000, population.state().scheduleTemplate());
+			if (control == 8 || control == 9) { ecology = ecology.beginRequest(control == 8 ? "a".repeat(64) : "c".repeat(64), from + 5); }
+			original = store.insert(1, ecology);
+			final Status status = control == 2 ? Status.RUNNING : control == 3 ? Status.FAILED_REPLAN_REQUIRED : control == 4 ? Status.COMPLETE : Status.PENDING;
+			final long start = control == 5 || control == 6 ? from - 5 : from;
+			final long target = control == 6 ? from : from + 5;
+			final long cursor = control == 4 ? target : control == 2 ? from + 1 : start;
+			final boolean planned = control == 2 || control == 4;
+			// Fixed independent fixture seed for generation=1, ordinal=1, virtualJoin=29460740.
+			final long seed = 2874440040829550073L + (control == 7 ? 1 : 0);
+			final var value = new PhantomBackgroundCatchupState(status, "a".repeat(64), seed, start, target, cursor, 0, control == 2 ? 1 : 0, 1, 1, 1, planned ? 1 : 0, 0, planned ? "f".repeat(64) : "", PhantomBackgroundState.MODEL_VERSION, new PhantomBackgroundState.Hashes("knowledge", "topology", "progression", "commerce"), control == 3 ? "native_context.required:coalesced" : "");
+			historyBefore = new Snapshot(value, 41);
+			history.set(historyBefore);
+			start();
+		}
+		private void start()
+		{
+			service = service(store, port, materialized, safety, new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 1);
+			service.enablePeriodicDueMode();
+			service.installMaterializationDemand(id -> demand.get());
+			service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+			service.register(population);
+			loadMetadata(service, 1);
+		}
+		private void turn() { service.requestBackgroundDue(1); service.onPopulationPulse(); }
 	}
 
 	private void testNativeMaterializationReadiness(PhantomTestContext context)
@@ -1187,6 +1340,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 	{
 		private final Map<Long, StoredState> _states = new LinkedHashMap<>();
 		private final PhantomPopulationTestDoubles.MemoryStore _population;
+		private boolean _raceNextSave;
 
 		public EcologyMemoryStore(PhantomPopulationTestDoubles.MemoryStore population)
 		{
@@ -1208,6 +1362,11 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		@Override
 		public synchronized StoredState save(long profileId, StoredState expected, PhantomPopulationEcologyState replacement)
 		{
+			if (_raceNextSave)
+			{
+				_raceNextSave = false;
+				_states.put(profileId, new StoredState(expected.state(), expected.rowVersion() + 1));
+			}
 			if (_states.get(profileId) != expected)
 			{
 				throw new java.util.ConcurrentModificationException("Synthetic ecology row version changed.");

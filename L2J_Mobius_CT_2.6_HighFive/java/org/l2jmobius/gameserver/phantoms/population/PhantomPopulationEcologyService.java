@@ -29,6 +29,7 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState.Status;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.ResultStatusCode;
+import org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyCatalog.PresetDefinition;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Disposition;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Pace;
@@ -46,6 +47,7 @@ public final class PhantomPopulationEcologyService
 {
 	private static final long MINUTE_MILLIS = 60_000L;
 	private static final int MAXIMUM_CALENDAR_STEPS_PER_PROFILE = 4096;
+	private static final int OWNERSHIP_RECOVERY_TURN = -1;
 	private final Object _monitor = new Object();
 	private final PhantomPopulationEcologyCatalog _catalog;
 	private final PhantomPopulationCatalog _populationCatalog;
@@ -682,7 +684,10 @@ public final class PhantomPopulationEcologyService
 				requested = (entry != null) && (entry._requestedMinute > 0);
 			}
 			if (requested && (before != null) && before.state().initialCatchupComplete() && !before.state().requestPending() && dueSnapshot(profileId).complete()) { process(profileId, 0, false); break; }
-			advanced += process(profileId, Math.max(0, intervalLimit - advanced), requested);
+			final int used = process(profileId, Math.max(0, intervalLimit - advanced), requested);
+			// Ownership recovery is one worker turn; historical advance belongs to the next batch.
+			if (used == OWNERSHIP_RECOVERY_TURN) { break; }
+			advanced += used;
 			if (((before == stored(profileId)) && (revision == dueSnapshot(profileId).revision())) || (advanced >= intervalLimit)) { break; }
 		}
 		return advanced;
@@ -950,6 +955,7 @@ public final class PhantomPopulationEcologyService
 			if (_materialized.test(profileId)) { synchronized (_monitor) { _entries.get(profileId)._liveOwner = true; } recordFailureOnce(profileId, "ecology.live_owner"); return 0; }
 			return advanceRequest(profileId, stored, intervalBudget);
 		}
+		if (recoverOrphanHistoricalOwnership(profileId, stored)) { return OWNERSHIP_RECOVERY_TURN; }
 		final long now = Math.max(0, _clock.instant().toEpochMilli() / MINUTE_MILLIS);
 		if (_materialized.test(profileId))
 		{
@@ -978,6 +984,51 @@ public final class PhantomPopulationEcologyService
 			requestArchive(profileId);
 		}
 		return 0;
+	}
+
+	/** Reattach only the exact outer owner; the historical component remains untouched. */
+	private boolean recoverOrphanHistoricalOwnership(long profileId, StoredState ecology)
+	{
+		stage(profileId, "historical.status");
+		final var existing = _historical.status(profileId).orElse(null);
+		cacheHistorical(profileId, existing);
+		if ((existing == null) || (existing.state().status() == Status.COMPLETE)) { return false; }
+		final var state = ecology.state();
+		final var historical = existing.state();
+		final var recorder = PhantomRuntimeFlightRecorder.getInstance();
+		recorder.record(profileId, "ECOLOGY_ORPHAN_FOUND", historical.status().name(), "", "", state.calendarCursorEpochMinute(), historical.targetEpochMinute(), ecology.rowVersion());
+		if ((historical.fromEpochMinute() != state.calendarCursorEpochMinute())
+			|| (historical.targetEpochMinute() <= state.calendarCursorEpochMinute())
+			|| (historical.deterministicSeed() != historicalSeed(state)))
+		{
+			recordFailureOnce(profileId, "ecology.orphan_historical_conflict");
+			synchronized (_monitor) { final Entry entry = _entries.get(profileId); if (entry != null) { entry._terminal = true; } }
+			recorder.record(profileId, "ECOLOGY_ORPHAN_CONFLICT", historical.status().name(), "", "ecology.orphan_historical_conflict", historical.fromEpochMinute(), historical.targetEpochMinute(), state.calendarCursorEpochMinute());
+			return true;
+		}
+		if (_materialized.test(profileId) || !_safeBoundary.blockingReason(profileId).isEmpty())
+		{
+			deferRetry(profileId);
+			return true;
+		}
+		// A previous failed CAS may have left our cached outer snapshot behind the durable row.
+		final StoredState current = _store.load(profileId).orElse(null);
+		if (!ecology.equals(current))
+		{
+			if (current != null) { publish(profileId, current); }
+			deferRetry(profileId);
+			return true;
+		}
+		final ManagedSnapshot population = _populationView.find(profileId).orElse(null);
+		if ((population == null) || (population.state().state() != PhantomPopulationState.State.READY)
+			|| _materialized.test(profileId) || !_safeBoundary.blockingReason(profileId).isEmpty())
+		{
+			deferRetry(profileId);
+			return true;
+		}
+		final StoredState adopted = persist(profileId, ecology, state.beginRequest(historical.requestId(), historical.targetEpochMinute()));
+		recorder.record(profileId, "ECOLOGY_ORPHAN_ADOPTED", historical.status().name(), "MANAGED", "", state.calendarCursorEpochMinute(), historical.targetEpochMinute(), adopted.rowVersion());
+		return true;
 	}
 
 	private int advanceRequest(long profileId, StoredState ecology, int intervalBudget)

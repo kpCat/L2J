@@ -1,0 +1,27 @@
+{
+  "task": "PHANTOM-M1-ORPHAN-CATCHUP-OWNERSHIP-016",
+  "required_base": "685c66fb8b1a3cad5b5f8f5c64b48736ebf66c8d",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "High",
+  "subagents": false,
+  "worktree_authorized": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-orphan-016\\L2J_Mobius",
+  "production_modify_allowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java"
+  ],
+  "files": [
+    "ACCEPTANCE.md",
+    "CENSUS.md",
+    "DESIGN.md",
+    "GIT.md",
+    "GOAL.md",
+    "HANDOFF.md",
+    "MODEL.md",
+    "PATCH_GUIDE.md",
+    "PLAN.md",
+    "README.md",
+    "RESULT_TEMPLATE.md",
+    "SOURCE_MAP.tsv",
+    "TESTS.md"
+  ]
+}

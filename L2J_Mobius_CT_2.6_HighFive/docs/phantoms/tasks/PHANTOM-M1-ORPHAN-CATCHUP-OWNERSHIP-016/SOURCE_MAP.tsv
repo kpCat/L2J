@@ -1,0 +1,10 @@
+mode	path	purpose
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	exact orphan ownership adoption
+MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPopulationEcologyGoal033Suite.java	crash/restart ownership recovery tests
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyState.java	outer ownership contract
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundCatchupState.java	inner ownership/cursor contract
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	normal resume/native-context behavior
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundCatchupStore.java	CAS/request preservation
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CAUSAL-TRACE-014/**	causal evidence
+FOREIGN_READ	C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-HANDOFF-GATE-015/**	uncommitted task015 evidence only
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-ORPHAN-CATCHUP-OWNERSHIP-016/**	evidence/result
