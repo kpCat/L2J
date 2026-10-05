@@ -857,6 +857,17 @@ public final class PhantomPopulationEcologyService
 				_periodicOverdueCalls++;
 			}
 			if (targetMinute > entry._requestedMinute) { entry._requestedMinute = targetMinute; entry._readinessRevision++; }
+			final var state = entry._stored == null ? null : entry._stored.state();
+			final var historical = entry._historicalSnapshot == null ? null : entry._historicalSnapshot.state();
+			// Foreground supplies the missing native context; the pending history remains fenced.
+			if (materializationDue && _currentDemand.test(profileId) && !entry._terminal && (_wakeFailure == null) && _populationPlanApplied && _inventoryReady && !_metadataDraining
+				&& (state != null) && (state.disposition() == Disposition.MANAGED) && state.requestPending() && (historical != null)
+				&& historical.requestId().equals(state.currentRequestId()) && (historical.fromEpochMinute() == state.calendarCursorEpochMinute()) && (historical.targetEpochMinute() == state.currentWindowTargetEpochMinute())
+				&& (historical.status() != Status.COMPLETE) && PhantomHistoricalBackgroundService.requiresNativeMaterialization(entry._lastReportedFailure))
+			{
+				entry._materializationDemand = true;
+				return new DueReconciliation(true, 0, "ecology.native_materialization_required");
+			}
 			final DueSnapshot snapshot = dueSnapshotLocked(profileId, entry);
 			if (!snapshot.complete() && !entry._terminal)
 			{
@@ -1565,6 +1576,7 @@ public final class PhantomPopulationEcologyService
 	{
 		final String reason = result.successful() ? fallback : result.reason();
 		recordFailureOnce(profileId, reason);
+		if ((result.status() == ResultStatusCode.REPLAN_REQUIRED) && PhantomHistoricalBackgroundService.requiresNativeMaterialization(reason)) { deferRetry(profileId); return; }
 		if ((result.status() == ResultStatusCode.RETRY) || (result.status() == ResultStatusCode.NORMAL_MATERIALIZED) || ((result.status() == ResultStatusCode.REPLAN_REQUIRED) && PhantomHistoricalBackgroundService.isRecoverableFailure(reason))) { deferRetry(profileId); }
 		else { synchronized (_monitor) { final Entry entry = _entries.get(profileId); if (entry != null) { entry._terminal = true; entry._stage = "blocked"; } } }
 	}

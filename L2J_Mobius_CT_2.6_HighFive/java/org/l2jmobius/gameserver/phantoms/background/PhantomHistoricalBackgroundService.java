@@ -279,7 +279,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		if (claimed.state().status() == Status.FAILED_REPLAN_REQUIRED)
 		{
-			if (isNativeContextFailure(claimed.state().failureReason())) { return recoverNativeContext(profileId, claimed); }
+			if (requiresNativeMaterialization(claimed.state().failureReason())) { return recoverNativeContext(profileId, claimed); }
 			if (isRecoverableFailure(claimed.state().failureReason())) { return Result.success(claimed, 0); }
 			return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, claimed.state().failureReason(), claimed);
 		}
@@ -454,7 +454,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 		final var generation = _planner.generation();
 		final boolean stale = !current.state().authorityHashes().equals(generation.authorityHashes()) || (current.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (current.state().topologyGeneration() != generation.topologyGeneration());
-		if ((current.state().status() == Status.FAILED_REPLAN_REQUIRED) && isNativeContextFailure(current.state().failureReason()))
+		if ((current.state().status() == Status.FAILED_REPLAN_REQUIRED) && requiresNativeMaterialization(current.state().failureReason()))
 		{
 			final Result recovered = recoverNativeContext(profileId, current);
 			if (!recovered.successful()) { return recovered; }
@@ -550,7 +550,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				return Result.rejected(ResultStatusCode.RETRY, operation.reason(), observed);
 			}
 			// A context race stays fenced without failing the original goal or advancing its interval.
-			if (isNativeContextFailure(operation.reason())) { return Result.rejected(ResultStatusCode.RETRY, operation.reason(), observed); }
+			if (requiresNativeMaterialization(operation.reason())) { return Result.rejected(ResultStatusCode.RETRY, operation.reason(), observed); }
 			final String failureReason = repairedInterval && operation.reason().startsWith("model.object_cap") ? "model.object_cap_internal" : operation.reason();
 			final Result failed = fail(profileId, observed, failureReason);
 			if (!repairedInterval && (failed.status() == ResultStatusCode.REPLAN_REQUIRED) && isRecoverableFailure(operation.reason()))
@@ -626,14 +626,14 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			&& before.inventory().objects().equals(after.inventory().objects()) && before.inventory().canonicalHash().equals(after.inventory().canonicalHash()) && before.autoGetSkills().equals(after.autoGetSkills());
 	}
 
-	private static boolean isNativeContextFailure(String reason)
+	public static boolean requiresNativeMaterialization(String reason)
 	{
 		return (reason != null) && (reason.startsWith("native_context.required:") || reason.equals("transaction.native_context_required"));
 	}
 
 	private Result recoverNativeContext(long profileId, Snapshot current)
 	{
-		if ((current.state().status() != Status.FAILED_REPLAN_REQUIRED) || !isNativeContextFailure(current.state().failureReason())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_context.failure_not_owned", current); }
+		if ((current.state().status() != Status.FAILED_REPLAN_REQUIRED) || !requiresNativeMaterialization(current.state().failureReason())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_context.failure_not_owned", current); }
 		final Result attested = ensureNativeContext(profileId, current, _background.acquisitionSnapshot(profileId).orElse(null));
 		if (!attested.successful()) { return attested; }
 		try { return Result.success(_store.replace(profileId, current, current.state().retryRunning()), 0); }

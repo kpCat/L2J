@@ -110,6 +110,81 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("15-stale-authority-renews-current-request", this::testStaleAuthorityRenewal);
 		registry.add("16-incomplete-periodic-due-continues-under-pulse-budgets", this::testIncompletePeriodicDueContinues);
 		registry.add("17-restored-inventory-readiness-starts-bounded-target-creation", this::testRestoredInventoryReadinessStartsCreation);
+		registry.add("18-native-context-releases-only-materialization-gate", this::testNativeMaterializationReadiness);
+	}
+
+	private void testNativeMaterializationReadiness(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:30:00Z");
+		final long from = minute(now) - 1;
+		final long target = minute(now);
+		for (String reason : List.of("native_context.required:coalesced", "transaction.native_context_required", "native_context.required:accepted", "synthetic.permanent_failure"))
+		{
+			final boolean nativeRequired = !reason.equals("synthetic.permanent_failure");
+			PhantomAssertions.assertEquals(nativeRequired, PhantomHistoricalBackgroundService.requiresNativeMaterialization(reason), "Exact native materialization classification changed.");
+			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.isRecoverableFailure(reason), "Foreground requirement entered generic background recovery.");
+			final String requestId = "e".repeat(64);
+			final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash()).seedReady(1, 1);
+			final EcologyMemoryStore store = new EcologyMemoryStore(null);
+			final var original = store.insert(1, stateAt(from, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()).beginRequest(requestId, target));
+			final var hashes = new PhantomBackgroundState.Hashes("knowledge", "topology", "progression", "commerce");
+			final boolean pending = reason.equals("native_context.required:accepted");
+			final var failed = new PhantomBackgroundCatchupState(pending ? Status.PENDING : Status.FAILED_REPLAN_REQUIRED, requestId, 1, from, target, from, 0, 0, 1, 1, 1, 1, 0, "f".repeat(64), PhantomBackgroundState.MODEL_VERSION, hashes, pending ? "" : reason);
+			final Snapshot snapshot = new Snapshot(failed, 0);
+			final AtomicInteger attempts = new AtomicInteger();
+			final HistoricalPort historical = new HistoricalPort()
+			{
+				@Override
+				public Optional<Snapshot> status(long profileId) { return Optional.of(snapshot); }
+				@Override
+				public PhantomHistoricalBackgroundService.Result begin(long profileId, long start, long end, long seed) { throw new AssertionError("Native requirement must preserve the pending request."); }
+				@Override
+				public PhantomHistoricalBackgroundService.Result advance(long profileId, int intervals, int minutes)
+				{
+					attempts.incrementAndGet();
+					return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.REPLAN_REQUIRED, reason, snapshot);
+				}
+			};
+			final AtomicBoolean materialized = new AtomicBoolean();
+			final AtomicBoolean demand = new AtomicBoolean();
+			final var service = service(store, historical, materialized, new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 1);
+			service.enablePeriodicDueMode();
+			service.installMaterializationDemand(id -> demand.get());
+			service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+			service.register(population);
+			loadMetadata(service, 1);
+			service.onPopulationPulse();
+			PhantomAssertions.assertEquals(1, attempts.get(), "Fixture did not deliver the historical failure.");
+			PhantomAssertions.assertFalse(service.requestBackgroundDue(1).complete(), "No human demand opened background readiness.");
+			PhantomAssertions.assertFalse(service.requestMaterializationDue(1).complete(), "Absent current human demand granted native materialization.");
+			demand.set(true);
+			for (int retry = 0; retry < 3; retry++)
+			{
+				final var readiness = service.requestMaterializationDue(1);
+				PhantomAssertions.assertEquals(nativeRequired, readiness.complete(), "Native requirement did not release only the materialization gate: " + reason);
+				PhantomAssertions.assertEquals(0, readiness.advancedIntervals(), "Materialization readiness fabricated catchup progress.");
+				if (nativeRequired) { PhantomAssertions.assertEquals("ecology.native_materialization_required", readiness.reason(), "Materialization exception lost its explicit reason."); }
+				PhantomAssertions.assertFalse(service.requestBackgroundDue(1).complete(), "Materialization exception opened background due.");
+				PhantomAssertions.assertFalse(service.requestBackgroundReadiness(1).complete(), "Materialization exception opened background admission.");
+				PhantomAssertions.assertFalse(service.permitsScheduling(1), "Materialization exception weakened ordinary scheduling.");
+			}
+			service.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1)), 1);
+			for (int pulse = 0; pulse < 256; pulse++) { service.onPopulationPulse(); }
+			PhantomAssertions.assertTrue(nativeRequired ? attempts.get() > 1 && attempts.get() <= (pending ? 10 : 3) : attempts.get() == 1, "Native retry must remain bounded and permanent failures terminal: " + reason + " attempts=" + attempts.get());
+			if (nativeRequired)
+			{
+				materialized.set(true);
+				final int before = attempts.get();
+				for (int pulse = 0; pulse < 256; pulse++) { service.onPopulationPulse(); }
+				PhantomAssertions.assertEquals(before, attempts.get(), "Historical retry raced a materialized Player.");
+				materialized.set(false);
+				demand.set(false);
+				service.withdrawMaterializationDue(1);
+				PhantomAssertions.assertFalse(service.requestMaterializationDue(1).complete(), "Withdrawn human demand retained native permission.");
+			}
+			PhantomAssertions.assertEquals(original, store.require(1), "Native requirement changed pending/cursor/completion or durable revision.");
+			PhantomAssertions.assertEquals(snapshot, historical.status(1).orElseThrow(), "Readiness changed failed historical ownership.");
+		}
 	}
 
 	private void testRestoredInventoryReadinessStartsCreation(PhantomTestContext context)
