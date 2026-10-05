@@ -1,0 +1,64 @@
+diff --git a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/PhantomM1HistoricalNativeContextChecks.java b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/PhantomM1HistoricalNativeContextChecks.java
+index a7bb61d8c01..3424f5a2045 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/PhantomM1HistoricalNativeContextChecks.java
++++ b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/PhantomM1HistoricalNativeContextChecks.java
+@@ -58,0 +59,2 @@
++			final long selected = Long.getLong("phantom.m1.attestation.profile", 0);
++			if ((selected > 0) && (identity.profileId() != selected)) { continue; }
+@@ -150,0 +153,1 @@
++			if (Long.getLong("phantom.m1.attestation.profile", 0) > 0) { return runMaterializationBoundary(); }
+@@ -199,0 +203,45 @@
++		private Receipt runMaterializationBoundary() throws Exception
++		{
++			_testPhase = true; _testCursor = _imported.catchup().state().targetEpochMinute();
++			try
++			{
++				final var begun = _historical.begin(_id, _testCursor, Math.addExact(_testCursor, 1), _imported.catchup().state().deterministicSeed());
++				_context.record(key("boundaryResult"), "begin=" + begun.status() + ":" + begun.reason() + " loads=" + _testLoads + " epoch=" + _epoch + " markers=" + _markers + " noPreflightStore=true");
++				PhantomAssertions.assertTrue(_testLoads == 1, "INVALID task012: exact observed profile did not reach native Player load.");
++				PhantomAssertions.assertTrue(begun.successful(), "TASK012_MATERIALIZATION_RED: " + begun.status() + ":" + begun.reason());
++				return new Receipt(_id, _objectId, _epoch, _testLoads, begun.status().name(), "BOUNDARY_ONLY", _finalizedBeforeRunning);
++			}
++			finally { _testPhase = false; _thread = null; }
++		}
++
++		private void recordMaterializationBoundary(Player player) throws Exception
++		{
++			final var state = _transactions.load(_id).state();
++			final var goal = new PhantomGoalStateStore(_profiles).load(_id).orElseThrow().goal();
++			final var captured = _authority.captureOwnedNative(_id, player, goal, state).state();
++			final boolean inventory = !captured.inventory().objects().equals(state.inventory().objects());
++			final boolean autoGet = !captured.autoGetSkills().equals(state.autoGetSkills());
++			_context.record(key("mismatchClass"), inventory ? (autoGet ? "BOTH" : "INVENTORY") : (autoGet ? "AUTOGET" : "NONE"));
++			_context.record(key("exactIdentity"), "profile=" + _id + " object=" + _objectId + " epoch=" + _epoch + " identity=" + state.identity() + " level=" + state.progress().level() + " loadedIdentityMatch=" + state.identity().equals(captured.identity()) + " progressMatch=" + state.progress().equals(captured.progress()));
++			final var expectedItems = state.inventory().objects().stream().filter(item -> !captured.inventory().objects().contains(item)).toList();
++			final var currentItems = captured.inventory().objects().stream().filter(item -> !state.inventory().objects().contains(item)).toList();
++			_context.record(key("inventoryDiff"), "expectedDiffCount=" + expectedItems.size() + " currentDiffCount=" + currentItems.size() + " expected=" + expectedItems.stream().limit(8).toList() + " current=" + currentItems.stream().limit(8).toList());
++			final var expectedSkills = _authority.autoGetSkills(state.identity(), state.progress().level());
++			_context.record(key("autoGetDiff"), "stored=" + state.autoGetSkills().stream().limit(16).toList() + " captured=" + captured.autoGetSkills().stream().limit(16).toList() + " authoritativeEqual=" + captured.autoGetSkills().equals(expectedSkills) + " native=" + expectedSkills.stream().limit(16).map(skill -> skill.skillId() + ":expected=" + skill.skillLevel() + ":loaded=" + player.getSkillLevel(skill.skillId())).toList() + " allNativePresent=" + expectedSkills.stream().allMatch(skill -> player.getSkillLevel(skill.skillId()) >= skill.skillLevel()));
++			try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT object_id,item_id,count,loc FROM items WHERE owner_id=? ORDER BY object_id"))
++			{
++				statement.setInt(1, _objectId); statement.setQueryTimeout(5);
++				try (var rows = statement.executeQuery())
++				{
++					int relevant = 0;
++					while (rows.next())
++					{
++						final int object = rows.getInt(1);
++						if (expectedItems.stream().noneMatch(item -> item.objectId() == object) && currentItems.stream().noneMatch(item -> item.objectId() == object)) { continue; }
++						if (relevant++ < 8) { _context.record(key("canonicalItem." + object), "item=" + rows.getInt(2) + " count=" + rows.getLong(3) + " location=" + rows.getString(4)); }
++					}
++					_context.record(key("canonicalDiffRows"), relevant);
++				}
++			}
++		}
++
+@@ -298,0 +347,8 @@
++			if (Long.getLong("phantom.m1.attestation.profile", 0) > 0)
++			{
++				try { recordMaterializationBoundary(player); }
++				catch (Exception failure) { throw new IllegalStateException("Task012 exact loaded boundary diagnostic failed.", failure); }
++				try { _delegate.afterPlayerLoad(id, player); }
++				catch (RuntimeException failure) { _context.record(key("exactBoundaryFailure"), failure.getMessage()); throw failure; }
++				return;
++			}
