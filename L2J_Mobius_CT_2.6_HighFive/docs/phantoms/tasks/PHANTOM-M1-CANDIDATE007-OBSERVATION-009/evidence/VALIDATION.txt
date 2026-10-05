@@ -1,0 +1,6 @@
+Frozen source hashes: 103; mismatches=0
+Original PLAY hashes: 304; mismatches=0
+mojibake-маркеры в изменённых файлах проверены: matches=0
+escaped Cyrillic в изменённых файлах проверены: matches=0
+Full WORLD/build/test suites: NOT_RUN; no source edits
+Scope allowlist: exactly nine task009 artifacts
