@@ -29,3 +29,5 @@ git diff -- L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/po
 Далее planned: exact-path add для двух разрешённых source/test files и только TASK016 directory; diff --cached --check/name-only; commit; normal push origin HEAD:refs/heads/experiment/m1-candidate007-observe008. Private runtime/DB exports/secrets не staging. Runtime private catalog helper использует git show HEAD:exact catalog path только для трёх canonical population/ecology catalogs; semantic equality проверяется до private write.
 
 Ни reset, clean, stash, rebase, force, broad add, ни переключение/очистка основной копии не выполнялись.
+
+Executed additionally: git diff685c66fb8b1a3cad5b5f8f5c64b48736ebf66c8d --check/--stat; git add -- exact two Java paths and exact TASK016 directory; git diff --cached --check/--stat; git commit -m 'phantom(task-016): recover exact orphan historical ownership'; git commit -m 'phantom(task-016): preserve existing source line endings'; git diff685c66fb8b1a3cad5b5f8f5c64b48736ebf66c8d HEAD --check. Correction не переписывала историю. Final diff check PASS.

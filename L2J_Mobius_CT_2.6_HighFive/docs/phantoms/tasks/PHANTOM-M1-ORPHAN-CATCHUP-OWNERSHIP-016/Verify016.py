@@ -9,8 +9,9 @@ repo = module.parent
 source = module / 'java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java'
 tests = module / 'test/java/org/l2jmobius/tests/phantoms/PhantomPopulationEcologyGoal033Suite.java'
 allowlist = {source.relative_to(repo).as_posix(), tests.relative_to(repo).as_posix()}
-changed = subprocess.check_output(['git', 'diff', '--name-only'], cwd=repo, text=True).splitlines()
-if not set(changed).issubset(allowlist):
+changed = subprocess.check_output(['git', 'diff', '685c66fb8b1a3cad5b5f8f5c64b48736ebf66c8d', '--name-only'], cwd=repo, text=True).splitlines()
+task_prefix = task.relative_to(repo).as_posix() + '/'
+if any(name not in allowlist and not name.startswith(task_prefix) for name in changed):
     raise SystemExit('Production/test scope violation: ' + repr(changed))
 rows = list(csv.DictReader((task / 'OWNERSHIP_CENSUS.tsv').open(encoding='utf-8'), delimiter='\t'))
 assert len(rows) == 10000

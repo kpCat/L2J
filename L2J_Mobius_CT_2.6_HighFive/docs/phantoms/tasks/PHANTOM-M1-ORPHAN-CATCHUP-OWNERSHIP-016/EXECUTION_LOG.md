@@ -20,3 +20,5 @@
 - Runtime helpers переиспользуют TASK014 SELECT/export/clone, private catalogs и exact-owned stock graceful shutdown. BEGIN пока не выполнялся; required manual login/logout gates сохраняются.
 - Git разрешён пользователем и TASK016/GIT.md; exact commands записываются в GIT_USAGE.md. Без reset/clean/stash/rebase/force и без изменений основной копии.
 - M1=OPEN. C/D pending; automatic continuation отсутствует.
+
+- EOL correction: commit5833582b347 включил мою unintended CRLF normalization; commit19b2ff90e0b восстановил исходные смешанные endings, без semantic change или history rewrite. Final base-to-HEAD diff --check PASS; source/test final scope71/165 lines,223 insertions/13 deletions. Push ещё не выполнен на момент correction.
