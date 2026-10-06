@@ -1,0 +1,37 @@
+[
+  {
+    "file": "ROUND1-TEST-thread-1.log",
+    "sha256": "567C8FBF6F29B14AFC5714E468661F0B3EFB7490B99B5AAAC3322AFA112EE87D",
+    "localOnly": true
+  },
+  {
+    "file": "ROUND1-TEST-thread-2.log",
+    "sha256": "DE5B1292AEB78D2D916734E76708CD0E3089FBE258B32697E72B692656394C9F",
+    "localOnly": true
+  },
+  {
+    "file": "ROUND1-TEST-thread-3.log",
+    "sha256": "927C4838D7462618EEA485AF4B5634E8C4B69A74C3E51D5A39034A6B4AD37B7B",
+    "localOnly": true
+  },
+  {
+    "file": "TEST-jcmd-help.log",
+    "sha256": "83E259C807910CA0F861D06E9967C9906783021606327EE692CCED76E8C7B9FE",
+    "localOnly": true
+  },
+  {
+    "file": "TEST-thread-1.log",
+    "sha256": "19240A312D3FD18ED9AE602DC04ECB1E99129F28039BB19A7D3A8BE3E5141168",
+    "localOnly": true
+  },
+  {
+    "file": "TEST-thread-2.log",
+    "sha256": "68AA1DFB19872539466D051CBDD979B44630BB0FCE4DD6ADB4AC07A4A99EAA56",
+    "localOnly": true
+  },
+  {
+    "file": "TEST-thread-3.log",
+    "sha256": "C95C7F9FBC8D39F9059F9568BA35E13A9FBF8730120B44824DED7817A2C9BAAE",
+    "localOnly": true
+  }
+]

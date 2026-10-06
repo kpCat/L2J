@@ -1,0 +1,25 @@
+mode	path	allowed_area	condition
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	healthy/running/Policy.acquire/session registration, bounded continuation snapshot	Native-continuation contract only
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	visible start/await and fresh continuation handling	Confirmed stale/blocked invocation path; no new AI
+DIAGNOSTIC_CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	existing visible census and direct visible pre-work binding only	Read-only snapshots first; binding change only root RED
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	existing reserve/completion/checkpoint registration/first incident fields	Root-specific completion or diagnostic; never remove safety fence
+CONDITIONAL_CORE	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	PhantomPolicy/TickLease bridge, Phantom registration/start/stop, per-actor loop admission	Exact native test reproducer; stock real-client gameplay unchanged
+CONDITIONAL_CORE	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	same Phantom bridge and registration lifecycle	Exact native test reproducer; stock skill/reward calculation unchanged
+CONDITIONAL_CORE	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	first invalidation reason; native episode completion and event ordering bookkeeping	No counter injection/reset/horizon increase
+CONDITIONAL_CORE	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	existing owner/context reservation and exact callback completion only	Proven lost callback/reservation; no generic dispatcher rewrite
+CONDITIONAL_CORE	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeTimer.java	existing timer reservation/start/cancel/completion only	Only when first retained native work identifies this timer
+CONDITIONAL_CORE	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java	withAutoPlayRegistration/setAutoPlayingRegistration/finishAutoPlayRegistrationStop and their direct Phantom-only completion calls	Read exact source first; no new combat/skill/item/level logic
+CONDITIONAL_SCRIPT	L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/quests/Q00255_Tutorial/Q00255_Tutorial.java	onKill missing QuestState handling only	Proven lawful missing state; no global tutorial bypass or invented rewards
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	ActionLease/cleanup/epoch	No materialization redesign
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	current snapshot/drain	No state migration
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/decision/PhantomDecisionEngine.java	accept/pre-work/inFlight/last result freshness	No new scheduler
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomScheduler.java	production dispatch/pulse	No scheduler rewrite
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Creature.java	native attack/cast producer callsites	No semantic edits
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Attackable.java	native kill/reward writers	No reward-rule changes
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/events/EventDispatcher.java	listener error isolation and owned callback dispatch	No broad changes
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/threads/ThreadPool.java	current actual executor/wrapper behavior	No semantic edits
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	TASK020/021 exact decision ownership	No rollback to old admission
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeFarmContinuation022Suite.java	Standalone main with existing fixture/test launcher API	No build.xml/launcher rewrite
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomAutoPlayOwnership022Suite.java	Standalone main with existing fixture/test launcher API	No build.xml/launcher rewrite
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeEvidenceContinuation022Suite.java	Standalone main with existing fixture/test launcher API	No build.xml/launcher rewrite
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-FARM-CONTINUATION-022/**	Task evidence/tools	Exact allowlist before staging

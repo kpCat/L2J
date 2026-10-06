@@ -1,0 +1,36 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-FARM-CONTINUATION-022/GOAL.md.
+
+Required base: 0205d04bc7763fafcbb776e6da8887c1f2912d8b
+Branch: experiment/m1-candidate007-observe008
+GPT-6.1 Sol, High. Новый диалог. Без субагентов.
+
+Это один visible-native-farm slice, не очередной одиночный blocker.
+Прочитай TASK/ROOT_CAUSES/DESIGN/PLAN и работай по SOURCE_MAP/SCENARIOS/RUNBOOK.
+Главная поправка: в021 last reason autoplay_running устарел, sequence7 не менялся166s.
+Сначала установить прекращение execution/callbacks/registration; не включать autoplay вслепую.
+
+Несколько связанных fixes внутри scope разрешены после своих RED.
+Лимит120 активных минут с15мин резервом cleanup,<=3semantic rounds,<=2connected episodes.
+Не переписывать ThreadPool/EventDispatcher/боевую механику и не снимать guards.
+Не сбрасывать overflow и не увеличивать phase deadlines радиPASS.
+
+Isolated worktree разрешён:
+C:\Users\ZBook\.codex\worktrees\m1-native-farm-022\L2J_Mobius
+Основной checkout/foreign diff не трогать.
+PLAY SELECT/export only; TEST штатный guard/restore.
+
+Перед ручным входом production-style native5cycle smoke, targeted/regressions,
+source commit и clean committed build. Если root не воспроизведён offline/native,
+разрешён первый диагностический connected episode, затем один фиксированный повтор
+в пределах той же задачи и бюджета. Не hot-patch работающий сервер.
+
+AutoAttach/TestAdmin100, kpCat не трогать. Войти я буду вручную.
+Один раз попроси «в игре» и жди обычного ответа безавтотаймаута.
+Не PREPARE_M1_ENVELOPE, не перемещение TestAdmin, не управление Phantom вручную.
+Нужны5same-epoch cycles с реальнымиEXP/SP, nexttarget, честный loot и cohort.
+Передshutdown дождись«вышел»,verify save и отдельно Phantom drain.
+Stock exit не считать clean Phantom, если retained entries остались.
+
+Exact-path commit + normal push обязательны при любом исходе.
+После финального отчёта STOP_AUTHORITY=TASK022_CONTRACT, если не было иной моей команды.
+M1=OPEN. Полный M1 этим пакетом не объявлятьзакрытым.

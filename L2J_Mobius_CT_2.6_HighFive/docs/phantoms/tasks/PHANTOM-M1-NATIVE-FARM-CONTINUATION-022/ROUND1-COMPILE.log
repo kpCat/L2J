@@ -1,0 +1,10 @@
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-native-farm-022\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnduranceGoal029Checkpoint3Suite.java:897: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-native-farm-022\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnvironmentGoal029Checkpoint2Suite.java:574: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] 2 warnings
+
+BUILD SUCCESSFUL
+Total time: 21 seconds

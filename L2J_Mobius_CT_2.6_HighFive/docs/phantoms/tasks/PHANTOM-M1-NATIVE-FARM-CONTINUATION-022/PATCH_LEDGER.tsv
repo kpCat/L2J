@@ -1,0 +1,7 @@
+path	method	RED	contract
+java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	PhantomPolicy/AutoPlay.run/hasPhantomRegistration	S03 real checkpoint unregisters	Phantom-only PAUSED admission; concurrent scalar registry read
+java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	AutoUse.run/hasPhantomRegistration	S03 real checkpoint unregisters	Same exact policy PAUSED admission; stock loop body unchanged
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	Policy/snapshotContinuation	S01 missing snapshot;S03	Same session goal epoch guards; no blind restart
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	temporaryCheckpoint	S03	Healthy control checkpoint only; permanent drain/failure excluded
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	selected/reward/killed/damage/snapshot	S08/S09/S10	Bounded late native fact completion; sticky first reason; no reset/horizon increase
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	visible census	S01	Read-only live registry/tick and direct EXP/SP/MP scalar export

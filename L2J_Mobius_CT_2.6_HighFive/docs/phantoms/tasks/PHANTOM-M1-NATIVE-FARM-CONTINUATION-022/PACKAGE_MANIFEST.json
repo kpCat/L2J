@@ -1,0 +1,81 @@
+{
+  "task": "PHANTOM-M1-NATIVE-FARM-CONTINUATION-022",
+  "required_base": "0205d04bc7763fafcbb776e6da8887c1f2912d8b",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "High",
+  "subagents": false,
+  "active_minutes_hard_limit": 120,
+  "cleanup_reserve_minutes": 15,
+  "semantic_rounds_max": 3,
+  "connected_episodes_max": 2,
+  "seconds_per_episode_max": 300,
+  "M1": "OPEN",
+  "content_only": true,
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "sha256": "238e0450269960755439ebcaf3289379671446fafe568e0dafcf6681273eab3c"
+    },
+    {
+      "path": "DESIGN.md",
+      "sha256": "c3bbb58d004948a42ec0f1686f29cfae50a5e03db1723fa2fe2b23cdac717556"
+    },
+    {
+      "path": "GIT.md",
+      "sha256": "85f8713ebfddc0aa17e45974230de4ff2de6e969b03c79135ff7ac72d3c8e784"
+    },
+    {
+      "path": "GOAL.md",
+      "sha256": "2d0587e5c35e0e058545464865eba6ede94937ffad9792e28bef3df3c11f8ec7"
+    },
+    {
+      "path": "HANDOFF.md",
+      "sha256": "a6cb6ec9773af7f14e23309ead5a51864633d6e83fa050c56a6184eb8f2213e2"
+    },
+    {
+      "path": "OBSERVABILITY.md",
+      "sha256": "20bddd6791844c5932fddae10879be69a3c0bd484ae3669d473c64060fe24d28"
+    },
+    {
+      "path": "PATCH_GUIDE.md",
+      "sha256": "c0b5e256683ecff157f88902017e027f8f0b6cc9a9941891d4ce9105caf82e4e"
+    },
+    {
+      "path": "PLAN.md",
+      "sha256": "263ddffb24ba2be0729ddbb1bfabd023c0346f9504dbbea76df98d2206ceedd8"
+    },
+    {
+      "path": "README.md",
+      "sha256": "4ae05cb0a8f19fcc9aed827b7052e151c021de249e23a531da0b9c83c83b72f6"
+    },
+    {
+      "path": "ROOT_CAUSES.md",
+      "sha256": "572384409e2dbac1569f4a9909c3b53285a21efbd33692b2cbda703267c5f27c"
+    },
+    {
+      "path": "RUNBOOK.md",
+      "sha256": "0e641b62e3d5e039439d22dba66a5f3dc89d6a5796c6715517a2293a03f525c0"
+    },
+    {
+      "path": "SCENARIOS.md",
+      "sha256": "7c02a93df6440466165df8acc8d6b719ea0164539e6ef3a8a3252073e69076bf"
+    },
+    {
+      "path": "SOURCES.md",
+      "sha256": "e598c3ad1aa5cd390fa66ef894b0667121cb98382b7b4ba7ee4f095c47d4adf7"
+    },
+    {
+      "path": "SOURCE_MAP.tsv",
+      "sha256": "982e45ba8dfb894d3eee975b24943500a9ec1732063404312e4dd5f2889b3716"
+    },
+    {
+      "path": "START-CODEX.txt",
+      "sha256": "c5bf3e58e382a627494640999c9a905c81605aa189b9b1dd6a045e29571cd78f"
+    },
+    {
+      "path": "TASK.md",
+      "sha256": "0f27c55c4b30c9edd70122b665bea02796e5442debcd98a0aba2a62c57de9675"
+    }
+  ]
+}

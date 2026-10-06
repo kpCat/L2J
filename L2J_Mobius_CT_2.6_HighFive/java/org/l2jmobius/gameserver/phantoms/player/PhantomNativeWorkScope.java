@@ -28,17 +28,18 @@ public final class PhantomNativeWorkScope implements Owner
 	private final PlayerNativeEvidence _evidence;
 	private final Map<Long, WorkTicket> _outstanding = new LinkedHashMap<>();
 	private final Map<Long, PendingTimer> _pendingTimers = new LinkedHashMap<>();
-	private State _state = State.OPEN;
+	private volatile State _state = State.OPEN;
 	private long _sequence;
 	private int _peak;
 	private volatile String _failure = "";
-	private Thread _checkpointThread;
-	private boolean _permanentSeal;
+	private volatile Thread _checkpointThread;
+	private volatile boolean _permanentSeal;
 	private boolean _pendingResumeEligible;
 	private long _incidentSequence;
-	private PhantomCleanupIncident _firstNativeIncident;
+	private volatile PhantomCleanupIncident _firstNativeIncident;
 	private PhantomCleanupIncident _latestNativeIncident;
 	private Runnable _quiescentEnqueue;
+	private volatile Map<String, String> _publishedWork = Map.of();
 
 	PhantomNativeWorkScope(Object monitor, Player player, PhantomIdentityLeaseRegistry.Lease identity, long epoch)
 	{
@@ -53,6 +54,21 @@ public final class PhantomNativeWorkScope implements Owner
 	@Override public Player player() { return _player; }
 	@Override public PlayerNativeEvidence evidence() { return _evidence; }
 	@Override public boolean nativeObservationHealthy() { return _failure.isEmpty() && !_player.hasPendingOwnedStore(); }
+	/** Only an exact healthy control checkpoint is temporary; shutdown and native failure never are. */
+	public boolean temporaryCheckpoint()
+	{
+		synchronized (_monitor)
+		{
+			return isCurrent() && (_checkpointThread != null) && !_permanentSeal && _failure.isEmpty() && !_player.hasPendingOwnedStore() && ((_state == State.DRAINING) || (_state == State.SEALED));
+		}
+	}
+	public boolean checkpointPauseAllowed(boolean witnessed)
+	{
+		synchronized (_monitor)
+		{
+			return isCurrent() && !_permanentSeal && _failure.isEmpty() && !_player.hasPendingOwnedStore() && (temporaryCheckpoint() || (witnessed && (_state == State.OPEN)));
+		}
+	}
 
 	@Override public Ticket reserve(Ticket parent, String kind, Semantics semantics)
 	{
@@ -69,6 +85,7 @@ public final class PhantomNativeWorkScope implements Owner
 			final var ticket = new WorkTicket(++_sequence, kind, semantics, child ? ((WorkTicket) parent)._depth + 1 : 0);
 			_outstanding.put(ticket._id, ticket);
 			_peak = Math.max(_peak, _outstanding.size());
+			publishWork();
 			return ticket;
 		}
 	}
@@ -106,6 +123,7 @@ public final class PhantomNativeWorkScope implements Owner
 			final Ticket obligation = earned ? reserve(parent, kind, Semantics.EARNED) : null;
 			final var registration = new PendingTimer(++_sequence, kind, repeating, obligation, stop);
 			_pendingTimers.put(registration._id, registration);
+			publishWork();
 			return registration;
 		}
 	}
@@ -284,6 +302,26 @@ public final class PhantomNativeWorkScope implements Owner
 			return "epoch=" + _epoch + " state=" + _state + " outstanding=" + _outstanding.size() + " pendingTimers=" + _pendingTimers.size() + " peak=" + _peak + " failure=" + _failure + " work=" + _outstanding.values().stream().limit(8).map(ticket -> ticket._id + ":" + ticket._kind + ":" + ticket._state + ":depth=" + ticket._depth + ":ageMs=" + ((System.nanoTime() - ticket._created) / 1_000_000)).toList();
 		}
 	}
+	/** Bounded scalar publication under the existing monitor; diagnostic readers never wait on it. */
+	private void publishWork()
+	{
+		final long now = System.nanoTime();
+		_publishedWork = Map.of("nativeOwnerWorkSampleNanos", Long.toString(now), "nativeOwnerOutstanding", Integer.toString(_outstanding.size()), "nativeOwnerPendingTimers", Integer.toString(_pendingTimers.size()),
+			"nativeOwnerWork", _outstanding.values().stream().limit(8).map(ticket -> ticket._id + ":" + ticket._kind + ":" + ticket._state + ":" + ticket._semantics + ":depth=" + ticket._depth + ":ageMs=" + ((now - ticket._created) / 1_000_000)).toList().toString());
+	}
+	public Map<String, String> diagnosticScalars()
+	{
+		final Map<String, String> fields = new LinkedHashMap<>(_publishedWork);
+		fields.put("nativeOwnerRead", "NONATOMIC_VOLATILE");
+		fields.put("nativeOwnerState", _state.name()); fields.put("nativeOwnerCurrent", Boolean.toString(isCurrent()));
+		fields.put("nativeOwnerPermanentSeal", Boolean.toString(_permanentSeal)); fields.put("nativeOwnerCheckpoint", Boolean.toString(_checkpointThread != null));
+		fields.put("nativeOwnerFailure", _failure);
+		final var first = _firstNativeIncident;
+		fields.put("nativeFirstIncident", first == null ? "" : first.exceptionClass() + ":" + first.message());
+		fields.put("nativeFirstIncidentUtc", first == null ? "" : first.utc());
+		fields.put("nativeFirstIncidentDetail", first == null ? "" : first.detail());
+		return java.util.Collections.unmodifiableMap(fields);
+	}
 
 	public static final class DrainTimeoutException extends IllegalStateException
 	{
@@ -316,6 +354,7 @@ public final class PhantomNativeWorkScope implements Owner
 				if (_state != WorkState.RESERVED) { return false; }
 				if (!isCurrent()) { finish(WorkState.CANCELLED); return false; }
 				_state = WorkState.RUNNING;
+				publishWork();
 				return true;
 			}
 		}
@@ -360,7 +399,7 @@ public final class PhantomNativeWorkScope implements Owner
 			_state = state;
 			// Scalar bookkeeping only under owner monitor; native passive getters run afterwards.
 			if (_combatEpisode != null) { _evidence.completeCombat(_combatEpisode, false); }
-			_outstanding.remove(_id); _monitor.notifyAll();
+			_outstanding.remove(_id); publishWork(); _monitor.notifyAll();
 		}
 	}
 
@@ -439,6 +478,6 @@ public final class PhantomNativeWorkScope implements Owner
 				stopLocked();
 			}
 		}
-		private void stopLocked() { _stopped = true; _pendingTimers.remove(_id); _monitor.notifyAll(); }
+		private void stopLocked() { _stopped = true; _pendingTimers.remove(_id); publishWork(); _monitor.notifyAll(); }
 	}
 }

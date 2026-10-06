@@ -1,0 +1,16 @@
+suite=native-farm-continuation022
+seed=22002201
+total=1
+passed=0
+failed=1
+measurement.S02.execution=entered=361;finished=361;failure=null;castSeen=false;runtime=Optional[RuntimeSnapshot[profileId=74254, goalId=6364861591171070776, goalType=farm.background, goalRevision=1, goalStatus=ACTIVE, runtimeState=WAITING_RETRY, decisionSequence=94, selectedCandidateKey=candidate.background.farm, selectedScore=1000, planId=92, currentStep=1, attempt=2, lastResult=RETRY, reasonKey=background.visible.autoplay_running, topCandidateEvaluations=[CandidateEvaluation[candidateKey=candidate.background.farm, score=1000, status=ELIGIBLE, reasonKey=background.explicit.ready]], inFlight=false, persistenceInFlight=false, persistenceOperationId=0, persistenceOperationKind=null, generation=4, activityGeneration=1, componentRowVersion=1]];owner=epoch=38798181411100 state=OPEN outstanding=2 pendingTimers=1 peak=5 failure= work=[1785:attack-hit:RESERVED:depth=2:ageMs=387, 1786:attack-ready:RESERVED:depth=2:ageMs=388];casting=false;intention=IDLE;target=Monster:Red Keltir(20534)[268481776];expDelta=70;spDelta=2
+measurement.S02.native={nativeEvidenceVersion=1, nativeEvidenceOwner=PHANTOM, nativeEvidenceObjectId=268435465, nativeEvidenceEpoch=38798181411100, nativeEvidenceSampleNanos=38888401329100, nativeEvidenceOverflow=false, nativeEvidenceSequence=50, nativeDamageSequence=46, nativeKillSequence=1, nativeRewardSequence=1, nativeTargetSequence=2, nativeFarmCycleSequence=1, nativeExpGained=70, nativeSpGained=2, nativeLootSequence=0, nativeLastProgressNanos=38888400552600, nativePhase=COMBAT, nativePhaseSinceNanos=38888022049400, nativePhaseDeadlineNanos=39008022049400}
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL native-farm-continuation022.S02-production-binding-native-cast-reward-five-next-targets elapsedNanos=91520302800 type=java.lang.AssertionError message=RED: actual native cast callback path was not reached. seed=22002201

@@ -89,9 +89,12 @@ public class AutoUseTaskManager
 					if (phantomPolicy == null) { stopAutoUseTask(player); } else { stopPhantomAutoUse(player, phantomPolicy); }
 					continue;
 				}
-				final TickLease lease = phantomPolicy == null ? () -> {} : phantomPolicy.acquire(player);
+				final var admission = phantomPolicy == null ? null : phantomPolicy.acquireTick(player, "AutoUse");
+				if ((admission != null) && (admission.status() == AutoPlayTaskManager.TickStatus.PAUSED)) { continue; }
+				final TickLease lease = phantomPolicy == null ? () -> {} : admission.lease();
 				if (lease == null)
 				{
+					phantomPolicy.stopObserved("AutoUse:" + admission.reason());
 					stopPhantomAutoUse(player, phantomPolicy);
 					continue;
 				}
@@ -383,6 +386,7 @@ public class AutoUseTaskManager
 				catch (RuntimeException failure)
 				{
 					if (phantomPolicy == null) { throw failure; }
+					phantomPolicy.stopObserved("AutoUse:exception:" + failure.getClass().getName());
 					stopPhantomAutoUse(player, phantomPolicy);
 					AutoPlayTaskManager.getInstance().stopPhantomAutoPlay(player, phantomPolicy);
 					java.util.logging.Logger.getLogger(AutoUseTaskManager.class.getName()).log(java.util.logging.Level.WARNING, "Phantom AutoUse actor failed: " + player.getObjectId(), failure);
@@ -507,11 +511,12 @@ public class AutoUseTaskManager
 	public synchronized boolean stopPhantomAutoUse(Player player, PhantomPolicy expected)
 	{
 		if ((expected == null) || (PHANTOM_POLICIES.get(player) != expected)) { return false; }
+		expected.stopObserved("AutoUse:exact_stop");
 		stopAutoUseTask(player);
 		return true;
 	}
 
-	public synchronized boolean hasPhantomRegistration(Player player, PhantomPolicy expected)
+	public boolean hasPhantomRegistration(Player player, PhantomPolicy expected)
 	{
 		return (expected != null) && (PHANTOM_POLICIES.get(player) == expected) && POOLS.stream().anyMatch(pool -> pool.contains(player));
 	}

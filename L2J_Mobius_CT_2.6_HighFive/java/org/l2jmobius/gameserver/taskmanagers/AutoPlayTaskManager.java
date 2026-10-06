@@ -64,9 +64,17 @@ public class AutoPlayTaskManager
 	public interface PhantomPolicy
 	{
 		TickLease acquire(Player player);
+		default TickAdmission acquireTick(Player player, String source)
+		{
+			final TickLease lease = acquire(player);
+			return new TickAdmission(lease == null ? TickStatus.REVOKED : TickStatus.ACQUIRED, lease, lease == null ? "policy_denied" : "acquired");
+		}
 
 		boolean permitsTarget(Creature target);
+		default void stopObserved(String reason) { }
 	}
+	public enum TickStatus { ACQUIRED, PAUSED, REVOKED }
+	public record TickAdmission(TickStatus status, TickLease lease, String reason) { }
 	
 	protected AutoPlayTaskManager()
 	{
@@ -100,9 +108,12 @@ public class AutoPlayTaskManager
 					if (phantomPolicy == null) { stopAutoPlay(player); } else { stopPhantomAutoPlay(player, phantomPolicy); }
 					continue PLAY;
 				}
-				final TickLease lease = phantomPolicy == null ? () -> {} : phantomPolicy.acquire(player);
+				final TickAdmission admission = phantomPolicy == null ? null : phantomPolicy.acquireTick(player, "AutoPlay");
+				if ((admission != null) && (admission.status() == TickStatus.PAUSED)) { continue PLAY; }
+				final TickLease lease = phantomPolicy == null ? () -> {} : admission.lease();
 				if (lease == null)
 				{
+					phantomPolicy.stopObserved("AutoPlay:" + admission.reason());
 					stopPhantomAutoPlay(player, phantomPolicy);
 					continue PLAY;
 				}
@@ -349,6 +360,7 @@ public class AutoPlayTaskManager
 				catch (RuntimeException failure)
 				{
 					if (phantomPolicy == null) { throw failure; }
+					phantomPolicy.stopObserved("AutoPlay:exception:" + failure.getClass().getName());
 					stopPhantomAutoPlay(player, phantomPolicy);
 					AutoUseTaskManager.getInstance().stopPhantomAutoUse(player, phantomPolicy);
 					java.util.logging.Logger.getLogger(AutoPlayTaskManager.class.getName()).log(java.util.logging.Level.WARNING, "Phantom AutoPlay actor failed: " + player.getObjectId(), failure);
@@ -474,6 +486,7 @@ public class AutoPlayTaskManager
 			synchronized (this)
 			{
 				if ((expected == null) || (PHANTOM_POLICIES.get(player) != expected)) { return false; }
+				expected.stopObserved("AutoPlay:exact_stop");
 				PHANTOM_POLICIES.remove(player);
 				generation = removeAutoPlay(player);
 			}
@@ -482,7 +495,7 @@ public class AutoPlayTaskManager
 		});
 	}
 
-	public synchronized boolean hasPhantomRegistration(Player player, PhantomPolicy expected)
+	public boolean hasPhantomRegistration(Player player, PhantomPolicy expected)
 	{
 		return (expected != null) && (PHANTOM_POLICIES.get(player) == expected) && POOLS.stream().anyMatch(pool -> pool.contains(player));
 	}

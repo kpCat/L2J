@@ -1,0 +1,17 @@
+scenario	proof	status
+S01	RED-OWNERSHIP.log;round2 ownership live snapshot	PASS
+S02	GOLDEN-NATIVE.txt;CONTROL-GREEN.log real binding/driver/cast/reward/next target	PASS
+S03	RED-OWNERSHIP.log;round2 ownership actual checkpoint1600ms	PASS
+S04	ROUND2-STALE-RED.log;round2 ownership3/3;existing native ownership9/9	PASS
+S05	CONTROL-GREEN.log policy-null REAL_LIKE_TEST_ONLY;no fakeREAL_LOGIN	PASS
+S06	CONTROL-GREEN.log real same-pool two actors/revocation control;EXP11287→11357→11427	PASS
+S07	native-closure9/9 scheduler faults/ordinary control/1000interleavings;native ownership stale exception9/9	PASS
+S08	RED-EVIDENCE.log;new evidence3/3;native-phase1/1 actual castMPregen	PASS
+S09	RED-EVIDENCE.log;new evidence3/3 all native fact orders/no own damage negative	PASS
+S10	new evidence3/3 cap16/new spawn generation/time regression;closure identity reuse	PASS
+S11	GOLDEN-NATIVE.txt directEXP+350/SP+10;native save11637/10 retained0	PASS
+S12	golden natural TEST loot3 inventory7→43;native loot autoloot/pickup150/pickup20/protected/concurrent/capacity/weight/watchdog8/9	PASS_APPLICABLE;excluded-ground fixture unavailable on exact base8/9 same reason
+S13	retained021 raw onKill18342 owner unknown;no selected110 causal identity	NOT_PROVEN_CAUSAL;script unchanged
+S14	native owner existing first-incident fields;native closure primary/secondary exception preserved	PASS_EXISTING;connected first cause pending
+S15	golden stopped native farm saved earned EXP/SP retained0;closure running/cancel tests	PASS_TEST;connected cleanup pending
+S16	cohort<=4 frozen IDs collector every10sec;no silent removal of idle actors	CONNECTED_PENDING;TEST other-actor control S06 PASS

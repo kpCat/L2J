@@ -30,11 +30,14 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.PhantomPolicy;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickLease;
+import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickAdmission;
+import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickStatus;
 import org.l2jmobius.gameserver.taskmanagers.AutoUseTaskManager;
 
 /** Runs the existing AutoPlay and AutoUse pools only while an ordinary visible goal owns the materialized Player. */
@@ -360,6 +363,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private final long _goalId;
 		private final long _revision;
 		private final int _npcId;
+		private final java.util.concurrent.atomic.AtomicLong _tickSequence = new java.util.concurrent.atomic.AtomicLong();
+		private volatile TickObservation _autoPlayTick;
+		private volatile TickObservation _autoUseTick;
+		private final java.util.concurrent.atomic.AtomicReference<StopObservation> _firstStop = new java.util.concurrent.atomic.AtomicReference<>();
 
 		private Policy(Player player, long profileId, long goalId, long revision, int npcId)
 		{
@@ -371,9 +378,34 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		}
 
 		@Override
+		public TickAdmission acquireTick(Player player, String source)
+		{
+			final long sequence = _tickSequence.incrementAndGet(); final long started = System.nanoTime();
+			publishTick(source, new TickObservation(sequence, started, 0, "acquiring"));
+			final var originalOwner = player.getNativeWorkOwner();
+			final boolean checkpointBefore = (originalOwner instanceof PhantomNativeWorkScope scope) && scope.temporaryCheckpoint();
+			final TickLease lease = acquire(player);
+			if (lease != null)
+			{
+				publishTick(source, new TickObservation(sequence, started, 0, "acquired"));
+				return new TickAdmission(TickStatus.ACQUIRED, () -> { try { lease.close(); } finally { publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "completed")); } }, "acquired");
+			}
+			final Session session = _sessions.get(_profileId);
+			final var engine = _decision.get(); final var runtime = engine == null ? null : engine.find(_profileId).orElse(null);
+			final boolean current = (player == _player) && (session != null) && (session._policy == this) && session._current.get() && player.isOnline() && player.hasHeadlessOutboundSession() && !player.isDead() && !player.hasPendingOwnedStore() && (runtime != null) && (runtime.goalId() == _goalId) && (runtime.goalRevision() == _revision) && (runtime.goalStatus() == PhantomGoalStatus.ACTIVE) && _permitsOrdinary.test(_profileId);
+			final boolean paused = current && (player.getNativeWorkOwner() == originalOwner) && (originalOwner instanceof PhantomNativeWorkScope scope) && (scope.epoch() == session._epoch) && scope.checkpointPauseAllowed(checkpointBefore);
+			final String reason = paused ? "checkpoint_paused" : "owner_or_goal_revoked";
+			publishTick(source, new TickObservation(sequence, started, System.nanoTime(), reason));
+			return new TickAdmission(paused ? TickStatus.PAUSED : TickStatus.REVOKED, null, reason);
+		}
+		private void publishTick(String source, TickObservation tick) { if ("AutoPlay".equals(source)) { _autoPlayTick = tick; } else { _autoUseTick = tick; } }
+		@Override public void stopObserved(String reason) { _firstStop.compareAndSet(null, new StopObservation(System.nanoTime(), reason, Thread.currentThread().getName())); }
+
+		@Override
 		public TickLease acquire(Player player)
 		{
-			if (player != _player)
+			final Session session = _sessions.get(_profileId);
+			if ((player != _player) || (session == null) || (session._policy != this) || !session._current.get())
 			{
 				return null;
 			}
@@ -388,7 +420,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			{
 				return null;
 			}
-			if ((action.player() != player) || !player.hasHeadlessOutboundSession() || player.isDead() || player.hasPendingOwnedStore())
+			if ((action.player() != player) || (_sessions.get(_profileId) != session) || !session._current.get() || (player.getNativeWorkOwner() == null) || (player.getNativeWorkOwner().epoch() != session._epoch) || !player.hasHeadlessOutboundSession() || !player.isOnline() || player.isDead() || player.hasPendingOwnedStore())
 			{
 				action.close();
 				return null;
@@ -401,6 +433,47 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId);
 		}
+	}
+
+	/** Fresh scalar observation; it acquires no action lease and never starts or repairs AutoPlay. */
+	public record ContinuationSnapshot(Map<String, String> scalarMap) { }
+	private record TickObservation(long sequence, long started, long finished, String reason) { }
+	private record StopObservation(long nanos, String reason, String caller) { }
+	private static void tickScalars(Map<String, String> fields, String prefix, TickObservation tick)
+	{
+		fields.put(prefix + "Sequence", tick == null ? "0" : Long.toString(tick.sequence()));
+		fields.put(prefix + "StartedNanos", tick == null ? "0" : Long.toString(tick.started()));
+		fields.put(prefix + "FinishedNanos", tick == null ? "0" : Long.toString(tick.finished()));
+		fields.put(prefix + "Reason", tick == null ? "not_invoked" : tick.reason());
+	}
+	public ContinuationSnapshot snapshotContinuation(long profileId)
+	{
+		final Session session = _sessions.get(profileId);
+		final Map<String, String> fields = new java.util.LinkedHashMap<>();
+		fields.put("continuationSampleNanos", Long.toString(System.nanoTime()));
+		fields.put("continuationSession", Boolean.toString(session != null));
+		fields.put("liveAutoPlay", "unknown_without_session"); fields.put("liveAutoPlayRegistered", "false"); fields.put("liveAutoUseRegistered", "false");
+		tickScalars(fields, "liveAutoPlayTick", null); tickScalars(fields, "liveAutoUseTick", null);
+		if (session != null)
+		{
+			final Player player = session._player;
+			fields.put("liveAutoPlay", Boolean.toString(player.isAutoPlaying()));
+			fields.put("liveAutoPlayRegistered", Boolean.toString(AutoPlayTaskManager.getInstance().hasPhantomRegistration(player, session._policy)));
+			fields.put("liveAutoUseRegistered", Boolean.toString(AutoUseTaskManager.getInstance().hasPhantomRegistration(player, session._policy)));
+			fields.put("livePolicyIdentity", Integer.toHexString(System.identityHashCode(session._policy)));
+			fields.put("liveSessionEpoch", Long.toString(session._epoch));
+			fields.put("liveSessionCurrent", Boolean.toString(session._current.get()));
+			fields.put("continuationRead", "NONATOMIC_VOLATILE");
+			if (session._policy instanceof Policy policy)
+			{
+				tickScalars(fields, "liveAutoPlayTick", policy._autoPlayTick); tickScalars(fields, "liveAutoUseTick", policy._autoUseTick);
+				final var stopped = policy._firstStop.get();
+				fields.put("liveFirstStopNanos", stopped == null ? "0" : Long.toString(stopped.nanos()));
+				fields.put("liveFirstStopReason", stopped == null ? "" : stopped.reason());
+				fields.put("liveFirstStopCaller", stopped == null ? "" : stopped.caller());
+			}
+		}
+		return new ContinuationSnapshot(java.util.Collections.unmodifiableMap(fields));
 	}
 
 	private static final class Session

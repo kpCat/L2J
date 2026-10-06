@@ -1,0 +1,7 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+owned_accounts	COUNT(*)
+owned_accounts	0
+owned_characters	COUNT(*)
+owned_characters	0
+exact_restored_orphan74255	COUNT(*)
+exact_restored_orphan74255	0

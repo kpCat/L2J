@@ -1,0 +1,114 @@
+/* Copyright (c) 2013 L2jMobius */
+package org.l2jmobius.tests.phantoms;
+
+import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
+import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager;
+import org.l2jmobius.gameserver.taskmanagers.AutoUseTaskManager;
+
+/** Exact native owner, real pool invocations and an actual checkpoint control boundary. */
+public final class PhantomAutoPlayOwnership022Suite implements PhantomTestSuite
+{
+	final PhantomNativeContextHandoffSuite handoff = new PhantomNativeContextHandoffSuite();
+	public static void main(String[] args)
+	{
+		System.exit(PhantomTestLauncher.runSuite("autoplay-ownership022", new PhantomAutoPlayOwnership022Suite(), new PhantomTestContext(22002202, Path.of(args[0]), Path.of(args[1]))));
+	}
+	@Override public String id() { return "autoplay-ownership022"; }
+	@Override public void beforeAll(PhantomTestContext context) throws Exception { handoff.beforeAll(context); }
+	@Override public void afterAll(PhantomTestContext context) throws Exception { handoff.afterAll(context); }
+	@Override public void register(PhantomTestRegistry registry)
+	{
+		registry.add("S01-live-state-is-independent-from-cached-decision", context ->
+		{
+			try (var f = handoff.new Fixture(true))
+			{
+				f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+				final var adapter = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision);
+				final var player = World.getInstance().getPlayer(f.objectId); player.setSitting(true);
+				try
+				{
+					PhantomAssertions.assertTrue(adapter.start(f.id, f.goals.load(f.id).orElseThrow().goal()), "Native pair starts with current goal.");
+					player.setAutoPlaying(false);
+					final var sample = snapshot(adapter, f.id);
+					PhantomAssertions.assertEquals("false", sample.get("liveAutoPlay"), "RED: fresh native flag cannot be inferred from cached reason.");
+					PhantomAssertions.assertEquals("true", sample.get("liveAutoPlayRegistered"), "Exact registration is distinct from native flag.");
+					context.record("S01.fresh", sample);
+				}
+				finally { adapter.stop(f.id); player.setSitting(false); PhantomVisibleIntentRecoverySuite.stop(engine); }
+			}
+		});
+		registry.add("S03-real-checkpoint-pauses-and-reopens-same-registration", context ->
+		{
+			try (var f = handoff.new Fixture(true))
+			{
+				f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+				final var adapter = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision);
+				final var player = World.getInstance().getPlayer(f.objectId); player.setSitting(true);
+				final var inside = new CountDownLatch(1); final var release = new CountDownLatch(1); final var done = new CountDownLatch(1); final var failure = new AtomicReference<Throwable>();
+				final Thread checkpoint = new Thread(() ->
+				{
+					try { player.getNativeWorkOwner().checkpoint(() -> { inside.countDown(); try { if (!release.await(4, TimeUnit.SECONDS)) { throw new AssertionError("TEST checkpoint release timeout"); } } catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new AssertionError(e); } return null; }); }
+					catch (Throwable e) { failure.set(e); }
+					finally { done.countDown(); }
+				}, "TEST022-checkpoint-control");
+				try
+				{
+					final var goal = f.goals.load(f.id).orElseThrow().goal();
+					PhantomAssertions.assertTrue(adapter.start(f.id, goal), "Native pair starts.");
+					final var policy = policy(adapter, f.id);
+					checkpoint.start(); PhantomAssertions.assertTrue(inside.await(5, TimeUnit.SECONDS), "Actual checkpoint sealed admission.");
+					PhantomAssertions.assertTrue(f.materialization.tryAcquireAction(f.id).isEmpty(), "No ordinary work admitted under checkpoint.");
+					Thread.sleep(1600); // More than two real AutoPlay and five AutoUse pool periods.
+					final boolean pairRetained = AutoPlayTaskManager.getInstance().hasPhantomRegistration(player, policy) && AutoUseTaskManager.getInstance().hasPhantomRegistration(player, policy);
+					context.record("S03.paused", "samePair=" + pairRetained + ";owner=" + ((org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner()).snapshot());
+					release.countDown(); PhantomAssertions.assertTrue(done.await(5, TimeUnit.SECONDS) && failure.get() == null, "Checkpoint actually completed successfully: " + failure.get());
+					PhantomAssertions.assertTrue(pairRetained && adapter.running(f.id, goal), "RED: temporary checkpoint must not revoke native registration; same owner continues without restart.");
+					PhantomAssertions.assertEquals(f.loadedEpoch, player.getNativeWorkOwner().epoch(), "Checkpoint preserves lifetime.");
+				}
+				finally { release.countDown(); if (checkpoint.isAlive()) { checkpoint.join(5000); } adapter.stop(f.id); player.setSitting(false); PhantomVisibleIntentRecoverySuite.stop(engine); }
+			}
+		});
+		registry.add("S04-stale-stop-cannot-remove-successor-and-revocation-is-final", _ ->
+		{
+			try (var f = handoff.new Fixture(true))
+			{
+				f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+				final var adapter = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision);
+				final var player = World.getInstance().getPlayer(f.objectId); player.setSitting(true);
+				try
+				{
+					final var goal = f.goals.load(f.id).orElseThrow().goal();
+					PhantomAssertions.assertTrue(adapter.start(f.id, goal), "Original pair starts."); final var old = policy(adapter, f.id);
+					player.setAutoPlaying(false); PhantomAssertions.assertTrue(adapter.start(f.id, goal), "Replacement pair starts."); final var successor = policy(adapter, f.id);
+					final var oldLease = old.acquire(player);
+					if (oldLease != null) { oldLease.close(); }
+					PhantomAssertions.assertTrue(oldLease == null, "RED: queued old policy must not acquire ordinary work for a successor session with the same goal.");
+					PhantomAssertions.assertFalse(AutoPlayTaskManager.getInstance().stopPhantomAutoPlay(player, old), "Old expected policy cannot stop new AutoPlay.");
+					PhantomAssertions.assertFalse(AutoUseTaskManager.getInstance().stopPhantomAutoUse(player, old), "Old expected policy cannot stop new AutoUse.");
+					PhantomAssertions.assertTrue(AutoPlayTaskManager.getInstance().hasPhantomRegistration(player, successor) && AutoUseTaskManager.getInstance().hasPhantomRegistration(player, successor), "Both exact successor memberships survive.");
+					f.historical.revokeForegroundDecisions(); Thread.sleep(1600);
+					PhantomAssertions.assertFalse(AutoPlayTaskManager.getInstance().hasPhantomRegistration(player, successor) || AutoUseTaskManager.getInstance().hasPhantomRegistration(player, successor), "Revoked owner must not become a temporary pause.");
+				}
+				finally { adapter.stop(f.id); player.setSitting(false); PhantomVisibleIntentRecoverySuite.stop(engine); }
+			}
+		});
+	}
+	static AutoPlayTaskManager.PhantomPolicy policy(PhantomVisibleAutoPlay adapter, long id) throws Exception
+	{
+		final var sessionsField = adapter.getClass().getDeclaredField("_sessions"); sessionsField.setAccessible(true);
+		final var session = ((java.util.Map<?, ?>) sessionsField.get(adapter)).get(id);
+		final var policyField = session.getClass().getDeclaredField("_policy"); policyField.setAccessible(true);
+		return (AutoPlayTaskManager.PhantomPolicy) policyField.get(session);
+	}
+	@SuppressWarnings("unchecked")
+	static java.util.Map<String, String> snapshot(PhantomVisibleAutoPlay adapter, long id) throws Exception
+	{
+		try { final var sample = adapter.getClass().getMethod("snapshotContinuation", long.class).invoke(adapter, id); return (java.util.Map<String, String>) sample.getClass().getMethod("scalarMap").invoke(sample); }
+		catch (NoSuchMethodException absent) { throw new AssertionError("RED: non-mutating continuation snapshot is absent."); }
+	}
+}

@@ -1,0 +1,4 @@
+[PASS] native-evidence-continuation022.S08-first-phase-deadline-reason-sticky-and-stale-clear
+[PASS] native-evidence-continuation022.S09-late-native-reward-after-next-target-counted-once
+[PASS] native-evidence-continuation022.S10-target-cap-generation-and-time-regression-truth
+SUMMARY: suite=native-evidence-continuation022 seed=22002203 total=3 passed=3 failed=0

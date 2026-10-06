@@ -2086,6 +2086,17 @@ public final class PhantomSystem
 			result.put(prefix + "attacking", Boolean.toString(player.isAttackingNow()));
 			result.put(prefix + "casting", Boolean.toString(player.isCastingNow()));
 			result.put(prefix + "autoPlay", Boolean.toString(player.isAutoPlaying()));
+			if (configured._visibleAutoPlay != null) { configured._visibleAutoPlay.snapshotContinuation(entry.profileId()).scalarMap().forEach((name, value) -> result.put(prefix + name, value)); }
+			result.put(prefix + "exp", Long.toString(player.getExp()));
+			result.put(prefix + "sp", Long.toString(player.getSp()));
+			result.put(prefix + "mp", Double.toString(player.getCurrentMp()));
+			result.put(prefix + "maxMp", Double.toString(player.getMaxMp()));
+			if (player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope) { scope.diagnosticScalars().forEach((name, value) -> result.put(prefix + name, value)); }
+			result.put(prefix + "runtimeInFlight", runtime == null ? "unknown" : Boolean.toString(runtime.inFlight()));
+			result.put(prefix + "decisionSequence", runtime == null ? "0" : Long.toString(runtime.decisionSequence()));
+			result.put(prefix + "lastCastSkillId", Integer.toString(player.getLastSkillCast() == null ? 0 : player.getLastSkillCast().getId()));
+			result.put(prefix + "targetNpcId", Integer.toString(player.getTarget() instanceof org.l2jmobius.gameserver.model.actor.Npc npc ? npc.getId() : 0));
+			result.put(prefix + "targetSpawnGeneration", Long.toString(player.getTarget() instanceof org.l2jmobius.gameserver.model.actor.Attackable attackable ? attackable.getNativeEvidenceTarget().spawnGeneration() : 0));
 			result.put(prefix + "party", Boolean.toString(player.isInParty()));
 			result.put(prefix + "store", Boolean.toString(player.isInStoreMode()));
 			result.put(prefix + "intention", player.getAI().getIntention().name());

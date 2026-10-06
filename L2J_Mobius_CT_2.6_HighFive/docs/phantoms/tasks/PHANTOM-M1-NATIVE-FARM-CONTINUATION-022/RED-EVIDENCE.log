@@ -1,0 +1,4 @@
+[FAIL] native-evidence-continuation022.S08-first-phase-deadline-reason-sticky-and-stale-clear - java.lang.AssertionError: RED: phase deadline must have its own first invalidation reason. Expected <PHASE_DEADLINE> but was <null>. seed=22002203
+[FAIL] native-evidence-continuation022.S09-late-native-reward-after-next-target-counted-once - java.lang.AssertionError: RED: allowed native ordering completes exactly one cycle, order=2 Expected <1> but was <0>. seed=22002203
+[FAIL] native-evidence-continuation022.S10-target-cap-generation-and-time-regression-truth - java.lang.AssertionError: RED: reused object with new spawn generation is a distinct seventeenth target. Expected <TARGET_CAP> but was <null>. seed=22002203
+SUMMARY: suite=native-evidence-continuation022 seed=22002203 total=3 passed=0 failed=3

@@ -1,0 +1,34 @@
+[PASS] native-evidence-continuation022.S10-target-cap-generation-and-time-regression-truth
+SUMMARY: suite=native-evidence-continuation022 seed=22002203 total=3 passed=3 failed=0
+[PASS] autoplay-ownership022.S04-stale-stop-cannot-remove-successor-and-revocation-is-final
+SUMMARY: suite=autoplay-ownership022 seed=22002202 total=3 passed=3 failed=0
+[PASS] native-farm-continuation022.S02-production-binding-native-cast-reward-five-next-targets
+SUMMARY: suite=native-farm-continuation022 seed=22002201 total=1 passed=1 failed=0
+[PASS] visible-intent-recovery.R11-failed-catchup-local-plan-keeps-status-and-cursor
+SUMMARY: suite=visible-intent-recovery seed=21002101 total=10 passed=10 failed=0
+[PASS] local-farm-recovery.R15-composed-terminal-replan-native-travel-autoplay
+SUMMARY: suite=local-farm-recovery seed=21002102 total=7 passed=7 failed=0
+[PASS] visible-decision-admission.V18-active-work-selects-existing-visible-farm
+SUMMARY: suite=visible-decision-admission seed=20002001 total=18 passed=18 failed=0
+[PASS] native-context-handoff.H14-recorder-bounded-real-admission-subreason
+SUMMARY: suite=native-context-handoff seed=18001801 total=14 passed=14 failed=0
+[PASS] population-ecology-goal033.O12-orphan-ownership-contract
+SUMMARY: suite=population-ecology-goal033 seed=33003300 total=30 passed=30 failed=0
+[PASS] population-ecology-goal033.17-restored-inventory-readiness-starts-bounded-target-creation
+SUMMARY: suite=population-ecology-goal033 seed=33003300 total=6 passed=6 failed=0
+[PASS] background-lifecycle.04-disabled-stop-drain
+SUMMARY: suite=background-lifecycle seed=15001501 total=4 passed=4 failed=0
+[PASS] decision-core.36-admission-fence-blocks-work
+SUMMARY: suite=decision-core seed=20002001 total=36 passed=36 failed=0
+[PASS] decision-persistence.23-terminal-conflict-and-failure-distinct
+SUMMARY: suite=decision-persistence seed=20002001 total=23 passed=23 failed=0
+[PASS] m1-native-lifecycle.P08-partial-visible-pair-is-unhealthy-and-repaired
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=9 passed=9 failed=0
+[PASS] m1-native-lifecycle.A07-actual-native-cast-MP-regen-bounded-phase
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=1 passed=1 failed=0
+[PASS] m1-native-lifecycle.Q15-actual-native-early-load-owner-without-lifecycle-monitor
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=9 passed=9 failed=0
+[PASS] m1-native-lifecycle.L-T06-actual-native-weight
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=9 passed=8 failed=1
+[PASS] phantom-runtime-flight-recorder.concurrent-recording-and-delegate-exception
+SUMMARY: suite=phantom-runtime-flight-recorder seed=14001401 total=3 passed=3 failed=0

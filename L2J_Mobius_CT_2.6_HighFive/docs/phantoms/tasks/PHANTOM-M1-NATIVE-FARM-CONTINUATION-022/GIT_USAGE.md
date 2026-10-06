@@ -1,0 +1,17 @@
+# Explicit TASK022 Git authorization
+
+User request + GIT.md explicitly allow isolated exact-base worktree, read-only scope/history inspection and exact-path commit/normal push. No force/reset/clean/stash/rebase/foreign branch switch. Main preflight only read status, branch, HEAD, upstream and worktree inventory; no main writes.
+
+Commands performed in this execution (paths resolved to the named isolated worktree unless stated):
+
+- `git status --short`, `git branch --show-current`, `git rev-parse HEAD`, `git rev-parse --abbrev-ref --symbolic-full-name @{u}`, `git worktree list --porcelain`: initial read-only preflight/main inventory. An initial sandbox Git attempt reported dubious ownership; no safe.directory configuration changed. Authorized host execution used for worktree Git thereafter.
+- `git worktree add --detach C:\Users\ZBook\.codex\worktrees\m1-native-farm-022\L2J_Mobius 0205d04bc7763fafcbb776e6da8887c1f2912d8b`: exact user-authorized path/base; exit0. Detached because remote branch occupied by FOREIGN worktree.
+- `git ls-remote origin refs/heads/experiment/m1-candidate007-observe008`: remote safety check; exit0, initial remote exact required base.
+- `git diff --stat`, `git diff --numstat`, `git diff --name-only`, `git diff --check`: read-only review; sources6. No source whitespace error.
+- `git diff -- <exact six source paths>`: bounded semantic review; stock bodies unchanged.
+- `git -C <root> show 0205d04bc7763fafcbb776e6da8887c1f2912d8b:<exact six source paths>`: Build-Baseline-Probe.py reads exact base blobs; all exit0, compiles private precedence classpath for loot regression attribution. Does not restore working source.
+- `git -C <root> diff --name-only 0205d04bc7763fafcbb776e6da8887c1f2912d8b`, `git -C <root> ls-files --others --exclude-standard`, `git -C <root> diff --check -- <checked exact allowlist>`: Verify-Scope022.py; exit0. Raw generated logs excluded from handwritten whitespace check and preserved without edits; encoding checks separate and include all artifacts.
+
+Publication uses only `git add -- <ARTIFACT_ALLOWLIST.json exactPaths>`, `git diff --cached --check -- <source/handwritten paths>`, `git commit -m <TASK022 message>`, then immediate remote verification and `git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008`. Actual commit/build/runtime SHAs and command outcomes are recorded in PUBLICATION.json and final RESULT; no commit just to record its own SHA.
+
+Private pinned catalogs tool additionally uses exactly three `git show HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/<high-five-population-v1.xml|high-five-population-v2.xml|high-five-ecology-v1.xml>` reads and `git -C <module> rev-parse HEAD`; permitted pinned artifact verification, not repository mutation.

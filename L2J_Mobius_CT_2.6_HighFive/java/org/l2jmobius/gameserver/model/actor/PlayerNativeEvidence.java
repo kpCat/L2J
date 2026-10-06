@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 public final class PlayerNativeEvidence
 {
 	public enum Phase { NONE, ROUTE, COMBAT, REGEN, DEATH_RECOVERY }
+	public enum UnprovenReason { NONE, OWNER_FAILURE, INVALID_VALUE, INVALID_TARGET, TARGET_CAP, COUNTER_OVERFLOW, TIME_REGRESSION, INVALID_PHASE, PHASE_DEADLINE, COMBAT_ACCOUNTING }
 	public record Target(int objectId, int instanceId, long spawnGeneration) { }
 	public static final int MAX_TARGETS = 16;
 	public static final long MAX_PHASE_NANOS = TimeUnit.SECONDS.toNanos(120);
@@ -18,6 +19,8 @@ public final class PlayerNativeEvidence
 	private final Map<Target, TargetState> _targets = new LinkedHashMap<>();
 	private Target _selected;
 	private boolean _overflow;
+	private UnprovenReason _firstUnprovenReason = UnprovenReason.NONE;
+	private long _firstUnprovenNanos;
 	private long _observedNanos;
 	private long _sequence;
 	private long _damageSequence;
@@ -56,7 +59,12 @@ public final class PlayerNativeEvidence
 	}
 
 	public boolean matches(int objectId, long epoch) { return (_objectId == objectId) && (_epoch == epoch); }
-	public synchronized void markUnproven() { _overflow = true; }
+	public synchronized void markUnproven() { invalidate(UnprovenReason.OWNER_FAILURE, System.nanoTime()); }
+	private void invalidate(UnprovenReason reason, long now)
+	{
+		if (!_overflow) { _firstUnprovenReason = reason; _firstUnprovenNanos = now; }
+		_overflow = true;
+	}
 
 	// Capture live time under this monitor so concurrent writers cannot publish reversed timestamps.
 	public synchronized void damage(Target target, double actualHpDelta) { damage(target, actualHpDelta, System.nanoTime()); }
@@ -68,23 +76,25 @@ public final class PlayerNativeEvidence
 
 	public synchronized void damage(Target target, double actualHpDelta, long now)
 	{
-		if (!Double.isFinite(actualHpDelta)) { _overflow = true; return; }
+		if (!Double.isFinite(actualHpDelta)) { invalidate(UnprovenReason.INVALID_VALUE, now); return; }
 		if (_overflow || (actualHpDelta <= 0) || !observe(now)) { return; }
 		final TargetState state = target(target);
 		if (state == null) { return; }
 		state._damaged = true;
+		completeCycle(target, state);
 		_damageSequence = add(_damageSequence, 1);
 		event(now, true);
 	}
 
 	public synchronized void reward(Target target, long actualExp, long actualSp, long now)
 	{
-		if ((actualExp < 0) || (actualSp < 0)) { _overflow = true; return; }
+		if ((actualExp < 0) || (actualSp < 0)) { invalidate(UnprovenReason.INVALID_VALUE, now); return; }
 		if (_overflow || ((actualExp == 0) && (actualSp == 0)) || !observe(now)) { return; }
 		final TargetState state = target(target);
 		if (state == null) { return; }
 		state._exp |= actualExp > 0;
 		state._sp |= actualSp > 0;
+		completeCycle(target, state);
 		_expGained = add(_expGained, actualExp);
 		_spGained = add(_spGained, actualSp);
 		_rewardSequence = add(_rewardSequence, 1);
@@ -97,6 +107,7 @@ public final class PlayerNativeEvidence
 		final TargetState state = target(target);
 		if ((state == null) || state._killed) { return; }
 		state._killed = true;
+		completeCycle(target, state);
 		_killSequence = add(_killSequence, 1);
 		event(now, state._damaged);
 	}
@@ -105,13 +116,12 @@ public final class PlayerNativeEvidence
 	{
 		// Clearing/self/rejected targets are filtered by the native bridge and cannot erase a pending cycle.
 		if (target == null) { return; }
-		if (_overflow || !valid(target)) { _overflow = true; return; }
+		if (_overflow) { return; }
+		if (!valid(target)) { invalidate(UnprovenReason.INVALID_TARGET, now); return; }
 		if (target.equals(_selected) || !observe(now)) { return; }
 		final TargetState previous = _targets.get(_selected);
-		final boolean completed = (previous != null) && previous._damaged && previous._killed && previous._exp && previous._sp;
-		if (completed) { _targets.remove(_selected); }
+		if (previous != null) { previous._nextSelected = true; completeCycle(_selected, previous); }
 		if (target(target) == null) { return; }
-		if (completed) { _farmCycleSequence = add(_farmCycleSequence, 1); }
 		_selected = target;
 		_targetSequence = add(_targetSequence, 1);
 		event(now, false);
@@ -120,7 +130,7 @@ public final class PlayerNativeEvidence
 	public synchronized void loot(int itemObjectId, int itemId, long count, long now)
 	{
 		if (_overflow || (count <= 0)) { return; }
-		if ((itemObjectId <= 0) || (itemId <= 0)) { _overflow = true; return; }
+		if ((itemObjectId <= 0) || (itemId <= 0)) { invalidate(UnprovenReason.INVALID_VALUE, now); return; }
 		if (!observe(now)) { return; }
 		_lootCount = add(_lootCount, count);
 		_lootSequence = add(_lootSequence, 1);
@@ -129,17 +139,17 @@ public final class PlayerNativeEvidence
 
 	public synchronized void phase(Phase phase, long sinceNanos, long deadlineNanos)
 	{
-		if (phase == null) { _overflow = true; return; }
+		if (phase == null) { invalidate(UnprovenReason.INVALID_PHASE, _observedNanos); return; }
 		if (_nativeEpisodesRetired && (phase != Phase.NONE)) { return; }
 		if (phase == Phase.NONE)
 		{
-			if ((sinceNanos != 0) || (deadlineNanos != 0)) { _overflow = true; return; }
+			if ((sinceNanos != 0) || (deadlineNanos != 0)) { invalidate(UnprovenReason.INVALID_PHASE, _observedNanos); return; }
 			_phase = phase;
 			_phaseSinceNanos = 0;
 			_phaseDeadlineNanos = 0;
 			return;
 		}
-		if ((sinceNanos < _epoch) || (deadlineNanos <= sinceNanos) || ((deadlineNanos - sinceNanos) > MAX_PHASE_NANOS)) { _overflow = true; return; }
+		if ((sinceNanos < _epoch) || (deadlineNanos <= sinceNanos) || ((deadlineNanos - sinceNanos) > MAX_PHASE_NANOS)) { invalidate(UnprovenReason.INVALID_PHASE, _observedNanos); return; }
 		if (_phase == phase)
 		{
 			// Only this episode may shorten its bound; retries or replacements cannot renew it.
@@ -168,7 +178,7 @@ public final class PlayerNativeEvidence
 	{
 		if (_nativeEpisodesRetired) { return; }
 		if (dead || full) { retireRegeneration(); return; }
-		if (!Double.isFinite(hpGain) || !Double.isFinite(mpGain)) { _overflow = true; return; }
+		if (!Double.isFinite(hpGain) || !Double.isFinite(mpGain)) { invalidate(UnprovenReason.INVALID_VALUE, System.nanoTime()); return; }
 		if ((hpGain <= 0) && (mpGain <= 0)) { return; }
 		final long now = System.nanoTime();
 		if (_regenSinceNanos == 0) { _regenSinceNanos = now; }
@@ -191,7 +201,7 @@ public final class PlayerNativeEvidence
 	{
 		if (_nativeEpisodesRetired || ((inherited != null) && ((inherited != _combatEpisode) || inherited._retired))) { return null; }
 		if (_combatEpisode == null) { _combatEpisode = new CombatEpisode(System.nanoTime()); }
-		if (_combatEpisode._pending >= 1024) { _overflow = true; return null; }
+		if (_combatEpisode._pending >= 1024) { invalidate(UnprovenReason.COMBAT_ACCOUNTING, System.nanoTime()); return null; }
 		_combatEpisode._pending++;
 		return _combatEpisode;
 	}
@@ -204,7 +214,7 @@ public final class PlayerNativeEvidence
 	public synchronized void completeCombat(CombatEpisode episode, boolean passive)
 	{
 		if ((episode == null) || episode._retired || (episode != _combatEpisode)) { return; }
-		if (episode._pending <= 0) { _overflow = true; return; }
+		if (episode._pending <= 0) { invalidate(UnprovenReason.COMBAT_ACCOUNTING, System.nanoTime()); return; }
 		episode._pending--;
 		if ((episode._pending == 0) && (!episode._published || passive)) { retireCombat(episode); }
 	}
@@ -222,18 +232,18 @@ public final class PlayerNativeEvidence
 	}
 	private void publishBounded(Phase phase, long since)
 	{
-		if ((since < _epoch) || (since > Long.MAX_VALUE - MAX_PHASE_NANOS)) { _overflow = true; return; }
+		if ((since < _epoch) || (since > Long.MAX_VALUE - MAX_PHASE_NANOS)) { invalidate(UnprovenReason.INVALID_PHASE, System.nanoTime()); return; }
 		checkLiveHorizon(since);
 		phase(phase, since, since + MAX_PHASE_NANOS);
 	}
 	private void checkLiveHorizon(long since)
 	{
-		if ((since < _epoch) || (since > Long.MAX_VALUE - MAX_PHASE_NANOS) || (since + MAX_PHASE_NANOS <= System.nanoTime())) { _overflow = true; }
+		if ((since < _epoch) || (since > Long.MAX_VALUE - MAX_PHASE_NANOS) || (since + MAX_PHASE_NANOS <= System.nanoTime())) { invalidate(UnprovenReason.PHASE_DEADLINE, System.nanoTime()); }
 	}
 	/** Successful permanent native drain only. Sticky UNPROVEN and useful counters are never reset. */
 	public synchronized void retireNativeEpisodes()
 	{
-		if ((_phase != Phase.NONE) && (_phaseDeadlineNanos <= System.nanoTime())) { _overflow = true; }
+		if ((_phase != Phase.NONE) && (_phaseDeadlineNanos <= System.nanoTime())) { invalidate(UnprovenReason.PHASE_DEADLINE, System.nanoTime()); }
 		_nativeEpisodesRetired = true;
 		retireRegeneration();
 		if (_combatEpisode != null) { retireCombat(_combatEpisode); }
@@ -255,15 +265,15 @@ public final class PlayerNativeEvidence
 	public synchronized Snapshot snapshot(long sampleNanos)
 	{
 		observe(sampleNanos);
-		if ((_regenSinceNanos != 0) && ((_regenSinceNanos > Long.MAX_VALUE - MAX_PHASE_NANOS) || (_regenSinceNanos + MAX_PHASE_NANOS <= _observedNanos))) { _overflow = true; }
-		if ((_combatEpisode != null) && _combatEpisode._published && ((_combatEpisode._since > Long.MAX_VALUE - MAX_PHASE_NANOS) || (_combatEpisode._since + MAX_PHASE_NANOS <= _observedNanos))) { _overflow = true; }
-		if ((_phase != Phase.NONE) && ((_phaseSinceNanos > _observedNanos) || (_phaseDeadlineNanos <= _observedNanos))) { _overflow = true; }
-		return new Snapshot(_objectId, _epoch, _observedNanos, _overflow, _sequence, _damageSequence, _killSequence, _rewardSequence, _targetSequence, _farmCycleSequence, _expGained, _spGained, _lootSequence, _lastProgressNanos, _phase, _phaseSinceNanos, _phaseDeadlineNanos, _usefulProgressNanos, _lootCount, _targets.size());
+		if ((_regenSinceNanos != 0) && ((_regenSinceNanos > Long.MAX_VALUE - MAX_PHASE_NANOS) || (_regenSinceNanos + MAX_PHASE_NANOS <= _observedNanos))) { invalidate(UnprovenReason.PHASE_DEADLINE, _observedNanos); }
+		if ((_combatEpisode != null) && _combatEpisode._published && ((_combatEpisode._since > Long.MAX_VALUE - MAX_PHASE_NANOS) || (_combatEpisode._since + MAX_PHASE_NANOS <= _observedNanos))) { invalidate(UnprovenReason.PHASE_DEADLINE, _observedNanos); }
+		if ((_phase != Phase.NONE) && ((_phaseSinceNanos > _observedNanos) || (_phaseDeadlineNanos <= _observedNanos))) { invalidate(UnprovenReason.PHASE_DEADLINE, _observedNanos); }
+		return new Snapshot(_objectId, _epoch, _observedNanos, _overflow, _sequence, _damageSequence, _killSequence, _rewardSequence, _targetSequence, _farmCycleSequence, _expGained, _spGained, _lootSequence, _lastProgressNanos, _phase, _phaseSinceNanos, _phaseDeadlineNanos, _usefulProgressNanos, _lootCount, _targets.size(), _firstUnprovenReason, _firstUnprovenNanos);
 	}
 
 	private boolean observe(long now)
 	{
-		if ((now < _epoch) || (now < _observedNanos)) { _overflow = true; return false; }
+		if ((now < _epoch) || (now < _observedNanos)) { invalidate(UnprovenReason.TIME_REGRESSION, now); return false; }
 		_observedNanos = now;
 		return true;
 	}
@@ -275,10 +285,10 @@ public final class PlayerNativeEvidence
 
 	private TargetState target(Target target)
 	{
-		if (!valid(target)) { _overflow = true; return null; }
+		if (!valid(target)) { invalidate(UnprovenReason.INVALID_TARGET, _observedNanos); return null; }
 		final TargetState existing = _targets.get(target);
 		if (existing != null) { return existing; }
-		if (_targets.size() >= MAX_TARGETS) { _overflow = true; return null; }
+		if (_targets.size() >= MAX_TARGETS) { invalidate(UnprovenReason.TARGET_CAP, _observedNanos); return null; }
 		final var state = new TargetState();
 		_targets.put(target, state);
 		return state;
@@ -286,7 +296,7 @@ public final class PlayerNativeEvidence
 
 	private long add(long value, long delta)
 	{
-		if (delta > (Long.MAX_VALUE - value)) { _overflow = true; return Long.MAX_VALUE; }
+		if (delta > (Long.MAX_VALUE - value)) { invalidate(UnprovenReason.COUNTER_OVERFLOW, _observedNanos); return Long.MAX_VALUE; }
 		return value + delta;
 	}
 
@@ -303,6 +313,17 @@ public final class PlayerNativeEvidence
 		private boolean _killed;
 		private boolean _exp;
 		private boolean _sp;
+		private boolean _nextSelected;
+		private boolean _counted;
+	}
+	private void completeCycle(Target target, TargetState state)
+	{
+		if (!state._counted && state._nextSelected && state._damaged && state._killed && state._exp && state._sp)
+		{
+			state._counted = true;
+			_farmCycleSequence = add(_farmCycleSequence, 1);
+			_targets.remove(target);
+		}
 	}
 
 	/** The scoped native calculateRewards target survives reward-before-kill ordering, without actor references. */
@@ -338,7 +359,7 @@ public final class PlayerNativeEvidence
 		}
 	}
 
-	public record Snapshot(int objectId, long epoch, long sampleNanos, boolean overflow, long sequence, long damageSequence, long killSequence, long rewardSequence, long targetSequence, long farmCycleSequence, long expGained, long spGained, long lootSequence, long lastProgressNanos, Phase phase, long phaseSinceNanos, long phaseDeadlineNanos, long usefulProgressNanos, long lootCount, int trackedTargets)
+	public record Snapshot(int objectId, long epoch, long sampleNanos, boolean overflow, long sequence, long damageSequence, long killSequence, long rewardSequence, long targetSequence, long farmCycleSequence, long expGained, long spGained, long lootSequence, long lastProgressNanos, Phase phase, long phaseSinceNanos, long phaseDeadlineNanos, long usefulProgressNanos, long lootCount, int trackedTargets, UnprovenReason firstUnprovenReason, long firstUnprovenNanos)
 	{
 		public Map<String, String> scalarMap()
 		{
@@ -349,6 +370,8 @@ public final class PlayerNativeEvidence
 			fields.put("nativeEvidenceEpoch", Long.toString(epoch));
 			fields.put("nativeEvidenceSampleNanos", Long.toString(sampleNanos));
 			fields.put("nativeEvidenceOverflow", Boolean.toString(overflow));
+			fields.put("nativeFirstUnprovenReason", firstUnprovenReason.name());
+			fields.put("nativeFirstUnprovenNanos", Long.toString(firstUnprovenNanos));
 			fields.put("nativeEvidenceSequence", Long.toString(sequence));
 			fields.put("nativeDamageSequence", Long.toString(damageSequence));
 			fields.put("nativeKillSequence", Long.toString(killSequence));
