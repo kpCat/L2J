@@ -124,7 +124,7 @@ public final class LocalPlayPilotActions
 			{
 				case STATUS -> new Outcome("SUCCEEDED", "SNAPSHOT", Map.of("originX", Integer.toString(_origin.getX()), "originY", Integer.toString(_origin.getY()), "originZ", Integer.toString(_origin.getZ()), "originInstanceId", Integer.toString(_origin.getInstanceId())));
 				case CAPABILITIES -> Outcome.of("SUCCEEDED", "STATUS,BEGIN_PHANTOM_CAUSAL_TRACE,SNAPSHOT_PHANTOM_CAUSAL_TRACE,END_PHANTOM_CAUSAL_TRACE,SNAPSHOT_PHANTOMS,PREPARE_M1_ENVELOPE,SNAPSHOT_M1_ENVELOPE,SELECT_VISIBLE_PHANTOM_TRACE,SNAPSHOT_SELECTED_PHANTOM_TRACE,REPLAY_SELECTED_PHANTOM_TRACE,SNAPSHOT_TARGETS,TELEPORT_SELF,MOVE_SELF,STOP_MOVE,SIT,STAND,SELECT_TARGET,SAY,PARTY_INVITE,PARTY_RESPOND,PARTY_LEAVE,ATTACK_NPC,CAST_LEARNED_SKILL");
-				case SNAPSHOT_PHANTOMS -> candidate(actor);
+				case SNAPSHOT_PHANTOMS -> snapshotPhantoms(actor, args);
 				case BEGIN_PHANTOM_CAUSAL_TRACE, SNAPSHOT_PHANTOM_CAUSAL_TRACE, END_PHANTOM_CAUSAL_TRACE -> causalTrace(request);
 				case PREPARE_M1_ENVELOPE -> prepareM1Envelope(actor, request.runId(), args);
 				case SNAPSHOT_M1_ENVELOPE -> snapshotM1Envelope(actor, request.runId(), args);
@@ -744,6 +744,18 @@ public final class LocalPlayPilotActions
 		if (!"true".equals(includeCensus) && !"false".equals(includeCensus)) { return Outcome.of("REJECTED", "INVALID_ARGUMENT"); }
 		if ("true".equals(includeCensus)) { data.putAll(PhantomSystem.operatorVisibleLifeCensus(actor, censusAfter)); }
 		return new Outcome("SUCCEEDED", "M1_ENVELOPE_SNAPSHOT", Map.copyOf(data));
+	}
+
+	private Outcome snapshotPhantoms(Player actor, Map<String, String> args)
+	{
+		final String includeCensus = args.getOrDefault("includeCensus", "false");
+		final long after = Long.parseLong(args.getOrDefault("censusAfterProfileId", "0"));
+		if ((!"true".equals(includeCensus) && !"false".equals(includeCensus)) || (after < 0)) { return Outcome.of("REJECTED", "INVALID_ARGUMENT"); }
+		final Outcome snapshot = candidate(actor);
+		if (!"true".equals(includeCensus)) { return snapshot; }
+		final Map<String, String> data = new LinkedHashMap<>(snapshot.candidate());
+		data.putAll(PhantomSystem.operatorVisibleLifeCensus(actor, after));
+		return new Outcome(snapshot.status(), snapshot.reason(), Map.copyOf(data));
 	}
 
 	private Outcome candidate(Player actor)

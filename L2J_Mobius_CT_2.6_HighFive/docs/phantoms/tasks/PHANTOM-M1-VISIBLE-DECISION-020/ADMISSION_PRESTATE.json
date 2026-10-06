@@ -1,0 +1,41 @@
+{
+  "background.catchup": {
+    "rowVersion": 20153,
+    "payloadSha256": "d7eee25c8f6c3bcdda2ae444b8f8e2e53583b5dc634a201f772c6e20fae1a0da",
+    "status": "PENDING",
+    "requestId": "95ebe1a96c55ea7f9364e1b86e8166021179f3b8fbf388f9cc65ade678c16b82",
+    "seed": 6374293272387424671,
+    "from": 29852110,
+    "target": 29852115,
+    "cursor": 29852110,
+    "planOrdinal": 29,
+    "intervalOrdinal": 0,
+    "generation": 4325036866926932582,
+    "knowledgeGeneration": 1,
+    "topologyGeneration": 1,
+    "goalId": 6728948813076984772,
+    "goalRevision": 29,
+    "planIdentity": "c32412dafdeb77aeeb6d9c007b1bd88c86c25f0e518387e87d16f5746226f8fd",
+    "modelVersion": 1,
+    "knowledge": "dba3b8a9936ad3791052f4f4569141874a6dcfca66ecdb9d63a5212ed449b40b",
+    "topology": "31e817f1900377725d21f296f141c276ac8485a5fdfb20e454db70c2d933d46b",
+    "progression": "133955996D84152171ED23514A47F76080767D0AFB36627EC9D40C0072E94BF7",
+    "commerce": "d9aead8e4df00efa8f702964dc70563f6f8aae29992fd4db1949ca700e59744f",
+    "failureReason": ""
+  },
+  "background.state": {
+    "rowVersion": 34539,
+    "payloadSha256": "e18c511f7aa3ccb43a03924a8020618548f298b525f96a9a7cee08cf70a55125",
+    "state": "READY"
+  },
+  "goal.runtime": {
+    "rowVersion": 29,
+    "payloadSha256": "909c0075e4c740c9d2aac745526068cf06cf148095558e96def65e83c464f0e7",
+    "goalId": 6728948813076984772,
+    "revision": 29,
+    "statusCode": 1,
+    "type": "farm.background"
+  },
+  "normalAdmission": false,
+  "postStopState": true
+}

@@ -752,7 +752,7 @@ public final class PhantomSystem
 				siegeDecision.registerHandlers(handlerRegistry);
 				questInstanceDecision.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
-				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, profileId -> _historicalBackgroundService.permitsNormalOperation(profileId) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
+				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, profileId -> _historicalBackgroundService.permitsDecision(profileId) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
 				_decisionEngine.start();
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);
@@ -968,6 +968,7 @@ public final class PhantomSystem
 
 	public synchronized boolean shutdown()
 	{
+		if (_historicalBackgroundService != null) { _historicalBackgroundService.revokeForegroundDecisions(); }
 		if (_autonomousMarketProducer != null)
 		{
 			_autonomousMarketProducer.beginStop();

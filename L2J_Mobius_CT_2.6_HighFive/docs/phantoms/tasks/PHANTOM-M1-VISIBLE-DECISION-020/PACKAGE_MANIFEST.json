@@ -1,0 +1,29 @@
+{
+  "task": "PHANTOM-M1-VISIBLE-DECISION-020",
+  "required_base": "29f4b32509535bad5d73d93bbf7fac1daf6b6b53",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "High",
+  "subagents": false,
+  "semantic_production_allowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java"
+  ],
+  "diagnostic_production_allowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java"
+  ],
+  "files": [
+    "ACCEPTANCE.md",
+    "CONTRACT.md",
+    "DIAGNOSTICS.md",
+    "GIT.md",
+    "GOAL.md",
+    "HANDOFF.md",
+    "MODEL.md",
+    "PLAN.md",
+    "README.md",
+    "RESULT_TEMPLATE.md",
+    "SOURCE_MAP.tsv",
+    "TESTS.md"
+  ]
+}

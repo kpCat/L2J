@@ -62,6 +62,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private final PhantomBackgroundService _background;
 	private final PhantomMaterializationService _materialization;
 	private final ConcurrentHashMap<Long, Admission> _admissions = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, ActiveForegroundHandoff> _foregroundHandoffs = new ConcurrentHashMap<>();
+	private volatile boolean _foregroundDecisionsRevoked;
 	private final ConcurrentHashMap<Long, RecoveryClaim> _recoveryClaims = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, VisibleFailures> _visibleFailures = new ConcurrentHashMap<>();
 	private final LongSupplier _visibleClock;
@@ -955,6 +957,44 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 	}
 
+	/** A successful exact foreground handoff owns decisions, never ordinary historical work. */
+	public boolean permitsDecision(long profileId)
+	{
+		try
+		{
+			final Snapshot current = _store.load(profileId).orElse(null);
+			if ((current == null) || !current.state().blocksNormalOperation()) { return true; }
+			final var handoff = _foregroundHandoffs.get(profileId);
+			return (handoff != null) && exactForegroundHandoff(profileId, handoff) && (_foregroundHandoffs.get(profileId) == handoff);
+		}
+		catch (RuntimeException exception) { return false; }
+	}
+
+	private boolean exactForegroundHandoff(long profileId, ActiveForegroundHandoff handoff)
+	{
+		if (_foregroundDecisionsRevoked) { return false; }
+		final Admission admission = handoff.admission();
+		if ((admission.purpose() != MaterializationPurpose.NATIVE_CONTEXT_HANDOFF) || (admission.catchup() == null) || (admission.goal() == null)
+			|| !admission.catchup().state().owns(admission.ownerClaim()) || !currentClaim(profileId, admission.catchup())
+			|| !Objects.equals(admission.claim(), _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null))
+			|| !Objects.equals(admission.goal(), _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null))) { return false; }
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		if ((lifetime == null) || (lifetime.profileId() != profileId) || (lifetime.state() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE)
+			|| !lifetime.worldPresent() || !lifetime.actionAdmissionOpen() || (lifetime.characterObjectId() != admission.characterObjectId())
+			|| (lifetime.materializedAtNanos() != handoff.materializedAtNanos()) || (lifetime.dematerializedAtNanos() != 0)
+			|| (lifetime.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE)) { return false; }
+		final var background = _background.acquisitionSnapshot(profileId).orElse(null);
+		return (background != null) && (background.state() == PhantomBackgroundState.State.MATERIALIZED)
+			&& (background.identity().profileId() == profileId) && (background.identity().characterObjectId() == admission.characterObjectId());
+	}
+
+	/** Stop revokes transient ownership even when native cleanup must be retried. */
+	public void revokeForegroundDecisions()
+	{
+		_foregroundDecisionsRevoked = true;
+		_foregroundHandoffs.clear();
+	}
+
 	public boolean permitsNormalOperation(long profileId)
 	{
 		try
@@ -1011,7 +1051,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			throw new AdmissionRejectedException("catchup.historical_claim_changed");
 		}
 		if ((recovery != null) && (!Objects.equals(recovery.claim(), claimComponent) || !Objects.equals(recovery.goal(), goalComponent))) { throw new AdmissionRejectedException("catchup.historical_claim_or_goal_changed"); }
-		final Admission admission = new Admission(characterObjectId, purpose, ownerClaim, recovery, claimComponent, goalComponent);
+		final Admission admission = new Admission(characterObjectId, purpose, ownerClaim, recovery, claimComponent, goalComponent, catchup);
 		if (_admissions.putIfAbsent(profileId, admission) != null)
 		{
 			throw new AdmissionRejectedException("catchup.materialization_transition_busy");
@@ -1040,18 +1080,32 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	@Override
 	public void materializeSucceeded(long profileId, int characterObjectId)
 	{
-		releaseAdmission(profileId, characterObjectId);
+		try
+		{
+			_foregroundHandoffs.compute(profileId, (_, previous) ->
+			{
+				final Admission admission = _admissions.get(profileId);
+				if ((admission == null) || (admission.characterObjectId() != characterObjectId) || (admission.purpose() != MaterializationPurpose.NATIVE_CONTEXT_HANDOFF)) { return previous; }
+				final var lifetime = _materialization.find(profileId).orElse(null);
+				if (lifetime == null) { return null; }
+				final var handoff = new ActiveForegroundHandoff(admission, lifetime.materializedAtNanos());
+				return exactForegroundHandoff(profileId, handoff) ? handoff : null;
+			});
+		}
+		finally { releaseAdmission(profileId, characterObjectId); }
 	}
 
 	@Override
 	public void materializeAborted(long profileId, int characterObjectId)
 	{
+		_foregroundHandoffs.computeIfPresent(profileId, (_, handoff) -> handoff.admission().characterObjectId() == characterObjectId ? null : handoff);
 		releaseAdmission(profileId, characterObjectId);
 	}
 
 	@Override
 	public void beforeStore(long profileId, Player player)
 	{
+		_foregroundHandoffs.remove(profileId);
 		final RecoveryClaim recovery = _recoveryClaims.get(profileId);
 		if ((recovery != null) && (!currentClaim(profileId, recovery.snapshot())
 			|| !Objects.equals(recovery.claim(), _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null))
@@ -1116,9 +1170,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	private record RecoveryClaim(Snapshot snapshot, PhantomProfileComponent claim, PhantomProfileComponent goal) { }
 
-	private record Admission(int characterObjectId, MaterializationPurpose purpose, String ownerClaim, RecoveryClaim recovery, PhantomProfileComponent claim, PhantomProfileComponent goal)
+	private record Admission(int characterObjectId, MaterializationPurpose purpose, String ownerClaim, RecoveryClaim recovery, PhantomProfileComponent claim, PhantomProfileComponent goal, Snapshot catchup)
 	{
 	}
+
+	private record ActiveForegroundHandoff(Admission admission, long materializedAtNanos) { }
 
 	private record Exclusions(Set<String> targets, Set<String> steps)
 	{

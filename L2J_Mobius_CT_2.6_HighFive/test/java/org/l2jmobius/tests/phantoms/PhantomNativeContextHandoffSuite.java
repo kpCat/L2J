@@ -340,7 +340,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 		};
 	}
 
-	private final class Fixture implements AutoCloseable
+	final class Fixture implements AutoCloseable
 	{
 		final long from = Instant.parse("2026-01-05T20:29:00Z").toEpochMilli() / 60000;
 		final long target = from + 1;
@@ -360,7 +360,9 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 		long loadedEpoch;
 		PhantomMaterializationService.MaterializationPurpose loadedPurpose;
 
-		Fixture() throws Exception
+		Fixture() throws Exception { this(false); }
+
+		Fixture(boolean visibleFarm) throws Exception
 		{
 			id = _profiles.create(objectId).profileId();
 			final var ref = new AtomicReference<PhantomMaterializationService>();
@@ -401,7 +403,8 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 			{
 				final var anchor = _production.topology().findAnchor("population.farming.human-fighter.20545").orElseThrow();
 				setup.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z());
-				final var plan = planner.idleInitial(id, setup, 1, 0);
+				final var plan = visibleFarm ? planner.planInitial(id, setup, 1, 0) : planner.idleInitial(id, setup, 1, 0);
+				PhantomAssertions.assertTrue(plan.ready(), "Canonical fixture plan.");
 				goals.insert(id, plan.goal());
 				setup.storeMe();
 				final var capture = _production.authority().captureOwnedNative(id, setup, plan.goal(), null);

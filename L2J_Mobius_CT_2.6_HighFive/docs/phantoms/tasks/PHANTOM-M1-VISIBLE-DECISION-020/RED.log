@@ -1,0 +1,19 @@
+[PASS] visible-decision-admission.V01-original-admission-retains-sequence-zero
+[FAIL] visible-decision-admission.V02-exact-handoff-permits-only-decision - java.lang.AssertionError: RED: successful exact foreground handoff must permit decisions. seed=20002001
+[PASS] visible-decision-admission.V03-incomplete-without-handoff-fenced
+[PASS] visible-decision-admission.V04-historical-baseline-fenced
+[PASS] visible-decision-admission.V05-wrong-request-fenced
+[PASS] visible-decision-admission.V06-catchup-row-and-payload-changes-fenced
+[PASS] visible-decision-admission.V07-goal-component-change-fenced
+[PASS] visible-decision-admission.V08-absent-stored-failed-materialization-fenced
+[PASS] visible-decision-admission.V09-world-absence-fenced
+[PASS] visible-decision-admission.V10-closed-action-admission-fenced
+[PASS] visible-decision-admission.V11-character-and-epoch-mismatch-fenced
+[PASS] visible-decision-admission.V12-background-state-and-identity-fenced
+[PASS] visible-decision-admission.V13-before-store-revokes-permit
+[PASS] visible-decision-admission.V14-abort-revokes-permit
+[PASS] visible-decision-admission.V15-absent-and-complete-history-ordinary
+[PASS] visible-decision-admission.V16-permit-check-has-no-durable-mutation
+[FAIL] visible-decision-admission.V17-snapshot-census-read-only-and-optional - java.lang.AssertionError: RED: optional census must be appended without PREPARE. seed=20002001
+[FAIL] visible-decision-admission.V18-active-work-selects-existing-visible-farm - java.lang.AssertionError: RED: exact active handoff work must advance sequence. seed=20002001
+SUMMARY: suite=visible-decision-admission seed=20002001 total=18 passed=15 failed=3

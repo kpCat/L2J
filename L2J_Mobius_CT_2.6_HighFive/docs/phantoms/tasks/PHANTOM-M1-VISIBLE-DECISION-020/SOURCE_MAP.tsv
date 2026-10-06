@@ -1,0 +1,9 @@
+mode	path	purpose
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	exact foreground handoff decision permit
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	DecisionEngine binds to permitsDecision
+DIAGNOSTIC_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java	read-only visible census through SNAPSHOT_PHANTOMS
+NEW_OR_MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomVisibleDecisionAdmissionSuite.java	admission contract
+OPTIONAL_MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeContextHandoffSuite.java	handoff regression
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-CONTEXT-HANDOFF-018/**	accepted handoff evidence
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/**	sequence0 visible evidence
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-DECISION-020/**	result/evidence
