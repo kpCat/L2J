@@ -5,3 +5,5 @@ java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	Po
 java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	temporaryCheckpoint	S03	Healthy control checkpoint only; permanent drain/failure excluded
 java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	selected/reward/killed/damage/snapshot	S08/S09/S10	Bounded late native fact completion; sticky first reason; no reset/horizon increase
 java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	visible census	S01	Read-only live registry/tick and direct EXP/SP/MP scalar export
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	captureCombatRecipients	S11 actual MagicUseTask RED	Ignore damage<=1 aggro entries excluded by stock rewards; earned/current-owner guards preserved; dynamic/secondary regressions required
+dist/game/data/scripts/quests/Q00255_Tutorial/Q00255_Tutorial.java	onKill	S13 missing-state RED; connected275 exact first incident	Local lawful null-state return; existing-state control; no fake quest/global listener bypass

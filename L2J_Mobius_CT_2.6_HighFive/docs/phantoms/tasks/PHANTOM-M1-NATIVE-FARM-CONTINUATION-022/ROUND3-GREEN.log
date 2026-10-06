@@ -1,0 +1,7 @@
+RAW_LOCAL=C:\Users\ZBook\.codex\worktrees\m1-native-farm-022\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive/.phantom-local\logs022\ROUND3-GREEN-full.log
+SHA256=54B5E2B49EDEEA8CB131FCD0636BDA3BE298C0652CBE3A6B7C9BEF0C87A36E52
+[PASS] native-farm-continuation022.S02-production-binding-native-cast-reward-five-next-targets
+[PASS] native-farm-continuation022.S05-S06-real-like-stock-control-continues-in-same-pools-after-revocation
+[PASS] native-farm-continuation022.S11-native-cast-ignores-unearned-hate-only-recipient
+[PASS] native-farm-continuation022.S13-tutorial-missing-state-and-existing-state-control
+SUMMARY: suite=native-farm-continuation022 seed=22002201 total=4 passed=4 failed=0

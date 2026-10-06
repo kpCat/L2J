@@ -1,12 +1,13 @@
-param()
+param([ValidateSet('a','b')][string]$Episode='a')
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $module = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
-$private = Join-Path $module '.phantom-local/observe022a'
+$private = Join-Path $module ".phantom-local/observe022$Episode"
 $runtime = Join-Path $private 'runtime'
 $option = Join-Path $private 'secrets/client.cnf'
 $client = 'C:/Program Files/MariaDB 11.4/bin/mariadb.exe'
-$database = 'l2jmobiush5_localplay_observe022a'
+$database = "l2jmobiush5_localplay_observe022$Episode"
+$suffix=if ($Episode -ceq 'a') { '' } else { '022b' }
 $query = "SELECT charId,char_name,online,level,exp,sp,x,y,z FROM characters WHERE charId=268492939 AND char_name='TestAdmin'; SELECT COUNT(*) FROM characters WHERE online=1;"
 function Read-Saved {
     $rows = @(& $client "--defaults-extra-file=$option" --batch --skip-column-names "--database=$database" -e $query)
@@ -14,7 +15,7 @@ function Read-Saved {
     return $rows
 }
 $before = Read-Saved
-$before | Set-Content (Join-Path $PSScriptRoot 'LOGOUT_BEFORE_STOP.tsv') -Encoding utf8
+$before | Set-Content (Join-Path $PSScriptRoot "LOGOUT_BEFORE_STOP$suffix.tsv") -Encoding utf8
 Write-Output "LOGOUT_SAVE_CONFIRMED $($before[0]) totalOnline=$($before[1])"
 . (Join-Path $runtime 'LocalPlay-Pilot.ps1')
 $pilotContext=Get-PilotContext -RequireEnabled -ActorMode RealClient
@@ -27,11 +28,11 @@ if ($pilotSession.state -ceq 'RUNNING') {
 }
 if ($pilotSession.state -ceq 'RUNNING') { throw 'Pilot run still active; leave server running.' }
 Write-Output "NO_ACTIVE_PILOT_RUN state=$($pilotSession.state)"
-& (Join-Path $runtime 'Stop-LocalPlay.ps1') *> (Join-Path $PSScriptRoot 'GRACEFUL_STOP.log')
-if (-not $?) { Get-Content (Join-Path $PSScriptRoot 'GRACEFUL_STOP.log') -Tail 15; throw 'Graceful stop incomplete; no force fallback.' }
-Get-Content (Join-Path $PSScriptRoot 'GRACEFUL_STOP.log') -Tail 10
+& (Join-Path $runtime 'Stop-LocalPlay.ps1') *> (Join-Path $PSScriptRoot "GRACEFUL_STOP$suffix.log")
+if (-not $?) { Get-Content (Join-Path $PSScriptRoot "GRACEFUL_STOP$suffix.log") -Tail 15; throw 'Graceful stop incomplete; no force fallback.' }
+Get-Content (Join-Path $PSScriptRoot "GRACEFUL_STOP$suffix.log") -Tail 10
 $after = Read-Saved
-$after | Set-Content (Join-Path $PSScriptRoot 'LOGOUT_AFTER_STOP.tsv') -Encoding utf8
+$after | Set-Content (Join-Path $PSScriptRoot "LOGOUT_AFTER_STOP$suffix.tsv") -Encoding utf8
 if (($before -join "`n") -cne ($after -join "`n")) { throw 'Saved character fields changed during stop.' }
 Write-Output "SAVED_FIELDS_EXACT_MATCH $($after[0]) totalOnline=$($after[1])"
 & (Join-Path $runtime 'Check-LocalPlay.ps1')

@@ -1,4 +1,4 @@
-"""Compile only the six exact permitted base blobs into a private precedence classpath."""
+"""Compile exact permitted base Java blobs into a private precedence classpath."""
 from pathlib import Path
 import subprocess
 import sys
@@ -8,6 +8,7 @@ root = module.parent
 base = '0205d04bc7763fafcbb776e6da8887c1f2912d8b'
 paths = [
     'java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java',
+    'java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java',
     'java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java',
     'java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java',
     'java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java',
@@ -25,4 +26,4 @@ output = private / 'bin'
 output.mkdir(parents=True, exist_ok=True)
 classpath = str(root / 'build/bin') + ';' + str(module / 'dist/libs/*')
 subprocess.run(['C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/javac.exe', '-encoding', 'UTF-8', '-cp', classpath, '-d', str(output), *sources], check=True)
-print('EXACT_BASE_PROBE', base, 'six existing source blobs; no source restore or live patch')
+print('EXACT_BASE_PROBE', base, 'seven existing source blobs; no source restore or live patch')

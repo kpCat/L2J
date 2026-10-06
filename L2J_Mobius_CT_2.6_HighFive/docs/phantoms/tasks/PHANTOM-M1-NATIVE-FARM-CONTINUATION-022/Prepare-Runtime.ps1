@@ -1,10 +1,10 @@
 [CmdletBinding()]
-param()
+param([ValidateSet('a','b')][string]$Episode='a')
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $module = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $original = 'C:\Users\ZBook\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\artifacts\local-play\runtime'
-$private = Join-Path $module '.phantom-local/observe022a'
+$private = Join-Path $module ".phantom-local/observe022$Episode"
 $runtime = Join-Path $private 'runtime'
 if (Test-Path -LiteralPath $runtime) { throw 'Task022 runtime already exists; no overwrite.' }
 . (Join-Path $module 'tools/phantom-local-play/LocalPlay-Pilot.ps1')
@@ -26,7 +26,7 @@ $password = Get-PilotIniValue $sourceConfig 'Password'
 [IO.File]::WriteAllText($option,"[client]`nhost=127.0.0.1`nport=3308`nuser=$login`npassword=$password`n",[Text.UTF8Encoding]::new($false))
 $client = 'C:\Program Files\MariaDB 11.4\bin\mariadb.exe'
 $dump = 'C:\Program Files\MariaDB 11.4\bin\mariadb-dump.exe'
-$db = 'l2jmobiush5_localplay_observe022a'
+$db = "l2jmobiush5_localplay_observe022$Episode"
 $existing = & $client "--defaults-extra-file=$option" --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME='$db'"
 if ($LASTEXITCODE -ne 0 -or "$existing".Trim() -ne '0') { throw 'Clone database not absent.' }
 $snapshot = Join-Path $private 'play-snapshot.sql'
@@ -64,25 +64,25 @@ function Override-Ini([string]$Relative,[string]$Key,[string]$Value) {
     $changes.Add([pscustomobject]@{path=$Relative;key=$Key;before=$matches[0].Groups[2].Value;after=$Value})
     [IO.File]::WriteAllText($file,[regex]::Replace($text,$pattern,{param($match) $match.Groups[1].Value+$Value}),[Text.UTF8Encoding]::new($false))
 }
-foreach ($role in @('game','login')) { Override-Ini "$role/config/Database.ini" 'URL' ($url.Replace('/l2jmobiush5_localplay3?','/l2jmobiush5_localplay_observe022a?')) }
+foreach ($role in @('game','login')) { Override-Ini "$role/config/Database.ini" 'URL' ($url.Replace('/l2jmobiush5_localplay3?',"/$db`?")) }
 Override-Ini 'game/config/Server.ini' 'GameserverHostname' '127.0.0.1'
 Override-Ini 'login/config/Server.ini' 'LoginserverHostname' '127.0.0.1'
 foreach ($entry in @{EnablePhantomSystem='True';EnablePhantomDiagnostics='True';PhantomPopulationTarget='1280';PhantomPopulationActiveTarget='8';MaxMaterializedPhantoms='8';MaxScheduledPhantomProfiles='10000'}.GetEnumerator()) { Override-Ini 'game/config/Custom/PhantomPlayers.ini' $entry.Key $entry.Value }
 foreach ($entry in @{EnableLocalPlayPilot='True';EnableLocalPlayPilotAutoAttach='True';LocalPlayPilotAutoAttachCharacters='TestAdmin';EnableLocalPlaySyntheticHuman='False'}.GetEnumerator()) { Override-Ini 'game/config/Custom/LocalPlayPilot.ini' $entry.Key $entry.Value }
 foreach ($key in @('GMStartupBuilderHide','GMStartupInvulnerable','GMStartupInvisible','GMStartupSilence')) { Override-Ini 'game/config/General.ini' $key 'False' }
-$changes | Export-Csv (Join-Path $PSScriptRoot 'CONFIG_OVERRIDES.tsv') -Delimiter "`t" -NoTypeInformation -Encoding utf8
+$changes | Export-Csv (Join-Path $PSScriptRoot $(if ($Episode -ceq 'a') { 'CONFIG_OVERRIDES.tsv' } else { 'CONFIG_OVERRIDES022b.tsv' })) -Delimiter "`t" -NoTypeInformation -Encoding utf8
 foreach ($name in @('LocalPlay-Ownership.ps1','Start-LocalPlay.ps1','Check-LocalPlay.ps1','LocalPlay-Pilot.ps1','Get-LocalPlayPilot.ps1','Invoke-LocalPlayPilot.ps1','Stop-LocalPlayPilot.ps1','Stop-LocalPlay.ps1')) { Copy-Item -LiteralPath (Join-Path $module "tools/phantom-local-play/$name") -Destination $runtime }
 $invokePath = Join-Path $runtime 'Invoke-LocalPlayPilot.ps1'
 $invoke = [IO.File]::ReadAllText($invokePath).Replace("'STATUS', 'CAPABILITIES'", "'STATUS', 'BEGIN_PHANTOM_CAUSAL_TRACE', 'SNAPSHOT_PHANTOM_CAUSAL_TRACE', 'END_PHANTOM_CAUSAL_TRACE', 'CAPABILITIES'")
 [IO.File]::WriteAllText($invokePath,$invoke,[Text.UTF8Encoding]::new($false))
-# Reuse previously reviewed stock shutdown agents; bind the private helper to observe022a only.
+# Reuse reviewed stock agents; bind this helper to the exact episode database.
 $oldOps = 'C:/Users/ZBook/.codex/worktrees/m1-inventory-013/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/.phantom-local/ops013'
-$ops = Join-Path $module '.phantom-local/ops022'
+$ops = Join-Path $module ".phantom-local/ops022$Episode"
 New-Item -ItemType Directory -Path $ops -Force | Out-Null
 foreach ($name in @('graceful-shutdown.jar','graceful-login-shutdown.jar','RequestGracefulShutdown.class')) { Copy-Item -LiteralPath (Join-Path $oldOps $name) -Destination $ops }
-$stop = [IO.File]::ReadAllText((Join-Path $oldOps 'Stop-ExactOwnedGracefully.ps1')).Replace('observe01[13]', 'observe022a').Replace('013','019a')
+$stop = [IO.File]::ReadAllText((Join-Path $oldOps 'Stop-ExactOwnedGracefully.ps1')).Replace('observe01[13]', "observe022$Episode").Replace('013','019a')
 [IO.File]::WriteAllText((Join-Path $ops 'Stop-ExactOwnedGracefully.ps1'),$stop,[Text.UTF8Encoding]::new($false))
-$wrapper = 'param(); & (Join-Path $PSScriptRoot ''../../ops022/Stop-ExactOwnedGracefully.ps1'') -RuntimeRoot $PSScriptRoot'
+$wrapper = "param(); & (Join-Path `$PSScriptRoot '../../ops022$Episode/Stop-ExactOwnedGracefully.ps1') -RuntimeRoot `$PSScriptRoot"
 [IO.File]::WriteAllText((Join-Path $runtime 'Stop-LocalPlay.ps1'),$wrapper,[Text.UTF8Encoding]::new($false))
 & python (Join-Path $PSScriptRoot 'Restore-Private-Catalogs.py') $runtime
 if ($LASTEXITCODE -ne 0) { throw 'Private pinned catalog verification failed.' }

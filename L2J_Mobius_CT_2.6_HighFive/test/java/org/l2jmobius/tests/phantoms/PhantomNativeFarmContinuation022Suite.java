@@ -38,8 +38,115 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	@Override public void afterAll(PhantomTestContext context) throws Exception { handoff.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("S11-native-cast-ignores-unearned-hate-only-recipient", this::hateOnlyRecipient);
+		registry.add("S12-native-earned-recipient-fence-preserved", context -> recipient(context, true));
+		registry.add("S13-tutorial-missing-state-and-existing-state-control", this::tutorialState);
+		if (Boolean.getBoolean("phantom022.round3")) { return; }
 		registry.add("S02-production-binding-native-cast-reward-five-next-targets", this::composed);
 		registry.add("S05-S06-real-like-stock-control-continues-in-same-pools-after-revocation", this::realControl);
+	}
+	private PhantomHeadlessPlayerTestEnvironment environment() throws Exception
+	{
+		final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); field.setAccessible(true);
+		return (PhantomHeadlessPlayerTestEnvironment) field.get(handoff);
+	}
+	private static AutoCloseable nativeLifetime(org.l2jmobius.gameserver.model.actor.Player player) throws Exception
+	{
+		final var type = Class.forName("org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$NativeLifetime");
+		final var constructor = type.getDeclaredConstructor(org.l2jmobius.gameserver.model.actor.Player.class); constructor.setAccessible(true);
+		return (AutoCloseable) constructor.newInstance(player);
+	}
+	private void hateOnlyRecipient(PhantomTestContext context) throws Exception
+	{
+		recipient(context, false);
+	}
+	private void recipient(PhantomTestContext context, boolean earnedRecipient) throws Exception
+	{
+		final var first = org.l2jmobius.gameserver.model.actor.Player.load(environment().primary().objectId());
+		final var second = org.l2jmobius.gameserver.model.actor.Player.load(environment().observer().objectId());
+		final var monster = new Monster(NpcData.getInstance().getTemplate(20534)); monster.disableCoreAI(true);
+		try (var firstOutput = first.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128));
+			var secondOutput = second.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			first.stopAllTasks(); second.stopAllTasks();
+			first.addSkill(SkillData.getInstance().getSkill(1177, 1), true);
+			first.setCurrentHp(first.getMaxHp()); first.setCurrentMp(first.getMaxMp());
+			first.setOnlineStatus(true, false); second.setOnlineStatus(true, false);
+			first.spawnMe(first.getX(), first.getY(), first.getZ()); second.spawnMe(first.getX() + 30, first.getY(), first.getZ());
+			final var spawn = new Spawn(monster.getTemplate()); spawn.setXYZ(first.getX() + 40, first.getY(), first.getZ()); monster.setSpawn(spawn);
+			monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
+			final double hp = monster.getCurrentHp(); final long secondExp = second.getExp(), secondSp = second.getSp();
+			try (var firstLifetime = nativeLifetime(first); var secondLifetime = nativeLifetime(second))
+			{
+				final var gateType = Class.forName("org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$WorkerGate");
+				final var constructor = gateType.getDeclaredConstructor(); constructor.setAccessible(true);
+				final var acquire = gateType.getDeclaredMethod("acquire"); acquire.setAccessible(true);
+				final var release = gateType.getDeclaredMethod("release"); release.setAccessible(true);
+				try (var gate = (AutoCloseable) constructor.newInstance())
+				{
+					acquire.invoke(gate);
+					final var owner = first.getNativeWorkOwner();
+					final var ticket = owner.reserve(null, "TEST022_NATIVE_CAST", org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Semantics.CANCELLABLE);
+					PhantomAssertions.assertTrue(ticket != null && ticket.tryStart(), "Exact TEST native root admitted.");
+					try (var nativeContext = org.l2jmobius.gameserver.model.actor.PlayerNativeWork.enter(ticket))
+					{
+						first.setTarget(monster); first.doCast(first.getKnownSkill(1177));
+					}
+					finally { ticket.complete(null); }
+					PhantomAssertions.assertTrue(first.isCastingNow(), "Actual stock cast published before recipient change.");
+					// Negative control supplies only recipient metadata; it never writes HP or grants EXP/SP.
+					monster.addDamageHate(second, earnedRecipient ? 2 : 0, 1);
+					PhantomAssertions.assertEquals(earnedRecipient ? 2L : 0L, monster.getAggroList().get(second).getDamage(), "Exact TEST recipient metadata.");
+					release.invoke(gate);
+				}
+				final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) first.getNativeWorkOwner();
+				final long deadline = System.nanoTime() + 15_000_000_000L;
+				while (first.isCastingNow() && scope.firstNativeIncident() == null && System.nanoTime() < deadline) { Thread.sleep(10); }
+				context.record(earnedRecipient ? "S12.guard" : "S11.native", "recipientMetadata=" + (earnedRecipient ? 2 : 0) + ";casting=" + first.isCastingNow() + ";hp=" + hp + "→" + monster.getCurrentHp() + ";firstIncident=" + scope.firstNativeIncident());
+				if (earnedRecipient)
+				{
+					PhantomAssertions.assertTrue(scope.firstNativeIncident() != null && scope.firstNativeIncident().message().contains("NATIVE_EARNED_RECIPIENT_NOT_CAPTURED") && monster.getCurrentHp() == hp, "Earned new recipient remains rejected before every HP/reward writer.");
+				}
+				else
+				{
+					PhantomAssertions.assertEquals(null, scope.firstNativeIncident(), "RED: hate-only non-recipient must not poison actual earned cast.");
+					PhantomAssertions.assertTrue(!first.isCastingNow() && monster.getCurrentHp() < hp, "Actual native effects and finalizer completed.");
+				}
+				PhantomAssertions.assertTrue(second.getExp() == secondExp && second.getSp() == secondSp, "Hate-only actor earned no reward.");
+			}
+		}
+		finally { monster.deleteMe(); }
+	}
+	private void tutorialState(PhantomTestContext context) throws Exception
+	{
+		org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(Path.of("quests/Q00255_Tutorial/Q00255_Tutorial.java"));
+		// The single-source executor compiles a constructor-only quest; instantiate it under its exact loading path.
+		final var executorField = org.l2jmobius.gameserver.scripting.ScriptEngine.class.getDeclaredField("SCRIPT_EXECUTOR"); executorField.setAccessible(true);
+		final var executor = executorField.get(null);
+		final var loaderField = executor.getClass().getDeclaredField("SCRIPT_CLASS_LOADER"); loaderField.setAccessible(true);
+		final var loadingField = executor.getClass().getDeclaredField("_currentExecutingScript"); loadingField.setAccessible(true);
+		final Object previous = loadingField.get(executor);
+		try
+		{
+			loadingField.set(executor, Path.of("data/scripts/quests/Q00255_Tutorial/Q00255_Tutorial.java").toAbsolutePath());
+			((ClassLoader) loaderField.get(null)).loadClass("quests.Q00255_Tutorial.Q00255_Tutorial").getDeclaredConstructor().newInstance();
+		}
+		finally { loadingField.set(executor, previous); }
+		final var quest = org.l2jmobius.gameserver.managers.ScriptManager.getInstance().getQuest(255);
+		PhantomAssertions.assertTrue(quest != null, "Actual stock Tutorial script loaded.");
+		final var player = org.l2jmobius.gameserver.model.actor.Player.load(environment().observer().objectId());
+		final var gremlin = new Monster(NpcData.getInstance().getTemplate(18342));
+		try
+		{
+			PhantomAssertions.assertEquals(null, quest.getQuestState(player, false), "Lawful missing QuestState fixture.");
+			quest.onKill(gremlin, player, false);
+			PhantomAssertions.assertEquals(null, quest.getQuestState(player, false), "No synthetic Tutorial state or reward.");
+			final var state = quest.newQuestState(player); state.setState(org.l2jmobius.gameserver.model.script.State.STARTED); state.setMemoStateEx(1, 3);
+			quest.onKill(gremlin, player, false);
+			PhantomAssertions.assertTrue(quest.getQuestState(player, false) == state && state.getMemoStateEx(1) == 3, "Existing-state stock control preserved.");
+			context.record("S13.tutorial", "missing state safe; existing state3 preserved; no fake quest for Phantom");
+		}
+		finally { gremlin.deleteMe(); environment().cleanupLoadedPlayer(player); }
 	}
 	private void realControl(PhantomTestContext context) throws Exception
 	{

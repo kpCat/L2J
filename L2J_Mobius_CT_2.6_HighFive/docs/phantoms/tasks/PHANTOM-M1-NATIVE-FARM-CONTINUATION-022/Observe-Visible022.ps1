@@ -3,6 +3,8 @@ param([Parameter(Mandatory)][string]$RuntimeRoot, [Parameter(Mandatory)][string]
       [ValidateSet('BASELINE','POLL','RUN')][string]$Stage='BASELINE', [double]$RemainingSeconds=300)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+if ($RuntimeRoot -notmatch '[\\/]observe022([ab])[\\/]runtime[\\/]?$') { throw 'Exact TASK022 episode runtime required.' }
+$episode=$Matches[1]
 if ($Stage -eq 'RUN') {
     & $PSCommandPath -RuntimeRoot $RuntimeRoot -OutputRoot $OutputRoot -Stage BASELINE
     $first=Get-Content (Join-Path $OutputRoot 'baseline.json') -Raw | ConvertFrom-Json -DateKind String
@@ -57,7 +59,7 @@ if ($Stage -eq 'RUN') {
         }
     } catch { $stopReason='ERROR:'+$_; throw }
     finally {
-        [ordered]@{baseline=$first;elapsedSeconds=$watch.Elapsed.TotalSeconds;stopReason=$stopReason;samples=@($samples);cohort=@($cohorts);STOP_AUTHORITY='TASK022_CONTRACT'} | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $PSScriptRoot 'EVIDENCE022a.json') -Encoding utf8
+        [ordered]@{baseline=$first;elapsedSeconds=$watch.Elapsed.TotalSeconds;stopReason=$stopReason;samples=@($samples);cohort=@($cohorts);STOP_AUTHORITY='TASK022_CONTRACT'} | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $PSScriptRoot "EVIDENCE022$episode.json") -Encoding utf8
     }
     return
 }

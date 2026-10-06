@@ -12,6 +12,8 @@ task = root / task_relative
 base = '0205d04bc7763fafcbb776e6da8887c1f2912d8b'
 sources = [module + value for value in (
     'java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java',
+    'java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java',
+    'dist/game/data/scripts/quests/Q00255_Tutorial/Q00255_Tutorial.java',
     'java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java',
     'java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java',
     'java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java',
@@ -32,7 +34,7 @@ ENGINEERING.log population-ecology-goal033-GREEN.log population-ecology-handoff-
 native-ownership-GREEN.log native-native-phase-GREEN.log native-closure-GREEN.log native-loot-GREEN.log
 ROUND2-STALE-RED.log ROUND2-COMPILE.log ROUND2-PhantomAutoPlayOwnership022Suite-GREEN.log ROUND2-PhantomNativeFarmContinuation022Suite-GREEN.log BASE-PROBE-COMPILE.log BASE-native-loot.log CONTROL-COMPILE.log CONTROL-GREEN.log
 BUILD.log PUBLICATION.json CONFIG_OVERRIDES.tsv RUNTIME_PREPARE.log RUNTIME_START.log RUNTIME_READY.log RUNTIME_PRECHECK.log EVIDENCE022a.json OBSERVE022a.log LOGOUT_BEFORE_STOP.tsv LOGOUT_AFTER_STOP.tsv GRACEFUL_STOP.log STOP_VERIFY.log
-EVIDENCE022b.json OBSERVE022b.log ROUND3-RED.log ROUND3-GREEN.log ROUND3-COMPILE.log BUILD022b.log PUBLICATION022b.json'''.split()
+EVIDENCE022b.json OBSERVE022b.log ROUND3-RED.log ROUND3-GREEN.log ROUND3-COMPILE.log BUILD022b.log PUBLICATION022b.json CONFIG_OVERRIDES022b.tsv RUNTIME_PREPARE022b.log RUNTIME_START022b.log RUNTIME_PRECHECK022b.log LOGOUT_BEFORE_STOP022b.tsv LOGOUT_AFTER_STOP022b.tsv GRACEFUL_STOP022b.log STOP_VERIFY022b.log ROUND3-REGRESSIONS.tsv'''.split()
 expected = set(sources + [task_relative + name for name in names])
 def git(*args):
     return subprocess.run(['git', '-C', str(root), *args], check=True, capture_output=True, text=True).stdout
@@ -40,7 +42,7 @@ changed = set(git('diff', '--name-only', base).splitlines())
 untracked = set(git('ls-files', '--others', '--exclude-standard').splitlines())
 assert (changed | untracked) <= expected, ('Foreign scope', sorted((changed | untracked) - expected))
 assert {path.relative_to(task).as_posix() for path in task.rglob('*') if path.is_file()} <= set(names), 'Unexpected task artifact'
-assert len([path for path in changed if '/java/' in path and '/test/' not in path]) <= 6
+assert len([path for path in changed if ('/java/' in path and '/test/' not in path) or '/dist/game/data/scripts/quests/Q00255_Tutorial/' in path]) <= 8
 actual = sources + [task_relative + name for name in names if (root / (task_relative + name)).is_file()]
 if task_relative + 'ARTIFACT_ALLOWLIST.json' not in actual: actual.append(task_relative + 'ARTIFACT_ALLOWLIST.json')
 (task / 'ARTIFACT_ALLOWLIST.json').write_text(json.dumps({'base': base, 'exactPaths': sorted(actual)}, indent=2) + '\n', encoding='utf-8')
@@ -62,4 +64,4 @@ assert not escapes, ('Escaped Cyrillic', escapes)
 print('MOJIBAKE_MARKERS_CHANGED_FILES=PASS')
 print('ESCAPED_CYRILLIC_CHANGED_FILES=PASS')
 print('RAW_LOG_ENCODING_MATCHES_PRESERVED=' + repr(raw))
-print('EXACT_SCOPE=PASS; production<=6; standalone tests=3; exact paths=' + str(len(actual)))
+print('EXACT_SCOPE=PASS; production<=8 (round3 confirmed RED); standalone tests=3; exact paths=' + str(len(actual)))

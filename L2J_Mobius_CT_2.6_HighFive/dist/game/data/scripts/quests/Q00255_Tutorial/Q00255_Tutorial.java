@@ -3564,6 +3564,11 @@ public class Q00255_Tutorial extends Quest
 	public void onKill(Npc npc, Player killer, boolean isSummon)
 	{
 		final QuestState qs = getQuestState(killer, false);
+		if (qs == null)
+		{
+			return;
+		}
+
 		if (npc.getId() == TUTORIAL_GREMLIN)
 		{
 			if ((qs.getMemoStateEx(1) == 1) || (qs.getMemoStateEx(1) == 0))

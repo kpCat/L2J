@@ -307,8 +307,13 @@ public final class PlayerNativeWork
 		}
 		if (object instanceof Attackable attackable)
 		{
-			for (Creature attacker : attackable.getAggroList().keySet())
+			for (var info : attackable.getAggroList().values())
 			{
+				// Stock calculateRewards excludes hate-only entries and damage <= 1.
+				// Their later arrival does not introduce an earned recipient into this callback.
+				if (info.getDamage() <= 1) { continue; }
+				final Creature attacker = info.getAttacker();
+				if (attacker == null) { continue; }
 				capture(attacker, seen, participants);
 				if (attacker.isPlayable()) { captureCombatRecipients(attacker, seen, participants); }
 			}

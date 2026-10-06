@@ -2064,6 +2064,9 @@ public final class PhantomSystem
 			result.put(prefix + "runtimeGoalRevision", runtime == null ? "0" : Long.toString(runtime.goalRevision()));
 			result.put(prefix + "currentActionGuard", backgroundStatus != PhantomBackgroundService.ServiceState.RUNNING ? "BACKGROUND_SERVICE_" + backgroundStatus : !entry.actionAdmissionOpen() ? "ACTION_ADMISSION_CLOSED" : !player.hasHeadlessOutboundSession() ? "OUTBOUND_MISSING" : player.isDead() ? "DEAD" : player.hasPendingOwnedStore() ? "OWNED_STORE_PENDING" : goal == null ? "GOAL_ABSENT" : goal.status() != PhantomGoalStatus.ACTIVE ? "GOAL_NOT_ACTIVE" : runtime == null ? "DECISION_ABSENT" : ((runtime.goalId() != goal.goalId()) || (runtime.goalRevision() != goal.revision()) || (runtime.goalStatus() != PhantomGoalStatus.ACTIVE)) ? "DECISION_GOAL_MISMATCH" : "COMMON_GUARDS_CLEAR");
 			result.put(prefix + "hp", Double.toString(player.getCurrentHp()));
+			result.put(prefix + "inventoryTotalCount", Long.toString(player.getInventory().getItems().stream().mapToLong(item -> item.getCount()).sum()));
+			result.put(prefix + "inventoryAdena", Long.toString(player.getAdena()));
+			result.put(prefix + "inventorySlots", Integer.toString(player.getInventory().getItems().size()));
 			result.put(prefix + "maxHp", Double.toString(player.getMaxHp()));
 			result.put(prefix + "nativeAttackBy", player.getAttackByList().stream().map(value -> Integer.toString(value.getObjectId())).sorted().limit(8).collect(java.util.stream.Collectors.joining(",")));
 			result.put(prefix + "level", Integer.toString(player.getLevel()));
