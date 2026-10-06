@@ -22,3 +22,8 @@
 - M1=OPEN. C/D pending; automatic continuation отсутствует.
 
 - EOL correction: commit5833582b347 включил мою unintended CRLF normalization; commit19b2ff90e0b восстановил исходные смешанные endings, без semantic change или history rewrite. Final base-to-HEAD diff --check PASS; source/test final scope71/165 lines,223 insertions/13 deletions. Push ещё не выполнен на момент correction.
+
+- Runtime completed: manual IN_GAME/REAL_LOGIN/ARMED_IDLE, one bounded BEGIN/END 49.9970473s,1423 retained,dropped0. Required READY_PASS/MATERIALIZE_CALL not reached; exact first live false guard presence.isOnline=false, profile110 seq283 READY_PRESENCE_OFFLINE. No runtime fixes/second observation.
+- Exporter glob corrected after END; frozen mailbox exported without another BEGIN.
+- User confirmed character-select logout. Exact saved fields and total online0 verified before/after stock graceful Game/Login shutdown. Force=false, processes/listeners0, original304 hash guard PASS.
+- Final result PARTIAL_RUNTIME_MINIMUM_NOT_REACHED, M1=OPEN, no automatic continuation. RESULT.md supersedes the earlier pending ledger entries.

@@ -7,7 +7,7 @@ from pathlib import Path
 TASK = Path(__file__).resolve().parent
 MODULE = TASK.parents[3]
 PRIVATE = MODULE / '.phantom-local/observe016'
-pages = sorted((PRIVATE / 'causal').glob('*.json'), key=lambda p: int(p.name.split('-')[0]))
+pages = sorted((PRIVATE / 'causal').glob('[0-9]*-*.json'), key=lambda p: int(p.name.split('-')[0]))
 results = [(p, json.loads(p.read_text(encoding='utf-8-sig'))) for p in pages]
 end = next(r for _, r in results if r['operation'] == 'END_PHANTOM_CAUSAL_TRACE')
 begin = next(r for _, r in results if r['operation'] == 'BEGIN_PHANTOM_CAUSAL_TRACE')

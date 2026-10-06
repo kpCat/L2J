@@ -28,19 +28,43 @@ $begin = Invoke-Trace 'BEGIN_PHANTOM_CAUSAL_TRACE'
 $begunUtc = [DateTimeOffset]::UtcNow
 Write-Output "CAUSAL_BEGIN serverUtc=$($begin.endUtc) startedNanos=$($begin.candidate.startedNanos)"
 $lastHeartbeat = 0.0
+$lastProbe = 0.0
+$probeCursor = '0'
+$materializeCalls = [Collections.Generic.HashSet[string]]::new()
+$stopReason = ''
 $reported = 0
-while ($watch.Elapsed.TotalSeconds -lt 55.0) {
+while ($watch.Elapsed.TotalSeconds -lt 50.0) {
     if ($watch.Elapsed.TotalSeconds - $lastHeartbeat -ge 5.0) {
         Write-PilotHeartbeat $context ([string]$session.sessionId) $run
         $lastHeartbeat = $watch.Elapsed.TotalSeconds
     }
+    if ($watch.Elapsed.TotalSeconds - $lastProbe -ge 2.0) {
+        $probe = Invoke-Trace 'SNAPSHOT_PHANTOM_CAUSAL_TRACE' @{afterSeq=$probeCursor;maxEvents='128'}
+        $rawPath = Join-Path $context.PilotRoot ("results/" + $probe.requestId + '.xml')
+        $raw = [IO.File]::ReadAllText($rawPath)
+        foreach ($match in [regex]::Matches($raw, '\bevent\.\d+="([^"]*)"')) {
+            $fields = [Net.WebUtility]::HtmlDecode($match.Groups[1].Value).Split("`t")
+            if ($fields.Count -ne 11) { throw 'Causal probe lost literal TAB separators.' }
+            if ($fields[4] -ceq 'MATERIALIZE_CALL') { $null = $materializeCalls.Add($fields[3]) }
+            if ($fields[4] -ceq 'MATERIALIZE_RESULT' -and $materializeCalls.Contains($fields[3])) {
+                if ($fields[5] -cne 'SUCCESS') {
+                    $stopReason = "BLOCKED_NEXT_EDGE seq=$($fields[0]) profile=$($fields[3]) MATERIALIZE_RESULT=$($fields[5]) reason=$($fields[7])"
+                    break
+                }
+                if ($fields[10] -ceq '1') { $stopReason = "WORLD_PRESENT_SUCCESS seq=$($fields[0]) profile=$($fields[3])"; break }
+            }
+        }
+        $probeCursor = [string]$probe.candidate.nextSeq
+        $lastProbe = $watch.Elapsed.TotalSeconds
+        if ($stopReason) { Write-Output $stopReason; break }
+    }
     $checkpoint = [int][math]::Floor($watch.Elapsed.TotalSeconds / 30.0)
     if ($checkpoint -gt $reported) { $reported = $checkpoint; Write-Output "OBSERVING elapsed=$([math]::Round($watch.Elapsed.TotalSeconds,3))s" }
-    $remainingMs = (55.0 - $watch.Elapsed.TotalSeconds) * 1000
+    $remainingMs = (50.0 - $watch.Elapsed.TotalSeconds) * 1000
     if ($remainingMs -gt 0) { Start-Sleep -Milliseconds ([int][math]::Min(100, [math]::Ceiling($remainingMs))) }
 }
 $elapsed = $watch.Elapsed.TotalSeconds
-@{observationSeconds=$elapsed;ackUtc=$begunUtc.ToString('o')} | ConvertTo-Json | Set-Content (Join-Path $private 'timing.json') -Encoding utf8
+@{observationSeconds=$elapsed;ackUtc=$begunUtc.ToString('o');stopReason=$stopReason} | ConvertTo-Json | Set-Content (Join-Path $private 'timing.json') -Encoding utf8
 Write-Output "OBSERVATION_WINDOW_FINISHED elapsed=${elapsed}s"
 $page = Invoke-Trace 'END_PHANTOM_CAUSAL_TRACE' @{maxEvents='128'}
 $endUtc = $page.endUtc

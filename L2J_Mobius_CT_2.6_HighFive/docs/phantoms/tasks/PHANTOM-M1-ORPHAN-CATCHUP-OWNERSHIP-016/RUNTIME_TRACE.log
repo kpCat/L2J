@@ -1,0 +1,12 @@
+VERIFIED ARMED_IDLE IN_GAME REAL_LOGIN objectId=268492939 position=44131,42673,-3488
+CAUSAL_BEGIN serverUtc=2026-10-06T00:04:48.322492500Z startedNanos=100951054354100
+OBSERVING elapsed=30.056s
+OBSERVATION_WINDOW_FINISHED elapsed=50.0113183s
+Traceback (most recent call last):
+  File "C:\Users\ZBook\.codex\worktrees\m1-orphan-016\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-ORPHAN-CATCHUP-OWNERSHIP-016\Recover-Trace.py", line 10, in <module>
+    pages = sorted((PRIVATE / 'causal').glob('*.json'), key=lambda p: int(p.name.split('-')[0]))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ZBook\.codex\worktrees\m1-orphan-016\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-ORPHAN-CATCHUP-OWNERSHIP-016\Recover-Trace.py", line 10, in <lambda>
+    pages = sorted((PRIVATE / 'causal').glob('*.json'), key=lambda p: int(p.name.split('-')[0]))
+                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'timing.json'

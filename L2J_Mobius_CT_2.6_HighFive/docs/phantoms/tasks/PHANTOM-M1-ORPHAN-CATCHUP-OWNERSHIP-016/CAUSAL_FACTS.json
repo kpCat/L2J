@@ -1,0 +1,23 @@
+{
+  "durationSeconds": 49.9970473,
+  "events": 1423,
+  "dropped": 0,
+  "requiredMinimumPass": false,
+  "firstLostEdge": {
+    "seq": "283",
+    "nanoTime": "100964790258800",
+    "threadName": "L2jMobius High Priority ScheduledThread 6",
+    "profileId": "110",
+    "event": "READY_PRESENCE_OFFLINE",
+    "stateA": "OFFLINE",
+    "stateB": "DEFERRED",
+    "reason": "presence.no_current_local_demand",
+    "value1": "0",
+    "value2": "0",
+    "value3": "0"
+  },
+  "worldPresentNaturalProved": false,
+  "M1": "OPEN",
+  "postStopSavedCharacterExact": true,
+  "forceUsed": false
+}
