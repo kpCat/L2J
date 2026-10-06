@@ -1,0 +1,19 @@
+{
+  "task": "PHANTOM-M1-VISIBLE-FARM-019",
+  "required_base": "d153de95fd0fd8b678f975964179aeba85c57336",
+  "branch": "experiment/m1-candidate007-observe008",
+  "max_manual_login_cycles": 2,
+  "max_semantic_production_files": 2,
+  "files": [
+    "ACCEPTANCE.md",
+    "DIAGNOSIS.md",
+    "FIX.md",
+    "GIT.md",
+    "GOAL.md",
+    "HANDOFF.md",
+    "MODEL.md",
+    "PLAN.md",
+    "RESULT_TEMPLATE.md",
+    "TESTS.md"
+  ]
+}
