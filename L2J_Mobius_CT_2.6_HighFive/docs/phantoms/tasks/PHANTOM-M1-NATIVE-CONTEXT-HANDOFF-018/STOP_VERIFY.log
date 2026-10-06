@@ -1,0 +1,14 @@
+LOGOUT_SAVE_CONFIRMED 268492939	TestAdmin	0	12	138026	13880	44131	42673	-3488 totalOnline=0
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+DB_LOGOUT_CONFIRMED l2jmobiush5_localplay_observe018 268492939	TestAdmin	0	12	138026	13880	44131	42673	-3488
+STOCK_GRACEFUL_STOP_CONFIRMED role=GameServer pid=20440
+STOCK_GRACEFUL_STOP_CONFIRMED role=LoginServer pid=7700
+SAVED_FIELDS_EXACT_MATCH 268492939	TestAdmin	0	12	138026	13880	44131	42673	-3488 totalOnline=0
+CONFIG PASS
+Preset=Lively Population=1280 Active=8 MaterializedCap=8 PulseMs=100
+Ecology=LIVING HumanizedV3=True CustomOverlay=True Mature=True Diagnostics=True
+AutoCreateAccounts=True PersonalQoLAccount=jvtygr1231, jvtyGR1231, kpCat AutoNoblesseGlobal=True
+DatabaseConfig=USER_CONFIRMED_EXISTING
+LoginServer=STALE_RECORD(pid=0, staleRecord=True) Port2106=False owner= Port9014=False owner=
+GameServer=STALE_RECORD(pid=0, staleRecord=True) Port7777=False owner=
+POST_STOP_PASS processes=0 ports=0 originalHashes=304 force=false

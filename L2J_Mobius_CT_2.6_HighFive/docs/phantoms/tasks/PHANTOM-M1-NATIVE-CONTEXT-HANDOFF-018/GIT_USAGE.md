@@ -28,4 +28,15 @@ Authorized publication commands for this stage:
 
 Runtime pinned catalog helper uses git show HEAD:<each of three exact population catalog paths> read-only to preserve blob bytes. Runtime metadata reads git -C <module> rev-parse HEAD.
 
-No add-dot, main checkout mutation, reset/clean/stash/rebase/force, commit of private runtime/credentials, or broad restore is permitted or used. A final artifact commit/push may follow only after the runtime/manual gates are handled.
+Final artifact publication (runtime/manual gates handled):
+- git add -- <each exact verified TASK018 evidence path>
+- git diff --cached --name-only
+- git diff --cached --check -- <each exact non-log/non-TSV staged path>
+- git commit -m "Record task018 visible actor and bounded runtime capture gap"
+- git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+- git ls-remote origin refs/heads/experiment/m1-candidate007-observe008
+- git status --porcelain -uall
+
+Raw causal TSV uses deliberate empty tab-delimited fields; raw logs retain generated whitespace. Those evidence formats are validated by the trace parser/metadata rather than whitespace-normalized.
+
+No add-dot, main checkout mutation, reset/clean/stash/rebase/force, commit of private runtime/credentials, or broad restore is permitted or used.

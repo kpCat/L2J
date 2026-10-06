@@ -1,0 +1,5 @@
+EXACT_SCOPE_PASS paths=23
+MOJIBAKE_SOURCE_CHECK: []
+ESCAPED_CYRILLIC_CHECK: []
+GENERATED_LOG_ENCODING_MATCHES: []
+Generated logs are retained verbatim as evidence; no authored user-facing text is escaped or garbled.

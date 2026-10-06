@@ -18,6 +18,10 @@ markers = [''.join(map(chr, pair)) for pair in ((1056,1119),(1056,1037),(1056,10
 escaped = re.compile(r'\\u0[45][0-9A-Fa-f]{2}|&#[xX]0[45][0-9A-Fa-f]{2};')
 bad_markers, bad_escapes, generated_markers = [], [], []
 for path in paths:
+    if path.endswith('.png'):
+        if not (ROOT / path).read_bytes().startswith(b'\x89PNG\r\n\x1a\n'):
+            raise SystemExit('Invalid PNG evidence: ' + path)
+        continue
     text = (ROOT / path).read_text(encoding='utf-8-sig')
     if any(marker in text for marker in markers):
         (generated_markers if path.endswith('.log') else bad_markers).append(path)

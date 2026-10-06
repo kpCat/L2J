@@ -1,0 +1,211 @@
+{
+  "result": "RUNTIME_CAUSAL_CAPTURE_GAP",
+  "serverSeconds": 55.1984006,
+  "events": 3920,
+  "dropped": 0,
+  "eventCounts": {
+    "SCHED_LOCAL_SCAN": 833,
+    "HUMAN_REFRESH_BEGIN": 53,
+    "LOCAL_CANDIDATE": 848,
+    "HUMAN_REFRESH_SUMMARY": 53,
+    "SCHED_SIGNAL_COALESCED": 222,
+    "LOCAL_SIGNAL_RESULT": 424,
+    "SCHED_BOUNDARY_PLAN": 284,
+    "READY_ECOLOGY_DUE": 270,
+    "READY_ECOLOGY_DEFER": 270,
+    "SCHED_BOUNDARY_RESULT": 273,
+    "SCHED_LOCAL_PROMOTION_SELECTED": 188,
+    "SCHED_SIGNAL_ACCEPTED": 202
+  },
+  "nativeRequiredReadiness": 0,
+  "nativeHandoffCalls": 0,
+  "normalFenceRejects": 0,
+  "playerLoadBegin": 0,
+  "worldSpawn": 0,
+  "profiles": {
+    "110": {
+      "events": {
+        "LOCAL_CANDIDATE": 106,
+        "SCHED_SIGNAL_COALESCED": 25,
+        "LOCAL_SIGNAL_RESULT": 53,
+        "SCHED_LOCAL_SCAN": 44,
+        "SCHED_SIGNAL_ACCEPTED": 28,
+        "SCHED_BOUNDARY_PLAN": 1,
+        "SCHED_BOUNDARY_RESULT": 1
+      },
+      "ecologyReasons": {},
+      "schedulerStates": {
+        "ACTIVE": 14,
+        "NEARBY_PERCEPTIBLE": 30
+      },
+      "firstSeq": "11",
+      "lastSeq": "3911"
+    },
+    "129": {
+      "events": {
+        "LOCAL_CANDIDATE": 106,
+        "SCHED_SIGNAL_COALESCED": 29,
+        "LOCAL_SIGNAL_RESULT": 53,
+        "SCHED_BOUNDARY_PLAN": 58,
+        "READY_ECOLOGY_DUE": 54,
+        "READY_ECOLOGY_DEFER": 54,
+        "SCHED_BOUNDARY_RESULT": 54,
+        "SCHED_LOCAL_SCAN": 31,
+        "SCHED_LOCAL_PROMOTION_SELECTED": 42,
+        "SCHED_SIGNAL_ACCEPTED": 24
+      },
+      "ecologyReasons": {
+        "catchup.renewal.background_state_invalid": 54
+      },
+      "schedulerStates": {
+        "SLEEPING": 31
+      },
+      "firstSeq": "12",
+      "lastSeq": "3913"
+    },
+    "142": {
+      "events": {
+        "LOCAL_CANDIDATE": 106,
+        "SCHED_SIGNAL_COALESCED": 25,
+        "LOCAL_SIGNAL_RESULT": 53,
+        "SCHED_LOCAL_SCAN": 44,
+        "SCHED_SIGNAL_ACCEPTED": 28,
+        "SCHED_BOUNDARY_PLAN": 1,
+        "SCHED_BOUNDARY_RESULT": 1
+      },
+      "ecologyReasons": {},
+      "schedulerStates": {
+        "ACTIVE": 16,
+        "NEARBY_PERCEPTIBLE": 28
+      },
+      "firstSeq": "13",
+      "lastSeq": "3870"
+    },
+    "151": {
+      "events": {
+        "LOCAL_CANDIDATE": 106,
+        "SCHED_SIGNAL_COALESCED": 30,
+        "LOCAL_SIGNAL_RESULT": 53,
+        "SCHED_BOUNDARY_PLAN": 56,
+        "READY_ECOLOGY_DUE": 54,
+        "READY_ECOLOGY_DEFER": 54,
+        "SCHED_BOUNDARY_RESULT": 54,
+        "SCHED_LOCAL_SCAN": 29,
+        "SCHED_LOCAL_PROMOTION_SELECTED": 37,
+        "SCHED_SIGNAL_ACCEPTED": 23
+      },
+      "ecologyReasons": {
+        "catchup.renewal.background_state_invalid": 54
+      },
+      "schedulerStates": {
+        "SLEEPING": 29
+      },
+      "firstSeq": "14",
+      "lastSeq": "3887"
+    },
+    "160": {
+      "events": {
+        "LOCAL_CANDIDATE": 106,
+        "SCHED_SIGNAL_COALESCED": 29,
+        "LOCAL_SIGNAL_RESULT": 53,
+        "SCHED_BOUNDARY_PLAN": 55,
+        "READY_ECOLOGY_DUE": 54,
+        "READY_ECOLOGY_DEFER": 54,
+        "SCHED_BOUNDARY_RESULT": 54,
+        "SCHED_LOCAL_SCAN": 30,
+        "SCHED_LOCAL_PROMOTION_SELECTED": 34,
+        "SCHED_SIGNAL_ACCEPTED": 24
+      },
+      "ecologyReasons": {
+        "catchup.renewal.background_state_invalid": 54
+      },
+      "schedulerStates": {
+        "SLEEPING": 30
+      },
+      "firstSeq": "15",
+      "lastSeq": "3909"
+    },
+    "175": {
+      "events": {
+        "LOCAL_CANDIDATE": 106,
+        "SCHED_SIGNAL_COALESCED": 25,
+        "LOCAL_SIGNAL_RESULT": 53,
+        "SCHED_LOCAL_SCAN": 43,
+        "SCHED_SIGNAL_ACCEPTED": 28,
+        "SCHED_BOUNDARY_PLAN": 1,
+        "SCHED_BOUNDARY_RESULT": 1
+      },
+      "ecologyReasons": {},
+      "schedulerStates": {
+        "ACTIVE": 19,
+        "NEARBY_PERCEPTIBLE": 24
+      },
+      "firstSeq": "16",
+      "lastSeq": "3876"
+    },
+    "229": {
+      "events": {
+        "LOCAL_CANDIDATE": 106,
+        "SCHED_SIGNAL_COALESCED": 30,
+        "LOCAL_SIGNAL_RESULT": 53,
+        "SCHED_BOUNDARY_PLAN": 55,
+        "READY_ECOLOGY_DUE": 54,
+        "READY_ECOLOGY_DEFER": 54,
+        "SCHED_BOUNDARY_RESULT": 54,
+        "SCHED_LOCAL_SCAN": 29,
+        "SCHED_LOCAL_PROMOTION_SELECTED": 37,
+        "SCHED_SIGNAL_ACCEPTED": 23
+      },
+      "ecologyReasons": {
+        "catchup.renewal.background_state_invalid": 54
+      },
+      "schedulerStates": {
+        "SLEEPING": 29
+      },
+      "firstSeq": "17",
+      "lastSeq": "3893"
+    },
+    "242": {
+      "events": {
+        "LOCAL_CANDIDATE": 106,
+        "SCHED_SIGNAL_COALESCED": 29,
+        "LOCAL_SIGNAL_RESULT": 53,
+        "SCHED_BOUNDARY_PLAN": 57,
+        "READY_ECOLOGY_DUE": 54,
+        "READY_ECOLOGY_DEFER": 54,
+        "SCHED_BOUNDARY_RESULT": 54,
+        "SCHED_LOCAL_SCAN": 31,
+        "SCHED_LOCAL_PROMOTION_SELECTED": 38,
+        "SCHED_SIGNAL_ACCEPTED": 24
+      },
+      "ecologyReasons": {
+        "catchup.renewal.background_state_invalid": 54
+      },
+      "schedulerStates": {
+        "SLEEPING": 31
+      },
+      "firstSeq": "18",
+      "lastSeq": "3915"
+    }
+  },
+  "visibleSnapshot": {
+    "visibleLiveY": "42751",
+    "visibleLiveX": "44126",
+    "visibleDead": "false",
+    "visibleMoving": "false",
+    "visibleAiIntention": "IDLE",
+    "visibleAutoPlaying": "false",
+    "visibleZ": "-3488",
+    "visibleY": "42751",
+    "visibleX": "44126",
+    "visibleDistance": "78",
+    "visibleProfileId": "110",
+    "visibleTargetObjectId": "0",
+    "visibleObjectId": "268485779",
+    "visibleAttacking": "false",
+    "visibleLiveZ": "-3488"
+  },
+  "visibleEpoch": "UNAVAILABLE_IN_EXISTING_SNAPSHOT",
+  "screenshotSha256": "46dc55b0a920b6c123e3eef45081a7500909078cecfdcc0817c12179af85ce96",
+  "claim": "Visible live actor independently proven; the ordered handoff causal chain was not captured. No repeat, forced transition, movement, attack or gameplay repair."
+}

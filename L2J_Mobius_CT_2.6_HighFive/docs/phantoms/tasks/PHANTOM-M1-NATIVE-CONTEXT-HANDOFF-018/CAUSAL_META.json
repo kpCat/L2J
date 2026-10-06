@@ -1,0 +1,22 @@
+{
+  "watched": "[110, 129, 142, 151, 160, 175, 229, 242]",
+  "attempts": "3920",
+  "dropped": "0",
+  "retained": "3920",
+  "active": "false",
+  "startedNanos": "13227940640700",
+  "snapshotNanos": "13283139041300",
+  "preState": "ARMED_IDLE",
+  "clientState": "IN_GAME",
+  "clientStateProof": "successful STATUS via sessionValid/realClient admission",
+  "identityOwner": "REAL_LOGIN",
+  "objectId": 268492939,
+  "beginUtc": "2026-10-06T11:10:50.731209600Z",
+  "snapshotUtc": "2026-10-06T11:11:45.928770500Z",
+  "endUtc": "2026-10-06T11:11:45.928770500Z",
+  "exported": 3920,
+  "exportRecovery": "raw XML attributes; literal tabs preserved; recorder not repeated",
+  "x": "44131",
+  "y": "42673",
+  "z": "-3488"
+}
