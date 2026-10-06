@@ -1,0 +1,12 @@
+STATUS status=SUCCEEDED reason=SNAPSHOT utc=2026-10-06T13:52:08.058146800Z observerUnchanged=true
+SNAPSHOT_PHANTOMS status=SUCCEEDED reason=NO_CANDIDATE utc=2026-10-06T13:52:08.671145300Z observerUnchanged=true
+SELECT_VISIBLE_PHANTOM_TRACE status=SUCCEEDED reason=SELECTED utc=2026-10-06T13:52:09.255144Z observerUnchanged=true
+SNAPSHOT_SELECTED_PHANTOM_TRACE status=SUCCEEDED reason=SELECTED_TRACE_SNAPSHOT utc=2026-10-06T13:52:09.912175600Z observerUnchanged=true
+SNAPSHOT_PHANTOMS status=SUCCEEDED reason=NO_CANDIDATE utc=2026-10-06T13:52:10.461146100Z observerUnchanged=true
+SAME_EPOCH profile110 object268485779 epoch22811937872600 seconds=1.790001
+DECISION_SEQUENCE=444; history=442,443,444; reason=step.retry_exhausted
+NEXT_BLOCKER=D6 VISIBLE_TRAVEL_BLOCK; travel.native_segment_water_entry; failureSequence=1
+NATIVE_DELTAS={"nativeEvidenceSequence": 0, "nativeTargetSequence": 0, "nativeDamageSequence": 0, "nativeKillSequence": 0, "nativeRewardSequence": 0, "nativeFarmCycleSequence": 0, "nativeLootSequence": 0, "nativeExpGained": 0, "nativeSpGained": 0}
+LOOT=NO_LOOT_OBSERVED
+POLL_REJECTED_BEFORE_RUNTIME_REQUEST=120s limit reached at UTC13:54:57; no restart
+NO_SECOND_FIX=true; M1=OPEN

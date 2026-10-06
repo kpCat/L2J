@@ -20,7 +20,7 @@ names = '''ACCEPTANCE.md CONTRACT.md DIAGNOSTICS.md GIT.md GOAL.md HANDOFF.md MO
 ADMISSION_PRESTATE.json ADMISSION_PRESTATE.md Inspect-Prestate020.py ENGINEERING_REVIEW.md PROGRESS.md RESULT.md GIT_USAGE.md Run-Engineering.ps1
 RED-COMPILE.log RED.log GREEN-COMPILE.log GREEN.log TASK018-GREEN.log population-ecology-goal033-GREEN.log population-ecology-handoff-regression-GREEN.log background-lifecycle-GREEN.log decision-core-GREEN.log decision-persistence-GREEN.log recorder-GREEN.log BUILD.log
 Prepare-Runtime.ps1 Restore-Private-Catalogs.py Stop-and-Verify.ps1 Verify-Scope020.py ARTIFACT_ALLOWLIST.json SCOPE_ENCODING.log
-CONFIG_OVERRIDES.tsv RUNTIME_PREPARE.log RUNTIME_START.log RUNTIME_READY.log RUNTIME_PRECHECK.log PUBLICATION.json OBSERVE020.log EVIDENCE020.json LOGOUT_BEFORE_STOP.tsv LOGOUT_AFTER_STOP.tsv GRACEFUL_STOP.log STOP_VERIFY.log'''.split()
+CONFIG_OVERRIDES.tsv RUNTIME_PREPARE.log RUNTIME_START.log RUNTIME_READY.log RUNTIME_PRECHECK.log PUBLICATION.json Observe-Visible020.ps1 OBSERVE020.log EVIDENCE020.json LOGOUT_BEFORE_STOP.tsv LOGOUT_AFTER_STOP.tsv GRACEFUL_STOP.log STOP_VERIFY.log'''.split()
 expected = set(sources + [task_relative + name for name in names])
 def git(*args): return subprocess.run(['git', '-C', str(root), *args], check=True, capture_output=True, text=True).stdout
 changed = set(git('diff', '--name-only', '29f4b32509535bad5d73d93bbf7fac1daf6b6b53').splitlines())

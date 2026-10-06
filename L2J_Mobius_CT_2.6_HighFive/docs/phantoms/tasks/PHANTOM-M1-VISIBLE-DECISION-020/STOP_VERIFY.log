@@ -1,0 +1,24 @@
+LOGOUT_SAVE_CONFIRMED 268492939	TestAdmin	0	12	138026	13880	44131	42673	-3488 totalOnline=0
+STOCK_GRACEFUL_STOP_CONFIRMED role=GameServer pid=11636
+Exception in thread "main" java.io.IOException: Premature EOF
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.readInt(HotSpotVirtualMachine.java:448)
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.processCompletionStatus(HotSpotVirtualMachine.java:485)
+	at jdk.attach/sun.tools.attach.VirtualMachineImpl.execute(VirtualMachineImpl.java:141)
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.loadAgentLibrary(HotSpotVirtualMachine.java:109)
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.loadAgentLibrary(HotSpotVirtualMachine.java:140)
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.loadAgent(HotSpotVirtualMachine.java:168)
+	at RequestGracefulShutdown.main(RequestGracefulShutdown.java:16)
+STOCK_GRACEFUL_STOP_CONFIRMED role=LoginServer pid=23092
+SAVED_FIELDS_EXACT_MATCH 268492939	TestAdmin	0	12	138026	13880	44131	42673	-3488 totalOnline=0
+CONFIG PASS
+Preset=Lively Population=1280 Active=8 MaterializedCap=8 PulseMs=100
+Ecology=LIVING HumanizedV3=True CustomOverlay=True Mature=True Diagnostics=True
+AutoCreateAccounts=True PersonalQoLAccount=jvtygr1231, jvtyGR1231, kpCat AutoNoblesseGlobal=True
+DatabaseConfig=USER_CONFIRMED_EXISTING
+LoginServer=STALE_RECORD(pid=0, staleRecord=True) Port2106=False owner= Port9014=False owner=
+GameServer=STALE_RECORD(pid=0, staleRecord=True) Port7777=False owner=
+POST_STOP_PASS processes=0 ports=0 originalHashes=304 force=false
+
+STOCK_GAME_LOG_RECEIPT=The server has been successfully shut down in 5seconds.
+STOCK_LOGIN_LOG_RECEIPT=TASK013_STOCK_GRACEFUL_LOGIN_SHUTDOWN_REQUESTED
+ATTACH_CLIENT_NOTE=Login agent attach ended with Premature EOF during JVM exit; stock request receipt, exact process exit and port absence confirmed. No force fallback.

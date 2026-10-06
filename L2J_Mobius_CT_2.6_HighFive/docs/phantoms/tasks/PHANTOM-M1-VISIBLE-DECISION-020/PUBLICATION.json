@@ -1,0 +1,16 @@
+{
+  "engineeringCommit": "acbe5513da884f4f725e3353c69a1faebd1bf781",
+  "branch": "experiment/m1-candidate007-observe008",
+  "push": "PASS_NORMAL",
+  "remoteVerified": "acbe5513da884f4f725e3353c69a1faebd1bf781",
+  "runtimeDatabase": "l2jmobiush5_localplay_observe020",
+  "loginPid": 23092,
+  "gamePid": 11636,
+  "runtimeJarSha256": "8C27B73601ADD468694B55071E2512112CC43538A63BFD16FF0C61F396233703",
+  "gate": "CLOSED_MANUAL_LOGOUT_SAVE_STOP",
+  "M1": "OPEN",
+  "taskResult": "BLOCKED_NEXT_VISIBLE_EDGE",
+  "nextBlocker": "D6 VISIBLE_TRAVEL_BLOCK / travel.native_segment_water_entry",
+  "runtimeStopped": true,
+  "artifactPublication": "Exact-path artifact commit + normal push; final commit and verified remote SHA reported in the final task response."
+}
