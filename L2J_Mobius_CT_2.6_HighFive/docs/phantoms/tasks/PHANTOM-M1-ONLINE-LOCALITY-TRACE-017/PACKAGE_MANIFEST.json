@@ -1,0 +1,25 @@
+{
+  "task": "PHANTOM-M1-ONLINE-LOCALITY-TRACE-017",
+  "required_base": "0f16f29eff4d78d42a8f4da48fc0bc44ad466ad7",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "High",
+  "subagents": false,
+  "semantic_fixes_allowed": false,
+  "production_modify_allowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java"
+  ],
+  "files": [
+    "ACCEPTANCE.md",
+    "DESIGN.md",
+    "GIT.md",
+    "GOAL.md",
+    "HANDOFF.md",
+    "MODEL.md",
+    "PLAN.md",
+    "README.md",
+    "RESULT_TEMPLATE.md",
+    "SOURCE_MAP.tsv",
+    "TESTS.md"
+  ]
+}

@@ -1,0 +1,4 @@
+[PASS] phantom-human-locality-trace.eight-slot-bound-and-diagnostics-off-semantics
+[PASS] phantom-human-locality-trace.first-three-online-local-candidates-watched
+[PASS] phantom-human-locality-trace.offline-probes-do-not-consume-slots
+SUMMARY: suite=phantom-human-locality-trace seed=17001701 total=3 passed=3 failed=0

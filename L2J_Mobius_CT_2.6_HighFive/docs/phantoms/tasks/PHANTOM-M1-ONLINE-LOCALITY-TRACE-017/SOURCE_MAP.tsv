@@ -1,0 +1,7 @@
+mode	path	purpose
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	diagnostic watch admission only
+OPTIONAL_MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomRuntimeFlightRecorderSuite.java	recorder regression if suitable
+OPTIONAL_NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHumanLocalityTraceSuite.java	DB-free accepted-vs-offline watch regression if needed
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-ORPHAN-CATCHUP-OWNERSHIP-016/**	TASK016 runtime evidence
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CAUSAL-TRACE-014/**	recorder contract/codemap
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-ONLINE-LOCALITY-TRACE-017/**	evidence/result

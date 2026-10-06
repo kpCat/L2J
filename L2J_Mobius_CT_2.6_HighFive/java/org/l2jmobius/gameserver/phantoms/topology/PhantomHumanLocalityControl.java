@@ -102,8 +102,11 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 			final var query = _topology.nativeProfilesAt(human, MAXIMUM_PROFILES_PER_HUMAN, profileId ->
 			{
 				final boolean online = _online.test(profileId);
-				recorder.watch(profileId);
-				recorder.record(profileId, "LOCAL_CANDIDATE", online ? "ONLINE" : "OFFLINE", "", "topology.eligible", human.x(), human.y(), human.z());
+				if (online && recorder.isRecording())
+				{
+					recorder.watch(profileId);
+					recorder.record(profileId, "LOCAL_CANDIDATE", "ONLINE", "", "topology.eligible", human.x(), human.y(), human.z());
+				}
 				return online;
 			});
 			overflow |= query.overflow();
