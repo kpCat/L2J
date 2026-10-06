@@ -59,16 +59,18 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				if (ecology != null) { ecology.withdrawMaterializationDue(profileId); }
 				return TransitionOutcome.deferred("presence.no_current_local_demand");
 			}
+			MaterializationRequest request = MaterializationRequest.normal();
 			if (ecology != null)
 			{
 				final var due = ecology.requestMaterializationDue(profileId);
 				recorder.record(profileId, "READY_ECOLOGY_DUE", "LOCAL", due.complete() ? "COMPLETE" : "INCOMPLETE", due.reason(), 0, 0, 0);
 				if (!due.complete()) { recorder.record(profileId, "READY_ECOLOGY_DEFER", "LOCAL", "DEFERRED", due.reason(), 0, 0, 0); }
 				if (!due.complete()) { return TransitionOutcome.deferred(due.reason()); }
+				request = due.request();
 			}
 			final boolean currentLocal = locality.isCurrentLocal(profileId);
 			recorder.record(profileId, currentLocal ? "READY_PASS" : "READY_CURRENT_LOCAL_FALSE", "LOCAL", currentLocal ? "SUCCESS" : "DEFERRED", currentLocal ? "" : "presence.committed_position_not_local", 0, 0, 0);
-			return currentLocal ? TransitionOutcome.success() : TransitionOutcome.deferred("presence.committed_position_not_local");
+			return currentLocal ? TransitionOutcome.success(request) : TransitionOutcome.deferred("presence.committed_position_not_local");
 		});
 	}
 
@@ -98,7 +100,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 		if (readiness != null)
 		{
 			final var gate = readiness.apply(profileId);
-			return gate.outcome() == Outcome.SUCCESS ? _delegate.materialize(profileId) : gate;
+			return gate.outcome() == Outcome.SUCCESS ? _delegate.materialize(profileId, gate.request()) : gate;
 		}
 		final LongPredicate reconcile = _reconcile;
 		return ((reconcile != null) && reconcile.test(profileId)) ? _delegate.materialize(profileId) : TransitionOutcome.deferred();

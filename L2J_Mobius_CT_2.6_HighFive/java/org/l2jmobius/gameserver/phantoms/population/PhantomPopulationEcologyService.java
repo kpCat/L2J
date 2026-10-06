@@ -871,7 +871,7 @@ public final class PhantomPopulationEcologyService
 				&& (historical.status() != Status.COMPLETE) && PhantomHistoricalBackgroundService.requiresNativeMaterialization(entry._lastReportedFailure))
 			{
 				entry._materializationDemand = true;
-				return new DueReconciliation(true, 0, "ecology.native_materialization_required");
+				return new DueReconciliation(true, 0, "ecology.native_materialization_required", org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.MaterializationRequest.nativeContextHandoff(historical.requestId()));
 			}
 			final DueSnapshot snapshot = dueSnapshotLocked(profileId, entry);
 			if (!snapshot.complete() && !entry._terminal)
@@ -1775,8 +1775,12 @@ public final class PhantomPopulationEcologyService
 		}
 	}
 
-	public record DueReconciliation(boolean complete, int advancedIntervals, String reason)
+	public record DueReconciliation(boolean complete, int advancedIntervals, String reason, org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.MaterializationRequest request)
 	{
+		public DueReconciliation(boolean complete, int advancedIntervals, String reason)
+		{
+			this(complete, advancedIntervals, reason, org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.MaterializationRequest.normal());
+		}
 	}
 
 	/** Batch counts are metadata attempts; publishedProfiles counts only first successful publications. */

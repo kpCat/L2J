@@ -1471,18 +1471,19 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				throw new IllegalStateException("Background operation has not drained.");
 			}
-			if (purpose == MaterializationPurpose.HISTORICAL_BASELINE)
+			if (purpose != MaterializationPurpose.NORMAL)
 			{
 				final var component = _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null);
 				if ((component == null) || (component.profileId() != profileId) || (component.componentSchemaVersion() != PhantomBackgroundCatchupState.SCHEMA_VERSION) || (ownerClaim == null) || ownerClaim.isBlank()) { throw new AdmissionRejectedException("background.historical_claim_invalid"); }
 				final var catchup = new PhantomBackgroundCatchupStateCodec().decode(component.payload());
-				if (!catchup.owns(ownerClaim) || (catchup.modelVersion() != PhantomBackgroundState.MODEL_VERSION)) { throw new AdmissionRejectedException("background.historical_claim_invalid"); }
+				if (!catchup.owns(ownerClaim) || (catchup.modelVersion() != PhantomBackgroundState.MODEL_VERSION) || ((purpose == MaterializationPurpose.NATIVE_CONTEXT_HANDOFF) && (catchup.status() == PhantomBackgroundCatchupState.Status.COMPLETE))) { throw new AdmissionRejectedException("background.historical_claim_invalid"); }
 				final var admission = new HistoricalAdmission(characterObjectId, ownerClaim, component.rowVersion(), PhantomBackgroundTransaction.payloadDigest(component.payload()), _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null));
 				if (_historicalAdmissions.putIfAbsent(profileId, admission) != null) { throw new AdmissionRejectedException("background.historical_claim_busy"); }
 			}
 			final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 			if (loaded.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT)
 			{
+				if ((purpose == MaterializationPurpose.NATIVE_CONTEXT_HANDOFF) && !currentHistoricalComponents(profileId, _historicalAdmissions.get(profileId))) { throw new AdmissionRejectedException("background.historical_claim_or_goal_changed"); }
 				retained = true;
 				return;
 			}
@@ -1495,6 +1496,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				throw new IllegalStateException("Background state reconciliation failed.");
 			}
+			if ((purpose != MaterializationPurpose.NORMAL) && !currentHistoricalComponents(profileId, _historicalAdmissions.get(profileId))) { throw new AdmissionRejectedException("background.historical_claim_or_goal_changed"); }
 			retained = true;
 		}
 		finally
@@ -1511,6 +1513,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		requireTransition(profileId, TransitionKind.MATERIALIZING);
 		installOwnedStoreBoundary(profileId, player);
+		final var historicalAdmission = _historicalAdmissions.get(profileId);
+		if ((historicalAdmission != null) && !currentHistoricalAdmission(profileId, player, player.getNativeWorkOwner(), historicalAdmission)) { throw new AdmissionRejectedException("background.historical_native_claim_or_epoch_changed"); }
 		PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
 		if (loaded.status() == PhantomBackgroundTransaction.Status.STATE_ABSENT)
 		{
@@ -1518,7 +1522,6 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		final var nativeContext = transaction(() -> _transactions.nativeContext(profileId, player.getObjectId()));
 		if (!nativeContext.matchesNativeLoad(player.getVitalityPoints())) { throw new IllegalStateException("Loaded Player differs from canonical native context: " + nativeContext.status()); }
-		final var historicalAdmission = _historicalAdmissions.get(profileId);
 		// The original unplanned/goal-less native baseline first creates its plan, then attests in cleanup STORE.
 		final boolean attestHistoricalContext = (historicalAdmission != null) && (historicalAdmission.goal() != null) && (nativeContext.context() != null) && (nativeContext.context().phase() == PhantomNativeContext.Phase.UNKNOWN);
 		if ((historicalAdmission != null) && !Objects.equals(loaded.state(), nativeContext.state())) { throw new IllegalStateException("Historical background state changed before native attestation."); }
@@ -1550,6 +1553,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			throw new IllegalStateException("MATERIALIZED state verification failed.");
 		}
+		if ((historicalAdmission != null) && !currentHistoricalAdmission(profileId, player, player.getNativeWorkOwner(), historicalAdmission)) { throw new AdmissionRejectedException("background.historical_native_claim_or_epoch_changed"); }
 	}
 
 	private static String runtimeMismatch(Player player, PhantomBackgroundState state)
@@ -1604,6 +1608,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if ((admission == null) || (_historicalAdmissions.get(profileId) != admission) || (_transitions.get(profileId) != TransitionKind.MATERIALIZING) || (admission.characterObjectId() != player.getObjectId()) || (owner == null) || (player.getNativeWorkOwner() != owner) || (owner.player() != player) || !owner.isCurrent()) { return false; }
 		final var entry = _materialization.get().find(profileId).orElse(null);
 		if ((entry == null) || (entry.characterObjectId() != player.getObjectId()) || (entry.materializedAtNanos() != owner.epoch())) { return false; }
+		return currentHistoricalComponents(profileId, admission);
+	}
+
+	private boolean currentHistoricalComponents(long profileId, HistoricalAdmission admission)
+	{
+		if ((admission == null) || (_historicalAdmissions.get(profileId) != admission)) { return false; }
 		final var component = _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null);
 		if ((component == null) || (component.profileId() != profileId) || (component.componentSchemaVersion() != PhantomBackgroundCatchupState.SCHEMA_VERSION) || (component.rowVersion() != admission.rowVersion()) || !PhantomBackgroundTransaction.payloadDigest(component.payload()).equals(admission.payloadDigest())) { return false; }
 		final var catchup = new PhantomBackgroundCatchupStateCodec().decode(component.payload());

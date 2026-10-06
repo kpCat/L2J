@@ -1,0 +1,12 @@
+mode	path	purpose
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	return exact native handoff claim
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomActivityMaterializationPort.java	typed materialization request
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java	propagate native handoff intent
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationServiceActivityPort.java	map intent to service purpose
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	NATIVE_CONTEXT_HANDOFF purpose + reject trace
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	exact foreground catchup admission
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	exact native attestation admission
+NEW_OR_MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeContextHandoffSuite.java	integrated handoff contract
+OPTIONAL_MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/PhantomPopulationEcologyGoal033Suite.java	preserve ecology contracts if needed
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-ONLINE-LOCALITY-TRACE-017/**	accepted runtime chain
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-CONTEXT-HANDOFF-018/**	evidence/result

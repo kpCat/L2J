@@ -63,7 +63,8 @@ public final class PhantomMaterializationService
 	public enum MaterializationPurpose
 	{
 		NORMAL,
-		HISTORICAL_BASELINE
+		HISTORICAL_BASELINE,
+		NATIVE_CONTEXT_HANDOFF
 	}
 
 	public enum ResultStatus
@@ -181,7 +182,7 @@ public final class PhantomMaterializationService
 	{
 		Objects.requireNonNull(purpose, "purpose");
 		ownerClaim = Objects.requireNonNullElse(ownerClaim, "");
-		if (((purpose == MaterializationPurpose.NORMAL) && !ownerClaim.isEmpty()) || ((purpose == MaterializationPurpose.HISTORICAL_BASELINE) && ownerClaim.isBlank()))
+		if (((purpose == MaterializationPurpose.NORMAL) && !ownerClaim.isEmpty()) || ((purpose != MaterializationPurpose.NORMAL) && ownerClaim.isBlank()))
 		{
 			throw new IllegalArgumentException("Invalid materialization purpose claim.");
 		}
@@ -223,6 +224,8 @@ public final class PhantomMaterializationService
 		}
 		catch (PhantomMaterializationLifecyclePort.AdmissionRejectedException exception)
 		{
+			final String reason = Objects.requireNonNullElse(exception.getMessage(), "admission.rejected");
+			org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance().record(profileId, "MATERIALIZE_ADMISSION_REJECT", purpose.name(), "CATCHUP_FENCED", reason.substring(0, Math.min(reason.length(), 192)), characterObjectId, 0, 0);
 			abortPreserving(lifecycleAttempt, exception);
 			return rejectMaterialization(ResultStatus.CATCHUP_FENCED);
 		}

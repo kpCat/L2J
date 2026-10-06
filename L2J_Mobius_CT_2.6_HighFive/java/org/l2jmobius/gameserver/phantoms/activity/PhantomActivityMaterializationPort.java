@@ -28,6 +28,11 @@ public interface PhantomActivityMaterializationPort
 {
 	TransitionOutcome materialize(long profileId);
 
+	default TransitionOutcome materialize(long profileId, MaterializationRequest request)
+	{
+		return request.kind() == MaterializationRequest.Kind.NORMAL ? materialize(profileId) : TransitionOutcome.deferred("materialization.intent_unsupported");
+	}
+
 	TransitionOutcome dematerialize(long profileId);
 
 	TransitionOutcome retryCleanup(long profileId);
@@ -54,8 +59,31 @@ public interface PhantomActivityMaterializationPort
 		RETAINED_FAILURE
 	}
 
-	record TransitionOutcome(Outcome outcome, String reason)
+	record MaterializationRequest(Kind kind, String ownerClaim)
 	{
+		public enum Kind { NORMAL, NATIVE_CONTEXT_HANDOFF }
+
+		public MaterializationRequest
+		{
+			java.util.Objects.requireNonNull(kind, "kind");
+			ownerClaim = java.util.Objects.requireNonNullElse(ownerClaim, "");
+			if (((kind == Kind.NORMAL) && !ownerClaim.isEmpty()) || ((kind == Kind.NATIVE_CONTEXT_HANDOFF) && ownerClaim.isBlank()))
+			{
+				throw new IllegalArgumentException("Invalid materialization intent claim.");
+			}
+		}
+
+		public static MaterializationRequest normal() { return new MaterializationRequest(Kind.NORMAL, ""); }
+		public static MaterializationRequest nativeContextHandoff(String ownerClaim) { return new MaterializationRequest(Kind.NATIVE_CONTEXT_HANDOFF, ownerClaim); }
+	}
+
+	record TransitionOutcome(Outcome outcome, String reason, MaterializationRequest request)
+	{
+		public TransitionOutcome(Outcome outcome, String reason)
+		{
+			this(outcome, reason, MaterializationRequest.normal());
+		}
+
 		public TransitionOutcome(Outcome outcome)
 		{
 			this(outcome, "");
@@ -68,6 +96,11 @@ public interface PhantomActivityMaterializationPort
 		public static TransitionOutcome success()
 		{
 			return new TransitionOutcome(Outcome.SUCCESS);
+		}
+
+		public static TransitionOutcome success(MaterializationRequest request)
+		{
+			return new TransitionOutcome(Outcome.SUCCESS, "", request);
 		}
 
 		public static TransitionOutcome transientBlock()

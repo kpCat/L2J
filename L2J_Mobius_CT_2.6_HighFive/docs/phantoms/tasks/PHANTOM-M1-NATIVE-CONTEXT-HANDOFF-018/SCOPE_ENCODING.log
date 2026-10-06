@@ -1,0 +1,5 @@
+EXACT_SCOPE_PASS paths=48
+MOJIBAKE_SOURCE_CHECK: []
+ESCAPED_CYRILLIC_CHECK: []
+GENERATED_LOG_ENCODING_MATCHES: ['L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-CONTEXT-HANDOFF-018/GREEN.log', 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-CONTEXT-HANDOFF-018/RED.log', 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-CONTEXT-HANDOFF-018/background-lifecycle-GREEN.log', 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-CONTEXT-HANDOFF-018/production-materialization-GREEN.log']
+Generated logs are retained verbatim as evidence; no authored user-facing text is escaped or garbled.

@@ -1,0 +1,30 @@
+{
+  "task": "PHANTOM-M1-NATIVE-CONTEXT-HANDOFF-018",
+  "required_base": "a3dfcd7c17832581eb971b4f62da5bbe30a2ed8f",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "High",
+  "subagents": false,
+  "production_modify_allowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomActivityMaterializationPort.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationServiceActivityPort.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java"
+  ],
+  "files": [
+    "ACCEPTANCE.md",
+    "CONTRACT.md",
+    "GIT.md",
+    "GOAL.md",
+    "HANDOFF.md",
+    "MODEL.md",
+    "PLAN.md",
+    "README.md",
+    "RESULT_TEMPLATE.md",
+    "SOURCE_MAP.tsv",
+    "TESTS.md"
+  ]
+}

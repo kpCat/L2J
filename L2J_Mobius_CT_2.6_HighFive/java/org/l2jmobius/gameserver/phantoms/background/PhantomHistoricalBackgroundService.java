@@ -994,14 +994,19 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			}
 		}
 		final RecoveryClaim recovery = purpose == MaterializationPurpose.HISTORICAL_BASELINE ? _recoveryClaims.get(profileId) : null;
+		if ((purpose == MaterializationPurpose.NATIVE_CONTEXT_HANDOFF) && ((ownerClaim == null) || ownerClaim.isBlank() || (catchup == null) || !catchup.state().owns(ownerClaim)
+			|| (catchup.state().status() == Status.COMPLETE) || !currentClaim(profileId, catchup)))
+		{
+			throw new AdmissionRejectedException("catchup.native_handoff_claim_invalid");
+		}
 		if ((purpose == MaterializationPurpose.HISTORICAL_BASELINE) && ((catchup == null) || !catchup.state().owns(ownerClaim)
 			|| ((catchup.state().status() != Status.PENDING) && ((recovery == null) || !catchup.equals(recovery.snapshot()))) || ((recovery != null) && !catchup.equals(recovery.snapshot())) || !currentClaim(profileId, catchup)))
 		{
 			throw new AdmissionRejectedException("catchup.historical_claim_invalid");
 		}
-		final var claimComponent = purpose == MaterializationPurpose.HISTORICAL_BASELINE ? _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null) : null;
-		final var goalComponent = purpose == MaterializationPurpose.HISTORICAL_BASELINE ? _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null) : null;
-		if ((purpose == MaterializationPurpose.HISTORICAL_BASELINE) && ((claimComponent == null) || (claimComponent.rowVersion() != catchup.rowVersion()) || !MessageDigest.isEqual(claimComponent.payload(), new PhantomBackgroundCatchupStateCodec().encode(catchup.state()))))
+		final var claimComponent = purpose != MaterializationPurpose.NORMAL ? _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null) : null;
+		final var goalComponent = purpose != MaterializationPurpose.NORMAL ? _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null) : null;
+		if ((purpose != MaterializationPurpose.NORMAL) && ((claimComponent == null) || (claimComponent.rowVersion() != catchup.rowVersion()) || !MessageDigest.isEqual(claimComponent.payload(), new PhantomBackgroundCatchupStateCodec().encode(catchup.state()))))
 		{
 			throw new AdmissionRejectedException("catchup.historical_claim_changed");
 		}
@@ -1018,7 +1023,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		final var admission = _admissions.get(profileId);
 		if ((admission == null) || (admission.characterObjectId() != player.getObjectId())) { throw new AdmissionRejectedException("catchup.native_admission_missing"); }
-		if (admission.purpose() == MaterializationPurpose.HISTORICAL_BASELINE)
+		if (admission.purpose() != MaterializationPurpose.NORMAL)
 		{
 			final var owner = player.getNativeWorkOwner();
 			final var entry = _materialization.find(profileId).orElse(null);

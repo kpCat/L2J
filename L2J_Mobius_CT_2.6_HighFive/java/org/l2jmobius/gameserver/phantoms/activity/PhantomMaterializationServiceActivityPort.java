@@ -56,9 +56,17 @@ public final class PhantomMaterializationServiceActivityPort implements PhantomA
 	@Override
 	public TransitionOutcome materialize(long profileId)
 	{
+		return materialize(profileId, MaterializationRequest.normal());
+	}
+
+	@Override
+	public TransitionOutcome materialize(long profileId, MaterializationRequest request)
+	{
+		Objects.requireNonNull(request, "request");
+		final var purpose = request.kind() == MaterializationRequest.Kind.NATIVE_CONTEXT_HANDOFF ? PhantomMaterializationService.MaterializationPurpose.NATIVE_CONTEXT_HANDOFF : PhantomMaterializationService.MaterializationPurpose.NORMAL;
 		final var recorder = PhantomRuntimeFlightRecorder.getInstance();
-		recorder.record(profileId, "MATERIALIZE_CALL", "", "", "service.NORMAL", 0, 0, 0);
-		final PhantomMaterializationService.MaterializeResult result = recorder.withProfile(profileId, () -> _service.materialize(profileId));
+		recorder.record(profileId, "MATERIALIZE_CALL", "", "", "service." + purpose.name(), 0, 0, 0);
+		final PhantomMaterializationService.MaterializeResult result = recorder.withProfile(profileId, () -> _service.materialize(profileId, purpose, request.ownerClaim()));
 		final var observed = result.snapshot();
 		recorder.record(profileId, "MATERIALIZE_RESULT", result.status().name(), observed == null ? "" : observed.state().name(), result.status().name(),
 			observed == null ? 0 : observed.characterObjectId(), observed == null ? 0 : observed.materializedAtNanos(), observed != null && observed.worldPresent() ? 1 : 0);
