@@ -46,8 +46,8 @@ VISIBLE_FARM_PASS=NOT_PROVEN
 NEXT_BOUNDARY=требуется отдельно согласованное наблюдение без движения TestAdmin через PREPARE; автоматического продолжения нет
 USER_LOGOUT_SAVE=PASS: online0,totalOnline0,level12,exp138026,sp13880,XYZ49216,42751,-3491; exact before/after match
 RUNTIME_STOP=PASS: Game22488/Login19784 остановлены штатным shutdown; processes0,ports0,original304hashes preserved,forceFalse
-ARTIFACT_COMMIT=PENDING
-PUSH=PENDING
+ARTIFACT_COMMIT=010b3bed2f61736837942fb4c4a77e66ff49d2bf
+PUSH=PASS: normal HEAD:refs/heads/experiment/m1-candidate007-observe008; remote SHA=010b3bed2f61736837942fb4c4a77e66ff49d2bf
 M1=OPEN
 
 ## Причина остановки

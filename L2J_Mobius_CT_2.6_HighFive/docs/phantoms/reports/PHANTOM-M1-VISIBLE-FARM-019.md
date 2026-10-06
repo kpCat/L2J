@@ -33,7 +33,7 @@ Read-first: objective/package, HighFive AGENTS.md, master plan/workflow/package 
 Branch назначения: experiment/m1-candidate007-observe008. Изоляция detached на d153de95fd0fd8b678f975964179aeba85c57336 создана по разрешённому пути, основной checkout и занятая dirty локальная experiment-ветка не переключались. Git использовался по прямому objective/GIT.md; точные команды — GIT_USAGE.md.
 
 Code SHA: d153de95fd0fd8b678f975964179aeba85c57336.
-Основной artifact commit: PENDING.
-Normal push: PENDING.
+Основной artifact commit: 010b3bed2f61736837942fb4c4a77e66ff49d2bf.
+Normal push: PASS, remote experiment/m1-candidate007-observe008=010b3bed2f61736837942fb4c4a77e66ff49d2bf. Дополнительный receipt commit фиксирует этот проверенный SHA и результат; production не меняется.
 
 Следующая граница: отдельно согласовать наблюдение, сохраняющее неподвижность TestAdmin и дающее требуемый census. Root cause visible farm пока не установлен. Второй fix, death repair, следующий goal/slice и автоматическое продолжение не выполняются.

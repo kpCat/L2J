@@ -38,7 +38,7 @@ git show HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high
 git show HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-ecology-v1.xml
 ```
 
-Commit/push ещё не выполнены: сначала требуется подтверждённое online0/save и graceful stop. Их точные команды и результат добавляются после выполнения. Private runtime, credentials, бинарники и исходники других хроник не входят в artifact scope.
+Online0/save и graceful stop подтверждены. Основной artifact commit и normal push выполнены; remote SHA=010b3bed2f61736837942fb4c4a77e66ff49d2bf. Private runtime, credentials, бинарники и исходники других хроник не входят в artifact scope.
 
 ## Exact artifact verification перед commit
 
@@ -56,3 +56,25 @@ git diff --cached -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-V
 ```
 
 Большой diff был truncated; evidence JSON и середина task package отдельно дочитаны через git diff --cached -- с перечисленными exact paths. Дополнительный receipt commit после первого normal push фиксирует фактически полученный основной artifact SHA и результат push; production changes остаются0.
+
+## Commit и normal push
+
+Основной artifact SHA: 010b3bed2f61736837942fb4c4a77e66ff49d2bf. Первый normal push PASS; ls-remote совпал с SHA. Дополнительный receipt commit имеет только четыре metadata/doc paths, чтобы сохранить фактический основной SHA и результат push. Итоговый receipt SHA и remote verification приводятся в финальном сообщении.
+
+```text
+git commit -m 'phantom(task-019): record blocked visible farm diagnosis' -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/ACCEPTANCE.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/DIAGNOSIS.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/FIX.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/GIT.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/GOAL.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/HANDOFF.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/MODEL.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/PACKAGE_MANIFEST.json L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/PLAN.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/RESULT_TEMPLATE.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/TESTS.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/VISIBLE_DIAGNOSIS.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/EVIDENCE019A.json L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/RESULT.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/PROGRESS.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/GIT_USAGE.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/BASE_BUILD.log L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/GRACEFUL_STOP.log L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/STOP_VERIFY.log L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/LOGOUT_BEFORE_STOP.tsv L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/LOGOUT_AFTER_STOP.tsv L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/ARTIFACT_ALLOWLIST.json L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-M1-VISIBLE-FARM-019.md
+git rev-parse HEAD
+git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+git ls-remote origin refs/heads/experiment/m1-candidate007-observe008
+git add -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/RESULT.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/PROGRESS.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/GIT_USAGE.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-M1-VISIBLE-FARM-019.md
+git diff --cached --name-only
+git diff --name-only HEAD
+git diff --check
+git diff --cached --check
+git diff --cached -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/RESULT.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/PROGRESS.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/GIT_USAGE.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-M1-VISIBLE-FARM-019.md
+git commit -m 'docs(phantoms): record task019 publication receipt' -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/RESULT.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/PROGRESS.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-VISIBLE-FARM-019/GIT_USAGE.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/reports/PHANTOM-M1-VISIBLE-FARM-019.md
+git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+git ls-remote origin refs/heads/experiment/m1-candidate007-observe008
+git status --porcelain=v1 -uno
+git diff --name-only d153de95fd0fd8b678f975964179aeba85c57336 HEAD
+```
