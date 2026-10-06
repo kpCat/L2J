@@ -1,0 +1,21 @@
+utc=2026-10-06T19:12:24.575997500Z
+settings=Settings[enabled=true, diagnosticsEnabled=true, maxMaterializedPhantoms=8, maxScheduledPhantomProfiles=10000, schedulerPulseMillis=100, schedulerProfilesPerPulse=256, populationTarget=1280, populationActiveTarget=8, populationCreationInFlight=2, populationBoundariesPerPulse=64, partyOperationsPerPulse=64, socialCacheProfiles=1024, populationTimeZone=UTC, ecologyEnabled=true, ecologyPreset=LIVING, ecologyWorldAgeDays=-1, ecologyArchiveLimit=1000, conversation=ConversationSettings[humanizedEnabled=true, customPackEnabled=true, register=CASUAL, profanity=CONTEXTUAL, variation=HIGH, matureEnabled=true]]
+runtimeState=RUNNING
+schedulerState=RUNNING
+decisionState=RUNNING
+worldMaterialized=0
+shutdownFailures=0
+pilot=true
+autoAttachTestAdmin=true
+synthetic=false
+gmHide=false
+gmInvulnerable=false
+gmInvisible=false
+gmSilence=false
+
+Path                                                                                                                                    Hash
+----                                                                                                                                    ----
+C:\Users\ZBook\.codex\worktrees\m1-native-farm-022\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops022\ReadRuntime022Agent.java 427B0C5D6ECB0F0CE3A63E4A6EBD090F527BCF0D60B7022091B3FD3F8DCD35C3
+C:\Users\ZBook\.codex\worktrees\m1-native-farm-022\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops022\read-runtime022.jar      8518449E4C02F86079D5C608FAF7D61C3A5A34FF90F16FDB4229E1D25714F763
+
+

@@ -1,0 +1,10 @@
+clone	characters	profiles	components
+l2jmobiush5_localplay_observe022a	10002	10000	50000
+charId	char_name	accesslevel	online	level	exp	sp	x	y	z
+268492939	TestAdmin	100	0	12	138026	13880	44131	42673	-3488
+charId	account_name	char_name	accesslevel	online	level	exp	sp	x	y	z
+268492939	testadmin	TestAdmin	100	0	12	138026	13880	44131	42673	-3488
+PINNED_PRIVATE_BLOB game/data/phantoms/population/high-five-population-v1.xml 23b12fc523de83d1bdea54a75677823b2e8129978792a9c9fec684accfaa4748
+PINNED_PRIVATE_BLOB game/data/phantoms/population/high-five-population-v2.xml d555ab8dda0783d0736d3aadb0bd3d1b76481c73f0a34656cdf5c70fb88fbbc6
+PINNED_PRIVATE_BLOB game/data/phantoms/population/high-five-ecology-v1.xml a723e1f2caa8016ee1fa13024257ae5873f2e86142ab90859ed85a9395cffd84
+Fresh runtime ready: C:\Users\ZBook\.codex\worktrees\m1-native-farm-022\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\observe022a\runtime; original 304 hashes preserved.

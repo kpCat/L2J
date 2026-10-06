@@ -1,0 +1,22 @@
+{
+  "base": "0205d04bc7763fafcbb776e6da8887c1f2912d8b",
+  "codeSha": "aff089ed4a316a91cf7f6c41c3953b96bb8f78ef",
+  "branch": "experiment/m1-candidate007-observe008",
+  "sourceCommitAndNormalPush": "PASS",
+  "buildStartClean": true,
+  "buildCommand": "ant -q jar",
+  "buildExitCode": 0,
+  "buildInitDeletesConfiguredBin": true,
+  "jdk": "25.0.4.1",
+  "gameJarSha256": "6D33478525566BBC4E414E8A3359CA0A00ADDB86990CB7EB7064152E5D40E665",
+  "loginJarSha256": "D28BF48E11896EB11620EA0BFAB45064642E48953732E6F8E6E94C369684AAC2",
+  "privateDatabase": "l2jmobiush5_localplay_observe022a",
+  "runtime": "C:/Users/ZBook/.codex/worktrees/m1-native-farm-022/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/.phantom-local/observe022a/runtime",
+  "originalRuntimePreservedHashes": 304,
+  "PLAY_WRITES": 0,
+  "semanticRounds": 2,
+  "connectedEpisodes": 0,
+  "FARM_PASS": "PENDING_CONNECTED",
+  "CLEANUP_PASS": "PENDING_CONNECTED",
+  "M1": "OPEN"
+}
