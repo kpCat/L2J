@@ -1,0 +1,70 @@
+{
+  "background.catchup": {
+    "rowVersion": 20152,
+    "payloadSha256": "3dee2488bc7a45aa6d746c7a736f7cf555d96807c0d67dbe6cabd2f06ce4c848",
+    "status": "COMPLETE",
+    "requestId": "db77d0c13aba1b64419aafad1554dd456c6c5578ff53161000ad2e0892734199",
+    "seed": 6374293272387424671,
+    "from": 29846067,
+    "target": 29846068,
+    "cursor": 29846068,
+    "planOrdinal": 28,
+    "intervalOrdinal": 1,
+    "generation": 2629927389125735441,
+    "knowledgeGeneration": 1,
+    "topologyGeneration": 1,
+    "goalId": 6728948813076984772,
+    "goalRevision": 28,
+    "planIdentity": "0392c0794e0010ba8a353d29a2e983464b6f58e30946b24162c9c6abb13c961e",
+    "modelVersion": 1,
+    "knowledge": "5296258f03b1229a42554c26038641a7efcd5ca0f172631af052e0f997e12c51",
+    "topology": "31e817f1900377725d21f296f141c276ac8485a5fdfb20e454db70c2d933d46b",
+    "progression": "133955996D84152171ED23514A47F76080767D0AFB36627EC9D40C0072E94BF7",
+    "commerce": "d9aead8e4df00efa8f702964dc70563f6f8aae29992fd4db1949ca700e59744f",
+    "failureReason": ""
+  },
+  "background.state": {
+    "rowVersion": 34530,
+    "payloadSha256": "6b114ac8860c84dbdf7fe3ceb9bbd3ee663f09c2c3cf3f4260ce37fa463860c6",
+    "state": "MATERIALIZED"
+  },
+  "goal.runtime": {
+    "rowVersion": 28,
+    "payloadSha256": "19ca6f7e6a71ded29ed62ca19f430114a400d5966dfb89f459b77b00181f8551",
+    "goalId": 6728948813076984772,
+    "revision": 28,
+    "statusCode": 1,
+    "type": "farm.background",
+    "subject": [
+      "profile",
+      "110"
+    ],
+    "targetRef": [
+      "npc",
+      "20525"
+    ],
+    "required": 1,
+    "current": 0,
+    "acquisitionMethod": "background.farm",
+    "sources": [
+      [
+        "background.farm",
+        "20525@generated.farm.519759dffe4a0803b970d3ee.anchor"
+      ]
+    ],
+    "anchor": [
+      "topology.anchor",
+      "generated.farm.519759dffe4a0803b970d3ee.anchor"
+    ],
+    "purpose": "farm.background",
+    "priority": 500,
+    "risk": 0,
+    "expense": 0,
+    "deadline": 0,
+    "constraints": {},
+    "reason": "background.catchup.plan"
+  },
+  "normalAdmission": true,
+  "postStopState": false,
+  "source": "snapshot021"
+}

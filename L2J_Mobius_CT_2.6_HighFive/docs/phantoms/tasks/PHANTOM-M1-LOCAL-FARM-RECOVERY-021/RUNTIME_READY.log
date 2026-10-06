@@ -1,0 +1,7 @@
+CONFIG PASS
+Preset=Lively Population=1280 Active=8 MaterializedCap=8 PulseMs=100
+Ecology=LIVING HumanizedV3=True CustomOverlay=True Mature=True Diagnostics=True
+AutoCreateAccounts=True PersonalQoLAccount=jvtygr1231, jvtyGR1231, kpCat AutoNoblesseGlobal=True
+DatabaseConfig=USER_CONFIRMED_EXISTING
+LoginServer=RUNNING(pid=27516, staleRecord=False) Port2106=True owner=27516 Port9014=True owner=27516
+GameServer=RUNNING(pid=11400, staleRecord=False) Port7777=True owner=11400

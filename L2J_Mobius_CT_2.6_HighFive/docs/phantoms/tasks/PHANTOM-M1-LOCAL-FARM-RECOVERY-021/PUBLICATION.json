@@ -1,0 +1,8 @@
+{
+  "codeSha": "337bfbc42afdeaf5944bec690d9ff1840d3677cc",
+  "gameJarSha256": "E66D693C25EA1425F688AD73D9C0A3C2C15EAC9885F24E55C86B02E02BEB614A",
+  "loginJarSha256": "693E3A654A8268991E287029F4BF811AA9F7368D7760890BE2250651B7EF94B1",
+  "build": "ant -q jar (init deletes build/bin)",
+  "targeted": "intent10/10 local7/7",
+  "utc": "2026-10-06T15:39:48.2119545+00:00"
+}

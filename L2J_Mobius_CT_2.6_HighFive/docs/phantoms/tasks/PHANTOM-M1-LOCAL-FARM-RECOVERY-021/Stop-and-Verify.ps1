@@ -18,7 +18,9 @@ $before | Set-Content (Join-Path $PSScriptRoot 'LOGOUT_BEFORE_STOP.tsv') -Encodi
 Write-Output "LOGOUT_SAVE_CONFIRMED $($before[0]) totalOnline=$($before[1])"
 . (Join-Path $runtime 'LocalPlay-Pilot.ps1')
 $pilotContext=Get-PilotContext -RequireEnabled -ActorMode RealClient
-$pilotSession=Get-PilotSession $pilotContext
+$sessionPath=Join-Path $pilotContext.PilotRoot 'session.properties'
+# Stock LocalPlayPilotService clears runId and removes this record on real-client logout.
+$pilotSession=if (Test-Path -LiteralPath $sessionPath) { Get-PilotSession $pilotContext } else { [pscustomobject]@{state='NO_SESSION_AFTER_VERIFIED_LOGOUT'} }
 if ($pilotSession.state -ceq 'RUNNING') {
     & (Join-Path $runtime 'Stop-LocalPlayPilot.ps1') -ActorMode RealClient
     $pilotSession=Get-PilotSession $pilotContext

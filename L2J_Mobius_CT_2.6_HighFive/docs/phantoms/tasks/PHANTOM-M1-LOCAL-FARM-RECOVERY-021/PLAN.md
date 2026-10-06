@@ -5,6 +5,19 @@ Goal: исправить связанный цикл current goal / terminal rou
 Tech stack: текущие JDK25/Ant/MariaDB; новые зависимости не нужны. Spec: DESIGN.md.
 Исполнение: inline Codex, без субагентов; текущие TDD/debugging правила сохраняются.
 
+## Фактическое завершение TASK021
+
+A выполнен: isolated exact base, retained020 SELECT, semantic RED, native water fixture.
+B patch/review выполнены в пяти allowed production files. Targeted GREEN17/17;
+полный R13 three-bad-target episode не доказан, ограничения отражены в RESULT.
+C source commit/push, clean committed build, scope/encoding guards выполнены.
+Обязательные regression families проходят; два affected existing travel failures
+повторяются на base и сохранены отдельно, они не помечаются GREEN.
+D выполнен один manual observe021:166.395653s,19 samples;5 farm cycles не достигнуты.
+E TestAdmin logout/save и stock Game/Login stop выполнены; native final drain incomplete,
+8 retained entries. Final report/evidence commit+normal push завершают bounded task.
+TASK_RESULT=BLOCKED_NATIVE_CONTINUATION, M1=OPEN; следующий slice не начинается.
+
 ## Review focus
 
 Проверить: reload BUSY; чужой callback предыдущего epoch; CAS conflict после планирования;

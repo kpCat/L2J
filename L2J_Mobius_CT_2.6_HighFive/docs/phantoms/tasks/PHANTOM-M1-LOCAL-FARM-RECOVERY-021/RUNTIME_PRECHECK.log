@@ -1,0 +1,8 @@
+codeSha=337bfbc42afdeaf5944bec690d9ff1840d3677cc
+gameURL=jdbc:mysql://127.0.0.1:3308/l2jmobiush5_localplay_observe021?useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&useSSL=false&connectTimeout=10000&interactiveClient=true&sessionVariables=wait_timeout=600,interactive_timeout=600&autoReconnect=true
+loginURL=jdbc:mysql://127.0.0.1:3308/l2jmobiush5_localplay_observe021?useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&useSSL=false&connectTimeout=10000&interactiveClient=true&sessionVariables=wait_timeout=600,interactive_timeout=600&autoReconnect=true
+pilotState=NO_MANUAL_LOGIN_YET
+pilotConsentMinutes=120 runMinutes=20 heartbeatSeconds=30 observedMaximumSeconds=300
+serverBoot=PASS PhantomEnabled=True Diagnostics=True Synthetic=False AutoAttach=TestAdmin
+originalHashesPreserved=304
+preloginErrorLines=0

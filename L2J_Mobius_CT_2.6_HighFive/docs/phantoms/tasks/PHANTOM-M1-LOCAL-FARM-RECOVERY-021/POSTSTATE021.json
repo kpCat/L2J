@@ -1,0 +1,70 @@
+{
+  "background.catchup": {
+    "rowVersion": 20154,
+    "payloadSha256": "7ed71c62077713aa0516ce8c5492319ca8b953094052786266083577f132099b",
+    "status": "PENDING",
+    "requestId": "9558e13f4d76c304c811cd84fe8e4babc131d3353a7e06a47858068e94ac9a00",
+    "seed": 6374293272387424671,
+    "from": 29852110,
+    "target": 29852115,
+    "cursor": 29852110,
+    "planOrdinal": 30,
+    "intervalOrdinal": 0,
+    "generation": 5573243686576712785,
+    "knowledgeGeneration": 1,
+    "topologyGeneration": 1,
+    "goalId": 6728948813076984772,
+    "goalRevision": 30,
+    "planIdentity": "11c95027800f1516ebbe044b18c5d2e2ba773ccd83c3768ece01c14182968f95",
+    "modelVersion": 1,
+    "knowledge": "521a27c4792eaaea0c10000658aabf3ff94af92fd9ec579cd33ea86cb502ea4f",
+    "topology": "31e817f1900377725d21f296f141c276ac8485a5fdfb20e454db70c2d933d46b",
+    "progression": "133955996D84152171ED23514A47F76080767D0AFB36627EC9D40C0072E94BF7",
+    "commerce": "d9aead8e4df00efa8f702964dc70563f6f8aae29992fd4db1949ca700e59744f",
+    "failureReason": ""
+  },
+  "background.state": {
+    "rowVersion": 34539,
+    "payloadSha256": "7e3bf7cdfec81b0c1185ed793730fb564c9a758926fba711e3342e9a63919c12",
+    "state": "MATERIALIZED"
+  },
+  "goal.runtime": {
+    "rowVersion": 30,
+    "payloadSha256": "fb324550d6f121be3dcc987d24c9b5aedf490211ef8eca38950f5f96ca0cd234",
+    "goalId": 6728948813076984772,
+    "revision": 30,
+    "statusCode": 1,
+    "type": "farm.background",
+    "subject": [
+      "profile",
+      "110"
+    ],
+    "targetRef": [
+      "npc",
+      "20534"
+    ],
+    "required": 1,
+    "current": 0,
+    "acquisitionMethod": "background.farm",
+    "sources": [
+      [
+        "background.farm",
+        "20534@population.farming.elf.20534"
+      ]
+    ],
+    "anchor": [
+      "topology.anchor",
+      "population.farming.elf.20534"
+    ],
+    "purpose": "farm.background",
+    "priority": 500,
+    "risk": 0,
+    "expense": 0,
+    "deadline": 0,
+    "constraints": {},
+    "reason": "background.catchup.plan"
+  },
+  "normalAdmission": false,
+  "postStopState": true,
+  "source": "post021"
+}

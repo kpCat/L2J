@@ -15,4 +15,9 @@ Required admission/ecology/decision/recorder regressions pass. Additional GK6/7 
 legacy cardinality assertion; native travel0/1 repeats untouched base failure. Initial RED.log keeps only primary
 PASS/FAIL/summary because first JVM date output had an encoding error; fresh UTF-8 baseline
 RED is retained separately. No connected pre-fix run.
-Pending: exact artifact guard/commit, clean committed build, fresh observe021, human login.
+Implementation commit337bfbc42af pushed; clean committed build and hashes PASS.
+Fresh observe021, manual login/logout gates fulfilled. One run166.395653s,19 samples;
+profile110 same epoch, current/runtime30/30, cycle/EXP/SP deltas0, overflowtrue.
+TASK_RESULT=BLOCKED_NATIVE_CONTINUATION; M1=OPEN. Server processes/ports stopped gracefully,
+TestAdmin saved exactly; Phantom final subsystem drain retained8 entries (not full cleanup PASS).
+Final report/evidence exact-path commit and normal push are the final authorized actions.

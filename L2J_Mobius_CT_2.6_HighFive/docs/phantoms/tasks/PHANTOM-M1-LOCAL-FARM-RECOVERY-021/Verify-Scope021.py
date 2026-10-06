@@ -19,7 +19,7 @@ sources = [
     module + 'test/java/org/l2jmobius/tests/phantoms/PhantomLocalFarmRecoverySuite.java',
 ]
 names = '''ACCEPTANCE.md DESIGN.md GOAL.md HANDOFF.md PACKAGE_MANIFEST.json PATCH_GUIDE.md PLAN.md REVIEW_NOTES.md RUNBOOK.md SCENARIOS.md SOURCE_MAP.tsv TASK.md
-PRESTATE021.json Inspect-Prestate021.py ENGINEERING_REVIEW.md PROGRESS.md RESULT.md GIT_USAGE.md Run-Engineering.ps1
+PRESTATE021.json CLONE_INITIAL021.json POSTSTATE021.json Inspect-Prestate021.py ENGINEERING_REVIEW.md PROGRESS.md RESULT.md GIT_USAGE.md Run-Engineering.ps1
 RED-COMPILE.log RED-LOCAL-COMPILE.log RED.log RED-PhantomVisibleIntentRecoverySuite.log RED-PhantomLocalFarmRecoverySuite.log GREEN-COMPILE.log GREEN-PhantomVisibleIntentRecoverySuite.log GREEN-PhantomLocalFarmRecoverySuite.log REGRESSIONS-PhantomVisibleDecisionAdmissionSuite.log REGRESSIONS-PhantomNativeContextHandoffSuite.log population-ecology-goal033-GREEN.log population-ecology-handoff-regression-GREEN.log background-lifecycle-GREEN.log decision-core-GREEN.log decision-persistence-GREEN.log normal-gatekeeper-travel-GREEN.log m1-native-lifecycle-GREEN.log recorder-GREEN.log BUILD.log
 Prepare-Runtime.ps1 Restore-Private-Catalogs.py Stop-and-Verify.ps1 Verify-Scope021.py ARTIFACT_ALLOWLIST.json SCOPE_ENCODING.log
 BASE-normal-gatekeeper-travel.log BASE-m1-native-lifecycle.log
