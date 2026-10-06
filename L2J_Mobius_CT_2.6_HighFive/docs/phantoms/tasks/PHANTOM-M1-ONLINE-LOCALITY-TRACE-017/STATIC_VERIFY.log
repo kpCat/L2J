@@ -1,6 +1,6 @@
-warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java', LF will be replaced by CRLF the next time Git touches it
-EXACT_SCOPE_PASS 30 production=1 test=1
+warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-ONLINE-LOCALITY-TRACE-017/GIT_USAGE.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-ONLINE-LOCALITY-TRACE-017/Observe-Causal.ps1', LF will be replaced by CRLF the next time Git touches it
+EXACT_SCOPE_PASS 50 production=1 test=1
 DIAGNOSTIC_ONLY_SOURCE_PASS
 MOJIBAKE_MARKERS_PASS
 ESCAPED_CYRILLIC_PASS

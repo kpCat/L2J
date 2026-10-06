@@ -1,0 +1,5 @@
+VERIFIED ARMED_IDLE IN_GAME REAL_LOGIN objectId=268492939 position=44131,42673,-3488
+CAUSAL_BEGIN serverUtc=2026-10-06T10:16:33.496913300Z startedNanos=9973227205200
+CAUSAL_END seconds=10.5980153 stopReason=REPEATED_EXACT_BLOCKER count=10 key=160|READY_ECOLOGY_DEFER|LOCAL|DEFERRED|catchup.renewal.background_state_invalid seq=980 watched=[110, 129, 142, 151, 160, 175, 229, 242]
+{"watched": "[110, 129, 142, 151, 160, 175, 229, 242]", "attempts": "1119", "dropped": "0", "retained": "1119", "active": "false", "startedNanos": "9973227205200", "snapshotNanos": "9983825220500", "preState": "ARMED_IDLE", "clientState": "IN_GAME", "clientStateProof": "successful STATUS via sessionValid/realClient admission", "identityOwner": "REAL_LOGIN", "objectId": 268492939, "beginUtc": "2026-10-06T10:16:33.496913300Z", "snapshotUtc": "2026-10-06T10:16:44.092313500Z", "endUtc": "2026-10-06T10:16:44.092313500Z", "exported": 1119, "exportRecovery": "raw XML attributes; literal tabs preserved; recorder not repeated", "x": "44131", "y": "42673", "z": "-3488"}
+CAUSAL_EXPORT_COMPLETE pages=24 retained=1119 dropped=0

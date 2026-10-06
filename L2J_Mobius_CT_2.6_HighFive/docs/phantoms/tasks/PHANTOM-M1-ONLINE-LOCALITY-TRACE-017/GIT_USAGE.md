@@ -36,9 +36,42 @@ git show 0f16f29eff4d78d42a8f4da48fc0bc44ad466ad7:L2J_Mobius_CT_2.6_HighFive/jav
 git diff 0f16f29eff4d78d42a8f4da48fc0bc44ad466ad7 --check
 ```
 
-Exact-path commit/push commands и их результаты дополняются после исполнения.
+Engineering commit: f8279bdac3be114c25f6ad1a4b7ebc02dbd6f831.
+Normal push required base → engineering commit успешен; ls-remote совпал.
+
+```text
+git add -- L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHumanLocalityTraceSuite.java L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-ONLINE-LOCALITY-TRACE-017
+git diff --cached --check
+git diff --cached --stat
+git status --short
+git commit -m 'phantom(task-017): watch online human-local trace candidates'
+git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+git rev-parse HEAD
+git ls-remote origin refs/heads/experiment/m1-candidate007-observe008
+```
+
 Prepare-Runtime.ps1 читает git rev-parse HEAD. Restore-Private-Catalogs.py читает
 git show HEAD:exact dist/game/data/phantoms/population paths для трёх canonical
 high-five-population-v1.xml, high-five-population-v2.xml, high-five-ecology-v1.xml.
 Catalog semantic equality проверяется до записи только в private runtime.
 Reset/clean/stash/rebase/force/broad add отсутствуют.
+
+Final artifact closeout (тот же exact TASK017 path, без production/test edits):
+
+```text
+git diff --stat
+git diff -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-ONLINE-LOCALITY-TRACE-017/Observe-Causal.ps1
+git status --short
+git add -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-ONLINE-LOCALITY-TRACE-017
+git diff --cached --check
+git diff --cached --name-only
+git commit -m 'phantom(task-017): record accepted online locality trace and safe stop'
+git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+git rev-parse HEAD
+git ls-remote origin refs/heads/experiment/m1-candidate007-observe008
+git status --short
+```
+
+Final artifact SHA выводится после normal push/remote equality и сообщается в чате,
+чтобы не добавлять recursive self-reference commit. Engineering/runtime code SHA
+остаётся f8279bdac3be114c25f6ad1a4b7ebc02dbd6f831.

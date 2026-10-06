@@ -65,7 +65,7 @@ while ($watch.Elapsed.TotalSeconds -lt 42.0) {
 }
 $page = Invoke-Trace 'END_PHANTOM_CAUSAL_TRACE' @{maxEvents='128'}
 $serverSeconds = ([long]$page.candidate.snapshotNanos - [long]$begin.candidate.startedNanos) / 1e9
-@{serverSeconds=$serverSeconds;wallSeconds=$watch.Elapsed.TotalSeconds;stopReason=$stopReason;online=@($online);local=@($local);blockers=$counts} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $private 'timing.json') -Encoding utf8
+@{serverSeconds=$serverSeconds;wallSeconds=$watch.Elapsed.TotalSeconds;stopReason=$stopReason;online=@($online | ForEach-Object { $_ });local=@($local | ForEach-Object { $_ });blockers=$counts} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $private 'timing.json') -Encoding utf8
 Write-Output "CAUSAL_END seconds=$serverSeconds stopReason=$stopReason watched=$($page.candidate.watched)"
 $pageCount = 1
 while ($page.candidate.hasMore -ceq 'true') {
