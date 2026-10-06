@@ -1,0 +1,16 @@
+permission	path	purpose	git_blob_reference
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	existing pre-work sink and scalar census	current pinned source
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	visible ownership/sync/atomic replan; methods near 90-140,904-1130	da5368580b818527ca03621f0b54f20c4928c1e8
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	visible-local overload only; default untouched; 82-197,224-260	0e3b42c9b7ff2ec5586c357c1b6b6264160ee8b3
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	typed terminal propagation; 93-115,199-245	5a91fb18da3fed3f36eb6915d44ce71f0982689f
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	stale goal fence/terminal binding/recovery budget; 139-200,304-550	8898f27d14da297e84d0928caa61e7c4c07556ef
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundCatchupStore.java	reuse replacePlan atomic CAS; 128-172	44a71014dd6296eba19561ad9afc4a1479e0331e
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundCatchupState.java	withPlan status pitfall; 70-78	4af25055ce45b7c3d6f30eb43f022cfadb360cac
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	ordinaryGoal, native capture/store ownership; 872-981	88f0f5bcb46660e566e789da6a084c03c58256f0
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	native adapter; no second combat engine	pinned source
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/decision/PhantomDecisionEngine.java	existing reload/BUSY/accept boundaries; do not alter core	pinned source
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomVisibleIntentRecoverySuite.java	R01-R11 standalone main	new
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLocalFarmRecoverySuite.java	R12-R16 standalone main	new
+OPTIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomVisibleDecisionAdmissionSuite.java	own controlled rebind positive; foreign mutation negatives retained	pinned source
+OPTIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeContextHandoffSuite.java	existing integration fixture reuse, no weakened assertions	pinned source
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LOCAL-FARM-RECOVERY-021/	task-local runner/report/evidence only	new

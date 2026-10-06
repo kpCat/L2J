@@ -67,6 +67,10 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private final ConcurrentHashMap<Long, RecoveryClaim> _recoveryClaims = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, VisibleFailures> _visibleFailures = new ConcurrentHashMap<>();
 	private final LongSupplier _visibleClock;
+	private final ConcurrentHashMap<Long, VisibleEpisode> _visibleEpisodes = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, VisiblePublication> _visiblePublications = new ConcurrentHashMap<>();
+	private volatile PhantomVisibleFarmTravel _visibleTravel;
+	private volatile PhantomVisibleAutoPlay _visibleAutoPlay;
 
 	public PhantomHistoricalBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomHistoricalBackgroundPlanner planner, PhantomBackgroundService background, PhantomMaterializationService materialization)
 	{
@@ -906,62 +910,163 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	/** Reuses the catch-up planner when a materialized Player outgrows its exact farm target. */
 	public boolean replanVisibleFarmIfOutgrown(long profileId, PhantomGoal goal, PhantomDecisionEngine decision)
 	{
+		return (decision != null) ? prepareVisibleDecision(profileId, decision) : visibleFarmReady(profileId, goal);
+	}
+
+	public void bindVisibleRecovery(PhantomVisibleFarmTravel travel, PhantomVisibleAutoPlay autoPlay)
+	{
+		_visibleTravel = Objects.requireNonNull(travel);
+		_visibleAutoPlay = Objects.requireNonNull(autoPlay);
+	}
+
+	/** Handler-side suitability is read-only: publication waits until accept releases inFlight. */
+	public boolean visibleFarmReady(long profileId, PhantomGoal goal)
+	{
 		final var failures = _visibleFailures.get(profileId);
-		if ((failures != null) && failures.protocolBlocked(goal, _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L))) { return false; }
-		final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong());
-		final var spec = PhantomBackgroundGoalSpec.parse(goal);
-		final boolean failedTarget = exclusions.targets().contains(spec.npcId() + "@" + spec.anchorId());
-		final Snapshot catchup = status(profileId).orElse(null);
-		if ((catchup == null) || (catchup.state().status() != Status.COMPLETE) || (catchup.state().goalId() != goal.goalId()))
+		final long epoch = _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L);
+		final var episode = _visibleEpisodes.get(profileId);
+		if ((episode != null) && (episode.epoch == epoch) && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return false; }
+		if ((failures != null) && (failures.protocolBlocked(goal, epoch) || failures.exclusions(_visibleClock.getAsLong()).targets().contains(targetKey(goal)))) { return false; }
+		return Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), goal);
+	}
+
+	/** The scheduler boundary owns sync and recovery, outside gameplay/decision locks. */
+	public boolean prepareVisibleDecision(long profileId, PhantomDecisionEngine decision)
+	{
+		try
 		{
-			return !failedTarget;
-		}
-		final PhantomBackgroundState baseline = _background.acquisitionSnapshot(profileId).orElse(null);
-		if (baseline == null)
-		{
-			return !failedTarget;
-		}
-		try (ActionLease action = _materialization.tryAcquireAction(profileId).orElse(null))
-		{
-			if ((action == null) || action.player().isDead())
+			final var runtime = decision.find(profileId).orElse(null);
+			if ((runtime == null) || runtime.inFlight() || runtime.persistenceInFlight()) { return false; }
+			final var receipt = _visiblePublications.get(profileId);
+			if (receipt != null) { return finishVisiblePublication(profileId, decision, receipt); }
+			if (!permitsDecision(profileId)) { return false; }
+			final StoredGoal stored = _goals.load(profileId).orElse(null);
+			if (stored == null) { return false; }
+			final var admitted = _materialization.find(profileId).orElse(null);
+			if ((admitted == null) || !admitted.worldPresent() || !admitted.actionAdmissionOpen() || (admitted.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE)) { return false; }
+			try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
 			{
-				return !failedTarget;
+				if ((action == null) || (action.player().getObjectId() != admitted.characterObjectId()) || action.player().hasPendingOwnedStore()) { return false; }
 			}
-			final Player player = action.player();
-			if ((player.getObjectId() != baseline.identity().characterObjectId()) || (player.getActiveClass() != baseline.identity().activeClassId()))
+			if (!runtimeMatches(runtime, stored))
 			{
-				return !failedTarget;
+				if (_visibleTravel != null) { _visibleTravel.cancelSuperseded(profileId, stored.goal()); }
+				if (_visibleAutoPlay != null) { _visibleAutoPlay.stop(profileId); }
+				if ((decision.reload(profileId) != PhantomDecisionEngine.ReloadResult.RELOADED) || !runtimeMatches(decision.find(profileId).orElse(null), stored)
+					|| !Objects.equals(stored, _goals.load(profileId).orElse(null)) || !permitsDecision(profileId)) { return false; }
 			}
-			final Progress progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
-			final PhantomBackgroundState projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, baseline.vitals(), baseline.position(), baseline.combat(), baseline.loadout(), baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
-			if (!failedTarget && _planner.remainsSuitable(projected, goal))
+			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType())) { return true; }
+			final var lifetime = _materialization.find(profileId).orElse(null);
+			if (lifetime == null) { return false; }
+			final var failures = _visibleFailures.get(profileId);
+			if ((failures != null) && failures.protocolBlocked(stored.goal(), lifetime.materializedAtNanos())) { return false; }
+			final var episode = _visibleEpisodes.get(profileId);
+			if ((episode != null) && (episode.epoch == lifetime.materializedAtNanos()) && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return false; }
+			final var baseline = _background.acquisitionSnapshot(profileId).orElse(null);
+			if (baseline == null) { return false; }
+			final Player player;
+			final PhantomBackgroundState projected;
+			final org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint live;
+			try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
 			{
-				return true;
+				if (action == null) { return false; }
+				player = action.player();
+				if (player.hasPendingOwnedStore() || (player.getObjectId() != baseline.identity().characterObjectId()) || (player.getActiveClass() != baseline.identity().activeClassId())) { return false; }
+				if (player.isDead()) { return true; } // Existing native death/recovery remains the decision adapter's responsibility.
+				final var progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
+				projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, baseline.vitals(), baseline.position(), baseline.combat(), baseline.loadout(), baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
+				live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 			}
+			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong());
+			if (!exclusions.targets().contains(targetKey(stored.goal())) && _planner.isVisibleLocal(stored.goal(), live) && _planner.remainsVisibleSuitable(projected, stored.goal(), live)) { return true; }
+			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }
+			if (_visibleAutoPlay != null) { _visibleAutoPlay.stop(profileId); }
+			if (!visibleActorQuiet(profileId, player, lifetime.materializedAtNanos())) { return false; }
+			final Snapshot catchup = _store.load(profileId).orElse(null);
+			final var handoff = _foregroundHandoffs.get(profileId);
+			if ((catchup == null) || (catchup.state().goalId() != stored.goal().goalId()) || (catchup.state().goalRevision() != stored.goal().revision())
+				|| ((catchup.state().status() != Status.COMPLETE) && ((handoff == null) || !exactForegroundHandoff(profileId, handoff)))) { return false; }
+			final long now = _visibleClock.getAsLong();
+			final var recovery = _visibleEpisodes.compute(profileId, (_, current) -> (current != null) && (current.objectId == player.getObjectId()) && (current.epoch == lifetime.materializedAtNanos()) && (now - current.started < 60_000_000_000L) ? current : new VisibleEpisode(player.getObjectId(), lifetime.materializedAtNanos(), now));
+			recovery.targets.add(targetKey(stored.goal()));
+			if (recovery.targets.size() >= 3) { recovery.unavailable(now); return false; }
+			final var excluded = new java.util.HashSet<>(exclusions.targets()); excluded.addAll(recovery.targets);
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
-			final var replacement = _planner.replan(profileId, projected, goal, catchup.state().deterministicSeed(), nextOrdinal, exclusions.targets(), exclusions.steps());
-			if (!replacement.ready() || (decision.setGoal(profileId, replacement.goal()) != PhantomDecisionEngine.MutationResult.APPLIED))
-			{
-				return false;
-			}
-			try
-			{
-				final PhantomBackgroundCatchupState updated = catchup.state().withPlan(replacement.goal().goalId(), replacement.goal().revision(), nextOrdinal, replacement.planIdentity(), replacement.generation().knowledgeGeneration(), replacement.generation().topologyGeneration(), replacement.generation().authorityHashes());
-				_store.replace(profileId, catchup, updated);
-			}
+			final var replacement = _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps());
+			if (!replacement.ready()) { recovery.unavailable(now); return false; }
+			if ((replacement.generation().knowledgeGeneration() != catchup.state().knowledgeGeneration()) || (replacement.generation().topologyGeneration() != catchup.state().topologyGeneration()) || !replacement.generation().authorityHashes().equals(catchup.state().authorityHashes())) { return false; }
+			final var state = catchup.state();
+			final var updated = new PhantomBackgroundCatchupState(state.status(), state.requestId(), state.deterministicSeed(), state.fromEpochMinute(), state.targetEpochMinute(), state.cursorEpochMinute(), nextOrdinal, state.intervalOrdinal(), state.generation(), state.knowledgeGeneration(), state.topologyGeneration(), replacement.goal().goalId(), replacement.goal().revision(), replacement.planIdentity(), state.modelVersion(), state.authorityHashes(), state.failureReason());
+			final var publication = new VisiblePublication(player, lifetime.materializedAtNanos(), handoff, catchup, stored, updated, replacement.goal());
+			if (_visiblePublications.putIfAbsent(profileId, publication) != null) { return false; }
+			try { publication.committed = _store.replacePlan(profileId, catchup, updated, stored, replacement.goal()); }
 			catch (RuntimeException exception)
 			{
-				// The next completed catch-up renewal resolves a stale plan revision.
+				// Resolve an ambiguous DB return only to the exact proposed components; never grant on drift.
+				final var persisted = _store.load(profileId).orElse(null); final var persistedGoal = _goals.load(profileId).orElse(null);
+				if ((persisted != null) && (persistedGoal != null) && persisted.state().equals(updated) && persistedGoal.goal().equals(replacement.goal()) && (persisted.rowVersion() == catchup.rowVersion() + 1) && (persistedGoal.rowVersion() == stored.rowVersion() + 1)) { publication.committed = new PlannedSnapshot(persisted, persistedGoal); }
+				else { _visiblePublications.remove(profileId, publication); return false; }
 			}
-			return false;
+			recovery.targets.add(targetKey(replacement.goal()));
+			return finishVisiblePublication(profileId, decision, publication);
+		}
+		catch (RuntimeException exception) { return false; }
+	}
+
+	private boolean finishVisiblePublication(long profileId, PhantomDecisionEngine decision, VisiblePublication receipt)
+	{
+		if (receipt.committed == null)
+		{
+			final var state = _store.load(profileId).orElse(null); final var goal = _goals.load(profileId).orElse(null);
+			if ((state != null) && (goal != null) && state.state().equals(receipt.proposed) && goal.goal().equals(receipt.proposedGoal) && (state.rowVersion() == receipt.before.rowVersion() + 1) && (goal.rowVersion() == receipt.oldGoal.rowVersion() + 1)) { receipt.committed = new PlannedSnapshot(state, goal); }
+			else if (Objects.equals(state, receipt.before) && Objects.equals(goal, receipt.oldGoal)) { _visiblePublications.remove(profileId, receipt); return false; }
+			else { return false; }
+		}
+		final var committed = receipt.committed;
+		if ((committed == null) || (_visiblePublications.get(profileId) != receipt) || !visibleActorQuiet(profileId, receipt.player, receipt.epoch)
+			|| !Objects.equals(committed.catchup(), _store.load(profileId).orElse(null)) || !Objects.equals(committed.goal(), _goals.load(profileId).orElse(null))) { return false; }
+		if (receipt.handoff != null)
+		{
+			final var old = receipt.handoff.admission();
+			final var next = new ActiveForegroundHandoff(new Admission(old.characterObjectId(), old.purpose(), old.ownerClaim(), old.recovery(), _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null), _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null), committed.catchup()), receipt.epoch);
+			if (!exactForegroundHandoff(profileId, next)) { return false; }
+			if (receipt.rebound == null)
+			{
+				if (!_foregroundHandoffs.replace(profileId, receipt.handoff, next)) { return false; }
+				receipt.rebound = next;
+			}
+			else if ((_foregroundHandoffs.get(profileId) != receipt.rebound) || !exactForegroundHandoff(profileId, receipt.rebound)) { return false; }
+		}
+		if ((decision.reload(profileId) != PhantomDecisionEngine.ReloadResult.RELOADED) || !runtimeMatches(decision.find(profileId).orElse(null), committed.goal())
+			|| (_visiblePublications.get(profileId) != receipt) || !visibleActorQuiet(profileId, receipt.player, receipt.epoch)) { return false; }
+		_visiblePublications.remove(profileId, receipt);
+		return permitsDecision(profileId);
+	}
+
+	private boolean visibleActorQuiet(long profileId, Player player, long epoch)
+	{
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		if (_foregroundDecisionsRevoked || (lifetime == null) || (lifetime.characterObjectId() != player.getObjectId()) || (lifetime.materializedAtNanos() != epoch) || !lifetime.actionAdmissionOpen() || (lifetime.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE)) { return false; }
+		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			return (action != null) && (action.player() == player) && !player.isDead() && !player.isInParty() && !player.hasPendingOwnedStore() && !player.isAttackingNow() && !player.isCastingNow() && !player.isTeleporting() && !player.isMoving() && !player.isAutoPlaying();
 		}
 	}
+
+	private static boolean runtimeMatches(PhantomDecisionEngine.RuntimeSnapshot runtime, StoredGoal goal)
+	{
+		return (runtime != null) && (runtime.goalId() == goal.goal().goalId()) && (runtime.goalRevision() == goal.goal().revision()) && (runtime.goalStatus() == goal.goal().status()) && (runtime.componentRowVersion() == goal.rowVersion());
+	}
+
+	private static String targetKey(PhantomGoal goal) { final var spec = PhantomBackgroundGoalSpec.parse(goal); return spec.npcId() + "@" + spec.anchorId(); }
+	public String visibleRecoveryReason(long profileId) { final var episode = _visibleEpisodes.get(profileId); return episode == null ? "" : episode.reason; }
 
 	/** A successful exact foreground handoff owns decisions, never ordinary historical work. */
 	public boolean permitsDecision(long profileId)
 	{
 		try
 		{
+			if (_visiblePublications.containsKey(profileId)) { return false; }
 			final Snapshot current = _store.load(profileId).orElse(null);
 			if ((current == null) || !current.state().blocksNormalOperation()) { return true; }
 			final var handoff = _foregroundHandoffs.get(profileId);
@@ -993,6 +1098,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		_foregroundDecisionsRevoked = true;
 		_foregroundHandoffs.clear();
+		_visiblePublications.clear();
+		_visibleEpisodes.clear();
 	}
 
 	public boolean permitsNormalOperation(long profileId)
@@ -1098,6 +1205,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	@Override
 	public void materializeAborted(long profileId, int characterObjectId)
 	{
+		_visiblePublications.remove(profileId);
+		_visibleEpisodes.remove(profileId);
 		_foregroundHandoffs.computeIfPresent(profileId, (_, handoff) -> handoff.admission().characterObjectId() == characterObjectId ? null : handoff);
 		releaseAdmission(profileId, characterObjectId);
 	}
@@ -1105,6 +1214,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	@Override
 	public void beforeStore(long profileId, Player player)
 	{
+		_visiblePublications.remove(profileId);
+		_visibleEpisodes.remove(profileId);
 		_foregroundHandoffs.remove(profileId);
 		final RecoveryClaim recovery = _recoveryClaims.get(profileId);
 		if ((recovery != null) && (!currentClaim(profileId, recovery.snapshot())
@@ -1175,6 +1286,33 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 
 	private record ActiveForegroundHandoff(Admission admission, long materializedAtNanos) { }
+
+	private static final class VisibleEpisode
+	{
+		final int objectId;
+		final long epoch;
+		final long started;
+		final Set<String> targets = ConcurrentHashMap.newKeySet();
+		volatile long cooldownUntil;
+		volatile String reason = "";
+		VisibleEpisode(int objectId, long epoch, long started) { this.objectId = objectId; this.epoch = epoch; this.started = started; }
+		void unavailable(long now) { reason = "LOCAL_FARM_UNAVAILABLE"; cooldownUntil = Math.max(now + 10_000_000_000L, started + 60_000_000_000L); }
+	}
+
+	private static final class VisiblePublication
+	{
+		final Player player;
+		final long epoch;
+		final ActiveForegroundHandoff handoff;
+		final Snapshot before;
+		final StoredGoal oldGoal;
+		final PhantomBackgroundCatchupState proposed;
+		final PhantomGoal proposedGoal;
+		volatile PlannedSnapshot committed;
+		volatile ActiveForegroundHandoff rebound;
+		VisiblePublication(Player player, long epoch, ActiveForegroundHandoff handoff, Snapshot before, StoredGoal oldGoal, PhantomBackgroundCatchupState proposed, PhantomGoal proposedGoal)
+		{ this.player = player; this.epoch = epoch; this.handoff = handoff; this.before = before; this.oldGoal = oldGoal; this.proposed = proposed; this.proposedGoal = proposedGoal; }
+	}
 
 	private record Exclusions(Set<String> targets, Set<String> steps)
 	{

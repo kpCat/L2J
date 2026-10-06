@@ -1,0 +1,7 @@
+[FAIL] visible-intent-recovery.R01-attach-before-current-publication-reloads-before-work - java.lang.AssertionError: RED: current persisted revision must replace attach-time runtime before work. Expected <29> but was <0>. seed=21002101
+[PASS] visible-intent-recovery.R04-stale-epoch-and-goal-failure-rejected
+[FAIL] visible-intent-recovery.R06-pending-native-owner-local-replacement-is-atomic - java.lang.AssertionError: RED: exact foreground owner must atomically replace failed local intent. Expected <1> but was <0>. seed=21002101
+[PASS] visible-intent-recovery.R07-historical-and-unowned-pending-stay-fenced
+[PASS] visible-intent-recovery.R08-foreign-goal-write-never-rebinds-permit
+[FAIL] visible-intent-recovery.R11-failed-catchup-local-plan-keeps-status-and-cursor - java.lang.AssertionError: RED: foreground failed plan replaced once. Expected <1> but was <0>. seed=21002101
+SUMMARY: suite=visible-intent-recovery seed=21002101 total=6 passed=3 failed=3

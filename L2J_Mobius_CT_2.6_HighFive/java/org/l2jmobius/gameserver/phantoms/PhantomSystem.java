@@ -780,6 +780,7 @@ public final class PhantomSystem
 				}
 				productionWorkSink.install(item ->
 				{
+					if (item.effectiveState().requiresMaterialization() && !_historicalBackgroundService.prepareVisibleDecision(item.profileId(), _decisionEngine)) { return; }
 					if ((item.effectiveState() == PhantomActivityState.BACKGROUND) && (_populationEcology != null) && _populationManager.presence().permitsOrdinaryFarm(item.profileId()))
 					{
 						if (!_populationEcology.requestBackgroundReadiness(item.profileId()).complete())
@@ -2074,6 +2075,12 @@ public final class PhantomSystem
 			final var travelFailure = configured._visibleFarmTravel == null ? null : configured._visibleFarmTravel.lastFailure(entry.profileId());
 			result.put(prefix + "travelFailureReason", travelFailure == null ? "" : travelFailure.reason());
 			result.put(prefix + "travelFailureSequence", travelFailure == null ? "0" : Long.toString(travelFailure.sequence()));
+			result.put(prefix + "travelFailureGoalId", travelFailure == null ? "0" : Long.toString(travelFailure.goalId()));
+			result.put(prefix + "travelFailureRevision", travelFailure == null ? "0" : Long.toString(travelFailure.revision()));
+			result.put(prefix + "travelFailureObjectId", travelFailure == null ? "0" : Integer.toString(travelFailure.objectId()));
+			result.put(prefix + "travelFailureEpoch", travelFailure == null ? "0" : Long.toString(travelFailure.epoch()));
+			result.put(prefix + "travelFailureSegmentWitness", travelFailure == null ? "" : travelFailure.segmentWitness());
+			result.put(prefix + "visibleRecoveryReason", configured._historicalBackgroundService == null ? "" : configured._historicalBackgroundService.visibleRecoveryReason(entry.profileId()));
 			result.put(prefix + "dead", Boolean.toString(player.isDead()));
 			result.put(prefix + "moving", Boolean.toString(player.isMoving()));
 			result.put(prefix + "attacking", Boolean.toString(player.isAttackingNow()));

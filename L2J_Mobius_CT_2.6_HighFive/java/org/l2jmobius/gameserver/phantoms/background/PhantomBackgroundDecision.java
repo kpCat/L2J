@@ -67,6 +67,7 @@ public final class PhantomBackgroundDecision
 	private final BiFunction<Long, PhantomGoal, Boolean> _visibleRunning;
 	private final BiFunction<Long, PhantomGoal, Boolean> _visibleSuitable;
 	private final LongConsumer _visibleStop;
+	private BiFunction<Long, PhantomGoal, PhantomStepResult> _typedVisibleStart;
 	private final ConcurrentHashMap<Long, DeadWindow> _deadWindows = new ConcurrentHashMap<>();
 
 	public PhantomBackgroundDecision(PhantomBackgroundService service)
@@ -94,7 +95,8 @@ public final class PhantomBackgroundDecision
 		Objects.requireNonNull(autoPlay, "autoPlay");
 		Objects.requireNonNull(history, "history");
 		Objects.requireNonNull(engine, "engine");
-		return new PhantomBackgroundDecision(service, (profileId, goal) ->
+		history.bindVisibleRecovery(travel, autoPlay);
+		final var adapter = new PhantomBackgroundDecision(service, (profileId, goal) ->
 		{
 			if (!travel.arrive(profileId, goal))
 			{
@@ -108,8 +110,19 @@ public final class PhantomBackgroundDecision
 			{
 				history.recordVisibleFailure(profileId, goal, "");
 			}
-			return history.replanVisibleFarmIfOutgrown(profileId, goal, engine.get());
+			return history.visibleFarmReady(profileId, goal);
 		}, autoPlay::stop);
+		adapter._typedVisibleStart = (profileId, goal) ->
+		{
+			final var arrival = travel.observeArrival(profileId, goal);
+			return switch (arrival.kind())
+			{
+				case ARRIVED -> autoPlay.start(profileId, goal) ? PhantomStepResult.of(Type.SUCCESS, "background.visible.autoplay_started") : PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry");
+				case PENDING -> { autoPlay.stop(profileId); yield PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry"); }
+				case STALE_GOAL, TERMINAL -> { autoPlay.stop(profileId); yield PhantomStepResult.of(Type.REPLAN, arrival.reason()); }
+			};
+		};
+		return adapter;
 	}
 
 	public void registerCandidates(PhantomCandidateRegistry registry)
@@ -217,7 +230,7 @@ public final class PhantomBackgroundDecision
 			_visibleStop.accept(context.profileId());
 			return PhantomStepResult.of(Type.REPLAN, "background.visible.replan_required");
 		}
-		return _visibleStart.apply(context.profileId(), context.goal()) ? PhantomStepResult.of(Type.SUCCESS, "background.visible.autoplay_started") : PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry");
+		return _typedVisibleStart != null ? _typedVisibleStart.apply(context.profileId(), context.goal()) : _visibleStart.apply(context.profileId(), context.goal()) ? PhantomStepResult.of(Type.SUCCESS, "background.visible.autoplay_started") : PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry");
 	}
 
 	private PhantomStepResult awaitVisible(PhantomStepContext context)

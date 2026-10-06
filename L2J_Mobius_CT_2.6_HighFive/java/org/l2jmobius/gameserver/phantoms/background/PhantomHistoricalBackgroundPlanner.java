@@ -49,6 +49,7 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdge;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyEdgeMode;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
 /** Bounded deterministic target/anchor planner over immutable production facts. */
 public final class PhantomHistoricalBackgroundPlanner
@@ -103,7 +104,29 @@ public final class PhantomHistoricalBackgroundPlanner
 		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), loadout.shotItemId(), loadout.shotsPerEncounter(), loadout.summonNpcId(), loadout.summonResourceItemId(), loadout.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1));
 	}
 
+	/** Visible intent uses factual local anchors; native navigation still validates every leg. */
+	public Result replanVisibleLocal(long profileId, PhantomBackgroundState state, PhantomGoal previousGoal, long deterministicSeed, long planOrdinal, PhantomTopologyPoint live, Set<String> excludedTargets, Set<String> excludedSteps)
+	{
+		final var previous = PhantomBackgroundGoalSpec.parse(previousGoal);
+		return plan(profileId, state.progress().level(), state.identity().activeClassId(), state.position().committedAnchorId(), previous.shotItemId(), previous.shotsPerEncounter(), previous.summonNpcId(), previous.summonResourceItemId(), previous.summonResourcesPerEncounter(), deterministicSeed, planOrdinal, previousGoal.goalId(), Math.addExact(previousGoal.revision(), 1), excludedTargets, excludedSteps, Objects.requireNonNull(live));
+	}
+
+	public boolean isVisibleLocal(PhantomGoal goal, PhantomTopologyPoint live)
+	{
+		return _topology.findAnchor(PhantomBackgroundGoalSpec.parse(goal).anchorId()).filter(anchor -> (anchor.role() == PhantomTopologyAnchorRole.FARMING) && (live.distanceSquared2D(anchor.point()) <= 4_000_000L)).isPresent();
+	}
+
 	public boolean remainsSuitable(PhantomBackgroundState state, PhantomGoal goal)
+	{
+		return remainsSuitable(state, goal, null);
+	}
+
+	public boolean remainsVisibleSuitable(PhantomBackgroundState state, PhantomGoal goal, PhantomTopologyPoint live)
+	{
+		return remainsSuitable(state, goal, Objects.requireNonNull(live));
+	}
+
+	private boolean remainsSuitable(PhantomBackgroundState state, PhantomGoal goal, PhantomTopologyPoint live)
 	{
 		if (!state.hashes().equals(_authority.hashes()))
 		{
@@ -127,6 +150,11 @@ public final class PhantomHistoricalBackgroundPlanner
 			final TargetFact target = page.values().stream().filter(value -> value.npc().npcId() == spec.npcId()).findFirst().orElse(null);
 			if (target != null)
 			{
+				if (live != null)
+				{
+					final List<Candidate> local = new ArrayList<>(); addLocalCandidates(local, live, List.of(target));
+					return local.stream().anyMatch(value -> value.anchor().id().equals(spec.anchorId()));
+				}
 				return candidate(state.position().committedAnchorId(), target, spec.anchorId()) != null;
 			}
 			cursor = page.nextCursor();
@@ -145,6 +173,11 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps)
 	{
+		return plan(profileId, level, activeClassId, currentAnchorId, shotItemId, shotsPerEncounter, summonNpcId, summonResourceItemId, summonResourcesPerEncounter, deterministicSeed, planOrdinal, previousGoalId, revision, excludedTargets, excludedSteps, null);
+	}
+
+	private Result plan(long profileId, int level, int activeClassId, String currentAnchorId, int shotItemId, int shotsPerEncounter, int summonNpcId, int summonResourceItemId, int summonResourcesPerEncounter, long deterministicSeed, long planOrdinal, long previousGoalId, long revision, Set<String> excludedTargets, Set<String> excludedSteps, PhantomTopologyPoint live)
+	{
 		if ((profileId <= 0) || (level < 1) || (activeClassId < 0) || (currentAnchorId == null) || currentAnchorId.isBlank() || (planOrdinal < 0) || (revision < 0))
 		{
 			return Result.blocked("planner.request.invalid");
@@ -162,7 +195,8 @@ public final class PhantomHistoricalBackgroundPlanner
 			for (int pageIndex = 0; pageIndex < MAXIMUM_TARGET_PAGES; pageIndex++)
 			{
 				final KnowledgePage<TargetFact> page = targets(Math.max(1, level - radius), maximum, level, cursor == null ? PageRequest.first(MAXIMUM_TARGETS) : new PageRequest(FALLBACK_TARGETS, cursor));
-				addCandidates(candidates, currentAnchorId, page.values());
+				if (live == null) { addCandidates(candidates, currentAnchorId, page.values()); }
+				else { addLocalCandidates(candidates, live, page.values()); }
 				candidates.removeIf(candidate -> excludedTargets.contains(candidate.target().npc().npcId() + "@" + candidate.anchor().id()) || candidate.routeEdgeIds().stream().anyMatch(excludedSteps::contains));
 				cursor = page.nextCursor();
 				if (cursor == null) { break; }
@@ -171,7 +205,12 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		if (candidates.isEmpty())
 		{
-			return Result.blocked("planner.target_or_route.absent");
+			return Result.blocked(live == null ? "planner.target_or_route.absent" : "LOCAL_FARM_UNAVAILABLE");
+		}
+		if (live != null)
+		{
+			candidates.sort(Comparator.comparingLong((Candidate value) -> live.distanceSquared2D(value.anchor().point())).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
+			if (candidates.size() > 8) { candidates.subList(8, candidates.size()).clear(); }
 		}
 		candidates.sort(Comparator.comparingInt((Candidate value) -> Math.abs(value.target().npc().level() - level)).thenComparingInt(value -> value.routeEdgeIds().size()).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
 		final Candidate selected = candidates.getFirst();
@@ -249,6 +288,26 @@ public final class PhantomHistoricalBackgroundPlanner
 			return null;
 		}
 		return new Candidate(target, anchor, route.stream().map(PhantomNormalGatekeeperTravel.Step::id).toList());
+	}
+
+	private void addLocalCandidates(List<Candidate> candidates, PhantomTopologyPoint live, List<TargetFact> targets)
+	{
+		for (TargetFact target : targets)
+		{
+			for (var area : target.representativeAreas())
+			{
+				if ((area.instanceId() != live.instanceId()) || (area.totalConfiguredAmount() <= 0) || (area.topologyNodeId() == null)) { continue; }
+				for (var anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()))
+				{
+					if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && (live.distanceSquared2D(anchor.point()) <= 4_000_000L)
+						&& ((anchor.npcId() == null) || (anchor.npcId() == target.npc().npcId())))
+					{
+						final var candidate = new Candidate(target, anchor, List.of());
+						if (!candidates.contains(candidate)) { candidates.add(candidate); }
+					}
+				}
+			}
+		}
 	}
 
 	private static void putPositivePair(Map<String, Long> constraints, String itemKey, int itemId, String countKey, int count)

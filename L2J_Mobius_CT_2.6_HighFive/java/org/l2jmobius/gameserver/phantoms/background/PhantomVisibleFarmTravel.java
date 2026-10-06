@@ -77,6 +77,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	public boolean arrive(long profileId, PhantomGoal goal)
 	{
+		if (!currentGoal(profileId, goal)) { discardStale(profileId, goal); return false; }
 		PendingStore pending = _pendingStores.get(profileId);
 		if (pending == null)
 		{
@@ -146,6 +147,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private boolean advance(long profileId, PhantomGoal goal)
 	{
+		if (!currentGoal(profileId, goal)) { discardStale(profileId, goal); return false; }
 		if (!_permitsOrdinary.test(profileId))
 		{
 			remove(profileId);
@@ -172,6 +174,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				return false;
 			}
 			final var targetAnchor = _travel.topology().findAnchor(spec.anchorId()).orElse(null);
+			final var existingAttempt = _attempts.get(profileId);
+			if ((existingAttempt != null) && existingAttempt.matches(goal, player, epoch) && existingAttempt.terminal) { return false; }
 			final boolean sameAnchor = state.position().committedAnchorId().equals(spec.anchorId());
 			Journey journey = _journeys.get(profileId);
 			if ((journey != null) && ((journey.goalId != goal.goalId()) || (journey.revision != goal.revision()) || (journey.player != player) || (journey.epoch != epoch)))
@@ -188,7 +192,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if ((attempt == null) || attempt.terminal) { return false; }
 			if (journey == null)
 			{
-				final var route = sameAnchor && (targetAnchor != null) ? List.of(new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "live.approach." + spec.anchorId(), spec.anchorId(), spec.anchorId(), 0, null)) : _travel.route(state.position().committedAnchorId(), spec.anchorId()).orElse(List.of());
+				final boolean local = (targetAnchor != null) && (targetAnchor.point().instanceId() == player.getInstanceId()) && (Math.hypot((long) player.getX() - targetAnchor.point().x(), (long) player.getY() - targetAnchor.point().y()) <= 2000);
+				final var route = local ? List.of(new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "live.approach." + spec.anchorId(), state.position().committedAnchorId(), spec.anchorId(), 0, null)) : _travel.route(state.position().committedAnchorId(), spec.anchorId()).orElse(List.of());
 				if (route.isEmpty())
 				{
 					fail(profileId, attempt, "", "travel.route_absent", Disposition.ROUTE_UNUSABLE);
@@ -307,6 +312,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private boolean walk(long profileId, Player player, Journey journey, PhantomNavigationPoint destination, int radius)
 	{
+		if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 		final var current = new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 		if ((current.instanceId() == destination.instanceId()) && (Math.hypot((long) current.x() - destination.x(), (long) current.y() - destination.y()) <= radius) && (Math.abs((long) current.z() - destination.z()) <= (radius == 0 ? 0 : 100)))
 		{
@@ -325,6 +331,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		}
 		if (journey.requestId == 0)
 		{
+			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			journey.deadline = now + _navigation.policy().defaultRequestDeadlineNanos();
 			final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, current, destination, now, journey.deadline, 100_000));
 			journey.requestId = submission.requestId();
@@ -389,9 +396,10 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		}
 		if (!player.isMoving())
 		{
+			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			final var waypoint = journey.waypoints.get(journey.index);
 			final boolean waterExit = player.isInsideZone(ZoneId.WATER) || (ZoneManager.getInstance().getZone(current.x(), current.y(), current.z(), WaterZone.class) != null);
-			final String unsafe = unsafeSegment(current, waypoint, waterExit, radius);
+			final String unsafe = unsafeSegment(current, waypoint, waterExit, radius, witness -> journey.attempt.segmentWitness = witness);
 			if (unsafe != null)
 			{
 				fail(profileId, journey, unsafe, Disposition.ROUTE_UNUSABLE);
@@ -405,7 +413,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			{
 				// Native swimming may shorten a leg; validate the actual native destination too.
 				final var issued = new PhantomNavigationPoint(journey.moveX, journey.moveY, player.getZdestination(), player.getInstanceId());
-				final String actualUnsafe = unsafeSegment(current, issued, waterExit, waterExit ? 100 : radius);
+				final String actualUnsafe = unsafeSegment(current, issued, waterExit, waterExit ? 100 : radius, witness -> journey.attempt.segmentWitness = witness);
 				if (actualUnsafe != null)
 				{
 					stopOwnedMove(journey, player);
@@ -427,6 +435,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	/** Inspect stock native legs; water is allowed only before the first dry cell of an exit. */
 	private static String unsafeSegment(PhantomNavigationPoint from, PhantomNavigationPoint to, boolean waterExit, int destinationTolerance)
 	{
+		return unsafeSegment(from, to, waterExit, destinationTolerance, null);
+	}
+
+	private static String unsafeSegment(PhantomNavigationPoint from, PhantomNavigationPoint to, boolean waterExit, int destinationTolerance, java.util.function.Consumer<String> witness)
+	{
 		final var geo = GeoEngine.getInstance();
 		if ((from.instanceId() != to.instanceId()) || !geo.hasGeo(to.x(), to.y())) { return "travel.native_segment_missing_geodata"; }
 		final boolean targetWater = ZoneManager.getInstance().getZone(to.x(), to.y(), to.z(), WaterZone.class) != null;
@@ -444,7 +457,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (z != geo.getHeight(x, y, z)) { return "travel.native_segment_height_unproven"; }
 			if (ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null)
 			{
-				if (dry) { return "travel.native_segment_water_entry"; }
+				if (dry)
+				{
+					if (witness != null) { witness.accept("from=" + from + ";to=" + to + ";cell=" + x + "," + y + "," + z + ";waterExit=" + waterExit); }
+					return "travel.native_segment_water_entry";
+				}
 			}
 			else { dry = true; }
 		}
@@ -453,6 +470,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 
 	private boolean terminalResult(long profileId, Journey journey, PhantomNavigationResult result)
 	{
+		if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 		if ((result.profileId() != profileId) || (result.requestId() != journey.requestId))
 		{
 			journey.reason = "travel.navigation_protocol_failure";
@@ -553,13 +571,83 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			final var iterator = _terminalReasons.keySet().iterator();
 			if (iterator.hasNext()) { _terminalReasons.remove(iterator.next()); }
 		}
-		_terminalReasons.put(profileId, new TerminalFailure(reason, _failureSequence.incrementAndGet(), disposition, attempt == null ? 0 : attempt.goal.goalId(), attempt == null ? 0 : attempt.goal.revision(), attempt == null ? 0 : attempt.player.getObjectId(), attempt == null ? 0 : attempt.epoch));
+		_terminalReasons.put(profileId, new TerminalFailure(reason, _failureSequence.incrementAndGet(), disposition, attempt == null ? 0 : attempt.goal.goalId(), attempt == null ? 0 : attempt.goal.revision(), attempt == null ? 0 : attempt.player.getObjectId(), attempt == null ? 0 : attempt.epoch, attempt == null ? "" : attempt.segmentWitness));
 	}
 
 	public enum Disposition { ROUTE_UNUSABLE, TRANSIENT_SERVICE, NATIVE_ACTION_REJECTED, STORE_PENDING, PROTOCOL_VIOLATION }
-	public record TerminalFailure(String reason, long sequence, Disposition disposition, long goalId, long revision, int objectId, long epoch) { }
+	public record TerminalFailure(String reason, long sequence, Disposition disposition, long goalId, long revision, int objectId, long epoch, String segmentWitness)
+	{
+		public TerminalFailure(String reason, long sequence, Disposition disposition, long goalId, long revision, int objectId, long epoch) { this(reason, sequence, disposition, goalId, revision, objectId, epoch, ""); }
+	}
 
 	public TerminalFailure lastFailure(long profileId) { return _terminalReasons.get(profileId); }
+
+	public enum ArrivalKind { ARRIVED, PENDING, STALE_GOAL, TERMINAL }
+	public record ArrivalResult(ArrivalKind kind, long goalId, long revision, int objectId, long epoch, long failureSequence, String reason) { }
+
+	/** Observe the existing Attempt without resetting its terminal receipt. */
+	public ArrivalResult observeArrival(long profileId, PhantomGoal goal)
+	{
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		final int objectId = lifetime == null ? 0 : lifetime.characterObjectId();
+		final long epoch = lifetime == null ? 0 : lifetime.materializedAtNanos();
+		if (!currentGoal(profileId, goal))
+		{
+			discardStale(profileId, goal);
+			return new ArrivalResult(ArrivalKind.STALE_GOAL, goal.goalId(), goal.revision(), objectId, epoch, 0, "travel.stale_goal");
+		}
+		final var terminalAttempt = _attempts.get(profileId);
+		final var terminalFailure = lastFailure(profileId);
+		if ((terminalAttempt != null) && terminalAttempt.terminal && (terminalFailure != null) && (terminalFailure.goalId() == goal.goalId()) && (terminalFailure.revision() == goal.revision()) && (terminalFailure.objectId() == objectId) && (terminalFailure.epoch() == epoch))
+		{
+			return new ArrivalResult(ArrivalKind.TERMINAL, goal.goalId(), goal.revision(), objectId, epoch, terminalFailure.sequence(), terminalFailure.reason());
+		}
+		final boolean arrived = arrive(profileId, goal);
+		if (!currentGoal(profileId, goal))
+		{
+			discardStale(profileId, goal);
+			return new ArrivalResult(ArrivalKind.STALE_GOAL, goal.goalId(), goal.revision(), objectId, epoch, 0, "travel.stale_goal");
+		}
+		final var failure = lastFailure(profileId);
+		final var attempt = _attempts.get(profileId);
+		final boolean terminal = (attempt != null) && attempt.terminal && (failure != null) && (failure.goalId() == goal.goalId()) && (failure.revision() == goal.revision()) && (failure.objectId() == objectId) && (failure.epoch() == epoch);
+		return new ArrivalResult(arrived ? ArrivalKind.ARRIVED : terminal ? ArrivalKind.TERMINAL : ArrivalKind.PENDING, goal.goalId(), goal.revision(), objectId, epoch, terminal ? failure.sequence() : 0, terminal ? failure.reason() : reason(profileId));
+	}
+
+	private boolean currentGoal(long profileId, PhantomGoal goal)
+	{
+		return Objects.equals(_background.ordinaryGoal(profileId).orElse(null), goal);
+	}
+
+	private boolean currentJourney(long profileId, Journey journey)
+	{
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		return (lifetime != null) && (lifetime.characterObjectId() == journey.objectId) && (lifetime.materializedAtNanos() == journey.epoch) && currentGoal(profileId, journey.attempt.goal);
+	}
+
+	private void discardStale(long profileId, PhantomGoal goal)
+	{
+		final var journey = _journeys.get(profileId);
+		if ((journey != null) && journey.attempt.goal.equals(goal) && (_materialization.find(profileId).map(value -> (value.characterObjectId() == journey.objectId) && (value.materializedAtNanos() == journey.epoch)).orElse(false))) { remove(profileId, journey); }
+	}
+
+	/** Recovery stops only the captured current goal's movement, never a foreign lifetime. */
+	public boolean stopForRecovery(long profileId, PhantomGoal goal, int objectId, long epoch)
+	{
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		if ((lifetime == null) || (lifetime.characterObjectId() != objectId) || (lifetime.materializedAtNanos() != epoch) || !currentGoal(profileId, goal)) { return false; }
+		final var journey = _journeys.get(profileId);
+		if (journey == null) { return true; }
+		return journey.attempt.goal.equals(goal) && (journey.objectId == objectId) && (journey.epoch == epoch) && remove(profileId, journey);
+	}
+
+	public void cancelSuperseded(long profileId, PhantomGoal current)
+	{
+		final var journey = _journeys.get(profileId);
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		if ((journey != null) && (lifetime != null) && (lifetime.characterObjectId() == journey.objectId) && (lifetime.materializedAtNanos() == journey.epoch)
+			&& !journey.goal.equals(current) && currentGoal(profileId, current)) { remove(profileId, journey); }
+	}
 
 	public record Failure(long profileId, Player player, long epoch, PhantomGoal goal, String stepId, String reason, Disposition disposition, long startedNanos, int attempts)
 	{
@@ -784,6 +872,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private long retryAtNanos;
 		private volatile boolean transientExhausted;
 		private volatile boolean terminal;
+		private volatile String segmentWitness = "";
 
 		private Attempt(PhantomGoal goal, Player player, long epoch, long startedNanos, PlayerNativeWork.Owner nativeOwner, PlayerNativeEvidence evidence)
 		{

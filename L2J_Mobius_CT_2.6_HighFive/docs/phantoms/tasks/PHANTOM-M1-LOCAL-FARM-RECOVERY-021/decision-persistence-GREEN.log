@@ -1,0 +1,31 @@
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Starting...
+[main] INFO com.zaxxer.hikari.pool.HikariPool - L2JMobiusPool - Added connection com.mysql.cj.jdbc.ConnectionImpl@51b7e5df
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Start completed.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 06, 2026 6:22:15 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] decision-persistence.01-codec-deterministic-round-trip
+[PASS] decision-persistence.02-codec-rejects-magic
+[PASS] decision-persistence.03-codec-rejects-format-version
+[PASS] decision-persistence.04-codec-rejects-goal-version
+[PASS] decision-persistence.05-codec-rejects-truncation
+[PASS] decision-persistence.06-codec-rejects-trailing-bytes
+[PASS] decision-persistence.07-codec-rejects-length-before-allocation
+[PASS] decision-persistence.08-codec-rejects-unknown-status
+[PASS] decision-persistence.09-store-insert-load-envelope
+[PASS] decision-persistence.10-store-optimistic-replace
+[PASS] decision-persistence.11-store-optimistic-delete
+[PASS] decision-persistence.12-store-rejects-component-schema
+[PASS] decision-persistence.13-restart-active-goal-needs-replan
+[PASS] decision-persistence.14-payload-contains-goal-only
+[PASS] decision-persistence.15-all-store-methods-outside-engine-monitor
+[PASS] decision-persistence.16-blocked-attach-stop-no-late-publish
+[PASS] decision-persistence.17-pending-attach-capacity-bounded
+[PASS] decision-persistence.18-blocked-mutation-keeps-other-profile-responsive
+[PASS] decision-persistence.19-terminal-persistence-busy-detach-retention
+[PASS] decision-persistence.20-conflict-failure-distinct-and-reloadable
+[PASS] decision-persistence.21-reload-busy-and-work-excluded
+[PASS] decision-persistence.22-attach-failure-does-not-publish
+[PASS] decision-persistence.23-terminal-conflict-and-failure-distinct
+SUMMARY: suite=decision-persistence seed=20002001 total=23 passed=23 failed=0
