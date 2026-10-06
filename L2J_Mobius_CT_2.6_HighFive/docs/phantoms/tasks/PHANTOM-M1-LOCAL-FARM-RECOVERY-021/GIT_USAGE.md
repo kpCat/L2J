@@ -99,3 +99,12 @@ git -C .. commit -m 'Record TASK021 blocked native continuation and observe021 e
 git -C .. push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
 git -C .. ls-remote origin refs/heads/experiment/m1-candidate007-observe008
 git -C .. status --short --untracked-files=normal
+
+Final artifact integrity correction (PLAN.md changed to factual outcome):
+git -C .. add -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LOCAL-FARM-RECOVERY-021/PACKAGE_MANIFEST.json
+git -C .. add -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LOCAL-FARM-RECOVERY-021/GIT_USAGE.md
+git -C .. add -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LOCAL-FARM-RECOVERY-021/SCOPE_ENCODING.log
+git -C .. commit -m 'Synchronize TASK021 instruction artifact hashes'
+git -C .. push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+git -C .. ls-remote origin refs/heads/experiment/m1-candidate007-observe008
+git -C .. status --short --untracked-files=normal
