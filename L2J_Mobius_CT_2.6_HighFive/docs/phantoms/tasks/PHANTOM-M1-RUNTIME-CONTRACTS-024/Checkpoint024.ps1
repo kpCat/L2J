@@ -6,6 +6,7 @@ $task='L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRAC
 $map=Import-Csv (Join-Path $PSScriptRoot 'SOURCE_MAP.tsv') -Delimiter "`t"
 $allowed=@($map | Where-Object {$_.mode -notin @('READ','TEST_BOUNDED','TASK_WRITE','PRIVATE_RUNTIME')} | ForEach-Object {$_.path})
 $allowed+=@('L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java','L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomContracts024DatabaseLane.java')
+$allowed+='L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeContextHandoffSuite.java'
 $changed=@(& git -C $root diff --name-only)
 if($LASTEXITCODE -ne 0){throw 'Bounded source inventory failed.'}
 foreach($path in $changed){if($path -notin $allowed -and -not $path.StartsWith($task)){throw "OUTSIDE_SCOPE:$path"}}

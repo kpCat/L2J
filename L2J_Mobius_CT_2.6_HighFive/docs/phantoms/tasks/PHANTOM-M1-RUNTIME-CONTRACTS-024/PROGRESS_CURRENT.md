@@ -36,4 +36,6 @@ Source cap: 18 production paths; no subagents; no new infrastructure.
 Test lane: exact manifest/export SHA/DB/cwd checked in isolated fixture only.
 Sandbox worktree writes require approved escalation; atomic bounded file transfer used.
 Final gates not yet all verified; natural probe is not a final PASS. M1=OPEN.
+B12 stock pre-World Z restore: own RED1/1, GREEN1/1 live/dead; existing27 owned-store boundaries PASS.
+Episode4 setup interrupted before baseline by stock Synthetic watchdog, exact uncertainty preserved. No action replay. Own JVM2728/25096 stopped gracefully. Runtime budget4/8, planned crashes0/2.
 STOP_AUTHORITY=TASK024_CONTRACT.

@@ -395,7 +395,9 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 
 		Fixture(boolean visibleFarm) throws Exception { this(visibleFarm, false); }
 
-		Fixture(boolean visibleFarm, boolean deadStale) throws Exception
+		Fixture(boolean visibleFarm, boolean deadStale) throws Exception { this(visibleFarm, deadStale, 0); }
+
+		Fixture(boolean visibleFarm, boolean deadStale, int nativeZOffset) throws Exception
 		{
 			id = _profiles.create(objectId).profileId();
 			final var ref = new AtomicReference<PhantomMaterializationService>();
@@ -436,7 +438,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 			try
 			{
 				final var anchor = _production.topology().findAnchor("population.farming.human-fighter.20545").orElseThrow();
-				setup.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z());
+				setup.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z() + nativeZOffset);
 				final var plan = visibleFarm ? planner.planInitial(id, setup, 1, 0) : planner.idleInitial(id, setup, 1, 0);
 				PhantomAssertions.assertTrue(plan.ready(), "Canonical fixture plan.");
 				goals.insert(id, plan.goal());

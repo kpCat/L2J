@@ -1535,6 +1535,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		final var nativeContext = transaction(() -> _transactions.nativeContext(profileId, player.getObjectId()));
 		if (!nativeContext.matchesNativeLoad(player.getVitalityPoints())) { throw new IllegalStateException("Loaded Player differs from canonical native context: " + nativeContext.status()); }
+		restoreCommittedNativeElevation(profileId, player, loaded.state(), nativeContext.state());
 		// The original unplanned/goal-less native baseline first creates its plan, then attests in cleanup STORE.
 		final boolean attestHistoricalContext = (historicalAdmission != null) && (historicalAdmission.goal() != null) && (nativeContext.context() != null) && (nativeContext.context().phase() == PhantomNativeContext.Phase.UNKNOWN);
 		if ((historicalAdmission != null) && !Objects.equals(loaded.state(), nativeContext.state())) { throw new IllegalStateException("Historical background state changed before native attestation."); }
@@ -1567,6 +1568,32 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			throw new IllegalStateException("MATERIALIZED state verification failed.");
 		}
 		if ((historicalAdmission != null) && !currentHistoricalAdmission(profileId, player, player.getNativeWorkOwner(), historicalAdmission)) { throw new AdmissionRejectedException("background.historical_native_claim_or_epoch_changed"); }
+	}
+
+	/** Stock Player.load grounds Z; restore only that known pre-World transform of verified native SQL. */
+	private void restoreCommittedNativeElevation(long profileId, Player player, PhantomBackgroundState state, PhantomBackgroundState canonical)
+	{
+		if ((state == null) || !state.equals(canonical) || ((state.state() != State.READY) && (state.state() != State.DEAD))) { return; }
+		final var position = state.position();
+		if (player.getZ() == position.z()) { return; }
+		PlayerNativeWork.checkpoint(player, () ->
+		{
+			synchronized (player)
+			{
+				final var owner = player.getNativeWorkOwner();
+				final var entry = _materialization.get().find(profileId).orElse(null);
+				if ((_transitions.get(profileId) != TransitionKind.MATERIALIZING) || (owner == null) || !owner.isCurrent() || (owner.player() != player)
+					|| (entry == null) || entry.worldPresent() || entry.actionAdmissionOpen() || (entry.characterObjectId() != player.getObjectId()) || (entry.materializedAtNanos() != owner.epoch())
+					|| (World.getInstance().findObject(player.getObjectId()) != null) || (World.getInstance().getPlayer(player.getObjectId()) != null)
+					|| (player.getObjectId() != state.identity().characterObjectId()) || (player.getClassIndex() != state.identity().classIndex()) || (player.getActiveClass() != state.identity().activeClassId()) || (player.getRace().ordinal() != state.identity().raceOrdinal())
+					|| (player.getLevel() != state.progress().level()) || (player.getExp() != state.progress().experience()) || (player.getSp() != state.progress().skillPoints()) || (player.getExpBeforeDeath() != state.progress().experienceBeforeDeath())
+					|| (player.getInstanceId() != position.instanceId()) || (player.getX() != position.x()) || (player.getY() != position.y()) || (player.getHeading() != position.heading())
+					|| (player.getZ() != GeoEngine.getInstance().getHeight(position.x(), position.y(), position.z()))) { return null; }
+				player.setXYZInvisible(position.x(), position.y(), position.z());
+				player.setLastServerPosition(position.x(), position.y(), position.z());
+				return null;
+			}
+		});
 	}
 
 	private static String runtimeMismatch(Player player, PhantomBackgroundState state)

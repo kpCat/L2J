@@ -39,6 +39,11 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom023.nativeFarmFocus", "all");
+		if (focus.equals("native-z024"))
+		{
+			registry.add("B12-stock-load-geodata-does-not-replace-committed-native-z", this::nativeZ024);
+			return;
+		}
 		if (focus.equals("restart024"))
 		{
 			registry.add("B11-planned-pending-stale-authority-routes-through-exact-existing-recovery", this::restart024);
@@ -146,6 +151,24 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 		final var type = Class.forName("org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$NativeLifetime");
 		final var constructor = type.getDeclaredConstructor(org.l2jmobius.gameserver.model.actor.Player.class); constructor.setAccessible(true);
 		return (AutoCloseable) constructor.newInstance(player);
+	}
+	private void nativeZ024(PhantomTestContext context) throws Exception
+	{
+		for (boolean dead : List.of(false, true))
+		{
+			try (var f = handoff.new Fixture(true, dead, 15))
+			{
+				final var before = f.background.acquisitionSnapshot(f.id).orElseThrow();
+				final var result = f.materialization.materialize(f.id, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationPurpose.NATIVE_CONTEXT_HANDOFF, f.claim);
+				context.record("B12." + dead + ".result", result.status());
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, result.status(), "B12 exact native Z must survive stock geodata load correction.");
+				final var after = f.background.acquisitionSnapshot(f.id).orElseThrow();
+				PhantomAssertions.assertEquals(before.position(), after.position(), "B12 cannot substitute anchor or geodata coordinates.");
+				PhantomAssertions.assertEquals(before.progress(), after.progress(), "B12 cannot reconstruct EXP/SP.");
+				final var player = World.getInstance().getPlayer(f.objectId);
+				PhantomAssertions.assertEquals(before.position().z(), player.getZ(), "B12 loaded Player uses the exact committed native Z.");
+			}
+		}
 	}
 	private void restart024(PhantomTestContext context) throws Exception
 	{

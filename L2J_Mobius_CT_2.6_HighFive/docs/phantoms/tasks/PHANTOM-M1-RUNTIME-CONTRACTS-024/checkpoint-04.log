@@ -1,0 +1,54 @@
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1537: trailing whitespace.
++		if (!nativeContext.matchesNativeLoad(player.getVitalityPoints())) { throw new IllegalStateException("Loaded Player differs from canonical native context: " + nativeContext.status()); }
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1573: trailing whitespace.
++	/** Stock Player.load grounds Z; restore only that known pre-World transform of verified native SQL. */
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1574: trailing whitespace.
++	private void restoreCommittedNativeElevation(long profileId, Player player, PhantomBackgroundState state, PhantomBackgroundState canonical)
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1575: trailing whitespace.
++	{
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1576: trailing whitespace.
++		if ((state == null) || !state.equals(canonical) || ((state.state() != State.READY) && (state.state() != State.DEAD))) { return; }
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1577: trailing whitespace.
++		final var position = state.position();
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1578: trailing whitespace.
++		if (player.getZ() == position.z()) { return; }
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1579: trailing whitespace.
++		PlayerNativeWork.checkpoint(player, () ->
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1580: trailing whitespace.
++		{
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1581: trailing whitespace.
++			synchronized (player)
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1582: trailing whitespace.
++			{
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1583: trailing whitespace.
++				final var owner = player.getNativeWorkOwner();
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1584: trailing whitespace.
++				final var entry = _materialization.get().find(profileId).orElse(null);
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1585: trailing whitespace.
++				if ((_transitions.get(profileId) != TransitionKind.MATERIALIZING) || (owner == null) || !owner.isCurrent() || (owner.player() != player)
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1586: trailing whitespace.
++					|| (entry == null) || entry.worldPresent() || entry.actionAdmissionOpen() || (entry.characterObjectId() != player.getObjectId()) || (entry.materializedAtNanos() != owner.epoch())
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1587: trailing whitespace.
++					|| (World.getInstance().findObject(player.getObjectId()) != null) || (World.getInstance().getPlayer(player.getObjectId()) != null)
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1588: trailing whitespace.
++					|| (player.getObjectId() != state.identity().characterObjectId()) || (player.getClassIndex() != state.identity().classIndex()) || (player.getActiveClass() != state.identity().activeClassId()) || (player.getRace().ordinal() != state.identity().raceOrdinal())
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1589: trailing whitespace.
++					|| (player.getLevel() != state.progress().level()) || (player.getExp() != state.progress().experience()) || (player.getSp() != state.progress().skillPoints()) || (player.getExpBeforeDeath() != state.progress().experienceBeforeDeath())
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1590: trailing whitespace.
++					|| (player.getInstanceId() != position.instanceId()) || (player.getX() != position.x()) || (player.getY() != position.y()) || (player.getHeading() != position.heading())
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1591: trailing whitespace.
++					|| (player.getZ() != GeoEngine.getInstance().getHeight(position.x(), position.y(), position.z()))) { return null; }
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1592: trailing whitespace.
++				player.setXYZInvisible(position.x(), position.y(), position.z());
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1593: trailing whitespace.
++				player.setLastServerPosition(position.x(), position.y(), position.z());
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1594: trailing whitespace.
++				return null;
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1595: trailing whitespace.
++			}
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1596: trailing whitespace.
++		});
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1597: trailing whitespace.
++	}
+L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java:1598: trailing whitespace.
++
