@@ -39,6 +39,11 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom023.nativeFarmFocus", "all");
+		if (focus.equals("restart024"))
+		{
+			registry.add("B11-planned-pending-stale-authority-routes-through-exact-existing-recovery", this::restart024);
+			return;
+		}
 		if (focus.equals("pending024"))
 		{
 			registry.add("B09-scheduler-resumes-exact-visible-pending-handoff-before-ordinary-admission", this::pending024);
@@ -141,6 +146,34 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 		final var type = Class.forName("org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$NativeLifetime");
 		final var constructor = type.getDeclaredConstructor(org.l2jmobius.gameserver.model.actor.Player.class); constructor.setAccessible(true);
 		return (AutoCloseable) constructor.newInstance(player);
+	}
+	private void restart024(PhantomTestContext context) throws Exception
+	{
+		for (boolean dead : List.of(false, true))
+		{
+			try (var f = handoff.new Fixture(true, dead))
+			{
+				final var before = f.background.acquisitionSnapshot(f.id).orElseThrow();
+				final var current = f.catchups.load(f.id).orElseThrow();
+				final var old = current.state();
+				final var stale = new PhantomBackgroundState.Hashes("a".repeat(64), old.authorityHashes().topology(), old.authorityHashes().progression(), old.authorityHashes().commerce());
+				f.catchups.replace(f.id, current, old.withPlan(old.goalId(), old.goalRevision(), old.planOrdinal(), old.planIdentity(), old.knowledgeGeneration(), old.topologyGeneration(), stale));
+				final var result = f.historical.advance(f.id, 1, 1);
+				context.record("B11." + dead + ".result", result.status() + "/" + result.reason());
+				PhantomAssertions.assertFalse("catchup.authority_hash_or_generation_stale".equals(result.reason()), "B11 planned PENDING cannot reject stale authority before its existing exact recovery.");
+				final var recovered = f.catchups.load(f.id).orElseThrow().state();
+				PhantomAssertions.assertEquals(production024().authority().hashes(), recovered.authorityHashes(), "B11 recovery must publish current authority through guarded replacePlan.");
+				PhantomAssertions.assertEquals(old.requestId(), recovered.requestId(), "B11 current owner claim is not replaced.");
+				PhantomAssertions.assertTrue(recovered.cursorEpochMinute() <= old.cursorEpochMinute() + 1, "B11 cannot skip the bounded interval cursor.");
+				if (result.advancedIntervals() == 0)
+				{
+					final var after = f.background.acquisitionSnapshot(f.id).orElseThrow();
+					PhantomAssertions.assertEquals(before.progress(), after.progress(), "B11 native refresh preserves earned progress and legal death loss.");
+					PhantomAssertions.assertEquals(before.position(), after.position(), "B11 refresh cannot substitute anchor XYZ.");
+					PhantomAssertions.assertEquals(before.inventory(), after.inventory(), "B11 refresh cannot replay inventory.");
+				}
+			}
+		}
 	}
 	private void pending024(PhantomTestContext context) throws Exception
 	{

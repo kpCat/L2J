@@ -2,7 +2,7 @@
 param([Parameter(Mandatory)][string]$RuntimeRoot,[Parameter(Mandatory)][string]$OutputRoot,
       [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha,
       [ValidateRange(360,420)][int]$Seconds=380,[string[]]$PreviousPrimaryIds=@(),
-      [hashtable]$SetupTeleport=@{},[switch]$CollectSealed)
+      [hashtable]$SetupTeleport=@{},[hashtable]$SetupMove=@{},[switch]$CollectSealed)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 if($RuntimeRoot -notmatch '[\\/]contract024[a-h][\\/]runtime[\\/]?$'){throw 'Exact TASK024 owned runtime required.'}
@@ -24,7 +24,7 @@ function Capture023([string]$Operation,[hashtable]$Arguments=@{},[bool]$SetupMut
     $context=Get-PilotContext -RequireEnabled -ActorMode Synthetic
     Copy-Item -LiteralPath (Join-Path $context.PilotRoot "results/$($result.requestId).xml") -Destination (Join-Path $OutputRoot "$name.xml")
     if($SetupMutation){
-        if($Operation -cne 'TELEPORT_SELF' -or $result.status -cne 'ACCEPTED'){throw "SETUP_REJECTED:$Operation/$($result.reason)"}
+        if($Operation -notin @('TELEPORT_SELF','MOVE_SELF','STOP_MOVE','STATUS') -or $result.status -notin @('SUCCEEDED','ACCEPTED')){throw "SETUP_REJECTED:$Operation/$($result.reason)"}
         return $result
     }
     if($result.status -cne 'SUCCEEDED'){throw "READ_REJECTED:$Operation/$($result.reason)"}
@@ -82,6 +82,33 @@ try{
         $status=Capture023 'STATUS'
         if($status.before.teleporting -cne 'false' -or [Math]::Abs([int]$status.before.x-[int]$SetupTeleport.x) -gt 32 -or [Math]::Abs([int]$status.before.y-[int]$SetupTeleport.y) -gt 32){throw 'SETUP_ARRIVAL_UNCONFIRMED'}
     }
+    if($SetupMove.Count){
+        $setupWatch=[Diagnostics.Stopwatch]::StartNew()
+        Push-Location (Join-Path $RuntimeRoot 'game')
+        try{
+            & java -cp '../libs/*' (Join-Path $PSScriptRoot 'ReadDryPath023.java') ([string]$status.before.x) ([string]$status.before.y) ([string]$status.before.z) ([string]$SetupMove.x) ([string]$SetupMove.y) *> (Join-Path $OutputRoot 'setup-dry-path.txt')
+            if($LASTEXITCODE -ne 0){throw 'Factual stock dry setup route rejected; no MOVE requested.'}
+        }finally{Pop-Location}
+        do{
+            if($setupWatch.Elapsed.TotalSeconds -gt 70){throw 'Bounded native setup movement deadline.'}
+            $status=Capture023 'STATUS' @{} $true
+            $dx=[int]$SetupMove.x-[int]$status.before.x; $dy=[int]$SetupMove.y-[int]$status.before.y
+            $distance=[Math]::Sqrt($dx*$dx+$dy*$dy)
+            if($distance -le 24){break}
+            $scale=[Math]::Min(1.0,300.0/$distance)
+            $nextX=[int]$status.before.x+[int]($dx*$scale); $nextY=[int]$status.before.y+[int]($dy*$scale)
+            $null=Capture023 'MOVE_SELF' @{x="$nextX";y="$nextY";z=[string]$status.before.z} $true
+            $stepWatch=[Diagnostics.Stopwatch]::StartNew()
+            do{
+                Start-Sleep -Milliseconds 500
+                $status=Capture023 'STATUS' @{} $true
+                if($status.before.moving -ceq 'false' -and [Math]::Sqrt([Math]::Pow([int]$status.before.x-$nextX,2)+[Math]::Pow([int]$status.before.y-$nextY,2)) -le 32){break}
+                if($stepWatch.Elapsed.TotalSeconds -gt 12){throw 'Native setup move arrival unconfirmed.'}
+            }while($true)
+        }while($true)
+        $null=Capture023 'STOP_MOVE' @{} $true
+        $status=Capture023 'STATUS'
+    }
     $script:observer=$status.before
     $warm=[Diagnostics.Stopwatch]::StartNew()
     do{
@@ -98,7 +125,7 @@ try{
     $primary | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $OutputRoot 'primary.json') -Encoding utf8
     Inventory023 'baseline' $baseline
     if($CollectSealed){
-        & (Join-Path $PSScriptRoot 'Arm-Collector024.ps1') -RuntimeRoot $RuntimeRoot -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot (Join-Path $OutputRoot 'sealed')
+        & (Join-Path $PSScriptRoot 'Arm-Collector024.ps1') -RuntimeRoot $RuntimeRoot -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot (Join-Path $OutputRoot 'sealed') -FollowCurrentEpochs
     }
     $watch=[Diagnostics.Stopwatch]::StartNew()
     $samples.Add([pscustomobject]@{elapsedSeconds=0;actors=$baseline})

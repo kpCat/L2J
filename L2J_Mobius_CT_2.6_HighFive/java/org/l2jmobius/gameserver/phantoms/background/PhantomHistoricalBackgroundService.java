@@ -351,6 +351,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{
 				return fail(profileId, current, "catchup.baseline.conflict");
 			}
+			final var generation = _planner.generation();
+			if ((current.state().status() == Status.PENDING) && (!current.state().authorityHashes().equals(generation.authorityHashes())
+				|| (current.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (current.state().topologyGeneration() != generation.topologyGeneration())
+				|| !existingBackground.get().hashes().equals(generation.authorityHashes())))
+			{
+				// Exact stale recovery owns canonical native refresh and CAS; attestation cannot precede it.
+				final Result recovered = recoverStale(profileId, current, generation);
+				return recovered.successful() ? ensureBaseline(profileId, recovered.snapshot()) : recovered;
+			}
 			final Result attested = ensureNativeContext(profileId, current, existingBackground.get());
 			if (!attested.successful()) { return attested; }
 			if (current.state().status() == Status.PENDING)

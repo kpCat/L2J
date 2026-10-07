@@ -19,9 +19,9 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent;
 import org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal;
 
 /** TASK024 only: delegates the existing fault injector and exports immutable sealed receipts. */
-final class Contract024Agent2
+final class Contract024Agent4
 {
-    private record Selection(Map<Long, Long> profiles, Path output) {}
+    private record Selection(Map<Long, Long> profiles, Path output, boolean followCurrentEpochs) {}
     private static final class Binding
     {
         final String mode;
@@ -73,10 +73,25 @@ final class Contract024Agent2
         final PhantomSystem configured = (PhantomSystem) field(PhantomSystem.class, "_configuredInstance").get(null);
         if (configured == null) { throw new IllegalStateException("TASK024_SYSTEM_ABSENT"); }
         final Object background = field(PhantomSystem.class, "_backgroundService").get(configured);
+        final var topology = (org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService) field(PhantomSystem.class, "_topologyService").get(configured);
+        final var population = (org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager) field(PhantomSystem.class, "_populationManager").get(configured);
+        final var materialization = (org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService) field(PhantomSystem.class, "_materializationService").get(configured);
+        final var history = (org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService) field(PhantomSystem.class, "_historicalBackgroundService").get(configured);
+        final var ecology = (org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService) field(PhantomSystem.class, "_populationEcology").get(configured);
+        final StringBuilder diagnostics = new StringBuilder("source=READ_ONLY_CURRENT_RUNTIME\n");
+        diagnostics.append("ecology=").append(ecology.snapshot()).append('\n');
+        for (long id : selected.keySet().stream().sorted().toList())
+        {
+            diagnostics.append("profile=").append(id).append(";presenceOnline=").append(population.presence().isOnline(id))
+                .append(";topology=").append(topology.findProfile(id)).append(";materialization=").append(materialization.find(id))
+                .append(";due=").append(ecology.dueSnapshot(id)).append(";progress=").append(ecology.progressSnapshot(id))
+                .append(";history=").append(history.status(id)).append('\n');
+        }
+        write(output.resolve("diagnostics-" + ProcessHandle.current().pid() + ".txt"), diagnostics.toString());
         final PhantomBackgroundTransaction transaction = (PhantomBackgroundTransaction) field(background.getClass(), "_transactions").get(background);
         final String mode = spec.getProperty("mode", "OBSERVE");
         if (!java.util.Set.of("OBSERVE", "CRASH_NATIVE", "CRASH_FINALIZE").contains(mode)) { throw new IllegalStateException("TASK024_MODE_GUARD"); }
-        final Binding binding = new Binding(mode, new Selection(Map.copyOf(selected), output));
+        final Binding binding = new Binding(mode, new Selection(Map.copyOf(selected), output, Boolean.parseBoolean(spec.getProperty("followCurrentEpochs", "false"))));
         final Binding previous = INSTALLED.putIfAbsent(transaction, binding);
         if (previous != null)
         {
@@ -104,12 +119,16 @@ final class Contract024Agent2
                         final Object boundary = field(Player.class, "_ownedStoreBoundary").get(player);
                         if (boundary == null || !boundary.getClass().getName().startsWith(background.getClass().getName() + "$")) { continue; }
                         final PhantomOwnedStoreIntent intent = (PhantomOwnedStoreIntent) field(boundary.getClass(), "_intent").get(boundary);
-                        if (intent == null || !java.util.Objects.equals(selection.profiles().get(intent.after().identity().profileId()), intent.materializedAtNanos())) { continue; }
-                        if (player.getNativeWorkOwner() == null || !player.getNativeWorkOwner().sealed()) { continue; }
+                        if (intent == null || !selection.profiles().containsKey(intent.after().identity().profileId())) { continue; }
+                        final long initialEpoch = selection.profiles().get(intent.after().identity().profileId());
+                        if (!selection.followCurrentEpochs() && initialEpoch != intent.materializedAtNanos()) { continue; }
+                        final var lifetime = materialization.find(intent.after().identity().profileId()).orElse(null);
+                        if (lifetime == null || lifetime.materializedAtNanos() != intent.materializedAtNanos() || lifetime.characterObjectId() != player.getObjectId()) { continue; }
+                        if (player.getNativeWorkOwner() == null || !player.getNativeWorkOwner().isCurrent() || !player.getNativeWorkOwner().sealed()) { continue; }
                         if (field(player.getNativeWorkOwner().getClass(), "_checkpointThread").get(player.getNativeWorkOwner()) != Thread.currentThread()) { continue; }
                         if (player.getNativeWorkOwner().epoch() != intent.materializedAtNanos() || player.getObjectId() != intent.after().identity().characterObjectId()) { throw new IllegalStateException("TASK024_SEALED_SNAPSHOT_GUARD"); }
                         final String key = intent.after().identity().profileId() + "-" + intent.materializedAtNanos() + "-" + intent.preparedRowVersion();
-                        if (exported.putIfAbsent(key, Boolean.TRUE) == null) { snapshot(selection.output().resolve(key + ".properties"), intent, player); }
+                        if (exported.putIfAbsent(key, Boolean.TRUE) == null) { snapshot(selection.output().resolve(key + ".properties"), intent, player, initialEpoch); }
                     }
                 }
                 // Planned crash handling is added only after its independent exact-owned preflight.
@@ -122,11 +141,12 @@ final class Contract024Agent2
         write(output.resolve("agent-installed-" + ProcessHandle.current().pid() + ".txt"), "owner=TASK024_CONTRACT\nmode=" + mode + "\npid=" + ProcessHandle.current().pid() + "\ncohort=" + selected + "\n");
     }
 
-    private static void snapshot(Path target, PhantomOwnedStoreIntent intent, Player player) throws Exception
+    private static void snapshot(Path target, PhantomOwnedStoreIntent intent, Player player, long initialEpoch) throws Exception
     {
         final var state = intent.after(); final var p = state.progress(); final var v = state.vitals(); final var xyz = state.position(); final var id = state.identity();
         final StringBuilder text = new StringBuilder("source=native-sealed-snapshot\nbarrier=QUIESCENT_NATIVE_PREPARE\n");
         put(text,"profileId",id.profileId()); put(text,"objectId",id.characterObjectId()); put(text,"epoch",intent.materializedAtNanos()); put(text,"preparedRowVersion",intent.preparedRowVersion());
+        put(text,"initialEpoch",initialEpoch); put(text,"epochTransition",initialEpoch != intent.materializedAtNanos()); put(text,"currentLifetimeVerified",true);
         put(text,"level",p.level()); put(text,"exp",p.experience()); put(text,"sp",p.skillPoints()); put(text,"expBeforeDeath",p.experienceBeforeDeath());
         put(text,"hp",v.currentHp()); put(text,"maxHp",v.maximumHp()); put(text,"mp",v.currentMp()); put(text,"maxMp",v.maximumMp()); put(text,"cp",v.currentCp()); put(text,"maxCp",v.maximumCp());
         put(text,"x",xyz.x()); put(text,"y",xyz.y()); put(text,"z",xyz.z()); put(text,"heading",xyz.heading()); put(text,"classIndex",id.classIndex()); put(text,"classId",id.activeClassId()); put(text,"race",id.raceOrdinal());

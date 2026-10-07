@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$RuntimeRoot,[Parameter(Mandatory)][string]$CohortJson,
-      [Parameter(Mandatory)][string]$OutputRoot,[ValidateSet('OBSERVE','CRASH_NATIVE','CRASH_FINALIZE')][string]$Mode='OBSERVE')
+      [Parameter(Mandatory)][string]$OutputRoot,[ValidateSet('OBSERVE')][string]$Mode='OBSERVE',[switch]$FollowCurrentEpochs)
 $ErrorActionPreference='Stop'
 $runtime=[IO.Path]::GetFullPath($RuntimeRoot)
 if($runtime -notmatch '[\\/]contract024[a-h][\\/]runtime$'){throw 'TASK024 exact owned runtime required.'}
@@ -21,6 +21,7 @@ $spec=Join-Path (Split-Path $runtime -Parent) ('collector-'+[guid]::NewGuid().To
 $lines=[Collections.Generic.List[string]]::new()
 $lines.Add('runtime='+$runtime.Replace('\','/'));$lines.Add('output='+$output.Replace('\','/'))
 $lines.Add('owner=TASK024_CONTRACT');$lines.Add('pid='+$state.pid);$lines.Add('startTicks='+$state.startTimeUtcTicks);$lines.Add('mode='+$Mode)
+$lines.Add('followCurrentEpochs='+([bool]$FollowCurrentEpochs).ToString().ToLowerInvariant())
 foreach($row in $rows){
     if([long]$row.profileId -le 0 -or [long]$row.materializedAtNanos -le 0){throw 'Exact profile epoch required.'}
     $lines.Add('profile.'+$row.profileId+'='+$row.materializedAtNanos)
@@ -28,6 +29,6 @@ foreach($row in $rows){
 $lines | Set-Content -LiteralPath $spec -Encoding utf8NoBOM
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $ops=Join-Path $module '.phantom-local/ops024'
-& 'C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe' --add-modules jdk.attach -cp $ops AttachContract024 $state.pid (Join-Path $ops 'contract024-agent2.jar') $spec
+& 'C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe' --add-modules jdk.attach -cp $ops AttachContract024 $state.pid (Join-Path $ops 'contract024-agent4.jar') $spec
 if($LASTEXITCODE -ne 0){throw 'Collector attach failed; no persistence proof claimed.'}
 'TASK024_COLLECTOR_INSTALLED pid='+$state.pid+' mode='+$Mode+' cohort='+$rows.Count

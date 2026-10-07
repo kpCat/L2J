@@ -12,6 +12,7 @@ parser.add_argument('--sealed', type=Path, required=True)
 parser.add_argument('--sql', type=Path, required=True)
 parser.add_argument('--shutdown-log', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--allow-current-epoch-transition', action='store_true')
 args = parser.parse_args()
 def rows(name):
     with (args.sql / name).open(encoding='utf-8-sig', newline='') as stream:
@@ -46,7 +47,8 @@ for actor in cohort:
     if pid not in snapshots or pid not in chars:
         errors.append(f'profile {pid}: missing sealed snapshot or SQL'); continue
     path, p = snapshots[pid]
-    if int(p['epoch']) != int(actor['materializedAtNanos']):
+    changed_epoch = int(p['epoch']) != int(actor['materializedAtNanos'])
+    if changed_epoch and not (args.allow_current_epoch_transition and p.get('currentLifetimeVerified') == 'true' and int(p.get('initialEpoch', '0')) == int(actor['materializedAtNanos'])):
         errors.append(f'profile {pid}: epoch differs'); continue
     expected = {k: int(p[k]) for k in ints} | {k: float(p[k]) for k in floats}
     expected |= {k: p[k] for k in ('inventoryHash','skillsHash')}
@@ -61,7 +63,7 @@ for actor in cohort:
     c, s = contexts.get(pid), states.get(pid)
     finalized = bool(c and s and pid not in pending and c[3] == 'COMPLETED' and c[4] == s[1] and c[5] == s[4] and int(s[1]) == int(p['preparedRowVersion']) + 1)
     if expected['vitality'] != saved['vitality']: errors.append(f'profile {pid}: vitality differs')
-    comparisons.append(dict(profileId=pid, objectId=int(p['objectId']), epoch=int(p['epoch']), source=p['source'], nativeFinalized=finalized, projectionReady=False, expected=expected, saved=saved, snapshotFile=path.name, nativeContext=c))
+    comparisons.append(dict(profileId=pid, objectId=int(p['objectId']), epoch=int(p['epoch']), initialEpoch=int(actor['materializedAtNanos']), epochChanged=changed_epoch, source=p['source'], nativeFinalized=finalized, projectionReady=False, expected=expected, saved=saved, snapshotFile=path.name, nativeContext=c))
 counts = rows('counts.tsv')[0]
 healthy = 'Phantom World: Initial subsystem drain completed, stopped=true' in args.shutdown_log.read_text(encoding='utf-8-sig')
 if not healthy: errors.append('healthy complete subsystem drain not proved')
