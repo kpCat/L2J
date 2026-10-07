@@ -1,0 +1,1215 @@
+{
+  "codeSha": "1b71464a9e09a80dad890e2bfd39df0f3b5d3b96",
+  "gameJarSha256": "F558DED66B5AFB17F2F8E90D42CE08FD3B48808D6C4EC02B02D99291CCEB2A91",
+  "configAndDataFingerprint": "C489D40D61208833A5733C234E0A851F473A9EC841E48829E9D7C5257C6FE2B6",
+  "files": [
+    {
+      "path": "game/config/AccessLevels.xml",
+      "sha256": "3E7ECBA8749EFD3C0C69F42C918A9D9468DC504313583355E87EA748CE8C7357"
+    },
+    {
+      "path": "game/config/AdminCommands.xml",
+      "sha256": "88F2AD6C9F45A1FD18E6F4AB4163DDDBE7BB93205D77552CCD3DAA37043B0433"
+    },
+    {
+      "path": "game/config/BotReportPunishments.xml",
+      "sha256": "03E90F08B41A2AD8D83E990EC81194919112F0B9F4A77BFEAE8C5E6733FD44D1"
+    },
+    {
+      "path": "game/config/chatfilter.txt",
+      "sha256": "7BC4E930DD83DED949A67ABB2154B20A97C751543C9AD92076423F0AAB0024B9"
+    },
+    {
+      "path": "game/config/ClassMaster.xml",
+      "sha256": "B90BE64F346A1023286975F0BA38366CC68E7B7AB8223ABAC6B8BF8A6E0FBE30"
+    },
+    {
+      "path": "game/config/ConquerableHallSiege.ini",
+      "sha256": "C0B20B9CDCA765541E5004E4665A606CB4D711BE3A35F8DEB73CD2602F7CB152"
+    },
+    {
+      "path": "game/config/Custom/AllowedPlayerRaces.ini",
+      "sha256": "7AE17A0B41BDA68AC7EE0DEA7988E99F6AB31FF58A67DB56F1C5003117B6EA4C"
+    },
+    {
+      "path": "game/config/Custom/AutoPlay.ini",
+      "sha256": "B128353128CBD9E7CBDC3D214A9342AA1865F17D3DB9B7AB38AFA9A6AF255E72"
+    },
+    {
+      "path": "game/config/Custom/AutoPotions.ini",
+      "sha256": "B569D9BE4DFF43A28D47BA6B4F3FCEBF7D910D81F0A469D9D601537F71992E0D"
+    },
+    {
+      "path": "game/config/Custom/Banking.ini",
+      "sha256": "8BE88C51BED0C46CCC912DCA390FF48C2214C672BA07D208DD2D9D9D62167932"
+    },
+    {
+      "path": "game/config/Custom/BossAnnouncements.ini",
+      "sha256": "4E22D6A06FC0209062F0788307A3C8BE077F9FD5990F99F3E475AA2AB23412F2"
+    },
+    {
+      "path": "game/config/Custom/CancelReturn.ini",
+      "sha256": "569DF3EC915F6BB35D8A908BC3274176CF1B897DD646822FA8715266F84542C8"
+    },
+    {
+      "path": "game/config/Custom/Captcha.ini",
+      "sha256": "CB0FA737979ECF4177AFAE998EBE1DA31DB8E356484ED5A56A4F1A9B0B3066E8"
+    },
+    {
+      "path": "game/config/Custom/ChampionMonsters.ini",
+      "sha256": "2961293B83DBF1BA1210DA3406D86255A360EC216122A4D988062AC1CE3DC555"
+    },
+    {
+      "path": "game/config/Custom/ChatModeration.ini",
+      "sha256": "11D31A3CF3784F524F63F100CEB5C61343B47F5AA9C3273B6E37A3CE3B450E94"
+    },
+    {
+      "path": "game/config/Custom/ClassBalance.ini",
+      "sha256": "FF117DCC8B8C2C3424F0B828B2F054133D6E357153178138C43B5473A417BFBE"
+    },
+    {
+      "path": "game/config/Custom/CommunityBoard.ini",
+      "sha256": "7B4F75ADF81E6C9F83192C8F607EA6D5F90D601F2FB01CBB9EA48AC5FF2F60F8"
+    },
+    {
+      "path": "game/config/Custom/CustomMailManager.ini",
+      "sha256": "0610840F675535893A3864A6B0ACA2F1D821BA82D76DB93DF198D2B075C89717"
+    },
+    {
+      "path": "game/config/Custom/DelevelManager.ini",
+      "sha256": "CBF6EE37296EFFBBBBD981F9BE8032539F53E4E2EE4F4928BB1FC0A9836D8861"
+    },
+    {
+      "path": "game/config/Custom/DualboxCheck.ini",
+      "sha256": "283C5C3FF9C6B24D53D1ECC7909F447E03C8D17221F90CAEF400438A816AFEA1"
+    },
+    {
+      "path": "game/config/Custom/FactionSystem.ini",
+      "sha256": "A37CF00B71A764C7312A40888B847A350F38BA5678A8C765F82158F410F02196"
+    },
+    {
+      "path": "game/config/Custom/FakePlayers.ini",
+      "sha256": "76D243945688B1C7B3662BAE40D1529626C095ED34120D3EA3918D1F283FD649"
+    },
+    {
+      "path": "game/config/Custom/FindPvP.ini",
+      "sha256": "63C42980D1B01ED5400AA7F94F03586EFDBAFB9CA503C286E0F217BB8D9EEDCF"
+    },
+    {
+      "path": "game/config/Custom/FreeMounts.ini",
+      "sha256": "345A5E2CC1AC53FD99CB700053F9476354FBE3F7A09C54A58C7B34D01878DFF7"
+    },
+    {
+      "path": "game/config/Custom/HellboundStatus.ini",
+      "sha256": "0541D40D0954706221A62A8F8F2B61ADB00B7819C8B5FB778A55A120BFFA63B5"
+    },
+    {
+      "path": "game/config/Custom/LocalPlayPilot.ini",
+      "sha256": "4FF817980004CF3822A34579D643D7F03F91AECC9C46FCA28ABA9C7A620FB726"
+    },
+    {
+      "path": "game/config/Custom/MerchantZeroSellPrice.ini",
+      "sha256": "72AC4B4F03CE1DED88A04AD13703D8253666871D0F92295CD119477393D00054"
+    },
+    {
+      "path": "game/config/Custom/MultilingualSupport.ini",
+      "sha256": "ABCF45598B9DD698B3A8C6E7357D13FB60E5A8DF2CEDC145A1B651DF31730BA0"
+    },
+    {
+      "path": "game/config/Custom/NoblessMaster.ini",
+      "sha256": "8C009BE419E6ABAC330BB2382F05934ADB064023B2B7A9E1BAF3938386BFA193"
+    },
+    {
+      "path": "game/config/Custom/NpcStatMultipliers.ini",
+      "sha256": "F1AE5025505C1FF252AE1D0EA7E3D4D002D1FFF47392A71B44BF0DDAFFC2A129"
+    },
+    {
+      "path": "game/config/Custom/OfflinePlay.ini",
+      "sha256": "5A39CF97D1669E3F4399ED0FD381A707FE22CE822DBA0DA20B12A9045D3EE124"
+    },
+    {
+      "path": "game/config/Custom/OfflineTrade.ini",
+      "sha256": "582298A72085DFBA1AE163E7CD639F0791659DBB2F01A7623A04D838572E2C91"
+    },
+    {
+      "path": "game/config/Custom/OnlineInfo.ini",
+      "sha256": "6655E0E9DFA647E507F49F970A5205D8E584212B99AA3AD795EBFDB941B2039A"
+    },
+    {
+      "path": "game/config/Custom/PasswordChange.ini",
+      "sha256": "EDEB931665A9DA9459AF62654ED5DDB2B0458D0510990003E18EC08BA03977ED"
+    },
+    {
+      "path": "game/config/Custom/PersonalCharacterQoL.ini",
+      "sha256": "504AB7A743832B11A336990090E2AFE7F4368E2B9B812FB9F3176184D404F4BD"
+    },
+    {
+      "path": "game/config/Custom/PersonalPremiumQoL.ini",
+      "sha256": "BC637182F6ADF03B25CC8E6A5915D9604E51489C7501ADF5EF7701022BBCA1D3"
+    },
+    {
+      "path": "game/config/Custom/PersonalProgressionQoL.ini",
+      "sha256": "8776365F3F82EA7751DCF66C19F988C26F3DFB75BFF1CBC73F6985A52E9BC89A"
+    },
+    {
+      "path": "game/config/Custom/PhantomMarket.ini",
+      "sha256": "7304415301C40599EAD04D085E52B048C9AABAADA377ED9E139F017765464E2F"
+    },
+    {
+      "path": "game/config/Custom/PhantomPlayers.ini",
+      "sha256": "B8679C529AF286D48E494105139607C37D1F1FC46870EC6AAC8E07ABF4984C53"
+    },
+    {
+      "path": "game/config/Custom/PremiumSystem.ini",
+      "sha256": "728C2A798307AFBE0B364C9C405F4377318A64A4F7A6C1A0C5BBAE58CEA80977"
+    },
+    {
+      "path": "game/config/Custom/PrivateStoreRange.ini",
+      "sha256": "A19B35075A9C7F057B424BB2128A05BBA6FB9DF8AE5B82A72E5CAB9813BC1619"
+    },
+    {
+      "path": "game/config/Custom/PvpAnnounce.ini",
+      "sha256": "05D5E25EFC9917FC00030392A7B2A57D69F8B9FE3C4E7BE92A1BBEFD0D2872A5"
+    },
+    {
+      "path": "game/config/Custom/PvpRewardItem.ini",
+      "sha256": "DE1F4BEF266FF961B761A6BA96F48ED115FBAC3F85E2523EEBFE1AB550185E57"
+    },
+    {
+      "path": "game/config/Custom/PvpTitleColor.ini",
+      "sha256": "0FBCB26E47F2A18252845DBF004A9A10DCB9F0B8D537F776C2F13F85AB9CDE41"
+    },
+    {
+      "path": "game/config/Custom/RandomSpawns.ini",
+      "sha256": "C2B526FD453738EC43FBC4692C882A903F3E65E4306F1DB9BD4980C56457F5BA"
+    },
+    {
+      "path": "game/config/Custom/SchemeBuffer.ini",
+      "sha256": "7365892CB1BD99F8F9F7FEAF780856AD60E9191658AB0B1EC3D0BFA84C3FA5B8"
+    },
+    {
+      "path": "game/config/Custom/ScreenWelcomeMessage.ini",
+      "sha256": "72F945135266FCEE10F5B4E07388F632727904AF49A88CBDF5938C01C66C8FC2"
+    },
+    {
+      "path": "game/config/Custom/SellBuffs.ini",
+      "sha256": "0717F165EF5001B21A91A67C2EE55054765872A8D54A7F2AEAEE44CE024221C3"
+    },
+    {
+      "path": "game/config/Custom/ServerTime.ini",
+      "sha256": "7035572A7C32C4375137B27B6667ACFE4866A03CF60CE14B93DCF2322C1C1C85"
+    },
+    {
+      "path": "game/config/Custom/StartingLocation.ini",
+      "sha256": "39FC2C4AECECE363EE281F2185F8CA986C31AD1223C00E25CEE7940C834443D2"
+    },
+    {
+      "path": "game/config/Custom/StartingTitle.ini",
+      "sha256": "B00E80C9F6A5C579A3BC38FFD272A7E06704054EA50F90990F53A314E2BF0AF2"
+    },
+    {
+      "path": "game/config/Custom/Transmog.ini",
+      "sha256": "EAEBBF6E4B3928A51DAC10B346109154C667D9F9E6BD1C68C285C17BF36738D1"
+    },
+    {
+      "path": "game/config/Custom/WalkerBotProtection.ini",
+      "sha256": "5F29664BFAA2D040AD39E2F9FC6BD98DD1615CF391EB90D71D9F7BFEB2232509"
+    },
+    {
+      "path": "game/config/Custom/WarehouseSorting.ini",
+      "sha256": "781B8F1B7389C94B9ECEDCAFFF41B03B4732727CECFD31F907B1EA1F3B38A5C6"
+    },
+    {
+      "path": "game/config/Custom/Wedding.ini",
+      "sha256": "C689A444F171606572D6E45567F23CEAEAF969432C5A4584212A0BE3A3E3472F"
+    },
+    {
+      "path": "game/config/Database.ini",
+      "sha256": "1036904C752B8AC27BB47AC5839A81D5F8B3B693B44E613D6A0C905502D8EADA"
+    },
+    {
+      "path": "game/config/default-ipconfig.xml",
+      "sha256": "B38F6C18F62857FC44E71FD54C11B0219BE82D17E41415B24AF85CF781630F4E"
+    },
+    {
+      "path": "game/config/Development.ini",
+      "sha256": "4D1629ED5ABFBF037CA9CD98C05C96C329B8970E070E8DE21C4D6DEAF67F17BB"
+    },
+    {
+      "path": "game/config/DynamicExpRates.xml",
+      "sha256": "F4EA9771A5844427D3D3865355EC8DB9B6ACEEE733799EA797FAA001F9AB29F1"
+    },
+    {
+      "path": "game/config/Feature.ini",
+      "sha256": "DCC84A0D5D1BBA5AC70B2520F8FB2FADCFD27EAFF0FA642258A8AF6BB092715A"
+    },
+    {
+      "path": "game/config/FloodProtector.ini",
+      "sha256": "351EFC1CF612B95ABD4F1D58AAD67CD6ECF3717CC03D6BBD5E57774ECFE548B8"
+    },
+    {
+      "path": "game/config/FortSiege.ini",
+      "sha256": "3564FB527D2B31D73311DF71E2B59AE8F17B0F0CD926E3E6B4F7E90EA8DEF9A9"
+    },
+    {
+      "path": "game/config/General.ini",
+      "sha256": "F83A1356E34BDD9531EF69EE7C9A6D4B2B0C44DB5608F5CD35A910C69D24C638"
+    },
+    {
+      "path": "game/config/GeoEngine.ini",
+      "sha256": "D89D14874DB16AB7E852A028FE7AB31A01A0CD1EE808349E63EDB1C763697ACB"
+    },
+    {
+      "path": "game/config/GraciaSeeds.ini",
+      "sha256": "885348F7324D1723107DFAE8495AA17960B6B729FBECC2B1BF85DC1F50F0F57D"
+    },
+    {
+      "path": "game/config/GrandBoss.ini",
+      "sha256": "E9CD2AC9C46C9970FA0E51B6948709BF99146B6E21EBF3242DDB2DABD387F921"
+    },
+    {
+      "path": "game/config/hexid.txt",
+      "sha256": "A7912CC5196634DC9B8150E38E0F6C08019F1DFCE8A969C60D23DAEF8FA85A6D"
+    },
+    {
+      "path": "game/config/IdManager.ini",
+      "sha256": "189A1E02411549F1EEBE9D0B467D3D2009AC731C5451C27135CF968EFA077A74"
+    },
+    {
+      "path": "game/config/Interface.ini",
+      "sha256": "DB68181D41EA912E6E008D50A91979CBAFB9C75CCC9F41DE24D1FCC9DAF9CDB3"
+    },
+    {
+      "path": "game/config/Network.ini",
+      "sha256": "BA689BAC19E983ED0682E86A5EE101F584465F98EA44946D7E54DA5918B23768"
+    },
+    {
+      "path": "game/config/NPC.ini",
+      "sha256": "14B704F844EFF137203276E48F4E60726AD4D0636173AD071AC4BFB421371233"
+    },
+    {
+      "path": "game/config/Olympiad.ini",
+      "sha256": "C36C692183570B72981A1781F9A85C8EEB0FBF4229A3D297076623983B75DC0C"
+    },
+    {
+      "path": "game/config/Player.ini",
+      "sha256": "AF8C000C51FE92D25C507C8B4E665A3AA14A2D315597F99468A1CA470EDE427C"
+    },
+    {
+      "path": "game/config/PVP.ini",
+      "sha256": "F2E7221A43DDEE48E32107548F6E641DFAEDFDF4A3912DD3C2E165B273B51324"
+    },
+    {
+      "path": "game/config/Rates.ini",
+      "sha256": "893DF0B308B109727998FF1592D5EF3F709A364210EE8D7600823CC14230F816"
+    },
+    {
+      "path": "game/config/Scripts.xml",
+      "sha256": "6D18E41B53D12F26E4BDE9A14EB1F701C02AC3AE05CF0F861327FF61761E15AF"
+    },
+    {
+      "path": "game/config/SecondaryAuth.xml",
+      "sha256": "F95C86363992E9A64C7A7F2E21B1B5E8EE0047CA71626F6E055D14CCCF590DA3"
+    },
+    {
+      "path": "game/config/Server.ini",
+      "sha256": "655BB14F980EA5768C99DC9F3C4D4CF0A4AB61BCD319A6C6211241C1FAAFE031"
+    },
+    {
+      "path": "game/config/Siege.ini",
+      "sha256": "337684DFC0124EB9468EFEABB15EDD99BBB3A88E9B9146208F14771AEF2B0235"
+    },
+    {
+      "path": "game/config/SiegeSchedule.xml",
+      "sha256": "D7BF15105E208AC3700C457F4E1AFB50584D84F057AA5A4CB00E5ED94BCBCECF"
+    },
+    {
+      "path": "game/config/TerritoryWar.ini",
+      "sha256": "0D8FD38318DD3407CAA49FAF61A7BE7DE1362AB88E0EF61154FCDF06E5308FFD"
+    },
+    {
+      "path": "game/config/Threads.ini",
+      "sha256": "BBFAC92D8B317E4D9DA56EDD05743292674D960ACBED60D205865AC7EBC95D3B"
+    },
+    {
+      "path": "game/config/UndergroundColiseum.ini",
+      "sha256": "9F1A130B4588C762B47B71405D50D082C57422830A3863C26F33F9E6C1A0D6A3"
+    },
+    {
+      "path": "game/data/geodata/11_23.l2j",
+      "sha256": "A42A87C109ECD4F5CA8FCC10EF3AFADDEAC05F9BB58C8A88776CD950342C5BC1"
+    },
+    {
+      "path": "game/data/geodata/11_24.l2j",
+      "sha256": "5B2A23DEAF73CB58D2B9C6726D1081A7B263A693FDAA879C734214133EDB80D7"
+    },
+    {
+      "path": "game/data/geodata/11_25.l2j",
+      "sha256": "E8A99494E8950238FFEDF1AECA2966F1D75230ED1210DDA0E41F7EC5D697A1A1"
+    },
+    {
+      "path": "game/data/geodata/11_26.l2j",
+      "sha256": "D50CC1A2FA83328BBB3277F4C2A046DA89EB2F42B20469C05A5236A6EF9DB5D6"
+    },
+    {
+      "path": "game/data/geodata/12_23.l2j",
+      "sha256": "493D40CAFE652B575EC5FEE496BD4B8BA3CFFC94273AB2FFB77BBB9343E243A6"
+    },
+    {
+      "path": "game/data/geodata/12_24.l2j",
+      "sha256": "8D90D20C8FA14998D7333D72F50A443FFB2AF206C20C10A4EB4724A8B6DFC4FE"
+    },
+    {
+      "path": "game/data/geodata/12_25.l2j",
+      "sha256": "A5E774B018DE881226B4CE5C071D9F1D12D6154E7BECE26AB6BBEB59DD435BF9"
+    },
+    {
+      "path": "game/data/geodata/12_26.l2j",
+      "sha256": "9490889EF6688EE32BA31D341F1B2D12C8C88AC3FCD31BB124B5D66B630F4385"
+    },
+    {
+      "path": "game/data/geodata/13_21.l2j",
+      "sha256": "A92FEF33A757A337B09B976A31020309145DA9330D3EDF8673DECF1EF02B39D7"
+    },
+    {
+      "path": "game/data/geodata/13_22.l2j",
+      "sha256": "A92FEF33A757A337B09B976A31020309145DA9330D3EDF8673DECF1EF02B39D7"
+    },
+    {
+      "path": "game/data/geodata/13_23.l2j",
+      "sha256": "8D09CF701D8821CD188A6B2060C2CBB2FE0AC5299EDFEDD8A01C1E00DA05887C"
+    },
+    {
+      "path": "game/data/geodata/13_24.l2j",
+      "sha256": "0F68B962B0C528B8AFACBC7DBC4D75929F4B92DA9E089020EB2FC2231932BEA4"
+    },
+    {
+      "path": "game/data/geodata/13_25.l2j",
+      "sha256": "4FC3D17977484177CFC9F84CEEF2DECF1F45DDB8BEF3A7EB7486AC0DA5B56288"
+    },
+    {
+      "path": "game/data/geodata/13_26.l2j",
+      "sha256": "8FA51F985167F34A7FA6F23F94A1878055C4A864894207DB161D488BADB4CF2C"
+    },
+    {
+      "path": "game/data/geodata/14_21.l2j",
+      "sha256": "A92FEF33A757A337B09B976A31020309145DA9330D3EDF8673DECF1EF02B39D7"
+    },
+    {
+      "path": "game/data/geodata/14_22.l2j",
+      "sha256": "A7E8B150AA70218B42EDC0709F393CDA37B0BE660CA3ECCEE03FE2A7666FE3FD"
+    },
+    {
+      "path": "game/data/geodata/14_23.l2j",
+      "sha256": "4379C5F0C7B33C7862A0C500FCA9EFA3BC9FBB8885208939F756E4781712F40A"
+    },
+    {
+      "path": "game/data/geodata/14_24.l2j",
+      "sha256": "B266133D8B220E9901E0CC0E2D7B649B20D6677F00798A5A3A418BA292778B94"
+    },
+    {
+      "path": "game/data/geodata/14_25.l2j",
+      "sha256": "747BE16FAAC93823501BA1A67D32D5DC1B43FC1C65FCEA52268C567EA3DB277F"
+    },
+    {
+      "path": "game/data/geodata/14_26.l2j",
+      "sha256": "9C1853495A2AADCAC241938781EBF403235BF4B6CB823283D5C2D099B23F2C07"
+    },
+    {
+      "path": "game/data/geodata/15_10.l2j",
+      "sha256": "75FB8B1F5BDBB9E45B5E06FE858AEFBBBF568A912DFE953361BD8FFB78B53935"
+    },
+    {
+      "path": "game/data/geodata/15_11.l2j",
+      "sha256": "352B30912715D82F704A41FDA9407E0F36E0CF5E3AFC3241B190BBE16B035AAB"
+    },
+    {
+      "path": "game/data/geodata/15_12.l2j",
+      "sha256": "A6F94263A0B4AA58C171A4EFC423B851371D620EF2D8C1DC0837F2AD740E05CA"
+    },
+    {
+      "path": "game/data/geodata/15_18.l2j",
+      "sha256": "BA11140D8B97FD5DC1FE99F084B51E1934C1EDD996B6FF8F15B6212508B6E087"
+    },
+    {
+      "path": "game/data/geodata/15_19.l2j",
+      "sha256": "3FCC43246C6365B88F3C71065C1AC7B40645272B10CDCDF4AC6268D48EE0CD42"
+    },
+    {
+      "path": "game/data/geodata/15_20.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/15_21.l2j",
+      "sha256": "29EE545197A68E25041865F06129E443EB445CD3C543AA33D3FBB190C7B538D6"
+    },
+    {
+      "path": "game/data/geodata/15_22.l2j",
+      "sha256": "A92FEF33A757A337B09B976A31020309145DA9330D3EDF8673DECF1EF02B39D7"
+    },
+    {
+      "path": "game/data/geodata/15_23.l2j",
+      "sha256": "99DBCDF5DC57C0618C5A6BCA28F1BC339B01ACDD645A51628E2B93837DF17726"
+    },
+    {
+      "path": "game/data/geodata/15_24.l2j",
+      "sha256": "8073E3E3E9E461B89FBFF334A0776BCDA8FBC4A2ED798D226749D48D6DB2FCA0"
+    },
+    {
+      "path": "game/data/geodata/15_25.l2j",
+      "sha256": "209BBF1AF2C779F273B7DD5FEAB1B1ECE732337DE9CD3BE75BA49E10CDC6E237"
+    },
+    {
+      "path": "game/data/geodata/15_26.l2j",
+      "sha256": "960E42DE0A28FEBFA43628B92213D157C702A6812BDCA1EBD3F15D0CB74C1C71"
+    },
+    {
+      "path": "game/data/geodata/16_10.l2j",
+      "sha256": "7F7846AE8155C400A31E2BAC59E525F946CCB2B25A173EECA7D3DEAAF6A15B01"
+    },
+    {
+      "path": "game/data/geodata/16_11.l2j",
+      "sha256": "7F4F3A98C05A3D55F455659AD78DBCBF39226F5E1073EB210149EBC1AA67BA70"
+    },
+    {
+      "path": "game/data/geodata/16_12.l2j",
+      "sha256": "D8BCE0843EE6C0804699AB45D6B41F00B428BFFD8DCAE0B901DFA5B7D370AC4A"
+    },
+    {
+      "path": "game/data/geodata/16_13.l2j",
+      "sha256": "209B8782365AA8840DF507339D7036FA5AC6EB3BC22FF2688E7D83D4A27520FC"
+    },
+    {
+      "path": "game/data/geodata/16_14.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/16_15.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/16_16.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/16_17.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/16_18.l2j",
+      "sha256": "FD053BFC1E8448D8515BE6FBF6D632BFF6467677DD6FA4982FADE37D3035D076"
+    },
+    {
+      "path": "game/data/geodata/16_19.l2j",
+      "sha256": "B5C2053D64F003329CF932BB72F522CE0930087DF8D4195DC41FCCE7ED8680F8"
+    },
+    {
+      "path": "game/data/geodata/16_20.l2j",
+      "sha256": "D87F46E9FF9329FAB96F085BB64A9ABA8A49F6394FDABE5D44135AE4AAF917B8"
+    },
+    {
+      "path": "game/data/geodata/16_21.l2j",
+      "sha256": "E90EEFC16BC781E784D489ADC7FEE4F470DFBB41FF65769BB64E3733D079F5FE"
+    },
+    {
+      "path": "game/data/geodata/16_22.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/16_23.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/16_24.l2j",
+      "sha256": "EFA8BAFEAB07E08C2AD6F5343F71B879D629576C7C3448447721BB13AFE95404"
+    },
+    {
+      "path": "game/data/geodata/16_25.l2j",
+      "sha256": "6A1A951A48FF9F221EEDB8804D0AF77BF81C8397A764F6413D5BD1A4DD2C7F83"
+    },
+    {
+      "path": "game/data/geodata/16_26.l2j",
+      "sha256": "735D05DC591A0F2AA081758B4B7B67162FC195509A0A9566A41849F92708CC62"
+    },
+    {
+      "path": "game/data/geodata/17_10.l2j",
+      "sha256": "15C529A80318E78C708C4353AB4B1271167DA2014290CE6577DBE8C7FE88412C"
+    },
+    {
+      "path": "game/data/geodata/17_11.l2j",
+      "sha256": "29F3014B3345C9F0948E756C5E2E0A50B1BB32A37F81889C2DBCA25E20298FA4"
+    },
+    {
+      "path": "game/data/geodata/17_12.l2j",
+      "sha256": "C6923DD7CBA3BD66AC84C87CD3E219992A30B6E89E18E4DD2EC1AAC7106CDE59"
+    },
+    {
+      "path": "game/data/geodata/17_13.l2j",
+      "sha256": "B8D720409D4798D358DAFE48CE16DC841CE3B42377EEC17E1DE8D1DABEC58656"
+    },
+    {
+      "path": "game/data/geodata/17_14.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/17_15.l2j",
+      "sha256": "2E0A23FEE5D0EEF81C061B9AC7C0569C63E856545C931D2C33100098E24189E4"
+    },
+    {
+      "path": "game/data/geodata/17_16.l2j",
+      "sha256": "A711D27F4B2AF6B999760C67D433FBA151D4CE76680E0614850627A60A6C67DD"
+    },
+    {
+      "path": "game/data/geodata/17_17.l2j",
+      "sha256": "44E3268502F2F54F563890E8B47CBEB2EC946CD070BCB86CC22B9C87C9007137"
+    },
+    {
+      "path": "game/data/geodata/17_18.l2j",
+      "sha256": "FC90E95585D75913AF401F0C870A6CF9F2C02ACB6EDC9BAE59485A9CA72B012A"
+    },
+    {
+      "path": "game/data/geodata/17_19.l2j",
+      "sha256": "D73529923015919335E3ED882BC919CC957F96FE488217C6EF85E3B4427FF540"
+    },
+    {
+      "path": "game/data/geodata/17_20.l2j",
+      "sha256": "89E52F6780D5CD3DCC621D14BFC074D67053035602B08BC61D12E807904E2D60"
+    },
+    {
+      "path": "game/data/geodata/17_21.l2j",
+      "sha256": "603388F3FBB3C9FF3841DDD029FE814EF6F398C3F3D04314C09B06611B219EC9"
+    },
+    {
+      "path": "game/data/geodata/17_22.l2j",
+      "sha256": "15CD4C9C4E8AB392389BFD7DE3C6F9CAAB1326BABB453412AF41DDFE4C07F94F"
+    },
+    {
+      "path": "game/data/geodata/17_23.l2j",
+      "sha256": "8208256FE93A76983127050D176535EAE1C78A9EB0C4429EE9798CAC65221004"
+    },
+    {
+      "path": "game/data/geodata/17_24.l2j",
+      "sha256": "57668290644383DD551E6BBC0BEA76651D47A4EEC545CF75E7CF8B0E2E037803"
+    },
+    {
+      "path": "game/data/geodata/17_25.l2j",
+      "sha256": "7581EAF71A9E698395417A5515F1E1AE62EB2201F78868EDF81BA06ED979219F"
+    },
+    {
+      "path": "game/data/geodata/17_26.l2j",
+      "sha256": "9813FF92554C4FADC347A886D44D3C5868C3EE2707C3C4AB730E0C227E94346E"
+    },
+    {
+      "path": "game/data/geodata/18_10.l2j",
+      "sha256": "6FB946CCE06AC5DAA3DD03C7E7018D934C516A668AEF29A069CF485674B8314E"
+    },
+    {
+      "path": "game/data/geodata/18_11.l2j",
+      "sha256": "4037638F3F2A8749B0C13F19535B250332A9A03612416AF31DD18D7779A0709F"
+    },
+    {
+      "path": "game/data/geodata/18_12.l2j",
+      "sha256": "E62A22F379081C1E110247E36BE5DCC8092498AA6DA69CBD9880AB12E9953E6A"
+    },
+    {
+      "path": "game/data/geodata/18_13.l2j",
+      "sha256": "FC90E95585D75913AF401F0C870A6CF9F2C02ACB6EDC9BAE59485A9CA72B012A"
+    },
+    {
+      "path": "game/data/geodata/18_14.l2j",
+      "sha256": "7EA8422FE50BF0D3FB7C1CE87CAF636CC1EC5A88F8CD4DE68044877D41D3B285"
+    },
+    {
+      "path": "game/data/geodata/18_15.l2j",
+      "sha256": "0E580F2C8F7BEB465F6AB44F22F883D94785B0E415CB7A5EE5EC7814C1EB4A8D"
+    },
+    {
+      "path": "game/data/geodata/18_16.l2j",
+      "sha256": "B18F93B9A2348385ECFDC4CD7147E1DE5371EDE973373CD42131D21B09E05BA3"
+    },
+    {
+      "path": "game/data/geodata/18_17.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/18_18.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/18_19.l2j",
+      "sha256": "96B59FECCEE4B13C7EB759EED915BFFCECC23E3027EC17B89A688D002497D8B6"
+    },
+    {
+      "path": "game/data/geodata/18_20.l2j",
+      "sha256": "72B19CE670544E9ACB21ABE45DB0F9099C7E4A2B14793E89573A9D72D131A9D7"
+    },
+    {
+      "path": "game/data/geodata/18_21.l2j",
+      "sha256": "76361C5102CCF33C5C716544C8E056246EDE2C246A94ECC055DE1CF4D18BAE7B"
+    },
+    {
+      "path": "game/data/geodata/18_22.l2j",
+      "sha256": "E7F443BDF5236A8D995FC907BA98CA94AAC991B727F1755A7950BC90F192810E"
+    },
+    {
+      "path": "game/data/geodata/18_23.l2j",
+      "sha256": "8753A2888B5E1AA6D0DCDF34BF3622810E70B302FABA6676FFE357B609E9B544"
+    },
+    {
+      "path": "game/data/geodata/18_24.l2j",
+      "sha256": "1D028B9226CCD23B498AB2A63C3D818703DCD8C78BCF51849C6A55EBDFFF7A02"
+    },
+    {
+      "path": "game/data/geodata/18_25.l2j",
+      "sha256": "FD292039ED323F915C86A9B747F2D909E58529D5C1B22F3ECA39D47B210A4C83"
+    },
+    {
+      "path": "game/data/geodata/18_26.l2j",
+      "sha256": "735D05DC591A0F2AA081758B4B7B67162FC195509A0A9566A41849F92708CC62"
+    },
+    {
+      "path": "game/data/geodata/19_10.l2j",
+      "sha256": "750CC04FE55D9E58DCF0D5189461B0A6AD7598621733AEFEE1E0BD83683A1B66"
+    },
+    {
+      "path": "game/data/geodata/19_11.l2j",
+      "sha256": "39ACC91F3940D643DEBCB0765BD7ABA4695D5DE98DDD6A8F33B13CAF51350EE8"
+    },
+    {
+      "path": "game/data/geodata/19_12.l2j",
+      "sha256": "31E95B6EC0F320B63F88345DF28302BFEE379C5A1AB8CAD85E571E894D2AA521"
+    },
+    {
+      "path": "game/data/geodata/19_13.l2j",
+      "sha256": "06720C092949DB13C4D93575B02741435E0E785DE458234AB825D7822FDC83B2"
+    },
+    {
+      "path": "game/data/geodata/19_14.l2j",
+      "sha256": "455B7A151422B2E941EFE7AE9D037C9EB1E6713AAD96390541C6E1213ABE3470"
+    },
+    {
+      "path": "game/data/geodata/19_15.l2j",
+      "sha256": "D6E33E3E9152734E47E9B07BF598F1B9CECC6FC1932390F962BDE3E6BB9B526F"
+    },
+    {
+      "path": "game/data/geodata/19_16.l2j",
+      "sha256": "7478D51F636B94E45983054B444ECA4C8ECAE9BDC95A3F0B16AD48693D32145A"
+    },
+    {
+      "path": "game/data/geodata/19_17.l2j",
+      "sha256": "66998856596E1C3E726F8FC97C6B6AAE072523A1E0DECE9BB36AC8D2A4C70DD4"
+    },
+    {
+      "path": "game/data/geodata/19_18.l2j",
+      "sha256": "687427938887A88B2D8E18987AF2052398BD888B29C4952D61B8522C0EC30DB5"
+    },
+    {
+      "path": "game/data/geodata/19_19.l2j",
+      "sha256": "023542B608172CA63116B25E988EDE00F0304B1885E2CCB6E5A85B71E085B5A4"
+    },
+    {
+      "path": "game/data/geodata/19_20.l2j",
+      "sha256": "35DC091ACB048ABBAC4DD91F55C9C014A31BDEE445ECAB90DC5FE7FBD1A1AFFF"
+    },
+    {
+      "path": "game/data/geodata/19_21.l2j",
+      "sha256": "9C34A9274C9D3F173BDE22FD960CE9D098B75BD3E1AECB3A1F9BF9F36583C406"
+    },
+    {
+      "path": "game/data/geodata/19_22.l2j",
+      "sha256": "F53BA3474454B3803BDC0721FBFBECCFBCA5BC1F05D3F3F35418BFE0D052C8B1"
+    },
+    {
+      "path": "game/data/geodata/19_23.l2j",
+      "sha256": "70B12AAA1876E2838EC1C101DB8AF126D04778DDB74841E23C299370D31C3E8E"
+    },
+    {
+      "path": "game/data/geodata/19_24.l2j",
+      "sha256": "E137CE9832FA952BFBE01CDABC5E2362EFE9954580C2E3E0E5B9EB9A5BB5455E"
+    },
+    {
+      "path": "game/data/geodata/19_25.l2j",
+      "sha256": "076A4B66827A4D5383070747A3E2D5588E87F38EA9AD8B43C1DF01F623B954AA"
+    },
+    {
+      "path": "game/data/geodata/19_26.l2j",
+      "sha256": "8B63145E29FA2D8F4AAFDEEE1DA3F187BE9A9504289720E79BC509D8C66E28B7"
+    },
+    {
+      "path": "game/data/geodata/20_10.l2j",
+      "sha256": "BFCBBCFEA4C926E98EC8625AF21A1B03240C19C7F73B79F3120045D23405F646"
+    },
+    {
+      "path": "game/data/geodata/20_11.l2j",
+      "sha256": "7AA49F6A3B7A951595374DFCC52E1764E532F1666B3A8285B50CBAF234C1B91C"
+    },
+    {
+      "path": "game/data/geodata/20_12.l2j",
+      "sha256": "2A99AEBD1B1698A00F4C24DCEED8A69392163A1086DC13C41E4E85066B71583C"
+    },
+    {
+      "path": "game/data/geodata/20_13.l2j",
+      "sha256": "5EF417F51F78A0BE32625CF55A1877BACA7197FD0B6323BFE25901405D89E10F"
+    },
+    {
+      "path": "game/data/geodata/20_14.l2j",
+      "sha256": "38FD137C4943F1497A3DFA7BA59633AB49CE35A1AE8A5862453F52D87F48FFC7"
+    },
+    {
+      "path": "game/data/geodata/20_15.l2j",
+      "sha256": "03525645EF6A2AC4E3ACCA166D7503FF95EF0AAC1D606E5CF13E40E274CE090A"
+    },
+    {
+      "path": "game/data/geodata/20_16.l2j",
+      "sha256": "2B8292B5FFEBAE88BD468290BB7CD0C457FCC2383BB8968E2865FD57214CCDE5"
+    },
+    {
+      "path": "game/data/geodata/20_17.l2j",
+      "sha256": "199472BBFC29AE0581156E6EF05CFEFA71EE2EE252F55B68E2C5292FB1D26145"
+    },
+    {
+      "path": "game/data/geodata/20_18.l2j",
+      "sha256": "88396A2684C560332D00EC31CDBB13DBDBF8CCEFAC2B5097B63BBE8471C3989C"
+    },
+    {
+      "path": "game/data/geodata/20_19.l2j",
+      "sha256": "FA8572B0F3CAC4EE8D09E3FF54339DE53A76D117BA03D9990AF30B4F6F1F6A1F"
+    },
+    {
+      "path": "game/data/geodata/20_20.l2j",
+      "sha256": "B627AC28D3296ADDAE93C0FCAA548183301E32D91D98A105F9EB4846C3B5F133"
+    },
+    {
+      "path": "game/data/geodata/20_21.l2j",
+      "sha256": "D3F4086501A8D8805142C813D4BB32435E75592860010BCE15815DDA496F1095"
+    },
+    {
+      "path": "game/data/geodata/20_22.l2j",
+      "sha256": "EDA9405F8C07FEA6D71352BB10206A7706913C53F611FC1F6FCD6968D7FA7EF3"
+    },
+    {
+      "path": "game/data/geodata/20_23.l2j",
+      "sha256": "0BA6D4FF29E7D6DD1C196030DA6AC756769DB0DFD9454BBE1B6BD673957BF75D"
+    },
+    {
+      "path": "game/data/geodata/20_24.l2j",
+      "sha256": "1422A293C001AA4B5C53C6FB0A2FD4D8F2CAB9B211D590C83B973027E0774DC0"
+    },
+    {
+      "path": "game/data/geodata/20_25.l2j",
+      "sha256": "5FE2658B5318529F6A2699352BEEE5A92949D874D46D8F10DE2569FC0146318E"
+    },
+    {
+      "path": "game/data/geodata/20_26.l2j",
+      "sha256": "48D6F68074BD099D8453FB92203D48C1D4169E051FACE00013DB5C1242F84676"
+    },
+    {
+      "path": "game/data/geodata/21_10.l2j",
+      "sha256": "769CA53B8F5963B39566ADFA7B1DBC2678E13EEF9E0FC6258A4B509593C01DD8"
+    },
+    {
+      "path": "game/data/geodata/21_11.l2j",
+      "sha256": "2FB1AF6FF83B04DA2A992DA071CF721B1EC793CDC03EDB553B021C8DC259F4F9"
+    },
+    {
+      "path": "game/data/geodata/21_12.l2j",
+      "sha256": "FC90E95585D75913AF401F0C870A6CF9F2C02ACB6EDC9BAE59485A9CA72B012A"
+    },
+    {
+      "path": "game/data/geodata/21_13.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/21_14.l2j",
+      "sha256": "BE6F54BF5DA2ECB109F1DA9D80E81CB1BD9F2FFA01036E4FCB131359FC9BDEA5"
+    },
+    {
+      "path": "game/data/geodata/21_15.l2j",
+      "sha256": "18658ED0A34A4B99B56FDC0986B3F9D634BB143A382354422428FE72540E1CF4"
+    },
+    {
+      "path": "game/data/geodata/21_16.l2j",
+      "sha256": "D3340B51F8D8338160626DA404CE47B1DF7CC116A8BDB2F7C10CA2F4AB9E7DA4"
+    },
+    {
+      "path": "game/data/geodata/21_17.l2j",
+      "sha256": "13E05DFB60FE1C5BD30EE64588BD4811B216A2285A4DEFC56CD8DCFE79BD3676"
+    },
+    {
+      "path": "game/data/geodata/21_18.l2j",
+      "sha256": "EC3ECF99B8FFB751A9CDD3E466901712446EF47FB4A477CD10A31AE098624636"
+    },
+    {
+      "path": "game/data/geodata/21_19.l2j",
+      "sha256": "95F44CD5C99FD33569A09F7B3C290DD422342C89A3E3E642E39D994C0F73BC41"
+    },
+    {
+      "path": "game/data/geodata/21_20.l2j",
+      "sha256": "A05C1C26E0E55567C3CD218BE3B31DB6D616FBB50EF95E6C525DD8D3BD0E6896"
+    },
+    {
+      "path": "game/data/geodata/21_21.l2j",
+      "sha256": "E1F96D974783169366B7D6552818AE5DA3D6AF6612C931F56AA1009359BC27C6"
+    },
+    {
+      "path": "game/data/geodata/21_22.l2j",
+      "sha256": "708D231D355533C26CB7D36E6E97BA5F37D0E873A5C3A06CCE80DBC3D08ABA90"
+    },
+    {
+      "path": "game/data/geodata/21_23.l2j",
+      "sha256": "A7845B299EC817379A9DAAFC3BCF32C6BC9B68D73D9D7F52295C609DF840B866"
+    },
+    {
+      "path": "game/data/geodata/21_24.l2j",
+      "sha256": "54135D10C21CE68B525A9DEB40D6CFA189F9ED107FBB8052804989F044F45D19"
+    },
+    {
+      "path": "game/data/geodata/21_25.l2j",
+      "sha256": "5270E2C3316C3BE1B083F73CB1BDE3CE59D7644747A178A71994B14AC5B59F8E"
+    },
+    {
+      "path": "game/data/geodata/22_10.l2j",
+      "sha256": "1C8A3F944F7FCC60825884147404B466BA0E27F3EC8B470B05C731DCD8DE4078"
+    },
+    {
+      "path": "game/data/geodata/22_11.l2j",
+      "sha256": "6F2B7DE91D6ED714AA2CF1ECAB53C65B8EF8EF610A9FC17F94828F546B583E21"
+    },
+    {
+      "path": "game/data/geodata/22_12.l2j",
+      "sha256": "FC90E95585D75913AF401F0C870A6CF9F2C02ACB6EDC9BAE59485A9CA72B012A"
+    },
+    {
+      "path": "game/data/geodata/22_13.l2j",
+      "sha256": "82F23C04390EED8E2A2BBE94DFD8BFC96B739D5724D78C1D1F8A785FA5F2F6D3"
+    },
+    {
+      "path": "game/data/geodata/22_14.l2j",
+      "sha256": "B6D65CC7A026511B3C48BF6D7E261AA6F98CA6F77B5ED937F0614C6008093B01"
+    },
+    {
+      "path": "game/data/geodata/22_15.l2j",
+      "sha256": "C8465795F21647D480A38513C59887435D61768D18AE142090C24F5B15EE5FE9"
+    },
+    {
+      "path": "game/data/geodata/22_16.l2j",
+      "sha256": "D2525C0EF22640B64321E8EA06E1623236C75250DB80A8CA3DD3EF0C221A828B"
+    },
+    {
+      "path": "game/data/geodata/22_17.l2j",
+      "sha256": "B5BF773F441480DDB74D9CFDAEB73327E791F816ED2D51F00623FCD1F4892D7C"
+    },
+    {
+      "path": "game/data/geodata/22_18.l2j",
+      "sha256": "B14A4AABFBE12D325EAE21808F7E2F9B75F799F7C04B711068530E034D7E4798"
+    },
+    {
+      "path": "game/data/geodata/22_19.l2j",
+      "sha256": "DCA8611F962A26D1BB0D52316752AF268715DB7218A3A36F8C7FB32341A647C0"
+    },
+    {
+      "path": "game/data/geodata/22_20.l2j",
+      "sha256": "8EACA7533ED6EFFEB82EBFA0811A5A04B81D7BA5C5FEF1E4F59D9D123A0A6E73"
+    },
+    {
+      "path": "game/data/geodata/22_21.l2j",
+      "sha256": "0CB853CD598383D674D089BAF02DEBE7C6F5F7102438A704B08097183A5AE54B"
+    },
+    {
+      "path": "game/data/geodata/22_22.l2j",
+      "sha256": "B5D508CD9294DCDED620D0E54A27B74E04274BA9F3395BC357EBB1E5CC671FA9"
+    },
+    {
+      "path": "game/data/geodata/22_23.l2j",
+      "sha256": "94048AEB0BA6B12B1F3D1DE3623F48C8ED94CFA8A3BCB77FF65DD6B9B46F9E6E"
+    },
+    {
+      "path": "game/data/geodata/22_24.l2j",
+      "sha256": "2CD3D9E423BB552D9537A3931DEB935D37830B6B899BBA3497F8FF81DC7FD3BF"
+    },
+    {
+      "path": "game/data/geodata/22_25.l2j",
+      "sha256": "B8B588D36A67BEBCE825D69F02729EAED2CC82A4C34DFC6D7B134911D6C55CAD"
+    },
+    {
+      "path": "game/data/geodata/22_26.l2j",
+      "sha256": "505937255F06F833A88047DD1A56F3BA9ED4A3477F756D2EAAA6C2CD6258C58D"
+    },
+    {
+      "path": "game/data/geodata/23_10.l2j",
+      "sha256": "FAA881F817935F61E9106820E5B3E6D007A6F5FF9D8D6FFC140399B0A32173FA"
+    },
+    {
+      "path": "game/data/geodata/23_11.l2j",
+      "sha256": "87502516C45C3CFD4E4DA7ACBDEC2C5E58345C78E209E2D20B246B3FAECE8DC9"
+    },
+    {
+      "path": "game/data/geodata/23_12.l2j",
+      "sha256": "5CC4D1E0463192BBB7FB23B21191BFB16E7AA3BC0AA54C69CAB728BD48AC578F"
+    },
+    {
+      "path": "game/data/geodata/23_13.l2j",
+      "sha256": "70CEFCA52E8544C72E57725CA5D735B80A697BE631FF721017BB02505E143C38"
+    },
+    {
+      "path": "game/data/geodata/23_14.l2j",
+      "sha256": "2777A04F3F20B5A477F4C5201D70DFCF3CEE973A21D9158601A7BF3EA0472E74"
+    },
+    {
+      "path": "game/data/geodata/23_15.l2j",
+      "sha256": "6FDDF04C51FE803B3C205B6334949DA6F2F27C559BB3F5B4E50A16A173094B49"
+    },
+    {
+      "path": "game/data/geodata/23_16.l2j",
+      "sha256": "C91E1570429CE2D626212248FF6C8CCD2ABE7C8AC700CCFEC49C4EC8DF9DDCCD"
+    },
+    {
+      "path": "game/data/geodata/23_17.l2j",
+      "sha256": "A34BE6498C87404F99E266F0EBD074570548310B3E551637D1822567500771D3"
+    },
+    {
+      "path": "game/data/geodata/23_18.l2j",
+      "sha256": "F9FDD9A44BF0DA1FB4C54D7B8FCE1D18FD717E57717D3DDAF82CE226A217C656"
+    },
+    {
+      "path": "game/data/geodata/23_19.l2j",
+      "sha256": "7A80CBCCFE6F27361E99DB9AC7FDA4DCA19F7A5445DA631D8EDB2C569B9CB9EE"
+    },
+    {
+      "path": "game/data/geodata/23_20.l2j",
+      "sha256": "C6C421A91E64C108512B58AE0D81AA54B51452F4CF40240808C2AACF3C36213E"
+    },
+    {
+      "path": "game/data/geodata/23_21.l2j",
+      "sha256": "C21224CF6B47BB6FC2FD07574DDB8108D2088BB1DECEFDEADBA05BE39784C174"
+    },
+    {
+      "path": "game/data/geodata/23_22.l2j",
+      "sha256": "E9E682254F75219FBC7C40614193F5DE9047E06562F48B85EA8CE13B9A1B5C7E"
+    },
+    {
+      "path": "game/data/geodata/23_23.l2j",
+      "sha256": "33A64330065DA8B760D72EA5BFE7D0FD98C9FEEE7A649E0CA6422427A27F25AE"
+    },
+    {
+      "path": "game/data/geodata/23_24.l2j",
+      "sha256": "1565AB0A2FE4C8306B171B04900A2A27E703CC5C096A42CE35FE64D2851AE7A2"
+    },
+    {
+      "path": "game/data/geodata/23_25.l2j",
+      "sha256": "F647BA90C5AF73B7921879DDB53E55F6A0ACF14057C05DB76AF472248529C9F5"
+    },
+    {
+      "path": "game/data/geodata/23_26.l2j",
+      "sha256": "505937255F06F833A88047DD1A56F3BA9ED4A3477F756D2EAAA6C2CD6258C58D"
+    },
+    {
+      "path": "game/data/geodata/24_10.l2j",
+      "sha256": "FAA881F817935F61E9106820E5B3E6D007A6F5FF9D8D6FFC140399B0A32173FA"
+    },
+    {
+      "path": "game/data/geodata/24_11.l2j",
+      "sha256": "434108BA10CB9CBE92675DA7A331A95B2254D9B6D67EFA4CD4298DAADD00BE39"
+    },
+    {
+      "path": "game/data/geodata/24_12.l2j",
+      "sha256": "D695E7F5945FC42BA8AFE65F0A728BB1ED3BA95B464C0E16C33FD8258B996D82"
+    },
+    {
+      "path": "game/data/geodata/24_13.l2j",
+      "sha256": "57BCE0CC134371A74ACC6FF6FB02EF2669EB1BCE53B606D8262D509460955086"
+    },
+    {
+      "path": "game/data/geodata/24_14.l2j",
+      "sha256": "5568B18BA8C089D62B151ADECA1916BCB9B417EB2C3BF11C76EFCBC382F8B87D"
+    },
+    {
+      "path": "game/data/geodata/24_15.l2j",
+      "sha256": "B5E60FD7131318A1D48F72C4D62CDDC0AC27777908E57900BFD3A409BC15F26E"
+    },
+    {
+      "path": "game/data/geodata/24_16.l2j",
+      "sha256": "CBF8ED02E3AA3D10160F1A893C11645C24928651FB72CB72CB8A5B26EBECE818"
+    },
+    {
+      "path": "game/data/geodata/24_17.l2j",
+      "sha256": "0E5BD98AB42587ACECF719F2A9AFA2E88872238E8AE656701B93476D6AF874B2"
+    },
+    {
+      "path": "game/data/geodata/24_18.l2j",
+      "sha256": "05C8CB288A89CE8B2DD9E260D3C9FF170ACB900765769C3369B9B3801E2503E4"
+    },
+    {
+      "path": "game/data/geodata/24_19.l2j",
+      "sha256": "A26C0F3548FF997575D6D49BA7AA51CB60C6B2316D9D6EE249B44E1A8E20287A"
+    },
+    {
+      "path": "game/data/geodata/24_20.l2j",
+      "sha256": "84509D806321BBB711BA4EC81FABFD586A36431441ECD2BB8662F12D9C8A6D9F"
+    },
+    {
+      "path": "game/data/geodata/24_21.l2j",
+      "sha256": "B82BA29BF26FF6A45CB595733211EA03ED17709FFBF0B5D2BAF40B924CA05B39"
+    },
+    {
+      "path": "game/data/geodata/24_22.l2j",
+      "sha256": "B5CBA8A42770DB9556E672F90B2C9C72DADC94F2D518D11ABD8ADCD4C7E59EEA"
+    },
+    {
+      "path": "game/data/geodata/24_23.l2j",
+      "sha256": "C0F25F20E094779B6927DB53FFE616BA6DB380E2561A28580BFA52ABAB01027D"
+    },
+    {
+      "path": "game/data/geodata/24_24.l2j",
+      "sha256": "617E3934F949D0645A282BFE1AD25A61458D3D5CD5B33C1CFA66491BA75AEB49"
+    },
+    {
+      "path": "game/data/geodata/24_25.l2j",
+      "sha256": "661F1B0C36635D86C821024D32DD6676FB59191FDA8CDD168ABAA2DFD28987F3"
+    },
+    {
+      "path": "game/data/geodata/24_26.l2j",
+      "sha256": "505937255F06F833A88047DD1A56F3BA9ED4A3477F756D2EAAA6C2CD6258C58D"
+    },
+    {
+      "path": "game/data/geodata/25_10.l2j",
+      "sha256": "FAA881F817935F61E9106820E5B3E6D007A6F5FF9D8D6FFC140399B0A32173FA"
+    },
+    {
+      "path": "game/data/geodata/25_11.l2j",
+      "sha256": "516CB0FF80D580FA9BFED629F3FA5753FF4F6CC65A5A811A2A50411142604015"
+    },
+    {
+      "path": "game/data/geodata/25_12.l2j",
+      "sha256": "D6B06300457ACCFD2EF72EAB3E21FF3168429A0EF18FA73A025E1B91857E3AA5"
+    },
+    {
+      "path": "game/data/geodata/25_14.l2j",
+      "sha256": "63FBBEDEF32CC31434C327C000A8315E51757A3AF63B3E9875D9080AE3E7A63F"
+    },
+    {
+      "path": "game/data/geodata/25_15.l2j",
+      "sha256": "1A28949406E834A227E61348DE28D3DD89B1DED13834E2ACD2DC12B8AA968D8A"
+    },
+    {
+      "path": "game/data/geodata/25_16.l2j",
+      "sha256": "47AFC3EF6576D6B3314143E444A4FCE764C9026DF500981D015BC139AE647DB9"
+    },
+    {
+      "path": "game/data/geodata/25_17.l2j",
+      "sha256": "B14C3EDC3AB6F336F8FBF94CF31FAB0BC8595D77B626CA8FFE9AE7B7AA71A514"
+    },
+    {
+      "path": "game/data/geodata/25_18.l2j",
+      "sha256": "E3D8AC1F15A1A7531467E91CD025DDD8B99AD81D3AEE2C13FA25FB9EDB7E7E36"
+    },
+    {
+      "path": "game/data/geodata/25_19.l2j",
+      "sha256": "14A41364586FFC78CB14C9538492D3A6D741B569CEAEEF162FD60C18D565047F"
+    },
+    {
+      "path": "game/data/geodata/25_20.l2j",
+      "sha256": "720B8CE3F5BADC7D34C5C787EBAABCB6FB6348A960C15B5F580F71C78679B965"
+    },
+    {
+      "path": "game/data/geodata/25_21.l2j",
+      "sha256": "B6C26D57F00535FF9C641AFF70C1F5EAB5289286A7322C4B7B1B282266EEAF3F"
+    },
+    {
+      "path": "game/data/geodata/25_22.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/25_23.l2j",
+      "sha256": "DB90C2DE3A17F51459A9A2BFC147D5828383EAB610303DD3E3512735CCFF7441"
+    },
+    {
+      "path": "game/data/geodata/25_24.l2j",
+      "sha256": "33E2367B1D6B0300FF3B8D0ECC4907FBB36A41E25E4CB1098EF22F697C430134"
+    },
+    {
+      "path": "game/data/geodata/26_11.l2j",
+      "sha256": "1C9FC2CB414E03DBE5313C20EAC6F89D5CE233E506AFCBB2EB71CA246BDA9923"
+    },
+    {
+      "path": "game/data/geodata/26_12.l2j",
+      "sha256": "AD4DCABA71404CC2E5AB6A85F16E441AF5E4BA0FC6E14FDBC718DED45A2BD742"
+    },
+    {
+      "path": "game/data/geodata/26_14.l2j",
+      "sha256": "A32DB023D3DB7E6CC152FD2A1B2491EEA2020157B8852B5919025F9C16608635"
+    },
+    {
+      "path": "game/data/geodata/26_15.l2j",
+      "sha256": "69ED42DF87163DAB84A7394111FD88616136BECAD5697D52376B07832AA8B628"
+    },
+    {
+      "path": "game/data/geodata/26_16.l2j",
+      "sha256": "69ED42DF87163DAB84A7394111FD88616136BECAD5697D52376B07832AA8B628"
+    },
+    {
+      "path": "game/data/geodata/Readme.txt",
+      "sha256": "D31BC95F8BD931A096C8ECD9A38A676F344D834AF022C717815CA89EAB65FB46"
+    },
+    {
+      "path": "libs/GameServer.jar",
+      "sha256": "F558DED66B5AFB17F2F8E90D42CE08FD3B48808D6C4EC02B02D99291CCEB2A91"
+    },
+    {
+      "path": "libs/HikariCP-7.0.2-sources.jar",
+      "sha256": "9DFB6005EE47BDE701C05481B76A56B6EB0ABCABC1C46A602EEC4CA7B100C99C"
+    },
+    {
+      "path": "libs/HikariCP-7.0.2.jar",
+      "sha256": "F1E612FA27345BE3107A85431E8A8AEB205C15364AB2F2D411E40A9D7BB08095"
+    },
+    {
+      "path": "libs/LoginServer.jar",
+      "sha256": "152D2D430B6565B353848DA88FFBFF130B0C1A25CC3EFD56B0537576D2F4068D"
+    },
+    {
+      "path": "libs/mysql-connector-j-9.5.0-sources.jar",
+      "sha256": "365B01C26328DA400A7CE3FF4B5FDC20224B965183E229EFBDFC3B1DB8C38E2B"
+    },
+    {
+      "path": "libs/mysql-connector-j-9.5.0.jar",
+      "sha256": "F2CA3DFAF00D4AA311470DB7EA3051962944BA0CB60005A2F75467549C39F425"
+    },
+    {
+      "path": "libs/slf4j-api-2.0.17-sources.jar",
+      "sha256": "DB0D08D8EFA05AD19D174D747BD9D8E68DBB02B596812FE7B3A681656E346694"
+    },
+    {
+      "path": "libs/slf4j-api-2.0.17.jar",
+      "sha256": "7B751D952061954D5ABFED7181C1F645D336091B679891591D63329C622EB832"
+    },
+    {
+      "path": "libs/slf4j-simple-2.0.17-sources.jar",
+      "sha256": "30B660E79419BFCEBD678E75BDFE3644EAF325F50253A68395D93634DA5953DF"
+    },
+    {
+      "path": "libs/slf4j-simple-2.0.17.jar",
+      "sha256": "DDFEA59AC074C6D3E24AC2C38622D2D963895E17F70B38ED4BDAE4D780BE6964"
+    },
+    {
+      "path": "login/config/Database.ini",
+      "sha256": "5814F7482F5C9761FC800782B9D5915D7584A8935DFE13AFED7CA0730AEFCC2E"
+    },
+    {
+      "path": "login/config/Interface.ini",
+      "sha256": "DB68181D41EA912E6E008D50A91979CBAFB9C75CCC9F41DE24D1FCC9DAF9CDB3"
+    },
+    {
+      "path": "login/config/Network.ini",
+      "sha256": "887169823449652740AF0E0420E6D56614000AE97F0027B86EE6660BCB61C087"
+    },
+    {
+      "path": "login/config/Server.ini",
+      "sha256": "BF84376BF977828B3AF90598A765E3F0D752A7411A6EA92AA2AED3EDCECD0EEE"
+    },
+    {
+      "path": "login/config/Threads.ini",
+      "sha256": "ECAB990543079F29784DD79204360556F1426B3B01738630D4014CF923FE50D9"
+    }
+  ]
+}

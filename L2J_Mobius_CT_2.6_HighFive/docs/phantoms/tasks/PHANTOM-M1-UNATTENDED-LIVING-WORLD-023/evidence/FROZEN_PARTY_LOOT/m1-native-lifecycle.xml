@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="11" passed="11" failures="0">
+  <properties>
+    <property name="Q12.partyAutoLoot.1866.managed.fixture" value="VALID_ACTUAL_ATTACKABLE_DO_ITEM_DROP_AUTOLOOT_ITEMHOLDER_NATIVE_WRITERS"/>
+    <property name="Q12.partyAutoLoot.1866.managed.nativeDeltas" value="picker=0 recipient=1 stockRemainderMath=true"/>
+    <property name="Q12.partyAutoLoot.1866.managed.picker.rematerialized" value="count=0 canonicalHash=f9cb4f5c4dd06e09c4ec5412374b3c3690b42356c6d4c4707c2ba47a7f3d6d44 oldEpoch=62318073654600 newEpoch=62318539217500"/>
+    <property name="Q12.partyAutoLoot.1866.managed.recipient.rematerialized" value="count=1 canonicalHash=c9893ec3fa0bdb239671a9fc11b8af66742c119e7f40e1cf68ff16aa8f64a18d oldEpoch=62318169987700 newEpoch=62318584104700"/>
+    <property name="Q12.partyAutoLoot.1866.ordinary.fixture" value="VALID_ACTUAL_ATTACKABLE_DO_ITEM_DROP_AUTOLOOT_ITEMHOLDER_NATIVE_WRITERS"/>
+    <property name="Q12.partyAutoLoot.1866.ordinary.nativeDeltas" value="picker=0 recipient=1 stockRemainderMath=true"/>
+    <property name="Q12.partyAutoLoot.57.managed.fixture" value="VALID_ACTUAL_ATTACKABLE_DO_ITEM_DROP_AUTOLOOT_ITEMHOLDER_NATIVE_WRITERS"/>
+    <property name="Q12.partyAutoLoot.57.managed.nativeDeltas" value="picker=10 recipient=10 stockRemainderMath=true"/>
+    <property name="Q12.partyAutoLoot.57.managed.picker.rematerialized" value="count=17 canonicalHash=1422cfd8e3761982e8a0ad7dc4e793a980a34165b85b712d205e769bbe689227 oldEpoch=62318820417500 newEpoch=62319231220000"/>
+    <property name="Q12.partyAutoLoot.57.managed.recipient.rematerialized" value="count=13 canonicalHash=9fccf50b8a236f346eb74a417778932bb12735e516b59ee7762cf5cea56a53d2 oldEpoch=62318886583600 newEpoch=62319262454500"/>
+    <property name="Q12.partyAutoLoot.57.ordinary.fixture" value="VALID_ACTUAL_ATTACKABLE_DO_ITEM_DROP_AUTOLOOT_ITEMHOLDER_NATIVE_WRITERS"/>
+    <property name="Q12.partyAutoLoot.57.ordinary.nativeDeltas" value="picker=10 recipient=10 stockRemainderMath=true"/>
+    <property name="Q12.partyLate.created" value="object=268482560 nativePlayerCreate=true guardedOwnedAccount=true exactDeleteRequired=true"/>
+    <property name="Q12.partyLate.missingAutoGetBeforeSeed" value="[AutoGetSkill[skillId=1320, skillLevel=1]]"/>
+    <property name="Q12.partyPickup.1866.managed.baselineRecipientOutstanding" value="0"/>
+    <property name="Q12.partyPickup.1866.managed.checkpointCrossedBeforeGroundRemoval" value="false"/>
+    <property name="Q12.partyPickup.1866.managed.fixture" value="VALID_ACTUAL_NATIVE_COMPLETION"/>
+    <property name="Q12.partyPickup.1866.managed.nativePickerDelta" value="0"/>
+    <property name="Q12.partyPickup.1866.managed.nativePickupStack" value="org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative&gt;org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.Player.doPickupItem&gt;org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0&gt;java.lang.Thread.run"/>
+    <property name="Q12.partyPickup.1866.managed.nativeRecipientDelta" value="1"/>
+    <property name="Q12.partyPickup.1866.managed.picker.rematerialized" value="count=0 canonicalHash=f9cb4f5c4dd06e09c4ec5412374b3c3690b42356c6d4c4707c2ba47a7f3d6d44 oldEpoch=62325561218700 newEpoch=62327946132500"/>
+    <property name="Q12.partyPickup.1866.managed.recipient.rematerialized" value="count=1 canonicalHash=656b720e9e6f4b6e8c2eaa06ea30612fbd5213e5c8130ceef298e6dd07b35261 oldEpoch=62325606512100 newEpoch=62327973879900"/>
+    <property name="Q12.partyPickup.1866.managed.recipientHeldSnapshot" value="epoch=62325606512100 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[10:party-pickup:RUNNING:depth=0:ageMs=6]"/>
+    <property name="Q12.partyPickup.1866.managed.recipientOutstandingBeforeGroundRemoval" value="1"/>
+    <property name="Q12.partyPickup.1866.ordinary.baselineRecipientOutstanding" value="0"/>
+    <property name="Q12.partyPickup.1866.ordinary.checkpointCrossedBeforeGroundRemoval" value="true"/>
+    <property name="Q12.partyPickup.1866.ordinary.fixture" value="VALID_ACTUAL_NATIVE_COMPLETION"/>
+    <property name="Q12.partyPickup.1866.ordinary.nativePickerDelta" value="0"/>
+    <property name="Q12.partyPickup.1866.ordinary.nativePickupStack" value="org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative&gt;org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.Player.doPickupItem&gt;org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0&gt;java.lang.Thread.run"/>
+    <property name="Q12.partyPickup.1866.ordinary.nativeRecipientDelta" value="1"/>
+    <property name="Q12.partyPickup.1866.ordinary.recipientOutstandingBeforeGroundRemoval" value="0"/>
+    <property name="Q12.partyPickup.57.managed.baselineRecipientOutstanding" value="0"/>
+    <property name="Q12.partyPickup.57.managed.checkpointCrossedBeforeGroundRemoval" value="false"/>
+    <property name="Q12.partyPickup.57.managed.fixture" value="VALID_ACTUAL_NATIVE_COMPLETION"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.baselineRecipientOutstanding" value="0"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.checkpointCrossedBeforeGroundRemoval" value="false"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.fixture" value="VALID_ACTUAL_NATIVE_COMPLETION"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.lateNewcomerCheckpointSealed" value="false"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.nativeNewcomerDelta" value="0"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.nativePickerDelta" value="10"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.nativePickupStack" value="org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative&gt;org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.Player.doPickupItem&gt;org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0&gt;java.lang.Thread.run"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.nativeRecipientDelta" value="10"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.newcomer.rematerialized" value="count=0 canonicalHash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 oldEpoch=62319588375900 newEpoch=62322331363500"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.picker.rematerialized" value="count=17 canonicalHash=1422cfd8e3761982e8a0ad7dc4e793a980a34165b85b712d205e769bbe689227 oldEpoch=62319470358300 newEpoch=62322253174000"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.recipient.rematerialized" value="count=13 canonicalHash=9fccf50b8a236f346eb74a417778932bb12735e516b59ee7762cf5cea56a53d2 oldEpoch=62319529422900 newEpoch=62322294924900"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.recipientHeldSnapshot" value="epoch=62319529422900 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[10:party-pickup:RUNNING:depth=0:ageMs=309]"/>
+    <property name="Q12.partyPickup.57.managed.lateOpen.recipientOutstandingBeforeGroundRemoval" value="1"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.baselineRecipientOutstanding" value="0"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.checkpointCrossedBeforeGroundRemoval" value="false"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.fixture" value="VALID_ACTUAL_NATIVE_COMPLETION"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.lateNewcomerCheckpointSealed" value="true"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.nativeNewcomerDelta" value="0"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.nativePickerDelta" value="10"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.nativePickupStack" value="org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative&gt;org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.Player.doPickupItem&gt;org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0&gt;java.lang.Thread.run"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.nativeRecipientDelta" value="10"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.newcomer.rematerialized" value="count=0 canonicalHash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 oldEpoch=62322716787000 newEpoch=62325430405000"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.picker.rematerialized" value="count=17 canonicalHash=1422cfd8e3761982e8a0ad7dc4e793a980a34165b85b712d205e769bbe689227 oldEpoch=62322607081900 newEpoch=62325362575200"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.recipient.rematerialized" value="count=13 canonicalHash=9fccf50b8a236f346eb74a417778932bb12735e516b59ee7762cf5cea56a53d2 oldEpoch=62322666457300 newEpoch=62325393101400"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.recipientHeldSnapshot" value="epoch=62322666457300 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[10:party-pickup:RUNNING:depth=0:ageMs=309]"/>
+    <property name="Q12.partyPickup.57.managed.lateSealed.recipientOutstandingBeforeGroundRemoval" value="1"/>
+    <property name="Q12.partyPickup.57.managed.nativePickerDelta" value="10"/>
+    <property name="Q12.partyPickup.57.managed.nativePickupStack" value="org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative&gt;org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.Player.doPickupItem&gt;org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0&gt;java.lang.Thread.run"/>
+    <property name="Q12.partyPickup.57.managed.nativeRecipientDelta" value="10"/>
+    <property name="Q12.partyPickup.57.managed.picker.rematerialized" value="count=17 canonicalHash=1422cfd8e3761982e8a0ad7dc4e793a980a34165b85b712d205e769bbe689227 oldEpoch=62328154832900 newEpoch=62330537974200"/>
+    <property name="Q12.partyPickup.57.managed.recipient.rematerialized" value="count=13 canonicalHash=9fccf50b8a236f346eb74a417778932bb12735e516b59ee7762cf5cea56a53d2 oldEpoch=62328196511400 newEpoch=62330568545500"/>
+    <property name="Q12.partyPickup.57.managed.recipientHeldSnapshot" value="epoch=62328196511400 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[10:party-pickup:RUNNING:depth=0:ageMs=7]"/>
+    <property name="Q12.partyPickup.57.managed.recipientOutstandingBeforeGroundRemoval" value="1"/>
+    <property name="Q12.partyPickup.57.ordinary.baselineRecipientOutstanding" value="0"/>
+    <property name="Q12.partyPickup.57.ordinary.checkpointCrossedBeforeGroundRemoval" value="true"/>
+    <property name="Q12.partyPickup.57.ordinary.fixture" value="VALID_ACTUAL_NATIVE_COMPLETION"/>
+    <property name="Q12.partyPickup.57.ordinary.lateOpen.baselineRecipientOutstanding" value="0"/>
+    <property name="Q12.partyPickup.57.ordinary.lateOpen.checkpointCrossedBeforeGroundRemoval" value="true"/>
+    <property name="Q12.partyPickup.57.ordinary.lateOpen.fixture" value="VALID_ACTUAL_NATIVE_COMPLETION"/>
+    <property name="Q12.partyPickup.57.ordinary.lateOpen.lateNewcomerCheckpointSealed" value="false"/>
+    <property name="Q12.partyPickup.57.ordinary.lateOpen.nativeNewcomerDelta" value="0"/>
+    <property name="Q12.partyPickup.57.ordinary.lateOpen.nativePickerDelta" value="10"/>
+    <property name="Q12.partyPickup.57.ordinary.lateOpen.nativePickupStack" value="org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative&gt;org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.Player.doPickupItem&gt;org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0&gt;java.lang.Thread.run"/>
+    <property name="Q12.partyPickup.57.ordinary.lateOpen.nativeRecipientDelta" value="10"/>
+    <property name="Q12.partyPickup.57.ordinary.lateOpen.recipientOutstandingBeforeGroundRemoval" value="0"/>
+    <property name="Q12.partyPickup.57.ordinary.nativePickerDelta" value="10"/>
+    <property name="Q12.partyPickup.57.ordinary.nativePickupStack" value="org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative&gt;org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.Player.doPickupItem&gt;org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0&gt;java.lang.Thread.run"/>
+    <property name="Q12.partyPickup.57.ordinary.nativeRecipientDelta" value="10"/>
+    <property name="Q12.partyPickup.57.ordinary.recipientOutstandingBeforeGroundRemoval" value="0"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="m1.focusedFixture.74602" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74603" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74604" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74605" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74606" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74607" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74608" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74609" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74610" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74611" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74612" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74613" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74614" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74615" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-autoloot-1866-false" elapsedNanos="756207100"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-autoloot-1866-true" elapsedNanos="77449900"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-autoloot-57-false" elapsedNanos="566158200"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-autoloot-57-true" elapsedNanos="94534200"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-late-false" elapsedNanos="2993899500"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-late-ordinary" elapsedNanos="140184300"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-late-true" elapsedNanos="2958796100"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-pickup-1866-false" elapsedNanos="2513217800"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-pickup-1866-true" elapsedNanos="85895700"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-pickup-57-false" elapsedNanos="2512550000"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-party-pickup-57-true" elapsedNanos="85249800"></testcase>
+</testsuite>

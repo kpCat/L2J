@@ -1,0 +1,429 @@
+[07/10 01:27:54] Network Config: ipconfig.xml does not exist, using automatic configuration...
+[07/10 01:27:55] Network Config: Adding new subnet: 127.0.0.0/8 address: 127.0.0.1
+[07/10 01:27:55] Network Config: Adding new subnet: 192.168.0.0/24 address: 192.168.0.55
+[07/10 01:27:55] Network Config: Adding new subnet: 0.0.0.0/0 address: 89.149.88.222
+[07/10 01:27:55] Loaded 6 Filter Words.
+[07/10 01:27:55] ------------------------------------------------=[ Database ]
+[07/10 01:27:55] Database: HikariCP pool initialized successfully.
+[07/10 01:27:55] Database: Initialized with a valid connection.
+[07/10 01:27:55] ----------------------------------------------=[ ThreadPool ]
+[07/10 01:27:55] ThreadPool: Initializing.
+[07/10 01:27:55] ...scheduled pool executor with 16 high priority threads.
+[07/10 01:27:55] ...scheduled pool executor with 64 total threads.
+[07/10 01:27:55] ...instant pool executor with 32 total threads.
+[07/10 01:27:55] -----------------------------------------------=[ IdManager ]
+[07/10 01:27:55] DatabaseIdManager: Cleaned 0 elements in 0 seconds.
+[07/10 01:27:55] DatabaseIdManager: Updated character online status.
+[07/10 01:27:55] DatabaseIdManager: Cleaned 0 expired timestamps.
+[07/10 01:27:55] IdManager: 6327296 ids available.
+[07/10 01:27:55] ----------------------------------------=[ Scripting Engine ]
+[07/10 01:27:56] Loaded 425 files to exclude.
+[07/10 01:27:56] ---------------------------------------------------=[ World ]
+[07/10 01:27:56] InstanceManager: Multiverse Instance created.
+[07/10 01:27:56] InstanceManager: Universe Instance created.
+[07/10 01:27:56] InstanceManager: Loaded 160 instance names.
+[07/10 01:27:56] InstanceManager: Loaded 142 instance templates.
+[07/10 01:27:57] World: (256 by 272) World Region Grid set up.
+[07/10 01:27:57] MapRegionData: Loaded 57 map regions.
+[07/10 01:27:57] GlobalVariablesManager: Loaded 16 variables.
+[07/10 01:27:57] ----------------------------------------------------=[ Data ]
+[07/10 01:27:57] CategoryData: Loaded 180 categories.
+[07/10 01:27:57] SecondaryAuthData: Loaded 328 forbidden passwords.
+[07/10 01:27:57] --------------------------------------------------=[ Skills ]
+[07/10 01:27:59] EffectMasterHandler: Loaded 165 effect handlers.
+[07/10 01:27:59] EnchantSkillGroupsData: Loaded 4 groups and 90 routes.
+[07/10 01:28:00] SkillTreeData: Loaded 17176 Class Skills for 103 class skill trees.
+[07/10 01:28:00] SkillTreeData: Loaded 76 sub-class skills.
+[07/10 01:28:00] SkillTreeData: Loaded 77 transfer skills for 3 transfer skill trees.
+[07/10 01:28:00] SkillTreeData: Loaded 117 fishing skills, 8 Dwarven only fishing skills.
+[07/10 01:28:00] SkillTreeData: Loaded 3 collect skills.
+[07/10 01:28:00] SkillTreeData: Loaded 94 clan skills, 64 for clan and 30 residential.
+[07/10 01:28:00] SkillTreeData: Loaded 18 sub-pledge skills.
+[07/10 01:28:00] SkillTreeData: Loaded 32 transform skills.
+[07/10 01:28:00] SkillTreeData: Loaded 8 noble skills.
+[07/10 01:28:00] SkillTreeData: Loaded 5 hero skills.
+[07/10 01:28:00] SkillTreeData: Loaded 46 game master skills.
+[07/10 01:28:00] SkillTreeData: Loaded 46 game master aura skills.
+[07/10 01:28:03] SkillData: Loaded 65965 Skill templates from XML files.
+[07/10 01:28:03] PetSkillData: Loaded 881 skills.
+[07/10 01:28:03] ---------------------------------------------------=[ Items ]
+[07/10 01:28:04] ItemData: Highest item id used: 50000
+[07/10 01:28:04] ItemData: Loaded 11482 etc items.
+[07/10 01:28:04] ItemData: Loaded 3825 armor items.
+[07/10 01:28:04] ItemData: Loaded 3893 weapon items.
+[07/10 01:28:04] ItemData: Loaded 19200 items in total.
+[07/10 01:28:04] EnchantItemGroupsData: Loaded 4 item group templates.
+[07/10 01:28:04] EnchantItemGroupsData: Loaded 1 scroll group templates.
+[07/10 01:28:04] EnchantItemGroupsData: Max weapon enchant is set to 16.
+[07/10 01:28:04] EnchantItemGroupsData: Max armor enchant is set to 16.
+[07/10 01:28:04] EnchantItemGroupsData: Max accessory enchant is set to 16.
+[07/10 01:28:04] EnchantItemData: Loaded 63 enchant scrolls.
+[07/10 01:28:04] EnchantItemData: Loaded 20 support items.
+[07/10 01:28:04] OptionData: Loaded 24985 options.
+[07/10 01:28:04] EnchantItemOptionsData: Loaded 23 items and 1093 options.
+[07/10 01:28:04] ElementalAttributeData: Loaded 30 elemental attribute items.
+[07/10 01:28:04] EnchantItemHPBonusData: Loaded 6 enchant HP bonuses.
+[07/10 01:28:04] MerchantPriceConfigTable: Loaded 28 merchant price configs.
+[07/10 01:28:05] Directory not found: C:\Users\ZBook\.codex\worktrees\m1-overnight-023\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\night023a\runtime\game\.\data\buylists\custom
+[07/10 01:28:05] BuyListData: Loaded 760 buyLists.
+[07/10 01:28:05] MultisellData: Loaded 206 multisell lists.
+[07/10 01:28:05] Personal/Premium QoL enabled with 4 level-gap tiers; shop=true.
+[07/10 01:28:05] Personal progression shop catalog validated with 5 curated offers; shop=true.
+[07/10 01:28:05] RecipeData: Loaded 1000 recipes.
+[07/10 01:28:05] ArmorSetData: Loaded 204 armor sets.
+[07/10 01:28:05] FishData: Loaded 278 fishes.
+[07/10 01:28:05] FishingMonstersData: Loaded 8 fishing monsters.
+[07/10 01:28:05] FishingRodsData: Loaded 6 fishing rods.
+[07/10 01:28:05] HennaData: Loaded 180 henna data.
+[07/10 01:28:05] ----------------------------------------------=[ Characters ]
+[07/10 01:28:05] ClassListData: Loaded 103 class data.
+[07/10 01:28:05] InitialEquipmentData: Loaded 11 initial equipment data.
+[07/10 01:28:05] InitialShortcutData: Loaded 5 initial global shortcut data.
+[07/10 01:28:05] InitialShortcutData: Loaded 4 initial shortcut data.
+[07/10 01:28:05] InitialShortcutData: Loaded 0 macro presets.
+[07/10 01:28:05] ExperienceData: Loaded 86 levels.
+[07/10 01:28:05] ExperienceData: Max Player Level is 85.
+[07/10 01:28:05] ExperienceData: Max Pet Level is 85.
+[07/10 01:28:05] ExperienceLossData: Loaded 85 levels.
+[07/10 01:28:05] KarmaLossData: Loaded 85 modifiers.
+[07/10 01:28:05] HitConditionBonusData: Loaded hit condition bonuses.
+[07/10 01:28:06] PlayerTemplateData: Loaded 103 player templates.
+[07/10 01:28:06] PlayerTemplateData: Loaded 52530 level up gain records.
+[07/10 01:28:06] CharInfoTable: Loaded 10002 char names.
+[07/10 01:28:06] AdminData: Loaded 10 access levels.
+[07/10 01:28:06] AdminData: Loaded 468 access commands.
+[07/10 01:28:06] RaidBossPointsManager: Loaded 0 Characters Raid Points.
+[07/10 01:28:06] PetDataTable: Loaded 49 pets.
+[07/10 01:28:06] ---------------------------------------------------=[ Clans ]
+[07/10 01:28:06] ForumsBBSManager: Loaded 4 forums. Last forum id used: 4
+[07/10 01:28:06] ClanTable: Restored 0 clans from the database.
+[07/10 01:28:06] CHSiegeManager: Loaded 6 conquerable clan halls.
+[07/10 01:28:06] ClanHallAuctionManager: Loaded 38 auction(s)
+[07/10 01:28:06] ClanHallTable: Loaded 0 clan halls
+[07/10 01:28:06] ClanHallTable: Loaded 38 free clan halls
+[07/10 01:28:06] -------------------------------------------------=[ Geodata ]
+[07/10 01:28:08] GeoEngine: Loaded 203 regions.
+[07/10 01:28:08] ----------------------------------------------------=[ NPCs ]
+[07/10 01:28:08] ZoneManager 17 by 18 Zone Region Grid set up.
+[07/10 01:28:10] NpcData: Loaded 10461 NPCs.
+[07/10 01:28:10] NpcData: Loaded 21 custom NPCs.
+[07/10 01:28:10] SkillLearnData: Loaded 256 skill learn data.
+[07/10 01:28:10] GrandBossManager: Gigantic Chaos Golem(25512) status is 0.
+[07/10 01:28:10] GrandBossManager: Queen Ant(29001) status is 0.
+[07/10 01:28:10] GrandBossManager: Core(29006) status is 0.
+[07/10 01:28:10] GrandBossManager: Orfen(29014) status is 0.
+[07/10 01:28:10] GrandBossManager: Baium(29020) status is 0.
+[07/10 01:28:10] GrandBossManager: Valakas(29028) status is 0.
+[07/10 01:28:10] GrandBossManager: Antharas(29068) status is 0.
+[07/10 01:28:10] GrandBossManager: Beleth(29118) status is 0.
+[07/10 01:28:10] GrandBossManager: Loaded 8 Instances
+[07/10 01:28:10] ZoneManager: Loaded 31 zone classes and 2860 zones.
+[07/10 01:28:10] ZoneManager: Last static id 200224.
+[07/10 01:28:11] DoorData: Loaded 1301 doors.
+[07/10 01:28:11] FenceData: Loaded 1 fences.
+[07/10 01:28:11] Soul crystal data : Loaded 54
+[07/10 01:28:11] Npc leveling crystal data : Loaded 240
+[07/10 01:28:11] WalkingManager: Loaded 123 walking routes.
+[07/10 01:28:11] StaticObjectData: Loaded 51 static object templates.
+[07/10 01:28:11] ItemAuctionInstance: Loaded 82 item(s) and registered 3 auction(s) for instance 32320.
+[07/10 01:28:11] ItemAuctionInstance: Schedule next auction 10 on 17:00:00 09.10.26 for instance 32320
+[07/10 01:28:11] ItemAuctionInstance: Clearing expired auction: 2
+[07/10 01:28:11] ItemAuctionInstance: Loaded 82 item(s) and registered 2 auction(s) for instance 32321.
+[07/10 01:28:11] ItemAuctionInstance: Schedule current auction 8 for instance 32321
+[07/10 01:28:11] ScheduleAuctionTask: Auction 8 has started for instance 32321
+[07/10 01:28:11] ItemAuctionInstance: Schedule current auction 8 for instance 32321
+[07/10 01:28:11] ItemAuctionInstance: Loaded 82 item(s) and registered 3 auction(s) for instance 32322.
+[07/10 01:28:11] ItemAuctionInstance: Schedule next auction 9 on 17:00:00 07.10.26 for instance 32322
+[07/10 01:28:11] ItemAuctionManager: Loaded 3 instance(s).
+[07/10 01:28:11] CastleManager: Loaded 9 castles
+[07/10 01:28:11] SchemeBufferTable: Loaded 8 categories and 142 entries from ./data/SchemeBufferSkills.xml.
+[07/10 01:28:11] SchemeBufferTable: Loaded 0 scheme entries from database.
+[07/10 01:28:11] SchemeBufferTable: Loaded 0 players and 92 available skills.
+[07/10 01:28:11] GrandBossManager: Initialized 8 Grand Boss Zones
+[07/10 01:28:11] ------------------------------------------------=[ Olympiad ]
+[07/10 01:28:11] Olympiad System: Loading....
+[07/10 01:28:11] Olympiad System: Currently in Olympiad Period
+[07/10 01:28:11] Olympiad System: 25 days, 11 hours and 31 mins until period ends.
+[07/10 01:28:11] Olympiad System: Next weekly change is in 1 days, 13 hours and 11 mins.
+[07/10 01:28:11] Olympiad System: Loaded 0 Nobles
+[07/10 01:28:11] Olympiad System: Competition Period Starts in 0 days, 16 hours and 32 mins.
+[07/10 01:28:11] Olympiad System: Event starts/started: Wed Oct 07 18:00:11 EEST 2026
+[07/10 01:28:11] Hero System: Loaded 0 Heroes.
+[07/10 01:28:11] Hero System: Loaded 0 all time Heroes.
+[07/10 01:28:11] ---------------------------------------------=[ Seven Signs ]
+[07/10 01:28:11] SevenSigns: Currently in the Competition (Quest Event) period!
+[07/10 01:28:11] SevenSigns: The Seal of Avarice remains unclaimed.
+[07/10 01:28:11] SevenSigns: The Seal of Gnosis remains unclaimed.
+[07/10 01:28:11] SevenSigns: The Seal of Strife remains unclaimed.
+[07/10 01:28:11] SevenSigns: The competition, if the current trend continues, will end in a tie this week.
+[07/10 01:28:11] SevenSigns: Next period change was in the past (server was offline), changing periods now!
+[07/10 01:28:11] SevenSigns: Next period begins in 0 milliseconds
+[07/10 01:28:11] ---------------------------------------------------=[ Cache ]
+[07/10 01:28:11] Cache[HTML]: Running lazy cache.
+[07/10 01:28:11] CrestTable: Loaded 0 Crests.
+[07/10 01:28:11] ItemAuctionInstance: Auction 8 has finished. There have not been any bid for instance 32321
+[07/10 01:28:11] ItemAuctionInstance: Schedule next auction 11 on 17:00:00 12.10.26 for instance 32321
+[07/10 01:28:11] SevenSignsFestival: The first Festival of Darkness cycle begins in 2 minute(s).
+[07/10 01:28:12] SevenSigns: The Quest Event Results period has begun!
+[07/10 01:28:12] SevenSigns: Next period change set to Wed Oct 07 01:43:11 EEST 2026
+[07/10 01:28:12] TeleporterData: Loaded 195 npc teleporters.
+[07/10 01:28:12] AugmentationData: Loaded 33960 augmentations.
+[07/10 01:28:12] AugmentationData: Loaded 2754 accessory augmentations.
+[07/10 01:28:12] CursedWeaponsManager: Loaded : 2 cursed weapon(s).
+[07/10 01:28:12] TransformData: Loaded 111 transform templates.
+[07/10 01:28:12] BotReportTable: Loaded 0 bot reports
+[07/10 01:28:12] SellBuffsManager: Loaded 128 allowed buffs.
+[07/10 01:28:12] -------------------------------------------------=[ Scripts ]
+[07/10 01:28:12] AirShipManager: Loaded 0 private airships
+[07/10 01:28:12] Seed of Destruction Manager: Loaded. Current stage is: 1
+[07/10 01:28:12] Seed of Infinity Manager: Loaded. Current stage is: 1
+[07/10 01:28:12] Loading server scripts...
+[07/10 01:28:15] Loading Handlers...
+[07/10 01:28:15] ActionClickHandler: Loaded 10 handlers.
+[07/10 01:28:15] ActionShiftHandler: Loaded 6 handlers.
+[07/10 01:28:15] AdminCommandHandler: Loaded 479 handlers.
+[07/10 01:28:15] BypassHandler: Loaded 47 handlers.
+[07/10 01:28:15] ChatHandler: Loaded 14 handlers.
+[07/10 01:28:15] CommunityBoardHandler: Loaded 25 handlers.
+[07/10 01:28:15] ItemHandler: Loaded 30 handlers.
+[07/10 01:28:15] PunishmentHandler: Loaded 3 handlers.
+[07/10 01:28:15] UserCommandHandler: Loaded 17 handlers.
+[07/10 01:28:15] VoicedCommandHandler: Loaded 10 handlers.
+[07/10 01:28:15] TargetHandler: Loaded 34 handlers.
+[07/10 01:28:15] Handlers Loaded...
+[07/10 01:28:23] Handy's Block Checker Event is enabled
+[07/10 01:28:23] Fantasy Isle: Parade starting at 2026/10/07 05:20 and is scheduled each next 1 hours.
+[07/10 01:28:23] Fantasy Isle: MC show script starting at 07/10/2026 14:08:23 and is scheduled each next 4 hours.
+[07/10 01:28:23] GraciaLoader: Loading Gracia related scripts.
+[07/10 01:28:23] HellboundLoader: Loading Hellbound related scripts:
+[07/10 01:28:23] HellboundPointData: Loaded 47 trust point reward data.
+[07/10 01:28:23] HellboundSpawns: Loaded 598 Hellbound spawns.
+[07/10 01:28:23] HellboundEngine: Level: 11
+[07/10 01:28:23] HellboundEngine: Trust: 4000000
+[07/10 01:28:23] HellboundEngine: Status: unlocked.
+[07/10 01:28:23] RaidBossSpawnManager: Loaded 188 Instances
+[07/10 01:28:23] RaidBossSpawnManager: Scheduled 0 Instances
+[07/10 01:28:23] [Four Sepulchers] Loaded 762 spawn zones data.
+[07/10 01:28:23] NpcBuffersData: Loaded 33 buffers data.
+[07/10 01:28:23] Bandit StrongHold siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[07/10 01:28:23] Devastated Castle siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[07/10 01:28:23] Fortress of Resistance siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[07/10 01:28:23] Fortress of the Dead siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[07/10 01:28:23] Rainbow Springs siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[07/10 01:28:23] Beast Farm siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[07/10 01:28:23] Event Freya Celebration has passed... Ignored 
+[07/10 01:28:23] Event Gift of Vitality has passed... Ignored 
+[07/10 01:28:23] Event Heavy Medal has passed... Ignored 
+[07/10 01:28:23] Event L2 Day has passed... Ignored 
+[07/10 01:28:23] Event Love Your Gatekeeper has passed... Ignored 
+[07/10 01:28:23] Event Master of Enchanting has passed... Ignored 
+[07/10 01:28:23] Event Saving Santa has passed... Ignored 
+[07/10 01:28:23] Event Valentine Event has passed... Ignored 
+[07/10 01:28:23] Event Watermelon Ninja has passed... Ignored 
+[07/10 01:28:24] TerritoryWarSuperClass: Siege date: Sun Oct 11 22:00:00 EEST 2026
+[07/10 01:28:24] SpawnData: Initializing spawns...
+[07/10 01:28:24] HellboundEngine: Spawned 424 NPCs.
+[07/10 01:28:26] SpawnData: 42407 spawns have been initialized!
+[07/10 01:28:26] DayNightSpawnManager: Removed 0 night creatures
+[07/10 01:28:26] DayNightSpawnManager: Spawned 232 day creatures
+[07/10 01:28:26] DimensionalRiftManager: Loaded 7 room types with 56 rooms.
+[07/10 01:28:26] DimensionalRiftManager: Loaded 462 dimensional rift spawns, 0 errors.
+[07/10 01:28:26] ---------------------------------------------------=[ Siege ]
+[07/10 01:28:26] SiegeScheduleData: Loaded 9 siege schedulers.
+[07/10 01:28:26] Siege of Gludio: Sun Oct 11 16:00:00 EEST 2026
+[07/10 01:28:26] Siege of Dion: Sun Oct 11 20:00:00 EEST 2026
+[07/10 01:28:26] Siege of Giran: Sun Oct 11 16:00:00 EEST 2026
+[07/10 01:28:26] Siege of Oren: Sun Oct 11 20:00:00 EEST 2026
+[07/10 01:28:26] Siege of Aden: Sun Oct 11 16:00:00 EEST 2026
+[07/10 01:28:26] Siege of Innadril: Sun Oct 11 20:00:00 EEST 2026
+[07/10 01:28:26] Siege of Goddard: Sun Oct 11 16:00:00 EEST 2026
+[07/10 01:28:26] Siege of Rune: Sun Oct 11 20:00:00 EEST 2026
+[07/10 01:28:26] Siege of Schuttgart: Sun Oct 11 16:00:00 EEST 2026
+[07/10 01:28:27] FortManager: Loaded 21 fortress
+[07/10 01:28:27] CastleManorManager: Loaded 258 seeds.
+[07/10 01:28:27] CastleManorManager: Manor data loaded.
+[07/10 01:28:27] MercTicketManager: Loaded 0 Mercenary Tickets
+[07/10 01:28:27] ScriptManager: Loaded 539 quests.
+[07/10 01:28:27] ScriptManager: Loaded 306 scripts.
+[07/10 01:28:27] MonsterRace: loaded 514 records, currently on race #515
+[07/10 01:28:27] AutoSpawnHandler: Loaded 129 handlers in total.
+[07/10 01:28:27] FishingChampionshipManager : new event period start.
+[07/10 01:28:27] KrateisCubeManager: Loaded 3 arena templates.
+[07/10 01:28:27] UndergroundColiseumManager: Loaded 5 coliseum arenas.
+[07/10 01:28:27] UndergroundColiseumManager: Starts at 09/10/2026 21:00:00
+[07/10 01:28:27] DailyResetManager: Next schedule at 07/10/2026 06:30:00.
+[07/10 01:28:27] MailManager: Loaded 0 messages.
+[07/10 01:28:27] PunishmentManager: Loaded 0 active and 0 expired punishments.
+[07/10 01:28:27] IdManager: Free ObjectID's remaining: 1878838864
+[07/10 01:28:27] OfflineTraderTable: Loading offline traders...
+[07/10 01:28:27] OfflineTraderTable: Loaded 0 offline traders.
+[07/10 01:28:27] -------------------------------------------=[ Phantom World ]
+[07/10 01:28:43] LocalPlay pilot mailbox enabled for one real-client consent lease.
+[07/10 01:28:43] DeadlockWatcher: Thread started.
+[07/10 01:28:44] GameServer: Started, using 3348 of 4096 MB total memory.
+[07/10 01:28:44] GameServer: Maximum number of connected players is 2000.
+[07/10 01:28:44] GameServer: Server loaded in 49 seconds.
+[07/10 01:28:44] LoginServerThread: Connecting to login on 127.0.0.1:9014
+[07/10 01:28:44] LoginServerThread: Registered on login as Server 1: Bartz
+[07/10 01:29:05] Phantom cleanup first incident PhantomCleanupIncident[objectId=268494662, epoch=53922699137300, sequence=1, utc=2026-10-06T22:29:05.497442Z, phase=NONE, hook=AFTER_IDENTITY_CLAIM, admittedActions=0, exceptionClass=java.lang.IllegalStateException, message=Loaded Player differs from committed background state. maxHp=192.0/176.0;maxMp=168.0/157.0;maxCp=96.0/88.0;;refresh=state=DEAD,hashMatch=false;status=SUCCESS;no, detail=primary java.lang.IllegalStateException: Loaded Player differs from committed background state. maxHp=192.0/176.0;maxMp=168.0/157.0;maxCp=96.0/88.0;;refresh=state=DEAD,hashMatch=false;status=SUCCESS;no
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.afterPlayerLoad(PhantomBackgroundService.java:1535)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:79)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge.afterPlayerLoad(PhantomMaterializationLifecycleBridge.java:60)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService$1.afterPlayerLoad(PhantomMaterializationService.java:251)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.materialize(PhantomMaterializedPlayer.java:248)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.materialize(PhantomMaterializationService.java:325)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.materialize(PhantomMaterializationService.java:178)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.recoverOwned(PhantomBackgroundService.java:1344)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.recover(PhantomBackgroundService.java:1298)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.execute(PhantomBackgroundDecision.java:279)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.lambda$registerHandlers$2(PhantomBackgroundDecision.java:153)
+ at org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.accept(PhantomDecisionEngine.java:359)
+ at org.l2jmobius.gameserver.phantoms.PhantomSystem.lambda$start$42(PhantomSystem.java:791)
+ at org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSinkBridge.accept(PhantomActivityWorkSinkBridge.java:46)
+ at org.l2jmobius.gameserver.phantoms.PhantomScheduler.processSlot(PhantomScheduler.java:949)
+ at org.l2jmobius.gameserver.phantoms.PhantomScheduler.pulseSafely(PhantomScheduler.java:767)
+ at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)
+ at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+ at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:369)
+ at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:310)
+ at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=28, truncated=false]
+[07/10 01:29:09] Phantom cleanup first incident PhantomCleanupIncident[objectId=268494936, epoch=53926472918800, sequence=1, utc=2026-10-06T22:29:09.282185700Z, phase=NONE, hook=AFTER_IDENTITY_CLAIM, admittedActions=0, exceptionClass=java.lang.IllegalStateException, message=Loaded Player differs from committed background state. maxHp=249.0/231.0;maxMp=97.0/90.0;maxCp=99.0/92.0;;refresh=state=DEAD,hashMatch=false;status=SUCCESS;nonA, detail=primary java.lang.IllegalStateException: Loaded Player differs from committed background state. maxHp=249.0/231.0;maxMp=97.0/90.0;maxCp=99.0/92.0;;refresh=state=DEAD,hashMatch=false;status=SUCCESS;nonA
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.afterPlayerLoad(PhantomBackgroundService.java:1535)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:79)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge.afterPlayerLoad(PhantomMaterializationLifecycleBridge.java:60)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService$1.afterPlayerLoad(PhantomMaterializationService.java:251)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.materialize(PhantomMaterializedPlayer.java:248)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.materialize(PhantomMaterializationService.java:325)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.materialize(PhantomMaterializationService.java:178)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.recoverOwned(PhantomBackgroundService.java:1344)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.recover(PhantomBackgroundService.java:1298)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.execute(PhantomBackgroundDecision.java:279)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.lambda$registerHandlers$2(PhantomBackgroundDecision.java:153)
+ at org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.accept(PhantomDecisionEngine.java:359)
+ at org.l2jmobius.gameserver.phantoms.PhantomSystem.lambda$start$42(PhantomSystem.java:791)
+ at org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSinkBridge.accept(PhantomActivityWorkSinkBridge.java:46)
+ at org.l2jmobius.gameserver.phantoms.PhantomScheduler.processSlot(PhantomScheduler.java:949)
+ at org.l2jmobius.gameserver.phantoms.PhantomScheduler.pulseSafely(PhantomScheduler.java:767)
+ at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)
+ at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+ at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:369)
+ at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:310)
+ at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=28, truncated=false]
+[07/10 01:29:24] Phantom cleanup first incident PhantomCleanupIncident[objectId=268490921, epoch=53941699640700, sequence=1, utc=2026-10-06T22:29:24.509101Z, phase=NONE, hook=AFTER_IDENTITY_CLAIM, admittedActions=0, exceptionClass=java.lang.IllegalStateException, message=Loaded Player differs from committed background state. maxHp=166.0/152.0;maxMp=153.0/142.0;maxCp=83.0/76.0;;refresh=state=DEAD,hashMatch=false;status=SUCCESS;no, detail=primary java.lang.IllegalStateException: Loaded Player differs from committed background state. maxHp=166.0/152.0;maxMp=153.0/142.0;maxCp=83.0/76.0;;refresh=state=DEAD,hashMatch=false;status=SUCCESS;no
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.afterPlayerLoad(PhantomBackgroundService.java:1535)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:79)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge.afterPlayerLoad(PhantomMaterializationLifecycleBridge.java:60)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService$1.afterPlayerLoad(PhantomMaterializationService.java:251)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.materialize(PhantomMaterializedPlayer.java:248)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.materialize(PhantomMaterializationService.java:325)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.materialize(PhantomMaterializationService.java:178)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.recoverOwned(PhantomBackgroundService.java:1344)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.recover(PhantomBackgroundService.java:1298)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.execute(PhantomBackgroundDecision.java:279)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.lambda$registerHandlers$2(PhantomBackgroundDecision.java:153)
+ at org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.accept(PhantomDecisionEngine.java:359)
+ at org.l2jmobius.gameserver.phantoms.PhantomSystem.lambda$start$42(PhantomSystem.java:791)
+ at org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSinkBridge.accept(PhantomActivityWorkSinkBridge.java:46)
+ at org.l2jmobius.gameserver.phantoms.PhantomScheduler.processSlot(PhantomScheduler.java:949)
+ at org.l2jmobius.gameserver.phantoms.PhantomScheduler.pulseSafely(PhantomScheduler.java:767)
+ at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)
+ at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+ at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:369)
+ at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:310)
+ at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=28, truncated=false]
+[07/10 01:29:24] Phantom cleanup first incident PhantomCleanupIncident[objectId=268491865, epoch=53942072967600, sequence=1, utc=2026-10-06T22:29:24.869130100Z, phase=NONE, hook=AFTER_IDENTITY_CLAIM, admittedActions=0, exceptionClass=java.lang.IllegalStateException, message=Loaded Player differs from committed background state. maxHp=249.0/231.0;maxMp=97.0/90.0;maxCp=99.0/92.0;;refresh=state=DEAD,hashMatch=false;status=SUCCESS;nonA, detail=primary java.lang.IllegalStateException: Loaded Player differs from committed background state. maxHp=249.0/231.0;maxMp=97.0/90.0;maxCp=99.0/92.0;;refresh=state=DEAD,hashMatch=false;status=SUCCESS;nonA
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.afterPlayerLoad(PhantomBackgroundService.java:1535)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:79)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterPlayerLoad(PhantomMaterializationLifecyclePort.java:80)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecycleBridge.afterPlayerLoad(PhantomMaterializationLifecycleBridge.java:60)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService$1.afterPlayerLoad(PhantomMaterializationService.java:251)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.materialize(PhantomMaterializedPlayer.java:248)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.materialize(PhantomMaterializationService.java:325)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.materialize(PhantomMaterializationService.java:178)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.recoverOwned(PhantomBackgroundService.java:1344)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.recover(PhantomBackgroundService.java:1298)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.execute(PhantomBackgroundDecision.java:279)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.lambda$registerHandlers$2(PhantomBackgroundDecision.java:153)
+ at org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine.accept(PhantomDecisionEngine.java:359)
+ at org.l2jmobius.gameserver.phantoms.PhantomSystem.lambda$start$42(PhantomSystem.java:791)
+ at org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkSinkBridge.accept(PhantomActivityWorkSinkBridge.java:46)
+ at org.l2jmobius.gameserver.phantoms.PhantomScheduler.processSlot(PhantomScheduler.java:949)
+ at org.l2jmobius.gameserver.phantoms.PhantomScheduler.pulseSafely(PhantomScheduler.java:767)
+ at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)
+ at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+ at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:369)
+ at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:310)
+ at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=28, truncated=false]
+[07/10 01:30:09] Master access level set for character TestAdmin! Just a warning to be careful ;)
+WARNING: A Java agent has been loaded dynamically (C:\Users\ZBook\.codex\worktrees\m1-overnight-023\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops023\graceful-shutdown.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+[07/10 01:30:33] Server scheduled restart issued shutdown command. Shutdown in 0 seconds!
+[07/10 01:30:33] GM shutdown countdown is over. shutting down NOW!
+[07/10 01:30:33] Phantom World: Initial subsystem drain remains incomplete; systemState=RUNNING, materializationServiceState=RUNNING, retainedMaterializationEntries=4, progressionState=RUNNING, progressionCatalogHash=133955996D84152171ED23514A47F76080767D0AFB36627EC9D40C0072E94BF7, progressionOperations=0, progressionActorLeases=0, combatState=RUNNING, combatActiveSessions=0, combatTerminalSessions=0, combatQueuedSessions=0, combatWorkers=0, combatActorLeases=0, navigationState=RUNNING, navigationActiveRequests=0, navigationQueuedRequests=0, navigationWorkers=0, topologyState=RUNNING, topologyRegisteredProfiles=1280, topologyEventsInFlight=0, topologyGeneration=1, knowledgeState=RUNNING(16ms).
+[07/10 01:30:33] All players disconnected and saved(3ms).
+[07/10 01:30:33] Game Time Task Manager: Thread interruped(1ms).
+[07/10 01:30:33] Phantom World: Final subsystem drain is incomplete; systemState=RUNNING, materializationServiceState=RUNNING, retainedMaterializationEntries=4, progressionState=RUNNING, progressionCatalogHash=133955996D84152171ED23514A47F76080767D0AFB36627EC9D40C0072E94BF7, progressionOperations=0, progressionActorLeases=0, combatState=RUNNING, combatActiveSessions=0, combatTerminalSessions=0, combatQueuedSessions=0, combatWorkers=0, combatActorLeases=0, navigationState=RUNNING, navigationActiveRequests=0, navigationQueuedRequests=0, navigationWorkers=0, topologyState=RUNNING, topologyRegisteredProfiles=1280, topologyEventsInFlight=0, topologyGeneration=1, knowledgeState=RUNNING. Shared ThreadPool is about to stop with retained Phantom ownership(2ms).
+[07/10 01:30:33] ThreadPool: Shutting down all thread pools.
+[07/10 01:30:33] Thread Pool Manager: Manager has been shut down(7ms).
+[07/10 01:30:33] Login Server Thread: Thread interruped(1ms).
+[07/10 01:30:33] GM shutdown received. Shutting down NOW!
+[07/10 01:30:33] SevenSignsFestival: Festival data saved(3ms).
+[07/10 01:30:33] SevenSigns: Seven Signs data saved(0ms).
+[07/10 01:30:33] SevenSigns: Seven Signs status saved(2ms).
+[07/10 01:30:33] RaidBossSpawnManager: All raidboss info saved(22ms).
+[07/10 01:30:33] GrandBossManager: All Grand Boss info saved(2ms).
+[07/10 01:30:33] Item Auction Manager: All tasks stopped(1ms).
+[07/10 01:30:33] Olympiad System: Data saved(0ms).
+[07/10 01:30:33] Hero System: Data saved(2ms).
+[07/10 01:30:33] Clan System: Data saved(0ms).
+[07/10 01:30:33] Cursed Weapons Manager: Data saved(1ms).
+[07/10 01:30:33] Castle Manor Manager: Data saved(0ms).
+[07/10 01:30:33] FortressOfTheDead: Successfully saved attackers to database.
+[07/10 01:30:33] DevastatedCastle: Successfully saved attackers to database.
+[07/10 01:30:33] BanditStronghold: Successfully saved attackers to database.
+[07/10 01:30:33] FortressOfResistance: Successfully saved attackers to database.
+[07/10 01:30:33] RainbowSpringsChateau: Successfully saved attackers to database.
+[07/10 01:30:33] WildBeastReserve: Successfully saved attackers to database.
+[07/10 01:30:33] CHSiegeManager: Siegable hall attacker lists saved!
+[07/10 01:30:33] Script Manager: Data saved(4ms).
+[07/10 01:30:33] GlobalVariablesManager: Stored 16 variables.
+[07/10 01:30:33] Global Variables Manager: Variables saved(10ms).
+[07/10 01:30:33] Fishing Championship Manager: Data saved(0ms).
+[07/10 01:30:33] SchemeBufferTable: Data saved(6ms).
+[07/10 01:30:33] Bot Report Table: Successfully saved reports to database!
+[07/10 01:30:38] Database: HikariCP pool closed successfully.
+[07/10 01:30:38] Database Factory: Database connection has been shut down(17ms).
+[07/10 01:30:38] The server has been successfully shut down in 5seconds.

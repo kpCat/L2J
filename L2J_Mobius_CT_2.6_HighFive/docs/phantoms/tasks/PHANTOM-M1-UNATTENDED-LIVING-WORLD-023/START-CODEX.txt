@@ -1,0 +1,45 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-UNATTENDED-LIVING-WORLD-023/GOAL.md.
+
+Required base: fa65d4f8ae02ebb4e1c103c6e811e9352aac89f6
+Branch: experiment/m1-candidate007-observe008
+Модель GPT-6.1 Sol, reasoning Very High. Новый чат, без субагентов.
+
+Я ухожу спать. Явно одобряю DESIGN/PLAN/SOURCE_MAP/TASK.md этого пакета и описанные
+ограниченные действия без дополнительных вопросов. Это ночная задача на4–6часов,
+максимум360минут wall-clock с резервом30минут на сохранение/cleanup/publication.
+Не проси «в игре», «вышел», arm, подтверждение worktree/commit/push или перехода этапа.
+Не завершай задачу лишь потому, что я не отвечаю.
+
+Используй существующий LocalPlaySyntheticHumanSession + Start-LocalPlaySynthetic.ps1
+и ActorMode=Synthetic. Тестируется обычный полный GameServer со штатным scheduler и
+активными NPC, а не mock-ферма с disabled NPC AI. Копия обычного TestAdmin только в
+owned clone; LOCALPLAY_TEST_HUMAN, без fake REAL_LOGIN/клиента. kpCat не трогать.
+QoL AllowedAccounts не использовать как право на управление и не менять.
+
+Исправляй coherent M1 slice: законные динамические native участники/совместный бой,
+непрерывный farm, актуальные цели/resource recovery, death, soft demat/background/remat,
+earned-work drain, restart/crash consistency. Несколько связанных fixes внутри scope
+прямо разрешены; каждому свой RED. До4repair rounds, до8runtime episodes, без
+неизменённых blind reruns и без переписывания ThreadPool/EventDispatcher/combat engine.
+Не ослабляй stale owner/epoch и already-earned guards ради зелени.
+
+Разрешаю isolated detached worktree:
+C:\Users\ZBook\.codex\worktrees\m1-overnight-023\L2J_Mobius
+Если занят — свободный suffix. Main checkout/foreign diff только read-only.
+PLAY только SELECT/export. Guarded TEST только через existing guard/restore.
+Разрешены own clone night023a..h по TASK.md, штатный startup/shutdown; один planned crash
+на выделенной clone и emergency stop только своих exact PID+start-time+runtime после
+bounded graceful attempts/dumps. Чужие процессы/БД не трогать. Не спрашивай ночью об этом.
+
+Сначала actual multi-attacker positive OPEN + negative stale/sealed, потом исправления,
+регрессии и два final natural synthetic scenes на одном frozen committed SHA.
+После270минут не начинать semantic правки: acceptance, review и завершение.
+Никакого ручного управления Phantom/выдачи EXP/скиллов/ресета состояния ради PASS.
+Не скрывай неуспешных участников cohort и retained entries.
+
+Exact-path commit + normal push в заданную experiment-ветку обязательны при любом исходе.
+Один финальный отчёт: FARM/COHORT/DEATH/SOFT_RETURN/RESTART/CRASH/CLEANUP отдельно.
+Утром нужны проверенный SHA, сохранённый runtime/clone, MORNING.md и готовая команда старта.
+Лучший честный статус: SERVER_M1_PASS=true, M1=WAITING_FINAL_CLIENT. Реальную визуальную
+приёмку без моего клиента не выдумывай. При unresolved safety — BLOCKED с evidence,
+не вопрос с ожиданием и не обнуление guards. STOP_AUTHORITY=TASK023_CONTRACT.

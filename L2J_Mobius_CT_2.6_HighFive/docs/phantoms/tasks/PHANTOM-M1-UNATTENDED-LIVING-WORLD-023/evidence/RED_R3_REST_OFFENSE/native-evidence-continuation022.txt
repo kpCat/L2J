@@ -1,0 +1,9 @@
+suite=native-evidence-continuation022
+seed=22002203
+total=4
+passed=3
+failed=1
+PASS native-evidence-continuation022.S08-first-phase-deadline-reason-sticky-and-stale-clear elapsedNanos=2739600
+PASS native-evidence-continuation022.S09-late-native-reward-after-next-target-counted-once elapsedNanos=11420900
+PASS native-evidence-continuation022.S10-target-cap-generation-and-time-regression-truth elapsedNanos=153300
+FAIL native-evidence-continuation022.S11-useful-native-offense-finishes-rest-gap-without-clearing-invalidity elapsedNanos=1069200 type=java.lang.AssertionError message=RED: actual useful offense completes a rest gap even while MP is still below maximum. Expected <NONE> but was <REGEN>. seed=22002203

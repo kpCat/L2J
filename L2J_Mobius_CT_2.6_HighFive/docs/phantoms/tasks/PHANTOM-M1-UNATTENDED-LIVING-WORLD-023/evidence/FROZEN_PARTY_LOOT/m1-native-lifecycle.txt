@@ -1,0 +1,124 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=11
+passed=11
+failed=0
+measurement.Q12.partyAutoLoot.1866.managed.fixture=VALID_ACTUAL_ATTACKABLE_DO_ITEM_DROP_AUTOLOOT_ITEMHOLDER_NATIVE_WRITERS
+measurement.Q12.partyAutoLoot.1866.managed.nativeDeltas=picker=0 recipient=1 stockRemainderMath=true
+measurement.Q12.partyAutoLoot.1866.managed.picker.rematerialized=count=0 canonicalHash=f9cb4f5c4dd06e09c4ec5412374b3c3690b42356c6d4c4707c2ba47a7f3d6d44 oldEpoch=62318073654600 newEpoch=62318539217500
+measurement.Q12.partyAutoLoot.1866.managed.recipient.rematerialized=count=1 canonicalHash=c9893ec3fa0bdb239671a9fc11b8af66742c119e7f40e1cf68ff16aa8f64a18d oldEpoch=62318169987700 newEpoch=62318584104700
+measurement.Q12.partyAutoLoot.1866.ordinary.fixture=VALID_ACTUAL_ATTACKABLE_DO_ITEM_DROP_AUTOLOOT_ITEMHOLDER_NATIVE_WRITERS
+measurement.Q12.partyAutoLoot.1866.ordinary.nativeDeltas=picker=0 recipient=1 stockRemainderMath=true
+measurement.Q12.partyAutoLoot.57.managed.fixture=VALID_ACTUAL_ATTACKABLE_DO_ITEM_DROP_AUTOLOOT_ITEMHOLDER_NATIVE_WRITERS
+measurement.Q12.partyAutoLoot.57.managed.nativeDeltas=picker=10 recipient=10 stockRemainderMath=true
+measurement.Q12.partyAutoLoot.57.managed.picker.rematerialized=count=17 canonicalHash=1422cfd8e3761982e8a0ad7dc4e793a980a34165b85b712d205e769bbe689227 oldEpoch=62318820417500 newEpoch=62319231220000
+measurement.Q12.partyAutoLoot.57.managed.recipient.rematerialized=count=13 canonicalHash=9fccf50b8a236f346eb74a417778932bb12735e516b59ee7762cf5cea56a53d2 oldEpoch=62318886583600 newEpoch=62319262454500
+measurement.Q12.partyAutoLoot.57.ordinary.fixture=VALID_ACTUAL_ATTACKABLE_DO_ITEM_DROP_AUTOLOOT_ITEMHOLDER_NATIVE_WRITERS
+measurement.Q12.partyAutoLoot.57.ordinary.nativeDeltas=picker=10 recipient=10 stockRemainderMath=true
+measurement.Q12.partyLate.created=object=268482560 nativePlayerCreate=true guardedOwnedAccount=true exactDeleteRequired=true
+measurement.Q12.partyLate.missingAutoGetBeforeSeed=[AutoGetSkill[skillId=1320, skillLevel=1]]
+measurement.Q12.partyPickup.1866.managed.baselineRecipientOutstanding=0
+measurement.Q12.partyPickup.1866.managed.checkpointCrossedBeforeGroundRemoval=false
+measurement.Q12.partyPickup.1866.managed.fixture=VALID_ACTUAL_NATIVE_COMPLETION
+measurement.Q12.partyPickup.1866.managed.nativePickerDelta=0
+measurement.Q12.partyPickup.1866.managed.nativePickupStack=org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative>org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.Player.doPickupItem>org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0>java.lang.Thread.run
+measurement.Q12.partyPickup.1866.managed.nativeRecipientDelta=1
+measurement.Q12.partyPickup.1866.managed.picker.rematerialized=count=0 canonicalHash=f9cb4f5c4dd06e09c4ec5412374b3c3690b42356c6d4c4707c2ba47a7f3d6d44 oldEpoch=62325561218700 newEpoch=62327946132500
+measurement.Q12.partyPickup.1866.managed.recipient.rematerialized=count=1 canonicalHash=656b720e9e6f4b6e8c2eaa06ea30612fbd5213e5c8130ceef298e6dd07b35261 oldEpoch=62325606512100 newEpoch=62327973879900
+measurement.Q12.partyPickup.1866.managed.recipientHeldSnapshot=epoch=62325606512100 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[10:party-pickup:RUNNING:depth=0:ageMs=6]
+measurement.Q12.partyPickup.1866.managed.recipientOutstandingBeforeGroundRemoval=1
+measurement.Q12.partyPickup.1866.ordinary.baselineRecipientOutstanding=0
+measurement.Q12.partyPickup.1866.ordinary.checkpointCrossedBeforeGroundRemoval=true
+measurement.Q12.partyPickup.1866.ordinary.fixture=VALID_ACTUAL_NATIVE_COMPLETION
+measurement.Q12.partyPickup.1866.ordinary.nativePickerDelta=0
+measurement.Q12.partyPickup.1866.ordinary.nativePickupStack=org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative>org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.Player.doPickupItem>org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0>java.lang.Thread.run
+measurement.Q12.partyPickup.1866.ordinary.nativeRecipientDelta=1
+measurement.Q12.partyPickup.1866.ordinary.recipientOutstandingBeforeGroundRemoval=0
+measurement.Q12.partyPickup.57.managed.baselineRecipientOutstanding=0
+measurement.Q12.partyPickup.57.managed.checkpointCrossedBeforeGroundRemoval=false
+measurement.Q12.partyPickup.57.managed.fixture=VALID_ACTUAL_NATIVE_COMPLETION
+measurement.Q12.partyPickup.57.managed.lateOpen.baselineRecipientOutstanding=0
+measurement.Q12.partyPickup.57.managed.lateOpen.checkpointCrossedBeforeGroundRemoval=false
+measurement.Q12.partyPickup.57.managed.lateOpen.fixture=VALID_ACTUAL_NATIVE_COMPLETION
+measurement.Q12.partyPickup.57.managed.lateOpen.lateNewcomerCheckpointSealed=false
+measurement.Q12.partyPickup.57.managed.lateOpen.nativeNewcomerDelta=0
+measurement.Q12.partyPickup.57.managed.lateOpen.nativePickerDelta=10
+measurement.Q12.partyPickup.57.managed.lateOpen.nativePickupStack=org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative>org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.Player.doPickupItem>org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0>java.lang.Thread.run
+measurement.Q12.partyPickup.57.managed.lateOpen.nativeRecipientDelta=10
+measurement.Q12.partyPickup.57.managed.lateOpen.newcomer.rematerialized=count=0 canonicalHash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 oldEpoch=62319588375900 newEpoch=62322331363500
+measurement.Q12.partyPickup.57.managed.lateOpen.picker.rematerialized=count=17 canonicalHash=1422cfd8e3761982e8a0ad7dc4e793a980a34165b85b712d205e769bbe689227 oldEpoch=62319470358300 newEpoch=62322253174000
+measurement.Q12.partyPickup.57.managed.lateOpen.recipient.rematerialized=count=13 canonicalHash=9fccf50b8a236f346eb74a417778932bb12735e516b59ee7762cf5cea56a53d2 oldEpoch=62319529422900 newEpoch=62322294924900
+measurement.Q12.partyPickup.57.managed.lateOpen.recipientHeldSnapshot=epoch=62319529422900 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[10:party-pickup:RUNNING:depth=0:ageMs=309]
+measurement.Q12.partyPickup.57.managed.lateOpen.recipientOutstandingBeforeGroundRemoval=1
+measurement.Q12.partyPickup.57.managed.lateSealed.baselineRecipientOutstanding=0
+measurement.Q12.partyPickup.57.managed.lateSealed.checkpointCrossedBeforeGroundRemoval=false
+measurement.Q12.partyPickup.57.managed.lateSealed.fixture=VALID_ACTUAL_NATIVE_COMPLETION
+measurement.Q12.partyPickup.57.managed.lateSealed.lateNewcomerCheckpointSealed=true
+measurement.Q12.partyPickup.57.managed.lateSealed.nativeNewcomerDelta=0
+measurement.Q12.partyPickup.57.managed.lateSealed.nativePickerDelta=10
+measurement.Q12.partyPickup.57.managed.lateSealed.nativePickupStack=org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative>org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.Player.doPickupItem>org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0>java.lang.Thread.run
+measurement.Q12.partyPickup.57.managed.lateSealed.nativeRecipientDelta=10
+measurement.Q12.partyPickup.57.managed.lateSealed.newcomer.rematerialized=count=0 canonicalHash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 oldEpoch=62322716787000 newEpoch=62325430405000
+measurement.Q12.partyPickup.57.managed.lateSealed.picker.rematerialized=count=17 canonicalHash=1422cfd8e3761982e8a0ad7dc4e793a980a34165b85b712d205e769bbe689227 oldEpoch=62322607081900 newEpoch=62325362575200
+measurement.Q12.partyPickup.57.managed.lateSealed.recipient.rematerialized=count=13 canonicalHash=9fccf50b8a236f346eb74a417778932bb12735e516b59ee7762cf5cea56a53d2 oldEpoch=62322666457300 newEpoch=62325393101400
+measurement.Q12.partyPickup.57.managed.lateSealed.recipientHeldSnapshot=epoch=62322666457300 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[10:party-pickup:RUNNING:depth=0:ageMs=309]
+measurement.Q12.partyPickup.57.managed.lateSealed.recipientOutstandingBeforeGroundRemoval=1
+measurement.Q12.partyPickup.57.managed.nativePickerDelta=10
+measurement.Q12.partyPickup.57.managed.nativePickupStack=org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative>org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.Player.doPickupItem>org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0>java.lang.Thread.run
+measurement.Q12.partyPickup.57.managed.nativeRecipientDelta=10
+measurement.Q12.partyPickup.57.managed.picker.rematerialized=count=17 canonicalHash=1422cfd8e3761982e8a0ad7dc4e793a980a34165b85b712d205e769bbe689227 oldEpoch=62328154832900 newEpoch=62330537974200
+measurement.Q12.partyPickup.57.managed.recipient.rematerialized=count=13 canonicalHash=9fccf50b8a236f346eb74a417778932bb12735e516b59ee7762cf5cea56a53d2 oldEpoch=62328196511400 newEpoch=62330568545500
+measurement.Q12.partyPickup.57.managed.recipientHeldSnapshot=epoch=62328196511400 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[10:party-pickup:RUNNING:depth=0:ageMs=7]
+measurement.Q12.partyPickup.57.managed.recipientOutstandingBeforeGroundRemoval=1
+measurement.Q12.partyPickup.57.ordinary.baselineRecipientOutstanding=0
+measurement.Q12.partyPickup.57.ordinary.checkpointCrossedBeforeGroundRemoval=true
+measurement.Q12.partyPickup.57.ordinary.fixture=VALID_ACTUAL_NATIVE_COMPLETION
+measurement.Q12.partyPickup.57.ordinary.lateOpen.baselineRecipientOutstanding=0
+measurement.Q12.partyPickup.57.ordinary.lateOpen.checkpointCrossedBeforeGroundRemoval=true
+measurement.Q12.partyPickup.57.ordinary.lateOpen.fixture=VALID_ACTUAL_NATIVE_COMPLETION
+measurement.Q12.partyPickup.57.ordinary.lateOpen.lateNewcomerCheckpointSealed=false
+measurement.Q12.partyPickup.57.ordinary.lateOpen.nativeNewcomerDelta=0
+measurement.Q12.partyPickup.57.ordinary.lateOpen.nativePickerDelta=10
+measurement.Q12.partyPickup.57.ordinary.lateOpen.nativePickupStack=org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative>org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.Player.doPickupItem>org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0>java.lang.Thread.run
+measurement.Q12.partyPickup.57.ordinary.lateOpen.nativeRecipientDelta=10
+measurement.Q12.partyPickup.57.ordinary.lateOpen.recipientOutstandingBeforeGroundRemoval=0
+measurement.Q12.partyPickup.57.ordinary.nativePickerDelta=10
+measurement.Q12.partyPickup.57.ordinary.nativePickupStack=org.l2jmobius.gameserver.model.actor.Player.doPickupItemNative>org.l2jmobius.gameserver.model.actor.Player.lambda$doPickupItem$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.Player.doPickupItem>org.l2jmobius.tests.phantoms.PhantomM1PartyLootChecks.lambda$heldPickup$0>java.lang.Thread.run
+measurement.Q12.partyPickup.57.ordinary.nativeRecipientDelta=10
+measurement.Q12.partyPickup.57.ordinary.recipientOutstandingBeforeGroundRemoval=0
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.focusedFixture.74602=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74603=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74604=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74605=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74606=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74607=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74608=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74609=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74610=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74611=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74612=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74613=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74614=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74615=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+PASS m1-native-lifecycle.Q12-actual-native-party-autoloot-1866-false elapsedNanos=756207100
+PASS m1-native-lifecycle.Q12-actual-native-party-autoloot-1866-true elapsedNanos=77449900
+PASS m1-native-lifecycle.Q12-actual-native-party-autoloot-57-false elapsedNanos=566158200
+PASS m1-native-lifecycle.Q12-actual-native-party-autoloot-57-true elapsedNanos=94534200
+PASS m1-native-lifecycle.Q12-actual-native-party-late-false elapsedNanos=2993899500
+PASS m1-native-lifecycle.Q12-actual-native-party-late-ordinary elapsedNanos=140184300
+PASS m1-native-lifecycle.Q12-actual-native-party-late-true elapsedNanos=2958796100
+PASS m1-native-lifecycle.Q12-actual-native-party-pickup-1866-false elapsedNanos=2513217800
+PASS m1-native-lifecycle.Q12-actual-native-party-pickup-1866-true elapsedNanos=85895700
+PASS m1-native-lifecycle.Q12-actual-native-party-pickup-57-false elapsedNanos=2512550000
+PASS m1-native-lifecycle.Q12-actual-native-party-pickup-57-true elapsedNanos=85249800

@@ -1,0 +1,104 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=3
+passed=3
+failed=0
+measurement.Q01.cast.cleanup=SUCCESS
+measurement.Q01.cast.cleanupSnapshot=removed
+measurement.Q01.cast.contextAtStore=instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0
+measurement.Q01.cast.contextBeforeAttack=instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0
+measurement.Q01.cast.draining=MaterializationSnapshot[profileId=74592, characterObjectId=268435465, state=DEMATERIALIZING, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=4, worldPresent=true, materializedAtNanos=61685149641800, dematerializedAtNanos=0, cleanupPhase=ACTION_DRAIN, cleanupFailurePhase=NONE, cleanupFailureClass=, cleanupFailureMessage=, cleanupFailureSequence=0, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=, firstCleanupIncident=null, latestCleanupIncident=null]
+measurement.Q01.cast.exactNativeTarget=npc=20534 anchor=population.farming.elf.20534
+measurement.Q01.cast.nativeReward=object=268435465 expDelta=70 spDelta=2 preparedWhileHitActive=false
+measurement.Q01.cast.nativeState=mage=true hp=0.0/75 damage=88 mp=119.0 skills=[1177] action=CAST casting=true attack=false target=:Red Keltir(20534)[268482553] pair=true
+measurement.Q01.cast.preparedWhileHitActive=false
+measurement.Q01.cast.retry=NOT_ACTIVE
+measurement.Q01.cast.retrySnapshot=removed
+measurement.Q01.cast.rewardProducer=getStackTrace>calculateRewards>doDie>doDie>doDie>reduceHp>reduceHp>reduceHp>reduceCurrentHp>reduceCurrentHp>reduceCurrentHp>onStart>applyEffectScope>applyEffects>applyEffects>activateSkill>activateSkill>callSkillNative>lambda$callSkill$1>run>run>runCombat>lambda$callSkill$0>lambda$runAtNativeWriteBoundary$1>run>lambda$runAtNativeWriteBoundary$0>run>runAtNativeWriteBoundary>callSkill>lambda$callSkill$0>run>runPhantomNativeAction>callSkill>onMagicHitTimer>lambda$onMagicHitTimer$0>run>runPhantomNativeAction>onMagicHitTimer>run>run>lambda$schedule$0>run>call>run>run>runWorker>run>run
+measurement.Q01.cast.stockSkill=1177:1
+measurement.Q01.hit.cleanup=SUCCESS
+measurement.Q01.hit.cleanupSnapshot=removed
+measurement.Q01.hit.contextAtStore=instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0
+measurement.Q01.hit.contextBeforeAttack=instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0
+measurement.Q01.hit.draining=MaterializationSnapshot[profileId=74591, characterObjectId=268435465, state=DEMATERIALIZING, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=3, worldPresent=true, materializedAtNanos=61667265486400, dematerializedAtNanos=0, cleanupPhase=ACTION_DRAIN, cleanupFailurePhase=NONE, cleanupFailureClass=, cleanupFailureMessage=, cleanupFailureSequence=0, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=, firstCleanupIncident=null, latestCleanupIncident=null]
+measurement.Q01.hit.exactNativeTarget=npc=20534 anchor=population.farming.elf.20534
+measurement.Q01.hit.nativeReward=object=268435465 expDelta=70 spDelta=2 preparedWhileHitActive=false
+measurement.Q01.hit.nativeState=mage=false hp=0.0/75 damage=84 mp=82.0 skills=[] action=ATTACK casting=false attack=true target=:Red Keltir(20534)[268481775] pair=true
+measurement.Q01.hit.preparedWhileHitActive=false
+measurement.Q01.hit.retry=NOT_ACTIVE
+measurement.Q01.hit.retrySnapshot=removed
+measurement.Q01.hit.rewardProducer=getStackTrace>calculateRewards>doDie>doDie>doDie>reduceHp>reduceHp>reduceHp>reduceCurrentHp>reduceCurrentHp>reduceCurrentHp>onHitTimerNative>lambda$onHitTimer$0>lambda$runAtNativeWriteBoundary$1>run>lambda$runAtNativeWriteBoundary$0>run>runAtNativeWriteBoundary>onHitTimer>lambda$onHitTimer$0>run>runPhantomNativeAction>onHitTimer>run>run>lambda$schedule$0>run>call>run>run>runWorker>run>run
+measurement.Q05.cleanup=CLEANUP_FAILED_RETAINED
+measurement.Q05.cleanupSnapshot=MaterializationSnapshot[profileId=74593, characterObjectId=268435465, state=FAILED, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=3, worldPresent=true, materializedAtNanos=61694604776800, dematerializedAtNanos=0, cleanupPhase=ACTION_DRAIN, cleanupFailurePhase=ACTION_DRAIN, cleanupFailureClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, cleanupFailureMessage=NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:, cleanupFailureSequence=1, cleanupFailureAdmittedActionCount=4, cleanupFailureCause=, firstCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=61694604776800, sequence=1, utc=2026-10-07T00:38:55.238889900Z, phase=ACTION_DRAIN, hook=NATIVE_WORK_DRAIN, admittedActions=4, exceptionClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, message=NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:, detail=primary org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException: NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.await(PhantomNativeWorkScope.java:253)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drain(PhantomNativeWorkScope.java:280)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drainAndSeal(PhantomNativeWorkScope.java:223)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.closeActionAdmissionAndDrain(PhantomMaterializedPlayer.java:618)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:359)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:463)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:442)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:427)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:404)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testNativeRewardCompletion$8(PhantomBackgroundSuite.java:2332)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=11, truncated=false], latestCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=61694604776800, sequence=1, utc=2026-10-07T00:38:55.238889900Z, phase=ACTION_DRAIN, hook=NATIVE_WORK_DRAIN, admittedActions=4, exceptionClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, message=NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:, detail=primary org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException: NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.await(PhantomNativeWorkScope.java:253)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drain(PhantomNativeWorkScope.java:280)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drainAndSeal(PhantomNativeWorkScope.java:223)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.closeActionAdmissionAndDrain(PhantomMaterializedPlayer.java:618)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:359)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:463)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:442)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:427)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:404)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testNativeRewardCompletion$8(PhantomBackgroundSuite.java:2332)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=11, truncated=false]]
+measurement.Q05.contextAtStore=null
+measurement.Q05.contextBeforeAttack=instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0
+measurement.Q05.draining=MaterializationSnapshot[profileId=74593, characterObjectId=268435465, state=FAILED, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=3, worldPresent=true, materializedAtNanos=61694604776800, dematerializedAtNanos=0, cleanupPhase=ACTION_DRAIN, cleanupFailurePhase=ACTION_DRAIN, cleanupFailureClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, cleanupFailureMessage=NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:, cleanupFailureSequence=1, cleanupFailureAdmittedActionCount=4, cleanupFailureCause=, firstCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=61694604776800, sequence=1, utc=2026-10-07T00:38:55.238889900Z, phase=ACTION_DRAIN, hook=NATIVE_WORK_DRAIN, admittedActions=4, exceptionClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, message=NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:, detail=primary org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException: NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.await(PhantomNativeWorkScope.java:253)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drain(PhantomNativeWorkScope.java:280)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drainAndSeal(PhantomNativeWorkScope.java:223)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.closeActionAdmissionAndDrain(PhantomMaterializedPlayer.java:618)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:359)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:463)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:442)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:427)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:404)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testNativeRewardCompletion$8(PhantomBackgroundSuite.java:2332)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=11, truncated=false], latestCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=61694604776800, sequence=1, utc=2026-10-07T00:38:55.238889900Z, phase=ACTION_DRAIN, hook=NATIVE_WORK_DRAIN, admittedActions=4, exceptionClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, message=NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:, detail=primary org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException: NATIVE_WORK_DRAIN_TIMEOUT epoch=61694604776800 state=DRAINING outstanding=4 pendingTimers=0 peak=5 failure= work=[211:attack-hit:RUNNING:depth=8:ageMs=777, 212:
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.await(PhantomNativeWorkScope.java:253)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drain(PhantomNativeWorkScope.java:280)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drainAndSeal(PhantomNativeWorkScope.java:223)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.closeActionAdmissionAndDrain(PhantomMaterializedPlayer.java:618)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:359)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:463)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:442)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:427)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:404)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testNativeRewardCompletion$8(PhantomBackgroundSuite.java:2332)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=11, truncated=false]]
+measurement.Q05.exactNativeTarget=npc=20534 anchor=population.farming.elf.20534
+measurement.Q05.nativeReward=object=268435465 expDelta=70 spDelta=2 preparedWhileHitActive=false
+measurement.Q05.nativeState=mage=false hp=0.0/75 damage=88 mp=82.0 skills=[] action=ATTACK casting=false attack=true target=:Red Keltir(20534)[268482555] pair=true
+measurement.Q05.preparedWhileHitActive=false
+measurement.Q05.retry=NOT_ACTIVE
+measurement.Q05.retrySnapshot=removed
+measurement.Q05.rewardProducer=getStackTrace>calculateRewards>doDie>doDie>doDie>reduceHp>reduceHp>reduceHp>reduceCurrentHp>reduceCurrentHp>reduceCurrentHp>onHitTimerNative>lambda$onHitTimer$0>lambda$runAtNativeWriteBoundary$1>run>lambda$runAtNativeWriteBoundary$0>run>runAtNativeWriteBoundary>onHitTimer>lambda$onHitTimer$0>run>runPhantomNativeAction>onHitTimer>run>run>lambda$schedule$0>run>call>run>run>runWorker>run>run
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS m1-native-lifecycle.Q01-Q02-native-hit-reward-drains-and-persists elapsedNanos=17947555000
+PASS m1-native-lifecycle.Q01-Q02-native-mage-reward-drains-and-persists elapsedNanos=9461935100
+PASS m1-native-lifecycle.Q05-native-completion-timeout-retains-ownership elapsedNanos=19862997200

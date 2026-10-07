@@ -1,0 +1,16 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+READ_ONLY_CLONE_SNAPSHOT database=l2jmobiush5_localplay_night023c output=C:\Users\ZBook\.codex\worktrees\m1-overnight-023\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-UNATTENDED-LIVING-WORLD-023\evidence\C_CRASH_PRELUDE_PAGED\baseline
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+READ_ONLY_CLONE_SNAPSHOT database=l2jmobiush5_localplay_night023c output=C:\Users\ZBook\.codex\worktrees\m1-overnight-023\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-UNATTENDED-LIVING-WORLD-023\evidence\C_CRASH_PRELUDE_PAGED\before-stop
+PRELUDE_RECORDED seconds=82.9077643;noFinalSceneClaim=true;noReal=true
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+PLANNED_CRASH_BEGIN utc=2026-10-07T01:03:19.7771860Z pid=27584 startTicks=639269314875887753 runtime=ba2eb1150d71b3ac34beb9d33b1e64f921208c2bf5835652506e0c0f67277c17 jarSha256=F558DED66B5AFB17F2F8E90D42CE08FD3B48808D6C4EC02B02D99291CCEB2A91; dedicatedClone=night023c; realClients=0; emergencyForce=false
+PLANNED_CRASH_COMPLETE exactOwnedGamePidOnly=true; no runtime/DB restore

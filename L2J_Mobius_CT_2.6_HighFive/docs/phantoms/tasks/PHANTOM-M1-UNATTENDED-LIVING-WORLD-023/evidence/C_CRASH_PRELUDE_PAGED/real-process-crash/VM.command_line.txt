@@ -1,0 +1,6 @@
+27584:
+VM Arguments:
+jvm_args: -Dfile.encoding=UTF-8 -Djava.util.logging.manager=org.l2jmobius.log.ServerLogManager -Dorg.slf4j.simpleLogger.log.com.zaxxer.hikari=warn -XX:+UseZGC -Xmx4g -Xms2g -Dphantom.localplay.runtime=ba2eb1150d71b3ac34beb9d33b1e64f921208c2bf5835652506e0c0f67277c17 -Dphantom.localplay.role=GameServer 
+java_command: ..\libs\GameServer.jar
+java_class_path (initial): ..\libs\GameServer.jar
+Launcher Type: SUN_STANDARD

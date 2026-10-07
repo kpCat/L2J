@@ -1,0 +1,248 @@
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Creature.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Creature.java
+index f28e9d104fd..ed1d0e9d35c 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Creature.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Creature.java
+@@ -293,8 +293,10 @@ public abstract class Creature extends WorldObject
+ 	private volatile CreatureAI _ai = null;
+ 	
+ 	/** Future Skill Cast */
+-	protected Future<?> _skillCast;
+-	protected Future<?> _skillCast2;
++	protected Future<?> _skillCast;
++	protected Future<?> _skillCast2;
++	private volatile MagicUseTask _nativeMagicUseTask;
++	private volatile MagicUseTask _nativeMagicUseTask2;
+ 	
+ 	private final Map<Integer, RelationCache> _knownRelations = new ConcurrentHashMap<>();
+ 	
+@@ -2151,7 +2153,8 @@ public abstract class Creature extends WorldObject
+ 			skill.applyEffectScope(EffectScope.START, new BuffInfo(this, target, skill), true, false);
+ 		}
+ 		
+-		final MagicUseTask mut = new MagicUseTask(this, targets, skill, skillTime, simultaneously);
++		final MagicUseTask mut = new MagicUseTask(this, targets, skill, skillTime, simultaneously);
++		if (simultaneously) { _nativeMagicUseTask2 = mut; } else { _nativeMagicUseTask = mut; }
+ 		
+ 		// launch the magic in skillTime milliseconds
+ 		if (skillTime > 0)
+@@ -4259,10 +4262,13 @@ public abstract class Creature extends WorldObject
+ 	/**
+ 	 * Abort the cast of the Creature and send Server->Client MagicSkillCanceled/ActionFailed packet.
+ 	 */
+-	public void abortCast()
+-	{
+-		if (_isCastingNow || _isCastingSimultaneouslyNow)
+-		{
++	public void abortCast()
++	{
++		if (_isCastingNow || _isCastingSimultaneouslyNow)
++		{
++			// Published earned callbacks still retire their tickets, but an explicitly
++			// cancelled task no longer owns the mutable state of the next native cast.
++			_nativeMagicUseTask = null; _nativeMagicUseTask2 = null;
+ 			Future<?> future = _skillCast;
+ 			
+ 			// cancels the skill hit scheduled task
+@@ -5257,8 +5263,15 @@ public abstract class Creature extends WorldObject
+ 	 * @param soulshot True if SoulShot are charged
+ 	 * @param rechargeShots True if SoulShots are re-charged
+ 	 */
+-	public void onHitTimer(Creature target, int damageValue, boolean crit, boolean miss, byte shld, boolean soulshot, boolean rechargeShots)
+-	{
++	public void onHitTimer(Creature target, int damageValue, boolean crit, boolean miss, byte shld, boolean soulshot, boolean rechargeShots)
++	{
++		final List<WorldObject> targets = target == null ? List.of() : List.of(target);
++		PlayerNativeWork.runAtNativeWriteBoundary(this, PlayerNativeWork.damageRecipients(this, targets), "hit-native-write",
++			() -> onHitTimerNative(target, damageValue, crit, miss, shld, soulshot, rechargeShots));
++	}
++
++	private void onHitTimerNative(Creature target, int damageValue, boolean crit, boolean miss, byte shld, boolean soulshot, boolean rechargeShots)
++	{
+ 		// If the attacker/target is dead or use fake death, notify the AI with CANCEL
+ 		// and send a Server->Client packet ActionFailed (if attacker is a Player)
+ 		if ((target == null) || isAlikeDead())
+@@ -5842,8 +5855,9 @@ public abstract class Creature extends WorldObject
+ 	 * <font color=#FF0000><b><u>Caution</u>: A magic skill casting MUST BE in progress</b></font>
+ 	 * @param mut
+ 	 */
+-	public void onMagicLaunchedTimer(MagicUseTask mut)
+-	{
++	public void onMagicLaunchedTimer(MagicUseTask mut)
++	{
++		if (mut.isNativeLifetimeOwned() && !isCurrentNativeMagicUseTask(mut)) { return; }
+ 		final Skill skill = mut.getSkill();
+ 		final List<WorldObject> targets = mut.getTargets();
+ 		if ((skill == null) || (targets == null))
+@@ -5979,8 +5993,9 @@ public abstract class Creature extends WorldObject
+ 	}
+ 	
+ 	// Runs in the end of skill casting
+-	public void onMagicHitTimer(MagicUseTask mut)
+-	{
++	public void onMagicHitTimer(MagicUseTask mut)
++	{
++		if (mut.isNativeLifetimeOwned() && !isCurrentNativeMagicUseTask(mut)) { return; }
+ 		final Skill skill = mut.getSkill();
+ 		final List<WorldObject> targets = mut.getTargets();
+ 		if ((skill == null) || (targets == null))
+@@ -6108,16 +6123,19 @@ public abstract class Creature extends WorldObject
+ 	}
+ 	
+ 	// Runs after skillTime
+-	public void onMagicFinalizer(MagicUseTask mut)
+-	{
+-		if (mut.isSimultaneous())
+-		{
+-			_skillCast2 = null;
+-			setCastingSimultaneouslyNow(false);
+-			return;
++	public void onMagicFinalizer(MagicUseTask mut)
++	{
++		if (mut.isNativeLifetimeOwned() && !isCurrentNativeMagicUseTask(mut)) { return; }
++		if (mut.isSimultaneous())
++		{
++			_nativeMagicUseTask2 = null;
++			_skillCast2 = null;
++			setCastingSimultaneouslyNow(false);
++			return;
+ 		}
+ 		
+-		// Cleanup
++		_nativeMagicUseTask = null;
++		// Cleanup
+ 		_skillCast = null;
+ 		_castInterruptTime = 0;
+ 		
+@@ -6217,7 +6235,11 @@ public abstract class Creature extends WorldObject
+ 	 */
+ 	public void callSkill(Skill skill, List<WorldObject> targets)
+ 	{
+-		PlayerNativeWork.runCombat(this, targets, "cast-skill-effects", () -> callSkillNative(skill, targets));
++		final List<WorldObject> frozenTargets = List.copyOf(targets);
++		// Actual effect entry is a fresh native write operation. The strict status writer
++		// still captures its exact transfer pointer and rejects any later unmanaged change.
++		PlayerNativeWork.runAtNativeWriteBoundary(this, PlayerNativeWork.damageRecipients(this, frozenTargets), "cast-native-write", () ->
++			PlayerNativeWork.runCombat(this, frozenTargets, "cast-skill-effects", () -> callSkillNative(skill, frozenTargets)));
+ 	}
+ 
+ 	private void callSkillNative(Skill skill, List<WorldObject> targets)
+@@ -6473,10 +6495,16 @@ public abstract class Creature extends WorldObject
+ 		return ((getLevel() + 89) / 100d);
+ 	}
+ 	
+-	public void setSkillCast(Future<?> newSkillCast)
++	public void setSkillCast(Future<?> newSkillCast)
+ 	{
+-		_skillCast = newSkillCast;
+-	}
++		_skillCast = newSkillCast;
++	}
++
++	/** Exact task identity, in addition to the Player/Owner/epoch carried by native work. */
++	public boolean isCurrentNativeMagicUseTask(MagicUseTask task)
++	{
++		return task == (task.isSimultaneous() ? _nativeMagicUseTask2 : _nativeMagicUseTask);
++	}
+ 	
+ 	/**
+ 	 * Sets _isCastingNow to true and _castInterruptTime is calculated from end time (ticks)
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/tasks/creature/MagicUseTask.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/tasks/creature/MagicUseTask.java
+index 3dd40a78cf5..09bb596b00b 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/tasks/creature/MagicUseTask.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/tasks/creature/MagicUseTask.java
+@@ -19,7 +19,7 @@ package org.l2jmobius.gameserver.model.actor.tasks.creature;
+ import java.util.List;
+ 
+ import org.l2jmobius.gameserver.model.WorldObject;
+-import org.l2jmobius.gameserver.model.actor.Creature;
++import org.l2jmobius.gameserver.model.actor.Creature;
+ import org.l2jmobius.gameserver.model.skill.Skill;
+ 
+ /**
+@@ -34,7 +34,8 @@ public class MagicUseTask implements Runnable
+ 	private int _count;
+ 	private int _skillTime;
+ 	private int _phase;
+-	private final boolean _simultaneously;
++	private final boolean _simultaneously;
++	private final boolean _nativeLifetimeOwned;
+ 	
+ 	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous)
+ 	{
+@@ -44,36 +45,54 @@ public class MagicUseTask implements Runnable
+ 		_count = 0;
+ 		_phase = 1;
+ 		_skillTime = hit;
+-		_simultaneously = simultaneous;
+-	}
++		_simultaneously = simultaneous;
++		_nativeLifetimeOwned = managed(creature) || ((targets != null) && targets.stream().anyMatch(MagicUseTask::managed));
++	}
++
++	private static boolean managed(WorldObject object)
++	{
++		if (object == null) { return false; }
++		final var player = object.isSummon() ? object.asSummon().getOwner() : object.asPlayer();
++		return (player != null) && player.isNativeWorkManaged();
++	}
+ 	
+ 	@Override
+ 	public void run()
+ 	{
+-		if (_creature == null)
++		if ((_creature == null) || (_nativeLifetimeOwned && !_creature.isCurrentNativeMagicUseTask(this)))
+ 		{
+ 			return;
+ 		}
+ 		
+-		switch (_phase)
+-		{
+-			case 1:
+-			{
+-				_creature.onMagicLaunchedTimer(this);
+-				break;
+-			}
+-			case 2:
+-			{
+-				_creature.onMagicHitTimer(this);
+-				break;
+-			}
+-			case 3:
+-			{
+-				_creature.onMagicFinalizer(this);
+-				break;
+-			}
+-		}
+-	}
++		try
++		{
++			switch (_phase)
++			{
++				case 1:
++				{
++					_creature.onMagicLaunchedTimer(this);
++					break;
++				}
++				case 2:
++				{
++					_creature.onMagicHitTimer(this);
++					break;
++				}
++				case 3:
++				{
++					_creature.onMagicFinalizer(this);
++					break;
++				}
++			}
++		}
++		catch (RuntimeException | Error failure)
++		{
++			if (_nativeLifetimeOwned && _creature.isCurrentNativeMagicUseTask(this)) { _creature.abortCast(); }
++			throw failure;
++		}
++	}
++
++	public boolean isNativeLifetimeOwned() { return _nativeLifetimeOwned; }
+ 	
+ 	public int getCount()
+ 	{

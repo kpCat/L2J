@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="6" passed="6" failures="0">
+  <properties>
+    <property name="Q12.dynamic.party.open.exactPlayers" value="268435465:1563204189,268435467:1482962307,268481775:443646185"/>
+    <property name="Q12.dynamic.party.open.fixture" value="VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT"/>
+    <property name="Q12.dynamic.party.open.newcomerBeforeWrite" value="epoch=61559189915000 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[]"/>
+    <property name="Q12.dynamic.party.open.originIncident" value="null"/>
+    <property name="Q12.dynamic.party.open.originLatestIncident" value="null"/>
+    <property name="Q12.dynamic.party.open.originQueued" value="epoch=61559188526600 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[7:cast-launch:RESERVED:depth=2:ageMs=0]"/>
+    <property name="Q12.dynamic.party.open.workersHeld" value="64"/>
+    <property name="Q12.dynamic.party.ordinary.exactPlayers" value="268435465:2056625427,268435467:323392268,268482555:771371847"/>
+    <property name="Q12.dynamic.party.ordinary.fixture" value="VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT"/>
+    <property name="Q12.dynamic.party.ordinary.nativeCompletion" value="java.lang.Thread.getStackTrace&gt;org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$Completion.lambda$new$0&gt;org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener.executeEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyToListeners&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEventImpl&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.actor.Creature.notifyDamageReceived&gt;handlers.skill.effects.MagicalDamage.onStart&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffectScope&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffects&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffects&gt;org.l2jmobius.gameserver.model.skill.Skill.activateSkill&gt;org.l2jmobius.gameserver.model.skill.Skill.activateSkill&gt;org.l2jmobius.gameserver.model.actor.Creature.callSkillNative&gt;org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$1&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat&gt;org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary"/>
+    <property name="Q12.dynamic.party.ordinary.nativeDelta" value="28.0"/>
+    <property name="Q12.dynamic.party.ordinary.workersHeld" value="64"/>
+    <property name="Q12.dynamic.party.sealed.exactPlayers" value="268435465:1922231849,268435467:1807652940,268482560:1532934346"/>
+    <property name="Q12.dynamic.party.sealed.fixture" value="VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT"/>
+    <property name="Q12.dynamic.party.sealed.newcomerBeforeWrite" value="epoch=61581886419500 state=SEALED outstanding=0 pendingTimers=0 peak=3 failure= work=[]"/>
+    <property name="Q12.dynamic.party.sealed.originIncident" value="null"/>
+    <property name="Q12.dynamic.party.sealed.originLatestIncident" value="null"/>
+    <property name="Q12.dynamic.party.sealed.originQueued" value="epoch=61581886410700 state=OPEN outstanding=1 pendingTimers=1 peak=3 failure= work=[7:cast-launch:RESERVED:depth=2:ageMs=0]"/>
+    <property name="Q12.dynamic.party.sealed.workersHeld" value="64"/>
+    <property name="Q12.dynamic.transfer.incoming" value="1239:15 nativeMP=57.0"/>
+    <property name="Q12.dynamic.transfer.open.exactPlayers" value="268435465:130717859,268435467:1924669377,268482553:406625069"/>
+    <property name="Q12.dynamic.transfer.open.fixture" value="VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT"/>
+    <property name="Q12.dynamic.transfer.open.newcomerBeforeWrite" value="epoch=61566539414200 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[]"/>
+    <property name="Q12.dynamic.transfer.open.originIncident" value="null"/>
+    <property name="Q12.dynamic.transfer.open.originLatestIncident" value="null"/>
+    <property name="Q12.dynamic.transfer.open.originQueued" value="epoch=61566539409100 state=OPEN outstanding=1 pendingTimers=0 peak=3 failure= work=[7:cast-launch:RESERVED:depth=1:ageMs=0]"/>
+    <property name="Q12.dynamic.transfer.open.workersHeld" value="64"/>
+    <property name="Q12.dynamic.transfer.ordinary.exactPlayers" value="268435465:2098776008,268435467:1745782097,268482558:90115641"/>
+    <property name="Q12.dynamic.transfer.ordinary.fixture" value="VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT"/>
+    <property name="Q12.dynamic.transfer.ordinary.nativeCompletion" value="java.lang.Thread.getStackTrace&gt;org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$Completion.lambda$new$0&gt;org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener.executeEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyToListeners&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEventImpl&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.actor.Creature.notifyDamageReceived&gt;handlers.skill.effects.MagicalDamage.onStart&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffectScope&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffects&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffects&gt;org.l2jmobius.gameserver.model.skill.Skill.activateSkill&gt;org.l2jmobius.gameserver.model.skill.Skill.activateSkill&gt;org.l2jmobius.gameserver.model.actor.Creature.callSkillNative&gt;org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$1&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat&gt;org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary"/>
+    <property name="Q12.dynamic.transfer.ordinary.nativeDelta" value="2.0"/>
+    <property name="Q12.dynamic.transfer.ordinary.workersHeld" value="64"/>
+    <property name="Q12.dynamic.transfer.sealed.exactPlayers" value="268435465:1478400539,268435467:95744186,268482562:705242058"/>
+    <property name="Q12.dynamic.transfer.sealed.fixture" value="VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT"/>
+    <property name="Q12.dynamic.transfer.sealed.newcomerBeforeWrite" value="epoch=61589141262800 state=SEALED outstanding=0 pendingTimers=0 peak=3 failure= work=[]"/>
+    <property name="Q12.dynamic.transfer.sealed.originIncident" value="null"/>
+    <property name="Q12.dynamic.transfer.sealed.originLatestIncident" value="null"/>
+    <property name="Q12.dynamic.transfer.sealed.originQueued" value="epoch=61589141257800 state=OPEN outstanding=1 pendingTimers=0 peak=3 failure= work=[7:cast-launch:RESERVED:depth=1:ageMs=0]"/>
+    <property name="Q12.dynamic.transfer.sealed.workersHeld" value="64"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-open-false" elapsedNanos="7387668900"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-open-true" elapsedNanos="4364140000"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-ordinary-false" elapsedNanos="6946739300"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-ordinary-true" elapsedNanos="4038886200"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-sealed-false" elapsedNanos="7254736900"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-sealed-true" elapsedNanos="4353526500"></testcase>
+</testsuite>

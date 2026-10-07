@@ -1,0 +1,1 @@
+param(); & (Join-Path $PSScriptRoot '../../ops023/Stop-ExactOwnedGracefully.ps1') -RuntimeRoot $PSScriptRoot

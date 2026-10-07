@@ -1,0 +1,6 @@
+Coordinator package checks (not native server tests):
+Java proposal compiled with local javac; 263 assertions over 320 combinations PASS.
+Python read-only evaluator: 13 unit tests PASS, including failures and missing data.
+No Windows/Mobius runtime/build run by coordinator. Native integration remains Codex task.
+UTF-8 checked; ZIP paths confined to the TASK023 documentation folder.
+No compiled classes, bytecode, binaries, database snapshots or credentials in archive.

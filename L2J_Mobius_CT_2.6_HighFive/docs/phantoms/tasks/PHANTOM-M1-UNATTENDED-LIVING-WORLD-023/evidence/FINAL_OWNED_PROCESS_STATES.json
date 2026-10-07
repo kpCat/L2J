@@ -1,0 +1,92 @@
+[
+  {
+    "episode": "a",
+    "role": "GameServer",
+    "runtimeId": "f0481c3b94baf64fb9b9171d2f0867d3d2dde8539d0212a6630d9896d6753544",
+    "codeSha": "fa65d4f8ae02ebb4e1c103c6e811e9352aac89f6",
+    "jarSha256": "FA3895647202CA0F376405F71DA05AC29CF92809D056B426EBD72AC62ED538D8",
+    "ownedProcessCount": 0,
+    "roleState": {
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "staleRecord": true,
+      "recordVerified": false,
+      "reason": "record has no marked owner"
+    }
+  },
+  {
+    "episode": "a",
+    "role": "LoginServer",
+    "runtimeId": "f0481c3b94baf64fb9b9171d2f0867d3d2dde8539d0212a6630d9896d6753544",
+    "codeSha": "fa65d4f8ae02ebb4e1c103c6e811e9352aac89f6",
+    "jarSha256": "FA3895647202CA0F376405F71DA05AC29CF92809D056B426EBD72AC62ED538D8",
+    "ownedProcessCount": 0,
+    "roleState": {
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "staleRecord": true,
+      "recordVerified": false,
+      "reason": "record has no marked owner"
+    }
+  },
+  {
+    "episode": "b",
+    "role": "GameServer",
+    "runtimeId": "d3ae0469183b64b24b89fc29cf94436f2d550fee6303617d4c6c585f1b092756",
+    "codeSha": "1b71464a9e09a80dad890e2bfd39df0f3b5d3b96",
+    "jarSha256": "F558DED66B5AFB17F2F8E90D42CE08FD3B48808D6C4EC02B02D99291CCEB2A91",
+    "ownedProcessCount": 0,
+    "roleState": {
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "staleRecord": true,
+      "recordVerified": false,
+      "reason": "record has no marked owner"
+    }
+  },
+  {
+    "episode": "b",
+    "role": "LoginServer",
+    "runtimeId": "d3ae0469183b64b24b89fc29cf94436f2d550fee6303617d4c6c585f1b092756",
+    "codeSha": "1b71464a9e09a80dad890e2bfd39df0f3b5d3b96",
+    "jarSha256": "F558DED66B5AFB17F2F8E90D42CE08FD3B48808D6C4EC02B02D99291CCEB2A91",
+    "ownedProcessCount": 0,
+    "roleState": {
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "staleRecord": true,
+      "recordVerified": false,
+      "reason": "record has no marked owner"
+    }
+  },
+  {
+    "episode": "c",
+    "role": "GameServer",
+    "runtimeId": "ba2eb1150d71b3ac34beb9d33b1e64f921208c2bf5835652506e0c0f67277c17",
+    "codeSha": "1b71464a9e09a80dad890e2bfd39df0f3b5d3b96",
+    "jarSha256": "F558DED66B5AFB17F2F8E90D42CE08FD3B48808D6C4EC02B02D99291CCEB2A91",
+    "ownedProcessCount": 0,
+    "roleState": {
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "staleRecord": true,
+      "recordVerified": false,
+      "reason": "record has no marked owner"
+    }
+  },
+  {
+    "episode": "c",
+    "role": "LoginServer",
+    "runtimeId": "ba2eb1150d71b3ac34beb9d33b1e64f921208c2bf5835652506e0c0f67277c17",
+    "codeSha": "1b71464a9e09a80dad890e2bfd39df0f3b5d3b96",
+    "jarSha256": "F558DED66B5AFB17F2F8E90D42CE08FD3B48808D6C4EC02B02D99291CCEB2A91",
+    "ownedProcessCount": 0,
+    "roleState": {
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "staleRecord": true,
+      "recordVerified": false,
+      "reason": "record has no marked owner"
+    }
+  }
+]

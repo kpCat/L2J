@@ -1,0 +1,18 @@
+DATABASE()
+l2jmobiush5_localplay_night023b
+profiles	distinct_characters
+10000	10000
+component_type	components	bytes
+background.catchup	10000	5174569
+background.native-context	976	194224
+background.state	10000	10729233
+goal.runtime	10000	3044612
+population.ecology	10000	2654352
+population.state	10000	3348075
+charId	char_name	online
+268487210	Flintsna	2
+268488321	Mysticrh	2
+268488712	Silver37	2
+268490438	Sam21	2
+268492939	TestAdmin	0
+268494911	Crazy33	2

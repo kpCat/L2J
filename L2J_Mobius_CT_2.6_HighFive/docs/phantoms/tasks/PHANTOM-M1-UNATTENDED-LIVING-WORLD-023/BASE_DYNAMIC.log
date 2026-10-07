@@ -1,0 +1,16 @@
+окт. 07, 2026 1:28:57 AM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData load
+INFO: Network Config: ipconfig.xml does not exist, using automatic configuration...
+окт. 07, 2026 1:28:58 AM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 127.0.0.0/8 address: 127.0.0.1
+окт. 07, 2026 1:28:58 AM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 192.168.0.0/24 address: 192.168.0.55
+окт. 07, 2026 1:28:58 AM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 0.0.0.0/0 address: 89.149.88.222
+окт. 07, 2026 1:28:58 AM org.l2jmobius.gameserver.config.ServerConfig loadChatFilter
+INFO: Loaded 6 Filter Words.
+окт. 07, 2026 1:28:58 AM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+окт. 07, 2026 1:28:58 AM org.l2jmobius.commons.threads.ThreadPool shutdown
+WARNING: ThreadPool: Exception occurred during shutdown: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.shutdownNow()" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[FAIL] m1-native-lifecycle.before-all - org.l2jmobius.tests.phantoms.PhantomTestConfigurationException: Phantom test schema manifest is stale. seed=15001501
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=1 passed=0 failed=1

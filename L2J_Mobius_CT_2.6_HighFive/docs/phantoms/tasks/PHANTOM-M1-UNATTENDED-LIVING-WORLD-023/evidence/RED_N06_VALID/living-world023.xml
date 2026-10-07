@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="living-world023" seed="23002301" tests="7" passed="6" failures="1">
+  <properties>
+    <property name="N02.lateDamage" value="75.0-&gt;17.0;damage=58"/>
+    <property name="N02.nativeRewards" value="first=33;second=33;ordinary=2"/>
+    <property name="N02.original" value="casting=false;scope=epoch=55533960980200 state=OPEN outstanding=0 pendingTimers=0 peak=6 failure= work=[];incident=null"/>
+    <property name="N03/N04.body-failure" value="writes=1;first=epoch=55540416996500 state=DRAINING outstanding=0 pendingTimers=0 peak=3 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=55540417004000 state=DRAINING outstanding=0 pendingTimers=0 peak=4 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]"/>
+    <property name="N03/N04.open" value="writes=1;first=epoch=55540443946500 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[];second=epoch=55540443953600 state=OPEN outstanding=0 pendingTimers=0 peak=4 failure= work=[]"/>
+    <property name="N03/N04.replaced-epoch" value="writes=0;first=epoch=55540458245000 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[];second=epoch=55540458249600 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[]"/>
+    <property name="N03/N04.sealed" value="writes=0;first=epoch=55540472282000 state=OPEN outstanding=0 pendingTimers=0 peak=2 failure= work=[];second=epoch=55540472287000 state=SEALED outstanding=0 pendingTimers=0 peak=0 failure= work=[]"/>
+    <property name="N03/N04.strict-delayed" value="writes=0;first=epoch=55540482981100 state=DRAINING outstanding=0 pendingTimers=0 peak=1 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=55540482986600 state=DRAINING outstanding=0 pendingTimers=0 peak=0 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]"/>
+    <property name="N06.newCastEligibility" value="oldReuse=true;newAllowed=true;mp=36.0"/>
+    <property name="N06.stale" value="nextHp=75.0-&gt;75.0;cast=false;scope=epoch=55540501384900 state=OPEN outstanding=1 pendingTimers=0 peak=5 failure= work=[9:cast-hit:RUNNING:depth=3:ageMs=401];incident=null"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="living-world023.N02-late-real-native-damage-open-owner-completes-cast" elapsedNanos="6482130900"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-body-failure" elapsedNanos="35637300"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-open" elapsedNanos="18477200"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-replaced-epoch" elapsedNanos="13941000"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-sealed" elapsedNanos="12584800"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-strict-delayed" elapsedNanos="12313500"></testcase>
+  <testcase name="living-world023.N06-old-published-callback-cannot-abort-new-native-cast" elapsedNanos="6294955100"><failure type="java.lang.AssertionError" message="RED N06: old stock callback must not abort or strand newer cast on the next target." seed="23002301"/></testcase>
+</testsuite>

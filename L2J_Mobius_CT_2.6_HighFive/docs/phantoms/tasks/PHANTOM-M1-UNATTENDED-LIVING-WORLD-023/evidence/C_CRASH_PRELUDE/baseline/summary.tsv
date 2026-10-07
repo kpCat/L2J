@@ -1,0 +1,18 @@
+DATABASE()
+l2jmobiush5_localplay_night023c
+profiles	distinct_characters
+10000	10000
+component_type	components	bytes
+background.catchup	10000	5174837
+background.native-context	302	60098
+background.state	10000	10726740
+goal.runtime	10000	3044792
+population.ecology	10000	2630800
+population.state	10000	3348075
+charId	char_name	online
+268488438	Viperst	2
+268490188	BlackForge	2
+268491229	Bafermoon	2
+268492939	TestAdmin	0
+268493348	River45	2
+268494774	lIShadowdemoIl	2

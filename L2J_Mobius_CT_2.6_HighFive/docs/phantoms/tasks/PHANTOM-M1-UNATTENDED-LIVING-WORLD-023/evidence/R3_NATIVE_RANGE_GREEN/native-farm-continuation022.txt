@@ -1,0 +1,21 @@
+suite=native-farm-continuation022
+seed=22002201
+total=1
+passed=1
+failed=0
+measurement.N01.longRange=short=600;long=1400;target=Monster:Red Keltir(20534)[268446191];damage=1
+measurement.S02.TEST_setup.false=existing guarded owned fixture; class=ELVEN_MAGE level7; native auto-get skills; seven stock Monsters, NPC AI ON; no post-baseline damage/reward injection
+measurement.S02.execution=entered=266;finished=266;failure=null;castSeen=true;runtime=Optional[RuntimeSnapshot[profileId=74580, goalId=2624930753266002979, goalType=farm.background, goalRevision=1, goalStatus=ACTIVE, runtimeState=NEEDS_REPLAN, decisionSequence=115, selectedCandidateKey=candidate.background.farm, selectedScore=1000, planId=0, currentStep=-1, attempt=0, lastResult=RETRY, reasonKey=step.retry_exhausted, topCandidateEvaluations=[CandidateEvaluation[candidateKey=candidate.background.farm, score=1000, status=ELIGIBLE, reasonKey=background.explicit.ready]], inFlight=false, persistenceInFlight=false, persistenceOperationId=0, persistenceOperationKind=null, generation=4, activityGeneration=1, componentRowVersion=1]];owner=epoch=61094283068500 state=OPEN outstanding=1 pendingTimers=2 peak=6 failure= work=[1485:movement-revalidate:RESERVED:depth=2:ageMs=95];casting=false;intention=ATTACK;target=Monster:Red Keltir(20534)[268446192];expDelta=350;spDelta=10
+measurement.S02.native={nativeEvidenceVersion=1, nativeEvidenceOwner=PHANTOM, nativeEvidenceObjectId=268435465, nativeEvidenceEpoch=61094283068500, nativeEvidenceSampleNanos=61160852629900, nativeEvidenceOverflow=false, nativeFirstUnprovenReason=NONE, nativeFirstUnprovenNanos=0, nativeEvidenceSequence=22, nativeDamageSequence=5, nativeKillSequence=5, nativeRewardSequence=5, nativeTargetSequence=6, nativeFarmCycleSequence=5, nativeExpGained=350, nativeSpGained=10, nativeLootSequence=1, nativeLastProgressNanos=61160767225300, nativePhase=REGEN, nativePhaseSinceNanos=61159782769600, nativePhaseDeadlineNanos=61279782769600}
+measurement.S02.skills=known=Skill Wind Strike(1177,1);auto=[1177];mp=122.22099199999992
+measurement.S11.saved=exp=11637;sp=10;retained=0
+measurement.S12.nativeLoot=events=1;inventoryBefore=7;inventoryAfter=19
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS native-farm-continuation022.N01-stock-long-range-native-selection-and-five-cycles elapsedNanos=68650749900

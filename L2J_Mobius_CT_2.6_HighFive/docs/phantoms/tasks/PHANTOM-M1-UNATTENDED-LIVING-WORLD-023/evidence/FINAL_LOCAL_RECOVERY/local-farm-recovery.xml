@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="local-farm-recovery" seed="21002102" tests="7" passed="7" failures="0">
+  <properties>
+    <property name="composed.native" value="epoch=59060680033500 reason=background.visible.autoplay_started goal=PhantomBackgroundGoalSpec[npcId=20534, anchorId=population.farming.elf.20534, shotItemId=0, shotsPerEncounter=0, summonNpcId=0, summonResourceItemId=0, summonResourcesPerEncounter=0]"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="local.factual.candidate" value="PhantomBackgroundGoalSpec[npcId=20545, anchorId=population.farming.human-fighter.20545, shotItemId=0, shotsPerEncounter=0, summonNpcId=0, summonResourceItemId=0, summonResourcesPerEncounter=0]"/>
+    <property name="water.current29.scene" value="from=PhantomNavigationPoint[x=44126, y=42751, z=-3488, instanceId=0];to=PhantomNavigationPoint[x=48712, y=55466, z=-3464, instanceId=0];old28Spec=UNAVAILABLE"/>
+  </properties>
+  <testcase name="local-farm-recovery.R03-delayed-navigation-reply-after-current-revision-is-discarded" elapsedNanos="311489200"></testcase>
+  <testcase name="local-farm-recovery.R03-stale-goal-is-typed-and-never-submitted" elapsedNanos="68788700"></testcase>
+  <testcase name="local-farm-recovery.R05-terminal-attempt-observation-is-idempotent" elapsedNanos="73813100"></testcase>
+  <testcase name="local-farm-recovery.R12-dry-endpoint-does-not-authorize-water-cell" elapsedNanos="25700100"></testcase>
+  <testcase name="local-farm-recovery.R13-local-unavailable-is-bounded-across-ticks" elapsedNanos="84885900"></testcase>
+  <testcase name="local-farm-recovery.R14-visible-local-envelope-and-default-planner" elapsedNanos="52659800"></testcase>
+  <testcase name="local-farm-recovery.R15-composed-terminal-replan-native-travel-autoplay" elapsedNanos="553806600"></testcase>
+</testsuite>

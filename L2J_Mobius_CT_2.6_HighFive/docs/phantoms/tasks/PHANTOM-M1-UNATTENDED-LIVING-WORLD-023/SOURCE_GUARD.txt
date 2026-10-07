@@ -1,0 +1,4 @@
+scope=PASS;productionPaths=11;testPaths=7;newProductionClasses=0
+mojibake=PASS;18 exact source/test paths;all required markers
+escapedCyrillic=PASS;18 exact source/test paths;Unicode and XML patterns
+whitespace=PASS

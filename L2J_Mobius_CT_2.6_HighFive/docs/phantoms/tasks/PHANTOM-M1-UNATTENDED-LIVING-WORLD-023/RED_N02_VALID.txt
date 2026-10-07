@@ -1,0 +1,35 @@
+suite=living-world023
+seed=23002301
+total=1
+passed=0
+failed=1
+measurement.N02.lateDamage=75.0->17.0;damage=58
+measurement.N02.original=casting=true;scope=epoch=54404465366400 state=DRAINING outstanding=1 pendingTimers=0 peak=3 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[3:cast-launch:RUNNING:depth=2:ageMs=5862];incident=PhantomCleanupIncident[objectId=268435465, epoch=54404465366400, sequence=1, utc=2026-10-06T22:37:13.138397Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=1, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:336)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.reserve(PlayerNativeWork.java:276)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.schedule(PlayerNativeWork.java:252)
+ at org.l2jmobius.gameserver.model.actor.Creature.onMagicLaunchedTimer(Creature.java:5977)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$onMagicLaunchedTimer$0(Player.java:4999)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:514)
+ at org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction(Player.java:499)
+ at org.l2jmobius.gameserver.model.actor.Player.onMagicLaunchedTimer(Player.java:4999)
+ at org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.run(MagicUseTask.java:62)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:421)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:255)
+ at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)
+ at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+ at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+ at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+ at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=18, truncated=false]
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435469
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL living-world023.N02-late-real-native-damage-open-owner-completes-cast elapsedNanos=7368824200 type=java.lang.AssertionError message=RED N02: lawful late native damaging OPEN participant must not poison an earned cast. Expected <null> but was <PhantomCleanupIncident[objectId=268435465, epoch=54404465366400, sequence=1, utc=2026-10-06T22:37:13.138397Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=1, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:336)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.reserve(PlayerNativeWork.java:276)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.schedule(PlayerNativeWork.java:252)  at org.l2jmobius.gameserver.model.actor.Creature.onMagicLaunchedTimer(Creature.java:5977)  at org.l2jmobius.gameserver.model.actor.Player.lambda$onMagicLaunchedTimer$0(Player.java:4999)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:514)  at org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction(Player.java:499)  at org.l2jmobius.gameserver.model.actor.Player.onMagicLaunchedTimer(Player.java:4999)  at org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.run(MagicUseTask.java:62)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:421)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:255)  at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)  at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)  at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)  at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)  at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)  at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)  at java.base/java.lang.Thread.run(Thread.java:1474) , nodes=1, frames=18, truncated=false]>. seed=23002301

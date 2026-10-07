@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="native-farm-continuation022" seed="22002201" tests="7" passed="4" failures="3">
+  <properties>
+    <property name="S02.TEST_setup.false" value="existing guarded owned fixture; class=ELVEN_MAGE level7; native auto-get skills; seven stock Monsters, NPC AI ON; no post-baseline damage/reward injection"/>
+    <property name="S02.TEST_setup.true" value="existing guarded owned fixture; class=FIGHTER level7; native auto-get skills; seven stock Monsters, NPC AI ON; no post-baseline damage/reward injection"/>
+    <property name="S02.execution" value="entered=171;finished=171;failure=null;castSeen=true;runtime=Optional[RuntimeSnapshot[profileId=74542, goalId=5571955891053934922, goalType=farm.background, goalRevision=1, goalStatus=ACTIVE, runtimeState=WAITING_RETRY, decisionSequence=45, selectedCandidateKey=candidate.background.farm, selectedScore=1000, planId=37, currentStep=1, attempt=8, lastResult=RETRY, reasonKey=background.visible.autoplay_running, topCandidateEvaluations=[CandidateEvaluation[candidateKey=candidate.background.farm, score=1000, status=ELIGIBLE, reasonKey=background.explicit.ready]], inFlight=false, persistenceInFlight=false, persistenceOperationId=0, persistenceOperationKind=null, generation=4, activityGeneration=1, componentRowVersion=1]];owner=epoch=58845252416700 state=OPEN outstanding=1 pendingTimers=2 peak=8 failure= work=[1070:cast-launch:RESERVED:depth=2:ageMs=14];casting=true;intention=CAST;target=Monster:Red Keltir(20534)[268482568];expDelta=350;spDelta=10"/>
+    <property name="S02.native" value="{nativeEvidenceVersion=1, nativeEvidenceOwner=PHANTOM, nativeEvidenceObjectId=268435465, nativeEvidenceEpoch=58845252416700, nativeEvidenceSampleNanos=58887824210300, nativeEvidenceOverflow=false, nativeFirstUnprovenReason=NONE, nativeFirstUnprovenNanos=0, nativeEvidenceSequence=23, nativeDamageSequence=7, nativeKillSequence=5, nativeRewardSequence=5, nativeTargetSequence=6, nativeFarmCycleSequence=5, nativeExpGained=350, nativeSpGained=10, nativeLootSequence=0, nativeLastProgressNanos=58887809098600, nativePhase=REGEN, nativePhaseSinceNanos=58856616329800, nativePhaseDeadlineNanos=58976616329800}"/>
+    <property name="S02.skills" value="known=Skill Wind Strike(1177,1);auto=[1177];mp=110.43705599999996"/>
+    <property name="S05-S06.control" value="REAL_LIKE_TEST_ONLY;no fake login;shared actual pools;EXP=11287→11357→11427;SP=4"/>
+    <property name="S11.saved" value="exp=11637;sp=20;retained=0"/>
+    <property name="S12.nativeLoot" value="events=0;inventoryBefore=31;inventoryAfter=31"/>
+    <property name="S13.tutorial" value="missing state safe; existing state3 preserved; no fake quest for Phantom"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="native-farm-continuation022.N01-production-native-fighter-five-next-targets" elapsedNanos="101560240900"></testcase>
+  <testcase name="native-farm-continuation022.S02-production-binding-native-cast-reward-five-next-targets" elapsedNanos="47912331900"></testcase>
+  <testcase name="native-farm-continuation022.S05-S06-real-like-stock-control-continues-in-same-pools-after-revocation" elapsedNanos="15159106200"></testcase>
+  <testcase name="native-farm-continuation022.S11-native-cast-ignores-unearned-hate-only-recipient" elapsedNanos="5025297500"><failure type="java.lang.reflect.InvocationTargetException" message="" seed="22002201"/></testcase>
+  <testcase name="native-farm-continuation022.S12-fresh-real-native-damage-recipient-and-delayed-fence" elapsedNanos="5011039100"><failure type="java.lang.AssertionError" message="INVALID Q12: scheduled workers did not all enter hold." seed="22002201"/></testcase>
+  <testcase name="native-farm-continuation022.S13-tutorial-missing-state-and-existing-state-control" elapsedNanos="253820600"></testcase>
+  <testcase name="native-farm-continuation022.after-all" elapsedNanos="0"><failure type="java.lang.AssertionError" message="Headless suite left Hikari or L2jMobius infrastructure threads." seed="22002201"/></testcase>
+</testsuite>

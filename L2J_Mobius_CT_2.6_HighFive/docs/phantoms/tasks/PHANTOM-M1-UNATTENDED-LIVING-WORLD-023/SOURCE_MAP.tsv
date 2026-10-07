@@ -1,0 +1,35 @@
+mode	path	allowed_change
+MODIFY_IF_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	exact participant enrollment and delayed resume only
+MODIFY_IF_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	nonblocking admission, drain/control continuation and exact leases
+MODIFY_IF_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	bounded native farming/session/resource/target policy
+MODIFY_IF_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	existing binding, read-only census and lifecycle stop
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Attackable.java	native recipient snapshot boundary only, formulas unchanged
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Creature.java	native cast/direct effect boundary call-sites only
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java	existing Phantom native wrappers/stop-registration only, no mechanics rewrite
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeTimer.java	exact timer cancellation/completion only
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	truthful bounded attribution, no thresholds relaxation
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/tasks/creature/MagicUseTask.java	exact failed/cancelled cast finalization only
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/groups/Party.java	existing native recipient boundary only, no party AI
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	Phantom policy admission and bounded native target selection only
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	Phantom policy admission and native skill continuation only
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	ordinary death/drain/store lifecycle boundaries
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	bounded deferred cleanup/current epoch guards
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	native return/death/store hookup, preserve b4 transaction
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	bounded farm/rest/death/reselect intent
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	exact current intent/owned return only
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	local terminal recovery only, water remains forbidden
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanSession.java	existing synthetic lifecycle/diagnostics only
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java	existing transport only, caps/identity unchanged
+OPTIONAL_IF_CAUSAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java	read-only diagnostics and native synthetic movement only
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/threads/ThreadPool.java	Do not change in TASK023
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/events/EventDispatcher.java	Do not change in TASK023
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/geoengine/GeoEngine.java	Do not change in TASK023
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/dist/game/config/Custom/PersonalCharacterQoL.ini	Do not change in TASK023
+TEST_NEW	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLivingWorld023Suite.java	composed positive multi-actor/lifecycle tests
+TEST_MODIFY	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomM1DynamicRecipientChecks.java	explicit OPEN-positive vs SEALED-negative redesign, no weak assertions
+TEST_MODIFY	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeFarmContinuation022Suite.java	paired stale-vs-fresh S12 expectation and active NPC controls
+TEST_BOUNDED	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/*Suite.java	only directly affected suites discovered by exact read; max5 additional test paths in ledger
+TEST_BOUNDED	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/*Checks.java	only existing relevant native ownership/death/crash checks; max3 additional test paths
+NEW_OPTIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeAdmission.java	one small helper only if existing scope cannot contain policy cleanly
+NEW_OPTIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomFarmPolicy.java	one small utility selector only, not another combat engine
+TASK_WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-UNATTENDED-LIVING-WORLD-023/**	task-local scripts/evidence/launchers only

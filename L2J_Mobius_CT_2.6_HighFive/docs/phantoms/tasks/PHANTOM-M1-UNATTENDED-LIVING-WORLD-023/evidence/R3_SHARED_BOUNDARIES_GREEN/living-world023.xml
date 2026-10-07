@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="living-world023" seed="23002301" tests="12" passed="12" failures="0">
+  <properties>
+    <property name="N02.lateDamage" value="122.0-&gt;48.0;damage=74"/>
+    <property name="N02.nativeKills" value="first=1;second=1"/>
+    <property name="N02.nativeRewards" value="first=86;second=86;ordinary=4"/>
+    <property name="N02.original" value="casting=false;scope=epoch=60705676921500 state=OPEN outstanding=0 pendingTimers=0 peak=6 failure= work=[];incident=null"/>
+    <property name="N03/N04.body-failure" value="writes=1;first=epoch=60714713317900 state=DRAINING outstanding=0 pendingTimers=0 peak=3 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=60714713323900 state=DRAINING outstanding=0 pendingTimers=0 peak=4 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]"/>
+    <property name="N03/N04.earned-failure-drain" value="writes=1;first=epoch=60714738772600 state=DRAINING outstanding=0 pendingTimers=0 peak=5 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=60714738777500 state=OPEN outstanding=0 pendingTimers=0 peak=0 failure= work=[]"/>
+    <property name="N03/N04.open" value="writes=1;first=epoch=60714754700600 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[];second=epoch=60714754704900 state=OPEN outstanding=0 pendingTimers=0 peak=4 failure= work=[]"/>
+    <property name="N03/N04.replaced-epoch" value="writes=0;first=epoch=60714767441300 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[];second=epoch=60714767445800 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[]"/>
+    <property name="N03/N04.sealed" value="writes=0;first=epoch=60714777920000 state=OPEN outstanding=0 pendingTimers=0 peak=2 failure= work=[];second=epoch=60714777924600 state=SEALED outstanding=0 pendingTimers=0 peak=0 failure= work=[]"/>
+    <property name="N03/N04.strict-delayed" value="writes=0;first=epoch=60714789039600 state=DRAINING outstanding=0 pendingTimers=0 peak=1 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=60714789043200 state=DRAINING outstanding=0 pendingTimers=0 peak=0 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]"/>
+    <property name="N04.actualCastBody" value="hp=75.0-&gt;0.0;cast=false;incident=PhantomCleanupIncident[objectId=268435465, epoch=60720016728600, sequence=1, utc=2026-10-07T00:22:30.837545500Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=5, exceptionClass=java.lang.IllegalStateException, message=TEST023_AFTER_NATIVE_HP_WRITER, detail=primary java.lang.IllegalStateException: TEST023_AFTER_NATIVE_HP_WRITER
+ at org.l2jmobius.tests.phantoms.PhantomLivingWorld023Suite$AfterNativeWriterFailure.reduceCurrentHp(PhantomLivingWorld023Suite.java:122)
+ at org.l2jmobius.gameserver.model.actor.Attackable.reduceCurrentHp(Attackable.java:228)
+ at handlers.skill.effects.MagicalDamage.onStart(MagicalDamage.java:94)
+ at org.l2jmobius.gameserver.model.skill.Skill.applyEffectScope(Skill.java:1293)
+ at org.l2jmobius.gameserver.model.skill.Skill.applyEffects(Skill.java:1366)
+ at org.l2jmobius.gameserver.model.skill.Skill.applyEffects(Skill.java:1313)
+ at org.l2jmobius.gameserver.model.skill.Skill.activateSkill(Skill.java:1449)
+ at org.l2jmobius.gameserver.model.skill.Skill.activateSkill(Skill.java:1411)
+ at org.l2jmobius.gameserver.model.actor.Creature.callSkillNative(Creature.java:6322)
+ at org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$1(Creature.java:6242)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:493)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:282)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat(PlayerNativeWork.java:351)
+ at org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$0(Creature.java:6242)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1(PlayerNativeWork.java:316)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:493)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0(PlayerNativeWork.java:316)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:493)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary(PlayerNativeWork.java:303)
+ at org.l2jmobius.gameserver.model.actor.Creature.callSkill(Creature.java:6241)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$callSkill$0(Player.java:5018)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:586)
+ at org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction(Player.java:499)
+ at org.l2jmobius.gameserver.model.actor.Player.callSkill(Player.java:5018)
+ at org.l2jmobius.gameserver.model.actor.Creature.onMagicHitTimer(Creature.java:6094)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$onMagicHitTimer$0(Player.java:5006)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:586)
+ at org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction(Player.java:499)
+ at org.l2jmobius.gameserver.model.actor.Player.onMagicHitTimer(Player.java:5006)
+ at org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.run(MagicUseTask.java:78)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:493)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:361)
+, nodes=1, frames=32, truncated=true]"/>
+    <property name="N06.newCastEligibility" value="oldReuse=false;newAllowed=true;mp=123.0"/>
+    <property name="N06.stale" value="nextHp=75.0-&gt;13.0;cast=false;scope=epoch=60728982474500 state=OPEN outstanding=1 pendingTimers=0 peak=6 failure= work=[13:attack-hit:RESERVED:depth=8:ageMs=5];incident=null"/>
+    <property name="Q12.dynamic.physical-transfer.open.exactPlayers" value="268435465:191639014,268435467:695669064,268438333:228550634"/>
+    <property name="Q12.dynamic.physical-transfer.open.fixture" value="VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT"/>
+    <property name="Q12.dynamic.physical-transfer.open.newcomerBeforeWrite" value="epoch=60714806022200 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[]"/>
+    <property name="Q12.dynamic.physical-transfer.open.originIncident" value="null"/>
+    <property name="Q12.dynamic.physical-transfer.open.originLatestIncident" value="null"/>
+    <property name="Q12.dynamic.physical-transfer.open.originQueued" value="epoch=60714806016200 state=OPEN outstanding=1 pendingTimers=0 peak=3 failure= work=[7:attack-hit:RESERVED:depth=1:ageMs=0]"/>
+    <property name="Q12.dynamic.physical-transfer.open.workersHeld" value="64"/>
+    <property name="Q12.dynamic.physical-transfer.ordinary.exactPlayers" value="268435465:1777038145,268435467:2111330616,268438335:1129555785"/>
+    <property name="Q12.dynamic.physical-transfer.ordinary.fixture" value="VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT"/>
+    <property name="Q12.dynamic.physical-transfer.ordinary.nativeCompletion" value="java.lang.Thread.getStackTrace&gt;org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$Completion.lambda$new$0&gt;org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener.executeEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyToListeners&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEventImpl&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.actor.Creature.notifyDamageReceived&gt;org.l2jmobius.gameserver.model.actor.Creature.onHitTimerNative&gt;org.l2jmobius.gameserver.model.actor.Creature.lambda$onHitTimer$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary&gt;org.l2jmobius.gameserver.model.actor.Creature.onHitTimer&gt;org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run&gt;org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run&gt;java.util.concurrent.Executors$RunnableAdapter.call&gt;java.util.concurrent.FutureTask.run&gt;java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run&gt;java.util.concurrent.ThreadPoolExecutor.runWorker&gt;java.util.concurrent.ThreadPoolExecutor$Worker.run&gt;java.lang.Thread.run"/>
+    <property name="Q12.dynamic.physical-transfer.ordinary.nativeDelta" value="5.0"/>
+    <property name="Q12.dynamic.physical-transfer.ordinary.workersHeld" value="64"/>
+    <property name="Q12.dynamic.physical-transfer.sealed.exactPlayers" value="268435465:1837745180,268435467:1720980446,268438337:1027487479"/>
+    <property name="Q12.dynamic.physical-transfer.sealed.fixture" value="VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT"/>
+    <property name="Q12.dynamic.physical-transfer.sealed.newcomerBeforeWrite" value="epoch=60717883312800 state=SEALED outstanding=0 pendingTimers=0 peak=3 failure= work=[]"/>
+    <property name="Q12.dynamic.physical-transfer.sealed.originIncident" value="null"/>
+    <property name="Q12.dynamic.physical-transfer.sealed.originLatestIncident" value="null"/>
+    <property name="Q12.dynamic.physical-transfer.sealed.originQueued" value="epoch=60717883308300 state=OPEN outstanding=1 pendingTimers=0 peak=4 failure= work=[7:attack-hit:RESERVED:depth=1:ageMs=0]"/>
+    <property name="Q12.dynamic.physical-transfer.sealed.workersHeld" value="64"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="living-world023.N02-late-real-native-damage-open-owner-completes-cast" elapsedNanos="9069429800"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-body-failure" elapsedNanos="25099700"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-earned-failure-drain" elapsedNanos="19083800"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-open" elapsedNanos="13540800"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-replaced-epoch" elapsedNanos="12121800"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-sealed" elapsedNanos="11361800"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-strict-delayed" elapsedNanos="13220400"></testcase>
+  <testcase name="living-world023.N03-N04-physical-open" elapsedNanos="2156154500"></testcase>
+  <testcase name="living-world023.N03-N04-physical-ordinary" elapsedNanos="924060700"></testcase>
+  <testcase name="living-world023.N03-N04-physical-sealed" elapsedNanos="2133318600"></testcase>
+  <testcase name="living-world023.N04-real-cast-after-native-writer-exception-is-retained" elapsedNanos="8963843200"></testcase>
+  <testcase name="living-world023.N06-old-published-callback-cannot-abort-new-native-cast" elapsedNanos="15230055600"></testcase>
+</testsuite>

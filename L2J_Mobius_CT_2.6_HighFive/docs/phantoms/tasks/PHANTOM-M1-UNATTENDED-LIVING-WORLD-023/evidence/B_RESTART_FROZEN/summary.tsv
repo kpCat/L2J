@@ -1,0 +1,14 @@
+DATABASE()
+l2jmobiush5_localplay_night023b
+profiles	distinct_characters
+10000	10000
+component_type	components	bytes
+background.catchup	10000	5174785
+background.native-context	976	194224
+background.state	10000	10728919
+goal.runtime	10000	3044612
+population.ecology	10000	2647824
+population.state	10000	3348075
+charId	char_name	online
+268488860	Stonespo	2
+268492939	TestAdmin	0

@@ -1,0 +1,23 @@
+suite=local-farm-recovery
+seed=21002102
+total=7
+passed=7
+failed=0
+measurement.composed.native=epoch=63076983167300 reason=background.visible.autoplay_started goal=PhantomBackgroundGoalSpec[npcId=20534, anchorId=population.farming.elf.20534, shotItemId=0, shotsPerEncounter=0, summonNpcId=0, summonResourceItemId=0, summonResourcesPerEncounter=0]
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.local.factual.candidate=PhantomBackgroundGoalSpec[npcId=20545, anchorId=population.farming.human-fighter.20545, shotItemId=0, shotsPerEncounter=0, summonNpcId=0, summonResourceItemId=0, summonResourcesPerEncounter=0]
+measurement.water.current29.scene=from=PhantomNavigationPoint[x=44126, y=42751, z=-3488, instanceId=0];to=PhantomNavigationPoint[x=48712, y=55466, z=-3464, instanceId=0];old28Spec=UNAVAILABLE
+PASS local-farm-recovery.R03-delayed-navigation-reply-after-current-revision-is-discarded elapsedNanos=300586700
+PASS local-farm-recovery.R03-stale-goal-is-typed-and-never-submitted elapsedNanos=64817100
+PASS local-farm-recovery.R05-terminal-attempt-observation-is-idempotent elapsedNanos=76282800
+PASS local-farm-recovery.R12-dry-endpoint-does-not-authorize-water-cell elapsedNanos=29548400
+PASS local-farm-recovery.R13-local-unavailable-is-bounded-across-ticks elapsedNanos=89445300
+PASS local-farm-recovery.R14-visible-local-envelope-and-default-planner elapsedNanos=62793800
+PASS local-farm-recovery.R15-composed-terminal-replan-native-travel-autoplay elapsedNanos=551132900

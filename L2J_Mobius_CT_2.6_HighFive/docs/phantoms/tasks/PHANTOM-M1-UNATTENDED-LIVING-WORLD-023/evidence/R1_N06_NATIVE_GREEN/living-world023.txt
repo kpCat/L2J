@@ -1,0 +1,30 @@
+suite=living-world023
+seed=23002301
+total=7
+passed=7
+failed=0
+measurement.N02.lateDamage=75.0->17.0;damage=58
+measurement.N02.nativeRewards=first=33;second=33;ordinary=3
+measurement.N02.original=casting=false;scope=epoch=55745937745800 state=OPEN outstanding=0 pendingTimers=0 peak=6 failure= work=[];incident=null
+measurement.N03/N04.body-failure=writes=1;first=epoch=55752455676700 state=DRAINING outstanding=0 pendingTimers=0 peak=3 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=55752455680900 state=DRAINING outstanding=0 pendingTimers=0 peak=4 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]
+measurement.N03/N04.open=writes=1;first=epoch=55752478452600 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[];second=epoch=55752478461000 state=OPEN outstanding=0 pendingTimers=0 peak=4 failure= work=[]
+measurement.N03/N04.replaced-epoch=writes=0;first=epoch=55752492586300 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[];second=epoch=55752492592900 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[]
+measurement.N03/N04.sealed=writes=0;first=epoch=55752505795800 state=OPEN outstanding=0 pendingTimers=0 peak=2 failure= work=[];second=epoch=55752505802300 state=SEALED outstanding=0 pendingTimers=0 peak=0 failure= work=[]
+measurement.N03/N04.strict-delayed=writes=0;first=epoch=55752518076200 state=DRAINING outstanding=0 pendingTimers=0 peak=1 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=55752518081800 state=DRAINING outstanding=0 pendingTimers=0 peak=0 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]
+measurement.N06.newCastEligibility=oldReuse=true;newAllowed=true;mp=36.0
+measurement.N06.stale=nextHp=75.0->0.0;cast=false;scope=epoch=55752536610400 state=OPEN outstanding=1 pendingTimers=0 peak=7 failure= work=[13:attack-hit:RESERVED:depth=8:ageMs=8];incident=null
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS living-world023.N02-late-real-native-damage-open-owner-completes-cast elapsedNanos=6558676200
+PASS living-world023.N03-N04-native-boundary-body-failure elapsedNanos=28851400
+PASS living-world023.N03-N04-native-boundary-open elapsedNanos=16409200
+PASS living-world023.N03-N04-native-boundary-replaced-epoch elapsedNanos=13511500
+PASS living-world023.N03-N04-native-boundary-sealed elapsedNanos=13289300
+PASS living-world023.N03-N04-native-boundary-strict-delayed elapsedNanos=14108500
+PASS living-world023.N06-old-published-callback-cannot-abort-new-native-cast elapsedNanos=7191607400

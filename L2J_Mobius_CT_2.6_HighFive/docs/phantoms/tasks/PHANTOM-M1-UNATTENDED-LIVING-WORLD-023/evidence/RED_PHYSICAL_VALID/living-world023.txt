@@ -1,0 +1,120 @@
+suite=living-world023
+seed=23002301
+total=10
+passed=8
+failed=2
+measurement.N02.lateDamage=71.0->13.0;damage=58
+measurement.N02.nativeRewards=first=32;second=32;ordinary=4
+measurement.N02.original=casting=false;scope=epoch=56622548746000 state=OPEN outstanding=0 pendingTimers=0 peak=6 failure= work=[];incident=null
+measurement.N03/N04.body-failure=writes=1;first=epoch=56629457506200 state=DRAINING outstanding=0 pendingTimers=0 peak=3 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=56629457511000 state=DRAINING outstanding=0 pendingTimers=0 peak=4 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]
+measurement.N03/N04.open=writes=1;first=epoch=56629483916300 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[];second=epoch=56629483921600 state=OPEN outstanding=0 pendingTimers=0 peak=4 failure= work=[]
+measurement.N03/N04.replaced-epoch=writes=0;first=epoch=56629497025700 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[];second=epoch=56629497031200 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[]
+measurement.N03/N04.sealed=writes=0;first=epoch=56629509211800 state=OPEN outstanding=0 pendingTimers=0 peak=2 failure= work=[];second=epoch=56629509218500 state=SEALED outstanding=0 pendingTimers=0 peak=0 failure= work=[]
+measurement.N03/N04.strict-delayed=writes=0;first=epoch=56629520788800 state=DRAINING outstanding=0 pendingTimers=0 peak=1 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=56629520793800 state=DRAINING outstanding=0 pendingTimers=0 peak=0 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]
+measurement.N06.newCastEligibility=oldReuse=true;newAllowed=true;mp=36.0
+measurement.N06.stale=nextHp=75.0->0.0;cast=false;scope=epoch=56632998681200 state=OPEN outstanding=1 pendingTimers=0 peak=7 failure= work=[13:attack-hit:RESERVED:depth=8:ageMs=12];incident=null
+measurement.Q12.dynamic.physical-transfer.open.exactPlayers=268435465:1141491211,268435467:735839108,268438333:1031587964
+measurement.Q12.dynamic.physical-transfer.open.fixture=VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT
+measurement.Q12.dynamic.physical-transfer.open.newcomerBeforeWrite=epoch=56629538895000 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[]
+measurement.Q12.dynamic.physical-transfer.open.originIncident=PhantomCleanupIncident[objectId=268435465, epoch=56629538889600, sequence=1, utc=2026-10-06T23:14:13.551059Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=1, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:383)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:279)
+ at org.l2jmobius.gameserver.model.actor.status.PlayerStatus.reduceHp(PlayerStatus.java:80)
+ at org.l2jmobius.gameserver.model.actor.Player.reduceCurrentHp(Player.java:11940)
+ at org.l2jmobius.gameserver.model.actor.Creature.reduceCurrentHp(Creature.java:6756)
+ at org.l2jmobius.gameserver.model.actor.Creature.onHitTimer(Creature.java:5367)
+ at org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run(HitTask.java:60)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:468)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:336)
+ at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)
+ at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+ at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+ at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+ at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=16, truncated=false]
+measurement.Q12.dynamic.physical-transfer.open.originLatestIncident=PhantomCleanupIncident[objectId=268435465, epoch=56629538889600, sequence=2, utc=2026-10-06T23:14:13.552057700Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=1, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:383)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:279)
+ at org.l2jmobius.gameserver.model.actor.status.PlayerStatus.reduceHp(PlayerStatus.java:80)
+ at org.l2jmobius.gameserver.model.actor.Player.reduceCurrentHp(Player.java:11940)
+ at org.l2jmobius.gameserver.model.actor.Creature.reduceCurrentHp(Creature.java:6756)
+ at org.l2jmobius.gameserver.model.actor.Creature.onHitTimer(Creature.java:5367)
+ at org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run(HitTask.java:60)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:468)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:336)
+ at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)
+ at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+ at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+ at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+ at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=16, truncated=false]
+measurement.Q12.dynamic.physical-transfer.open.originQueued=epoch=56629538889600 state=OPEN outstanding=1 pendingTimers=0 peak=3 failure= work=[7:attack-hit:RESERVED:depth=1:ageMs=0]
+measurement.Q12.dynamic.physical-transfer.open.workersHeld=64
+measurement.Q12.dynamic.physical-transfer.ordinary.exactPlayers=268435465:573413189,268435467:913463094,268438335:191853625
+measurement.Q12.dynamic.physical-transfer.ordinary.fixture=VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT
+measurement.Q12.dynamic.physical-transfer.ordinary.nativeCompletion=java.lang.Thread.getStackTrace>org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$Completion.lambda$new$0>org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener.executeEvent>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyToListeners>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEventImpl>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent>org.l2jmobius.gameserver.model.actor.Creature.notifyDamageReceived>org.l2jmobius.gameserver.model.actor.Creature.onHitTimer>org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run>org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run>java.util.concurrent.Executors$RunnableAdapter.call>java.util.concurrent.FutureTask.run>java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run>java.util.concurrent.ThreadPoolExecutor.runWorker>java.util.concurrent.ThreadPoolExecutor$Worker.run>java.lang.Thread.run
+measurement.Q12.dynamic.physical-transfer.ordinary.nativeDelta=6.0
+measurement.Q12.dynamic.physical-transfer.ordinary.workersHeld=64
+measurement.Q12.dynamic.physical-transfer.sealed.exactPlayers=268435465:1101446051,268435467:952590094,268438337:1254015152
+measurement.Q12.dynamic.physical-transfer.sealed.fixture=VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT
+measurement.Q12.dynamic.physical-transfer.sealed.newcomerBeforeWrite=epoch=56631747512800 state=SEALED outstanding=0 pendingTimers=0 peak=3 failure= work=[]
+measurement.Q12.dynamic.physical-transfer.sealed.originIncident=PhantomCleanupIncident[objectId=268435465, epoch=56631747507200, sequence=1, utc=2026-10-06T23:14:15.741967200Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=1, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:383)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:279)
+ at org.l2jmobius.gameserver.model.actor.status.PlayerStatus.reduceHp(PlayerStatus.java:80)
+ at org.l2jmobius.gameserver.model.actor.Player.reduceCurrentHp(Player.java:11940)
+ at org.l2jmobius.gameserver.model.actor.Creature.reduceCurrentHp(Creature.java:6756)
+ at org.l2jmobius.gameserver.model.actor.Creature.onHitTimer(Creature.java:5367)
+ at org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run(HitTask.java:60)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:468)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:336)
+ at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)
+ at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+ at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+ at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+ at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=16, truncated=false]
+measurement.Q12.dynamic.physical-transfer.sealed.originLatestIncident=PhantomCleanupIncident[objectId=268435465, epoch=56631747507200, sequence=2, utc=2026-10-06T23:14:15.741967200Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=1, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:383)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:279)
+ at org.l2jmobius.gameserver.model.actor.status.PlayerStatus.reduceHp(PlayerStatus.java:80)
+ at org.l2jmobius.gameserver.model.actor.Player.reduceCurrentHp(Player.java:11940)
+ at org.l2jmobius.gameserver.model.actor.Creature.reduceCurrentHp(Creature.java:6756)
+ at org.l2jmobius.gameserver.model.actor.Creature.onHitTimer(Creature.java:5367)
+ at org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run(HitTask.java:60)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:468)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:336)
+ at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)
+ at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+ at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+ at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)
+ at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=16, truncated=false]
+measurement.Q12.dynamic.physical-transfer.sealed.originQueued=epoch=56631747507200 state=OPEN outstanding=1 pendingTimers=0 peak=4 failure= work=[7:attack-hit:RESERVED:depth=1:ageMs=0]
+measurement.Q12.dynamic.physical-transfer.sealed.workersHeld=64
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS living-world023.N02-late-real-native-damage-open-owner-completes-cast elapsedNanos=6934636900
+PASS living-world023.N03-N04-native-boundary-body-failure elapsedNanos=34334400
+PASS living-world023.N03-N04-native-boundary-open elapsedNanos=15234100
+PASS living-world023.N03-N04-native-boundary-replaced-epoch elapsedNanos=12312500
+PASS living-world023.N03-N04-native-boundary-sealed elapsedNanos=12348100
+PASS living-world023.N03-N04-native-boundary-strict-delayed elapsedNanos=13455400
+FAIL living-world023.N03-N04-physical-open elapsedNanos=1272242500 type=java.lang.AssertionError message=RED N03/N04: fresh native admission or before-write denial must preserve the captured origin lifetime. Expected <null> but was <PhantomCleanupIncident[objectId=268435465, epoch=56629538889600, sequence=1, utc=2026-10-06T23:14:13.551059Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=1, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:383)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:279)  at org.l2jmobius.gameserver.model.actor.status.PlayerStatus.reduceHp(PlayerStatus.java:80)  at org.l2jmobius.gameserver.model.actor.Player.reduceCurrentHp(Player.java:11940)  at org.l2jmobius.gameserver.model.actor.Creature.reduceCurrentHp(Creature.java:6756)  at org.l2jmobius.gameserver.model.actor.Creature.onHitTimer(Creature.java:5367)  at org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run(HitTask.java:60)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:468)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:336)  at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)  at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)  at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)  at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)  at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)  at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)  at java.base/java.lang.Thread.run(Thread.java:1474) , nodes=1, frames=16, truncated=false]>. seed=23002301
+PASS living-world023.N03-N04-physical-ordinary elapsedNanos=936096400
+FAIL living-world023.N03-N04-physical-sealed elapsedNanos=1249722700 type=java.lang.AssertionError message=RED N03/N04: fresh native admission or before-write denial must preserve the captured origin lifetime. Expected <null> but was <PhantomCleanupIncident[objectId=268435465, epoch=56631747507200, sequence=1, utc=2026-10-06T23:14:15.741967200Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=1, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:383)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:279)  at org.l2jmobius.gameserver.model.actor.status.PlayerStatus.reduceHp(PlayerStatus.java:80)  at org.l2jmobius.gameserver.model.actor.Player.reduceCurrentHp(Player.java:11940)  at org.l2jmobius.gameserver.model.actor.Creature.reduceCurrentHp(Creature.java:6756)  at org.l2jmobius.gameserver.model.actor.Creature.onHitTimer(Creature.java:5367)  at org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run(HitTask.java:60)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:468)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:336)  at org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run(ThreadPool.java:327)  at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)  at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)  at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309)  at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)  at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)  at java.base/java.lang.Thread.run(Thread.java:1474) , nodes=1, frames=16, truncated=false]>. seed=23002301
+PASS living-world023.N06-old-published-callback-cannot-abort-new-native-cast elapsedNanos=7198413800

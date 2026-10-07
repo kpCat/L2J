@@ -1,0 +1,6 @@
+TASK_OWNED_JVMS=0
+RETENTION=night023a,b,c runtime and databases; no deletion
+ORIGINAL_RUNTIME_PRESERVED=304 files
+EMERGENCY_FORCE=0
+PLANNED_CRASH=1 dedicated exact c GameServer only
+PLAY_WRITES=0; all runtime JDBC targets own clone; source PLAY export read-only

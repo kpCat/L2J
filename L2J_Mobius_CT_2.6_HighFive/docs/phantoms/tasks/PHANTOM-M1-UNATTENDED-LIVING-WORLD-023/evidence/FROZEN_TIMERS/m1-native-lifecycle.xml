@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="5" passed="5" failures="0">
+  <properties>
+    <property name="Q04.beforeStoreWhileWriter" value="false"/>
+    <property name="Q04.nativeGrantBeforeDelete" value="1"/>
+    <property name="Q05.beforeStoreWhileWriter" value="false"/>
+    <property name="Q05.nativeGrantBeforeDelete" value="1"/>
+    <property name="Q06-repeat.beforeStoreWhileWriter" value="false"/>
+    <property name="Q06-repeat.nativeGrantBeforeDelete" value="1"/>
+    <property name="Q06.timer.beforeStoreWhileBodyRunning" value="false"/>
+    <property name="Q06.timer.cancelCalls" value="1"/>
+    <property name="Q06.timer.cleanup" value="SUCCESS"/>
+    <property name="Q06.timer.eventCalls" value="1"/>
+    <property name="Q06.timer.ownerWhileBodyRunning" value="MaterializationSnapshot[profileId=74588, characterObjectId=268435465, state=DEMATERIALIZING, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=1, worldPresent=true, materializedAtNanos=61632246160200, dematerializedAtNanos=0, cleanupPhase=ACTION_DRAIN, cleanupFailurePhase=NONE, cleanupFailureClass=, cleanupFailureMessage=, cleanupFailureSequence=0, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=, firstCleanupIncident=null, latestCleanupIncident=null]"/>
+    <property name="Q06.timer.pendingRegistration" value="false"/>
+    <property name="Q06.timer.remainingWhileBodyRunning" value="-1"/>
+    <property name="Q06.timer.rewardCountBeforeDelete" value="1"/>
+    <property name="Q13.timer.beforeStoreWhileGrandchild" value="false"/>
+    <property name="Q13.timer.beforeStoreWhileParent" value="false"/>
+    <property name="Q13.timer.nativeGrantBeforeDelete" value="1"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q04-native-QuestTimer-held-body" elapsedNanos="2470015900"></testcase>
+  <testcase name="m1-native-lifecycle.Q05-native-pending-cancel-and-long-repeat" elapsedNanos="2033221800"></testcase>
+  <testcase name="m1-native-lifecycle.Q06-native-TimerHolder-body-drains-after-unregister" elapsedNanos="2292034100"></testcase>
+  <testcase name="m1-native-lifecycle.Q06-native-repeating-body-stops-and-drains" elapsedNanos="2281609500"></testcase>
+  <testcase name="m1-native-lifecycle.Q13-native-zero-earned-child-and-grandchild" elapsedNanos="2285355100"></testcase>
+</testsuite>

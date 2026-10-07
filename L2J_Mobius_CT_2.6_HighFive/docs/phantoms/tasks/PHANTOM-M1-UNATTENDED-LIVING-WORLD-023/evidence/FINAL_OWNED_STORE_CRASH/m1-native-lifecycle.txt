@@ -1,0 +1,28 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=6
+passed=0
+failed=6
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=da8ca1db9bf226d2f81a070373da866f6fef1af286218ab75182295bc643fc2f
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.focusedFixture.74547=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74548=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74549=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74550=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74551=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.74552=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+FAIL m1-native-lifecycle.Q14-actual-process-halt-reconcile-reload-FINALIZE elapsedNanos=168936600 type=org.l2jmobius.tests.phantoms.PhantomTestConfigurationException message=Phantom test schema manifest is stale. seed=15001501
+FAIL m1-native-lifecycle.Q14-actual-process-halt-reconcile-reload-LEGACY_ZERO_NATIVE elapsedNanos=84811200 type=org.l2jmobius.tests.phantoms.PhantomTestConfigurationException message=Phantom test schema manifest is stale. seed=15001501
+FAIL m1-native-lifecycle.Q14-actual-process-halt-reconcile-reload-MISMATCH elapsedNanos=70113500 type=org.l2jmobius.tests.phantoms.PhantomTestConfigurationException message=Phantom test schema manifest is stale. seed=15001501
+FAIL m1-native-lifecycle.Q14-actual-process-halt-reconcile-reload-MISMATCH_VITALITY elapsedNanos=69473100 type=org.l2jmobius.tests.phantoms.PhantomTestConfigurationException message=Phantom test schema manifest is stale. seed=15001501
+FAIL m1-native-lifecycle.Q14-actual-process-halt-reconcile-reload-NATIVE elapsedNanos=66660400 type=org.l2jmobius.tests.phantoms.PhantomTestConfigurationException message=Phantom test schema manifest is stale. seed=15001501
+FAIL m1-native-lifecycle.Q14-actual-process-halt-reconcile-reload-PREPARE elapsedNanos=69693500 type=org.l2jmobius.tests.phantoms.PhantomTestConfigurationException message=Phantom test schema manifest is stale. seed=15001501

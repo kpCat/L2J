@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="native-context-handoff" seed="18001801" tests="15" passed="14" failures="1">
+  <properties>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="integrated.actual" value="task011=ecology.native_materialization_required;currentLocal=true;outcome=TransitionOutcome[outcome=SUCCESS, reason=, request=MaterializationRequest[kind=NORMAL, ownerClaim=]];admission="/>
+  </properties>
+  <testcase name="native-context-handoff.H01-normal-incomplete-remains-fenced" elapsedNanos="108503500"></testcase>
+  <testcase name="native-context-handoff.H02-ordinary-complete-due-is-normal-empty" elapsedNanos="44335900"></testcase>
+  <testcase name="native-context-handoff.H03-integrated-task011-exact-native-handoff" elapsedNanos="161852800"></testcase>
+  <testcase name="native-context-handoff.H04-no-permit-outside-exact-native-branch" elapsedNanos="29348200"></testcase>
+  <testcase name="native-context-handoff.H05-blank-wrong-claim-before-load" elapsedNanos="36253500"></testcase>
+  <testcase name="native-context-handoff.H06-exact-claim-both-lifecycle-admissions" elapsedNanos="24733000"></testcase>
+  <testcase name="native-context-handoff.H07-catchup-row-and-payload-races-fail-closed" elapsedNanos="100427600"></testcase>
+  <testcase name="native-context-handoff.H08-goal-race-after-historical-load-fails-closed" elapsedNanos="41534300"></testcase>
+  <testcase name="native-context-handoff.H09-current-native-owner-epoch-attests-no-reward" elapsedNanos="61948500"></testcase>
+  <testcase name="native-context-handoff.H10-abort-releases-both-admissions" elapsedNanos="24088500"></testcase>
+  <testcase name="native-context-handoff.H11-success-preserves-exact-history-and-ecology" elapsedNanos="55091600"></testcase>
+  <testcase name="native-context-handoff.H12-normal-without-catchup-unchanged" elapsedNanos="38881800"></testcase>
+  <testcase name="native-context-handoff.H13-historical-baseline-pending-unchanged" elapsedNanos="56106300"></testcase>
+  <testcase name="native-context-handoff.H14-recorder-bounded-real-admission-subreason" elapsedNanos="19818000"></testcase>
+  <testcase name="native-context-handoff.H15-complete-dead-stale-baseline-owned-refresh" elapsedNanos="33319800"><failure type="java.lang.AssertionError" message="Dead stale baseline needs exact owned refresh before NORMAL." seed="18001801"/></testcase>
+</testsuite>

@@ -1,0 +1,29 @@
+suite=native-context-handoff
+seed=18001801
+total=15
+passed=14
+failed=1
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.integrated.actual=task011=ecology.native_materialization_required;currentLocal=true;outcome=TransitionOutcome[outcome=SUCCESS, reason=, request=MaterializationRequest[kind=NORMAL, ownerClaim=]];admission=
+PASS native-context-handoff.H01-normal-incomplete-remains-fenced elapsedNanos=116941100
+PASS native-context-handoff.H02-ordinary-complete-due-is-normal-empty elapsedNanos=43699300
+PASS native-context-handoff.H03-integrated-task011-exact-native-handoff elapsedNanos=146889600
+PASS native-context-handoff.H04-no-permit-outside-exact-native-branch elapsedNanos=24919400
+PASS native-context-handoff.H05-blank-wrong-claim-before-load elapsedNanos=24925100
+PASS native-context-handoff.H06-exact-claim-both-lifecycle-admissions elapsedNanos=30719600
+PASS native-context-handoff.H07-catchup-row-and-payload-races-fail-closed elapsedNanos=93773600
+PASS native-context-handoff.H08-goal-race-after-historical-load-fails-closed elapsedNanos=39675900
+PASS native-context-handoff.H09-current-native-owner-epoch-attests-no-reward elapsedNanos=60798100
+PASS native-context-handoff.H10-abort-releases-both-admissions elapsedNanos=24355600
+PASS native-context-handoff.H11-success-preserves-exact-history-and-ecology elapsedNanos=58061300
+PASS native-context-handoff.H12-normal-without-catchup-unchanged elapsedNanos=44041000
+PASS native-context-handoff.H13-historical-baseline-pending-unchanged elapsedNanos=60479900
+PASS native-context-handoff.H14-recorder-bounded-real-admission-subreason elapsedNanos=20025500
+FAIL native-context-handoff.H15-complete-dead-stale-baseline-owned-refresh elapsedNanos=49618500 type=java.lang.AssertionError message=Dead stale baseline needs exact owned refresh before NORMAL. seed=18001801

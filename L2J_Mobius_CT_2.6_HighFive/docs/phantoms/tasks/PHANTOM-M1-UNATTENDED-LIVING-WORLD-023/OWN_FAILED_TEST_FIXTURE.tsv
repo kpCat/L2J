@@ -1,0 +1,4 @@
+profile_id	character_object_id	row_version	created_at	updated_at
+74469	268435465	0	2026-10-07 02:34:39.637	2026-10-07 02:34:39.637
+profile_id	component_type	row_version	created_at	SHA2(payload,256)
+74469	goal.runtime	0	2026-10-07 02:34:39.653	7f060d35cbc0eb33fd159c25f7450f072ecfacc191265ae3882bd323365192ee

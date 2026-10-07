@@ -1,0 +1,29 @@
+suite=native-farm-continuation022
+seed=22002201
+total=7
+passed=3
+failed=4
+measurement.S02.TEST_setup.false=existing guarded owned fixture; class=ELVEN_MAGE level7; native auto-get skills; seven stock Monsters, NPC AI ON; no post-baseline damage/reward injection
+measurement.S02.TEST_setup.true=existing guarded owned fixture; class=FIGHTER level7; native auto-get skills; seven stock Monsters, NPC AI ON; no post-baseline damage/reward injection
+measurement.S02.execution=entered=197;finished=197;failure=null;castSeen=true;runtime=Optional[RuntimeSnapshot[profileId=74403, goalId=8799123603415211486, goalType=farm.background, goalRevision=1, goalStatus=ACTIVE, runtimeState=WAITING_RETRY, decisionSequence=52, selectedCandidateKey=candidate.background.farm, selectedScore=1000, planId=47, currentStep=1, attempt=5, lastResult=RETRY, reasonKey=background.visible.autoplay_running, topCandidateEvaluations=[CandidateEvaluation[candidateKey=candidate.background.farm, score=1000, status=ELIGIBLE, reasonKey=background.explicit.ready]], inFlight=false, persistenceInFlight=false, persistenceOperationId=0, persistenceOperationKind=null, generation=4, activityGeneration=1, componentRowVersion=1]];owner=epoch=56054917517100 state=OPEN outstanding=0 pendingTimers=2 peak=8 failure= work=[];casting=false;intention=ATTACK;target=Monster:Red Keltir(20534)[268482571];expDelta=350;spDelta=10
+measurement.S02.native={nativeEvidenceVersion=1, nativeEvidenceOwner=PHANTOM, nativeEvidenceObjectId=268435465, nativeEvidenceEpoch=56054917517100, nativeEvidenceSampleNanos=56104098780200, nativeEvidenceOverflow=false, nativeFirstUnprovenReason=NONE, nativeFirstUnprovenNanos=0, nativeEvidenceSequence=25, nativeDamageSequence=9, nativeKillSequence=5, nativeRewardSequence=5, nativeTargetSequence=6, nativeFarmCycleSequence=5, nativeExpGained=350, nativeSpGained=10, nativeLootSequence=0, nativeLastProgressNanos=56104051033400, nativePhase=REGEN, nativePhaseSinceNanos=56065758615200, nativePhaseDeadlineNanos=56185758615200}
+measurement.S02.skills=known=Skill Wind Strike(1177,1);auto=[1177];mp=110.39772799999997
+measurement.S05-S06.control=REAL_LIKE_TEST_ONLY;no fake login;shared actual pools;EXP=11287→11357→11427;SP=4
+measurement.S11.saved=exp=11637;sp=18;retained=0
+measurement.S12.nativeLoot=events=0;inventoryBefore=20;inventoryAfter=20
+measurement.S13.tutorial=missing state safe; existing state3 preserved; no fake quest for Phantom
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL native-farm-continuation022.N01-production-native-fighter-five-next-targets elapsedNanos=91396463900 type=java.lang.AssertionError message=RED: native continuation must complete five same-epoch cycles, actual=Snapshot[objectId=268435465, epoch=55963635082300, sampleNanos=56053825802500, overflow=false, sequence=114, damageSequence=100, killSequence=4, rewardSequence=4, targetSequence=5, farmCycleSequence=4, expGained=280, spGained=8, lootSequence=1, lastProgressNanos=56053727890400, phase=COMBAT, phaseSinceNanos=56038187319300, phaseDeadlineNanos=56158187319300, usefulProgressNanos=56053727890400, lootCount=13, trackedTargets=1, firstUnprovenReason=NONE, firstUnprovenNanos=0] seed=22002201
+PASS native-farm-continuation022.S02-production-binding-native-cast-reward-five-next-targets elapsedNanos=49229934500
+PASS native-farm-continuation022.S05-S06-real-like-stock-control-continues-in-same-pools-after-revocation elapsedNanos=15995494400
+FAIL native-farm-continuation022.S11-native-cast-ignores-unearned-hate-only-recipient elapsedNanos=5019492900 type=java.lang.reflect.InvocationTargetException message= seed=22002201
+FAIL native-farm-continuation022.S12-fresh-real-native-damage-recipient-and-delayed-fence elapsedNanos=5010984800 type=java.lang.AssertionError message=INVALID Q12: scheduled workers did not all enter hold. seed=22002201
+PASS native-farm-continuation022.S13-tutorial-missing-state-and-existing-state-control elapsedNanos=244515400
+FAIL native-farm-continuation022.after-all elapsedNanos=0 type=java.lang.AssertionError message=Headless suite left Hikari or L2jMobius infrastructure threads. seed=22002201

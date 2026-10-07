@@ -1,0 +1,24 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=1
+passed=1
+failed=0
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_phantom_test
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.focusedFixture.74538=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.watchdog.heal.after=hp=142.24217005659614 delta=50.24217005659614 mp=119.0 mpDelta=7.0 casting=false lastSkill=1216 disabled=false invul=false nativeOverflow=false
+measurement.m1.watchdog.heal.before=skill=1216:1 hp=92.0/185 recoverable=185 mp=126.0 need=9 invul=false teleport=false muted=false disabled=false mAtkSpd=193 baseHitMillis=5000
+measurement.m1.watchdog.heal.horizon=nativeCastMillis=8626 schedulerAllowanceMillis=2000 horizonMillis=10626
+measurement.m1.watchdog.target.afterHeal=object=268481775 npc=20534/20534 spawned=true dead=false raid=false invul=false targetable=true showName=true autoAttackable=true instance=0/0 distance=20.0/600 zDelta=0 see=true move=true randomWalk=false moving=false respectful=true npcTarget=null playerTarget=Monster:Red Keltir(20534)[268481775] playerPose=44126,42751,-3488 targetPose=44146,42751,-3488
+measurement.m1.watchdog.target.beforeHeal=object=268481775 npc=20534/20534 spawned=true dead=false raid=false invul=false targetable=true showName=true autoAttackable=true instance=0/0 distance=20.0/600 zDelta=0 see=true move=true randomWalk=false moving=false respectful=true npcTarget=null playerTarget=null playerPose=44126,42751,-3488 targetPose=44146,42751,-3488
+measurement.m1.watchdog.targetWithoutProgress=target=268481775 autoPlay=true healDelta=50.24217005659614 damage=0 expired=true
+PASS m1-native-lifecycle.T06-actual-native-heal-without-work-debt-reset elapsedNanos=9626611000

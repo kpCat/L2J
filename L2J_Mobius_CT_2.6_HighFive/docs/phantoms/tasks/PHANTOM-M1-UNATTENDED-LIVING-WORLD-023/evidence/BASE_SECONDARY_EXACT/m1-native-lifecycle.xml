@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="5" passed="3" failures="2">
+  <properties>
+    <property name="Q12.sharedExp.managed.fixture" value="INVALID_UNTIL_NATIVE_COMPLETION"/>
+    <property name="Q12.sharedExp.ordinary.baselineOutstanding" value="0"/>
+    <property name="Q12.sharedExp.ordinary.exactPlayerIdentities" value="268435465:1666569334,268435467:1928751893"/>
+    <property name="Q12.sharedExp.ordinary.fixture" value="VALID_ACTUAL_NATIVE_COMPLETION"/>
+    <property name="Q12.sharedExp.ordinary.nativeDamage" value="86.0"/>
+    <property name="Q12.sharedExp.ordinary.nativeSharedExp" value="39"/>
+    <property name="Q12.sharedExp.ordinary.nativeSharedSp" value="1"/>
+    <property name="Q12.sharedExp.ordinary.nativeTaskStack" value="java.lang.Thread.getStackTrace&gt;org.l2jmobius.tests.phantoms.PhantomM1SharedRecipientsChecks$NativeCompletion.lambda$new$0&gt;org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener.executeEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyToListeners&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEventImpl&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.actor.Creature.notifyDamageReceived&gt;handlers.skill.effects.MagicalDamage.onStart&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffectScope&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffects&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffects&gt;org.l2jmobius.gameserver.model.skill.Skill.activateSkill&gt;org.l2jmobius.gameserver.model.skill.Skill.activateSkill&gt;org.l2jmobius.gameserver.model.actor.Creature.callSkillNative&gt;org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat&gt;org.l2jmobius.gameserver.model.actor.Creature.callSkill&gt;org.l2jmobius.gameserver.model.actor.Player.lambda$callSkill$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction&gt;org.l2jmobius.gameserver.model.actor.Player.callSkill&gt;org.l2jmobius.gameserver.model.actor.Creature.onMagicHitTimer"/>
+    <property name="Q12.sharedExp.ordinary.scheduledWorkersHeld" value="64"/>
+    <property name="Q12.sharedExp.ordinary.secondaryOutstandingAfterLeaseBeforeEntry" value="0"/>
+    <property name="Q12.thirdTransfer.managed.fixture" value="INVALID_UNTIL_NATIVE_COMPLETION"/>
+    <property name="Q12.thirdTransfer.ordinary.baselineOutstanding" value="0"/>
+    <property name="Q12.thirdTransfer.ordinary.exactPlayerIdentities" value="268435465:1495096827,268435467:2069174241"/>
+    <property name="Q12.thirdTransfer.ordinary.fixture" value="VALID_ACTUAL_NATIVE_COMPLETION"/>
+    <property name="Q12.thirdTransfer.ordinary.nativeDamage" value="2.0"/>
+    <property name="Q12.thirdTransfer.ordinary.nativeTaskStack" value="java.lang.Thread.getStackTrace&gt;org.l2jmobius.tests.phantoms.PhantomM1SharedRecipientsChecks$NativeCompletion.lambda$new$0&gt;org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener.executeEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyToListeners&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEventImpl&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent&gt;org.l2jmobius.gameserver.model.actor.Creature.notifyDamageReceived&gt;handlers.skill.effects.MagicalDamage.onStart&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffectScope&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffects&gt;org.l2jmobius.gameserver.model.skill.Skill.applyEffects&gt;org.l2jmobius.gameserver.model.skill.Skill.activateSkill&gt;org.l2jmobius.gameserver.model.skill.Skill.activateSkill&gt;org.l2jmobius.gameserver.model.actor.Creature.callSkillNative&gt;org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$0&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run&gt;org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat&gt;org.l2jmobius.gameserver.model.actor.Creature.callSkill&gt;org.l2jmobius.gameserver.model.actor.Creature.onMagicHitTimer&gt;org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.run&gt;org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run&gt;java.util.concurrent.Executors$RunnableAdapter.call&gt;java.util.concurrent.FutureTask.run"/>
+    <property name="Q12.thirdTransfer.ordinary.nativeThirdCasterHpLoss" value="1.0"/>
+    <property name="Q12.thirdTransfer.ordinary.scheduledWorkersHeld" value="64"/>
+    <property name="Q12.thirdTransfer.ordinary.secondaryOutstandingAfterLeaseBeforeEntry" value="0"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="fee18d9cd4d1a57126bfddefb08ad1a6686d4d618053561a226c1d2b7a014cb4"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="m1.focusedFixture.74533" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74534" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74535" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74536" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.74537" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.watchdog.heal.after" value="hp=142.24217005659614 delta=50.24217005659614 mp=119.0 mpDelta=7.0 casting=false lastSkill=1216 disabled=false invul=false nativeOverflow=false"/>
+    <property name="m1.watchdog.heal.before" value="skill=1216:1 hp=92.0/185 recoverable=185 mp=126.0 need=9 invul=false teleport=false muted=false disabled=false mAtkSpd=193 baseHitMillis=5000"/>
+    <property name="m1.watchdog.heal.horizon" value="nativeCastMillis=8626 schedulerAllowanceMillis=2000 horizonMillis=10626"/>
+    <property name="m1.watchdog.target.afterHeal" value="object=268482556 npc=20534/20534 spawned=true dead=false raid=false invul=false targetable=true showName=true autoAttackable=true instance=0/0 distance=20.0/600 zDelta=0 see=true move=true randomWalk=false moving=false respectful=true npcTarget=null playerTarget=Monster:Red Keltir(20534)[268482556] playerPose=44126,42751,-3488 targetPose=44146,42751,-3488"/>
+    <property name="m1.watchdog.target.beforeHeal" value="object=268482556 npc=20534/20534 spawned=true dead=false raid=false invul=false targetable=true showName=true autoAttackable=true instance=0/0 distance=20.0/600 zDelta=0 see=true move=true randomWalk=false moving=false respectful=true npcTarget=null playerTarget=null playerPose=44126,42751,-3488 targetPose=44146,42751,-3488"/>
+    <property name="m1.watchdog.targetWithoutProgress" value="target=268482556 autoPlay=true healDelta=50.24217005659614 damage=0 expired=true"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-shared-party-exp-false" elapsedNanos="3315396400"><failure type="java.lang.AssertionError" message="INVALID Q12: pre-existing native tickets hide queued accounting." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-shared-party-exp-true" elapsedNanos="6952934900"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-third-transfer-hp-false" elapsedNanos="3401217900"><failure type="java.lang.AssertionError" message="INVALID Q12: pre-existing native tickets hide queued accounting." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-third-transfer-hp-true" elapsedNanos="4028162100"></testcase>
+  <testcase name="m1-native-lifecycle.T06-actual-native-heal-without-work-debt-reset" elapsedNanos="9430696500"></testcase>
+</testsuite>

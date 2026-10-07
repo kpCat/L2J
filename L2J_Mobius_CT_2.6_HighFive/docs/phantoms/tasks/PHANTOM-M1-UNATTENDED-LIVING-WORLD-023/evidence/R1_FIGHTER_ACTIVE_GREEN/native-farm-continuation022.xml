@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="native-farm-continuation022" seed="22002201" tests="1" passed="1" failures="0">
+  <properties>
+    <property name="S02.TEST_setup.true" value="existing guarded owned fixture; class=FIGHTER level7; native auto-get skills; seven stock Monsters, NPC AI ON; no post-baseline damage/reward injection"/>
+    <property name="S02.execution" value="entered=375;finished=375;failure=null;castSeen=false;runtime=Optional[RuntimeSnapshot[profileId=74405, goalId=5466303365935987528, goalType=farm.background, goalRevision=1, goalStatus=ACTIVE, runtimeState=WAITING_RETRY, decisionSequence=97, selectedCandidateKey=candidate.background.farm, selectedScore=1000, planId=90, currentStep=1, attempt=7, lastResult=RETRY, reasonKey=background.visible.autoplay_running, topCandidateEvaluations=[CandidateEvaluation[candidateKey=candidate.background.farm, score=1000, status=ELIGIBLE, reasonKey=background.explicit.ready]], inFlight=false, persistenceInFlight=false, persistenceOperationId=0, persistenceOperationKind=null, generation=4, activityGeneration=1, componentRowVersion=1]];owner=epoch=57340927096400 state=OPEN outstanding=0 pendingTimers=1 peak=8 failure= work=[];casting=false;intention=ATTACK;target=Monster:Red Keltir(20534)[268481779];expDelta=350;spDelta=10"/>
+    <property name="S02.native" value="{nativeEvidenceVersion=1, nativeEvidenceOwner=PHANTOM, nativeEvidenceObjectId=268435465, nativeEvidenceEpoch=57340927096400, nativeEvidenceSampleNanos=57434810725900, nativeEvidenceOverflow=false, nativeFirstUnprovenReason=NONE, nativeFirstUnprovenNanos=0, nativeEvidenceSequence=119, nativeDamageSequence=101, nativeKillSequence=5, nativeRewardSequence=5, nativeTargetSequence=6, nativeFarmCycleSequence=5, nativeExpGained=350, nativeSpGained=10, nativeLootSequence=2, nativeLastProgressNanos=57434717183500, nativePhase=NONE, nativePhaseSinceNanos=0, nativePhaseDeadlineNanos=0}"/>
+    <property name="S02.skills" value="known=null;auto=[];mp=81.0"/>
+    <property name="S11.saved" value="exp=11637;sp=10;retained=0"/>
+    <property name="S12.nativeLoot" value="events=2;inventoryBefore=7;inventoryAfter=31"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="native-farm-continuation022.N01-production-native-fighter-five-next-targets" elapsedNanos="94085666400"></testcase>
+</testsuite>

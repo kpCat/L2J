@@ -1,0 +1,13 @@
+DATABASE()
+l2jmobiush5_localplay_night023c
+profiles	distinct_characters
+10000	10000
+component_type	components	bytes
+background.catchup	10000	5174700
+background.native-context	418	83182
+background.state	10000	10729057
+goal.runtime	10000	3044612
+population.ecology	10000	2639568
+population.state	10000	3348075
+charId	char_name	online
+268492939	TestAdmin	0

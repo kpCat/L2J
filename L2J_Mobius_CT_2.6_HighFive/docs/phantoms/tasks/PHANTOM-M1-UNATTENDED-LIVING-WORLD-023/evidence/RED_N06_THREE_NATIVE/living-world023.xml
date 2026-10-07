@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="living-world023" seed="23002301" tests="8" passed="6" failures="2">
+  <properties>
+    <property name="N02.lateDamage" value="75.0-&gt;17.0;damage=58"/>
+    <property name="N02.nativeRewards" value="first=33;second=33;ordinary=3"/>
+    <property name="N02.original" value="casting=false;scope=epoch=55406523955000 state=OPEN outstanding=0 pendingTimers=0 peak=6 failure= work=[];incident=null"/>
+    <property name="N03/N04.body-failure" value="writes=1;first=epoch=55412964510200 state=DRAINING outstanding=0 pendingTimers=0 peak=3 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=55412964515200 state=DRAINING outstanding=0 pendingTimers=0 peak=4 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]"/>
+    <property name="N03/N04.open" value="writes=1;first=epoch=55412987479800 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[];second=epoch=55412987486000 state=OPEN outstanding=0 pendingTimers=0 peak=4 failure= work=[]"/>
+    <property name="N03/N04.replaced-epoch" value="writes=0;first=epoch=55413000008600 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[];second=epoch=55413000014200 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[]"/>
+    <property name="N03/N04.sealed" value="writes=0;first=epoch=55413014485100 state=OPEN outstanding=0 pendingTimers=0 peak=2 failure= work=[];second=epoch=55413014490100 state=SEALED outstanding=0 pendingTimers=0 peak=0 failure= work=[]"/>
+    <property name="N03/N04.strict-delayed" value="writes=0;first=epoch=55413026434400 state=DRAINING outstanding=0 pendingTimers=0 peak=1 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=55413026442000 state=DRAINING outstanding=0 pendingTimers=0 peak=0 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]"/>
+    <property name="headless.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="living-world023.N02-late-real-native-damage-open-owner-completes-cast" elapsedNanos="6458425800"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-body-failure" elapsedNanos="31922900"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-open" elapsedNanos="14851000"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-replaced-epoch" elapsedNanos="13465800"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-sealed" elapsedNanos="13803300"></testcase>
+  <testcase name="living-world023.N03-N04-native-boundary-strict-delayed" elapsedNanos="15242600"></testcase>
+  <testcase name="living-world023.N06-old-published-callback-cannot-abort-new-native-cast" elapsedNanos="3044946700"><failure type="java.lang.AssertionError" message="N06 newer exact native cast started before old callback released." seed="23002301"/></testcase>
+  <testcase name="living-world023.after-all" elapsedNanos="0"><failure type="java.lang.RuntimeException" message="java.lang.AssertionError: Identity registry is not empty after final fixture cleanup. Expected &lt;0&gt; but was &lt;1&gt;." seed="23002301"/></testcase>
+</testsuite>

@@ -1,0 +1,10 @@
+C:\Users\ZBook\.codex\worktrees\m1-overnight-023\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-UNATTENDED-LIVING-WORLD-023\ReadDryPath023.java:4: error: package org.l2jmobius does not exist
+import org.l2jmobius.ConfigLoader;
+                    ^
+C:\Users\ZBook\.codex\worktrees\m1-overnight-023\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-UNATTENDED-LIVING-WORLD-023\ReadDryPath023.java:14: error: cannot find symbol
+        ConfigLoader.init();
+        ^
+  symbol:   variable ConfigLoader
+  location: class ReadDryPath023
+2 errors
+error: compilation failed
