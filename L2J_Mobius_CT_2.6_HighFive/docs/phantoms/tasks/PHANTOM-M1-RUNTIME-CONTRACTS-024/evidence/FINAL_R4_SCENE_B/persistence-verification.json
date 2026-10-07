@@ -1,0 +1,21 @@
+{
+  "pass": false,
+  "checkedProfiles": [
+    110,
+    175,
+    252,
+    832,
+    879,
+    1179
+  ],
+  "errors": [
+    "retainedEntries must be exact zero",
+    "profile 832 native store not finalized",
+    "profile 832 exp: expected=36918, saved=38131",
+    "profile 832 sp: expected=3072, saved=3202",
+    "profile 832 expBeforeDeath: expected=33993, saved=39648",
+    "profile 832 hp: expected=249.0, saved=0.0",
+    "profile 832 cp: expected=99.0, saved=0.0",
+    "profile 832 inventoryHash differs"
+  ]
+}

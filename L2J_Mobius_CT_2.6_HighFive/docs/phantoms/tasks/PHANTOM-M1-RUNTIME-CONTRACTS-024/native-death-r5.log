@@ -1,0 +1,10 @@
+TASK024_DEATH_FIXTURE_INSTALLED pid=15332
+
+profileId primary sameEpoch cycles rewards targetTransitions tail120Rewards  exp  sp  pass
+--------- ------- --------- ------ ------- ----------------- --------------  ---  --  ----
+175          True     False      0       0                 0              0    0   0 False
+187          True     False      0       0                 0              0    0   0 False
+252         False      True      0       1                 0              0  210  10 False
+975         False     False      0       0                 0              0    0   0 False
+1158        False      True     15      17                19              8 1235 120 False
+

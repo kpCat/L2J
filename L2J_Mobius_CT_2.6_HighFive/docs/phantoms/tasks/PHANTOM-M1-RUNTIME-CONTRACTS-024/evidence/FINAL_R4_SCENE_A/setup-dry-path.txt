@@ -1,0 +1,822 @@
+���. 07, 2026 9:58:18 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData load
+INFO: Network Config: ipconfig.xml does not exist, using automatic configuration...
+���. 07, 2026 9:58:18 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 127.0.0.0/8 address: 127.0.0.1
+���. 07, 2026 9:58:18 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 192.168.0.0/24 address: 192.168.0.55
+���. 07, 2026 9:58:18 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 0.0.0.0/0 address: 89.149.88.222
+���. 07, 2026 9:58:18 PM org.l2jmobius.gameserver.config.ServerConfig loadChatFilter
+INFO: Loaded 6 Filter Words.
+���. 07, 2026 9:58:19 PM org.l2jmobius.gameserver.geoengine.GeoEngine <init>
+INFO: GeoEngine: Loaded 203 regions.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM account_gsdata WHERE account_gsdata.account_name NOT IN (SELECT account_name FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_contacts WHERE character_contacts.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_contacts WHERE character_contacts.contactId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_friends WHERE character_friends.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_friends WHERE character_friends.friendId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_hennas WHERE character_hennas.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_macroses WHERE character_macroses.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_quests WHERE character_quests.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_recipebook WHERE character_recipebook.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_recipeshoplist WHERE character_recipeshoplist.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_shortcuts WHERE character_shortcuts.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_skills WHERE character_skills.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_skills_save WHERE character_skills_save.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_subclasses WHERE character_subclasses.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_raid_points WHERE character_raid_points.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_instance_time WHERE character_instance_time.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM items WHERE items.owner_id NOT IN (SELECT charId FROM characters) AND items.owner_id NOT IN (SELECT clan_id FROM clan_data) AND items.owner_id != -1 - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM items WHERE items.owner_id = -1 AND loc LIKE 'MAIL' AND loc_data NOT IN (SELECT messageId FROM messages WHERE senderId = -1) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM item_auction_bid WHERE item_auction_bid.playerObjId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM item_attributes WHERE item_attributes.itemId NOT IN (SELECT object_id FROM items) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM item_elementals WHERE item_elementals.itemId NOT IN (SELECT object_id FROM items) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM cursed_weapons WHERE cursed_weapons.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM heroes WHERE heroes.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM olympiad_nobles WHERE olympiad_nobles.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM olympiad_nobles_eom WHERE olympiad_nobles_eom.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM pets WHERE pets.item_obj_id NOT IN (SELECT object_id FROM items) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM seven_signs WHERE seven_signs.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM merchant_lease WHERE merchant_lease.player_id NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_reco_bonus WHERE character_reco_bonus.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM clan_data WHERE clan_data.leader_id NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM clan_data WHERE clan_data.clan_id NOT IN (SELECT clanid FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM olympiad_fights WHERE olympiad_fights.charOneId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM olympiad_fights WHERE olympiad_fights.charTwoId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM heroes_diary WHERE heroes_diary.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_offline_trade WHERE character_offline_trade.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_offline_trade_items WHERE character_offline_trade_items.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_offline_play WHERE character_offline_play.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_offline_play_group WHERE character_offline_play_group.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_offline_play_group WHERE character_offline_play_group.leaderId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_tpbookmark WHERE character_tpbookmark.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM character_variables WHERE character_variables.charId NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM clan_privs WHERE clan_privs.clan_id NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM clan_skills WHERE clan_skills.clan_id NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM clan_subpledges WHERE clan_subpledges.clan_id NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM clan_wars WHERE clan_wars.clan1 NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM clan_wars WHERE clan_wars.clan2 NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM clanhall_functions WHERE clanhall_functions.hall_id NOT IN (SELECT id FROM clanhall WHERE ownerId <> 0 union all SELECT clanHallId FROM siegable_clanhall WHERE ownerId <> 0) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM siege_clans WHERE siege_clans.clan_id NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM clan_notices WHERE clan_notices.clan_id NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM auction_bid WHERE auction_bid.bidderId NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM forums WHERE forums.forum_owner_id NOT IN (SELECT clan_id FROM clan_data) AND forums.forum_parent=2 - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM forums WHERE forums.forum_owner_id NOT IN (SELECT charId FROM characters) AND forums.forum_parent=3 - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM posts WHERE posts.post_forum_id NOT IN (SELECT forum_id FROM forums) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute cleanup query: DELETE FROM topic WHERE topic.topic_forum_id NOT IN (SELECT forum_id FROM forums) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+INFO: DatabaseIdManager: Cleaned 0 elements in 0 seconds.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute update query: UPDATE clan_data SET auction_bid_at = 0 WHERE auction_bid_at NOT IN (SELECT auctionId FROM auction_bid) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute update query: UPDATE clan_data SET new_leader_id = 0 WHERE new_leader_id <> 0 AND new_leader_id NOT IN (SELECT charId FROM characters) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute update query: UPDATE clan_subpledges SET leader_id=0 WHERE clan_subpledges.leader_id NOT IN (SELECT charId FROM characters) AND leader_id > 0 - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute update query: UPDATE castle SET taxpercent=0 WHERE castle.id NOT IN (SELECT hasCastle FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute update query: UPDATE characters SET clanid=0, clan_privs=0, wantspeace=0, subpledge=0, lvl_joined_academy=0, apprentice=0, sponsor=0, clan_join_expiry_time=0, clan_create_expiry_time=0 WHERE characters.clanid > 0 AND characters.clanid NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute update query: UPDATE clanhall SET ownerId=0, paidUntil=0, paid=0 WHERE clanhall.ownerId NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+WARNING: DatabaseIdManager: Could not execute update query: UPDATE fort SET owner=0 WHERE owner NOT IN (SELECT clan_id FROM clan_data) - java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanCharacterStatus
+WARNING: DatabaseIdManager: Could not update characters online status: java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanTimestamps
+WARNING: DatabaseIdManager: Could not clean expired timestamps from database: java.lang.IllegalStateException: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager lambda$getUsedIds$0
+SEVERE: DatabaseIdManager: Could not initialize used IDs for query SELECT messageId FROM messages: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager lambda$getUsedIds$0
+SEVERE: DatabaseIdManager: Could not initialize used IDs for query SELECT object_id FROM items: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager lambda$getUsedIds$0
+SEVERE: DatabaseIdManager: Could not initialize used IDs for query SELECT object_id FROM itemsonground: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager lambda$getUsedIds$0
+SEVERE: DatabaseIdManager: Could not initialize used IDs for query SELECT clan_id FROM clan_data: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.DatabaseIdManager lambda$getUsedIds$0
+SEVERE: DatabaseIdManager: Could not initialize used IDs for query SELECT charId FROM characters: Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.IdManager <init>
+INFO: IdManager: 102912 ids available.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.World <init>
+INFO: World: (256 by 272) World Region Grid set up.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.ZoneManager <init>
+INFO: ZoneManager 17 by 18 Zone Region Grid set up.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.data.sql.ClanHallTable load
+WARNING: Exception: ClanHallManager.load(): Database connection pool is not initialized.
+java.lang.IllegalStateException: Database connection pool is not initialized.
+	at org.l2jmobius.commons.database.DatabaseFactory.getConnection(DatabaseFactory.java:299)
+	at org.l2jmobius.gameserver.data.sql.ClanHallTable.load(ClanHallTable.java:66)
+	at org.l2jmobius.gameserver.data.sql.ClanHallTable.<init>(ClanHallTable.java:60)
+	at org.l2jmobius.gameserver.data.sql.ClanHallTable$SingletonHolder.<clinit>(ClanHallTable.java:315)
+	at org.l2jmobius.gameserver.data.sql.ClanHallTable.getInstance(ClanHallTable.java:310)
+	at org.l2jmobius.gameserver.model.zone.type.ClanHallZone.setParameter(ClanHallZone.java:45)
+	at org.l2jmobius.gameserver.managers.ZoneManager.parseDocument(ZoneManager.java:373)
+	at org.l2jmobius.commons.util.IXmlReader.parseFile(IXmlReader.java:93)
+	at org.l2jmobius.commons.util.IXmlReader.parseDirectory(IXmlReader.java:198)
+	at org.l2jmobius.commons.util.IXmlReader.parseDatapackDirectory(IXmlReader.java:123)
+	at org.l2jmobius.gameserver.managers.ZoneManager.load(ZoneManager.java:463)
+	at org.l2jmobius.gameserver.managers.ZoneManager.<init>(ZoneManager.java:123)
+	at org.l2jmobius.gameserver.managers.ZoneManager$SingletonHolder.<clinit>(ZoneManager.java:914)
+	at org.l2jmobius.gameserver.managers.ZoneManager.getInstance(ZoneManager.java:909)
+	at org.l2jmobius.gameserver.model.actor.Creature.setXYZ(Creature.java:7384)
+	at org.l2jmobius.gameserver.model.WorldObject.spawnMe(WorldObject.java:211)
+	at org.l2jmobius.gameserver.data.xml.DoorData.makeDoor(DoorData.java:126)
+	at org.l2jmobius.gameserver.data.xml.DoorData.parseDocument(DoorData.java:83)
+	at org.l2jmobius.commons.util.IXmlReader.parseFile(IXmlReader.java:93)
+	at org.l2jmobius.commons.util.IXmlReader.parseDatapackFile(IXmlReader.java:70)
+	at org.l2jmobius.gameserver.data.xml.DoorData.load(DoorData.java:60)
+	at org.l2jmobius.gameserver.data.xml.DoorData.<init>(DoorData.java:52)
+	at org.l2jmobius.gameserver.data.xml.DoorData$SingletonHolder.<clinit>(DoorData.java:256)
+	at org.l2jmobius.gameserver.data.xml.DoorData.getInstance(DoorData.java:251)
+	at org.l2jmobius.gameserver.geoengine.GeoEngine$1.doorBetween(GeoEngine.java:94)
+	at org.l2jmobius.gameserver.geoengine.GeoEngine.canMoveToTarget(GeoEngine.java:765)
+	at org.l2jmobius.gameserver.geoengine.GeoEngine.canMoveToTarget(GeoEngine.java:752)
+	at ReadDryPath023.main(ReadDryPath023.java:47)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at jdk.compiler/com.sun.tools.javac.launcher.SourceLauncher.execute(SourceLauncher.java:258)
+	at jdk.compiler/com.sun.tools.javac.launcher.SourceLauncher.run(SourceLauncher.java:138)
+	at jdk.compiler/com.sun.tools.javac.launcher.SourceLauncher.main(SourceLauncher.java:76)
+
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 21 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 22 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 23 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 24 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 25 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 26 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 26 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 27 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 27 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 28 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 28 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 29 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 29 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 30 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 30 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 31 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 32 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 33 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 34 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 35 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 36 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 37 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 38 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 39 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 40 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 41 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 42 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 43 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 44 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 45 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 46 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 47 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 48 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 49 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 50 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 51 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 52 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 53 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 54 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 55 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 56 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 57 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 58 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 59 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 60 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 61 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 62 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 63 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.ClanHallZone setParameter
+WARNING: ClanHallZone: Clan hall with id 64 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.CHSiegeManager loadClanHalls
+WARNING: CHSiegeManager: Could not load siegable clan halls!:Database connection pool is not initialized.
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.SiegeZone setParameter
+WARNING: SiegeZone: Siegable clan hall with id 21 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.SiegeZone setParameter
+WARNING: SiegeZone: Siegable clan hall with id 34 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.SiegeZone setParameter
+WARNING: SiegeZone: Siegable clan hall with id 35 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.SiegeZone setParameter
+WARNING: SiegeZone: Siegable clan hall with id 62 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.SiegeZone setParameter
+WARNING: SiegeZone: Siegable clan hall with id 63 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.model.zone.type.SiegeZone setParameter
+WARNING: SiegeZone: Siegable clan hall with id 64 does not exist!
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+WARNING: Error while initializing GrandBossManager: Database connection pool is not initialized.
+java.lang.IllegalStateException: Database connection pool is not initialized.
+	at org.l2jmobius.commons.database.DatabaseFactory.getConnection(DatabaseFactory.java:299)
+	at org.l2jmobius.gameserver.managers.GrandBossManager.init(GrandBossManager.java:74)
+	at org.l2jmobius.gameserver.managers.GrandBossManager.<init>(GrandBossManager.java:69)
+	at org.l2jmobius.gameserver.managers.GrandBossManager$SingletonHolder.<clinit>(GrandBossManager.java:398)
+	at org.l2jmobius.gameserver.managers.GrandBossManager.getInstance(GrandBossManager.java:393)
+	at org.l2jmobius.gameserver.model.zone.type.BossZone.<init>(BossZone.java:101)
+	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:483)
+	at org.l2jmobius.gameserver.managers.ZoneManager.parseDocument(ZoneManager.java:356)
+	at org.l2jmobius.commons.util.IXmlReader.parseFile(IXmlReader.java:93)
+	at org.l2jmobius.commons.util.IXmlReader.parseDirectory(IXmlReader.java:198)
+	at org.l2jmobius.commons.util.IXmlReader.parseDatapackDirectory(IXmlReader.java:123)
+	at org.l2jmobius.gameserver.managers.ZoneManager.load(ZoneManager.java:463)
+	at org.l2jmobius.gameserver.managers.ZoneManager.<init>(ZoneManager.java:123)
+	at org.l2jmobius.gameserver.managers.ZoneManager$SingletonHolder.<clinit>(ZoneManager.java:914)
+	at org.l2jmobius.gameserver.managers.ZoneManager.getInstance(ZoneManager.java:909)
+	at org.l2jmobius.gameserver.model.actor.Creature.setXYZ(Creature.java:7384)
+	at org.l2jmobius.gameserver.model.WorldObject.spawnMe(WorldObject.java:211)
+	at org.l2jmobius.gameserver.data.xml.DoorData.makeDoor(DoorData.java:126)
+	at org.l2jmobius.gameserver.data.xml.DoorData.parseDocument(DoorData.java:83)
+	at org.l2jmobius.commons.util.IXmlReader.parseFile(IXmlReader.java:93)
+	at org.l2jmobius.commons.util.IXmlReader.parseDatapackFile(IXmlReader.java:70)
+	at org.l2jmobius.gameserver.data.xml.DoorData.load(DoorData.java:60)
+	at org.l2jmobius.gameserver.data.xml.DoorData.<init>(DoorData.java:52)
+	at org.l2jmobius.gameserver.data.xml.DoorData$SingletonHolder.<clinit>(DoorData.java:256)
+	at org.l2jmobius.gameserver.data.xml.DoorData.getInstance(DoorData.java:251)
+	at org.l2jmobius.gameserver.geoengine.GeoEngine$1.doorBetween(GeoEngine.java:94)
+	at org.l2jmobius.gameserver.geoengine.GeoEngine.canMoveToTarget(GeoEngine.java:765)
+	at org.l2jmobius.gameserver.geoengine.GeoEngine.canMoveToTarget(GeoEngine.java:752)
+	at ReadDryPath023.main(ReadDryPath023.java:47)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at jdk.compiler/com.sun.tools.javac.launcher.SourceLauncher.execute(SourceLauncher.java:258)
+	at jdk.compiler/com.sun.tools.javac.launcher.SourceLauncher.run(SourceLauncher.java:138)
+	at jdk.compiler/com.sun.tools.javac.launcher.SourceLauncher.main(SourceLauncher.java:76)
+
+���. 07, 2026 9:58:20 PM org.l2jmobius.commons.threads.ThreadPool scheduleAtFixedRate
+WARNING: ThreadPool: Failed to schedule recurring task GrandBossManager$$Lambda/0x0000000036216000 with initial delay 300000ms and period 300000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.scheduleAtFixedRate(java.lang.Runnable, long, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4f5991f6
+���. 07, 2026 9:58:20 PM org.l2jmobius.gameserver.managers.ZoneManager load
+INFO: ZoneManager: Loaded 31 zone classes and 2860 zones.
+���. 07, 2026 9:58:21 PM org.l2jmobius.gameserver.managers.ZoneManager load
+INFO: ZoneManager: Last static id 200224.
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@294e5088
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2002348
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1d470d0
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@65045a87
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@fc258b1
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2dd80673
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@57ea113a
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 24000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@674bd420
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2ceb80a1
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 24000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@732f29af
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@299321e2
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 23000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@158a3b2e
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@6b00f608
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@71cf1b07
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4fce136b
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@43b6123e
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@19648c40
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@61e94def
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 22000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7cbc3762
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@56303b57
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@78f5c518
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@753432a2
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@101639ae
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1d2bd371
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@65fe9e33
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@42f8285e
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@3724af13
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2320fa6f
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@53f0a4cb
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@616fe72b
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 22000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7e5d9a50
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1dd6d4b7
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2dd29a59
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 22000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@53142455
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7966baa7
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1253e7cb
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@8c11eee
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@5cbe877d
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@708400f6
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4bff64c2
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@5e01a982
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@23d1e5d0
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@13e547a9
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@349c1daf
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@aafcffa
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@235a0c16
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@5f7b97da
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 23000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@6b7906b3
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@395b56bb
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@640f11a1
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@78365cfa
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@52de51b6
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 23000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@68ad99fe
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 23000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2e9fda69
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 24000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1755e85b
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2371aaca
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@63fdab07
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@5553d0f5
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1506f20f
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1a45193b
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@6e6d5d29
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@85e6769
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@70efb718
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4a11eb84
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@435fb7b5
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@b7838a9
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@5733f295
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4c4748bf
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@73dce0e6
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4795ded0
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2eced48b
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4b7e96a
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@3f07b12c
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7096b474
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@3c989952
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@3d3ba765
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 23000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@57ac5227
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1ae67cad
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@31e4bb20
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@765f05af
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4b3a45f1
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@20a14b55
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@a202ccb
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 24000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@18025ced
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@57459491
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@77a98a6a
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@3e10dc6
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@45e37a7e
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@6941827a
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@3fa2213
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@6035b93b
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@abf688e
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 24000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2974f221
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 23000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@68b6f0d6
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@aa549e5
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@5c00384f
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 24000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1bb564e2
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@3f792b9b
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 24000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@25b2cfcb
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4c398c80
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 23000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@607fbe09
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@5dd91bca
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@75f65e45
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4a891c97
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 19000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4d18aa28
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7756c3cd
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2bd2b28e
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 15000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@26425897
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@56a4479a
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@62f4ff3b
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 17000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@207b8649
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2b5825fa
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 18000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2cae1042
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 21000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7c209437
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7e928e2f
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@788fcafb
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@42e3ede4
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 16000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@183e8023
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 23000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@67ab1c47
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2a3c96e3
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 134000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7fc44dec
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 127000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@293d0107
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 134000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@10650953
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 116000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@162be91c
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 50000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1c9f0a20
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 28000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1cd201a8
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 63000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1992eaf4
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 112000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@3276732
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 96000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@31e3250d
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 28000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@21d8bcbe
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 42000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7383eae2
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 95000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@7c7d3c46
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 95000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@48c35007
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 71000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@6722db6e
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 32000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@4ae33a11
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 20000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@b40bb6e
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 99000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@5049d8b2
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 76000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@631e06ab
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 129000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@34a75079
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 36000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@107ed6fc
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 109000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@186978a6
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 59000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@482d776b
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 130000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@132ddbab
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 132000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@acb0951
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 139000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@267f474e
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 51000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@28276e50
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 213000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@1d1f7216
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 148000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@43b4fe19
+���. 07, 2026 9:58:21 PM org.l2jmobius.commons.threads.ThreadPool schedule
+WARNING: ThreadPool: Failed to schedule task TimerOpen with delay 212000ms: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.schedule(java.lang.Runnable, long, java.util.concurrent.TimeUnit)" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[Ljava.lang.StackTraceElement;@2a1edad4
+���. 07, 2026 9:58:21 PM org.l2jmobius.gameserver.data.xml.DoorData parseDocument
+INFO: DoorData: Loaded 1301 doors.
+���. 07, 2026 9:58:21 PM org.l2jmobius.gameserver.data.xml.FenceData load
+INFO: FenceData: Loaded 1 fences.
+DRY_POINT	45900	42000	-3472
+DRY_POINT	45994	42018	-3472
+DRY_POINT	46088	42035	-3472
+DRY_POINT	46182	42053	-3472
+DRY_POINT	46276	42071	-3472
+DRY_POINT	46371	42088	-3472
+DRY_POINT	46465	42106	-3472
+DRY_POINT	46559	42124	-3480
+DRY_POINT	46653	42141	-3496
+DRY_POINT	46747	42159	-3488
+DRY_POINT	46841	42176	-3488
+DRY_POINT	46935	42194	-3488
+DRY_POINT	47029	42212	-3496
+DRY_POINT	47124	42229	-3496
+DRY_POINT	47218	42247	-3496
+DRY_POINT	47312	42265	-3488
+DRY_POINT	47406	42282	-3488
+DRY_POINT	47500	42300	-3488
+DRY_PATH_PASS samples=18;waterBounds=447;stockGeo=true;noDB=true

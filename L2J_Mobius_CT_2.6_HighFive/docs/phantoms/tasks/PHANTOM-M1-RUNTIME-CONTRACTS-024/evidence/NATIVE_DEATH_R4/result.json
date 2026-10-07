@@ -1,0 +1,13 @@
+{
+  "kind": "CONTROLLED_NATIVE_DEATH_FIXTURE",
+  "frozenSha": "ca3cbef9c03b695dcb9f84a734c5535b4ac72027",
+  "runId": "c2f54f3b-0057-4273-b16b-4779fd6aeaad",
+  "elapsedSeconds": 203.5891329,
+  "cohortCount": 6,
+  "farmPass": false,
+  "realFinalPass": "NOT_RUN",
+  "primaryIds": [
+    "452",
+    "832"
+  ]
+}

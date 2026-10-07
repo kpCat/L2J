@@ -1,0 +1,22 @@
+DATABASE()
+l2jmobiush5_localplay_contract024c
+profiles	distinct_characters
+10000	10000
+component_type	components	bytes
+background.catchup	10000	5174631
+background.native-context	976	194224
+background.owned-store	1	2093
+background.state	10000	10726540
+goal.runtime	10000	3044756
+population.ecology	10000	2652944
+population.state	10000	3348075
+charId	char_name	online
+268486304	Siriusba	2
+268486410	Mark52	2
+268486976	IIQuickfangII	2
+268487160	Kabanatl	2
+268491177	Bladevoic	2
+268492255	Odinquee	2
+268492939	TestAdmin	0
+268493469	Alphazv	2
+268494936	SpiritThor	2

@@ -1,0 +1,40 @@
+[
+  {
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-contracts-024\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract024b\\runtime",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "ports": 7777,
+    "listeners": 0,
+    "forceUsed": false
+  },
+  {
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-contracts-024\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract024b\\runtime",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "ports": [
+      9014,
+      2106
+    ],
+    "listeners": 0,
+    "forceUsed": false
+  },
+  {
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-contracts-024\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract024c\\runtime",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "ports": 7777,
+    "listeners": 0,
+    "forceUsed": false
+  },
+  {
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-contracts-024\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract024c\\runtime",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "ports": [
+      9014,
+      2106
+    ],
+    "listeners": 0,
+    "forceUsed": false
+  }
+]

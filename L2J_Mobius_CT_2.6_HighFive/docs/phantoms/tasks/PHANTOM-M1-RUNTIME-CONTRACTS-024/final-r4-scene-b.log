@@ -1,0 +1,11 @@
+TASK024_COLLECTOR_INSTALLED pid=15332 mode=OBSERVE cohort=6
+
+profileId primary sameEpoch cycles rewards targetTransitions tail120Rewards  exp  sp  pass
+--------- ------- --------- ------ ------- ----------------- --------------  ---  --  ----
+110         False     False      0       0                 0              0    0   0 False
+175         False     False      0       0                 0              0    0   0 False
+252          True      True      4       5                 5              0 1050  50 False
+832          True      True     26      28                31              3 2144 245 False
+879         False      True      3       4                 8              0  233  25 False
+1179        False     False      0       0                 0              0    0   0 False
+

@@ -1,0 +1,14 @@
+DATABASE()
+l2jmobiush5_localplay_contract024c
+profiles	distinct_characters
+10000	10000
+component_type	components	bytes
+background.catchup	10000	5174676
+background.native-context	976	194224
+background.owned-store	1	2093
+background.state	10000	10726396
+goal.runtime	10000	3044792
+population.ecology	10000	2650064
+population.state	10000	3348075
+charId	char_name	online
+268492939	TestAdmin	0

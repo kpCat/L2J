@@ -1,0 +1,22 @@
+{
+  "pass": false,
+  "checkedProfiles": [
+    110,
+    175,
+    187,
+    252,
+    275,
+    506
+  ],
+  "errors": [
+    "retainedEntries must be exact zero",
+    "profile 506 native store not finalized",
+    "profile 506 exp: expected=24392, saved=24993",
+    "profile 506 sp: expected=1765, saved=1845",
+    "profile 506 expBeforeDeath: expected=20473, saved=26084",
+    "profile 506 hp: expected=200.0, saved=0.0",
+    "profile 506 mp: expected=145.0, saved=181.0",
+    "profile 506 cp: expected=100.0, saved=0.0",
+    "profile 506 inventoryHash differs"
+  ]
+}

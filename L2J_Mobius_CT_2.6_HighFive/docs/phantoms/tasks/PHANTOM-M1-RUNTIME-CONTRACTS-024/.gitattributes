@@ -1,0 +1,5 @@
+# Immutable evidence hashes must survive checkout on Windows and Unix.
+evidence/** -text
+*.log -text
+*-engine.txt -text
+*-thread-dump.txt -text
