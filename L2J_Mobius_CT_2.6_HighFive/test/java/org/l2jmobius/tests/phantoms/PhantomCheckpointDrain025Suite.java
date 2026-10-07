@@ -29,6 +29,46 @@ public final class PhantomCheckpointDrain025Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		registry.add("R21-stock-earned-callback-before-store", this::delayed);
+		registry.add("R22-two-exact-control-waits-release-workers", this::pair);
+	}
+	private void pair(PhantomTestContext context) throws Exception
+	{
+		try (var first = _native.new Fixture(true); var second = _native.new Fixture(true, false, 0, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultInjector.none(), true))
+		{
+			final var fixtures = java.util.List.of(first, second);
+			final var finished = new CountDownLatch(2);
+			for (var f : fixtures)
+			{
+				f.removeCatchup();
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Distinct native lifetime.");
+				final var player = World.getInstance().getPlayer(f.objectId);
+				final var scope = (PhantomNativeWorkScope) player.getNativeWorkOwner();
+				player.addListener(new ConsumerEventListener(player, EventType.ON_ATTACKABLE_KILL, (OnAttackableKill event) ->
+				{
+					PhantomAssertions.assertTrue(event.getAttacker() == player && PlayerNativeWork.current(scope) != null, "Exact participant under pending control.");
+					finished.countDown();
+				}, this));
+				EventDispatcher.getInstance().notifyEventAsyncDelayed(new OnAttackableKill(player, null, false), player, 800);
+			}
+			final long started = System.nanoTime();
+			for (var f : fixtures)
+			{
+				final var goal = f.goals.load(f.id).orElseThrow().goal();
+				PhantomAssertions.assertFalse(f.background.captureVisibleArrival(f.id, World.getInstance().getPlayer(f.objectId), goal, goal.selectedAnchor().key()), "Each earned control defers.");
+			}
+			PhantomAssertions.assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 350, "Two controls release their workers before callbacks are due.");
+			PhantomAssertions.assertTrue(finished.await(3, TimeUnit.SECONDS), "Both stock callback traversals execute normally.");
+			for (var f : fixtures)
+			{
+				final var player = World.getInstance().getPlayer(f.objectId);
+				final var scope = (PhantomNativeWorkScope) player.getNativeWorkOwner();
+				final var goal = f.goals.load(f.id).orElseThrow().goal();
+				final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+				while (!scope.open() && System.nanoTime() < deadline) { f.background.continueVisibleCheckpoint(f.id, goal); Thread.sleep(10); }
+				PhantomAssertions.assertTrue(scope.open() && !player.hasPendingOwnedStore(), "Both exact continuations finalized.");
+			}
+			context.record("checkpoint025.pair", "controls=2;stockCallbacks=2;nativeWorkersBlocked=false");
+		}
 	}
 	private void delayed(PhantomTestContext context) throws Exception
 	{

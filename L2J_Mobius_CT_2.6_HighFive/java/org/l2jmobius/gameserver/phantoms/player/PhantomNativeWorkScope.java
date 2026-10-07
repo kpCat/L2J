@@ -147,6 +147,7 @@ public final class PhantomNativeWorkScope implements Owner
 					: _player.hasPendingOwnedStore() ? CheckpointOutcome.RESOLVE_RECEIPT
 					: owned.finalized ? CheckpointOutcome.PUBLISH_COMMITTED : CheckpointOutcome.VERIFY_WRITE_OUTCOME;
 				_ownedCheckpointResult = new CheckpointResult(outcome, _checkpointStage, owned.reason);
+				if (owned.reason.isEmpty() && !completed) { _ownedCheckpointResult = new CheckpointResult(outcome, _checkpointStage, "owned_checkpoint.business_rejected:" + _checkpointStage); }
 				if (outcome == CheckpointOutcome.RESUME || outcome == CheckpointOutcome.RETRY_BEFORE_WRITE)
 				{
 					_state = State.OPEN;

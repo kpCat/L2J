@@ -13,13 +13,14 @@ $runtimeHeartbeat025=Join-Path $module025 ".phantom-local/contract025$Episode/ru
 $file025=if($Mode -cne 'Probe'){'Observe-Scene024.ps1'}else{'Observe-Prelude024.ps1'}
 $body025=[IO.File]::ReadAllText((Join-Path $taskRoot024 $file025))
 if($Mode -ceq 'Discovery'){
-    if($CollectSealed){throw 'Discovery uses scalar census only.'}
     $body025=$body025.Replace('[ValidateRange(360,420)]','[ValidateRange(60,120)]')
     $body025=$body025.Replace('    $final=@($samples[$samples.Count-1].actors)', '    [ordered]@{purpose="FIRST_PRODUCER_DISCOVERY";elapsedSeconds=$watch.Elapsed.TotalSeconds;frozenSha=$FrozenSha;finalSceneClaim=$false} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot "discovery-result.json") -Encoding utf8; return')
 }
 $body025=$body025.Replace("& (Join-Path `$PSScriptRoot 'Read-Clone024.ps1') -RuntimeRoot `$runtime", "& (Join-Path `$taskRoot025 'Control025.ps1') -Action Export -Episode `$Episode")
 $body025=$body025.Replace('-ProfileIds @($ids)','-ProfileIds $ProbeProfileIds')
 $body025=$body025.Replace('$PSScriptRoot','$taskRoot024').Replace('contract024','contract025').Replace('contract025c','contract025[a-h]')
+$body025=$body025.Replace("& (Join-Path `$taskRoot024 'Arm-Collector024.ps1') -RuntimeRoot `$RuntimeRoot", "& (Join-Path `$taskRoot025 'Collector025.ps1') -Mode Observe -Episode `$Episode")
+$body025=$body025.Replace(' -FollowCurrentEpochs','')
 $body025=$body025.Replace('$started=$true', '$started=$true; $script:heartbeatJob025=Start-Heartbeat025 $run')
 function Start-Heartbeat025([string]$RunId025){
     Start-Job -ArgumentList $runtimeHeartbeat025,$RunId025 -ScriptBlock {

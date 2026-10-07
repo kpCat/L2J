@@ -377,7 +377,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 		final long target = from + 1;
 		final String claim = "e".repeat(64);
 		final long id;
-		final int objectId = _environment.primary().objectId();
+		final int objectId;
 		final AtomicReference<String> rejection = new AtomicReference<>("");
 		final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
 		final PhantomBackgroundCatchupStore catchups = new PhantomBackgroundCatchupStore(_profiles, goals);
@@ -404,6 +404,12 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 
 		Fixture(boolean visibleFarm, boolean deadStale, int nativeZOffset, PhantomBackgroundTransaction.FaultInjector faultInjector) throws Exception
 		{
+			this(visibleFarm, deadStale, nativeZOffset, faultInjector, false);
+		}
+
+		Fixture(boolean visibleFarm, boolean deadStale, int nativeZOffset, PhantomBackgroundTransaction.FaultInjector faultInjector, boolean secondary) throws Exception
+		{
+			objectId = secondary ? _environment.observer().objectId() : _environment.primary().objectId();
 			transactions = new PhantomBackgroundTransaction(org.l2jmobius.commons.database.DatabaseFactory::getConnection, PhantomBackgroundTransaction.ObjectIdAllocator.production(), faultInjector);
 			id = _profiles.create(objectId).profileId();
 			final var ref = new AtomicReference<PhantomMaterializationService>();

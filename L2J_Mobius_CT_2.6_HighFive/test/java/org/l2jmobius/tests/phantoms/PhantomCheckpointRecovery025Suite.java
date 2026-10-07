@@ -26,6 +26,7 @@ public final class PhantomCheckpointRecovery025Suite implements PhantomTestSuite
 		registry.add("R01-cold-pending-before-baseline", _ -> cold(false));
 		registry.add("R07-exact-failed-baseline-recovery", _ -> cold(true));
 		registry.add("R09-native-combat-capture-defers-before-write", _ -> combatCapture());
+		registry.add("R15-proven-no-write-stale-goal-replans", _ -> staleGoal());
 		registry.add("R11-inventory-flush-without-receipt-stays-fenced", _ -> interrupted(FaultPoint.BEFORE_OWNED_PREPARE_COMMIT, false));
 		registry.add("R12-prepared-receipt-control-resume", _ -> interrupted(FaultPoint.AFTER_OWNED_PREPARE, false));
 		registry.add("R13-native-receipt-finalize-once", _ -> interrupted(FaultPoint.AFTER_OWNED_NATIVE_STORE, false));
@@ -52,6 +53,7 @@ public final class PhantomCheckpointRecovery025Suite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0, scope.outstanding(), "Exact setup earned work finished.");
 			// A stock scalar change distinguishes receipt BEFORE from AFTER without awarding anything.
 			player.setHeading((player.getHeading() + 8192) % 65536);
+			if (publication) { player.setCurrentMp(player.getMaxMp() - 0.25); }
 			if (publication) { f.background.installCommittedPositionPublisher((id, position) -> { if (armed.compareAndSet(true, false)) { throw new IllegalStateException("TASK025_INDEX_PUBLICATION"); } }); }
 			observing.set(true); armed.set(true);
 			PhantomAssertions.assertFalse(f.background.captureVisibleArrival(f.id, player, goal, goal.selectedAnchor().key()), "Injected boundary cannot claim completed checkpoint.");
@@ -62,6 +64,11 @@ public final class PhantomCheckpointRecovery025Suite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(PhantomNativeWorkScope.CheckpointOutcome.VERIFY_WRITE_OUTCOME, first.outcome(), "Inventory flush is not no-write proof.");
 				PhantomAssertions.assertFalse(player.hasPendingOwnedStore() || scope.open(), "No pending alone cannot open inventory-flush failure.");
 				PhantomAssertions.assertEquals(0, nativeStores.get(), "Native body never started.");
+				final var currentGoal = f.goals.load(f.id).orElseThrow();
+				final var changed = currentGoal.goal().withStatus(currentGoal.goal().status());
+				f.goals.replace(f.id, currentGoal.rowVersion(), changed);
+				PhantomAssertions.assertEquals(PhantomNativeWorkScope.CheckpointOutcome.TERMINAL_RETAIN, f.background.continueVisibleCheckpoint(f.id, changed).orElseThrow().outcome(), "New goal cannot discard unknown inventory-flush writes.");
+				PhantomAssertions.assertFalse(scope.open(), "Stale unknown-write request remains fenced.");
 				return;
 			}
 			PhantomAssertions.assertEquals(PhantomNativeWorkScope.CheckpointOutcome.RESUME, first.outcome(), "Exact control continuation: " + first);
@@ -90,6 +97,26 @@ public final class PhantomCheckpointRecovery025Suite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(player.hasPendingOwnedStore(), "Capture failed before receipt/store.");
 			PhantomAssertions.assertTrue(scope.open(), "Proven no-write temporary checkpoint must retain a native continuation.");
 			PhantomAssertions.assertEquals(f.baseline.progress(), f.transactions.load(f.id).state().progress(), "No rewards from recovery.");
+		}
+	}
+	private void staleGoal() throws Exception
+	{
+		try (var f = _native.new Fixture(true))
+		{
+			f.removeCatchup();
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Exact native materialization.");
+			final var player = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(f.objectId);
+			final var scope = (PhantomNativeWorkScope) player.getNativeWorkOwner();
+			final var stored = f.goals.load(f.id).orElseThrow();
+			player.getAI().clientStartAutoAttack();
+			PhantomAssertions.assertFalse(f.background.captureVisibleArrival(f.id, player, stored.goal(), stored.goal().selectedAnchor().key()), "Stock combat rejection supplies no-write proof.");
+			PhantomAssertions.assertTrue(scope.open(), "No-write request has completed its control claim.");
+			final var before = f.transactions.load(f.id).state();
+			final var next = stored.goal().withStatus(stored.goal().status());
+			f.goals.replace(f.id, stored.rowVersion(), next);
+			PhantomAssertions.assertTrue(f.background.continueVisibleCheckpoint(f.id, next).isEmpty(), "Completed no-write old request must permit bounded new-plan admission.");
+			PhantomAssertions.assertTrue(scope.open() && scope.isCurrent() && !player.hasPendingOwnedStore(), "Exact current owner preserved.");
+			PhantomAssertions.assertEquals(before, f.transactions.load(f.id).state(), "Stale control does not rewrite old snapshot.");
 		}
 	}
 	private void cold(boolean failed) throws Exception

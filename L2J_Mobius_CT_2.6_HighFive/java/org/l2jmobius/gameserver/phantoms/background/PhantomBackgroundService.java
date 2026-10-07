@@ -141,6 +141,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final AtomicBoolean executing = new AtomicBoolean();
 		final AtomicBoolean queued = new AtomicBoolean();
 		volatile CheckpointResult result;
+		volatile PhantomBackgroundState runtimeWitness;
 		volatile long retryAfter;
 		int recoveryAttempts;
 		VisibleCheckpoint(long id, Player player, PhantomNativeWorkScope scope, PhantomGoal goal, String anchor)
@@ -994,11 +995,30 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final var request = _visibleCheckpoints.get(profileId);
 		if (request == null) { return Optional.empty(); }
 		if (!request.scope.isCurrent()) { _visibleCheckpoints.remove(profileId, request); return Optional.empty(); }
-		if (!request.goal.equals(goal)) { return Optional.of(new CheckpointResult(CheckpointOutcome.TERMINAL_RETAIN, "", "owned_checkpoint.goal_changed")); }
+		if (!request.goal.equals(goal))
+		{
+			if (request.executing.compareAndSet(false, true))
+			{
+				try
+				{
+					final var result = request.result;
+					if (result != null && (result.outcome() == CheckpointOutcome.RETRY_BEFORE_WRITE || result.outcome() == CheckpointOutcome.RESUME)
+						&& request.scope.open() && !request.player.hasPendingOwnedStore() && visibleCheckpointOwnerCurrent(request, false)
+						&& _visibleCheckpoints.remove(profileId, request)) { return Optional.empty(); }
+				}
+				finally { request.executing.set(false); }
+			}
+			return Optional.of(new CheckpointResult(CheckpointOutcome.TERMINAL_RETAIN, "", "owned_checkpoint.goal_changed"));
+		}
 		return Optional.of(runVisibleCheckpoint(request));
 	}
 
 	private boolean visibleCheckpointOwnerCurrent(VisibleCheckpoint request)
+	{
+		return visibleCheckpointOwnerCurrent(request, true);
+	}
+
+	private boolean visibleCheckpointOwnerCurrent(VisibleCheckpoint request, boolean requireGoal)
 	{
 		final long id = request.key.profileId();
 		final var entry = _materialization.get().find(id).orElse(null);
@@ -1010,7 +1030,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			&& request.player.getNativeWorkOwner() == request.scope && request.player.getClient() == null
 			&& World.getInstance().getPlayer(request.key.objectId()) == request.player && World.getInstance().findObject(request.key.objectId()) == request.player
 			&& request.player.hasHeadlessOutboundSession() && request.player.hasOwnedStoreBoundary(this)
-			&& Objects.equals(_goals.load(id).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), request.goal);
+			&& (!requireGoal || Objects.equals(_goals.load(id).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), request.goal));
 	}
 
 	private CheckpointResult runVisibleCheckpoint(VisibleCheckpoint request)
@@ -1070,9 +1090,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final var stored = transaction(() -> _transactions.load(request.key.profileId()));
 		if (!stored.successful() || stored.state() == null || stored.state().state() != State.MATERIALIZED) { request.scope.retainOwnedCheckpoint(request.key, "owned_checkpoint.finalized_state_not_exact:" + stored.status()); return false; }
 		final var context = transaction(() -> _transactions.nativeContext(request.key.profileId(), request.key.objectId()));
+		final var witness = request.runtimeWitness;
 		if (context.status() != PhantomBackgroundTransaction.Status.SUCCESS || context.context() == null || context.context().phase() != PhantomNativeContext.Phase.COMPLETED
 			|| !stored.state().equals(context.state()) || !context.matchesNativeLoad(request.player.getVitalityPoints())
-			|| !_authority.matchesRuntime(request.player, stored.state()) || !captureOwnedInventory(request.player, stored.state()).inventory().equals(stored.state().inventory()))
+			|| witness == null || !_authority.matchesRuntime(request.player, witness) || !ownedProjectionMatches(witness, stored.state())
+			|| !captureOwnedInventory(request.player, stored.state()).inventory().equals(stored.state().inventory()))
 		{
 			request.scope.retainOwnedCheckpoint(request.key, "owned_checkpoint.finalized_runtime_not_exact");
 			return false;
@@ -1081,6 +1103,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		_committedPosition.accept(request.key.profileId(), stored.state().position());
 		checkpointStage(request.player, "COMPLETED");
 		return true;
+	}
+
+	/** Same MEDIUMINT projection as the existing transaction; raw witness remains separate and unchanged. */
+	private static boolean ownedProjectionMatches(PhantomBackgroundState raw, PhantomBackgroundState durable)
+	{
+		final var v = raw.vitals();
+		final var canonical = new PhantomBackgroundState.Vitals(Math.min(v.maximumHp(), Math.round(v.currentHp())), v.maximumHp(), Math.min(v.maximumMp(), Math.round(v.currentMp())), v.maximumMp(), Math.min(v.maximumCp(), Math.round(v.currentCp())), v.maximumCp());
+		return raw.identity().equals(durable.identity()) && raw.progress().equals(durable.progress()) && raw.position().equals(durable.position()) && canonical.equals(durable.vitals());
 	}
 
 	private static void checkpointStage(Player player, String stage)
@@ -1104,6 +1134,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final var position = new PhantomBackgroundState.Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchorId);
 			final var hint = new PhantomBackgroundState(previous.state(), previous.identity(), previous.progress(), previous.vitals(), position, previous.combat(), previous.loadout(), previous.inventory(), previous.autoGetSkills(), previous.clock(), previous.receipt(), previous.hashes());
 			final PhantomBackgroundState captured = _authority.captureOwnedNative(profileId, player, goal, hint).state();
+			final var checkpoint = _visibleCheckpoints.get(profileId);
+			if (checkpoint != null && checkpoint.player == player && checkpoint.goal.equals(goal)) { checkpoint.runtimeWitness = captured; }
 			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_CAPTURE);
 			_arrivalCaptures.put(profileId, captured);
 			checkpointStage(player, "INVENTORY_FLUSH");

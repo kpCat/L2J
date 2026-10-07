@@ -19,7 +19,14 @@
 - C_R1 graceful STOPPED. RED_LIVE_COMBAT025 проверяет точный no-write guard failure и требуемый native continuation.
 - R2 typed lifecycle compiled; R2_OBSERVER_HOOK_CHECKPOINTS=7/7; R2_STOCK_DRAIN=1/1 (paired RED on exact base); R2_NATIVE_REVIEW=2/2. Generic conservative trap and native finalized mismatch remain fenced.
 - Exact-current Player observer hook default OFF; collector may publish immutable receipts through bounded ring, no FS/DB/foreign locks inside observer.
-- Next: exact R2 source commit/push/build and revised full-server probe; whole-cohort witness collector; relevant regression.
-- Runtime starts=3; planned crashes=0; own JVM=0.
+- R2 source/push=71bef1ea6d48c52632a9e67b7f16b31d885a41ae. Ant compile already deletes own build/bin; target clean absent, failed clean invocation retained. Committed jar succeeded.
+- C_R2_CONTINUATION_PROBE=100.9s: profiles275/294/876/994/1159 progressed after COMPLETED in sameepoch (21/10/2/1/1 native rewards). R2_OWNED_STORE_MATRIX=PASS. First healthy graceful stop: initial subsystem stopped=true2741ms, SQL pending0/online0, collector17/17/pending0/overflow0.
+- C_R2_WHOLE_GROUP_EXACT initially FAIL only raw fractional HP/MP/CP versus canonical MEDIUMINT. Observer now records exact intent.after vitals supplied to OwnedStoreSnapshot and separate raw fields; strict verifier unchanged. Old witness/evidence immutable.
+- RED_FRACTIONAL_PUBLICATION025=6/7: new publication readback compared raw Player to rounded durable vitals. R3 pins raw capture separately and verifies existing canonical projection; GREEN_FRACTIONAL_PUBLICATION025=7/7. Transaction unchanged.
+- R3_SCOPE_CLOSURE=5/9; BASE_SCOPE_CLOSURE025=5/9, identical four Q12 shared TEST identity barriers. No shared metadata or fixture identity alias.
+- R3_TWO_STOCK_DRAINS025=2/2; unchanged-base RED_TWO_STOCK_DRAINS025=0/2. Two exact native controls release workers before stock callbacks are due.
+- RED_STALE_GOAL025=7/8 proves safe no-write old request blocked a new goal. GREEN_STALE_GOAL025=8/8 after exact completed-request cancellation; inventory-flush unknown writes remain fenced even with changed goal.
+- Next: compile paired drain test; exact R3 source commit/push/build; corrected whole-group full-server proof; frozen scenes and regressions/crash/death/soft-return.
+- Runtime starts=4; planned crashes=0; own JVM=0.
 - Ruling: exact user worktree command вместо native auto-path — требуется заданный detached path/base.
 - Ruling: TASK025 overrides старые caps/phases; новых пользовательских gates нет.
