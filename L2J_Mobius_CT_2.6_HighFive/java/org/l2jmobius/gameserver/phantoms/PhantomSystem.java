@@ -1729,9 +1729,29 @@ public final class PhantomSystem
 		return operatorControlResult(_configuredInstance == null ? stoppedCode : OperatorControlCode.SHUTDOWN_FAILED);
 	}
 
-	public static synchronized boolean shutdownIfStarted()
+	public static boolean shutdownIfStarted()
 	{
-		return (_configuredInstance != null) && shutdownConfiguredInstance();
+		final PhantomSystem configured;
+		synchronized (PhantomSystem.class) { configured = _configuredInstance; }
+		if (configured == null) { return false; }
+		// Stock server shutdown makes its two calls immediately before stopping the
+		// shared pool. Give the already running canonical ecology worker its bounded
+		// finally window, outside both system monitors; no commit is cancelled.
+		if (configured._populationEcology != null)
+		{
+			configured._populationEcology.beginStop();
+			final long deadline = System.nanoTime() + 10_000_000_000L;
+			while (!configured._populationEcology.finishStop())
+			{
+				if (System.nanoTime() >= deadline) { return false; }
+				try { Thread.sleep(10); }
+				catch (InterruptedException failure) { Thread.currentThread().interrupt(); return false; }
+			}
+		}
+		synchronized (PhantomSystem.class)
+		{
+			return (_configuredInstance == configured) && shutdownConfiguredInstance();
+		}
 	}
 
 	private static boolean shutdownConfiguredInstance()

@@ -39,6 +39,7 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom023.nativeFarmFocus", "all");
+		if (focus.equals("long-range")) { registry.add("N01-stock-long-range-native-selection-and-five-cycles", context -> composed(context, false, true)); return; }
 		if (focus.equals("fighter")) { registry.add("N01-production-native-fighter-five-next-targets", context -> composed(context, true)); return; }
 		if (focus.equals("mage")) { registry.add("S02-production-binding-native-cast-reward-five-next-targets", this::composed); return; }
 		if (focus.equals("ordinary")) { registry.add("S05-S06-real-like-stock-control-continues-in-same-pools-after-revocation", this::realControl); return; }
@@ -232,6 +233,10 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	}
 	private void composed(PhantomTestContext context, boolean fighter) throws Exception
 	{
+		composed(context, fighter, false);
+	}
+	private void composed(PhantomTestContext context, boolean fighter, boolean longRange) throws Exception
+	{
 		final var environmentField = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); environmentField.setAccessible(true);
 		final var environment = (PhantomHeadlessPlayerTestEnvironment) environmentField.get(handoff);
 		final int objectId = environment.primary().objectId();
@@ -303,7 +308,7 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 				{
 					final var monster = new Monster(NpcData.getInstance().getTemplate(npcId));
 					PhantomAssertions.assertFalse(monster.isCoreAIDisabled(), "N01 stock NPC AI enabled."); monster.setInstanceId(player.getInstanceId());
-					final var spawn = new Spawn(monster.getTemplate()); spawn.setXYZ(player.getX() + 40 + i * 25, player.getY(), player.getZ()); monster.setSpawn(spawn);
+					final var spawn = new Spawn(monster.getTemplate()); spawn.setXYZ(player.getX() + (longRange ? 900 : 40) + i * 25, player.getY(), player.getZ()); monster.setSpawn(spawn);
 					monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ()); monsters.add(monster);
 				}
 				final long exp = player.getExp(); final long sp = player.getSp();
@@ -320,6 +325,13 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 					finally { finishes.incrementAndGet(); }
 				}, 0, 250);
 				PhantomAssertions.assertTrue(driver != null, "Production-style shared driver was submitted.");
+				if (longRange)
+				{
+					final long selectionDeadline = System.nanoTime() + 35_000_000_000L;
+					while (sensor.snapshot().damageSequence() == baseline.damageSequence() && System.nanoTime() < selectionDeadline && failures.get() == null) { Thread.sleep(100); }
+					context.record("N01.longRange", "short=" + org.l2jmobius.gameserver.config.custom.AutoPlayConfig.AUTO_PLAY_SHORT_RANGE + ";long=" + org.l2jmobius.gameserver.config.custom.AutoPlayConfig.AUTO_PLAY_LONG_RANGE + ";target=" + player.getTarget() + ";damage=" + sensor.snapshot().damageSequence());
+					PhantomAssertions.assertTrue(sensor.snapshot().damageSequence() > baseline.damageSequence(), "RED: a lawful reachable stock target inside native long range must receive real native damage.");
+				}
 				final long deadline = System.nanoTime() + (fighter ? 180_000_000_000L : 90_000_000_000L);
 				boolean castSeen = false;
 				boolean attackSeen = false;

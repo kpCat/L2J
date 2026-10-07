@@ -130,6 +130,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if ("ecology".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("08-configured-stop-awaits-original-ecology-worker-finally", this::testEcologyDrain); return; }
 		registry.add("01-managed-classifier-fails-closed", _ -> testManagedClassifier());
 		registry.add("02-two-phase-server-policy-and-source-order", this::testTwoPhasePolicy);
 		registry.add("03-in-flight-drain-reused-before-thread-pool-phase", this::testInFlightDrain);
@@ -137,6 +138,50 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		registry.add("05-in-flight-scheduler-pulse-retains-configured-system", _ -> testInFlightSchedulerPulse());
 		registry.add("06-navigation-only-blocker-snapshot", _ -> testNavigationOnlyBlockerSnapshot());
 		registry.add("07-final-diagnostic-includes-navigation-state", this::testFinalDiagnosticNavigationState);
+		registry.add("08-configured-stop-awaits-original-ecology-worker-finally", this::testEcologyDrain);
+	}
+
+	private void testEcologyDrain(PhantomTestContext context) throws Exception
+	{
+		reset();
+		final var population = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"), java.time.ZoneOffset.UTC);
+		final var social = org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/social/high-five-social-v1.xml"));
+		final var catalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-ecology-v1.xml"), population, social);
+		final var metadata = new org.l2jmobius.tests.phantoms.PhantomPopulationTestDoubles.MemoryStore(population.hash()).seedReady(1, 1);
+		final var entered = new CountDownLatch(1); final var release = new CountDownLatch(1); final var finished = new CountDownLatch(1);
+		final var ecology = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService(catalog, population,
+			new org.l2jmobius.tests.phantoms.PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null), new org.l2jmobius.tests.phantoms.PhantomPopulationEcologyGoal033Suite.HistoricalMemoryPort(),
+			id -> false, id -> "", java.time.Clock.systemUTC(), java.time.ZoneOffset.UTC, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyState.Preset.LIVING, 0, 1,
+			worker -> { org.l2jmobius.commons.threads.ThreadPool.execute(() -> { try { worker.run(); } finally { finished.countDown(); } }); return true; });
+		ecology.installMetadataObserver(observation ->
+		{
+			entered.countDown();
+			try { if (!release.await(5, TimeUnit.SECONDS)) { throw new IllegalStateException("TEST023_METADATA_RELEASE_TIMEOUT"); } }
+			catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException(failure); }
+		});
+		ecology.installRuntime(id -> id == 1 ? java.util.Optional.of(metadata) : java.util.Optional.empty(), new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.PopulationEvents()
+		{
+			@Override public void requestArchive(long id) { }
+			@Override public void reconcilePopulation() { }
+			@Override public void ecologyFenceChanged(long id) { }
+		});
+		PhantomSystem.configureForTesting(service(1, PhantomMaterializedPlayer.FailureInjector.none(), 150));
+		final var configuredField = PhantomSystem.class.getDeclaredField("_configuredInstance"); configuredField.setAccessible(true);
+		final var configured = configuredField.get(null); final var ecologyField = PhantomSystem.class.getDeclaredField("_populationEcology"); ecologyField.setAccessible(true); ecologyField.set(configured, ecology);
+		try
+		{
+			ecology.register(metadata); ecology.onPopulationPulse();
+			PhantomAssertions.assertTrue(entered.await(3, TimeUnit.SECONDS), "INVALID: original ecology metadata worker did not enter its native finally boundary.");
+			org.l2jmobius.commons.threads.ThreadPool.schedule(release::countDown, 100);
+			final boolean stopped = PhantomSystem.shutdownIfStarted();
+			context.record("TASK023.ecologyDrain", "stopped=" + stopped + ";finished=" + (finished.getCount() == 0) + ";configured=" + PhantomSystem.hasConfiguredInstance());
+			PhantomAssertions.assertTrue(stopped && finished.getCount() == 0 && !PhantomSystem.hasConfiguredInstance(), "RED: stock shutdown must await the already running ecology worker before the shared pool phase.");
+		}
+		finally
+		{
+			release.countDown(); PhantomAssertions.assertTrue(finished.await(5, TimeUnit.SECONDS), "Exact TEST ecology worker retained at teardown.");
+			if (PhantomSystem.hasConfiguredInstance()) { PhantomSystem.shutdownIfStarted(); }
+		}
 	}
 
 	private void testManagedClassifier() throws Exception

@@ -80,6 +80,9 @@ public final class PlayerNativeEvidence
 		if (_overflow || (actualHpDelta <= 0) || !observe(now)) { return; }
 		final TargetState state = target(target);
 		if (state == null) { return; }
+		// A real positive offensive HP write completes the rest gap, even while new
+		// casts keep MP below maximum. Repeated regeneration alone never renews it.
+		retireRegeneration();
 		state._damaged = true;
 		completeCycle(target, state);
 		_damageSequence = add(_damageSequence, 1);
@@ -110,6 +113,13 @@ public final class PlayerNativeEvidence
 		completeCycle(target, state);
 		_killSequence = add(_killSequence, 1);
 		event(now, state._damaged);
+	}
+
+	/** Actual NPC death reached under its frozen reward boundary; only proven own HP damage qualifies. */
+	public synchronized void killedIfDamaged(Target target)
+	{
+		final TargetState state = _targets.get(target);
+		if ((state != null) && state._damaged) { killed(target); }
 	}
 
 	public synchronized void selected(Target target, long now)

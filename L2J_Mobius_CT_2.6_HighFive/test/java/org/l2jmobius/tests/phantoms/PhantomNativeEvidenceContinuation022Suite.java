@@ -15,6 +15,20 @@ public final class PhantomNativeEvidenceContinuation022Suite implements PhantomT
 	@Override public String id() { return "native-evidence-continuation022"; }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		registry.add("S11-useful-native-offense-finishes-rest-gap-without-clearing-invalidity", _ ->
+		{
+			final var sensor = new PlayerNativeEvidence(1, System.nanoTime());
+			sensor.nativeRegeneration(0, 1, false, false);
+			final var resting = sensor.snapshot();
+			PhantomAssertions.assertEquals(Phase.REGEN, resting.phase(), "Tagged positive native regeneration begins bounded rest.");
+			sensor.damage(new Target(10, 0, 1), 1);
+			PhantomAssertions.assertEquals(Phase.NONE, sensor.snapshot().phase(), "RED: actual useful offense completes a rest gap even while MP is still below maximum.");
+			sensor.nativeRegeneration(0, 1, false, false);
+			final var next = sensor.snapshot();
+			PhantomAssertions.assertTrue(!next.overflow() && next.phase() == Phase.REGEN && next.phaseSinceNanos() > resting.phaseSinceNanos(), "A later actual regeneration gap has its own bounded native start.");
+			sensor.pauseRegeneration(false, false); sensor.nativeRegeneration(0, 1, false, false);
+			PhantomAssertions.assertEquals(next.phaseSinceNanos(), sensor.snapshot().phaseSinceNanos(), "Pause/retry without offense never renews the unfinished rest horizon.");
+		});
 		registry.add("S08-first-phase-deadline-reason-sticky-and-stale-clear", _ ->
 		{
 			final var sensor = new PlayerNativeEvidence(1, 100);

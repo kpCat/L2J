@@ -397,7 +397,22 @@ public class Attackable extends Npc
 		final List<NativeRewardDamage> frozenDamage = List.copyOf(damage);
 		PlayerNativeWork.runAtNativeWriteBoundary(lastAttacker, roster.recipients(), "npc-reward-write", () ->
 		{
-			try (var context = roster.enter()) { calculateRewardsNative(lastAttacker, frozenDamage, roster); }
+			try (var context = roster.enter())
+			{
+				calculateRewardsNative(lastAttacker, frozenDamage, roster);
+				if (isDead())
+				{
+					final var seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Player, Boolean>());
+					final Player killer = lastAttacker == null ? null : lastAttacker.asPlayer();
+					for (NativeRewardDamage contribution : frozenDamage)
+					{
+						final Player participant = contribution.attacker().asPlayer();
+						if ((contribution.damage() <= 1) || (participant == null) || (participant == killer) || !seen.add(participant)) { continue; }
+						final var evidence = PlayerNativeWork.observationEvidence(participant);
+						if (evidence != null) { evidence.killedIfDamaged(getNativeEvidenceTarget()); }
+					}
+				}
+			}
 		});
 	}
 

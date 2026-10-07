@@ -298,7 +298,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		player.getAutoUseSettings().getAutoSupplyItems().clear();
 		player.getAutoUseSettings().setAutoPotionItem(0);
 		player.getAutoPlaySettings().setNextTargetMode(1);
-		player.getAutoPlaySettings().setShortRange(true);
+		player.getAutoPlaySettings().setShortRange(false);
 		player.getAutoPlaySettings().setPickup(true);
 		player.getAutoUseSettings().getAutoActions().add(2);
 		if (AutoPlayConfig.ENABLE_AUTO_SKILL)

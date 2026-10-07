@@ -201,6 +201,8 @@ public final class PhantomM1DynamicRecipientChecks
 			PhantomAssertions.assertTrue(npc.isDead() && first.getExp() > firstExp && second.getExp() > secondExp, "N02 genuine damaging participants receive native death reward.");
 			if (ordinary != null) { PhantomAssertions.assertTrue(ordinary.getExp() > ordinaryExp && npc.getAggroList().get(ordinary) != null && npc.getAggroList().get(ordinary).getDamage() > 1, "N02 ordinary third native attack and reward remain stock."); }
 			context.record("N02.nativeRewards", "first=" + (first.getExp() - firstExp) + ";second=" + (second.getExp() - secondExp) + ";ordinary=" + (ordinary == null ? "NONE" : ordinary.getExp() - ordinaryExp));
+			context.record("N02.nativeKills", "first=" + one.scope.evidence().snapshot().killSequence() + ";second=" + two.scope.evidence().snapshot().killSequence());
+			PhantomAssertions.assertTrue(one.scope.evidence().snapshot().killSequence() == 1 && two.scope.evidence().snapshot().killSequence() == 1, "RED: each genuinely damaging native reward recipient observes the same actual target death once.");
 			}
 			finally
 			{
