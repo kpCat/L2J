@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$RuntimeRoot,[Parameter(Mandatory)][string]$OutputRoot,
-      [ValidateRange(30,100)][int]$Seconds=80,[switch]$CrashAfterStop)
+      [ValidateRange(30,100)][int]$Seconds=80)
 $ErrorActionPreference='Stop'
 $runtime=[IO.Path]::GetFullPath($RuntimeRoot);$OutputRoot=[IO.Path]::GetFullPath($OutputRoot)
 if($runtime -notmatch '[\\/]contract024c[\\/]runtime$'){throw 'Dedicated clone c required.'}
@@ -46,4 +46,3 @@ try{
 }finally{
     if($started){& (Join-Path $runtime 'Stop-LocalPlayPilot.ps1') -ActorMode Synthetic -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-stop.json') -Encoding utf8}
 }
-if($CrashAfterStop){& (Join-Path $PSScriptRoot 'Crash-ExactOwned024.ps1') -RuntimeRoot $runtime -OutputRoot (Join-Path $OutputRoot 'real-process-crash')}

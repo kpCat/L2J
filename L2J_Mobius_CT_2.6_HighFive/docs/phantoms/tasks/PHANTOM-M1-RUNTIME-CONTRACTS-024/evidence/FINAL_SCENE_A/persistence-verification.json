@@ -1,0 +1,24 @@
+{
+  "pass": false,
+  "checkedProfiles": [
+    110,
+    175,
+    187,
+    252,
+    275,
+    606,
+    775
+  ],
+  "errors": [
+    "profile 606 native store not finalized",
+    "profile 606 exp: expected=24968, saved=24717",
+    "profile 606 sp: expected=2029, saved=2069",
+    "profile 606 expBeforeDeath: expected=21748, saved=25808",
+    "profile 606 x: expected=47133, saved=48366",
+    "profile 606 y: expected=41232, saved=42521",
+    "profile 606 z: expected=-3504, saved=-3472",
+    "profile 606 hp: expected=130.0, saved=0.0",
+    "profile 606 mp: expected=30.0, saved=69.0",
+    "profile 606 cp: expected=100.0, saved=0.0"
+  ]
+}

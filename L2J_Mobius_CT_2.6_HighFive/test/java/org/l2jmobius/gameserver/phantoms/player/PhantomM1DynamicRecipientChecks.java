@@ -173,7 +173,7 @@ public final class PhantomM1DynamicRecipientChecks
 					PhantomAssertions.assertEquals(0, writes.get(), "N03 strict denial before any writer.");
 					PhantomAssertions.assertTrue(one.scope.firstNativeIncident() != null && two.scope.firstNativeIncident() != null, "N03 delayed fence records its genuine lineage failure.");
 				}
-				else if (variant.equals("replaced-epoch"))
+				else if (variant.equals("replaced-epoch") || variant.equals("original-replaced-epoch"))
 				{
 					final var recipient = two.scope.reserve(null, "TEST023_CAPTURED_RECIPIENT", Semantics.EARNED);
 					PhantomAssertions.assertTrue(recipient != null && recipient.tryStart(), "N03 original recipient exact running.");
@@ -181,7 +181,15 @@ public final class PhantomM1DynamicRecipientChecks
 					try (var captured = PlayerNativeWork.enter(recipient))
 					{
 						second.detachNativeWorkOwner(two.scope); second.attachNativeWorkOwner(replacement);
-						try { PhantomAssertions.assertEquals(PlayerNativeWork.NativeBoundaryOutcome.REJECTED_STALE, PlayerNativeWork.runAtNativeWriteBoundary(first, List.of(second), "TEST023_FRESH_WRITE", writer), "N03 stale frame never resolves replacement epoch."); }
+						try
+						{
+							if (variant.equals("original-replaced-epoch"))
+							{
+								PlayerNativeWork.runOriginalCombat(first, List.of(second), "TEST024_ORIGINAL_ENTRY", writer);
+								PhantomAssertions.assertEquals(null, one.scope.firstNativeIncident(), "A03 stale original admission cannot poison the unrelated exact origin.");
+							}
+							else { PhantomAssertions.assertEquals(PlayerNativeWork.NativeBoundaryOutcome.REJECTED_STALE, PlayerNativeWork.runAtNativeWriteBoundary(first, List.of(second), "TEST023_FRESH_WRITE", writer), "N03 stale frame never resolves replacement epoch."); }
+						}
 						finally { second.detachNativeWorkOwner(replacement); second.attachNativeWorkOwner(two.scope); }
 					}
 					finally { recipient.complete(null); }

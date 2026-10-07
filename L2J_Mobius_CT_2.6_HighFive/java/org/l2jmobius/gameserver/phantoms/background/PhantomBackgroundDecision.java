@@ -181,7 +181,7 @@ public final class PhantomBackgroundDecision
 
 	private static boolean visibleEligible(PhantomActivityState state, Directive directive)
 	{
-		return (state.requiresMaterialization() || (state == PhantomActivityState.WARM)) && (directive.kind() == DirectiveKind.REPLAN) && ("recovery.not_dead".equals(directive.reason()) || "visible.travel_pending".equals(directive.reason()));
+		return (state.requiresMaterialization() || (state == PhantomActivityState.WARM)) && (directive.kind() == DirectiveKind.REPLAN) && ("recovery.not_dead".equals(directive.reason()) || "visible.travel_pending".equals(directive.reason()) || "visible.owned_store_pending".equals(directive.reason()));
 	}
 
 	private boolean recoveryReady(PhantomPlanningContext context, Directive directive)

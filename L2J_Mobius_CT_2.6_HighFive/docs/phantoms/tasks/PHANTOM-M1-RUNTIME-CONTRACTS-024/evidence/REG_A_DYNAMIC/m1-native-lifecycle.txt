@@ -1,0 +1,61 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=6
+passed=6
+failed=0
+measurement.Q12.dynamic.party.open.exactPlayers=268435465:1885499437,268435467:314471105,268480994:1426479351
+measurement.Q12.dynamic.party.open.fixture=VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT
+measurement.Q12.dynamic.party.open.newcomerBeforeWrite=epoch=122621794238900 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[]
+measurement.Q12.dynamic.party.open.originIncident=null
+measurement.Q12.dynamic.party.open.originLatestIncident=null
+measurement.Q12.dynamic.party.open.originQueued=epoch=122621793176900 state=OPEN outstanding=1 pendingTimers=1 peak=4 failure= work=[8:cast-launch:RESERVED:depth=2:ageMs=0]
+measurement.Q12.dynamic.party.open.workersHeld=64
+measurement.Q12.dynamic.party.ordinary.exactPlayers=268435465:1222696887,268435467:514455949,268481775:2056625427
+measurement.Q12.dynamic.party.ordinary.fixture=VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT
+measurement.Q12.dynamic.party.ordinary.nativeCompletion=java.lang.Thread.getStackTrace>org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$Completion.lambda$new$0>org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener.executeEvent>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyToListeners>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEventImpl>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent>org.l2jmobius.gameserver.model.actor.Creature.notifyDamageReceived>handlers.skill.effects.MagicalDamage.onStart>org.l2jmobius.gameserver.model.skill.Skill.applyEffectScope>org.l2jmobius.gameserver.model.skill.Skill.applyEffects>org.l2jmobius.gameserver.model.skill.Skill.applyEffects>org.l2jmobius.gameserver.model.skill.Skill.activateSkill>org.l2jmobius.gameserver.model.skill.Skill.activateSkill>org.l2jmobius.gameserver.model.actor.Creature.callSkillNative>org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$1>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat>org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary
+measurement.Q12.dynamic.party.ordinary.nativeDelta=168.0
+measurement.Q12.dynamic.party.ordinary.workersHeld=64
+measurement.Q12.dynamic.party.sealed.exactPlayers=268435465:1787033868,268435467:1490332687,268481781:1922231849
+measurement.Q12.dynamic.party.sealed.fixture=VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT
+measurement.Q12.dynamic.party.sealed.newcomerBeforeWrite=epoch=122644504244200 state=SEALED outstanding=0 pendingTimers=0 peak=3 failure= work=[]
+measurement.Q12.dynamic.party.sealed.originIncident=null
+measurement.Q12.dynamic.party.sealed.originLatestIncident=null
+measurement.Q12.dynamic.party.sealed.originQueued=epoch=122644504239300 state=OPEN outstanding=1 pendingTimers=1 peak=4 failure= work=[8:cast-launch:RESERVED:depth=2:ageMs=0]
+measurement.Q12.dynamic.party.sealed.workersHeld=64
+measurement.Q12.dynamic.transfer.incoming=1239:15 nativeMP=57.0
+measurement.Q12.dynamic.transfer.open.exactPlayers=268435465:2105929895,268435467:1423023610,268481773:1416600226
+measurement.Q12.dynamic.transfer.open.fixture=VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT
+measurement.Q12.dynamic.transfer.open.newcomerBeforeWrite=epoch=122629162694600 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[]
+measurement.Q12.dynamic.transfer.open.originIncident=null
+measurement.Q12.dynamic.transfer.open.originLatestIncident=null
+measurement.Q12.dynamic.transfer.open.originQueued=epoch=122629162682700 state=OPEN outstanding=1 pendingTimers=0 peak=4 failure= work=[8:cast-launch:RESERVED:depth=2:ageMs=0]
+measurement.Q12.dynamic.transfer.open.workersHeld=64
+measurement.Q12.dynamic.transfer.ordinary.exactPlayers=268435465:1259863712,268435467:2037538058,268481779:2098776008
+measurement.Q12.dynamic.transfer.ordinary.fixture=VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT
+measurement.Q12.dynamic.transfer.ordinary.nativeCompletion=java.lang.Thread.getStackTrace>org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$Completion.lambda$new$0>org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener.executeEvent>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyToListeners>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEventImpl>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent>org.l2jmobius.gameserver.model.events.EventDispatcher.notifyEvent>org.l2jmobius.gameserver.model.actor.Creature.notifyDamageReceived>handlers.skill.effects.MagicalDamage.onStart>org.l2jmobius.gameserver.model.skill.Skill.applyEffectScope>org.l2jmobius.gameserver.model.skill.Skill.applyEffects>org.l2jmobius.gameserver.model.skill.Skill.applyEffects>org.l2jmobius.gameserver.model.skill.Skill.activateSkill>org.l2jmobius.gameserver.model.skill.Skill.activateSkill>org.l2jmobius.gameserver.model.actor.Creature.callSkillNative>org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$1>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat>org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary
+measurement.Q12.dynamic.transfer.ordinary.nativeDelta=2.0
+measurement.Q12.dynamic.transfer.ordinary.workersHeld=64
+measurement.Q12.dynamic.transfer.sealed.exactPlayers=268435465:1139279159,268435467:1760885428,268481783:1478400539
+measurement.Q12.dynamic.transfer.sealed.fixture=VALID_ACTUAL_STOCK_PUBLICATION_AND_DYNAMIC_RECIPIENT
+measurement.Q12.dynamic.transfer.sealed.newcomerBeforeWrite=epoch=122651759372600 state=SEALED outstanding=0 pendingTimers=0 peak=3 failure= work=[]
+measurement.Q12.dynamic.transfer.sealed.originIncident=null
+measurement.Q12.dynamic.transfer.sealed.originLatestIncident=null
+measurement.Q12.dynamic.transfer.sealed.originQueued=epoch=122651759367500 state=OPEN outstanding=1 pendingTimers=0 peak=3 failure= work=[8:cast-launch:RESERVED:depth=2:ageMs=0]
+measurement.Q12.dynamic.transfer.sealed.workersHeld=64
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_localplay_contract024a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS m1-native-lifecycle.Q12-dynamic-native-recipient-open-false elapsedNanos=7407036500
+PASS m1-native-lifecycle.Q12-dynamic-native-recipient-open-true elapsedNanos=4359385500
+PASS m1-native-lifecycle.Q12-dynamic-native-recipient-ordinary-false elapsedNanos=6945337700
+PASS m1-native-lifecycle.Q12-dynamic-native-recipient-ordinary-true elapsedNanos=4038927900
+PASS m1-native-lifecycle.Q12-dynamic-native-recipient-sealed-false elapsedNanos=7257484400
+PASS m1-native-lifecycle.Q12-dynamic-native-recipient-sealed-true elapsedNanos=4360251400

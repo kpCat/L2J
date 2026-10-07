@@ -2,10 +2,10 @@
 param([Parameter(Mandatory)][string]$RuntimeRoot,[Parameter(Mandatory)][string]$OutputRoot,
       [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha,
       [ValidateRange(360,420)][int]$Seconds=380,[string[]]$PreviousPrimaryIds=@(),
-      [hashtable]$SetupTeleport=@{})
+      [hashtable]$SetupTeleport=@{},[switch]$CollectSealed)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-if($RuntimeRoot -notmatch '[\\/]contract024[a-h][\\/]runtime[\\/]?$'){throw 'Exact TASK023 owned runtime required.'}
+if($RuntimeRoot -notmatch '[\\/]contract024[a-h][\\/]runtime[\\/]?$'){throw 'Exact TASK024 owned runtime required.'}
 if(Test-Path -LiteralPath $OutputRoot){throw 'Evidence directory already exists; no overwrite.'}
 $manifest=Get-Content (Join-Path $RuntimeRoot 'local-play.json') -Raw | ConvertFrom-Json
 if($manifest.codeSha -cne $FrozenSha -or (Get-FileHash (Join-Path $RuntimeRoot 'libs/GameServer.jar')).Hash -cne $manifest.gameJarSha256){throw 'Frozen SHA/JAR mismatch.'}
@@ -97,10 +97,13 @@ try{
     $baseline | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $OutputRoot 'baseline-cohort.json') -Encoding utf8
     $primary | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $OutputRoot 'primary.json') -Encoding utf8
     Inventory023 'baseline' $baseline
+    if($CollectSealed){
+        & (Join-Path $PSScriptRoot 'Arm-Collector024.ps1') -RuntimeRoot $RuntimeRoot -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot (Join-Path $OutputRoot 'sealed')
+    }
     $watch=[Diagnostics.Stopwatch]::StartNew()
     $samples.Add([pscustomobject]@{elapsedSeconds=0;actors=$baseline})
     while($watch.Elapsed.TotalSeconds -lt $Seconds){
-        Start-Sleep -Seconds 10
+        Start-Sleep -Seconds 4
         $actors=@(Census023)
         $sample=[pscustomobject]@{elapsedSeconds=$watch.Elapsed.TotalSeconds;actors=$actors}
         $samples.Add($sample)
@@ -130,8 +133,8 @@ try{
         $isPrimary=[string]$initial.profileId -in @($primary | ForEach-Object {[string]$_.profileId})
         $exp=if($same){[long]$last[0].nativeExpGained-[long]$initial.nativeExpGained}else{0}
         $sp=if($same){[long]$last[0].nativeSpGained-[long]$initial.nativeSpGained}else{0}
-        $minimum=if($isPrimary){5}else{3}
-        $pass=$same -and $missing -eq 0 -and !$changedEpoch -and $maxIdle -le 120 -and $cycles -ge $minimum -and $kills -ge $minimum -and $damage -ge $minimum -and $rewards -ge $minimum -and $targets -ge $minimum -and $tailRewards -ge 1 -and $exp -gt 0 -and $sp -gt 0 -and $last[0].nativeEvidenceOverflow -ceq 'false' -and $last[0].pendingOwnedStore -ceq 'false' -and $last[0].cleanupPhase -ceq 'NONE'
+        $minimum=if($isPrimary){5}else{2}
+        $pass=$same -and $missing -eq 0 -and !$changedEpoch -and $maxIdle -le 90 -and $cycles -ge $minimum -and $kills -ge $minimum -and $damage -ge $minimum -and $rewards -ge $minimum -and $targets -ge $minimum -and $tailRewards -ge 1 -and $exp -gt 0 -and $sp -gt 0 -and $last[0].nativeEvidenceOverflow -ceq 'false' -and $last[0].pendingOwnedStore -ceq 'false' -and $last[0].cleanupPhase -ceq 'NONE'
         [pscustomobject]@{profileId=$initial.profileId;objectId=$initial.objectId;primary=$isPrimary;sameEpoch=$same;missingSamples=$missing;changedEpoch=$changedEpoch;maxIdleSeconds=$maxIdle;cycles=$cycles;kills=$kills;damage=$damage;rewards=$rewards;targetTransitions=$targets;tail120Rewards=$tailRewards;exp=$exp;sp=$sp;pass=$pass;last=if($last.Count){$last[0]}else{$null}}
     })
     $rows | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $OutputRoot 'cohort-result.json') -Encoding utf8

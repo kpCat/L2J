@@ -985,9 +985,16 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			if ((runtime == null) || runtime.inFlight() || runtime.persistenceInFlight()) { return false; }
 			final var receipt = _visiblePublications.get(profileId);
 			if (receipt != null) { return finishVisiblePublication(profileId, decision, receipt); }
-			if (!permitsDecision(profileId)) { return false; }
 			final StoredGoal stored = _goals.load(profileId).orElse(null);
 			if (stored == null) { return false; }
+			if (_foregroundDecisionsRevoked) { return false; }
+			if (_background.hasVisibleOwnedStorePending(profileId, stored.goal()))
+			{
+				final var pending = _materialization.find(profileId).orElse(null);
+				final var player = pending == null ? null : org.l2jmobius.gameserver.model.World.getInstance().getPlayer(pending.characterObjectId());
+				if ((player == null) || (_background.resumeVisibleOwnedStore(profileId, player, stored.goal()).status() != PhantomBackgroundService.VisibleStoreStatus.SUCCESS)) { return false; }
+			}
+			if (!permitsDecision(profileId)) { return false; }
 			final var admitted = _materialization.find(profileId).orElse(null);
 			if ((admitted == null) || !admitted.worldPresent() || !admitted.actionAdmissionOpen() || (admitted.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE)) { return false; }
 			try (var action = _materialization.tryAcquireAction(profileId).orElse(null))

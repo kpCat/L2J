@@ -39,6 +39,11 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom023.nativeFarmFocus", "all");
+		if (focus.equals("pending024"))
+		{
+			registry.add("B09-scheduler-resumes-exact-visible-pending-handoff-before-ordinary-admission", this::pending024);
+			return;
+		}
 		if (focus.equals("contract024"))
 		{
 			registry.add("D02-real-arrival-precedes-old-nonterminal-journey-deadline", this::arrival024);
@@ -136,6 +141,39 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 		final var type = Class.forName("org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$NativeLifetime");
 		final var constructor = type.getDeclaredConstructor(org.l2jmobius.gameserver.model.actor.Player.class); constructor.setAccessible(true);
 		return (AutoCloseable) constructor.newInstance(player);
+	}
+	private void pending024(PhantomTestContext context) throws Exception
+	{
+		try (var f = handoff.new Fixture(true))
+		{
+			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final var player = World.getInstance().getPlayer(f.objectId);
+			final var field = PhantomBackgroundTransaction.class.getDeclaredField("_faultInjector"); field.setAccessible(true);
+			final var original = (PhantomBackgroundTransaction.FaultInjector) field.get(f.transactions);
+			try
+			{
+				field.set(f.transactions, (PhantomBackgroundTransaction.FaultInjector) point ->
+				{
+					original.inject(point);
+					if (point == PhantomBackgroundTransaction.FaultPoint.AFTER_OWNED_PREPARE) { throw new IllegalStateException("TEST024_PENDING_PREPARE"); }
+				});
+				PhantomAssertions.assertThrows(IllegalStateException.class, player::storeMe, "B09 controlled fault follows durable PREPARE.");
+				field.set(f.transactions, original);
+				PhantomAssertions.assertTrue(player.hasPendingOwnedStore() && player.getNativeWorkOwner().sealed(), "INVALID B09: exact receipt and fenced native owner required.");
+				PhantomAssertions.assertTrue(f.materialization.tryAcquireAction(f.id).isEmpty(), "B09 ordinary admission stays closed before receipt resolution.");
+				context.record("B09.pendingDirective", f.background.directive(f.id, goal, PhantomActivityState.ACTIVE).toString());
+				PhantomAssertions.assertTrue(f.historical.prepareVisibleDecision(f.id, engine), "B09 scheduler must resolve exact pending receipt before ordinary handoff/ActionLease checks.");
+				PhantomAssertions.assertFalse(player.hasPendingOwnedStore(), "B09 resolved receipt cannot persist as perpetual idle.");
+				PhantomAssertions.assertTrue(f.historical.permitsDecision(f.id), "B09 exact foreground handoff survives safe native resume.");
+			}
+			finally
+			{
+				field.set(f.transactions, original);
+				if (player.hasPendingOwnedStore()) { PhantomAssertions.assertEquals(PhantomBackgroundService.VisibleStoreStatus.SUCCESS, f.background.resumeVisibleOwnedStore(f.id, player, goal).status(), "B09 fixture cleanup uses the existing exact resume, without guard reset."); }
+				PhantomVisibleIntentRecoverySuite.stop(engine);
+			}
+		}
 	}
 	private void hateOnlyRecipient(PhantomTestContext context) throws Exception
 	{

@@ -34,6 +34,7 @@ public final class PhantomLivingWorld023Suite implements PhantomTestSuite
 		if (focus.equals("retaliation024"))
 		{
 			for (String variant : java.util.List.of("retaliation-open", "retaliation-sealed")) { registry.add("A01-A02-actual-HitTask-NPC-" + variant, context -> cooperative(context, variant)); }
+			registry.add("A03-original-entry-cannot-relabel-replaced-epoch", context -> admission(context, "original-replaced-epoch"));
 			return;
 		}
 		if (java.util.Set.of("cooperative", "stale").contains(focus))

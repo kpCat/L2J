@@ -1,0 +1,10 @@
+110	9	context	COMPLETED	34541	8f642cb4daf1e217671ca5353778e83395d3f07a26a433e854030d231e88a767	VITALITY_REQUIRES_NATIVE	708	false
+110	34541	state	READY	8f642cb4daf1e217671ca5353778e83395d3f07a26a433e854030d231e88a767	Progress[level=8, experience=26219, skillPoints=1241, experienceBeforeDeath=2727]	Position[instanceId=0, x=43977, y=42733, z=-3488, heading=20101, committedAnchorId=population.farming.elf.20534]
+175	11	context	COMPLETED	21691	6e929050ed5c0875aed9553f70eac14185e98d0a2ce7e1c7ce27a069cc075309	VITALITY_REQUIRES_NATIVE	1471	false
+175	21691	state	READY	6e929050ed5c0875aed9553f70eac14185e98d0a2ce7e1c7ce27a069cc075309	Progress[level=7, experience=12992, skillPoints=866, experienceBeforeDeath=6607]	Position[instanceId=0, x=47646, y=43115, z=-3488, heading=25669, committedAnchorId=generated.farm.d6f82637bd6fae44cd109781.anchor]
+275	20	context	COMPLETED	26616	6f27e387615ac7c82d88b81ffbee446b3f1914578b508d4c73e5a89e3025a062	VITALITY_REQUIRES_NATIVE	85	false
+275	26616	state	READY	6f27e387615ac7c82d88b81ffbee446b3f1914578b508d4c73e5a89e3025a062	Progress[level=8, experience=29165, skillPoints=2811, experienceBeforeDeath=26211]	Position[instanceId=0, x=44083, y=42805, z=-3493, heading=22338, committedAnchorId=population.farming.elf.20534]
+606	22	context	COMPLETED	12631	f36d60aabe82f3f019e99717a6dfdbf9d23993824a8d22a4d9b08374b3464bbb	SUPPORTED	1	true
+606	12631	state	READY	f36d60aabe82f3f019e99717a6dfdbf9d23993824a8d22a4d9b08374b3464bbb	Progress[level=8, experience=25597, skillPoints=2037, experienceBeforeDeath=21748]	Position[instanceId=0, x=47863, y=42447, z=-3472, heading=21972, committedAnchorId=generated.farm.d6f82637bd6fae44cd109781.anchor]
+613	28	context	COMPLETED	12702	0c561ee0dfd5f7bfc4055d3ea10b3ba04429bf12ccc0785cd734b923aa0a1279	POSITION_REQUIRES_NATIVE	204	false
+613	12702	state	READY	0c561ee0dfd5f7bfc4055d3ea10b3ba04429bf12ccc0785cd734b923aa0a1279	Progress[level=9, experience=33982, skillPoints=2512, experienceBeforeDeath=32761]	Position[instanceId=0, x=40648, y=40860, z=-3536, heading=38404, committedAnchorId=generated.farm.58356b4e9844a379fecfbaf6.anchor]

@@ -19,9 +19,11 @@ $args023=@('-Xmx4g','-Dfile.encoding=UTF-8','-Dsun.stdout.encoding=UTF-8','-Dsun
     "-Dphantom.test.reports=$reports023")
 if($Focus){$args023+="-Dphantom.m1.native.focus=$Focus"}
 if($Suite -ceq 'PhantomNativeFarmContinuation022Suite' -and $Focus){$args023+="-Dphantom023.nativeFarmFocus=$Focus"}
+if($Suite -ceq 'position' -and $Focus){$args023+="-Dphantom.background.position.focus=$Focus"}
 $args023+=@('-cp',$cp)
 if($Suite -ceq 'native'){$args023+=@('org.l2jmobius.tests.phantoms.PhantomTestLauncher','m1-native-lifecycle','15001501')}
 elseif($Suite -ceq 'server-shutdown'){$args023+=@('org.l2jmobius.tests.phantoms.PhantomTestLauncher','server-shutdown-handoff','23002301')}
+elseif($Suite -ceq 'position'){$args023+=@('org.l2jmobius.tests.phantoms.PhantomTestLauncher','background-position-canonicalization','15001502')}
 else{$args023+=@("org.l2jmobius.tests.phantoms.$Suite",$module,$reports023)}
 $log=Join-Path $PSScriptRoot "$Label.log"
 Push-Location (Join-Path $module '.phantom-local/contract024a/runtime/game')

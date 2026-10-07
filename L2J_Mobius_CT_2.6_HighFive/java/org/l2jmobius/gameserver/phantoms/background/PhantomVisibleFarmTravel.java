@@ -136,7 +136,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				return false;
 			}
 			_pendingStores.remove(profileId, pending);
-			if (pending.anchorId == null) { return false; }
+			if (pending.anchorId == null) { return advance(profileId, goal); }
 			remove(profileId, pending.journey);
 			return pending.anchorId.equals(PhantomBackgroundGoalSpec.parse(goal).anchorId());
 		}

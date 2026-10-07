@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="background-position-canonicalization" seed="15001502" tests="12" passed="6" failures="6">
+  <properties>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.positionCanonicalZ" value="-3056"/>
+    <property name="background.positionLiveDelta" value="5"/>
+    <property name="background.positionMalformedTransition" value="ANCHOR_MISMATCH"/>
+    <property name="background.positionMode" value="GEODATA_NORMALIZED"/>
+    <property name="background.positionRawZ" value="-3061"/>
+    <property name="background.positionTolerance" value="5"/>
+    <property name="background.productionKnowledgeHash" value="4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="executor.activityWorkCount" value="6"/>
+    <property name="executor.fastContact" value="true"/>
+    <property name="executor.manualAutoPlayStart" value="false"/>
+    <property name="executor.manualMaterialize" value="false"/>
+    <property name="executor.nativeDamage" value="4"/>
+    <property name="executor.newEpoch" value="124004925297300"/>
+    <property name="executor.route" value="bridge.2a7e451e36175b54ee6aae0d"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract024a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="m1.complete.coldLoads" value="872"/>
+    <property name="m1.complete.firstClaimMillis" value="0"/>
+    <property name="m1.complete.innerIntervals" value="13"/>
+    <property name="m1.complete.productiveWork" value="nativeWindows=1 nativeIntervals=13 ordinaryIntervals=0"/>
+    <property name="m1.complete.progress" value="ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22002, lastProgressAgeMillis=123974710, nextWakeMillis=123974776, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0]"/>
+    <property name="m1.complete.readyMillis" value="22002"/>
+    <property name="m1.complete.reason" value="ecology.inventory_pending"/>
+    <property name="m1.journalOff" value="OperationCounts[snapshots=0, encodes=0, hashes=0, opens=0, forces=0]"/>
+    <property name="m1.journalOn" value="OperationCounts[snapshots=3, encodes=5, hashes=5, opens=2, forces=2]"/>
+    <property name="m1.levelLoss.coldLoads" value="872"/>
+    <property name="m1.levelLoss.firstClaimMillis" value="0"/>
+    <property name="m1.levelLoss.innerIntervals" value="13"/>
+    <property name="m1.levelLoss.productiveWork" value="nativeWindows=1 nativeIntervals=13 ordinaryIntervals=0"/>
+    <property name="m1.levelLoss.progress" value="ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22008, lastProgressAgeMillis=123996943, nextWakeMillis=123996986, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0]"/>
+    <property name="m1.levelLoss.readyMillis" value="22007"/>
+    <property name="m1.levelLoss.reason" value="ecology.inventory_pending"/>
+    <property name="m1.running.coldLoads" value="1279"/>
+    <property name="m1.running.firstClaimMillis" value="27358"/>
+    <property name="m1.running.history" value="calendarMinutes=4320 productiveWindows=75 actualIntervals=1108 cohort=1 native+1279 synthetic metadata; 973 synthetic far demands retained"/>
+    <property name="m1.running.innerIntervals" value="1"/>
+    <property name="m1.running.productiveWork" value="nativeWindows=75 nativeIntervals=1108 ordinaryIntervals=381"/>
+    <property name="m1.running.progress" value="ProgressSnapshot[ordinaryQueued=1279, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=historical.status, enqueueAgeMillis=27, lastProgressAgeMillis=5, nextWakeMillis=123852154, nextRetryMillis=0, historicalStatus=COMPLETE, requestId=87d70c20d451d0f85ec7be1a63dbed9bc7b8bf10eda4c08ae16624ee8fefdc26, innerCursorMinute=29843626, targetMinute=29843626, innerRevision=1256]"/>
+    <property name="m1.running.readyMillis" value="49944"/>
+    <property name="m1.running.reason" value="ecology.cursor_current"/>
+    <property name="m1.running.recovery" value="existing native corpse/town recovery; TEST call, 45-second policy covered by existing native timer contract"/>
+    <property name="m1.running.recoveryTown" value="[Location] X: -84903 Y: 243489 Z: -3700 Heading: 0 InstanceId: 0 region=910"/>
+    <property name="m1.running.teardownCapture" value="supported"/>
+    <property name="ownedProtocol.AFTER_STORE" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.BEFORE_STORE" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.CHANGED_PAYLOAD" value="STATE_CONFLICT/no write"/>
+    <property name="ownedProtocol.FINALIZE_ACK_UNKNOWN" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.FINALIZE_COMMIT" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.LEVEL_UP_AFTER" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.LEVEL_UP_BEFORE" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.NORMAL_ARRIVAL" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.NORMAL_CLEANUP" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.PARTIAL_ITEM" value="OWNED_STORE_CANONICAL_NEITHER/INCONSISTENT"/>
+    <property name="ownedProtocol.PARTIAL_UNKNOWN" value="OWNED_STORE_CANONICAL_NEITHER/INCONSISTENT"/>
+    <property name="ownedProtocol.PREPARE_ACK_UNKNOWN" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.PREPARE_UNCOMMITTED" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.SNAPSHOT_MUTATION" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.SNAPSHOT_PROGRESSION" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.STALE_EPOCH" value="SUCCESS/READY"/>
+    <property name="ownedProtocol.STALE_VERSION" value="STATE_CONFLICT/no write"/>
+    <property name="ownedStore.LIVE_PREPARE.failure" value="VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]"/>
+    <property name="ownedStore.SQL_BASE.failure" value="MATERIALIZED BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]"/>
+    <property name="ownedStore.SQL_BASE.restart" value="SUCCESS/READY"/>
+    <property name="ownedStore.SQL_SUB.failure" value="MATERIALIZED BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]"/>
+    <property name="ownedStore.SQL_SUB.restart" value="SUCCESS/READY"/>
+  </properties>
+  <testcase name="background-position-canonicalization.01-canonical-anchor-policy-and-negative-controls" elapsedNanos="4955730800"></testcase>
+  <testcase name="background-position-canonicalization.02-real-player-travel-materialization-restart" elapsedNanos="5306128300"><failure type="java.lang.AssertionError" message="Materialization/dematerialization changed the canonical ARRIVED state." seed="15001502"/></testcase>
+  <testcase name="background-position-canonicalization.03-native-farm-movement-keeps-real-position" elapsedNanos="28320100"></testcase>
+  <testcase name="background-position-canonicalization.04-visible-travel-native-movement-and-cancellation" elapsedNanos="410698200"><failure type="java.lang.AssertionError" message="Three controlled STUCK did not reach exact route feedback: " seed="15001502"/></testcase>
+  <testcase name="background-position-canonicalization.05-restored-pending-cold-queue-to-native-player" elapsedNanos="150506561100"><failure type="java.lang.AssertionError" message="Pending native farm travel did not arrive: travel.route_absent / ServiceSnapshot[state=RUNNING, activeRequests=0, queuedRequests=0, queueCapacity=256, peakQueuedRequests=0, currentWorkers=0, maximumWorkers=2, peakWorkers=0, cacheEntries=0, cacheCapacity=1024, peakCacheEntries=0, completedResults=0, cooldownProfiles=0, trackedProgressAttempts=0]" seed="15001502"/></testcase>
+  <testcase name="background-position-canonicalization.06-complete-history-uncommitted-outer-cursor" elapsedNanos="22247682600"><failure type="java.lang.AssertionError" message="Native pending replay failed: DueSnapshot[profileId=10043, requestedHorizonMinute=29843626, committedCursorMinute=0, initialCatchupComplete=false, requestPending=false, queued=true, running=false, revision=1, complete=false, reason=ecology.inventory_pending] / ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22003, lastProgressAgeMillis=123974711, nextWakeMillis=123974776, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0]" seed="15001502"/></testcase>
+  <testcase name="background-position-canonicalization.07-dead-level-loss-native-load-and-progress-fence" elapsedNanos="22238584500"><failure type="java.lang.AssertionError" message="Native pending replay failed: DueSnapshot[profileId=10044, requestedHorizonMinute=29843626, committedCursorMinute=0, initialCatchupComplete=false, requestPending=false, queued=true, running=false, revision=1, complete=false, reason=ecology.inventory_pending] / ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22008, lastProgressAgeMillis=123996943, nextWakeMillis=123996986, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0]" seed="15001502"/></testcase>
+  <testcase name="background-position-canonicalization.08-owned-store-crash-and-mutation-matrix" elapsedNanos="161888200"><failure type="java.lang.AssertionError" message="Existing visible handler could not resume own LIVE_PREPARE: background.visible.start_retry Expected &lt;SUCCESS&gt; but was &lt;RETRY&gt;." seed="15001502"/></testcase>
+  <testcase name="background-position-canonicalization.09-owned-store-before-after-neither-and-snapshot" elapsedNanos="418697200"></testcase>
+  <testcase name="background-position-canonicalization.10-owned-store-journal-selected-epoch-and-off-cost" elapsedNanos="88110900"></testcase>
+  <testcase name="background-position-canonicalization.11-production-visible-executor-route-and-revision" elapsedNanos="9491370500"></testcase>
+  <testcase name="background-position-canonicalization.12-production-visible-executor-fast-contact" elapsedNanos="4341698100"></testcase>
+</testsuite>

@@ -1,0 +1,17 @@
+DATABASE()
+l2jmobiush5_localplay_contract024b
+profiles	distinct_characters
+10000	10000
+component_type	components	bytes
+background.catchup	10000	5174462
+background.native-context	976	194224
+background.state	10000	10728752
+goal.runtime	10000	3044828
+population.ecology	10000	2654800
+population.state	10000	3348075
+charId	char_name	online
+268485779	SoulRaven	2
+268487160	Kabanatl	2
+268489970	LegendLion	2
+268490030	SoulMorfey	2
+268492939	TestAdmin	0

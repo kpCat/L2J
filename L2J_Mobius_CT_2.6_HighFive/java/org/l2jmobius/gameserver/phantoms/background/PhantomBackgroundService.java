@@ -319,7 +319,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			return new Directive(failure.status() == OperationStatus.INCONSISTENT ? DirectiveKind.INCONSISTENT : DirectiveKind.RETRY, "native_context." + context.status().name().toLowerCase(java.util.Locale.ROOT), state.position().committedAnchorId());
 		}
 		if (!state.equals(context.state())) { return new Directive(DirectiveKind.RETRY, "native_context.state_changed", state.position().committedAnchorId()); }
-		if ((state.state() == State.VERIFY_PENDING) || (context.context().phase() == PhantomNativeContext.Phase.PENDING)) { return new Directive(DirectiveKind.RETRY, "native_context.pending", state.position().committedAnchorId()); }
+		if ((state.state() == State.VERIFY_PENDING) || (context.context().phase() == PhantomNativeContext.Phase.PENDING))
+		{
+			final boolean visiblePending = ((activityState == PhantomActivityState.WARM) || activityState.requiresMaterialization()) && hasVisibleOwnedStorePending(profileId, goal);
+			return new Directive(visiblePending ? DirectiveKind.REPLAN : DirectiveKind.RETRY, visiblePending ? "visible.owned_store_pending" : "native_context.pending", state.position().committedAnchorId());
+		}
 		final boolean nativeRequired = !context.context().simulationEligible();
 		final var delivery = updateNativeContextSignal(profileId, context, nativeRequired);
 		if (nativeRequired && (activityState == PhantomActivityState.BACKGROUND))
@@ -879,6 +883,15 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	/** Called under the canonical Player action lease after native route arrival. */
 	public enum VisibleStoreStatus { SUCCESS, RETRY, PROFILE_FENCED }
 	public record VisibleStoreResult(VisibleStoreStatus status, String reason) { }
+
+	/** Pending native store is a control operation, never ordinary gameplay admission. */
+	public boolean hasVisibleOwnedStorePending(long profileId, PhantomGoal goal)
+	{
+		final var entry = _materialization.get().find(profileId).orElse(null);
+		if ((entry == null) || !entry.worldPresent() || !entry.actionAdmissionOpen() || (entry.cleanupPhase() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE)) { return false; }
+		final Player player = World.getInstance().getPlayer(entry.characterObjectId());
+		return (player != null) && (player.getClient() == null) && !player.isDead() && !player.isInParty() && pendingStoreOwnerCurrent(profileId, player, goal);
+	}
 
 	public VisibleStoreResult resumeVisibleOwnedStore(long profileId, Player player, PhantomGoal goal)
 	{

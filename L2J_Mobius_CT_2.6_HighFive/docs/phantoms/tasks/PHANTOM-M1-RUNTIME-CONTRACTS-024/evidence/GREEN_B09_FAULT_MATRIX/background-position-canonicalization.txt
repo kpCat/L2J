@@ -1,0 +1,90 @@
+suite=background-position-canonicalization
+seed=15001502
+total=12
+passed=6
+failed=6
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.positionCanonicalZ=-3056
+measurement.background.positionLiveDelta=5
+measurement.background.positionMalformedTransition=ANCHOR_MISMATCH
+measurement.background.positionMode=GEODATA_NORMALIZED
+measurement.background.positionRawZ=-3061
+measurement.background.positionTolerance=5
+measurement.background.productionKnowledgeHash=4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.executor.activityWorkCount=6
+measurement.executor.fastContact=true
+measurement.executor.manualAutoPlayStart=false
+measurement.executor.manualMaterialize=false
+measurement.executor.nativeDamage=4
+measurement.executor.newEpoch=124004925297300
+measurement.executor.route=bridge.2a7e451e36175b54ee6aae0d
+measurement.headless.database=l2jmobiush5_localplay_contract024a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.complete.coldLoads=872
+measurement.m1.complete.firstClaimMillis=0
+measurement.m1.complete.innerIntervals=13
+measurement.m1.complete.productiveWork=nativeWindows=1 nativeIntervals=13 ordinaryIntervals=0
+measurement.m1.complete.progress=ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22002, lastProgressAgeMillis=123974710, nextWakeMillis=123974776, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0]
+measurement.m1.complete.readyMillis=22002
+measurement.m1.complete.reason=ecology.inventory_pending
+measurement.m1.journalOff=OperationCounts[snapshots=0, encodes=0, hashes=0, opens=0, forces=0]
+measurement.m1.journalOn=OperationCounts[snapshots=3, encodes=5, hashes=5, opens=2, forces=2]
+measurement.m1.levelLoss.coldLoads=872
+measurement.m1.levelLoss.firstClaimMillis=0
+measurement.m1.levelLoss.innerIntervals=13
+measurement.m1.levelLoss.productiveWork=nativeWindows=1 nativeIntervals=13 ordinaryIntervals=0
+measurement.m1.levelLoss.progress=ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22008, lastProgressAgeMillis=123996943, nextWakeMillis=123996986, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0]
+measurement.m1.levelLoss.readyMillis=22007
+measurement.m1.levelLoss.reason=ecology.inventory_pending
+measurement.m1.running.coldLoads=1279
+measurement.m1.running.firstClaimMillis=27358
+measurement.m1.running.history=calendarMinutes=4320 productiveWindows=75 actualIntervals=1108 cohort=1 native+1279 synthetic metadata; 973 synthetic far demands retained
+measurement.m1.running.innerIntervals=1
+measurement.m1.running.productiveWork=nativeWindows=75 nativeIntervals=1108 ordinaryIntervals=381
+measurement.m1.running.progress=ProgressSnapshot[ordinaryQueued=1279, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=historical.status, enqueueAgeMillis=27, lastProgressAgeMillis=5, nextWakeMillis=123852154, nextRetryMillis=0, historicalStatus=COMPLETE, requestId=87d70c20d451d0f85ec7be1a63dbed9bc7b8bf10eda4c08ae16624ee8fefdc26, innerCursorMinute=29843626, targetMinute=29843626, innerRevision=1256]
+measurement.m1.running.readyMillis=49944
+measurement.m1.running.reason=ecology.cursor_current
+measurement.m1.running.recovery=existing native corpse/town recovery; TEST call, 45-second policy covered by existing native timer contract
+measurement.m1.running.recoveryTown=[Location] X: -84903 Y: 243489 Z: -3700 Heading: 0 InstanceId: 0 region=910
+measurement.m1.running.teardownCapture=supported
+measurement.ownedProtocol.AFTER_STORE=SUCCESS/READY
+measurement.ownedProtocol.BEFORE_STORE=SUCCESS/READY
+measurement.ownedProtocol.CHANGED_PAYLOAD=STATE_CONFLICT/no write
+measurement.ownedProtocol.FINALIZE_ACK_UNKNOWN=SUCCESS/READY
+measurement.ownedProtocol.FINALIZE_COMMIT=SUCCESS/READY
+measurement.ownedProtocol.LEVEL_UP_AFTER=SUCCESS/READY
+measurement.ownedProtocol.LEVEL_UP_BEFORE=SUCCESS/READY
+measurement.ownedProtocol.NORMAL_ARRIVAL=SUCCESS/READY
+measurement.ownedProtocol.NORMAL_CLEANUP=SUCCESS/READY
+measurement.ownedProtocol.PARTIAL_ITEM=OWNED_STORE_CANONICAL_NEITHER/INCONSISTENT
+measurement.ownedProtocol.PARTIAL_UNKNOWN=OWNED_STORE_CANONICAL_NEITHER/INCONSISTENT
+measurement.ownedProtocol.PREPARE_ACK_UNKNOWN=SUCCESS/READY
+measurement.ownedProtocol.PREPARE_UNCOMMITTED=SUCCESS/READY
+measurement.ownedProtocol.SNAPSHOT_MUTATION=SUCCESS/READY
+measurement.ownedProtocol.SNAPSHOT_PROGRESSION=SUCCESS/READY
+measurement.ownedProtocol.STALE_EPOCH=SUCCESS/READY
+measurement.ownedProtocol.STALE_VERSION=STATE_CONFLICT/no write
+measurement.ownedStore.LIVE_PREPARE.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.SQL_BASE.failure=MATERIALIZED BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.SQL_BASE.restart=SUCCESS/READY
+measurement.ownedStore.SQL_SUB.failure=MATERIALIZED BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.SQL_SUB.restart=SUCCESS/READY
+PASS background-position-canonicalization.01-canonical-anchor-policy-and-negative-controls elapsedNanos=4955730800
+FAIL background-position-canonicalization.02-real-player-travel-materialization-restart elapsedNanos=5306128300 type=java.lang.AssertionError message=Materialization/dematerialization changed the canonical ARRIVED state. seed=15001502
+PASS background-position-canonicalization.03-native-farm-movement-keeps-real-position elapsedNanos=28320100
+FAIL background-position-canonicalization.04-visible-travel-native-movement-and-cancellation elapsedNanos=410698200 type=java.lang.AssertionError message=Three controlled STUCK did not reach exact route feedback:  seed=15001502
+FAIL background-position-canonicalization.05-restored-pending-cold-queue-to-native-player elapsedNanos=150506561100 type=java.lang.AssertionError message=Pending native farm travel did not arrive: travel.route_absent / ServiceSnapshot[state=RUNNING, activeRequests=0, queuedRequests=0, queueCapacity=256, peakQueuedRequests=0, currentWorkers=0, maximumWorkers=2, peakWorkers=0, cacheEntries=0, cacheCapacity=1024, peakCacheEntries=0, completedResults=0, cooldownProfiles=0, trackedProgressAttempts=0] seed=15001502
+FAIL background-position-canonicalization.06-complete-history-uncommitted-outer-cursor elapsedNanos=22247682600 type=java.lang.AssertionError message=Native pending replay failed: DueSnapshot[profileId=10043, requestedHorizonMinute=29843626, committedCursorMinute=0, initialCatchupComplete=false, requestPending=false, queued=true, running=false, revision=1, complete=false, reason=ecology.inventory_pending] / ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22003, lastProgressAgeMillis=123974711, nextWakeMillis=123974776, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0] seed=15001502
+FAIL background-position-canonicalization.07-dead-level-loss-native-load-and-progress-fence elapsedNanos=22238584500 type=java.lang.AssertionError message=Native pending replay failed: DueSnapshot[profileId=10044, requestedHorizonMinute=29843626, committedCursorMinute=0, initialCatchupComplete=false, requestPending=false, queued=true, running=false, revision=1, complete=false, reason=ecology.inventory_pending] / ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22008, lastProgressAgeMillis=123996943, nextWakeMillis=123996986, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0] seed=15001502
+FAIL background-position-canonicalization.08-owned-store-crash-and-mutation-matrix elapsedNanos=161888200 type=java.lang.AssertionError message=Existing visible handler could not resume own LIVE_PREPARE: background.visible.start_retry Expected <SUCCESS> but was <RETRY>. seed=15001502
+PASS background-position-canonicalization.09-owned-store-before-after-neither-and-snapshot elapsedNanos=418697200
+PASS background-position-canonicalization.10-owned-store-journal-selected-epoch-and-off-cost elapsedNanos=88110900
+PASS background-position-canonicalization.11-production-visible-executor-route-and-revision elapsedNanos=9491370500
+PASS background-position-canonicalization.12-production-visible-executor-fast-contact elapsedNanos=4341698100
