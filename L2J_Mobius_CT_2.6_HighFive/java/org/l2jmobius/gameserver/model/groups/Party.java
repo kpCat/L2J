@@ -669,7 +669,7 @@ public class Party extends AbstractPlayerGroup
 	 */
 	public void distributeItem(Player player, int itemId, long itemCount, boolean spoil, Attackable target)
 	{
-		final List<Player> recipients = List.copyOf(_members);
+		final List<Player> recipients = PlayerNativeWork.rewardMembers(this, _members);
 		PlayerNativeWork.run(player, recipients, "party-item-drop", () -> distributeItemNative(player, itemId, itemCount, spoil, target, recipients));
 	}
 

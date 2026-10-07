@@ -383,9 +383,31 @@ public class Attackable extends Npc
 	@Override
 	protected void calculateRewards(Creature lastAttacker)
 	{
+		final List<NativeRewardDamage> damage = new ArrayList<>();
+		final List<Player> seeds = new ArrayList<>();
+		for (AggroInfo info : _aggroList.values())
+		{
+			if ((info == null) || (info.getAttacker() == null)) { continue; }
+			final Creature attacker = info.getAttacker(); final long amount = info.getDamage();
+			damage.add(new NativeRewardDamage(attacker, amount));
+			if ((amount > 1) && (attacker.asPlayer() != null)) { seeds.add(attacker.asPlayer()); }
+		}
+		if ((lastAttacker != null) && (lastAttacker.asPlayer() != null)) { seeds.add(lastAttacker.asPlayer()); }
+		final var roster = new PlayerNativeWork.RewardRoster(seeds);
+		final List<NativeRewardDamage> frozenDamage = List.copyOf(damage);
+		PlayerNativeWork.runAtNativeWriteBoundary(lastAttacker, roster.recipients(), "npc-reward-write", () ->
+		{
+			try (var context = roster.enter()) { calculateRewardsNative(lastAttacker, frozenDamage, roster); }
+		});
+	}
+
+	private record NativeRewardDamage(Creature attacker, long damage) { }
+
+	private void calculateRewardsNative(Creature lastAttacker, List<NativeRewardDamage> damageSnapshot, PlayerNativeWork.RewardRoster roster)
+	{
 		try
 		{
-			if (_aggroList.isEmpty())
+			if (damageSnapshot.isEmpty())
 			{
 				return;
 			}
@@ -399,7 +421,7 @@ public class Attackable extends Npc
 			
 			// While Iterating over This Map Removing Object is Not Allowed
 			// Go through the _aggroList of the Attackable
-			for (AggroInfo info : _aggroList.values())
+			for (NativeRewardDamage info : damageSnapshot)
 			{
 				if (info == null)
 				{
@@ -407,14 +429,14 @@ public class Attackable extends Npc
 				}
 				
 				// Get the Creature corresponding to this attacker
-				final Player attacker = info.getAttacker().asPlayer();
+				final Player attacker = info.attacker().asPlayer();
 				if (attacker == null)
 				{
 					continue;
 				}
 				
 				// Get damages done by this attacker
-				final long damage = info.getDamage();
+				final long damage = info.damage();
 				
 				// Prevent unwanted behavior
 				if (damage > 1)
@@ -440,16 +462,16 @@ public class Attackable extends Npc
 			}
 			
 			final List<PartyContainer> damagingParties = new ArrayList<>();
-			for (AggroInfo info : _aggroList.values())
+			for (NativeRewardDamage info : damageSnapshot)
 			{
-				final Creature attacker = info.getAttacker();
+				final Creature attacker = info.attacker();
 				if (attacker == null)
 				{
 					continue;
 				}
 				
 				long totalMemberDamage = 0;
-				final Party party = attacker.getParty();
+				final Party party = attacker.asPlayer() == null ? attacker.getParty() : roster.party(attacker.asPlayer());
 				if (party == null)
 				{
 					continue;
@@ -467,18 +489,12 @@ public class Attackable extends Npc
 				}
 				
 				final PartyContainer container = partyContainerStream.orElse(new PartyContainer(party, 0L));
-				final List<Player> members = party.getMembers();
+				final List<Player> members = roster.members(party);
 				for (Player e : members)
 				{
-					final AggroInfo memberAggro = _aggroList.get(e);
-					if (memberAggro == null)
+					for (NativeRewardDamage memberAggro : damageSnapshot)
 					{
-						continue;
-					}
-					
-					if (memberAggro.getDamage() > 1)
-					{
-						totalMemberDamage += memberAggro.getDamage();
+						if ((memberAggro.attacker() == e) && (memberAggro.damage() > 1)) { totalMemberDamage += memberAggro.damage(); }
 					}
 				}
 				
@@ -497,7 +513,7 @@ public class Attackable extends Npc
 			// Manage Base, Quests and Sweep drops of the Attackable
 			if ((mostDamageParty != null) && (mostDamageParty.damage > maxDamage))
 			{
-				Player leader = mostDamageParty.party.getLeader();
+				Player leader = roster.members(mostDamageParty.party).get(0);
 				doItemDrop(leader);
 				EventDropManager.getInstance().doEventDrop(leader, this);
 			}
@@ -528,7 +544,7 @@ public class Attackable extends Npc
 					final long damage = reward.getDamage();
 					
 					// Get party
-					final Party attackerParty = attacker.getParty();
+					final Party attackerParty = roster.party(attacker);
 					
 					// Penalty applied to the attacker's XP
 					// If this attacker have servitor, get Exp Penalty applied for the servitor.
@@ -601,7 +617,7 @@ public class Attackable extends Npc
 						final List<Player> rewardedMembers = new ArrayList<>();
 						
 						// Go through all Player in the party
-						final List<Player> groupMembers = attackerParty.isInCommandChannel() ? attackerParty.getCommandChannel().getMembers() : attackerParty.getMembers();
+						final List<Player> groupMembers = roster.group(attackerParty);
 						for (Player partyPlayer : groupMembers)
 						{
 							if ((partyPlayer == null) || partyPlayer.isDead())
@@ -696,10 +712,11 @@ public class Attackable extends Npc
 		}
 		catch (Exception e)
 		{
+			PlayerNativeWork.recordFailure(e);
 			LOGGER.log(Level.SEVERE, "", e);
 		}
 	}
-	
+
 	@Override
 	public void addAttackerToAttackByList(Creature creature)
 	{

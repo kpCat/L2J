@@ -4723,9 +4723,10 @@ public class Player extends Playable
 	 */
 	public void doAutoLoot(Attackable target, int itemId, long itemCount)
 	{
-		if (isInParty() && !ItemData.getInstance().getTemplate(itemId).hasExImmediateEffect())
+		final Party party = PlayerNativeWork.rewardParty(this, _party);
+		if ((party != null) && !ItemData.getInstance().getTemplate(itemId).hasExImmediateEffect())
 		{
-			_party.distributeItem(this, itemId, itemCount, false, target);
+			party.distributeItem(this, itemId, itemCount, false, target);
 		}
 		else if (itemId == Inventory.ADENA_ID)
 		{

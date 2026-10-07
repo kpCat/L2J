@@ -38,11 +38,16 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	@Override public void afterAll(PhantomTestContext context) throws Exception { handoff.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		final String focus = System.getProperty("phantom023.nativeFarmFocus", "all");
+		if (focus.equals("fighter")) { registry.add("N01-production-native-fighter-five-next-targets", context -> composed(context, true)); return; }
+		if (focus.equals("mage")) { registry.add("S02-production-binding-native-cast-reward-five-next-targets", this::composed); return; }
+		if (focus.equals("ordinary")) { registry.add("S05-S06-real-like-stock-control-continues-in-same-pools-after-revocation", this::realControl); return; }
 		registry.add("S11-native-cast-ignores-unearned-hate-only-recipient", this::hateOnlyRecipient);
-		registry.add("S12-native-earned-recipient-fence-preserved", context -> recipient(context, true));
+		registry.add("S12-fresh-real-native-damage-recipient-and-delayed-fence", context -> recipient(context, true));
 		registry.add("S13-tutorial-missing-state-and-existing-state-control", this::tutorialState);
-		if (Boolean.getBoolean("phantom022.round3")) { return; }
+		if (Boolean.getBoolean("phantom022.round3") || focus.equals("raw")) { return; }
 		registry.add("S02-production-binding-native-cast-reward-five-next-targets", this::composed);
+		registry.add("N01-production-native-fighter-five-next-targets", context -> composed(context, true));
 		registry.add("S05-S06-real-like-stock-control-continues-in-same-pools-after-revocation", this::realControl);
 	}
 	private PhantomHeadlessPlayerTestEnvironment environment() throws Exception
@@ -62,20 +67,34 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	}
 	private void recipient(PhantomTestContext context, boolean earnedRecipient) throws Exception
 	{
+		for (int objectId : List.of(environment().primary().objectId(), environment().observer().objectId()))
+		{
+			try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=10,base_class=10,race=0,level=1,exp=0,online=0 WHERE charId=?"))
+			{
+				statement.setInt(1, objectId); PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact owned ordinary raw TEST mage setup before lifetime.");
+			}
+		}
 		final var first = org.l2jmobius.gameserver.model.actor.Player.load(environment().primary().objectId());
 		final var second = org.l2jmobius.gameserver.model.actor.Player.load(environment().observer().objectId());
-		final var monster = new Monster(NpcData.getInstance().getTemplate(20534)); monster.disableCoreAI(true);
+		final var monster = new Monster(NpcData.getInstance().getTemplate(earnedRecipient ? 20121 : 20534));
 		try (var firstOutput = first.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128));
 			var secondOutput = second.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
 		{
 			first.stopAllTasks(); second.stopAllTasks();
 			first.addSkill(SkillData.getInstance().getSkill(1177, 1), true);
+			second.addSkill(SkillData.getInstance().getSkill(1177, 1), true);
 			first.setCurrentHp(first.getMaxHp()); first.setCurrentMp(first.getMaxMp());
 			first.setOnlineStatus(true, false); second.setOnlineStatus(true, false);
 			first.spawnMe(first.getX(), first.getY(), first.getZ()); second.spawnMe(first.getX() + 30, first.getY(), first.getZ());
 			final var spawn = new Spawn(monster.getTemplate()); spawn.setXYZ(first.getX() + 40, first.getY(), first.getZ()); monster.setSpawn(spawn);
 			monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
 			final double hp = monster.getCurrentHp(); final long secondExp = second.getExp(), secondSp = second.getSp();
+			if (earnedRecipient)
+			{
+				monster.disableCoreAI(false);
+				org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks.lateNativeDamage(context, first, second, monster, first.getKnownSkill(1177));
+				return;
+			}
 			try (var firstLifetime = nativeLifetime(first); var secondLifetime = nativeLifetime(second))
 			{
 				final var gateType = Class.forName("org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$WorkerGate");
@@ -94,28 +113,25 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 					}
 					finally { ticket.complete(null); }
 					PhantomAssertions.assertTrue(first.isCastingNow(), "Actual stock cast published before recipient change.");
-					// Negative control supplies only recipient metadata; it never writes HP or grants EXP/SP.
-					monster.addDamageHate(second, earnedRecipient ? 2 : 0, 1);
-					PhantomAssertions.assertEquals(earnedRecipient ? 2L : 0L, monster.getAggroList().get(second).getDamage(), "Exact TEST recipient metadata.");
+					// Hate-only negative control is not a real HP/EXP participant.
+					monster.addDamageHate(second, 0, 1);
+					PhantomAssertions.assertEquals(0L, monster.getAggroList().get(second).getDamage(), "Exact hate-only metadata.");
 					release.invoke(gate);
 				}
 				final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) first.getNativeWorkOwner();
 				final long deadline = System.nanoTime() + 15_000_000_000L;
 				while (first.isCastingNow() && scope.firstNativeIncident() == null && System.nanoTime() < deadline) { Thread.sleep(10); }
-				context.record(earnedRecipient ? "S12.guard" : "S11.native", "recipientMetadata=" + (earnedRecipient ? 2 : 0) + ";casting=" + first.isCastingNow() + ";hp=" + hp + "→" + monster.getCurrentHp() + ";firstIncident=" + scope.firstNativeIncident());
-				if (earnedRecipient)
-				{
-					PhantomAssertions.assertTrue(scope.firstNativeIncident() != null && scope.firstNativeIncident().message().contains("NATIVE_EARNED_RECIPIENT_NOT_CAPTURED") && monster.getCurrentHp() == hp, "Earned new recipient remains rejected before every HP/reward writer.");
-				}
-				else
-				{
+				context.record("S11.native", "recipientMetadata=0;casting=" + first.isCastingNow() + ";hp=" + hp + "→" + monster.getCurrentHp() + ";firstIncident=" + scope.firstNativeIncident());
 					PhantomAssertions.assertEquals(null, scope.firstNativeIncident(), "RED: hate-only non-recipient must not poison actual earned cast.");
 					PhantomAssertions.assertTrue(!first.isCastingNow() && monster.getCurrentHp() < hp, "Actual native effects and finalizer completed.");
-				}
 				PhantomAssertions.assertTrue(second.getExp() == secondExp && second.getSp() == secondSp, "Hate-only actor earned no reward.");
 			}
 		}
-		finally { monster.deleteMe(); }
+		finally
+		{
+			monster.abortAttack(); monster.abortCast(); monster.deleteMe();
+			for (var player : List.of(first, second)) { if (!player.isNativeWorkManaged() && World.getInstance().getPlayer(player.getObjectId()) == player) { environment().cleanupLoadedPlayer(player); } }
+		}
 	}
 	private void tutorialState(PhantomTestContext context) throws Exception
 	{
@@ -176,7 +192,7 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 				ordinary.getAutoPlaySettings().setNextTargetMode(1); ordinary.getAutoPlaySettings().setPickup(true); ordinary.getAutoPlaySettings().setShortRange(true);
 				for (int i = 0; i < 3; i++)
 				{
-					final var monster = new Monster(NpcData.getInstance().getTemplate(20534)); monster.disableCoreAI(true);
+					final var monster = new Monster(NpcData.getInstance().getTemplate(20534));
 					final var spawn = new Spawn(monster.getTemplate()); spawn.setXYZ(ordinary.getX() + 40 + 25 * i, ordinary.getY(), ordinary.getZ()); monster.setSpawn(spawn);
 					monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ()); monsters.add(monster);
 				}
@@ -212,11 +228,16 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 
 	private void composed(PhantomTestContext context) throws Exception
 	{
+		composed(context, false);
+	}
+	private void composed(PhantomTestContext context, boolean fighter) throws Exception
+	{
 		final var environmentField = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); environmentField.setAccessible(true);
 		final var environment = (PhantomHeadlessPlayerTestEnvironment) environmentField.get(handoff);
 		final int objectId = environment.primary().objectId();
 		// Same guarded class/level setup as openProductionPlayerFixture, before baseline capture.
-		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=25,base_class=25,race=1,level=7,exp=?,online=0 WHERE charId=?"))
+		final var fixtureClass = fighter ? org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.FIGHTER : org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.ELVEN_MAGE;
+		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement(fighter ? "UPDATE characters SET classid=0,base_class=0,race=0,level=7,exp=?,online=0 WHERE charId=?" : "UPDATE characters SET classid=25,base_class=25,race=1,level=7,exp=?,online=0 WHERE charId=?"))
 		{
 			statement.setLong(1, org.l2jmobius.gameserver.data.xml.ExperienceData.getInstance().getExpForLevel(7)); statement.setInt(2, objectId);
 			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact owned TEST mage setup.");
@@ -224,7 +245,8 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 		final var setup = org.l2jmobius.gameserver.model.actor.Player.load(objectId);
 		try
 		{
-			for (var learn : org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getCompleteClassSkillTree(org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.ELVEN_MAGE).values())
+			if (fighter) { setup.removeSkill(1177, true); }
+			for (var learn : org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getCompleteClassSkillTree(fixtureClass).values())
 			{
 				if (learn.isAutoGet() && (learn.getGetLevel() <= 7))
 				{
@@ -235,7 +257,7 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 			setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(setup.getMaxCp()); setup.storeMe();
 		}
 		finally { environment.cleanupLoadedPlayer(setup); }
-		context.record("S02.TEST_setup", "existing guarded owned fixture; ElvenMage25 level7; stock WindStrike1177:3; seven stock Monsters; no post-baseline damage/reward injection");
+		context.record("S02.TEST_setup." + fighter, "existing guarded owned fixture; class=" + fixtureClass + " level7; native auto-get skills; seven stock Monsters, NPC AI ON; no post-baseline damage/reward injection");
 		try (var f = handoff.new Fixture(true))
 		{
 			f.handoff();
@@ -280,7 +302,7 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 				for (int i = 0; i < 7; i++)
 				{
 					final var monster = new Monster(NpcData.getInstance().getTemplate(npcId));
-					monster.disableCoreAI(true); monster.setInstanceId(player.getInstanceId());
+					PhantomAssertions.assertFalse(monster.isCoreAIDisabled(), "N01 stock NPC AI enabled."); monster.setInstanceId(player.getInstanceId());
 					final var spawn = new Spawn(monster.getTemplate()); spawn.setXYZ(player.getX() + 40 + i * 25, player.getY(), player.getZ()); monster.setSpawn(spawn);
 					monster.setCurrentHpMp(monster.getMaxHp(), monster.getMaxMp()); monster.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ()); monsters.add(monster);
 				}
@@ -298,11 +320,13 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 					finally { finishes.incrementAndGet(); }
 				}, 0, 250);
 				PhantomAssertions.assertTrue(driver != null, "Production-style shared driver was submitted.");
-				final long deadline = System.nanoTime() + 90_000_000_000L;
+				final long deadline = System.nanoTime() + (fighter ? 180_000_000_000L : 90_000_000_000L);
 				boolean castSeen = false;
+				boolean attackSeen = false;
 				while ((System.nanoTime() < deadline) && (sensor.snapshot().farmCycleSequence() - baseline.farmCycleSequence() < 5))
 				{
 					castSeen |= player.isCastingNow();
+					attackSeen |= player.isAttackingNow();
 					if (failures.get() != null) { break; }
 					Thread.sleep(100);
 				}
@@ -315,7 +339,7 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 				context.record("S02.execution", "entered=" + enters + ";finished=" + finishes + ";failure=" + failures.get() + ";castSeen=" + castSeen + ";runtime=" + engine.find(f.id) + ";owner=" + ((org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner()).snapshot() + ";casting=" + player.isCastingNow() + ";intention=" + player.getAI().getIntention() + ";target=" + player.getTarget() + ";expDelta=" + (player.getExp() - exp) + ";spDelta=" + (player.getSp() - sp));
 				PhantomAssertions.assertTrue(failures.get() == null, "RED: composed driver must finish without native incident: " + failures.get());
 				PhantomAssertions.assertEquals(enters.get(), finishes.get(), "Last actually dispatched decision body completed.");
-				PhantomAssertions.assertTrue(castSeen, "RED: actual native cast callback path was not reached.");
+				PhantomAssertions.assertTrue(fighter ? attackSeen : castSeen, "RED: actual native offense callback path was not reached.");
 				PhantomAssertions.assertTrue(!sample.overflow() && sample.farmCycleSequence() - baseline.farmCycleSequence() >= 5, "RED: native continuation must complete five same-epoch cycles, actual=" + sample);
 				PhantomAssertions.assertTrue(player.getExp() > exp && player.getSp() > sp && sample.expGained() > 0 && sample.spGained() > 0, "RED: real native EXP/SP required.");
 				PhantomAssertions.assertEquals(f.loadedEpoch, sample.epoch(), "No rematerialization or sensor reset.");

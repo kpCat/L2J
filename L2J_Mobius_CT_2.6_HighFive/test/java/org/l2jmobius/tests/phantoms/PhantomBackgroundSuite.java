@@ -2337,7 +2337,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			{
 				@Override protected synchronized void calculateRewards(Creature attacker)
 				{
-					rewardProducer.set(Arrays.stream(Thread.currentThread().getStackTrace()).map(StackTraceElement::getMethodName).limit(32).reduce((left, right) -> left + ">" + right).orElse(""));
+					rewardProducer.set(Arrays.stream(Thread.currentThread().getStackTrace()).map(StackTraceElement::getMethodName).limit(96).reduce((left, right) -> left + ">" + right).orElse(""));
 					hitInside.countDown();
 					try { if (!releaseHit.await(10, TimeUnit.SECONDS)) { throw new AssertionError("Native reward barrier timed out."); } }
 					catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }

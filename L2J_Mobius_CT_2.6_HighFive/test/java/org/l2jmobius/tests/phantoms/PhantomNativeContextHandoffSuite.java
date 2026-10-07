@@ -210,6 +210,37 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(before, f.catchups.load(f.id).orElseThrow(), "Baseline changed catchup.");
 			}
 		});
+		registry.add("H15-complete-dead-stale-baseline-owned-refresh", _ ->
+		{
+			// Existing legal ordinary fixture preparation, before a Phantom profile/baseline.
+			try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=0,base_class=0,race=0,level=7,exp=?,online=0 WHERE charId=?"))
+			{
+				statement.setLong(1, org.l2jmobius.gameserver.data.xml.ExperienceData.getInstance().getExpForLevel(7)); statement.setInt(2, _environment.primary().objectId());
+				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact owned ordinary TEST level setup.");
+			}
+			final Player setup = Player.load(_environment.primary().objectId());
+			try { setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(setup.getMaxCp()); setup.storeMe(); }
+			finally { _environment.cleanupLoadedPlayer(setup); }
+			try (var f = new Fixture(true, true))
+			{
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE, f.goals.load(f.id).orElseThrow().goal().goalType(), "H15 requires a real farm goal.");
+				final var claim = f.catchups.load(f.id).orElseThrow();
+				f.catchups.replace(f.id, claim, claim.state().running().advanceTo(f.target));
+				final var beforeClaim = _profiles.findComponent(f.id, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElseThrow();
+				final var beforeGoal = _profiles.findComponent(f.id, PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow();
+				final var state = f.baseline;
+				final var prepared = f.historical.prepareNativeRecovery(f.id, f.goals.load(f.id).orElseThrow().goal());
+				PhantomAssertions.assertTrue(prepared.successful(), "Dead stale baseline needs exact owned refresh before NORMAL: " + prepared.status() + "/" + prepared.reason());
+				final var refreshed = f.transactions.load(f.id).state();
+				PhantomAssertions.assertEquals(PhantomBackgroundState.State.DEAD, refreshed.state(), "Preflight must not revive or reset the dead actor.");
+				PhantomAssertions.assertEquals(state.progress(), refreshed.progress(), "Preflight changed earned progress.");
+				PhantomAssertions.assertEquals(state.inventory(), refreshed.inventory(), "Preflight changed stock inventory.");
+				PhantomAssertions.assertEquals(state.receipt(), refreshed.receipt(), "Preflight changed the receipt.");
+				PhantomAssertions.assertEquals(beforeClaim, _profiles.findComponent(f.id, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElseThrow(), "Preflight changed the COMPLETE claim.");
+				PhantomAssertions.assertEquals(beforeGoal, _profiles.findComponent(f.id, PhantomGoalStateStore.COMPONENT_TYPE).orElseThrow(), "Preflight changed the goal.");
+				PhantomAssertions.assertTrue(f.materialization.find(f.id).isEmpty() && (World.getInstance().getPlayer(f.objectId) == null), "Preflight must finish owned drain.");
+			}
+		});
 		registry.add("H14-recorder-bounded-real-admission-subreason", _ ->
 		{
 			try (var f = new Fixture())
@@ -362,7 +393,9 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 
 		Fixture() throws Exception { this(false); }
 
-		Fixture(boolean visibleFarm) throws Exception
+		Fixture(boolean visibleFarm) throws Exception { this(visibleFarm, false); }
+
+		Fixture(boolean visibleFarm, boolean deadStale) throws Exception
 		{
 			id = _profiles.create(objectId).profileId();
 			final var ref = new AtomicReference<PhantomMaterializationService>();
@@ -399,6 +432,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 			background.start(); materialization.start();
 			final Player setup = Player.load(objectId);
 			PhantomAssertions.assertTrue(setup != null, "Ordinary native setup load.");
+			boolean setupCleaned = false;
 			try
 			{
 				final var anchor = _production.topology().findAnchor("population.farming.human-fighter.20545").orElseThrow();
@@ -406,13 +440,35 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 				final var plan = visibleFarm ? planner.planInitial(id, setup, 1, 0) : planner.idleInitial(id, setup, 1, 0);
 				PhantomAssertions.assertTrue(plan.ready(), "Canonical fixture plan.");
 				goals.insert(id, plan.goal());
+				if (deadStale) { setup.doDie(null); }
 				setup.storeMe();
 				final var capture = _production.authority().captureOwnedNative(id, setup, plan.goal(), null);
-				final var captured = transactions.captureBaseline(capture.state(), plan.goal());
+				PhantomBackgroundState state = capture.state();
+				if (deadStale)
+				{
+					final var hashes = new PhantomBackgroundState.Hashes("a".repeat(64), state.hashes().topology(), state.hashes().progression(), state.hashes().commerce());
+					final var vitals = new PhantomBackgroundState.Vitals(0, state.vitals().maximumHp() + 7, state.vitals().currentMp(), state.vitals().maximumMp() + 7, state.vitals().currentCp(), state.vitals().maximumCp());
+					// Stock delete/store must finish before the old checkpoint is frozen.
+					_environment.cleanupLoadedPlayer(setup); setupCleaned = true;
+					// Represent an old derived-max checkpoint before any owned baseline/receipt exists.
+					try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET maxHp=?,maxMp=? WHERE charId=?"))
+					{
+						statement.setDouble(1, vitals.maximumHp()); statement.setDouble(2, vitals.maximumMp()); statement.setInt(3, objectId);
+						PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact pre-baseline old derived-max fixture.");
+					}
+					state = new PhantomBackgroundState(PhantomBackgroundState.State.MATERIALIZED, state.identity(), state.progress(), vitals, state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), hashes);
+				}
+				final var captured = transactions.captureBaseline(state, plan.goal());
 				PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, captured.status(), "Native canonical fixture capture.");
 				baseline = captured.state();
 			}
-			finally { _environment.cleanupLoadedPlayer(setup); }
+			catch (Exception | Error failure)
+			{
+				materialization.shutdown(); background.beginStop(); background.finishStop();
+				_profiles.find(id).ifPresent(profile -> _profiles.delete(id, profile.rowVersion()));
+				throw failure;
+			}
+			finally { if (!setupCleaned) { _environment.cleanupLoadedPlayer(setup); } }
 			final var goal = goals.load(id).orElseThrow().goal();
 			catchups.claim(id, new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.PENDING, claim, 1, from, target, from, 0, 0, 1, 1, 1, goal.goalId(), goal.revision(), "f".repeat(64), 1, _production.authority().hashes(), ""));
 		}

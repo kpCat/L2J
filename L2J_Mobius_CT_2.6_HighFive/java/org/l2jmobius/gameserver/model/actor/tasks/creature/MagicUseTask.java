@@ -35,6 +35,7 @@ public class MagicUseTask implements Runnable
 	private int _skillTime;
 	private int _phase;
 	private final boolean _simultaneously;
+	private final boolean _nativeLifetimeOwned;
 	
 	public MagicUseTask(Creature creature, List<WorldObject> targets, Skill s, int hit, boolean simultaneous)
 	{
@@ -45,35 +46,53 @@ public class MagicUseTask implements Runnable
 		_phase = 1;
 		_skillTime = hit;
 		_simultaneously = simultaneous;
+		_nativeLifetimeOwned = managed(creature) || ((targets != null) && targets.stream().anyMatch(MagicUseTask::managed));
+	}
+
+	private static boolean managed(WorldObject object)
+	{
+		if (object == null) { return false; }
+		final var player = object.isSummon() ? object.asSummon().getOwner() : object.asPlayer();
+		return (player != null) && player.isNativeWorkManaged();
 	}
 	
 	@Override
 	public void run()
 	{
-		if (_creature == null)
+		if ((_creature == null) || (_nativeLifetimeOwned && !_creature.isCurrentNativeMagicUseTask(this)))
 		{
 			return;
 		}
 		
-		switch (_phase)
+		try
 		{
-			case 1:
+			switch (_phase)
 			{
-				_creature.onMagicLaunchedTimer(this);
-				break;
-			}
-			case 2:
-			{
-				_creature.onMagicHitTimer(this);
-				break;
-			}
-			case 3:
-			{
-				_creature.onMagicFinalizer(this);
-				break;
+				case 1:
+				{
+					_creature.onMagicLaunchedTimer(this);
+					break;
+				}
+				case 2:
+				{
+					_creature.onMagicHitTimer(this);
+					break;
+				}
+				case 3:
+				{
+					_creature.onMagicFinalizer(this);
+					break;
+				}
 			}
 		}
+		catch (RuntimeException | Error failure)
+		{
+			if (_nativeLifetimeOwned && _creature.isCurrentNativeMagicUseTask(this)) { _creature.abortCast(); }
+			throw failure;
+		}
 	}
+
+	public boolean isNativeLifetimeOwned() { return _nativeLifetimeOwned; }
 	
 	public int getCount()
 	{

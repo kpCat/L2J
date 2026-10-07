@@ -854,6 +854,36 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		}
 	}
 
+	/** An offline DEAD return uses the existing exact claim-owned baseline before NORMAL recovery. */
+	public Result prepareNativeRecovery(long profileId, PhantomGoal expectedGoal)
+	{
+		try
+		{
+			final var stored = _goals.load(profileId).orElse(null);
+			if ((stored == null) || !stored.goal().equals(expectedGoal) || (expectedGoal.status() != PhantomGoalStatus.ACTIVE)
+				|| !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(expectedGoal.goalType())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_recovery.goal_mismatch", null); }
+			final var lifetime = _materialization.find(profileId).orElse(null);
+			if (lifetime != null) { return lifetime.actionAdmissionOpen() ? Result.success(null, 0) : Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.owner_draining", null); }
+			final var baseline = _background.acquisitionSnapshot(profileId).orElse(null);
+			if (baseline == null) { return Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.background_missing", null); }
+			if (baseline.state() != PhantomBackgroundState.State.DEAD) { return Result.success(null, 0); }
+			final var generation = _planner.generation();
+			if (baseline.hashes().equals(generation.authorityHashes())) { return Result.success(null, 0); }
+			final var current = _store.load(profileId).orElse(null);
+			if ((current == null) || (current.state().status() != Status.COMPLETE) || !currentClaim(profileId, current)
+				|| (current.state().goalId() != expectedGoal.goalId()) || (current.state().goalRevision() != expectedGoal.revision())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_recovery.claim_goal_mismatch", current); }
+			final var goalComponent = _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null);
+			final var refresh = refreshCanonicalBaseline(profileId, current);
+			if (!refresh.successful()) { return refresh; }
+			final var refreshed = _background.acquisitionSnapshot(profileId).orElse(null);
+			final boolean exact = (refreshed != null) && (refreshed.state() == PhantomBackgroundState.State.DEAD) && refreshed.hashes().equals(generation.authorityHashes())
+				&& _planner.generation().equals(generation) && currentClaim(profileId, current) && _materialization.find(profileId).isEmpty()
+				&& Objects.equals(goalComponent, _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null));
+			return exact ? Result.success(current, 0) : Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.refresh_unverified", current);
+		}
+		catch (RuntimeException exception) { return Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.persistence_retry", null); }
+	}
+
 	private Result refreshCanonicalBaseline(long profileId, Snapshot current)
 	{
 		if (!currentClaim(profileId, current)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.recovery.claim_changed", current); }

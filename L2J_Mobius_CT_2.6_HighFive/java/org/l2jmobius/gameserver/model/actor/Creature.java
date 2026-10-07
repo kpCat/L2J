@@ -295,6 +295,8 @@ public abstract class Creature extends WorldObject
 	/** Future Skill Cast */
 	protected Future<?> _skillCast;
 	protected Future<?> _skillCast2;
+	private volatile MagicUseTask _nativeMagicUseTask;
+	private volatile MagicUseTask _nativeMagicUseTask2;
 	
 	private final Map<Integer, RelationCache> _knownRelations = new ConcurrentHashMap<>();
 	
@@ -2152,6 +2154,7 @@ public abstract class Creature extends WorldObject
 		}
 		
 		final MagicUseTask mut = new MagicUseTask(this, targets, skill, skillTime, simultaneously);
+		if (simultaneously) { _nativeMagicUseTask2 = mut; } else { _nativeMagicUseTask = mut; }
 		
 		// launch the magic in skillTime milliseconds
 		if (skillTime > 0)
@@ -4263,6 +4266,9 @@ public abstract class Creature extends WorldObject
 	{
 		if (_isCastingNow || _isCastingSimultaneouslyNow)
 		{
+			// Published earned callbacks still retire their tickets, but an explicitly
+			// cancelled task no longer owns the mutable state of the next native cast.
+			_nativeMagicUseTask = null; _nativeMagicUseTask2 = null;
 			Future<?> future = _skillCast;
 			
 			// cancels the skill hit scheduled task
@@ -5259,6 +5265,13 @@ public abstract class Creature extends WorldObject
 	 */
 	public void onHitTimer(Creature target, int damageValue, boolean crit, boolean miss, byte shld, boolean soulshot, boolean rechargeShots)
 	{
+		final List<WorldObject> targets = target == null ? List.of() : List.of(target);
+		PlayerNativeWork.runAtNativeWriteBoundary(this, PlayerNativeWork.damageRecipients(this, targets), "hit-native-write",
+			() -> onHitTimerNative(target, damageValue, crit, miss, shld, soulshot, rechargeShots));
+	}
+
+	private void onHitTimerNative(Creature target, int damageValue, boolean crit, boolean miss, byte shld, boolean soulshot, boolean rechargeShots)
+	{
 		// If the attacker/target is dead or use fake death, notify the AI with CANCEL
 		// and send a Server->Client packet ActionFailed (if attacker is a Player)
 		if ((target == null) || isAlikeDead())
@@ -5844,6 +5857,7 @@ public abstract class Creature extends WorldObject
 	 */
 	public void onMagicLaunchedTimer(MagicUseTask mut)
 	{
+		if (mut.isNativeLifetimeOwned() && !isCurrentNativeMagicUseTask(mut)) { return; }
 		final Skill skill = mut.getSkill();
 		final List<WorldObject> targets = mut.getTargets();
 		if ((skill == null) || (targets == null))
@@ -5981,6 +5995,7 @@ public abstract class Creature extends WorldObject
 	// Runs in the end of skill casting
 	public void onMagicHitTimer(MagicUseTask mut)
 	{
+		if (mut.isNativeLifetimeOwned() && !isCurrentNativeMagicUseTask(mut)) { return; }
 		final Skill skill = mut.getSkill();
 		final List<WorldObject> targets = mut.getTargets();
 		if ((skill == null) || (targets == null))
@@ -6110,13 +6125,16 @@ public abstract class Creature extends WorldObject
 	// Runs after skillTime
 	public void onMagicFinalizer(MagicUseTask mut)
 	{
+		if (mut.isNativeLifetimeOwned() && !isCurrentNativeMagicUseTask(mut)) { return; }
 		if (mut.isSimultaneous())
 		{
+			_nativeMagicUseTask2 = null;
 			_skillCast2 = null;
 			setCastingSimultaneouslyNow(false);
 			return;
 		}
 		
+		_nativeMagicUseTask = null;
 		// Cleanup
 		_skillCast = null;
 		_castInterruptTime = 0;
@@ -6217,7 +6235,11 @@ public abstract class Creature extends WorldObject
 	 */
 	public void callSkill(Skill skill, List<WorldObject> targets)
 	{
-		PlayerNativeWork.runCombat(this, targets, "cast-skill-effects", () -> callSkillNative(skill, targets));
+		final List<WorldObject> frozenTargets = List.copyOf(targets);
+		// Actual effect entry is a fresh native write operation. The strict status writer
+		// still captures its exact transfer pointer and rejects any later unmanaged change.
+		PlayerNativeWork.runAtNativeWriteBoundary(this, PlayerNativeWork.damageRecipients(this, frozenTargets), "cast-native-write", () ->
+			PlayerNativeWork.runCombat(this, frozenTargets, "cast-skill-effects", () -> callSkillNative(skill, frozenTargets)));
 	}
 
 	private void callSkillNative(Skill skill, List<WorldObject> targets)
@@ -6476,6 +6498,12 @@ public abstract class Creature extends WorldObject
 	public void setSkillCast(Future<?> newSkillCast)
 	{
 		_skillCast = newSkillCast;
+	}
+
+	/** Exact task identity, in addition to the Player/Owner/epoch carried by native work. */
+	public boolean isCurrentNativeMagicUseTask(MagicUseTask task)
+	{
+		return task == (task.isSimultaneous() ? _nativeMagicUseTask2 : _nativeMagicUseTask);
 	}
 	
 	/**

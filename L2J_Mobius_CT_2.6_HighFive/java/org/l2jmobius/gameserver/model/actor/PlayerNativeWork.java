@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Delayed;
@@ -18,11 +19,13 @@ import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
+import org.l2jmobius.gameserver.model.groups.Party;
 
 /** Optional native lifetime ownership. Ordinary players keep their stock execution path. */
 public final class PlayerNativeWork
 {
 	public enum Semantics { EARNED, CANCELLABLE }
+	public enum NativeBoundaryOutcome { EXECUTED, DEFERRED_BEFORE_WRITE, REJECTED_STALE }
 	public interface Owner
 	{
 		Player player();
@@ -66,7 +69,54 @@ public final class PlayerNativeWork
 	private static final ThreadLocal<Frame> CONTEXT = new ThreadLocal<>();
 	private record CombatFrame(Owner owner, PlayerNativeEvidence.CombatEpisode episode, CombatFrame previous) { }
 	private static final ThreadLocal<CombatFrame> COMBAT_CONTEXT = new ThreadLocal<>();
+	private static final ThreadLocal<RewardRoster> REWARD_ROSTER = new ThreadLocal<>();
 	private PlayerNativeWork() { }
+
+	/** Operation-local native loot/EXP membership; null parties are also frozen. */
+	public static final class RewardRoster
+	{
+		private final Map<Player, Party> _parties = new IdentityHashMap<>();
+		private final Map<Party, List<Player>> _members = new IdentityHashMap<>();
+		private final Map<Party, List<Player>> _groups = new IdentityHashMap<>();
+		private final List<Player> _recipients;
+		public RewardRoster(Collection<Player> seeds)
+		{
+			final List<Player> recipients = new ArrayList<>();
+			final var seen = Collections.newSetFromMap(new IdentityHashMap<Player, Boolean>());
+			for (Player player : seeds) { if ((player != null) && seen.add(player)) { recipients.add(player); } }
+			for (int i = 0; i < recipients.size(); i++)
+			{
+				final Player player = recipients.get(i);
+				final Party party = player.getParty(); _parties.put(player, party);
+				if ((party == null) || _members.containsKey(party)) { continue; }
+				final List<Player> members = List.copyOf(party.getMembers());
+				final var channel = party.getCommandChannel();
+				final List<Player> group = channel == null ? members : List.copyOf(channel.getMembers());
+				_members.put(party, members); _groups.put(party, group);
+				for (Player member : group) { if (seen.add(member)) { recipients.add(member); } }
+			}
+			_recipients = List.copyOf(recipients);
+		}
+		public List<Player> recipients() { return _recipients; }
+		public Party party(Player player) { return _parties.get(player); }
+		public List<Player> members(Party party) { return _members.containsKey(party) ? _members.get(party) : List.copyOf(party.getMembers()); }
+		public List<Player> group(Party party) { return _groups.containsKey(party) ? _groups.get(party) : members(party); }
+		public Context enter()
+		{
+			final RewardRoster previous = REWARD_ROSTER.get(); REWARD_ROSTER.set(this);
+			return () -> { if (REWARD_ROSTER.get() != this) { throw new IllegalStateException("NATIVE_REWARD_ROSTER_ORDER"); } if (previous == null) { REWARD_ROSTER.remove(); } else { REWARD_ROSTER.set(previous); } };
+		}
+	}
+	public static Party rewardParty(Player player, Party ordinaryParty)
+	{
+		final RewardRoster roster = REWARD_ROSTER.get();
+		return (roster != null) && roster._parties.containsKey(player) ? roster.party(player) : ordinaryParty;
+	}
+	public static List<Player> rewardMembers(Party party, Collection<Player> ordinaryMembers)
+	{
+		final RewardRoster roster = REWARD_ROSTER.get();
+		return (roster != null) && roster._members.containsKey(party) ? roster._members.get(party) : List.copyOf(ordinaryMembers);
+	}
 
 	/** Exact native lifetime only; a delayed old context never resolves a replacement sensor. */
 	public static PlayerNativeEvidence observationEvidence(Player player)
@@ -231,6 +281,62 @@ public final class PlayerNativeWork
 		if (work == null) { return; }
 		if (work.ordinary()) { action.run(); } else { work.run(action); }
 	}
+
+	/** Explicit synchronous native writer only. Delayed run/schedule keep their captured-parent fence. */
+	public static NativeBoundaryOutcome runAtNativeWriteBoundary(Creature actor, Collection<? extends WorldObject> frozenRecipients, String kind, Runnable nativeBody)
+	{
+		final List<Participant> participants = capture(actor, frozenRecipients, kind);
+		final var published = Collections.newSetFromMap(new IdentityHashMap<Owner, Boolean>());
+		for (Frame frame = CONTEXT.get(); frame != null; frame = frame.previous())
+		{
+			if (frame.ticket().isRunning() && (frame.ticket().semantics() == Semantics.EARNED)) { published.add(frame.ticket().owner()); }
+		}
+		for (Participant participant : participants)
+		{
+			if (!participant.current()) { return NativeBoundaryOutcome.REJECTED_STALE; }
+			if (!published.contains(participant.owner()) && !participant.owner().nativeObservationHealthy()) { return NativeBoundaryOutcome.DEFERRED_BEFORE_WRITE; }
+		}
+		// No new obligation is earned while only part of the operation has been admitted.
+		final ParticipantWork admission = reserve(participants, kind + "-admission", Semantics.CANCELLABLE);
+		if (admission == null) { return NativeBoundaryOutcome.DEFERRED_BEFORE_WRITE; }
+		final NativeBoundaryOutcome[] outcome = { NativeBoundaryOutcome.DEFERRED_BEFORE_WRITE };
+		admission.run(() ->
+		{
+			final List<Participant> earned = new ArrayList<>();
+			for (Participant participant : participants)
+			{
+				if (!participant.current()) { outcome[0] = NativeBoundaryOutcome.REJECTED_STALE; return; }
+				if (!published.contains(participant.owner()) && !participant.owner().nativeObservationHealthy()) { return; }
+				earned.add(new Participant(participant.player(), participant.owner(), participant.epoch(), null));
+			}
+			// All exact admission roots are RUNNING. Drain must await these roots, and each
+			// writer/continuation now has an earned child before the first native mutation.
+			final ParticipantWork work = reserve(earned, kind, Semantics.EARNED);
+			if (work == null) { throw new IllegalStateException("NATIVE_ADMITTED_WRITER_CHILD_REFUSED"); }
+			work.run(() -> { outcome[0] = NativeBoundaryOutcome.EXECUTED; nativeBody.run(); });
+		});
+		return outcome[0];
+	}
+
+	/** Freeze direct native damage recipients and the current transfer chain before HP writes. */
+	public static List<WorldObject> damageRecipients(Creature actor, Collection<? extends WorldObject> targets)
+	{
+		final List<WorldObject> recipients = new ArrayList<>(targets);
+		if (actor != null) { recipients.add(actor); }
+		final List<WorldObject> seeds = List.copyOf(recipients);
+		final var transfers = Collections.newSetFromMap(new IdentityHashMap<Player, Boolean>());
+		for (WorldObject target : seeds)
+		{
+			Player receiver = target.isSummon() ? target.asSummon().getOwner() : target.asPlayer();
+			while ((receiver != null) && transfers.add(receiver))
+			{
+				recipients.add(receiver);
+				if (receiver.getSummon() != null) { recipients.add(receiver.getSummon()); }
+				receiver = receiver.getTransferingDamageTo();
+			}
+		}
+		return List.copyOf(recipients);
+	}
 	/** Explicit original attack/cast entry. No phase is published until its own positive HP writer. */
 	public static void runCombat(Creature actor, Collection<? extends WorldObject> targets, String kind, Runnable action)
 	{
@@ -283,41 +389,7 @@ public final class PlayerNativeWork
 		final var seen = Collections.newSetFromMap(new IdentityHashMap<Player, Boolean>());
 		capture(actor, seen, participants);
 		if (targets != null) { for (WorldObject target : targets) { capture(target, seen, participants); } }
-		if (kind.startsWith("attack-") || kind.startsWith("cast-"))
-		{
-			captureCombatRecipients(actor, seen, participants);
-			if (targets != null) { for (WorldObject target : targets) { captureCombatRecipients(target, seen, participants); } }
-		}
 		return participants;
-	}
-
-	private static void captureCombatRecipients(WorldObject object, Set<Player> seen, List<Participant> participants)
-	{
-		if (object == null) { return; }
-		final Player player = object.isSummon() ? object.asSummon().getOwner() : object.asPlayer();
-		if (player != null)
-		{
-			capture(player.getTransferingDamageTo(), seen, participants);
-			final var party = player.getParty();
-			if (party != null)
-			{
-				final var channel = party.getCommandChannel();
-				for (Player member : channel == null ? party.getMembers() : channel.getMembers()) { capture(member, seen, participants); }
-			}
-		}
-		if (object instanceof Attackable attackable)
-		{
-			for (var info : attackable.getAggroList().values())
-			{
-				// Stock calculateRewards excludes hate-only entries and damage <= 1.
-				// Their later arrival does not introduce an earned recipient into this callback.
-				if (info.getDamage() <= 1) { continue; }
-				final Creature attacker = info.getAttacker();
-				if (attacker == null) { continue; }
-				capture(attacker, seen, participants);
-				if (attacker.isPlayable()) { captureCombatRecipients(attacker, seen, participants); }
-			}
-		}
 	}
 
 	/** A delayed earned body cannot discover and silently borrow a different live lifetime. */
