@@ -40,6 +40,25 @@ public final class PhantomNativeWorkScope implements Owner
 	private PhantomCleanupIncident _latestNativeIncident;
 	private Runnable _quiescentEnqueue;
 	private volatile Map<String, String> _publishedWork = Map.of();
+	private volatile String _checkpointStage = "";
+	private volatile CheckpointFailure _checkpointFirstFailure;
+	private record CheckpointFailure(String stage, String exceptionClass, String message, String stack) { }
+
+	/** Scalar observation only, tied to this exact checkpoint thread; no other actor locks or I/O. */
+	public void checkpointStage(String stage)
+	{
+		if ((_checkpointThread == Thread.currentThread()) && isCurrent()) { _checkpointStage = stage; }
+	}
+	public void recordCheckpointFailure(RuntimeException failure)
+	{
+		synchronized (_monitor)
+		{
+			if ((_checkpointFirstFailure == null) && isCurrent())
+			{
+				_checkpointFirstFailure = new CheckpointFailure(_checkpointStage, failure.getClass().getName(), PhantomCleanupIncident.bounded(failure.getMessage(), 256), PhantomCleanupIncident.bounded(java.util.Arrays.toString(java.util.Arrays.copyOf(failure.getStackTrace(), Math.min(6, failure.getStackTrace().length))), 1600));
+			}
+		}
+	}
 
 	PhantomNativeWorkScope(Object monitor, Player player, PhantomIdentityLeaseRegistry.Lease identity, long epoch)
 	{
@@ -188,13 +207,14 @@ public final class PhantomNativeWorkScope implements Owner
 			if (!nested && !terminal && (pendingOwner == null) && ((_state != State.OPEN) || _permanentSeal)) { throw new IllegalStateException("NATIVE_CHECKPOINT_ADMISSION_CLOSED"); }
 			if ((pendingOwner != null) && !nested && !pendingResume && (_state != State.OPEN)) { throw new IllegalStateException("NATIVE_PENDING_RESUME_NOT_AUTHORIZED"); }
 			reopen = (_state == State.OPEN) || pendingResume;
-			if (!nested) { _checkpointThread = Thread.currentThread(); }
+			if (!nested) { _checkpointThread = Thread.currentThread(); _checkpointStage = "WAIT_EARNED"; }
 		}
 		if (nested) { return action.get(); }
 		boolean successful = false;
 		try
 		{
 			drain(deadline);
+			_checkpointStage = "SEALED";
 			final T result = action.get();
 			successful = true;
 			return result;
@@ -316,6 +336,12 @@ public final class PhantomNativeWorkScope implements Owner
 		fields.put("nativeOwnerState", _state.name()); fields.put("nativeOwnerCurrent", Boolean.toString(isCurrent()));
 		fields.put("nativeOwnerPermanentSeal", Boolean.toString(_permanentSeal)); fields.put("nativeOwnerCheckpoint", Boolean.toString(_checkpointThread != null));
 		fields.put("nativeOwnerFailure", _failure);
+		fields.put("nativeCheckpointStage", _checkpointStage);
+		final var checkpoint = _checkpointFirstFailure;
+		fields.put("nativeCheckpointFirstStage", checkpoint == null ? "" : checkpoint.stage());
+		fields.put("nativeCheckpointFirstClass", checkpoint == null ? "" : checkpoint.exceptionClass());
+		fields.put("nativeCheckpointFirstMessage", checkpoint == null ? "" : checkpoint.message());
+		fields.put("nativeCheckpointFirstStack", checkpoint == null ? "" : checkpoint.stack());
 		final var first = _firstNativeIncident;
 		fields.put("nativeFirstIncident", first == null ? "" : first.exceptionClass() + ":" + first.message());
 		fields.put("nativeFirstIncidentUtc", first == null ? "" : first.utc());

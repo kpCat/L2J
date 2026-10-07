@@ -779,7 +779,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
-	/** Reconcile a durable MATERIALIZED marker only after proving that no Player owns the character. */
+	/** Durable recovery precedes historical eligibility, under the same exclusive absent-Player lease. */
 	public OperationResult recoverAbandonedMaterialization(long profileId)
 	{
 		if (!claimTransition(profileId, TransitionKind.MATERIALIZING))
@@ -806,11 +806,18 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				return retry("recovery.runtime_busy");
 			}
 			final PhantomBackgroundTransaction.Result loaded = transaction(() -> _transactions.load(profileId));
-			if (!loaded.successful() || (loaded.state() == null) || (loaded.state().state() != State.MATERIALIZED) || (loaded.state().identity().characterObjectId() != characterObjectId))
+			if (!loaded.successful() || (loaded.state() == null) || ((loaded.state().state() != State.MATERIALIZED) && (loaded.state().state() != State.VERIFY_PENDING)) || (loaded.state().identity().profileId() != profileId) || (loaded.state().identity().characterObjectId() != characterObjectId))
 			{
 				return OperationResult.replan("recovery.background_state_invalid");
 			}
-			final PhantomBackgroundTransaction.Result recovered = transaction(() -> _transactions.abortMaterialization(profileId, characterObjectId));
+			PhantomBackgroundTransaction.Result recovered = loaded.state().state() == State.VERIFY_PENDING
+				? transaction(() -> _transactions.reconcileVerifyPending(profileId, characterObjectId))
+				: transaction(() -> _transactions.abortMaterialization(profileId, characterObjectId));
+			if (recovered.successful() && (recovered.state() != null) && (recovered.state().state() == State.MATERIALIZED))
+			{
+				// Keep the lease/transition through a bounded abandoned transition; no actor may enter between steps.
+				recovered = transaction(() -> _transactions.abortMaterialization(profileId, characterObjectId));
+			}
 			if (recovered.successful() && (recovered.state() != null) && ((recovered.state().state() == State.READY) || (recovered.state().state() == State.DEAD)))
 			{
 				return OperationResult.success("recovery.abandoned_materialization_reconciled");
@@ -927,11 +934,21 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public boolean captureVisibleArrival(long profileId, Player player, PhantomGoal goal, String anchorId)
 	{
+		final var owner = player.getNativeWorkOwner();
 		try
 		{
-			return org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(player, () -> captureVisibleArrivalQuiescent(profileId, player, goal, anchorId));
+			return org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(player, () ->
+			{
+				checkpointStage(player, "CAPTURE");
+				return captureVisibleArrivalQuiescent(profileId, player, goal, anchorId);
+			});
 		}
-		catch (RuntimeException failure) { return false; }
+		catch (RuntimeException failure) { if (owner instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope) { scope.recordCheckpointFailure(failure); } return false; }
+	}
+
+	private static void checkpointStage(Player player, String stage)
+	{
+		if (player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope) { scope.checkpointStage(stage); }
 	}
 
 	private boolean captureVisibleArrivalQuiescent(long profileId, Player player, PhantomGoal goal, String anchorId)
@@ -952,6 +969,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final PhantomBackgroundState captured = _authority.captureOwnedNative(profileId, player, goal, hint).state();
 			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_CAPTURE);
 			_arrivalCaptures.put(profileId, captured);
+			checkpointStage(player, "INVENTORY_FLUSH");
 			player.storeMe();
 			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_STORE);
 			final var stored = transaction(() -> _transactions.load(profileId));
@@ -960,7 +978,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				return false;
 			}
 			_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.ARRIVAL_AFTER_BASELINE);
+			checkpointStage(player, "INDEX_PENDING");
 			_committedPosition.accept(profileId, stored.state().position());
+			checkpointStage(player, "COMPLETED");
 			return true;
 		}
 		finally
@@ -1074,15 +1094,18 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				}
 				final State target = cleanup || (previous == null) || (previous.state() != State.MATERIALIZED) ? (captured.vitals().currentHp() == 0 ? State.DEAD : State.READY) : State.MATERIALIZED;
 				final var witnessed = captureOwnedInventory(player, captured);
+				checkpointStage(player, "PREPARE_ATTEMPTED");
 				final var prepared = transaction(() -> _transactions.prepareOwnedStore(witnessed, goal, entry.materializedAtNanos(), target, nativeCapture));
 				_intentGoal = goal;
 				_intent = prepared.intent();
 				_nativeCapture = _intent == null ? null : nativeCapture;
 				_kind = arrival != null ? "ARRIVAL_CAPTURE" : cleanup ? "CLEANUP_STORE" : "OTHER_OWNED_STORE";
 				if (!prepared.successful()) { throw new IllegalStateException("OWNED_STORE_PREPARE:" + prepared.status()); }
+				checkpointStage(player, "PREPARED");
 				_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.enabledFor(profileId, _intent.materializedAtNanos()) ? org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player) : null;
 				_sequence = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.begin(profileId, player, _kind, _intent);
 				_transactions.lifecycleCheckpoint(PhantomBackgroundTransaction.FaultPoint.AFTER_OWNED_PREPARE);
+				checkpointStage(player, "NATIVE_ATTEMPTED");
 				return ownedSnapshot(player, _intent.after(), _nativeCapture.vitalityPoints());
 			}
 
@@ -1105,6 +1128,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					completedState = finalized.state();
 					if (!finalized.successful()) { throw new IllegalStateException("OWNED_STORE_FINALIZE:" + status); }
 					finalizedSuccessfully = true;
+					checkpointStage(player, "FINALIZED");
 					if ((!recaptureCleanup && (!ownedProgressMatches(player, _intent.after()) || ((_nativeCapture != null) && (player.getVitalityPoints() != _nativeCapture.vitalityPoints())))) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { status = "RUNTIME_CHANGED_AFTER_FINALIZE"; throw new IllegalStateException("OWNED_STORE_RUNTIME_CHANGED_AFTER_FINALIZE"); }
 				}
 				finally

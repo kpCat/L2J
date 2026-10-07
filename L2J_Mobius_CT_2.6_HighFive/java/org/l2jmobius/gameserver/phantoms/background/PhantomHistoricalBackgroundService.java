@@ -161,7 +161,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		{
 			return Result.rejected(ResultStatusCode.PROFILE_UNAVAILABLE, "catchup.profile.unlinked", null);
 		}
-		final Snapshot existing = _store.load(profileId).orElse(null);
+		final Result lifecycle = recoverColdLifecycle(profileId, _store.load(profileId).orElse(null));
+		if (!lifecycle.successful()) { return lifecycle; }
+		final Snapshot existing = lifecycle.snapshot();
 		if (((existing == null) || (existing.state().status() == Status.COMPLETE)) && _materialization.find(profileId).isPresent())
 		{
 			return Result.rejected(ResultStatusCode.NORMAL_MATERIALIZED, "catchup.normal_materialized", null);
@@ -308,7 +310,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	private Result ensureBaseline(long profileId, Snapshot claimed)
 	{
-		Snapshot current = claimed;
+		final Result lifecycle = recoverColdLifecycle(profileId, claimed);
+		if (!lifecycle.successful()) { return lifecycle; }
+		Snapshot current = lifecycle.snapshot();
 		StoredGoal storedGoal = _goals.load(profileId).orElse(null);
 		final Optional<PhantomBackgroundState> existingBackground = _background.acquisitionSnapshot(profileId);
 		if (existingBackground.isPresent() && (existingBackground.get().state() == PhantomBackgroundState.State.VERIFY_PENDING) && (current.state().status() == Status.PENDING) && (current.state().goalId() > 0) && (storedGoal != null) && (storedGoal.goal().goalId() == current.state().goalId()) && (storedGoal.goal().revision() == current.state().goalRevision()) && _materialization.find(profileId).filter(owner -> owner.playerRetained() && owner.identityLeaseRetained() && !owner.actionAdmissionOpen()).isPresent())
@@ -465,6 +469,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		{
 			return Result.rejected(ResultStatusCode.NOT_FOUND, "catchup.absent", null);
 		}
+		final Result lifecycle = recoverColdLifecycle(profileId, current);
+		if (!lifecycle.successful()) { return lifecycle; }
+		current = lifecycle.snapshot();
 		if (current.state().status() == Status.PENDING)
 		{
 			final Result baseline = ensureBaseline(profileId, current);
@@ -670,6 +677,26 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	public static boolean isRecoverableFailure(String reason)
 	{
 		return Set.of("transaction.item_conflict", "model.object_cap", "model.object_cap_indivisible", "catchup.authority.unsupported", "planner.target_or_route.absent", "authority.hash_stale", "catchup.authority.authority_stale", "catchup.authority.position_stale", "catchup.authority.target_stale", "catchup.authority.resource_stale", "catchup.authority.unsupported_loot").contains(reason);
+	}
+
+	/** Resolve durable ownership before baseline/FAILED/policy gates, without granting simulation eligibility. */
+	private Result recoverColdLifecycle(long profileId, Snapshot current)
+	{
+		final var state = _background.acquisitionSnapshot(profileId).orElse(null);
+		if ((state == null) || ((state.state() != PhantomBackgroundState.State.VERIFY_PENDING) && (state.state() != PhantomBackgroundState.State.MATERIALIZED)) || _materialization.find(profileId).isPresent()) { return Result.success(current, 0); }
+		final boolean ownedReceipt = _profiles.findComponent(profileId, org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.COMPONENT_TYPE).isPresent();
+		final var recovered = _background.recoverAbandonedMaterialization(profileId);
+		if (!recovered.successful()) { return Result.rejected(recovered.status() == OperationStatus.RETRY ? ResultStatusCode.RETRY : ResultStatusCode.REPLAN_REQUIRED, "catchup.cold." + recovered.reason(), current); }
+		final Snapshot latest = _store.load(profileId).orElse(null);
+		if (!Objects.equals(current, latest)) { return Result.rejected(ResultStatusCode.RETRY, "catchup.cold.claim_changed", latest); }
+		if (ownedReceipt && (latest != null) && (latest.state().status() == Status.FAILED_REPLAN_REQUIRED) && "catchup.baseline.conflict".equals(latest.state().failureReason()))
+		{
+			final String remaining = recoveryPrerequisite(profileId, latest, _background.acquisitionSnapshot(profileId).orElse(null), _goals.load(profileId).orElse(null));
+			if (!remaining.isEmpty() || !currentClaim(profileId, latest)) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, remaining.isEmpty() ? "catchup.cold.claim_changed" : remaining, latest); }
+			try { return Result.success(_store.replace(profileId, latest, latest.state().retryRunning()), 0); }
+			catch (RuntimeException failure) { return Result.rejected(ResultStatusCode.RETRY, "catchup.cold.publish_retry", _store.load(profileId).orElse(latest)); }
+		}
+		return Result.success(latest, 0);
 	}
 
 	private String recoveryPrerequisite(long profileId, Snapshot current, PhantomBackgroundState state, StoredGoal goal)

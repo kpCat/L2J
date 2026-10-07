@@ -162,7 +162,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
 		final Path expectedWorkingDirectory = context.moduleRoot().resolve("dist/game").normalize();
-		if (!PhantomContracts024DatabaseLane.enabled())
+		if (!PhantomContracts024DatabaseLane.enabled() && !PhantomContracts025DatabaseLane.enabled())
 		{
 			PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
 		}
@@ -177,7 +177,12 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
 		final BootstrapResult bootstrap;
-		if (PhantomContracts024DatabaseLane.enabled())
+		if (PhantomContracts025DatabaseLane.enabled())
+		{
+			PhantomContracts025DatabaseLane.initialize(context.moduleRoot(), Path.of(configProperty));
+			bootstrap = null;
+		}
+		else if (PhantomContracts024DatabaseLane.enabled())
 		{
 			PhantomContracts024DatabaseLane.initialize(context.moduleRoot(), Path.of(configProperty));
 			bootstrap = null; // This explicit private clone lane has no shared TEST settings.
@@ -238,9 +243,9 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 		stabilizeInfrastructureThreads();
 		_environmentThreadIds = liveNonDaemonThreadIds();
-		context.record("headless.database", PhantomContracts024DatabaseLane.enabled()
+		context.record("headless.database", PhantomContracts025DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract025b" : PhantomContracts024DatabaseLane.enabled()
 			? "l2jmobiush5_localplay_contract024a" : PhantomTestDatabaseGuard.TARGET_DATABASE);
-		context.record("headless.schemaAggregateSha256", (PhantomContracts024DatabaseLane.enabled()
+		context.record("headless.schemaAggregateSha256", ((PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled())
 			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());
 		context.record("headless.initializedSingletonCount", INITIALIZED_SINGLETONS.size());
 		context.record("headless.initializedSingletons", String.join(",", INITIALIZED_SINGLETONS));
