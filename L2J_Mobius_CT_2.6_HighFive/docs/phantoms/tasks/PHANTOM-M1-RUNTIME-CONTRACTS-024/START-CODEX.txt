@@ -1,0 +1,52 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/GOAL.md.
+
+Required base:
+819e3cea5baa64e6c429e450c8fc296874e37d1c
+
+Branch:
+experiment/m1-candidate007-observe008
+
+GPT-6.1 Sol, reasoning Very High. Новый диалог, без субагентов.
+Я одобряю DESIGN/PLAN/SOURCE_MAP/TASK.md этого пакета и ограниченные действия в них.
+Работай автономно 4–6 часов, максимум360мин wall-clock, без вопросов и ручного login gate.
+Не проси «в игре», «вышел», arm, worktree approval или разрешение на очередной этап.
+
+Не продолжаем старый TASK023 вслепую. Реализуем четыре архитектурных контракта:
+B — точный native snapshot/earned save вне anchor, отдельно background eligibility;
+C — зависимости topology/index живут до окончания store/POST_STORE и release;
+A — новая атака NPC не считается delayed continuation чужого EARNED callback;
+D — farm миссия по реальной области, bounded local recovery вместо вечного idle.
+
+Порядок: B+C → A → D → полный server/cohort/persistence/restart proof.
+Используй ROOT_CAUSES/PATCH_GUIDE и actual source. Каждый semantic fix — собственный RED.
+Несколько связанных исправлений внутри разрешённых контрактов входят в TASK024.
+Старого лимита «4repair rounds» здесь НЕТ: число fixes само по себе не причина STOP.
+Но scope/безопасность/360мин обязательны. После270мин semantic freeze, последние30мин cleanup.
+
+Разрешён isolated detached worktree:
+C:\Users\ZBook\.codex\worktrees\m1-contracts-024\L2J_Mobius
+Если занят — первый свободный suffix. Основной checkout/foreign diff не трогать.
+PLAY только SELECT/export, kpCat не менять. Старые night023 clones только read/export.
+Новые task-owned DB: l2jmobiush5_localplay_contract024a..h.
+
+Используй уже работающий LocalPlaySyntheticHumanSession/ActorMode=Synthetic и полный
+GameServer со штатным scheduler и активными NPC. Не fake REAL_LOGIN и не UI automation.
+Подтверждаю start/graceful stop своих runtime и максимум2planned exact-owned crashes
+по CRASH_WINDOWS, REAL count0. Emergency exact-owned force — только после dumps и двух
+graceful attempts. Чужие PID/Java/MariaDB не трогать. Force не считается cleanup PASS.
+
+Не переписывать ThreadPool/EventDispatcher/combat engine/SQL schema.
+Не снимать stale owner/epoch/earned/owned-store guards. Не дописывать EXP/items из
+диагностических счётчиков, не snap nativeXYZ к anchor для записи, не сбрасывать incidents.
+Shared TEST guard/schema metadata не менять ради запуска; предусмотрен isolated clone path.
+
+Две final natural scenes360–420с на одном frozen SHA с полной заранее выбранной cohort.
+Пять циклов в начале с последующим простоем = FAIL. Проверить earned сохранение всей
+группы на SEALED snapshot→SQL, sameDB restart, absence retained entries.
+Death/soft-return/crash отметить отдельно и выполнить в пределах плана; не выдумывать PASS.
+
+Exact-path commit + normal push обязательны при GREEN/BLOCKED/FAILED.
+По завершении RESULT/HANDOFF/MORNING с проверенным startup script, все own JVM defaultSTOPPED.
+Не ждать моего ответа ночью; platform/safety barrier не обходить — сохранить доказательства.
+Максимум честного M1 статуса без клиента — WAITING_FINAL_CLIENT только если все server gates PASS.
+Иначе M1=OPEN, STOP_AUTHORITY=TASK024_CONTRACT. Следующий task автоматически не начинать.

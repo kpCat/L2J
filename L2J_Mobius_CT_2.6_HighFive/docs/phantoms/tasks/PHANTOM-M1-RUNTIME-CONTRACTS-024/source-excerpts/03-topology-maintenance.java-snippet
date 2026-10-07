@@ -1,0 +1,11 @@
+// CURRENT: PhantomTopologyService.java @819e3cea
+public RegistrationResult registerProfile(long profileId)
+{
+    try (PhantomTopologyGenerationCoordinator.Lease ignored = _generationCoordinator.read())
+    {
+        final View view = runningView();
+        return view == null ? RegistrationResult.NOT_RUNNING : _perceptionProvider.registerProfile(profileId, view.generation());
+    }
+}
+// REQUIRED: don't stop this dependency before the last legitimate POST_STORE.
+// Do not globally make runningView accept all stopped/failed operations.

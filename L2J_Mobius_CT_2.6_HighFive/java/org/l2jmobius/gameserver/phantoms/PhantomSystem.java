@@ -278,7 +278,8 @@ public final class PhantomSystem
 	private PhantomConversationService _conversationService;
 	private PhantomConversationExecutionService _conversationExecutionService;
 	private PhantomPvpService _pvpService;
-	private State _state = State.NEW;
+	private volatile State _state = State.NEW;
+	private boolean _shutdownInProgress;
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
 	{
@@ -316,7 +317,7 @@ public final class PhantomSystem
 
 	public synchronized boolean start()
 	{
-		if (_state != State.NEW)
+		if (_shutdownInProgress || (_state != State.NEW))
 		{
 			return false;
 		}
@@ -898,10 +899,6 @@ public final class PhantomSystem
 			{
 				_semanticUnderstandingService.beginStop();
 			}
-			if (_topologyService != null)
-			{
-				_topologyService.beginStop();
-			}
 			if (_navigationService != null)
 			{
 				_navigationService.beginStop();
@@ -949,6 +946,8 @@ public final class PhantomSystem
 			}
 			if (backgroundStopped && semanticStopped && (_topologyService != null))
 			{
+				// POST_STORE and lifetime release still publish into topology during the native drain.
+				_topologyService.beginStop();
 				_topologyService.finishStop();
 			}
 			if (backgroundStopped && (_decisionEngine != null))
@@ -967,7 +966,30 @@ public final class PhantomSystem
 		return true;
 	}
 
-	public synchronized boolean shutdown()
+	public boolean shutdown()
+	{
+		synchronized (this)
+		{
+			if (_shutdownInProgress)
+			{
+				return false;
+			}
+			_shutdownInProgress = true;
+		}
+		try
+		{
+			return shutdownClaimed();
+		}
+		finally
+		{
+			synchronized (this)
+			{
+				_shutdownInProgress = false;
+			}
+		}
+	}
+
+	private boolean shutdownClaimed()
 	{
 		if (_historicalBackgroundService != null) { _historicalBackgroundService.revokeForegroundDecisions(); }
 		if (_autonomousMarketProducer != null)
@@ -1134,10 +1156,6 @@ public final class PhantomSystem
 			{
 				_semanticUnderstandingService.beginStop();
 			}
-			if (_topologyService != null)
-			{
-				_topologyService.beginStop();
-			}
 			if (_navigationService != null)
 			{
 				_navigationService.beginStop();
@@ -1214,6 +1232,11 @@ public final class PhantomSystem
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
 				return false;
+			}
+			if (_topologyService != null)
+			{
+				// Stop the reconstructible index only after every native store and POST_STORE user.
+				_topologyService.beginStop();
 			}
 			if ((_progressionService != null) && !_progressionService.finishStop())
 			{
@@ -1669,12 +1692,12 @@ public final class PhantomSystem
 		}
 	}
 
-	public static synchronized OperatorControlResult operatorDrain()
+	public static OperatorControlResult operatorDrain()
 	{
 		return requestOperatorStop(OperatorMode.DRAINED, OperatorControlCode.DRAINED, OperatorControlCode.ALREADY_DRAINED);
 	}
 
-	public static synchronized OperatorControlResult operatorDisable()
+	public static OperatorControlResult operatorDisable()
 	{
 		return requestOperatorStop(OperatorMode.DISABLED, OperatorControlCode.DISABLED, OperatorControlCode.ALREADY_DISABLED);
 	}
@@ -1684,9 +1707,14 @@ public final class PhantomSystem
 		return populationResetService().preview();
 	}
 
-	public static synchronized PhantomPopulationResetService.ResetResult operatorResetConfirm(String token, boolean reseed)
+	public static PhantomPopulationResetService.ResetResult operatorResetConfirm(String token, boolean reseed)
 	{
-		return populationResetService().confirm(token, reseed);
+		final PhantomPopulationResetService service;
+		synchronized (PhantomSystem.class)
+		{
+			service = populationResetService();
+		}
+		return service.confirm(token, reseed);
 	}
 
 	public static synchronized boolean operatorResetCancel()
@@ -1718,15 +1746,23 @@ public final class PhantomSystem
 
 	private static OperatorControlResult requestOperatorStop(OperatorMode requestedMode, OperatorControlCode stoppedCode, OperatorControlCode alreadyCode)
 	{
-		final boolean alreadyRequested = _operatorMode == requestedMode;
-		_operatorMode = requestedMode;
-		if (_configuredInstance == null)
+		final PhantomSystem configured;
+		synchronized (PhantomSystem.class)
 		{
-			return operatorControlResult(alreadyRequested ? alreadyCode : stoppedCode);
+			final boolean alreadyRequested = _operatorMode == requestedMode;
+			_operatorMode = requestedMode;
+			configured = _configuredInstance;
+			if (configured == null)
+			{
+				return operatorControlResult(alreadyRequested ? alreadyCode : stoppedCode);
+			}
 		}
 
-		shutdownConfiguredInstance();
-		return operatorControlResult(_configuredInstance == null ? stoppedCode : OperatorControlCode.SHUTDOWN_FAILED);
+		shutdownConfiguredInstance(configured);
+		synchronized (PhantomSystem.class)
+		{
+			return operatorControlResult(_configuredInstance == null ? stoppedCode : OperatorControlCode.SHUTDOWN_FAILED);
+		}
 	}
 
 	public static boolean shutdownIfStarted()
@@ -1748,19 +1784,25 @@ public final class PhantomSystem
 				catch (InterruptedException failure) { Thread.currentThread().interrupt(); return false; }
 			}
 		}
-		synchronized (PhantomSystem.class)
-		{
-			return (_configuredInstance == configured) && shutdownConfiguredInstance();
-		}
+		return shutdownConfiguredInstance(configured);
 	}
 
-	private static boolean shutdownConfiguredInstance()
+	private static boolean shutdownConfiguredInstance(PhantomSystem configured)
 	{
-		final PhantomSystem configured = _configuredInstance;
-		final boolean stopped = configured.shutdown();
-		if (configured.snapshot().state() == State.STOPPED)
+		synchronized (PhantomSystem.class)
 		{
-			_configuredInstance = null;
+			if (_configuredInstance != configured)
+			{
+				return false;
+			}
+		}
+		final boolean stopped = configured.shutdown();
+		synchronized (PhantomSystem.class)
+		{
+			if ((_configuredInstance == configured) && (configured._state == State.STOPPED))
+			{
+				_configuredInstance = null;
+			}
 		}
 		return stopped;
 	}

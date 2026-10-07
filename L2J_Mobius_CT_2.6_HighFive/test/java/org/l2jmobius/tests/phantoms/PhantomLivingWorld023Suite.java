@@ -31,6 +31,11 @@ public final class PhantomLivingWorld023Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom.m1.native.focus", "all");
+		if (focus.equals("retaliation024"))
+		{
+			for (String variant : java.util.List.of("retaliation-open", "retaliation-sealed")) { registry.add("A01-A02-actual-HitTask-NPC-" + variant, context -> cooperative(context, variant)); }
+			return;
+		}
 		if (java.util.Set.of("cooperative", "stale").contains(focus))
 		{
 			registry.add("N02-N06-lawful-native-" + focus, context -> cooperative(context, focus)); return;
@@ -60,7 +65,7 @@ public final class PhantomLivingWorld023Suite implements PhantomTestSuite
 	}
 	private void cooperative(PhantomTestContext context, String variant) throws Exception
 	{
-		if (!variant.startsWith("physical-"))
+		if (!variant.startsWith("physical-") && !variant.startsWith("retaliation-"))
 		{
 			for (int objectId : java.util.List.of(_environment.primary().objectId(), _environment.observer().objectId()))
 			{
@@ -76,7 +81,7 @@ public final class PhantomLivingWorld023Suite implements PhantomTestSuite
 		final Player second = Player.load(_environment.observer().objectId());
 		final Player ordinary = Player.create(org.l2jmobius.gameserver.data.xml.PlayerTemplateData.getInstance().getTemplate(0), _environment.primary().accountName(), "Ph023Ord" + Long.toUnsignedString(System.nanoTime(), 36), new org.l2jmobius.gameserver.model.actor.appearance.PlayerAppearance((byte) 0, (byte) 0, (byte) 0, false));
 		PhantomAssertions.assertTrue(ordinary != null, "N02 canonical ordinary third fixture created.");
-		final Monster npc = variant.equals("cast-body-failure") ? new AfterNativeWriterFailure() : new Monster(NpcData.getInstance().getTemplate(variant.startsWith("physical-") ? 20667 : variant.equals("cooperative") ? 20121 : 20534));
+		final Monster npc = variant.startsWith("retaliation-") ? new PhantomM1DynamicRecipientChecks.RetaliationMonster024() : variant.equals("cast-body-failure") ? new AfterNativeWriterFailure() : new Monster(NpcData.getInstance().getTemplate(variant.startsWith("physical-") ? 20667 : variant.equals("cooperative") ? 20121 : 20534));
 		try (var firstOutput = first.attachOutboundSession(new HeadlessPlayerOutboundSession(8, 128));
 			var secondOutput = second.attachOutboundSession(new HeadlessPlayerOutboundSession(8, 128));
 			var thirdOutput = ordinary.attachOutboundSession(new HeadlessPlayerOutboundSession(8, 128)))
@@ -84,7 +89,7 @@ public final class PhantomLivingWorld023Suite implements PhantomTestSuite
 			for (Player player : java.util.List.of(first, second, ordinary))
 			{
 				player.stopAllTasks();
-				if (player != ordinary && !variant.startsWith("physical-"))
+				if (player != ordinary && !variant.startsWith("physical-") && !variant.startsWith("retaliation-"))
 				{
 					final var learn = org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getCompleteClassSkillTree(player.getPlayerClass()).values().stream().filter(entry -> entry.getSkillId() == 1177 && entry.getSkillLevel() == 1 && entry.getGetLevel() <= player.getLevel()).findFirst().orElseThrow();
 					player.addSkill(SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel()), true);
@@ -96,7 +101,8 @@ public final class PhantomLivingWorld023Suite implements PhantomTestSuite
 			final Spawn spawn = new Spawn(npc.getTemplate()); spawn.setXYZ(first.getX() + 40, first.getY(), first.getZ()); npc.setSpawn(spawn);
 			npc.setCurrentHpMp(npc.getMaxHp(), npc.getMaxMp()); npc.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
 			PhantomAssertions.assertFalse(npc.isCoreAIDisabled(), "N02 stock NPC AI must remain enabled.");
-			if (variant.equals("stale")) { PhantomM1DynamicRecipientChecks.staleCast(context, first, npc, first.getKnownSkill(1177)); }
+			if (variant.startsWith("retaliation-")) { PhantomM1DynamicRecipientChecks.retaliation024(context, first, second, (PhantomM1DynamicRecipientChecks.RetaliationMonster024) npc, variant.equals("retaliation-sealed")); }
+			else if (variant.equals("stale")) { PhantomM1DynamicRecipientChecks.staleCast(context, first, npc, first.getKnownSkill(1177)); }
 			else if (variant.equals("cast-body-failure")) { PhantomM1DynamicRecipientChecks.failedCastBody(context, first, npc, first.getKnownSkill(1177)); }
 			else if (variant.startsWith("physical-")) { PhantomM1DynamicRecipientChecks.physicalTransfer(context, first, second, ordinary, npc, !variant.equals("physical-ordinary"), variant.equals("physical-sealed")); }
 			else { PhantomM1DynamicRecipientChecks.lateNativeDamage(context, first, second, ordinary, npc, first.getKnownSkill(1177)); }

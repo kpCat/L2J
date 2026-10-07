@@ -337,7 +337,28 @@ public final class PlayerNativeWork
 		}
 		return List.copyOf(recipients);
 	}
-	/** Explicit original attack/cast entry. No phase is published until its own positive HP writer. */
+	public enum Origin { NEW_NATIVE_ACTION, DELAYED_CONTINUATION }
+
+	/** A new stock attack/cast cannot borrow another running callback's drain admission. */
+	public static void runOriginalCombat(Creature actor, Collection<? extends WorldObject> targets, String kind, Runnable action)
+	{
+		final List<Participant> participants = capture(actor, targets, kind);
+		for (Frame frame = CONTEXT.get(); frame != null; frame = frame.previous())
+		{
+			final Owner owner = frame.ticket().owner();
+			if (frame.ticket().isRunning() && (!owner.isCurrent() || (owner.player().getNativeWorkOwner() != owner))) { return; }
+		}
+		for (Participant participant : participants)
+		{
+			if (!participant.current() || !participant.owner().nativeObservationHealthy()) { return; }
+		}
+		final ParticipantWork admission = reserve(participants, kind + "-original-admission", Semantics.CANCELLABLE, Origin.NEW_NATIVE_ACTION);
+		if (admission == null) { return; }
+		if (admission.ordinary()) { runCombat(actor, targets, kind, action); }
+		else { admission.run(() -> runCombat(actor, targets, kind, action)); }
+	}
+
+	/** Existing observation binding; delayed users retain their captured-parent fence. */
 	public static void runCombat(Creature actor, Collection<? extends WorldObject> targets, String kind, Runnable action)
 	{
 		final Player player = actor instanceof Player nativePlayer ? nativePlayer : null;
@@ -415,13 +436,19 @@ public final class PlayerNativeWork
 
 	private static ParticipantWork reserve(List<Participant> participants, String kind, Semantics semantics)
 	{
+		return reserve(participants, kind, semantics, Origin.DELAYED_CONTINUATION);
+	}
+
+	private static ParticipantWork reserve(List<Participant> participants, String kind, Semantics semantics, Origin origin)
+	{
 		final ParticipantWork work = new ParticipantWork(participants, semantics);
 		try
 		{
 			for (int i = 0; i < participants.size(); i++)
 			{
 				final Participant participant = participants.get(i);
-				final Ticket ticket = participant.current() ? participant.owner().reserve(current(participant.owner()), kind, semantics) : null;
+				final Ticket parent = origin == Origin.NEW_NATIVE_ACTION ? null : current(participant.owner());
+				final Ticket ticket = participant.current() ? participant.owner().reserve(parent, kind, semantics) : null;
 				if (ticket == null)
 				{
 					work.refused(new IllegalStateException("NATIVE_PARTICIPANT_ADMISSION_REFUSED"));

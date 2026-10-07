@@ -1,0 +1,23 @@
+PACKAGE SELF-CHECK ONLY. Full Mobius/Windows/MariaDB runtime NOT executed by coordinator.
+$ python -m unittest discover -s /mnt/data/task024_build/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/tools -p test_*.py
+exit=0
+
+...................
+----------------------------------------------------------------------
+Ran 19 tests in 0.001s
+
+OK
+
+$ javac -encoding UTF-8 -d /mnt/data/audit024/classes /mnt/data/task024_build/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/proposals/BoundaryPolicy024.java /mnt/data/task024_build/L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/proposals/BoundaryPolicy024Test.java
+exit=0
+
+
+$ java -cp /mnt/data/audit024/classes BoundaryPolicy024Test
+exit=0
+REFERENCE_CONTRACT_PASS checks=132
+
+
+UTF-8 and structural checks PASS
+Independent reference table: 132 checks PASS
+Persistence verifier: 19 tests PASS
+No source/JAR/DB from the working server included.

@@ -44,7 +44,7 @@ public record PhantomNativeContext(Identity identity, Phase phase, int beforePoi
 	private static final String EMPTY_DIGEST = "0".repeat(64);
 
 	public enum Phase { UNKNOWN, COMPLETED, PENDING }
-	public enum Eligibility { UNKNOWN, SUPPORTED, VITALITY_REQUIRES_NATIVE }
+	public enum Eligibility { UNKNOWN, SUPPORTED, VITALITY_REQUIRES_NATIVE, POSITION_REQUIRES_NATIVE }
 
 	/** Only fresh native capture can supply policy eligibility; canonical zero is not a native value. */
 	public record Capture(int vitalityPoints, Eligibility eligibility)

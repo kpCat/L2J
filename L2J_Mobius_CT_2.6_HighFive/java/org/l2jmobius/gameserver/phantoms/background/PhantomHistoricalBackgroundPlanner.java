@@ -113,7 +113,39 @@ public final class PhantomHistoricalBackgroundPlanner
 
 	public boolean isVisibleLocal(PhantomGoal goal, PhantomTopologyPoint live)
 	{
-		return _topology.findAnchor(PhantomBackgroundGoalSpec.parse(goal).anchorId()).filter(anchor -> (anchor.role() == PhantomTopologyAnchorRole.FARMING) && (live.distanceSquared2D(anchor.point()) <= 4_000_000L)).isPresent();
+		return _topology.findAnchor(PhantomBackgroundGoalSpec.parse(goal).anchorId()).filter(anchor -> (anchor.role() == PhantomTopologyAnchorRole.FARMING) && (localFarmDistance(anchor, live) <= 4_000_000L)).isPresent();
+	}
+
+	/** Squared local distance to the factual area, not its representative point. */
+	private long localFarmDistance(PhantomTopologyAnchor anchor, PhantomTopologyPoint live)
+	{
+		final var area = _topology.findNode(anchor.nodeId()).map(node -> node.area()).orElse(null);
+		if ((area == null) || (area.instanceId() != live.instanceId()) || (live.z() < area.minZ()) || (live.z() > area.maxZ())) { return Long.MAX_VALUE; }
+		if (area.contains(live)) { return 0; }
+		if (area.form() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.Form.POINT_RADIUS)
+		{
+			final double vertical = (long) live.z() - area.center().z();
+			final double horizontalRadius = Math.sqrt(Math.max(0, (double) area.radius() * area.radius() - vertical * vertical));
+			final double distance = Math.max(0, Math.sqrt(live.distanceSquared2D(area.center())) - horizontalRadius);
+			return (long) Math.ceil(distance * distance);
+		}
+		if (area.form() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyArea.Form.CUBOID)
+		{
+			final long dx = Math.max(0L, Math.max((long) area.minX() - live.x(), (long) live.x() - area.maxX()));
+			final long dy = Math.max(0L, Math.max((long) area.minY() - live.y(), (long) live.y() - area.maxY()));
+			return dx * dx + dy * dy;
+		}
+		double closest = Double.POSITIVE_INFINITY;
+		for (int index = 0; index < area.vertices().size(); index++)
+		{
+			final var a = area.vertices().get(index); final var b = area.vertices().get((index + 1) % area.vertices().size());
+			final double dx = (long) b.x() - a.x(); final double dy = (long) b.y() - a.y();
+			final double length = dx * dx + dy * dy;
+			final double fraction = length == 0 ? 0 : Math.max(0, Math.min(1, (((long) live.x() - a.x()) * dx + ((long) live.y() - a.y()) * dy) / length));
+			final double x = live.x() - (a.x() + fraction * dx); final double y = live.y() - (a.y() + fraction * dy);
+			closest = Math.min(closest, x * x + y * y);
+		}
+		return (long) Math.ceil(closest);
 	}
 
 	public boolean remainsSuitable(PhantomBackgroundState state, PhantomGoal goal)
@@ -209,10 +241,10 @@ public final class PhantomHistoricalBackgroundPlanner
 		}
 		if (live != null)
 		{
-			candidates.sort(Comparator.comparingLong((Candidate value) -> live.distanceSquared2D(value.anchor().point())).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
+			candidates.sort(Comparator.comparingLong((Candidate value) -> localFarmDistance(value.anchor(), live)).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
 			if (candidates.size() > 8) { candidates.subList(8, candidates.size()).clear(); }
 		}
-		candidates.sort(Comparator.comparingInt((Candidate value) -> Math.abs(value.target().npc().level() - level)).thenComparingInt(value -> value.routeEdgeIds().size()).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
+		candidates.sort(Comparator.comparingLong((Candidate value) -> live == null ? 0 : localFarmDistance(value.anchor(), live)).thenComparingInt(value -> Math.abs(value.target().npc().level() - level)).thenComparingInt(value -> value.routeEdgeIds().size()).thenComparing(value -> tieBreak(deterministicSeed, planOrdinal, value)).thenComparingInt(value -> value.target().npc().npcId()).thenComparing(value -> value.anchor().id()));
 		final Candidate selected = candidates.getFirst();
 		final Map<String, Long> constraints = new LinkedHashMap<>();
 		putPositivePair(constraints, PhantomBackgroundGoalSpec.SHOT_ITEM, shotItemId, PhantomBackgroundGoalSpec.SHOT_COUNT, shotsPerEncounter);
@@ -299,7 +331,7 @@ public final class PhantomHistoricalBackgroundPlanner
 				if ((area.instanceId() != live.instanceId()) || (area.totalConfiguredAmount() <= 0) || (area.topologyNodeId() == null)) { continue; }
 				for (var anchor : _topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()))
 				{
-					if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && (live.distanceSquared2D(anchor.point()) <= 4_000_000L)
+					if ((anchor.role() == PhantomTopologyAnchorRole.FARMING) && (localFarmDistance(anchor, live) <= 4_000_000L)
 						&& ((anchor.npcId() == null) || (anchor.npcId() == target.npc().npcId())))
 					{
 						final var candidate = new Candidate(target, anchor, List.of());

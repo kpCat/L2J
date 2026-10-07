@@ -1049,7 +1049,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					{
 						if (!_authority.matchesRuntime(player, arrival)) { throw new IllegalStateException("OWNED_STORE_CAPTURE_STALE"); }
 						captured = arrival;
-						nativeCapture = _authority.captureNativeContext(player);
+						nativeCapture = _authority.captureNativeContext(player, captured);
 					}
 					else
 					{

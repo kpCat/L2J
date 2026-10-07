@@ -1,0 +1,17 @@
+suite=server-shutdown-handoff
+seed=23002301
+total=2
+passed=0
+failed=2
+measurement.headless.database=l2jmobiush5_localplay_contract024a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435596
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.serverShutdownHandoff.blockedFirstElapsedNanos=152135100
+measurement.serverShutdownHandoff.database=l2jmobiush5_phantom_test
+FAIL server-shutdown-handoff.C01-real-topology-post-store-before-dependency-stop elapsedNanos=9236056600 type=java.lang.AssertionError message=C01 actual POST_STORE index publication cannot see NOT_RUNNING. Expected <UPDATED> but was <NOT_RUNNING>. seed=23002301
+FAIL server-shutdown-handoff.C03-in-flight-drain-keeps-topology-running elapsedNanos=172516300 type=java.lang.AssertionError message=C03 topology must remain RUNNING while materialization/store still uses it. Expected <RUNNING> but was <STOPPING>. seed=23002301

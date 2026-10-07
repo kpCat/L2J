@@ -1,0 +1,11 @@
+// CURRENT: L2jPhantomBackgroundAuthority.java @819e3cea
+@Override
+public NativeCapture captureOwnedNative(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous)
+{
+    return new NativeCapture(capture(profileId, player, goal, previous, true), nativeContext(player));
+}
+// CURRENT inside capture(...): geometry is demanded before native snapshot fields.
+final PhantomTopologyAnchor anchor = exactAnchor(player, previous);
+final Position position = new Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchor.id());
+// REQUIRED: native coordinates are facts; proven reference and simulation geometry
+// are distinct. New eligibility must participate in the existing owned transaction.

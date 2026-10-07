@@ -1,0 +1,42 @@
+# RESULT024
+```text
+TASK_RESULT=GREEN|BLOCKED|FAILED
+STOP_AUTHORITY=TASK024_CONTRACT
+BASE_SHA=819e3cea5baa64e6c429e450c8fc296874e37d1c
+FINAL_CODE_SHA=
+SOURCE_PATH_COUNT=
+WALL_MINUTES=
+ENGINEERING_PASS=
+RETALIATION_PASS=
+POSITION_STORE_PASS=
+EARNED_PERSISTENCE_PASS=
+SHUTDOWN_PASS=
+LOCAL_RECOVERY_PASS=
+FARM_A_PASS=
+FARM_B_PASS=
+COHORT_PASS=
+LOOT_PASS=
+DEATH_PASS=
+SOFT_RETURN_PASS=
+RESTART_PASS=
+CRASH_MATRIX_PASS=
+SERVER_M1_PASS=
+REAL_FINAL_PASS=NOT_RUN
+M1=OPEN|WAITING_FINAL_CLIENT
+RUNTIME_EPISODES=
+PLANNED_CRASHES=
+RETAINED_AT_EARNED_STOP=
+PENDING_OWNED_STORE_AT_STOP=
+FORCE_USED=
+PLAY_WRITES=0
+OWNED_TEST_RESTORE=
+OWNED_JVMS_LISTENERS=
+```
+## Что изменилось в четырёх контрактах
+## RED→GREEN и relevant failures
+## Полная cohort A/B (включая простой, missing и incidents)
+## SEALED native snapshot ↔ послеFINALIZE SQL ↔ sameDB restart
+## Outcome PREPARE/native/FINALIZE/POST_STORE раздельно
+## Death/soft-return/crash coverage, без наследованного PASS
+## Незакрытый blocker, точный source/stack, почему в рамках бюджета не закрыт
+## Git/scope/encoding, preserved DB/runtime, MORNING launch

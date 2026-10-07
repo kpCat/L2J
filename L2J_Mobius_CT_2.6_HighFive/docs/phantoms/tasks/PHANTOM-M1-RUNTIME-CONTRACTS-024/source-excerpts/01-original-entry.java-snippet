@@ -1,0 +1,9 @@
+// CURRENT: Creature.java @819e3cea; read-only reference, not an apply-ready patch.
+public void doAttack(Creature target)
+{
+    PlayerNativeWork.runCombat(this, Collections.singletonList(target), "attack-frontend", () -> doAttackNative(target));
+}
+// CURRENT: doAttackHitSimple publishes an exact delayed earned operation.
+PlayerNativeWork.schedule(this, Collections.singletonList(target), "attack-hit", PlayerNativeWork.Semantics.EARNED, new HitTask(this, target, damage1, crit1, miss1, shld1, attack.hasSoulshot(), rechargeShots), sAtk);
+// REQUIRED: distinguish original admission from this delayed continuation. Do not
+// replace schedule's capture discipline with a globally permissive fresh enrollment.

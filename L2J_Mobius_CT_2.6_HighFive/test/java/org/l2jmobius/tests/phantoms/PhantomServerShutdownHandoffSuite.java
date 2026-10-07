@@ -130,6 +130,13 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if ("contract024".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("C01-real-topology-post-store-before-dependency-stop", this::testTopologyPostStore024);
+			registry.add("C03-in-flight-drain-keeps-topology-running", this::testInFlightDrain);
+			registry.add("C03-store-callback-inspects-configured-system-without-monitor-cycle", this::testStoreMonitor024);
+			return;
+		}
 		if ("ecology".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("08-configured-stop-awaits-original-ecology-worker-finally", this::testEcologyDrain); return; }
 		registry.add("01-managed-classifier-fails-closed", _ -> testManagedClassifier());
 		registry.add("02-two-phase-server-policy-and-source-order", this::testTwoPhasePolicy);
@@ -312,7 +319,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "Failed first drain did not retain scheduler STOPPING.");
 			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Failed first drain cleared retained scheduler slots.");
 			PhantomAssertions.assertEquals(0, scheduler.snapshot().scheduledTaskCount(), "Failed first drain retained the recurring scheduler future.");
-			PhantomAssertions.assertEquals(PhantomTopologyService.State.STOPPING, retained.topologyState(), "Failed first drain did not retain topology STOPPING.");
+			PhantomAssertions.assertEquals(PhantomTopologyService.State.RUNNING, retained.topologyState(), "C03 topology must remain RUNNING while materialization/store still uses it.");
 			PhantomAssertions.assertEquals(0, retained.topologyRegisteredProfiles(), "Inert shutdown topology discovered profiles.");
 			PhantomAssertions.assertEquals(0, retained.topologyEventsInFlight(), "Inert shutdown topology created events.");
 			PhantomAssertions.assertTrue(PhantomSystem.isMaterializationManaged(managed), "First timeout lost managed classification.");
@@ -367,7 +374,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(1, retained.retainedMaterializationEntries(), "Persistent failure released the service entry.");
 			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "Persistent service failure did not retain scheduler STOPPING.");
 			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Persistent service failure cleared scheduler slots.");
-			PhantomAssertions.assertEquals(PhantomTopologyService.State.STOPPING, retained.topologyState(), "Persistent service failure lost topology STOPPING.");
+			PhantomAssertions.assertEquals(PhantomTopologyService.State.RUNNING, retained.topologyState(), "C05 retained materialization still needs its topology dependency.");
 			PhantomAssertions.assertEquals(0, retained.topologyRegisteredProfiles(), "Persistent service failure topology discovered profiles.");
 			PhantomAssertions.assertEquals(0, retained.topologyEventsInFlight(), "Persistent service failure topology created events.");
 			PhantomAssertions.assertTrue(PhantomSystem.isMaterializationManaged(managed), "Persistent failure lost fail-closed ownership.");
@@ -571,6 +578,83 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(finalDiagnostic.contains(field), "Final Phantom diagnostic omits " + field + ".");
 		}
 		PhantomAssertions.assertFalse(finalDiagnostic.contains("Final materialization drain completed"), "Final diagnostic can misreport navigation failure as materialization success.");
+	}
+
+	private void testTopologyPostStore024(PhantomTestContext context) throws Exception
+	{
+		reset();
+		org.l2jmobius.gameserver.data.xml.MapRegionData.getInstance();
+		org.l2jmobius.gameserver.data.xml.SpawnData.getInstance();
+		org.l2jmobius.gameserver.data.xml.DoorData.getInstance();
+		final var backend = new org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend();
+		final var policy = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy.productionDefaults();
+		final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
+		{
+			@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+			@Override public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+		};
+		final var topology = new PhantomTopologyService(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader(java.nio.file.Path.of("data/phantoms/topology"), backend, policy), backend, policy, signals);
+		PhantomAssertions.assertTrue(topology.start(), "C01 actual catalog topology starts.");
+		final var publication = new AtomicReference<String>();
+		final var calls = new AtomicInteger();
+		final var profile = createProfile(_environment.primary().objectId());
+		final var lifecycle = new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort()
+		{
+			@Override public void beforeMaterialize(long id, int objectId) { }
+			@Override public void afterPlayerLoad(long id, Player player) { }
+			@Override public void materializeSucceeded(long id, int objectId) { }
+			@Override public void materializeAborted(long id, int objectId) { }
+			@Override public void beforeStore(long id, Player player) { }
+			@Override public void afterStore(long id, Player player)
+			{
+				calls.incrementAndGet();
+				final var registered = topology.registerProfile(id);
+				if (registered != org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyProfileRegistry.RegistrationResult.REGISTERED) { publication.set(registered.name()); return; }
+				publication.set(topology.updateProfile(id, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()), 1).name());
+				topology.unregisterProfile(id);
+			}
+		};
+		final var metrics = new PhantomMetrics();
+		final var service = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1, lifecycle);
+		PhantomAssertions.assertTrue(service.start(), "C01 materialization starts."); _services.add(service);
+		PhantomSystem.configureForTesting(service);
+		final var instanceField = PhantomSystem.class.getDeclaredField("_configuredInstance"); instanceField.setAccessible(true);
+		final var configured = instanceField.get(null);
+		final var topologyField = PhantomSystem.class.getDeclaredField("_topologyService"); topologyField.setAccessible(true);
+		final var old = (PhantomTopologyService) topologyField.get(configured); old.beginStop(); PhantomAssertions.assertTrue(old.finishStop(), "Old empty test topology drains.");
+		topologyField.set(configured, topology);
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, service.materialize(profile.profileId()).status(), "C01 native actor materialized.");
+		PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted(), "C01 configured native store drains.");
+		PhantomAssertions.assertEquals("UPDATED", publication.get(), "C01 actual POST_STORE index publication cannot see NOT_RUNNING.");
+		PhantomAssertions.assertEquals(1, calls.get(), "C01 repeated stop cannot repeat native store.");
+		PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "C01 absent configured instance remains a stock no-op.");
+		PhantomAssertions.assertEquals(PhantomTopologyService.State.STOPPED, topology.snapshot().state(), "C01 dependency stops after lifetime release.");
+		PhantomAssertions.assertEquals(0, service.snapshot().materializations().size(), "C01 no retained entries.");
+		context.record("C01.postStorePublication", publication.get());
+	}
+
+	private void testStoreMonitor024(PhantomTestContext context) throws Exception
+	{
+		reset();
+		final var observed = new AtomicInteger();
+		final var instance = new AtomicReference<PhantomSystem>();
+		final var service = service(1, point ->
+		{
+			if (point == FailurePoint.AFTER_NATIVE_STORE)
+			{
+				PhantomSystem.configuredShutdownSnapshot();
+				instance.get().snapshot();
+				PhantomAssertions.assertFalse(instance.get().shutdown(), "C03 concurrent shutdown cannot acquire a second drain claim.");
+				observed.incrementAndGet();
+			}
+		}, 150);
+		PhantomSystem.configureForTesting(service);
+		final var instanceField = PhantomSystem.class.getDeclaredField("_configuredInstance"); instanceField.setAccessible(true);
+		instance.set((PhantomSystem) instanceField.get(null));
+		final var profile = createProfile(_environment.primary().objectId());
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, service.materialize(profile.profileId()).status(), "C03 monitor actor materialized.");
+		PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted(), "C03 native store callback must finish while system shutdown waits outside both monitors.");
+		PhantomAssertions.assertEquals(1, observed.get(), "C03 exact native callback completed once.");
 	}
 
 	private PhantomMaterializationService service(int capacity, PhantomMaterializedPlayer.FailureInjector failureInjector, long shutdownTimeoutMillis)

@@ -190,7 +190,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	@Override
 	public NativeCapture captureOwnedNative(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous)
 	{
-		return new NativeCapture(capture(profileId, player, goal, previous, true), nativeContext(player));
+		final var state = capture(profileId, player, goal, previous, true);
+		return new NativeCapture(state, captureNativeContext(player, state));
 	}
 
 	private PhantomBackgroundState capture(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, boolean nativePersistence)
@@ -198,7 +199,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		Objects.requireNonNull(player, "player");
 		final PhantomBackgroundGoalSpec spec = PhantomBackgroundGoalSpec.parseLifecycle(goal);
 		requireSupportedPlayer(player, nativePersistence);
-		final PhantomTopologyAnchor anchor = exactAnchor(player, previous);
+		final PhantomTopologyAnchor anchor = nativePersistence ? nativeAnchor(player, goal, previous) : exactAnchor(player, previous);
 		final Capability capability = capability(player, spec);
 		final Tracking currentTracking = tracking(player, spec, capability);
 		// Arrival attests the committed projection before a new goal projection can replace it.
@@ -227,7 +228,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	@Override
 	public NativeCapture captureOwnedNativeAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
 	{
-		return new NativeCapture(captureAcquisition(profileId, player, goal, previous, targetItemId, true), nativeContext(player));
+		final var state = captureAcquisition(profileId, player, goal, previous, targetItemId, true);
+		return new NativeCapture(state, captureNativeContext(player, state));
 	}
 
 	private PhantomBackgroundState captureAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId, boolean nativePersistence)
@@ -239,7 +241,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			throw new IllegalArgumentException("Acquisition background target item changed.");
 		}
 		requireSupportedPlayer(player, nativePersistence);
-		final PhantomTopologyAnchor anchor = exactAnchor(player, previous);
+		final PhantomTopologyAnchor anchor = nativePersistence ? nativeAnchor(player, goal, previous) : exactAnchor(player, previous);
 		final Capability capability = capability(player, null);
 		final Identity identity = new Identity(profileId, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
 		final Progress progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
@@ -1072,6 +1074,19 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		};
 	}
 
+	/** Durable lineage never substitutes an anchor's coordinates for the native Player position. */
+	private PhantomTopologyAnchor nativeAnchor(Player player, PhantomGoal goal, PhantomBackgroundState previous)
+	{
+		final var topology = _topology.get();
+		final var prior = previous == null ? null : topology.findAnchor(previous.position().committedAnchorId()).orElse(null);
+		final var intended = goal.selectedAnchor() == null ? null : topology.findAnchor(goal.selectedAnchor().key()).orElse(null);
+		if ((prior != null) && livePositionAllowed(topology, player, prior)) { return prior; }
+		if ((intended != null) && livePositionAllowed(topology, player, intended)) { return intended; }
+		if (prior != null) { return prior; }
+		if (intended != null) { return intended; }
+		throw new IllegalArgumentException("Native position has no proven previous or goal anchor.");
+	}
+
 	private PhantomTopologyAnchor exactAnchor(Player player, PhantomBackgroundState previous)
 	{
 		final PhantomTopologyQuery topology = _topology.get();
@@ -1152,6 +1167,18 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 	{
 		requireSupportedPlayer(Objects.requireNonNull(player), true);
 		return nativeContext(player);
+	}
+
+	@Override
+	public PhantomNativeContext.Capture captureNativeContext(Player player, PhantomBackgroundState captured)
+	{
+		requireSupportedPlayer(Objects.requireNonNull(player), true);
+		if (!matchesRuntime(player, captured)) { throw new IllegalArgumentException("Native context snapshot changed."); }
+		final var topology = _topology.get();
+		final var anchor = topology.findAnchor(captured.position().committedAnchorId()).orElseThrow(() -> new IllegalArgumentException("Native context anchor is absent."));
+		final var vitality = nativeContext(player);
+		return livePositionAllowed(topology, player, anchor) ? vitality
+			: new PhantomNativeContext.Capture(vitality.vitalityPoints(), PhantomNativeContext.Eligibility.POSITION_REQUIRES_NATIVE);
 	}
 
 	private static void requireSupportedPlayer(Player player, boolean nativePersistence)

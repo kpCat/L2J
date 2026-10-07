@@ -38,6 +38,63 @@ public final class PhantomM1DynamicRecipientChecks
 {
 	private PhantomM1DynamicRecipientChecks() { }
 
+	/** Observes the stock AI entry without replacing its target selection or native body. */
+	public static final class RetaliationMonster024 extends Monster
+	{
+		final AtomicReference<String> nestedStack = new AtomicReference<>();
+		final AtomicReference<Creature> nestedTarget = new AtomicReference<>();
+		final CountDownLatch nested = new CountDownLatch(1);
+		public RetaliationMonster024() { super(org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(20121)); }
+		@Override public void doAttack(Creature target)
+		{
+			final var frames = Thread.currentThread().getStackTrace();
+			final boolean inHit = Arrays.stream(frames).anyMatch(frame -> frame.getClassName().equals("org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask") && frame.getMethodName().equals("run"));
+			if (inHit)
+			{
+				nestedTarget.set(target);
+				nestedStack.set(Arrays.stream(frames).limit(32).map(frame -> frame.getClassName() + "." + frame.getMethodName()).reduce((left, right) -> left + ">" + right).orElse(""));
+			}
+			try { super.doAttack(target); }
+			finally { if (inHit) { nested.countDown(); } }
+		}
+	}
+
+	public static void retaliation024(PhantomTestContext context, Player first, Player second, RetaliationMonster024 npc, boolean sealed) throws Exception
+	{
+		try (var one = new NativeLifetime(first); var two = new NativeLifetime(second))
+		{
+			final double hp = second.getCurrentHp();
+			final double npcHp = npc.getCurrentHp();
+			if (sealed) { two.scope.drainAndSeal(System.nanoTime() + TimeUnit.SECONDS.toNanos(3)); }
+			try
+			{
+				for (int attempt = 0; attempt < 8 && npc.nested.getCount() > 0; attempt++)
+				{
+					npc.abortAttack(); npc.abortCast(); npc.clearAggroList();
+					npc.addDamageHate(second, 0, 100000);
+					npc.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE);
+					setup(one, null, () -> { first.abortAttack(); first.setTarget(npc); first.doAttack(npc); });
+					npc.nested.await(1800, TimeUnit.MILLISECONDS);
+				}
+				context.record("A01.fixture", "Alevel=" + first.getLevel() + ";attack=" + first.isAttackingNow() + ";AHP=" + first.getCurrentHp() + ";BHP=" + hp + "->" + second.getCurrentHp() + ";npcHP=" + npcHp + "->" + npc.getCurrentHp() + ";NPCtarget=" + npc.nestedTarget.get() + ";mostHated=" + npc.getMostHated() + ";AI=" + npc.getAI().getIntention() + ";Aincident=" + one.scope.firstNativeIncident());
+				PhantomAssertions.assertTrue(npc.nested.getCount() == 0 && npc.nestedTarget.get() == second, "INVALID A01: stock active NPC must select B inside A's actual HitTask.");
+				context.record("A01.actualRetaliationStack", npc.nestedStack.get());
+				context.record("A01.incidents", "A=" + one.scope.firstNativeIncident() + ";B=" + two.scope.firstNativeIncident());
+				PhantomAssertions.assertEquals(null, one.scope.firstNativeIncident(), "A01 fresh NPC reaction cannot poison unrelated earned A.");
+				PhantomAssertions.assertEquals(null, two.scope.firstNativeIncident(), "A01 fresh NPC reaction cannot invent delayed B lineage.");
+				if (sealed)
+				{
+					Thread.sleep(1600);
+					PhantomAssertions.assertEquals(hp, second.getCurrentHp(), "A02 sealed B has no newly published HP writer.");
+					PhantomAssertions.assertFalse(two.scope.open(), "A02 sealed B remains sealed.");
+				}
+				else { await(5000, () -> second.getCurrentHp() < hp, "A01 actual NPC HitTask must damage OPEN B."); }
+				PhantomAssertions.assertTrue(npc.getCurrentHp() < npcHp, "A01/A02 A's original earned hit finishes.");
+			}
+			finally { npc.abortAttack(); npc.abortCast(); npc.deleteMe(); first.abortAttack(); first.abortCast(); second.abortAttack(); second.abortCast(); }
+		}
+	}
+
 	/** Fault is injected after the stock NPC HP writer, under a real scheduled MagicUseTask. */
 	public static void failedCastBody(PhantomTestContext context, Player first, Monster npc, Skill magic) throws Exception
 	{
@@ -230,7 +287,7 @@ public final class PhantomM1DynamicRecipientChecks
 
 	private static void run(PhantomTestContext context, Player origin, Player newcomer, Player ordinary, Monster npc, Skill magic, boolean transfer, boolean managed, boolean sealNewcomer, boolean physical) throws Exception
 	{
-		PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_DATABASE, context.measurements().get("headless.database"), "Dynamic recipient fixture requires guarded native TEST.");
+		PhantomAssertions.assertEquals(org.l2jmobius.tests.phantoms.PhantomContracts024DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract024a" : PhantomTestDatabaseGuard.TARGET_DATABASE, context.measurements().get("headless.database"), "Dynamic recipient fixture requires its already validated exact database lane.");
 		PhantomAssertions.assertTrue(managed || !sealNewcomer, "INVALID Q12: an ordinary Player has no managed seal.");
 		final String key = "Q12.dynamic." + (physical ? "physical-transfer" : transfer ? "transfer" : "party") + "." + (managed ? sealNewcomer ? "sealed" : "open" : "ordinary");
 		context.record(key + ".fixture", "INVALID_UNTIL_ACTUAL_RECIPIENT_CHANGE");

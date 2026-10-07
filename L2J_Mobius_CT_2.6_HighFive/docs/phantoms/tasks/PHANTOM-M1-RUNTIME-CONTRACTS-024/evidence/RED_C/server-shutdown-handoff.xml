@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="server-shutdown-handoff" seed="23002301" tests="2" passed="0" failures="2">
+  <properties>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract024a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435596"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="serverShutdownHandoff.blockedFirstElapsedNanos" value="152135100"/>
+    <property name="serverShutdownHandoff.database" value="l2jmobiush5_phantom_test"/>
+  </properties>
+  <testcase name="server-shutdown-handoff.C01-real-topology-post-store-before-dependency-stop" elapsedNanos="9236056600"><failure type="java.lang.AssertionError" message="C01 actual POST_STORE index publication cannot see NOT_RUNNING. Expected &lt;UPDATED&gt; but was &lt;NOT_RUNNING&gt;." seed="23002301"/></testcase>
+  <testcase name="server-shutdown-handoff.C03-in-flight-drain-keeps-topology-running" elapsedNanos="172516300"><failure type="java.lang.AssertionError" message="C03 topology must remain RUNNING while materialization/store still uses it. Expected &lt;RUNNING&gt; but was &lt;STOPPING&gt;." seed="23002301"/></testcase>
+</testsuite>

@@ -39,6 +39,12 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom023.nativeFarmFocus", "all");
+		if (focus.equals("contract024"))
+		{
+			registry.add("D02-real-arrival-precedes-old-nonterminal-journey-deadline", this::arrival024);
+			registry.add("D03-one-local-route-failure-does-not-exclude-entire-farm", this::routeScope024);
+			return;
+		}
 		if (focus.equals("long-range")) { registry.add("N01-stock-long-range-native-selection-and-five-cycles", context -> composed(context, false, true)); return; }
 		if (focus.equals("fighter")) { registry.add("N01-production-native-fighter-five-next-targets", context -> composed(context, true)); return; }
 		if (focus.equals("mage")) { registry.add("S02-production-binding-native-cast-reward-five-next-targets", this::composed); return; }
@@ -55,6 +61,75 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	{
 		final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); field.setAccessible(true);
 		return (PhantomHeadlessPlayerTestEnvironment) field.get(handoff);
+	}
+	private PhantomBackgroundSuite.ProductionAuthorityFixture production024() throws Exception
+	{
+		final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_production"); field.setAccessible(true);
+		return (PhantomBackgroundSuite.ProductionAuthorityFixture) field.get(handoff);
+	}
+	private static PhantomRelevanceSignalPort signals024()
+	{
+		return new PhantomRelevanceSignalPort()
+		{
+			@Override public SignalDelivery submit(long id, PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+			@Override public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+		};
+	}
+	private void arrival024(PhantomTestContext context) throws Exception
+	{
+		final var production = production024();
+		try (var f = handoff.new Fixture(true))
+		{
+			f.handoff();
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final var anchor = production.topology().findAnchor(PhantomBackgroundGoalSpec.parse(goal).anchorId()).orElseThrow();
+			final var area = production.topology().findNode(anchor.nodeId()).orElseThrow().area();
+			final var player = World.getInstance().getPlayer(f.objectId);
+			final var clock = new AtomicLong(System.nanoTime());
+			final var navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), new L2jNavigationBackend(), worker -> { ThreadPool.execute(worker); return true; }, System::nanoTime, new PhantomMetrics());
+			PhantomAssertions.assertTrue(navigation.start(), "D02 original navigation started.");
+			final var travel = new PhantomVisibleFarmTravel(f.materialization, f.background, production.authority().travelQuery(production.topology()), navigation, f.historical::permitsDecision, signals024(), (_id, failure) -> context.record("D02.failure", failure.toString()), clock::get);
+			try
+			{
+				try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow())
+				{
+					player.stopMove(null); player.setXYZ(area.minX() - 64, anchor.point().y(), anchor.point().z());
+				}
+				PhantomAssertions.assertFalse(L2jPhantomBackgroundAuthority.livePositionAllowed(production.topology(), player, anchor), "D02 controlled outside-area initial point.");
+				PhantomAssertions.assertFalse(travel.arrive(f.id, goal), "D02 nonterminal journey starts before arrival.");
+				PhantomAssertions.assertEquals(null, travel.lastFailure(f.id), "INVALID D02: initial attempt cannot already be terminal.");
+				try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow())
+				{
+					player.stopMove(null); player.setXYZ(anchor.point().x() + 32, anchor.point().y(), org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().getHeight(anchor.point().x() + 32, anchor.point().y(), anchor.point().z()));
+				}
+				PhantomAssertions.assertTrue(L2jPhantomBackgroundAuthority.livePositionAllowed(production.topology(), player, anchor), "D02 actual grounded area arrival fixture.");
+				clock.addAndGet(navigation.policy().maximumAttemptDurationNanos() + 1);
+				PhantomAssertions.assertTrue(travel.arrive(f.id, goal), "D02 useful native arrival must precede deadline of an older nonterminal journey.");
+				PhantomAssertions.assertEquals(null, travel.lastFailure(f.id), "D02 no invented deadline failure after actual arrival.");
+			}
+			finally { travel.beforeMaterialize(f.id, f.objectId); navigation.beginStop(); PhantomAssertions.assertTrue(navigation.finishStop(), "D02 navigation drained."); }
+		}
+	}
+	private void routeScope024(PhantomTestContext context) throws Exception
+	{
+		try (var f = handoff.new Fixture(true))
+		{
+			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			try
+			{
+				final var goal = f.goals.load(f.id).orElseThrow().goal();
+				final var player = World.getInstance().getPlayer(f.objectId);
+				final var spec = PhantomBackgroundGoalSpec.parse(goal);
+				final String witness = "live.approach." + spec.anchorId() + "@" + player.getX() + ":" + player.getY() + ":" + player.getZ();
+				PhantomAssertions.assertTrue(f.historical.recordVisibleTravelFailure(f.id, new PhantomVisibleFarmTravel.Failure(f.id, player, f.loadedEpoch, goal, witness, "travel.navigation_route_obstructed", PhantomVisibleFarmTravel.Disposition.ROUTE_UNUSABLE, System.nanoTime(), 1)), "D03 exact controlled failed route admitted.");
+				PhantomAssertions.assertTrue(f.historical.prepareVisibleDecision(f.id, engine), "D03 bounded local replan must remain possible after one route failure.");
+				final var next = f.goals.load(f.id).orElseThrow().goal();
+				PhantomAssertions.assertEquals(goal.revision() + 1, next.revision(), "D03 failure requires new plan identity, not resetting terminal attempt.");
+				PhantomAssertions.assertEquals(spec.anchorId(), PhantomBackgroundGoalSpec.parse(next).anchorId(), "D03 one waypoint cannot blacklist the entire still-suitable FARM area.");
+				context.record("D03.routeWitness", witness);
+			}
+			finally { PhantomVisibleIntentRecoverySuite.stop(engine); }
+		}
 	}
 	private static AutoCloseable nativeLifetime(org.l2jmobius.gameserver.model.actor.Player player) throws Exception
 	{

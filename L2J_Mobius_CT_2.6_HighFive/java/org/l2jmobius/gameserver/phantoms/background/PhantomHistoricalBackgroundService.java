@@ -118,7 +118,18 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			{
 				case ROUTE_UNUSABLE, NATIVE_ACTION_REJECTED ->
 				{
-					recordVisibleFailure(profileId, failure.goal(), failure.stepId());
+					if (failure.stepId().startsWith("live.approach." + PhantomBackgroundGoalSpec.parse(failure.goal()).anchorId() + "@"))
+					{
+						final long now = _visibleClock.getAsLong();
+						synchronized (_visibleFailures)
+						{
+							if (_visibleFailures.containsKey(profileId) || (_visibleFailures.size() < 1024))
+							{
+								_visibleFailures.computeIfAbsent(profileId, _ -> new VisibleFailures()).route(failure.goal(), failure.epoch(), failure.stepId(), now);
+							}
+						}
+					}
+					else { recordVisibleFailure(profileId, failure.goal(), failure.stepId()); }
 					yield true;
 				}
 				case PROTOCOL_VIOLATION ->
@@ -947,6 +958,11 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		_visibleTravel = Objects.requireNonNull(travel);
 		_visibleAutoPlay = Objects.requireNonNull(autoPlay);
+		travel.bindRouteExclusions(profileId ->
+		{
+			final var failures = _visibleFailures.get(profileId);
+			return failures == null ? Set.of() : failures.exclusions(_visibleClock.getAsLong()).steps();
+		});
 	}
 
 	/** Handler-side suitability is read-only: publication waits until accept releases inFlight. */
@@ -956,7 +972,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final long epoch = _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L);
 		final var episode = _visibleEpisodes.get(profileId);
 		if ((episode != null) && (episode.epoch == epoch) && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return false; }
-		if ((failures != null) && (failures.protocolBlocked(goal, epoch) || failures.exclusions(_visibleClock.getAsLong()).targets().contains(targetKey(goal)))) { return false; }
+		if ((failures != null) && (failures.protocolBlocked(goal, epoch) || failures.routeBlocked(goal, epoch) || failures.exclusions(_visibleClock.getAsLong()).targets().contains(targetKey(goal)))) { return false; }
 		return Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), goal);
 	}
 
@@ -1008,7 +1024,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 			}
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong());
-			if (!exclusions.targets().contains(targetKey(stored.goal())) && _planner.isVisibleLocal(stored.goal(), live) && _planner.remainsVisibleSuitable(projected, stored.goal(), live)) { return true; }
+			final boolean routeRecovery = (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos());
+			if (!routeRecovery && !exclusions.targets().contains(targetKey(stored.goal())) && _planner.isVisibleLocal(stored.goal(), live) && _planner.remainsVisibleSuitable(projected, stored.goal(), live)) { return true; }
 			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }
 			if (_visibleAutoPlay != null) { _visibleAutoPlay.stop(profileId); }
 			if (!visibleActorQuiet(profileId, player, lifetime.materializedAtNanos())) { return false; }
@@ -1018,8 +1035,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				|| ((catchup.state().status() != Status.COMPLETE) && ((handoff == null) || !exactForegroundHandoff(profileId, handoff)))) { return false; }
 			final long now = _visibleClock.getAsLong();
 			final var recovery = _visibleEpisodes.compute(profileId, (_, current) -> (current != null) && (current.objectId == player.getObjectId()) && (current.epoch == lifetime.materializedAtNanos()) && (now - current.started < 60_000_000_000L) ? current : new VisibleEpisode(player.getObjectId(), lifetime.materializedAtNanos(), now));
-			recovery.targets.add(targetKey(stored.goal()));
-			if (recovery.targets.size() >= 3) { recovery.unavailable(now); return false; }
+			if (routeRecovery) { recovery.routes.add(stored.goal().revision() + ":" + failures.routeWitness(stored.goal(), lifetime.materializedAtNanos())); }
+			else { recovery.targets.add(targetKey(stored.goal())); }
+			if ((recovery.targets.size() + recovery.routes.size()) >= 3) { recovery.unavailable(now); return false; }
 			final var excluded = new java.util.HashSet<>(exclusions.targets()); excluded.addAll(recovery.targets);
 			final long nextOrdinal = Math.addExact(catchup.state().planOrdinal(), 1);
 			final var replacement = _planner.replanVisibleLocal(profileId, projected, stored.goal(), catchup.state().deterministicSeed(), nextOrdinal, live, excluded, exclusions.steps());
@@ -1037,7 +1055,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				if ((persisted != null) && (persistedGoal != null) && persisted.state().equals(updated) && persistedGoal.goal().equals(replacement.goal()) && (persisted.rowVersion() == catchup.rowVersion() + 1) && (persistedGoal.rowVersion() == stored.rowVersion() + 1)) { publication.committed = new PlannedSnapshot(persisted, persistedGoal); }
 				else { _visiblePublications.remove(profileId, publication); return false; }
 			}
-			recovery.targets.add(targetKey(replacement.goal()));
+			if (!routeRecovery) { recovery.targets.add(targetKey(replacement.goal())); }
 			return finishVisiblePublication(profileId, decision, publication);
 		}
 		catch (RuntimeException exception) { return false; }
@@ -1323,6 +1341,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final long epoch;
 		final long started;
 		final Set<String> targets = ConcurrentHashMap.newKeySet();
+		final Set<String> routes = ConcurrentHashMap.newKeySet();
 		volatile long cooldownUntil;
 		volatile String reason = "";
 		VisibleEpisode(int objectId, long epoch, long started) { this.objectId = objectId; this.epoch = epoch; this.started = started; }
@@ -1355,6 +1374,24 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		private final LinkedHashMap<String, Long> _steps = new LinkedHashMap<>();
 		private volatile long _lastFailureNanos;
 		private ProtocolFailure _protocol;
+		private RouteFailure _route;
+
+		private synchronized void route(PhantomGoal goal, long epoch, String witness, long now)
+		{
+			_lastFailureNanos = now;
+			put(_steps, witness, now);
+			_route = new RouteFailure(goal.goalId(), goal.revision(), epoch, witness);
+		}
+
+		private synchronized boolean routeBlocked(PhantomGoal goal, long epoch)
+		{
+			return (_route != null) && (_route.goalId == goal.goalId()) && (_route.revision == goal.revision()) && (_route.epoch == epoch);
+		}
+
+		private synchronized String routeWitness(PhantomGoal goal, long epoch)
+		{
+			return routeBlocked(goal, epoch) ? _route.witness : "";
+		}
 
 		private synchronized void protocol(PhantomGoal goal, long epoch, String reason, long now)
 		{
@@ -1396,6 +1433,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 
 	private record ProtocolFailure(long goalId, long revision, long epoch, String reason) { }
+	private record RouteFailure(long goalId, long revision, long epoch, String witness) { }
 
 	public enum ResultStatusCode
 	{

@@ -162,7 +162,10 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
 		final Path expectedWorkingDirectory = context.moduleRoot().resolve("dist/game").normalize();
-		PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
+		if (!PhantomContracts024DatabaseLane.enabled())
+		{
+			PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
+		}
 
 		ConfigLoader.init();
 		PhantomAssertions.assertTrue(minimumSevenSignsFestivalManagerStartMillis >= 0L, "Seven Signs Festival manager start override cannot be negative.");
@@ -173,8 +176,17 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		{
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
-		final BootstrapResult bootstrap = PhantomTestDatabaseBootstrap.initialize(context.moduleRoot(), Path.of(configProperty));
-		PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_USER, bootstrap.settings().login(), "Headless suite does not use the dedicated allowlisted user.");
+		final BootstrapResult bootstrap;
+		if (PhantomContracts024DatabaseLane.enabled())
+		{
+			PhantomContracts024DatabaseLane.initialize(context.moduleRoot(), Path.of(configProperty));
+			bootstrap = null; // This explicit private clone lane has no shared TEST settings.
+		}
+		else
+		{
+			bootstrap = PhantomTestDatabaseBootstrap.initialize(context.moduleRoot(), Path.of(configProperty));
+			PhantomAssertions.assertEquals(PhantomTestDatabaseGuard.TARGET_USER, bootstrap.settings().login(), "Headless suite does not use the dedicated allowlisted user.");
+		}
 
 		ThreadPool.init();
 		IdManager.getInstance();
@@ -226,8 +238,10 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 		stabilizeInfrastructureThreads();
 		_environmentThreadIds = liveNonDaemonThreadIds();
-		context.record("headless.database", PhantomTestDatabaseGuard.TARGET_DATABASE);
-		context.record("headless.schemaAggregateSha256", bootstrap.schemaSnapshot().aggregateSha256());
+		context.record("headless.database", PhantomContracts024DatabaseLane.enabled()
+			? "l2jmobiush5_localplay_contract024a" : PhantomTestDatabaseGuard.TARGET_DATABASE);
+		context.record("headless.schemaAggregateSha256", (PhantomContracts024DatabaseLane.enabled()
+			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());
 		context.record("headless.initializedSingletonCount", INITIALIZED_SINGLETONS.size());
 		context.record("headless.initializedSingletons", String.join(",", INITIALIZED_SINGLETONS));
 		context.record("headless.transitiveSingletonCount", TRANSITIVE_SINGLETONS.size());

@@ -1,0 +1,222 @@
+окт. 07, 2026 7:35:38 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData load
+INFO: Network Config: ipconfig.xml does not exist, using automatic configuration...
+окт. 07, 2026 7:35:38 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 127.0.0.0/8 address: 127.0.0.1
+окт. 07, 2026 7:35:38 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 192.168.0.0/24 address: 192.168.0.55
+окт. 07, 2026 7:35:38 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 0.0.0.0/0 address: 89.149.88.222
+окт. 07, 2026 7:35:38 PM org.l2jmobius.gameserver.config.ServerConfig loadChatFilter
+INFO: Loaded 6 Filter Words.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Starting...
+[main] INFO com.zaxxer.hikari.pool.HikariPool - L2JMobiusPool - Added connection com.mysql.cj.jdbc.ConnectionImpl@7692d9cc
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Start completed.
+окт. 07, 2026 7:35:39 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ThreadPool: Initializing.
+окт. 07, 2026 7:35:39 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ...scheduled pool executor with 16 high priority threads.
+окт. 07, 2026 7:35:39 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ...scheduled pool executor with 64 total threads.
+окт. 07, 2026 7:35:39 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ...instant pool executor with 32 total threads.
+окт. 07, 2026 7:35:39 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+INFO: DatabaseIdManager: Cleaned 0 elements in 0 seconds.
+окт. 07, 2026 7:35:39 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanCharacterStatus
+INFO: DatabaseIdManager: Updated character online status.
+окт. 07, 2026 7:35:39 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanTimestamps
+INFO: DatabaseIdManager: Cleaned 0 expired timestamps.
+окт. 07, 2026 7:35:39 PM org.l2jmobius.gameserver.managers.IdManager <init>
+INFO: IdManager: 6327296 ids available.
+окт. 07, 2026 7:35:40 PM org.l2jmobius.gameserver.model.World <init>
+INFO: World: (256 by 272) World Region Grid set up.
+окт. 07, 2026 7:35:40 PM org.l2jmobius.gameserver.data.xml.CategoryData load
+INFO: CategoryData: Loaded 180 categories.
+окт. 07, 2026 7:35:40 PM org.l2jmobius.gameserver.data.xml.ExperienceData load
+INFO: ExperienceData: Loaded 86 levels.
+окт. 07, 2026 7:35:40 PM org.l2jmobius.gameserver.data.xml.ExperienceData load
+INFO: ExperienceData: Max Player Level is 85.
+окт. 07, 2026 7:35:40 PM org.l2jmobius.gameserver.data.xml.ExperienceData load
+INFO: ExperienceData: Max Pet Level is 85.
+окт. 07, 2026 7:35:40 PM org.l2jmobius.gameserver.scripting.ScriptEngine load
+INFO: Loaded 425 files to exclude.
+окт. 07, 2026 7:35:41 PM handlers.EffectMasterHandler main
+INFO: EffectMasterHandler: Loaded 165 effect handlers.
+окт. 07, 2026 7:35:41 PM org.l2jmobius.gameserver.data.xml.EnchantSkillGroupsData load
+INFO: EnchantSkillGroupsData: Loaded 4 groups and 90 routes.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 17176 Class Skills for 103 class skill trees.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 76 sub-class skills.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 77 transfer skills for 3 transfer skill trees.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 117 fishing skills, 8 Dwarven only fishing skills.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 3 collect skills.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 94 clan skills, 64 for clan and 30 residential.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 18 sub-pledge skills.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 32 transform skills.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 8 noble skills.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 5 hero skills.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 46 game master skills.
+окт. 07, 2026 7:35:42 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 46 game master aura skills.
+окт. 07, 2026 7:35:45 PM org.l2jmobius.gameserver.data.xml.SkillData loadAllSkills
+INFO: SkillData: Loaded 65965 Skill templates from XML files.
+окт. 07, 2026 7:35:46 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Highest item id used: 50000
+окт. 07, 2026 7:35:46 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 11482 etc items.
+окт. 07, 2026 7:35:46 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 3825 armor items.
+окт. 07, 2026 7:35:46 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 3893 weapon items.
+окт. 07, 2026 7:35:46 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 19200 items in total.
+окт. 07, 2026 7:35:46 PM org.l2jmobius.gameserver.data.xml.OptionData load
+INFO: OptionData: Loaded 24985 options.
+окт. 07, 2026 7:35:46 PM org.l2jmobius.gameserver.data.xml.EnchantItemOptionsData parseDocument
+INFO: EnchantItemOptionsData: Loaded 23 items and 1093 options.
+окт. 07, 2026 7:35:46 PM org.l2jmobius.gameserver.data.xml.RecipeData load
+INFO: RecipeData: Loaded 1000 recipes.
+окт. 07, 2026 7:35:46 PM org.l2jmobius.gameserver.data.xml.ClassListData load
+INFO: ClassListData: Loaded 103 class data.
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.data.xml.PlayerTemplateData load
+INFO: PlayerTemplateData: Loaded 103 player templates.
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.data.xml.PlayerTemplateData load
+INFO: PlayerTemplateData: Loaded 52530 level up gain records.
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.data.xml.AdminData load
+INFO: AdminData: Loaded 10 access levels.
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.data.xml.AdminData load
+INFO: AdminData: Loaded 468 access commands.
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.data.sql.CharInfoTable <init>
+INFO: CharInfoTable: Loaded 10002 char names.
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.communitybbs.Manager.ForumsBBSManager initRoot
+INFO: ForumsBBSManager: Loaded 4 forums. Last forum id used: 4
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.data.sql.ClanTable <init>
+INFO: ClanTable: Restored 0 clans from the database.
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.managers.CHSiegeManager loadClanHalls
+INFO: CHSiegeManager: Loaded 6 conquerable clan halls.
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.managers.ClanHallAuctionManager load
+INFO: ClanHallAuctionManager: Loaded 38 auction(s)
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.data.sql.ClanHallTable load
+INFO: ClanHallTable: Loaded 0 clan halls
+окт. 07, 2026 7:35:47 PM org.l2jmobius.gameserver.data.sql.ClanHallTable load
+INFO: ClanHallTable: Loaded 38 free clan halls
+окт. 07, 2026 7:35:48 PM org.l2jmobius.gameserver.geoengine.GeoEngine <init>
+INFO: GeoEngine: Loaded 203 regions.
+окт. 07, 2026 7:35:48 PM org.l2jmobius.gameserver.data.xml.SkillLearnData load
+INFO: SkillLearnData: Loaded 256 skill learn data.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.data.xml.NpcData load
+INFO: NpcData: Loaded 10461 NPCs.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.data.xml.NpcData load
+INFO: NpcData: Loaded 21 custom NPCs.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.ZoneManager <init>
+INFO: ZoneManager 17 by 18 Zone Region Grid set up.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Gigantic Chaos Golem(25512) status is 0.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Queen Ant(29001) status is 0.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Core(29006) status is 0.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Orfen(29014) status is 0.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Baium(29020) status is 0.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Valakas(29028) status is 0.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Antharas(29068) status is 0.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Beleth(29118) status is 0.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Loaded 8 Instances
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.ZoneManager load
+INFO: ZoneManager: Loaded 31 zone classes and 2860 zones.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.ZoneManager load
+INFO: ZoneManager: Last static id 200224.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.CastleManager loadInstances
+INFO: CastleManager: Loaded 9 castles
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.InstanceManager <init>
+INFO: InstanceManager: Multiverse Instance created.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.InstanceManager <init>
+INFO: InstanceManager: Universe Instance created.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.InstanceManager load
+INFO: InstanceManager: Loaded 160 instance names.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.InstanceManager load
+INFO: InstanceManager: Loaded 142 instance templates.
+окт. 07, 2026 7:35:50 PM org.l2jmobius.gameserver.managers.GrandBossManager initZones
+INFO: GrandBossManager: Initialized 8 Grand Boss Zones
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.managers.WalkingManager load
+INFO: WalkingManager: Loaded 123 walking routes.
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.model.olympiad.Hero init
+INFO: Hero System: Loaded 0 Heroes.
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.model.olympiad.Hero init
+INFO: Hero System: Loaded 0 all time Heroes.
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns <init>
+INFO: SevenSigns: Currently in the Seal Validation period!
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns initializeSeals
+INFO: SevenSigns: The Seal of Avarice remains unclaimed.
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns initializeSeals
+INFO: SevenSigns: The Seal of Gnosis remains unclaimed.
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns initializeSeals
+INFO: SevenSigns: The Seal of Strife remains unclaimed.
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns <init>
+INFO: SevenSigns: The competition ended with a tie last week.
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns setCalendarForNextPeriodChange
+INFO: SevenSigns: Next period change set to Mon Oct 12 18:00:51 EEST 2026
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns <init>
+INFO: SevenSigns: Next period begins in 4 days, 22 hours, 24 minutes, 59 seconds, 993 milliseconds
+окт. 07, 2026 7:35:51 PM org.l2jmobius.gameserver.managers.CursedWeaponsManager init
+INFO: CursedWeaponsManager: Loaded : 2 cursed weapon(s).
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: Loading Handlers...
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: ActionClickHandler: Loaded 10 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: ActionShiftHandler: Loaded 6 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: AdminCommandHandler: Loaded 479 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: BypassHandler: Loaded 47 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: ChatHandler: Loaded 14 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: CommunityBoardHandler: Loaded 25 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: ItemHandler: Loaded 30 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: PunishmentHandler: Loaded 3 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: UserCommandHandler: Loaded 17 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: VoicedCommandHandler: Loaded 10 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: TargetHandler: Loaded 34 handlers.
+окт. 07, 2026 7:35:53 PM handlers.MasterHandler main
+INFO: Handlers Loaded...
+окт. 07, 2026 7:35:54 PM org.l2jmobius.gameserver.data.xml.DoorData parseDocument
+INFO: DoorData: Loaded 1301 doors.
+окт. 07, 2026 7:35:54 PM org.l2jmobius.gameserver.data.xml.FenceData load
+INFO: FenceData: Loaded 1 fences.
+окт. 07, 2026 7:35:54 PM org.l2jmobius.gameserver.data.xml.HitConditionBonusData load
+INFO: HitConditionBonusData: Loaded hit condition bonuses.
+окт. 07, 2026 7:35:54 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Loaded 188 Instances
+окт. 07, 2026 7:35:54 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Scheduled 0 Instances
+окт. 07, 2026 7:35:57 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 07, 2026 7:35:57 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[FAIL] living-world023.A01-A02-actual-HitTask-NPC-retaliation-open - java.lang.AssertionError: A01 fresh NPC reaction cannot poison unrelated earned A. Expected <null> but was <PhantomCleanupIncident[objectId=268435465, epoch=119129686975000, sequence=1, utc=2026-10-07T16:35:54.880046100Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=4, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:408)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:279)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat(PlayerNativeWork.java:345)  at org.l2jmobius.gameserver.model.actor.Creature.doAttack(Creature.java:1039)  at org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$RetaliationMonster024.doAttack(PhantomM1DynamicRecipientChecks.java:57)  at org.l2jmobius.gameserver.ai.AttackableAI.thinkAttack(AttackableAI.java:1307)  at org.l2jmobius.gameserver.ai.AttackableAI.onActionThink(AttackableAI.java:2352)  at org.l2jmobius.gameserver.ai.AbstractAI.notifyAction(AbstractAI.java:264)  at org.l2jmobius.gameserver.ai.AbstractAI.notifyAction(AbstractAI.java:233)  at org.l2jmobius.gameserver.ai.CreatureAI.onIntentionAttack(CreatureAI.java:284)  at org.l2jmobius.gameserver.ai.AttackableAI.onIntentionAttack(AttackableAI.java:406)  at org.l2jmobius.gameserver.ai.AbstractAI.setIntention(AbstractAI.java:188)  at org.l2jmobius.gameserver.ai.AbstractAI.setIntention(AbstractAI.java:150)  at org.l2jmobius.gameserver.ai.AttackableAI.onActionAttacked(AttackableAI.java:2415)  at org.l2jmobius.gameserver.ai.AbstractAI.notifyAction(AbstractAI.java:269)  at org.l2jmobius.gameserver.ai.AbstractAI.notifyAction(AbstractAI.java:244)  at org.l2jmobius.gameserver.model.actor.Attackable.addDamage(Attackable.java:791)  at org.l2jmobius.gameserver.model.actor.Attackable.reduceCurrentHp(Attackable.java:270)  at org.l2jmobius.gameserver.model.actor.Attackable.reduceCurrentHp(Attackable.java:228)  at org.l2jmobius.gameserver.model.actor.Creature.onHitTimerNative(Creature.java:5374)  at org.l2jmobius.gameserver.model.actor.Creature.lambda$onHitTimer$0(Creature.java:5270)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1(PlayerNativeWork.java:316)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:493)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0(PlayerNativeWork.java:316)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:493)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary(PlayerNativeWork.java:303)  at org.l2jmobius.gameserver.model.actor.Creature.onHitTimer(Creature.java:5269)  at org.l2jmobius.gameserver.model.actor.Player.lambda$onHitTimer$0(Player.java:4994)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:586)  at org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction(Player.java:499)  at org.l2jmobius.gameserver.model.actor.Player.onHitTimer(Player.java:4994)  at org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run(HitTask.java:60) , nodes=1, frames=32, truncated=true]>. seed=23002301
+[FAIL] living-world023.A01-A02-actual-HitTask-NPC-retaliation-sealed - java.lang.AssertionError: A01 fresh NPC reaction cannot poison unrelated earned A. Expected <null> but was <PhantomCleanupIncident[objectId=268435465, epoch=119131375668200, sequence=1, utc=2026-10-07T16:35:56.058935900Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=5, exceptionClass=java.lang.IllegalStateException, message=NATIVE_EARNED_RECIPIENT_NOT_CAPTURED, detail=primary java.lang.IllegalStateException: NATIVE_EARNED_RECIPIENT_NOT_CAPTURED  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.requireCapturedEarnedParticipants(PlayerNativeWork.java:408)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:279)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat(PlayerNativeWork.java:345)  at org.l2jmobius.gameserver.model.actor.Creature.doAttack(Creature.java:1039)  at org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$RetaliationMonster024.doAttack(PhantomM1DynamicRecipientChecks.java:57)  at org.l2jmobius.gameserver.ai.AttackableAI.thinkAttack(AttackableAI.java:1307)  at org.l2jmobius.gameserver.ai.AttackableAI.onActionThink(AttackableAI.java:2352)  at org.l2jmobius.gameserver.ai.AbstractAI.notifyAction(AbstractAI.java:264)  at org.l2jmobius.gameserver.ai.AbstractAI.notifyAction(AbstractAI.java:233)  at org.l2jmobius.gameserver.ai.CreatureAI.onIntentionAttack(CreatureAI.java:284)  at org.l2jmobius.gameserver.ai.AttackableAI.onIntentionAttack(AttackableAI.java:406)  at org.l2jmobius.gameserver.ai.AbstractAI.setIntention(AbstractAI.java:188)  at org.l2jmobius.gameserver.ai.AbstractAI.setIntention(AbstractAI.java:150)  at org.l2jmobius.gameserver.ai.AttackableAI.onActionAttacked(AttackableAI.java:2415)  at org.l2jmobius.gameserver.ai.AbstractAI.notifyAction(AbstractAI.java:269)  at org.l2jmobius.gameserver.ai.AbstractAI.notifyAction(AbstractAI.java:244)  at org.l2jmobius.gameserver.model.actor.Attackable.addDamage(Attackable.java:791)  at org.l2jmobius.gameserver.model.actor.Attackable.reduceCurrentHp(Attackable.java:270)  at org.l2jmobius.gameserver.model.actor.Attackable.reduceCurrentHp(Attackable.java:228)  at org.l2jmobius.gameserver.model.actor.Creature.onHitTimerNative(Creature.java:5374)  at org.l2jmobius.gameserver.model.actor.Creature.lambda$onHitTimer$0(Creature.java:5270)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1(PlayerNativeWork.java:316)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:493)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0(PlayerNativeWork.java:316)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:493)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary(PlayerNativeWork.java:303)  at org.l2jmobius.gameserver.model.actor.Creature.onHitTimer(Creature.java:5269)  at org.l2jmobius.gameserver.model.actor.Player.lambda$onHitTimer$0(Player.java:4994)  at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:586)  at org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction(Player.java:499)  at org.l2jmobius.gameserver.model.actor.Player.onHitTimer(Player.java:4994)  at org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run(HitTask.java:60) , nodes=1, frames=32, truncated=true]>. seed=23002301
+SUMMARY: suite=living-world023 seed=23002301 total=2 passed=0 failed=2

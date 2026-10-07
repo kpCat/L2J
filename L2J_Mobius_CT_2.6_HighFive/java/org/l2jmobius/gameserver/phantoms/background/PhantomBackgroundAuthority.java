@@ -71,6 +71,12 @@ public interface PhantomBackgroundAuthority
 		return new PhantomNativeContext.Capture(player.getVitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN);
 	}
 
+	/** Reattestation of an immutable native snapshot must include its positional binding. */
+	default PhantomNativeContext.Capture captureNativeContext(Player player, PhantomBackgroundState captured)
+	{
+		return captureNativeContext(player);
+	}
+
 	default PhantomBackgroundState captureAcquisition(long profileId, Player player, PhantomGoal goal, PhantomBackgroundState previous, int targetItemId)
 	{
 		throw new UnsupportedOperationException("Acquisition background capture is unavailable.");

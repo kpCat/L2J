@@ -1,0 +1,17 @@
+suite=runtime-contracts024
+seed=24002401
+total=3
+passed=1
+failed=2
+measurement.B.nativeXYZ=Position[instanceId=0, x=44126, y=42751, z=-3488, heading=0, committedAnchorId=population.farming.elf.20534]
+measurement.headless.database=l2jmobiush5_localplay_contract024a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435596
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL runtime-contracts024.B01-owned-off-area-capture-keeps-native-facts elapsedNanos=50020700 type=java.lang.IllegalArgumentException message=Canonical Player position does not identify exactly one topology anchor. seed=24002401
+PASS runtime-contracts024.B03-valid-position-keeps-vitality-fence elapsedNanos=16617600
+FAIL runtime-contracts024.B05-native-context-legacy-ordinals-and-roundtrip elapsedNanos=458000 type=java.lang.AssertionError message=B05 appended position ordinal preserves legacy 0/1/2. Expected <[UNKNOWN, SUPPORTED, VITALITY_REQUIRES_NATIVE, POSITION_REQUIRES_NATIVE]> but was <[UNKNOWN, SUPPORTED, VITALITY_REQUIRES_NATIVE]>. seed=24002401

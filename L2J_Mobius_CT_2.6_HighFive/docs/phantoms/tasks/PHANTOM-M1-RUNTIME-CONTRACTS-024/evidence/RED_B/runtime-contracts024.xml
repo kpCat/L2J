@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="runtime-contracts024" seed="24002401" tests="3" passed="1" failures="2">
+  <properties>
+    <property name="B.nativeXYZ" value="Position[instanceId=0, x=44126, y=42751, z=-3488, heading=0, committedAnchorId=population.farming.elf.20534]"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract024a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435596"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="runtime-contracts024.B01-owned-off-area-capture-keeps-native-facts" elapsedNanos="50020700"><failure type="java.lang.IllegalArgumentException" message="Canonical Player position does not identify exactly one topology anchor." seed="24002401"/></testcase>
+  <testcase name="runtime-contracts024.B03-valid-position-keeps-vitality-fence" elapsedNanos="16617600"></testcase>
+  <testcase name="runtime-contracts024.B05-native-context-legacy-ordinals-and-roundtrip" elapsedNanos="458000"><failure type="java.lang.AssertionError" message="B05 appended position ordinal preserves legacy 0/1/2. Expected &lt;[UNKNOWN, SUPPORTED, VITALITY_REQUIRES_NATIVE, POSITION_REQUIRES_NATIVE]&gt; but was &lt;[UNKNOWN, SUPPORTED, VITALITY_REQUIRES_NATIVE]&gt;." seed="24002401"/></testcase>
+</testsuite>

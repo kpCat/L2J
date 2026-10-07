@@ -1,0 +1,1 @@
+TEST_BOUNDED ledger: PhantomHeadlessPlayerTestEnvironment.java: optional exact contract024a lane; shared guard/bootstrap unchanged. New test-only PhantomContracts024DatabaseLane.java validates manifest/export/config/catalog before fixture writes.

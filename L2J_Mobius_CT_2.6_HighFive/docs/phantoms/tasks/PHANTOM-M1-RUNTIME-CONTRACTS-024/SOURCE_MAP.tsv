@@ -1,0 +1,42 @@
+mode	path	purpose	base_git_blob
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	B exact native XYZ; geometry separate from capture	950a307c2a8abea72a2bfafe537d8ee918de6ff6
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomNativeContext.java	B appended POSITION eligibility and compatible proof	650717f1ee5f8ac2b7fb6a23f58928d88743cc8d
+MODIFY_IF_REQUIRED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java	B typed capture/binding overload only	
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	B capture/refresh/foreground recovery and C POST_STORE	88f0f5bcb46660e566e789da6a084c03c58256f0
+MODIFY_IF_REQUIRED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	B proof propagation/missing enum compatibility in existing transaction; no new writer	e879b08bce4df8c63811aa470f885ac69c4be069
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	C shutdown dependency graph; diagnostics	a964cf7b5874cf0b31615cd69e1ecae27892dcfb
+OPTIONAL_CAUSAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomTopologyService.java	C narrow lifecycle-maintenance only if ordering alone insufficient	969b05cd77d41d8d34cba4b8134fa7669fef94cb
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	A explicit original-action admission; strict delayed unchanged	2e701b6eab75a7c13dcdd6134a80347835fdacd1
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Creature.java	A original doAttack/beginCast call sites only	ed1d0e9d35c908f81fd4bb31203180841366a02c
+OPTIONAL_CAUSAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	A/C exact cancellable admission/earned drain, no failure reset	
+OPTIONAL_CAUSAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	B/C finalization/retained lifecycle only	
+OPTIONAL_CAUSAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	B/C restart/cleanup exact current entry only	
+MODIFY_IF_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	D area geometry and local candidate identity	64881ff378cd7c8970ca817a51388cfbce05cc10
+MODIFY_IF_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	B/D position-native request; route failure vs area; exact replacePlan	
+MODIFY_IF_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	D useful local arrival/route-scoped terminal recovery	fb2863d569cde3a2055d4b7578c64592f510a623
+MODIFY_IF_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	D existing mission/typed outcome binding only	
+OPTIONAL_CAUSAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	D bounded local start/stop only, no second selector/combat	
+OPTIONAL_CAUSAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java	A existing Phantom wrappers only if they defeat new original entry; no global rewrite	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Attackable.java	READ native retaliation/rewards; preserve023	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/ai/AttackableAI.java	READ normal native reaction	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	READ exact Position schema unchanged	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomOwnedStoreIntent.java	READ b4 layout unchanged	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundStateCodec.java	READ payload compatibility	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	READ truthful counters; do not alter thresholds	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	READ stock semantics; no changes024	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	READ stock semantics; no changes024	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanSession.java	READ existing unattended lane	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/geoengine/GeoEngine.java	READ geodata/native execution only	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/threads/ThreadPool.java	No pool/dispatcher rewrite	
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/events/EventDispatcher.java	No global event rewrite	
+TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomRuntimeContracts024Suite.java	NEW composed four contract tests	
+TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeFarmContinuation022Suite.java	MODIFY exact fixture setup and paired negatives only	
+TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLivingWorld023Suite.java	MODIFY actual retaliation/earned/group checks	
+TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomServerShutdownHandoffSuite.java	MODIFY configured dependency graph tests	
+TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java	MODIFY position/owned/restart compatibility tests	
+TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomM1DynamicRecipientChecks.java	Existing dynamic OPEN/SEALED/stale native checks	
+TEST_BOUNDED	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/**	max4 additional directly affected existing paths, ledger before edit; no guard/schema bypass	
+OPTIONAL_NEW	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomNativePositionBinding.java	one small binding helper only if nested record inadequate	
+OPTIONAL_NEW	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomOriginalActionAdmission.java	one small original-action helper only if existing class inadequate	
+TASK_WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/**	task-local tooling/report/isolated clone guard	
+PRIVATE_RUNTIME	L2J_Mobius_CT_2.6_HighFive/.phantom-local/contract024*/**	owned runtime/scripts only; do not publish DB/JAR/secrets	

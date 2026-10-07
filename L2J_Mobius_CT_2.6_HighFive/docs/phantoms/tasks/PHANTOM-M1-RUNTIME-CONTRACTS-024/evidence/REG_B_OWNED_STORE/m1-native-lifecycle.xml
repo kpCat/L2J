@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="3" passed="3" failures="0">
+  <properties>
+    <property name="Q01.cast.cleanup" value="SUCCESS"/>
+    <property name="Q01.cast.cleanupSnapshot" value="removed"/>
+    <property name="Q01.cast.contextAtStore" value="instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0"/>
+    <property name="Q01.cast.contextBeforeAttack" value="instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0"/>
+    <property name="Q01.cast.draining" value="MaterializationSnapshot[profileId=10029, characterObjectId=268435465, state=DEMATERIALIZING, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=4, worldPresent=true, materializedAtNanos=120692345660400, dematerializedAtNanos=0, cleanupPhase=ACTION_DRAIN, cleanupFailurePhase=NONE, cleanupFailureClass=, cleanupFailureMessage=, cleanupFailureSequence=0, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=, firstCleanupIncident=null, latestCleanupIncident=null]"/>
+    <property name="Q01.cast.exactNativeTarget" value="npc=20534 anchor=population.farming.elf.20534"/>
+    <property name="Q01.cast.nativeReward" value="object=268435465 expDelta=210 spDelta=10 preparedWhileHitActive=false"/>
+    <property name="Q01.cast.nativeState" value="mage=true hp=0.0/75 damage=88 mp=119.0 skills=[1177] action=CAST casting=true attack=false target=:Red Keltir(20534)[268481781] pair=true"/>
+    <property name="Q01.cast.preparedWhileHitActive" value="false"/>
+    <property name="Q01.cast.retry" value="NOT_ACTIVE"/>
+    <property name="Q01.cast.retrySnapshot" value="removed"/>
+    <property name="Q01.cast.rewardProducer" value="getStackTrace&gt;calculateRewards&gt;doDie&gt;doDie&gt;doDie&gt;reduceHp&gt;reduceHp&gt;reduceHp&gt;reduceCurrentHp&gt;reduceCurrentHp&gt;reduceCurrentHp&gt;onStart&gt;applyEffectScope&gt;applyEffects&gt;applyEffects&gt;activateSkill&gt;activateSkill&gt;callSkillNative&gt;lambda$callSkill$1&gt;run&gt;run&gt;runCombat&gt;lambda$callSkill$0&gt;lambda$runAtNativeWriteBoundary$1&gt;run&gt;lambda$runAtNativeWriteBoundary$0&gt;run&gt;runAtNativeWriteBoundary&gt;callSkill&gt;lambda$callSkill$0&gt;run&gt;runPhantomNativeAction&gt;callSkill&gt;onMagicHitTimer&gt;lambda$onMagicHitTimer$0&gt;run&gt;runPhantomNativeAction&gt;onMagicHitTimer&gt;run&gt;run&gt;lambda$schedule$0&gt;run&gt;call&gt;run&gt;run&gt;runWorker&gt;run&gt;run"/>
+    <property name="Q01.cast.stockSkill" value="1177:1"/>
+    <property name="Q01.hit.cleanup" value="SUCCESS"/>
+    <property name="Q01.hit.cleanupSnapshot" value="removed"/>
+    <property name="Q01.hit.contextAtStore" value="instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0"/>
+    <property name="Q01.hit.contextBeforeAttack" value="instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0"/>
+    <property name="Q01.hit.draining" value="MaterializationSnapshot[profileId=10028, characterObjectId=268435465, state=DEMATERIALIZING, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=3, worldPresent=true, materializedAtNanos=120675945953800, dematerializedAtNanos=0, cleanupPhase=ACTION_DRAIN, cleanupFailurePhase=NONE, cleanupFailureClass=, cleanupFailureMessage=, cleanupFailureSequence=0, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=, firstCleanupIncident=null, latestCleanupIncident=null]"/>
+    <property name="Q01.hit.exactNativeTarget" value="npc=20534 anchor=population.farming.elf.20534"/>
+    <property name="Q01.hit.nativeReward" value="object=268435465 expDelta=210 spDelta=10 preparedWhileHitActive=false"/>
+    <property name="Q01.hit.nativeState" value="mage=false hp=0.0/75 damage=84 mp=82.0 skills=[] action=ATTACK casting=false attack=true target=:Red Keltir(20534)[268480994] pair=true"/>
+    <property name="Q01.hit.preparedWhileHitActive" value="false"/>
+    <property name="Q01.hit.retry" value="NOT_ACTIVE"/>
+    <property name="Q01.hit.retrySnapshot" value="removed"/>
+    <property name="Q01.hit.rewardProducer" value="getStackTrace&gt;calculateRewards&gt;doDie&gt;doDie&gt;doDie&gt;reduceHp&gt;reduceHp&gt;reduceHp&gt;reduceCurrentHp&gt;reduceCurrentHp&gt;reduceCurrentHp&gt;onHitTimerNative&gt;lambda$onHitTimer$0&gt;lambda$runAtNativeWriteBoundary$1&gt;run&gt;lambda$runAtNativeWriteBoundary$0&gt;run&gt;runAtNativeWriteBoundary&gt;onHitTimer&gt;lambda$onHitTimer$0&gt;run&gt;runPhantomNativeAction&gt;onHitTimer&gt;run&gt;run&gt;lambda$schedule$0&gt;run&gt;call&gt;run&gt;run&gt;runWorker&gt;run&gt;run"/>
+    <property name="Q05.cleanup" value="CLEANUP_FAILED_RETAINED"/>
+    <property name="Q05.cleanupSnapshot" value="MaterializationSnapshot[profileId=10030, characterObjectId=268435465, state=FAILED, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=3, worldPresent=true, materializedAtNanos=120702063636200, dematerializedAtNanos=0, cleanupPhase=ACTION_DRAIN, cleanupFailurePhase=ACTION_DRAIN, cleanupFailureClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, cleanupFailureMessage=NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238, cleanupFailureSequence=1, cleanupFailureAdmittedActionCount=5, cleanupFailureCause=, firstCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=120702063636200, sequence=1, utc=2026-10-07T17:02:24.927166200Z, phase=ACTION_DRAIN, hook=NATIVE_WORK_DRAIN, admittedActions=5, exceptionClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, message=NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238, detail=primary org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException: NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.await(PhantomNativeWorkScope.java:253)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drain(PhantomNativeWorkScope.java:280)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drainAndSeal(PhantomNativeWorkScope.java:223)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.closeActionAdmissionAndDrain(PhantomMaterializedPlayer.java:618)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:359)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:463)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:442)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:427)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:404)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testNativeRewardCompletion$8(PhantomBackgroundSuite.java:2332)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=11, truncated=false], latestCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=120702063636200, sequence=1, utc=2026-10-07T17:02:24.927166200Z, phase=ACTION_DRAIN, hook=NATIVE_WORK_DRAIN, admittedActions=5, exceptionClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, message=NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238, detail=primary org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException: NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.await(PhantomNativeWorkScope.java:253)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drain(PhantomNativeWorkScope.java:280)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drainAndSeal(PhantomNativeWorkScope.java:223)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.closeActionAdmissionAndDrain(PhantomMaterializedPlayer.java:618)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:359)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:463)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:442)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:427)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:404)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testNativeRewardCompletion$8(PhantomBackgroundSuite.java:2332)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=11, truncated=false]]"/>
+    <property name="Q05.contextAtStore" value="null"/>
+    <property name="Q05.contextBeforeAttack" value="instance=0 flying=false flyingMounted=false mounted=false party=false combat=false combatFlag=false gm=false premium=false event=false festival=false karma=0 nevit=1.0 vitality=1.0"/>
+    <property name="Q05.draining" value="MaterializationSnapshot[profileId=10030, characterObjectId=268435465, state=FAILED, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=3, worldPresent=true, materializedAtNanos=120702063636200, dematerializedAtNanos=0, cleanupPhase=ACTION_DRAIN, cleanupFailurePhase=ACTION_DRAIN, cleanupFailureClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, cleanupFailureMessage=NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238, cleanupFailureSequence=1, cleanupFailureAdmittedActionCount=5, cleanupFailureCause=, firstCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=120702063636200, sequence=1, utc=2026-10-07T17:02:24.927166200Z, phase=ACTION_DRAIN, hook=NATIVE_WORK_DRAIN, admittedActions=5, exceptionClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, message=NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238, detail=primary org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException: NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.await(PhantomNativeWorkScope.java:253)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drain(PhantomNativeWorkScope.java:280)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drainAndSeal(PhantomNativeWorkScope.java:223)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.closeActionAdmissionAndDrain(PhantomMaterializedPlayer.java:618)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:359)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:463)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:442)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:427)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:404)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testNativeRewardCompletion$8(PhantomBackgroundSuite.java:2332)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=11, truncated=false], latestCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=120702063636200, sequence=1, utc=2026-10-07T17:02:24.927166200Z, phase=ACTION_DRAIN, hook=NATIVE_WORK_DRAIN, admittedActions=5, exceptionClass=org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException, message=NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238, detail=primary org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope$DrainTimeoutException: NATIVE_WORK_DRAIN_TIMEOUT epoch=120702063636200 state=DRAINING outstanding=5 pendingTimers=0 peak=6 failure= work=[237:attack-hit:RUNNING:depth=2:ageMs=414, 238
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.await(PhantomNativeWorkScope.java:253)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drain(PhantomNativeWorkScope.java:280)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.drainAndSeal(PhantomNativeWorkScope.java:223)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.closeActionAdmissionAndDrain(PhantomMaterializedPlayer.java:618)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:359)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:463)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:442)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:427)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:404)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testNativeRewardCompletion$8(PhantomBackgroundSuite.java:2332)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=11, truncated=false]]"/>
+    <property name="Q05.exactNativeTarget" value="npc=20534 anchor=population.farming.elf.20534"/>
+    <property name="Q05.nativeReward" value="object=268435465 expDelta=210 spDelta=10 preparedWhileHitActive=false"/>
+    <property name="Q05.nativeState" value="mage=false hp=0.0/75 damage=88 mp=82.0 skills=[] action=ATTACK casting=false attack=true target=:Red Keltir(20534)[268481784] pair=true"/>
+    <property name="Q05.preparedWhileHitActive" value="false"/>
+    <property name="Q05.retry" value="NOT_ACTIVE"/>
+    <property name="Q05.retrySnapshot" value="removed"/>
+    <property name="Q05.rewardProducer" value="getStackTrace&gt;calculateRewards&gt;doDie&gt;doDie&gt;doDie&gt;reduceHp&gt;reduceHp&gt;reduceHp&gt;reduceCurrentHp&gt;reduceCurrentHp&gt;reduceCurrentHp&gt;onHitTimerNative&gt;lambda$onHitTimer$0&gt;lambda$runAtNativeWriteBoundary$1&gt;run&gt;lambda$runAtNativeWriteBoundary$0&gt;run&gt;runAtNativeWriteBoundary&gt;onHitTimer&gt;lambda$onHitTimer$0&gt;run&gt;runPhantomNativeAction&gt;onHitTimer&gt;run&gt;run&gt;lambda$schedule$0&gt;run&gt;call&gt;run&gt;run&gt;runWorker&gt;run&gt;run"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract024a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q01-Q02-native-hit-reward-drains-and-persists" elapsedNanos="16513832300"></testcase>
+  <testcase name="m1-native-lifecycle.Q01-Q02-native-mage-reward-drains-and-persists" elapsedNanos="9720609800"></testcase>
+  <testcase name="m1-native-lifecycle.Q05-native-completion-timeout-retains-ownership" elapsedNanos="20556302200"></testcase>
+</testsuite>

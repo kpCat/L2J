@@ -57,6 +57,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private final BiConsumer<Long, Failure> _failure;
 	private final LongSupplier _clock;
 	private final java.util.concurrent.atomic.AtomicLong _signalSequence = new java.util.concurrent.atomic.AtomicLong();
+	private volatile java.util.function.LongFunction<java.util.Set<String>> _routeExclusions = _ -> java.util.Set.of();
+
+	public void bindRouteExclusions(java.util.function.LongFunction<java.util.Set<String>> exclusions)
+	{
+		_routeExclusions = Objects.requireNonNull(exclusions);
+	}
 
 	public PhantomVisibleFarmTravel(PhantomMaterializationService materialization, PhantomBackgroundService background, PhantomNormalGatekeeperTravel travel, PhantomNavigationService navigation, LongPredicate permitsOrdinary, PhantomRelevanceSignalPort signals)
 	{
@@ -120,7 +126,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			return false;
 		}
 		final PendingStore exactPending = pending;
-		if ((pending.anchorId != null) && _travel.topology().findAnchor(pending.anchorId).filter(anchor -> !usefulArrival(exactPending.player, anchor)).isPresent()) { return false; }
+		if ((pending.anchorId != null) && _travel.topology().findAnchor(pending.anchorId).filter(anchor -> !isUsableLocalFarmPosition(exactPending.player, anchor)).isPresent()) { return false; }
 		if (pending.player.hasPendingOwnedStore())
 		{
 			final var resumed = _background.resumeVisibleOwnedStore(profileId, pending.player, goal);
@@ -183,10 +189,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				remove(profileId, journey);
 				journey = null;
 			}
-			if ((journey == null) && sameAnchor && (targetAnchor != null) && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor) && usefulArrival(player, targetAnchor))
+			if ((targetAnchor != null) && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor) && isUsableLocalFarmPosition(player, targetAnchor))
 			{
-				_terminalReasons.remove(profileId);
-				return true;
+				if ((journey == null) && sameAnchor) { return true; }
+				if (journey != null) { clearRoute(profileId, journey); closeRoutePhase(profileId, journey); }
+				player.stopMove(null);
+				_pendingStores.put(profileId, new PendingStore(player, epoch, goal, targetAnchor.id(), journey));
+				return false;
 			}
 			final Attempt attempt = attempt(profileId, goal, player, epoch);
 			if ((attempt == null) || attempt.terminal) { return false; }
@@ -282,11 +291,11 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		}
 	}
 
-	private static boolean usefulArrival(Player player, PhantomTopologyAnchor anchor)
+	private static boolean isUsableLocalFarmPosition(Player player, PhantomTopologyAnchor anchor)
 	{
 		if (anchor.role() != PhantomTopologyAnchorRole.FARMING) { return true; }
 		final var geo = GeoEngine.getInstance();
-		return ((player.getX() != anchor.point().x()) || (player.getY() != anchor.point().y())) && geo.hasGeo(player.getX(), player.getY()) && (geo.getHeight(player.getX(), player.getY(), player.getZ()) == player.getZ()) && (ZoneManager.getInstance().getZone(player.getX(), player.getY(), player.getZ(), WaterZone.class) == null);
+		return geo.hasGeo(player.getX(), player.getY()) && (geo.getHeight(player.getX(), player.getY(), player.getZ()) == player.getZ()) && (ZoneManager.getInstance().getZone(player.getX(), player.getY(), player.getZ(), WaterZone.class) == null);
 	}
 
 	/** A bounded local continuation of the factual farm anchor, stable for this Journey. */
@@ -305,6 +314,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if (!geo.hasGeo(x, y)) { continue; }
 			final int z = geo.getHeight(x, y, canonical.z());
 			final var candidate = new PhantomNavigationPoint(x, y, z, canonical.instanceId());
+			if (_routeExclusions.apply(profileId).contains(localRouteWitness(anchor.id(), candidate))) { continue; }
 			if (area.contains(new PhantomTopologyPoint(x, y, z, candidate.instanceId())) && (ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) == null) && (unsafeSegment(canonical, candidate, false, 0) == null) && geo.canMoveToTarget(canonical.x(), canonical.y(), canonical.z(), x, y, z, canonical.instanceId())) { return candidate; }
 		}
 		return null;
@@ -544,7 +554,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private void fail(long profileId, Journey journey, String reason, Disposition disposition)
 	{
 		if (!remove(profileId, journey)) { return; }
-		fail(profileId, journey.attempt, journey.step.id(), reason, disposition);
+		final String witness = journey.step.id().startsWith("live.approach.") && (journey.arrivalPoint != null) ? localRouteWitness(journey.step.toAnchorId(), journey.arrivalPoint) : journey.step.id();
+		fail(profileId, journey.attempt, witness, reason, disposition);
+	}
+
+	private static String localRouteWitness(String anchorId, PhantomNavigationPoint point)
+	{
+		return "live.approach." + anchorId + "@" + point.x() + ":" + point.y() + ":" + point.z();
 	}
 
 	private void fail(long profileId, Attempt attempt, String stepId, String reason, Disposition disposition)
