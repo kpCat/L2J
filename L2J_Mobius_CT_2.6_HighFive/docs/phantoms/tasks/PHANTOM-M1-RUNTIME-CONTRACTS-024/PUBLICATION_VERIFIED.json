@@ -1,0 +1,18 @@
+{
+  "bulkCommit": "9004227a60bdd4e03efda4e6b56384728ddb867f",
+  "remoteCommit": "9004227a60bdd4e03efda4e6b56384728ddb867f",
+  "sourceFrozenSha": "ca3cbef9c03b695dcb9f84a734c5535b4ac72027",
+  "repository": "https://github.com/kpCat/L2J",
+  "branch": "experiment/m1-candidate007-observe008",
+  "normalPush": true,
+  "forcePush": false,
+  "sourceAndTestsChangedSinceFrozen": false,
+  "verifiedUtc": "2026-10-07T20:28:52Z",
+  "taskResult": "FAILED",
+  "M1": "OPEN",
+  "ownJvmListeners": 0,
+  "forceUsed": false,
+  "firstApprovalReview": "rejected unverified destination/large evidence payload",
+  "resolution": "GitHub authenticated user kpCat id17532403 matches repository owner id17532403, admin/push permissions; bounded token/password/account-dump pattern scan3186 files187138468 bytes zero matches; same normal push accepted and succeeded",
+  "finalDocumentationNote": "This receipt records bulk commit900; the documentation-only receipt commit containing this file is verified separately by final HEAD/ls-remote tool result."
+}

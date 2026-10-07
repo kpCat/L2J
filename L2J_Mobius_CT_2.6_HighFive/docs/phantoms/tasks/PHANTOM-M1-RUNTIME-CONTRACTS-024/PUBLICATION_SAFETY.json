@@ -1,0 +1,32 @@
+{
+  "utc": "2026-10-07T20:24:56.408874+00:00",
+  "destination": "https://github.com/kpCat/L2J",
+  "visibility": "public",
+  "authenticatedGitHubUser": "kpCat",
+  "authenticatedGitHubUserId": 17532403,
+  "repositoryOwner": "kpCat",
+  "repositoryOwnerId": 17532403,
+  "repositoryPermissions": {
+    "admin": true,
+    "push": true
+  },
+  "destinationEvidence": "GitHub get_profile + GET /repos/kpCat/L2J, same owner id; existing git origin -v; exact ls-remote ca3",
+  "authorizedBranch": "experiment/m1-candidate007-observe008",
+  "humanAuthorization": "User /goal mandates exact-path commit + normal push at any outcome; TASK.md Worktree/Git names exact git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008; raw runtime/cohort/persistence evidence is required TASK output",
+  "scope": "TASK024 only; source/test unchanged from ca3; private .phantom-local/runtime and full DB dump not included; full ordinary clone is not part of payload",
+  "payloadFiles": 3186,
+  "payloadBytes": 187138468,
+  "largestFileBytes": 6879521,
+  "credentialAndAccountDumpPatterns": [
+    "github_token",
+    "openai_key",
+    "aws_access_key",
+    "pem_private_key",
+    "literal_password_config",
+    "account_dump_rows",
+    "sql_password_column"
+  ],
+  "matches": [],
+  "pass_": true,
+  "limitations": "Pattern scan is bounded evidence of absent specified credentials/account dump, not a universal guarantee. Package contains explicitly requested synthetic game-state SQL, local process IDs/paths/thread dumps; no real-client session was run."
+}

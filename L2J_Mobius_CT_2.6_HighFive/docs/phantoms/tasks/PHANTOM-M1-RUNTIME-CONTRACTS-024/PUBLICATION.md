@@ -22,3 +22,7 @@ Scope validation requires every staged path inside TASK024, production11 unchang
 
 Raw evidence newline preservation: nested TASK024 .gitattributes uses evidence/** -text and raw log/dump -text. No global Git setting changed. Exact additional staging: git add --renormalize -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024. Eight exact git cat-file blob :<crash evidence path> calls compare index bytes against disk and receipt SHA256; see FINAL_AUDIT.json for full paths/commands/results.
 Final audit helper exact Git commands are recorded in FINAL_AUDIT.json, including status, diff, cached diff and cat-file; this extends GIT_COMMANDS.md.
+
+Verified bulk publication: commit9004227a60bdd4e03efda4e6b56384728ddb867f normal-pushed; ls-remote exact equality checked20:28:52UTC. PUBLICATION_VERIFIED.json records that immutable bulk receipt; final documentation-only commit is verified separately in final tool output.
+Initial automatic approval review rejected unverified destination/large evidence payload. GitHub authenticated owner/admin/push and bounded credential/account-dump scan were checked; same normal push accepted and succeeded. No indirect upload, force or removed evidence.
+Exact final receipt commit: git commit -m "Record verified TASK024 publication and safety checks"; normal git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008; final git rev-parse HEAD / git ls-remote / git status --porcelain=v1 --untracked-files=all.
