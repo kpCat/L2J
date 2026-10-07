@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import java.util.function.BiConsumer;
 import java.util.function.LongPredicate;
@@ -82,6 +83,10 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lea
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
+import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointOutcome;
+import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointKey;
+import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointResult;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.MaterializationPurpose;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyParticipationPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
@@ -125,6 +130,25 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private volatile LongFunction<OperationResult> _periodicFarm;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, PhantomBackgroundState> _arrivalCaptures = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, VisibleCheckpoint> _visibleCheckpoints = new ConcurrentHashMap<>();
+	private static final class VisibleCheckpoint
+	{
+		final Player player;
+		final PhantomNativeWorkScope scope;
+		final PhantomGoal goal;
+		final String anchor;
+		final CheckpointKey key;
+		final AtomicBoolean executing = new AtomicBoolean();
+		final AtomicBoolean queued = new AtomicBoolean();
+		volatile CheckpointResult result;
+		volatile long retryAfter;
+		int recoveryAttempts;
+		VisibleCheckpoint(long id, Player player, PhantomNativeWorkScope scope, PhantomGoal goal, String anchor)
+		{
+			this.player = player; this.scope = scope; this.goal = goal; this.anchor = anchor;
+			key = new CheckpointKey(id, player.getObjectId(), scope.epoch(), goal.goalId(), goal.revision(), id + ":" + scope.epoch() + ":" + goal.goalId() + ":" + goal.revision() + ":" + anchor);
+		}
+	}
 	private final ConcurrentHashMap<Long, Boolean> _cleanupStores = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, Integer> _nativeTownReturns = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, Boolean> _recoveries = new ConcurrentHashMap<>();
@@ -275,6 +299,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		_nativeTownReturns.clear();
 		_nativeContextSignals.clear();
+		_visibleCheckpoints.clear();
 		_state = ServiceState.STOPPED;
 		return true;
 	}
@@ -902,6 +927,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public VisibleStoreResult resumeVisibleOwnedStore(long profileId, Player player, PhantomGoal goal)
 	{
+		final var checkpoint = _visibleCheckpoints.get(profileId);
+		if (checkpoint != null && checkpoint.player == player && checkpoint.goal.equals(goal))
+		{
+			final var result = runVisibleCheckpoint(checkpoint);
+			return new VisibleStoreResult(result.outcome() == CheckpointOutcome.RESUME ? VisibleStoreStatus.SUCCESS : VisibleStoreStatus.RETRY, result.outcome() + ":" + result.reason());
+		}
 		if ((_state != ServiceState.RUNNING) || _transitions.containsKey(profileId)) { return new VisibleStoreResult(VisibleStoreStatus.RETRY, "owned_store.service_or_transition"); }
 		// A failed checkpoint has no ordinary ActionLease. Validate its exact control lifetime.
 		if (!pendingStoreOwnerCurrent(profileId, player, goal)) { return new VisibleStoreResult(VisibleStoreStatus.PROFILE_FENCED, "owned_store.live_owner_or_intent_missing"); }
@@ -935,6 +966,17 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public boolean captureVisibleArrival(long profileId, Player player, PhantomGoal goal, String anchorId)
 	{
 		final var owner = player.getNativeWorkOwner();
+		if (owner instanceof PhantomNativeWorkScope scope)
+		{
+			final var candidate = new VisibleCheckpoint(profileId, player, scope, goal, anchorId);
+			if (!visibleCheckpointOwnerCurrent(candidate)) { return false; }
+			final var existing = _visibleCheckpoints.putIfAbsent(profileId, candidate);
+			final var request = existing == null ? candidate : existing;
+			if (request.player != player || request.scope != scope || !request.key.equals(candidate.key)) { return false; }
+			final var result = runVisibleCheckpoint(request);
+			if (result.outcome() == CheckpointOutcome.RESUME) { _visibleCheckpoints.remove(profileId, request); return true; }
+			return false;
+		}
 		try
 		{
 			return org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(player, () ->
@@ -944,6 +986,101 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			});
 		}
 		catch (RuntimeException failure) { if (owner instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope) { scope.recordCheckpointFailure(failure); } return false; }
+	}
+
+	/** Scheduler preflight finishes the admitted store before ordinary admission; no ActionLease is required. */
+	public Optional<CheckpointResult> continueVisibleCheckpoint(long profileId, PhantomGoal goal)
+	{
+		final var request = _visibleCheckpoints.get(profileId);
+		if (request == null) { return Optional.empty(); }
+		if (!request.scope.isCurrent()) { _visibleCheckpoints.remove(profileId, request); return Optional.empty(); }
+		if (!request.goal.equals(goal)) { return Optional.of(new CheckpointResult(CheckpointOutcome.TERMINAL_RETAIN, "", "owned_checkpoint.goal_changed")); }
+		return Optional.of(runVisibleCheckpoint(request));
+	}
+
+	private boolean visibleCheckpointOwnerCurrent(VisibleCheckpoint request)
+	{
+		final long id = request.key.profileId();
+		final var entry = _materialization.get().find(id).orElse(null);
+		return _state == ServiceState.RUNNING && !_transitions.containsKey(id) && entry != null
+			&& entry.state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE
+			&& entry.cleanupPhase() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.CleanupPhase.NONE
+			&& entry.characterObjectId() == request.key.objectId() && entry.materializedAtNanos() == request.key.epoch()
+			&& entry.identityLeaseRetained() && entry.outboundAttached() && request.scope.isCurrent()
+			&& request.player.getNativeWorkOwner() == request.scope && request.player.getClient() == null
+			&& World.getInstance().getPlayer(request.key.objectId()) == request.player && World.getInstance().findObject(request.key.objectId()) == request.player
+			&& request.player.hasHeadlessOutboundSession() && request.player.hasOwnedStoreBoundary(this)
+			&& Objects.equals(_goals.load(id).map(PhantomGoalStateStore.StoredGoal::goal).orElse(null), request.goal);
+	}
+
+	private CheckpointResult runVisibleCheckpoint(VisibleCheckpoint request)
+	{
+		if (!visibleCheckpointOwnerCurrent(request)) { return new CheckpointResult(CheckpointOutcome.TERMINAL_RETAIN, "", "owned_checkpoint.owner_changed"); }
+		final var last = request.result;
+		if (last != null && (last.outcome() == CheckpointOutcome.RESUME || last.outcome() == CheckpointOutcome.VERIFY_WRITE_OUTCOME || last.outcome() == CheckpointOutcome.TERMINAL_RETAIN)) { return last; }
+		if (last != null && last.outcome() == CheckpointOutcome.RETRY_BEFORE_WRITE && (System.nanoTime() < request.retryAfter || request.player.isInCombat())) { return last; }
+		if (!request.executing.compareAndSet(false, true)) { return new CheckpointResult(CheckpointOutcome.WAIT_EARNED, "", "owned_checkpoint.executing"); }
+		try
+		{
+			request.result = request.scope.ownedCheckpoint(request.key, () ->
+			{
+				if (!visibleCheckpointOwnerCurrent(request)) { throw new IllegalStateException("OWNED_CHECKPOINT_OWNER_CHANGED"); }
+				if (last != null && (last.outcome() == CheckpointOutcome.RESOLVE_RECEIPT || last.outcome() == CheckpointOutcome.PUBLISH_COMMITTED) && ++request.recoveryAttempts > 3)
+				{
+					request.scope.retainOwnedCheckpoint(request.key, "owned_checkpoint.recovery_attempts_exhausted:" + last.reason());
+					return false;
+				}
+				if (request.scope.ownedCheckpointNeedsPublication(request.key)) { return publishVisibleCheckpoint(request); }
+				if (request.player.hasPendingOwnedStore())
+				{
+					if (!pendingStoreOwnerCurrent(request.key.profileId(), request.player, request.goal) || !request.player.resumePendingOwnedStore(this, request.goal.goalId(), request.goal.revision())) { return false; }
+					return publishVisibleCheckpoint(request);
+				}
+				checkpointStage(request.player, "CAPTURE");
+				return captureVisibleArrivalQuiescent(request.key.profileId(), request.player, request.goal, request.anchor);
+			}, () -> enqueueVisibleCheckpoint(request));
+			if (request.result.outcome() == CheckpointOutcome.RETRY_BEFORE_WRITE) { request.retryAfter = System.nanoTime() + 500_000_000L; }
+			return request.result;
+		}
+		finally { request.executing.set(false); }
+	}
+
+	private void enqueueVisibleCheckpoint(VisibleCheckpoint request)
+	{
+		if (!request.queued.compareAndSet(false, true)) { return; }
+		try
+		{
+			org.l2jmobius.commons.threads.ThreadPool.executeOrThrow(() ->
+			{
+				request.queued.set(false);
+				if (_visibleCheckpoints.get(request.key.profileId()) == request) { runVisibleCheckpoint(request); }
+			});
+		}
+		catch (RuntimeException failure)
+		{
+			request.queued.set(false);
+			request.scope.recordCheckpointFailure(failure);
+			request.result = new CheckpointResult(CheckpointOutcome.TERMINAL_RETAIN, "WAIT_EARNED", "owned_checkpoint.control_rejected:" + failure.getClass().getName());
+		}
+	}
+
+	private boolean publishVisibleCheckpoint(VisibleCheckpoint request)
+	{
+		if (!visibleCheckpointOwnerCurrent(request) || request.player.hasPendingOwnedStore()) { return false; }
+		final var stored = transaction(() -> _transactions.load(request.key.profileId()));
+		if (!stored.successful() || stored.state() == null || stored.state().state() != State.MATERIALIZED) { request.scope.retainOwnedCheckpoint(request.key, "owned_checkpoint.finalized_state_not_exact:" + stored.status()); return false; }
+		final var context = transaction(() -> _transactions.nativeContext(request.key.profileId(), request.key.objectId()));
+		if (context.status() != PhantomBackgroundTransaction.Status.SUCCESS || context.context() == null || context.context().phase() != PhantomNativeContext.Phase.COMPLETED
+			|| !stored.state().equals(context.state()) || !context.matchesNativeLoad(request.player.getVitalityPoints())
+			|| !_authority.matchesRuntime(request.player, stored.state()) || !captureOwnedInventory(request.player, stored.state()).inventory().equals(stored.state().inventory()))
+		{
+			request.scope.retainOwnedCheckpoint(request.key, "owned_checkpoint.finalized_runtime_not_exact");
+			return false;
+		}
+		checkpointStage(request.player, "INDEX_PENDING");
+		_committedPosition.accept(request.key.profileId(), stored.state().position());
+		checkpointStage(request.player, "COMPLETED");
+		return true;
 	}
 
 	private static void checkpointStage(Player player, String stage)
@@ -1045,9 +1182,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 						if ((!_recaptureAfterResume && (!ownedProgressMatches(player, _intent.after()) || ((_nativeCapture != null) && (player.getVitalityPoints() != _nativeCapture.vitalityPoints())))) || !captureOwnedInventory(player, _intent.after()).inventory().equals(_intent.after().inventory())) { throw new IllegalStateException("OWNED_STORE_RETRY_RUNTIME_CHANGED"); }
 						_before = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.enabledFor(profileId, _intent.materializedAtNanos()) ? org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.snapshot(player) : null;
 						_sequence = org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal.begin(profileId, player, _kind, _intent);
+						checkpointStage(player, "NATIVE_ATTEMPTED");
 						return ownedSnapshot(player, _intent.after(), _nativeCapture == null ? -1 : _nativeCapture.vitalityPoints());
 					}
 					if (!resumed.successful()) { throw new IllegalStateException("OWNED_STORE_RESUME:" + resumed.status()); }
+					checkpointStage(player, "FINALIZED");
 					_intent = null;
 					_nativeCapture = null;
 				}
@@ -1073,6 +1212,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				}
 				final boolean cleanup = _cleanupStores.containsKey(profileId);
 				final var arrival = _arrivalCaptures.get(profileId);
+				checkpointStage(player, "INVENTORY_FLUSH");
 				player.getInventory().updateDatabase();
 				final PhantomBackgroundState captured;
 				final PhantomNativeContext.Capture nativeCapture;
@@ -1748,6 +1888,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			throw new IllegalStateException("Background transition is already owned.");
 		}
 		_cleanupStores.put(profileId, Boolean.TRUE);
+		_visibleCheckpoints.remove(profileId);
 	}
 
 	@Override

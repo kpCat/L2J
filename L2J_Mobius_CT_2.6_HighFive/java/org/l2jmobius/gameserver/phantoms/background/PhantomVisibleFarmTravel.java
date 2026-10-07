@@ -119,7 +119,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		}
 		final var owner = pending.player.getNativeWorkOwner();
 		if (owner == null || owner.player() != pending.player || !owner.isCurrent() || owner.epoch() != pending.epoch
-			|| World.getInstance().getPlayer(pending.player.getObjectId()) != pending.player || !_permitsOrdinary.test(profileId)
+			|| World.getInstance().getPlayer(pending.player.getObjectId()) != pending.player
 			|| pending.player.isDead() || pending.player.isInParty() || !pending.player.hasHeadlessOutboundSession())
 		{
 			if (pending.journey != null) { closeRoutePhase(profileId, pending.journey); }
@@ -143,7 +143,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		if (pending.anchorId == null) { _pendingStores.remove(profileId, pending); return false; }
 		if (!_background.captureVisibleArrival(profileId, pending.player, goal, pending.anchorId))
 		{
-			if (pending.journey != null) { pending.journey.reason = "travel.arrival_capture_pending"; }
+			final var checkpoint = _background.continueVisibleCheckpoint(profileId, goal).orElse(null);
+			if (pending.journey != null) { pending.journey.reason = checkpoint == null ? "travel.arrival_capture_pending" : "travel.checkpoint." + checkpoint.outcome() + ":" + checkpoint.phase() + ":" + checkpoint.reason(); }
 			return false;
 		}
 		_pendingStores.remove(profileId, pending);

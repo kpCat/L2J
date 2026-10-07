@@ -1024,6 +1024,9 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			final StoredGoal stored = _goals.load(profileId).orElse(null);
 			if (stored == null) { return false; }
 			if (_foregroundDecisionsRevoked) { return false; }
+			final var checkpoint = _background.continueVisibleCheckpoint(profileId, stored.goal()).orElse(null);
+			if (checkpoint != null && checkpoint.outcome() != org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointOutcome.RESUME
+				&& checkpoint.outcome() != org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointOutcome.RETRY_BEFORE_WRITE) { return false; }
 			if (_background.hasVisibleOwnedStorePending(profileId, stored.goal()))
 			{
 				final var pending = _materialization.find(profileId).orElse(null);

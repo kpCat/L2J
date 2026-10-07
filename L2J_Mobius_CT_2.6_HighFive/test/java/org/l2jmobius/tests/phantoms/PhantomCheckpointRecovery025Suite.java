@@ -7,6 +7,8 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext;
 import org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultPoint;
+import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 
 /** Reuses the composed native handoff fixture; recovery precedes production request admission. */
 public final class PhantomCheckpointRecovery025Suite implements PhantomTestSuite
@@ -23,6 +25,72 @@ public final class PhantomCheckpointRecovery025Suite implements PhantomTestSuite
 	{
 		registry.add("R01-cold-pending-before-baseline", _ -> cold(false));
 		registry.add("R07-exact-failed-baseline-recovery", _ -> cold(true));
+		registry.add("R09-native-combat-capture-defers-before-write", _ -> combatCapture());
+		registry.add("R11-inventory-flush-without-receipt-stays-fenced", _ -> interrupted(FaultPoint.BEFORE_OWNED_PREPARE_COMMIT, false));
+		registry.add("R12-prepared-receipt-control-resume", _ -> interrupted(FaultPoint.AFTER_OWNED_PREPARE, false));
+		registry.add("R13-native-receipt-finalize-once", _ -> interrupted(FaultPoint.AFTER_OWNED_NATIVE_STORE, false));
+		registry.add("R14-finalized-publication-without-new-store", _ -> interrupted(null, true));
+	}
+	private void interrupted(FaultPoint fault, boolean publication) throws Exception
+	{
+		final var armed = new java.util.concurrent.atomic.AtomicBoolean();
+		final var observing = new java.util.concurrent.atomic.AtomicBoolean();
+		final var nativeStores = new java.util.concurrent.atomic.AtomicInteger();
+		try (var f = _native.new Fixture(true, false, 0, point ->
+		{
+			if (observing.get() && point == FaultPoint.AFTER_OWNED_NATIVE_STORE) { nativeStores.incrementAndGet(); }
+			if (point == fault && armed.compareAndSet(true, false)) { throw new IllegalStateException("TASK025_INTERRUPTED:" + point); }
+		}))
+		{
+			f.removeCatchup();
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Exact native materialization.");
+			final var player = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(f.objectId);
+			final var scope = (PhantomNativeWorkScope) player.getNativeWorkOwner();
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final long quietDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(2);
+			while (scope.outstanding() > 0 && System.nanoTime() < quietDeadline) { Thread.sleep(10); }
+			PhantomAssertions.assertEquals(0, scope.outstanding(), "Exact setup earned work finished.");
+			// A stock scalar change distinguishes receipt BEFORE from AFTER without awarding anything.
+			player.setHeading((player.getHeading() + 8192) % 65536);
+			if (publication) { f.background.installCommittedPositionPublisher((id, position) -> { if (armed.compareAndSet(true, false)) { throw new IllegalStateException("TASK025_INDEX_PUBLICATION"); } }); }
+			observing.set(true); armed.set(true);
+			PhantomAssertions.assertFalse(f.background.captureVisibleArrival(f.id, player, goal, goal.selectedAnchor().key()), "Injected boundary cannot claim completed checkpoint.");
+			PhantomAssertions.assertFalse(scope.open(), "Attempted write remains fenced.");
+			final var first = f.background.continueVisibleCheckpoint(f.id, goal).orElseThrow();
+			if (fault == FaultPoint.BEFORE_OWNED_PREPARE_COMMIT)
+			{
+				PhantomAssertions.assertEquals(PhantomNativeWorkScope.CheckpointOutcome.VERIFY_WRITE_OUTCOME, first.outcome(), "Inventory flush is not no-write proof.");
+				PhantomAssertions.assertFalse(player.hasPendingOwnedStore() || scope.open(), "No pending alone cannot open inventory-flush failure.");
+				PhantomAssertions.assertEquals(0, nativeStores.get(), "Native body never started.");
+				return;
+			}
+			PhantomAssertions.assertEquals(PhantomNativeWorkScope.CheckpointOutcome.RESUME, first.outcome(), "Exact control continuation: " + first);
+			PhantomAssertions.assertTrue(scope.open() && scope.isCurrent(), "Original epoch resumed.");
+			PhantomAssertions.assertFalse(player.hasPendingOwnedStore(), "Existing receipt completed.");
+			PhantomAssertions.assertEquals(1, nativeStores.get(), "Recovery/publication does not repeat completed native body.");
+			final var finalized = f.transactions.load(f.id).state();
+			PhantomAssertions.assertTrue(f.background.captureVisibleArrival(f.id, player, goal, goal.selectedAnchor().key()), "Caller consumes completed exact request.");
+			PhantomAssertions.assertEquals(finalized, f.transactions.load(f.id).state(), "Consumption does not repeat native writes.");
+			PhantomAssertions.assertEquals(f.baseline.progress(), finalized.progress(), "Recovery grants no progress.");
+		}
+	}
+	private void combatCapture() throws Exception
+	{
+		try (var f = _native.new Fixture(true))
+		{
+			f.removeCatchup();
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Exact native materialization.");
+			final var player = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(f.objectId);
+			final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner();
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			player.getAI().clientStartAutoAttack();
+			PhantomAssertions.assertTrue(player.isInCombat(), "Stock combat guard precondition.");
+			PhantomAssertions.assertFalse(f.background.captureVisibleArrival(f.id, player, goal, goal.selectedAnchor().key()), "Combat guard remains closed.");
+			PhantomAssertions.assertTrue(scope.diagnosticScalars().get("nativeCheckpointFirstMessage").contains("firstPredicate=combat"), "First producer remains named.");
+			PhantomAssertions.assertFalse(player.hasPendingOwnedStore(), "Capture failed before receipt/store.");
+			PhantomAssertions.assertTrue(scope.open(), "Proven no-write temporary checkpoint must retain a native continuation.");
+			PhantomAssertions.assertEquals(f.baseline.progress(), f.transactions.load(f.id).state().progress(), "No rewards from recovery.");
+		}
 	}
 	private void cold(boolean failed) throws Exception
 	{

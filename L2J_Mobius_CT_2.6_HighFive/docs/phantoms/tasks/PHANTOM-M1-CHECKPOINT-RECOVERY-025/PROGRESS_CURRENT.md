@@ -5,13 +5,21 @@
 - Own detached worktree создан по указанному пути; main/foreign worktrees read-only.
 - STOP_AUTHORITY=TASK025_CONTRACT; без субагентов; M1=OPEN.
 - Read-first: пакет025, AGENTS модуля, master/workflow/standard, RESULT/FIX_LEDGER/HANDOFF/COHORT024, build.xml и named source methods.
-- RC1 routing подтверждён source; RC2 first live producer UNKNOWN; RC3 timeout producer UNKNOWN.
+- RC1 routing подтверждён source; RC2 historical110 first producer UNKNOWN; новая natural probe доказала CAPTURE/combat exception у424/759, SEALED без pending. RC3 timeout producer UNKNOWN.
 - Переиспользуются existing transaction resolver, BACKGROUND lease, native ownership, onQuiescent, suites024.
 - 025a создан из retained024c read/export; receipt452 exact сохранён в RETAINED452_BEFORE. 025b создан из PLAY read/export, shared TEST не менялся.
 - Cold RED_COLD025: 0/2, resolver не достигнут. Узкий fix расширяет absent-owner recovery и приоритет begin/ensureBaseline/advance.
-- GREEN_COLD025: receipt завершился, но тест ошибочно сравнил прогресс после обычного historical interval. Ruling: production begin с distinct rejected request проверяет recovery до simulation; повторить RED на exact base JAR025b и GREEN.
+- GREEN_COLD025: первая версия теста ошибочно сравнила прогресс после обычного historical interval. Исправленный begin с distinct rejected request: RED_COLD_BEGIN025_COMPILED=0/2 на exact base JAR025b; GREEN_COLD_BEGIN025=2/2.
 - Первые scalar stage/exception добавлены в existing owner для доказательства live producer. Не меняют safety/reopen/earned behavior.
-- Next: corrected cold RED/GREEN, exact source commit, clean JAR, два full-server025a restart; short live probe.
-- Runtime starts=0; planned crashes=0; own JVM=0.
+- R1 source commit/push=3f826eb2806c13e8f5440983e7df9db43c4b8603; clean committed JAR собран.
+- Первый full-server probe начат до 30 минут; 025a production pulse завершил retained452: READY8424/context COMPLETED55/receipt absent. A_RESTART1_EXACT=PASS, весь native snapshot, inventory, skills и XYZ exact.
+- Первый 025a runtime graceful STOPPED; второй sameDB restart запущен для проверки идемпотентности до нового advance.
+- Второй full-server sameDB readback A_RESTART2_EXACT=PASS: state8424/context55 unchanged. Оба025a graceful STOPPED.
+- C_R1_FIRST_PRODUCER_3: 104.4s, full GameServer/stock NPC/native observer setup45900,42000,-3467,instance0. Первые две harness attempts сохранены (script counter scope; отсутствующий instanceId). Отдельный heartbeat, TTL unchanged.
+- C_R1 graceful STOPPED. RED_LIVE_COMBAT025 проверяет точный no-write guard failure и требуемый native continuation.
+- R2 typed lifecycle compiled; R2_OBSERVER_HOOK_CHECKPOINTS=7/7; R2_STOCK_DRAIN=1/1 (paired RED on exact base); R2_NATIVE_REVIEW=2/2. Generic conservative trap and native finalized mismatch remain fenced.
+- Exact-current Player observer hook default OFF; collector may publish immutable receipts through bounded ring, no FS/DB/foreign locks inside observer.
+- Next: exact R2 source commit/push/build and revised full-server probe; whole-cohort witness collector; relevant regression.
+- Runtime starts=3; planned crashes=0; own JVM=0.
 - Ruling: exact user worktree command вместо native auto-path — требуется заданный detached path/base.
 - Ruling: TASK025 overrides старые caps/phases; новых пользовательских gates нет.

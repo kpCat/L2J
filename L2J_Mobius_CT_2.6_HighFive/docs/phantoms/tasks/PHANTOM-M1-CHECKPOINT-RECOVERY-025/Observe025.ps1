@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('Probe','Scene')][string]$Mode='Probe',
+param([ValidateSet('Probe','Discovery','Scene')][string]$Mode='Probe',
       [ValidateSet('a','b','c','d','e','f','g','h')][string]$Episode='a',
       [Parameter(Mandatory)][string]$OutputRoot,[int]$Seconds=80,
       [string]$FrozenSha='', [string[]]$PreviousPrimaryIds=@(),
@@ -10,8 +10,13 @@ $taskRoot025=$PSScriptRoot
 $module025=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $taskRoot024=Join-Path $module025 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024'
 $runtimeHeartbeat025=Join-Path $module025 ".phantom-local/contract025$Episode/runtime"
-$file025=if($Mode -ceq 'Scene'){'Observe-Scene024.ps1'}else{'Observe-Prelude024.ps1'}
+$file025=if($Mode -cne 'Probe'){'Observe-Scene024.ps1'}else{'Observe-Prelude024.ps1'}
 $body025=[IO.File]::ReadAllText((Join-Path $taskRoot024 $file025))
+if($Mode -ceq 'Discovery'){
+    if($CollectSealed){throw 'Discovery uses scalar census only.'}
+    $body025=$body025.Replace('[ValidateRange(360,420)]','[ValidateRange(60,120)]')
+    $body025=$body025.Replace('    $final=@($samples[$samples.Count-1].actors)', '    [ordered]@{purpose="FIRST_PRODUCER_DISCOVERY";elapsedSeconds=$watch.Elapsed.TotalSeconds;frozenSha=$FrozenSha;finalSceneClaim=$false} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot "discovery-result.json") -Encoding utf8; return')
+}
 $body025=$body025.Replace("& (Join-Path `$PSScriptRoot 'Read-Clone024.ps1') -RuntimeRoot `$runtime", "& (Join-Path `$taskRoot025 'Control025.ps1') -Action Export -Episode `$Episode")
 $body025=$body025.Replace('-ProfileIds @($ids)','-ProfileIds $ProbeProfileIds')
 $body025=$body025.Replace('$PSScriptRoot','$taskRoot024').Replace('contract024','contract025').Replace('contract025c','contract025[a-h]')
@@ -30,8 +35,10 @@ function Start-Heartbeat025([string]$RunId025){
     }
 }
 $script:heartbeatJob025=$null
+$script:counter=0
+$script:observer=$null
 try{
-    if($Mode -ceq 'Scene'){
+    if($Mode -cne 'Probe'){
         & ([scriptblock]::Create($body025)) -RuntimeRoot $runtimeHeartbeat025 -OutputRoot $OutputRoot -FrozenSha $FrozenSha -Seconds $Seconds -PreviousPrimaryIds $PreviousPrimaryIds -SetupTeleport $SetupTeleport -SetupMove $SetupMove -CollectSealed:$CollectSealed
     }else{
         & ([scriptblock]::Create($body025)) -RuntimeRoot $runtimeHeartbeat025 -OutputRoot $OutputRoot -Seconds $Seconds

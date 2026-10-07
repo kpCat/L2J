@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.function.BooleanSupplier;
 
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
@@ -42,20 +43,135 @@ public final class PhantomNativeWorkScope implements Owner
 	private volatile Map<String, String> _publishedWork = Map.of();
 	private volatile String _checkpointStage = "";
 	private volatile CheckpointFailure _checkpointFirstFailure;
+	public enum CheckpointOutcome { WAIT_EARNED, RETRY_BEFORE_WRITE, RESOLVE_RECEIPT, VERIFY_WRITE_OUTCOME, PUBLISH_COMMITTED, RESUME, TERMINAL_RETAIN }
+	public record CheckpointKey(long profileId, int objectId, long epoch, long goalId, long goalRevision, String requestId) { }
+	public record CheckpointResult(CheckpointOutcome outcome, String phase, String reason) { }
+	private static final class OwnedCheckpoint
+	{
+		final CheckpointKey key;
+		boolean writeAttempted;
+		boolean finalized;
+		boolean published;
+		boolean unsafe;
+		String reason = "";
+		OwnedCheckpoint(CheckpointKey key) { this.key = key; }
+	}
+	private OwnedCheckpoint _ownedCheckpoint;
+	private volatile CheckpointResult _ownedCheckpointResult;
+	/** Task-local observer installs this optional scalar hook; default production path has no observer. */
+	private static volatile java.util.function.BiConsumer<Player, String> _checkpointObserver;
+	private volatile String _checkpointObserverFailure = "";
 	private record CheckpointFailure(String stage, String exceptionClass, String message, String stack) { }
 
 	/** Scalar observation only, tied to this exact checkpoint thread; no other actor locks or I/O. */
 	public void checkpointStage(String stage)
 	{
-		if ((_checkpointThread == Thread.currentThread()) && isCurrent()) { _checkpointStage = stage; }
+		if ((_checkpointThread == Thread.currentThread()) && isCurrent())
+		{
+			_checkpointStage = stage;
+			final var owned = _ownedCheckpoint;
+			if (owned != null)
+			{
+				if (stage.equals("INVENTORY_FLUSH") || stage.equals("PREPARE_ATTEMPTED") || stage.equals("PREPARED") || stage.equals("NATIVE_ATTEMPTED")) { owned.writeAttempted = true; }
+				if (stage.equals("FINALIZED")) { owned.finalized = true; }
+				if (stage.equals("COMPLETED")) { owned.published = true; }
+			}
+			final var observer = _checkpointObserver;
+			if (observer != null)
+			{
+				try { observer.accept(_player, stage); }
+				catch (Throwable failure) { if (_checkpointObserverFailure.isEmpty()) { _checkpointObserverFailure = PhantomCleanupIncident.bounded(failure.getClass().getName() + ":" + failure.getMessage(), 256); } }
+			}
+		}
 	}
-	public void recordCheckpointFailure(RuntimeException failure)
+	public void recordCheckpointFailure(Throwable failure)
 	{
 		synchronized (_monitor)
 		{
 			if ((_checkpointFirstFailure == null) && isCurrent())
 			{
 				_checkpointFirstFailure = new CheckpointFailure(_checkpointStage, failure.getClass().getName(), PhantomCleanupIncident.bounded(failure.getMessage(), 256), PhantomCleanupIncident.bounded(java.util.Arrays.toString(java.util.Arrays.copyOf(failure.getStackTrace(), Math.min(6, failure.getStackTrace().length))), 1600));
+			}
+		}
+	}
+
+	/** Exact visible-store caller only. Waiting releases its worker; earned completion only publishes control. */
+	public CheckpointResult ownedCheckpoint(CheckpointKey key, BooleanSupplier action, Runnable enqueue)
+	{
+		if (PlayerNativeWork.current(this) != null) { throw new IllegalStateException("NATIVE_WORK_SELF_DRAIN"); }
+		final OwnedCheckpoint owned;
+		synchronized (_monitor)
+		{
+			if (!isCurrent() || _permanentSeal || !_failure.isEmpty() || key.objectId() != _player.getObjectId() || key.epoch() != _epoch)
+			{
+				return new CheckpointResult(CheckpointOutcome.TERMINAL_RETAIN, _checkpointStage, "owned_checkpoint.owner_or_cleanup_changed:" + _failure);
+			}
+			if (_checkpointThread != null) { return new CheckpointResult(CheckpointOutcome.WAIT_EARNED, _checkpointStage, "owned_checkpoint.executing"); }
+			if (_ownedCheckpoint == null)
+			{
+				if (_state != State.OPEN) { return new CheckpointResult(CheckpointOutcome.TERMINAL_RETAIN, _checkpointStage, "owned_checkpoint.unproven_seal"); }
+				_ownedCheckpoint = new OwnedCheckpoint(key);
+				_ownedCheckpointResult = null;
+				_checkpointStage = "ADMITTED";
+				_state = State.DRAINING;
+			}
+			owned = _ownedCheckpoint;
+			if (!owned.key.equals(key)) { return new CheckpointResult(CheckpointOutcome.TERMINAL_RETAIN, _checkpointStage, "owned_checkpoint.request_changed"); }
+			if ((_ownedCheckpointResult != null) && (_ownedCheckpointResult.outcome() == CheckpointOutcome.VERIFY_WRITE_OUTCOME || _ownedCheckpointResult.outcome() == CheckpointOutcome.TERMINAL_RETAIN)) { return _ownedCheckpointResult; }
+			if (!_outstanding.isEmpty())
+			{
+				_checkpointStage = "WAIT_EARNED";
+				if (_quiescentEnqueue == null) { _quiescentEnqueue = enqueue; }
+				return _ownedCheckpointResult = new CheckpointResult(CheckpointOutcome.WAIT_EARNED, _checkpointStage, "owned_checkpoint.earned_pending");
+			}
+			_quiescentEnqueue = null;
+			_state = State.SEALED;
+			_checkpointThread = Thread.currentThread();
+			if (!owned.writeAttempted) { _checkpointStage = "SEALED"; }
+		}
+		boolean completed = false;
+		try { completed = action.getAsBoolean(); }
+		catch (RuntimeException | Error failure)
+		{
+			recordCheckpointFailure(failure);
+			if (owned.reason.isEmpty()) { owned.reason = failure.getClass().getName() + ":" + PhantomCleanupIncident.bounded(failure.getMessage(), 256); }
+		}
+		finally
+		{
+			synchronized (_monitor)
+			{
+				final boolean exact = isCurrent() && !_permanentSeal && _failure.isEmpty();
+				final CheckpointOutcome outcome = !exact || owned.unsafe ? CheckpointOutcome.TERMINAL_RETAIN
+					: completed && owned.finalized && owned.published && !_player.hasPendingOwnedStore() ? CheckpointOutcome.RESUME
+					: !owned.writeAttempted ? CheckpointOutcome.RETRY_BEFORE_WRITE
+					: _player.hasPendingOwnedStore() ? CheckpointOutcome.RESOLVE_RECEIPT
+					: owned.finalized ? CheckpointOutcome.PUBLISH_COMMITTED : CheckpointOutcome.VERIFY_WRITE_OUTCOME;
+				_ownedCheckpointResult = new CheckpointResult(outcome, _checkpointStage, owned.reason);
+				if (outcome == CheckpointOutcome.RESUME || outcome == CheckpointOutcome.RETRY_BEFORE_WRITE)
+				{
+					_state = State.OPEN;
+					_ownedCheckpoint = null;
+				}
+				_pendingResumeEligible = exact && _player.hasPendingOwnedStore();
+				_checkpointThread = null;
+				_monitor.notifyAll();
+			}
+		}
+		return _ownedCheckpointResult;
+	}
+	public boolean ownedCheckpointNeedsPublication(CheckpointKey key)
+	{
+		synchronized (_monitor) { return _ownedCheckpoint != null && _ownedCheckpoint.key.equals(key) && _ownedCheckpoint.finalized; }
+	}
+	/** Negative executing-boundary proof is terminal; it never clears a native incident or ownership. */
+	public void retainOwnedCheckpoint(CheckpointKey key, String reason)
+	{
+		synchronized (_monitor)
+		{
+			if (_checkpointThread == Thread.currentThread() && _ownedCheckpoint != null && _ownedCheckpoint.key.equals(key))
+			{
+				_ownedCheckpoint.unsafe = true;
+				if (_ownedCheckpoint.reason.isEmpty()) { _ownedCheckpoint.reason = reason; }
 			}
 		}
 	}
@@ -78,7 +194,7 @@ public final class PhantomNativeWorkScope implements Owner
 	{
 		synchronized (_monitor)
 		{
-			return isCurrent() && (_checkpointThread != null) && !_permanentSeal && _failure.isEmpty() && !_player.hasPendingOwnedStore() && ((_state == State.DRAINING) || (_state == State.SEALED));
+			return isCurrent() && ((_checkpointThread != null) || (_ownedCheckpoint != null)) && !_permanentSeal && _failure.isEmpty() && !_player.hasPendingOwnedStore() && ((_state == State.DRAINING) || (_state == State.SEALED));
 		}
 	}
 	public boolean checkpointPauseAllowed(boolean witnessed)
@@ -238,6 +354,7 @@ public final class PhantomNativeWorkScope implements Owner
 		synchronized (_monitor)
 		{
 			_permanentSeal = true;
+			_quiescentEnqueue = null;
 			while ((_checkpointThread != null) && (_checkpointThread != Thread.currentThread())) { await(deadlineNanos); }
 		}
 		drain(deadlineNanos);
@@ -337,6 +454,10 @@ public final class PhantomNativeWorkScope implements Owner
 		fields.put("nativeOwnerPermanentSeal", Boolean.toString(_permanentSeal)); fields.put("nativeOwnerCheckpoint", Boolean.toString(_checkpointThread != null));
 		fields.put("nativeOwnerFailure", _failure);
 		fields.put("nativeCheckpointStage", _checkpointStage);
+		fields.put("nativeCheckpointObserverFailure", _checkpointObserverFailure);
+		final var ownedResult = _ownedCheckpointResult;
+		fields.put("nativeCheckpointOutcome", ownedResult == null ? "" : ownedResult.outcome().name());
+		fields.put("nativeCheckpointReason", ownedResult == null ? "" : ownedResult.reason());
 		final var checkpoint = _checkpointFirstFailure;
 		fields.put("nativeCheckpointFirstStage", checkpoint == null ? "" : checkpoint.stage());
 		fields.put("nativeCheckpointFirstClass", checkpoint == null ? "" : checkpoint.exceptionClass());

@@ -384,7 +384,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 		final PhantomMaterializationService materialization;
 		final PhantomBackgroundService background;
 		final PhantomHistoricalBackgroundService historical;
-		final PhantomBackgroundTransaction transactions = new PhantomBackgroundTransaction();
+		final PhantomBackgroundTransaction transactions;
 		Runnable beforeLoad = () -> { };
 		Runnable afterHistoricalLoad = () -> { };
 		PhantomBackgroundState baseline;
@@ -399,6 +399,12 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 
 		Fixture(boolean visibleFarm, boolean deadStale, int nativeZOffset) throws Exception
 		{
+			this(visibleFarm, deadStale, nativeZOffset, PhantomBackgroundTransaction.FaultInjector.none());
+		}
+
+		Fixture(boolean visibleFarm, boolean deadStale, int nativeZOffset, PhantomBackgroundTransaction.FaultInjector faultInjector) throws Exception
+		{
+			transactions = new PhantomBackgroundTransaction(org.l2jmobius.commons.database.DatabaseFactory::getConnection, PhantomBackgroundTransaction.ObjectIdAllocator.production(), faultInjector);
 			id = _profiles.create(objectId).profileId();
 			final var ref = new AtomicReference<PhantomMaterializationService>();
 			final var delegate = new AtomicReference<PhantomMaterializationLifecyclePort>();
