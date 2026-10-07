@@ -21,6 +21,8 @@ $body025=$body025.Replace('-ProfileIds @($ids)','-ProfileIds $ProbeProfileIds')
 $body025=$body025.Replace('$PSScriptRoot','$taskRoot024').Replace('contract024','contract025').Replace('contract025c','contract025[a-h]')
 $body025=$body025.Replace("& (Join-Path `$taskRoot024 'Arm-Collector024.ps1') -RuntimeRoot `$RuntimeRoot", "& (Join-Path `$taskRoot025 'Collector025.ps1') -Mode Observe -Episode `$Episode")
 $body025=$body025.Replace(' -FollowCurrentEpochs','')
+# Leave time for the existing mailbox census round trip inside the <=5s sampling bound.
+$body025=$body025.Replace('Start-Sleep -Seconds 4','Start-Sleep -Seconds 3')
 $body025=$body025.Replace('$started=$true', '$started=$true; $script:heartbeatJob025=Start-Heartbeat025 $run')
 function Start-Heartbeat025([string]$RunId025){
     Start-Job -ArgumentList $runtimeHeartbeat025,$RunId025 -ScriptBlock {

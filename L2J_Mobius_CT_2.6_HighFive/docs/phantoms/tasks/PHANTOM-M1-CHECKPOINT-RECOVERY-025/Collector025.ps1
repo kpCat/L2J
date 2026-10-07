@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('Build','Observe','Flush')][string]$Mode='Build',
+param([ValidateSet('Build','Observe','Flush','CrashNative','CrashFinalize')][string]$Mode='Build',
       [ValidateSet('a','b','c','d','e','f','g','h')][string]$Episode='c',
       [string]$CohortJson='', [string]$OutputRoot='')
 $ErrorActionPreference='Stop'
@@ -35,10 +35,22 @@ if(-not $output025.StartsWith($allowed025,[StringComparison]::OrdinalIgnoreCase)
 $lines025=[Collections.Generic.List[string]]::new()
 $lines025.Add('runtime='+$runtime025.Replace('\','/')); $lines025.Add('output='+$output025.Replace('\','/'))
 $lines025.Add('owner=TASK025_CONTRACT'); $lines025.Add('pid='+$state025.pid); $lines025.Add('startTicks='+$state025.startTimeUtcTicks); $lines025.Add('codeSha='+$manifest025.codeSha)
-$lines025.Add('mode='+$(if($Mode -ceq 'Flush'){'FLUSH'}else{'OBSERVE'}))
-if($Mode -ceq 'Observe'){
+$crash025=$Mode -in @('CrashNative','CrashFinalize')
+$lines025.Add('mode='+$(switch($Mode){'Flush'{'FLUSH'} 'CrashNative'{'CRASH_NATIVE'} 'CrashFinalize'{'CRASH_FINALIZE'} default{'OBSERVE'}}))
+if($crash025){
+    if(($Mode -ceq 'CrashNative' -and $Episode -cne 'e') -or ($Mode -ceq 'CrashFinalize' -and $Episode -cne 'f')){throw 'Separate exact e/f crash lane required.'}
+    if(Test-Path $output025){throw 'Immutable planned crash output already exists.'}
+    if(@(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'evidence') -Filter planned-crash.properties -Recurse -File).Count -ge 2){throw 'Two planned crash limit reached.'}
+    New-Item -ItemType Directory -Path $output025 | Out-Null
+    $dump025=Join-Path $output025 'pre-arm-threads.txt'
+    & (Join-Path $jdk025 'jcmd.exe') $state025.pid Thread.print -l *> $dump025
+    if($LASTEXITCODE -ne 0){throw 'Pre-crash exact owned thread dump failed.'}
+    $lines025.Add('preDump='+$dump025.Replace('\','/')); $lines025.Add('preDumpHash='+(Get-FileHash $dump025).Hash.ToLowerInvariant())
+}
+if($Mode -ceq 'Observe' -or $crash025){
     $rows025=@(Get-Content -LiteralPath $CohortJson -Raw | ConvertFrom-Json)
     if($rows025.Count -lt 1 -or $rows025.Count -gt 8){throw 'Exact cohort 1..8 required.'}
+    if($crash025 -and ($rows025.Count -ne 1 -or [long]$rows025[0].nativeRewardSequence -le 0 -or $rows025[0].dead -ceq 'true')){throw 'One exact natural earned live actor required.'}
     foreach($row025 in $rows025){if([long]$row025.profileId -le 0 -or [long]$row025.materializedAtNanos -le 0){throw 'Exact profile/epoch required.'};$lines025.Add('profile.'+$row025.profileId+'='+$row025.materializedAtNanos)}
 }
 $spec025=Join-Path (Split-Path $runtime025 -Parent) ('observer-'+[guid]::NewGuid().ToString('N')+'.properties')

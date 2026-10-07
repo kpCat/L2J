@@ -120,7 +120,19 @@ public final class PhantomBackgroundDecision
 			return switch (arrival.kind())
 			{
 				case ARRIVED -> autoPlay.start(profileId, goal) ? PhantomStepResult.of(Type.SUCCESS, "background.visible.autoplay_started") : PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry");
-				case PENDING -> { autoPlay.stop(profileId); yield PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry"); }
+				case PENDING ->
+				{
+					final var checkpoint = service.continueVisibleCheckpoint(profileId, goal).orElse(null);
+					if (checkpoint != null)
+					{
+						// Existing pools pause on the exact temporary owner; do not discard its continuation session.
+						if (checkpoint.outcome() == org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointOutcome.TERMINAL_RETAIN
+							|| checkpoint.outcome() == org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.CheckpointOutcome.VERIFY_WRITE_OUTCOME) { autoPlay.stop(profileId); }
+						yield PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.checkpoint." + checkpoint.outcome().name().toLowerCase(java.util.Locale.ROOT));
+					}
+					autoPlay.stop(profileId);
+					yield PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.visible.start_retry");
+				}
 				case STALE_GOAL, TERMINAL -> { autoPlay.stop(profileId); yield PhantomStepResult.of(Type.REPLAN, arrival.reason()); }
 			};
 		};

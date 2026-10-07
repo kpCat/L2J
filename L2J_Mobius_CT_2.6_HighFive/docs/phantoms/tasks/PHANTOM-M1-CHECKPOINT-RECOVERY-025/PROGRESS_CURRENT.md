@@ -28,5 +28,13 @@
 - RED_STALE_GOAL025=7/8 proves safe no-write old request blocked a new goal. GREEN_STALE_GOAL025=8/8 after exact completed-request cancellation; inventory-flush unknown writes remain fenced even with changed goal.
 - Next: compile paired drain test; exact R3 source commit/push/build; corrected whole-group full-server proof; frozen scenes and regressions/crash/death/soft-return.
 - Runtime starts=4; planned crashes=0; own JVM=0.
+- R3 commit/push=b8e6e537df441d75e34dd7ed9df7de44b0f753df. Full C_R3_SCENE_A365.8s:1/7 farm PASS, six tail120/progress RED; no actors hidden. Sampling4s+roundtrip exceeded5s; task observer now3s, evaluator unchanged.
+- C_R3_A_WHOLE_GROUP_EXACT=PASS7/7 after first healthy earned stop; pending0/online0. C_R3_A_RESTART1_EXACT=PASS7/7 after actual sameDB process restart. Both R3 own runtimes gracefully STOPPED.
+- Native633 raw Z=-3574; existing static stock geodata read=-3568 at exact capturedXY. This is an ordinary geometry guard obstacle, not permission to replace nativeXYZ or loosen sensor validation. Exact runtime cause of all farm stalls not yet established.
+- R3_ADMISSION18=11/19; BASE_ADMISSION18_025=11/19, same shared TEST restore barrier + resulting fixture failures. R3_LAWFUL_BOUNDARIES023=8/12; BASE=9/12. Three physical lane guards paired; extra N02 kill sensor RED(first1/second0, actual rewards259/259/ordinary14) remains unresolved and cannot be called regressionPASS.
+- V12 left orphaned own fixture profile10158→268435465 with absent character. Own025b full backup then exact original input snapshot import FIXTURE_RESET025_01; not product recovery, no shared metadata changes. R3_LOCAL_RECOVERY024_FRESH=2/2 after isolation repair.
+- R30 actual binding RED=2/3: WAIT_EARNED removed stock registration; conditional BackgroundDecision typed branch now retains exact control continuation and named reason. GREEN_BINDING025=3/3; R4_RECOVERY_CONTRACTS=8/8. Geometry guards unchanged.
+- Task collector planned-window mode uses exact PREPARED Player/intent through thread-local immutable witness; no World/materialization scan in hook. REALcount checks enabled native identity registry; original fault injector still runs. Separate e/f only, fsync allowed solely in crash window. CompilePASS, runtime crash not yet run.
+- Next: exact R4 commit/push/build; changed-source full scenes with corrected sampling; required regressions, planned AFTER_NATIVE and lifecycle gates as time/scope permits.
 - Ruling: exact user worktree command вместо native auto-path — требуется заданный detached path/base.
 - Ruling: TASK025 overrides старые caps/phases; новых пользовательских gates нет.
