@@ -13,6 +13,12 @@ if(-not $OutputRoot.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase) -
 if($Mode -ceq 'Scene' -and ($Seconds -lt 360 -or $Seconds -gt 420)){throw 'Final scene must be 360..420 seconds.'}
 if($Mode -ceq 'Probe' -and ($Seconds -lt 60 -or $Seconds -gt 90)){throw 'Probe must be 60..90 seconds.'}
 if($Mode -ceq 'Away' -and (-not $PathJson)){throw 'Dedicated dry native path required before away episode.'}
+if($Mode -ceq 'Away'){
+    $path=Get-Content -LiteralPath $PathJson -Raw | ConvertFrom-Json
+    $helper=Join-Path $module 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/ReadDryPath023.java'
+    if(-not $path.bidirectional -or $path.helperSha256 -cne (Get-FileHash $helper).Hash -or $path.geoLogSha256 -cne (Get-FileHash $path.geoLog).Hash){throw 'Immutable native dry path provenance invalid.'}
+    if($Seconds -lt 90 -or $Seconds -gt 160 -or $path.steps.Count -gt 40){throw 'Bounded away/return plan exceeds525s/400sequence budget.'}
+}
 $manifest=Get-Content (Join-Path $runtime 'local-play.json') -Raw | ConvertFrom-Json
 if($manifest.codeSha -cne $FrozenSha -or $manifest.databaseName -cne "l2jmobiush5_localplay_contract028$Episode"){throw 'Frozen SHA/exact clone mismatch.'}
 New-Item -ItemType Directory -Path $OutputRoot | Out-Null
@@ -72,6 +78,21 @@ function WaitArrival028([hashtable]$Point){
     }while($arrival.Elapsed.TotalSeconds -lt 12)
     throw 'ACCEPTED_NOT_ARRIVED: factual native arrival missing; no MOVE replay.'
 }
+function MarkPhase028([string]$Phase){
+    $frame=ReadFrame028
+    @{phase=$Phase;sampleNanos=$frame.sampleNanos;elapsedFromStart=$watch.Elapsed.TotalSeconds;observer=$frame.observer;actors=$frame.actors} | ConvertTo-Json -Depth 14 -Compress | Add-Content (Join-Path $OutputRoot 'phase-markers.jsonl') -Encoding utf8
+}
+function Walk028([object[]]$Points){
+    foreach($point in $Points){
+        if($watch.Elapsed.TotalSeconds -gt 320){throw 'Away route budget exhausted before post-return proof.'}
+        $frame=ReadFrame028
+        $dx=[double]$point.x-[double]$frame.observer.x; $dy=[double]$point.y-[double]$frame.observer.y
+        if([Math]::Sqrt($dx*$dx+$dy*$dy) -gt 300.01 -or [Math]::Abs([int]$point.z-[int]$frame.observer.z) -gt 200){throw 'Factual next dry step bound violated; no MOVE.'}
+        $move=Capture028 'MOVE_SELF' @{x=[int]$point.x;y=[int]$point.y;z=[int]$point.z}
+        if($move.status -cne 'ACCEPTED'){throw 'Away MOVE admission missing.'}
+        WaitArrival028 @{x=[int]$point.x;y=[int]$point.y;z=[int]$point.z}
+    }
+}
 try{
     & (Join-Path $runtime 'Start-LocalPlaySynthetic.ps1') -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-start.json') -Encoding utf8
     $started=$true; $watch.Restart()
@@ -118,7 +139,8 @@ try{
     $primary=@($(if($different.Count -ge 2){$different}else{$suitable}) | Select-Object -First 2)
     if($primary.Count -ne 2){throw 'Two suitable primaries unavailable before outcomes.'}
     $primary | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $OutputRoot 'primary.json') -Encoding utf8
-    & (Join-Path $PSScriptRoot 'Control028.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot (Join-Path $OutputRoot 'enrollment-census') *> (Join-Path $OutputRoot 'census-attach.log')
+    $endpoint=if($Mode -ceq 'Away'){@{x=[int]$path.endpoint.x;y=[int]$path.endpoint.y;z=[int]$path.endpoint.z}}else{@{}}
+    & (Join-Path $PSScriptRoot 'Control028.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot (Join-Path $OutputRoot 'enrollment-census') -EndpointPoint $endpoint *> (Join-Path $OutputRoot 'census-attach.log')
     if($LASTEXITCODE -ne 0){throw 'One-shot World/capacity census failed.'}
     & (Join-Path $PSScriptRoot 'Control028.ps1') -Action Collector -Mode FullObserve -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot $fullRoot -ObserverRunId $run *> (Join-Path $OutputRoot 'full-attach.log')
     if($LASTEXITCODE -ne 0){throw 'Existing FullObserve attach failed.'}
@@ -136,7 +158,40 @@ try{
         if($return.status -cne 'ACCEPTED'){throw 'Probe return admission missing.'}
         WaitArrival028 $origin
     }
-    if($Mode -ceq 'Away'){throw 'Dedicated native away path phase not yet implemented; no manual Phantom action.'}
+    if($Mode -ceq 'Away'){
+        if([Math]::Abs($first.observer.x-[int]$path.origin.x) -gt 24 -or [Math]::Abs($first.observer.y-[int]$path.origin.y) -gt 24 -or [Math]::Abs($first.observer.z-[int]$path.origin.z) -gt 48){throw 'Actual observer origin differs from native dry path.'}
+        $admission=Import-Csv (Join-Path $OutputRoot 'enrollment-census/endpoint-locality.tsv') -Delimiter "`t"
+        foreach($id in $primary.profileId){
+            $row=@($admission | Where-Object {$_.profileId -ceq $id})
+            if($row.Count -ne 1 -or $row[0].worldPresent -cne 'true' -or $row[0].prewarm -cne 'false' -or $row[0].nativeVisible -cne 'false'){throw 'Endpoint lacks native no-demand proof for preselected actor.'}
+        }
+        MarkPhase028 'DEPART'
+        Walk028 @($path.steps)
+        MarkPhase028 'AWAY_ARRIVED'
+        & (Join-Path $PSScriptRoot 'Control028.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot (Join-Path $OutputRoot 'away-census') *> (Join-Path $OutputRoot 'away-census.log')
+        if($LASTEXITCODE -ne 0){throw 'Bounded away native census failed.'}
+        $humans=Import-Csv (Join-Path $OutputRoot 'away-census/world-identities.tsv') -Delimiter "`t" | Where-Object {$_.headless -ceq 'false' -and $_.objectId -cne '268492939'}
+        if(@($humans).Count){throw 'Other native human at away boundary.'}
+        $away=[Diagnostics.Stopwatch]::StartNew()
+        do{
+            $frame=ReadFrame028
+            foreach($id in $primary.profileId){$row=@($frame.actors | Where-Object {$_.profileId -ceq $id});if($row.Count -ne 1 -or $row[0].observerPrewarm -cne 'false' -or $row[0].observerNativeVisible -cne 'false'){throw 'Native away locality still demanded.'}}
+            if(@($frame.actors | Where-Object {$_.worldPresent -ceq 'true'}).Count -eq 0){break}
+            if($away.Elapsed.TotalSeconds -gt 120){throw 'SOFT_RETIRE_BOUND: enrolled actors remain in World after native action/grace.'}
+            Start-Sleep -Seconds 1
+        }while($true)
+        MarkPhase028 'BACKGROUND_ABSENT'
+        & (Join-Path $PSScriptRoot 'Control028.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-early') *> (Join-Path $OutputRoot 'away-early-export.log')
+        if($LASTEXITCODE -ne 0){throw 'Exact away canonical export failed.'}
+        Start-Sleep -Seconds 15
+        & (Join-Path $PSScriptRoot 'Control028.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-late') *> (Join-Path $OutputRoot 'away-late-export.log')
+        if($LASTEXITCODE -ne 0){throw 'Exact background step export failed.'}
+        MarkPhase028 'RETURN'
+        $back=[Collections.Generic.List[object]]::new()
+        for($i=$path.steps.Count-2;$i -ge 0;$i--){$back.Add($path.steps[$i])}
+        $back.Add($path.origin); Walk028 @($back)
+        MarkPhase028 'RETURNED'
+    }
     $first=ReadFrame028
     $sequenceBefore=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
     $observation=[Diagnostics.Stopwatch]::StartNew(); $lastNanos=[long]$first.sampleNanos; $maxGap=0.0; $unique=0; $lastFresh=0.0
@@ -159,6 +214,7 @@ try{
         Start-Sleep -Milliseconds 500
     }
     $samples | ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'all-samples.json') -Encoding utf8
+    if($Mode -ceq 'Away'){MarkPhase028 'POST_RETURN_DONE'}
     $sequenceAfter=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
     [ordered]@{kind=$Mode;sha=$FrozenSha;runId=$run;seconds=$observation.Elapsed.TotalSeconds;nativeUniqueSamples=$unique;maxGapSeconds=$maxGap;commandCount=$script:commands;baselineCount=$baseline.Count;primaryIds=@($primary.profileId);sameSession=$true;telemetryMailboxCommands=([long]$sequenceAfter.nextSequence-[long]$sequenceBefore.nextSequence);sequenceBefore=[long]$sequenceBefore.nextSequence;sequenceAfter=[long]$sequenceAfter.nextSequence;arrivalProof=($Mode -ceq 'Probe')} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'capture-result.json') -Encoding utf8
     "TASK028_CAPTURE_COMPLETE mode=$Mode cohort=$($baseline.Count) samples=$unique gap=$maxGap commands=$script:commands"

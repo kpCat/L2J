@@ -140,6 +140,40 @@ public final class Contract028Observer
             final var materialization = (org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService) field(configured.getClass(), "_materializationService").get(configured);
             final var entries = materialization.snapshot().materializations();
             write(output.resolve("all-materializations.txt"), entries.toString());
+            final var auto = (org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay) field(configured.getClass(), "_visibleAutoPlay").get(configured);
+            final var admissions = new StringBuilder("profileId\toperatorAdmission\n");
+            for (long profile : selected.keySet().stream().sorted().toList())
+            {
+                admissions.append(profile).append('\t').append(org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorAdmissionProfile(profile)).append('\n');
+                final var fields = new java.util.LinkedHashMap<String, String>();
+                fields.putAll(auto.snapshotContinuation(profile).scalarMap());
+                final var entry = entries.stream().filter(value -> value.profileId() == profile).findFirst().orElse(null);
+                final var object = entry == null ? null : World.getInstance().findObject(entry.characterObjectId());
+                if (object instanceof Player actor)
+                {
+                    fields.put("moving", Boolean.toString(actor.isMoving())); fields.put("attacking", Boolean.toString(actor.isAttackingNow())); fields.put("casting", Boolean.toString(actor.isCastingNow()));
+                    fields.put("inCombat", Boolean.toString(actor.isInCombat())); fields.put("aiAutoAttacking", Boolean.toString(actor.hasAI() && actor.getAI().isAutoAttacking()));
+                    final var target = actor.hasAI() ? actor.getAI().getAttackTarget() : null;
+                    fields.put("aiAttackTarget", Integer.toString(target == null ? 0 : target.getObjectId())); fields.put("aiAttackTargetDead", Boolean.toString(target != null && target.isAlikeDead()));
+                    if (actor.getNativeWorkOwner() instanceof PhantomNativeWorkScope owner) { fields.putAll(owner.diagnosticScalars()); fields.putAll(owner.evidence().snapshot().scalarMap()); }
+                }
+                write(output.resolve("continuation-" + profile + ".json"), "{" + fields.entrySet().stream().map(value -> jsonString(value.getKey()) + ":" + jsonString(value.getValue())).collect(java.util.stream.Collectors.joining(",")) + "}\n");
+            }
+            write(output.resolve("operator-admission.tsv"), admissions.toString());
+            if (spec.containsKey("endpoint.x"))
+            {
+                final var control = (org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl) field(configured.getClass(), "_humanLocality").get(configured);
+                final var point = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(Integer.parseInt(spec.getProperty("endpoint.x")), Integer.parseInt(spec.getProperty("endpoint.y")), Integer.parseInt(spec.getProperty("endpoint.z")), 0);
+                final var endpoint = new StringBuilder("profileId\tworldPresent\tx\ty\tz\tprewarm\tnativeVisible\n");
+                for (long profile : selected.keySet().stream().sorted().toList())
+                {
+                    final var entry = entries.stream().filter(value -> value.profileId() == profile).findFirst().orElse(null);
+                    final var object = entry == null ? null : World.getInstance().findObject(entry.characterObjectId());
+                    final var actor = object instanceof Player value ? value : null;
+                    endpoint.append(profile).append('\t').append(actor != null).append('\t').append(actor == null ? "none" : actor.getX()).append('\t').append(actor == null ? "none" : actor.getY()).append('\t').append(actor == null ? "none" : actor.getZ()).append('\t').append(control.canPrewarmAt(profile, point)).append('\t').append(actor != null && org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(point, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId()))).append('\n');
+                }
+                write(output.resolve("endpoint-locality.tsv"), endpoint.toString());
+            }
             final var text = new StringBuilder("profileId\tstate\tworldPresent\tepoch\thp\tx\ty\tz\tnative\n");
             for (long profile : selected.keySet().stream().sorted().toList())
             {
@@ -285,11 +319,9 @@ public final class Contract028Observer
             final var lastSeen = lastHuman.get(profile);
             row.put("lastHumanNanos", Long.toString(lastSeen == null ? 0 : lastSeen));
             row.put("recentHumanAgeSeconds", Double.toString(lastSeen == null ? -1 : (now - lastSeen) / 1_000_000_000.0));
-            row.put("humanLocal", Boolean.toString(locality.isLocal(profile)));
-            row.put("nativeVisible", Boolean.toString(locality.isNativeVisible(profile)));
             row.put("xyzSource", object instanceof Player ? "WORLD_CURRENT" : retained != null ? "RETAINED_OLD_PLAYER" : "ABSENT");
             row.put("observerPrewarm", Boolean.toString(observerPoint != null && locality.canPrewarmAt(profile, observerPoint)));
-            row.put("observerNativeVisible", Boolean.toString(player != null && observerPoint != null && org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(observerPoint, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))));
+            row.put("observerNativeVisible", Boolean.toString(object instanceof Player && entry != null && entry.worldPresent() && observerPoint != null && org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(observerPoint, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))));
             row.put("initialEpoch", Long.toString(initial.getValue()));
             if (retained != null) { row.putAll(retained.evidence().snapshot().scalarMap()); row.putAll(retained.diagnosticScalars()); }
             else { row.put("nativeEvidenceEpoch", "0"); for (String key : java.util.List.of("nativeRewardSequence", "nativeKillSequence", "nativeDamageSequence", "nativeTargetSequence", "nativeFarmCycleSequence", "nativeExpGained", "nativeSpGained")) { row.put(key, "0"); } row.put("nativeEvidenceOverflow", "true"); }
@@ -305,6 +337,9 @@ public final class Contract028Observer
                 row.put("hp", Double.toString(player.getCurrentHp())); row.put("mp", Double.toString(player.getCurrentMp()));
                 row.put("x", Integer.toString(player.getX())); row.put("y", Integer.toString(player.getY())); row.put("z", Integer.toString(player.getZ()));
                 row.put("moving", Boolean.toString(player.isMoving())); row.put("casting", Boolean.toString(player.isCastingNow())); row.put("attacking", Boolean.toString(player.isAttackingNow()));
+                row.put("inCombat", Boolean.toString(player.isInCombat())); row.put("aiAutoAttacking", Boolean.toString(player.hasAI() && player.getAI().isAutoAttacking()));
+                final var aiTarget = player.hasAI() ? player.getAI().getAttackTarget() : null;
+                row.put("aiAttackTarget", Integer.toString(aiTarget == null ? 0 : aiTarget.getObjectId())); row.put("aiAttackTargetDead", Boolean.toString(aiTarget != null && aiTarget.isAlikeDead()));
                 row.put("targetObjectId", Integer.toString(player.getTarget() == null ? 0 : player.getTarget().getObjectId()));
             }
             rows.add(row);
