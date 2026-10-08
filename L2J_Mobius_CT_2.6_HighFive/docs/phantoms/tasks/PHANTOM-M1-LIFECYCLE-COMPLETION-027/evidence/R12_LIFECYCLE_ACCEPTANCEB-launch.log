@@ -1,0 +1,12 @@
+[PASS] lifecycle-completion027.D01-real-45s-native-death-return-and-new-epoch
+[PASS] lifecycle-completion027.D02-secondary-native-revive-does-not-return-twice
+[PASS] lifecycle-completion027.D03-cold-canonical-dead-native-recovery
+[PASS] lifecycle-completion027.D04-cold-dead-keeps-exact-pending-handoff
+[PASS] lifecycle-completion027.D04-exact-pending-handoff-survives-native-death-return
+[PASS] lifecycle-completion027.D05-accepted-queued-native-return-survives-close
+[PASS] lifecycle-completion027.E01-executor-entry-before-owner-monitor
+[PASS] lifecycle-completion027.S02-native-delayed-kill-child-before-system-store
+[PASS] lifecycle-completion027.S03-cold-stale-native-preflight-is-control-continuation
+[FAIL] lifecycle-completion027.S03-native-recovery-control-does-not-drain-own-callback - java.lang.AssertionError: Owned background stop. seed=27002701
+[FAIL] lifecycle-completion027.S05-single-deadline-retains-original-running-native-callback - org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException: Could not create Phantom profile. seed=27002701
+SUMMARY: suite=lifecycle-completion027 seed=27002701 total=11 passed=9 failed=2

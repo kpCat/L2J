@@ -1,0 +1,12 @@
+окт. 08, 2026 10:35:44 PM org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival <init>
+INFO: SevenSignsFestival: Initialization bypassed due to Seal Validation in effect.
+окт. 08, 2026 10:35:44 PM org.l2jmobius.gameserver.model.actor.Player calculateDeathPenaltyBuffLevel
+WARNING: Player:PhT004A02701[268435465] called calculateDeathPenaltyBuffLevel with killer null!
+окт. 08, 2026 10:35:45 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 10:35:45 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] lifecycle-completion027.S03-cold-stale-native-preflight-is-control-continuation
+SUMMARY: suite=lifecycle-completion027 seed=27002701 total=1 passed=1 failed=0

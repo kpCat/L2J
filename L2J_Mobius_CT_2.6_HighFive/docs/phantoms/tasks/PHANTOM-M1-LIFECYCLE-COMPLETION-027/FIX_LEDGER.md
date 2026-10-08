@@ -181,3 +181,60 @@ removal sufficient while its accepted control had not published the terminal res
 Fixture.close drained materialization before background.finishStop. The assertion now waits
 for the actual existing materializationQuiescence.ready and checks firstRecoveryFailure,
 then tears down. It does not complete/cancel tickets or bypass failure. Nine prior cases passed.
+
+## Frozen R12 acceptance
+Production source is frozen at141295edc5c78d41d03b360043cc1ec6a149aa6d.
+Clean committed build succeeded. R12_LIFECYCLE_ACCEPTANCEC passed11/11;
+R12_FROZEN_REGRESSION027 passed18/18 routes with cardinality guards;
+native faults4/4, configured composed S01 1/1, existing handoff H15 15/15 passed.
+The later baseline-cancel experiment is INVALID, despite its harness PASS label:
+the actual earned Quest callback ran during native Player LOADING and changed heading,
+which caused an AFTER_IDENTITY_CLAIM runtime-baseline mismatch. It did not establish the
+hypothesized control-cancellation race. Its temporary fixture/test edits were removed by
+bounded patches, not git restore. Raw log/XML are retained unchanged; no production fix
+or success claim follows from this experiment.
+
+R12 C all8 actually retained native owners were captured before stop, with actual epochs.
+Initial stock drain5514ms completed before ThreadPool shutdown. Exact native19scalar/
+inventory/skill/context comparison passed8/8 after stop and again after two real sameDB
+process restarts on frozenR12. First restart's intermediate export was rejected by the
+PowerShell command-line array conversion; no SQL was fabricated for that missing boundary.
+Both restart process identities and healthy initial stops29ms/27ms are preserved.
+
+R12 D first natural cohort175/424/506/775/876/924/975/1159 was enrolled before outcomes.
+At322.3155669s a mailbox read became UNCERTAIN; it was not replayed. Synthetic cleanup
+PASS and initial stock drain7236ms preceded pool shutdown. Exact SEALED→SQL passed8/8.
+Read-only evaluation reuses the unchanged026 evaluator on the preserved samples, retaining
+the missing/world/dead conditions. It gives7/8 rows;506 has cleanupPhase ABSENT and is not
+promoted to PASS. Overall scene remains incomplete/FAIL, not a360s final farm PASS.
+
+Frozen g native encounter selected450/459 before outcomes, actual deaths and native return.
+Original epochs221248809508800/221248823006200; recovered221304208263100/221303202681500.
+Final captured new-epoch cycles16/27; strict old-epoch farm remains separate. Legacy polling
+cache's PASS=false retained unchanged. Actual full-native data provide the recovery/farm
+proof; own stock20933 NPC cleanup=true. Initial stop2767ms; typed retained5→0 COMPLETE
+before pools, exact group8/8 SEALED→SQL, native exporter pending0/overflow0/failure empty.
+
+Actual E/F planned crashes only after controlled8/8 persistence PASS, exact AFTER_NATIVE/
+AFTER_FINALIZE, REAL0, exits72/73, frozen141295. E native selected values/context/receipt
+integrity PASS before admission; early globalpending1 preserved asFAIL, then legitimate
+new native life and healthy5268ms terminal strict proof/globalpending0. F strict crash
+and sameDB restart values/receipts PASS, globalpending0. Neither halt nor wrapper's process
+exit message is called healthy drain.
+
+Additional C restarts corrected the first array invocation artifact gap with per-boundary
+exports. First8/8 strict native and full tables exact. Second raw7/8 preserved:832 changes
+onlyXYZ into committed canonical anchor c4067c834f12b99e976909a2. All other native fields,
+full items/skills exact. Both selected memberships ABSENT and World empty, no Synthetic
+start; current-human-locality source guard supports the explicitly labelled no-live
+inference. Context COMPLETED/SUPPORTED exact version/digest links to canonical11238,
+SQL XYZ equal that canonical payload. This lawful background travel is classified separately
+from old native PREPARE; raw7/8 is not rewritten as literal8/8. D175 READY→DEAD retained
+RUNNING catch-up remains a separate lawful background progression/death lineage and rawFAIL.
+
+Soft native walk reused existing Observe-Walk024 and ReadDryPath023 with only owned namespace,
+exports and command-counter scope correction. Bidirectional dry path63 samples PASS;
+native request77b3663e-f2d8-49b9-9020-050f08299a21 UNCERTAIN, no replay, no return/remat PASS.
+Synthetic cleanup PASS; healthy initial5676ms then own JVM stop. Production untouched after
+semantic freeze. Final clean build42s and lifecycle11/11 repeated from unchanged source.
+Final old026 longitudinal all24 C/D/G rows accounted. All own JVM inventory empty; no force.

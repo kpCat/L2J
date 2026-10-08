@@ -1,0 +1,133 @@
+suite=background-position-canonicalization
+seed=15001502
+total=12
+passed=6
+failed=6
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.positionCanonicalZ=-3056
+measurement.background.positionLiveDelta=5
+measurement.background.positionMalformedTransition=ANCHOR_MISMATCH
+measurement.background.positionMode=GEODATA_NORMALIZED
+measurement.background.positionRawZ=-3061
+measurement.background.positionTolerance=5
+measurement.background.productionKnowledgeHash=4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.cleanupDiagnostic.CLEANUP_FINALIZED_POST_STORE=POST_STORE/org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure/
+measurement.cleanupDiagnostic.CLEANUP_PREPARE_REJECTION=NATIVE_STORE/java.lang.IllegalStateException/OWNED_STORE_PREPARE:BACKEND_FAILURE
+measurement.executor.activityWorkCount=5
+measurement.executor.fastContact=true
+measurement.executor.manualAutoPlayStart=false
+measurement.executor.manualMaterialize=false
+measurement.executor.nativeDamage=4
+measurement.headless.database=l2jmobiush5_localplay_contract027a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.complete.coldLoads=872
+measurement.m1.complete.firstClaimMillis=0
+measurement.m1.complete.innerIntervals=13
+measurement.m1.complete.productiveWork=nativeWindows=1 nativeIntervals=13 ordinaryIntervals=0
+measurement.m1.complete.progress=ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22007, lastProgressAgeMillis=213138780, nextWakeMillis=213138847, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0]
+measurement.m1.complete.readyMillis=22007
+measurement.m1.complete.reason=ecology.inventory_pending
+measurement.m1.journalOff=OperationCounts[snapshots=0, encodes=0, hashes=0, opens=0, forces=0]
+measurement.m1.journalOn=OperationCounts[snapshots=3, encodes=5, hashes=5, opens=2, forces=2]
+measurement.m1.levelLoss.coldLoads=872
+measurement.m1.levelLoss.firstClaimMillis=0
+measurement.m1.levelLoss.innerIntervals=13
+measurement.m1.levelLoss.productiveWork=nativeWindows=1 nativeIntervals=13 ordinaryIntervals=0
+measurement.m1.levelLoss.progress=ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22005, lastProgressAgeMillis=213160967, nextWakeMillis=213161047, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0]
+measurement.m1.levelLoss.readyMillis=22004
+measurement.m1.levelLoss.reason=ecology.inventory_pending
+measurement.m1.running.coldLoads=1279
+measurement.m1.running.firstClaimMillis=27269
+measurement.m1.running.history=calendarMinutes=4320 productiveWindows=75 actualIntervals=1108 cohort=1 native+1279 synthetic metadata; 973 synthetic far demands retained
+measurement.m1.running.innerIntervals=1
+measurement.m1.running.productiveWork=nativeWindows=75 nativeIntervals=1108 ordinaryIntervals=381
+measurement.m1.running.progress=ProgressSnapshot[ordinaryQueued=1278, urgentQueued=1, workerState=RUNNING, activeProfile=1000000454, currentStage=historical.status, enqueueAgeMillis=57, lastProgressAgeMillis=0, nextWakeMillis=213041697, nextRetryMillis=0, historicalStatus=COMPLETE, requestId=9c66c04dbbe220e0d3d01d0961c9f4db1e25cc43778fc1fc636d227b1e18b974, innerCursorMinute=29843626, targetMinute=29843626, innerRevision=1256]
+measurement.m1.running.readyMillis=52095
+measurement.m1.running.reason=ecology.cursor_current
+measurement.m1.running.recovery=existing native corpse/town recovery; TEST call, 45-second policy covered by existing native timer contract
+measurement.m1.running.recoveryTown=[Location] X: -83700 Y: 242896 Z: -3700 Heading: 0 InstanceId: 0 region=910
+measurement.m1.running.teardownCapture=supported
+measurement.ownedProtocol.AFTER_STORE=SUCCESS/READY
+measurement.ownedProtocol.BEFORE_STORE=SUCCESS/READY
+measurement.ownedProtocol.CHANGED_PAYLOAD=STATE_CONFLICT/no write
+measurement.ownedProtocol.FINALIZE_ACK_UNKNOWN=SUCCESS/READY
+measurement.ownedProtocol.FINALIZE_COMMIT=SUCCESS/READY
+measurement.ownedProtocol.LEVEL_UP_AFTER=SUCCESS/READY
+measurement.ownedProtocol.LEVEL_UP_BEFORE=SUCCESS/READY
+measurement.ownedProtocol.NORMAL_ARRIVAL=SUCCESS/READY
+measurement.ownedProtocol.NORMAL_CLEANUP=SUCCESS/READY
+measurement.ownedProtocol.PARTIAL_ITEM=OWNED_STORE_CANONICAL_NEITHER/INCONSISTENT
+measurement.ownedProtocol.PARTIAL_UNKNOWN=OWNED_STORE_CANONICAL_NEITHER/INCONSISTENT
+measurement.ownedProtocol.PREPARE_ACK_UNKNOWN=SUCCESS/READY
+measurement.ownedProtocol.PREPARE_UNCOMMITTED=SUCCESS/READY
+measurement.ownedProtocol.SNAPSHOT_MUTATION=SUCCESS/READY
+measurement.ownedProtocol.SNAPSHOT_PROGRESSION=SUCCESS/READY
+measurement.ownedProtocol.STALE_EPOCH=SUCCESS/READY
+measurement.ownedProtocol.STALE_VERSION=STATE_CONFLICT/no write
+measurement.ownedStore.AFTER_OWNED_NATIVE_STORE.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.AFTER_OWNED_NATIVE_STORE.restart=SUCCESS/READY
+measurement.ownedStore.AFTER_OWNED_PREPARE.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.AFTER_OWNED_PREPARE.restart=SUCCESS/READY
+measurement.ownedStore.ARRIVAL_AFTER_BASELINE.failure=MATERIALIZED BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.ARRIVAL_AFTER_BASELINE.restart=SUCCESS/READY
+measurement.ownedStore.ARRIVAL_AFTER_CAPTURE.failure=MATERIALIZED BG=Vitals[currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.ARRIVAL_AFTER_CAPTURE.restart=SUCCESS/READY
+measurement.ownedStore.ARRIVAL_AFTER_STORE.failure=MATERIALIZED BG=Vitals[currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.ARRIVAL_AFTER_STORE.restart=SUCCESS/READY
+measurement.ownedStore.ARRIVAL_MUTATION.failure=MATERIALIZED BG=Vitals[currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.ARRIVAL_MUTATION.restart=SUCCESS/READY
+measurement.ownedStore.ARRIVAL_RETRY_MOVED.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.ARRIVAL_RETRY_MOVED.restart=SUCCESS/READY
+measurement.ownedStore.BEFORE_OWNED_FINALIZE_COMMIT.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.BEFORE_OWNED_FINALIZE_COMMIT.restart=SUCCESS/READY
+measurement.ownedStore.BEFORE_OWNED_PREPARE_COMMIT.failure=MATERIALIZED BG=Vitals[currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.BEFORE_OWNED_PREPARE_COMMIT.restart=SUCCESS/READY
+measurement.ownedStore.CLEANUP_AFTER_CAPTURE.failure=READY BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.CLEANUP_AFTER_CAPTURE.restart=SUCCESS/READY
+measurement.ownedStore.CLEANUP_AFTER_STORE.failure=READY BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=45978, y=47886, z=-3488, heading=12773, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=45978, y=47886, z=-3488, heading=12773, classId=25, race=1]
+measurement.ownedStore.CLEANUP_AFTER_STORE.restart=SUCCESS/READY
+measurement.ownedStore.CLEANUP_BEFORE_STORE.failure=MATERIALIZED BG=Vitals[currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.CLEANUP_BEFORE_STORE.restart=SUCCESS/READY
+measurement.ownedStore.CLEANUP_CAPTURE_COMMIT.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.CLEANUP_CAPTURE_COMMIT.restart=SUCCESS/READY
+measurement.ownedStore.LAZY_INVENTORY.failure=READY BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.LAZY_INVENTORY.restart=SUCCESS/READY
+measurement.ownedStore.LIVE_FINALIZE_ACK.failure=MATERIALIZED BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.LIVE_FINALIZE_ACK.restart=SUCCESS/READY
+measurement.ownedStore.LIVE_NATIVE_STORE.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.LIVE_NATIVE_STORE.restart=SUCCESS/READY
+measurement.ownedStore.LIVE_PREPARE.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.LIVE_PREPARE.restart=SUCCESS/READY
+measurement.ownedStore.NORMAL_ARRIVAL.failure=MATERIALIZED BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.NORMAL_ARRIVAL.restart=SUCCESS/READY
+measurement.ownedStore.NORMAL_CLEANUP.failure=READY BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.NORMAL_CLEANUP.restart=SUCCESS/READY
+measurement.ownedStore.RETRY_FINALIZE.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.RETRY_FINALIZE.restart=SUCCESS/READY
+measurement.ownedStore.RETRY_PREPARE.failure=VERIFY_PENDING BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=133.0, maximumHp=185.0, currentMp=125.0, maximumMp=126.0, currentCp=7.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.RETRY_PREPARE.restart=SUCCESS/READY
+measurement.ownedStore.SQL_BASE.failure=MATERIALIZED BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.SQL_BASE.restart=SUCCESS/READY
+measurement.ownedStore.SQL_SUB.failure=MATERIALIZED BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.SQL_SUB.restart=SUCCESS/READY
+measurement.ownedStore.WORLD_OWNER.failure=READY BG=Vitals[currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0]/Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534] CANONICAL=Canonical[level=7, experience=11287, experienceBeforeDeath=0, skillPoints=0, currentHp=185.0, maximumHp=185.0, currentMp=126.0, maximumMp=126.0, currentCp=54.0, maximumCp=92.0, x=44126, y=42751, z=-3488, heading=25847, classId=25, race=1]
+measurement.ownedStore.WORLD_OWNER.restart=SUCCESS/READY
+PASS background-position-canonicalization.01-canonical-anchor-policy-and-negative-controls elapsedNanos=4741401600
+FAIL background-position-canonicalization.02-real-player-travel-materialization-restart elapsedNanos=5068817900 type=java.lang.AssertionError message=Materialization/dematerialization changed the canonical ARRIVED state. seed=15001502
+PASS background-position-canonicalization.03-native-farm-movement-keeps-real-position elapsedNanos=23313000
+FAIL background-position-canonicalization.04-visible-travel-native-movement-and-cancellation elapsedNanos=372578100 type=java.util.NoSuchElementException message=No value present seed=15001502
+FAIL background-position-canonicalization.05-restored-pending-cold-queue-to-native-player elapsedNanos=152648013100 type=java.lang.AssertionError message=Pending native farm travel did not arrive: travel.route_absent / ServiceSnapshot[state=RUNNING, activeRequests=0, queuedRequests=0, queueCapacity=256, peakQueuedRequests=0, currentWorkers=0, maximumWorkers=2, peakWorkers=0, cacheEntries=0, cacheCapacity=1024, peakCacheEntries=0, completedResults=0, cooldownProfiles=0, trackedProgressAttempts=0] seed=15001502
+FAIL background-position-canonicalization.06-complete-history-uncommitted-outer-cursor elapsedNanos=22199512500 type=java.lang.AssertionError message=Native pending replay failed: DueSnapshot[profileId=10039, requestedHorizonMinute=29843626, committedCursorMinute=0, initialCatchupComplete=false, requestPending=false, queued=true, running=false, revision=1, complete=false, reason=ecology.inventory_pending] / ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22007, lastProgressAgeMillis=213138780, nextWakeMillis=213138847, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0] seed=15001502
+FAIL background-position-canonicalization.07-dead-level-loss-native-load-and-progress-fence elapsedNanos=22188034000 type=java.lang.AssertionError message=Native pending replay failed: DueSnapshot[profileId=10040, requestedHorizonMinute=29843626, committedCursorMinute=0, initialCatchupComplete=false, requestPending=false, queued=true, running=false, revision=1, complete=false, reason=ecology.inventory_pending] / ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22005, lastProgressAgeMillis=213160967, nextWakeMillis=213161047, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0] seed=15001502
+PASS background-position-canonicalization.08-owned-store-crash-and-mutation-matrix elapsedNanos=926120600
+PASS background-position-canonicalization.09-owned-store-before-after-neither-and-snapshot elapsedNanos=339936900
+PASS background-position-canonicalization.10-owned-store-journal-selected-epoch-and-off-cost elapsedNanos=74540400
+FAIL background-position-canonicalization.11-production-visible-executor-route-and-revision elapsedNanos=15078811900 type=java.lang.AssertionError message=Actual handler did not start native travel: Optional[RuntimeSnapshot[profileId=10086, goalId=15, goalType=farm.background, goalRevision=0, goalStatus=ACTIVE, runtimeState=WAITING_RETRY, decisionSequence=13, selectedCandidateKey=candidate.background.farm, selectedScore=1000, planId=12, currentStep=1, attempt=1, lastResult=RETRY, reasonKey=background.visible.autoplay_running, topCandidateEvaluations=[CandidateEvaluation[candidateKey=candidate.background.farm, score=1000, status=ELIGIBLE, reasonKey=background.explicit.ready]], inFlight=false, persistenceInFlight=false, persistenceOperationId=0, persistenceOperationKind=null, generation=2, activityGeneration=2, componentRowVersion=0]]/ seed=15001502
+PASS background-position-canonicalization.12-production-visible-executor-fast-contact elapsedNanos=5769973000

@@ -1,0 +1,140 @@
+{
+  "kind": "EXACT_SEALED_TO_SAME_DB_CANONICAL",
+  "sourceSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+  "database": "l2jmobiush5_localplay_contract027c",
+  "requiredProfiles": [
+    613,
+    752,
+    775,
+    832,
+    879,
+    975,
+    1009,
+    1241
+  ],
+  "rows": [
+    {
+      "profileId": 613,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "613-217451979541800-12715.properties",
+      "snapshotSha256": "f27f323bfa79a28b31188076b98047d4157d4a81a370657e69c14ee121a52610",
+      "epoch": 217451979541800,
+      "initialEpoch": "217451979541800",
+      "preparedVersion": 12715,
+      "stateVersion": 12719,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 752,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "752-218029679542000-9752.properties",
+      "snapshotSha256": "8fe3658e79f055f4a302d74fb9a5d2deec0eb1f440fefa4f164fc3af8ccf4320",
+      "epoch": 218029679542000,
+      "initialEpoch": "218029679542000",
+      "preparedVersion": 9752,
+      "stateVersion": 9756,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 775,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "775-217450481752100-27270.properties",
+      "snapshotSha256": "61c5252fce1179e178bd6de4a3551060dd45812bf53a911a1e83b0586856b811",
+      "epoch": 217450481752100,
+      "initialEpoch": "217450481752100",
+      "preparedVersion": 27270,
+      "stateVersion": 27274,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 832,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "832-217453678723500-11224.properties",
+      "snapshotSha256": "b96b35144f7438ddc560c207190e04cd070598bf28a6d4673606823382f953e6",
+      "epoch": 217453678723500,
+      "initialEpoch": "217453678723500",
+      "preparedVersion": 11224,
+      "stateVersion": 11238,
+      "nativeFinalized": true,
+      "differences": {
+        "x": {
+          "sealed": 45828,
+          "sql": 26607
+        },
+        "y": {
+          "sealed": 41383,
+          "sql": 63533
+        },
+        "z": {
+          "sealed": -3504,
+          "sql": -3552
+        }
+      },
+      "pass_": false
+    },
+    {
+      "profileId": 879,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "879-217453686071300-15562.properties",
+      "snapshotSha256": "fd2499c2a8a9b46a738e7b5389633963e3b744b0e225c87ed3c2c33837915389",
+      "epoch": 217453686071300,
+      "initialEpoch": "217453686071300",
+      "preparedVersion": 15562,
+      "stateVersion": 15563,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 975,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "975-217451889299700-27074.properties",
+      "snapshotSha256": "dcad56220f525dffe70b84e404885e64e6250c38152755b5a0041d1a6f00d6dc",
+      "epoch": 217451889299700,
+      "initialEpoch": "217451889299700",
+      "preparedVersion": 27074,
+      "stateVersion": 27075,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 1009,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "1009-217485082886000-15194.properties",
+      "snapshotSha256": "cec11d2e9ebfba947a63d9ec6123d93a6e86ef3bc85af232b2e3e00bcccc6c5f",
+      "epoch": 217485082886000,
+      "initialEpoch": "217485082886000",
+      "preparedVersion": 15194,
+      "stateVersion": 15195,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 1241,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "1241-217677087434600-12855.properties",
+      "snapshotSha256": "7ebf9dfbccc6a971242f0ac2d68d8c51b4f5efc33f55a52673a7cb59f2ec767b",
+      "epoch": 217677087434600,
+      "initialEpoch": "217677087434600",
+      "preparedVersion": 12855,
+      "stateVersion": 12856,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    }
+  ],
+  "receiptIntegrity": null,
+  "errors": [
+    "profile 832: exact=False, finalized=True"
+  ],
+  "pass_": false,
+  "noDiagnosticCounterRestoration": true
+}

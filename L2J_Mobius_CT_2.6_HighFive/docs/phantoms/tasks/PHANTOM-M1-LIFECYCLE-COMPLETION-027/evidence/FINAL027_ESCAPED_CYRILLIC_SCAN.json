@@ -1,0 +1,7 @@
+{
+  "check": "ESCAPED_CYRILLIC_AND_XML_AUTHORED_CHANGED_SOURCE_DOCS_SCRIPTS",
+  "files": 44,
+  "matches": [],
+  "pass": true,
+  "rawRuntimeSerializerOutput": "NOT_SOURCE_TEXT_NOT_REWRITTEN"
+}

@@ -1,0 +1,6 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+Exception: C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\contract027e\runtime\LocalPlay-Pilot.ps1:45
+Line |
+  45 |  … erified)) { throw "GameServer не имеет подтверждённого LocalPlay owne …
+     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | GameServer не имеет подтверждённого LocalPlay ownership: STALE_RECORD.

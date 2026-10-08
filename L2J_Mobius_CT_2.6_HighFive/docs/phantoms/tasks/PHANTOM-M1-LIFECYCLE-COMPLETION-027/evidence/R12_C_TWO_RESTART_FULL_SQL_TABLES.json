@@ -1,0 +1,32 @@
+{
+  "kind": "ALL_NATIVE_SQL_TABLE_ROWS_AND_COLUMNS_AFTER_TWO_REAL_SAME_DB_RESTARTS",
+  "sourceSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+  "database": "l2jmobiush5_localplay_contract027c",
+  "processRestarts": [
+    31972,
+    31848
+  ],
+  "intermediateExport": "NOT_CAPTURED_ARRAY_ARGUMENT_REJECTED",
+  "sameDBResetOrReseed": false,
+  "rows": [
+    {
+      "table": "characters.tsv",
+      "beforeSha256": "9910F4B848ABDA7175B8AF41C67EEBF7A2B2B7DDF533CDAF7F34A6FD95C3AA75",
+      "afterTwoRestartSha256": "9910F4B848ABDA7175B8AF41C67EEBF7A2B2B7DDF533CDAF7F34A6FD95C3AA75",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "table": "items.tsv",
+      "beforeSha256": "DB2ADAB3B4F5BA9579B39CF37599126F1789216D4ABD47D7E1C145A2CE8168EF",
+      "afterTwoRestartSha256": "DB2ADAB3B4F5BA9579B39CF37599126F1789216D4ABD47D7E1C145A2CE8168EF",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "table": "skills.tsv",
+      "beforeSha256": "27F09575E0BBD07F12C1B26953145D7B41B5868968E04168A1137D5854D8F27E",
+      "afterTwoRestartSha256": "27F09575E0BBD07F12C1B26953145D7B41B5868968E04168A1137D5854D8F27E",
+      "allRowsAllColumnsExact": true
+    }
+  ],
+  "pass": true
+}

@@ -1,0 +1,12 @@
+INFO: CursedWeaponsManager: Loaded : 2 cursed weapon(s).
+окт. 08, 2026 11:08:40 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 11:08:40 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] m1-native-lifecycle.Q05-actual-native-1000-owner-start-cancel-interleavings
+[PASS] m1-native-lifecycle.Q07-actual-native-scheduler-faults-and-ordinary-control
+[PASS] m1-native-lifecycle.Q08-actual-native-old-queued-and-new-REAL-identity
+[PASS] m1-native-lifecycle.Q11-actual-native-timer-preserves-primary-and-secondary
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=4 passed=4 failed=0

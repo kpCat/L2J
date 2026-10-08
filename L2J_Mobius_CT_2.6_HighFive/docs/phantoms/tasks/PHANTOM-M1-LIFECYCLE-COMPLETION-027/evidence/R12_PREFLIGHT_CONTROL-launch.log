@@ -1,0 +1,12 @@
+окт. 08, 2026 10:33:31 PM handlers.MasterHandler main
+INFO: TargetHandler: Loaded 34 handlers.
+окт. 08, 2026 10:33:31 PM handlers.MasterHandler main
+INFO: Handlers Loaded...
+окт. 08, 2026 10:33:31 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 10:33:31 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[FAIL] lifecycle-completion027.S03-cold-stale-native-preflight-is-control-continuation - org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException: Could not create Phantom profile. seed=27002701
+SUMMARY: suite=lifecycle-completion027 seed=27002701 total=1 passed=0 failed=1

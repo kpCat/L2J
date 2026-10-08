@@ -1,0 +1,29 @@
+{
+  "kind": "EXACT_SEALED_TO_SAME_DB_CANONICAL",
+  "sourceSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+  "database": "l2jmobiush5_localplay_contract027e",
+  "requiredProfiles": [
+    450
+  ],
+  "rows": [
+    {
+      "profileId": 450,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "450-219978918028400-4842.properties",
+      "snapshotSha256": "3f8ed41c41cf0bc6c3a989ddc7a78460ea64be2e23af373f1955da54033a5e25",
+      "epoch": 219978918028400,
+      "initialEpoch": "219978918028400",
+      "preparedVersion": 4842,
+      "stateVersion": 4843,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    }
+  ],
+  "receiptIntegrity": true,
+  "errors": [
+    "Pending owned-store receipts remain"
+  ],
+  "pass_": false,
+  "noDiagnosticCounterRestoration": true
+}

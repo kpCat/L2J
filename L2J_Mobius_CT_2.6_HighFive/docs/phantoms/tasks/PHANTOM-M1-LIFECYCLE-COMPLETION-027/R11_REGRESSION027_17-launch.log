@@ -1,0 +1,12 @@
+INFO: TeleporterData: Loaded 195 npc teleporters.
+окт. 08, 2026 9:49:14 PM org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival <init>
+INFO: SevenSignsFestival: Initialization bypassed due to Seal Validation in effect.
+окт. 08, 2026 9:49:19 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 9:49:19 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] recovery-boundary026.R03-confirmed-cold-result-before-ordinary-admission
+[PASS] recovery-boundary026.R03-observer-failure-cannot-reverse-confirmed-recovery
+SUMMARY: suite=recovery-boundary026 seed=26002603 total=2 passed=2 failed=0

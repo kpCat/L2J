@@ -1,0 +1,16 @@
+{
+  "kind": "CLASSIFIED_NATIVELESS_CANONICAL_TRAVEL_NOT_UNCHANGED_NATIVE_VALUE_PASS",
+  "sourceSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+  "profile": 832,
+  "oldCanonicalVersion": 11225,
+  "newCanonicalVersion": 11238,
+  "nativeValueStrictComparison": "7/8_FAIL_RETAINED_UNCHANGED",
+  "allOtherNativeFieldsExact": true,
+  "committedCanonicalXYZEqualsSQL": true,
+  "contextCompletedSupportedDigestLinked": true,
+  "allEnrolledAbsentAtBothCapturedBoundaries": true,
+  "noLiveDuringIntervalInference": "Both empty World/native membership captures; no Synthetic start in either restart; unchanged readiness requires current human locality. Historical baseline materialization has no World publication.",
+  "newAnchor": "generated.farm.c4067c834f12b99e976909a2.anchor",
+  "classification": "LAWFUL_CANONICAL_BACKGROUND_TRAVEL_SUPPORTED_BY_SOURCE_AND_CAPTURED_STATE",
+  "remaining": "No continuous flight-recorder export across both processes; do not call raw7/8 literal8/8."
+}

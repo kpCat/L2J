@@ -1,0 +1,12 @@
+INFO: TargetHandler: Loaded 34 handlers.
+окт. 08, 2026 11:01:51 PM handlers.MasterHandler main
+INFO: Handlers Loaded...
+окт. 08, 2026 11:01:58 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 11:01:58 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] sustained-farm026.F05-stock-low-MP-starts-bounded-native-rest
+[PASS] sustained-farm026.F07-generic-repair-preserves-original-published-cast
+SUMMARY: suite=sustained-farm026 seed=26002601 total=2 passed=2 failed=0

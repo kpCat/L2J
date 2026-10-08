@@ -1,0 +1,65 @@
+[
+  {
+    "before": "R11_G_AFTER_STOP8",
+    "after": "R11_G_RESTART1_BEFORE_SYNTHETIC8",
+    "table": "characters.tsv",
+    "fullRowsExact": false,
+    "beforeSha256": "2ABD7312432D705003A7C5D8363E71C88692F99D916785296AEDB230CF0853B2",
+    "afterSha256": "021E3F7D2EED47FAFB3AFA94E1ED52966099C590AE4658C6436D006B148F00F1",
+    "differences": [
+      {
+        "InputObject": "832\t268491865\t9\t36685\t3099\t33993\t246\t249\t97\t97\t99\t99\t26607\t63533\t-3552\t19556\t0\t18\t1\t1\t0",
+        "SideIndicator": "=>"
+      },
+      {
+        "InputObject": "832\t268491865\t9\t36685\t3099\t33993\t246\t249\t97\t97\t99\t99\t46778\t41401\t-3504\t19556\t0\t18\t1\t1\t0",
+        "SideIndicator": "<="
+      }
+    ]
+  },
+  {
+    "before": "R11_G_AFTER_STOP8",
+    "after": "R11_G_RESTART1_BEFORE_SYNTHETIC8",
+    "table": "items.tsv",
+    "fullRowsExact": true,
+    "beforeSha256": "D109F26A798828BC0F4ACD1FF592304A511DBDDBE88658285858B6D61F27B869",
+    "afterSha256": "D109F26A798828BC0F4ACD1FF592304A511DBDDBE88658285858B6D61F27B869",
+    "differences": []
+  },
+  {
+    "before": "R11_G_AFTER_STOP8",
+    "after": "R11_G_RESTART1_BEFORE_SYNTHETIC8",
+    "table": "skills.tsv",
+    "fullRowsExact": true,
+    "beforeSha256": "C5CEBA64C8E850131AC9F5ED2138F271C55CE1F33B4AF30D6810B56E8001C035",
+    "afterSha256": "C5CEBA64C8E850131AC9F5ED2138F271C55CE1F33B4AF30D6810B56E8001C035",
+    "differences": []
+  },
+  {
+    "before": "R11_G_RESTART1_AFTER_STOP8",
+    "after": "R11_G_RESTART2_BEFORE_SYNTHETIC8",
+    "table": "characters.tsv",
+    "fullRowsExact": true,
+    "beforeSha256": "040CFDE1909D4393F492E056DA39FA93748362FD7E0F045C768B2CFDD6766955",
+    "afterSha256": "040CFDE1909D4393F492E056DA39FA93748362FD7E0F045C768B2CFDD6766955",
+    "differences": []
+  },
+  {
+    "before": "R11_G_RESTART1_AFTER_STOP8",
+    "after": "R11_G_RESTART2_BEFORE_SYNTHETIC8",
+    "table": "items.tsv",
+    "fullRowsExact": true,
+    "beforeSha256": "9FAD9F6CDF2396EA9DC44678F4EB3D34517AE72C3859F9A1DCFEB4A8E76280A8",
+    "afterSha256": "9FAD9F6CDF2396EA9DC44678F4EB3D34517AE72C3859F9A1DCFEB4A8E76280A8",
+    "differences": []
+  },
+  {
+    "before": "R11_G_RESTART1_AFTER_STOP8",
+    "after": "R11_G_RESTART2_BEFORE_SYNTHETIC8",
+    "table": "skills.tsv",
+    "fullRowsExact": true,
+    "beforeSha256": "C5CEBA64C8E850131AC9F5ED2138F271C55CE1F33B4AF30D6810B56E8001C035",
+    "afterSha256": "C5CEBA64C8E850131AC9F5ED2138F271C55CE1F33B4AF30D6810B56E8001C035",
+    "differences": []
+  }
+]

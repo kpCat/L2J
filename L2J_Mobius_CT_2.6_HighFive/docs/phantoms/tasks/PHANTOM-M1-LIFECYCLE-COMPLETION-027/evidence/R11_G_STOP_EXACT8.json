@@ -1,0 +1,152 @@
+{
+  "kind": "EXACT_SEALED_TO_SAME_DB_CANONICAL",
+  "sourceSha": "542a6771c9abb5289ff81fdd87152274d047c1dd",
+  "database": "l2jmobiush5_localplay_contract027g",
+  "requiredProfiles": [
+    613,
+    752,
+    775,
+    832,
+    879,
+    975,
+    1009,
+    1106
+  ],
+  "rows": [
+    {
+      "profileId": 613,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "613-212776191731300-12715.properties",
+      "snapshotSha256": "45811a8000cb66206234b2e0e26cf301082fdde84daab37f556694e782aa25a3",
+      "epoch": 212776191731300,
+      "initialEpoch": "212776191731300",
+      "preparedVersion": 12715,
+      "stateVersion": 12716,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 752,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "752-212775891378200-9749.properties",
+      "snapshotSha256": "8576f33c6d41a65c858bd31a66117c62b11720dee3cded8d6c485749aa99ab46",
+      "epoch": 212775891378200,
+      "initialEpoch": "212775891378200",
+      "preparedVersion": 9749,
+      "stateVersion": 9750,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 775,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "775-212775390753200-27272.properties",
+      "snapshotSha256": "516e0dba56097d193fb687b600a35f53a14fd45964889f18b96ffccc6189488a",
+      "epoch": 212775390753200,
+      "initialEpoch": "212775390753200",
+      "preparedVersion": 27272,
+      "stateVersion": 27273,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 832,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "832-212776491832900-11224.properties",
+      "snapshotSha256": "62b919ca7bdbfa6a68ed3c9446c1a4ffe13a517953285253dc957bd3bfc1e780",
+      "epoch": 212776491832900,
+      "initialEpoch": "212776491832900",
+      "preparedVersion": 11224,
+      "stateVersion": 11225,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 879,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "879-212776514579000-15562.properties",
+      "snapshotSha256": "a68c3fc3b9c2eb15ddced547b834ea0c27e2d12794de52e7302ef5b557bdc2a9",
+      "epoch": 212776514579000,
+      "initialEpoch": "212776514579000",
+      "preparedVersion": 15562,
+      "stateVersion": 15563,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 975,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "975-212775798824200-27070.properties",
+      "snapshotSha256": "e26294f52d49958b7f6a7c288b80d73d65298ff2f4d21ceabc78d193cc379767",
+      "epoch": 212775798824200,
+      "initialEpoch": "212775798824200",
+      "preparedVersion": 27070,
+      "stateVersion": 27071,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 1009,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "1009-212778092249800-15196.properties",
+      "snapshotSha256": "72da4c3af6467cbd1f450f24ec22ce93ddb3eedb87155e43ab95e779a7e78769",
+      "epoch": 212778092249800,
+      "initialEpoch": "212778092249800",
+      "preparedVersion": 15196,
+      "stateVersion": 15197,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 1106,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "1106-212860991198300-13130.properties",
+      "snapshotSha256": "dfa7e4485c29de919915e481b03c2a6b4163fef490977e022b534f1317150ed5",
+      "epoch": 212860991198300,
+      "initialEpoch": "212860991198300",
+      "preparedVersion": 13130,
+      "stateVersion": 13259,
+      "nativeFinalized": true,
+      "differences": {
+        "exp": {
+          "sealed": 17927,
+          "sql": 18014
+        },
+        "sp": {
+          "sealed": 1267,
+          "sql": 1307
+        },
+        "expBeforeDeath": {
+          "sealed": 15950,
+          "sql": 18767
+        },
+        "hp": {
+          "sealed": 185.0,
+          "sql": 0.0
+        },
+        "mp": {
+          "sealed": 88.0,
+          "sql": 125.0
+        },
+        "cp": {
+          "sealed": 92.0,
+          "sql": 0.0
+        }
+      },
+      "pass_": false
+    }
+  ],
+  "receiptIntegrity": null,
+  "errors": [
+    "profile 1106: exact=False, finalized=True"
+  ],
+  "pass_": false,
+  "noDiagnosticCounterRestoration": true
+}

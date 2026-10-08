@@ -1,0 +1,16 @@
+suite=lifecycle-completion027
+seed=27002701
+total=1
+passed=1
+failed=0
+measurement.S03.cancelledBaseline=background=Snapshot[state=RUNNING, currentOperations=1, peakOperations=1, currentIdentityLeases=0, peakIdentityLeases=0, currentTransactions=0, peakTransactions=1, currentTransitionClaims=1, peakTransitionClaims=1, completedOperations=0, idempotentOperations=0, retryOperations=1, failedOperations=0, retainedIdentityLeases=0];materialization=Optional[MaterializationSnapshot[profileId=10092, characterObjectId=268435465, state=LOADING, playerRetained=true, identityLeaseRetained=true, outboundAttached=false, actionAdmissionOpen=false, admittedActionCount=1, worldPresent=false, materializedAtNanos=219088909883800, dematerializedAtNanos=0, cleanupPhase=NONE, cleanupFailurePhase=NONE, cleanupFailureClass=, cleanupFailureMessage=, cleanupFailureSequence=0, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=, firstCleanupIncident=null, latestCleanupIncident=null]];callbackCalls=1
+measurement.S03.preflight=elapsed=4727700;result=PhantomStepResult[type=RETRY, retryDelayMillis=250, reasonKey=background.retry];loadedEpoch=219088909883800
+measurement.headless.database=l2jmobiush5_localplay_contract027a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS lifecycle-completion027.S03-cancelled-baseline-retains-accepted-native-cleanup elapsedNanos=777055500

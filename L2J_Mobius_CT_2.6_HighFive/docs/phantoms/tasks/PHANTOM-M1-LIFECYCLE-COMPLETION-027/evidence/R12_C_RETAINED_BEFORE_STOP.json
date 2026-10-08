@@ -1,0 +1,50 @@
+[
+  {
+    "profileId": 613,
+    "objectId": 268490030,
+    "materializedAtNanos": 217451979541800,
+    "source": "ACTUAL_ALL_RETAINED_NATIVE_CENSUS_NOT_FARM_BASELINE"
+  },
+  {
+    "profileId": 752,
+    "objectId": 268491177,
+    "materializedAtNanos": 218029679542000,
+    "source": "ACTUAL_ALL_RETAINED_NATIVE_CENSUS_NOT_FARM_BASELINE"
+  },
+  {
+    "profileId": 775,
+    "objectId": 268491382,
+    "materializedAtNanos": 217450481752100,
+    "source": "ACTUAL_ALL_RETAINED_NATIVE_CENSUS_NOT_FARM_BASELINE"
+  },
+  {
+    "profileId": 832,
+    "objectId": 268491865,
+    "materializedAtNanos": 217453678723500,
+    "source": "ACTUAL_ALL_RETAINED_NATIVE_CENSUS_NOT_FARM_BASELINE"
+  },
+  {
+    "profileId": 879,
+    "objectId": 268492255,
+    "materializedAtNanos": 217453686071300,
+    "source": "ACTUAL_ALL_RETAINED_NATIVE_CENSUS_NOT_FARM_BASELINE"
+  },
+  {
+    "profileId": 975,
+    "objectId": 268493181,
+    "materializedAtNanos": 217451889299700,
+    "source": "ACTUAL_ALL_RETAINED_NATIVE_CENSUS_NOT_FARM_BASELINE"
+  },
+  {
+    "profileId": 1009,
+    "objectId": 268493469,
+    "materializedAtNanos": 217485082886000,
+    "source": "ACTUAL_ALL_RETAINED_NATIVE_CENSUS_NOT_FARM_BASELINE"
+  },
+  {
+    "profileId": 1241,
+    "objectId": 268495452,
+    "materializedAtNanos": 217677087434600,
+    "source": "ACTUAL_ALL_RETAINED_NATIVE_CENSUS_NOT_FARM_BASELINE"
+  }
+]

@@ -1,0 +1,54 @@
+{
+  "kind": "TWO_INDIVIDUALLY_VERIFIED_SAME_DB_RESTARTS_FULL_NATIVE_TABLES",
+  "sourceSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+  "database": "l2jmobiush5_localplay_contract027c",
+  "processes": [
+    35476,
+    36632
+  ],
+  "rows": [
+    {
+      "boundary": "verified1",
+      "table": "characters.tsv",
+      "beforeSha256": "9910F4B848ABDA7175B8AF41C67EEBF7A2B2B7DDF533CDAF7F34A6FD95C3AA75",
+      "afterSha256": "9910F4B848ABDA7175B8AF41C67EEBF7A2B2B7DDF533CDAF7F34A6FD95C3AA75",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "boundary": "verified1",
+      "table": "items.tsv",
+      "beforeSha256": "DB2ADAB3B4F5BA9579B39CF37599126F1789216D4ABD47D7E1C145A2CE8168EF",
+      "afterSha256": "DB2ADAB3B4F5BA9579B39CF37599126F1789216D4ABD47D7E1C145A2CE8168EF",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "boundary": "verified1",
+      "table": "skills.tsv",
+      "beforeSha256": "27F09575E0BBD07F12C1B26953145D7B41B5868968E04168A1137D5854D8F27E",
+      "afterSha256": "27F09575E0BBD07F12C1B26953145D7B41B5868968E04168A1137D5854D8F27E",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "boundary": "verified2",
+      "table": "characters.tsv",
+      "beforeSha256": "9910F4B848ABDA7175B8AF41C67EEBF7A2B2B7DDF533CDAF7F34A6FD95C3AA75",
+      "afterSha256": "A34B8C1E8193D570816B54C473E98BC33D0209DC2364EAF3F29F30FAF98F340B",
+      "allRowsAllColumnsExact": false
+    },
+    {
+      "boundary": "verified2",
+      "table": "items.tsv",
+      "beforeSha256": "DB2ADAB3B4F5BA9579B39CF37599126F1789216D4ABD47D7E1C145A2CE8168EF",
+      "afterSha256": "DB2ADAB3B4F5BA9579B39CF37599126F1789216D4ABD47D7E1C145A2CE8168EF",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "boundary": "verified2",
+      "table": "skills.tsv",
+      "beforeSha256": "27F09575E0BBD07F12C1B26953145D7B41B5868968E04168A1137D5854D8F27E",
+      "afterSha256": "27F09575E0BBD07F12C1B26953145D7B41B5868968E04168A1137D5854D8F27E",
+      "allRowsAllColumnsExact": true
+    }
+  ],
+  "pass": false
+}

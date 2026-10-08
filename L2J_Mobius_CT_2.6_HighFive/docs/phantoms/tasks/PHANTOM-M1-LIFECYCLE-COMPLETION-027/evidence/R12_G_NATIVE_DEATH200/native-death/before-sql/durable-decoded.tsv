@@ -1,0 +1,4 @@
+450	92	context	COMPLETED	4850	01145a66e26e92d843c921b4a735a2c3b699c24974fa0a4022a8f86c34c3e87b	VITALITY_REQUIRES_NATIVE	15	false
+450	4850	state	MATERIALIZED	01145a66e26e92d843c921b4a735a2c3b699c24974fa0a4022a8f86c34c3e87b	Progress[level=8, experience=24609, skillPoints=1658, experienceBeforeDeath=0]	Position[instanceId=0, x=45691, y=41420, z=-3504, heading=64644, committedAnchorId=generated.farm.428b85922009e44829ae2db0.anchor]
+459	76	context	COMPLETED	4445	23fb5d723f9ac906d8424c7095344a6bef00c32b47063338af323f4d680b61ee	POSITION_REQUIRES_NATIVE	176	false
+459	4445	state	MATERIALIZED	23fb5d723f9ac906d8424c7095344a6bef00c32b47063338af323f4d680b61ee	Progress[level=8, experience=26456, skillPoints=1892, experienceBeforeDeath=0]	Position[instanceId=0, x=45094, y=41530, z=-3481, heading=16338, committedAnchorId=generated.farm.428b85922009e44829ae2db0.anchor]

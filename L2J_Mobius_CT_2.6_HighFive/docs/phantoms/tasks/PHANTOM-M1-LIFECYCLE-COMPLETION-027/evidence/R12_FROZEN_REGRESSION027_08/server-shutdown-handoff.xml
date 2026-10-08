@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="server-shutdown-handoff" seed="23002301" tests="8" passed="8" failures="0">
+  <properties>
+    <property name="TASK023.ecologyDrain" value="stopped=true;finished=true;configured=false"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract027a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="serverShutdownHandoff.blockedFirstElapsedNanos" value="24957400"/>
+    <property name="serverShutdownHandoff.database" value="l2jmobiush5_phantom_test"/>
+  </properties>
+  <testcase name="server-shutdown-handoff.01-managed-classifier-fails-closed" elapsedNanos="143050200"></testcase>
+  <testcase name="server-shutdown-handoff.02-two-phase-server-policy-and-source-order" elapsedNanos="3396200"></testcase>
+  <testcase name="server-shutdown-handoff.03-in-flight-drain-reused-before-thread-pool-phase" elapsedNanos="55610000"></testcase>
+  <testcase name="server-shutdown-handoff.04-persistent-failure-retains-configured-ownership" elapsedNanos="40350400"></testcase>
+  <testcase name="server-shutdown-handoff.05-in-flight-scheduler-pulse-retains-configured-system" elapsedNanos="9297600"></testcase>
+  <testcase name="server-shutdown-handoff.06-navigation-only-blocker-snapshot" elapsedNanos="13164700"></testcase>
+  <testcase name="server-shutdown-handoff.07-final-diagnostic-includes-navigation-state" elapsedNanos="303600"></testcase>
+  <testcase name="server-shutdown-handoff.08-configured-stop-awaits-original-ecology-worker-finally" elapsedNanos="152859300"></testcase>
+</testsuite>

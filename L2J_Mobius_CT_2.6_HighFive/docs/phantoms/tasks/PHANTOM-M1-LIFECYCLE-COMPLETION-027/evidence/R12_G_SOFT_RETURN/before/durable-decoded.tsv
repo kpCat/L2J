@@ -1,0 +1,10 @@
+175	5339	context	COMPLETED	27019	7e70420e344a17d3cbfc8f44cf2550463762983a0f9f6d08500562c868f53319	SUPPORTED	1	true
+175	27019	state	MATERIALIZED	7e70420e344a17d3cbfc8f44cf2550463762983a0f9f6d08500562c868f53319	Progress[level=10, experience=52728, skillPoints=4155, experienceBeforeDeath=54767]	Position[instanceId=0, x=46045, y=41251, z=-3504, heading=64144, committedAnchorId=generated.farm.428b85922009e44829ae2db0.anchor]
+450	101	context	COMPLETED	4859	6e56bcb6a9ec4aaa57193c6309be28184edf9614cc573fc074d56f6cd1d939fa	VITALITY_REQUIRES_NATIVE	15	false
+450	4859	state	MATERIALIZED	6e56bcb6a9ec4aaa57193c6309be28184edf9614cc573fc074d56f6cd1d939fa	Progress[level=8, experience=26077, skillPoints=1825, experienceBeforeDeath=0]	Position[instanceId=0, x=46039, y=41564, z=-3504, heading=31996, committedAnchorId=generated.farm.428b85922009e44829ae2db0.anchor]
+459	85	context	COMPLETED	4454	6d90fa49fbd6b390dd2ab3ac57dc0e21abf79ae63006d4e811381c10d0fdeae5	VITALITY_REQUIRES_NATIVE	176	false
+459	4454	state	MATERIALIZED	6d90fa49fbd6b390dd2ab3ac57dc0e21abf79ae63006d4e811381c10d0fdeae5	Progress[level=8, experience=27894, skillPoints=2047, experienceBeforeDeath=0]	Position[instanceId=0, x=45067, y=41000, z=-3504, heading=31058, committedAnchorId=generated.farm.428b85922009e44829ae2db0.anchor]
+613	64	context	COMPLETED	12738	758db51adbf5d28f5a1535a6f590b88b2e09b6393a04c416bb6502a2bfd4b286	POSITION_REQUIRES_NATIVE	204	false
+613	12738	state	MATERIALIZED	758db51adbf5d28f5a1535a6f590b88b2e09b6393a04c416bb6502a2bfd4b286	Progress[level=9, experience=44312, skillPoints=3749, experienceBeforeDeath=0]	Position[instanceId=0, x=46556, y=40976, z=-3504, heading=49151, committedAnchorId=generated.farm.428b85922009e44829ae2db0.anchor]
+879	58	context	COMPLETED	15582	0a42901bcf4b64acde39c864174b2a9d7baf3e93db8389b78ca43f948fa4b531	VITALITY_REQUIRES_NATIVE	78	false
+879	15582	state	MATERIALIZED	0a42901bcf4b64acde39c864174b2a9d7baf3e93db8389b78ca43f948fa4b531	Progress[level=9, experience=45030, skillPoints=4583, experienceBeforeDeath=26114]	Position[instanceId=0, x=46291, y=41233, z=-3504, heading=58110, committedAnchorId=generated.farm.428b85922009e44829ae2db0.anchor]

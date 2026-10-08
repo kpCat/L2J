@@ -1,0 +1,55 @@
+{
+  "kind": "FULL_SQL_TABLE_COMPARISON_TWO_REAL_SAME_DB_RESTARTS",
+  "sourceSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+  "database": "l2jmobiush5_localplay_contract027d",
+  "rows": [
+    {
+      "boundary": "stop_to_restart1",
+      "table": "characters.tsv",
+      "beforeSha256": "938DF2D241BA55359E22C9958E37A23FC5F2C83DCEE4F75672A3F2AE97477D63",
+      "afterSha256": "B530B5B0667738D9568511B5687F73341A044144F958AB42AF158FA10F0CB048",
+      "allRowsAllColumnsExact": false
+    },
+    {
+      "boundary": "stop_to_restart1",
+      "table": "items.tsv",
+      "beforeSha256": "DFFEAF574DDA56CF1D97C59901D21814823B6772C7EC8CF336E360215C28403B",
+      "afterSha256": "DFFEAF574DDA56CF1D97C59901D21814823B6772C7EC8CF336E360215C28403B",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "boundary": "stop_to_restart1",
+      "table": "skills.tsv",
+      "beforeSha256": "7CF970668F0869B72B66FBB70E5C302F767B8A137C87463FFDED7689A31B56EC",
+      "afterSha256": "7CF970668F0869B72B66FBB70E5C302F767B8A137C87463FFDED7689A31B56EC",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "boundary": "restart1_to_restart2",
+      "table": "characters.tsv",
+      "beforeSha256": "B530B5B0667738D9568511B5687F73341A044144F958AB42AF158FA10F0CB048",
+      "afterSha256": "B530B5B0667738D9568511B5687F73341A044144F958AB42AF158FA10F0CB048",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "boundary": "restart1_to_restart2",
+      "table": "items.tsv",
+      "beforeSha256": "DFFEAF574DDA56CF1D97C59901D21814823B6772C7EC8CF336E360215C28403B",
+      "afterSha256": "DFFEAF574DDA56CF1D97C59901D21814823B6772C7EC8CF336E360215C28403B",
+      "allRowsAllColumnsExact": true
+    },
+    {
+      "boundary": "restart1_to_restart2",
+      "table": "skills.tsv",
+      "beforeSha256": "7CF970668F0869B72B66FBB70E5C302F767B8A137C87463FFDED7689A31B56EC",
+      "afterSha256": "7CF970668F0869B72B66FBB70E5C302F767B8A137C87463FFDED7689A31B56EC",
+      "allRowsAllColumnsExact": true
+    }
+  ],
+  "unchangedNativeComparisonPass": false,
+  "changedProfile": 175,
+  "canonicalTransition": "READY21707_TO_DEAD21742_TO_DEAD21777",
+  "catchup": "RUNNING_EXACT_RETAINED_CLAIM",
+  "classification": "BACKGROUND_CANONICAL_PROGRESS_AND_DEATH_NATIVELESS_INTERVAL_REQUIRES_SEPARATE_LINEAGE",
+  "noDataLossClaim": true
+}

@@ -1,0 +1,18 @@
+TASK027_DEATH_BUILD_PASS
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+TASK027_DEATH_FIXTURE_INSTALLED pid=18552
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+
+profileId primary sameEpoch cycles rewards targetTransitions tail120Rewards  exp  sp  pass
+--------- ------- --------- ------ ------- ----------------- --------------  ---  --  ----
+450          True     False      0       0                 0              0    0   0 False
+459          True     False      0       0                 0              0    0   0 False
+613         False      True     26      26                26             16 1300 141 False
+876         False     False      0       0                 0              0    0   0 False
+994         False     False      0       0                 0              0    0   0 False
+

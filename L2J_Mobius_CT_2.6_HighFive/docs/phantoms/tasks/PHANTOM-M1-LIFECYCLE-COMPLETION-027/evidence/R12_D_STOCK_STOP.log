@@ -1,0 +1,5 @@
+: 
+Line |
+  60 |      & ([scriptblock]::Create($body027)) -Action $Action -Episode $Epi …
+     |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "GetFullPath" with "1" argument(s): "The path is empty. (Parameter 'path')"

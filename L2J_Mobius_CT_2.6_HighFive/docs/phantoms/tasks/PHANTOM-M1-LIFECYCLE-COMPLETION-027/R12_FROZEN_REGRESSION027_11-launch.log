@@ -1,0 +1,12 @@
+окт. 08, 2026 10:58:23 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Loaded 188 Instances
+окт. 08, 2026 10:58:23 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Scheduled 0 Instances
+окт. 08, 2026 10:58:23 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 10:58:23 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] living-world023.N02-N06-lawful-native-cooperative
+SUMMARY: suite=living-world023 seed=23002301 total=1 passed=1 failed=0

@@ -1,0 +1,9 @@
+target	damaged	killed	exp	sp	nextSelected	counted
+Target[objectId=268478046, instanceId=0, spawnGeneration=4]	true	true	true	false	true	false
+Target[objectId=268478048, instanceId=0, spawnGeneration=4]	true	true	true	false	true	false
+Target[objectId=268478039, instanceId=0, spawnGeneration=6]	true	true	true	false	true	false
+Target[objectId=268478038, instanceId=0, spawnGeneration=9]	false	false	false	false	true	false
+Target[objectId=268478036, instanceId=0, spawnGeneration=14]	false	false	false	false	true	false
+Target[objectId=268478041, instanceId=0, spawnGeneration=11]	true	true	true	false	true	false
+Target[objectId=268478035, instanceId=0, spawnGeneration=15]	false	false	false	false	true	false
+Target[objectId=268478039, instanceId=0, spawnGeneration=17]	true	true	true	true	false	false

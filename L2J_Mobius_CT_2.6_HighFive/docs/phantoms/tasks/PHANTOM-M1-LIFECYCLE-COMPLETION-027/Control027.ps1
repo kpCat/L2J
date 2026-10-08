@@ -8,7 +8,7 @@ param([ValidateSet('Update','Start','Stop','Export','Check','Collector','Matrix'
       [string]$Focus='', [ValidateSet('Candidate','Base')][string]$Engine='Candidate',
       [string]$Label='', [string]$LauncherId='', [switch]$ResetFixture,
       [ValidateSet('Persistence','Restart')][string]$ProofKind='Restart',
-      [string]$SqlRoot='',[string]$SealedRoot='',[string]$ShutdownLog='')
+      [string]$SqlRoot='',[string]$SealedRoot='',[string]$ShutdownLog='',[string]$CrashReceipt='')
 $ErrorActionPreference='Stop'
 $task027=$PSScriptRoot
 $module027=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
@@ -21,6 +21,10 @@ if($Action -ceq 'Proof'){
     $name027=if($ProofKind -ceq 'Persistence'){'Build-PersistenceProof024.py'}else{'Verify-Restart024.py'}
     $validator027=[IO.File]::ReadAllText((Join-Path $module027 "docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/$name027")).Replace('contract024','contract027').Replace('TASK024_CONTRACT','TASK027_CONTRACT')
     $arguments027=@('--cohort',$CohortJson,'--sealed',$SealedRoot,'--sql',$SqlRoot,'--output',$OutputRoot)
+    if($CrashReceipt){
+        if($ProofKind -cne 'Restart' -or -not [IO.Path]::GetFullPath($CrashReceipt).StartsWith($allowed027,[StringComparison]::OrdinalIgnoreCase)){throw 'Exact TASK027 crash receipt scope.'}
+        $arguments027+=@('--crash-receipt',$CrashReceipt)
+    }
     if($ProofKind -ceq 'Persistence'){$arguments027+=@('--shutdown-log',$ShutdownLog,'--allow-current-epoch-transition')}
     # Reuse the existing validator through stdin; no new helper or weaker field comparison.
     $validator027 | & python - @arguments027

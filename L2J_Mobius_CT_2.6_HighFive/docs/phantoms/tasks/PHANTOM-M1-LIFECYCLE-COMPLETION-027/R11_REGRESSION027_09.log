@@ -1,0 +1,593 @@
+окт. 08, 2026 9:39:13 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData load
+INFO: Network Config: ipconfig.xml does not exist, using automatic configuration...
+окт. 08, 2026 9:39:13 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 127.0.0.0/8 address: 127.0.0.1
+окт. 08, 2026 9:39:13 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 192.168.0.0/24 address: 192.168.0.55
+окт. 08, 2026 9:39:13 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 0.0.0.0/0 address: 89.149.88.222
+окт. 08, 2026 9:39:13 PM org.l2jmobius.gameserver.config.ServerConfig loadChatFilter
+INFO: Loaded 6 Filter Words.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Starting...
+[main] INFO com.zaxxer.hikari.pool.HikariPool - L2JMobiusPool - Added connection com.mysql.cj.jdbc.ConnectionImpl@3c72f59f
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Start completed.
+окт. 08, 2026 9:39:14 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ThreadPool: Initializing.
+окт. 08, 2026 9:39:14 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ...scheduled pool executor with 16 high priority threads.
+окт. 08, 2026 9:39:14 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ...scheduled pool executor with 64 total threads.
+окт. 08, 2026 9:39:14 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ...instant pool executor with 32 total threads.
+окт. 08, 2026 9:39:14 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+INFO: DatabaseIdManager: Cleaned 0 elements in 0 seconds.
+окт. 08, 2026 9:39:14 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanCharacterStatus
+INFO: DatabaseIdManager: Updated character online status.
+окт. 08, 2026 9:39:14 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanTimestamps
+INFO: DatabaseIdManager: Cleaned 0 expired timestamps.
+окт. 08, 2026 9:39:14 PM org.l2jmobius.gameserver.managers.IdManager <init>
+INFO: IdManager: 6327296 ids available.
+окт. 08, 2026 9:39:15 PM org.l2jmobius.gameserver.model.World <init>
+INFO: World: (256 by 272) World Region Grid set up.
+окт. 08, 2026 9:39:15 PM org.l2jmobius.gameserver.data.xml.CategoryData load
+INFO: CategoryData: Loaded 180 categories.
+окт. 08, 2026 9:39:15 PM org.l2jmobius.gameserver.data.xml.ExperienceData load
+INFO: ExperienceData: Loaded 86 levels.
+окт. 08, 2026 9:39:15 PM org.l2jmobius.gameserver.data.xml.ExperienceData load
+INFO: ExperienceData: Max Player Level is 85.
+окт. 08, 2026 9:39:15 PM org.l2jmobius.gameserver.data.xml.ExperienceData load
+INFO: ExperienceData: Max Pet Level is 85.
+окт. 08, 2026 9:39:15 PM org.l2jmobius.gameserver.scripting.ScriptEngine load
+INFO: Loaded 425 files to exclude.
+окт. 08, 2026 9:39:17 PM handlers.EffectMasterHandler main
+INFO: EffectMasterHandler: Loaded 165 effect handlers.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.EnchantSkillGroupsData load
+INFO: EnchantSkillGroupsData: Loaded 4 groups and 90 routes.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 17176 Class Skills for 103 class skill trees.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 76 sub-class skills.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 77 transfer skills for 3 transfer skill trees.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 117 fishing skills, 8 Dwarven only fishing skills.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 3 collect skills.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 94 clan skills, 64 for clan and 30 residential.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 18 sub-pledge skills.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 32 transform skills.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 8 noble skills.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 5 hero skills.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 46 game master skills.
+окт. 08, 2026 9:39:17 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 46 game master aura skills.
+окт. 08, 2026 9:39:20 PM org.l2jmobius.gameserver.data.xml.SkillData loadAllSkills
+INFO: SkillData: Loaded 65965 Skill templates from XML files.
+окт. 08, 2026 9:39:20 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Highest item id used: 50000
+окт. 08, 2026 9:39:20 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 11482 etc items.
+окт. 08, 2026 9:39:20 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 3825 armor items.
+окт. 08, 2026 9:39:20 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 3893 weapon items.
+окт. 08, 2026 9:39:20 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 19200 items in total.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.xml.OptionData load
+INFO: OptionData: Loaded 24985 options.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.xml.EnchantItemOptionsData parseDocument
+INFO: EnchantItemOptionsData: Loaded 23 items and 1093 options.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.xml.RecipeData load
+INFO: RecipeData: Loaded 1000 recipes.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.xml.ClassListData load
+INFO: ClassListData: Loaded 103 class data.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.xml.PlayerTemplateData load
+INFO: PlayerTemplateData: Loaded 103 player templates.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.xml.PlayerTemplateData load
+INFO: PlayerTemplateData: Loaded 52530 level up gain records.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.xml.AdminData load
+INFO: AdminData: Loaded 10 access levels.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.xml.AdminData load
+INFO: AdminData: Loaded 468 access commands.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.sql.CharInfoTable <init>
+INFO: CharInfoTable: Loaded 10002 char names.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.communitybbs.Manager.ForumsBBSManager initRoot
+INFO: ForumsBBSManager: Loaded 4 forums. Last forum id used: 4
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.sql.ClanTable <init>
+INFO: ClanTable: Restored 0 clans from the database.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.managers.CHSiegeManager loadClanHalls
+INFO: CHSiegeManager: Loaded 6 conquerable clan halls.
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.managers.ClanHallAuctionManager load
+INFO: ClanHallAuctionManager: Loaded 38 auction(s)
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.sql.ClanHallTable load
+INFO: ClanHallTable: Loaded 0 clan halls
+окт. 08, 2026 9:39:21 PM org.l2jmobius.gameserver.data.sql.ClanHallTable load
+INFO: ClanHallTable: Loaded 38 free clan halls
+окт. 08, 2026 9:39:22 PM org.l2jmobius.gameserver.geoengine.GeoEngine <init>
+INFO: GeoEngine: Loaded 203 regions.
+окт. 08, 2026 9:39:22 PM org.l2jmobius.gameserver.data.xml.SkillLearnData load
+INFO: SkillLearnData: Loaded 256 skill learn data.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.data.xml.NpcData load
+INFO: NpcData: Loaded 10461 NPCs.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.data.xml.NpcData load
+INFO: NpcData: Loaded 21 custom NPCs.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.ZoneManager <init>
+INFO: ZoneManager 17 by 18 Zone Region Grid set up.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Gigantic Chaos Golem(25512) status is 0.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Queen Ant(29001) status is 0.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Core(29006) status is 0.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Orfen(29014) status is 0.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Baium(29020) status is 0.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Valakas(29028) status is 0.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Antharas(29068) status is 0.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Beleth(29118) status is 0.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Loaded 8 Instances
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.ZoneManager load
+INFO: ZoneManager: Loaded 31 zone classes and 2860 zones.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.ZoneManager load
+INFO: ZoneManager: Last static id 200224.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.CastleManager loadInstances
+INFO: CastleManager: Loaded 9 castles
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.InstanceManager <init>
+INFO: InstanceManager: Multiverse Instance created.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.InstanceManager <init>
+INFO: InstanceManager: Universe Instance created.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.InstanceManager load
+INFO: InstanceManager: Loaded 160 instance names.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.InstanceManager load
+INFO: InstanceManager: Loaded 142 instance templates.
+окт. 08, 2026 9:39:24 PM org.l2jmobius.gameserver.managers.GrandBossManager initZones
+INFO: GrandBossManager: Initialized 8 Grand Boss Zones
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.managers.WalkingManager load
+INFO: WalkingManager: Loaded 123 walking routes.
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.model.olympiad.Hero init
+INFO: Hero System: Loaded 0 Heroes.
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.model.olympiad.Hero init
+INFO: Hero System: Loaded 0 all time Heroes.
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns <init>
+INFO: SevenSigns: Currently in the Seal Validation period!
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns initializeSeals
+INFO: SevenSigns: The Seal of Avarice remains unclaimed.
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns initializeSeals
+INFO: SevenSigns: The Seal of Gnosis remains unclaimed.
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns initializeSeals
+INFO: SevenSigns: The Seal of Strife remains unclaimed.
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns <init>
+INFO: SevenSigns: The competition ended with a tie last week.
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns setCalendarForNextPeriodChange
+INFO: SevenSigns: Next period change set to Mon Oct 12 18:00:25 EEST 2026
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns <init>
+INFO: SevenSigns: Next period begins in 3 days, 20 hours, 20 minutes, 59 seconds, 994 milliseconds
+окт. 08, 2026 9:39:25 PM org.l2jmobius.gameserver.managers.CursedWeaponsManager init
+INFO: CursedWeaponsManager: Loaded : 2 cursed weapon(s).
+окт. 08, 2026 9:39:26 PM org.l2jmobius.gameserver.data.xml.MapRegionData load
+INFO: MapRegionData: Loaded 57 map regions.
+окт. 08, 2026 9:39:26 PM org.l2jmobius.gameserver.data.xml.SpawnData load
+INFO: SpawnData: Initializing spawns...
+окт. 08, 2026 9:39:26 PM org.l2jmobius.gameserver.data.xml.DoorData parseDocument
+INFO: DoorData: Loaded 1301 doors.
+окт. 08, 2026 9:39:26 PM org.l2jmobius.gameserver.data.xml.FenceData load
+INFO: FenceData: Loaded 1 fences.
+окт. 08, 2026 9:39:28 PM org.l2jmobius.gameserver.data.xml.SpawnData load
+INFO: SpawnData: 42407 spawns have been initialized!
+окт. 08, 2026 9:39:35 PM org.l2jmobius.gameserver.data.xml.PetDataTable load
+INFO: PetDataTable: Loaded 49 pets.
+окт. 08, 2026 9:39:37 PM org.l2jmobius.commons.util.IXmlReader parseDirectory
+WARNING: Directory not found: C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\contract027a\runtime\game\.\data\buylists\custom
+окт. 08, 2026 9:39:37 PM org.l2jmobius.gameserver.data.xml.BuyListData load
+INFO: BuyListData: Loaded 760 buyLists.
+окт. 08, 2026 9:39:38 PM org.l2jmobius.gameserver.data.xml.TeleporterData load
+INFO: TeleporterData: Loaded 195 npc teleporters.
+окт. 08, 2026 9:39:48 PM org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival <init>
+INFO: SevenSignsFestival: Initialization bypassed due to Seal Validation in effect.
+окт. 08, 2026 9:40:21 PM org.l2jmobius.gameserver.data.xml.ExperienceLossData load
+INFO: ExperienceLossData: Loaded 85 levels.
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.model.actor.Player storeCharBase
+WARNING: Could not store char base data: Player:PhT004A01502[268435465] - TEST_NATIVE_STORE_SQL_FAILURE
+java.sql.SQLException: TEST_NATIVE_STORE_SQL_FAILURE
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$16.lambda$getConnection$0(PhantomBackgroundSuite.java:3411)
+	at jdk.proxy2/jdk.proxy2.$Proxy3.prepareStatement(Unknown Source)
+	at org.l2jmobius.gameserver.model.actor.Player.storeCharBase(Player.java:8053)
+	at org.l2jmobius.gameserver.model.actor.Player.storeNative(Player.java:8010)
+	at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7991)
+	at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+	at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:199)
+	at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3227)
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.model.actor.Player storeCharBase
+WARNING: Could not store char base data: Player:PhT004A01502[268435465] - TEST_NATIVE_STORE_SQL_FAILURE
+java.sql.SQLException: TEST_NATIVE_STORE_SQL_FAILURE
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$16.lambda$getConnection$0(PhantomBackgroundSuite.java:3411)
+	at jdk.proxy2/jdk.proxy2.$Proxy3.prepareStatement(Unknown Source)
+	at org.l2jmobius.gameserver.model.actor.Player.storeCharBase(Player.java:8053)
+	at org.l2jmobius.gameserver.model.actor.Player.storeNative(Player.java:8010)
+	at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7995)
+	at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+	at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+	at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+	at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+	at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+	at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+	at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.captureVisibleArrivalQuiescent(PhantomBackgroundService.java:1171)
+	at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.lambda$runVisibleCheckpoint$0(PhantomBackgroundService.java:1089)
+	at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.ownedCheckpoint(PhantomNativeWorkScope.java:137)
+	at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.runVisibleCheckpoint(PhantomBackgroundService.java:1074)
+	at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.captureVisibleArrival(PhantomBackgroundService.java:1006)
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3291)
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.model.actor.Player storeCharSub
+WARNING: Could not store sub class data for PhT004A01502: TEST_NATIVE_STORE_SQL_FAILURE
+java.sql.SQLException: TEST_NATIVE_STORE_SQL_FAILURE
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$16.lambda$getConnection$0(PhantomBackgroundSuite.java:3411)
+	at jdk.proxy2/jdk.proxy2.$Proxy3.prepareStatement(Unknown Source)
+	at org.l2jmobius.gameserver.model.actor.Player.storeCharSub(Player.java:8142)
+	at org.l2jmobius.gameserver.model.actor.Player.storeNative(Player.java:8011)
+	at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7991)
+	at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+	at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:199)
+	at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3227)
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.model.actor.Player storeCharSub
+WARNING: Could not store sub class data for PhT004A01502: TEST_NATIVE_STORE_SQL_FAILURE
+java.sql.SQLException: TEST_NATIVE_STORE_SQL_FAILURE
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$16.lambda$getConnection$0(PhantomBackgroundSuite.java:3411)
+	at jdk.proxy2/jdk.proxy2.$Proxy3.prepareStatement(Unknown Source)
+	at org.l2jmobius.gameserver.model.actor.Player.storeCharSub(Player.java:8142)
+	at org.l2jmobius.gameserver.model.actor.Player.storeNative(Player.java:8011)
+	at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7995)
+	at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+	at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+	at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+	at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+	at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+	at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+	at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.captureVisibleArrivalQuiescent(PhantomBackgroundService.java:1171)
+	at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.lambda$runVisibleCheckpoint$0(PhantomBackgroundService.java:1089)
+	at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.ownedCheckpoint(PhantomNativeWorkScope.java:137)
+	at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.runVisibleCheckpoint(PhantomBackgroundService.java:1074)
+	at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService.captureVisibleArrival(PhantomBackgroundService.java:1006)
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3291)
+	at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+	at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161316059500, sequence=1, utc=2026-10-08T18:43:06.682758700Z, phase=PRE_STORE, hook=BEFORE_STORE_OPERATION, admittedActions=0, exceptionClass=org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure, message=, detail=primary org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure: 
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testOwnedStoreCrashMatrix$1(PhantomBackgroundSuite.java:3216)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.failAfter(PhantomMaterializedPlayer.java:632)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:393)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=16, truncated=false]
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161346930600, sequence=1, utc=2026-10-08T18:43:06.719755400Z, phase=NATIVE_STORE, hook=AFTER_NATIVE_STORE, admittedActions=0, exceptionClass=org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure, message=, detail=primary org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure: 
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testOwnedStoreCrashMatrix$1(PhantomBackgroundSuite.java:3216)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.failAfter(PhantomMaterializedPlayer.java:632)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:397)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=16, truncated=false]
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161377755000, sequence=1, utc=2026-10-08T18:43:06.750745400Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=java.lang.IllegalStateException, message=OWNED_STORE_FINALIZE:BACKEND_FAILURE, detail=primary java.lang.IllegalStateException: OWNED_STORE_FINALIZE:BACKEND_FAILURE
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.afterStore(PhantomBackgroundService.java:1330)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7999)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=22, truncated=false]
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161411671000, sequence=1, utc=2026-10-08T18:43:06.782746700Z, phase=PRE_DELETE, hook=AFTER_STORE_BEFORE_DELETE, admittedActions=0, exceptionClass=org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure, message=, detail=primary org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure: 
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testOwnedStoreCrashMatrix$1(PhantomBackgroundSuite.java:3216)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.failAfter(PhantomMaterializedPlayer.java:632)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:421)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=12, truncated=false]
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161466986500, sequence=1, utc=2026-10-08T18:43:06.838746200Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=java.lang.IllegalStateException, message=OWNED_STORE_PREPARE:BACKEND_FAILURE, detail=primary java.lang.IllegalStateException: OWNED_STORE_PREPARE:BACKEND_FAILURE
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.prepareStore(PhantomBackgroundService.java:1304)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.beforeStore(PhantomBackgroundService.java:1222)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7992)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=23, truncated=false]
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161500122100, sequence=1, utc=2026-10-08T18:43:06.870746200Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure, message=, detail=primary org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure: 
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testOwnedStoreCrashMatrix$0(PhantomBackgroundSuite.java:3200)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.lifecycleCheckpoint(PhantomBackgroundTransaction.java:2456)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.prepareStore(PhantomBackgroundService.java:1308)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.beforeStore(PhantomBackgroundService.java:1222)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7992)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=25, truncated=false]
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161530883600, sequence=1, utc=2026-10-08T18:43:06.900744500Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure, message=, detail=primary org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure: 
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testOwnedStoreCrashMatrix$0(PhantomBackgroundSuite.java:3200)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.lifecycleCheckpoint(PhantomBackgroundTransaction.java:2456)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.afterStore(PhantomBackgroundService.java:1326)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7999)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=24, truncated=false]
+окт. 08, 2026 9:43:06 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161560321700, sequence=1, utc=2026-10-08T18:43:06.930744300Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=java.lang.IllegalStateException, message=OWNED_STORE_FINALIZE:BACKEND_FAILURE, detail=primary java.lang.IllegalStateException: OWNED_STORE_FINALIZE:BACKEND_FAILURE
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.afterStore(PhantomBackgroundService.java:1330)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7999)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=22, truncated=false]
+окт. 08, 2026 9:43:07 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161649383600, sequence=1, utc=2026-10-08T18:43:07.018744900Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure, message=, detail=primary org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure: 
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$testOwnedStoreCrashMatrix$0(PhantomBackgroundSuite.java:3193)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.lifecycleCheckpoint(PhantomBackgroundTransaction.java:2456)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.prepareStore(PhantomBackgroundService.java:1308)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.beforeStore(PhantomBackgroundService.java:1222)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7992)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=25, truncated=false]
+окт. 08, 2026 9:43:07 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161685419500, sequence=1, utc=2026-10-08T18:43:07.057745200Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=java.lang.IllegalStateException, message=OWNED_STORE_FINALIZE:BACKEND_FAILURE, detail=primary java.lang.IllegalStateException: OWNED_STORE_FINALIZE:BACKEND_FAILURE
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.afterStore(PhantomBackgroundService.java:1330)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7999)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3331)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=22, truncated=false]
+окт. 08, 2026 9:43:07 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161842520100, sequence=1, utc=2026-10-08T18:43:07.212745700Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=java.lang.IllegalStateException, message=OWNED_STORE_PREPARE:BACKEND_FAILURE, detail=primary java.lang.IllegalStateException: OWNED_STORE_PREPARE:BACKEND_FAILURE
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.prepareStore(PhantomBackgroundService.java:1304)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.beforeStore(PhantomBackgroundService.java:1222)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7992)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3256)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=23, truncated=false]
+окт. 08, 2026 9:43:07 PM org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer recordCleanupFailure
+WARNING: Phantom cleanup first incident PhantomCleanupIncident[objectId=268435465, epoch=213161877040900, sequence=1, utc=2026-10-08T18:43:07.249747500Z, phase=POST_STORE, hook=LIFECYCLE_AFTER_STORE, admittedActions=0, exceptionClass=org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure, message=, detail=primary org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$InjectedFailure: 
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$14.afterStore(PhantomBackgroundSuite.java:3212)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort$1.afterStore(PhantomMaterializationLifecyclePort.java:107)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService$1.afterStore(PhantomMaterializationService.java:264)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:400)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.testOwnedStoreCrashMatrix(PhantomBackgroundSuite.java:3256)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundSuite.lambda$register$0(PhantomBackgroundSuite.java:371)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=17, truncated=false]
+окт. 08, 2026 9:43:07 PM org.l2jmobius.gameserver.localplay.LocalPlayPhantomStoreJournal write
+WARNING: OWNED_STORE_JOURNAL_DISABLED:AccessDeniedException
+окт. 08, 2026 9:43:20 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Loaded 188 Instances
+окт. 08, 2026 9:43:20 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Scheduled 0 Instances
+окт. 08, 2026 9:43:26 PM org.l2jmobius.gameserver.data.xml.HitConditionBonusData load
+INFO: HitConditionBonusData: Loaded hit condition bonuses.
+окт. 08, 2026 9:43:28 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 9:43:28 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] background-position-canonicalization.01-canonical-anchor-policy-and-negative-controls
+[FAIL] background-position-canonicalization.02-real-player-travel-materialization-restart - java.lang.AssertionError: Materialization/dematerialization changed the canonical ARRIVED state. seed=15001502
+[PASS] background-position-canonicalization.03-native-farm-movement-keeps-real-position
+[FAIL] background-position-canonicalization.04-visible-travel-native-movement-and-cancellation - java.util.NoSuchElementException: No value present seed=15001502
+[FAIL] background-position-canonicalization.05-restored-pending-cold-queue-to-native-player - java.lang.AssertionError: Pending native farm travel did not arrive: travel.route_absent / ServiceSnapshot[state=RUNNING, activeRequests=0, queuedRequests=0, queueCapacity=256, peakQueuedRequests=0, currentWorkers=0, maximumWorkers=2, peakWorkers=0, cacheEntries=0, cacheCapacity=1024, peakCacheEntries=0, completedResults=0, cooldownProfiles=0, trackedProgressAttempts=0] seed=15001502
+[FAIL] background-position-canonicalization.06-complete-history-uncommitted-outer-cursor - java.lang.AssertionError: Native pending replay failed: DueSnapshot[profileId=10039, requestedHorizonMinute=29843626, committedCursorMinute=0, initialCatchupComplete=false, requestPending=false, queued=true, running=false, revision=1, complete=false, reason=ecology.inventory_pending] / ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22007, lastProgressAgeMillis=213138780, nextWakeMillis=213138847, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0] seed=15001502
+[FAIL] background-position-canonicalization.07-dead-level-loss-native-load-and-progress-fence - java.lang.AssertionError: Native pending replay failed: DueSnapshot[profileId=10040, requestedHorizonMinute=29843626, committedCursorMinute=0, initialCatchupComplete=false, requestPending=false, queued=true, running=false, revision=1, complete=false, reason=ecology.inventory_pending] / ProgressSnapshot[ordinaryQueued=9999, urgentQueued=1, workerState=WAKE_SCHEDULED, activeProfile=0, currentStage=queued, enqueueAgeMillis=22005, lastProgressAgeMillis=213160967, nextWakeMillis=213161047, nextRetryMillis=0, historicalStatus=UNKNOWN, requestId=, innerCursorMinute=0, targetMinute=0, innerRevision=0] seed=15001502
+[PASS] background-position-canonicalization.08-owned-store-crash-and-mutation-matrix
+[PASS] background-position-canonicalization.09-owned-store-before-after-neither-and-snapshot
+[PASS] background-position-canonicalization.10-owned-store-journal-selected-epoch-and-off-cost
+[FAIL] background-position-canonicalization.11-production-visible-executor-route-and-revision - java.lang.AssertionError: Actual handler did not start native travel: Optional[RuntimeSnapshot[profileId=10086, goalId=15, goalType=farm.background, goalRevision=0, goalStatus=ACTIVE, runtimeState=WAITING_RETRY, decisionSequence=13, selectedCandidateKey=candidate.background.farm, selectedScore=1000, planId=12, currentStep=1, attempt=1, lastResult=RETRY, reasonKey=background.visible.autoplay_running, topCandidateEvaluations=[CandidateEvaluation[candidateKey=candidate.background.farm, score=1000, status=ELIGIBLE, reasonKey=background.explicit.ready]], inFlight=false, persistenceInFlight=false, persistenceOperationId=0, persistenceOperationKind=null, generation=2, activityGeneration=2, componentRowVersion=0]]/ seed=15001502
+[PASS] background-position-canonicalization.12-production-visible-executor-fast-contact
+SUMMARY: suite=background-position-canonicalization seed=15001502 total=12 passed=6 failed=6

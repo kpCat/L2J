@@ -1,0 +1,12 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+TASK024_PERSISTENCE_EXPORT database=l2jmobiush5_localplay_contract027g cohort=5 output=C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-LIFECYCLE-COMPLETION-027\evidence\R12_G_SOFT_RETURN\before
+Exception: C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\contract027g\runtime\Invoke-LocalPlayPilot.ps1:89
+Line |
+  89 |      throw "UNCERTAIN: результат $requestId не опубликован до deadline …
+     |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | UNCERTAIN: результат 77b3663e-f2d8-49b9-9020-050f08299a21 не опубликован до deadline; не повторяйте action
+     | автоматически.

@@ -1,0 +1,14 @@
+{
+  "source": "UNCHANGED026_EVALUATOR_ON_PRESERVED_INTERRUPTED_SAMPLES",
+  "frozenSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+  "elapsedSeconds": 322.3155669,
+  "cohortCount": 8,
+  "passingRows": 7,
+  "farmPass": false,
+  "sceneComplete": false,
+  "reason": "UNCERTAIN_MAILBOX_NO_REPLAY",
+  "primaryIds": [
+    "175",
+    "424"
+  ]
+}

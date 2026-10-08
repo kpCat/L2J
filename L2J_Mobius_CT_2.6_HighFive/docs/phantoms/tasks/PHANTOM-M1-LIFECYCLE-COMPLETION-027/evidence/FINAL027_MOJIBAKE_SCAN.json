@@ -1,0 +1,7 @@
+{
+  "check": "MOJIBAKE_MARKERS_AUTHORED_CHANGED_SOURCE_DOCS_SCRIPTS",
+  "files": 44,
+  "matches": [],
+  "pass": true,
+  "rawGeneratedLogs": "IMMUTABLE_CAPTURE_NOT_REWRITTEN"
+}

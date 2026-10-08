@@ -1,0 +1,36 @@
+suite=lifecycle-completion027
+seed=27002701
+total=12
+passed=9
+failed=3
+measurement.D01.return=elapsed=46423523000;death=Snapshot[closing=false, acceptedReconciliations=0, runningReconciliations=0, observedDeaths=0, firstFailure=];old=216552947979400;new=216599361935300
+measurement.D02.secondary=Snapshot[closing=false, acceptedReconciliations=0, runningReconciliations=0, observedDeaths=0, firstFailure=]
+measurement.D03.result=OperationResult[status=SUCCESS, reason=death.recovered_at_town, encounters=0, elapsedMillis=0, dead=false]
+measurement.D04.cold=result=OperationResult[status=SUCCESS, reason=death.recovered_at_town, encounters=0, elapsedMillis=0, dead=false];claim=Optional[Snapshot[state=PhantomBackgroundCatchupState[status=PENDING, requestId=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee, deterministicSeed=1, fromEpochMinute=29460749, targetEpochMinute=29460750, cursorEpochMinute=29460749, planOrdinal=0, intervalOrdinal=0, generation=1, knowledgeGeneration=1, topologyGeneration=1, goalId=7315553804496280496, goalRevision=0, planIdentity=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, modelVersion=1, authorityHashes=Hashes[knowledge=c98c563b80cb1591dcbdb1943c19d9201ad1b5d05bc6c8ee38b5975cfb3016a5, topology=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac, progression=133955996D84152171ED23514A47F76080767D0AFB36627EC9D40C0072E94BF7, commerce=d9aead8e4df00efa8f702964dc70563f6f8aae29992fd4db1949ca700e59744f], failureReason=], rowVersion=0]];oldEpoch=216600514342800
+measurement.D04.return=death=Snapshot[closing=false, acceptedReconciliations=0, runningReconciliations=0, observedDeaths=0, firstFailure=];old=216601247669800;new=216601606608400;catchup=Optional[Snapshot[state=PhantomBackgroundCatchupState[status=PENDING, requestId=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee, deterministicSeed=1, fromEpochMinute=29460749, targetEpochMinute=29460750, cursorEpochMinute=29460749, planOrdinal=0, intervalOrdinal=0, generation=1, knowledgeGeneration=1, topologyGeneration=1, goalId=4809883855354712531, goalRevision=0, planIdentity=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, modelVersion=1, authorityHashes=Hashes[knowledge=c98c563b80cb1591dcbdb1943c19d9201ad1b5d05bc6c8ee38b5975cfb3016a5, topology=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac, progression=133955996D84152171ED23514A47F76080767D0AFB36627EC9D40C0072E94BF7, commerce=d9aead8e4df00efa8f702964dc70563f6f8aae29992fd4db1949ca700e59744f], failureReason=], rowVersion=0]]
+measurement.D05.beforeClose=dead=false;drained=false;background=Snapshot[state=RUNNING, currentOperations=0, peakOperations=0, currentIdentityLeases=0, peakIdentityLeases=0, currentTransactions=0, peakTransactions=1, currentTransitionClaims=0, peakTransitionClaims=1, completedOperations=0, idempotentOperations=0, retryOperations=0, failedOperations=0, retainedIdentityLeases=0]
+measurement.E01.ownerHeld=[6:EVENT:TASK027_OBSERVATION:SUBMITTED:epoch=216602065325700:reserve=216602084013600:submit=216602084119900:executorEntered=216602084154400:start=0:bodyExit=0:bodyOutcome=NOT_ENTERED:end=0:delayMs=0:future=NONE]
+measurement.S02.complete=calls=1;children=1;selfWait=250200;progress=StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=216612355469700];owner=epoch=216602121914000 state=DETACHED outstanding=0 pendingTimers=0 peak=4 failure= eventDispatch=[] work=[]
+measurement.S02.published=epoch=216602121914000 state=OPEN outstanding=2 pendingTimers=1 peak=4 failure= eventDispatch=[12:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=216602121914000:reserve=216602351862500:submit=216602351900800:executorEntered=0:start=0:bodyExit=0:bodyOutcome=NOT_ENTERED:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[9:attack-hit:RESERVED:depth=2:ageMs=19, 12:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=1:ageMs=2]
+measurement.S02.stopResult=stopped=true;progress=StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=216612355469700];owner=epoch=216602121914000 state=DETACHED outstanding=0 pendingTimers=0 peak=4 failure= eventDispatch=[] work=[]
+measurement.S03.preflight=elapsed=1699700;result=PhantomStepResult[type=RETRY, retryDelayMillis=250, reasonKey=background.retry];loadedEpoch=216605129444400
+measurement.headless.database=l2jmobiush5_localplay_contract027a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS lifecycle-completion027.D01-real-45s-native-death-return-and-new-epoch elapsedNanos=46645813500
+PASS lifecycle-completion027.D02-secondary-native-revive-does-not-return-twice elapsedNanos=355223400
+PASS lifecycle-completion027.D03-cold-canonical-dead-native-recovery elapsedNanos=684766200
+PASS lifecycle-completion027.D04-cold-dead-keeps-exact-pending-handoff elapsedNanos=731360000
+PASS lifecycle-completion027.D04-exact-pending-handoff-survives-native-death-return elapsedNanos=420753600
+PASS lifecycle-completion027.D05-accepted-queued-native-return-survives-close elapsedNanos=403689300
+PASS lifecycle-completion027.E01-executor-entry-before-owner-monitor elapsedNanos=52652300
+PASS lifecycle-completion027.S02-native-delayed-kill-child-before-system-store elapsedNanos=2968564300
+PASS lifecycle-completion027.S03-cold-stale-native-preflight-is-control-continuation elapsedNanos=800774200
+FAIL lifecycle-completion027.S03-native-recovery-control-does-not-drain-own-callback elapsedNanos=406019000 type=java.lang.NullPointerException message=Cannot invoke "org.l2jmobius.gameserver.model.script.Quest.startQuestTimer(String, long, org.l2jmobius.gameserver.model.actor.Npc, org.l2jmobius.gameserver.model.actor.Player)" because "quest" is null seed=27002701
+FAIL lifecycle-completion027.S05-single-deadline-retains-original-running-native-callback elapsedNanos=21848200 type=org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException message=Could not create Phantom profile. seed=27002701
+FAIL lifecycle-completion027.after-all elapsedNanos=0 type=java.lang.IllegalStateException message=NATIVE_CHECKPOINT_ADMISSION_CLOSED seed=27002701

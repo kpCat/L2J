@@ -1,0 +1,12 @@
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+
+окт. 08, 2026 11:00:02 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 11:00:02 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] native-farm-continuation022.E04-E05-actual-kill-queued-and-stock-quest-child-drain
+[PASS] native-farm-continuation022.E07-actual-kill-listener-failure-after-native-mutation
+SUMMARY: suite=native-farm-continuation022 seed=22002201 total=2 passed=2 failed=0

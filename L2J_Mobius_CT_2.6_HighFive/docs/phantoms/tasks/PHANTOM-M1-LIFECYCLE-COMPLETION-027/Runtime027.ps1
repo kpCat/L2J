@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('ProbeStop','Lifecycle')][string]$Action='ProbeStop',
+param([ValidateSet('ProbeStop','Lifecycle','SoftReturn')][string]$Action='ProbeStop',
       [ValidateSet('b','c','d','g','h')][string]$Episode='b',
       [Parameter(Mandatory)][string]$OutputRoot,
       [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$CodeSha,
@@ -12,6 +12,17 @@ $allowed027=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'evidence'))+[IO.Pat
 if(-not $out027.StartsWith($allowed027,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path $out027)){throw 'Immutable TASK027 evidence required.'}
 $manifest027=Get-Content (Join-Path $runtime027 'local-play.json') -Raw | ConvertFrom-Json
 if($manifest027.codeSha -cne $CodeSha -or $manifest027.databaseName -cne "l2jmobiush5_localplay_contract027$Episode"){throw 'Exact code/database mismatch.'}
+if($Action -ceq 'SoftReturn'){
+    if($Episode -cne 'g'){throw 'Independent native soft-return is restricted to own027g.'}
+    $taskRoot027=$PSScriptRoot
+    $legacy027=Join-Path $module027 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024'
+    $walk027=[IO.File]::ReadAllText((Join-Path $legacy027 'Observe-Walk024.ps1'))
+    $walk027=$walk027.Replace("& (Join-Path `$PSScriptRoot 'Read-Clone024.ps1') -RuntimeRoot `$runtime", "& (Join-Path `$taskRoot027 'Control027.ps1') -Action Export -Episode g")
+    $walk027=$walk027.Replace('$PSScriptRoot','$legacy027').Replace('contract024','contract027')
+    $walk027=$walk027.Replace('$counter=0','$script:counter=0')
+    & ([scriptblock]::Create($walk027)) -RuntimeRoot $runtime027 -OutputRoot $out027 -OutsideX 38000
+    exit $LASTEXITCODE
+}
 if($Action -ceq 'Lifecycle'){
     if($Episode -cne 'g'){throw 'Native severe encounter is restricted to own027g.'}
     $taskRoot027=$PSScriptRoot
