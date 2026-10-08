@@ -95,6 +95,11 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if ("lifecycle027".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("S01-accepted-native-materialization-before-system-drain", this::composedStop027);
+			return;
+		}
 		registry.add("H01-normal-incomplete-remains-fenced", _ ->
 		{
 			try (var f = new Fixture())
@@ -311,6 +316,54 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(PhantomActivityMaterializationPort.Outcome.SUCCESS, outcome.outcome(), "INTEGRATED_RED: exact native-required readiness still calls NORMAL and is catchup.normal_fenced.");
 			}
 			finally { topology.beginStop(); topology.finishStop(); }
+		}
+	}
+
+	private void composedStop027(PhantomTestContext context) throws Exception
+	{
+		try (var f = new Fixture())
+		{
+			final var entered = new java.util.concurrent.CountDownLatch(1);
+			final var release = new java.util.concurrent.CountDownLatch(1);
+			final var finished = new java.util.concurrent.CountDownLatch(1);
+			final var error = new AtomicReference<Throwable>();
+			f.afterHistoricalLoad = () ->
+			{
+				entered.countDown();
+				try { if (!release.await(5, java.util.concurrent.TimeUnit.SECONDS)) { throw new IllegalStateException("S01 exact native load release timeout"); } }
+				catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException(failure); }
+			};
+			final var configure = org.l2jmobius.gameserver.phantoms.PhantomSystem.class.getDeclaredMethod("configureForTesting", PhantomMaterializationService.class);
+			configure.setAccessible(true); configure.invoke(null, f.materialization);
+			final var instance = org.l2jmobius.gameserver.phantoms.PhantomSystem.class.getDeclaredField("_configuredInstance");
+			instance.setAccessible(true);
+			final var background = org.l2jmobius.gameserver.phantoms.PhantomSystem.class.getDeclaredField("_backgroundService");
+			background.setAccessible(true); background.set(instance.get(null), f.background);
+			org.l2jmobius.commons.threads.ThreadPool.executeOrThrow(() ->
+			{
+				try { f.handoff(); } catch (Throwable failure) { error.set(failure); } finally { finished.countDown(); }
+			});
+			try
+			{
+				PhantomAssertions.assertTrue(entered.await(3, java.util.concurrent.TimeUnit.SECONDS), "INVALID S01: actual native Player load was not accepted.");
+				final var quiescence = f.background.materializationQuiescence();
+				PhantomAssertions.assertEquals(1, quiescence.materializingTransitionClaims(), "INVALID S01: real admission must own the transition.");
+				context.record("S01.firstBlocker", "background.materializingTransitionClaims=" + quiescence.materializingTransitionClaims() + ";profile=" + f.id + ";epoch=" + f.loadedEpoch);
+				org.l2jmobius.commons.threads.ThreadPool.schedule(release::countDown, 350);
+				final long started = System.nanoTime();
+				final boolean stopped = org.l2jmobius.gameserver.phantoms.PhantomSystem.shutdownIfStarted();
+				context.record("S01.result", "stopped=" + stopped + ";elapsedNanos=" + (System.nanoTime() - started) + ";snapshot=" + org.l2jmobius.gameserver.phantoms.PhantomSystem.configuredShutdownSnapshot());
+				PhantomAssertions.assertTrue(stopped, "RED S01: pending accepted native transition returned before materialization drain.");
+				PhantomAssertions.assertTrue(finished.await(2, java.util.concurrent.TimeUnit.SECONDS), "Accepted native materialization did not finish.");
+				PhantomAssertions.assertEquals(null, error.get(), "Accepted transition failed during healthy stop.");
+				PhantomAssertions.assertEquals(0, f.materialization.snapshot().materializations().size(), "Terminal stop retained a native owner.");
+				PhantomAssertions.assertEquals(PhantomBackgroundService.ServiceState.STOPPED, f.background.snapshot().state(), "Background dependency did not finish.");
+			}
+			finally
+			{
+				release.countDown(); finished.await(5, java.util.concurrent.TimeUnit.SECONDS);
+				if (org.l2jmobius.gameserver.phantoms.PhantomSystem.hasConfiguredInstance()) { org.l2jmobius.gameserver.phantoms.PhantomSystem.shutdownIfStarted(); }
+			}
 		}
 	}
 

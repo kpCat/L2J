@@ -1,0 +1,23 @@
+mode	path	purpose
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	typed shutdown progress / existing bounded await
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	accepted recovery continuation / quiescence accounting
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomOrdinaryDeathRecovery.java	exact queued/running native death completion
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	coalesced cleanup continuation after composed RED
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	cleanup entry handoff; no earned/owned-store bypass
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	quiescence notification and exact dispatch observation
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	EXECUTOR_ENTERED observation; actual adapter fix only after RED
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/events/NativeEventWork.java	published callback adapter only after exact source proof
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	route recovery request off own scheduler worker
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	cold DEAD exact handoff/goal after native recovery
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java	existing cold DEAD recovery admission after RED
+DIAGNOSTIC_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java	bounded read-only lifecycle snapshots; no PREPARE movement
+READ_OR_HOOK_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/Shutdown.java	existing Phantom hook API calls only, no stock pool logic edits
+NEW_OR_MODIFY	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLifecycleCompletion027Suite.java	native composed stop/death/restart cases
+NEW_OR_MODIFY	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomLifecycleDispatch027Checks.java	package-private exact callback/recovery contracts
+MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomServerShutdownHandoffSuite.java	existing configured shutdown integration
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	exact own027 DB lane only
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomContracts024DatabaseLane.java	reuse exact own scoped fixture namespace only, no shared metadata
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeContextHandoffSuite.java	existing composed recovery fixture
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIFECYCLE-COMPLETION-027/**	authored task evidence only
+PRIVATE_WRITE	L2J_Mobius_CT_2.6_HighFive/.phantom-local/ops027/**	private runtime helper, no secrets in Git
+PRIVATE_WRITE	L2J_Mobius_CT_2.6_HighFive/.phantom-local/contract027[a-h]/**	private own runtime/assets/credentials, not committed

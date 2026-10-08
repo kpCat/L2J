@@ -1,0 +1,24 @@
+// CURRENT — PhantomSystem.shutdownClaimed / backgroundReadyForMaterializationShutdown.
+if (!backgroundReadyForMaterializationShutdown())
+{
+    _metrics.recordShutdownFailure();
+    _state = State.FAILED;
+    return false;
+}
+if (_materializationService != null)
+{
+    final ShutdownResult result = _materializationService.shutdown();
+    if (result.state() != ServiceState.STOPPED)
+    {
+        _state = State.FAILED;
+        return false;
+    }
+}
+
+private boolean backgroundReadyForMaterializationShutdown()
+{
+    return ((_ordinaryDeathRecovery == null) || _ordinaryDeathRecovery.drained()) && ((_backgroundService == null) || permitsMaterializationShutdown(_backgroundService.materializationQuiescence()));
+}
+
+// PROBLEM: false can mean legitimately in progress, but caller returns terminal failure immediately.
+// REQUIRED SHAPE: classify which gate is pending/fatal; retain dependencies while it can finish.

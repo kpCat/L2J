@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="lifecycle-completion027" seed="27002701" tests="3" passed="2" failures="1">
+  <properties>
+    <property name="D03.result" value="OperationResult[status=SUCCESS, reason=death.recovered_at_town, encounters=0, elapsedMillis=0, dead=false]"/>
+    <property name="D05.beforeClose" value="dead=false;drained=false;background=Snapshot[state=RUNNING, currentOperations=0, peakOperations=0, currentIdentityLeases=0, peakIdentityLeases=0, currentTransactions=0, peakTransactions=1, currentTransitionClaims=0, peakTransitionClaims=1, completedOperations=0, idempotentOperations=0, retryOperations=0, failedOperations=0, retainedIdentityLeases=0]"/>
+    <property name="S02.published" value="epoch=208304615963300 state=OPEN outstanding=2 pendingTimers=1 peak=4 failure= eventDispatch=[12:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=208304615963300:reserve=208304797153700:submit=208304797201500:start=0:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[9:attack-hit:RESERVED:depth=2:ageMs=16, 12:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=1:ageMs=1]"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract027a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="lifecycle-completion027.D03-cold-canonical-dead-native-recovery" elapsedNanos="870431200"></testcase>
+  <testcase name="lifecycle-completion027.D05-accepted-queued-native-return-survives-close" elapsedNanos="357736200"></testcase>
+  <testcase name="lifecycle-completion027.S02-native-delayed-kill-child-before-system-store" elapsedNanos="2930792700"><failure type="java.lang.AssertionError" message="Actual callback and child must complete before system store/dependency stop." seed="27002701"/></testcase>
+</testsuite>

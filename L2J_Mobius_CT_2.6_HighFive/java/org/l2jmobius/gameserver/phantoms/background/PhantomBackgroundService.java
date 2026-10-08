@@ -1502,9 +1502,24 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public OperationResult recover(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled)
 	{
+		return recoverClaimed(profileId, goal, activityState, cancelled, false);
+	}
+
+	/** The already returned exact corpse may finish persistence after producer closure. */
+	public OperationResult recoverAcceptedForStop(long profileId, PhantomGoal goal, int objectId, long epoch)
+	{
+		final var materialization = _materialization.get();
+		final var entry = materialization == null ? null : materialization.find(profileId).orElse(null);
+		if ((entry == null) || (entry.characterObjectId() != objectId) || (entry.materializedAtNanos() != epoch)
+			|| !Objects.equals(_nativeTownReturns.get(profileId), objectId)) { return retry("recovery.stop_owner_changed"); }
+		return recoverClaimed(profileId, goal, PhantomActivityState.ACTIVE, () -> false, true);
+	}
+
+	private OperationResult recoverClaimed(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean stopping)
+	{
 		synchronized (this)
 		{
-			if ((_state != ServiceState.RUNNING) || (_recoveries.putIfAbsent(profileId, Boolean.TRUE) != null))
+			if (((_state != ServiceState.RUNNING) && !(stopping && (_state == ServiceState.STOPPING))) || (_recoveries.putIfAbsent(profileId, Boolean.TRUE) != null))
 			{
 				return retry("recovery.busy_or_stopping");
 			}
@@ -1512,7 +1527,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		try
 		{
-			return recoverOwned(profileId, goal, activityState, cancelled);
+			return recoverOwned(profileId, goal, activityState, cancelled, stopping);
 		}
 		finally
 		{
@@ -1521,7 +1536,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
-	private OperationResult recoverOwned(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled)
+	private OperationResult recoverOwned(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean stopping)
 	{
 		Objects.requireNonNull(cancelled, "cancelled");
 		if ((activityState != PhantomActivityState.WARM) && !activityState.requiresMaterialization())
@@ -1558,6 +1573,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		boolean restoreExistingMaterialization = existingMaterialization.isPresent() && (existingMaterialization.get().state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE);
 		if (!restoreExistingMaterialization)
 		{
+			if (stopping) { return retry("recovery.stop_no_new_materialization"); }
 			final PhantomMaterializationService.MaterializeResult materialized = materialization.materialize(profileId);
 			if ((materialized.status() != ResultStatus.SUCCESS) && (materialized.status() != ResultStatus.ALREADY_ACTIVE))
 			{
@@ -1582,6 +1598,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			if (!resumeBoundary)
 			{
+				if (stopping) { return retry("recovery.stop_no_new_return"); }
 				final OperationResult nativeRecovery = recoverNativeTown(player, cancelled);
 				if (!nativeRecovery.successful())
 				{
@@ -1599,7 +1616,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return OperationResult.inconsistent("recovery.verification_failed");
 		}
-		if (restoreExistingMaterialization)
+		if (restoreExistingMaterialization && !stopping && (_state == ServiceState.RUNNING))
 		{
 			final PhantomMaterializationService.MaterializeResult restored = materialization.materialize(profileId);
 			if ((restored.status() != ResultStatus.SUCCESS) && (restored.status() != ResultStatus.ALREADY_ACTIVE))

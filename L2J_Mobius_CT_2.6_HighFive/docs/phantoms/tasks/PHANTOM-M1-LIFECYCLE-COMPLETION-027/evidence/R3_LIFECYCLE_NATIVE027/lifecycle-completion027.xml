@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="lifecycle-completion027" seed="27002701" tests="3" passed="3" failures="0">
+  <properties>
+    <property name="D03.result" value="OperationResult[status=SUCCESS, reason=death.recovered_at_town, encounters=0, elapsedMillis=0, dead=false]"/>
+    <property name="D05.beforeClose" value="dead=false;drained=false;background=Snapshot[state=RUNNING, currentOperations=0, peakOperations=0, currentIdentityLeases=0, peakIdentityLeases=0, currentTransactions=0, peakTransactions=1, currentTransitionClaims=0, peakTransitionClaims=1, completedOperations=0, idempotentOperations=0, retryOperations=0, failedOperations=0, retainedIdentityLeases=0]"/>
+    <property name="S02.complete" value="calls=1;children=1;selfWait=267600;progress=StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=208722822208900];owner=epoch=208712634581200 state=DETACHED outstanding=0 pendingTimers=0 peak=4 failure= eventDispatch=[] work=[]"/>
+    <property name="S02.published" value="epoch=208712634581200 state=OPEN outstanding=2 pendingTimers=1 peak=4 failure= eventDispatch=[12:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=208712634581200:reserve=208712819472700:submit=208712819522100:executorEntered=0:start=0:bodyExit=0:bodyOutcome=NOT_ENTERED:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[9:attack-hit:RESERVED:depth=2:ageMs=17, 12:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=1:ageMs=1]"/>
+    <property name="S02.stopResult" value="stopped=true;progress=StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=208722822208900];owner=epoch=208712634581200 state=DETACHED outstanding=0 pendingTimers=0 peak=4 failure= eventDispatch=[] work=[]"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract027a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="lifecycle-completion027.D03-cold-canonical-dead-native-recovery" elapsedNanos="876999200"></testcase>
+  <testcase name="lifecycle-completion027.D05-accepted-queued-native-return-survives-close" elapsedNanos="360709600"></testcase>
+  <testcase name="lifecycle-completion027.S02-native-delayed-kill-child-before-system-store" elapsedNanos="2926635600"></testcase>
+</testsuite>

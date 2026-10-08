@@ -86,6 +86,7 @@ public final class PhantomMaterializationService
 		MATERIALIZATION_FAILED_CLEAN,
 		MATERIALIZATION_FAILED_RETAINED,
 		CLEANUP_FAILED_RETAINED,
+		CLEANUP_PENDING,
 		BACKGROUND_RECONCILIATION_BLOCKED,
 		CATCHUP_FENCED,
 		NOT_ACTIVE
@@ -402,6 +403,80 @@ public final class PhantomMaterializationService
 	public DematerializeResult dematerialize(long profileId)
 	{
 		return cleanup(profileId, false);
+	}
+
+	/** One exact Entry control continuation; polling never waits for native work. */
+	public DematerializeResult requestDematerialize(long profileId)
+	{
+		final Entry entry = _activeByProfile.get(profileId);
+		if (entry == null) { return new DematerializeResult(ResultStatus.NOT_ACTIVE, null); }
+		return requestCleanup(entry, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(_actionDrainTimeoutMillis), false);
+	}
+
+	private DematerializeResult requestCleanup(Entry entry, long deadlineNanos, boolean shutdown)
+	{
+		synchronized (entry)
+		{
+			if (entry._released) { return new DematerializeResult(ResultStatus.NOT_ACTIVE, null); }
+			if (shutdown) { entry._shutdownRequested = true; }
+			if (entry._controlCleanupResult != null) { return entry._controlCleanupResult; }
+			if (entry._controlCleanupQueued || entry._cleanupInProgress || (entry._materializationCompletion.getCount() != 0)) { return new DematerializeResult(ResultStatus.CLEANUP_PENDING, snapshot(entry)); }
+		}
+		try
+		{
+			if (!entry._materializedPlayer.prepareCleanupDrain()) { return new DematerializeResult(ResultStatus.CLEANUP_PENDING, snapshot(entry)); }
+		}
+		catch (RuntimeException failure)
+		{
+			archiveCleanupIncident(entry);
+			return new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry));
+		}
+		synchronized (entry)
+		{
+			if (entry._released) { return new DematerializeResult(ResultStatus.NOT_ACTIVE, null); }
+			if (entry._controlCleanupQueued || entry._cleanupInProgress) { return new DematerializeResult(ResultStatus.CLEANUP_PENDING, snapshot(entry)); }
+			entry._controlCleanupQueued = true;
+		}
+		try
+		{
+			ThreadPool.executeOrThrow(() ->
+			{
+				DematerializeResult result = null;
+				try
+				{
+					if (_activeByProfile.get(entry._profileId) == entry) { result = cleanupEntry(entry, deadlineNanos, entry._shutdownRequested); }
+				}
+				finally { synchronized (entry) { entry._controlCleanupResult = result; entry._controlCleanupQueued = false; } }
+			});
+		}
+		catch (RuntimeException failure)
+		{
+			synchronized (entry) { entry._controlCleanupQueued = false; }
+			return new DematerializeResult(ResultStatus.CLEANUP_FAILED_RETAINED, snapshot(entry));
+		}
+		return new DematerializeResult(ResultStatus.CLEANUP_PENDING, snapshot(entry));
+	}
+
+	/** Uses the caller's single monotonic lifecycle deadline; no executor wait here. */
+	public ShutdownResult requestShutdown(long deadlineNanos)
+	{
+		synchronized (_stateMonitor)
+		{
+			if ((_state == ServiceState.STOPPED) || (_state == ServiceState.NEW)) { _state = ServiceState.STOPPED; return new ShutdownResult(_state, List.of()); }
+			if (_state == ServiceState.FAILED) { return new ShutdownResult(_state, failedProfileIds()); }
+			_state = ServiceState.STOPPING;
+		}
+		boolean failed = System.nanoTime() >= deadlineNanos;
+		for (Entry entry : sortedEntries())
+		{
+			final var result = requestCleanup(entry, deadlineNanos, true);
+			failed |= result.status() == ResultStatus.CLEANUP_FAILED_RETAINED;
+		}
+		synchronized (_stateMonitor)
+		{
+			_state = failed ? ServiceState.FAILED : _activeByProfile.isEmpty() ? ServiceState.STOPPED : ServiceState.STOPPING;
+			return new ShutdownResult(_state, failedProfileIds());
+		}
 	}
 
 	public DematerializeResult retryCleanup(long profileId)
@@ -927,6 +1002,8 @@ public final class PhantomMaterializationService
 		private boolean _released;
 		private volatile boolean _shutdownRequested;
 		private boolean _cleanupInProgress;
+		private boolean _controlCleanupQueued;
+		private DematerializeResult _controlCleanupResult;
 		private boolean _retryRegistered;
 		private int _automaticCleanupAttempts;
 

@@ -1,0 +1,164 @@
+{
+  "task": "PHANTOM-M1-LIFECYCLE-COMPLETION-027",
+  "required_base": "882afb37821bdc5d7b8ec4e982e4e1e2c411cbbf",
+  "reviewed_code_parent": "cb2d9b08d96e4f2386836b40d5ae87ceba9fcf63",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model_as_user_requested": "GPT-6.1 Sol",
+  "reasoning": "Very High",
+  "subagents": false,
+  "wall_minutes_max": 360,
+  "semantic_freeze_minute": 270,
+  "first_runtime_probe_by_minute": 90,
+  "server_executed_by_coordinator": false,
+  "helpers_only_checks": {
+    "java_assertions": 139,
+    "python_tests": 8
+  },
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "sha256": "18c190ebb16a68bee9e79c0d325ff1d05554db79f6ce1b700c8e12b164833904",
+      "bytes": 2376
+    },
+    {
+      "path": "DESIGN.md",
+      "sha256": "5c70be1e7c056663c45243922dd413b266f8ffcdd071eca8decfbcd6efccd48f",
+      "bytes": 9399
+    },
+    {
+      "path": "GOAL.md",
+      "sha256": "5118384b370b5600d3c0704f5c3c0bea51e7052196598f68b134313220dfa85e",
+      "bytes": 3079
+    },
+    {
+      "path": "HANDOFF.md",
+      "sha256": "c0f913de08ade0092cfd045591afe143142d93a93447cfefa08e03991d58fcd0",
+      "bytes": 1011
+    },
+    {
+      "path": "M1_REMAINING.md",
+      "sha256": "b5ebfd5483840acd932e8709c248b455fabe3975a72b5c570e72314f66c8a6bb",
+      "bytes": 1297
+    },
+    {
+      "path": "MODEL.md",
+      "sha256": "19cb6a3e65cc4c0e2fcb43dc17bee47225bc7a525fce9f1350b69f040d115c8a",
+      "bytes": 423
+    },
+    {
+      "path": "PACKAGE_CHECKS.md",
+      "sha256": "797c7087bc6951145c434196c02313c49166bbfe9bc25dc1525e771fe11861df",
+      "bytes": 997
+    },
+    {
+      "path": "PATCH_GUIDE.md",
+      "sha256": "00ea64347e9038268432d09bb3fefe0665ef316cdc2ce7db39b3ec9bcf0fd5dc",
+      "bytes": 4643
+    },
+    {
+      "path": "PLAN.md",
+      "sha256": "6cfe62d81b8e2bf445b28a939b23f4e781aa13bf34deec96010011520e9f5191",
+      "bytes": 4418
+    },
+    {
+      "path": "README.md",
+      "sha256": "9becc04eb99f482b229b27e13896f1b024821ac9bb556dc949fe5e55cf25c898",
+      "bytes": 2233
+    },
+    {
+      "path": "REFERENCES.md",
+      "sha256": "671027538803ce280dad8914d7486f2d5cdc603211b9685df1f15fe25443a31d",
+      "bytes": 2213
+    },
+    {
+      "path": "RESULT_TEMPLATE.md",
+      "sha256": "0c3457dae0031caad8e9263b1fec652c6d8b728125c10692bf6289803d0494b6",
+      "bytes": 1218
+    },
+    {
+      "path": "ROOT_CAUSES.md",
+      "sha256": "338a50d7fe110fe54bfb14943b897aec724cfa804b9d94a6d57d5603244602d2",
+      "bytes": 4674
+    },
+    {
+      "path": "RUNBOOK.md",
+      "sha256": "497cba2a4c73184a8997dd636fc9f9240f67af9d02c3354675c91158971c2758",
+      "bytes": 4873
+    },
+    {
+      "path": "SCENARIOS.md",
+      "sha256": "e68c0503befc0828c0811bb4a35ab7a122dcd36093233d901f33dc89dc5098f3",
+      "bytes": 4021
+    },
+    {
+      "path": "SCOPE_NOTES.md",
+      "sha256": "4c43e125fe1d893c7bc0f3bd9b42b70c9f79b46a01e95c26d21f8152a5d6142e",
+      "bytes": 1173
+    },
+    {
+      "path": "SOURCE_MAP.tsv",
+      "sha256": "d8fe7e1841b155f481dfa7f3b07357b7770950e944d4f32f73abc4a0c8976272",
+      "bytes": 3519
+    },
+    {
+      "path": "START-CODEX.txt",
+      "sha256": "c20d9ed56f01859e7c8f9bd2d3cd6fa91a3ce568575d2ac0f7dc381873399cb2",
+      "bytes": 3569
+    },
+    {
+      "path": "STATE_MACHINE.md",
+      "sha256": "ebf252ac051519c5aeda16fb34d0b21f9b15779a37316555d8d50f85d7af89af",
+      "bytes": 2344
+    },
+    {
+      "path": "TASK.md",
+      "sha256": "943719b91b599052f8908ffa2816332e33f14e95e032c6cb5c900dc9c0aa9d21",
+      "bytes": 5181
+    },
+    {
+      "path": "proposals/DrainDecision027.java",
+      "sha256": "d76294599291185a98383680fdbb43ff6614d9d5f098449c79a4b41db7dcbfe5",
+      "bytes": 3268
+    },
+    {
+      "path": "proposals/DrainDecision027Test.java",
+      "sha256": "f388fc31bdc7118744ad7080ae309cfb92c84167dcef865d4d92d72f581ae93e",
+      "bytes": 3536
+    },
+    {
+      "path": "proposals/README.md",
+      "sha256": "5594d3cb7151397f5b0aa2bea55d74de39471d2cfb74dd6d9c0646dd26cba21e",
+      "bytes": 862
+    },
+    {
+      "path": "proposals/inspect_lifecycle027.py",
+      "sha256": "f8f9c6f275cf74e131fb793c4553032b919a9ab22e39378cde23debbe37a4b27",
+      "bytes": 5703
+    },
+    {
+      "path": "proposals/test_inspect_lifecycle027.py",
+      "sha256": "1822c0698d7435a8a6e6a7f897c34a225563a039b2202f11cdef071cf3c3270c",
+      "bytes": 3248
+    },
+    {
+      "path": "source-excerpts/01-ecology-only-wait.java-snippet",
+      "sha256": "e6af3a2b81d9b44f42b0e6295a4f1322c139e28f88d35b07d65c933f0265f0bb",
+      "bytes": 794
+    },
+    {
+      "path": "source-excerpts/02-premature-pending-failure.java-snippet",
+      "sha256": "8dd9fd72bd4cb11adbbc828903802ee8ad25d2b391604bba66689be9d8f21e70",
+      "bytes": 916
+    },
+    {
+      "path": "source-excerpts/03-synchronous-recovery.java-snippet",
+      "sha256": "357eb2f19a62655db37d540c1c9dd16d9205765506a2ee81fd85584310276c54",
+      "bytes": 1000
+    },
+    {
+      "path": "source-excerpts/04-dispatch-entry-gap.java-snippet",
+      "sha256": "96dd3eb03f538385eda0bac3aaa0b95ea9d7dbca8fd68dfadc76e84fa89a7f2c",
+      "bytes": 761
+    }
+  ]
+}

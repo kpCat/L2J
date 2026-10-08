@@ -280,6 +280,14 @@ public final class PhantomSystem
 	private PhantomPvpService _pvpService;
 	private volatile State _state = State.NEW;
 	private boolean _shutdownInProgress;
+	private volatile StopProgress _stopProgress;
+	private boolean _stopControlQueued;
+
+	public enum StopOutcome { PENDING, COMPLETE, FAILED }
+	public enum StopPhase { CLOSE_PRODUCERS, WAIT_ACCEPTED_CONTROL, DRAIN_PLAYERS, FINISH_DEPENDENCIES, DONE }
+	public record StopProgress(StopPhase phase, StopOutcome outcome, String blocker, long deadlineNanos) { }
+
+	public StopProgress shutdownProgress() { return _stopProgress; }
 
 	public PhantomSystem(PhantomPlayersConfig.Settings settings)
 	{
@@ -990,6 +998,127 @@ public final class PhantomSystem
 	}
 
 	private boolean shutdownClaimed()
+	{
+		if ((_stopProgress == null) && (_state != State.RUNNING)) { return shutdownLegacyFailureCleanup(); }
+		if (_stopProgress == null)
+		{
+			_stopProgress = new StopProgress(StopPhase.CLOSE_PRODUCERS, StopOutcome.PENDING, "closing", System.nanoTime() + 10_000_000_000L);
+			_state = State.STOPPING;
+		}
+		if (_stopProgress.outcome() != StopOutcome.PENDING) { return _stopProgress.outcome() == StopOutcome.COMPLETE; }
+		if (System.nanoTime() >= _stopProgress.deadlineNanos()) { return failStop("deadline:" + _stopProgress.blocker()); }
+		try
+		{
+			if (_stopProgress.phase() == StopPhase.CLOSE_PRODUCERS)
+			{
+				// Admission closes once; accepted writers retain their executors and dependencies.
+				if (_historicalBackgroundService != null) { _historicalBackgroundService.revokeForegroundDecisions(); }
+				if (_autonomousMarketProducer != null) { _autonomousMarketProducer.beginStop(); }
+				if (_populationEcology != null) { _populationEcology.beginStop(); }
+				if (_scheduler != null) { _scheduler.beginStop(); }
+				if (_decisionEngine != null) { _decisionEngine.beginStop(); }
+				if (_ordinaryDeathRecovery != null) { _ordinaryDeathRecovery.close(); }
+				if (_clanSocialLifecycleObserver != null) { _clanSocialLifecycleObserver.close(); }
+				if (_clanDirectiveService != null) { _clanDirectiveService.close(); }
+				if (_raidAttemptService != null) { _raidAttemptService.beginStop(); }
+				if (_raidAssemblyService != null) { _raidAssemblyService.beginStop(); }
+				if (_pvpService != null) { _pvpService.beginStop(); }
+				if (_farmingService != null) { _farmingService.beginStop(); PhantomFarmingConflictPort.uninstall(_farmingService); }
+				if (_conversationService != null) { _conversationService.beginStop(); }
+				if (_conversationExecutionService != null) { _conversationExecutionService.beginStop(); }
+				if (_clanService != null) { _clanService.beginStop(); }
+				if (_partyCoordinator != null) { _partyCoordinator.beginStop(); }
+				if (_populationManager != null) { _populationManager.beginStop(); }
+				if (_acquisitionService != null) { _acquisitionService.beginStop(); }
+				if (_questInstanceService != null) { _questInstanceService.beginStop(); }
+				if (_siegeService != null) { _siegeService.beginStop(); }
+				if (_combatService != null) { _combatService.beginStop(); }
+				if (_progressionService != null) { _progressionService.beginStop(); }
+				if (_commerceService != null) { _commerceService.beginStop(); }
+				if (_backgroundService != null) { _backgroundService.beginStop(); }
+				if (_semanticUnderstandingService != null) { _semanticUnderstandingService.beginStop(); }
+				if (_navigationService != null) { _navigationService.beginStop(); }
+				if (_economyReservations != null) { _economyReservations.shutdown(System.currentTimeMillis()); }
+				if (_shutdownFailureForTesting) { return failStop("injected_shutdown_failure"); }
+				if ((_multipartyEconomyService != null) && !_multipartyEconomyService.shutdown(System.currentTimeMillis()).successful()) { return failStop("multiparty_economy.shutdown"); }
+				if ((_phantomStoreService != null) && !_phantomStoreService.shutdown().successful()) { return failStop("phantom_store.shutdown"); }
+				pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "accepted_control");
+			}
+			if (_stopProgress.phase() == StopPhase.WAIT_ACCEPTED_CONTROL)
+			{
+				if ((_populationEcology != null) && !_populationEcology.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "population_ecology"); }
+				if ((_pvpService != null) && !_pvpService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "pvp:" + _pvpService.snapshot()); }
+				if ((_conversationService != null) && !_conversationService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "conversation:" + _conversationService.snapshot()); }
+				if ((_conversationExecutionService != null) && !_conversationExecutionService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "conversation_execution"); }
+				if ((_farmingService != null) && !_farmingService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "farming"); }
+				if ((_clanService != null) && !_clanService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "clan"); }
+				if ((_partyCoordinator != null) && !_partyCoordinator.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "party:" + _partyCoordinator.snapshot()); }
+				if (_socialService != null)
+				{
+					_socialService.beginStop();
+					if (!_socialService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "social:" + _socialService.snapshot()); }
+				}
+				if ((_acquisitionService != null) && !_acquisitionService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "acquisition"); }
+				if ((_questInstanceService != null) && !_questInstanceService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "quest_instance"); }
+				if ((_siegeService != null) && !_siegeService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "siege"); }
+				if ((_combatService != null) && !_combatService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "combat:" + _combatService.snapshot()); }
+				if ((_commerceService != null) && !_commerceService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "commerce"); }
+				if ((_populationManager != null) && !_populationManager.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "population:" + _populationManager.snapshot()); }
+				if ((_ordinaryDeathRecovery != null) && !_ordinaryDeathRecovery.drained()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "ordinary_death:" + _ordinaryDeathRecovery.snapshot()); }
+				if (_backgroundService != null)
+				{
+					if (_backgroundService.snapshot().state() == PhantomBackgroundService.ServiceState.FAILED) { return failStop("background.failed:" + _backgroundService.snapshot()); }
+					final var background = _backgroundService.materializationQuiescence();
+					if (!background.ready()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "background:" + background); }
+				}
+				pendingStop(StopPhase.DRAIN_PLAYERS, "materialization");
+			}
+			if (_stopProgress.phase() == StopPhase.DRAIN_PLAYERS)
+			{
+				if (_materializationService != null)
+				{
+					final var result = _materializationService.requestShutdown(_stopProgress.deadlineNanos());
+					if (result.state() == ServiceState.FAILED) { return failStop("materialization:" + result.failedProfileIds()); }
+					if (result.state() != ServiceState.STOPPED) { return pendingStop(StopPhase.DRAIN_PLAYERS, "materialization:" + result.failedProfileIds()); }
+				}
+				pendingStop(StopPhase.FINISH_DEPENDENCIES, "dependencies");
+			}
+			if (_stopProgress.phase() == StopPhase.FINISH_DEPENDENCIES)
+			{
+				if ((_backgroundService != null) && !_backgroundService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "background:" + _backgroundService.snapshot()); }
+				if (_topologyService != null) { _topologyService.beginStop(); }
+				if ((_progressionService != null) && !_progressionService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "progression:" + _progressionService.snapshot()); }
+				if (_gameKnowledgeService != null) { _gameKnowledgeService.beginStop(); }
+				if ((_scheduler != null) && (_scheduler.snapshot().state() != PhantomScheduler.SchedulerState.STOPPED) && !_scheduler.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "scheduler:" + _scheduler.snapshot()); }
+				if ((_semanticUnderstandingService != null) && !_semanticUnderstandingService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "semantic_understanding"); }
+				if ((_gameKnowledgeService != null) && !_gameKnowledgeService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "game_knowledge"); }
+				if ((_topologyService != null) && !_topologyService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "topology:" + _topologyService.snapshot()); }
+				if ((_decisionEngine != null) && (_decisionEngine.snapshot().state() != PhantomDecisionEngine.State.STOPPED) && !_decisionEngine.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "decision:" + _decisionEngine.snapshot()); }
+				if ((_navigationService != null) && (_navigationService.snapshot().state() != PhantomNavigationService.ServiceState.STOPPED) && !_navigationService.finishStop()) { return pendingStop(StopPhase.FINISH_DEPENDENCIES, "navigation:" + _navigationService.snapshot()); }
+				_metrics.recordLifecycleStop(); PhantomEconomyConflictPort.uninstall(_economyReservations);
+				_stopProgress = new StopProgress(StopPhase.DONE, StopOutcome.COMPLETE, "", _stopProgress.deadlineNanos());
+				_state = State.STOPPED;
+				return true;
+			}
+			return false;
+		}
+		catch (RuntimeException failure) { return failStop(failure.getClass().getName() + ":" + failure.getMessage()); }
+	}
+
+	private boolean pendingStop(StopPhase phase, String blocker)
+	{
+		_stopProgress = new StopProgress(phase, StopOutcome.PENDING, blocker, _stopProgress.deadlineNanos());
+		return false;
+	}
+
+	private boolean failStop(String reason)
+	{
+		_stopProgress = new StopProgress(_stopProgress.phase(), StopOutcome.FAILED, reason, _stopProgress.deadlineNanos());
+		_metrics.recordShutdownFailure(); _state = State.FAILED;
+		return false;
+	}
+
+	private boolean shutdownLegacyFailureCleanup()
 	{
 		if (_historicalBackgroundService != null) { _historicalBackgroundService.revokeForegroundDecisions(); }
 		if (_autonomousMarketProducer != null)
@@ -1770,21 +1899,43 @@ public final class PhantomSystem
 		final PhantomSystem configured;
 		synchronized (PhantomSystem.class) { configured = _configuredInstance; }
 		if (configured == null) { return false; }
-		// Stock server shutdown makes its two calls immediately before stopping the
-		// shared pool. Give the already running canonical ecology worker its bounded
-		// finally window, outside both system monitors; no commit is cancelled.
-		if (configured._populationEcology != null)
+		if (unsafeStopWait(configured))
 		{
-			configured._populationEcology.beginStop();
-			final long deadline = System.nanoTime() + 10_000_000_000L;
-			while (!configured._populationEcology.finishStop())
-			{
-				if (System.nanoTime() >= deadline) { return false; }
-				try { Thread.sleep(10); }
-				catch (InterruptedException failure) { Thread.currentThread().interrupt(); return false; }
-			}
+			configured.enqueueStopControl();
+			return false;
 		}
-		return shutdownConfiguredInstance(configured);
+		while (true)
+		{
+			if (shutdownConfiguredInstance(configured)) { return true; }
+			final StopProgress progress = configured._stopProgress;
+			if ((progress != null) && (progress.outcome() == StopOutcome.COMPLETE)) { return true; }
+			if ((progress == null) || (progress.outcome() != StopOutcome.PENDING)) { return false; }
+			try { Thread.sleep(10); }
+			catch (InterruptedException failure) { Thread.currentThread().interrupt(); return false; }
+		}
+	}
+
+	private static boolean unsafeStopWait(PhantomSystem configured)
+	{
+		return Thread.holdsLock(PhantomSystem.class) || Thread.holdsLock(configured)
+			|| (org.l2jmobius.gameserver.model.actor.PlayerNativeWork.inheritedPlayer() != null)
+			|| Thread.currentThread().getName().startsWith("L2jMobius ");
+	}
+
+	private void enqueueStopControl()
+	{
+		synchronized (this) { if (_stopControlQueued) { return; } _stopControlQueued = true; }
+		final var future = org.l2jmobius.commons.threads.ThreadPool.schedule(() ->
+		{
+			try { shutdownConfiguredInstance(this); }
+			finally
+			{
+				synchronized (this) { _stopControlQueued = false; }
+				final var progress = _stopProgress;
+				if ((progress != null) && (progress.outcome() == StopOutcome.PENDING)) { enqueueStopControl(); }
+			}
+		}, 10);
+		if (future == null) { synchronized (this) { _stopControlQueued = false; } }
 	}
 
 	private static boolean shutdownConfiguredInstance(PhantomSystem configured)
@@ -2719,6 +2870,7 @@ public final class PhantomSystem
 		NEW,
 		DISABLED,
 		RUNNING,
+		STOPPING,
 		FAILED,
 		STOPPED
 	}

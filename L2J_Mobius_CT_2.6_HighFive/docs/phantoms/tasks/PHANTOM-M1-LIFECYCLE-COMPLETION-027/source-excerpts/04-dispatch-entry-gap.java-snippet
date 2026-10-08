@@ -1,0 +1,16 @@
+// CURRENT — PlayerNativeWork.ParticipantWork.run
+void run(Runnable action)
+{
+    if (!start()) { return; }
+    Throwable failure = null;
+    final List<Context> contexts = new ArrayList<>();
+    // ... existing enter/action/finally; remainder intentionally omitted.
+}
+// CURRENT — PhantomNativeWorkScope.WorkTicket.tryStart (inside synchronized(_monitor))
+_state = WorkState.RUNNING;
+if (_traceDispatch) { _startNanos = System.nanoTime(); _dispatchStatus = "RUNNING"; }
+publishWork();
+
+// PROBLEM: startNanos=0 cannot distinguish queued work from a wrapper blocked before tryStart.
+// REQUIRED SHAPE: bounded exact EXECUTOR_ENTERED observation before locks, then actual RUNNING.
+// No new permission, no manual completion, no change to native event delay.

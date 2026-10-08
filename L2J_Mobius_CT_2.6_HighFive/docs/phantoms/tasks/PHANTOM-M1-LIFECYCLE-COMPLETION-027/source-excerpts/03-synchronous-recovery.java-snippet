@@ -1,0 +1,20 @@
+// CURRENT — PhantomBackgroundService.recoverOwned, after native return ActionLease closes.
+final PhantomMaterializationService.DematerializeResult dematerialized = materialization.dematerialize(profileId);
+if (dematerialized.status() != ResultStatus.SUCCESS)
+{
+    return OperationResult.inconsistent("recovery.store_failed");
+}
+final PhantomBackgroundTransaction.Result verified = transaction(() -> _transactions.reconcileVerifyPending(profileId, loaded.state().identity().characterObjectId()));
+if (!verified.successful() || (verified.state() == null) || (verified.state().state() != State.READY))
+{
+    return OperationResult.inconsistent("recovery.verification_failed");
+}
+
+// CURRENT — PhantomOrdinaryDeathRecovery.drained.
+public boolean drained()
+{
+    return _runningReconciliations.get() == 0;
+}
+
+// REQUIRED SHAPE: accepted queued/running exact control is accounted; native worker never waits
+// for its own callback. Completion then verified store; not repeated native revive/reward.

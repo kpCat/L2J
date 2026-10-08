@@ -1,0 +1,53 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIFECYCLE-COMPLETION-027/GOAL.md.
+
+Required base:
+882afb37821bdc5d7b8ec4e982e4e1e2c411cbbf
+Branch: experiment/m1-candidate007-observe008
+GPT-6.1 Sol, reasoning Very High. Новый диалог, без субагентов.
+
+Одобряю ограниченные TASK/DESIGN/PLAN/SOURCE_MAP/SCENARIOS пакета.
+Работай автономно до 6 часов, максимум 360 минут wall-clock.
+Без ручного входа, arm и повторных согласований этапов.
+
+Не повторять весь TASK026. Главный срез:
+принятое native действие → death/recovery → drain/store → продолжение.
+В B initial shutdown вернул incomplete за 33ms, final за 17ms,
+materialization ещё RUNNING, потом остановили shared pools.
+Исправь typed PENDING/COMPLETE/FAILED и bounded handshake всего lifecycle,
+не только ecology. Причину исходной задержки EVENT24354 не считать доказанной.
+
+Сначала genuine composed RED, затем fixes.
+Не ждать callback под system/Player/owner/DB locks или на нужном ему worker.
+Использовать существующие native executors и control continuation.
+Не менять global pools/боевую механику, не replay earned callback,
+не complete/cancel RESERVED по возрасту и не снимать ownership guards.
+
+Включены real death-return, cold DEAD, exact cleanup handoff,
+проверка сохранения всей группы и два sameDB restart.
+Новый in-scope subreason не требует следующего TASK.
+Никаких произвольных вне-scope архитектурных правок.
+
+Own worktree:
+C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius
+Если занят — свободный suffix; detached exact base разрешён.
+Main/foreign/kpCat не трогать. PLAY и old clones только READ/export.
+Новые own contract027a..h разрешены, existing guarded private TEST lane.
+Synthetic observer + полный GameServer/штатный scheduler/active NPC.
+
+Первый native full-server probe <=90min. Semantic freeze270min.
+Последние90min — acceptance/cleanup, последние30min reserve.
+Нет ограничения по количеству repairs/starts, но unchanged RED не повторять наудачу.
+
+Legacy strict farm evaluator сохранить; старые026 8 ID не выкидывать.
+Новые epoch после recovery не склеивать в same-epoch farm PASS.
+Сохранение: immutable SEALED native snapshot → SQL → sameDB restart,
+законные MATERIALIZED→READY отдельно от native payload.
+Process exit не считать healthy drain.
+
+До2 planned crashes и emergency exact-owned stop только по TASK/RUNBOOK;
+чужие PID не трогать, никаких receipts reset/manual finalize.
+Exact-path commit + normal push обязательны при любом исходе.
+Финал один RESULT/HANDOFF/MORNING, свои JVM по умолчанию STOPPED.
+GREEN027 означает только LIFECYCLE_COMPLETION_PASS.
+M1=OPEN; WAITING_FINAL_CLIENT только при всех final-SHA server gates.
+STOP_AUTHORITY=TASK027_CONTRACT. Следующую задачу не начинать.

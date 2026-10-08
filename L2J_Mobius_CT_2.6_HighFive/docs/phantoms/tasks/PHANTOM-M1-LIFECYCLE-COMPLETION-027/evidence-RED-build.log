@@ -1,0 +1,6 @@
+Buildfile: C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml
+
+BUILD FAILED
+Target "compile-test" does not exist in the project "L2J_Mobius_CT_2.6_HighFive". 
+
+Total time: 0 seconds

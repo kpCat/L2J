@@ -51,6 +51,8 @@ public final class PlayerNativeWork
 		void rejected(Throwable failure);
 		default PlayerNativeEvidence.CombatEpisode combatEpisode() { return null; }
 		default void dispatchStage(String stage, long delayMillis, ScheduledFuture<?> future) { }
+		default void executorEntered() { }
+		default void bodyExited(Throwable failure) { }
 	}
 	public interface Context extends AutoCloseable
 	{
@@ -492,10 +494,12 @@ public final class PlayerNativeWork
 		private final List<Participant> _participants;
 		private final Semantics _semantics;
 		private State _state = State.RESERVED;
+		private volatile List<Ticket> _dispatchTickets = List.of();
 		ParticipantWork(List<Participant> participants, Semantics semantics) { _participants = participants; _semantics = semantics; }
 		boolean ordinary() { return _participants.isEmpty(); }
 		synchronized void dispatchStage(String stage, long delay, ScheduledFuture<?> future)
 		{
+			if (stage.equals("SUBMITTING")) { _dispatchTickets = _participants.stream().map(Participant::ticket).toList(); }
 			for (Participant participant : _participants) { participant.ticket().dispatchStage(stage, delay, future); }
 		}
 
@@ -520,6 +524,8 @@ public final class PlayerNativeWork
 
 		void run(Runnable action)
 		{
+			// Observe dequeue before either ParticipantWork or an owner's start monitor.
+			for (Ticket ticket : _dispatchTickets) { ticket.executorEntered(); }
 			if (!start()) { return; }
 			Throwable failure = null;
 			final List<Context> contexts = new ArrayList<>();
@@ -540,7 +546,7 @@ public final class PlayerNativeWork
 				{
 					for (Participant participant : _participants)
 					{
-						try { participant.ticket().complete(failure); }
+						try { participant.ticket().bodyExited(failure); participant.ticket().complete(failure); }
 						catch (RuntimeException | Error thrown)
 						{
 							participant.owner().recordFailure(thrown);
@@ -629,11 +635,12 @@ public final class PlayerNativeWork
 
 	private static void run(Ticket ticket, Runnable action)
 	{
+		ticket.executorEntered();
 		if (!ticket.tryStart()) { return; }
 		Throwable failure = null;
 		try (var context = enter(ticket)) { action.run(); }
 		catch (RuntimeException | Error thrown) { failure = thrown; throw thrown; }
-		finally { ticket.complete(failure); }
+		finally { ticket.bodyExited(failure); ticket.complete(failure); }
 	}
 
 	/** Reserve before publishing to the executor, including submissions that run inline. */

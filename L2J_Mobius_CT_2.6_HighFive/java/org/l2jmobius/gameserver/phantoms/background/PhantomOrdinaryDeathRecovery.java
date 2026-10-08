@@ -37,6 +37,8 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 	private final Consumer<Runnable> _reconcile;
 	private final ConcurrentHashMap<Long, Death> _deaths = new ConcurrentHashMap<>();
 	private final AtomicInteger _runningReconciliations = new AtomicInteger();
+	private final AtomicInteger _acceptedReconciliations = new AtomicInteger();
+	private volatile boolean _closing;
 	private volatile AbstractEventListener _listener;
 	private ScheduledFuture<?> _pulse;
 
@@ -168,6 +170,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 		}
 		if (death.reconciliation().compareAndSet(false, true))
 		{
+			_acceptedReconciliations.incrementAndGet();
 			try
 			{
 				_reconcile.accept(() -> reconcile(profileId, death));
@@ -175,6 +178,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			catch (RuntimeException exception)
 			{
 				death.reconciliation().set(false);
+				_acceptedReconciliations.decrementAndGet();
 				throw exception;
 			}
 		}
@@ -182,19 +186,15 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 
 	private void reconcile(long profileId, Death death)
 	{
-		synchronized (this)
-		{
-			if ((_listener == null) || (_deaths.get(profileId) != death))
-			{
-				death.reconciliation().set(false);
-				return;
-			}
-			_runningReconciliations.incrementAndGet();
-		}
+		_runningReconciliations.incrementAndGet();
 		try
 		{
+			if (_deaths.get(profileId) != death) { return; }
 			final var goal = _goals.load(profileId).orElse(null);
-			if ((goal != null) && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goal().goalType()) && (_background.recover(profileId, goal.goal(), PhantomActivityState.ACTIVE).status() == PhantomBackgroundService.OperationStatus.SUCCESS))
+			final var result = goal == null ? null : _closing
+				? _background.recoverAcceptedForStop(profileId, goal.goal(), death.characterObjectId(), death.observation() == null ? 0 : death.observation().epoch)
+				: _background.recover(profileId, goal.goal(), PhantomActivityState.ACTIVE);
+			if ((result != null) && (result.status() == PhantomBackgroundService.OperationStatus.SUCCESS))
 			{
 				forget(profileId, death);
 			}
@@ -203,17 +203,22 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 		{
 			death.reconciliation().set(false);
 			_runningReconciliations.decrementAndGet();
+			_acceptedReconciliations.decrementAndGet();
 		}
 	}
 
 	public boolean drained()
 	{
-		return _runningReconciliations.get() == 0;
+		return _acceptedReconciliations.get() == 0;
 	}
+
+	public record Snapshot(boolean closing, int acceptedReconciliations, int runningReconciliations, int observedDeaths) { }
+	public Snapshot snapshot() { return new Snapshot(_closing, _acceptedReconciliations.get(), _runningReconciliations.get(), _deaths.size()); }
 
 	@Override
 	public synchronized void close()
 	{
+		_closing = true;
 		if (_pulse != null)
 		{
 			_pulse.cancel(false);
@@ -224,8 +229,10 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			_listener.unregisterMe();
 			_listener = null;
 		}
-		for (Death death : _deaths.values()) { if (death.observation() != null) { death.observation().retire(); } }
-		_deaths.clear();
+		for (var entry : _deaths.entrySet())
+		{
+			if (!entry.getValue().reconciliation().get()) { forget(entry.getKey(), entry.getValue()); }
+		}
 	}
 	private void forget(long profileId, Death death)
 	{

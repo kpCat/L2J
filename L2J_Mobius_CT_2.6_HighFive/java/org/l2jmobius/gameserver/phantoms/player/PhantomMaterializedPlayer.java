@@ -607,6 +607,12 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		}
 	}
 
+	boolean prepareCleanupDrain()
+	{
+		synchronized (_actionMonitor) { _actionAdmissionOpen = false; }
+		return (_nativeWork == null) || _nativeWork.beginTerminalDrain();
+	}
+
 	private void closeActionAdmissionAndDrain(long deadlineNanos)
 	{
 		synchronized (_actionMonitor)

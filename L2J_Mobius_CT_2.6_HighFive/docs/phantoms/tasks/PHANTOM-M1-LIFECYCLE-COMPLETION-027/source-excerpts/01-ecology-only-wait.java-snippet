@@ -1,0 +1,17 @@
+// CURRENT — PhantomSystem.shutdownIfStarted, base 882afb37821bdc5d7b8ec4e982e4e1e2c411cbbf
+// Excerpt, not a complete replacement file.
+if (configured._populationEcology != null)
+{
+    configured._populationEcology.beginStop();
+    final long deadline = System.nanoTime() + 10_000_000_000L;
+    while (!configured._populationEcology.finishStop())
+    {
+        if (System.nanoTime() >= deadline) { return false; }
+        try { Thread.sleep(10); }
+        catch (InterruptedException failure) { Thread.currentThread().interrupt(); return false; }
+    }
+}
+return shutdownConfiguredInstance(configured);
+
+// PROBLEM: this bounded window covers ecology only, not accepted death/background control.
+// REQUIRED SHAPE: same external boundary advances the entire typed stop attempt, one deadline.
