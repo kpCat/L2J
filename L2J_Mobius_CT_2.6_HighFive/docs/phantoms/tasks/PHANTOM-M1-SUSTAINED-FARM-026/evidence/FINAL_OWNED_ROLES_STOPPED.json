@@ -1,0 +1,98 @@
+[
+  {
+    "lane": "a",
+    "role": "GameServer",
+    "state": "STOPPED",
+    "pid": 0,
+    "reason": "",
+    "recordVerified": false
+  },
+  {
+    "lane": "a",
+    "role": "LoginServer",
+    "state": "STOPPED",
+    "pid": 0,
+    "reason": "",
+    "recordVerified": false
+  },
+  {
+    "lane": "b",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  },
+  {
+    "lane": "b",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  },
+  {
+    "lane": "c",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  },
+  {
+    "lane": "c",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  },
+  {
+    "lane": "d",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  },
+  {
+    "lane": "d",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  },
+  {
+    "lane": "e",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  },
+  {
+    "lane": "e",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  },
+  {
+    "lane": "h",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  },
+  {
+    "lane": "h",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "reason": "record has no marked owner",
+    "recordVerified": false
+  }
+]

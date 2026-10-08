@@ -1,0 +1,16 @@
+110	146	context	COMPLETED	34678	1f0af0f7579cb4da0c6b786392a6be10048a2f7807aaa53194825d111123db8d	SUPPORTED	1	true
+110	34678	state	DEAD	1f0af0f7579cb4da0c6b786392a6be10048a2f7807aaa53194825d111123db8d	Progress[level=10, experience=57845, skillPoints=2729, experienceBeforeDeath=59884]	Position[instanceId=0, x=38303, y=39082, z=-3584, heading=44258, committedAnchorId=generated.farm.0c00c3760a3ec18fa034d798.anchor]
+142	34	context	COMPLETED	14368	08f8b5244cedad393ece1406b6c365daa806c781113262dbbc55065116809c0f	POSITION_REQUIRES_NATIVE	379	false
+142	14368	state	READY	08f8b5244cedad393ece1406b6c365daa806c781113262dbbc55065116809c0f	Progress[level=7, experience=13541, skillPoints=736, experienceBeforeDeath=11463]	Position[instanceId=0, x=42945, y=44691, z=-3704, heading=33868, committedAnchorId=population.farming.elf.20534]
+175	460	context	COMPLETED	22140	dee0c8e94baabe953ddeb3417f2dda937504654d4752703516e880aed2c729e6	SUPPORTED	1	true
+175	22140	state	DEAD	dee0c8e94baabe953ddeb3417f2dda937504654d4752703516e880aed2c729e6	Progress[level=10, experience=49251, skillPoints=2468, experienceBeforeDeath=51290]	Position[instanceId=0, x=43765, y=42402, z=-3488, heading=7393, committedAnchorId=population.farming.elf.20534]
+260	36	context	COMPLETED	8021	fbea264e39d40e25df12f7cc2114f83cf1c4bdab55d1b6fd453dd97428ceddb4	VITALITY_REQUIRES_NATIVE	3261	false
+260	8021	state	READY	fbea264e39d40e25df12f7cc2114f83cf1c4bdab55d1b6fd453dd97428ceddb4	Progress[level=11, experience=93572, skillPoints=4491, experienceBeforeDeath=6339]	Position[instanceId=0, x=43787, y=42526, z=-3488, heading=48314, committedAnchorId=population.farming.elf.20534]
+275	57	context	COMPLETED	26653	4c90acd2c7d51353176ae8eeafacb647ec4b180e921047f11816074c8a41b4ed	POSITION_REQUIRES_NATIVE	7991	false
+275	26653	state	READY	4c90acd2c7d51353176ae8eeafacb647ec4b180e921047f11816074c8a41b4ed	Progress[level=12, experience=133763, skillPoints=7994, experienceBeforeDeath=26211]	Position[instanceId=0, x=50642, y=41462, z=-3448, heading=39313, committedAnchorId=generated.farm.d6f82637bd6fae44cd109781.anchor]
+278	34	context	COMPLETED	5615	9c9c9fb299ead099d8da64dfcbfad567526b41ad48516eeb31c700a709e0694b	VITALITY_REQUIRES_NATIVE	1077	false
+278	5615	state	READY	9c9c9fb299ead099d8da64dfcbfad567526b41ad48516eeb31c700a709e0694b	Progress[level=12, experience=117127, skillPoints=5603, experienceBeforeDeath=4803]	Position[instanceId=0, x=41683, y=41692, z=-3488, heading=11782, committedAnchorId=generated.farm.58356b4e9844a379fecfbaf6.anchor]
+404	32	context	COMPLETED	7394	fb7503ec92312b405229c1647fec9c253b42812a9537590814f651f2b3523849	VITALITY_REQUIRES_NATIVE	4478	false
+404	7394	state	READY	fb7503ec92312b405229c1647fec9c253b42812a9537590814f651f2b3523849	Progress[level=12, experience=112516, skillPoints=5424, experienceBeforeDeath=6915]	Position[instanceId=0, x=43933, y=42639, z=-3488, heading=45973, committedAnchorId=population.farming.elf.20534]
+447	29	context	COMPLETED	22973	a8aada4afcea238e7e0daf49f5c7381fca72b8b3944c14035624cad4755661f7	POSITION_REQUIRES_NATIVE	659	false
+447	22973	state	READY	a8aada4afcea238e7e0daf49f5c7381fca72b8b3944c14035624cad4755661f7	Progress[level=7, experience=14253, skillPoints=708, experienceBeforeDeath=7869]	Position[instanceId=0, x=37058, y=41150, z=-3528, heading=25730, committedAnchorId=generated.farm.7451e61fe8e94f49afb1f9e2.anchor]

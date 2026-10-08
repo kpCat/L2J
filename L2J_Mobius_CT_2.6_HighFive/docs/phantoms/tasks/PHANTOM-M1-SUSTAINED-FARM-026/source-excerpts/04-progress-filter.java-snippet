@@ -1,0 +1,12 @@
+// SOURCE: PhantomVisibleAutoPlay.nativeProgress @ required base; CURRENT
+private static PlayerNativeEvidence.Snapshot nativeProgress(Player player, long epoch)
+{
+    final var owner = player.getNativeWorkOwner();
+    if ((owner == null) || (owner.player() != player) || !owner.isCurrent() || (owner.epoch() != epoch)) { return null; }
+    final var sensor = owner.evidence();
+    if ((sensor == null) || !sensor.matches(player.getObjectId(), epoch)) { return null; }
+    final var sample = sensor.snapshot();
+    return !sample.overflow() && (sample.objectId() == player.getObjectId()) && (sample.epoch() == epoch) ? sample : null;
+}
+// Do not "fix" the debt watchdog by hiding/resetting overflow. Avoid causing the
+// underlying unbounded recovery episode; record UNKNOWN when the cause is unproven.

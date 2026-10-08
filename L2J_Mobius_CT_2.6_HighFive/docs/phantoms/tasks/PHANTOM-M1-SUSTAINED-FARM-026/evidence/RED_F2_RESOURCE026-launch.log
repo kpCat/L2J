@@ -1,0 +1,12 @@
+ at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ at java.base/java.lang.Thread.run(Thread.java:1474)
+, nodes=1, frames=17, truncated=false]
+окт. 08, 2026 2:14:55 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 2:14:55 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[FAIL] sustained-farm026.F05-stock-low-MP-starts-bounded-native-rest - java.lang.AssertionError: RED: factual low MP must choose bounded native rest, not generic abort/idle. seed=26002601
+[FAIL] sustained-farm026.F07-generic-repair-preserves-original-published-cast - java.lang.AssertionError: RED: generic 30s repair must not abort a published original native cast. seed=26002601
+SUMMARY: suite=sustained-farm026 seed=26002601 total=2 passed=0 failed=2

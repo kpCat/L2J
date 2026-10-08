@@ -1,0 +1,19 @@
+suite=sustained-farm026
+seed=26002601
+total=2
+passed=1
+failed=1
+measurement.F05.native=mp=1.0;cost=9;sitting=true;owner=187516770281200
+measurement.F05.recoveryBoundary=mp=19.211551999999998;maxMp=126;sitting=false;online=true;dead=false;target=Monster:Young Keltir(20545)[268460394];scope=epoch=187516770281200 state=OPEN outstanding=1 pendingTimers=1 peak=4 failure= eventDispatch=[] work=[169:cast-launch:RESERVED:depth=2:ageMs=4707];evidence=Snapshot[objectId=268435465, epoch=187516770281200, sampleNanos=187551881849400, overflow=false, sequence=1, damageSequence=0, killSequence=0, rewardSequence=0, targetSequence=1, farmCycleSequence=0, expGained=0, spGained=0, lootSequence=0, lastProgressNanos=187546967624400, phase=REGEN, phaseSinceNanos=187519771991400, phaseDeadlineNanos=187639771991400, usefulProgressNanos=0, lootCount=0, trackedTargets=1, firstUnprovenReason=NONE, firstUnprovenNanos=0];policy={continuationSampleNanos=187551889119800, continuationSession=true, liveAutoPlay=true, liveAutoPlayRegistered=true, liveAutoUseRegistered=true, liveAutoPlayTickSequence=166, liveAutoPlayTickStartedNanos=187551864791800, liveAutoPlayTickFinishedNanos=187551866851200, liveAutoPlayTickReason=completed, liveAutoUseTickSequence=165, liveAutoUseTickStartedNanos=187551665705000, liveAutoUseTickFinishedNanos=187551667242600, liveAutoUseTickReason=completed, livePolicyIdentity=2f5fb6c1, liveSessionEpoch=187516770281200, liveSessionCurrent=true, liveResourceRecovery=false, liveResourceReason=resource.affordable, liveResourceCost=9.0, liveResourceSinceNanos=187516867998200, continuationRead=NONATOMIC_VOLATILE, liveFirstStopNanos=0, liveFirstStopReason=, liveFirstStopCaller=}
+measurement.F07.native=casting=true;scope=epoch=187555328115400 state=OPEN outstanding=1 pendingTimers=1 peak=4 failure= eventDispatch=[] work=[10:cast-launch:RESERVED:depth=2:ageMs=0]
+measurement.F07.originalNativeHit=hpBefore=62.0;hpAfter=0.0
+measurement.headless.database=l2jmobiush5_localplay_contract026a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL sustained-farm026.F05-stock-low-MP-starts-bounded-native-rest elapsedNanos=39417137300 type=java.lang.AssertionError message=Native regeneration, stand and unchanged stock AutoUse must produce the next real offensive hit. seed=26002601
+PASS sustained-farm026.F07-generic-repair-preserves-original-published-cast elapsedNanos=9060046500

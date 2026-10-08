@@ -1,0 +1,67 @@
+{
+  "base": "6ebe1d93f4ee168cd8952f0416dc920f26c430ac",
+  "frozen": "cb2d9b08d96e4f2386836b40d5ae87ceba9fcf63",
+  "sourceCount": 14,
+  "unexpected": [],
+  "missing": [],
+  "afterFrozenSourceChanges": [],
+  "hashes": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Attackable.java",
+      "sha256": "F288D4CF4D17342F8A0D024ECD0E683A6C54A2D8DA8EB67E53D390B2810A4314"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java",
+      "sha256": "8773CA4CE0C841A8BB46078AB13691982BCF8FF11F699026E680EAA06D2923E2"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java",
+      "sha256": "85D5B87086BFD51B5CEB86A212A576CE780FB17BCC7F12141B41CE6CEE770CDC"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java",
+      "sha256": "33106FE6387D167B81EE6BAB4F4A97551671B64527156536FDBFA4EEB9EC8B09"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
+      "sha256": "0CF62F806BC2F55B05C295C060141C984C33F679B53F9111768DFD346AB867CD"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java",
+      "sha256": "1C10850DF442C72E13FD20C469B7021E85A87BA5217E0E004152617249AC9A90"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java",
+      "sha256": "548D30B78E1EFDEB5D581D229915B667F7C27FAC53DDE038C44C2250FE7B1AAE"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java",
+      "sha256": "64A21A7115AEAEB93DF1FC59659F08BCE99787E78B51E248DD23B6908AF9EC5A"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomCallbackContinuation026Checks.java",
+      "sha256": "BF39F15EBE7DB8A51153FA15FC2C51E2D2AB38C2D6AE2252BC466828635660CC"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomM1DynamicRecipientChecks.java",
+      "sha256": "25ED40E228D36634133EB238C7BCC7FC6D88FEF6B6EAA33F9CFD3E63AF0658AC"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java",
+      "sha256": "B5DFBF7096DC5F27E1C8A67159A9D6EA9275C699AC63E03A38A9E26447D080E5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeFarmContinuation022Suite.java",
+      "sha256": "CBD5648BCBE2CE2216D600B59CED53930000BE276D64CB73523A37D17715B660"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomRecoveryBoundary026Suite.java",
+      "sha256": "AD62489C3FCB973BCF03F55E29E5B23DDC3138BDF2D2EE274E204961F2ECD082"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomSustainedFarm026Suite.java",
+      "sha256": "D837A6F9F6FE690C88A141F0645A4FB7EA23F27F83B61012D813BF17C69E60E9"
+    }
+  ],
+  "pass": true
+}

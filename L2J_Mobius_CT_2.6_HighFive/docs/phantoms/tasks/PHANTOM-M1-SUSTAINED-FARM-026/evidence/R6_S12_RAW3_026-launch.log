@@ -1,0 +1,12 @@
+окт. 08, 2026 4:43:05 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Scheduled 0 Instances
+окт. 08, 2026 4:43:14 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 4:43:14 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] native-farm-continuation022.S11-native-cast-ignores-unearned-hate-only-recipient
+[PASS] native-farm-continuation022.S12-fresh-real-native-damage-recipient-and-delayed-fence
+[PASS] native-farm-continuation022.S13-tutorial-missing-state-and-existing-state-control
+SUMMARY: suite=native-farm-continuation022 seed=22002201 total=3 passed=3 failed=0

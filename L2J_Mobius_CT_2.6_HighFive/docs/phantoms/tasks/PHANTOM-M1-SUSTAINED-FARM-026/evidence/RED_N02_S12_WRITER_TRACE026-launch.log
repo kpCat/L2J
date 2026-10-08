@@ -1,0 +1,12 @@
+окт. 08, 2026 1:42:06 PM org.l2jmobius.gameserver.managers.PunishmentManager load
+INFO: PunishmentManager: Loaded 0 active and 0 expired punishments.
+окт. 08, 2026 1:42:09 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 1:42:09 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] native-farm-continuation022.S11-native-cast-ignores-unearned-hate-only-recipient
+[FAIL] native-farm-continuation022.S12-fresh-real-native-damage-recipient-and-delayed-fence - java.lang.AssertionError: N02 genuine damaging participants receive native death reward. seed=22002201
+[PASS] native-farm-continuation022.S13-tutorial-missing-state-and-existing-state-control
+SUMMARY: suite=native-farm-continuation022 seed=22002201 total=3 passed=2 failed=1

@@ -1,0 +1,7 @@
+Read-only commands inside the existing Prepare-Runtime024 adapter, only own module:
+git -C C:/Users/ZBook/.codex/worktrees/m1-sustained-026/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive show HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-population-v1.xml
+git -C C:/Users/ZBook/.codex/worktrees/m1-sustained-026/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive show HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-population-v2.xml
+git -C C:/Users/ZBook/.codex/worktrees/m1-sustained-026/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive show HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-ecology-v1.xml
+git -C C:/Users/ZBook/.codex/worktrees/m1-sustained-026/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive rev-parse HEAD
+Authority: TASK026 bounded owned-runtime creation and exact pinned catalog inspection.
+Other stock files copied and hash-verified through file tools, no broad git export.

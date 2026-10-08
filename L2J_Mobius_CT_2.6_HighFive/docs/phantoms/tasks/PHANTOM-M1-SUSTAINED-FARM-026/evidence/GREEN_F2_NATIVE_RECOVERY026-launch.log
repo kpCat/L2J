@@ -1,0 +1,12 @@
+INFO: Handlers Loaded...
+окт. 08, 2026 2:29:19 PM org.l2jmobius.gameserver.data.xml.HitConditionBonusData load
+INFO: HitConditionBonusData: Loaded hit condition bonuses.
+окт. 08, 2026 2:29:20 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 2:29:20 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[FAIL] sustained-farm026.F05-stock-low-MP-starts-bounded-native-rest - java.lang.AssertionError: Native regeneration, stand and unchanged stock AutoUse must produce the next real offensive hit. seed=26002601
+[PASS] sustained-farm026.F07-generic-repair-preserves-original-published-cast
+SUMMARY: suite=sustained-farm026 seed=26002601 total=2 passed=1 failed=1

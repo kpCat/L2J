@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="checkpoint-recovery025" seed="25002501" tests="1" passed="0" failures="1">
+  <properties>
+  </properties>
+  <testcase name="checkpoint-recovery025.before-all" elapsedNanos="0"><failure type="java.lang.AssertionError" message="Headless integration JVM must run from dist/game. Expected &lt;C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\dist\game&gt; but was &lt;C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\contract026a\runtime\game&gt;." seed="25002501"/></testcase>
+</testsuite>

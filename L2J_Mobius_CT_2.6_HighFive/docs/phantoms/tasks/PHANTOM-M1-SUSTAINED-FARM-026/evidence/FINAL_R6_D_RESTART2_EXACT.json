@@ -1,0 +1,87 @@
+{
+  "kind": "ACTUAL_RESTART_PRE_ORDINARY_CANONICAL",
+  "checks": {
+    "characters_exact_except_online": true,
+    "items.tsv": true,
+    "skills.tsv": true,
+    "same_owned_database": true,
+    "same_source_sha": true,
+    "FINAL_R6_A_D_SQL_pending_zero": true,
+    "FINAL_R6_A_D_SQL_context_completed_linked": true,
+    "FINAL_R6_D_RESTART2_EARLY_pending_zero": true,
+    "FINAL_R6_D_RESTART2_EARLY_context_completed_linked": true,
+    "durable_native_state_progress_position": true
+  },
+  "stateMetadata": [
+    {
+      "110": {
+        "version": "34557",
+        "digest": "03c0e2e2de99731e07044bc7ce77a7eeb240791653c0f97ecfe8899df909014b"
+      },
+      "142": {
+        "version": "14351",
+        "digest": "df2f37a0b5b35263350a2e6d6ff106f83562ce58d69266048df08af7bd4ce2e5"
+      },
+      "175": {
+        "version": "21695",
+        "digest": "1e4007d39bb45a4e7edac5f84ba6a6201939fe09508dacd6264ba655cc702934"
+      },
+      "260": {
+        "version": "7998",
+        "digest": "c5e62069907b0a68cce94eae061b080676dc34e56c162d54868e0fd0b8d78bc8"
+      },
+      "275": {
+        "version": "26603",
+        "digest": "92ca815f03533ec88cf4322372f374c9f1283ef0cfa061fa86ff5b8310ff3f8e"
+      },
+      "278": {
+        "version": "5600",
+        "digest": "1cdae45c43b4ec9f671d0bdc414fa15318c080153dbd2367d45b819ab1d5e8aa"
+      },
+      "404": {
+        "version": "7377",
+        "digest": "e2a5c74679992704c65fe0e52e76e800c748d8cfa666c0eafc84f59fb76a37e0"
+      },
+      "447": {
+        "version": "22957",
+        "digest": "311aedb761419f1aeab82cd37ae66bc417d79ef4d4eda659453280d12a60f83e"
+      }
+    },
+    {
+      "110": {
+        "version": "34563",
+        "digest": "ac91a3e4bc5201cebd922e18211934de6a69f0fc507343c402ab3c6f9cd53fec"
+      },
+      "142": {
+        "version": "14357",
+        "digest": "a38d4850be5633ebd5d095a404e810f4fb68b5ab185eef1c10b8f857d30bfa25"
+      },
+      "175": {
+        "version": "21701",
+        "digest": "4b98a13b233792e4f3c052cd43e9133325244b2f2b6d37d08c60ff59f5bbdd5a"
+      },
+      "260": {
+        "version": "8004",
+        "digest": "d726f4fbeb53df9169d797544858367e6218e1554072d9bad990efa92d028381"
+      },
+      "275": {
+        "version": "26609",
+        "digest": "c53e960cf3cdd6bccf1000e2fb2a22d5f2e3babb87764645f1e85a07f8eb90f4"
+      },
+      "278": {
+        "version": "5606",
+        "digest": "f34fb7200c532e0bc005b89b62f839937878379109d68c8fe197e26c160f27ab"
+      },
+      "404": {
+        "version": "7383",
+        "digest": "49a6e11abf44bbca257f6cb09f3aa186ae60cac5a471c3e05e0fe912baa2c36b"
+      },
+      "447": {
+        "version": "22963",
+        "digest": "e99e5e758e763975288aa6a3a2e7b600b270ebb366d8ff78541cb1b67afa2c1b"
+      }
+    }
+  ],
+  "pass_": true,
+  "note": "Plan/metadata CAS may advance versions; exact native fields, full items/skills and linked completed context are mandatory."
+}

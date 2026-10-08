@@ -1,0 +1,6 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+TASK024_PERSISTENCE_EXPORT database=l2jmobiush5_localplay_contract026e cohort=1 output=C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-SUSTAINED-FARM-026\evidence\R4-e-before-second-restart

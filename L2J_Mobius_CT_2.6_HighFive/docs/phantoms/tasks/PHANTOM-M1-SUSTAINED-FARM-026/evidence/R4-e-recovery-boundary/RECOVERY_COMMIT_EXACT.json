@@ -1,0 +1,27 @@
+{
+  "kind": "EXACT_SEALED_TO_SAME_DB_CANONICAL",
+  "sourceSha": "4ef248030365d4fc126d6bd3f8084daa54a3b37f",
+  "database": "l2jmobiush5_localplay_contract026e",
+  "requiredProfiles": [
+    110
+  ],
+  "rows": [
+    {
+      "profileId": 110,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "110-190320354272500-34573.properties",
+      "snapshotSha256": "2b4a6dd6cb80f7a20bcba6f252814777e7e8305133cd0164809481b8e6ad09f4",
+      "epoch": 190320354272500,
+      "initialEpoch": "190320354272500",
+      "preparedVersion": 34573,
+      "stateVersion": 34574,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    }
+  ],
+  "receiptIntegrity": true,
+  "errors": [],
+  "pass_": true,
+  "noDiagnosticCounterRestoration": true
+}

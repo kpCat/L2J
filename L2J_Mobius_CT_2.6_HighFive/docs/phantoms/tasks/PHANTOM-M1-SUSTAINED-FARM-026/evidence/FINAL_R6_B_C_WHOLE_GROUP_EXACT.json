@@ -1,0 +1,42 @@
+{
+  "kind": "EXACT_SEALED_TO_SAME_DB_CANONICAL",
+  "sourceSha": "cb2d9b08d96e4f2386836b40d5ae87ceba9fcf63",
+  "database": "l2jmobiush5_localplay_contract026c",
+  "requiredProfiles": [
+    110,
+    142,
+    175,
+    260,
+    275,
+    278,
+    404,
+    447
+  ],
+  "rows": [
+    {
+      "profileId": 278,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "278-197184897908700-5622.properties",
+      "snapshotSha256": "f32158f6e55419b97556c5a5f5ff819037d963b1b561096333e523480cb2e450",
+      "epoch": 197184897908700,
+      "initialEpoch": "197184897908700",
+      "preparedVersion": 5622,
+      "stateVersion": 5623,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    }
+  ],
+  "receiptIntegrity": null,
+  "errors": [
+    "profile 110: missing immutable SEALED receipt or SQL",
+    "profile 142: missing immutable SEALED receipt or SQL",
+    "profile 175: missing immutable SEALED receipt or SQL",
+    "profile 260: missing immutable SEALED receipt or SQL",
+    "profile 275: missing immutable SEALED receipt or SQL",
+    "profile 404: missing immutable SEALED receipt or SQL",
+    "profile 447: missing immutable SEALED receipt or SQL"
+  ],
+  "pass_": false,
+  "noDiagnosticCounterRestoration": true
+}

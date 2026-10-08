@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="native-farm-continuation022" seed="22002201" tests="2" passed="2" failures="0">
+  <properties>
+    <property name="E04.nativeWriter.false" value="hp=62.0-&gt;0.0;dead=true;EXP=0-&gt;105;npcInvul=false;player=-71467,258378,-3104;knownSkill=Skill Wind Strike(1177,1);owner=epoch=194721378814300 state=OPEN outstanding=2 pendingTimers=0 peak=7 failure= eventDispatch=[14:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=194721378814300:reserve=194721586801600:submit=194721586930200:start=0:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[7:attack-hit:RESERVED:depth=2:ageMs=31, 14:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=4:ageMs=5]"/>
+    <property name="E04.nativeWriter.true" value="hp=62.0-&gt;0.0;dead=true;EXP=0-&gt;105;npcInvul=false;player=-71467,258378,-3104;knownSkill=Skill Wind Strike(1177,1);owner=epoch=194724313958400 state=OPEN outstanding=2 pendingTimers=0 peak=7 failure= eventDispatch=[14:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=194724313958400:reserve=194724318487800:submit=194724318534500:start=0:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[7:attack-hit:RESERVED:depth=2:ageMs=3, 14:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=4:ageMs=0]"/>
+    <property name="E04.queued.false" value="epoch=194721378814300 state=OPEN outstanding=2 pendingTimers=0 peak=7 failure= eventDispatch=[14:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=194721378814300:reserve=194721586801600:submit=194721586930200:start=0:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2492] work=[7:attack-hit:RESERVED:depth=2:ageMs=34, 14:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=4:ageMs=7]"/>
+    <property name="E04.queued.true" value="epoch=194724313958400 state=OPEN outstanding=2 pendingTimers=0 peak=7 failure= eventDispatch=[14:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=194724313958400:reserve=194724318487800:submit=194724318534500:start=0:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[7:attack-hit:RESERVED:depth=2:ageMs=3, 14:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=4:ageMs=0]"/>
+    <property name="E05.complete.false" value="calls=1;children=1;scope=epoch=194721378814300 state=SEALED outstanding=0 pendingTimers=0 peak=7 failure= eventDispatch=[] work=[]"/>
+    <property name="E05.complete.true" value="calls=1;children=0;scope=epoch=194724313958400 state=DRAINING outstanding=0 pendingTimers=0 peak=7 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException eventDispatch=[] work=[]"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract026a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="native-farm-continuation022.E04-E05-actual-kill-queued-and-stock-quest-child-drain" elapsedNanos="2956483200"></testcase>
+  <testcase name="native-farm-continuation022.E07-actual-kill-listener-failure-after-native-mutation" elapsedNanos="2536307000"></testcase>
+</testsuite>

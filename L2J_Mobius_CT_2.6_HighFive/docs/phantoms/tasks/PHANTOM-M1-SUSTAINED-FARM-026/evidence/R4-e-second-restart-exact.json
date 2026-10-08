@@ -1,0 +1,31 @@
+{
+  "kind": "ACTUAL_RESTART_PRE_ORDINARY_CANONICAL",
+  "checks": {
+    "characters_exact_except_online": true,
+    "items.tsv": true,
+    "skills.tsv": true,
+    "same_owned_database": true,
+    "same_source_sha": true,
+    "R4-e-before-second-restart_pending_zero": true,
+    "R4-e-before-second-restart_context_completed_linked": true,
+    "R4-e-second-restart-early_pending_zero": true,
+    "R4-e-second-restart-early_context_completed_linked": true,
+    "durable_native_state_progress_position": true
+  },
+  "stateMetadata": [
+    {
+      "110": {
+        "version": "34584",
+        "digest": "af7f05460beb4e19e8b6ac107b4d42bc84799f57dde4231b2ef88570989d9638"
+      }
+    },
+    {
+      "110": {
+        "version": "34587",
+        "digest": "2ae69a1d86fa9065a86c4cdd492e1b61da5f7c548c6fa2a26a03ea38b45ebda3"
+      }
+    }
+  ],
+  "pass_": true,
+  "note": "Plan/metadata CAS may advance versions; exact native fields, full items/skills and linked completed context are mandatory."
+}

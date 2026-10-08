@@ -1,0 +1,2 @@
+110	40	context	COMPLETED	34572	2cdda57b0175df324ce0508233927ba4b14cebcea27128df06986cb697934bab	POSITION_REQUIRES_NATIVE	708	false
+110	34572	state	MATERIALIZED	2cdda57b0175df324ce0508233927ba4b14cebcea27128df06986cb697934bab	Progress[level=7, experience=17404, skillPoints=821, experienceBeforeDeath=2727]	Position[instanceId=0, x=40878, y=41381, z=-3520, heading=39269, committedAnchorId=generated.farm.58356b4e9844a379fecfbaf6.anchor]

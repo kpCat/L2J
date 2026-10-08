@@ -1,0 +1,12 @@
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.run(PhantomTestLauncher.java:134)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.main(PhantomTestLauncher.java:92)
+, nodes=1, frames=17, truncated=false]
+окт. 08, 2026 4:41:48 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 4:41:48 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] background-position-canonicalization.08-owned-store-crash-and-mutation-matrix
+SUMMARY: suite=background-position-canonicalization seed=15001502 total=1 passed=1 failed=0

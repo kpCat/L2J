@@ -1,0 +1,14 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+
+profileId primary sameEpoch cycles rewards targetTransitions tail120Rewards  exp  sp  pass
+--------- ------- --------- ------ ------- ----------------- --------------  ---  --  ----
+110         False      True      0       0                 0              0    0   0 False
+142         False      True      0       0                 0              0    0   0 False
+175         False      True      0       0                 0              0    0   0 False
+260          True      True     19      26                36              6 6339 294  True
+275         False      True      0       0                 0              0    0   0 False
+278          True      True     23      24                26              3 5985 285  True
+404         False      True     24      34                40             11 8674 399  True
+447         False      True      0       0                 0              0    0   0 False
+

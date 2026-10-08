@@ -1,0 +1,12 @@
+INFO: RaidBossSpawnManager: Loaded 188 Instances
+окт. 08, 2026 4:52:21 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Scheduled 0 Instances
+окт. 08, 2026 4:52:21 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 4:52:21 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] sustained-farm026.E03-distinct-native-target-cap-remains-fenced
+[PASS] sustained-farm026.E03-native-respawn-selection-retires-only-undamaged-stale-generations
+SUMMARY: suite=sustained-farm026 seed=26002601 total=2 passed=2 failed=0

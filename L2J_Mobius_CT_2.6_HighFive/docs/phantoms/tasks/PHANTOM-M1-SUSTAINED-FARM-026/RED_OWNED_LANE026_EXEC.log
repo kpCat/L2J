@@ -1,0 +1,6 @@
+окт. 08, 2026 1:16:38 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+окт. 08, 2026 1:16:38 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+WARNING: ThreadPool: Exception occurred during shutdown: Cannot invoke "java.util.concurrent.ScheduledThreadPoolExecutor.shutdownNow()" because "org.l2jmobius.commons.threads.ThreadPool.SCHEDULED_POOL" is null
+[FAIL] checkpoint-recovery025.before-all - java.lang.AssertionError: Headless integration JVM must run from dist/game. Expected <C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\dist\game> but was <C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\contract026a\runtime\game>. seed=25002501
+SUMMARY: suite=checkpoint-recovery025 seed=25002501 total=1 passed=0 failed=1

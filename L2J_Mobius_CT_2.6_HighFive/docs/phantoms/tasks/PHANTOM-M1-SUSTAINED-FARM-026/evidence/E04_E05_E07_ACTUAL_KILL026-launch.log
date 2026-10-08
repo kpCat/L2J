@@ -1,0 +1,12 @@
+INFO: RaidBossSpawnManager: Scheduled 0 Instances
+окт. 08, 2026 2:42:24 PM org.l2jmobius.gameserver.data.xml.HitConditionBonusData load
+INFO: HitConditionBonusData: Loaded hit condition bonuses.
+окт. 08, 2026 2:42:25 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 2:42:25 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[FAIL] native-farm-continuation022.E04-E05-actual-kill-queued-and-stock-quest-child-drain - java.lang.IllegalStateException: NATIVE_CHECKPOINT_OWNER_MISSING seed=22002201
+[FAIL] native-farm-continuation022.E07-actual-kill-listener-failure-after-native-mutation - java.lang.IllegalStateException: NATIVE_CHECKPOINT_OWNER_MISSING seed=22002201
+SUMMARY: suite=native-farm-continuation022 seed=22002201 total=2 passed=0 failed=2

@@ -1,0 +1,2 @@
+Error: Could not find or load main class org.l2jmobius.tests.phantoms.PhantomSustainedFarm026Suite
+Caused by: java.lang.ClassNotFoundException: org.l2jmobius.tests.phantoms.PhantomSustainedFarm026Suite

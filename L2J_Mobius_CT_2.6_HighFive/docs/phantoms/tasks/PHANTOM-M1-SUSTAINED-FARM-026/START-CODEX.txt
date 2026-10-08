@@ -1,0 +1,55 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SUSTAINED-FARM-026/GOAL.md.
+
+Required base:
+6ebe1d93f4ee168cd8952f0416dc920f26c430ac
+Branch: experiment/m1-candidate007-observe008
+GPT-6.1 Sol, reasoning Very High. Новый диалог, без субагентов.
+
+Одобряю ограниченные TASK/DESIGN/PLAN/SOURCE_MAP. Работай автономно до6часов,
+максимум360мин. Не проси «в игре», «вышел», arm/worktree/phase/commit approval.
+
+Сохранение0258/8 и cold452/restart не переисследовать как новую архитектуру —
+сохранить регрессиями. Главная цель026: непрерывный farm всей natural cohort.
+Разобрать местное выполнение/ресурсы, N02/S12, exact RESERVED kill-event callback,
+и crashXYZ на границе resolver до обычного movement, не по позднему SELECT.
+
+Буквальные source-excerpts и проверяемые proposals в пакете.
+Это reference-код, не serverPASS. Несколько связанных fixes внутри scope разрешены
+после собственных RED, не STOP после каждого нового in-scope subreason.
+Не делать очередной общий аудит и не переписывать battle engine.
+
+До90мин — short full-server proof. После270мин semantic freeze,
+последние90мин на acceptance/restart/cleanup. Нет cap4repair/8starts,
+но unchangedRED вслепую не гонять. Safety/outside-design остановить с evidence.
+
+Own isolated worktree:
+C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius
+Свободный suffix разрешён. Main/foreign/kpCat не трогать.
+PLAY только SELECT/export; старые contract024/025 read/export only.
+Own clones l2jmobiush5_localplay_contract026a..h разрешены.
+Shared TEST metadata/checksum не менять.
+
+Existing Synthetic observer, full GameServer, stock NPC/AutoPlay/AutoUse/PlayerAI.
+Не fake REAL_LOGIN, не ручные HP/EXP/items, не перемещение Phantom ради PASS.
+Не снимать owner/epoch/earned/owned-store/water guards и не менять evidence thresholds.
+
+Сначала targeted nativeRED→GREEN, then committed clean build.
+Две final natural scenes360–420s на одном frozenSHA: полная исходная cohort,
+самостоятельные cycles/EXP/SP и полезный прогресс в final120s.
+Не скрывать missing/dead/idle actors и не склеивать разные epochs.
+
+Own exact PID/start/runtime start/graceful stop разрешены.
+До2planned exact-owned crash по CRASH_WINDOWS на разных clones при REALcount0;
+emergency force только после dumps и двух graceful attempts, не cleanupPASS.
+После всей группы SEALED→SQL — два actual sameDB restart.
+
+N02/S12 нельзя объявлять старым или менять assert ради GREEN.
+RESERVED callback нельзя отменять/complete по истечению timeout.
+Early recovery XYZ не подменять anchor. Death/soft-return флаги отдельно,
+при NOT_RUN M1=OPEN.
+
+Exact-path commit + normal push обязательны при любом исходе.
+Один RESULT/HANDOFF/MORNING, свои JVM по умолчаниюSTOPPED.
+STOP_AUTHORITY=TASK026_CONTRACT.
+Максимум M1-статуса без клиента — WAITING_FINAL_CLIENT при всех server gates.
+Не запускать следующую задачу автоматически.

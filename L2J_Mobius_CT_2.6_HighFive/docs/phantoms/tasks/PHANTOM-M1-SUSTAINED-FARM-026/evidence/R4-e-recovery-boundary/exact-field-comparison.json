@@ -1,0 +1,56 @@
+[
+  {
+    "field": "profileId",
+    "native": "110",
+    "recovered": "110",
+    "equal": true
+  },
+  {
+    "field": "objectId",
+    "native": "268485779",
+    "recovered": "268485779",
+    "equal": true
+  },
+  {
+    "field": "x",
+    "native": "40307",
+    "recovered": "40307",
+    "equal": true
+  },
+  {
+    "field": "y",
+    "native": "41105",
+    "recovered": "41105",
+    "equal": true
+  },
+  {
+    "field": "z",
+    "native": "-3568",
+    "recovered": "-3568",
+    "equal": true
+  },
+  {
+    "field": "heading",
+    "native": "19790",
+    "recovered": "19790",
+    "equal": true
+  },
+  {
+    "field": "exp",
+    "native": "34624",
+    "recovered": "34624",
+    "equal": true
+  },
+  {
+    "field": "sp",
+    "native": "1641",
+    "recovered": "1641",
+    "equal": true
+  },
+  {
+    "field": "inventoryHash",
+    "native": "5d1dab4d6f097a3c10b14b2ab1d434da278ca8d4563fd1307ecb6c639443d363",
+    "recovered": "5d1dab4d6f097a3c10b14b2ab1d434da278ca8d4563fd1307ecb6c639443d363",
+    "equal": true
+  }
+]

@@ -206,5 +206,57 @@ RED_E03_ACTUAL_TRANSITIONS0261/2: native17 incarnations of one NPC reach TARGET_
 undamaged older generations of the same exact object+instance after a successful
 native selection of its newer incarnation. Damaged pending generations, cumulative
 counters, MAX_TARGETS16 and first overflow remain untouched. No actor references,
-new World scan, timer completion, replay or epoch reset. Existing delayed native
+ new World scan, timer completion, replay or epoch reset. Existing delayed native
 reward/order and cap contracts must pass before committed final build.
+
+R6 cb2d9b08d96e4f2386836b40d5ae87ceba9fcf63 committed build PASS. Final source
+remains R6. Frozen checks: recovery8, binding/drain3, current intent10, native review2,
+retaliation3, ecology30+6, shutdown8, owned-store27-boundary matrix, S12 raw3, N02
+canonical1, E01/E02 actual native2, exact callback2, local3/resource2/generation2,
+recovery boundary2 and unchanged evidence contracts4 all PASS with native reports.
+
+Cold452 fresh retained026h resolved through production; original immutable native
+452/8423 receipt SHA fb12ae699e3f2c77907c09ffd8e4c0f0ac910bb05e1737141f81bc72b9993efd
+matches complete native fields/items/skills/XYZ. Two actual R6 sameDB restart early
+exports PASS, before ordinary Synthetic progression. Own h gracefully STOPPED.
+
+Task observer status now exports a bounded retained-owner final scalar snapshot
+outside native hooks; per explicit observation session only the task sample budget
+is renewed. Native epochs/counters/guards are unchanged. Hash-versioned agent compiled.
+Historical025 d actor IDs do not automatically materialize in new026 d: first request
+used default Synthetic lane, then exact historical setup45900/42000/-3467/instance0
+still showed all8 absent. Both evidence sets are retained. One missing instanceId
+argument was rejected before any setup mutation and corrected from existing API.
+No historical actor has been replaced inside those measurements or asserted PASS.
+
+Final026 scenes retain the initial026 eight IDs110,142,175,260,275,278,404,447 from
+the first native complete-cohort observation; missing/dead members remain denominator8.
+R6 finalA d380.732s gives3/8, primaries110/142 both FAIL. 110/142/278 sticky
+PHASE_DEADLINE and excessive idle;447 travel.route_absent without native farm;
+275 pre-baseline absent/SQL DEAD. Full original8 sameDB restart1 native SQL/items/
+skills/context PASS; exact native SEALED final proof7/8, missing275 witness remains FAIL.
+R6 callback first healthy final stop: seven retained scopes DETACHED, outstanding0,
+pendingTimers0, failure empty; own Game/Login STOPPED, exporter overflow/failure0.
+No incident/dead actor/counter/route guard reset, timer completion or row repair.
+
+FinalB c381.393s gives3/8; preselected primaries260/278 PASS (19/23 cycles,
+tail6/3, maxIdle38.99/82.53s). 404 also PASS24 cycles/tail11. 142 travel.route_absent;
+110/175/275/447 absent in all133 samples. Missing epoch0/epoch0 raw equality does
+not prove a lifetime; no absent row is PASS. Source/observer/pilot hashes match A.
+
+FINAL_B_FIRST_STOP is FAILED, not a healthy stop: frozen native shutdown log reports
+systemState FAILED and retainedMaterializationEntries8 before shared ThreadPool stop.
+Retained scopes142/260 OPEN/pendingTimers1;404 OPEN/outstanding1/pendingTimers1;
+404 exact EVENT24354 ON_ATTACKABLE_KILL is SUBMITTED, scheduled delay2500ms,
+start0, future not done/cancelled, dueMs=-4383. Original publication is proven;
+root cause of the delayed start remains UNKNOWN. ThreadPool shutdown then interrupts
+another native drain (object268486909, epoch197702319542000). No force/dump pauses
+were used. JVMs exited through stock Shutdown, but CALLBACK_DRAIN/whole-group PASS
+are false. Only278 has an exact final sealed canonical witness. Raw logs saved before
+restart; no repeat stop can erase this failure. Existing focused callback2/2 and
+shutdown8/8 do not replace this real full-server failure.
+
+R6 semantic freeze is preserved through the270-minute boundary. Remaining work is
+actual sameDB restart/export, cleanup and publication only. No additional product
+edit, speculative queue fix, guard reset or fourth theory is applied without a
+native producer RED and proof. Final TASK_RESULT FAILED; M1 OPEN.

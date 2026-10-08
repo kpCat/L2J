@@ -1,0 +1,14 @@
+{
+  "kind": "FINAL_EXACT_INDEX_SCOPE_GUARD",
+  "base": "6ebe1d93f4ee168cd8952f0416dc920f26c430ac",
+  "frozen": "cb2d9b08d96e4f2386836b40d5ae87ceba9fcf63",
+  "allowedArtifactPrefix": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SUSTAINED-FARM-026/",
+  "stagedCount": 2882,
+  "expectedCount": 2882,
+  "sourceCountFromBase": 14,
+  "unexpected": [],
+  "unexpectedFromBase": [],
+  "missing": [],
+  "sourceChangesAfterFreeze": [],
+  "pass": true
+}

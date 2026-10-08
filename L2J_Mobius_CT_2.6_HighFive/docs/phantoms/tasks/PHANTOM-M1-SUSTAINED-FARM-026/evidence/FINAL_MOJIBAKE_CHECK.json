@@ -1,0 +1,15 @@
+{
+  "kind": "MOJIBAKE_MARKERS_FULL_REQUIRED_SET",
+  "sourceSha": "cb2d9b08d96e4f2386836b40d5ae87ceba9fcf63",
+  "checkedUtc": "2026-10-08T15:11:28.2028413Z",
+  "files": 2896,
+  "matches": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SUSTAINED-FARM-026/evidence/R4-observer-census-build.log",
+      "matches": 68
+    }
+  ],
+  "rawDiagnosticException": "Unchanged negative jar-lock compiler log; replacement bytes unrecoverable",
+  "authoredSourceAndDocsPass": true,
+  "allTextPass": false
+}

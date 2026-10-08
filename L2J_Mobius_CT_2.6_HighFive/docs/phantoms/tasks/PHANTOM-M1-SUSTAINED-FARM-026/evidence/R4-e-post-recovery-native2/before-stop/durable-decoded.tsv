@@ -1,0 +1,2 @@
+110	48	context	COMPLETED	34580	804c72ec281f7741a8a15cbdb2be3580d78257a1da09fa72f49aa90005bf7a80	VITALITY_REQUIRES_NATIVE	708	false
+110	34580	state	MATERIALIZED	804c72ec281f7741a8a15cbdb2be3580d78257a1da09fa72f49aa90005bf7a80	Progress[level=9, experience=34624, skillPoints=1641, experienceBeforeDeath=2727]	Position[instanceId=0, x=39050, y=41818, z=-3600, heading=27386, committedAnchorId=generated.farm.7451e61fe8e94f49afb1f9e2.anchor]

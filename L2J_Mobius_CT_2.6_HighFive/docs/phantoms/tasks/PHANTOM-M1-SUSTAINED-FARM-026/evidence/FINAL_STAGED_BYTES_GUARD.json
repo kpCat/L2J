@@ -1,0 +1,7 @@
+{
+  "kind": "EXACT_STAGED_BLOB_BYTES",
+  "files": 2882,
+  "errors": [],
+  "pass": true,
+  "excludesOwnReportBeforeRestaging": true
+}

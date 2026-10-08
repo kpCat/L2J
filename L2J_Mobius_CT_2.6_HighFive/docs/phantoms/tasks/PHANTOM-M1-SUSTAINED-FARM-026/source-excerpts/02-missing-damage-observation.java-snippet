@@ -1,0 +1,9 @@
+// SOURCE: PhantomM1DynamicRecipientChecks.lateNativeDamage @ required base
+// CURRENT excerpt, context omitted:
+setup(one, null, () -> cast(first, npc, magic));
+PhantomAssertions.assertTrue(first.isCastingNow() && one.scope.outstanding() > 0, "N02 original actual cast queued.");
+final double hp = npc.getCurrentHp();
+setup(two, null, () -> second.callSkill(magic, List.of(npc)));
+// Later requires truthful death observation for both damaging recipients.
+// This input difference is NOT a proven explanation of the paired regression.
+// Capture the HP writer -> evidence.damage -> killedIfDamaged divergence first.

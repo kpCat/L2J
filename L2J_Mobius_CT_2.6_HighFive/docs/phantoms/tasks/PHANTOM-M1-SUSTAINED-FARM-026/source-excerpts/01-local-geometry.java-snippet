@@ -1,0 +1,12 @@
+// SOURCE: PhantomVisibleFarmTravel.java @ required base
+// CURRENT, excerpt; not a patch.
+private static boolean isUsableLocalFarmPosition(Player player, PhantomTopologyAnchor anchor)
+{
+    if (anchor.role() != PhantomTopologyAnchorRole.FARMING) { return true; }
+    final var geo = GeoEngine.getInstance();
+    return geo.hasGeo(player.getX(), player.getY()) && (geo.getHeight(player.getX(), player.getY(), player.getZ()) == player.getZ()) && (ZoneManager.getInstance().getZone(player.getX(), player.getY(), player.getZ(), WaterZone.class) == null);
+}
+// Separate CURRENT caller:
+// if (!walk(profileId, player, journey, journey.arrivalPoint, 0)) { return false; }
+// Required: do not replace with arbitrary tolerance/setXYZ. Prove native legal local
+// opportunity + preserve unsafe-segment rejection; see DESIGN F1 and F10.

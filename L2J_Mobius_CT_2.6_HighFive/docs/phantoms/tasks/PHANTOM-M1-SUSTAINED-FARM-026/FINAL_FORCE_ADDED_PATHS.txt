@@ -1,0 +1,1 @@
+NONE; all task files including native properties witnesses are included by ordinary exact-task staging; forced add was not used.

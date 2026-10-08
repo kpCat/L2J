@@ -1,0 +1,11 @@
+// SOURCE: NativeEventWork @ required base; CURRENT
+static void schedule(IBaseEvent event, Runnable traversal, long delay)
+{
+    PlayerNativeWork.schedule(null, participants(event), "EVENT:" + event.getType(), Semantics.EARNED, traversal, delay);
+}
+static void execute(IBaseEvent event, Runnable traversal)
+{
+    PlayerNativeWork.execute(null, participants(event), "EVENT:" + event.getType(), Semantics.EARNED, traversal);
+}
+// Scope-reservation timeout does not reveal whether the task was submitted or started.
+// Instrument this existing bridge; do not introduce a second event dispatcher.

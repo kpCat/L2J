@@ -1,0 +1,10 @@
+java.nio.file.FileSystemException: C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops026\observer026.jar: ������� �� ����� �������� ������ � �����, ��� ��� ���� ���� ����� ������ ���������
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:92)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileCopy.move(WindowsFileCopy.java:388)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.move(WindowsFileSystemProvider.java:287)
+	at java.base/java.nio.file.Files.move(Files.java:1319)
+	at jdk.jartool/sun.tools.jar.Main.validateAndClose(Main.java:475)
+	at jdk.jartool/sun.tools.jar.Main.run(Main.java:327)
+	at jdk.jartool/sun.tools.jar.Main.main(Main.java:1731)

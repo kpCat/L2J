@@ -1,0 +1,34 @@
+mode	path	purpose	anchor	verified_blob_sha
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	F stateful native continuation/resource recovery	noTargetExpired; start; Policy	8ea23e4e2dc021524e10bea9809c0f0a5bb1eb6f
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	F current local action vs route witness	advance; arrive; walk; isUsableLocalFarmPosition	dce072629bfdaab244ec33dcacc7ca021a724996
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	F typed mission/recovery bridge only	visible candidate/start/await	-
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	F lawful bounded local alternatives	replanVisibleLocal; addLocalCandidates	-
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	F exact plan publication; R early-admission bridge only	visible replan; exact permit; baseline	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	E exact native observation and dispatch accounting	observationEvidence; execute/schedule; ParticipantWork	4b398a50446e9937d1f005df363405cb2b2da268
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/events/NativeEventWork.java	E exact event participant/publication wrapper only	execute; schedule	2187f4dd13df6555e29a646ead08b03fff4af48d
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	E completion/control scheduling; preserve025 typed checkpoint	WorkTicket; PendingTimer; onQuiescent	6f1073700d3c50195ae53b0267e62381ceb6eaa1
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	E cleanup/death transfer exact lifecycle only	cleanup; native drain	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	E existing cleanup task scheduling only	registerDrainRetry; cleanupEntry	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	F/E binding; small read-only snapshot fields	Decision/AutoPlay control wiring	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	F exact Phantom-only PAUSED/action policy hook, no copied engine	PhantomPolicy; tick	ce3f4a615cc72c29f177116f5242fb602ae1d90f
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	F exact Phantom-only resource-policy integration	PhantomPolicy; tick	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	E after-native-write identity/ordering bug only, no thresholds	damage; killedIfDamaged; existing token lifecycle	0b6028cea681a965184aa208ec114e7ceae3b191
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Attackable.java	E existing after-write observer hook only, stock rewards unchanged	native damage/death/reward evidence	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	R early recovery witness or proven first XYZ producer; preserve025	existing recovery/checkpoint methods	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	R exact after-commit observation; fix only proven divergence	resolveOwnedStore/reconcileVerifyPending	-
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/events/EventDispatcher.java	existing callback path, no global rewrite	notifyEventAsync	f357bfd086ed928b7bbe25c3ea4b449811579b4e
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java	native lifecycle/skills/store semantics; not authorized for global edit	owned store; cast; restore	-
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/geoengine/GeoEngine.java	native geometry legality; do not change engine	canMoveToTarget/getHeight	-
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	TASK024/025 actualXYZ and simulation eligibility retained	captureOwnedNative; livePositionAllowed	-
+OPTIONAL_NEW	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomLocalExecutionPolicy.java	only if existing classes need one pure helper; max1 new product helper	DESIGN F reference; no new engine	-
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomSustainedFarm026Suite.java	F native/composed scenarios	SCENARIOS F	-
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomCallbackContinuation026Checks.java	E package access to actual lifetime, no fake dispatch	SCENARIOS E	-
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomRecoveryBoundary026Suite.java	R after-commit-before-admission and saved-state regressions	SCENARIOS R	-
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLivingWorld023Suite.java	N02 deterministic root and unchanged invariant	cooperative	17c3babcb64d7ed72cce35fcf1ce6155740ec3b1
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomM1DynamicRecipientChecks.java	N02/S12 native barriers and original/direct-entry comparison	lateNativeDamage	-
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeFarmContinuation022Suite.java	native farm regression	existing cases	-
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCheckpointRecovery025Suite.java	keep cold/live save proofs	existing cases	-
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCheckpointDrain025Suite.java	keep drain proofs	existing cases	-
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	private fixture identity only with own RED; shared metadata untouched	private lane	-
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SUSTAINED-FARM-026/	docs/evidence/up to3 thin new wrappers	all	-
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CHECKPOINT-RECOVERY-025/	reuse tooling/raw immutable	all	-

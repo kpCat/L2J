@@ -1,0 +1,16 @@
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnduranceGoal029Checkpoint3Suite.java:897: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnvironmentGoal029Checkpoint2Suite.java:574: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomSustainedFarm026Suite.java:54: error: unreported exception ClassNotFoundException; must be caught or declared to be thrown
+    [javac] 		final var spawn = new Spawn(monster.getTemplate()); spawn.setXYZ(player.getX() + 48, player.getY(), player.getZ()); monster.setSpawn(spawn);
+    [javac] 		                  ^
+    [javac] 1 error
+    [javac] 2 warnings
+
+BUILD FAILED
+C:\Users\ZBook\.codex\worktrees\m1-sustained-026\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml:183: Compile failed; see the compiler error output for details.
+
+Total time: 19 seconds

@@ -1,0 +1,2 @@
+110	42	context	COMPLETED	34574	656e796df3481a2c8516e9c0876f28ea3077adcf04d4210d081b5539980b8d77	POSITION_REQUIRES_NATIVE	708	false
+110	34574	state	READY	656e796df3481a2c8516e9c0876f28ea3077adcf04d4210d081b5539980b8d77	Progress[level=9, experience=34624, skillPoints=1641, experienceBeforeDeath=2727]	Position[instanceId=0, x=40307, y=41105, z=-3568, heading=19790, committedAnchorId=generated.farm.58356b4e9844a379fecfbaf6.anchor]

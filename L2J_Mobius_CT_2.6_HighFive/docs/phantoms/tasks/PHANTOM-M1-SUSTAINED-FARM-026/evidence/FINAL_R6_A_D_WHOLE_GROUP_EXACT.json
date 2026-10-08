@@ -1,0 +1,114 @@
+{
+  "kind": "EXACT_SEALED_TO_SAME_DB_CANONICAL",
+  "sourceSha": "cb2d9b08d96e4f2386836b40d5ae87ceba9fcf63",
+  "database": "l2jmobiush5_localplay_contract026d",
+  "requiredProfiles": [
+    110,
+    142,
+    175,
+    260,
+    275,
+    278,
+    404,
+    447
+  ],
+  "rows": [
+    {
+      "profileId": 110,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "110-195981072148600-34556.properties",
+      "snapshotSha256": "3c27f754cbbfea30a9b165633bbd561ea1c62761725315bcd21995dc14ae27fd",
+      "epoch": 195981072148600,
+      "initialEpoch": "195981072148600",
+      "preparedVersion": 34556,
+      "stateVersion": 34557,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 142,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "142-195981089138900-14350.properties",
+      "snapshotSha256": "3d0b0c184383de72e84415d1ad2abbd6b3ce945ce013313602b569de883b1469",
+      "epoch": 195981089138900,
+      "initialEpoch": "195981089138900",
+      "preparedVersion": 14350,
+      "stateVersion": 14351,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 175,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "175-195981108870200-21694.properties",
+      "snapshotSha256": "44a496246f10eadcec8b6c45affd52b6981953aa5f72c278350ad98672864268",
+      "epoch": 195981108870200,
+      "initialEpoch": "195981108870200",
+      "preparedVersion": 21694,
+      "stateVersion": 21695,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 260,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "260-195981123221300-7997.properties",
+      "snapshotSha256": "ff08d217483feec3ca0bd616ad8e4f71abe41f26d20a3f93c5ddbfffce15dd73",
+      "epoch": 195981123221300,
+      "initialEpoch": "195981123221300",
+      "preparedVersion": 7997,
+      "stateVersion": 7998,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 278,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "278-195981143814700-5599.properties",
+      "snapshotSha256": "5b50c6d0799371d7522c2b50074e7eabe55df085a492512f06dae2dd977dd436",
+      "epoch": 195981143814700,
+      "initialEpoch": "195981143814700",
+      "preparedVersion": 5599,
+      "stateVersion": 5600,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 404,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "404-195981280897200-7376.properties",
+      "snapshotSha256": "c3e283058fbeabfe469ffbd20b12929541db0a866a5d52195746dfa710d3172c",
+      "epoch": 195981280897200,
+      "initialEpoch": "195981280897200",
+      "preparedVersion": 7376,
+      "stateVersion": 7377,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 447,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "447-195981370909900-22956.properties",
+      "snapshotSha256": "57caf4b95a22608502f2470ae750b555e5f462481a6842ffa189a3e6b0c80d7c",
+      "epoch": 195981370909900,
+      "initialEpoch": "195981370909900",
+      "preparedVersion": 22956,
+      "stateVersion": 22957,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    }
+  ],
+  "receiptIntegrity": null,
+  "errors": [
+    "profile 275: missing immutable SEALED receipt or SQL"
+  ],
+  "pass_": false,
+  "noDiagnosticCounterRestoration": true
+}

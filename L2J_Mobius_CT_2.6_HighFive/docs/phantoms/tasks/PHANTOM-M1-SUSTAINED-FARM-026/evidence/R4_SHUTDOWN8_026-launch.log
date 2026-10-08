@@ -1,0 +1,12 @@
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 3:41:54 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] server-shutdown-handoff.01-managed-classifier-fails-closed
+[PASS] server-shutdown-handoff.02-two-phase-server-policy-and-source-order
+[PASS] server-shutdown-handoff.03-in-flight-drain-reused-before-thread-pool-phase
+[PASS] server-shutdown-handoff.04-persistent-failure-retains-configured-ownership
+[PASS] server-shutdown-handoff.05-in-flight-scheduler-pulse-retains-configured-system
+[PASS] server-shutdown-handoff.06-navigation-only-blocker-snapshot
+[PASS] server-shutdown-handoff.07-final-diagnostic-includes-navigation-state
+[PASS] server-shutdown-handoff.08-configured-stop-awaits-original-ecology-worker-finally
+SUMMARY: suite=server-shutdown-handoff seed=23002301 total=8 passed=8 failed=0

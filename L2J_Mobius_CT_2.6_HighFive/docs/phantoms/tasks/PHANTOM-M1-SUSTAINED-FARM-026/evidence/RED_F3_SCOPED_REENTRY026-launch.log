@@ -1,0 +1,12 @@
+окт. 08, 2026 3:01:11 PM org.l2jmobius.gameserver.data.xml.TeleporterData load
+INFO: TeleporterData: Loaded 195 npc teleporters.
+окт. 08, 2026 3:01:12 PM org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival <init>
+INFO: SevenSignsFestival: Initialization bypassed due to Seal Validation in effect.
+окт. 08, 2026 3:01:12 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 3:01:12 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[FAIL] sustained-farm026.F03-existing-exact-native-session-survives-planner-reentry - java.lang.AssertionError: RED: planner reentry must reuse a healthy exact session without a new stand-point acquisition. Expected <SUCCESS> but was <RETRY>. seed=26002601
+SUMMARY: suite=sustained-farm026 seed=26002601 total=1 passed=0 failed=1

@@ -1,0 +1,12 @@
+окт. 08, 2026 3:21:27 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Scheduled 0 Instances
+окт. 08, 2026 3:21:30 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 3:21:30 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] living-world023.A01-A02-actual-HitTask-NPC-retaliation-open
+[PASS] living-world023.A01-A02-actual-HitTask-NPC-retaliation-sealed
+[PASS] living-world023.A03-original-entry-cannot-relabel-replaced-epoch
+SUMMARY: suite=living-world023 seed=23002301 total=3 passed=3 failed=0

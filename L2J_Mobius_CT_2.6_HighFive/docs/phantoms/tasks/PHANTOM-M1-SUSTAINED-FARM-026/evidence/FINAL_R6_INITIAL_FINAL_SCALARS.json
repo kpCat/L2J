@@ -1,0 +1,518 @@
+{
+  "FINAL_R6_A_D_380S": [
+    {
+      "profileId": "110",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981072148600",
+        "nativeEvidenceEpoch": "195981072148600",
+        "hp": "185.0",
+        "mp": "149.6993152",
+        "exp": "13544",
+        "sp": "628",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981072148600",
+        "nativeEvidenceEpoch": "195981072148600",
+        "hp": "216.0",
+        "mp": "192.0",
+        "exp": "33575",
+        "sp": "1577",
+        "nativeFarmCycleSequence": "1",
+        "nativeFirstUnprovenReason": "PHASE_DEADLINE",
+        "runtimeReason": "travel.route_absent"
+      },
+      "playerExpDelta": 20031,
+      "reportedCycleDelta": 1,
+      "reportedExpDelta": 525
+    },
+    {
+      "profileId": "142",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981089138900",
+        "nativeEvidenceEpoch": "195981089138900",
+        "hp": "214.0",
+        "mp": "82.0",
+        "exp": "17516",
+        "sp": "896",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.start_retry"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981089138900",
+        "nativeEvidenceEpoch": "195981089138900",
+        "hp": "249.0",
+        "mp": "97.0",
+        "exp": "31397",
+        "sp": "1551",
+        "nativeFarmCycleSequence": "11",
+        "nativeFirstUnprovenReason": "PHASE_DEADLINE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "playerExpDelta": 13881,
+      "reportedCycleDelta": 11,
+      "reportedExpDelta": 9649
+    },
+    {
+      "profileId": "175",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981108870200",
+        "nativeEvidenceEpoch": "195981108870200",
+        "hp": "200.0",
+        "mp": "18.7170164",
+        "exp": "29167",
+        "sp": "2930",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981108870200",
+        "nativeEvidenceEpoch": "195981108870200",
+        "hp": "231.0",
+        "mp": "134.40357799999964",
+        "exp": "56621",
+        "sp": "6083",
+        "nativeFarmCycleSequence": "58",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "playerExpDelta": 27454,
+      "reportedCycleDelta": 58,
+      "reportedExpDelta": 27454
+    },
+    {
+      "profileId": "260",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981123221300",
+        "nativeEvidenceEpoch": "195981123221300",
+        "hp": "200.0",
+        "mp": "158.7170164",
+        "exp": "23452",
+        "sp": "1177",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981123221300",
+        "nativeEvidenceEpoch": "195981123221300",
+        "hp": "231.0",
+        "mp": "185.45195399999938",
+        "exp": "60778",
+        "sp": "2945",
+        "nativeFarmCycleSequence": "31",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "playerExpDelta": 37326,
+      "reportedCycleDelta": 31,
+      "reportedExpDelta": 37326
+    },
+    {
+      "profileId": "275",
+      "initial": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "final": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "playerExpDelta": 0,
+      "reportedCycleDelta": 0,
+      "reportedExpDelta": 0
+    },
+    {
+      "profileId": "278",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981143814700",
+        "nativeEvidenceEpoch": "195981143814700",
+        "hp": "216.0",
+        "mp": "181.7347176",
+        "exp": "34903",
+        "sp": "1677",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981143814700",
+        "nativeEvidenceEpoch": "195981143814700",
+        "hp": "216.0",
+        "mp": "179.65524000000013",
+        "exp": "40599",
+        "sp": "1947",
+        "nativeFarmCycleSequence": "5",
+        "nativeFirstUnprovenReason": "PHASE_DEADLINE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "playerExpDelta": 5696,
+      "reportedCycleDelta": 5,
+      "reportedExpDelta": 2783
+    },
+    {
+      "profileId": "404",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981280897200",
+        "nativeEvidenceEpoch": "195981280897200",
+        "hp": "185.0",
+        "mp": "106.6993152",
+        "exp": "12262",
+        "sp": "673",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981280897200",
+        "nativeEvidenceEpoch": "195981280897200",
+        "hp": "200.0",
+        "mp": "167.92142480000007",
+        "exp": "21415",
+        "sp": "1108",
+        "nativeFarmCycleSequence": "18",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "playerExpDelta": 9153,
+      "reportedCycleDelta": 18,
+      "reportedExpDelta": 9153
+    },
+    {
+      "profileId": "447",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981370909900",
+        "nativeEvidenceEpoch": "195981370909900",
+        "hp": "197.0",
+        "mp": "75.0",
+        "exp": "8842",
+        "sp": "451",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "travel.route_absent"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "195981370909900",
+        "nativeEvidenceEpoch": "195981370909900",
+        "hp": "197.0",
+        "mp": "75.0",
+        "exp": "8842",
+        "sp": "451",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "travel.route_absent"
+      },
+      "playerExpDelta": 0,
+      "reportedCycleDelta": 0,
+      "reportedExpDelta": 0
+    }
+  ],
+  "FINAL_R6_B_C_380S": [
+    {
+      "profileId": "110",
+      "initial": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "final": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "playerExpDelta": 0,
+      "reportedCycleDelta": 0,
+      "reportedExpDelta": 0
+    },
+    {
+      "profileId": "142",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "197184859502900",
+        "nativeEvidenceEpoch": "197184859502900",
+        "hp": "214.0",
+        "mp": "82.0",
+        "exp": "13541",
+        "sp": "736",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "travel.route_absent"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "197184859502900",
+        "nativeEvidenceEpoch": "197184859502900",
+        "hp": "214.0",
+        "mp": "82.0",
+        "exp": "13541",
+        "sp": "736",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "travel.route_absent"
+      },
+      "playerExpDelta": 0,
+      "reportedCycleDelta": 0,
+      "reportedExpDelta": 0
+    },
+    {
+      "profileId": "175",
+      "initial": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "final": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "playerExpDelta": 0,
+      "reportedCycleDelta": 0,
+      "reportedExpDelta": 0
+    },
+    {
+      "profileId": "260",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "197184876123600",
+        "nativeEvidenceEpoch": "197184876123600",
+        "hp": "247.0",
+        "mp": "28.0",
+        "exp": "93572",
+        "sp": "4491",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "197184876123600",
+        "nativeEvidenceEpoch": "197184876123600",
+        "hp": "247.0",
+        "mp": "24.76848",
+        "exp": "99911",
+        "sp": "4785",
+        "nativeFarmCycleSequence": "19",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "playerExpDelta": 6339,
+      "reportedCycleDelta": 19,
+      "reportedExpDelta": 6339
+    },
+    {
+      "profileId": "275",
+      "initial": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "final": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "playerExpDelta": 0,
+      "reportedCycleDelta": 0,
+      "reportedExpDelta": 0
+    },
+    {
+      "profileId": "278",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "197184897908700",
+        "nativeEvidenceEpoch": "197184897908700",
+        "hp": "263.0",
+        "mp": "226.0",
+        "exp": "117127",
+        "sp": "5603",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "197184897908700",
+        "nativeEvidenceEpoch": "197184897908700",
+        "hp": "263.0",
+        "mp": "228.0",
+        "exp": "123112",
+        "sp": "5888",
+        "nativeFarmCycleSequence": "23",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "playerExpDelta": 5985,
+      "reportedCycleDelta": 23,
+      "reportedExpDelta": 5985
+    },
+    {
+      "profileId": "404",
+      "initial": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "197184915592600",
+        "nativeEvidenceEpoch": "197184915592600",
+        "hp": "263.0",
+        "mp": "205.0",
+        "exp": "112516",
+        "sp": "5424",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "final": {
+        "worldPresent": "true",
+        "missing": "false",
+        "materializedAtNanos": "197184915592600",
+        "nativeEvidenceEpoch": "197184915592600",
+        "hp": "263.0",
+        "mp": "135.8685648000011",
+        "exp": "121190",
+        "sp": "5823",
+        "nativeFarmCycleSequence": "24",
+        "nativeFirstUnprovenReason": "NONE",
+        "runtimeReason": "background.visible.autoplay_running"
+      },
+      "playerExpDelta": 8674,
+      "reportedCycleDelta": 24,
+      "reportedExpDelta": 8674
+    },
+    {
+      "profileId": "447",
+      "initial": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "final": {
+        "worldPresent": "false",
+        "missing": "true",
+        "materializedAtNanos": "0",
+        "nativeEvidenceEpoch": "0",
+        "hp": null,
+        "mp": null,
+        "exp": "0",
+        "sp": "0",
+        "nativeFarmCycleSequence": "0",
+        "nativeFirstUnprovenReason": null,
+        "runtimeReason": "goal.reloaded"
+      },
+      "playerExpDelta": 0,
+      "reportedCycleDelta": 0,
+      "reportedExpDelta": 0
+    }
+  ]
+}

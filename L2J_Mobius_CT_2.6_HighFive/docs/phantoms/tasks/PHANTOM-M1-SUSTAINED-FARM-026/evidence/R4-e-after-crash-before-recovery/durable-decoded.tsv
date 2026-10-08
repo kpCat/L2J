@@ -1,0 +1,3 @@
+110	41	context	PENDING	34573	8a239a2bf9e7b4e84697e2eaca7d7d34fff6513bd40f209a2c4c397d8f6bb752	POSITION_REQUIRES_NATIVE	708	false
+110	0	owned	34573	190320354272500	d47284782fad5245c767c4e9a5b2add1bcbae55b3e1182ddfe68585256a6ab19
+110	34573	state	VERIFY_PENDING	8a239a2bf9e7b4e84697e2eaca7d7d34fff6513bd40f209a2c4c397d8f6bb752	Progress[level=9, experience=34624, skillPoints=1641, experienceBeforeDeath=2727]	Position[instanceId=0, x=40307, y=41105, z=-3568, heading=19790, committedAnchorId=generated.farm.58356b4e9844a379fecfbaf6.anchor]

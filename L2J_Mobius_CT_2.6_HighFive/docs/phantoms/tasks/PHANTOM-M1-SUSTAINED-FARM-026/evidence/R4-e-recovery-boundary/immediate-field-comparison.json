@@ -1,0 +1,56 @@
+[
+  {
+    "field": "profileId",
+    "native": null,
+    "recovered": null,
+    "equal": true
+  },
+  {
+    "field": "objectId",
+    "native": null,
+    "recovered": null,
+    "equal": true
+  },
+  {
+    "field": "x",
+    "native": null,
+    "recovered": null,
+    "equal": true
+  },
+  {
+    "field": "y",
+    "native": null,
+    "recovered": null,
+    "equal": true
+  },
+  {
+    "field": "z",
+    "native": null,
+    "recovered": null,
+    "equal": true
+  },
+  {
+    "field": "heading",
+    "native": null,
+    "recovered": null,
+    "equal": true
+  },
+  {
+    "field": "exp",
+    "native": null,
+    "recovered": null,
+    "equal": true
+  },
+  {
+    "field": "sp",
+    "native": null,
+    "recovered": null,
+    "equal": true
+  },
+  {
+    "field": "inventoryHash",
+    "native": null,
+    "recovered": null,
+    "equal": true
+  }
+]

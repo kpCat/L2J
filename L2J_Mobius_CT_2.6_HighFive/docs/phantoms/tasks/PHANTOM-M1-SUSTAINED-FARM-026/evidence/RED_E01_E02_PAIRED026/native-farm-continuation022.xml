@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="native-farm-continuation022" seed="22002201" tests="2" passed="0" failures="2">
+  <properties>
+    <property name="E02.originalEntry" value="MagicUseTask=true;secondaryHp=126.0-&gt;52.0;target=Target[objectId=268481772, instanceId=0, spawnGeneration=1]"/>
+    <property name="N02.afterNativeWriter" value="hp=0.0;dead=true;firstExp=267;secondExp=267;firstDamage=74;secondDamage=74;secondDead=false;secondHp=114.0;rewardDealer=268435467;first=268435465;second=268435467;target=Target[objectId=268481772, instanceId=0, spawnGeneration=1];firstEvidence=Snapshot[objectId=268435465, epoch=185179063747800, sampleNanos=185187107236400, overflow=false, sequence=3, damageSequence=1, killSequence=1, rewardSequence=0, targetSequence=1, farmCycleSequence=0, expGained=0, spGained=0, lootSequence=0, lastProgressNanos=185187098015700, phase=NONE, phaseSinceNanos=0, phaseDeadlineNanos=0, usefulProgressNanos=185187098015700, lootCount=0, trackedTargets=1, firstUnprovenReason=NONE, firstUnprovenNanos=0];secondEvidence=Snapshot[objectId=268435467, epoch=185179063753800, sampleNanos=185187107263700, overflow=false, sequence=2, damageSequence=1, killSequence=0, rewardSequence=0, targetSequence=1, farmCycleSequence=0, expGained=0, spGained=0, lootSequence=0, lastProgressNanos=185187094668700, phase=COMBAT, phaseSinceNanos=185179065554100, phaseDeadlineNanos=185299065554100, usefulProgressNanos=185187094668700, lootCount=0, trackedTargets=1, firstUnprovenReason=NONE, firstUnprovenNanos=0]"/>
+    <property name="N02.lateDamage" value="126.0-&gt;52.0;damage=74"/>
+    <property name="N02.nativeKills" value="first=1;second=0"/>
+    <property name="N02.nativeRewards" value="first=267;second=267;ordinary=NONE"/>
+    <property name="N02.original" value="casting=false;scope=epoch=185179063747800 state=OPEN outstanding=0 pendingTimers=0 peak=6 failure= work=[];incident=null"/>
+    <property name="N02.setup" value="firstHp=98.0;firstDead=false;secondHp=98.0;secondDead=false;secondMp=59.0"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract026a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="native-farm-continuation022.E01-late-direct-native-writer-observes-damaging-recipients" elapsedNanos="8193124100"><failure type="java.lang.AssertionError" message="RED: each genuinely damaging native reward recipient observes the same actual target death once." seed="22002201"/></testcase>
+  <testcase name="native-farm-continuation022.E02-original-secondary-MagicUseTask-same-native-death" elapsedNanos="8956386100"><failure type="java.lang.AssertionError" message="RED: each genuinely damaging native reward recipient observes the same actual target death once." seed="22002201"/></testcase>
+</testsuite>

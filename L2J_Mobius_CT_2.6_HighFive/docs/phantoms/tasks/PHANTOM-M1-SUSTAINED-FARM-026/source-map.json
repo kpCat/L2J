@@ -1,0 +1,236 @@
+{
+  "required_base": "6ebe1d93f4ee168cd8952f0416dc920f26c430ac",
+  "paths": [
+    {
+      "mode": "MODIFY",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java",
+      "purpose": "F stateful native continuation/resource recovery",
+      "anchor": "noTargetExpired; start; Policy",
+      "blob_sha": "8ea23e4e2dc021524e10bea9809c0f0a5bb1eb6f"
+    },
+    {
+      "mode": "MODIFY",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java",
+      "purpose": "F current local action vs route witness",
+      "anchor": "advance; arrive; walk; isUsableLocalFarmPosition",
+      "blob_sha": "dce072629bfdaab244ec33dcacc7ca021a724996"
+    },
+    {
+      "mode": "MODIFY",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java",
+      "purpose": "F typed mission/recovery bridge only",
+      "anchor": "visible candidate/start/await",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "MODIFY",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java",
+      "purpose": "F lawful bounded local alternatives",
+      "anchor": "replanVisibleLocal; addLocalCandidates",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "MODIFY",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
+      "purpose": "F exact plan publication; R early-admission bridge only",
+      "anchor": "visible replan; exact permit; baseline",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java",
+      "purpose": "E exact native observation and dispatch accounting",
+      "anchor": "observationEvidence; execute/schedule; ParticipantWork",
+      "blob_sha": "4b398a50446e9937d1f005df363405cb2b2da268"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/events/NativeEventWork.java",
+      "purpose": "E exact event participant/publication wrapper only",
+      "anchor": "execute; schedule",
+      "blob_sha": "2187f4dd13df6555e29a646ead08b03fff4af48d"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java",
+      "purpose": "E completion/control scheduling; preserve025 typed checkpoint",
+      "anchor": "WorkTicket; PendingTimer; onQuiescent",
+      "blob_sha": "6f1073700d3c50195ae53b0267e62381ceb6eaa1"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java",
+      "purpose": "E cleanup/death transfer exact lifecycle only",
+      "anchor": "cleanup; native drain",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java",
+      "purpose": "E existing cleanup task scheduling only",
+      "anchor": "registerDrainRetry; cleanupEntry",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
+      "purpose": "F/E binding; small read-only snapshot fields",
+      "anchor": "Decision/AutoPlay control wiring",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java",
+      "purpose": "F exact Phantom-only PAUSED/action policy hook, no copied engine",
+      "anchor": "PhantomPolicy; tick",
+      "blob_sha": "ce3f4a615cc72c29f177116f5242fb602ae1d90f"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java",
+      "purpose": "F exact Phantom-only resource-policy integration",
+      "anchor": "PhantomPolicy; tick",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java",
+      "purpose": "E after-native-write identity/ordering bug only, no thresholds",
+      "anchor": "damage; killedIfDamaged; existing token lifecycle",
+      "blob_sha": "0b6028cea681a965184aa208ec114e7ceae3b191"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Attackable.java",
+      "purpose": "E existing after-write observer hook only, stock rewards unchanged",
+      "anchor": "native damage/death/reward evidence",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
+      "purpose": "R early recovery witness or proven first XYZ producer; preserve025",
+      "anchor": "existing recovery/checkpoint methods",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+      "purpose": "R exact after-commit observation; fix only proven divergence",
+      "anchor": "resolveOwnedStore/reconcileVerifyPending",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "READ",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/events/EventDispatcher.java",
+      "purpose": "existing callback path, no global rewrite",
+      "anchor": "notifyEventAsync",
+      "blob_sha": "f357bfd086ed928b7bbe25c3ea4b449811579b4e"
+    },
+    {
+      "mode": "READ",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java",
+      "purpose": "native lifecycle/skills/store semantics; not authorized for global edit",
+      "anchor": "owned store; cast; restore",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "READ",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/geoengine/GeoEngine.java",
+      "purpose": "native geometry legality; do not change engine",
+      "anchor": "canMoveToTarget/getHeight",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "READ",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java",
+      "purpose": "TASK024/025 actualXYZ and simulation eligibility retained",
+      "anchor": "captureOwnedNative; livePositionAllowed",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "OPTIONAL_NEW",
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomLocalExecutionPolicy.java",
+      "purpose": "only if existing classes need one pure helper; max1 new product helper",
+      "anchor": "DESIGN F reference; no new engine",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "NEW_TEST",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomSustainedFarm026Suite.java",
+      "purpose": "F native/composed scenarios",
+      "anchor": "SCENARIOS F",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "NEW_TEST",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomCallbackContinuation026Checks.java",
+      "purpose": "E package access to actual lifetime, no fake dispatch",
+      "anchor": "SCENARIOS E",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "NEW_TEST",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomRecoveryBoundary026Suite.java",
+      "purpose": "R after-commit-before-admission and saved-state regressions",
+      "anchor": "SCENARIOS R",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL_TEST",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLivingWorld023Suite.java",
+      "purpose": "N02 deterministic root and unchanged invariant",
+      "anchor": "cooperative",
+      "blob_sha": "17c3babcb64d7ed72cce35fcf1ce6155740ec3b1"
+    },
+    {
+      "mode": "CONDITIONAL_TEST",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomM1DynamicRecipientChecks.java",
+      "purpose": "N02/S12 native barriers and original/direct-entry comparison",
+      "anchor": "lateNativeDamage",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL_TEST",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeFarmContinuation022Suite.java",
+      "purpose": "native farm regression",
+      "anchor": "existing cases",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL_TEST",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCheckpointRecovery025Suite.java",
+      "purpose": "keep cold/live save proofs",
+      "anchor": "existing cases",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL_TEST",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCheckpointDrain025Suite.java",
+      "purpose": "keep drain proofs",
+      "anchor": "existing cases",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "CONDITIONAL_TEST",
+      "path": "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java",
+      "purpose": "private fixture identity only with own RED; shared metadata untouched",
+      "anchor": "private lane",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "WRITE",
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SUSTAINED-FARM-026/",
+      "purpose": "docs/evidence/up to3 thin new wrappers",
+      "anchor": "all",
+      "blob_sha": "-"
+    },
+    {
+      "mode": "READ",
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CHECKPOINT-RECOVERY-025/",
+      "purpose": "reuse tooling/raw immutable",
+      "anchor": "all",
+      "blob_sha": "-"
+    }
+  ]
+}
