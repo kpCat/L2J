@@ -118,3 +118,32 @@ state, exact XYZ/progress/full inventory. BACKGROUND identity всё ещё уд
 absent-Player admission. Observer exception не меняет successful recovery. Added
 service seam is optional/null by default; resolver semantics unchanged. Actual
 process crash/restart and full skills/vitality proof остаются required.
+
+E04/E05/E07 ACTUAL_DEATH0262/2: original native skill bodies HP62→0/EXP+105,
+actual stock kill-event delay2500ms, RESERVED ticket14/SUBMITTED future under
+WorkerGate. Healthy callback traverses once and creates existing ScriptEngine
+QuestTimer child; SEALED outstanding/pendingTimers0 only after child. Listener
+after heading mutation throws: first native incident retained, drain fails.
+Early failed fixture runs are preserved: direct Quest constructor lacked loading
+path; ordinary cleanup masked it after native disposal; one skill dealt61 leaving
+HP1. Corrected fixture reuses existing M1TimerBootstrap and native cleanup pattern,
+then a second original damage body. No fake event/death/evidence is injected.
+
+R3 full-server discovery120s,7 baseline actors (denominator kept), <=3.020s sample
+gap. First healthy stop WITHOUT concurrent jcmd: exit0, Game18024/Login28072 STOPPED,
+no cleanup/native drain incident, exact original owners DETACHED after callbacks.
+R1/R2 incidents remain real archived RED; jcmd caused3–4s sampling pauses and overdue
+callbacks there. Control supports observer interference, not a lost-submit assertion.
+Final healthy-stop gate still must be proved on the final cohort/source.
+
+F3 own product RED on R3: profiles278/404 lost healthy continuation after bounded
+planner retries; repeated start attempts reacquired stand-point despite original
+session. First focused fixture was nondiscriminating: bindVisibleLife overwrote
+route exclusions; preserved PASS does not prove RED. RED_F3_SCOPED_REENTRY0260/1
+after installing exact exclusions AFTER binder: healthy original pair before,
+RETRY and both registrations absent after. Candidate GREEN_F3...1/1 reuses exact
+running session before travel, preserving policy identity, goal/revision/epoch,
+resource/useful debt. Ordinary suitability and native guards still precede this
+branch; fresh/pending/stale sessions retain original travel/checkpoint path.
+One additional allowed source: PhantomBackgroundDecision; exact source/test count13,
+bounded exception remains13. No retry budget/deadline/decision-engine edit.

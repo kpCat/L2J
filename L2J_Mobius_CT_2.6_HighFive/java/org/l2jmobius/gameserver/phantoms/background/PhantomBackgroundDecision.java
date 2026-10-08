@@ -99,6 +99,7 @@ public final class PhantomBackgroundDecision
 		history.bindVisibleRecovery(travel, autoPlay);
 		final var adapter = new PhantomBackgroundDecision(service, (profileId, goal) ->
 		{
+			if (autoPlay.running(profileId, goal)) { return true; }
 			if (!travel.arrive(profileId, goal))
 			{
 				autoPlay.stop(profileId);
@@ -116,6 +117,8 @@ public final class PhantomBackgroundDecision
 		adapter._nativeRecoveryReady = history::prepareNativeRecovery;
 		adapter._typedVisibleStart = (profileId, goal) ->
 		{
+			// Planner retry exhaustion does not revoke a healthy exact native session or require another stand-point.
+			if (autoPlay.running(profileId, goal)) { return PhantomStepResult.of(Type.SUCCESS, "background.visible.autoplay_continued"); }
 			final var arrival = travel.observeArrival(profileId, goal);
 			return switch (arrival.kind())
 			{

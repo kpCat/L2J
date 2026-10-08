@@ -31,6 +31,10 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _handoff.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("continuation026".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("F03-existing-exact-native-session-survives-planner-reentry", this::continuation); return;
+		}
 		if ("resource026".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("F05-stock-low-MP-starts-bounded-native-rest", context -> resources(context, false));
@@ -128,6 +132,47 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 	{
 		final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_production"); field.setAccessible(true);
 		return (PhantomBackgroundSuite.ProductionAuthorityFixture) field.get(_handoff);
+	}
+	private void continuation(PhantomTestContext context) throws Exception
+	{
+		final var production = production();
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			final var goal = f.goals.load(f.id).orElseThrow().goal(); final var spec = PhantomBackgroundGoalSpec.parse(goal);
+			final var anchor = production.topology().findAnchor(spec.anchorId()).orElseThrow();
+			final var player = World.getInstance().getPlayer(f.objectId);
+			final var navigation = new PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(), new L2jNavigationBackend(), worker -> { ThreadPool.execute(worker); return true; }, System::nanoTime, new PhantomMetrics());
+			PhantomAssertions.assertTrue(navigation.start(), "Existing native navigation.");
+			final var travel = new PhantomVisibleFarmTravel(f.materialization, f.background, production.authority().travelQuery(production.topology()), navigation, f.historical::permitsDecision, signals(), f.historical::recordVisibleTravelFailure, System::nanoTime);
+			final var autoPlay = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision);
+			try
+			{
+				final int x = anchor.point().x() + 32, y = anchor.point().y(), z = GeoEngine.getInstance().getHeight(x, y, anchor.point().z()) + 15;
+				try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.stopMove(null); player.setXYZ(x, y, z); }
+				final var priorWitnesses = World.getInstance().getVisibleObjectsInRange(player, Monster.class, 1400).stream().filter(candidate -> candidate.getId() == spec.npcId())
+					.map(candidate -> "live.approach." + anchor.id() + "@" + candidate.getX() + ":" + candidate.getY() + ":" + GeoEngine.getInstance().getHeight(candidate.getX(), candidate.getY(), candidate.getZ())).collect(java.util.stream.Collectors.toUnmodifiableSet());
+				final var adapter = PhantomBackgroundDecision.bindVisibleLife(f.background, travel, autoPlay, f.historical, () -> engine);
+				travel.bindRouteExclusions(_ -> priorWitnesses);
+				final var type = Class.forName("org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$WorkerGate"); final var constructor = type.getDeclaredConstructor(); constructor.setAccessible(true);
+				final var acquire = type.getDeclaredMethod("acquire"); acquire.setAccessible(true); final var release = type.getDeclaredMethod("release"); release.setAccessible(true);
+				try (var gate = (AutoCloseable) constructor.newInstance())
+				{
+					acquire.invoke(gate);
+					PhantomAssertions.assertTrue(autoPlay.start(f.id, goal) && autoPlay.running(f.id, goal), "Exact native session exists before planner reentry.");
+					final var before = autoPlay.snapshotContinuation(f.id).scalarMap();
+					final var field = PhantomBackgroundDecision.class.getDeclaredField("_typedVisibleStart"); field.setAccessible(true);
+					@SuppressWarnings("unchecked") final var start = (java.util.function.BiFunction<Long, org.l2jmobius.gameserver.phantoms.decision.PhantomGoal, org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult>) field.get(adapter);
+					final var result = start.apply(f.id, goal);
+					context.record("F03.reentry", "result=" + result + ";nativeZ=" + player.getZ() + ";before=" + before + ";after=" + autoPlay.snapshotContinuation(f.id).scalarMap());
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.SUCCESS, result.type(), "RED: planner reentry must reuse a healthy exact session without a new stand-point acquisition.");
+					PhantomAssertions.assertTrue(autoPlay.running(f.id, goal), "Original registrations remain current.");
+					PhantomAssertions.assertEquals(before.get("livePolicyIdentity"), autoPlay.snapshotContinuation(f.id).scalarMap().get("livePolicyIdentity"), "No replacement policy or farm debt reset.");
+					release.invoke(gate);
+				}
+			}
+			finally { autoPlay.stop(f.id); travel.beforeMaterialize(f.id, f.objectId); navigation.beginStop(); navigation.finishStop(); PhantomVisibleIntentRecoverySuite.stop(engine); }
+		}
 	}
 	private static PhantomRelevanceSignalPort signals()
 	{

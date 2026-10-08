@@ -39,6 +39,12 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom023.nativeFarmFocus", "all");
+		if (focus.equals("callback026"))
+		{
+			registry.add("E04-E05-actual-kill-queued-and-stock-quest-child-drain", context -> callback(context, false));
+			registry.add("E07-actual-kill-listener-failure-after-native-mutation", context -> callback(context, true));
+			return;
+		}
 		if (focus.equals("observation026"))
 		{
 			registry.add("E01-late-direct-native-writer-observes-damaging-recipients", context -> recipient(context, true));
@@ -244,6 +250,21 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	private void recipient(PhantomTestContext context, boolean earnedRecipient) throws Exception
 	{
 		recipient(context, earnedRecipient, false);
+	}
+	private void callback(PhantomTestContext context, boolean failure) throws Exception
+	{
+		final var player = org.l2jmobius.gameserver.model.actor.Player.load(environment().primary().objectId());
+		final var npc = new Monster(NpcData.getInstance().getTemplate(20545));
+		try (var output = player.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+		{
+			player.stopAllTasks(); player.addSkill(SkillData.getInstance().getSkill(1177, 1), true);
+			player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp()); player.setOnlineStatus(true, false);
+			player.spawnMe(player.getX(), player.getY(), player.getZ());
+			final var spawn = new Spawn(npc.getTemplate()); spawn.setXYZ(player.getX() + 40, player.getY(), player.getZ()); npc.setSpawn(spawn);
+			npc.setCurrentHpMp(npc.getMaxHp(), npc.getMaxMp()); npc.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
+			org.l2jmobius.gameserver.phantoms.player.PhantomCallbackContinuation026Checks.actualKill(context, player, npc, player.getKnownSkill(1177), failure);
+		}
+		finally { npc.deleteMe(); if (!player.isNativeWorkManaged() && World.getInstance().getPlayer(player.getObjectId()) == player) { environment().cleanupLoadedPlayer(player); } }
 	}
 	private void recipient(PhantomTestContext context, boolean earnedRecipient, boolean originalEntry) throws Exception
 	{

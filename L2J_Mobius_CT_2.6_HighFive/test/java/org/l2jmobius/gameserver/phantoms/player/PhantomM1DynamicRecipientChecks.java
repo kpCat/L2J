@@ -462,7 +462,7 @@ public final class PhantomM1DynamicRecipientChecks
 	}
 	private static void await(long millis, BooleanSupplier condition, String message) throws Exception { final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(millis); while (!condition.getAsBoolean() && System.nanoTime() < deadline) { Thread.sleep(10L); } PhantomAssertions.assertTrue(condition.getAsBoolean(), message); }
 
-	private static final class NativeLifetime implements AutoCloseable
+	static final class NativeLifetime implements AutoCloseable
 	{
 		final Player player; final PhantomIdentityLeaseRegistry.Lease identity; final PhantomNativeWorkScope scope;
 		NativeLifetime(Player value)
@@ -504,7 +504,7 @@ public final class PhantomM1DynamicRecipientChecks
 	}
 
 	/** Bounded actual pool gate from SharedRecipients/QueuedWork; no pool replacement. */
-	private static final class WorkerGate implements AutoCloseable
+	static final class WorkerGate implements AutoCloseable
 	{
 		private final int _count = ThreadConfig.SCHEDULED_THREAD_POOL_SIZE;
 		private final CountDownLatch _started, _release = new CountDownLatch(1);
