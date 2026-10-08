@@ -50,6 +50,7 @@ public final class PlayerNativeWork
 		void complete(Throwable failure);
 		void rejected(Throwable failure);
 		default PlayerNativeEvidence.CombatEpisode combatEpisode() { return null; }
+		default void dispatchStage(String stage, long delayMillis, ScheduledFuture<?> future) { }
 	}
 	public interface Context extends AutoCloseable
 	{
@@ -379,7 +380,13 @@ public final class PlayerNativeWork
 		final ParticipantWork work = reserve(actor, targets, kind, semantics);
 		if (work == null) { return null; }
 		if (work.ordinary()) { return ThreadPool.schedule(action, delay); }
-		try { return new ParticipantFuture(ThreadPool.scheduleOrThrow(() -> work.run(action), delay), work); }
+		try
+		{
+			work.dispatchStage("SUBMITTING", delay, null);
+			final var future = ThreadPool.scheduleOrThrow(() -> work.run(action), delay);
+			work.dispatchStage("SUBMITTED", delay, future);
+			return new ParticipantFuture(future, work);
+		}
 		catch (RuntimeException | Error failure) { work.rejected(failure); throw failure; }
 	}
 
@@ -388,7 +395,7 @@ public final class PlayerNativeWork
 		final ParticipantWork work = reserve(actor, targets, kind, semantics);
 		if (work == null) { return; }
 		if (work.ordinary()) { ThreadPool.execute(action); return; }
-		try { ThreadPool.executeOrThrow(() -> work.run(action)); }
+		try { work.dispatchStage("SUBMITTING", 0, null); ThreadPool.executeOrThrow(() -> work.run(action)); work.dispatchStage("SUBMITTED", 0, null); }
 		catch (RuntimeException | Error failure) { work.rejected(failure); throw failure; }
 	}
 
@@ -487,6 +494,10 @@ public final class PlayerNativeWork
 		private State _state = State.RESERVED;
 		ParticipantWork(List<Participant> participants, Semantics semantics) { _participants = participants; _semantics = semantics; }
 		boolean ordinary() { return _participants.isEmpty(); }
+		synchronized void dispatchStage(String stage, long delay, ScheduledFuture<?> future)
+		{
+			for (Participant participant : _participants) { participant.ticket().dispatchStage(stage, delay, future); }
+		}
 
 		private synchronized boolean start()
 		{

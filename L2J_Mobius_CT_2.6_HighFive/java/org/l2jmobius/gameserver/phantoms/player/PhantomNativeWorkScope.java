@@ -41,6 +41,8 @@ public final class PhantomNativeWorkScope implements Owner
 	private PhantomCleanupIncident _latestNativeIncident;
 	private Runnable _quiescentEnqueue;
 	private volatile Map<String, String> _publishedWork = Map.of();
+	private volatile java.util.List<WorkTicket> _publishedEventTickets = java.util.List.of();
+	private volatile String _lastCompletedEvent = "";
 	private volatile String _checkpointStage = "";
 	private volatile CheckpointFailure _checkpointFirstFailure;
 	public enum CheckpointOutcome { WAIT_EARNED, RETRY_BEFORE_WRITE, RESOLVE_RECEIPT, VERIFY_WRITE_OUTCOME, PUBLISH_COMMITTED, RESUME, TERMINAL_RETAIN }
@@ -437,7 +439,9 @@ public final class PhantomNativeWorkScope implements Owner
 	{
 		synchronized (_monitor)
 		{
-			return "epoch=" + _epoch + " state=" + _state + " outstanding=" + _outstanding.size() + " pendingTimers=" + _pendingTimers.size() + " peak=" + _peak + " failure=" + _failure + " work=" + _outstanding.values().stream().limit(8).map(ticket -> ticket._id + ":" + ticket._kind + ":" + ticket._state + ":depth=" + ticket._depth + ":ageMs=" + ((System.nanoTime() - ticket._created) / 1_000_000)).toList();
+			return "epoch=" + _epoch + " state=" + _state + " outstanding=" + _outstanding.size() + " pendingTimers=" + _pendingTimers.size() + " peak=" + _peak + " failure=" + _failure
+				+ " eventDispatch=" + _publishedEventTickets.stream().map(WorkTicket::dispatchSnapshot).toList()
+				+ " work=" + _outstanding.values().stream().limit(8).map(ticket -> ticket._id + ":" + ticket._kind + ":" + ticket._state + ":depth=" + ticket._depth + ":ageMs=" + ((System.nanoTime() - ticket._created) / 1_000_000)).toList();
 		}
 	}
 	/** Bounded scalar publication under the existing monitor; diagnostic readers never wait on it. */
@@ -446,10 +450,16 @@ public final class PhantomNativeWorkScope implements Owner
 		final long now = System.nanoTime();
 		_publishedWork = Map.of("nativeOwnerWorkSampleNanos", Long.toString(now), "nativeOwnerOutstanding", Integer.toString(_outstanding.size()), "nativeOwnerPendingTimers", Integer.toString(_pendingTimers.size()),
 			"nativeOwnerWork", _outstanding.values().stream().limit(8).map(ticket -> ticket._id + ":" + ticket._kind + ":" + ticket._state + ":" + ticket._semantics + ":depth=" + ticket._depth + ":ageMs=" + ((now - ticket._created) / 1_000_000)).toList().toString());
+		if (org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().diagnosticsEnabled())
+		{
+			_publishedEventTickets = _outstanding.values().stream().filter(ticket -> ticket._traceDispatch).limit(8).toList();
+		}
 	}
 	public Map<String, String> diagnosticScalars()
 	{
 		final Map<String, String> fields = new LinkedHashMap<>(_publishedWork);
+		fields.put("nativeEventDispatch", _publishedEventTickets.stream().map(WorkTicket::dispatchSnapshot).toList().toString());
+		fields.put("nativeLastCompletedEvent", _lastCompletedEvent);
 		fields.put("nativeOwnerRead", "NONATOMIC_VOLATILE");
 		fields.put("nativeOwnerState", _state.name()); fields.put("nativeOwnerCurrent", Boolean.toString(isCurrent()));
 		fields.put("nativeOwnerPermanentSeal", Boolean.toString(_permanentSeal)); fields.put("nativeOwnerCheckpoint", Boolean.toString(_checkpointThread != null));
@@ -486,15 +496,34 @@ public final class PhantomNativeWorkScope implements Owner
 		private final long _created = System.nanoTime();
 		private final PlayerNativeEvidence.CombatEpisode _combatEpisode;
 		private WorkState _state = WorkState.RESERVED;
+		private final boolean _traceDispatch;
+		private volatile long _submitNanos, _startNanos, _endNanos, _delayMillis;
+		private volatile String _dispatchStatus = "RESERVED";
+		private volatile java.util.concurrent.ScheduledFuture<?> _dispatchFuture;
 		private WorkTicket(long id, String kind, Semantics semantics, int depth)
 		{
 			_id = id; _kind = PhantomCleanupIncident.bounded(kind, 80); _semantics = semantics; _depth = depth;
 			_combatEpisode = PlayerNativeWork.captureCombatEpisode(PhantomNativeWorkScope.this);
+			_traceDispatch = kind.startsWith("EVENT:") && org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().diagnosticsEnabled();
 		}
 		@Override public Owner owner() { return PhantomNativeWorkScope.this; }
 		@Override public Semantics semantics() { return _semantics; }
 		@Override public PlayerNativeEvidence.CombatEpisode combatEpisode() { return _combatEpisode; }
 		@Override public boolean isRunning() { synchronized (_monitor) { return _state == WorkState.RUNNING; } }
+		@Override public void dispatchStage(String stage, long delayMillis, java.util.concurrent.ScheduledFuture<?> future)
+		{
+			if (!_traceDispatch) { return; }
+			_delayMillis = delayMillis;
+			if (future != null) { _dispatchFuture = future; }
+			if (stage.equals("SUBMITTED")) { _submitNanos = System.nanoTime(); }
+			if (_startNanos == 0) { _dispatchStatus = stage; }
+		}
+		private String dispatchSnapshot()
+		{
+			final var future = _dispatchFuture;
+			return _id + ":" + _kind + ":" + _dispatchStatus + ":epoch=" + _epoch + ":reserve=" + _created + ":submit=" + _submitNanos + ":start=" + _startNanos + ":end=" + _endNanos
+				+ ":delayMs=" + _delayMillis + ":future=" + (future == null ? "NONE" : "done=" + future.isDone() + ",cancelled=" + future.isCancelled() + ",dueMs=" + future.getDelay(TimeUnit.MILLISECONDS));
+		}
 		@Override public boolean tryStart()
 		{
 			synchronized (_monitor)
@@ -502,6 +531,7 @@ public final class PhantomNativeWorkScope implements Owner
 				if (_state != WorkState.RESERVED) { return false; }
 				if (!isCurrent()) { finish(WorkState.CANCELLED); return false; }
 				_state = WorkState.RUNNING;
+				if (_traceDispatch) { _startNanos = System.nanoTime(); _dispatchStatus = "RUNNING"; }
 				publishWork();
 				return true;
 			}
@@ -545,6 +575,7 @@ public final class PhantomNativeWorkScope implements Owner
 		private void finish(WorkState state)
 		{
 			_state = state;
+			if (_traceDispatch) { _endNanos = System.nanoTime(); _dispatchStatus = state.name(); _lastCompletedEvent = dispatchSnapshot(); _dispatchFuture = null; }
 			// Scalar bookkeeping only under owner monitor; native passive getters run afterwards.
 			if (_combatEpisode != null) { _evidence.completeCombat(_combatEpisode, false); }
 			_outstanding.remove(_id); publishWork(); _monitor.notifyAll();

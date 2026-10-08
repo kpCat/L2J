@@ -39,6 +39,12 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom023.nativeFarmFocus", "all");
+		if (focus.equals("observation026"))
+		{
+			registry.add("E01-late-direct-native-writer-observes-damaging-recipients", context -> recipient(context, true));
+			registry.add("E02-original-secondary-MagicUseTask-same-native-death", context -> recipient(context, true, true));
+			return;
+		}
 		if (focus.equals("native-z024"))
 		{
 			registry.add("B12-stock-load-geodata-does-not-replace-committed-native-z", this::nativeZ024);
@@ -237,6 +243,10 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	}
 	private void recipient(PhantomTestContext context, boolean earnedRecipient) throws Exception
 	{
+		recipient(context, earnedRecipient, false);
+	}
+	private void recipient(PhantomTestContext context, boolean earnedRecipient, boolean originalEntry) throws Exception
+	{
 		for (int objectId : List.of(environment().primary().objectId(), environment().observer().objectId()))
 		{
 			try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=10,base_class=10,race=0,level=1,exp=0,online=0 WHERE charId=?"))
@@ -246,7 +256,8 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 		}
 		final var first = org.l2jmobius.gameserver.model.actor.Player.load(environment().primary().objectId());
 		final var second = org.l2jmobius.gameserver.model.actor.Player.load(environment().observer().objectId());
-		final var monster = new Monster(NpcData.getInstance().getTemplate(earnedRecipient ? 20121 : 20534));
+		final Monster monster = originalEntry ? new org.l2jmobius.gameserver.phantoms.player.PhantomCallbackContinuation026Checks.OriginalCastMonster() : new Monster(NpcData.getInstance().getTemplate(earnedRecipient ? 20121 : 20534));
+		if (monster instanceof org.l2jmobius.gameserver.phantoms.player.PhantomCallbackContinuation026Checks.OriginalCastMonster original) { original.bind(first, second); }
 		try (var firstOutput = first.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128));
 			var secondOutput = second.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
 		{
@@ -254,6 +265,7 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 			first.addSkill(SkillData.getInstance().getSkill(1177, 1), true);
 			second.addSkill(SkillData.getInstance().getSkill(1177, 1), true);
 			first.setCurrentHp(first.getMaxHp()); first.setCurrentMp(first.getMaxMp());
+			second.setCurrentHp(second.getMaxHp()); second.setCurrentMp(second.getMaxMp());
 			first.setOnlineStatus(true, false); second.setOnlineStatus(true, false);
 			first.spawnMe(first.getX(), first.getY(), first.getZ()); second.spawnMe(first.getX() + 30, first.getY(), first.getZ());
 			final var spawn = new Spawn(monster.getTemplate()); spawn.setXYZ(first.getX() + 40, first.getY(), first.getZ()); monster.setSpawn(spawn);

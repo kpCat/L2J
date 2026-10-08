@@ -238,6 +238,7 @@ public final class PhantomM1DynamicRecipientChecks
 		try (var one = new NativeLifetime(first); var two = new NativeLifetime(second))
 		{
 			final long firstExp = first.getExp(), secondExp = second.getExp(), ordinaryExp = ordinary == null ? 0 : ordinary.getExp();
+			context.record("N02.setup", "firstHp=" + first.getCurrentHp() + ";firstDead=" + first.isDead() + ";secondHp=" + second.getCurrentHp() + ";secondDead=" + second.isDead() + ";secondMp=" + second.getCurrentMp());
 			try
 			{
 			if (ordinary != null)
@@ -252,22 +253,40 @@ public final class PhantomM1DynamicRecipientChecks
 				setup(one, null, () -> cast(first, npc, magic));
 				PhantomAssertions.assertTrue(first.isCastingNow() && one.scope.outstanding() > 0, "N02 original actual cast queued.");
 				final double hp = npc.getCurrentHp();
-				setup(two, null, () -> second.callSkill(magic, List.of(npc)));
-				PhantomAssertions.assertTrue(npc.getCurrentHp() < hp && !npc.isDead() && npc.getAggroList().get(second) != null
-					&& npc.getAggroList().get(second).getDamage() > 1, "N02 late participant must deal real stock damage without killing the original target.");
-				context.record("N02.lateDamage", hp + "->" + npc.getCurrentHp() + ";damage=" + npc.getAggroList().get(second).getDamage());
+				if (npc instanceof PhantomCallbackContinuation026Checks.OriginalCastMonster)
+				{
+					setup(two, null, () -> cast(second, npc, magic));
+				}
+				else
+				{
+					setup(two, null, () -> second.callSkill(magic, List.of(npc)));
+					PhantomAssertions.assertTrue(npc.getCurrentHp() < hp && !npc.isDead() && npc.getAggroList().get(second) != null
+						&& npc.getAggroList().get(second).getDamage() > 1, "N02 late participant must deal real stock damage without killing the original target.");
+					context.record("N02.lateDamage", hp + "->" + npc.getCurrentHp() + ";damage=" + npc.getAggroList().get(second).getDamage());
+				}
 				gate.release();
 			}
 			await(12_000, () -> !first.isCastingNow() || one.scope.firstNativeIncident() != null, "N02 native first cast did not finish.");
+			context.record(npc instanceof PhantomCallbackContinuation026Checks.OriginalCastMonster ? "E02.beforeNativeDrain" : "E01.beforeNativeDrain", "first=" + one.scope.snapshot() + ";second=" + two.scope.snapshot());
+			await(12_000, () -> (one.scope.outstanding() == 0 && two.scope.outstanding() == 0) || one.scope.firstNativeIncident() != null || two.scope.firstNativeIncident() != null,
+				"N02 counted native bodies must finish before measuring their death/reward writes.");
 			context.record("N02.original", "casting=" + first.isCastingNow() + ";scope=" + one.scope.snapshot() + ";incident=" + one.scope.firstNativeIncident());
+			context.record("N02.afterNativeWriter", "hp=" + npc.getCurrentHp() + ";dead=" + npc.isDead() + ";firstExp=" + (first.getExp() - firstExp) + ";secondExp=" + (second.getExp() - secondExp)
+				+ ";firstDamage=" + (npc.getAggroList().get(first) == null ? "NONE" : npc.getAggroList().get(first).getDamage()) + ";secondDamage=" + npc.getAggroList().get(second).getDamage()
+				+ ";secondDead=" + second.isDead() + ";secondHp=" + second.getCurrentHp() + ";rewardDealer=" + (npc.getMainDamageDealer() == null ? "NONE" : npc.getMainDamageDealer().getObjectId()) + ";first=" + first.getObjectId() + ";second=" + second.getObjectId()
+				+ ";target=" + npc.getNativeEvidenceTarget() + ";firstEvidence=" + one.scope.evidence().snapshot() + ";secondEvidence=" + two.scope.evidence().snapshot());
+			context.record(npc instanceof PhantomCallbackContinuation026Checks.OriginalCastMonster ? "E02.nativeChain" : "E01.nativeChain", context.measurements().get("N02.afterNativeWriter"));
 			PhantomAssertions.assertEquals(null, one.scope.firstNativeIncident(), "RED N02: lawful late native damaging OPEN participant must not poison an earned cast.");
 			PhantomAssertions.assertFalse(first.isCastingNow(), "N02 actual native cast finalizer must complete.");
+			if (npc instanceof PhantomCallbackContinuation026Checks.OriginalCastMonster original) { original.requireOrder(context); }
 			PhantomAssertions.assertTrue(one.scope.open() && two.scope.open(), "N02 both exact lifetimes continue admitting native work.");
 			PhantomAssertions.assertTrue(npc.isDead() && first.getExp() > firstExp && second.getExp() > secondExp, "N02 genuine damaging participants receive native death reward.");
 			if (ordinary != null) { PhantomAssertions.assertTrue(ordinary.getExp() > ordinaryExp && npc.getAggroList().get(ordinary) != null && npc.getAggroList().get(ordinary).getDamage() > 1, "N02 ordinary third native attack and reward remain stock."); }
 			context.record("N02.nativeRewards", "first=" + (first.getExp() - firstExp) + ";second=" + (second.getExp() - secondExp) + ";ordinary=" + (ordinary == null ? "NONE" : ordinary.getExp() - ordinaryExp));
 			context.record("N02.nativeKills", "first=" + one.scope.evidence().snapshot().killSequence() + ";second=" + two.scope.evidence().snapshot().killSequence());
 			PhantomAssertions.assertTrue(one.scope.evidence().snapshot().killSequence() == 1 && two.scope.evidence().snapshot().killSequence() == 1, "RED: each genuinely damaging native reward recipient observes the same actual target death once.");
+			PhantomAssertions.assertTrue(one.scope.evidence().snapshot().expGained() == first.getExp() - firstExp && two.scope.evidence().snapshot().expGained() == second.getExp() - secondExp,
+				"RED: frozen reward boundary records the actual stock EXP writes for both exact damaging recipients.");
 			}
 			finally
 			{

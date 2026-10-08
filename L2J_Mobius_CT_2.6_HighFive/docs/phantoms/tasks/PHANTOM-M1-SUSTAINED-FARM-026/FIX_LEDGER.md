@@ -47,3 +47,46 @@ Ruling: scoped TEST excludes preexisting native witnesses, сохраняя их
 это позволяет проверять foreign target отдельно, не ослабляя продуктовый invariant.
 Стоимость ошибки: fixture потеряет discriminating power; обе positive native witnesses
 и pair с base сохраняются отдельно. Self-review inline, без субагентов по user mandate.
+
+## First full-server proof / E1 / E2
+
+R1 sourceSHA=13ddd45d78d0cfe3b61e1268e68aebbb0a048802; stock full GameServer026b,
+100.946s natural Synthetic measurement, исходные8. В конце7 present;110 missing,
+его retained sealed native witnesses сохранены. Farm PASS не заявлен. Wrapper после
+успешного finally/close упал на empty PSCommandPath при записи собственного hash;
+путь адаптера исправлен. Failed measurement immutable. Own JVM graceful STOPPED.
+
+E2 собственный RED: first healthy-stop, profile404/object268488272 exact epoch,
+EVENT:ON_ATTACKABLE_KILL RESERVED ticket9828, drain timeout; четыре exact thread dumps.
+Producer пока UNKNOWN; нельзя force complete/cancel. Default native delay2500ms,
+stock20534 не имеет setter delay. Нужна узкая диагностика publication/future.
+
+E1 original S12 на required base2/3: оба real damage74, target hp126→52→0,
+secondary actual EXP0. Canonical N02 third control PASS с другим mainDamageDealer.
+Собственный healthy S12 control сохранил original assertion и подтвердил оба native
+EXP+267, secondary kill0, оба reward evidence0, mainDamageDealer=SECOND, killer=FIRST.
+Это доказывает два observer defects: skipped reward dealer death и reward target
+context проверяется до расширения frozen roster. Fix только existing Attackable hook,
+после admitted writer, native reward math не меняется; killedIfDamaged already dedups.
+S12 healthy setup добавляет второму Player тот же premeasurement HP/MP setup, что first.
+Old RED и canonical control сохранены; original doCast comparison ещё required.
+
+Bounded exception: утверждённый SOURCE_MAP разрешает связанную F/E/R вертикаль,
+пакет evidence и до13 exact production/test files для этих RED, максимум1 new helper,
+3 suites/3 wrappers. На текущем шаге7 source files; E2 добавит только PlayerNativeWork
+и PhantomNativeWorkScope, R — только existing recovery boundary и permitted suite.
+Все условные edits привязаны к собственному RED; чужой engine/schema не меняются.
+
+E1 paired E01/E02 exact base0/2; original secondary verified MagicUseTask.run and
+native HP126→52 before original first writer. Candidate case-trace2/2, S12 siblings3/3.
+Ранний candidate1/2 сохранён: прямой native reward assertion упал, причина UNKNOWN;
+общие measurement keys затем были перезаписаны вторым case. Теперь case traces
+отдельны. Добавлен bounded existing outstanding==0 observation barrier после cast
+finalizer; flag casting=false сам по себе не значит finally завершил native bodies.
+Ни rewards/kill assertions, ни original/direct producers не ослаблены.
+
+E2 instrumentation: только exact EVENT tickets при diagnosticsON, submit ACK/time,
+actual future/due/done/cancelled, start/end и last completed sample. Outstanding cap1024
+и восемь snapshot tickets сохраняются. Нет stack-per-tick, waits/I/O или timer complete.
+Self-review: additive Ticket default no-op; обычный stock submission unchanged. Это
+диагностика собственного RESERVED RED, пока не объявленная продуктовым fix.
