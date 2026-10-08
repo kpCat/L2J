@@ -1,0 +1,12 @@
+окт. 08, 2026 3:09:48 AM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 3:09:48 AM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[FAIL] m1-native-lifecycle.Q04-native-QuestTimer-held-body - java.lang.AssertionError: Native timer checks require guarded TEST bootstrap. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q05-native-pending-cancel-and-long-repeat - java.lang.AssertionError: Native timer checks require guarded TEST bootstrap. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q06-native-TimerHolder-body-drains-after-unregister - java.lang.AssertionError: Q06 requires the initialized allowlisted headless TEST environment. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q06-native-repeating-body-stops-and-drains - java.lang.AssertionError: Native timer checks require guarded TEST bootstrap. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q13-native-zero-earned-child-and-grandchild - java.lang.AssertionError: Native timer checks require guarded TEST bootstrap. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=5 passed=0 failed=5

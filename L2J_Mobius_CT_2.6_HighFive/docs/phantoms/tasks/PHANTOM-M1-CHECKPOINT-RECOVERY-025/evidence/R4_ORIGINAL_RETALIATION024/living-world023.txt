@@ -1,0 +1,20 @@
+suite=living-world023
+seed=23002301
+total=3
+passed=3
+failed=0
+measurement.A01.actualRetaliationStack=java.lang.Thread.getStackTrace>org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$RetaliationMonster024.doAttack>org.l2jmobius.gameserver.ai.AttackableAI.thinkAttack>org.l2jmobius.gameserver.ai.AttackableAI.onActionThink>org.l2jmobius.gameserver.ai.AbstractAI.notifyAction>org.l2jmobius.gameserver.ai.AbstractAI.notifyAction>org.l2jmobius.gameserver.ai.CreatureAI.onIntentionAttack>org.l2jmobius.gameserver.ai.AttackableAI.onIntentionAttack>org.l2jmobius.gameserver.ai.AbstractAI.setIntention>org.l2jmobius.gameserver.ai.AbstractAI.setIntention>org.l2jmobius.gameserver.ai.AttackableAI.onActionAttacked>org.l2jmobius.gameserver.ai.AbstractAI.notifyAction>org.l2jmobius.gameserver.ai.AbstractAI.notifyAction>org.l2jmobius.gameserver.model.actor.Attackable.addDamage>org.l2jmobius.gameserver.model.actor.Attackable.reduceCurrentHp>org.l2jmobius.gameserver.model.actor.Attackable.reduceCurrentHp>org.l2jmobius.gameserver.model.actor.Creature.onHitTimerNative>org.l2jmobius.gameserver.model.actor.Creature.lambda$onHitTimer$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary>org.l2jmobius.gameserver.model.actor.Creature.onHitTimer>org.l2jmobius.gameserver.model.actor.Player.lambda$onHitTimer$0>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run>org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction>org.l2jmobius.gameserver.model.actor.Player.onHitTimer>org.l2jmobius.gameserver.model.actor.tasks.creature.HitTask.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run>org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0>org.l2jmobius.commons.threads.ThreadPool$RunnableWrapper.run
+measurement.A01.fixture=Alevel=1;attack=true;AHP=126.0;BHP=126.0->126.0;npcHP=126.0->126.0;NPCtarget=Player:PhT004B02301[268435467];mostHated=Player:PhT004B02301[268435467];AI=ATTACK;Aincident=null
+measurement.A01.incidents=A=null;B=null
+measurement.N03/N04.original-replaced-epoch=writes=0;first=epoch=144362676919900 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[];second=epoch=144362676924800 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[]
+measurement.headless.database=l2jmobiush5_localplay_contract025b
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS living-world023.A01-A02-actual-HitTask-NPC-retaliation-open elapsedNanos=1675564700
+PASS living-world023.A01-A02-actual-HitTask-NPC-retaliation-sealed elapsedNanos=2012954700
+PASS living-world023.A03-original-entry-cannot-relabel-replaced-epoch elapsedNanos=12988000

@@ -1,0 +1,14 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+TASK025_OBSERVER mode=Observe pid=21408
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+
+profileId primary sameEpoch cycles rewards targetTransitions tail120Rewards  exp sp  pass
+--------- ------- --------- ------ ------- ----------------- --------------  --- --  ----
+424          True      True      2       4                15              0  456 18 False
+633          True     False      0       0                 0              0    0  0 False
+759         False     False      0       0                 0              0    0  0 False
+876         False      True      3       4                14              0 1029 43 False
+924         False     False      0       0                 0              0    0  0 False
+994         False      True      4       6                14              0  676 24 False
+1159        False      True      4       5                16              0  881 36 False
+

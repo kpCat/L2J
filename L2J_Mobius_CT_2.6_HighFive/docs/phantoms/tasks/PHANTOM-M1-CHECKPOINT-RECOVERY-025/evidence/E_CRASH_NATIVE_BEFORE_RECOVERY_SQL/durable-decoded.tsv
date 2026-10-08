@@ -1,0 +1,3 @@
+872	14	context	PENDING	5803	c7cf3b2994d8e58a744915e4940acde07eab0ed03bb19976bbf269db102fbb4a	SUPPORTED	1	false
+872	0	owned	5803	149330882822900	be00f3cd8e796a91573014cd71cad6d43681b421f2f83a080fa673bb5a6937f1
+872	5803	state	VERIFY_PENDING	c7cf3b2994d8e58a744915e4940acde07eab0ed03bb19976bbf269db102fbb4a	Progress[level=8, experience=25476, skillPoints=2486, experienceBeforeDeath=25819]	Position[instanceId=0, x=46195, y=41458, z=-3504, heading=2302, committedAnchorId=generated.farm.428b85922009e44829ae2db0.anchor]

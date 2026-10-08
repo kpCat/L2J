@@ -1,0 +1,12 @@
+[PASS] living-world023.N03-N04-native-boundary-body-failure
+[PASS] living-world023.N03-N04-native-boundary-earned-failure-drain
+[PASS] living-world023.N03-N04-native-boundary-open
+[PASS] living-world023.N03-N04-native-boundary-replaced-epoch
+[PASS] living-world023.N03-N04-native-boundary-sealed
+[PASS] living-world023.N03-N04-native-boundary-strict-delayed
+[FAIL] living-world023.N03-N04-physical-open - java.lang.AssertionError: Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=23002301
+[FAIL] living-world023.N03-N04-physical-ordinary - java.lang.AssertionError: Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=23002301
+[FAIL] living-world023.N03-N04-physical-sealed - java.lang.AssertionError: Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=23002301
+[PASS] living-world023.N04-real-cast-after-native-writer-exception-is-retained
+[PASS] living-world023.N06-old-published-callback-cannot-abort-new-native-cast
+SUMMARY: suite=living-world023 seed=23002301 total=12 passed=9 failed=3

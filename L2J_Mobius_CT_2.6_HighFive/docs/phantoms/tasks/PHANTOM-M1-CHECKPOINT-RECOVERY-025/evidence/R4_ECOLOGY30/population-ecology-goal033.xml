@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="population-ecology-goal033" seed="25002503" tests="1" passed="0" failures="1">
+  <properties>
+  </properties>
+  <testcase name="population-ecology-goal033.before-all" elapsedNanos="0"><failure type="java.lang.AssertionError" message="Goal033 deterministic seed changed. Expected &lt;33003300&gt; but was &lt;25002503&gt;." seed="25002503"/></testcase>
+</testsuite>

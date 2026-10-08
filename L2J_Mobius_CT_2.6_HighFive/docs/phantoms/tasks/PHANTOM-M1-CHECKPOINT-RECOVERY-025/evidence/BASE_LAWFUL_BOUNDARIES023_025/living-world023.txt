@@ -1,0 +1,71 @@
+suite=living-world023
+seed=23002301
+total=12
+passed=9
+failed=3
+measurement.N02.lateDamage=122.0->48.0;damage=74
+measurement.N02.nativeKills=first=1;second=1
+measurement.N02.nativeRewards=first=253;second=253;ordinary=27
+measurement.N02.original=casting=false;scope=epoch=142344781758600 state=OPEN outstanding=0 pendingTimers=0 peak=6 failure= work=[];incident=null
+measurement.N03/N04.body-failure=writes=1;first=epoch=142353390193600 state=DRAINING outstanding=0 pendingTimers=0 peak=3 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=142353390199100 state=DRAINING outstanding=0 pendingTimers=0 peak=4 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]
+measurement.N03/N04.earned-failure-drain=writes=1;first=epoch=142353412375100 state=DRAINING outstanding=0 pendingTimers=0 peak=5 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=142353412380200 state=OPEN outstanding=0 pendingTimers=0 peak=0 failure= work=[]
+measurement.N03/N04.open=writes=1;first=epoch=142353425485400 state=OPEN outstanding=0 pendingTimers=0 peak=3 failure= work=[];second=epoch=142353425491000 state=OPEN outstanding=0 pendingTimers=0 peak=4 failure= work=[]
+measurement.N03/N04.replaced-epoch=writes=0;first=epoch=142353437469400 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[];second=epoch=142353437476400 state=OPEN outstanding=0 pendingTimers=0 peak=1 failure= work=[]
+measurement.N03/N04.sealed=writes=0;first=epoch=142353448026700 state=OPEN outstanding=0 pendingTimers=0 peak=2 failure= work=[];second=epoch=142353448031900 state=SEALED outstanding=0 pendingTimers=0 peak=0 failure= work=[]
+measurement.N03/N04.strict-delayed=writes=0;first=epoch=142353458703400 state=DRAINING outstanding=0 pendingTimers=0 peak=1 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[];second=epoch=142353458706900 state=DRAINING outstanding=0 pendingTimers=0 peak=0 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException work=[]
+measurement.N04.actualCastBody=hp=75.0->0.0;cast=false;incident=PhantomCleanupIncident[objectId=268435465, epoch=142353535069500, sequence=1, utc=2026-10-07T23:03:05.868563300Z, phase=ACTION_DRAIN, hook=native-work, admittedActions=5, exceptionClass=java.lang.IllegalStateException, message=TEST023_AFTER_NATIVE_HP_WRITER, detail=primary java.lang.IllegalStateException: TEST023_AFTER_NATIVE_HP_WRITER
+ at org.l2jmobius.tests.phantoms.PhantomLivingWorld023Suite$AfterNativeWriterFailure.reduceCurrentHp(PhantomLivingWorld023Suite.java:129)
+ at org.l2jmobius.gameserver.model.actor.Attackable.reduceCurrentHp(Attackable.java:228)
+ at handlers.skill.effects.MagicalDamage.onStart(MagicalDamage.java:94)
+ at org.l2jmobius.gameserver.model.skill.Skill.applyEffectScope(Skill.java:1293)
+ at org.l2jmobius.gameserver.model.skill.Skill.applyEffects(Skill.java:1366)
+ at org.l2jmobius.gameserver.model.skill.Skill.applyEffects(Skill.java:1313)
+ at org.l2jmobius.gameserver.model.skill.Skill.activateSkill(Skill.java:1449)
+ at org.l2jmobius.gameserver.model.skill.Skill.activateSkill(Skill.java:1411)
+ at org.l2jmobius.gameserver.model.actor.Creature.callSkillNative(Creature.java:6322)
+ at org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$1(Creature.java:6242)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:520)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:282)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runCombat(PlayerNativeWork.java:372)
+ at org.l2jmobius.gameserver.model.actor.Creature.lambda$callSkill$0(Creature.java:6242)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$1(PlayerNativeWork.java:316)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:520)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$runAtNativeWriteBoundary$0(PlayerNativeWork.java:316)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:520)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary(PlayerNativeWork.java:303)
+ at org.l2jmobius.gameserver.model.actor.Creature.callSkill(Creature.java:6241)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$callSkill$0(Player.java:5018)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:613)
+ at org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction(Player.java:499)
+ at org.l2jmobius.gameserver.model.actor.Player.callSkill(Player.java:5018)
+ at org.l2jmobius.gameserver.model.actor.Creature.onMagicHitTimer(Creature.java:6094)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$onMagicHitTimer$0(Player.java:5006)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(PlayerNativeWork.java:613)
+ at org.l2jmobius.gameserver.model.actor.Player.runPhantomNativeAction(Player.java:499)
+ at org.l2jmobius.gameserver.model.actor.Player.onMagicHitTimer(Player.java:5006)
+ at org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask.run(MagicUseTask.java:78)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantWork.run(PlayerNativeWork.java:520)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.lambda$schedule$0(PlayerNativeWork.java:382)
+, nodes=1, frames=32, truncated=true]
+measurement.N06.newCastEligibility=oldReuse=false;newAllowed=true;mp=123.0
+measurement.N06.stale=nextHp=75.0->13.0;cast=false;scope=epoch=142362493524600 state=OPEN outstanding=1 pendingTimers=0 peak=7 failure= work=[16:attack-hit:RESERVED:depth=2:ageMs=4];incident=null
+measurement.headless.database=l2jmobiush5_localplay_contract025b
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS living-world023.N02-late-real-native-damage-open-owner-completes-cast elapsedNanos=8646458500
+PASS living-world023.N03-N04-native-boundary-body-failure elapsedNanos=24008100
+PASS living-world023.N03-N04-native-boundary-earned-failure-drain elapsedNanos=14099600
+PASS living-world023.N03-N04-native-boundary-open elapsedNanos=12248000
+PASS living-world023.N03-N04-native-boundary-replaced-epoch elapsedNanos=11421900
+PASS living-world023.N03-N04-native-boundary-sealed elapsedNanos=10724200
+PASS living-world023.N03-N04-native-boundary-strict-delayed elapsedNanos=11589600
+FAIL living-world023.N03-N04-physical-open elapsedNanos=21091900 type=java.lang.AssertionError message=Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=23002301
+FAIL living-world023.N03-N04-physical-ordinary elapsedNanos=22353700 type=java.lang.AssertionError message=Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=23002301
+FAIL living-world023.N03-N04-physical-sealed elapsedNanos=18992200 type=java.lang.AssertionError message=Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=23002301
+PASS living-world023.N04-real-cast-after-native-writer-exception-is-retained elapsedNanos=8954438800
+PASS living-world023.N06-old-published-callback-cannot-abort-new-native-cast elapsedNanos=15229244700

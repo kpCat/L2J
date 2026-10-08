@@ -1,0 +1,12 @@
+[PASS] native-context-handoff.H05-blank-wrong-claim-before-load
+[PASS] native-context-handoff.H06-exact-claim-both-lifecycle-admissions
+[PASS] native-context-handoff.H07-catchup-row-and-payload-races-fail-closed
+[PASS] native-context-handoff.H08-goal-race-after-historical-load-fails-closed
+[PASS] native-context-handoff.H09-current-native-owner-epoch-attests-no-reward
+[PASS] native-context-handoff.H10-abort-releases-both-admissions
+[PASS] native-context-handoff.H11-success-preserves-exact-history-and-ecology
+[PASS] native-context-handoff.H12-normal-without-catchup-unchanged
+[PASS] native-context-handoff.H13-historical-baseline-pending-unchanged
+[PASS] native-context-handoff.H14-recorder-bounded-real-admission-subreason
+[PASS] native-context-handoff.H15-complete-dead-stale-baseline-owned-refresh
+SUMMARY: suite=native-context-handoff seed=18001801 total=15 passed=15 failed=0

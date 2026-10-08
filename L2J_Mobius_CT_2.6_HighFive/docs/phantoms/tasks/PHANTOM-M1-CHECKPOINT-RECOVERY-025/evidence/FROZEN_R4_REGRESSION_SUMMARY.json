@@ -1,0 +1,149 @@
+[
+  {
+    "route": "BASE_DYNAMIC025",
+    "name": "m1-native-lifecycle",
+    "total": "6",
+    "passed": "0",
+    "failed": "6"
+  },
+  {
+    "route": "BASE_RAW_NATIVE022_025",
+    "name": "native-farm-continuation022",
+    "total": "3",
+    "passed": "3",
+    "failed": "0"
+  },
+  {
+    "route": "BASE_TIMERS025",
+    "name": "m1-native-lifecycle",
+    "total": "5",
+    "passed": "0",
+    "failed": "5"
+  },
+  {
+    "route": "GREEN_BINDING025",
+    "name": "checkpoint-drain025",
+    "total": "3",
+    "passed": "3",
+    "failed": "0"
+  },
+  {
+    "route": "R4_CURRENT_INTENT021",
+    "name": "visible-intent-recovery",
+    "total": "10",
+    "passed": "10",
+    "failed": "0"
+  },
+  {
+    "route": "R4_DYNAMIC_NATIVE",
+    "name": "m1-native-lifecycle",
+    "total": "6",
+    "passed": "0",
+    "failed": "6"
+  },
+  {
+    "route": "R4_ECOLOGY30",
+    "name": "population-ecology-goal033",
+    "total": "1",
+    "passed": "0",
+    "failed": "1"
+  },
+  {
+    "route": "R4_ECOLOGY30_CORRECT_SEED",
+    "name": "population-ecology-goal033",
+    "total": "30",
+    "passed": "30",
+    "failed": "0"
+  },
+  {
+    "route": "R4_ECOLOGY_HANDOFF6",
+    "name": "population-ecology-goal033",
+    "total": "6",
+    "passed": "6",
+    "failed": "0"
+  },
+  {
+    "route": "R4_FIGHTER022",
+    "name": "native-farm-continuation022",
+    "total": "1",
+    "passed": "1",
+    "failed": "0"
+  },
+  {
+    "route": "R4_MAGE022",
+    "name": "native-farm-continuation022",
+    "total": "1",
+    "passed": "1",
+    "failed": "0"
+  },
+  {
+    "route": "R4_NATIVE_REVIEW",
+    "name": "m1-native-lifecycle",
+    "total": "2",
+    "passed": "2",
+    "failed": "0"
+  },
+  {
+    "route": "R4_NATIVE_TIMERS",
+    "name": "m1-native-lifecycle",
+    "total": "5",
+    "passed": "0",
+    "failed": "5"
+  },
+  {
+    "route": "R4_NATIVE_Z022",
+    "name": "native-farm-continuation022",
+    "total": "1",
+    "passed": "1",
+    "failed": "0"
+  },
+  {
+    "route": "R4_ORIGINAL_RETALIATION024",
+    "name": "living-world023",
+    "total": "3",
+    "passed": "3",
+    "failed": "0"
+  },
+  {
+    "route": "R4_OWNED_STORE27",
+    "name": "background-position-canonicalization",
+    "total": "1",
+    "passed": "1",
+    "failed": "0"
+  },
+  {
+    "route": "R4_PENDING022",
+    "name": "native-farm-continuation022",
+    "total": "1",
+    "passed": "1",
+    "failed": "0"
+  },
+  {
+    "route": "R4_RAW_NATIVE022",
+    "name": "native-farm-continuation022",
+    "total": "3",
+    "passed": "2",
+    "failed": "1"
+  },
+  {
+    "route": "R4_RECOVERY_CONTRACTS",
+    "name": "checkpoint-recovery025",
+    "total": "8",
+    "passed": "8",
+    "failed": "0"
+  },
+  {
+    "route": "R4_RESTART022",
+    "name": "native-farm-continuation022",
+    "total": "1",
+    "passed": "1",
+    "failed": "0"
+  },
+  {
+    "route": "R4_SERVER_SHUTDOWN",
+    "name": "server-shutdown-handoff",
+    "total": "8",
+    "passed": "8",
+    "failed": "0"
+  }
+]

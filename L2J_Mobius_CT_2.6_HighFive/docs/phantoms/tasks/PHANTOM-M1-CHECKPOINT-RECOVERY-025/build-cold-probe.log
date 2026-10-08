@@ -1,0 +1,51 @@
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\PhantomBackgroundService.java:942: error: cannot find symbol
+    [javac] 				if (owner != null) { owner.checkpointStage("CAPTURE"); }
+    [javac] 				                          ^
+    [javac]   symbol:   method checkpointStage(String)
+    [javac]   location: variable owner of type Owner
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\PhantomBackgroundService.java:946: error: cannot find symbol
+    [javac] 		catch (RuntimeException failure) { if (owner != null) { owner.recordCheckpointFailure(failure); } return false; }
+    [javac] 		                                                             ^
+    [javac]   symbol:   method recordCheckpointFailure(RuntimeException)
+    [javac]   location: variable owner of type Owner
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\PhantomBackgroundService.java:967: error: cannot find symbol
+    [javac] 			if (player.getNativeWorkOwner() != null) { player.getNativeWorkOwner().checkpointStage("INVENTORY_FLUSH"); }
+    [javac] 			                                                                      ^
+    [javac]   symbol:   method checkpointStage(String)
+    [javac]   location: interface Owner
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\PhantomBackgroundService.java:976: error: cannot find symbol
+    [javac] 			if (player.getNativeWorkOwner() != null) { player.getNativeWorkOwner().checkpointStage("INDEX_PENDING"); }
+    [javac] 			                                                                      ^
+    [javac]   symbol:   method checkpointStage(String)
+    [javac]   location: interface Owner
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\PhantomBackgroundService.java:978: error: cannot find symbol
+    [javac] 			if (player.getNativeWorkOwner() != null) { player.getNativeWorkOwner().checkpointStage("COMPLETED"); }
+    [javac] 			                                                                      ^
+    [javac]   symbol:   method checkpointStage(String)
+    [javac]   location: interface Owner
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\PhantomBackgroundService.java:1092: error: cannot find symbol
+    [javac] 				if (player.getNativeWorkOwner() != null) { player.getNativeWorkOwner().checkpointStage("PREPARE_ATTEMPTED"); }
+    [javac] 				                                                                      ^
+    [javac]   symbol:   method checkpointStage(String)
+    [javac]   location: interface Owner
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\PhantomBackgroundService.java:1099: error: cannot find symbol
+    [javac] 				if (player.getNativeWorkOwner() != null) { player.getNativeWorkOwner().checkpointStage("PREPARED"); }
+    [javac] 				                                                                      ^
+    [javac]   symbol:   method checkpointStage(String)
+    [javac]   location: interface Owner
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\PhantomBackgroundService.java:1103: error: cannot find symbol
+    [javac] 				if (player.getNativeWorkOwner() != null) { player.getNativeWorkOwner().checkpointStage("NATIVE_ATTEMPTED"); }
+    [javac] 				                                                                      ^
+    [javac]   symbol:   method checkpointStage(String)
+    [javac]   location: interface Owner
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\PhantomBackgroundService.java:1126: error: cannot find symbol
+    [javac] 					if (player.getNativeWorkOwner() != null) { player.getNativeWorkOwner().checkpointStage("FINALIZED"); }
+    [javac] 					                                                                      ^
+    [javac]   symbol:   method checkpointStage(String)
+    [javac]   location: interface Owner
+    [javac] 9 errors
+
+BUILD FAILED
+C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml:169: Compile failed; see the compiler error output for details.
+
+Total time: 11 seconds

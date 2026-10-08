@@ -1,0 +1,76 @@
+{
+  "source": "READ_ONLY_NATIVE_CENSUS",
+  "finalSceneClaim": false,
+  "rows": [
+    {
+      "profileId": "424",
+      "epoch": "147818489222100",
+      "completedAt": 21.3507033,
+      "rewardsAfterCompleted": 1,
+      "firstCauses": [
+        "Canonical Player is in an unsupported background context. firstPredicate=combat"
+      ],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "633",
+      "epoch": "147818987104100",
+      "completedAt": 181.9424577,
+      "rewardsAfterCompleted": 11,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "759",
+      "epoch": "147819087542000",
+      "completedAt": 21.3507033,
+      "rewardsAfterCompleted": 0,
+      "firstCauses": [
+        "Canonical Player is in an unsupported background context. firstPredicate=combat"
+      ],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "876",
+      "epoch": "147819100606000",
+      "completedAt": 24.7340529,
+      "rewardsAfterCompleted": 6,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "924",
+      "epoch": "147819388086700",
+      "completedAt": 59.3598667,
+      "rewardsAfterCompleted": 9,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "994",
+      "epoch": "147818888359100",
+      "completedAt": 24.7340529,
+      "rewardsAfterCompleted": 0,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "1159",
+      "epoch": "147819487965600",
+      "completedAt": 24.7340529,
+      "rewardsAfterCompleted": 1,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "1176",
+      "epoch": "147819503272500",
+      "completedAt": 21.3507033,
+      "rewardsAfterCompleted": 3,
+      "firstCauses": [
+        "Canonical Player is in an unsupported background context. firstPredicate=combat"
+      ],
+      "orphanSealed": false
+    }
+  ]
+}

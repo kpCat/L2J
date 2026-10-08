@@ -1,0 +1,12 @@
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 1:23:27 AM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] checkpoint-recovery025.R01-cold-pending-before-baseline
+[PASS] checkpoint-recovery025.R07-exact-failed-baseline-recovery
+[PASS] checkpoint-recovery025.R09-native-combat-capture-defers-before-write
+[PASS] checkpoint-recovery025.R11-inventory-flush-without-receipt-stays-fenced
+[PASS] checkpoint-recovery025.R12-prepared-receipt-control-resume
+[PASS] checkpoint-recovery025.R13-native-receipt-finalize-once
+[PASS] checkpoint-recovery025.R14-finalized-publication-without-new-store
+SUMMARY: suite=checkpoint-recovery025 seed=25002501 total=7 passed=7 failed=0

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="checkpoint-drain025" seed="25002502" tests="2" passed="0" failures="2">
+  <properties>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract025b"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="checkpoint-drain025.R21-stock-earned-callback-before-store" elapsedNanos="712753400"><failure type="java.lang.AssertionError" message="Pending earned work must defer the checkpoint." seed="25002502"/></testcase>
+  <testcase name="checkpoint-drain025.R22-two-exact-control-waits-release-workers" elapsedNanos="895380900"><failure type="java.lang.AssertionError" message="Each earned control defers." seed="25002502"/></testcase>
+</testsuite>

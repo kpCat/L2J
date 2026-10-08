@@ -1,0 +1,12 @@
+окт. 08, 2026 2:24:14 AM org.l2jmobius.gameserver.data.xml.TeleporterData load
+INFO: TeleporterData: Loaded 195 npc teleporters.
+окт. 08, 2026 2:24:17 AM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 2:24:17 AM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] checkpoint-drain025.R21-stock-earned-callback-before-store
+[PASS] checkpoint-drain025.R22-two-exact-control-waits-release-workers
+[FAIL] checkpoint-drain025.R30-visible-binding-preserves-admitted-checkpoint - java.lang.AssertionError: Admitted checkpoint must pause existing registration rather than remove it. seed=25002502
+SUMMARY: suite=checkpoint-drain025 seed=25002502 total=3 passed=2 failed=1

@@ -1,0 +1,3 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+profile_id	character_object_id	char_name	account_name
+10158	268435465	NULL	NULL

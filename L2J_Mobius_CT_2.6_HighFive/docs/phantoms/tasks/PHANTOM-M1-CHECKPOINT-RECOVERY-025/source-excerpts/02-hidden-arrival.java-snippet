@@ -1,0 +1,16 @@
+// Source base07df36d, PhantomBackgroundService.captureVisibleArrival()
+public boolean captureVisibleArrival(long profileId, Player player, PhantomGoal goal, String anchorId)
+{
+    try
+    {
+        return org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(player, () -> captureVisibleArrivalQuiescent(profileId, player, goal, anchorId));
+    }
+    catch (RuntimeException failure) { return false; }
+}
+// Caller: PhantomVisibleFarmTravel.arrive()
+if (!_background.captureVisibleArrival(profileId, pending.player, goal, pending.anchorId))
+{
+    if (pending.journey != null) { pending.journey.reason = "travel.arrival_capture_pending"; }
+    return false;
+}
+// REQUIRED: preserve exact first cause and typed control status, not arbitrary retry.

@@ -1,0 +1,27 @@
+mode	path	purpose	anchor	verified_blob_sha
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	typed temporary checkpoint outcome/quiescent continuation; generic conservative behavior preserved	PhantomNativeWorkScope.checkpoint/drain/onQuiescent	-
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	cold owned recovery and typed visible capture/resume	captureVisibleArrival/recoverAbandonedMaterialization/resumeVisibleOwnedStore	bbabe9670d5740c511b077e556b52934c797a307
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	recovery before baseline and control/goal rebind	ensureBaseline/advance/begin	0dc398df5d4367a06b9da58c023c09e0ad14e47a
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	typed arrival/checkpoint control and no orphan retry	arrive/advance	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	reuse exact control callback and shutdown coordination	registerDrainRetry/cleanupEntry	7ceb1318d57aef0f92277e1f0eb71413d0179c3c
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	checkpoint-vs-cleanup lifetime/control transfer only	-	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	typed owned checkpoint bridge only; combat entries unchanged	-	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	route pending control separately from ordinary action only	-	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	control scheduling/census and dependency lifetime only	-	-
+CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	actual proven native preflight rejection producer only	requireSupportedPlayer/captureNativeContext	d76860af123302b2365f00d0a4a8dfed6c006ce3
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	reuse resolver/locks/no second canonical writer	reconcileVerifyPending/resolveOwnedStore/abortMaterialization	e879b08bce4df8c63811aa470f885ac69c4be069
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java	owned snapshot boundary and store ordering; no global rewrite	-	-
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/events/EventDispatcher.java	trace RESERVED earned dispatch; no semantic rewiring	-	-
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/threads/ThreadPool.java	queue availability only, actual commons path resolve read-only	-	-
+OPTIONAL_NEW	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomCheckpointControl.java	one small bounded in-memory control type only	-	-
+OPTIONAL_NEW	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomCheckpointCoordinator.java	only if proved existing executor unsuitable; bounded service owner	-	-
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCheckpointRecovery025Suite.java	R01-R20 composed exact production checks	-	-
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomCheckpointDrain025Suite.java	R21-R28 actual callbacks/control shutdown	-	-
+NEW_TEST_HELPER	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomContracts025DatabaseLane.java	one guarded own fixture lane; shared TEST checksum untouched	-	-
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeContextHandoffSuite.java	existing fixtures and production handoff negatives	-	-
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeFarmContinuation022Suite.java	same-epoch continuation integration	-	-
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomServerShutdownHandoffSuite.java	drain scheduling negatives	-	-
+READ	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomContracts024DatabaseLane.java	read/reuse only; optional new025 adapter preferable	-	-
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	only own fixture isolation defect with own RED	-	-
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/	reuse raw evidence/tools; old files not rewritten	-	-
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CHECKPOINT-RECOVERY-025/	task docs/thin wrappers/evidence/proposals	-	-

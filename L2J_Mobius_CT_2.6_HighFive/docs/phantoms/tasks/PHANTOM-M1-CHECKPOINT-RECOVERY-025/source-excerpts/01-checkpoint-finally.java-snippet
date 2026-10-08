@@ -1,0 +1,24 @@
+// Source: 07df36dd7c75e7fcf9d61aee38a6a1dbbf4f09b6
+// .../phantoms/player/PhantomNativeWorkScope.java, checkpoint()
+boolean successful = false;
+try
+{
+    drain(deadline);
+    final T result = action.get();
+    successful = true;
+    return result;
+}
+finally
+{
+    synchronized (_monitor)
+    {
+        // A failed/unknown store stays fenced. No automatic replay or reopen.
+        if (successful && reopen && !_permanentSeal && !_player.hasPendingOwnedStore() && _failure.isEmpty() && isCurrent()) { _state = State.OPEN; }
+        if (reopen && !_permanentSeal) { _pendingResumeEligible = (_state != State.OPEN) && _player.hasPendingOwnedStore() && _failure.isEmpty() && isCurrent(); }
+        _checkpointThread = null;
+        _monitor.notifyAll();
+    }
+}
+// PROBLEM: exception before any receipt can yield SEALED, no pending, no failure,
+// no active checkpoint thread and no admitted ordinary path back.
+// Do not replace this with blanket !hasPending reopen. Use typed phase witness.

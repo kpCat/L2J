@@ -68,7 +68,7 @@ public final class Contract025Observer
         if (selected.isEmpty() || selected.size() > 8) { throw new IllegalStateException("TASK025_COHORT_GUARD"); }
         // Attach preflight is outside native hooks/critical sections.
         for (Player player : World.getInstance().getPlayers()) { if (player.getClient() != null) { throw new IllegalStateException("TASK025_REAL_PRESENT"); } }
-        selection = new Selection(Map.copyOf(selected), output, spec.getProperty("codeSha"));
+        final Selection nextSelection = new Selection(Map.copyOf(selected), output, spec.getProperty("codeSha"));
         if (!mode.equals("OBSERVE"))
         {
             if (!runtime.toString().matches(".*[\\\\/]contract025" + (mode.equals("CRASH_NATIVE") ? "e" : "f") + "[\\\\/]runtime")) { throw new IllegalStateException("TASK025_SEPARATE_CRASH_LANE"); }
@@ -85,6 +85,7 @@ public final class Contract025Observer
             crash = new Crash(mode, output, spec.getProperty("preDumpHash"));
             injector.set(transaction, (PhantomBackgroundTransaction.FaultInjector) point -> { original.inject(point); crashWindow(point); });
         }
+        selection = nextSelection;
         if (!installed)
         {
             field(PhantomNativeWorkScope.class, "_checkpointObserver").set(null, (BiConsumer<Player, String>) Contract025Observer::observe);

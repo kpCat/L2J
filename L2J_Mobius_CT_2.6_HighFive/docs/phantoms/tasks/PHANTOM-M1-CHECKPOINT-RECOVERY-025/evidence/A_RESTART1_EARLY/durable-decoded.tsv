@@ -1,0 +1,3 @@
+452	54	context	PENDING	8423	6c56ba68aaf943e842e29db82e0ea77ae885ee2ce35a7f168f7653ae4ff2a7d0	VITALITY_REQUIRES_NATIVE	57	false
+452	0	owned	8423	129991295997900	940dd1d187ed4ca1f8eac8f1812810feaa2d84dbfaff532938ed566901d5fb0c
+452	8423	state	VERIFY_PENDING	6c56ba68aaf943e842e29db82e0ea77ae885ee2ce35a7f168f7653ae4ff2a7d0	Progress[level=8, experience=24944, skillPoints=1821, experienceBeforeDeath=0]	Position[instanceId=0, x=46099, y=41257, z=-3504, heading=40029, committedAnchorId=generated.farm.428b85922009e44829ae2db0.anchor]

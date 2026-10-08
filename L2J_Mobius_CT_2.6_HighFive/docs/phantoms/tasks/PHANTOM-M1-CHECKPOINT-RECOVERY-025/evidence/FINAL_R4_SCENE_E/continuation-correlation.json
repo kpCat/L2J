@@ -1,0 +1,64 @@
+{
+  "source": "READ_ONLY_NATIVE_CENSUS",
+  "finalSceneClaim": false,
+  "rows": [
+    {
+      "profileId": "424",
+      "epoch": "145304005061500",
+      "completedAt": 41.8067138,
+      "rewardsAfterCompleted": 3,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "633",
+      "epoch": "145304403522100",
+      "completedAt": 32.609665,
+      "rewardsAfterCompleted": 3,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "759",
+      "epoch": "145304103432300",
+      "completedAt": 41.8067138,
+      "rewardsAfterCompleted": 2,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "876",
+      "epoch": "145304506390800",
+      "completedAt": 51.2046632,
+      "rewardsAfterCompleted": 3,
+      "firstCauses": [
+        "Canonical Player is in an unsupported background context. firstPredicate=combat"
+      ],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "924",
+      "epoch": "145304525612700",
+      "completedAt": 37.2690538,
+      "rewardsAfterCompleted": 6,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "994",
+      "epoch": "145304544133800",
+      "completedAt": 32.609665,
+      "rewardsAfterCompleted": 5,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "1159",
+      "epoch": "145304603555800",
+      "completedAt": 41.8067138,
+      "rewardsAfterCompleted": 4,
+      "firstCauses": [],
+      "orphanSealed": false
+    }
+  ]
+}

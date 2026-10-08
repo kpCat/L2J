@@ -1,0 +1,20 @@
+suite=native-farm-continuation022
+seed=22002201
+total=1
+passed=1
+failed=0
+measurement.S02.TEST_setup.true=existing guarded owned fixture; class=FIGHTER level7; native auto-get skills; seven stock Monsters, NPC AI ON; no post-baseline damage/reward injection
+measurement.S02.execution=entered=390;finished=390;failure=null;castSeen=false;runtime=Optional[RuntimeSnapshot[profileId=10069, goalId=8265789137726303663, goalType=farm.background, goalRevision=1, goalStatus=ACTIVE, runtimeState=WAITING_RETRY, decisionSequence=101, selectedCandidateKey=candidate.background.farm, selectedScore=1000, planId=100, currentStep=1, attempt=1, lastResult=RETRY, reasonKey=background.visible.autoplay_running, topCandidateEvaluations=[CandidateEvaluation[candidateKey=candidate.background.farm, score=1000, status=ELIGIBLE, reasonKey=background.explicit.ready]], inFlight=false, persistenceInFlight=false, persistenceOperationId=0, persistenceOperationKind=null, generation=4, activityGeneration=1, componentRowVersion=1]];owner=epoch=146041556229000 state=OPEN outstanding=0 pendingTimers=2 peak=10 failure= work=[];casting=false;intention=ATTACK;target=Monster:Red Keltir(20534)[268480999];expDelta=1050;spDelta=50
+measurement.S02.native={nativeEvidenceVersion=1, nativeEvidenceOwner=PHANTOM, nativeEvidenceObjectId=268435465, nativeEvidenceEpoch=146041556229000, nativeEvidenceSampleNanos=146139156095000, nativeEvidenceOverflow=false, nativeFirstUnprovenReason=NONE, nativeFirstUnprovenNanos=0, nativeEvidenceSequence=120, nativeDamageSequence=92, nativeKillSequence=5, nativeRewardSequence=5, nativeTargetSequence=6, nativeFarmCycleSequence=5, nativeExpGained=1050, nativeSpGained=50, nativeLootSequence=12, nativeLastProgressNanos=146139074150700, nativePhase=COMBAT, nativePhaseSinceNanos=146112176474900, nativePhaseDeadlineNanos=146232176474900}
+measurement.S02.skills=known=null;auto=[];mp=81.0
+measurement.S11.saved=exp=12337;sp=50;retained=0
+measurement.S12.nativeLoot=events=12;inventoryBefore=7;inventoryAfter=36
+measurement.headless.database=l2jmobiush5_localplay_contract025b
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS native-farm-continuation022.N01-production-native-fighter-five-next-targets elapsedNanos=97797151400

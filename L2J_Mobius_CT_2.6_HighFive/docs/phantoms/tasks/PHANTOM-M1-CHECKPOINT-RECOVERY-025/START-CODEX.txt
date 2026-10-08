@@ -1,0 +1,55 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CHECKPOINT-RECOVERY-025/GOAL.md.
+
+Required base:
+07df36dd7c75e7fcf9d61aee38a6a1dbbf4f09b6
+Branch:
+experiment/m1-candidate007-observe008
+
+GPT-6.1 Sol, reasoning Very High. Новый диалог, без субагентов.
+
+Одобряю ограниченные DESIGN/PLAN/SOURCE_MAP/TASK.md пакета.
+Работай автономно, без «в игре», «вышел», arm и повторного согласования фаз.
+
+Это НЕ повтор общего TASK024. Исправляем единый checkpoint/recovery lifecycle:
+- cold VERIFY_PENDING и exact owned receipt разрешаются до обычного baseline;
+- live checkpoint не остаётся ACTIVE+SEALED без pending и без control continuation;
+- first exception/stage не превращается в безымянный false/start_retry;
+- earned callbacks исполняются до store, recovery не блокирует нужный им executor;
+- после FINALIZE продолжаются native farm и корректное сохранение всей группы.
+
+Не снимать safety guards и не открывать owner по одному hasPending=false.
+Не выдавать EXP/items, не восстанавливать цифры из логов, не подменять nativeXYZ anchor.
+Использовать существующий transaction resolver и exact ownership, не новый журнал.
+Точный first producer110 пока UNKNOWN: сначала доказать, не лечить гипотезу как факт.
+
+Первый practical endpoint —452 на НОВОЙ копии retained024c:
+production recovery → FINALIZED → второй sameDB restart идемпотентен.
+До120мин короткий full-server probe; не провести весь срок на unit fixtures.
+Несколько связанных fixes внутри scope разрешены, лимита4repair/8starts здесь нет.
+Не повторять неизменённый RED наудачу.
+
+Максимум360мин wall-clock. После270мин semantic freeze, запас90мин на acceptance/cleanup.
+При новых доказанных safety/outside-design препятствиях сохранить точный result,
+не превращать задачу в бесконечное расширение архитектуры.
+
+Own detached worktree:
+C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius
+Свободный suffix разрешён. Main checkout/foreign diff/kpCat не трогать.
+PLAY только SELECT/export; старые night023/contract024 immutable read/export.
+Own clones l2jmobiush5_localplay_contract025a..h разрешены.
+Shared TEST metadata/checksum не менять; при barrier использовать own isolated lane.
+
+Existing Synthetic observer + полный GameServer/stock NPC, не fake REAL_LOGIN.
+Автоматические start/graceful stop own exact PID+start-time+runtime разрешены.
+До2planned crash на отдельных clone с REALcount0 по CRASH_WINDOWS.
+Emergency exact-owned force только после2graceful attempts+dumps; не cleanupPASS.
+Соблюдать synthetic per-session TTL, не ждать, что heartbeat продлевает absolute TTL.
+
+Две final natural scenes360–420с на одном frozenSHA, полная cohort и final120progress.
+Whole-group sealed native witness→SQL→sameDB restart, pending0/retained0 на healthy stop.
+Death/soft-return/crash флаги отдельно; M1 не закрывать по одному taskGREEN.
+
+Exact-path commit + normal push обязательны при любом исходе, без git add .
+В конце один RESULT/HANDOFF/MORNING, own JVM по умолчаниюSTOPPED.
+STOP_AUTHORITY=TASK025_CONTRACT. M1=OPEN, максимум WAITING_FINAL_CLIENT
+только после всех server gates. Следующую задачу автоматически не начинать.

@@ -1,0 +1,3 @@
+# Immutable evidence and frozen observer/inventory hashes must survive checkout.
+# Scoped to this task packet; follows TASK024 byte-preservation pattern.
+* -text

@@ -1,0 +1,111 @@
+{
+  "kind": "EXACT_SEALED_TO_SAME_DB_CANONICAL",
+  "sourceSha": "b8e6e537df441d75e34dd7ed9df7de44b0f753df",
+  "database": "l2jmobiush5_localplay_contract025c",
+  "requiredProfiles": [
+    175,
+    633,
+    924,
+    975,
+    994,
+    1159,
+    1176
+  ],
+  "rows": [
+    {
+      "profileId": 175,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "175-142048693521800-21708.properties",
+      "snapshotSha256": "d68c95b9787f5e9d9f7ed2e3308d88cba1fe8b0b2bb5fc3629fcd5999ddb9c11",
+      "epoch": 142048693521800,
+      "initialEpoch": "142048693521800",
+      "preparedVersion": 21708,
+      "stateVersion": 21709,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 633,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "633-142048494069100-11376.properties",
+      "snapshotSha256": "7d3818ea7732be7ee6e7ca78ecaff90ecd8fef54e088dd9dc34789b6c488ca61",
+      "epoch": 142048494069100,
+      "initialEpoch": "142048494069100",
+      "preparedVersion": 11376,
+      "stateVersion": 11377,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 924,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "924-142048503891700-5531.properties",
+      "snapshotSha256": "1b688ac16f45a3b379cd149d5405a4a84e6cdacd8e71fe634018ce2d1f4c8271",
+      "epoch": 142048503891700,
+      "initialEpoch": "142048503891700",
+      "preparedVersion": 5531,
+      "stateVersion": 5532,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 975,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "975-142048619415400-27040.properties",
+      "snapshotSha256": "d8e46f4724ac53efc1d9f4378ebf1468bed1916a2c6d30aae6cae09ab13da0d7",
+      "epoch": 142048619415400,
+      "initialEpoch": "142048619415400",
+      "preparedVersion": 27040,
+      "stateVersion": 27041,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 994,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "994-142048991638300-3970.properties",
+      "snapshotSha256": "6d7d10d12139e4d99e7ce8541c9ab8fad24208732cd8c7cc799ee47b14206523",
+      "epoch": 142048991638300,
+      "initialEpoch": "142048991638300",
+      "preparedVersion": 3970,
+      "stateVersion": 3971,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 1159,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "1159-142049392869300-3730.properties",
+      "snapshotSha256": "4cd5465d530199b6e9e70b1bda6e50ccc81dca31b113c99886f7e6f9836d14dc",
+      "epoch": 142049392869300,
+      "initialEpoch": "142049392869300",
+      "preparedVersion": 3730,
+      "stateVersion": 3731,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 1176,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "1176-142047991983900-6698.properties",
+      "snapshotSha256": "3b764a352fdb7514f8e64eaeec23f957961c48e649087af1bd73b447d64d7d68",
+      "epoch": 142047991983900,
+      "initialEpoch": "142047991983900",
+      "preparedVersion": 6698,
+      "stateVersion": 6699,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    }
+  ],
+  "receiptIntegrity": null,
+  "errors": [],
+  "pass_": true,
+  "noDiagnosticCounterRestoration": true
+}

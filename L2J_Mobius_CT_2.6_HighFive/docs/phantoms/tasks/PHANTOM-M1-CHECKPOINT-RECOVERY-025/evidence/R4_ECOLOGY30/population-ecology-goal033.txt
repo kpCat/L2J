@@ -1,0 +1,6 @@
+suite=population-ecology-goal033
+seed=25002503
+total=1
+passed=0
+failed=1
+FAIL population-ecology-goal033.before-all elapsedNanos=0 type=java.lang.AssertionError message=Goal033 deterministic seed changed. Expected <33003300> but was <25002503>. seed=25002503

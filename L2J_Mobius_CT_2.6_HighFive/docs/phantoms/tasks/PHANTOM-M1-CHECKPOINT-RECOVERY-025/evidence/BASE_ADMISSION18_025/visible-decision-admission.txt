@@ -1,0 +1,32 @@
+suite=visible-decision-admission
+seed=20002001
+total=19
+passed=11
+failed=8
+measurement.headless.database=l2jmobiush5_localplay_contract025b
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435471
+measurement.headless.primaryObjectId=268435469
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS visible-decision-admission.V01-original-admission-retains-sequence-zero elapsedNanos=229837200
+PASS visible-decision-admission.V02-exact-handoff-permits-only-decision elapsedNanos=77193900
+PASS visible-decision-admission.V03-incomplete-without-handoff-fenced elapsedNanos=21545800
+PASS visible-decision-admission.V04-historical-baseline-fenced elapsedNanos=57882700
+PASS visible-decision-admission.V05-wrong-request-fenced elapsedNanos=19201200
+PASS visible-decision-admission.V06-catchup-row-and-payload-changes-fenced elapsedNanos=118687000
+PASS visible-decision-admission.V07-goal-component-change-fenced elapsedNanos=55488400
+PASS visible-decision-admission.V08-absent-stored-failed-materialization-fenced elapsedNanos=53951200
+PASS visible-decision-admission.V09-world-absence-fenced elapsedNanos=55487500
+PASS visible-decision-admission.V10-closed-action-admission-fenced elapsedNanos=53398500
+PASS visible-decision-admission.V11-character-and-epoch-mismatch-fenced elapsedNanos=50163100
+FAIL visible-decision-admission.V12-background-state-and-identity-fenced elapsedNanos=59195300 type=java.lang.AssertionError message=Restore is TEST-only. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=20002001
+FAIL visible-decision-admission.V13-before-store-revokes-permit elapsedNanos=17980800 type=org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException message=Could not create Phantom profile. seed=20002001
+FAIL visible-decision-admission.V14-abort-revokes-permit elapsedNanos=1530000 type=org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException message=Could not create Phantom profile. seed=20002001
+FAIL visible-decision-admission.V15-absent-and-complete-history-ordinary elapsedNanos=877000 type=org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException message=Could not create Phantom profile. seed=20002001
+FAIL visible-decision-admission.V16-permit-check-has-no-durable-mutation elapsedNanos=734300 type=org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException message=Could not create Phantom profile. seed=20002001
+FAIL visible-decision-admission.V17-snapshot-census-read-only-and-optional elapsedNanos=759100 type=org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException message=Could not create Phantom profile. seed=20002001
+FAIL visible-decision-admission.V18-active-work-selects-existing-visible-farm elapsedNanos=755300 type=org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException message=Could not create Phantom profile. seed=20002001
+FAIL visible-decision-admission.after-all elapsedNanos=0 type=java.lang.IllegalStateException message=NATIVE_CHECKPOINT_ADMISSION_CLOSED seed=20002001

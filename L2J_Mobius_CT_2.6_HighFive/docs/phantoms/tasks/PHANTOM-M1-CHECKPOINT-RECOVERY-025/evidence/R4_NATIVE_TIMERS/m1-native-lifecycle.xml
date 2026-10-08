@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="5" passed="0" failures="5">
+  <properties>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract025b"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q04-native-QuestTimer-held-body" elapsedNanos="148796900"><failure type="java.lang.AssertionError" message="Native timer checks require guarded TEST bootstrap. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q05-native-pending-cancel-and-long-repeat" elapsedNanos="31597800"><failure type="java.lang.AssertionError" message="Native timer checks require guarded TEST bootstrap. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q06-native-TimerHolder-body-drains-after-unregister" elapsedNanos="24925400"><failure type="java.lang.AssertionError" message="Q06 requires the initialized allowlisted headless TEST environment. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q06-native-repeating-body-stops-and-drains" elapsedNanos="24433200"><failure type="java.lang.AssertionError" message="Native timer checks require guarded TEST bootstrap. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q13-native-zero-earned-child-and-grandchild" elapsedNanos="23028800"><failure type="java.lang.AssertionError" message="Native timer checks require guarded TEST bootstrap. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+</testsuite>

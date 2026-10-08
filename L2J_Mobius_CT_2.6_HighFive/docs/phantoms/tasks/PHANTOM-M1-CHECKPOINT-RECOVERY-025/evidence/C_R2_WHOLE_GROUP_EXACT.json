@@ -1,0 +1,146 @@
+{
+  "kind": "EXACT_SEALED_TO_SAME_DB_CANONICAL",
+  "sourceSha": "71bef1ea6d48c52632a9e67b7f16b31d885a41ae",
+  "database": "l2jmobiush5_localplay_contract025c",
+  "requiredProfiles": [
+    175,
+    275,
+    294,
+    876,
+    924,
+    994,
+    1159
+  ],
+  "rows": [
+    {
+      "profileId": 175,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "175-140366924834300-21692.properties",
+      "snapshotSha256": "9db30e79a5eabb6dd5068e4431ef895003f6fa6d7e20fc24861bde7d29a3d6d2",
+      "epoch": 140366924834300,
+      "initialEpoch": "140366924834300",
+      "preparedVersion": 21692,
+      "stateVersion": 21693,
+      "nativeFinalized": true,
+      "differences": {
+        "mp": {
+          "sealed": 107.07055360000004,
+          "sql": 107.0
+        }
+      },
+      "pass_": false
+    },
+    {
+      "profileId": 275,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "275-140366937374700-26610.properties",
+      "snapshotSha256": "222aa7d68e91f273bca8a234406be656f96ed584da4be739b8fee82feafd6e1b",
+      "epoch": 140366937374700,
+      "initialEpoch": "140366937374700",
+      "preparedVersion": 26610,
+      "stateVersion": 26611,
+      "nativeFinalized": true,
+      "differences": {
+        "mp": {
+          "sealed": 57.88506440000015,
+          "sql": 58.0
+        },
+        "cp": {
+          "sealed": 97.78764000000008,
+          "sql": 98.0
+        }
+      },
+      "pass_": false
+    },
+    {
+      "profileId": 294,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "294-140366952951100-4889.properties",
+      "snapshotSha256": "ab1585aa8f25fd8d05cdc571059a3ff55081bb11331c6ce3c9c7d8353290a590",
+      "epoch": 140366952951100,
+      "initialEpoch": "140366952951100",
+      "preparedVersion": 4889,
+      "stateVersion": 4890,
+      "nativeFinalized": true,
+      "differences": {
+        "hp": {
+          "sealed": 223.30969600000049,
+          "sql": 223.0
+        }
+      },
+      "pass_": false
+    },
+    {
+      "profileId": 876,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "876-140367952364900-4582.properties",
+      "snapshotSha256": "9861aac9aeefc239c212399a5e22d99d7929e99fe99adda3210117fcb420f9da",
+      "epoch": 140367952364900,
+      "initialEpoch": "140367952364900",
+      "preparedVersion": 4582,
+      "stateVersion": 4583,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    },
+    {
+      "profileId": 924,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "924-140367419190800-5521.properties",
+      "snapshotSha256": "47a084459d90123a2bddcd52844d9687c34c46297db1fa1a62b1232b776423a5",
+      "epoch": 140367419190800,
+      "initialEpoch": "140367419190800",
+      "preparedVersion": 5521,
+      "stateVersion": 5522,
+      "nativeFinalized": true,
+      "differences": {
+        "mp": {
+          "sealed": 62.265777999999806,
+          "sql": 62.0
+        }
+      },
+      "pass_": false
+    },
+    {
+      "profileId": 994,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "994-140367117092600-3960.properties",
+      "snapshotSha256": "4ad9f414847e7dcabe8dba2c0b50859ef984a65aec6475d2d8d0264b3d9e83d6",
+      "epoch": 140367117092600,
+      "initialEpoch": "140367117092600",
+      "preparedVersion": 3960,
+      "stateVersion": 3961,
+      "nativeFinalized": true,
+      "differences": {
+        "hp": {
+          "sealed": 191.0096,
+          "sql": 191.0
+        }
+      },
+      "pass_": false
+    },
+    {
+      "profileId": 1159,
+      "source": "native-sealed-snapshot",
+      "snapshotFile": "1159-140367216886300-3720.properties",
+      "snapshotSha256": "83ea2f16f1ec22df4e93b2a65f271135e3339917fb4de02a9ed8766421a2398e",
+      "epoch": 140367216886300,
+      "initialEpoch": "140367216886300",
+      "preparedVersion": 3720,
+      "stateVersion": 3721,
+      "nativeFinalized": true,
+      "differences": {},
+      "pass_": true
+    }
+  ],
+  "receiptIntegrity": null,
+  "errors": [
+    "profile 175: exact=False, finalized=True",
+    "profile 275: exact=False, finalized=True",
+    "profile 294: exact=False, finalized=True",
+    "profile 924: exact=False, finalized=True",
+    "profile 994: exact=False, finalized=True"
+  ],
+  "pass_": false,
+  "noDiagnosticCounterRestoration": true
+}

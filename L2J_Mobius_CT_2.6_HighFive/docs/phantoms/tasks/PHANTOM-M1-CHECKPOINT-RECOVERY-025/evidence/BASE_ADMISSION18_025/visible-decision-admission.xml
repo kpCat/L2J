@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="visible-decision-admission" seed="20002001" tests="19" passed="11" failures="8">
+  <properties>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract025b"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435471"/>
+    <property name="headless.primaryObjectId" value="268435469"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="visible-decision-admission.V01-original-admission-retains-sequence-zero" elapsedNanos="229837200"></testcase>
+  <testcase name="visible-decision-admission.V02-exact-handoff-permits-only-decision" elapsedNanos="77193900"></testcase>
+  <testcase name="visible-decision-admission.V03-incomplete-without-handoff-fenced" elapsedNanos="21545800"></testcase>
+  <testcase name="visible-decision-admission.V04-historical-baseline-fenced" elapsedNanos="57882700"></testcase>
+  <testcase name="visible-decision-admission.V05-wrong-request-fenced" elapsedNanos="19201200"></testcase>
+  <testcase name="visible-decision-admission.V06-catchup-row-and-payload-changes-fenced" elapsedNanos="118687000"></testcase>
+  <testcase name="visible-decision-admission.V07-goal-component-change-fenced" elapsedNanos="55488400"></testcase>
+  <testcase name="visible-decision-admission.V08-absent-stored-failed-materialization-fenced" elapsedNanos="53951200"></testcase>
+  <testcase name="visible-decision-admission.V09-world-absence-fenced" elapsedNanos="55487500"></testcase>
+  <testcase name="visible-decision-admission.V10-closed-action-admission-fenced" elapsedNanos="53398500"></testcase>
+  <testcase name="visible-decision-admission.V11-character-and-epoch-mismatch-fenced" elapsedNanos="50163100"></testcase>
+  <testcase name="visible-decision-admission.V12-background-state-and-identity-fenced" elapsedNanos="59195300"><failure type="java.lang.AssertionError" message="Restore is TEST-only. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="20002001"/></testcase>
+  <testcase name="visible-decision-admission.V13-before-store-revokes-permit" elapsedNanos="17980800"><failure type="org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException" message="Could not create Phantom profile." seed="20002001"/></testcase>
+  <testcase name="visible-decision-admission.V14-abort-revokes-permit" elapsedNanos="1530000"><failure type="org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException" message="Could not create Phantom profile." seed="20002001"/></testcase>
+  <testcase name="visible-decision-admission.V15-absent-and-complete-history-ordinary" elapsedNanos="877000"><failure type="org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException" message="Could not create Phantom profile." seed="20002001"/></testcase>
+  <testcase name="visible-decision-admission.V16-permit-check-has-no-durable-mutation" elapsedNanos="734300"><failure type="org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException" message="Could not create Phantom profile." seed="20002001"/></testcase>
+  <testcase name="visible-decision-admission.V17-snapshot-census-read-only-and-optional" elapsedNanos="759100"><failure type="org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException" message="Could not create Phantom profile." seed="20002001"/></testcase>
+  <testcase name="visible-decision-admission.V18-active-work-selects-existing-visible-farm" elapsedNanos="755300"><failure type="org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException" message="Could not create Phantom profile." seed="20002001"/></testcase>
+  <testcase name="visible-decision-admission.after-all" elapsedNanos="0"><failure type="java.lang.IllegalStateException" message="NATIVE_CHECKPOINT_ADMISSION_CLOSED" seed="20002001"/></testcase>
+</testsuite>

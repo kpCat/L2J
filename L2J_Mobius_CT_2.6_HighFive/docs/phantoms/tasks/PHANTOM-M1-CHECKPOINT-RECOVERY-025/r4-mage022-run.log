@@ -1,0 +1,12 @@
+окт. 08, 2026 3:06:39 AM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Loaded 188 Instances
+окт. 08, 2026 3:06:39 AM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Scheduled 0 Instances
+окт. 08, 2026 3:07:30 AM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 3:07:30 AM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] native-farm-continuation022.S02-production-binding-native-cast-reward-five-next-targets
+SUMMARY: suite=native-farm-continuation022 seed=22002201 total=1 passed=1 failed=0

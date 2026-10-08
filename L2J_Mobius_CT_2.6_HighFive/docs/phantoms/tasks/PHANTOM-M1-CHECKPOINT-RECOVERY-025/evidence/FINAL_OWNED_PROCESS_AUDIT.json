@@ -1,0 +1,98 @@
+[
+  {
+    "episode": "a",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  },
+  {
+    "episode": "a",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  },
+  {
+    "episode": "b",
+    "role": "GameServer",
+    "state": "STOPPED",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": ""
+  },
+  {
+    "episode": "b",
+    "role": "LoginServer",
+    "state": "STOPPED",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": ""
+  },
+  {
+    "episode": "c",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  },
+  {
+    "episode": "c",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  },
+  {
+    "episode": "d",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  },
+  {
+    "episode": "d",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  },
+  {
+    "episode": "e",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  },
+  {
+    "episode": "e",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  },
+  {
+    "episode": "h",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  },
+  {
+    "episode": "h",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "reason": "record has no marked owner"
+  }
+]

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="6" passed="0" failures="6">
+  <properties>
+    <property name="Q12.dynamic.transfer.incoming" value="1239:15 nativeMP=57.0"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract025b"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-open-false" elapsedNanos="125402300"><failure type="java.lang.AssertionError" message="Dynamic recipient fixture requires its already validated exact database lane. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-open-true" elapsedNanos="41031000"><failure type="java.lang.AssertionError" message="Dynamic recipient fixture requires its already validated exact database lane. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-ordinary-false" elapsedNanos="34173800"><failure type="java.lang.AssertionError" message="Dynamic recipient fixture requires its already validated exact database lane. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-ordinary-true" elapsedNanos="34152000"><failure type="java.lang.AssertionError" message="Dynamic recipient fixture requires its already validated exact database lane. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-sealed-false" elapsedNanos="35803000"><failure type="java.lang.AssertionError" message="Dynamic recipient fixture requires its already validated exact database lane. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-dynamic-native-recipient-sealed-true" elapsedNanos="37396500"><failure type="java.lang.AssertionError" message="Dynamic recipient fixture requires its already validated exact database lane. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+</testsuite>

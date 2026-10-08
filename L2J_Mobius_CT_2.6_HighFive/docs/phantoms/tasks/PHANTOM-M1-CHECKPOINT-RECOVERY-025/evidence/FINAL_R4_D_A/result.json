@@ -1,0 +1,12 @@
+{
+  "frozenSha": "41692152ca6944176be8014c307702b7d2a0a6bc",
+  "runId": "e8927f10-00ad-4208-a9a8-f84f543d89f1",
+  "elapsedSeconds": 360.5194381,
+  "cohortCount": 8,
+  "farmPass": false,
+  "realFinalPass": "NOT_RUN",
+  "primaryIds": [
+    "424",
+    "633"
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "task": "PHANTOM-M1-CHECKPOINT-RECOVERY-025",
+  "required_base": "07df36dd7c75e7fcf9d61aee38a6a1dbbf4f09b6",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "Very High",
+  "subagents": false,
+  "mode": "unattended_synthetic",
+  "wall_minutes_max": 360,
+  "semantic_freeze_minute": 270,
+  "first_server_probe_minute_max": 120,
+  "production_modify_allowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java"
+  ],
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "sha256": "0b238d24c9d7bc3215086521148ac1cce80f895ee49554bd1b5bbfdb5810f983"
+    },
+    {
+      "path": "CRASH_WINDOWS.md",
+      "sha256": "af046fdcde82b622990b1bc06f04ef82b0975b3de32e526de904e3d1911321bd"
+    },
+    {
+      "path": "DESIGN.md",
+      "sha256": "014489be323686858b4809f36845da8177d85d39776fa746816dcb01b11c3922"
+    },
+    {
+      "path": "GOAL.md",
+      "sha256": "5c3ef5bc7cc27e7aaf33d253d23ede88d26290dbdebcaa85d789e4fac0380486"
+    },
+    {
+      "path": "HANDOFF.md",
+      "sha256": "bb032b1fb467e5f9b904548a46e61cb00a04103232f5ceec302763d0e39ba809"
+    },
+    {
+      "path": "MODEL.md",
+      "sha256": "9b8c86b82f55393b725bc8f8adb509bc425b69aa6b22372558c9711afbd98df9"
+    },
+    {
+      "path": "PACKAGE_CHECKS.md",
+      "sha256": "70d6a4a34f386441bc10bb2654e38ebaea9f15db00dc91b20d86b129809d2855"
+    },
+    {
+      "path": "PATCH_GUIDE.md",
+      "sha256": "05f51e6b1178bbf3c122a7bc7188d6e7d15723041ff462c96723752181bd333b"
+    },
+    {
+      "path": "PLAN.md",
+      "sha256": "fafbd0c4cba91117e2751a20a4d53f70708bc1b2ac7c169cc1946b9d34162b4c"
+    },
+    {
+      "path": "README.md",
+      "sha256": "ed7398b3067150c32aabd6c6eac7cd7bd7e5369e39b6c7c6561ebbec47ac9079"
+    },
+    {
+      "path": "REFERENCES.md",
+      "sha256": "4727c45fd4eaa501b1b17695dde09bc3d6a08a8e774855b6720083a1247164cb"
+    },
+    {
+      "path": "RESULT_TEMPLATE.md",
+      "sha256": "ea8ae025ebd26d329eb91c967d89579027b2f9e32fa2dbe7209774ea6bf4fb1b"
+    },
+    {
+      "path": "ROOT_CAUSES.md",
+      "sha256": "1fbce301498796aee847601ac77941c2b2f9e2e0ed36f9504ee2cbb8ffbe70e2"
+    },
+    {
+      "path": "RUNBOOK.md",
+      "sha256": "d2c0cbc92da90003c64f21a7c9a989452752adf7505121e279486ca583265385"
+    },
+    {
+      "path": "SCENARIOS.md",
+      "sha256": "57d3aa9a8d39f038de447134e51ea5a6da3962afac2bedec699e2b95325710a4"
+    },
+    {
+      "path": "SCOPE_NOTES.md",
+      "sha256": "1d0e8c96acc9a12e16a366cdbc7f51260592c84a965d1db9cca5bf87a8fb1981"
+    },
+    {
+      "path": "SOURCE_MAP.tsv",
+      "sha256": "b2b174e79e3d390232a6a7f741ff7f6759ea9f33fad73338436496a4c2a84a42"
+    },
+    {
+      "path": "START-CODEX.txt",
+      "sha256": "0982910324bc9cf12c697ccbf19679b9b4ff88de043d58e91a1a54ba2a263229"
+    },
+    {
+      "path": "STATE_MACHINE.md",
+      "sha256": "8a5694464f1f35726c318f998e760e936b2e689c9fe20525ffa5efc4273fd0b7"
+    },
+    {
+      "path": "TASK.md",
+      "sha256": "6965aeea5a1c3f4f3e279d98688b9d35ebadb78ea1f0fc6191dc17a11b246ef9"
+    },
+    {
+      "path": "proposals/CheckpointPolicy025.java",
+      "sha256": "9c20e9012605ac77c3f7cf91654a9d7ad4d7ff5c94dcbb7cd55a1f7e74160fcb"
+    },
+    {
+      "path": "proposals/CheckpointPolicy025Test.java",
+      "sha256": "98859a76dc58841443537aa4a1fd04b75cda48fd9bfcfebc218ac50231394565"
+    },
+    {
+      "path": "proposals/README.md",
+      "sha256": "af1877784989ba1b5f0779655d651f720dd103929ef133f977b984163de4a8d0"
+    },
+    {
+      "path": "proposals/recovery-flow.java-snippet",
+      "sha256": "537716d534da94af3a44f8f0132160bc20bd8d5d2aba7b05f946464f11dacd5b"
+    },
+    {
+      "path": "source-excerpts/01-checkpoint-finally.java-snippet",
+      "sha256": "cd951dea5b11d94ebc4f9f826ab4e210eab97e62c02d2b0e76471743cfa7498a"
+    },
+    {
+      "path": "source-excerpts/02-hidden-arrival.java-snippet",
+      "sha256": "345b4f40978cd8cd3d7c202823c3b3f48d3f9876f38871ef9a404f225ba994f5"
+    },
+    {
+      "path": "source-excerpts/03-cold-pending.java-snippet",
+      "sha256": "00f62cc9b30f5761090b308e9c10a337ebab77266b4e9fcbf34ae1b7504dfc4f"
+    }
+  ]
+}

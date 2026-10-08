@@ -1,0 +1,12 @@
+окт. 08, 2026 1:43:53 AM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] m1-native-lifecycle.Q05-actual-native-1000-owner-start-cancel-interleavings
+[PASS] m1-native-lifecycle.Q07-actual-native-scheduler-faults-and-ordinary-control
+[PASS] m1-native-lifecycle.Q08-actual-native-old-queued-and-new-REAL-identity
+[PASS] m1-native-lifecycle.Q11-actual-native-timer-preserves-primary-and-secondary
+[FAIL] m1-native-lifecycle.Q12-actual-native-buff-expiry - java.lang.AssertionError: Q12 requires guarded headless TEST. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q12-actual-native-running-effect-and-buff-reload - java.lang.AssertionError: Q12 Buff requires guarded headless TEST. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q12-actual-native-zone-damage - java.lang.AssertionError: Q12 requires guarded headless TEST. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q12-actual-native-zone-effect - java.lang.AssertionError: Q12 requires guarded headless TEST. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[PASS] m1-native-lifecycle.Q15-actual-native-early-load-owner-without-lifecycle-monitor
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=9 passed=5 failed=4

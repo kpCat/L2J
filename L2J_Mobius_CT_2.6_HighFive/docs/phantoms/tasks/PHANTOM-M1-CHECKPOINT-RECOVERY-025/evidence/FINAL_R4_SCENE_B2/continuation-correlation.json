@@ -1,0 +1,74 @@
+{
+  "source": "READ_ONLY_NATIVE_CENSUS",
+  "finalSceneClaim": false,
+  "rows": [
+    {
+      "profileId": "363",
+      "epoch": "147018005296800",
+      "completedAt": 0,
+      "rewardsAfterCompleted": 36,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "424",
+      "epoch": "147018903367400",
+      "completedAt": 44.9662405,
+      "rewardsAfterCompleted": 5,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "450",
+      "epoch": "147019407373700",
+      "completedAt": 0,
+      "rewardsAfterCompleted": 25,
+      "firstCauses": [
+        "Canonical Player is in an unsupported background context. firstPredicate=combat"
+      ],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "459",
+      "epoch": "147020007914300",
+      "completedAt": 0,
+      "rewardsAfterCompleted": 35,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "633",
+      "epoch": "147019402814300",
+      "completedAt": 0,
+      "rewardsAfterCompleted": 36,
+      "firstCauses": [
+        "Canonical Player is in an unsupported background context. firstPredicate=combat"
+      ],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "759",
+      "epoch": "147020003663500",
+      "completedAt": 18.1089763,
+      "rewardsAfterCompleted": 8,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "963",
+      "epoch": "147020427322300",
+      "completedAt": 22.5877522,
+      "rewardsAfterCompleted": 41,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "994",
+      "epoch": "147018502082300",
+      "completedAt": 4.5709595,
+      "rewardsAfterCompleted": 18,
+      "firstCauses": [],
+      "orphanSealed": false
+    }
+  ]
+}

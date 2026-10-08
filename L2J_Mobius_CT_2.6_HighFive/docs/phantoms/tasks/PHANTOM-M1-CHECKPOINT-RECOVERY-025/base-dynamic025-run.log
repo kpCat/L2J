@@ -1,0 +1,12 @@
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 3:16:06 AM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[FAIL] m1-native-lifecycle.Q12-dynamic-native-recipient-open-false - java.lang.AssertionError: Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q12-dynamic-native-recipient-open-true - java.lang.AssertionError: Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q12-dynamic-native-recipient-ordinary-false - java.lang.AssertionError: Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q12-dynamic-native-recipient-ordinary-true - java.lang.AssertionError: Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q12-dynamic-native-recipient-sealed-false - java.lang.AssertionError: Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+[FAIL] m1-native-lifecycle.Q12-dynamic-native-recipient-sealed-true - java.lang.AssertionError: Dynamic recipient fixture requires its already validated exact database lane. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=6 passed=0 failed=6

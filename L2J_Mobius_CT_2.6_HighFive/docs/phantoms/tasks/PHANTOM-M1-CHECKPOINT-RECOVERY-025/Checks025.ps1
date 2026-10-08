@@ -4,6 +4,11 @@ param([string]$Suite='PhantomCheckpointRecovery025Suite',[string]$Focus='', [Val
 $ErrorActionPreference='Stop'
 $taskRoot025=$PSScriptRoot
 $module025=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
+if(-not $ResetFixture){
+    $laneOption025=Join-Path $module025 '.phantom-local/contract025b/secrets/client.cnf'
+    $laneActive025=& 'C:/Program Files/MariaDB 11.4/bin/mariadb.exe' "--defaults-extra-file=$laneOption025" --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE DB='l2jmobiush5_localplay_contract025b'"
+    if($LASTEXITCODE -ne 0 -or "$laneActive025".Trim() -cne '0'){throw 'Own test lane is already in use; focused routes must run sequentially.'}
+}
 if($ResetFixture){
     $private025=Join-Path $module025 '.phantom-local/contract025b'
     $snapshot025=Join-Path $private025 'play-snapshot.sql'
@@ -28,6 +33,7 @@ $body025=$body025.Replace('$PSScriptRoot','$taskRoot025').Replace('contract024a'
 $body025=$body025.Replace('819e3cea5baa64e6c429e450c8fc296874e37d1c','07df36dd7c75e7fcf9d61aee38a6a1dbbf4f09b6')
 if($LauncherId){
     if($LauncherId -notin @('population-ecology-goal033','population-ecology-handoff-regression','live003-admission')){throw 'Named regression route required.'}
-    $body025=$body025.Replace('else{$args023+=@("org.l2jmobius.tests.phantoms.$Suite",$module,$reports023)}', 'else{$args023+=@("org.l2jmobius.tests.phantoms.PhantomTestLauncher",$LauncherId,"25002503")}')
+    $launcherSeed025=if($LauncherId -ceq 'live003-admission'){'30030002'}else{'33003300'}
+    $body025=$body025.Replace('else{$args023+=@("org.l2jmobius.tests.phantoms.$Suite",$module,$reports023)}', 'else{$args023+=@("org.l2jmobius.tests.phantoms.PhantomTestLauncher",$LauncherId,$launcherSeed025)}')
 }
 & ([scriptblock]::Create($body025)) -Suite $Suite -Focus $Focus -Engine $Engine -Label $Label

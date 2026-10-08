@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="9" passed="5" failures="4">
+  <properties>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract025b"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="m1.Q05.interleavings" value="iterations=1000 nativeBodies=500 elapsedNanos=61493700"/>
+    <property name="m1.Q07.INLINE.group" value="writes=1 outstanding=0 failure=NONE"/>
+    <property name="m1.Q07.INLINE.periodic" value="writes=1 outstanding=0 failure=NONE"/>
+    <property name="m1.Q07.INLINE.single" value="writes=1 outstanding=0 failure=NONE"/>
+    <property name="m1.Q07.NORMAL.group" value="writes=1 outstanding=0 failure=NONE"/>
+    <property name="m1.Q07.NORMAL.periodic" value="writes=1 outstanding=0 failure=NONE"/>
+    <property name="m1.Q07.NORMAL.single" value="writes=1 outstanding=0 failure=NONE"/>
+    <property name="m1.Q07.NULL.group" value="writes=0 outstanding=0 failure=NullPointerException"/>
+    <property name="m1.Q07.NULL.periodic" value="writes=0 outstanding=0 failure=IllegalStateException"/>
+    <property name="m1.Q07.NULL.single" value="writes=0 outstanding=0 failure=NullPointerException"/>
+    <property name="m1.Q07.SHUTDOWN.group" value="writes=0 outstanding=0 failure=RejectedExecutionException"/>
+    <property name="m1.Q07.SHUTDOWN.periodic" value="writes=0 outstanding=0 failure=RejectedExecutionException"/>
+    <property name="m1.Q07.SHUTDOWN.single" value="writes=0 outstanding=0 failure=RejectedExecutionException"/>
+    <property name="m1.Q07.THROW.group" value="writes=0 outstanding=0 failure=IllegalStateException"/>
+    <property name="m1.Q07.THROW.periodic" value="writes=0 outstanding=0 failure=IllegalStateException"/>
+    <property name="m1.Q07.THROW.single" value="writes=0 outstanding=0 failure=IllegalStateException"/>
+    <property name="m1.Q08.native" value="sameObjectId=268435465 distinctPlayer=true oldWrites=0 realWrites=1 oldOutstanding=0 realOwner=REAL_LOGIN"/>
+    <property name="m1.Q11.false" value="nativeWriter=true primary=IllegalStateException secondary=AssertionError outstanding=0 pending=0"/>
+    <property name="m1.Q11.true" value="nativeWriter=true primary=AssertionError secondary=IllegalStateException outstanding=0 pending=0"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q05-actual-native-1000-owner-start-cancel-interleavings" elapsedNanos="83138800"></testcase>
+  <testcase name="m1-native-lifecycle.Q07-actual-native-scheduler-faults-and-ordinary-control" elapsedNanos="105286900"></testcase>
+  <testcase name="m1-native-lifecycle.Q08-actual-native-old-queued-and-new-REAL-identity" elapsedNanos="262440700"></testcase>
+  <testcase name="m1-native-lifecycle.Q11-actual-native-timer-preserves-primary-and-secondary" elapsedNanos="10924400"></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-buff-expiry" elapsedNanos="104064000"><failure type="java.lang.AssertionError" message="Q12 requires guarded headless TEST. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-running-effect-and-buff-reload" elapsedNanos="25831000"><failure type="java.lang.AssertionError" message="Q12 Buff requires guarded headless TEST. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-zone-damage" elapsedNanos="20070300"><failure type="java.lang.AssertionError" message="Q12 requires guarded headless TEST. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q12-actual-native-zone-effect" elapsedNanos="20556600"><failure type="java.lang.AssertionError" message="Q12 requires guarded headless TEST. Expected &lt;l2jmobiush5_phantom_test&gt; but was &lt;l2jmobiush5_localplay_contract025b&gt;." seed="15001501"/></testcase>
+  <testcase name="m1-native-lifecycle.Q15-actual-native-early-load-owner-without-lifecycle-monitor" elapsedNanos="20900700"></testcase>
+</testsuite>

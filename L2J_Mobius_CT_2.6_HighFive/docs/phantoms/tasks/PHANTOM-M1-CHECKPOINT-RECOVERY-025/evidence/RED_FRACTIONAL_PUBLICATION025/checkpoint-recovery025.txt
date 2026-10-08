@@ -1,0 +1,20 @@
+suite=checkpoint-recovery025
+seed=25002501
+total=7
+passed=6
+failed=1
+measurement.headless.database=l2jmobiush5_localplay_contract025b
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS checkpoint-recovery025.R01-cold-pending-before-baseline elapsedNanos=1562554400
+PASS checkpoint-recovery025.R07-exact-failed-baseline-recovery elapsedNanos=1377395400
+PASS checkpoint-recovery025.R09-native-combat-capture-defers-before-write elapsedNanos=131041600
+PASS checkpoint-recovery025.R11-inventory-flush-without-receipt-stays-fenced elapsedNanos=43712500
+PASS checkpoint-recovery025.R12-prepared-receipt-control-resume elapsedNanos=58034700
+PASS checkpoint-recovery025.R13-native-receipt-finalize-once elapsedNanos=51543500
+FAIL checkpoint-recovery025.R14-finalized-publication-without-new-store elapsedNanos=49274400 type=java.lang.AssertionError message=Exact control continuation: CheckpointResult[outcome=TERMINAL_RETAIN, phase=INDEX_PENDING, reason=java.lang.IllegalStateException:TASK025_INDEX_PUBLICATION] Expected <RESUME> but was <TERMINAL_RETAIN>. seed=25002501

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="checkpoint-recovery025" seed="25002501" tests="8" passed="7" failures="1">
+  <properties>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract025b"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="checkpoint-recovery025.R01-cold-pending-before-baseline" elapsedNanos="1566573900"></testcase>
+  <testcase name="checkpoint-recovery025.R07-exact-failed-baseline-recovery" elapsedNanos="1466048600"></testcase>
+  <testcase name="checkpoint-recovery025.R09-native-combat-capture-defers-before-write" elapsedNanos="127661200"></testcase>
+  <testcase name="checkpoint-recovery025.R11-inventory-flush-without-receipt-stays-fenced" elapsedNanos="50371400"></testcase>
+  <testcase name="checkpoint-recovery025.R12-prepared-receipt-control-resume" elapsedNanos="52627200"></testcase>
+  <testcase name="checkpoint-recovery025.R13-native-receipt-finalize-once" elapsedNanos="48534000"></testcase>
+  <testcase name="checkpoint-recovery025.R14-finalized-publication-without-new-store" elapsedNanos="51545000"></testcase>
+  <testcase name="checkpoint-recovery025.R15-proven-no-write-stale-goal-replans" elapsedNanos="42431900"><failure type="java.lang.AssertionError" message="Completed no-write old request must permit bounded new-plan admission." seed="25002501"/></testcase>
+</testsuite>

@@ -1,0 +1,62 @@
+{
+  "source": "READ_ONLY_NATIVE_CENSUS",
+  "finalSceneClaim": false,
+  "rows": [
+    {
+      "profileId": "175",
+      "epoch": "140366924834300",
+      "completedAt": null,
+      "rewardsAfterCompleted": 0,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "275",
+      "epoch": "140366937374700",
+      "completedAt": 0,
+      "rewardsAfterCompleted": 21,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "294",
+      "epoch": "140366952951100",
+      "completedAt": 0,
+      "rewardsAfterCompleted": 10,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "876",
+      "epoch": "140367952364900",
+      "completedAt": 28.7327032,
+      "rewardsAfterCompleted": 2,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "924",
+      "epoch": "140367419190800",
+      "completedAt": null,
+      "rewardsAfterCompleted": 0,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "994",
+      "epoch": "140367117092600",
+      "completedAt": 38.3520542,
+      "rewardsAfterCompleted": 1,
+      "firstCauses": [],
+      "orphanSealed": false
+    },
+    {
+      "profileId": "1159",
+      "epoch": "140367216886300",
+      "completedAt": 38.3520542,
+      "rewardsAfterCompleted": 1,
+      "firstCauses": [],
+      "orphanSealed": false
+    }
+  ]
+}

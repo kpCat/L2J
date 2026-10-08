@@ -1,0 +1,3 @@
+Exception in thread "main" com.sun.tools.attach.AgentInitializationException: Agent JAR loaded but agent failed to initialize
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.loadAgent(HotSpotVirtualMachine.java:186)
+	at AttachContract024.main(AttachContract024.java:9)

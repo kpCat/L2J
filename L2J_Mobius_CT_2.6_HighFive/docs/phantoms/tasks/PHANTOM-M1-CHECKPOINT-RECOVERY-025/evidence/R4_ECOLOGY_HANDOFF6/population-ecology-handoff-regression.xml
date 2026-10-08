@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="population-ecology-goal033" seed="33003300" tests="6" passed="6" failures="0">
+  <properties>
+    <property name="goal033.backgroundDueMinutes" value="10"/>
+    <property name="goal033.periodicContinuation" value="271"/>
+    <property name="goal033.periodicCrashRecovery" value="before_save,after_save"/>
+    <property name="goal033.periodicMaterializedBoundary" value="10_awarded,5_materialized_no_award,10_resumed"/>
+    <property name="goal033.restoredReadinessCreated" value="5"/>
+    <property name="goal033.staleAuthorityRenewal" value="same_request,10_minutes_once"/>
+  </properties>
+  <testcase name="population-ecology-goal033.12-background-due-reconciles-elapsed-cursor-once" elapsedNanos="30051200"></testcase>
+  <testcase name="population-ecology-goal033.13-periodic-due-crash-before-and-after-durable-commit" elapsedNanos="2610400"></testcase>
+  <testcase name="population-ecology-goal033.14-periodic-cursor-materialized-boundary-and-resume" elapsedNanos="1296400"></testcase>
+  <testcase name="population-ecology-goal033.15-stale-authority-renews-current-request" elapsedNanos="1281400"></testcase>
+  <testcase name="population-ecology-goal033.16-incomplete-periodic-due-continues-under-pulse-budgets" elapsedNanos="6445400"></testcase>
+  <testcase name="population-ecology-goal033.17-restored-inventory-readiness-starts-bounded-target-creation" elapsedNanos="16473400"></testcase>
+</testsuite>

@@ -1,0 +1,12 @@
+окт. 08, 2026 12:59:19 AM org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival <init>
+INFO: SevenSignsFestival: Initialization bypassed due to Seal Validation in effect.
+окт. 08, 2026 12:59:22 AM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 08, 2026 12:59:22 AM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] checkpoint-recovery025.R01-cold-pending-before-baseline
+[PASS] checkpoint-recovery025.R07-exact-failed-baseline-recovery
+[FAIL] checkpoint-recovery025.R09-native-combat-capture-defers-before-write - java.lang.AssertionError: Stock combat guard precondition. seed=25002501
+SUMMARY: suite=checkpoint-recovery025 seed=25002501 total=3 passed=2 failed=1

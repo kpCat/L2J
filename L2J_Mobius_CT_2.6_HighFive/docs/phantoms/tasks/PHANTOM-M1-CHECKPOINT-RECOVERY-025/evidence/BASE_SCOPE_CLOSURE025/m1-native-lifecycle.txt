@@ -1,0 +1,42 @@
+suite=m1-native-lifecycle
+seed=15001501
+total=9
+passed=5
+failed=4
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.headless.database=l2jmobiush5_localplay_contract025b
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.Q05.interleavings=iterations=1000 nativeBodies=500 elapsedNanos=59063600
+measurement.m1.Q07.INLINE.group=writes=1 outstanding=0 failure=NONE
+measurement.m1.Q07.INLINE.periodic=writes=1 outstanding=0 failure=NONE
+measurement.m1.Q07.INLINE.single=writes=1 outstanding=0 failure=NONE
+measurement.m1.Q07.NORMAL.group=writes=1 outstanding=0 failure=NONE
+measurement.m1.Q07.NORMAL.periodic=writes=1 outstanding=0 failure=NONE
+measurement.m1.Q07.NORMAL.single=writes=1 outstanding=0 failure=NONE
+measurement.m1.Q07.NULL.group=writes=0 outstanding=0 failure=NullPointerException
+measurement.m1.Q07.NULL.periodic=writes=0 outstanding=0 failure=IllegalStateException
+measurement.m1.Q07.NULL.single=writes=0 outstanding=0 failure=NullPointerException
+measurement.m1.Q07.SHUTDOWN.group=writes=0 outstanding=0 failure=RejectedExecutionException
+measurement.m1.Q07.SHUTDOWN.periodic=writes=0 outstanding=0 failure=RejectedExecutionException
+measurement.m1.Q07.SHUTDOWN.single=writes=0 outstanding=0 failure=RejectedExecutionException
+measurement.m1.Q07.THROW.group=writes=0 outstanding=0 failure=IllegalStateException
+measurement.m1.Q07.THROW.periodic=writes=0 outstanding=0 failure=IllegalStateException
+measurement.m1.Q07.THROW.single=writes=0 outstanding=0 failure=IllegalStateException
+measurement.m1.Q08.native=sameObjectId=268435465 distinctPlayer=true oldWrites=0 realWrites=1 oldOutstanding=0 realOwner=REAL_LOGIN
+measurement.m1.Q11.false=nativeWriter=true primary=IllegalStateException secondary=AssertionError outstanding=0 pending=0
+measurement.m1.Q11.true=nativeWriter=true primary=AssertionError secondary=IllegalStateException outstanding=0 pending=0
+PASS m1-native-lifecycle.Q05-actual-native-1000-owner-start-cancel-interleavings elapsedNanos=78432800
+PASS m1-native-lifecycle.Q07-actual-native-scheduler-faults-and-ordinary-control elapsedNanos=101343200
+PASS m1-native-lifecycle.Q08-actual-native-old-queued-and-new-REAL-identity elapsedNanos=269314500
+PASS m1-native-lifecycle.Q11-actual-native-timer-preserves-primary-and-secondary elapsedNanos=10521200
+FAIL m1-native-lifecycle.Q12-actual-native-buff-expiry elapsedNanos=90361500 type=java.lang.AssertionError message=Q12 requires guarded headless TEST. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+FAIL m1-native-lifecycle.Q12-actual-native-running-effect-and-buff-reload elapsedNanos=20155200 type=java.lang.AssertionError message=Q12 Buff requires guarded headless TEST. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+FAIL m1-native-lifecycle.Q12-actual-native-zone-damage elapsedNanos=18423200 type=java.lang.AssertionError message=Q12 requires guarded headless TEST. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+FAIL m1-native-lifecycle.Q12-actual-native-zone-effect elapsedNanos=19488200 type=java.lang.AssertionError message=Q12 requires guarded headless TEST. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_localplay_contract025b>. seed=15001501
+PASS m1-native-lifecycle.Q15-actual-native-early-load-owner-without-lifecycle-monitor elapsedNanos=24667100

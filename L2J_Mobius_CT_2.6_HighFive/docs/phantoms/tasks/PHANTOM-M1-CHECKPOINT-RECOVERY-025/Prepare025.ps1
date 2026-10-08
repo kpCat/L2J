@@ -1,11 +1,13 @@
 [CmdletBinding()]
-param([ValidateSet('a','b','c','d','e','f','g','h')][string]$Episode='a')
+param([ValidateSet('a','b','c','d','e','f','g','h')][string]$Episode='a',[switch]$FromRetained)
 $ErrorActionPreference='Stop'
 $taskRoot025=$PSScriptRoot
 $module025=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $oldModule025='C:/Users/ZBook/.codex/worktrees/m1-contracts-024/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive'
-$source025=if($Episode -ceq 'a'){Join-Path $oldModule025 '.phantom-local/contract024c/runtime'}else{'C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/artifacts/local-play/runtime'}
-$sourceDb025=if($Episode -ceq 'a'){'l2jmobiush5_localplay_contract024c'}else{'l2jmobiush5_localplay3'}
+if($FromRetained -and $Episode -cne 'h'){throw 'Additional fresh retained clone is bounded to own025h.'}
+$retained025=$Episode -ceq 'a' -or $FromRetained
+$source025=if($retained025){Join-Path $oldModule025 '.phantom-local/contract024c/runtime'}else{'C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/artifacts/local-play/runtime'}
+$sourceDb025=if($retained025){'l2jmobiush5_localplay_contract024c'}else{'l2jmobiush5_localplay3'}
 $script025=[IO.File]::ReadAllText((Join-Path $module025 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/Prepare-Runtime024.ps1'))
 $script025=$script025.Replace('$PSScriptRoot','$taskRoot025').Replace('contract024','contract025')
 $script025=$script025.Replace("'C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/artifacts/local-play/runtime'",("'"+$source025+"'"))

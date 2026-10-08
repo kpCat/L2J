@@ -1,0 +1,19 @@
+// REVIEWED DESIGN SHAPE, not an apply-ready product patch. Existing API is reused.
+// Surround this with recoverAbandonedMaterialization's existing transition, profile,
+// BACKGROUND lease, no live/retained/World/autosave gates; reread inside the ownership.
+final var loaded = transaction(() -> _transactions.load(profileId));
+if (!loaded.successful() || loaded.state() == null) { /* existing rejected result */ }
+final var state = loaded.state();
+if (state.state() == State.VERIFY_PENDING)
+{
+    final var resolved = transaction(() -> _transactions.reconcileVerifyPending(profileId, characterObjectId));
+    // Reject neither/stale; reload, do not assume READY solely from successful flag.
+    // If result state is MATERIALIZED but still no owner, complete existing abandoned
+    // transition under same identity exclusion, then reload again.
+}
+else if (state.state() == State.MATERIALIZED)
+{
+    final var resolved = transaction(() -> _transactions.abortMaterialization(profileId, characterObjectId));
+}
+// After exact receipt completion, refresh dependent historical state. NEVER complete
+// catchup intervals or copy diagnostic EXP into characters to satisfy baseline.

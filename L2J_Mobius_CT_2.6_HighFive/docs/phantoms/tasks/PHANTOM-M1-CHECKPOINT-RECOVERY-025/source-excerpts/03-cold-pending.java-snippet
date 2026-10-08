@@ -1,0 +1,21 @@
+// Source base07df36d, PhantomHistoricalBackgroundService.ensureBaseline()
+if (existingBackground.isPresent() && (existingBackground.get().state() == PhantomBackgroundState.State.VERIFY_PENDING) && (current.state().status() == Status.PENDING) && (current.state().goalId() > 0) && (storedGoal != null) && (storedGoal.goal().goalId() == current.state().goalId()) && (storedGoal.goal().revision() == current.state().goalRevision()) && _materialization.find(profileId).filter(owner -> owner.playerRetained() && owner.identityLeaseRetained() && !owner.actionAdmissionOpen()).isPresent())
+{
+    final var cleaned = _materialization.retryCleanup(profileId);
+    if (cleaned.status() != ResultStatus.SUCCESS)
+    {
+        return Result.rejected(ResultStatusCode.RETRY, "catchup.baseline.cleanup_retry", current);
+    }
+    return ensureBaseline(profileId, _store.load(profileId).orElse(current));
+}
+// After a process crash the retained materialization condition cannot be satisfied.
+// Recovery must precede the later READY/DEAD baseline conflict, also from FAILED path.
+
+// Existing PhantomBackgroundTransaction.reconcileVerifyPending() starts with:
+final var ownedReceipt = lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE);
+if (ownedReceipt != null)
+{
+    final Result resolved = resolveOwnedStore(connection, component, ownedReceipt, profileId, characterObjectId, 0, true);
+    connection.commit(); return resolved;
+}
+// Reuse this exact durable resolver under the service ownership boundary.

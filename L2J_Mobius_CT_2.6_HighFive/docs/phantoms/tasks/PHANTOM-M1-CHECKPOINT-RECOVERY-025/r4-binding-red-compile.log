@@ -1,0 +1,40 @@
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomCheckpointDrain025Suite.java:50: error: cannot find symbol
+    [javac] 			final var signals = new org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignalPort()
+    [javac] 			                                                                  ^
+    [javac]   symbol:   class PhantomRelevanceSignalPort
+    [javac]   location: package org.l2jmobius.gameserver.phantoms.activity
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomCheckpointDrain025Suite.java:52: error: cannot find symbol
+    [javac] 				@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+    [javac] 				                 ^
+    [javac]   symbol: class SignalDelivery
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomCheckpointDrain025Suite.java:53: error: cannot find symbol
+    [javac] 				@Override public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+    [javac] 				                 ^
+    [javac]   symbol: class SignalDelivery
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomCheckpointDrain025Suite.java:52: error: method does not override or implement a method from a supertype
+    [javac] 				@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+    [javac] 				^
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomCheckpointDrain025Suite.java:52: error: cannot find symbol
+    [javac] 				@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+    [javac] 				                                                                                                                                   ^
+    [javac]   symbol: variable SignalDelivery
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomCheckpointDrain025Suite.java:53: error: method does not override or implement a method from a supertype
+    [javac] 				@Override public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+    [javac] 				^
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomCheckpointDrain025Suite.java:53: error: cannot find symbol
+    [javac] 				@Override public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+    [javac] 				                                                                                         ^
+    [javac]   symbol: variable SignalDelivery
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnduranceGoal029Checkpoint3Suite.java:897: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnvironmentGoal029Checkpoint2Suite.java:574: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] 7 errors
+    [javac] 2 warnings
+
+BUILD FAILED
+C:\Users\ZBook\.codex\worktrees\m1-checkpoint-025\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml:183: Compile failed; see the compiler error output for details.
+
+Total time: 19 seconds

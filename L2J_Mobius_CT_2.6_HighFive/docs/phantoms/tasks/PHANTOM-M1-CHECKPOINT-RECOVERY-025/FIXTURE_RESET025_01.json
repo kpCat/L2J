@@ -1,0 +1,8 @@
+{
+  "purpose": "DISPOSABLE_TEST_FIXTURE_RESET_NOT_PRODUCT_RECOVERY",
+  "database": "l2jmobiush5_localplay_contract025b",
+  "inputSha256": "2c306fe2cc7ca549bc914e778f4147a4db597b69f4e6df83ec9e7f176c55c580",
+  "backupSha256": "10777B83D3BD0B330135675226828ED5C9AA592339B554A5E7BEB0FBD9A582A0",
+  "backupPath": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-checkpoint-025\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract025b\\FIXTURE_RESET025_01-before.sql",
+  "activeConnectionsBefore": 0
+}
