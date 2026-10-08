@@ -6,7 +6,8 @@ param(
 	[hashtable] $Arguments = @{},
 	[ValidateRange(1, 120)][int] $TimeoutSeconds = 30,
 	[ValidatePattern('^[0-9a-fA-F-]{36}$')][string] $RunId,
-	[ValidateSet('RealClient', 'Synthetic')][string] $ActorMode = 'RealClient'
+	[ValidateSet('RealClient', 'Synthetic')][string] $ActorMode = 'RealClient',
+	[switch] $ExternalHeartbeat
 )
 
 $ErrorActionPreference = 'Stop'
@@ -16,11 +17,19 @@ Set-StrictMode -Version Latest
 $context = Get-PilotContext -RequireEnabled -ActorMode $ActorMode
 $lock = Enter-PilotOperatorLock $context
 $effectiveRunId = if ($RunId) { $RunId } else { [guid]::NewGuid().ToString('D') }
+if ($ExternalHeartbeat -and (($ActorMode -cne 'Synthetic') -or (-not $RunId))) { $lock.Dispose(); throw 'External heartbeat требует exact Synthetic RunId.' }
 try
 {
 	$session = Get-PilotSession $context
 	if ($session.ContainsKey('stoppedRunId') -and ($session.stoppedRunId -ceq $effectiveRunId)) { throw 'CANCELLED: pilot run уже остановлен.' }
-	Write-PilotHeartbeat $context ([string] $session.sessionId) $effectiveRunId
+	if ($ActorMode -ceq 'Synthetic' -and ($session.state -cne 'RUNNING')) { throw "SYNTHETIC_SESSION_CLOSED:$($session.reason)" }
+	if ($ExternalHeartbeat)
+	{
+		$heartbeat = Read-PilotProperties (Join-Path $context.PilotRoot 'heartbeat.properties')
+		$nowMillis = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+		if (($heartbeat.sessionId -cne $session.sessionId) -or ($heartbeat.runId -cne $effectiveRunId) -or ([long] $heartbeat.updatedUtcMillis -gt $nowMillis + 5000) -or ([long] $heartbeat.updatedUtcMillis -lt $nowMillis - 30000)) { throw 'External heartbeat identity/freshness mismatch.' }
+	}
+	else { Write-PilotHeartbeat $context ([string] $session.sessionId) $effectiveRunId }
 	$sequence = [long] $session.nextSequence
 	$requestId = [guid]::NewGuid().ToString('D')
 	$deadline = [DateTimeOffset]::UtcNow.AddSeconds($TimeoutSeconds)
@@ -66,7 +75,7 @@ try
 	$pollDeadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds + 2)
 	while ([DateTime]::UtcNow -lt $pollDeadline)
 	{
-		if (([DateTime]::UtcNow - $lastHeartbeat).TotalSeconds -ge 10)
+		if ((-not $ExternalHeartbeat) -and (([DateTime]::UtcNow - $lastHeartbeat).TotalSeconds -ge 10))
 		{
 			Write-PilotHeartbeat $context ([string] $session.sessionId) $effectiveRunId
 			$lastHeartbeat = [DateTime]::UtcNow
@@ -80,7 +89,7 @@ try
 		if (Test-Path -LiteralPath $resultPath)
 		{
 			$result = Read-PilotResult $resultPath
-			if (($result.requestId -cne $requestId) -or ($result.sessionId -cne $session.sessionId) -or ([long] $result.sequence -ne $sequence) -or ($result.operation -cne $Operation)) { throw 'Pilot result identity mismatch.' }
+			Assert-PilotResultIdentity $result $requestId ([string] $session.sessionId) $effectiveRunId $sequence $Operation
 			$result | ConvertTo-Json -Depth 8 -Compress
 			return
 		}
@@ -92,7 +101,7 @@ finally
 {
 	try
 	{
-		if (-not $RunId)
+		if ((-not $ExternalHeartbeat) -and (-not $RunId))
 		{
 			$heartbeatPath = Join-Path $context.PilotRoot 'heartbeat.properties'
 			if (Test-Path -LiteralPath $heartbeatPath)

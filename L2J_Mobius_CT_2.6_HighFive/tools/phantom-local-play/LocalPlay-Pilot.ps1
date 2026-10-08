@@ -179,6 +179,11 @@ function Write-PilotHeartbeat($Context, [string] $SessionId, [string] $RunId)
 	Write-PilotAtomicText (Join-Path $Context.PilotRoot 'heartbeat.properties') $record -Replace
 }
 
+function Assert-PilotResultIdentity($Result, [string] $RequestId, [string] $SessionId, [string] $RunId, [long] $Sequence, [string] $Operation)
+{
+	if (($Result.requestId -cne $RequestId) -or ($Result.sessionId -cne $SessionId) -or ($Result.runId -cne $RunId) -or ([long] $Result.sequence -ne $Sequence) -or ($Result.operation -cne $Operation)) { throw 'Pilot result identity mismatch.' }
+}
+
 function Enter-PilotOperatorLock($Context, [int] $TimeoutSeconds = 5)
 {
 	$path = Join-Path $Context.PilotRoot 'operator.lock'

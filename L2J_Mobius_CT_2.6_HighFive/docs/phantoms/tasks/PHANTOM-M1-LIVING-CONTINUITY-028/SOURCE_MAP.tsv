@@ -1,0 +1,26 @@
+mode	path	purpose
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	status transitions; exact existing adapter only
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	resource/target/session continuation after RED
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	specific local failure/retire action after RED
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	existing goal publication/rebind only; no transaction redesign
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	soft boundary dispatch/status only; checkpoint/death027 semantics protected
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java	finite retire intent after proven self-pin; hard holds preserved
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	exact locality/demand/retire binding after RED
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	existing binding and scalar diagnostics only; shutdown027 protected
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java	fixed expiry and proven claim/result/session fixes
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanSession.java	proven exact-session MOVE/read-only boundary only
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java	read-only bounded census or proven native move boundary
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotProtocol.java	bounded result publication/identity after own RED
+CONDITIONAL_MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlayPilotService.java	diagnostic stage/publication boundary only; no pool/consent redesign
+CONDITIONAL_MODIFY_TOOL	L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/Invoke-LocalPlayPilot.ps1	exact result runId and optional external heartbeat; backward compatible
+CONDITIONAL_MODIFY_TOOL	L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/LocalPlay-Pilot.ps1	bounded read-only result resolution helper if needed
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomContinuity028Suite.java	targeted native/contracts tests; no standalone green substituting server
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/LocalPlayContinuity028Suite.java	targeted native/contracts tests; no standalone green substituting server
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java	targeted native/contracts tests; no standalone green substituting server
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIFECYCLE-COMPLETION-027/**	accepted lifecycle and retained artifacts immutable
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/**	native mechanics/ownership/evidence unchanged
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/**	027 lifecycle unchanged
+READ	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	owned-store resolver unchanged
+WRITE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/**	task docs/evidence/explicit runners/one observer
+CONDITIONAL_MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/LocalPlayPilotSuite.java	LocalPlay backward compatibility; no gameplay gate weakening
+CONDITIONAL_MODIFY_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeContextHandoffSuite.java	exact new test fixture interoperability only; preserve all admission negatives

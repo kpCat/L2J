@@ -1,0 +1,147 @@
+{
+  "task": "PHANTOM-M1-LIVING-CONTINUITY-028",
+  "required_base": "9aeb4ac6c52970372f97637d26a5eb54c760ed1a",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model_requested": "GPT-6.1 Sol",
+  "reasoning": "Very High",
+  "execution": "new Codex chat; no subagents; unattended",
+  "maximum_wall_minutes": 360,
+  "first_runtime_by_minute": 90,
+  "semantic_freeze_minute": 270,
+  "legacy_evaluator_read_only": true,
+  "new_acceptance": "CONTINUITY_V2; explicit ACCEPTANCE_CHANGE.md; not retroactive",
+  "helper_tests_passed": 25,
+  "server_tested_here": false,
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "bytes": 2713,
+      "sha256": "2634a19bdc4879f8aafa2c19899643080df31d3463a94db88885aec71534cf7e"
+    },
+    {
+      "path": "ACCEPTANCE_CHANGE.md",
+      "bytes": 4129,
+      "sha256": "ee4c54a9a68c708996d3cbeafe8bf8632b2c01cab28b3a84d9b5b7fc550ae463"
+    },
+    {
+      "path": "DESIGN.md",
+      "bytes": 7773,
+      "sha256": "0c00a617475b61c1c769685c8ca51f6bda656fdaa22b5aef9d5c8cb4fe5ab019"
+    },
+    {
+      "path": "GOAL.md",
+      "bytes": 3471,
+      "sha256": "4c19903b923f4fd735709e80507b1d16c959738191eff6029c4d28c78f01b8aa"
+    },
+    {
+      "path": "GOAL_MESSAGE.txt",
+      "bytes": 3492,
+      "sha256": "f9ce0a88ea6443989d960cc86268d82b83e4c1a4027ea035d74c4c9add17adf4"
+    },
+    {
+      "path": "HANDOFF.md",
+      "bytes": 948,
+      "sha256": "2c6928e237fd48be4fb4f950e4f47821e35d79a2e42eb304de36f56e2d7084b6"
+    },
+    {
+      "path": "MILESTONE_STATUS.md",
+      "bytes": 1148,
+      "sha256": "d84209783c6d92e3f238e600a2ffc4ae4953b4e0974b4ea388e4c3e9896f4b13"
+    },
+    {
+      "path": "MODEL.md",
+      "bytes": 114,
+      "sha256": "3a6b05c893c516ff45cbf9fb093ef8cf24abf3c40760a04d062e043f35b680b8"
+    },
+    {
+      "path": "PACKAGE_CHECKS.md",
+      "bytes": 939,
+      "sha256": "4a7087fb32084cae7e8a89833a1d23efa014c2d64db0b0862770cc1e3cd7328c"
+    },
+    {
+      "path": "PATCH_GUIDE.md",
+      "bytes": 4720,
+      "sha256": "0a0026fb823c80ff781dcbe96eadf5ab9e47019f10e7ccf8fc220d82da9c0805"
+    },
+    {
+      "path": "PLAN.md",
+      "bytes": 5340,
+      "sha256": "d33dc2f2db65d1fa979097fe7c41501ce219c8b1df39125b6af88b19e3021c8d"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1791,
+      "sha256": "d43f8c7d8c86a7268e24e863ec846a7a3707f5ed525f4d1ea5b915aa41932b6e"
+    },
+    {
+      "path": "REGRESSION_POLICY.md",
+      "bytes": 1495,
+      "sha256": "b3ee98fabc22445ac481578550f8d3c74e9810cc7f8b460d56d5c955178c7929"
+    },
+    {
+      "path": "RESULT_TEMPLATE.md",
+      "bytes": 1339,
+      "sha256": "77f511a06a39f58a787c205069bef35927aa1540b089de0323ac3029e0841520"
+    },
+    {
+      "path": "ROOT_CAUSES.md",
+      "bytes": 4700,
+      "sha256": "62354365938c8bd4547a8e459949fb308071c3e44d165f7394ed37958784a785"
+    },
+    {
+      "path": "RUNBOOK.md",
+      "bytes": 4203,
+      "sha256": "e3e2ed3dcfc6ef72685d84abc6e5c875eb33c3b9171eb30f34ac605d433d50c2"
+    },
+    {
+      "path": "SCENARIOS.md",
+      "bytes": 4918,
+      "sha256": "eb4b87974acac88196cf4d0c8717cd429f716d1ff98821632a419f747d82f064"
+    },
+    {
+      "path": "SOURCE_EXCERPTS.md",
+      "bytes": 1886,
+      "sha256": "0dd1a486a7518fb4c204fc142105f6d6c196f166e5ab75751b47fc3da3cb28fa"
+    },
+    {
+      "path": "SOURCE_MAP.tsv",
+      "bytes": 4247,
+      "sha256": "b1dc0d71e0401d231c94d107392c70d4d6ac82a064ee10975028c979252ef69e"
+    },
+    {
+      "path": "SOURCE_REVIEW.tsv",
+      "bytes": 2531,
+      "sha256": "bde0db5f7502a8483d81c58e422c23f7002cc5c715fb18f60f5ed41018e1bd3e"
+    },
+    {
+      "path": "STATE_MACHINE.md",
+      "bytes": 3704,
+      "sha256": "68b21103991463a70078fa804b01dec9a2fd979c9a592ad965e79895593db0b7"
+    },
+    {
+      "path": "TASK.md",
+      "bytes": 6348,
+      "sha256": "b82b3700c8040848b75f9ab973545ad8337435104d6062177efd7b0b37afec29"
+    },
+    {
+      "path": "proposals/README.md",
+      "bytes": 1419,
+      "sha256": "3b83386e2b546ef9667a4f1229803dada0437d3d1d0ed54b6b3dab0204e1ad03"
+    },
+    {
+      "path": "proposals/mailbox_audit.py",
+      "bytes": 7902,
+      "sha256": "e19ed2390f0a4e328715e512bfe4d1c33c9a3fbbd82149afb55a1b64be79af11"
+    },
+    {
+      "path": "proposals/test_tools028.py",
+      "bytes": 6445,
+      "sha256": "f42ec197f9f445c554f019c0ecf6ae628943673c9ba5c324cf13943681266782"
+    },
+    {
+      "path": "proposals/window_budget.py",
+      "bytes": 2192,
+      "sha256": "f647491a9baa1ff321387490278e4675e83e556f4be6c8cde485f566b1b4ec3b"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+# GOAL028
+
+Required base:
+9aeb4ac6c52970372f97637d26a5eb54c760ed1a
+Branch: experiment/m1-candidate007-observe008
+
+GPT-6.1 Sol, reasoning Very High. Новый диалог, без субагентов.
+Одобряю ограниченные TASK/DESIGN/PLAN/SOURCE_MAP/ACCEPTANCE_CHANGE этого пакета.
+Автономно до6часов, максимум360мин wall-clock. Без «в игре», «вышел» и arm.
+
+Сохраняем lifecycle027. Используем существующие DecisionEngine/VisibleFarmTravel/
+VisibleAutoPlay, не пишем второго controller/scheduler/combat engine.
+Цель028: две полные natural continuity-сцены и native уход/background/возврат/фарм.
+
+Сначала точная диагностика двух UNCERTAIN027, bounded transport fixes и
+control/telemetry separation. После enrollment не делать mailbox census на каждый
+sample при уже работающем FullObserve. Один heartbeat writer;525sTTL/30s watchdog/
+400sequence guards неизменны. Metadata expires не продлевает lifetime.
+Никакого replay неизвестного MOVE. ACCEPTED не равно ARRIVED.
+
+При доказанном behavior defect: собственный RED и минимальное исправление внутри
+разрешённого slice. Несколько связанных fixes разрешены; первый in-scope subreason
+не требует нового TASK. Полезный прогресс не заменять reason/счётчиком решений.
+Не reset ownership/overflow, не выдумывать награды и не менять nativeXYZ на anchor.
+
+Первый full-server proof до90мин; semantic freeze270мин; последние90мин приёмка.
+Own isolated worktree:
+C:\Users\ZBook\.codex\worktrees\m1-continuity-028\L2J_Mobius
+Свободный suffix/detached exact base разрешены. Main/foreign/kpCat не трогать.
+PLAY и old clones только READ/export. Own contract028a..h разрешены по TASK/RUNBOOK.
+Existing Synthetic observer, stock NPC и полный GameServer; не fake REAL_LOGIN.
+
+Приёмка CONTINUITY_V2 утверждена до запуска: natural4..8, все исходные участники
+учитываются, два primaries заранее, реальные cycles/EXP/SP, bounded rest/recovery,
+законченные state transitions. Legacy evaluator026/027 НЕ менять; его score отдельно.
+Никакого уменьшения уже enrolled denominator и склейки epochs.
+
+Same-SHA две сцены360–420с; отдельный native soft-return с final post-return cycles.
+Whole-group SEALED→SQL, два sameDB restart, healthy shutdown027 до pools.
+Scoped own process start/stop и emergency policy TASK разрешены; чужие PID не трогать.
+
+Exact-path commit + normal push обязательны при любом исходе.
+Один RESULT/HANDOFF/MORNING, свои JVM STOPPED.
+STOP_AUTHORITY=TASK028_CONTRACT. M1=OPEN; максимум WAITING_FINAL_CLIENT только после
+всех server gates. REAL_FINAL без пользователя не объявлять. Следующую задачу не начинать.
+
+Читать README→TASK→ROOT_CAUSES→DESIGN→ACCEPTANCE_CHANGE→PLAN.

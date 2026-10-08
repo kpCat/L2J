@@ -30,8 +30,10 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 	private String _runId;
 	private long _sequence;
 	private long _deadlineNanos;
+	private long _expiresUtcMillis;
 	private String _state = "OFF";
 	private String _reason = "NOT_STARTED";
+	private String _heartbeatReason = "NOT_READ";
 
 	LocalPlaySyntheticHumanService(Path runtime, String runtimeId, long pid, long startTicks, BooleanSupplier owned, BooleanSupplier startGuard)
 	{
@@ -61,7 +63,10 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 			else { close(); throw new IllegalStateException("SYNTHETIC_CONTROL_COMMAND"); }
 		}
 		if (_session == null) { return; }
-		if (!LocalPlayPilotService.mailboxSafe(_mailbox) || !_session.valid() || (System.nanoTime() >= _deadlineNanos) || !heartbeatCurrent()) { _reason = "SYNTHETIC_WATCHDOG_OR_IDENTITY"; close(); return; }
+		if (!LocalPlayPilotService.mailboxSafe(_mailbox)) { _reason = "SYNTHETIC_MAILBOX_SAFETY"; close(); return; }
+		if (!_session.valid()) { _reason = "SYNTHETIC_IDENTITY"; close(); return; }
+		if (System.nanoTime() >= _deadlineNanos) { _reason = "SYNTHETIC_TTL"; close(); return; }
+		if (!heartbeatCurrent()) { _reason = "SYNTHETIC_HEARTBEAT:" + _heartbeatReason; close(); return; }
 		final java.util.List<Path> pending;
 		try (Stream<Path> files = Files.list(_mailbox.resolve("inbox")))
 		{
@@ -76,7 +81,7 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 		final long expires = Long.parseLong(control.getProperty("expiresUtcMillis", "0"));
 		final long now = System.currentTimeMillis();
 		if ((_session != null) || _started.contains(runId) || (_started.size() >= 5)) { _reason = "SYNTHETIC_ACTIVE_REPLAY_OR_RUN_CAP"; writeState(); return; }
-		_runId = runId; _mailbox = _root.resolve(runId); _sequence = 1;
+		_runId = runId; _mailbox = _root.resolve(runId); _sequence = 1; _expiresUtcMillis = 0;
 		if (!_startGuard.getAsBoolean() || (expires <= now) || (expires > now + 60000) || !LocalPlayPilotService.mailboxSafe(_mailbox)) { _state = "REJECTED"; _reason = "SYNTHETIC_START_GUARD"; writeState(); return; }
 		_started.add(runId);
 		_session = new LocalPlaySyntheticHumanSession(LocalPlayPilotConfig.syntheticObjectId(), LocalPlayPilotConfig.syntheticName());
@@ -84,6 +89,7 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 		{
 			_session.start();
 			_deadlineNanos = System.nanoTime() + 525_000_000_000L;
+			_expiresUtcMillis = System.currentTimeMillis() + 525000;
 			_state = "RUNNING"; _reason = "SYNTHETIC_NATIVE_PLAYER_STARTED";
 			writeState();
 		}
@@ -98,12 +104,15 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 		try
 		{
 			final Path file = _mailbox.resolve("heartbeat.properties");
-			if (!LocalPlayPilotService.privateAcl(file)) { return false; }
+			if (!LocalPlayPilotService.privateAcl(file)) { _heartbeatReason = "ACL_OR_ABSENT"; return false; }
 			final Properties value = LocalPlayPilotService.readProperties(file);
 			final long stamp = Long.parseLong(value.getProperty("updatedUtcMillis", "0"));
-			return "1".equals(value.getProperty("version")) && _runId.equals(value.getProperty("sessionId")) && _runId.equals(value.getProperty("runId")) && (stamp <= System.currentTimeMillis() + 5000) && (stamp >= System.currentTimeMillis() - 30000);
+			if (!"1".equals(value.getProperty("version")) || !_runId.equals(value.getProperty("sessionId")) || !_runId.equals(value.getProperty("runId"))) { _heartbeatReason = "IDENTITY"; return false; }
+			final long now = System.currentTimeMillis();
+			_heartbeatReason = "STAMP_AGE_MILLIS=" + (now - stamp);
+			return (stamp <= now + 5000) && (stamp >= now - 30000);
 		}
-		catch (Exception exception) { return false; }
+		catch (Exception exception) { _heartbeatReason = "READ_FAILURE:" + exception.getClass().getSimpleName() + ":" + exception.getMessage(); return false; }
 	}
 
 	private void process(Path file) throws Exception
@@ -141,7 +150,7 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 		state.setProperty("pid", Long.toString(_pid)); state.setProperty("startTimeUtcTicks", Long.toString(_startTicks));
 		state.setProperty("state", _state); state.setProperty("reason", _reason);
 		state.setProperty("objectId", Integer.toString(LocalPlayPilotConfig.syntheticObjectId()));
-		state.setProperty("nextSequence", Long.toString(_sequence)); state.setProperty("expiresUtcMillis", Long.toString(System.currentTimeMillis() + 600000));
+		state.setProperty("nextSequence", Long.toString(_sequence)); state.setProperty("expiresUtcMillis", Long.toString(_expiresUtcMillis));
 		state.setProperty("actorMode", "SYNTHETIC");
 		LocalPlayPilotService.writeProperties(_root.resolve("session.properties"), state);
 		if ((_mailbox != null) && LocalPlayPilotService.safeDirectory(_mailbox) && LocalPlayPilotService.privateAcl(_mailbox)) { LocalPlayPilotService.writeProperties(_mailbox.resolve("session.properties"), state); }
