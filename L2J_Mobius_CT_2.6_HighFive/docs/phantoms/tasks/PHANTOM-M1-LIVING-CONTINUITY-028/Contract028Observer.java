@@ -285,6 +285,9 @@ public final class Contract028Observer
             final var lastSeen = lastHuman.get(profile);
             row.put("lastHumanNanos", Long.toString(lastSeen == null ? 0 : lastSeen));
             row.put("recentHumanAgeSeconds", Double.toString(lastSeen == null ? -1 : (now - lastSeen) / 1_000_000_000.0));
+            row.put("humanLocal", Boolean.toString(locality.isLocal(profile)));
+            row.put("nativeVisible", Boolean.toString(locality.isNativeVisible(profile)));
+            row.put("xyzSource", object instanceof Player ? "WORLD_CURRENT" : retained != null ? "RETAINED_OLD_PLAYER" : "ABSENT");
             row.put("observerPrewarm", Boolean.toString(observerPoint != null && locality.canPrewarmAt(profile, observerPoint)));
             row.put("observerNativeVisible", Boolean.toString(player != null && observerPoint != null && org.l2jmobius.gameserver.phantoms.topology.PhantomNativeLocalityEnvelope.couldKnow(observerPoint, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))));
             row.put("initialEpoch", Long.toString(initial.getValue()));

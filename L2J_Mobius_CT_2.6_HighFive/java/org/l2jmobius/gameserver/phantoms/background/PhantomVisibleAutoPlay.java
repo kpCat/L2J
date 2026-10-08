@@ -50,6 +50,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	private final PhantomMaterializationService _materialization;
 	private final Supplier<PhantomDecisionEngine> _decision;
 	private final LongPredicate _permitsOrdinary;
+	private final LongPredicate _permitsNewRoots;
 	private final Map<Long, Session> _sessions = new ConcurrentHashMap<>();
 	private final LongSupplier _clock;
 	private final Object[] _sessionOwners = java.util.stream.IntStream.range(0, 64).mapToObj(_ -> new Object()).toArray();
@@ -61,9 +62,15 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 
 	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary, LongSupplier clock)
 	{
+		this(materialization, decision, permitsOrdinary, _ -> true, clock);
+	}
+
+	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary, LongPredicate permitsNewRoots, LongSupplier clock)
+	{
 		_materialization = Objects.requireNonNull(materialization, "materialization");
 		_decision = Objects.requireNonNull(decision, "decision");
 		_permitsOrdinary = Objects.requireNonNull(permitsOrdinary, "permitsOrdinary");
+		_permitsNewRoots = Objects.requireNonNull(permitsNewRoots, "permitsNewRoots");
 		_clock = Objects.requireNonNull(clock);
 	}
 
@@ -103,6 +110,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					if ((_sessions.get(profileId) == previous) && previous._current.get()) { return true; }
 				}
 			}
+			if (!_permitsNewRoots.test(profileId)) { return false; }
 			configure(player);
 			final PhantomPolicy policy = new Policy(player, profileId, goal.goalId(), goal.revision(), spec.npcId());
 			final Session session = new Session(player, goal.goalId(), goal.revision(), policy, snapshot.materializedAtNanos(), _clock.getAsLong(), previous);
@@ -186,6 +194,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	/** Target availability and flags cannot erase independently witnessed useful farm debt. */
 	public boolean noTargetExpired(long profileId, PhantomGoal goal)
 	{
+		// Retirement waits for earned native completion; it must not launch another repair or local replan.
+		if (!_permitsNewRoots.test(profileId)) { return false; }
 		final Session session = _sessions.get(profileId);
 		if ((session == null) || (session.goalId() != goal.goalId()) || (session.revision() != goal.revision()))
 		{
@@ -451,6 +461,11 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			final TickLease lease = acquire(player);
 			if (lease != null)
 			{
+				if (!_permitsNewRoots.test(_profileId))
+				{
+					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "locality_retire_paused"));
+					return new TickAdmission(TickStatus.PAUSED, null, "locality_retire");
+				}
 				final Session session = _sessions.get(_profileId);
 				if (session != null && session._policy == this && resourcePause(session, player))
 				{

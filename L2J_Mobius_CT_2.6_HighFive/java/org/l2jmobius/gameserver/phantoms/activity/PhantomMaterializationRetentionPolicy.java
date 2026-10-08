@@ -105,6 +105,13 @@ public final class PhantomMaterializationRetentionPolicy
 		return new Hold(reasons, lastHuman == null ? 0 : lastHuman, facts.humanLocal());
 	}
 
+	/** Existing work retains its hard hold, but cannot itself renew permission for another ordinary root. */
+	public boolean permitsNewActions(long profileId)
+	{
+		final Hold hold = observe(profileId);
+		return hold.humanLocal() || hold.reasons().contains(Reason.NATIVE_VISIBLE) || hold.reasons().contains(Reason.REAL_PARTY) || hold.reasons().contains(Reason.RECENT_HUMAN);
+	}
+
 	public void refresh(List<Long> materializedProfiles)
 	{
 		final Set<Long> live = Set.copyOf(materializedProfiles);

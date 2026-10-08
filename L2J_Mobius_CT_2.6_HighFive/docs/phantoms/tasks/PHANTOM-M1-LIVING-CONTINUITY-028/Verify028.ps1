@@ -1,13 +1,41 @@
 [CmdletBinding()]
-param([ValidateSet('Build','Test','Matrix','Helpers')][string]$Action='Build',
+param([ValidateSet('Build','Test','Matrix','Helpers','Evaluate')][string]$Action='Build',
       [string]$Suite='LocalPlayContinuity028Suite',[string]$Focus='',
-      [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Label='R1', [string]$LauncherId='')
+      [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Label='R1', [string]$LauncherId='', [string]$EpisodeOutput='')
 $ErrorActionPreference='Stop'
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $root=Split-Path $module -Parent
 $ops=Join-Path $module '.phantom-local/ops028'
 $lane=Join-Path $module '.phantom-local/contract028a'
 $jdk='C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin'
+if($Action -ceq 'Evaluate'){
+    $allowed=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'evidence'))+[IO.Path]::DirectorySeparatorChar
+    $EpisodeOutput=[IO.Path]::GetFullPath($EpisodeOutput)
+    if(-not $EpisodeOutput.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase)){throw 'Exact own captured episode required.'}
+    & python (Join-Path $PSScriptRoot 'proposals/continuity028.py') $EpisodeOutput --output (Join-Path $EpisodeOutput 'continuity-v2.json') *> (Join-Path $EpisodeOutput 'continuity-evaluation.log')
+    if($LASTEXITCODE -ne 0){throw 'Continuity evaluator input invalid.'}
+    $samples=@(Get-Content (Join-Path $EpisodeOutput 'all-samples.json') -Raw | ConvertFrom-Json)
+    $baseline=@(Get-Content (Join-Path $EpisodeOutput 'baseline-cohort.json') -Raw | ConvertFrom-Json)
+    $primary=@(Get-Content (Join-Path $EpisodeOutput 'primary.json') -Raw | ConvertFrom-Json)
+    if(Test-Path (Join-Path $EpisodeOutput 'legacy-result.json')){throw 'Immutable legacy result exists.'}
+    if($baseline.Count -ne 8){
+        @{contract='LEGACY_STRICT_FARM';count=$baseline.Count;verdict='NOT_APPLICABLE_COUNT';pass=$false} | ConvertTo-Json | Set-Content (Join-Path $EpisodeOutput 'legacy-result.json') -Encoding utf8
+        return
+    }
+    $watch=[pscustomobject]@{Elapsed=[pscustomobject]@{TotalSeconds=[double]$samples[-1].elapsedSeconds}}
+    $final=@($samples[-1].actors)
+    # Exact evaluator extraction and the two existing027 full-observe guards; no thresholds are changed.
+    $source=Join-Path $module 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/Observe-Scene024.ps1'
+    $text=[IO.File]::ReadAllText($source); $start=$text.IndexOf('    $tail=@($samples'); $end=$text.IndexOf('    $rows | ConvertTo-Json',$start)
+    if($start -lt 0 -or $end -le $start){throw 'Legacy evaluator source shape changed.'}
+    $legacy=$text.Substring($start,$end-$start)
+    $legacy=$legacy.Replace('if($seen.Count -ne 1){$missing++; continue}', 'if($seen.Count -ne 1 -or $seen[0].missing -ceq ''true'' -or $seen[0].worldPresent -cne ''true''){$missing++; continue}')
+    $legacy=$legacy.Replace('$pass=$same -and $missing -eq 0', '$pass=$same -and $last[0].dead -ceq ''false'' -and $last[0].worldPresent -ceq ''true'' -and $missing -eq 0')
+    . ([scriptblock]::Create($legacy))
+    $rows | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $EpisodeOutput 'legacy-cohort-result.json') -Encoding utf8
+    @{contract='LEGACY_STRICT_FARM';sourceSha256=(Get-FileHash $source).Hash;count=8;passingRows=@($rows | Where-Object pass).Count;pass=(@($rows | Where-Object {-not $_.pass}).Count -eq 0)} | ConvertTo-Json | Set-Content (Join-Path $EpisodeOutput 'legacy-result.json') -Encoding utf8
+    return
+}
 if($Action -ceq 'Helpers'){
     & python -m unittest discover -s (Join-Path $PSScriptRoot 'proposals') -p test_tools028.py -v
     exit $LASTEXITCODE

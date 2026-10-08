@@ -56,7 +56,7 @@ function Discover028{
 }
 function ReadFrame028{
     $frame=Get-Content -LiteralPath (Join-Path $fullRoot 'full-frame-latest.json') -Raw | ConvertFrom-Json
-    if($frame.observer.runId -cne $run -or $frame.observer.sessionState -cne 'RUNNING' -or -not $frame.observer.present -or [int]$frame.observer.objectId -ne 268492939){throw 'Native observer identity lost; episode ends.'}
+    if($frame.observer.runId -cne $run -or $frame.observer.sessionState -cne 'RUNNING' -or -not $frame.observer.present -or -not $frame.observer.online -or $frame.observer.dead -or [int]$frame.observer.objectId -ne 268492939){throw 'Native observer identity lost; episode ends.'}
     return $frame
 }
 function WaitArrival028([hashtable]$Point){
@@ -141,12 +141,14 @@ try{
     $sequenceBefore=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
     $observation=[Diagnostics.Stopwatch]::StartNew(); $lastNanos=[long]$first.sampleNanos; $maxGap=0.0; $unique=0; $lastFresh=0.0
     $samples=[Collections.Generic.List[object]]::new()
+    $samples.Add([pscustomobject]@{elapsedSeconds=0.0;sampleNanos=$first.sampleNanos;observer=$first.observer;actors=$first.actors})
     while($observation.Elapsed.TotalSeconds -lt $Seconds){
         if($watch.Elapsed.TotalSeconds -gt 480){throw 'Episode budget480s exhausted; TTL not extended.'}
         if($heartbeatJob.State -ceq 'Failed'){throw 'Heartbeat writer failed.'}
         $session=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
         if($session.state -cne 'RUNNING'){throw "NATIVE_SESSION_CLOSED:$($session.reason)"}
         $frame=ReadFrame028
+        if($Mode -ceq 'Scene' -and ($frame.observer.moving -or $frame.observer.x -ne $first.observer.x -or $frame.observer.y -ne $first.observer.y -or $frame.observer.z -ne $first.observer.z -or $frame.observer.instance -ne $first.observer.instance)){throw 'STATIONARY_OBSERVER_CHANGED: frozen native scene ends.'}
         if([long]$frame.sampleNanos -gt $lastNanos){
             $gap=([long]$frame.sampleNanos-$lastNanos)/1e9; $maxGap=[Math]::Max($maxGap,$gap)
             if($gap -gt 5){throw "TELEMETRY_GAP:$gap"}

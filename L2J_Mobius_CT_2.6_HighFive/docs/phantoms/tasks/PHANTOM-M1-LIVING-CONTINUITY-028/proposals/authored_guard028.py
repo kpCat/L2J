@@ -13,9 +13,13 @@ files = [p for p in TASK.iterdir() if p.is_file()]
 files += [p for p in (TASK / 'proposals').iterdir() if p.suffix == '.py']
 files += [MODULE / p for p in (
     'java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java',
+    'java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java',
+    'java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java',
+    'java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java',
     'tools/phantom-local-play/Invoke-LocalPlayPilot.ps1',
     'tools/phantom-local-play/LocalPlay-Pilot.ps1',
-    'test/java/org/l2jmobius/tests/phantoms/LocalPlayContinuity028Suite.java')]
+    'test/java/org/l2jmobius/tests/phantoms/LocalPlayContinuity028Suite.java',
+    'test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java')]
 bad_mojibake, bad_escaped = [], []
 for path in files:
     text = path.read_text(encoding='utf-8-sig', errors='strict')
