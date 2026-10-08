@@ -86,6 +86,58 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		_background = Objects.requireNonNull(background, "background");
 		_materialization = Objects.requireNonNull(materialization, "materialization");
 		_visibleClock = Objects.requireNonNull(visibleClock);
+		_background.bindNativeRecoveryHistory(this);
+	}
+
+	/** Immutable exact admission captured before native cleanup removes the foreground owner. */
+	static final class NativeRecoveryHandoff
+	{
+		private final long profileId, epoch;
+		private final Admission admission;
+		private NativeRecoveryHandoff(long profileId, long epoch, Admission admission)
+		{
+			this.profileId = profileId; this.epoch = epoch; this.admission = admission;
+		}
+	}
+
+	NativeRecoveryHandoff captureNativeRecoveryHandoff(long profileId, PhantomGoal expectedGoal, int objectId, long epoch)
+	{
+		final var handoff = _foregroundHandoffs.get(profileId);
+		final var goal = _goals.load(profileId).orElse(null);
+		return (handoff != null) && (handoff.materializedAtNanos() == epoch) && (handoff.admission().characterObjectId() == objectId)
+			&& (goal != null) && goal.goal().equals(expectedGoal) && exactForegroundHandoff(profileId, handoff)
+			? new NativeRecoveryHandoff(profileId, epoch, handoff.admission()) : null;
+	}
+
+	PhantomMaterializationService.MaterializeResult materializeColdNativeRecovery(long profileId, PhantomGoal expectedGoal)
+	{
+		final var claim = _store.load(profileId).orElse(null);
+		if ((claim == null) || !claim.state().blocksNormalOperation()) { return _materialization.materialize(profileId); }
+		final var goal = _goals.load(profileId).orElse(null);
+		final var state = _background.acquisitionSnapshot(profileId).orElse(null);
+		if (_foregroundDecisionsRevoked || _materialization.find(profileId).isPresent() || (state == null) || (state.state() != PhantomBackgroundState.State.DEAD)
+			|| (state.identity().profileId() != profileId) || (goal == null) || !goal.goal().equals(expectedGoal)
+			|| (claim.state().goalId() != expectedGoal.goalId()) || (claim.state().goalRevision() != expectedGoal.revision()) || !currentClaim(profileId, claim))
+		{
+			return new PhantomMaterializationService.MaterializeResult(ResultStatus.CATCHUP_FENCED, null);
+		}
+		// Existing native admission rechecks the exact claim/goal at load and store; NORMAL remains fenced.
+		return _materialization.materialize(profileId, MaterializationPurpose.NATIVE_CONTEXT_HANDOFF, claim.state().requestId());
+	}
+
+	PhantomMaterializationService.MaterializeResult resumeNativeRecoveryHandoff(NativeRecoveryHandoff captured, int objectId, long epoch)
+	{
+		final var admission = captured.admission;
+		final var state = _background.acquisitionSnapshot(captured.profileId).orElse(null);
+		if (_foregroundDecisionsRevoked || (captured.epoch != epoch) || (admission.characterObjectId() != objectId)
+			|| _materialization.find(captured.profileId).isPresent() || (state == null) || (state.state() != PhantomBackgroundState.State.READY)
+			|| (state.identity().characterObjectId() != objectId) || !currentClaim(captured.profileId, admission.catchup())
+			|| !Objects.equals(admission.claim(), _profiles.findComponent(captured.profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null))
+			|| !Objects.equals(admission.goal(), _profiles.findComponent(captured.profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null)))
+		{
+			return new PhantomMaterializationService.MaterializeResult(ResultStatus.CATCHUP_FENCED, null);
+		}
+		return _materialization.materialize(captured.profileId, MaterializationPurpose.NATIVE_CONTEXT_HANDOFF, admission.ownerClaim());
 	}
 
 	/** Dynamic failures expire; they never alter the canonical topology or farm intention. */

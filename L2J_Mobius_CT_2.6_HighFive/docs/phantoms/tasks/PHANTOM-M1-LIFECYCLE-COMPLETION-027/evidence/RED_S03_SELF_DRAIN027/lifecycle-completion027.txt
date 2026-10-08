@@ -1,0 +1,15 @@
+suite=lifecycle-completion027
+seed=27002701
+total=1
+passed=0
+failed=1
+measurement.S03.request=result=OperationResult[status=INCONSISTENT, reason=recovery.store_failed, encounters=0, elapsedMillis=0, dead=false];elapsed=20492600;owner=epoch=209385468930200 state=OPEN outstanding=1 pendingTimers=2 peak=4 failure= eventDispatch=[] work=[11:EFFECT_ICONS:RESERVED:depth=2:ageMs=175]
+measurement.headless.database=l2jmobiush5_localplay_contract027a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL lifecycle-completion027.S03-native-recovery-control-does-not-drain-own-callback elapsedNanos=603159700 type=java.lang.AssertionError message=RED S03: native callback must publish recovery control and return without draining itself. seed=27002701

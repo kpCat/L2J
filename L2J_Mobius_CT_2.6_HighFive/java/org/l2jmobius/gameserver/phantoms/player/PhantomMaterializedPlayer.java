@@ -613,6 +613,8 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		return (_nativeWork == null) || _nativeWork.beginTerminalDrain();
 	}
 
+	boolean terminalCleanupReady() { return (_nativeWork == null) || _nativeWork.terminalCleanupReady(); }
+
 	private void closeActionAdmissionAndDrain(long deadlineNanos)
 	{
 		synchronized (_actionMonitor)

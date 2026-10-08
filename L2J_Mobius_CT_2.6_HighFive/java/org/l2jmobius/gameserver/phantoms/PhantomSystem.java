@@ -1005,7 +1005,14 @@ public final class PhantomSystem
 			_stopProgress = new StopProgress(StopPhase.CLOSE_PRODUCERS, StopOutcome.PENDING, "closing", System.nanoTime() + 10_000_000_000L);
 			_state = State.STOPPING;
 		}
-		if (_stopProgress.outcome() != StopOutcome.PENDING) { return _stopProgress.outcome() == StopOutcome.COMPLETE; }
+		if (_stopProgress.outcome() == StopOutcome.FAILED)
+		{
+			// Later cleanup may release retained entries; this failed attempt never becomes healthy.
+			if (!_shutdownFailureForTesting && !unsafeStopWait(this) && backgroundReadyForMaterializationShutdown()
+				&& ((_materializationService == null) || _materializationService.failedCleanupReady())) { shutdownLegacyFailureCleanup(); }
+			return false;
+		}
+		if (_stopProgress.outcome() == StopOutcome.COMPLETE) { return false; }
 		if (System.nanoTime() >= _stopProgress.deadlineNanos()) { return failStop("deadline:" + _stopProgress.blocker()); }
 		try
 		{
@@ -1064,9 +1071,11 @@ public final class PhantomSystem
 				if ((_combatService != null) && !_combatService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "combat:" + _combatService.snapshot()); }
 				if ((_commerceService != null) && !_commerceService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "commerce"); }
 				if ((_populationManager != null) && !_populationManager.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "population:" + _populationManager.snapshot()); }
+				if ((_ordinaryDeathRecovery != null) && !_ordinaryDeathRecovery.snapshot().firstFailure().isEmpty()) { return failStop("ordinary_death:" + _ordinaryDeathRecovery.snapshot()); }
 				if ((_ordinaryDeathRecovery != null) && !_ordinaryDeathRecovery.drained()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "ordinary_death:" + _ordinaryDeathRecovery.snapshot()); }
 				if (_backgroundService != null)
 				{
+					if (!_backgroundService.firstRecoveryFailure().isEmpty()) { return failStop("background.recovery:" + _backgroundService.firstRecoveryFailure()); }
 					if (_backgroundService.snapshot().state() == PhantomBackgroundService.ServiceState.FAILED) { return failStop("background.failed:" + _backgroundService.snapshot()); }
 					final var background = _backgroundService.materializationQuiescence();
 					if (!background.ready()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "background:" + background); }
@@ -1078,8 +1087,8 @@ public final class PhantomSystem
 				if (_materializationService != null)
 				{
 					final var result = _materializationService.requestShutdown(_stopProgress.deadlineNanos());
-					if (result.state() == ServiceState.FAILED) { return failStop("materialization:" + result.failedProfileIds()); }
-					if (result.state() != ServiceState.STOPPED) { return pendingStop(StopPhase.DRAIN_PLAYERS, "materialization:" + result.failedProfileIds()); }
+					if (result.state() == ServiceState.FAILED) { return failStop("materialization:" + _materializationService.cleanupBlockers()); }
+					if (result.state() != ServiceState.STOPPED) { return pendingStop(StopPhase.DRAIN_PLAYERS, "materialization:" + _materializationService.cleanupBlockers()); }
 				}
 				pendingStop(StopPhase.FINISH_DEPENDENCIES, "dependencies");
 			}
@@ -1113,6 +1122,7 @@ public final class PhantomSystem
 
 	private boolean failStop(String reason)
 	{
+		if ((_stopProgress.phase() == StopPhase.DRAIN_PLAYERS) && (_materializationService != null)) { _materializationService.retainFailedShutdown(); }
 		_stopProgress = new StopProgress(_stopProgress.phase(), StopOutcome.FAILED, reason, _stopProgress.deadlineNanos());
 		_metrics.recordShutdownFailure(); _state = State.FAILED;
 		return false;

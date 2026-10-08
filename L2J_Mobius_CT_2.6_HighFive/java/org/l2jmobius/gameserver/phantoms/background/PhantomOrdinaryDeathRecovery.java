@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
@@ -23,6 +25,7 @@ import org.l2jmobius.gameserver.model.events.listeners.AbstractEventListener;
 import org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 
@@ -39,6 +42,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 	private final AtomicInteger _runningReconciliations = new AtomicInteger();
 	private final AtomicInteger _acceptedReconciliations = new AtomicInteger();
 	private volatile boolean _closing;
+	private final AtomicReference<String> _firstFailure = new AtomicReference<>("");
 	private volatile AbstractEventListener _listener;
 	private ScheduledFuture<?> _pulse;
 
@@ -49,7 +53,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 
 	public PhantomOrdinaryDeathRecovery(PhantomMaterializationService materialization, PhantomGoalStateStore goals, PhantomBackgroundService background, LongSupplier clock)
 	{
-		this(materialization, goals, background, clock, ThreadPool::execute);
+		this(materialization, goals, background, clock, ThreadPool::executeOrThrow);
 	}
 
 	public PhantomOrdinaryDeathRecovery(PhantomMaterializationService materialization, PhantomGoalStateStore goals, PhantomBackgroundService background, LongSupplier clock, Consumer<Runnable> reconcile)
@@ -92,7 +96,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 				_deaths.compute(snapshot.profileId(), (key, previous) ->
 				{
 					if ((previous != null) && (previous.observation() != null)) { previous.observation().retire(); }
-					return new Death(snapshot.characterObjectId(), _clock.getAsLong(), new AtomicBoolean(), new AtomicBoolean(), nativeDeath);
+					return new Death(snapshot.characterObjectId(), _clock.getAsLong(), new AtomicBoolean(), new AtomicBoolean(), nativeDeath, new AtomicLong(), new AtomicReference<>());
 				});
 			}
 		});
@@ -171,6 +175,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 		if (death.reconciliation().compareAndSet(false, true))
 		{
 			_acceptedReconciliations.incrementAndGet();
+			death.deadline().set(System.nanoTime() + 10_000_000_000L);
 			try
 			{
 				_reconcile.accept(() -> reconcile(profileId, death));
@@ -179,6 +184,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			{
 				death.reconciliation().set(false);
 				_acceptedReconciliations.decrementAndGet();
+				_firstFailure.compareAndSet("", "death.control_submission:" + exception.getClass().getName() + ":" + exception.getMessage());
 				throw exception;
 			}
 		}
@@ -187,24 +193,45 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 	private void reconcile(long profileId, Death death)
 	{
 		_runningReconciliations.incrementAndGet();
+		boolean pending = false;
 		try
 		{
 			if (_deaths.get(profileId) != death) { return; }
-			final var goal = _goals.load(profileId).orElse(null);
+			if (death.goal().get() == null) { _goals.load(profileId).ifPresent(value -> death.goal().compareAndSet(null, value.goal())); }
+			final var goal = death.goal().get();
 			final var result = goal == null ? null : _closing
-				? _background.recoverAcceptedForStop(profileId, goal.goal(), death.characterObjectId(), death.observation() == null ? 0 : death.observation().epoch)
-				: _background.recover(profileId, goal.goal(), PhantomActivityState.ACTIVE);
+				? _background.recoverAcceptedForStop(profileId, goal, death.characterObjectId(), death.observation() == null ? 0 : death.observation().epoch)
+				: _background.requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false);
 			if ((result != null) && (result.status() == PhantomBackgroundService.OperationStatus.SUCCESS))
 			{
 				forget(profileId, death);
 			}
+			else if ((result != null) && (result.status() == PhantomBackgroundService.OperationStatus.RETRY) && (System.nanoTime() < death.deadline().get()))
+			{
+				final var future = ThreadPool.schedule(() ->
+				{
+					try { _reconcile.accept(() -> reconcile(profileId, death)); }
+					catch (RuntimeException failure) { failReconciliation(death, "death.control_submission:" + failure.getClass().getName() + ":" + failure.getMessage()); }
+				}, 10);
+				pending = future != null;
+				if (!pending) { _firstFailure.compareAndSet("", "death.control_scheduler_rejected"); }
+			}
+			else { _firstFailure.compareAndSet("", "death.control_terminal:profile=" + profileId + ":" + result); }
+		}
+		catch (RuntimeException failure)
+		{
+			_firstFailure.compareAndSet("", "death.control_failure:" + failure.getClass().getName() + ":" + failure.getMessage());
 		}
 		finally
 		{
-			death.reconciliation().set(false);
 			_runningReconciliations.decrementAndGet();
-			_acceptedReconciliations.decrementAndGet();
+			if (!pending && death.reconciliation().compareAndSet(true, false)) { _acceptedReconciliations.decrementAndGet(); }
 		}
+	}
+	private void failReconciliation(Death death, String reason)
+	{
+		_firstFailure.compareAndSet("", reason);
+		if (death.reconciliation().compareAndSet(true, false)) { _acceptedReconciliations.decrementAndGet(); }
 	}
 
 	public boolean drained()
@@ -212,8 +239,8 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 		return _acceptedReconciliations.get() == 0;
 	}
 
-	public record Snapshot(boolean closing, int acceptedReconciliations, int runningReconciliations, int observedDeaths) { }
-	public Snapshot snapshot() { return new Snapshot(_closing, _acceptedReconciliations.get(), _runningReconciliations.get(), _deaths.size()); }
+	public record Snapshot(boolean closing, int acceptedReconciliations, int runningReconciliations, int observedDeaths, String firstFailure) { }
+	public Snapshot snapshot() { return new Snapshot(_closing, _acceptedReconciliations.get(), _runningReconciliations.get(), _deaths.size(), _firstFailure.get()); }
 
 	@Override
 	public synchronized void close()
@@ -276,7 +303,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 		}
 	}
 	
-	private record Death(int characterObjectId, long atNanos, AtomicBoolean nativeRecovery, AtomicBoolean reconciliation, NativeDeath observation)
+	private record Death(int characterObjectId, long atNanos, AtomicBoolean nativeRecovery, AtomicBoolean reconciliation, NativeDeath observation, AtomicLong deadline, AtomicReference<PhantomGoal> goal)
 	{
 	}
 }

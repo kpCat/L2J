@@ -1,0 +1,4 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+DB_LOGOUT_CONFIRMED l2jmobiush5_localplay_contract027b 268492939	TestAdmin	0	12	138026	13880	44131	42673	-3488
+STOCK_GRACEFUL_STOP_CONFIRMED role=GameServer pid=26600
+STOCK_GRACEFUL_STOP_CONFIRMED role=LoginServer pid=30764

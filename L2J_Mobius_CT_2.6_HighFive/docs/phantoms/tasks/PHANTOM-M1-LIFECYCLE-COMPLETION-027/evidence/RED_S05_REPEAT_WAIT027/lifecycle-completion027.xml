@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="lifecycle-completion027" seed="27002701" tests="2" passed="0" failures="2">
+  <properties>
+    <property name="S05.deadline" value="firstElapsed=10005766600;repeatElapsed=851200;first=StopProgress[phase=DRAIN_PLAYERS, outcome=FAILED, blocker=deadline:materialization:count=1:owners=[10024/268435465/210701228851100/ACTIVE/NONE/actions=1/failure=], deadlineNanos=210713855055800];after=StopProgress[phase=DRAIN_PLAYERS, outcome=FAILED, blocker=deadline:materialization:count=1:owners=[10024/268435465/210701228851100/ACTIVE/NONE/actions=1/failure=], deadlineNanos=210713855055800];owner=epoch=210701228851100 state=DRAINING outstanding=1 pendingTimers=0 peak=4 failure= eventDispatch=[12:EVENT:ON_ATTACKABLE_KILL:RUNNING:epoch=210701228851100:reserve=210701354236900:submit=210701354306500:executorEntered=210703854430900:start=210703854440600:bodyExit=0:bodyOutcome=NOT_ENTERED:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=-10008] work=[12:EVENT:ON_ATTACKABLE_KILL:RUNNING:depth=1:ageMs=12510]"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract027a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="lifecycle-completion027.S05-single-deadline-retains-original-running-native-callback" elapsedNanos="13264889100"><failure type="java.lang.AssertionError" message="Owned materialization stop. Expected &lt;STOPPED&gt; but was &lt;STOPPING&gt;." seed="27002701"/></testcase>
+  <testcase name="lifecycle-completion027.after-all" elapsedNanos="0"><failure type="java.lang.IllegalStateException" message="NATIVE_CHECKPOINT_ADMISSION_CLOSED" seed="27002701"/></testcase>
+</testsuite>

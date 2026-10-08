@@ -148,6 +148,13 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		registry.add("08-configured-stop-awaits-original-ecology-worker-finally", this::testEcologyDrain);
 	}
 
+	/** Single control advance permits the fixture to release its accepted store/pulse next. */
+	private static boolean requestConfiguredStop() throws Exception
+	{
+		final var field = PhantomSystem.class.getDeclaredField("_configuredInstance"); field.setAccessible(true);
+		return ((PhantomSystem) field.get(null)).shutdown();
+	}
+
 	private void testEcologyDrain(PhantomTestContext context) throws Exception
 	{
 		reset();
@@ -308,7 +315,7 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		try
 		{
 			final long started = System.nanoTime();
-			PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "Blocked first server shutdown unexpectedly completed.");
+			PhantomAssertions.assertFalse(requestConfiguredStop(), "Blocked stop advance unexpectedly completed.");
 			final long elapsed = System.nanoTime() - started;
 			context.record("serverShutdownHandoff.blockedFirstElapsedNanos", elapsed);
 			PhantomAssertions.assertTrue(elapsed < TimeUnit.SECONDS.toNanos(1), "First server shutdown exceeded its wall-clock gate: " + elapsed);
@@ -378,14 +385,14 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(0, retained.topologyRegisteredProfiles(), "Persistent service failure topology discovered profiles.");
 			PhantomAssertions.assertEquals(0, retained.topologyEventsInFlight(), "Persistent service failure topology created events.");
 			PhantomAssertions.assertTrue(PhantomSystem.isMaterializationManaged(managed), "Persistent failure lost fail-closed ownership.");
-			PhantomAssertions.assertEquals(4, cleanupInvocations.get(), "Two server opportunities did not preserve the accepted two-pass service contract.");
+			PhantomAssertions.assertEquals(3, cleanupInvocations.get(), "One original control attempt plus exact legacy two-pass failure cleanup must remain bounded.");
 		}
 		finally
 		{
 			fault.set(false);
 		}
 
-		PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted(), "Explicit teardown cleanup did not stop the retained configured instance.");
+		PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "Failure cleanup must not turn the original FAILED stop into healthy COMPLETE.");
 		PhantomAssertions.assertFalse(PhantomSystem.hasConfiguredInstance(), "Explicit teardown cleanup retained the configured instance.");
 		PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPED, scheduler.snapshot().state(), "Successful explicit teardown did not finish the scheduler.");
 		PhantomAssertions.assertEquals(0, scheduler.snapshot().registered(), "Successful explicit teardown retained scheduler slots.");
@@ -435,10 +442,10 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(workEntered.await(2, TimeUnit.SECONDS), "In-flight shutdown pulse did not enter the work sink.");
 		try
 		{
-			PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "PhantomSystem reported STOPPED while its scheduler pulse was in flight.");
+			PhantomAssertions.assertFalse(requestConfiguredStop(), "PhantomSystem reported STOPPED while its scheduler pulse was in flight.");
 			final ConfiguredShutdownSnapshot retained = PhantomSystem.configuredShutdownSnapshot();
 			PhantomAssertions.assertTrue(retained.configured(), "In-flight scheduler pulse cleared the configured instance.");
-			PhantomAssertions.assertEquals(PhantomSystem.State.FAILED, retained.systemState(), "In-flight scheduler pulse did not retain FAILED system state.");
+			PhantomAssertions.assertEquals(PhantomSystem.State.STOPPING, retained.systemState(), "Accepted scheduler work must retain PENDING stop state.");
 			PhantomAssertions.assertEquals(PhantomScheduler.SchedulerState.STOPPING, scheduler.snapshot().state(), "In-flight scheduler pulse did not retain STOPPING.");
 			PhantomAssertions.assertTrue(scheduler.snapshot().pulseInFlight(), "In-flight scheduler pulse marker was cleared by failed finishStop.");
 			PhantomAssertions.assertEquals(1, scheduler.snapshot().registered(), "Failed finishStop cleared scheduler slots.");
@@ -535,10 +542,10 @@ public final class PhantomServerShutdownHandoffSuite implements PhantomTestSuite
 
 		try
 		{
-			PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "Navigation-only blocker was reported as stopped.");
+			PhantomAssertions.assertFalse(requestConfiguredStop(), "Navigation-only blocker was reported as stopped.");
 			final ConfiguredShutdownSnapshot snapshot = PhantomSystem.configuredShutdownSnapshot();
 			PhantomAssertions.assertTrue(snapshot.configured(), "Navigation-only blocker cleared configured ownership.");
-			PhantomAssertions.assertEquals(PhantomSystem.State.FAILED, snapshot.systemState(), "Navigation-only blocker lost FAILED system state.");
+			PhantomAssertions.assertEquals(PhantomSystem.State.STOPPING, snapshot.systemState(), "Accepted navigation work must retain PENDING stop state.");
 			PhantomAssertions.assertEquals(ServiceState.STOPPED, snapshot.materializationServiceState(), "Navigation-only blocker left materialization incomplete.");
 			PhantomAssertions.assertEquals(0, snapshot.retainedMaterializationEntries(), "Navigation-only blocker retained materialization entries.");
 			PhantomAssertions.assertEquals(PhantomNavigationService.ServiceState.STOPPING, snapshot.navigationState(), "Navigation-only blocker lost navigation STOPPING state.");

@@ -1,0 +1,30 @@
+Buildfile: C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml
+
+checkRequirements:
+
+init:
+   [delete] Deleting directory C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\build\bin
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\build\bin
+
+compile:
+    [javac] Compiling 2312 source files to C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\build\bin
+
+init-test:
+   [delete] Deleting directory C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\build\phantom-test
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\build\phantom-test\bin
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\build\phantom-test\resources
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\build\phantom-test\reports
+     [copy] Copying 11 files to C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\build\phantom-test\resources
+
+compile-tests:
+    [javac] Compiling 237 source files to C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\build\phantom-test\bin
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnduranceGoal029Checkpoint3Suite.java:897: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-lifecycle-027\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnvironmentGoal029Checkpoint2Suite.java:574: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] 2 warnings
+
+BUILD SUCCESSFUL
+Total time: 26 seconds

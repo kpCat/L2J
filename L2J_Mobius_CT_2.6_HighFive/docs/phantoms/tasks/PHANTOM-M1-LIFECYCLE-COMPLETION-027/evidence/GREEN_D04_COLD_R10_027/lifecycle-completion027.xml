@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="lifecycle-completion027" seed="27002701" tests="1" passed="1" failures="0">
+  <properties>
+    <property name="D04.cold" value="result=OperationResult[status=SUCCESS, reason=death.recovered_at_town, encounters=0, elapsedMillis=0, dead=false];claim=Optional[Snapshot[state=PhantomBackgroundCatchupState[status=PENDING, requestId=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee, deterministicSeed=1, fromEpochMinute=29460749, targetEpochMinute=29460750, cursorEpochMinute=29460749, planOrdinal=0, intervalOrdinal=0, generation=1, knowledgeGeneration=1, topologyGeneration=1, goalId=7729120092111027111, goalRevision=0, planIdentity=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, modelVersion=1, authorityHashes=Hashes[knowledge=c98c563b80cb1591dcbdb1943c19d9201ad1b5d05bc6c8ee38b5975cfb3016a5, topology=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac, progression=133955996D84152171ED23514A47F76080767D0AFB36627EC9D40C0072E94BF7, commerce=d9aead8e4df00efa8f702964dc70563f6f8aae29992fd4db1949ca700e59744f], failureReason=], rowVersion=0]];oldEpoch=212222961984100"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract027a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="lifecycle-completion027.D04-cold-dead-keeps-exact-pending-handoff" elapsedNanos="947467300"></testcase>
+</testsuite>

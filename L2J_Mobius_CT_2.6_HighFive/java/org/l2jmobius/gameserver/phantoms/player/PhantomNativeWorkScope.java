@@ -43,6 +43,8 @@ public final class PhantomNativeWorkScope implements Owner
 	private volatile Map<String, String> _publishedWork = Map.of();
 	private volatile java.util.List<WorkTicket> _publishedEventTickets = java.util.List.of();
 	private volatile String _lastCompletedEvent = "";
+	private final java.util.ArrayDeque<String> _completedEvents = new java.util.ArrayDeque<>(8);
+	private volatile String _recentCompletedEvents = "[]";
 	private volatile String _checkpointStage = "";
 	private volatile CheckpointFailure _checkpointFirstFailure;
 	public enum CheckpointOutcome { WAIT_EARNED, RETRY_BEFORE_WRITE, RESOLVE_RECEIPT, VERIFY_WRITE_OUTCOME, PUBLISH_COMMITTED, RESUME, TERMINAL_RETAIN }
@@ -474,11 +476,17 @@ public final class PhantomNativeWorkScope implements Owner
 			_publishedEventTickets = _outstanding.values().stream().filter(ticket -> ticket._traceDispatch).limit(8).toList();
 		}
 	}
+	boolean terminalCleanupReady()
+	{
+		synchronized (_monitor) { return (_checkpointThread == null) && (_ownedCheckpoint == null) && !_player.hasPendingOwnedStore() && _outstanding.isEmpty() && _pendingTimers.isEmpty(); }
+	}
+
 	public Map<String, String> diagnosticScalars()
 	{
 		final Map<String, String> fields = new LinkedHashMap<>(_publishedWork);
 		fields.put("nativeEventDispatch", _publishedEventTickets.stream().map(WorkTicket::dispatchSnapshot).toList().toString());
 		fields.put("nativeLastCompletedEvent", _lastCompletedEvent);
+		fields.put("nativeRecentCompletedEvents", _recentCompletedEvents);
 		fields.put("nativeOwnerRead", "NONATOMIC_VOLATILE");
 		fields.put("nativeOwnerState", _state.name()); fields.put("nativeOwnerCurrent", Boolean.toString(isCurrent()));
 		fields.put("nativeOwnerPermanentSeal", Boolean.toString(_permanentSeal)); fields.put("nativeOwnerCheckpoint", Boolean.toString(_checkpointThread != null));
@@ -603,7 +611,12 @@ public final class PhantomNativeWorkScope implements Owner
 		private void finish(WorkState state)
 		{
 			_state = state;
-			if (_traceDispatch) { _endNanos = System.nanoTime(); _dispatchStatus = state.name(); _lastCompletedEvent = dispatchSnapshot(); _dispatchFuture = null; }
+			if (_traceDispatch)
+			{
+				_endNanos = System.nanoTime(); _dispatchStatus = state.name(); _lastCompletedEvent = dispatchSnapshot(); _dispatchFuture = null;
+				if (_completedEvents.size() == 8) { _completedEvents.removeFirst(); }
+				_completedEvents.addLast(_lastCompletedEvent); _recentCompletedEvents = _completedEvents.toString();
+			}
 			// Scalar bookkeeping only under owner monitor; native passive getters run afterwards.
 			if (_combatEpisode != null) { _evidence.completeCombat(_combatEpisode, false); }
 			_outstanding.remove(_id); publishWork(); _monitor.notifyAll();

@@ -1,0 +1,5 @@
+209034544689900	null
+209209196934700	StopProgress[phase=CLOSE_PRODUCERS, outcome=PENDING, blocker=closing, deadlineNanos=209219194603900]
+209209297462800	StopProgress[phase=DRAIN_PLAYERS, outcome=PENDING, blocker=materialization:[832, 1106], deadlineNanos=209219194603900]
+209209902601400	StopProgress[phase=DRAIN_PLAYERS, outcome=PENDING, blocker=materialization:[1106], deadlineNanos=209219194603900]
+209210610722300	StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=209219194603900]

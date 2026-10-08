@@ -408,9 +408,14 @@ public final class PhantomMaterializationService
 	/** One exact Entry control continuation; polling never waits for native work. */
 	public DematerializeResult requestDematerialize(long profileId)
 	{
+		return requestDematerialize(profileId, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(_actionDrainTimeoutMillis));
+	}
+
+	public DematerializeResult requestDematerialize(long profileId, long deadlineNanos)
+	{
 		final Entry entry = _activeByProfile.get(profileId);
 		if (entry == null) { return new DematerializeResult(ResultStatus.NOT_ACTIVE, null); }
-		return requestCleanup(entry, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(_actionDrainTimeoutMillis), false);
+		return requestCleanup(entry, deadlineNanos, false);
 	}
 
 	private DematerializeResult requestCleanup(Entry entry, long deadlineNanos, boolean shutdown)
@@ -458,6 +463,26 @@ public final class PhantomMaterializationService
 	}
 
 	/** Uses the caller's single monotonic lifecycle deadline; no executor wait here. */
+	public String cleanupBlockers()
+	{
+		return "count=" + _activeByProfile.size() + ":owners=" + sortedEntries().stream().limit(8).map(entry ->
+		{
+			final var value = snapshot(entry);
+			return value.profileId() + "/" + value.characterObjectId() + "/" + value.materializedAtNanos() + "/" + value.state()
+				+ "/" + value.cleanupPhase() + "/actions=" + value.admittedActionCount() + "/failure=" + value.cleanupFailureClass();
+		}).toList();
+	}
+
+	public boolean failedCleanupReady()
+	{
+		return sortedEntries().stream().allMatch(entry -> entry._materializationCompletion.getCount() == 0 && !entry._cleanupInProgress && !entry._controlCleanupQueued && entry._materializedPlayer.terminalCleanupReady());
+	}
+
+	public void retainFailedShutdown()
+	{
+		synchronized (_stateMonitor) { if (_state != ServiceState.STOPPED) { _state = ServiceState.FAILED; } }
+	}
+
 	public ShutdownResult requestShutdown(long deadlineNanos)
 	{
 		synchronized (_stateMonitor)

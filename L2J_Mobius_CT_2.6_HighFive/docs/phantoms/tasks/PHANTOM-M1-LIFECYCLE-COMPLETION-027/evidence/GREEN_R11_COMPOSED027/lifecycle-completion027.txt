@@ -1,0 +1,21 @@
+suite=lifecycle-completion027
+seed=27002701
+total=3
+passed=3
+failed=0
+measurement.D03.result=OperationResult[status=SUCCESS, reason=death.recovered_at_town, encounters=0, elapsedMillis=0, dead=false]
+measurement.D05.beforeClose=dead=false;drained=false;background=Snapshot[state=RUNNING, currentOperations=0, peakOperations=0, currentIdentityLeases=0, peakIdentityLeases=0, currentTransactions=0, peakTransactions=1, currentTransitionClaims=0, peakTransitionClaims=1, completedOperations=0, idempotentOperations=0, retryOperations=0, failedOperations=0, retainedIdentityLeases=0]
+measurement.S02.complete=calls=1;children=1;selfWait=416900;progress=StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=212465218385000];owner=epoch=212455031856500 state=DETACHED outstanding=0 pendingTimers=0 peak=4 failure= eventDispatch=[] work=[]
+measurement.S02.published=epoch=212455031856500 state=OPEN outstanding=2 pendingTimers=1 peak=4 failure= eventDispatch=[12:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=212455031856500:reserve=212455215472200:submit=212455215533500:executorEntered=0:start=0:bodyExit=0:bodyOutcome=NOT_ENTERED:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[9:attack-hit:RESERVED:depth=2:ageMs=16, 12:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=1:ageMs=1]
+measurement.S02.stopResult=stopped=true;progress=StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=212465218385000];owner=epoch=212455031856500 state=DETACHED outstanding=0 pendingTimers=0 peak=4 failure= eventDispatch=[] work=[]
+measurement.headless.database=l2jmobiush5_localplay_contract027a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS lifecycle-completion027.D03-cold-canonical-dead-native-recovery elapsedNanos=872100100
+PASS lifecycle-completion027.D05-accepted-queued-native-return-survives-close elapsedNanos=420988200
+PASS lifecycle-completion027.S02-native-delayed-kill-child-before-system-store elapsedNanos=2944154000

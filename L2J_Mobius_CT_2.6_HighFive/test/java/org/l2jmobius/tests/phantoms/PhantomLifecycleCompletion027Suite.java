@@ -42,6 +42,170 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 		if (focus.equals("all") || focus.equals("death")) { registry.add("D05-accepted-queued-native-return-survives-close", this::queuedDeath); }
 		if (focus.equals("all") || focus.equals("cold")) { registry.add("D03-cold-canonical-dead-native-recovery", this::coldDead); }
 		if (focus.equals("dispatch")) { registry.add("E01-executor-entry-before-owner-monitor", this::dispatch); }
+		if (focus.equals("timeout")) { registry.add("S05-single-deadline-retains-original-running-native-callback", this::timeout); }
+		if (focus.equals("recovery")) { registry.add("S03-native-recovery-control-does-not-drain-own-callback", this::recoveryControl); }
+		if (focus.equals("handoff-death")) { registry.add("D04-exact-pending-handoff-survives-native-death-return", this::handoffDeath); }
+		if (focus.equals("cold-handoff")) { registry.add("D04-cold-dead-keeps-exact-pending-handoff", this::coldHandoff); }
+		if (focus.equals("real-death"))
+		{
+			registry.add("D01-real-45s-native-death-return-and-new-epoch", this::realDeathReturn);
+			registry.add("D02-secondary-native-revive-does-not-return-twice", this::secondaryRevive);
+		}
+	}
+	private void handoffDeath(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.background.installPresencePolicy(id -> id == f.id); f.handoff();
+			final var original = World.getInstance().getPlayer(f.objectId); final var owner = original.getNativeWorkOwner();
+			final var clock = new AtomicLong(System.nanoTime());
+			try (var death = new PhantomOrdinaryDeathRecovery(f.materialization, f.goals, f.background, clock::get))
+			{
+				PhantomAssertions.assertTrue(death.install(), "Exact native handoff death observation.");
+				PlayerNativeWork.run(original, "TEST027_PENDING_HANDOFF_NATIVE_DEATH", () -> original.doDie(null));
+				clock.addAndGet(46_000_000_000L); death.pulse();
+				final long deadline = System.nanoTime() + 5_000_000_000L;
+				while (System.nanoTime() < deadline && !death.drained()) { Thread.sleep(10); }
+				final var recovered = World.getInstance().getPlayer(f.objectId);
+				context.record("D04.return", "death=" + death.snapshot() + ";old=" + owner.epoch() + ";new=" + (recovered == null ? 0 : recovered.getNativeWorkOwner().epoch()) + ";catchup=" + f.catchups.load(f.id));
+				PhantomAssertions.assertTrue(death.drained() && death.snapshot().firstFailure().isEmpty(), "RED D04: exact pending catch-up must complete the accepted native recovery/store.");
+				PhantomAssertions.assertTrue(recovered != null && recovered != original && !recovered.isDead() && recovered.getNativeWorkOwner().epoch() != owner.epoch(), "New live epoch retains the exact native handoff.");
+				PhantomAssertions.assertTrue(f.catchups.load(f.id).orElseThrow().state().requestId().equals(f.claim), "Original catch-up claim cannot be replaced or completed to bypass admission.");
+			}
+		}
+	}
+	private void coldHandoff(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.background.installPresencePolicy(id -> id == f.id); f.handoff();
+			final var original = World.getInstance().getPlayer(f.objectId); final long oldEpoch = original.getNativeWorkOwner().epoch();
+			PlayerNativeWork.run(original, "TEST027_COLD_PENDING_NATIVE_DEATH", () -> original.doDie(null));
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.dematerialize(f.id).status(), "Original native corpse store.");
+			PhantomAssertions.assertEquals(PhantomBackgroundState.State.DEAD, f.transactions.load(f.id).state().state(), "Cold native canonical DEAD.");
+			PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(f.objectId), "No original death memory or Player.");
+			final var claim = f.catchups.load(f.id).orElseThrow(); final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final var result = f.background.recover(f.id, goal, PhantomActivityState.ACTIVE);
+			context.record("D04.cold", "result=" + result + ";claim=" + f.catchups.load(f.id) + ";oldEpoch=" + oldEpoch);
+			PhantomAssertions.assertTrue(result.successful(), "RED D04 cold: native recovery must use the exact pending claim, not bypass NORMAL: " + result);
+			PhantomAssertions.assertEquals(claim, f.catchups.load(f.id).orElseThrow(), "Cold recovery cannot complete or replace the claim.");
+			PhantomAssertions.assertTrue(f.transactions.load(f.id).state().vitals().currentHp() > 0, "Native stock resurrection captured.");
+			f.handoff(); final var recovered = World.getInstance().getPlayer(f.objectId);
+			PhantomAssertions.assertTrue(recovered != null && !recovered.isDead() && recovered.getNativeWorkOwner().epoch() != oldEpoch && f.historical.permitsDecision(f.id), "Exact cold handoff creates a fresh live decision owner.");
+		}
+	}
+	private void timeout(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.removeCatchup(); PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Native timeout lifetime.");
+			final var player = World.getInstance().getPlayer(f.objectId); final var owner = (PhantomNativeWorkScope) player.getNativeWorkOwner(); final var system = configure(f);
+			final var npc = new Monster(org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(20545));
+			final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(npc.getTemplate()); spawn.setXYZ(player.getX() + 40, player.getY(), player.getZ()); npc.setSpawn(spawn); npc.setCurrentHpMp(npc.getMaxHp(), npc.getMaxMp()); npc.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
+			final var entered = new java.util.concurrent.CountDownLatch(1); final var release = new java.util.concurrent.CountDownLatch(1); final var exited = new java.util.concurrent.CountDownLatch(1);
+			final var listener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(npc, org.l2jmobius.gameserver.model.events.EventType.ON_ATTACKABLE_KILL,
+				(org.l2jmobius.gameserver.model.events.holders.actor.npc.attackable.OnAttackableKill event) ->
+				{
+					entered.countDown();
+					try { if (!release.await(20, java.util.concurrent.TimeUnit.SECONDS)) { throw new IllegalStateException("TEST027_ORIGINAL_RELEASE_MISSING"); } player.setHeading((player.getHeading() + 16) % 65536); }
+					catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException(failure); }
+					finally { exited.countDown(); }
+				}, owner);
+			npc.addListener(listener);
+			try
+			{
+				PlayerNativeWork.run(player, List.of(npc), "TEST027_ORIGINAL_KILL_TIMEOUT", () -> npc.reduceCurrentHp(npc.getMaxHp() * 2, player, null));
+				PhantomAssertions.assertTrue(entered.await(4, java.util.concurrent.TimeUnit.SECONDS), "Original event body entered.");
+				final long firstStarted = System.nanoTime();
+				PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "Genuine deadline cannot be healthy.");
+				final var failed = system.shutdownProgress();
+				PhantomAssertions.assertTrue(failed.outcome() == PhantomSystem.StopOutcome.FAILED && failed.blocker().startsWith("deadline:") && owner.outstanding() > 0 && owner.isCurrent(), "Original accepted ticket remains retained after bounded failure.");
+				ThreadPool.schedule(release::countDown, 500);
+				final long repeated = System.nanoTime(); PhantomAssertions.assertFalse(PhantomSystem.shutdownIfStarted(), "FAILED attempt never becomes healthy."); final long repeatElapsed = System.nanoTime() - repeated;
+				context.record("S05.deadline", "firstElapsed=" + (repeated - firstStarted) + ";repeatElapsed=" + repeatElapsed + ";first=" + failed + ";after=" + system.shutdownProgress() + ";owner=" + owner.snapshot());
+				PhantomAssertions.assertTrue(repeatElapsed < 100_000_000L && failed.deadlineNanos() == system.shutdownProgress().deadlineNanos(), "RED S05: a repeated failed hook must not start another callback wait window.");
+				PhantomAssertions.assertTrue(exited.await(3, java.util.concurrent.TimeUnit.SECONDS), "Original body exits naturally after release.");
+			}
+			finally { release.countDown(); exited.await(3, java.util.concurrent.TimeUnit.SECONDS); npc.removeListener(listener); npc.deleteMe(); if (PhantomSystem.hasConfiguredInstance()) { PhantomSystem.shutdownIfStarted(); } }
+		}
+	}
+	private void realDeathReturn(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.removeCatchup(); f.background.installPresencePolicy(id -> id == f.id);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Native live actor.");
+			final var original = World.getInstance().getPlayer(f.objectId); final var owner = original.getNativeWorkOwner();
+			try (var death = new PhantomOrdinaryDeathRecovery(f.materialization, f.goals, f.background))
+			{
+				PhantomAssertions.assertTrue(death.install(), "Actual priority death pulse.");
+				final long started = System.nanoTime();
+				PlayerNativeWork.run(original, "TEST027_ACTUAL_NATIVE_DEATH_WINDOW", () -> original.doDie(null));
+				Thread.sleep(1000); death.pulse();
+				PhantomAssertions.assertTrue(original.isDead() && death.snapshot().observedDeaths() == 1, "Native corpse window preserved.");
+				final long deadline = started + 55_000_000_000L;
+				while (System.nanoTime() < deadline && (World.getInstance().getPlayer(f.objectId) == original || !death.drained())) { Thread.sleep(100); }
+				final var recovered = World.getInstance().getPlayer(f.objectId);
+				context.record("D01.return", "elapsed=" + (System.nanoTime() - started) + ";death=" + death.snapshot() + ";old=" + owner.epoch() + ";new=" + (recovered == null ? 0 : recovered.getNativeWorkOwner().epoch()));
+				PhantomAssertions.assertTrue(System.nanoTime() - started >= 45_000_000_000L, "Original 45s window cannot be shortened.");
+				PhantomAssertions.assertTrue(recovered != null && recovered != original && !recovered.isDead() && recovered.getNativeWorkOwner().epoch() != owner.epoch(), "Exact native recovery/store/rematerialization creates a new live epoch.");
+				PhantomAssertions.assertTrue(death.drained() && death.snapshot().firstFailure().isEmpty() && !owner.isCurrent(), "Accepted death completion has no retained original owner or failure.");
+			}
+		}
+	}
+	private void secondaryRevive(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.removeCatchup(); f.background.installPresencePolicy(id -> id == f.id);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Native secondary revival actor.");
+			final var player = World.getInstance().getPlayer(f.objectId); final long epoch = player.getNativeWorkOwner().epoch();
+			final int x = player.getX(), y = player.getY(); final var clock = new AtomicLong(System.nanoTime());
+			try (var death = new PhantomOrdinaryDeathRecovery(f.materialization, f.goals, f.background, clock::get))
+			{
+				PhantomAssertions.assertTrue(death.install(), "Existing death observation.");
+				PlayerNativeWork.run(player, "TEST027_SECONDARY_NATIVE_DEATH", () -> player.doDie(null));
+				PlayerNativeWork.run(player, "TEST027_SECONDARY_NATIVE_REVIVE", player::doRevive);
+				clock.addAndGet(46_000_000_000L); death.pulse();
+				PhantomAssertions.assertTrue(death.snapshot().observedDeaths() == 0 && death.drained() && death.snapshot().firstFailure().isEmpty(), "Secondary revival retires the original return, not another reconcile.");
+				PhantomAssertions.assertTrue(!player.isDead() && player.getX() == x && player.getY() == y && player.getNativeWorkOwner().epoch() == epoch, "No second revive/teleport/epoch replacement.");
+				context.record("D02.secondary", death.snapshot());
+			}
+		}
+	}
+	private void recoveryControl(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.removeCatchup(); f.background.installPresencePolicy(id -> id == f.id);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Original recovery lifetime.");
+			final var player = World.getInstance().getPlayer(f.objectId);
+			final var original = (PhantomNativeWorkScope) player.getNativeWorkOwner();
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(context.moduleRoot().resolve("test/resources/phantoms/M1TimerBootstrap.java"));
+			final var quest = org.l2jmobius.gameserver.managers.ScriptManager.getInstance().getScript("M1TimerBootstrap");
+			final var bodyField = PhantomM1TimerChecks.class.getDeclaredField("QUEST_BODY"); bodyField.setAccessible(true);
+			@SuppressWarnings("unchecked") final var body = (AtomicReference<java.util.function.Consumer<Player>>) bodyField.get(null);
+			final var result = new AtomicReference<PhantomBackgroundService.OperationResult>();
+			final var elapsed = new AtomicLong(); final var done = new java.util.concurrent.CountDownLatch(1);
+			PhantomAssertions.assertTrue(body.compareAndSet(null, actor ->
+			{
+				try { final long now = System.nanoTime(); result.set(f.background.recover(f.id, goal, PhantomActivityState.ACTIVE)); elapsed.set(System.nanoTime() - now); }
+				finally { done.countDown(); }
+			}), "Exclusive original QuestTimer body.");
+			try
+			{
+				PlayerNativeWork.run(player, "TEST027_NATIVE_DEATH_AND_STOCK_TIMER", () -> { player.doDie(null); quest.startQuestTimer("TASK027_RECOVERY_CONTROL", 150, null, player); });
+				PhantomAssertions.assertTrue(done.await(4, java.util.concurrent.TimeUnit.SECONDS), "Original stock callback did not exit.");
+				context.record("S03.request", "result=" + result + ";elapsed=" + elapsed + ";owner=" + original.snapshot());
+				PhantomAssertions.assertTrue(result.get() != null && result.get().status() == PhantomBackgroundService.OperationStatus.RETRY && elapsed.get() < 100_000_000L, "RED S03: native callback must publish recovery control and return without draining itself.");
+				final long deadline = System.nanoTime() + 5_000_000_000L;
+				while (System.nanoTime() < deadline && World.getInstance().getPlayer(f.objectId) == player) { Thread.sleep(10); }
+				PhantomAssertions.assertTrue(World.getInstance().getPlayer(f.objectId) != player && original.outstanding() == 0 && original.firstNativeIncident() == null, "Exact original owner released only after callback exit, without incident.");
+				PhantomAssertions.assertTrue(f.transactions.load(f.id).state().vitals().currentHp() > 0, "Native return captured durably.");
+			}
+			finally { body.set(null); }
+		}
 	}
 
 	private void dispatch(PhantomTestContext context) throws Exception
@@ -133,6 +297,8 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 					context.record("D05.beforeClose", "dead=" + player.isDead() + ";drained=" + death.drained() + ";background=" + f.background.snapshot());
 					PhantomAssertions.assertFalse(death.drained(), "RED D05: queued accepted reconciliation is part of lifecycle quiescence.");
 					death.close(); queued.getAndSet(null).run();
+					final long deadline = System.nanoTime() + 5_000_000_000L;
+					while (System.nanoTime() < deadline && !death.drained()) { final var continuation = queued.getAndSet(null); if (continuation != null) { continuation.run(); } Thread.sleep(10); }
 					PhantomAssertions.assertTrue(death.drained(), "Closed death control finishes the exact accepted store.");
 					PhantomAssertions.assertTrue(f.transactions.load(f.id).state().vitals().currentHp() > 0, "Native revived HP was durably captured.");
 				}

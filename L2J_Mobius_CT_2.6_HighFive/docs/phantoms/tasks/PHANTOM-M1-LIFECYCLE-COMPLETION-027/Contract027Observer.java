@@ -95,7 +95,7 @@ public final class Contract027Observer
         {
             // Separate bounded export window per explicit session; native scopes/counters remain unchanged.
             fullLines = 0; fullSampleNanos = 0; fullGoals.clear();
-            if (!runtime.toString().matches(".*[\\\\/]contract027[c-d][\\\\/]runtime") || selected.size() != 8) { throw new IllegalStateException("TASK027_FULL_COHORT_LANE_GUARD"); }
+            if (!runtime.toString().matches(".*[\\\\/]contract027[c-dg][\\\\/]runtime") || selected.size() != 8) { throw new IllegalStateException("TASK027_FULL_COHORT_LANE_GUARD"); }
             final var configured = field(org.l2jmobius.gameserver.phantoms.PhantomSystem.class, "_configuredInstance").get(null);
             fullMaterialization = (org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService) field(configured.getClass(), "_materializationService").get(configured);
             fullAutoPlay = (org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay) field(configured.getClass(), "_visibleAutoPlay").get(configured);
@@ -111,6 +111,14 @@ public final class Contract027Observer
         }
         if (mode.equals("CENSUS"))
         {
+            final var players = new StringBuilder("objectId\tonline\tclient\theadless\towner\tidentity\n");
+            for (Player actor : World.getInstance().getPlayers())
+            {
+                players.append(actor.getObjectId()).append('\t').append(actor.isOnline()).append('\t').append(actor.getClient() == null ? "none" : "REAL")
+                    .append('\t').append(actor.hasHeadlessOutboundSession()).append('\t').append(actor.getNativeWorkOwner())
+                    .append('\t').append(org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(actor.getObjectId())).append('\n');
+            }
+            write(output.resolve("world-identities.tsv"), players.toString());
             final var configured = field(org.l2jmobius.gameserver.phantoms.PhantomSystem.class, "_configuredInstance").get(null);
             final var materialization = (org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService) field(configured.getClass(), "_materializationService").get(configured);
             final var entries = materialization.snapshot().materializations();
@@ -240,6 +248,11 @@ public final class Contract027Observer
             if (retained != null) { row.putAll(retained.evidence().snapshot().scalarMap()); row.putAll(retained.diagnosticScalars()); }
             else { row.put("nativeEvidenceEpoch", "0"); for (String key : java.util.List.of("nativeRewardSequence", "nativeKillSequence", "nativeDamageSequence", "nativeTargetSequence", "nativeFarmCycleSequence", "nativeExpGained", "nativeSpGained")) { row.put(key, "0"); } row.put("nativeEvidenceOverflow", "true"); }
             row.putAll(fullAutoPlay.snapshotContinuation(profile).scalarMap());
+            if (player != null && player.getNativeWorkOwner() instanceof PhantomNativeWorkScope current)
+            {
+                current.evidence().snapshot().scalarMap().forEach((key, value) -> row.put("current." + key, value));
+                current.diagnosticScalars().forEach((key, value) -> row.put("current." + key, value));
+            }
             row.put("runtimeReason", decision == null ? "runtime.absent" : decision.reasonKey());
             if (player != null)
             {
@@ -302,7 +315,7 @@ public final class Contract027Observer
         for (var entry : dispatchOwners.entrySet())
         {
             final var fields = entry.getValue().diagnosticScalars();
-            final String state = fields.get("nativeOwnerState") + "\t" + fields.getOrDefault("nativeEventDispatch", "UNAVAILABLE") + "\t" + fields.getOrDefault("nativeLastCompletedEvent", "UNAVAILABLE");
+            final String state = fields.get("nativeOwnerState") + "\t" + fields.getOrDefault("nativeEventDispatch", "UNAVAILABLE") + "\t" + fields.getOrDefault("nativeRecentCompletedEvents", fields.getOrDefault("nativeLastCompletedEvent", "UNAVAILABLE"));
             if (!state.equals(dispatchLast.put(entry.getKey(), state)) && dispatchLines++ < 1024)
             {
                 Files.writeString(chosen.output().resolve("event-dispatch.tsv"), now + "\t" + chosen.sha() + "\t" + entry.getKey() + "\t" + entry.getValue().epoch() + "\t" + state + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
@@ -323,12 +336,12 @@ public final class Contract027Observer
             if (intent == null) { return; }
             final long id = intent.after().identity().profileId();
             final Long initialEpoch = chosen.profiles().get(id);
-            if (initialEpoch == null || initialEpoch != intent.materializedAtNanos()) { return; }
+            if (initialEpoch == null) { return; }
             final var owner = player.getNativeWorkOwner();
-            if (!(owner instanceof PhantomNativeWorkScope) || !owner.isCurrent() || owner.player() != player || owner.epoch() != initialEpoch
+            if (!(owner instanceof PhantomNativeWorkScope) || !owner.isCurrent() || owner.player() != player || owner.epoch() != intent.materializedAtNanos()
                 || THREAD.get(owner) != Thread.currentThread() || !STATE.get(owner).toString().equals("SEALED") || player.getObjectId() != intent.after().identity().characterObjectId()) { throw new IllegalStateException("TASK027_EXACT_SEALED_ARGUMENT"); }
-            final String key = id + "-" + initialEpoch + "-" + intent.preparedRowVersion();
-            final Witness witness = new Witness(chosen.output().resolve(key + ".properties"), snapshot(intent, player, chosen.sha()));
+            final String key = id + "-" + intent.materializedAtNanos() + "-" + intent.preparedRowVersion();
+            final Witness witness = new Witness(chosen.output().resolve(key + ".properties"), snapshot(intent, player, chosen.sha()) + "enrolledInitialEpoch=" + initialEpoch + "\n");
             if (crash != null && owner.evidence().snapshot(System.nanoTime()).rewardSequence() > 0)
             {
                 PREPARED.set(new Prepared(player, (PhantomNativeWorkScope) owner, intent, witness));

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="lifecycle-completion027" seed="27002701" tests="1" passed="0" failures="1">
+  <properties>
+    <property name="S03.request" value="result=OperationResult[status=INCONSISTENT, reason=recovery.store_failed, encounters=0, elapsedMillis=0, dead=false];elapsed=20492600;owner=epoch=209385468930200 state=OPEN outstanding=1 pendingTimers=2 peak=4 failure= eventDispatch=[] work=[11:EFFECT_ICONS:RESERVED:depth=2:ageMs=175]"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract027a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="lifecycle-completion027.S03-native-recovery-control-does-not-drain-own-callback" elapsedNanos="603159700"><failure type="java.lang.AssertionError" message="RED S03: native callback must publish recovery control and return without draining itself." seed="27002701"/></testcase>
+</testsuite>

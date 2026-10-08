@@ -1,0 +1,18 @@
+{
+  "utc": "2026-10-08T17:34:22.9448690Z",
+  "codeSha": "2331d14d61fab558572bd0c2bf11578630e59da2",
+  "pendingOriginalNativeKill": true,
+  "elapsedSeconds": 4.7675274,
+  "cohortCount": 8,
+  "cohortIds": [
+    "613",
+    "752",
+    "775",
+    "832",
+    "879",
+    "975",
+    "1009",
+    "1106"
+  ],
+  "dumpPause": false
+}

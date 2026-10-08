@@ -1,0 +1,17 @@
+suite=lifecycle-completion027
+seed=27002701
+total=2
+passed=2
+failed=0
+measurement.D01.return=elapsed=46437847100;death=Snapshot[closing=false, acceptedReconciliations=0, runningReconciliations=0, observedDeaths=0, firstFailure=];old=210539685333300;new=210586078737900
+measurement.D02.secondary=Snapshot[closing=false, acceptedReconciliations=0, runningReconciliations=0, observedDeaths=0, firstFailure=]
+measurement.headless.database=l2jmobiush5_localplay_contract027a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS lifecycle-completion027.D01-real-45s-native-death-return-and-new-epoch elapsedNanos=46646276400
+PASS lifecycle-completion027.D02-secondary-native-revive-does-not-return-twice elapsedNanos=348967900

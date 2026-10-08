@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -108,7 +107,6 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public static final String DEATH_SIGNAL_SOURCE = "background.death";
 	public static final String NATIVE_CONTEXT_SIGNAL_SOURCE = "background.native_context";
 	public static final long NATIVE_CONTEXT_SIGNAL_TTL_MILLIS = 60_000;
-	private static final long RECOVERY_TELEPORT_TIMEOUT_NANOS = 250_000_000L;
 	// Optional exact-argument test observer. Transactions have returned; absent-Player ownership still fences admission.
 	private static volatile BiConsumer<Long, PhantomBackgroundState> _recoveryObserver;
 
@@ -130,6 +128,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private boolean _positionPublisherInstalled;
 	private boolean _presenceInstalled;
 	private volatile LongFunction<OperationResult> _periodicFarm;
+	private volatile PhantomHistoricalBackgroundService _nativeRecoveryHistory;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, PhantomBackgroundState> _arrivalCaptures = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, VisibleCheckpoint> _visibleCheckpoints = new ConcurrentHashMap<>();
@@ -155,6 +154,22 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private final ConcurrentHashMap<Long, Boolean> _cleanupStores = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, Integer> _nativeTownReturns = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, Boolean> _recoveries = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, RecoveryControl> _recoveryControls = new ConcurrentHashMap<>();
+	private final java.util.concurrent.atomic.AtomicReference<String> _firstRecoveryFailure = new java.util.concurrent.atomic.AtomicReference<>("");
+	private static final class RecoveryControl
+	{
+		final long profileId, deadline = System.nanoTime() + 10_000_000_000L;
+		final PhantomGoal goal; final PhantomActivityState activity; final BooleanSupplier cancelled;
+		final AtomicBoolean queued = new AtomicBoolean(), finished = new AtomicBoolean();
+		volatile OperationResult result;
+		int objectId; long epoch; boolean storeRequested, restoreExisting, resumedFromResurrection;
+		PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff;
+		RecoveryControl(long profileId, PhantomGoal goal, PhantomActivityState activity, BooleanSupplier cancelled, PhantomMaterializationService.MaterializationSnapshot entry)
+		{
+			this.profileId = profileId; this.goal = goal; this.activity = activity; this.cancelled = cancelled;
+			objectId = entry == null ? 0 : entry.characterObjectId(); epoch = entry == null ? 0 : entry.materializedAtNanos();
+		}
+	}
 	private final ConcurrentHashMap<Long, TransitionKind> _transitions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, HistoricalAdmission> _historicalAdmissions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, NativeContextSignal> _nativeContextSignals = new ConcurrentHashMap<>();
@@ -284,6 +299,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			throw new IllegalStateException("Periodic farm can only be installed once before work starts.");
 		}
 		_periodicFarm = Objects.requireNonNull(periodicFarm, "Periodic farm must not be null.");
+	}
+
+	synchronized void bindNativeRecoveryHistory(PhantomHistoricalBackgroundService history)
+	{
+		if ((_nativeRecoveryHistory != null) || (_state == ServiceState.STOPPING) || (_state == ServiceState.STOPPED)) { throw new IllegalStateException("Native recovery history is already bound or stopping."); }
+		_nativeRecoveryHistory = Objects.requireNonNull(history);
 	}
 
 	public synchronized boolean finishStop()
@@ -1502,17 +1523,106 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 
 	public OperationResult recover(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled)
 	{
+		if ((PlayerNativeWork.inheritedPlayer() != null) || Thread.currentThread().getName().startsWith("L2jMobius "))
+		{
+			return requestRecovery(profileId, goal, activityState, cancelled);
+		}
 		return recoverClaimed(profileId, goal, activityState, cancelled, false);
 	}
+
+	/** A scheduler/native caller publishes control, never waits for its accepted callback. */
+	public OperationResult requestRecovery(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled)
+	{
+		return requestRecovery(profileId, goal, activityState, cancelled, false);
+	}
+
+	private OperationResult requestRecovery(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean acceptedForStop)
+	{
+		RecoveryControl control;
+		synchronized (this)
+		{
+			control = _recoveryControls.get(profileId);
+			if (control != null)
+			{
+				if (control.result == null) { return retry("recovery.control_pending"); }
+				_recoveryControls.remove(profileId, control);
+				if (control.goal.equals(goal)) { return control.result; }
+			}
+			if (((_state != ServiceState.RUNNING) && !(acceptedForStop && (_state == ServiceState.STOPPING))) || (_recoveries.putIfAbsent(profileId, Boolean.TRUE) != null)) { return retry("recovery.busy_or_stopping"); }
+			final var materialization = _materialization.get();
+			control = new RecoveryControl(profileId, goal, activityState, cancelled, materialization == null ? null : materialization.find(profileId).orElse(null));
+			_recoveryControls.put(profileId, control); increment(_currentOperations, _peakOperations);
+		}
+		queueRecovery(control);
+		return retry("recovery.control_pending");
+	}
+
+	private void queueRecovery(RecoveryControl control)
+	{
+		if (!control.queued.compareAndSet(false, true) || control.finished.get()) { return; }
+		final var future = org.l2jmobius.commons.threads.ThreadPool.schedule(() ->
+		{
+			try { org.l2jmobius.commons.threads.ThreadPool.executeOrThrow(() -> advanceRecovery(control)); }
+			catch (RuntimeException failure) { finishRecovery(control, OperationResult.inconsistent("recovery.control_submission:" + failure.getClass().getName() + ":" + failure.getMessage())); }
+		}, 10);
+		if (future == null) { finishRecovery(control, OperationResult.inconsistent("recovery.control_scheduler_rejected")); }
+	}
+
+	private void advanceRecovery(RecoveryControl control)
+	{
+		try
+		{
+			if (_recoveryControls.get(control.profileId) != control) { finishRecovery(control, OperationResult.inconsistent("recovery.control_replaced")); return; }
+			if (System.nanoTime() >= control.deadline) { finishRecovery(control, OperationResult.inconsistent("recovery.control_deadline:object=" + control.objectId + ":epoch=" + control.epoch)); return; }
+			final var materialization = _materialization.get();
+			final var entry = materialization == null ? null : materialization.find(control.profileId).orElse(null);
+			if ((entry != null) && (control.epoch != 0) && ((entry.characterObjectId() != control.objectId) || (entry.materializedAtNanos() != control.epoch)))
+			{ finishRecovery(control, OperationResult.inconsistent("recovery.control_owner_changed")); return; }
+			final OperationResult result;
+			if (control.storeRequested)
+			{
+				final var stored = materialization.requestDematerialize(control.profileId, control.deadline);
+				result = stored.status() == ResultStatus.CLEANUP_PENDING ? retry("recovery.cleanup_pending")
+					: ((stored.status() == ResultStatus.SUCCESS) || (stored.status() == ResultStatus.NOT_ACTIVE))
+						? finishRecoveryStore(control.profileId, control.objectId, control.restoreExisting, control.resumedFromResurrection, _state != ServiceState.RUNNING, control.handoff, control.epoch)
+						: OperationResult.inconsistent("recovery.store_" + stored.status());
+			}
+			else
+			{
+				final var goal = _goals.load(control.profileId).orElse(null);
+				if (control.cancelled.getAsBoolean() || (goal == null) || !goal.goal().equals(control.goal)) { finishRecovery(control, OperationResult.replan("recovery.control_goal_changed")); return; }
+				result = recoverOwned(control.profileId, control.goal, control.activity, control.cancelled, _state != ServiceState.RUNNING, control);
+			}
+			if ((result.status() != OperationStatus.RETRY) || !control.storeRequested) { finishRecovery(control, result); }
+		}
+		catch (RuntimeException failure) { finishRecovery(control, OperationResult.inconsistent("recovery.control_failure:" + failure.getClass().getName() + ":" + failure.getMessage())); }
+		finally { control.queued.set(false); if (!control.finished.get()) { queueRecovery(control); } }
+	}
+
+	private void finishRecovery(RecoveryControl control, OperationResult result)
+	{
+		if (control.finished.compareAndSet(false, true))
+		{
+			if (result.status() == OperationStatus.INCONSISTENT) { _firstRecoveryFailure.compareAndSet("", "profile=" + control.profileId + ":object=" + control.objectId + ":epoch=" + control.epoch + ":" + result); }
+			control.result = result; _recoveries.remove(control.profileId); _currentOperations.decrementAndGet();
+		}
+	}
+
+	public String firstRecoveryFailure() { return _firstRecoveryFailure.get(); }
 
 	/** The already returned exact corpse may finish persistence after producer closure. */
 	public OperationResult recoverAcceptedForStop(long profileId, PhantomGoal goal, int objectId, long epoch)
 	{
+		final var control = _recoveryControls.get(profileId);
+		if ((control != null) && (control.objectId == objectId) && (control.epoch == epoch) && control.goal.equals(goal))
+		{
+			return requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, true);
+		}
 		final var materialization = _materialization.get();
 		final var entry = materialization == null ? null : materialization.find(profileId).orElse(null);
 		if ((entry == null) || (entry.characterObjectId() != objectId) || (entry.materializedAtNanos() != epoch)
 			|| !Objects.equals(_nativeTownReturns.get(profileId), objectId)) { return retry("recovery.stop_owner_changed"); }
-		return recoverClaimed(profileId, goal, PhantomActivityState.ACTIVE, () -> false, true);
+		return requestRecovery(profileId, goal, PhantomActivityState.ACTIVE, () -> false, true);
 	}
 
 	private OperationResult recoverClaimed(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean stopping)
@@ -1527,7 +1637,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		try
 		{
-			return recoverOwned(profileId, goal, activityState, cancelled, stopping);
+			return recoverOwned(profileId, goal, activityState, cancelled, stopping, null);
 		}
 		finally
 		{
@@ -1536,7 +1646,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
-	private OperationResult recoverOwned(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean stopping)
+	private OperationResult recoverOwned(long profileId, PhantomGoal goal, PhantomActivityState activityState, BooleanSupplier cancelled, boolean stopping, RecoveryControl control)
 	{
 		Objects.requireNonNull(cancelled, "cancelled");
 		if ((activityState != PhantomActivityState.WARM) && !activityState.requiresMaterialization())
@@ -1571,10 +1681,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		final Optional<PhantomMaterializationService.MaterializationSnapshot> existingMaterialization = materialization.find(profileId);
 		boolean restoreExistingMaterialization = existingMaterialization.isPresent() && (existingMaterialization.get().state() == org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE);
+		final long originalEpoch = existingMaterialization.map(value -> value.materializedAtNanos()).orElse(0L);
+		final var handoff = restoreExistingMaterialization && (_nativeRecoveryHistory != null)
+			? _nativeRecoveryHistory.captureNativeRecoveryHandoff(profileId, goal, loaded.state().identity().characterObjectId(), originalEpoch) : null;
 		if (!restoreExistingMaterialization)
 		{
-			if (stopping) { return retry("recovery.stop_no_new_materialization"); }
-			final PhantomMaterializationService.MaterializeResult materialized = materialization.materialize(profileId);
+			if (stopping && (control == null)) { return retry("recovery.stop_no_new_materialization"); }
+			final PhantomMaterializationService.MaterializeResult materialized = _nativeRecoveryHistory == null ? materialization.materialize(profileId)
+				: _nativeRecoveryHistory.materializeColdNativeRecovery(profileId, goal);
 			if ((materialized.status() != ResultStatus.SUCCESS) && (materialized.status() != ResultStatus.ALREADY_ACTIVE))
 			{
 				return retry("recovery.materialization_" + materialized.status().name().toLowerCase());
@@ -1598,7 +1712,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			if (!resumeBoundary)
 			{
-				if (stopping) { return retry("recovery.stop_no_new_return"); }
+				if (stopping && (control == null)) { return retry("recovery.stop_no_new_return"); }
 				final OperationResult nativeRecovery = recoverNativeTown(player, cancelled);
 				if (!nativeRecovery.successful())
 				{
@@ -1606,25 +1720,40 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				}
 			}
 		}
-		final PhantomMaterializationService.DematerializeResult dematerialized = materialization.dematerialize(profileId);
+		if (control != null)
+		{
+			final var owned = materialization.find(profileId).orElseThrow();
+			control.objectId = owned.characterObjectId(); control.epoch = owned.materializedAtNanos();
+			control.storeRequested = true; control.restoreExisting = restoreExistingMaterialization; control.resumedFromResurrection = resumedFromResurrection;
+			control.handoff = handoff;
+		}
+		final PhantomMaterializationService.DematerializeResult dematerialized = control == null ? materialization.dematerialize(profileId) : materialization.requestDematerialize(profileId, control.deadline);
+		if ((control != null) && (dematerialized.status() == ResultStatus.CLEANUP_PENDING)) { return retry("recovery.cleanup_pending"); }
 		if (dematerialized.status() != ResultStatus.SUCCESS)
 		{
 			return OperationResult.inconsistent("recovery.store_failed");
 		}
-		final PhantomBackgroundTransaction.Result verified = transaction(() -> _transactions.reconcileVerifyPending(profileId, loaded.state().identity().characterObjectId()));
+		return finishRecoveryStore(profileId, loaded.state().identity().characterObjectId(), restoreExistingMaterialization, resumedFromResurrection, stopping, handoff, originalEpoch);
+	}
+
+	private OperationResult finishRecoveryStore(long profileId, int characterObjectId, boolean restoreExistingMaterialization, boolean resumedFromResurrection, boolean stopping, PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff, long originalEpoch)
+	{
+		final var materialization = _materialization.get();
+		final PhantomBackgroundTransaction.Result verified = transaction(() -> _transactions.reconcileVerifyPending(profileId, characterObjectId));
 		if (!verified.successful() || (verified.state() == null) || (verified.state().state() != State.READY))
 		{
 			return OperationResult.inconsistent("recovery.verification_failed");
 		}
 		if (restoreExistingMaterialization && !stopping && (_state == ServiceState.RUNNING))
 		{
-			final PhantomMaterializationService.MaterializeResult restored = materialization.materialize(profileId);
+			final PhantomMaterializationService.MaterializeResult restored = handoff == null ? materialization.materialize(profileId)
+				: _nativeRecoveryHistory.resumeNativeRecoveryHandoff(handoff, characterObjectId, originalEpoch);
 			if ((restored.status() != ResultStatus.SUCCESS) && (restored.status() != ResultStatus.ALREADY_ACTIVE))
 			{
 				return OperationResult.inconsistent("recovery.rematerialization_" + restored.status().name().toLowerCase());
 			}
 		}
-		final boolean nativeTownReturn = _nativeTownReturns.remove(profileId, loaded.state().identity().characterObjectId());
+		final boolean nativeTownReturn = _nativeTownReturns.remove(profileId, characterObjectId);
 		return OperationResult.success(resumedFromResurrection && !nativeTownReturn ? "death.resurrected" : "death.recovered_at_town");
 	}
 
@@ -1660,19 +1789,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			player.onTeleported();
 		}
-		final long deadline = System.nanoTime() + RECOVERY_TELEPORT_TIMEOUT_NANOS;
-		while (player.isTeleporting())
-		{
-			if (cancelled.getAsBoolean())
-			{
-				return retry("recovery.teleport_cancelled");
-			}
-			if (System.nanoTime() >= deadline)
-			{
-				return retry("recovery.teleport_timeout");
-			}
-			LockSupport.parkNanos(1_000_000L);
-		}
+		// Existing headless completion is synchronous; never await its callback under Player.
+		if (player.isTeleporting()) { return retry("recovery.teleport_pending"); }
 		if ((player.getInstanceId() != destination.getInstanceId()) || (player.getX() != destination.getX()) || (player.getY() != destination.getY()) || ((player.getZ() != expectedZ + 5) && (player.getZ() != expectedZ)))
 		{
 			return OperationResult.inconsistent("recovery.teleport_destination_mismatch");
