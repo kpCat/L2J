@@ -132,3 +132,52 @@ g allowed as the task-specified lifecycle scene; c/d strict evaluator unchanged.
 Source whitespace checks exclude generated native TSVs whose empty final columns legitimately
 end with tabs, and tool-generated JSON EOF whitespace. Raw evidence bytes are preserved.
 This exclusion is not a product/test/evaluator exception.
+
+R12 linked S03 preflight RED: the real bound BackgroundDecision RECOVER handler called
+prepareNativeRecovery synchronously before publishing accepted control. A real cold DEAD,
+stale derived-max baseline, COMPLETE exact claim and native Player load were composed;
+the scheduled caller took516.3796ms with an accepted load released after350ms. See
+R11_PREFLIGHT_COMPOSED_RED XML. No proposed enum or mock preflight served as RED.
+The existing recovery control now owns preflight on the existing instant executor, retains
+the original historical RecoveryClaim through asynchronous requestDematerialize, verifies
+object/epoch, claim+goal components, DEAD state and captured planning generation, then
+performs the original native return. No synchronous preflight fallback on a native/scheduled
+caller. Existing external synchronous H15 compatibility route is retained.
+R12_PREFLIGHT_GREEN PASS1/1, request4.7834ms. The first R12 launch was INVALID due to
+the orphan TEST profile left by genuine RED teardown; guarded own027a reset backed up
+the disposable fixture. Product DBs were never reset. Main-thread TEST cleanup now waits
+for accepted control before deleting the fixture. Acceptance focus registers11 actual cases.
+
+Runtime Lifecycle reuses the existing polling Contract024DeathAgent and Observe-Lifecycle024,
+only in own027g. Namespace guards and exact owned NPC cleanup are retained; stock NPC20933
+stats/AI are untouched. The event-hook disk-writing Agent2 is deliberately not reused.
+Early wrapper/attach failures are INVALID before any encounter. Full observer six-member
+attach was rejected by the unchanged eight-member guard. Lifecycle keeps all six initial
+visible actors plus two previously enrolled inactive IDs752/775; it is not a new natural
+farm baseline. Actual deaths175/613 and new epochs215336033180900/215337506780600 returned
+after the original45s window. Current-epoch evidence records19/15 cycles at180s; strict
+same-epoch old farm evaluation is never promoted by these recovery counters. Legacy polling
+fixture reports RECOVERY_FARM=[613], PASS=false because175 was first sampled alive in its
+old pre-store epoch; the separate new-epoch native evidence is retained unchanged.
+Exact owned NPC cleanup=true. Synthetic final cleanup=PASS; a read request timed out
+UNCERTAIN and was not replayed. No M1/farm PASS inferred from fixture exit.
+
+g initial stock stop4402ms and post-native-death stock stop4530ms were healthy before
+ThreadPool shutdown. Two actual sameDB process restarts have run on committed542a677;
+no reseed or manual receipt finalize. Whole-group comparison remains an acceptance gate.
+Read-only metadata change proposing an enrolled initialEpoch substitution was rejected by
+automatic approval review (mixing epochs could falsify proof). It was not applied or retried;
+actual epochs and enrolledInitialEpoch remain separate, and exact SQL validators are reused.
+
+R12 acceptance combined run was INVALID fixture composition: S02 loaded M1TimerBootstrap,
+then S03 loaded the same script again; ScriptManager.addScript puts the new entry then
+old.unload removes the same name. Quest lookup became null. All nine preceding real cases
+passed, including D01/D02/D03/D04 and preflight. Test now reuses the existing actual Quest
+and compiles it only when absent, following PhantomM1TimerChecks bootstrap pattern. Native
+ScriptManager is out of scope and unchanged. Result, native incident and orphan TEST teardown
+are preserved; guarded own027a backup/reset is isolated from all product clones.
+The second combined run exposed another TEST teardown race: S03 considered old World
+removal sufficient while its accepted control had not published the terminal result yet;
+Fixture.close drained materialization before background.finishStop. The assertion now waits
+for the actual existing materializationQuiescence.ready and checks firstRecoveryFailure,
+then tears down. It does not complete/cancel tickets or bypass failure. Nine prior cases passed.

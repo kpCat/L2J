@@ -68,7 +68,6 @@ public final class PhantomBackgroundDecision
 	private final BiFunction<Long, PhantomGoal, Boolean> _visibleSuitable;
 	private final LongConsumer _visibleStop;
 	private BiFunction<Long, PhantomGoal, PhantomStepResult> _typedVisibleStart;
-	private BiFunction<Long, PhantomGoal, PhantomHistoricalBackgroundService.Result> _nativeRecoveryReady = (_profileId, _goal) -> PhantomHistoricalBackgroundService.Result.success(null, 0);
 	private final ConcurrentHashMap<Long, DeadWindow> _deadWindows = new ConcurrentHashMap<>();
 
 	public PhantomBackgroundDecision(PhantomBackgroundService service)
@@ -114,7 +113,6 @@ public final class PhantomBackgroundDecision
 			}
 			return history.visibleFarmReady(profileId, goal);
 		}, autoPlay::stop);
-		adapter._nativeRecoveryReady = history::prepareNativeRecovery;
 		adapter._typedVisibleStart = (profileId, goal) ->
 		{
 			// Planner retry exhaustion does not revoke a healthy exact native session or require another stand-point.
@@ -288,11 +286,6 @@ public final class PhantomBackgroundDecision
 		catch (IllegalArgumentException exception)
 		{
 			return PhantomStepResult.of(Type.REPLAN, "background.step.invalid");
-		}
-		if (expected == DirectiveKind.RECOVER)
-		{
-			final var prepared = _nativeRecoveryReady.apply(context.profileId(), context.goal());
-			if (!prepared.successful()) { return PhantomStepResult.retry(RETRY_DELAY_MILLIS, "background.recovery.baseline_retry." + prepared.reason()); }
 		}
 		final OperationResult result = switch (expected)
 		{

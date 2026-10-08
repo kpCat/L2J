@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('ProbeStop')][string]$Action='ProbeStop',
+param([ValidateSet('ProbeStop','Lifecycle')][string]$Action='ProbeStop',
       [ValidateSet('b','c','d','g','h')][string]$Episode='b',
       [Parameter(Mandatory)][string]$OutputRoot,
       [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$CodeSha,
@@ -12,6 +12,32 @@ $allowed027=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'evidence'))+[IO.Pat
 if(-not $out027.StartsWith($allowed027,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path $out027)){throw 'Immutable TASK027 evidence required.'}
 $manifest027=Get-Content (Join-Path $runtime027 'local-play.json') -Raw | ConvertFrom-Json
 if($manifest027.codeSha -cne $CodeSha -or $manifest027.databaseName -cne "l2jmobiush5_localplay_contract027$Episode"){throw 'Exact code/database mismatch.'}
+if($Action -ceq 'Lifecycle'){
+    if($Episode -cne 'g'){throw 'Native severe encounter is restricted to own027g.'}
+    $taskRoot027=$PSScriptRoot
+    $legacy027=Join-Path $module027 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024'
+    $ops027=Join-Path $module027 '.phantom-local/ops027'
+    # Reuse the existing polling fixture, including stock NPC stats and exact cleanup.
+    # No event listener with disk output is installed; no phantom command is issued.
+    $agent027=[IO.File]::ReadAllText((Join-Path $legacy027 'Contract024DeathAgent.java')).Replace('024','027').Replace('PHANTOM-M1-RUNTIME-CONTRACTS-027','PHANTOM-M1-LIFECYCLE-COMPLETION-027')
+    $agentPath027=Join-Path $ops027 'Contract027DeathAgent.java'
+    [IO.File]::WriteAllText($agentPath027,$agent027,[Text.UTF8Encoding]::new($false))
+    $builder027=[IO.File]::ReadAllText((Join-Path $legacy027 'Build-Death024.ps1')).Replace('024','027').Replace("(Join-Path `$PSScriptRoot 'Contract027DeathAgent.java')",'$agentPath027').Replace('$PSScriptRoot','$taskRoot027')
+    & ([scriptblock]::Create($builder027))
+    function InvokeNativeDeath027([string]$RuntimeRoot,[string]$CohortJson,[string]$OutputRoot){
+        $arm027=[IO.File]::ReadAllText((Join-Path $legacy027 'Arm-Death024.ps1')).Replace('024','027').Replace('contract027c','contract027g')
+        $arm027=$arm027.Replace('(Join-Path $PSScriptRoot','(Join-Path $taskRoot027')
+        $attach027=Join-Path $legacy027 'AttachContract024.java'
+        $arm027=$arm027.Replace('-cp $ops AttachContract027','-cp $ops $attach027')
+        $arm027=$arm027.Replace("& (Join-Path `$taskRoot027 'Export-Persistence027.ps1') -RuntimeRoot `$runtime -CohortJson (Join-Path `$output 'selected.json') -OutputRoot (Join-Path `$output 'before-sql') | Out-Null", "& (Join-Path `$taskRoot027 'Control027.ps1') -Action Export -Episode g -ProfileIds @(`$actors.profileId) -OutputRoot (Join-Path `$output 'before-sql') | Out-Null")
+        & ([scriptblock]::Create($arm027)) -RuntimeRoot $RuntimeRoot -CohortJson $CohortJson -OutputRoot $OutputRoot
+    }
+    $lifecycle027=[IO.File]::ReadAllText((Join-Path $legacy027 'Observe-Lifecycle024.ps1')).Replace('024','027')
+    $lifecycle027=$lifecycle027.Replace('$counter=0','$script:counter=0').Replace('$observer=$null','$script:observer=$null')
+    $lifecycle027=$lifecycle027.Replace("& (Join-Path `$PSScriptRoot 'Arm-Death027.ps1')",'InvokeNativeDeath027')
+    & ([scriptblock]::Create($lifecycle027)) -RuntimeRoot $runtime027 -OutputRoot $out027 -FrozenSha $CodeSha -Seconds 200
+    exit $LASTEXITCODE
+}
 New-Item -ItemType Directory -Path $out027 | Out-Null
 $run027=[guid]::NewGuid().ToString('D')
 $run027 | Set-Content (Join-Path $out027 'run-id.txt') -Encoding utf8

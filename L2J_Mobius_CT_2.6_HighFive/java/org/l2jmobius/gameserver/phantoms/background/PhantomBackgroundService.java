@@ -162,7 +162,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		final PhantomGoal goal; final PhantomActivityState activity; final BooleanSupplier cancelled;
 		final AtomicBoolean queued = new AtomicBoolean(), finished = new AtomicBoolean();
 		volatile OperationResult result;
-		int objectId; long epoch; boolean storeRequested, restoreExisting, resumedFromResurrection;
+		int objectId; long epoch; boolean storeRequested, restoreExisting, resumedFromResurrection, baselinePending;
 		PhantomHistoricalBackgroundService.NativeRecoveryHandoff handoff;
 		RecoveryControl(long profileId, PhantomGoal goal, PhantomActivityState activity, BooleanSupplier cancelled, PhantomMaterializationService.MaterializationSnapshot entry)
 		{
@@ -1591,6 +1591,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				final var goal = _goals.load(control.profileId).orElse(null);
 				if (control.cancelled.getAsBoolean() || (goal == null) || !goal.goal().equals(control.goal)) { finishRecovery(control, OperationResult.replan("recovery.control_goal_changed")); return; }
+				if (_nativeRecoveryHistory != null)
+				{
+					final var prepared = _nativeRecoveryHistory.prepareNativeRecoveryControl(control.profileId, control.goal, control.deadline);
+					control.baselinePending = _nativeRecoveryHistory.nativeRecoveryControlPending(control.profileId);
+					if (!prepared.successful())
+					{
+						if (!control.baselinePending) { finishRecovery(control, prepared.status() == PhantomHistoricalBackgroundService.ResultStatusCode.RETRY ? retry("recovery.control_baseline:" + prepared.reason()) : OperationResult.replan("recovery.control_baseline:" + prepared.reason())); }
+						return;
+					}
+				}
 				result = recoverOwned(control.profileId, control.goal, control.activity, control.cancelled, _state != ServiceState.RUNNING, control);
 			}
 			if ((result.status() != OperationStatus.RETRY) || !control.storeRequested) { finishRecovery(control, result); }

@@ -35,21 +35,88 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 		org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(org.l2jmobius.gameserver.scripting.ScriptEngine.MASTER_HANDLER_FILE);
 	}
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _handoff.afterAll(context); }
+	private static org.l2jmobius.gameserver.model.script.Quest quest(PhantomTestContext context) throws Exception
+	{
+		if (org.l2jmobius.gameserver.managers.ScriptManager.getInstance().getScript("M1TimerBootstrap") == null)
+		{
+			org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(context.moduleRoot().resolve("test/resources/phantoms/M1TimerBootstrap.java"));
+		}
+		final var quest = org.l2jmobius.gameserver.managers.ScriptManager.getInstance().getScript("M1TimerBootstrap");
+		PhantomAssertions.assertTrue(quest != null, "INVALID: actual ScriptEngine Quest bootstrap is missing.");
+		return quest;
+	}
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom.m1.native.focus", "all");
-		if (focus.equals("all") || focus.equals("callback")) { registry.add("S02-native-delayed-kill-child-before-system-store", this::callback); }
-		if (focus.equals("all") || focus.equals("death")) { registry.add("D05-accepted-queued-native-return-survives-close", this::queuedDeath); }
-		if (focus.equals("all") || focus.equals("cold")) { registry.add("D03-cold-canonical-dead-native-recovery", this::coldDead); }
-		if (focus.equals("dispatch")) { registry.add("E01-executor-entry-before-owner-monitor", this::dispatch); }
-		if (focus.equals("timeout")) { registry.add("S05-single-deadline-retains-original-running-native-callback", this::timeout); }
-		if (focus.equals("recovery")) { registry.add("S03-native-recovery-control-does-not-drain-own-callback", this::recoveryControl); }
-		if (focus.equals("handoff-death")) { registry.add("D04-exact-pending-handoff-survives-native-death-return", this::handoffDeath); }
-		if (focus.equals("cold-handoff")) { registry.add("D04-cold-dead-keeps-exact-pending-handoff", this::coldHandoff); }
-		if (focus.equals("real-death"))
+		final boolean acceptance = focus.equals("acceptance");
+		if (acceptance || focus.equals("all") || focus.equals("callback")) { registry.add("S02-native-delayed-kill-child-before-system-store", this::callback); }
+		if (acceptance || focus.equals("all") || focus.equals("death")) { registry.add("D05-accepted-queued-native-return-survives-close", this::queuedDeath); }
+		if (acceptance || focus.equals("all") || focus.equals("cold")) { registry.add("D03-cold-canonical-dead-native-recovery", this::coldDead); }
+		if (acceptance || focus.equals("dispatch")) { registry.add("E01-executor-entry-before-owner-monitor", this::dispatch); }
+		if (acceptance || focus.equals("timeout")) { registry.add("S05-single-deadline-retains-original-running-native-callback", this::timeout); }
+		if (acceptance || focus.equals("recovery")) { registry.add("S03-native-recovery-control-does-not-drain-own-callback", this::recoveryControl); }
+		if (acceptance || focus.equals("preflight")) { registry.add("S03-cold-stale-native-preflight-is-control-continuation", this::recoveryPreflight); }
+		if (acceptance || focus.equals("handoff-death")) { registry.add("D04-exact-pending-handoff-survives-native-death-return", this::handoffDeath); }
+		if (acceptance || focus.equals("cold-handoff")) { registry.add("D04-cold-dead-keeps-exact-pending-handoff", this::coldHandoff); }
+		if (acceptance || focus.equals("real-death"))
 		{
 			registry.add("D01-real-45s-native-death-return-and-new-epoch", this::realDeathReturn);
 			registry.add("D02-secondary-native-revive-does-not-return-twice", this::secondaryRevive);
+		}
+	}
+	private void recoveryPreflight(PhantomTestContext context) throws Exception
+	{
+		final var productionField = PhantomNativeContextHandoffSuite.class.getDeclaredField("_production"); productionField.setAccessible(true);
+		final var production = (PhantomBackgroundSuite.ProductionAuthorityFixture) productionField.get(_handoff);
+		try (var f = _handoff.new Fixture(true, true))
+		{
+			PhantomVisibleIntentRecoverySuite.complete(f);
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final var claim = f.catchups.load(f.id).orElseThrow();
+			final var navigation = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend(), worker -> { ThreadPool.execute(worker); return true; }, System::nanoTime, new org.l2jmobius.gameserver.phantoms.PhantomMetrics());
+			final var signalsField = PhantomNativeContextHandoffSuite.class.getDeclaredMethod("signals"); signalsField.setAccessible(true);
+			final var signals = (org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort) signalsField.invoke(null);
+			final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(f.materialization, f.background, production.authority().travelQuery(production.topology()), navigation, f.historical::permitsDecision, signals);
+			final var autoPlay = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay(f.materialization, () -> null, f.historical::permitsDecision);
+			final var adapter = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundDecision.bindVisibleLife(f.background, travel, autoPlay, f.historical, () -> null);
+			final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry(); adapter.registerHandlers(handlers); handlers.seal();
+			final var spec = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(goal);
+			final var source = goal.validSources().stream().filter(value -> value.namespace().equals(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.SOURCE_NAMESPACE) && value.key().equals(spec.npcId() + "@" + spec.anchorId())).findFirst().orElseThrow();
+			final var step = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanStep(0, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.RECOVER_ACTION, source, java.util.Map.of("npc", (long) spec.npcId()), 5000, 2, "background.recover.explicit");
+			final var plan = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlan(1, goal.goalId(), org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.CANDIDATE_KEY, List.of(step), 5000, System.nanoTime());
+			final var request = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(f.id, goal, plan, step, PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
+			final var entered = new java.util.concurrent.CountDownLatch(1); final var release = new java.util.concurrent.CountDownLatch(1); final var done = new java.util.concurrent.CountDownLatch(1);
+			final var elapsed = new AtomicLong(); final var result = new AtomicReference<org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult>(); final var error = new AtomicReference<Throwable>();
+			f.afterHistoricalLoad = () ->
+			{
+				entered.countDown(); ThreadPool.schedule(release::countDown, 350);
+				try { if (!release.await(3, java.util.concurrent.TimeUnit.SECONDS)) { throw new IllegalStateException("TEST027_PREFLIGHT_RELEASE"); } }
+				catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException(failure); }
+			};
+			ThreadPool.schedule(() ->
+			{
+				final long started = System.nanoTime();
+				try { result.set(handlers.snapshot().get(step.actionKey()).execute(request)); }
+				catch (Throwable failure) { error.set(failure); }
+				finally { elapsed.set(System.nanoTime() - started); done.countDown(); }
+			}, 10);
+			try
+			{
+				PhantomAssertions.assertTrue(done.await(4, java.util.concurrent.TimeUnit.SECONDS) && error.get() == null && entered.await(4, java.util.concurrent.TimeUnit.SECONDS), "INVALID S03: real cold native baseline load must be accepted: " + error);
+				context.record("S03.preflight", "elapsed=" + elapsed + ";result=" + result + ";loadedEpoch=" + f.loadedEpoch);
+				PhantomAssertions.assertTrue(elapsed.get() < 100_000_000L, "RED S03 preflight: scheduled decision caller waited for accepted native baseline load/drain.");
+				final long deadline = System.nanoTime() + 8_000_000_000L;
+				while (System.nanoTime() < deadline && (f.background.materializationQuiescence().operations() != 0 || f.materialization.find(f.id).isPresent())) { Thread.sleep(10); }
+				PhantomAssertions.assertTrue(f.background.firstRecoveryFailure().isEmpty() && f.materialization.find(f.id).isEmpty() && f.transactions.load(f.id).state().vitals().currentHp() > 0, "Cold baseline control must drain and finish the actual native return.");
+				PhantomAssertions.assertEquals(claim, f.catchups.load(f.id).orElseThrow(), "Native preflight cannot replace or complete the exact catch-up claim.");
+				PhantomAssertions.assertEquals(goal, f.goals.load(f.id).orElseThrow().goal(), "Native preflight cannot replace the goal.");
+			}
+			finally
+			{
+				release.countDown();
+				final long cleanupDeadline = System.nanoTime() + 10_000_000_000L;
+				while (System.nanoTime() < cleanupDeadline && f.background.materializationQuiescence().operations() != 0) { Thread.sleep(10); }
+			}
 		}
 	}
 	private void handoffDeath(PhantomTestContext context) throws Exception
@@ -182,8 +249,7 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 			final var player = World.getInstance().getPlayer(f.objectId);
 			final var original = (PhantomNativeWorkScope) player.getNativeWorkOwner();
 			final var goal = f.goals.load(f.id).orElseThrow().goal();
-			org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(context.moduleRoot().resolve("test/resources/phantoms/M1TimerBootstrap.java"));
-			final var quest = org.l2jmobius.gameserver.managers.ScriptManager.getInstance().getScript("M1TimerBootstrap");
+			final var quest = quest(context);
 			final var bodyField = PhantomM1TimerChecks.class.getDeclaredField("QUEST_BODY"); bodyField.setAccessible(true);
 			@SuppressWarnings("unchecked") final var body = (AtomicReference<java.util.function.Consumer<Player>>) bodyField.get(null);
 			final var result = new AtomicReference<PhantomBackgroundService.OperationResult>();
@@ -200,8 +266,9 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 				context.record("S03.request", "result=" + result + ";elapsed=" + elapsed + ";owner=" + original.snapshot());
 				PhantomAssertions.assertTrue(result.get() != null && result.get().status() == PhantomBackgroundService.OperationStatus.RETRY && elapsed.get() < 100_000_000L, "RED S03: native callback must publish recovery control and return without draining itself.");
 				final long deadline = System.nanoTime() + 5_000_000_000L;
-				while (System.nanoTime() < deadline && World.getInstance().getPlayer(f.objectId) == player) { Thread.sleep(10); }
+				while (System.nanoTime() < deadline && (World.getInstance().getPlayer(f.objectId) == player || !f.background.materializationQuiescence().ready())) { Thread.sleep(10); }
 				PhantomAssertions.assertTrue(World.getInstance().getPlayer(f.objectId) != player && original.outstanding() == 0 && original.firstNativeIncident() == null, "Exact original owner released only after callback exit, without incident.");
+				PhantomAssertions.assertTrue(f.background.materializationQuiescence().ready() && f.background.firstRecoveryFailure().isEmpty(), "Accepted recovery control must publish its terminal result before fixture teardown.");
 				PhantomAssertions.assertTrue(f.transactions.load(f.id).state().vitals().currentHp() > 0, "Native return captured durably.");
 			}
 			finally { body.set(null); }
@@ -241,8 +308,7 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 			final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(npc.getTemplate()); spawn.setXYZ(player.getX() + 40, player.getY(), player.getZ()); npc.setSpawn(spawn);
 			npc.setCurrentHpMp(npc.getMaxHp(), npc.getMaxMp()); npc.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
 			final var calls = new AtomicInteger(); final var children = new AtomicInteger(); final var selfWait = new AtomicLong();
-			org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(context.moduleRoot().resolve("test/resources/phantoms/M1TimerBootstrap.java"));
-			final var quest = org.l2jmobius.gameserver.managers.ScriptManager.getInstance().getScript("M1TimerBootstrap");
+			final var quest = quest(context);
 			final var bodyField = PhantomM1TimerChecks.class.getDeclaredField("QUEST_BODY"); bodyField.setAccessible(true);
 			@SuppressWarnings("unchecked") final var body = (AtomicReference<java.util.function.Consumer<Player>>) bodyField.get(null);
 			PhantomAssertions.assertTrue(body.compareAndSet(null, actor -> { children.incrementAndGet(); actor.setHeading((actor.getHeading() + 32) % 65536); }), "Exclusive existing native QuestTimer fixture.");

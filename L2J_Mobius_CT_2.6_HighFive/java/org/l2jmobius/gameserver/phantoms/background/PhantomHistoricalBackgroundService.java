@@ -65,6 +65,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private final ConcurrentHashMap<Long, ActiveForegroundHandoff> _foregroundHandoffs = new ConcurrentHashMap<>();
 	private volatile boolean _foregroundDecisionsRevoked;
 	private final ConcurrentHashMap<Long, RecoveryClaim> _recoveryClaims = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, NativeRecoveryRefresh> _nativeRecoveryRefreshes = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, VisibleFailures> _visibleFailures = new ConcurrentHashMap<>();
 	private final LongSupplier _visibleClock;
 	private final ConcurrentHashMap<Long, VisibleEpisode> _visibleEpisodes = new ConcurrentHashMap<>();
@@ -954,6 +955,53 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 
 	/** An offline DEAD return uses the existing exact claim-owned baseline before NORMAL recovery. */
+	boolean nativeRecoveryControlPending(long profileId) { return _nativeRecoveryRefreshes.containsKey(profileId); }
+
+	/** The accepted background control retains the existing baseline claim across nonblocking cleanup. */
+	Result prepareNativeRecoveryControl(long profileId, PhantomGoal expectedGoal, long deadline)
+	{
+		var refresh = _nativeRecoveryRefreshes.get(profileId);
+		if (refresh == null)
+		{
+			final var goal = _goals.load(profileId).orElse(null);
+			if ((goal == null) || !goal.goal().equals(expectedGoal) || (expectedGoal.status() != PhantomGoalStatus.ACTIVE) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(expectedGoal.goalType())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_recovery.goal_mismatch", null); }
+			final var lifetime = _materialization.find(profileId).orElse(null);
+			if (lifetime != null) { return lifetime.actionAdmissionOpen() ? Result.success(null, 0) : Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.owner_draining", null); }
+			final var baseline = _background.acquisitionSnapshot(profileId).orElse(null);
+			if (baseline == null) { return Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.background_missing", null); }
+			final var generation = _planner.generation();
+			if ((baseline.state() != PhantomBackgroundState.State.DEAD) || baseline.hashes().equals(generation.authorityHashes())) { return Result.success(null, 0); }
+			final var current = _store.load(profileId).orElse(null);
+			if ((goal == null) || !goal.goal().equals(expectedGoal) || (expectedGoal.status() != PhantomGoalStatus.ACTIVE) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(expectedGoal.goalType())
+				|| (current == null) || (current.state().status() != Status.COMPLETE) || !currentClaim(profileId, current) || (current.state().goalId() != expectedGoal.goalId()) || (current.state().goalRevision() != expectedGoal.revision())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_recovery.claim_goal_mismatch", current); }
+			final var recovery = new RecoveryClaim(current, _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null), _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null));
+			if (_recoveryClaims.putIfAbsent(profileId, recovery) != null) { return Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.baseline_busy", current); }
+			refresh = new NativeRecoveryRefresh(recovery, generation);
+			_nativeRecoveryRefreshes.put(profileId, refresh);
+			final var loaded = _materialization.materialize(profileId, MaterializationPurpose.HISTORICAL_BASELINE, current.state().requestId());
+			if (loaded.status() != ResultStatus.SUCCESS)
+			{
+				if (_materialization.find(profileId).isEmpty()) { _nativeRecoveryRefreshes.remove(profileId, refresh); _recoveryClaims.remove(profileId, recovery); }
+				return Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.materialize_" + loaded.status(), current);
+			}
+			final var entry = _materialization.find(profileId).orElseThrow(); refresh.objectId = entry.characterObjectId(); refresh.epoch = entry.materializedAtNanos();
+		}
+		final var recovery = refresh.recovery;
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		if ((lifetime != null) && ((lifetime.characterObjectId() != refresh.objectId) || (lifetime.materializedAtNanos() != refresh.epoch))) { throw new IllegalStateException("catchup.native_recovery.baseline_owner_changed"); }
+		final var stored = _materialization.requestDematerialize(profileId, deadline);
+		if (stored.status() == ResultStatus.CLEANUP_PENDING) { return Result.rejected(ResultStatusCode.RETRY, "catchup.native_recovery.control_pending", recovery.snapshot()); }
+		if ((stored.status() != ResultStatus.SUCCESS) && (stored.status() != ResultStatus.NOT_ACTIVE)) { throw new IllegalStateException("catchup.native_recovery.baseline_store_" + stored.status()); }
+		final var state = _background.acquisitionSnapshot(profileId).orElse(null);
+		final boolean exact = _materialization.find(profileId).isEmpty() && (state != null) && (state.state() == PhantomBackgroundState.State.DEAD) && state.hashes().equals(refresh.generation.authorityHashes())
+			&& _planner.generation().equals(refresh.generation) && currentClaim(profileId, recovery.snapshot())
+			&& Objects.equals(recovery.claim(), _profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).orElse(null)) && Objects.equals(recovery.goal(), _profiles.findComponent(profileId, PhantomGoalStateStore.COMPONENT_TYPE).orElse(null));
+		_nativeRecoveryRefreshes.remove(profileId, refresh); _recoveryClaims.remove(profileId, recovery);
+		if (!exact) { throw new IllegalStateException("catchup.native_recovery.baseline_unverified"); }
+		return Result.success(recovery.snapshot(), 0);
+	}
+
+	/** Synchronous external compatibility route; scheduler/native requests use the control route above. */
 	public Result prepareNativeRecovery(long profileId, PhantomGoal expectedGoal)
 	{
 		try
@@ -1426,6 +1474,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	}
 
 	private record RecoveryClaim(Snapshot snapshot, PhantomProfileComponent claim, PhantomProfileComponent goal) { }
+	private static final class NativeRecoveryRefresh
+	{
+		final RecoveryClaim recovery;
+		final PhantomHistoricalBackgroundPlanner.PlanningGeneration generation;
+		int objectId; long epoch;
+		NativeRecoveryRefresh(RecoveryClaim recovery, PhantomHistoricalBackgroundPlanner.PlanningGeneration generation) { this.recovery = recovery; this.generation = generation; }
+	}
 
 	private record Admission(int characterObjectId, MaterializationPurpose purpose, String ownerClaim, RecoveryClaim recovery, PhantomProfileComponent claim, PhantomProfileComponent goal, Snapshot catchup)
 	{

@@ -50,6 +50,8 @@ public final class Contract027Observer
     private static PhantomBackgroundService fullBackground;
     private static org.l2jmobius.gameserver.phantoms.PhantomSystem lifecycleSystem;
     private static String lifecycleLast = "";
+    private static String deathLast = "";
+    private static int deathLines;
     private static final Map<Long, org.l2jmobius.gameserver.phantoms.decision.PhantomGoal> fullGoals = new HashMap<>();
     private static long fullSampleNanos;
     private static int fullLines;
@@ -189,7 +191,7 @@ public final class Contract027Observer
             {
                 while (true)
                 {
-                    try { Thread.sleep(100); drain(); sampleDispatch(); sampleNativeTarget(); sampleFullCohort(); exportRecovery(); sampleLifecycle(); }
+                    try { Thread.sleep(100); drain(); sampleDispatch(); sampleNativeTarget(); sampleFullCohort(); exportRecovery(); sampleLifecycle(); sampleDeath(); }
                     catch (InterruptedException stopped) { return; }
                     catch (Exception failure) { exporterFailure = failure.toString(); }
                 }
@@ -213,6 +215,23 @@ public final class Contract027Observer
         if (value.equals(lifecycleLast)) { return; }
         lifecycleLast = value;
         Files.writeString(selection.output().resolve("lifecycle-progress.tsv"), System.nanoTime() + "\t" + value + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+    private static void sampleDeath() throws Exception
+    {
+        if (lifecycleSystem == null || selection == null || deathLines >= 1024) { return; }
+        final var service = (org.l2jmobius.gameserver.phantoms.background.PhantomOrdinaryDeathRecovery) field(lifecycleSystem.getClass(), "_ordinaryDeathRecovery").get(lifecycleSystem);
+        if (service == null) { return; }
+        final var deaths = (Map<?, ?>) field(service.getClass(), "_deaths").get(service);
+        final var value = new StringBuilder(service.snapshot().toString());
+        for (long profile : selection.profiles().keySet().stream().sorted().toList())
+        {
+            final var death = deaths.get(profile);
+            if (death != null) { value.append(";profile=").append(profile).append(':').append(death); }
+        }
+        final String text = value.toString();
+        if (text.equals(deathLast)) { return; }
+        deathLast = text; deathLines++;
+        Files.writeString(selection.output().resolve("native-death-control.tsv"), System.nanoTime() + "\t" + text + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
     /** Exact initial scopes, including actors outside Synthetic surrounding regions. No admission or Player mutation. */
     private static synchronized void sampleFullCohort() throws Exception
@@ -432,6 +451,9 @@ public final class Contract027Observer
         final var state = intent.after(); final var id = state.identity(); final var vitals = state.vitals();
         final StringBuilder text = new StringBuilder("source=native-sealed-snapshot\nbarrier=QUIESCENT_NATIVE_PREPARE\nexactArgument=true\ncodeSha=" + sha + "\n");
         put(text,"profileId",id.profileId()); put(text,"objectId",player.getObjectId()); put(text,"epoch",intent.materializedAtNanos()); put(text,"initialEpoch",intent.materializedAtNanos()); put(text,"preparedRowVersion",intent.preparedRowVersion());
+        put(text,"beforeState",intent.before().state()); put(text,"beforeHp",intent.before().vitals().currentHp());
+        put(text,"beforePayloadSha256",PhantomBackgroundTransaction.payloadDigest(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().encode(intent.before())));
+        put(text,"afterPayloadSha256",PhantomBackgroundTransaction.payloadDigest(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().encode(intent.after())));
         put(text,"level",player.getLevel()); put(text,"exp",player.getExp()); put(text,"sp",player.getSp()); put(text,"expBeforeDeath",player.getExpBeforeDeath());
         // These are the exact scalars supplied to Player.OwnedStoreSnapshot, already canonicalized by the existing resolver.
         put(text,"hp",vitals.currentHp()); put(text,"maxHp",vitals.maximumHp()); put(text,"mp",vitals.currentMp()); put(text,"maxMp",vitals.maximumMp()); put(text,"cp",vitals.currentCp()); put(text,"maxCp",vitals.maximumCp());
