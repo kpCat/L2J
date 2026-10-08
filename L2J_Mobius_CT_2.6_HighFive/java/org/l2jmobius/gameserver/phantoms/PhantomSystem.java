@@ -613,6 +613,7 @@ public final class PhantomSystem
 				}
 				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology);
 				_materializationRetention = new PhantomMaterializationRetentionPolicy(this::retentionFacts, System::nanoTime, 60_000);
+				_backgroundService.installNativeContextDemand(this::nativeContextDemand);
 				_populationManager.installRetirementProtection(profileId -> _materializationRetention.observe(profileId).hard() || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
 				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING) && _materializationRetention.observe(profileId).retained());
 				_reconcileMaterializationActivity.installSoftReclamation(requestingProfileId ->
@@ -2888,6 +2889,26 @@ public final class PhantomSystem
 	private PhantomScheduler createScheduler(PhantomActivityMaterializationPort materializationPort)
 	{
 		return createScheduler(materializationPort, PhantomActivityWorkSink.noop());
+	}
+
+	private boolean nativeContextDemand(long profileId)
+	{
+		if ((_materializationRetention == null) || (_humanLocality == null)) { return true; }
+		final var entry = _materializationService.find(profileId).orElse(null);
+		if ((entry != null) && (entry.firstCleanupIncident() != null)) { return true; }
+		if ((entry != null) && entry.worldPresent())
+		{
+			final var object = World.getInstance().findObject(entry.characterObjectId());
+			if ((entry.state() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.ACTIVE) || !(object instanceof Player player)) { return true; }
+			if (player.isDead() || player.hasPendingOwnedStore() || !(player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope)
+				|| !scope.open() || scope.temporaryCheckpoint() || (scope.firstNativeIncident() != null) || (scope.outstanding() != 0)) { return true; }
+			return _materializationRetention.observe(profileId).retained();
+		}
+		if ((entry != null) && (entry.state() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.STORED)) { return true; }
+		return _humanLocality.isLocal(profileId)
+			|| ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId)))
+			|| ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId))
+			|| ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent());
 	}
 
 	private PhantomMaterializationRetentionPolicy.Facts retentionFacts(long profileId)

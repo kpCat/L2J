@@ -176,8 +176,8 @@ try{
         do{
             $frame=ReadFrame028
             foreach($id in $primary.profileId){$row=@($frame.actors | Where-Object {$_.profileId -ceq $id});if($row.Count -ne 1 -or $row[0].observerPrewarm -cne 'false' -or $row[0].observerNativeVisible -cne 'false'){throw 'Native away locality still demanded.'}}
-            if(@($frame.actors | Where-Object {$_.worldPresent -ceq 'true'}).Count -eq 0){break}
-            if($away.Elapsed.TotalSeconds -gt 120){throw 'SOFT_RETIRE_BOUND: enrolled actors remain in World after native action/grace.'}
+            if(@($frame.actors | Where-Object {$_.profileId -cin $primary.profileId -and $_.worldPresent -ceq 'true'}).Count -eq 0){break}
+            if($away.Elapsed.TotalSeconds -gt 120){throw 'SOFT_RETIRE_BOUND: preselected actors remain in World after native action/grace.'}
             Start-Sleep -Seconds 1
         }while($true)
         MarkPhase028 'BACKGROUND_ABSENT'

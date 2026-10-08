@@ -124,9 +124,11 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	private volatile PhantomAcquisitionQuestCatalog _quests;
 	private volatile Limits _acquisitionLimits;
 	private volatile LongPredicate _ordinaryPresence = profileId -> true;
+	private volatile LongPredicate _nativeContextDemand = profileId -> true;
 	private volatile BiConsumer<Long, PhantomBackgroundState.Position> _committedPosition = (profileId, position) -> {};
 	private boolean _positionPublisherInstalled;
 	private boolean _presenceInstalled;
+	private boolean _nativeContextDemandInstalled;
 	private volatile LongFunction<OperationResult> _periodicFarm;
 	private volatile PhantomHistoricalBackgroundService _nativeRecoveryHistory;
 	private final ConcurrentHashMap<Long, Boolean> _operations = new ConcurrentHashMap<>();
@@ -280,6 +282,17 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		_ordinaryPresence = Objects.requireNonNull(ordinaryPresence, "Ordinary presence policy must not be null.");
 		_presenceInstalled = true;
+	}
+
+	/** Relevance demand is independent of the scalar gate that prohibits unsupported simulation. */
+	public synchronized void installNativeContextDemand(LongPredicate demand)
+	{
+		if (_nativeContextDemandInstalled || (_state == ServiceState.STOPPING) || (_state == ServiceState.STOPPED))
+		{
+			throw new IllegalStateException("Native context demand can only be installed once before work starts.");
+		}
+		_nativeContextDemand = Objects.requireNonNull(demand, "Native context demand must not be null.");
+		_nativeContextDemandInstalled = true;
 	}
 
 	public synchronized void installCommittedPositionPublisher(BiConsumer<Long, PhantomBackgroundState.Position> publisher)
@@ -2617,6 +2630,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	/** Claim only sequence/binding under a short monitor; deliver outside all native and DB monitors. */
 	private PhantomRelevanceSignalPort.SignalDelivery updateNativeContextSignal(long profileId, PhantomBackgroundTransaction.NativeContextResult proof, boolean required)
 	{
+		// Evaluate existing native/locality facts outside service, native and DB monitors.
+		final boolean requested = required && _nativeContextDemand.test(profileId);
 		final long sequence;
 		final long version = proof.context().stateRowVersion();
 		synchronized (this)
@@ -2624,19 +2639,19 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			if (_state != ServiceState.RUNNING) { return PhantomRelevanceSignalPort.SignalDelivery.NOT_RUNNING; }
 			final var previous = _nativeContextSignals.get(profileId);
 			if ((previous != null) && (previous.stateRowVersion() > version)) { return PhantomRelevanceSignalPort.SignalDelivery.STALE; }
-			if (!required && ((previous == null) || !previous.requested())) { return null; }
+			if (!requested && ((previous == null) || !previous.requested())) { return null; }
 			if ((previous != null) && (previous.sequence() == Long.MAX_VALUE)) { return PhantomRelevanceSignalPort.SignalDelivery.SEQUENCE_EXHAUSTED; }
 			sequence = Math.max(Math.max(1, System.nanoTime()), previous == null ? 1 : previous.sequence() + 1);
-			_nativeContextSignals.put(profileId, new NativeContextSignal(sequence, version, required, null));
+			_nativeContextSignals.put(profileId, new NativeContextSignal(sequence, version, requested, null));
 			_currentContextSignals++;
 		}
 		try
 		{
-			final var delivery = required
+			final var delivery = requested
 				? _signals.submit(profileId, new PhantomRelevanceSignal(NATIVE_CONTEXT_SIGNAL_SOURCE, sequence, PhantomActivityState.ACTIVE, NATIVE_CONTEXT_SIGNAL_TTL_MILLIS))
 				: _signals.withdraw(profileId, NATIVE_CONTEXT_SIGNAL_SOURCE, sequence);
 			_nativeContextSignals.computeIfPresent(profileId, (id, current) -> current.sequence() == sequence
-				? new NativeContextSignal(sequence, version, required || ((delivery != PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED) && (delivery != PhantomRelevanceSignalPort.SignalDelivery.COALESCED)), delivery) : current);
+				? new NativeContextSignal(sequence, version, requested || ((delivery != PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED) && (delivery != PhantomRelevanceSignalPort.SignalDelivery.COALESCED)), delivery) : current);
 			return delivery;
 		}
 		finally { synchronized (this) { _currentContextSignals--; } }

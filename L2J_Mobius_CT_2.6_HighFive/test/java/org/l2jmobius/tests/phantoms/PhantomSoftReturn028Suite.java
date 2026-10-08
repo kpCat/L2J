@@ -10,9 +10,11 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.PhantomPolicy;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickStatus;
@@ -32,6 +34,32 @@ public final class PhantomSoftReturn028Suite implements PhantomTestSuite
 	{
 		registry.add("B08-locality-grace-bounds-new-roots-without-removing-hard-holds", this::retention);
 		registry.add("L02-native-pool-pauses-only-new-root-and-keeps-admitted-lease", this::nativePool);
+		registry.add("L02-native-context-relevance-withdraw-keeps-simulation-gate", this::nativeContextDemand);
+	}
+	private void nativeContextDemand(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final var before = f.transactions.nativeContext(f.id, f.objectId);
+			PhantomAssertions.assertFalse(before.simulationEligible(), "Actual fixture needs native context.");
+			PhantomAssertions.assertEquals(PhantomBackgroundService.DirectiveKind.NATIVE_REQUIRED, f.background.directive(f.id, goal, PhantomActivityState.BACKGROUND).kind(), "Native simulation guard remains closed.");
+			final var signals = f.background.getClass().getDeclaredField("_nativeContextSignals"); signals.setAccessible(true);
+			final var initial = ((Map<?, ?>) signals.get(f.background)).get(f.id);
+			final var requested = initial.getClass().getDeclaredMethod("requested"); requested.setAccessible(true);
+			PhantomAssertions.assertTrue((boolean) requested.invoke(initial), "Original native relevance is requested by default.");
+			final var install = f.background.getClass().getMethod("installNativeContextDemand", LongPredicate.class);
+			final var demand = new AtomicBoolean(false);
+			install.invoke(f.background, (LongPredicate) _ -> demand.get());
+			PhantomAssertions.assertEquals(PhantomBackgroundService.DirectiveKind.NATIVE_REQUIRED, f.background.directive(f.id, goal, PhantomActivityState.BACKGROUND).kind(), "Withdrawal never permits unsupported simulation.");
+			final var retired = ((Map<?, ?>) signals.get(f.background)).get(f.id);
+			PhantomAssertions.assertFalse((boolean) requested.invoke(retired), "RED: no demand withdraws the self-pinning ACTIVE source.");
+			PhantomAssertions.assertEquals(before, f.transactions.nativeContext(f.id, f.objectId), "Relevance withdrawal changes no native context, reward or canonical state.");
+			demand.set(true);
+			f.background.directive(f.id, goal, PhantomActivityState.BACKGROUND);
+			PhantomAssertions.assertTrue((boolean) requested.invoke(((Map<?, ?>) signals.get(f.background)).get(f.id)), "New human/hard demand admits the same source again.");
+			context.record("L02.native_context", f.background.nativeContextSignalDelivery(f.id));
+		}
 	}
 	private void retention(PhantomTestContext context) throws Exception
 	{

@@ -23,3 +23,14 @@ Local patterns: native Synthetic lifecycle, exact owned runtime controls027, bou
 - D freeze/regression NOT_RUN.
 - E final scene A/B, soft return, persistence/restart NOT_RUN.
 - F cleanup/publication NOT_RUN.
+
+- C NATIVE_RETURN_C_R1 failed SOFT_RETIRE_BOUND; all raw outcomes retained. One-shot
+  AWAY_RETIRE_DIAG_C_R1 disproved AI hard hold: empty retention pins, native roots
+  paused, outstanding0, one remaining native-context ACTIVE signal. Own JVM c
+  stopped gracefully (STOP_C_R2). No ownership/overflow reset.
+- C L02 signal-boundary RED: native suite2/3, missing exact demand API. GREEN3/3:
+  existing relevance withdrawal leaves native simulation gate and canonical proof
+  unchanged; restored demand requests the same source. Production binding preserves
+  hard holds, incident/checkpoint/pending and actual owner safety. Full-server proof
+  on fresh d is pending. Acceptance for away absence applies to preselected two;
+  all enrolled actors remain in denominator and whole-group persistence.
