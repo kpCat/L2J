@@ -31,6 +31,11 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _handoff.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("generation026".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("E03-native-respawn-selection-retires-only-undamaged-stale-generations", context -> generations(context, true));
+			registry.add("E03-distinct-native-target-cap-remains-fenced", context -> generations(context, false)); return;
+		}
 		if ("continuation026".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("F03-existing-exact-native-session-survives-planner-reentry", this::continuation); return;
@@ -44,6 +49,34 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 		registry.add("F10-native-z-local-opportunity-precedes-exact-standpoint", context -> local(context, false, true));
 		registry.add("F01-fresh-independent-local-opportunity-after-terminal-standpoint", context -> local(context, true, true));
 		registry.add("F02-terminal-route-without-lawful-independent-target-remains-closed", context -> local(context, true, false));
+	}
+	private void generations(PhantomTestContext context, boolean reused) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.handoff(); final Player player = World.getInstance().getPlayer(f.objectId);
+			final var owner = player.getNativeWorkOwner(); final long experience = player.getExp(), points = player.getSp();
+			final var monsters = new java.util.ArrayList<Monster>();
+			Monster target = null;
+			try
+			{
+				for (int index = 0; index <= org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.MAX_TARGETS; index++)
+				{
+					if (!reused || target == null) { target = monster(player, 20534, player.getInstanceId()); monsters.add(target); }
+					else { target.deleteMe(); target.spawnMe(player.getX() + 24, player.getY(), player.getZ()); }
+					final Monster selected = target;
+					org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(player, java.util.List.of(selected), "TEST026_ORIGINAL_NATIVE_SELECTION", () -> { player.setTarget(null); player.setTarget(selected); });
+					if (reused) { PhantomAssertions.assertEquals(index + 1L, target.getNativeEvidenceTarget().spawnGeneration(), "Actual onSpawn creates the next native generation."); }
+				}
+				final var evidence = owner.evidence().snapshot();
+				context.record("E03.nativeGenerations." + reused, evidence);
+				PhantomAssertions.assertTrue(evidence.targetSequence() >= org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.MAX_TARGETS, "Each fixture performs actual original selection transitions; repeated same-object no-op is not a native proof.");
+				PhantomAssertions.assertEquals(!reused, evidence.overflow(), "RED: expired undamaged incarnations must not consume the unfinished-target cap; distinct targets must still overflow.");
+				PhantomAssertions.assertEquals(reused ? org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.UnprovenReason.NONE : org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence.UnprovenReason.TARGET_CAP, evidence.firstUnprovenReason(), "The genuine distinct-target first cause stays unchanged.");
+				PhantomAssertions.assertTrue(evidence.damageSequence() == 0 && evidence.killSequence() == 0 && evidence.rewardSequence() == 0 && evidence.farmCycleSequence() == 0 && player.getExp() == experience && player.getSp() == points, "Selection/respawn cannot invent native damage, death, cycles or rewards.");
+			}
+			finally { for (Monster monster : monsters) { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); } }
+		}
 	}
 	private void resources(PhantomTestContext context, boolean inFlight) throws Exception
 	{

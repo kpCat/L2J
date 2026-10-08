@@ -187,3 +187,24 @@ corrupted probe JVM was gracefully stopped and evidence retained. Earlier110
 TARGET_CAP predates FullObserve and remains a separate RED. Final scenes use a
 fresh stock process and the corrected observer. Do not infer natural failures
 from the invalid probe's TIME_REGRESSION rows.
+
+Native260 TARGET_CAP exact state table:13 undamaged/nextSelected expired generations
+of recurring stock NPC object IDs plus3 undamaged awarded generations. No completed
+cycle can originate from those undamaged rows. Proposed E03 test uses real native
+onSpawn and original Player.setTarget under exact scope; sibling17 distinct objects
+must retain TARGET_CAP. Conditional PlayerNativeEvidence is explicitly allowed by
+SOURCE_MAP for after-native identity/ordering. Bounded exception source/test count14,
+same F/E/R vertical; no cap/definition/counter/epoch/incident reset. Fix only after RED.
+
+First E03 setup2/2 was nondiscriminating: reused object setTarget was a native no-op,
+only2 observed selections. Fixture now clears target through the same original
+native entry before selecting each real spawned incarnation; requires at least16
+actual selection transitions. First run retained, not counted as a RED or fix proof.
+
+RED_E03_ACTUAL_TRANSITIONS0261/2: native17 incarnations of one NPC reach TARGET_CAP;
+17 distinct NPCs negative control also fences. Narrow selected() fix retires only
+undamaged older generations of the same exact object+instance after a successful
+native selection of its newer incarnation. Damaged pending generations, cumulative
+counters, MAX_TARGETS16 and first overflow remain untouched. No actor references,
+new World scan, timer completion, replay or epoch reset. Existing delayed native
+reward/order and cap contracts must pass before committed final build.

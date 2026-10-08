@@ -131,6 +131,10 @@ public final class PlayerNativeEvidence
 		if (target.equals(_selected) || !observe(now)) { return; }
 		final TargetState previous = _targets.get(_selected);
 		if (previous != null) { previous._nextSelected = true; completeCycle(_selected, previous); }
+		// A successful native selection of a newer incarnation proves the older body has retired.
+		// Undamaged older incarnations cannot complete an own farm cycle; retain every damaged
+		// pending target so delayed death/reward ordering and the existing cap remain guarded.
+		_targets.entrySet().removeIf(entry -> !entry.getValue()._damaged && (entry.getKey().objectId() == target.objectId()) && (entry.getKey().instanceId() == target.instanceId()) && (entry.getKey().spawnGeneration() < target.spawnGeneration()));
 		if (target(target) == null) { return; }
 		_selected = target;
 		_targetSequence = add(_targetSequence, 1);
