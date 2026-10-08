@@ -46,6 +46,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	private static final Logger LOGGER = Logger.getLogger(PhantomVisibleAutoPlay.class.getName());
 	private static final long RECOVERY_DELAY_NANOS = 30_000_000_000L;
 	private static final long STALL_DELAY_NANOS = 90_000_000_000L;
+	private static final long RESOURCE_RECOVERY_NANOS = 45_000_000_000L;
 	private final PhantomMaterializationService _materialization;
 	private final Supplier<PhantomDecisionEngine> _decision;
 	private final LongPredicate _permitsOrdinary;
@@ -195,6 +196,11 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			if ((action == null) || !healthy(profileId, goal, session, action.player())) { return false; }
 			final Player player = action.player();
 			final int npcId = PhantomBackgroundGoalSpec.parse(goal).npcId();
+			final boolean inFlight = player.isCastingNow() || player.isAttackingNow();
+			if (resourcePause(session, player))
+			{
+				synchronized (session) { return session._resourceExpired || stalled(session, _clock.getAsLong()); }
+			}
 			final var progress = nativeProgress(player, session._epoch);
 			final boolean repair;
 			final boolean expired;
@@ -216,7 +222,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				if (target) { session.noTargetSince = -1; }
 				else if (session.noTargetSince < 0) { session.noTargetSince = now; }
 				expired = stalled(session, now);
-				repair = !expired && !session._repairAttempted && (((now - session._usefulSince) >= RECOVERY_DELAY_NANOS) || ((session.noTargetSince >= 0) && ((now - session.noTargetSince) >= RECOVERY_DELAY_NANOS)));
+				repair = !expired && !inFlight && !session._repairAttempted && (((now - session._usefulSince) >= RECOVERY_DELAY_NANOS) || ((session.noTargetSince >= 0) && ((now - session.noTargetSince) >= RECOVERY_DELAY_NANOS)));
 				if (repair) { session._repairAttempted = true; }
 				reportStall = expired && !session._stallReported;
 				if (reportStall) { session._stallReported = true; }
@@ -233,6 +239,63 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			if (reportStall) { LOGGER.warning("Phantom visible farm stalled profile=" + profileId + " object=" + player.getObjectId() + " epoch=" + session._epoch + " reason=" + reason); }
 			return expired;
 		}
+	}
+
+	/** Exact session policy uses stock sit/stand and existing regeneration; useful farm debt is never renewed by rest. */
+	private boolean resourcePause(Session session, Player player)
+	{
+		if (!player.getPlayerClass().isMage()) { return false; }
+		if (player.isCastingNow() || player.isAttackingNow()) { return false; }
+		final long now = _clock.getAsLong();
+		synchronized (session)
+		{
+			if (!session._current.get() || _sessions.get(session._profileId) != session) { return false; }
+			if (now < session._resourceCheckDue) { return session._recovering; }
+			session._resourceCheckDue = now + 500_000_000L;
+		}
+		double cost = Double.POSITIVE_INFINITY;
+		for (Integer skillId : player.getAutoUseSettings().getAutoSkills())
+		{
+			final Skill skill = player.getKnownSkill(skillId);
+			if (skill == null || !skill.hasNegativeEffect() || !skill.isActive() || skill.isPassive() || skill.isToggle()) { continue; }
+			if (skill.getItemConsumeCount() > 0 && player.getInventory().getInventoryItemCount(skill.getItemConsumeId(), -1) < skill.getItemConsumeCount()) { continue; }
+			if (player.getCharges() < skill.getChargeConsumeCount()) { continue; }
+			final double nativeCost = Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill));
+			if (nativeCost > 0) { cost = Math.min(cost, nativeCost); }
+		}
+		if (!Double.isFinite(cost)) { return false; }
+		final double mp = player.getCurrentMp();
+		final double maximumMp = player.getMaxMp();
+		final boolean sitting = player.isSitting();
+		final boolean threatened = World.getInstance().getVisibleObjectsInRange(player, Creature.class, AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream()
+			.anyMatch(creature -> creature.isAttackable() && !creature.isAlikeDead() && creature.getInstanceId() == player.getInstanceId() && creature.getTarget() == player);
+		final boolean sit, stand, pause;
+		synchronized (session)
+		{
+			if (!session._current.get()) { return false; }
+			session._resourceCost = cost;
+			if (!session._recovering && mp >= cost) { return false; }
+			if (session._resourceSince == 0) { session._resourceSince = now; }
+			session._resourceExpired = cost > maximumMp || now - session._resourceSince >= RESOURCE_RECOVERY_NANOS;
+			if (threatened || session._resourceExpired)
+			{
+				stand = sitting; sit = false; pause = session._resourceExpired;
+				session._recovering = false; session._resourceReason = threatened ? "resource.native_threat" : "resource.bounded_unavailable";
+			}
+			else if (session._recovering && mp >= Math.min(maximumMp, cost * 2))
+			{
+				stand = sitting; sit = false; pause = stand;
+				session._recovering = stand; session._resourceReason = stand ? "resource.native_stand_pending" : "resource.affordable";
+			}
+			else
+			{
+				stand = false; sit = !sitting; pause = true;
+				session._recovering = true; session._resourceReason = "resource.native_rest";
+			}
+		}
+		if (stand) { player.standUp(); }
+		if (sit) { player.sitDown(); }
+		return pause;
 	}
 
 	private static PlayerNativeEvidence.Snapshot nativeProgress(Player player, long epoch)
@@ -261,6 +324,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			session._usefulSince = now;
 			session._repairAttempted = false;
 			session._stallReported = false;
+			session._resourceSince = 0; session._resourceExpired = false;
 		}
 		session.baseline(progress);
 	}
@@ -387,6 +451,12 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			final TickLease lease = acquire(player);
 			if (lease != null)
 			{
+				final Session session = _sessions.get(_profileId);
+				if (session != null && session._policy == this && resourcePause(session, player))
+				{
+					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "resource_paused"));
+					return new TickAdmission(TickStatus.PAUSED, null, "resource_recovery");
+				}
 				publishTick(source, new TickObservation(sequence, started, 0, "acquired"));
 				return new TickAdmission(TickStatus.ACQUIRED, () -> { try { lease.close(); } finally { publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "completed")); } }, "acquired");
 			}
@@ -463,6 +533,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			fields.put("livePolicyIdentity", Integer.toHexString(System.identityHashCode(session._policy)));
 			fields.put("liveSessionEpoch", Long.toString(session._epoch));
 			fields.put("liveSessionCurrent", Boolean.toString(session._current.get()));
+			fields.put("liveResourceRecovery", Boolean.toString(session._recovering));
+			fields.put("liveResourceReason", session._resourceReason);
+			fields.put("liveResourceCost", Double.toString(session._resourceCost));
+			fields.put("liveResourceSinceNanos", Long.toString(session._resourceSince));
 			fields.put("continuationRead", "NONATOMIC_VOLATILE");
 			if (session._policy instanceof Policy policy)
 			{
@@ -495,10 +569,16 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private boolean _nativeBaseline;
 		private boolean _repairAttempted;
 		private boolean _stallReported;
+		private final long _profileId;
+		private volatile boolean _recovering, _resourceExpired;
+		private volatile long _resourceSince, _resourceCheckDue;
+		private volatile double _resourceCost;
+		private volatile String _resourceReason = "resource.not_required";
 
 		private Session(Player player, long goalId, long revision, PhantomPolicy policy, long epoch, long now, Session previous)
 		{
 			_player = player;
+			_profileId = ((Policy) policy)._profileId;
 			_goalId = goalId;
 			_revision = revision;
 			_policy = policy;
@@ -513,6 +593,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					_damageSequence = previous._damageSequence; _rewardSequence = previous._rewardSequence; _cycleSequence = previous._cycleSequence;
 					_lootSequence = previous._lootSequence; _nativeUsefulNanos = previous._nativeUsefulNanos; _nativeBaseline = previous._nativeBaseline;
 					_repairAttempted = previous._repairAttempted; _stallReported = previous._stallReported;
+					_recovering = previous._recovering; _resourceExpired = previous._resourceExpired;
+					_resourceSince = previous._resourceSince; _resourceCheckDue = previous._resourceCheckDue;
+					_resourceCost = previous._resourceCost; _resourceReason = previous._resourceReason;
 				}
 			}
 		}

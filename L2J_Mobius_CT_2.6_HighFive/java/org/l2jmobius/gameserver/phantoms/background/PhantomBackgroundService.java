@@ -109,6 +109,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public static final String NATIVE_CONTEXT_SIGNAL_SOURCE = "background.native_context";
 	public static final long NATIVE_CONTEXT_SIGNAL_TTL_MILLIS = 60_000;
 	private static final long RECOVERY_TELEPORT_TIMEOUT_NANOS = 250_000_000L;
+	// Optional exact-argument test observer. Transactions have returned; absent-Player ownership still fences admission.
+	private static volatile BiConsumer<Long, PhantomBackgroundState> _recoveryObserver;
 
 	private final PhantomProfileRepository _profiles;
 	private final PhantomGoalStateStore _goals;
@@ -846,6 +848,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			}
 			if (recovered.successful() && (recovered.state() != null) && ((recovered.state().state() == State.READY) || (recovered.state().state() == State.DEAD)))
 			{
+				final var observer = _recoveryObserver;
+				if (observer != null)
+				{
+					try { observer.accept(profileId, recovered.state()); }
+					catch (Throwable ignored) { /* An observational failure cannot change a confirmed durable recovery. */ }
+				}
 				return OperationResult.success("recovery.abandoned_materialization_reconciled");
 			}
 			return mapTransactionFailure(recovered.status());

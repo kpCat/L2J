@@ -90,3 +90,31 @@ actual future/due/done/cancelled, start/end и last completed sample. Outstandin
 и восемь snapshot tickets сохраняются. Нет stack-per-tick, waits/I/O или timer complete.
 Self-review: additive Ticket default no-op; обычный stock submission unchanged. Это
 диагностика собственного RESERVED RED, пока не объявленная продуктовым fix.
+
+## F2 — bounded native resource recovery
+
+RED_F2_RESOURCE026 base0/2: actual mage MP1/cost9 не выбирает native rest;
+generic repair31s прерывает original published CAST. Fix только existing exact
+AutoPlay policy: stock sit/stand, stock regeneration, MP affordability/hysteresis,
+45s resource bound, native threat exit; rest не обновляет useful farm debt.
+Original paid cast/attack не прерывается generic repair. Same session replacement
+сохраняет resource debt. Нет лечения, MP set, teleport или rewards в production.
+
+Первый candidate1/2: F07 original native HP body PASS, F05 next-hit assertion FAIL.
+Измерительный defect: TEST AtomicLong clock стоял на одном значении после sit,
+поэтому throttle500ms никогда не наступал. F05 теперь использует тот же native
+System.nanoTime, что production; F07 сохраняет controlled31s clock для repair RED.
+Native next-hit assertion сохранён. Failed candidate evidence не удалён.
+
+F2_NATIVE_BOUNDARY_TRACE026 доказал MP19.21, stock stand и published cast-launch;
+AutoPlay выбрал существующего stock NPC. TEST ожидал только HP нового NPC и
+прекращал observation до native hit. F2_NATIVE_TARGET_CENSUS0262/2: исходный census
+законных targets, actual HP write плюс exact damageSequence; MP recovery/stand/hit
+в original epoch, никакие product deadlines не увеличены. F07 actual HP62→0.
+
+R03_EARLY_BOUNDARY_CONTRACT0262/2: existing cold prepare/resolver, separate SQL
+connection видит committed receipt absence; immutable argument equals durable
+state, exact XYZ/progress/full inventory. BACKGROUND identity всё ещё удерживает
+absent-Player admission. Observer exception не меняет successful recovery. Added
+service seam is optional/null by default; resolver semantics unchanged. Actual
+process crash/restart and full skills/vitality proof остаются required.
