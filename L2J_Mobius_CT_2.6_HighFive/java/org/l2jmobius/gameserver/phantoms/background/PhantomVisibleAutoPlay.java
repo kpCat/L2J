@@ -270,7 +270,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		return ((now - session._usefulSince) >= STALL_DELAY_NANOS) || ((session.noTargetSince >= 0) && ((now - session.noTargetSince) >= STALL_DELAY_NANOS));
 	}
 
-	private static boolean selectableTarget(Player player, Creature creature, int npcId)
+	static boolean selectableTarget(Player player, Creature creature, int npcId)
 	{
 		if (!creature.isMonster() || creature.isRaid() || creature.isAlikeDead() || !creature.isTargetable() || creature.isInvul() || !creature.asNpc().isShowName() || !creature.isAutoAttackable(player) || (creature.getInstanceId() != player.getInstanceId()) || (creature.asNpc().getId() != npcId))
 		{

@@ -12,12 +12,14 @@ import java.util.function.BiConsumer;
 import java.util.function.LongSupplier;
 
 import org.l2jmobius.gameserver.ai.Intention;
+import org.l2jmobius.gameserver.config.custom.AutoPlayConfig;
 import org.l2jmobius.gameserver.data.xml.TeleporterData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.geoengine.util.GridLineIterator2D;
 import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
@@ -182,7 +184,6 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			}
 			final var targetAnchor = _travel.topology().findAnchor(spec.anchorId()).orElse(null);
 			final var existingAttempt = _attempts.get(profileId);
-			if ((existingAttempt != null) && existingAttempt.matches(goal, player, epoch) && existingAttempt.terminal) { return false; }
 			final boolean sameAnchor = state.position().committedAnchorId().equals(spec.anchorId());
 			Journey journey = _journeys.get(profileId);
 			if ((journey != null) && ((journey.goalId != goal.goalId()) || (journey.revision != goal.revision()) || (journey.player != player) || (journey.epoch != epoch)))
@@ -190,6 +191,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				remove(profileId, journey);
 				journey = null;
 			}
+			// A stand-point receipt forbids that route, not a fresh independently proven native target.
+			if (sameAnchor && (targetAnchor != null) && hasLocalOpportunity(profileId, player, targetAnchor, spec.npcId()))
+			{
+				if (journey != null) { remove(profileId, journey); }
+				return true;
+			}
+			if ((existingAttempt != null) && existingAttempt.matches(goal, player, epoch) && existingAttempt.terminal) { return false; }
 			if ((targetAnchor != null) && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor) && isUsableLocalFarmPosition(player, targetAnchor))
 			{
 				if ((journey == null) && sameAnchor) { return true; }
@@ -290,6 +298,23 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			_pendingStores.put(profileId, new PendingStore(player, epoch, goal, arrival.id(), journey));
 			return false;
 		}
+	}
+
+	private boolean hasLocalOpportunity(long profileId, Player player, PhantomTopologyAnchor anchor, int npcId)
+	{
+		if ((anchor.role() != PhantomTopologyAnchorRole.FARMING) || !L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, anchor)) { return false; }
+		final var geo = GeoEngine.getInstance();
+		if (!geo.hasGeo(player.getX(), player.getY()) || player.isInsideZone(ZoneId.WATER)
+			|| (ZoneManager.getInstance().getZone(player.getX(), player.getY(), player.getZ(), WaterZone.class) != null)) { return false; }
+		final var origin = new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
+		final var excluded = _routeExclusions.apply(profileId);
+		return World.getInstance().getVisibleObjectsInRange(player, Creature.class, AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream().anyMatch(target ->
+		{
+			if (!PhantomVisibleAutoPlay.selectableTarget(player, target, npcId) || !geo.hasGeo(target.getX(), target.getY())) { return false; }
+			// Native legality already proved the actual floor; inspect its projected dry cells without rewriting XYZ.
+			final var destination = new PhantomNavigationPoint(target.getX(), target.getY(), geo.getHeight(target.getX(), target.getY(), target.getZ()), target.getInstanceId());
+			return !excluded.contains(localRouteWitness(anchor.id(), destination)) && (unsafeSegment(origin, destination, false, 0) == null);
+		});
 	}
 
 	private static boolean isUsableLocalFarmPosition(Player player, PhantomTopologyAnchor anchor)
@@ -612,12 +637,6 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			discardStale(profileId, goal);
 			return new ArrivalResult(ArrivalKind.STALE_GOAL, goal.goalId(), goal.revision(), objectId, epoch, 0, "travel.stale_goal");
-		}
-		final var terminalAttempt = _attempts.get(profileId);
-		final var terminalFailure = lastFailure(profileId);
-		if ((terminalAttempt != null) && terminalAttempt.terminal && (terminalFailure != null) && (terminalFailure.goalId() == goal.goalId()) && (terminalFailure.revision() == goal.revision()) && (terminalFailure.objectId() == objectId) && (terminalFailure.epoch() == epoch))
-		{
-			return new ArrivalResult(ArrivalKind.TERMINAL, goal.goalId(), goal.revision(), objectId, epoch, terminalFailure.sequence(), terminalFailure.reason());
 		}
 		final boolean arrived = arrive(profileId, goal);
 		if (!currentGoal(profileId, goal))

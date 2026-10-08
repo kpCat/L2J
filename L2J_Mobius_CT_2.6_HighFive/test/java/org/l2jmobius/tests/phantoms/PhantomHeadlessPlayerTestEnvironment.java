@@ -162,7 +162,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
 		final Path expectedWorkingDirectory = context.moduleRoot().resolve("dist/game").normalize();
-		if (!PhantomContracts024DatabaseLane.enabled() && !PhantomContracts025DatabaseLane.enabled())
+		if (!PhantomContracts024DatabaseLane.enabled() && !PhantomContracts025DatabaseLane.enabled() && !owned026Enabled())
 		{
 			PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
 		}
@@ -177,7 +177,12 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
 		final BootstrapResult bootstrap;
-		if (PhantomContracts025DatabaseLane.enabled())
+		if (owned026Enabled())
+		{
+			initializeOwned026(context.moduleRoot(), Path.of(configProperty));
+			bootstrap = null;
+		}
+		else if (PhantomContracts025DatabaseLane.enabled())
 		{
 			PhantomContracts025DatabaseLane.initialize(context.moduleRoot(), Path.of(configProperty));
 			bootstrap = null;
@@ -243,9 +248,9 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 		stabilizeInfrastructureThreads();
 		_environmentThreadIds = liveNonDaemonThreadIds();
-		context.record("headless.database", PhantomContracts025DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract025b" : PhantomContracts024DatabaseLane.enabled()
+		context.record("headless.database", owned026Enabled() ? "l2jmobiush5_localplay_contract026a" : PhantomContracts025DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract025b" : PhantomContracts024DatabaseLane.enabled()
 			? "l2jmobiush5_localplay_contract024a" : PhantomTestDatabaseGuard.TARGET_DATABASE);
-		context.record("headless.schemaAggregateSha256", ((PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled())
+		context.record("headless.schemaAggregateSha256", ((PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled() || owned026Enabled())
 			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());
 		context.record("headless.initializedSingletonCount", INITIALIZED_SINGLETONS.size());
 		context.record("headless.initializedSingletons", String.join(",", INITIALIZED_SINGLETONS));
@@ -253,6 +258,44 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		context.record("headless.transitiveSingletons", String.join(",", TRANSITIVE_SINGLETONS));
 		context.record("headless.primaryObjectId", _primary.objectId());
 		context.record("headless.observerObjectId", _observer.objectId());
+	}
+
+	private static boolean owned026Enabled()
+	{
+		return System.getProperty("phantom.contract026.manifest") != null;
+	}
+
+	/** Same exact export/config/catalog guard as TASK025; shared TEST metadata remains untouched. */
+	private static void initializeOwned026(Path module, Path config) throws Exception
+	{
+		final Path root = module.toRealPath();
+		final Path lane = root.resolve(".phantom-local/contract026a").toRealPath();
+		final Path manifest = Path.of(System.getProperty("phantom.contract026.manifest")).toRealPath();
+		PhantomAssertions.assertEquals(lane.resolve("test/owned.properties"), manifest, "Exact owned TASK026 manifest required.");
+		PhantomAssertions.assertEquals(lane.resolve("test/Database.test.ini"), config.toRealPath(), "Exact owned TASK026 config required.");
+		PhantomAssertions.assertEquals(lane.resolve("runtime/game"), Path.of("").toRealPath(), "Exact owned TASK026 runtime required.");
+		final var ownership = new java.util.Properties();
+		final var settings = new java.util.Properties();
+		try (var reader = java.nio.file.Files.newBufferedReader(manifest)) { ownership.load(reader); }
+		try (var reader = java.nio.file.Files.newBufferedReader(config)) { settings.load(reader); }
+		PhantomAssertions.assertEquals("TASK026_CONTRACT", ownership.getProperty("owner"), "Exact TASK026 authority required.");
+		PhantomAssertions.assertEquals("l2jmobiush5_localplay_contract026a", ownership.getProperty("database"), "Exact TASK026 catalog required.");
+		final var digest = java.security.MessageDigest.getInstance("SHA-256");
+		try (var input = java.nio.file.Files.newInputStream(lane.resolve("play-snapshot.sql")))
+		{
+			final byte[] buffer = new byte[65536]; int count;
+			while ((count = input.read(buffer)) > 0) { digest.update(buffer, 0, count); }
+		}
+		PhantomAssertions.assertEquals(ownership.getProperty("exportSha256"), java.util.HexFormat.of().formatHex(digest.digest()), "Immutable TASK026 export changed.");
+		final String url = settings.getProperty("URL");
+		PhantomAssertions.assertTrue(url != null && url.matches("jdbc:(mysql|mariadb)://127\\.0\\.0\\.1:3308/l2jmobiush5_localplay_contract026a\\?.*"), "Only exact TASK026 TEST clone may be written.");
+		PhantomAssertions.assertEquals("4", settings.getProperty("MaximumDatabaseConnections"), "Bounded TEST pool required.");
+		DatabaseFactory.initFromConfig(config.toString());
+		try (var connection = DatabaseFactory.getConnection(); var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT DATABASE()"))
+		{
+			PhantomAssertions.assertTrue(rows.next(), "Owned TASK026 catalog unavailable.");
+			PhantomAssertions.assertEquals(ownership.getProperty("database"), rows.getString(1), "Connected TEST catalog differs.");
+		}
 	}
 
 	private static String stableSuffix(long seed)
