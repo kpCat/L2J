@@ -270,9 +270,11 @@ public final class PhantomNativeFarmContinuation022Suite implements PhantomTestS
 	{
 		for (int objectId : List.of(environment().primary().objectId(), environment().observer().objectId()))
 		{
-			try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=10,base_class=10,race=0,level=1,exp=0,online=0 WHERE charId=?"))
+			try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=10,base_class=10,race=0,level=?,exp=?,online=0 WHERE charId=?"))
 			{
-				statement.setInt(1, objectId); PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact owned ordinary raw TEST mage setup before lifetime.");
+				final int level = earnedRecipient ? 7 : 1;
+				statement.setInt(1, level); statement.setLong(2, org.l2jmobius.gameserver.data.xml.ExperienceData.getInstance().getExpForLevel(level)); statement.setInt(3, objectId);
+				PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact owned ordinary raw TEST mage setup before lifetime.");
 			}
 		}
 		final var first = org.l2jmobius.gameserver.model.actor.Player.load(environment().primary().objectId());

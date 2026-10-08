@@ -147,3 +147,43 @@ resource/useful debt. Ordinary suitability and native guards still precede this
 branch; fresh/pending/stale sessions retain original travel/checkpoint path.
 One additional allowed source: PhantomBackgroundDecision; exact source/test count13,
 bounded exception remains13. No retry budget/deadline/decision-engine edit.
+
+R4 canonical N02 cooperative RED: original native writes dealt111 damage, NPC HP12,
+dead=false, both EXP0, no native incident. This is an unmet death precondition,
+not a reward-observation verdict. TEST-only ordinary-third path now performs at
+most3 original doCast finishers if the stock NPC remains alive. Actual HP reduction,
+all original reward/kill/ownership assertions stay required. E01/E02 two-Phantom
+controls remain unchanged. Paired base/candidate verification follows.
+
+R4 E01 nativeChain: HP0/dead=true; secondary damage74/kill1 but secondary DEAD,
+HP0/EXP0. Stock NPC20121 level5 killed the level1 TEST recipient during the queued
+cast interval. No product reward fault is inferred. Earned-recipient TEST setup
+now uses stock legal Human Mystic level7 before lifetime (hate-only level1 stays).
+All original actual damage/death/EXP/evidence assertions remain. Bounded original
+cast finishers also cover variable nonlethal stock writes, without HP/death injection.
+Source/test allowlist count remains13. Earlier RED and fixture outcomes retained.
+
+Task-only observation correction: native UI census intentionally excludes actors
+outside Synthetic surrounding regions. Exact read-only membership showed275 ACTIVE,
+same epoch,32 cycles outside that region; absence was not native death. FullObserve
+binds exactly the requested original8 scopes once, uses existing native scalar maps
+and materialization snapshots, exports at1Hz with525-sample bound, and retains absent,
+dead and changed incarnations as FAIL. Human visibility/admission guards unchanged.
+No counter reset/cap increase. Existing Synthetic command samples remain captured.
+One task-only Verify026 analyzer reuses024 codecs/verifier; runtime thin wrappers
+remain exactly Prepare/Control/Observe. Early R03 full fields/items/skills/vitality,
+receipt absence/context linkage PASS; second actual e restart native fields PASS,
+state versions may advance through existing plan CAS without native field changes.
+An early field comparison accidentally parsed properties per-line and produced nulls;
+that file is invalid evidence. Corrected exact-field and canonical reports are used.
+Windows installed-agent JAR lock is handled by source-hash agent class/JAR names;
+no overwrite of installed code or live hotfix of product semantics.
+
+R4 full-cohort probe is INVALID for product verdict: task exporter passed one batch
+timestamp to snapshot(now) after native writers had advanced other actors. This
+could induce TIME_REGRESSION. Corrected all live task sampling to existing snapshot()
+which captures time under the evidence monitor. No native guard/counter reset;
+corrupted probe JVM was gracefully stopped and evidence retained. Earlier110
+TARGET_CAP predates FullObserve and remains a separate RED. Final scenes use a
+fresh stock process and the corrected observer. Do not infer natural failures
+from the invalid probe's TIME_REGRESSION rows.

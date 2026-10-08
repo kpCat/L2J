@@ -280,6 +280,19 @@ public final class PhantomM1DynamicRecipientChecks
 			PhantomAssertions.assertFalse(first.isCastingNow(), "N02 actual native cast finalizer must complete.");
 			if (npc instanceof PhantomCallbackContinuation026Checks.OriginalCastMonster original) { original.requireOrder(context); }
 			PhantomAssertions.assertTrue(one.scope.open() && two.scope.open(), "N02 both exact lifetimes continue admitting native work.");
+			if (!npc.isDead())
+			{
+				// Stock spell damage is variable: the original two real writes need not exhaust this NPC's HP.
+				// Finish only through the same original native cast entry, preserving every death/reward assertion.
+				for (int attempt = 0; attempt < 3 && !npc.isDead(); attempt++)
+				{
+					final double before = npc.getCurrentHp();
+					setup(one, null, () -> cast(first, npc, magic));
+					await(12_000, () -> !first.isCastingNow() && one.scope.outstanding() == 0, "N02 native finisher and children must complete.");
+					PhantomAssertions.assertTrue(npc.getCurrentHp() < before, "N02 bounded original finisher must write actual stock HP.");
+					context.record("N02.nativeFinisher." + attempt, "hp=" + before + "->" + npc.getCurrentHp() + ";dead=" + npc.isDead());
+				}
+			}
 			PhantomAssertions.assertTrue(npc.isDead() && first.getExp() > firstExp && second.getExp() > secondExp, "N02 genuine damaging participants receive native death reward.");
 			if (ordinary != null) { PhantomAssertions.assertTrue(ordinary.getExp() > ordinaryExp && npc.getAggroList().get(ordinary) != null && npc.getAggroList().get(ordinary).getDamage() > 1, "N02 ordinary third native attack and reward remain stock."); }
 			context.record("N02.nativeRewards", "first=" + (first.getExp() - firstExp) + ";second=" + (second.getExp() - secondExp) + ";ordinary=" + (ordinary == null ? "NONE" : ordinary.getExp() - ordinaryExp));
