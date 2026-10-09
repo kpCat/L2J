@@ -62,3 +62,12 @@ premain refused before GameServer started. Launcher stopped exact LoginServer234
 GameServer ALREADY_STOPPED. This is observer binding failure, not gameplay/receipt proof.
 Corrected exact Control030 startup array; own contract030c DB preserved for next launch.
 First normal publication: 42b6b44ca49604a19d1d2335add4859a5f3efc47; remote verified equal.
+
+C2 actual server:1152 prospective native births/1152 terminals,6886 raw records;
+structural lifetime audit PASS, zero gaps/drops. Admission census still has no current
+READY/ONLINE/complete cluster. Closest8 include inherited INCONSISTENT652; no SQL heal.
+Typed COMPLETE captured before pools;100ms observer missed short PENDING. Own observer
+RED addressed by bounded25s/1ms read-only stop monitor, outside native hooks.
+C3 adds one genuine HISTORICAL_FARM/catchup CAS case and full-ring native fault control.
+Private029 regressions adapt collector/owner/output/SHA guards only, preserve assertions.
+All source changes remain inside SOURCE_MAP; production remains the C1 implementation.

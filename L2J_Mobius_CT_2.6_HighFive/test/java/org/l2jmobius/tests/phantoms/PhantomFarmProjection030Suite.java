@@ -28,9 +28,11 @@ public final class PhantomFarmProjection030Suite implements PhantomTestSuite
         registry.add("P02-P03-P07-production-plan-switch-before-rng-magic", c -> projection(c, true));
         registry.add("P02-P12-production-plan-switch-before-rng-melee", c -> projection(c, false));
         registry.add("P04-P05-P08-P09-exact-projection-negatives-and-lost-replies", c -> { projection(c, true, 0); projection(c, true, 1); });
+        registry.add("P12-actual-historical-projection-and-catchup-cas", c -> projection(c, false, -1, true));
     }
     private void projection(PhantomTestContext context, boolean mage) throws Exception { projection(context, mage, -1); }
-    private void projection(PhantomTestContext context, boolean mage, int lostReply) throws Exception
+    private void projection(PhantomTestContext context, boolean mage, int lostReply) throws Exception { projection(context, mage, lostReply, false); }
+    private void projection(PhantomTestContext context, boolean mage, int lostReply, boolean historical) throws Exception
     {
         var environment = (PhantomHeadlessPlayerTestEnvironment) field(base, "_environment");
         var reset = Player.load(environment.primary().objectId());
@@ -78,8 +80,15 @@ public final class PhantomFarmProjection030Suite implements PhantomTestSuite
             PhantomAssertions.assertEquals(pair.goal.selectedAnchor().key(), before.position().committedAnchorId(), "Bounded production travel must arrive before farm.");
             policy = transaction.nativeContext(id, player.getObjectId()).context().afterPolicy();
             String canonicalBefore = canonical(player.getObjectId());
+            PhantomBackgroundCatchupStore.Snapshot historicalBefore = null;
+            var catchups = new PhantomBackgroundCatchupStore((PhantomProfileRepository) field(base, "_repository"), goals);
+            if (historical)
+            {
+                var cursor = new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.RUNNING, "d".repeat(64), context.seed(), 29843626L, 29843628L, 29843626L, 0, 0, 301, 1, production.authority().topologyGeneration(), pair.goal.goalId(), pair.goal.revision(), "a".repeat(64), PhantomBackgroundState.MODEL_VERSION, production.authority().hashes(), "");
+                historicalBefore = catchups.claim(id, cursor);
+            }
             armed.set(lostReply >= 0);
-            var attempt = background.farm(id, pair.goal, 300, 100, PhantomActivityState.BACKGROUND, System.nanoTime());
+            var attempt = historical ? background.advanceHistorical(id, pair.goal, historicalBefore, historicalBefore.state().advanceTo(historicalBefore.state().cursorEpochMinute() + 1)) : background.farm(id, pair.goal, 300, 100, PhantomActivityState.BACKGROUND, System.nanoTime());
             armed.set(false);
             if (lostReply == 0)
             {
@@ -103,10 +112,27 @@ public final class PhantomFarmProjection030Suite implements PhantomTestSuite
             var contextAfter = transaction.nativeContext(id, player.getObjectId());
             PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, contextAfter.status(), "PNC remains bound to the committed projection.");
             PhantomAssertions.assertEquals(policy, contextAfter.context().afterPolicy(), "Projection preserves native policy and vitality.");
+            if (historical)
+            {
+                PhantomAssertions.assertEquals(historicalBefore, catchups.load(id).orElseThrow(), "Projection-only historical preflight must not advance or replace catchup cursor.");
+                var mutation = new PhantomBackgroundTransaction.CatchupMutation(historicalBefore.state(), historicalBefore.rowVersion() + 1, historicalBefore.state().advanceTo(historicalBefore.state().cursorEpochMinute() + 1));
+                var skills = after.loadout().selectedSkillId() == 0 ? Map.<Integer, Integer>of() : Map.of(after.loadout().selectedSkillId(), after.loadout().selectedSkillLevel());
+                var proof = production.authority().ordinaryInventoryProjection(after, pair.goal, production.authority().tryFarmInput(after, PhantomBackgroundGoalSpec.parse(pair.goal), skills).input(), skills);
+                var lease = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().tryAcquire(after.identity().characterObjectId(), org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND);
+                try (lease)
+                {
+                    var rejected = transaction.refreshOrdinaryInventoryProjection(after, pair.goal, mutation, contextAfter.context(), proof, lease);
+                    PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.CATCHUP_CONFLICT, rejected.status(), "Stale actual catchup CAS cannot overwrite projection.");
+                    PhantomAssertions.assertEquals(after, transaction.load(id).state(), "Rejected catchup CAS preserves state.");
+                    PhantomAssertions.assertEquals(historicalBefore, catchups.load(id).orElseThrow(), "Rejected catchup CAS preserves cursor.");
+                    context.record("P08.historicalCAS", rejected.status().name());
+                }
+            }
             negatives(context, transaction, production.authority(), after, pair.goal, contextAfter.context());
-            var batch = background.farm(id, pair.goal, 300, 101, PhantomActivityState.BACKGROUND, System.nanoTime());
+            var batch = historical ? background.advanceHistorical(id, pair.goal, historicalBefore, historicalBefore.state().advanceTo(historicalBefore.state().cursorEpochMinute() + 1)) : background.farm(id, pair.goal, 300, 101, PhantomActivityState.BACKGROUND, System.nanoTime());
             context.record("P02.followingBatch", batch.toString());
             PhantomAssertions.assertTrue(batch.successful() && batch.encounters() > 0, "Reloaded bounded turn must execute the genuine ordinary FARM producer.");
+            if (historical) { PhantomAssertions.assertEquals(historicalBefore.state().cursorEpochMinute() + 1, catchups.load(id).orElseThrow().state().cursorEpochMinute(), "Only the genuine historical batch advances its exact cursor."); }
             var finalState = transaction.load(id).state();
             PhantomAssertions.assertTrue(finalState.progress().experience() > before.progress().experience(), "Native-policy reward math produces actual XP.");
             var returnResult = materialization.materialize(id);

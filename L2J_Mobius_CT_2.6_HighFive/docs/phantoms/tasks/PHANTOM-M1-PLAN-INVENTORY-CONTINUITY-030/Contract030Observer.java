@@ -186,6 +186,34 @@ public final class Contract030Observer
         if (!output.startsWith(module.resolve("docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/evidence"))) { throw new IllegalStateException("TASK030_OUTPUT_GUARD"); }
         Files.createDirectories(output);
         if ("FLUSH".equals(spec.getProperty("mode"))) { drain(); status(output); return; }
+        if ("STOP_MONITOR".equals(spec.getProperty("mode")))
+        {
+            if (selection == null || !selection.sha().equals(spec.getProperty("codeSha"))) { throw new IllegalStateException("TASK030_STOP_SOURCE_GUARD"); }
+            final var system = (org.l2jmobius.gameserver.phantoms.PhantomSystem) field(org.l2jmobius.gameserver.phantoms.PhantomSystem.class, "_configuredInstance").get(null);
+            if (system == null) { throw new IllegalStateException("TASK030_STOP_SYSTEM_REQUIRED"); }
+            final var monitor = new Thread(() ->
+            {
+                String prior = "";
+                final long deadline = System.nanoTime() + 25_000_000_000L;
+                try
+                {
+                    while (System.nanoTime() < deadline)
+                    {
+                        final String progress = String.valueOf(system.shutdownProgress());
+                        if (!prior.equals(progress))
+                        {
+                            writeTelemetry(output.resolve("typed-stop-progress.tsv"), System.nanoTime() + "\t" + progress + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                            prior = progress;
+                        }
+                        if (progress.contains("phase=DONE")) { return; }
+                        Thread.sleep(1);
+                    }
+                }
+                catch (Throwable failure) { proofFailure("TASK030_STOP_MONITOR:" + failure); }
+            }, "TASK030-stop-monitor");
+            monitor.setDaemon(true); monitor.start();
+            return;
+        }
         final String mode = spec.getProperty("mode");
         if (!java.util.Set.of("OBSERVE", "FULL_OBSERVE", "CENSUS").contains(mode) && !(startupEntry && mode.equals("STARTUP"))) { throw new IllegalStateException("TASK030_MODE_GUARD"); }
         final Map<Long, Long> selected = new HashMap<>();

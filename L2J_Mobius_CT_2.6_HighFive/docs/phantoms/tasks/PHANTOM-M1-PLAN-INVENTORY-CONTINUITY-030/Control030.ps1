@@ -3,7 +3,7 @@ param([Parameter(Mandatory)][ValidateSet('Update','Start','Stop','Export','Colle
       [ValidateSet('a','b','c','d','e','f','g','h')][string]$Episode='a',
       [string]$Revision='R1',[string]$ExpectedSha='',
       [string]$OutputRoot='', [long[]]$ProfileIds=@(),[switch]$DumpDuringStop,
-      [ValidateSet('Build','Enroll','FullObserve','Census','Flush')][string]$Mode='Build', [string]$CohortJson='', [string]$ObserverRunId='',
+      [ValidateSet('Build','Enroll','FullObserve','Census','Flush','StopMonitor')][string]$Mode='Build', [string]$CohortJson='', [string]$ObserverRunId='',
       [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{},
       [ValidateSet('Persistence','Restart')][string]$ProofKind='Restart', [string]$SqlRoot='', [string]$SealedRoot='', [string]$ShutdownLog='')
 function Update-Owned030 {
@@ -170,8 +170,8 @@ if($Action -ceq 'Collector'){
     $lines.Add('owner=TASK030_CONTRACT'); $lines.Add('pid='+$state.pid); $lines.Add('startTicks='+$state.startTimeUtcTicks)
     $lines.Add('codeSha='+$manifest.codeSha); $lines.Add('observerRunId='+$ObserverRunId)
     if($EndpointPoint.Count){foreach($key in @('x','y','z')){$lines.Add('endpoint.'+$key+'='+[int]$EndpointPoint[$key])}}
-    $lines.Add('mode='+$(switch($Mode){'Enroll'{'OBSERVE'} 'FullObserve'{'FULL_OBSERVE'} 'Census'{'CENSUS'} 'Flush'{'FLUSH'}}))
-    if($Mode -ne 'Flush'){
+    $lines.Add('mode='+$(switch($Mode){'Enroll'{'OBSERVE'} 'FullObserve'{'FULL_OBSERVE'} 'Census'{'CENSUS'} 'Flush'{'FLUSH'} 'StopMonitor'{'STOP_MONITOR'}}))
+    if($Mode -notin @('Flush','StopMonitor')){
         $rows=@(Get-Content -LiteralPath $CohortJson -Raw | ConvertFrom-Json)
         if($rows.Count -lt 1 -or $rows.Count -gt 8 -or @($rows.profileId | Select-Object -Unique).Count -ne $rows.Count){throw 'Exact cohort 1..8 guard.'}
         foreach($row in $rows){if([long]$row.profileId -le 0 -or ($Mode -ceq 'FullObserve' -and [long]$row.materializedAtNanos -le 0)){throw 'Exact profile/epoch required.'};$lines.Add('profile.'+$row.profileId+'='+$row.materializedAtNanos)}
@@ -232,6 +232,7 @@ switch($Action){
                 }
             }
         }
+        if($dumpJob030){ & $PSCommandPath -Action Collector -Mode StopMonitor -Episode $Episode -OutputRoot $dumpRoot030 }
         try{ & (Join-Path $runtime030 'Stop-LocalPlay.ps1') }
         finally{
             if($dumpJob030){$dumpJob030 | Wait-Job -Timeout 30 | Out-Null; Receive-Job $dumpJob030 *> (Join-Path $dumpRoot030 'dump-control.log'); Remove-Job $dumpJob030 -Force}

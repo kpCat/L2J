@@ -94,24 +94,37 @@ public final class PhantomReceiptStreaming030Suite implements PhantomTestSuite
         for (var thread : Thread.getAllStackTraces().keySet())
         { if (thread.getName().equals("TASK030-witness-export")) { thread.interrupt(); thread.join(2000); PhantomAssertions.assertFalse(thread.isAlive(), "Pause only the exact passive TEST exporter."); } }
         boolean filesystem = faultMode.equals("fs030");
+        boolean ringFault = faultMode.equals("ring030");
         if (filesystem)
         {
             var blocked = output.resolve("blocked-root"); Files.writeString(blocked, "controlled exact TEST filesystem fault");
             var root = observer().getDeclaredField("streamRoot"); root.setAccessible(true); root.set(null, blocked);
         }
         var open = PhantomBackgroundSuite.class.getDeclaredMethod("openNativeProductionFixture", PhantomTestContext.class, boolean.class); open.setAccessible(true);
-        int releases = filesystem ? 3 : 130;
+        int releases = filesystem ? 3 : ringFault ? 128 : 130;
         for (int i = 0; i < releases; i++)
         {
             try (var fixture = openActual(open, base, context))
             {
+                if (ringFault && i == 0)
+                {
+                    // Two exact copies of an actual queued birth are a TEST-only ring fault control.
+                    // They are never reported as extra native lifetimes or evidence coverage.
+                    var queueField = observer().getDeclaredField("RING"); queueField.setAccessible(true);
+                    var queue = (java.util.Queue<?>) queueField.get(null);
+                    var actualBirth = queue.peek(); PhantomAssertions.assertTrue(actualBirth != null, "Actual prospective birth must precede the ring fault.");
+                    var enqueue = observer().getDeclaredMethod("enqueue", actualBirth.getClass()); enqueue.setAccessible(true);
+                    enqueue.invoke(null, actualBirth); enqueue.invoke(null, actualBirth);
+                }
                 var outcome = ((PhantomMaterializationService) field(fixture, "materialization")).dematerialize((long) invoke(fixture, "id"));
                 PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, outcome.status(), "Observer fault leaves genuine native store/release SUCCESS.");
+                if (ringFault) { try { call("sampleTerminals"); } catch (java.lang.reflect.InvocationTargetException expected) { } }
             }
         }
         try { call("sampleTerminals"); call("drain"); } catch (java.lang.reflect.InvocationTargetException expected) { }
         var first = failure();
         PhantomAssertions.assertFalse(first.isEmpty(), "Observer fault must invalidate proof.");
+        if (ringFault) { PhantomAssertions.assertTrue(first.contains("TASK030_WITNESS_RING_OVERFLOW"), "Full-ring fault must be established before ACTIVE capacity or filesystem failure."); }
         try { call("drain"); } catch (java.lang.reflect.InvocationTargetException expected) { }
         PhantomAssertions.assertEquals(first, failure(), "First observer error is sticky across later successful/failed export.");
         PhantomAssertions.assertTrue(owners().size() <= 128, "ACTIVE strong references remain bounded under failed export.");

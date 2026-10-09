@@ -52,6 +52,24 @@ if($Action -ceq 'Build'){
     & (Join-Path $jdk 'javac.exe') -encoding UTF-8 -cp "$root/build/bin;$root/build/phantom-test/bin;$module/dist/libs/*" -d $classes $generated
     if($LASTEXITCODE -ne 0){throw 'Exact private test-lane guard compilation failed.'}
     [ordered]@{sourceSha256=(Get-FileHash $source).Hash;generatedSha256=(Get-FileHash $generated).Hash;adaptation='027 to 030 paths/manifest/authority only; no admission negatives removed'} | ConvertTo-Json | Set-Content (Join-Path $ops 'test-lane-provenance.json') -Encoding utf8
+    # Private copies retain all029 assertions; only owned output/collector/source guards differ.
+    $regression030=Join-Path $ops 'regression-classes'
+    $sourceRoot030=Join-Path $ops 'regression-sources'
+    New-Item -ItemType Directory -Path $regression030,$sourceRoot030 -Force | Out-Null
+    $sha030=(Get-Content (Join-Path $lane 'runtime/local-play.json') -Raw | ConvertFrom-Json).codeSha
+    $sources030=@()
+    $provenance030=@()
+    foreach($name030 in @('PhantomLifetimeReceipt029Suite','PhantomBackgroundHandoff029Suite')){
+        $original030=Join-Path $module ('test/java/org/l2jmobius/tests/phantoms/'+$name030+'.java')
+        $private030=Join-Path $sourceRoot030 ($name030+'.java')
+        $text030=[IO.File]::ReadAllText($original030).Replace('Contract029Observer','Contract030Observer').Replace('TASK029_CONTRACT','TASK030_CONTRACT').Replace('PHANTOM-M1-BACKGROUND-HANDOFF-029/evidence','PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/evidence').Replace('2b9496c935748803f8505c472bf4085977fb04d2',$sha030)
+        [IO.File]::WriteAllText($private030,$text030,[Text.UTF8Encoding]::new($false))
+        $sources030+=$private030
+        $provenance030+=[ordered]@{suite=$name030;sourceSha256=(Get-FileHash $original030).Hash;generatedSha256=(Get-FileHash $private030).Hash;adaptation='collector/owner/output/current frozen SHA guards only; all assertions preserved'}
+    }
+    & (Join-Path $jdk 'javac.exe') -encoding UTF-8 -cp "$root/build/bin;$root/build/phantom-test/bin;$module/dist/libs/*" -d $regression030 @sources030
+    if($LASTEXITCODE -ne 0){throw 'Exact private029 guard compilation failed.'}
+    $provenance030 | ConvertTo-Json | Set-Content (Join-Path $ops 'regression-provenance030.json') -Encoding utf8
     return
 }
 if($Action -ceq 'Matrix'){
@@ -88,7 +106,7 @@ if($LASTEXITCODE -ne 0 -or "$active".Trim() -cne '0'){throw 'Own TEST lane alrea
 $reports=Join-Path $PSScriptRoot "evidence/$Label"
 $log=Join-Path $PSScriptRoot "evidence/$Label.log"
 if(Test-Path $log){throw 'Immutable test log exists.'}
-$cp="$ops/test-lane-classes;$ops/observer-classes;$root/build/bin;$root/build/phantom-test/bin;$root/build/phantom-test/resources;$module/dist/libs/*"
+$cp="$ops/regression-classes;$ops/test-lane-classes;$ops/observer-classes;$root/build/bin;$root/build/phantom-test/bin;$root/build/phantom-test/resources;$module/dist/libs/*"
 $arguments=@('-Xmx4g','-Dfile.encoding=UTF-8','-Dsun.stdout.encoding=UTF-8','-Dsun.stderr.encoding=UTF-8',
     "-Dphantom.test.config=$lane/test/Database.test.ini","-Dphantom.contract030.manifest=$lane/test/owned.properties",
     "-Dphantom.module.root=$module","-Dphantom.test.reports=$reports")
