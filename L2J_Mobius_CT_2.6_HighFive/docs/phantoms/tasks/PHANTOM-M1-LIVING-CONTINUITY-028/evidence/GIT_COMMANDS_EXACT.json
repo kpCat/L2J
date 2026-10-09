@@ -1,0 +1,119 @@
+{
+  "kind": "EXACT_CURRENT_CHAT_GIT_INVOCATIONS",
+  "chatId": "01a11daa-6d98-7c00-9c26-defeef083075",
+  "invocations": [
+    {
+      "utc": "2026-10-08T22:38:54.989Z",
+      "shellCommandExact": "git status --short; git branch --show-current; git rev-parse HEAD; git rev-parse --abbrev-ref --symbolic-full-name '@{u}'; git fetch origin experiment/m1-candidate007-observe008; git rev-parse origin/experiment/m1-candidate007-observe008; git worktree list --porcelain"
+    },
+    {
+      "utc": "2026-10-08T22:39:07.920Z",
+      "shellCommandExact": "git fetch origin experiment/m1-candidate007-observe008; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; git rev-parse origin/experiment/m1-candidate007-observe008; git ls-remote origin refs/heads/experiment/m1-candidate007-observe008"
+    },
+    {
+      "utc": "2026-10-08T22:43:18.505Z",
+      "shellCommandExact": "git rev-parse HEAD; git branch --show-current; git status --short; $dest='C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028'; if(Test-Path -LiteralPath $dest){throw 'Own task directory already exists; no overwrite.'}; Copy-Item -LiteralPath 'C:\\Users\\ZBook\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028' -Destination $dest -Recurse; Get-ChildItem -LiteralPath $dest -File | Measure-Object"
+    },
+    {
+      "utc": "2026-10-08T23:04:41.471Z",
+      "shellCommandExact": "$taskRoot='L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028'; git diff --check; git diff --stat; git diff -- L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/Invoke-LocalPlayPilot.ps1 L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/LocalPlay-Pilot.ps1; $files=@(Get-ChildItem -LiteralPath $taskRoot -File; Get-ChildItem -LiteralPath \"$taskRoot/proposals\" -File | Where-Object {$_.Extension -ceq '.py'}); foreach($f in $files){$t=[IO.File]::ReadAllText($f.FullName,[Text.UTF8Encoding]::new($false,$true)); if($t -match 'Рџ|Рќ|Рћ|Р•|РЎ|Р›|Р¤|Рњ|РЈ|Рљ|Рґ|Рµ|Р°|Р»|РЅ|Рѕ|СЏ|С€|СЂ|С‹|СЊ|С‚|Сѓ|С‡|С…|С†|�'){throw \"Mojibake:$($f.Name)\"}}; 'Authored task UTF8/mojibake guard PASS'; foreach($f in $files){$t=[IO.File]::ReadAllText($f.FullName); if($t -match '\\\\u0[45][0-9A-Fa-f]{2}|&#[xX]0[45][0-9A-Fa-f]{2};'){throw \"Escaped Cyrillic:$($f.Name)\"}}; 'Authored task escaped Cyrillic guard PASS'"
+    },
+    {
+      "utc": "2026-10-08T23:05:10.656Z",
+      "shellCommandExact": "git diff --check; if($LASTEXITCODE -ne 0){exit 1}; git diff --stat; git diff -- L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/Invoke-LocalPlayPilot.ps1 L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/LocalPlay-Pilot.ps1; & python 'L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py'"
+    },
+    {
+      "utc": "2026-10-08T23:09:03.393Z",
+      "shellCommandExact": "python docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Collector -Mode Build -Episode b *> ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/OBSERVER_BUILD_R2.log; if($LASTEXITCODE -ne 0){throw 'Observer build failure'}; git diff --check; $taskPrefix='L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028'; $stage=@('L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java','L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/Invoke-LocalPlayPilot.ps1','L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/LocalPlay-Pilot.ps1','L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/LocalPlayContinuity028Suite.java'); $stage+=@(Get-ChildItem './docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028' -File | ForEach-Object {$taskPrefix+'/'+$_.Name}); $stage+=@(Get-ChildItem './docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals' -File | Where-Object {$_.Extension -in '.py','.md'} | ForEach-Object {$taskPrefix+'/proposals/'+$_.Name}); foreach($exact in $stage){git -C .. add -- $exact; if($LASTEXITCODE -ne 0){throw \"Exact add failed: $exact\"}}; git diff --cached --check; git diff --cached --name-only; git commit -m 'phantom(task-028): separate native continuity transport and capture'"
+    },
+    {
+      "utc": "2026-10-08T23:09:38.258Z",
+      "shellCommandExact": "$sha=git rev-parse HEAD; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Update -Episode b -Revision TRANSPORT_R1 *> ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/UPDATE_B_R1.log; if($LASTEXITCODE -ne 0){throw 'Update failed'}; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Start -Episode b -ExpectedSha $sha *> ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/START_B_R1.log; if($LASTEXITCODE -ne 0){throw 'Start failed'}; Get-Content ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/START_B_R1.log -Tail 35"
+    },
+    {
+      "utc": "2026-10-08T23:09:49.371Z",
+      "shellCommandExact": "$sha=git rev-parse HEAD; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Update -Episode b -Revision R1 *> ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/UPDATE_B_R2.log; if(-not $?){throw 'Update failed'}; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Start -Episode b -ExpectedSha $sha *> ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/START_B_R2.log; if(-not $?){throw 'Start failed'}; Get-Content ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/START_B_R2.log -Tail 35"
+    },
+    {
+      "utc": "2026-10-08T23:10:47.047Z",
+      "shellCommandExact": "& 'C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/javac.exe' -cp 'dist/libs/*' -d '.phantom-local/ops028/observer-classes' 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/ReadDryPath023.java'; if($LASTEXITCODE -ne 0){throw 'Read-only dry helper build failed'}; Push-Location '.phantom-local/contract028b/runtime/game'; try {& 'C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin/java.exe' -Xmx2g -cp '../../../ops028/observer-classes;../libs/*' ReadDryPath023 44131 42673 -3488 43931 42673 *> '../../../../docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/PROBE_DRY_PATH.log'; if($LASTEXITCODE -ne 0){throw 'Actual dry path failed'}} finally {Pop-Location}; Get-Content './docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/PROBE_DRY_PATH.log' -Tail 6; $sha=git rev-parse HEAD; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Observe028.ps1 -Mode Probe -Episode b -Seconds 80 -FrozenSha $sha -OutputRoot (Join-Path $PWD 'docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FIRST_SERVER_PROOF_R1') *> './docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FIRST_SERVER_PROOF_R1.log'; if(-not $?){throw 'Full-server probe failed'}; Get-Content './docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FIRST_SERVER_PROOF_R1.log' -Tail 20"
+    },
+    {
+      "utc": "2026-10-08T23:23:14.579Z",
+      "shellCommandExact": "python docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Collector -Mode Build -Episode c *> ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/OBSERVER_BUILD_R3.log; if(-not $?){throw 'Observer build failed'}; $changed=@('java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java','java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java','java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java','test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java','docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Observe028.ps1','docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Verify028.ps1','docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Contract028Observer.java','docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/EXECUTION_LEDGER.md','docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py','docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py','docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/test_continuity028.py'); git add -- $changed; git diff --cached --check; git commit -m 'phantom(task-028): bound offscreen AutoPlay roots by native locality grace'; if($LASTEXITCODE -ne 0){throw 'Exact commit failed'}; $sha=git rev-parse HEAD; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Update -Episode c -Revision R1 *> ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/UPDATE_C_R1.log; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Start -Episode c -ExpectedSha $sha *> ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/START_C_R1.log; if(-not $?){throw 'Own C start failed'}; Get-Content ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/START_C_R1.log -Tail 5"
+    },
+    {
+      "utc": "2026-10-08T23:25:35.570Z",
+      "shellCommandExact": "$sha=git rev-parse HEAD; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Observe028.ps1 -Mode Scene -Episode c -Seconds 380 -FrozenSha $sha -OutputRoot (Join-Path $PWD 'docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/CANDIDATE_SCENE_C_R1') *> ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/CANDIDATE_SCENE_C_R1.log; if(-not $?){throw 'Candidate natural scene failed'}; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Verify028.ps1 -Action Evaluate -EpisodeOutput (Join-Path $PWD 'docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/CANDIDATE_SCENE_C_R1'); Get-Content ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/CANDIDATE_SCENE_C_R1/legacy-result.json"
+    },
+    {
+      "utc": "2026-10-08T23:34:41.690Z",
+      "shellCommandExact": "& ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Collector -Mode Build -Episode c *> docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/OBSERVER_BUILD_R5.log; if(-not $?){throw 'Observer build failed'}; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action DryPath -Episode c -OriginPoint @{x=44131;y=42673;z=-3488} -EndpointPoint @{x=37931;y=42673} -OutputRoot (Join-Path $PWD 'docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/AWAY_DRY_PATH_R1') *> docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/AWAY_DRY_PATH_R1.log; if(-not $?){throw 'Actual dry path invalid'}; Get-Content docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/AWAY_DRY_PATH_R1.log -Tail 7; git diff --check; git add -- docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Observe028.ps1 docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Contract028Observer.java; git diff --cached --check; git commit -m 'phantom(task-028): capture native away path and retirement boundary'"
+    },
+    {
+      "utc": "2026-10-08T23:35:50.096Z",
+      "shellCommandExact": "$sha=git rev-parse HEAD; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Update -Episode c -Revision R2 *> docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/UPDATE_C_R2.log; if(-not $?){throw 'Own update failed'}; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1 -Action Start -Episode c -ExpectedSha $sha *> docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/START_C_R2.log; if(-not $?){throw 'Own start failed'}; & ./docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Observe028.ps1 -Mode Away -Episode c -Seconds 140 -FrozenSha $sha -PathJson (Join-Path $PWD 'docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/AWAY_DRY_PATH_R1/path.json') -OutputRoot (Join-Path $PWD 'docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/NATIVE_RETURN_C_R1') *> docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/NATIVE_RETURN_C_R1.log; if(-not $?){throw 'Native away-return boundary failed'}; Get-Content docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/NATIVE_RETURN_C_R1.log -Tail 16"
+    },
+    {
+      "utc": "2026-10-08T23:51:53.087Z",
+      "shellCommandExact": "python docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py; git diff --check; git diff --stat; rg -n 'background.*context|vitality|canPrewarm|phase.*SEALED' docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Contract028Observer.java | Select-Object -First 18"
+    },
+    {
+      "utc": "2026-10-08T23:52:36.604Z",
+      "shellCommandExact": "git diff -- java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java; Get-Content docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/L02_SIGNAL_GREEN.log -Tail 7"
+    },
+    {
+      "utc": "2026-10-08T23:53:06.466Z",
+      "shellCommandExact": "git add -- java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Observe028.ps1 docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/RETIRE_SIGNAL028_DIAGNOSIS.md docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/EXECUTION_LEDGER.md; git diff --cached --check; git diff --cached --name-only; git commit -m 'Fix bounded native context relevance retirement after demand expires'; git rev-parse HEAD"
+    },
+    {
+      "utc": "2026-10-09T00:05:56.493Z",
+      "shellCommandExact": "git diff --check; git add -- java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/RETIRE_SIGNAL028_DIAGNOSIS.md docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/EXECUTION_LEDGER.md; git diff --cached --check; git diff --cached --name-only; git commit -m 'Preserve native bootstrap and finite retirement across human return'; git rev-parse HEAD"
+    },
+    {
+      "utc": "2026-10-09T00:06:47.034Z",
+      "shellCommandExact": "git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008"
+    },
+    {
+      "utc": "2026-10-09T00:53:39.680Z",
+      "shellCommandExact": "$env:PYTHONIOENCODING='utf-8'; python docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py; python -m unittest discover -s docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals -p test_transport028.py -v; git diff --check -- tools/phantom-local-play/LocalPlay-Pilot.ps1 test/java/org/l2jmobius/tests/phantoms/LocalPlayContinuity028Suite.java docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/EXECUTION_LEDGER.md"
+    },
+    {
+      "utc": "2026-10-09T00:54:04.336Z",
+      "shellCommandExact": "git add -- L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/LocalPlay-Pilot.ps1 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/LocalPlayContinuity028Suite.java L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/HEARTBEAT028_DIAGNOSIS.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/EXECUTION_LEDGER.md L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/sealed_inputs028.py; git diff --cached --name-only; git commit -m \"Fix Synthetic heartbeat publication after native continuity RED\"; git rev-parse HEAD"
+    },
+    {
+      "utc": "2026-10-09T00:57:10.967Z",
+      "shellCommandExact": "git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008"
+    },
+    {
+      "utc": "2026-10-09T01:00:02.507Z",
+      "shellCommandExact": "rg -n '_nativeContextSignals|nativeContextRetiring' java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java; Get-Content java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java | Select-Object -Skip 2628 -First 72; Get-Content docs/phantoms/tasks/PHANTOM-M1-LIFECYCLE-COMPLETION-027/evidence/R12_F_FINALIZE_CRASH_RECOVERY_EXACT.json -TotalCount 14 -ErrorAction SilentlyContinue; git diff --name-only 141295edc5c78d41d03b360043cc1ec6a149aa6d HEAD -- java/org/l2jmobius/gameserver/phantoms/player java/org/l2jmobius/gameserver/model/actor/Player.java java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java"
+    },
+    {
+      "utc": "2026-10-09T01:28:09.256Z",
+      "shellCommandExact": "git diff -- java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java; git diff --name-only"
+    },
+    {
+      "utc": "2026-10-09T01:28:36.460Z",
+      "shellCommandExact": "$ErrorActionPreference='Stop'\ngit add -- java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java test/java/org/l2jmobius/tests/phantoms/PhantomContinuity028Suite.java docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/COMBAT028_DIAGNOSIS.md docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/EXECUTION_LEDGER.md docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py\nif($LASTEXITCODE -ne 0){throw 'Exact add failed'}\ngit commit -m 'Settle earned native combat before admitting continuity roots'\nif($LASTEXITCODE -ne 0){throw 'Exact commit failed'}\ngit rev-parse HEAD\n$env:PATH='C:\\Tools\\apache-ant-1.10.17\\bin;C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin;'+$env:PATH\nant jar > docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/COMBAT_FINAL_BUILD.log 2>&1\nif($LASTEXITCODE -ne 0){throw 'Final candidate build failed'}"
+    },
+    {
+      "utc": "2026-10-09T01:36:04.446Z",
+      "shellCommandExact": "$ErrorActionPreference='Stop'\n$env:PYTHONIOENCODING='utf-8'\npython -m unittest discover -s docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals -p 'test_*.py' -v > docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/HELPER_PRE_FREEZE_07C2.log 2>&1\nif($LASTEXITCODE -ne 0){throw 'Helper tests failed'}\nGet-Content docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/HELPER_PRE_FREEZE_07C2.log -Tail 8\ngit push origin HEAD:experiment/m1-candidate007-observe008\nif($LASTEXITCODE -ne 0){throw 'Normal required push failed'}"
+    },
+    {
+      "utc": "2026-10-09T02:34:38.295Z",
+      "shellCommandExact": "git rev-parse HEAD; git diff --name-only 9aeb4ac6c52970372f97637d26a5eb54c760ed1a HEAD -- L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/test L2J_Mobius_CT_2.6_HighFive/tools; git diff --name-only HEAD; git diff --cached --name-only; git ls-files -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence"
+    },
+    {
+      "utc": "2026-10-09T02:39:43.378Z",
+      "shellCommandExact": "git diff 9aeb4ac6c52970372f97637d26a5eb54c760ed1a HEAD -- L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java"
+    },
+    {
+      "utc": "2026-10-09T02:42:16.610Z",
+      "shellCommandExact": "git diff 9aeb4ac6c52970372f97637d26a5eb54c760ed1a HEAD -- L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/LocalPlay-Pilot.ps1 L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/Invoke-LocalPlayPilot.ps1"
+    }
+  ],
+  "scope": "Git shell inputs only; no rollout content exported."
+}

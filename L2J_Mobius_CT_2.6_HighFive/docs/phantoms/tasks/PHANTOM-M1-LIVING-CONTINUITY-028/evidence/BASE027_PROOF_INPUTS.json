@@ -1,0 +1,31 @@
+{
+  "proofs": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIFECYCLE-COMPLETION-027\\evidence\\R12_E_NATIVE_CRASH_RECOVERY_EXACT.json",
+      "sha256": "6f57816374e00eb7484d0d7ac072d5b12c05b87e1b5c98e9261a9ad552c401ad",
+      "observedSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+      "recordedPass": false,
+      "reuse": "BASE027_PROOF",
+      "newCrashRun": false
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIFECYCLE-COMPLETION-027\\evidence\\R12_F_FINALIZE_CRASH_EXACT.json",
+      "sha256": "7e9dfcca667ee735b0831200bf546cd4fbe526a15c78667a67c82bc3f5e91c9d",
+      "observedSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+      "recordedPass": true,
+      "reuse": "BASE027_PROOF",
+      "newCrashRun": false
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIFECYCLE-COMPLETION-027\\evidence\\R12_F_FINALIZE_CRASH_RESTART_EXACT.json",
+      "sha256": "9c715d61287a3f6eb201fa1f4ad9d7bfa3c37f9a04a81d82c0be4fe9b47a28d2",
+      "observedSha": "141295edc5c78d41d03b360043cc1ec6a149aa6d",
+      "recordedPass": true,
+      "reuse": "BASE027_PROOF",
+      "newCrashRun": false
+    }
+  ],
+  "sourceDependencies": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\BASE027_PROVENANCE.tsv",
+  "changedSystemAndSoftSignalBindingsCoveredByNewTestsAndServerStops": "REQUIRED",
+  "newFinalShaCrashPassClaimed": false
+}

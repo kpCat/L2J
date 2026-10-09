@@ -1,0 +1,244 @@
+{
+  "contract": "CONTINUITY_V2",
+  "denominator": 8,
+  "seconds": 380.9295156,
+  "problems": [],
+  "rows": [
+    {
+      "profileId": "424",
+      "primary": true,
+      "minimum": 5,
+      "cycles": 13,
+      "segments": [
+        {
+          "epoch": 238539845734100,
+          "from": 0.0,
+          "to": 379.2897178,
+          "delta": {
+            "FarmCycleSequence": 13,
+            "KillSequence": 15,
+            "RewardSequence": 15,
+            "DamageSequence": 24,
+            "TargetSequence": 23,
+            "ExpGained": 1578,
+            "SpGained": 65
+          },
+          "cycles": 13,
+          "maxIdleSeconds": 79.73902479999998,
+          "tail120Rewards": 4
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "633",
+      "primary": true,
+      "minimum": 5,
+      "cycles": 24,
+      "segments": [
+        {
+          "epoch": 238540432248300,
+          "from": 0.0,
+          "to": 379.2897178,
+          "delta": {
+            "FarmCycleSequence": 24,
+            "KillSequence": 26,
+            "RewardSequence": 26,
+            "DamageSequence": 27,
+            "TargetSequence": 25,
+            "ExpGained": 12841,
+            "SpGained": 608
+          },
+          "cycles": 24,
+          "maxIdleSeconds": 29.067319900000008,
+          "tail120Rewards": 7
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "759",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 8,
+      "segments": [
+        {
+          "epoch": 238540542337200,
+          "from": 0.0,
+          "to": 379.2897178,
+          "delta": {
+            "FarmCycleSequence": 8,
+            "KillSequence": 13,
+            "RewardSequence": 14,
+            "DamageSequence": 17,
+            "TargetSequence": 24,
+            "ExpGained": 1040,
+            "SpGained": 33
+          },
+          "cycles": 8,
+          "maxIdleSeconds": 79.73902479999998,
+          "tail120Rewards": 5
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "876",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 9,
+      "segments": [
+        {
+          "epoch": 238540626744200,
+          "from": 0.0,
+          "to": 379.2897178,
+          "delta": {
+            "FarmCycleSequence": 9,
+            "KillSequence": 13,
+            "RewardSequence": 14,
+            "DamageSequence": 23,
+            "TargetSequence": 24,
+            "ExpGained": 1508,
+            "SpGained": 58
+          },
+          "cycles": 9,
+          "maxIdleSeconds": 79.73902479999998,
+          "tail120Rewards": 5
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "924",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 32,
+      "segments": [
+        {
+          "epoch": 238540726290800,
+          "from": 0.0,
+          "to": 379.2897178,
+          "delta": {
+            "FarmCycleSequence": 32,
+            "KillSequence": 35,
+            "RewardSequence": 35,
+            "DamageSequence": 33,
+            "TargetSequence": 36,
+            "ExpGained": 16058,
+            "SpGained": 749
+          },
+          "cycles": 32,
+          "maxIdleSeconds": 21.3504565,
+          "tail120Rewards": 12
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "994",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 14,
+      "segments": [
+        {
+          "epoch": 238540525179300,
+          "from": 0.0,
+          "to": 379.2897178,
+          "delta": {
+            "FarmCycleSequence": 14,
+            "KillSequence": 14,
+            "RewardSequence": 14,
+            "DamageSequence": 43,
+            "TargetSequence": 24,
+            "ExpGained": 2551,
+            "SpGained": 114
+          },
+          "cycles": 14,
+          "maxIdleSeconds": 84.1009598,
+          "tail120Rewards": 4
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "1159",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 10,
+      "segments": [
+        {
+          "epoch": 238540646799100,
+          "from": 0.0,
+          "to": 379.2897178,
+          "delta": {
+            "FarmCycleSequence": 10,
+            "KillSequence": 11,
+            "RewardSequence": 15,
+            "DamageSequence": 14,
+            "TargetSequence": 24,
+            "ExpGained": 1068,
+            "SpGained": 36
+          },
+          "cycles": 10,
+          "maxIdleSeconds": 79.73902479999998,
+          "tail120Rewards": 5
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "1176",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 10,
+      "segments": [
+        {
+          "epoch": 238542526714800,
+          "from": 0.0,
+          "to": 379.2897178,
+          "delta": {
+            "FarmCycleSequence": 10,
+            "KillSequence": 13,
+            "RewardSequence": 13,
+            "DamageSequence": 23,
+            "TargetSequence": 24,
+            "ExpGained": 1068,
+            "SpGained": 39
+          },
+          "cycles": 10,
+          "maxIdleSeconds": 79.73902479999998,
+          "tail120Rewards": 5
+        }
+      ],
+      "faults": [],
+      "pass": true
+    }
+  ],
+  "pass": true,
+  "inputs": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_SCENE_07C2_F1\\capture-result.json",
+      "sha256": "ecae1fca3e4f26fe2dd1d6856ae63e702c92cb63798c2f7df8ca50f64054f13e"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_SCENE_07C2_F1\\baseline-cohort.json",
+      "sha256": "4a0ab73e7f27b1f345fd8b0561a37298b9791093314fe8bb529a8f24dccc613a"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_SCENE_07C2_F1\\all-samples.json",
+      "sha256": "6e96b0dfc30bfdfea587dcaf91dd151353fb969065e36035a103fb0752167c0e"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_SCENE_07C2_F1\\primary.json",
+      "sha256": "5e3ff98a9b6b64e26ccba08b67a5b28f98a7706bd93ce7e6fdd0cdff1f85b219"
+    }
+  ],
+  "frozenSha": "07c2c1cc4036b47487c98e96943a39ce295a3920"
+}

@@ -1,0 +1,93 @@
+{
+  "utc": "2026-10-09T02:41:28.7430224Z",
+  "authority": "TASK028_CONTRACT",
+  "allStopped": true,
+  "ownLiveJava": [],
+  "forceUsed": false,
+  "roles": [
+    {
+      "episode": "a",
+      "role": "GameServer",
+      "state": "STOPPED",
+      "pid": 0,
+      "reason": ""
+    },
+    {
+      "episode": "a",
+      "role": "LoginServer",
+      "state": "STOPPED",
+      "pid": 0,
+      "reason": ""
+    },
+    {
+      "episode": "b",
+      "role": "GameServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    },
+    {
+      "episode": "b",
+      "role": "LoginServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    },
+    {
+      "episode": "c",
+      "role": "GameServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    },
+    {
+      "episode": "c",
+      "role": "LoginServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    },
+    {
+      "episode": "d",
+      "role": "GameServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    },
+    {
+      "episode": "d",
+      "role": "LoginServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    },
+    {
+      "episode": "e",
+      "role": "GameServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    },
+    {
+      "episode": "e",
+      "role": "LoginServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    },
+    {
+      "episode": "f",
+      "role": "GameServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    },
+    {
+      "episode": "f",
+      "role": "LoginServer",
+      "state": "STALE_RECORD",
+      "pid": 0,
+      "reason": "record has no marked owner"
+    }
+  ]
+}

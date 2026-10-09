@@ -1,0 +1,498 @@
+{
+  "kind": "WHOLE_ORIGINAL_MEMBERSHIP_AUDIT",
+  "memberships": [
+    {
+      "scene": "FINAL_SCENE_07C2_F1",
+      "cohortSha256": "4a0ab73e7f27b1f345fd8b0561a37298b9791093314fe8bb529a8f24dccc613a",
+      "actors": [
+        {
+          "profileId": 424,
+          "epoch": 238539845734100
+        },
+        {
+          "profileId": 633,
+          "epoch": 238540432248300
+        },
+        {
+          "profileId": 759,
+          "epoch": 238540542337200
+        },
+        {
+          "profileId": 876,
+          "epoch": 238540626744200
+        },
+        {
+          "profileId": 924,
+          "epoch": 238540726290800
+        },
+        {
+          "profileId": 994,
+          "epoch": 238540525179300
+        },
+        {
+          "profileId": 1159,
+          "epoch": 238540646799100
+        },
+        {
+          "profileId": 1176,
+          "epoch": 238542526714800
+        }
+      ]
+    },
+    {
+      "scene": "FINAL_SCENE_07C2_F2",
+      "cohortSha256": "2f8f24c1a70790226dc0b59cf0b2cf6b9379db05b585b96854671c08f1bbd159",
+      "actors": [
+        {
+          "profileId": 633,
+          "epoch": 239072425346600
+        },
+        {
+          "profileId": 872,
+          "epoch": 239072127458300
+        },
+        {
+          "profileId": 924,
+          "epoch": 239072225229400
+        },
+        {
+          "profileId": 1272,
+          "epoch": 239072201692100
+        }
+      ]
+    },
+    {
+      "scene": "FINAL_AWAY_07C2_F3",
+      "cohortSha256": "98e2804d3ff7d103eb6e1b8bb1e7982bfae067b84fc9cf75540bd1c668539830",
+      "actors": [
+        {
+          "profileId": 633,
+          "epoch": 239072425346600
+        },
+        {
+          "profileId": 759,
+          "epoch": 239528140891000
+        },
+        {
+          "profileId": 924,
+          "epoch": 239072225229400
+        },
+        {
+          "profileId": 994,
+          "epoch": 239272826717600
+        },
+        {
+          "profileId": 1159,
+          "epoch": 239337624600500
+        }
+      ]
+    }
+  ],
+  "uniqueProfiles": [
+    424,
+    633,
+    759,
+    872,
+    876,
+    924,
+    994,
+    1159,
+    1176,
+    1272
+  ],
+  "observedLifetimes": [
+    {
+      "profileId": 424,
+      "epoch": 238539845734100,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_SCENE_07C2_F1\\full-native\\424-238539845734100-3631-finalized.properties",
+      "preparedVersion": 3631,
+      "witnessSha256": "bb2fdcb9fbc2c134bbd019da4c9f6118afdd8755fe196a3254c1b402b5d55231",
+      "sqlSha256": "69dd538322f5fe20be793a8684b62f5d0869b2fa310d786569bbbb4ba30f792b",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 633,
+      "epoch": 238540432248300,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_SCENE_07C2_F1\\full-native\\633-238540432248300-11364-finalized.properties",
+      "preparedVersion": 11364,
+      "witnessSha256": "7fedd3e092cfe1b525e8866004f1ae1fa7c2abce7d351151551ed0bd62374f0c",
+      "sqlSha256": "2357d65349a047e388d1bafc7447f160ec0fc45afb838556cc5fe2fa82b80125",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 633,
+      "epoch": 239072425346600,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\633-239072425346600-11367-finalized.properties",
+      "preparedVersion": 11367,
+      "witnessSha256": "4b69f51877f120716972e483ad444f0cad8582318b7300ecf4132de8ced8f074",
+      "sqlSha256": "579e8d2d7030152152f112acece154c41981e125a7dc2b83831cc22b25a36c70",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 633,
+      "epoch": 239751842171100,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\633-239751842171100-11370-finalized.properties",
+      "preparedVersion": 11370,
+      "witnessSha256": "9b925068f23a364e2563912462ed5c7062c3db08d00120a4a275e6e0176b45e1",
+      "sqlSha256": "7ca82a380418572a6b645f5e2fab519fad0a8530039373dc9d8cd6b8ca052e87",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 759,
+      "epoch": 238540542337200,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_SCENE_07C2_F1\\full-native\\759-238540542337200-3841-finalized.properties",
+      "preparedVersion": 3841,
+      "witnessSha256": "4f591fdee5550b7ce24c4d73a77e10c07f86db6e8004fa4a8cdd525a982ce29a",
+      "sqlSha256": "6cdf984cf38864f0504e641ef3f16d15e1aa2276cc3cf27ace790757dc231351",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 759,
+      "epoch": 239528140891000,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\759-239528140891000-3849-finalized.properties",
+      "preparedVersion": 3849,
+      "witnessSha256": "79a1028e57a0de1dbd499996b1366f5230abe803229e15cf77bb003910cfe210",
+      "sqlSha256": "5f7212f2825debfd74eae724ba938cbc0d4f3d5c60a8c2bfffbd863869d62839",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 759,
+      "epoch": 239751924519800,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\759-239751924519800-3856-finalized.properties",
+      "preparedVersion": 3856,
+      "witnessSha256": "3a4fe0bc46de1e3d9c6d49143c4b94e19efcce7b6999cbb7673723dd921f9bcf",
+      "sqlSha256": "be3261ec28d43fc73e3542658442879918cb01e3bdee2ec85be43654f3f8e807",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 872,
+      "epoch": 239072127458300,
+      "receiptCaptured": false,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false
+    },
+    {
+      "profileId": 876,
+      "epoch": 238540626744200,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_SCENE_07C2_F1\\full-native\\876-238540626744200-4572-finalized.properties",
+      "preparedVersion": 4572,
+      "witnessSha256": "bdaf3418799ff9f532f7bb0281ccf4e891437844c740c0c2cf5f107a13528525",
+      "sqlSha256": "2edc7d82a84bcfc3f5258de281821e6b7f6be579a3b9c96a3600673a2963f07f",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 924,
+      "epoch": 238540726290800,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_SCENE_07C2_F1\\full-native\\924-238540726290800-5518-finalized.properties",
+      "preparedVersion": 5518,
+      "witnessSha256": "067a6f408deee12e590f95a9f4d66ee8d73347fba3a23601ba382c05a4753601",
+      "sqlSha256": "47e500894e35578004d0de2b06b9f615ca1c5811d19e7851d583ac7b63053e54",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 924,
+      "epoch": 239072225229400,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\924-239072225229400-5521-finalized.properties",
+      "preparedVersion": 5521,
+      "witnessSha256": "ffa69e7beda8d5d0415f836c3ff8cd67ef075620b6391b472467ebad1aeab268",
+      "sqlSha256": "5df64cade8bf86b7e2789caca9624f3fc05a1d616b772a2b64c282b8e72b6789",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 924,
+      "epoch": 239753026523800,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\924-239753026523800-5524-finalized.properties",
+      "preparedVersion": 5524,
+      "witnessSha256": "025b7c450853333f55c703c3b6d54bbd0d714cbfaced97cfddb08b26ed96a274",
+      "sqlSha256": "67056a63ec5c47068e6487ae6b8142dc17669faceed4702c9bcef07764febbc0",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 994,
+      "epoch": 238540525179300,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_SCENE_07C2_F1\\full-native\\994-238540525179300-3951-finalized.properties",
+      "preparedVersion": 3951,
+      "witnessSha256": "effc5ffe9aaf3437ad0f8602e742fb9dce772422b4a01fd565897b55d435225f",
+      "sqlSha256": "f6d051ab47748a79c9d2fe7c2355ba905c19217141e866bfdbf07bae8eff9569",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 994,
+      "epoch": 239272826717600,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\994-239272826717600-3954-finalized.properties",
+      "preparedVersion": 3954,
+      "witnessSha256": "4f121512946b6e665c576cfc1cf350adeb5587fcb41c2d09aa60a26adb157d52",
+      "sqlSha256": "6cf1a6700217a7c250af0b33f86055f99a0814e93d668391f193468205d6ae90",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 994,
+      "epoch": 239773925838500,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\994-239773925838500-3957-finalized.properties",
+      "preparedVersion": 3957,
+      "witnessSha256": "fbd49d4ddeb863d25536221d535670818e60c7e85232473e2a1bc5f498a386a4",
+      "sqlSha256": "6069947a736093307c8aaf0e14c9fcea12755b8f4d423c0c54cddd38976a9952",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 1159,
+      "epoch": 238540646799100,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_SCENE_07C2_F1\\full-native\\1159-238540646799100-3713-finalized.properties",
+      "preparedVersion": 3713,
+      "witnessSha256": "784ad047d820937e1b6124ba44cb0f3d726a67e832dd96db7264f1c9a755c55f",
+      "sqlSha256": "86fd49804f5cbcc2c8de66e87d1c12d5d5a19c870910e47d34e5b4285a000666",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 1159,
+      "epoch": 239337624600500,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\1159-239337624600500-3716-finalized.properties",
+      "preparedVersion": 3716,
+      "witnessSha256": "4d3dac3d3695595a62692b7990e74d7f8698a6066e4a94318afd09aee005c9d5",
+      "sqlSha256": "a9e59c546666cbc91a94357d6531b344739ec3803134fcc7ee385b5e3bed4521",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 1159,
+      "epoch": 239773943591400,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_AWAY_07C2_F3\\full-native\\1159-239773943591400-3719-finalized.properties",
+      "preparedVersion": 3719,
+      "witnessSha256": "fca43c6926486105075d89dec3f0dc99ee68e5fca6c5a5959abf2cb139f20b0e",
+      "sqlSha256": "33f5234e7916327eb7668c9cbd8e9aaa2639fe9fbc34077ef4aeffae32ef1696",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 1176,
+      "epoch": 238542526714800,
+      "receiptCaptured": true,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false,
+      "witnessPath": "evidence\\FINAL_SCENE_07C2_F1\\full-native\\1176-238542526714800-6688-finalized.properties",
+      "preparedVersion": 6688,
+      "witnessSha256": "1aa28083df274d00ab274c66318b1bb616c0bacfa232257119fc5c8c6f6383fc",
+      "sqlSha256": "b66496fdef8e4f492c1a14ba6ac40861f5ad332841c58ea2b2887cd529e3ac69",
+      "nativeFieldsExact": true,
+      "statePayloadExactAtExport": true
+    },
+    {
+      "profileId": 1272,
+      "epoch": 239072201692100,
+      "receiptCaptured": false,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false
+    }
+  ],
+  "missingReceiptLifetimes": [
+    {
+      "profileId": 872,
+      "epoch": 239072127458300,
+      "receiptCaptured": false,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false
+    },
+    {
+      "profileId": 1272,
+      "epoch": 239072201692100,
+      "receiptCaptured": false,
+      "terminalPermanentSealProved": "UNKNOWN",
+      "completeTransitionLineageProved": false
+    }
+  ],
+  "postReturnWholeCohort": [
+    {
+      "profileId": 633,
+      "segments": [
+        {
+          "epoch": 239751842171100,
+          "from": 0.0,
+          "to": 138.9628891,
+          "delta": {
+            "FarmCycleSequence": 11,
+            "KillSequence": 10,
+            "RewardSequence": 10,
+            "DamageSequence": 10,
+            "TargetSequence": 11,
+            "ExpGained": 8165,
+            "SpGained": 383
+          },
+          "cycles": 11,
+          "maxIdleSeconds": 29.452241200000003,
+          "tail120Rewards": 7
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": 759,
+      "segments": [
+        {
+          "epoch": 239751924519800,
+          "from": 0.0,
+          "to": 138.9628891,
+          "delta": {
+            "FarmCycleSequence": 7,
+            "KillSequence": 8,
+            "RewardSequence": 8,
+            "DamageSequence": 40,
+            "TargetSequence": 7,
+            "ExpGained": 3393,
+            "SpGained": 161
+          },
+          "cycles": 7,
+          "maxIdleSeconds": 26.156840100000004,
+          "tail120Rewards": 7
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": 924,
+      "segments": [
+        {
+          "epoch": 239753026523800,
+          "from": 0.0,
+          "to": 138.9628891,
+          "delta": {
+            "FarmCycleSequence": 11,
+            "KillSequence": 12,
+            "RewardSequence": 12,
+            "DamageSequence": 12,
+            "TargetSequence": 11,
+            "ExpGained": 8820,
+            "SpGained": 420
+          },
+          "cycles": 11,
+          "maxIdleSeconds": 21.29240400000002,
+          "tail120Rewards": 11
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": 994,
+      "segments": [
+        {
+          "epoch": 239773925838500,
+          "from": 0.0,
+          "to": 138.9628891,
+          "delta": {
+            "FarmCycleSequence": 0,
+            "KillSequence": 0,
+            "RewardSequence": 0,
+            "DamageSequence": 0,
+            "TargetSequence": 0,
+            "ExpGained": 0,
+            "SpGained": 0
+          },
+          "cycles": 0,
+          "maxIdleSeconds": 138.9628891,
+          "tail120Rewards": 0
+        }
+      ],
+      "faults": [
+        "POST_RETURN_2_CYCLES_EXP_SP_UNPROVEN"
+      ],
+      "pass": false
+    },
+    {
+      "profileId": 1159,
+      "segments": [
+        {
+          "epoch": 239773943591400,
+          "from": 0.0,
+          "to": 138.9628891,
+          "delta": {
+            "FarmCycleSequence": 0,
+            "KillSequence": 0,
+            "RewardSequence": 0,
+            "DamageSequence": 0,
+            "TargetSequence": 0,
+            "ExpGained": 0,
+            "SpGained": 0
+          },
+          "cycles": 0,
+          "maxIdleSeconds": 138.9628891,
+          "tail120Rewards": 0
+        }
+      ],
+      "faults": [
+        "POST_RETURN_2_CYCLES_EXP_SP_UNPROVEN"
+      ],
+      "pass": false
+    }
+  ],
+  "WHOLE_GROUP_SAVE_PASS": false,
+  "terminalReceiptProofLimitation": "Native snapshot records checkpoint SEALED, not permanent terminal seal. Missing receipts stay missing.",
+  "POST_RETURN_WHOLE_COHORT_PASS": false
+}

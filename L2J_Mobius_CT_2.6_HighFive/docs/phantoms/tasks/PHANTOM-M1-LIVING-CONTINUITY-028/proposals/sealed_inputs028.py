@@ -26,6 +26,8 @@ def main():
             fields = dict(line.split('=', 1) for line in path.read_text(encoding='utf-8-sig').splitlines() if '=' in line)
             if 'profileId' not in fields:
                 continue
+            if fields.get('source') == 'native-finalized-snapshot':
+                continue
             pid = int(fields['profileId'])
             if pid not in ids:
                 continue

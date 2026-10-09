@@ -1,0 +1,136 @@
+{
+  "contract": "CONTINUITY_V2",
+  "denominator": 4,
+  "seconds": 380.6427721,
+  "problems": [],
+  "rows": [
+    {
+      "profileId": "633",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 27,
+      "segments": [
+        {
+          "epoch": 239072425346600,
+          "from": 0.0,
+          "to": 379.2485345,
+          "delta": {
+            "FarmCycleSequence": 27,
+            "KillSequence": 27,
+            "RewardSequence": 27,
+            "DamageSequence": 27,
+            "TargetSequence": 28,
+            "ExpGained": 28875,
+            "SpGained": 1375
+          },
+          "cycles": 27,
+          "maxIdleSeconds": 20.18789310000001,
+          "tail120Rewards": 8
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "872",
+      "primary": true,
+      "minimum": 5,
+      "cycles": 50,
+      "segments": [
+        {
+          "epoch": 239072127458300,
+          "from": 0.0,
+          "to": 379.2485345,
+          "delta": {
+            "FarmCycleSequence": 50,
+            "KillSequence": 50,
+            "RewardSequence": 50,
+            "DamageSequence": 51,
+            "TargetSequence": 52,
+            "ExpGained": 4288,
+            "SpGained": 491
+          },
+          "cycles": 50,
+          "maxIdleSeconds": 19.034712799999994,
+          "tail120Rewards": 13
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "924",
+      "primary": true,
+      "minimum": 5,
+      "cycles": 38,
+      "segments": [
+        {
+          "epoch": 239072225229400,
+          "from": 0.0,
+          "to": 379.2485345,
+          "delta": {
+            "FarmCycleSequence": 38,
+            "KillSequence": 38,
+            "RewardSequence": 38,
+            "DamageSequence": 40,
+            "TargetSequence": 38,
+            "ExpGained": 43470,
+            "SpGained": 2070
+          },
+          "cycles": 38,
+          "maxIdleSeconds": 19.57976240000002,
+          "tail120Rewards": 12
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "1272",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 38,
+      "segments": [
+        {
+          "epoch": 239072201692100,
+          "from": 0.0,
+          "to": 379.2485345,
+          "delta": {
+            "FarmCycleSequence": 38,
+            "KillSequence": 37,
+            "RewardSequence": 37,
+            "DamageSequence": 199,
+            "TargetSequence": 41,
+            "ExpGained": 3017,
+            "SpGained": 346
+          },
+          "cycles": 38,
+          "maxIdleSeconds": 9.226091199999999,
+          "tail120Rewards": 12
+        }
+      ],
+      "faults": [],
+      "pass": true
+    }
+  ],
+  "pass": true,
+  "inputs": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_SCENE_07C2_F2\\capture-result.json",
+      "sha256": "e31c3b63f7045c9a4a53f8245d927d6e77483cb90787e2b3c7d0c29bdfd7735b"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_SCENE_07C2_F2\\baseline-cohort.json",
+      "sha256": "2f8f24c1a70790226dc0b59cf0b2cf6b9379db05b585b96854671c08f1bbd159"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_SCENE_07C2_F2\\all-samples.json",
+      "sha256": "1dc7e1b08754274bc2b1ca06b1bd39c6b5919c270560cf89044de69c5375224d"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_SCENE_07C2_F2\\primary.json",
+      "sha256": "ba46c25416856765499e1ab96ea7aab0390eff228cf8eabe812d990c8c55198e"
+    }
+  ],
+  "frozenSha": "07c2c1cc4036b47487c98e96943a39ce295a3920"
+}

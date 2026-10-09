@@ -1,0 +1,462 @@
+{
+  "kind": "EXACT_TASK028_PUBLICATION_ALLOWLIST",
+  "files": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/.gitattributes",
+      "sha256": "7930b558f2cc1040dbd80d866b16eae6acb8596c417dd51ce4bb1273394cfac7",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/ACCEPTANCE.md",
+      "sha256": "2634a19bdc4879f8aafa2c19899643080df31d3463a94db88885aec71534cf7e",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/ACCEPTANCE_CHANGE.md",
+      "sha256": "ee4c54a9a68c708996d3cbeafe8bf8632b2c01cab28b3a84d9b5b7fc550ae463",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/ARCHIVE_BUILD.log",
+      "sha256": "a838519492d73880637632b645818036219fa85be795733ac4e08c2ff9949493",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/archives/ARCHIVE_MANIFEST.json",
+      "sha256": "86ac88264ec02daa9d7d19518dd0a5d326dcdb034280acfa6689da23db25014d",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/archives/RAW_EVIDENCE_028.zip",
+      "sha256": "88add7c82a90f635cebb6f49ef2224a34bb621ac3c2180ab94ee7521c9c62a54",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/COMBAT028_DIAGNOSIS.md",
+      "sha256": "570fb9b206f37b5ee63526a19fa63acc3ba8d7de2740dec83c6ef8083f01efb8",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Contract028Observer.java",
+      "sha256": "ee651236553f59b6de5d682c6387a3836a5b1134259628df978332f93c4866da",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Control028.ps1",
+      "sha256": "c05c4dc3ad4cf7b5f79ff0b6b5a66d5f817dfc3dcfec8119d423da0a5083c4d0",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/DESIGN.md",
+      "sha256": "0c00a617475b61c1c769685c8ca51f6bda656fdaa22b5aef9d5c8cb4fe5ab019",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/BASE027_PROOF_INPUTS.json",
+      "sha256": "509201e3f904a7e58c765e68aaa5e6ec3bf9cb330630c5f040c0fffe307f2cc2",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/BASE027_PROVENANCE.tsv",
+      "sha256": "f6b36b499f06f3958044253c91d95584e1be6606708b8f67567508698523ca53",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_07C2_EXTRA_EXIT.json",
+      "sha256": "23fca856b4cf705c1e858d4a476f040cbb3e8ca13d78c95c83918784fe1792b5",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_07C2_REGRESSION-matrix.tsv",
+      "sha256": "663ac63c44475a3472c72930635edf3b3b0187372e4297892a7dbb31f33a89ba",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_AWAY_07C2_F3/capture-result.json",
+      "sha256": "d08e8e6683f9438a23eb0fabf05b9552412b7da4c399bde9d3ec78b410adf797",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_AWAY_07C2_F3/soft-return-v2.json",
+      "sha256": "caf719b8c42bb7de6618f39ee01a701fb455991b597bd2071671271d9d7cff84",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_AWAY_07C2_F3_BOUNDARY_EXACT.json",
+      "sha256": "c43d163a3ac2c372d586162d7f849ff3b0dbfdb80282147133ebab699d2c47d1",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_AWAY_07C2_F3_BOUNDARY_PERSIST.json",
+      "sha256": "b135d7ac7a309aec34ac22896bf1684cc7555fdc40355138ec9ba06aceff1e3f",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_ENCODING.log",
+      "sha256": "3d6cb296564c392318f69f2319f97858a7ad32e557581c85fe25d7698a162c21",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_OWNED_JVMS.json",
+      "sha256": "3830a33c7e5666e3db1923380262639019d55c22ec27ca0c3e4668a9d2d6a5c1",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_RESTART_CANONICAL_AUDIT.json",
+      "sha256": "977412301bed724be9c272def38bc183ba83d26c554ceae0bcd10f66f4846f93",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_SCENE_07C2_F1/capture-result.json",
+      "sha256": "ecae1fca3e4f26fe2dd1d6856ae63e702c92cb63798c2f7df8ca50f64054f13e",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_SCENE_07C2_F1/continuity-v2.json",
+      "sha256": "89b436f19afcba60f3bdf6cdf3270a8e06859f5e5710324a4a7b1cbf0a28c8f8",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_SCENE_07C2_F1/legacy-result.json",
+      "sha256": "66bd0dad20f5fce2e183f13e8dc7f2b81138cbcfea9a16ccf01f3c8f837a460e",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_SCENE_07C2_F1_BOUNDARY_EXACT.json",
+      "sha256": "240a1906281e81aef64f6f5cba271a54c585b09a1c43a1908e71001eab4d72a0",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_SCENE_07C2_F1_BOUNDARY_PERSIST.json",
+      "sha256": "f828a54fcceb9f5147e45f07056b94816582b47d5a3754b1ab115fa1376e8cfb",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_SCENE_07C2_F2/capture-result.json",
+      "sha256": "e31c3b63f7045c9a4a53f8245d927d6e77483cb90787e2b3c7d0c29bdfd7735b",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_SCENE_07C2_F2/continuity-v2.json",
+      "sha256": "5fe918e04915442444b6fb6f19c8aab1a37fe7084be8ac142c87ae37f81f690a",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_SCENE_07C2_F2/legacy-result.json",
+      "sha256": "f6b6b6c4595b28ec066b6e0840e6587b5197db14eb542ce72afd3cd4471d933b",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/FINAL_SCOPE_GUARD.json",
+      "sha256": "93b19319b443186423e008e62b4c075e885dac09255a1ba83841bac012d356b6",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/GIT_COMMANDS_EXACT.json",
+      "sha256": "13301225aa783009e8ec2be612367a785da07e653f3e77e948080d6b8f481b58",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/LONGITUDINAL_FINAL_07C2_REPORT.json",
+      "sha256": "b360d02489d2878af2a37cdc8ae81b00eb81ba55d60499fd381bd917fd56bb4e",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/evidence/WHOLE_GROUP_028_AUDIT.json",
+      "sha256": "890ffc09a2accf4f75c013365f9f4d9d5d340e1802a72b5b377bb58810b07f7e",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/EXECUTION_LEDGER.md",
+      "sha256": "d9004005da7688e3160c7c577672a200b686409633211051f0083bd3be947257",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/FINAL_SOURCE_REVIEW.md",
+      "sha256": "1fafcf1fe9e03f3322670fd75b3c4241b0a850af8f023280304d0e386bc0a978",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/FINAL_STAGING_ALLOWLIST.json",
+      "sha256": null,
+      "selfInventory": true
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/GIT_COMMANDS.md",
+      "sha256": "aa2debb090b708c3d5d1d4f9c0ffc975483cf4492d1eb639a0dc6faadf980326",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/GOAL.md",
+      "sha256": "4c19903b923f4fd735709e80507b1d16c959738191eff6029c4d28c78f01b8aa",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/GOAL_AUTHORITY028_DIAGNOSIS.md",
+      "sha256": "4c4b449f673e4e93f74cc2b2224f4f7e7a471a5fa5816f2423c4bec88b096ae1",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/GOAL_MESSAGE.txt",
+      "sha256": "f9ce0a88ea6443989d960cc86268d82b83e4c1a4027ea035d74c4c9add17adf4",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/HANDOFF.md",
+      "sha256": "a73a3abce2f70f6d07708e1f0be65b95410f25ec2538f90060c71c227b9ee178",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/HEARTBEAT028_DIAGNOSIS.md",
+      "sha256": "d24fb1f44395247c0524b2e2a126f06aea1c097d04999faef67fec6d06dfc436",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/MILESTONE_STATUS.md",
+      "sha256": "2680ee1c9e9e4f61201ec882304694463a1b4239fbc1ba53c73fbfd38807230c",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/MODEL.md",
+      "sha256": "3a6b05c893c516ff45cbf9fb093ef8cf24abf3c40760a04d062e043f35b680b8",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/MORNING.md",
+      "sha256": "5c480b24245092ff08733b2d064164175f4500d57bb3559544bf4b470f8ac9f4",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Observe028.ps1",
+      "sha256": "00e407c11a7fc683e740afa8dffe60e9e5290444aaf7adc4192efb3c25d2e188",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/PACKAGE_CHECKS.md",
+      "sha256": "4a7087fb32084cae7e8a89833a1d23efa014c2d64db0b0862770cc1e3cd7328c",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/PACKAGE_MANIFEST.json",
+      "sha256": "52eb67272c9ceb46b6be6b011710c5c2ed72cbabf1123f3d36c5949cd350d0da",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/PATCH_GUIDE.md",
+      "sha256": "0a0026fb823c80ff781dcbe96eadf5ab9e47019f10e7ccf8fc220d82da9c0805",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/PERSISTENCE028_DIAGNOSIS.md",
+      "sha256": "843e0600ed43406c8a65141f981a4c26bc38890e415198c2c1b374785b67aeff",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/PLAN.md",
+      "sha256": "d33dc2f2db65d1fa979097fe7c41501ce219c8b1df39125b6af88b19e3021c8d",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Prepare028.ps1",
+      "sha256": "b54a1efae9a7aca860404f82a09035c37173e779f14777f08252c36e184397ce",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/archive028.py",
+      "sha256": "dbe0a43b4741cad2cde281687acbb11bb38c8d80254d0b4052a18f165a1641f1",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/authored_guard028.py",
+      "sha256": "5331cebca0f1a6356a9bb6b7c6893c283f30c7674460d1debc78761ed296711c",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/boundary_sql028.py",
+      "sha256": "c4537b95b81dbd60f4e99b136cb2306a8fda8488f14d92f16eb36a6f5fd5cb18",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py",
+      "sha256": "de3f46c75de4e2ad67cacd22fa7a0c6a58d3b915474fc3018c5f97e1cbaaf813",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/git_history028.py",
+      "sha256": "8525ecc12f6caa951bb581dfdcce0f51af017aab77ec01d6af8973d577f5c41b",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/longitudinal028.py",
+      "sha256": "de0144d14247b20cf66dc9acdbb06e7777d5b91f5746f0d345d91abb21017efb",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/mailbox_audit.py",
+      "sha256": "e19ed2390f0a4e328715e512bfe4d1c33c9a3fbbd82149afb55a1b64be79af11",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/provenance028.py",
+      "sha256": "3ce4109b7533f4c20a8b648fa97bc3cd37fec4977e35adca669ed0f826c7d2c3",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/README.md",
+      "sha256": "3b83386e2b546ef9667a4f1229803dada0437d3d1d0ed54b6b3dab0204e1ad03",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/restart_audit028.py",
+      "sha256": "b75c81cda359e96b256a58d4f2999e821540df5acb040b909cbe6a8fc9337105",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/scope_guard028.py",
+      "sha256": "41396da10bf01ae295027da95cd97bbc5b27a5f0a52222e4f740c49cba7388f2",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/sealed_inputs028.py",
+      "sha256": "622ac3cfb12c203f3365caa97006c8a09365ba220476c553d963dfd52e5da011",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/soft_return028.py",
+      "sha256": "8f9fa922cd2a1371eaf694ad06f624574f69a97758991a1d889021cc8e4d4b39",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/staging028.py",
+      "sha256": "d5cbfea8e439ba76f50ce0e22d6a826913e9ddbab4fe612f4d1fed7621038463",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/test_boundary028.py",
+      "sha256": "b7e40197a3784bc3985b27ae63b5afc3d9439703f1f065e777dae2837b28c7f4",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/test_continuity028.py",
+      "sha256": "f983d9dedff6b8d7602725cb6c507ff1cfbdf79011682ed28b6594eb9bf4d7bd",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/test_tools028.py",
+      "sha256": "f42ec197f9f445c554f019c0ecf6ae628943673c9ba5c324cf13943681266782",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/test_transport028.py",
+      "sha256": "a8729ad61740600c0ecb67b0dadc1d8377b407fbb1641f7a8660b39d7b7d22b4",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/whole_group028.py",
+      "sha256": "e36bf9312474442cf37bee6617cc1b042b61c903d0e7ad31bf288b196b22fddd",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/window_budget.py",
+      "sha256": "f647491a9baa1ff321387490278e4675e83e556f4be6c8cde485f566b1b4ec3b",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/PUBLICATION.md",
+      "sha256": "3a00cc164049d84be7b45452119c2341c40dced0fa7cf2b9a9ea57c27c7e1f1a",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/PUBLICATION_ENCODING.log",
+      "sha256": "93c6579b94fae8348114c3d02ae8fac3106f5122a194503eacc2de007b668ce5",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/PUBLICATION_WHITESPACE.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/README.md",
+      "sha256": "d43f8c7d8c86a7268e24e863ec846a7a3707f5ed525f4d1ea5b915aa41932b6e",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/REGRESSION_POLICY.md",
+      "sha256": "b3ee98fabc22445ac481578550f8d3c74e9810cc7f8b460d56d5c955178c7929",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/REQUEST028_DIAGNOSIS.md",
+      "sha256": "fd21f73ffaef73ce99093588391210bd99c71af076a13ce4c89d03753a67a342",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/RESULT.md",
+      "sha256": "b159cfa6995c96a9e7896f202641631d323543ee4517a211bf2841c43a04a704",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/RESULT_TEMPLATE.md",
+      "sha256": "77f511a06a39f58a787c205069bef35927aa1540b089de0323ac3029e0841520",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/RETIRE_SIGNAL028_DIAGNOSIS.md",
+      "sha256": "e4e7a2beb118b5df013aa439c8325a04e1ff4140df8c389e890aa705e3f1fedc",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/ROOT_CAUSES.md",
+      "sha256": "62354365938c8bd4547a8e459949fb308071c3e44d165f7394ed37958784a785",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/RUNBOOK.md",
+      "sha256": "e3e2ed3dcfc6ef72685d84abc6e5c875eb33c3b9171eb30f34ac605d433d50c2",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/SCENARIOS.md",
+      "sha256": "eb4b87974acac88196cf4d0c8717cd429f716d1ff98821632a419f747d82f064",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/SOFT_RETURN028_BOUNDARY.md",
+      "sha256": "2b3574751a5a444d2cb1b3ddbc6827af8f99002d7ff6a558731b66115309b946",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/SOURCE_EXCERPTS.md",
+      "sha256": "0dd1a486a7518fb4c204fc142105f6d6c196f166e5ab75751b47fc3da3cb28fa",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/SOURCE_MAP.tsv",
+      "sha256": "b1dc0d71e0401d231c94d107392c70d4d6ac82a064ee10975028c979252ef69e",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/SOURCE_REVIEW.tsv",
+      "sha256": "bde0db5f7502a8483d81c58e422c23f7002cc5c715fb18f60f5ed41018e1bd3e",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/STATE_MACHINE.md",
+      "sha256": "68b21103991463a70078fa804b01dec9a2fd979c9a592ad965e79895593db0b7",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/TASK.md",
+      "sha256": "b82b3700c8040848b75f9ab973545ad8337435104d6062177efd7b0b37afec29",
+      "selfInventory": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Verify028.ps1",
+      "sha256": "5f272d253bb0a7704555f1e52b9f3f3962c132ebbd8ad9dfe55038de83c43757",
+      "selfInventory": false
+    }
+  ],
+  "directoryStageAllowed": false,
+  "nonTaskStageAllowed": false
+}

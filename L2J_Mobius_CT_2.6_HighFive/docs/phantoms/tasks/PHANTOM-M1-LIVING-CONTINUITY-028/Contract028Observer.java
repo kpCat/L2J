@@ -26,7 +26,10 @@ import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 public final class Contract028Observer
 {
     private record Selection(Map<Long, Long> profiles, Path output, String sha) { }
-    private record Witness(Path path, String text) { }
+    private record Witness(Path path, String text, int sqlObjectId)
+    {
+        Witness(Path path, String text) { this(path, text, 0); }
+    }
     private record Prepared(Player player, PhantomNativeWorkScope owner, PhantomOwnedStoreIntent intent, Witness witness) { }
     private record Crash(String mode, Path output, String dumpHash) { }
     private static final ThreadLocal<Prepared> PREPARED = new ThreadLocal<>();
@@ -141,11 +144,35 @@ public final class Contract028Observer
             final var entries = materialization.snapshot().materializations();
             write(output.resolve("all-materializations.txt"), entries.toString());
             final var auto = (org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay) field(configured.getClass(), "_visibleAutoPlay").get(configured);
+            final var history = (org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService) field(configured.getClass(), "_historicalBackgroundService").get(configured);
+            final var decisions = (org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine) field(configured.getClass(), "_decisionEngine").get(configured);
             final var admissions = new StringBuilder("profileId\toperatorAdmission\n");
             for (long profile : selected.keySet().stream().sorted().toList())
             {
                 admissions.append(profile).append('\t').append(org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorAdmissionProfile(profile)).append('\n');
                 final var fields = new java.util.LinkedHashMap<String, String>();
+                fields.put("runtime", decisions.find(profile).toString());
+                fields.put("historyPermitsDecision", Boolean.toString(history.permitsDecision(profile)));
+                fields.put("visibleRecoveryReason", history.visibleRecoveryReason(profile));
+                final var catchups = (org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore) field(history.getClass(), "_store").get(history);
+                final var planner = (org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner) field(history.getClass(), "_planner").get(history);
+                final var background = (PhantomBackgroundService) field(configured.getClass(), "_backgroundService").get(configured);
+                fields.put("catchup", catchups.load(profile).toString());
+                fields.put("plannerGeneration", planner.generation().toString());
+                fields.put("background", background.acquisitionSnapshot(profile).toString());
+                for (String name : java.util.List.of("_visiblePublications", "_visibleEpisodes", "_visibleFailures"))
+                {
+                    final Object value = ((Map<?, ?>) field(history.getClass(), name).get(history)).get(profile);
+                    if (value != null)
+                    {
+                        for (Field member : value.getClass().getDeclaredFields())
+                        {
+                            if (java.lang.reflect.Modifier.isStatic(member.getModifiers()) || member.getName().equals("player")) { continue; }
+                            member.setAccessible(true);
+                            fields.put(name + "." + member.getName(), String.valueOf(member.get(value)));
+                        }
+                    }
+                }
                 fields.putAll(auto.snapshotContinuation(profile).scalarMap());
                 final var entry = entries.stream().filter(value -> value.profileId() == profile).findFirst().orElse(null);
                 final var object = entry == null ? null : World.getInstance().findObject(entry.characterObjectId());
@@ -410,7 +437,7 @@ public final class Contract028Observer
     private static void observe(Player player, String phase)
     {
         if (phase.equals("CAPTURE")) { PREPARED.remove(); }
-        if (!phase.equals("PREPARED")) { return; }
+        if (!phase.equals("PREPARED") && !phase.equals("FINALIZED")) { return; }
         try
         {
             final var chosen = selection;
@@ -426,7 +453,10 @@ public final class Contract028Observer
             if (!(owner instanceof PhantomNativeWorkScope) || !owner.isCurrent() || owner.player() != player || owner.epoch() != intent.materializedAtNanos()
                 || THREAD.get(owner) != Thread.currentThread() || !STATE.get(owner).toString().equals("SEALED") || player.getObjectId() != intent.after().identity().characterObjectId()) { throw new IllegalStateException("TASK028_EXACT_SEALED_ARGUMENT"); }
             final String key = id + "-" + intent.materializedAtNanos() + "-" + intent.preparedRowVersion();
-            final Witness witness = new Witness(chosen.output().resolve(key + ".properties"), snapshot(intent, player, chosen.sha()) + "enrolledInitialEpoch=" + initialEpoch + "\n");
+            final boolean finalized = phase.equals("FINALIZED");
+            final String text = snapshot(intent, player, chosen.sha()) + "enrolledInitialEpoch=" + initialEpoch + "\nhookNanos=" + System.nanoTime() + "\ncheckpointStage=" + phase + "\n";
+            final Witness witness = new Witness(chosen.output().resolve(key + (finalized ? "-finalized.properties" : ".properties")),
+                finalized ? text.replace("source=native-sealed-snapshot", "source=native-finalized-snapshot") : text, finalized ? player.getObjectId() : 0);
             if (crash != null && owner.evidence().snapshot(System.nanoTime()).rewardSequence() > 0)
             {
                 PREPARED.set(new Prepared(player, (PhantomNativeWorkScope) owner, intent, witness));
@@ -496,7 +526,10 @@ public final class Contract028Observer
         final var text = new StringBuilder();
         try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection())
         {
-            for (String query : java.util.List.of("SELECT DATABASE() AS database_name", "SELECT charId,level,exp,sp,expBeforeDeath,curHp,maxHp,curMp,maxMp,curCp,maxCp,x,y,z,heading,classid,race,vitality_points FROM characters WHERE charId=" + objectId,
+            connection.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);
+            connection.setReadOnly(true);
+            connection.setAutoCommit(false);
+            for (String query : java.util.List.of("SELECT DATABASE() AS database_name", "SELECT c.charId,c.level,c.exp,c.sp,c.expBeforeDeath,c.curHp,c.maxHp,c.curMp,c.maxMp,c.curCp,c.maxCp,c.x,c.y,c.z,c.heading,c.classid,c.race,c.vitality_points,CASE WHEN c.classid=c.base_class THEN 0 ELSE sc.class_index END AS classIndex FROM characters c LEFT JOIN character_subclasses sc ON sc.charId=c.charId AND sc.class_id=c.classid WHERE c.charId=" + objectId,
                 "SELECT object_id,item_id,count,loc,loc_data,enchant_level FROM items WHERE owner_id=" + objectId + " ORDER BY object_id", "SELECT skill_id,skill_level,class_index FROM character_skills WHERE charId=" + objectId + " ORDER BY class_index,skill_id",
                 "SELECT c.profile_id,c.component_type,c.row_version,HEX(c.payload) AS payload FROM phantom_profile_components c JOIN phantom_profiles p ON p.profile_id=c.profile_id WHERE p.character_object_id=" + objectId + " AND c.component_type IN ('background.state','background.native-context','background.owned-store') ORDER BY c.component_type"))
             {
@@ -508,8 +541,9 @@ public final class Contract028Observer
                     while (result.next()) { for (int i = 1; i <= metadata.getColumnCount(); i++) { if (i > 1) { text.append('\t'); } text.append(result.getString(i)); } text.append('\n'); }
                 }
             }
+            connection.rollback();
         }
-        if (!text.toString().matches("(?s).*l2jmobiush5_localplay_contract028[e-f].*")) { throw new IllegalStateException("TASK028_CRASH_DB_GUARD"); }
+        if (!text.toString().matches("(?s).*l2jmobiush5_localplay_contract028[b-h].*")) { throw new IllegalStateException("TASK028_SQL_DB_GUARD"); }
         return text.toString();
     }
     private static String snapshot(PhantomOwnedStoreIntent intent, Player player, String sha)
@@ -518,6 +552,7 @@ public final class Contract028Observer
         final StringBuilder text = new StringBuilder("source=native-sealed-snapshot\nbarrier=QUIESCENT_NATIVE_PREPARE\nexactArgument=true\ncodeSha=" + sha + "\n");
         put(text,"profileId",id.profileId()); put(text,"objectId",player.getObjectId()); put(text,"epoch",intent.materializedAtNanos()); put(text,"initialEpoch",intent.materializedAtNanos()); put(text,"preparedRowVersion",intent.preparedRowVersion());
         put(text,"beforeState",intent.before().state()); put(text,"beforeHp",intent.before().vitals().currentHp());
+        put(text,"afterState",state.state());
         put(text,"beforePayloadSha256",PhantomBackgroundTransaction.payloadDigest(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().encode(intent.before())));
         put(text,"afterPayloadSha256",PhantomBackgroundTransaction.payloadDigest(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().encode(intent.after())));
         put(text,"level",player.getLevel()); put(text,"exp",player.getExp()); put(text,"sp",player.getSp()); put(text,"expBeforeDeath",player.getExpBeforeDeath());
@@ -532,7 +567,16 @@ public final class Contract028Observer
     private static synchronized void drain() throws Exception
     {
         Witness witness;
-        while ((witness = RING.poll()) != null) { write(witness.path(), witness.text()); EXPORTED.incrementAndGet(); }
+        while ((witness = RING.poll()) != null)
+        {
+            write(witness.path(), witness.text());
+            if (witness.sqlObjectId() > 0)
+            {
+                // Native hook only enqueues immutable scalars. SQL/FS run here, after its locks are released.
+                write(witness.path().resolveSibling(witness.path().getFileName() + ".sql.tsv"), "captureNanos\t" + System.nanoTime() + "\n" + sqlAtWindow(witness.sqlObjectId()));
+            }
+            EXPORTED.incrementAndGet();
+        }
     }
     private static void status(Path output) throws Exception
     {

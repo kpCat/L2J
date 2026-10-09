@@ -1,0 +1,141 @@
+{
+  "kind": "TASK028_FINAL_SCOPE_GUARD",
+  "base": "9aeb4ac6c52970372f97637d26a5eb54c760ed1a",
+  "testedProductionSha": "07c2c1cc4036b47487c98e96943a39ce295a3920",
+  "exactNonTaskAllowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/LocalPlayContinuity028Suite.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomContinuity028Suite.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/Invoke-LocalPlayPilot.ps1",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/LocalPlay-Pilot.ps1"
+  ],
+  "changedNonTask": [
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/LocalPlayContinuity028Suite.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomContinuity028Suite.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/Invoke-LocalPlayPilot.ps1",
+    "L2J_Mobius_CT_2.6_HighFive/tools/phantom-local-play/LocalPlay-Pilot.ps1"
+  ],
+  "outsideScope": [],
+  "uncommittedProduction": [],
+  "protected027Dependencies": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/HeadlessPlayerOutboundSession.java",
+      "unchanged": true,
+      "actualFileSha256": "1e45327f0fdab16c83b203ea913a87d079276e03c4037387b66cd53afed6425e",
+      "observed027GitBlobSha256": "dc9b8c16d902fdff33f03026950199ef8de137ce5a234ac97ea6f526403f8ac4"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomActionFacade.java",
+      "unchanged": true,
+      "actualFileSha256": "56958df7b3a299d165f298841ff536ef8df79607697e85834ff52cb1a0663904",
+      "observed027GitBlobSha256": "fa0c017f3aeef4ed2a1e046ea0d9dc74dee6d3d1c41d7c443fa5ff60f2f45926"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomCleanupIncident.java",
+      "unchanged": true,
+      "actualFileSha256": "e9faa71dad83a2175e561491892a0b22ca7bcb8fa2047c0d724cf3dd7911ffae",
+      "observed027GitBlobSha256": "525b226b425e3032ade97af092c6be96472ff8304c329038a4aee73dbc617a20"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomIdentityLeaseRegistry.java",
+      "unchanged": true,
+      "actualFileSha256": "3d3dcc1a6d87fa5a317a90cec9e0ab49c0f404aba75d98ca903fc652b59185d7",
+      "observed027GitBlobSha256": "427e4ebab5a4522f4a5a1eea66594d1392d0691a2e9186413e15bd2d946f75b4"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationLifecycleBridge.java",
+      "unchanged": true,
+      "actualFileSha256": "17321289ed7056e80fb7e2c98920f84f778519e17b231c9ea483611680e04667",
+      "observed027GitBlobSha256": "c76023c65d63a34006a328e82ca68e218a8179a06cb1a427516cab1170835038"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationLifecyclePort.java",
+      "unchanged": true,
+      "actualFileSha256": "a151fd19bb1769213f052488ec42f2e8637a380c11ed9b0df81cceb2e8decaa5",
+      "observed027GitBlobSha256": "0426b5a6dc1240e65023c7bacf11e73e83982e549c266b934e90f3c69ba48653"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java",
+      "unchanged": true,
+      "actualFileSha256": "1840ff7cc4698d063c95afa9d75a461790d824f63755264bec007ca918d8df83",
+      "observed027GitBlobSha256": "1840ff7cc4698d063c95afa9d75a461790d824f63755264bec007ca918d8df83"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java",
+      "unchanged": true,
+      "actualFileSha256": "dbb4114a06eca60b4342d7e843681c1ce648543095c937fe0e0feff5513d21dc",
+      "observed027GitBlobSha256": "dbb4114a06eca60b4342d7e843681c1ce648543095c937fe0e0feff5513d21dc"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java",
+      "unchanged": true,
+      "actualFileSha256": "eb1b32eb1dbe3582904736be9c4b8a0702fe6570601406f5418f3f8ea913fdad",
+      "observed027GitBlobSha256": "2c1fce91c01787faeb995fd97a14f937360017dc3e605fee2ddcd82de9b18449"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomPlayerCleanupPolicy.java",
+      "unchanged": true,
+      "actualFileSha256": "a0694d05137c4ba5afa91bcc89488f4ba04d48c473cf0abe18b9cf4e85be4498",
+      "observed027GitBlobSha256": "1f4680ef992729c63d3220edf57647c539fa932d53e5b5affb00c6db95084ca3"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomPlayerMaterializationSpike.java",
+      "unchanged": true,
+      "actualFileSha256": "e841c94e41fa6d3c51e665e3f106e50ff8b602e27060aeba6ad267737005ba19",
+      "observed027GitBlobSha256": "287c6fe9be1e8b70a435f913f9e48301ca46e275004c0bf20dfeda545e79b664"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomRetainedIdentityRecovery.java",
+      "unchanged": true,
+      "actualFileSha256": "c5de2f376c0bb5ff592393a4e544048ed78214959a84bf299701c25eb4651b6c",
+      "observed027GitBlobSha256": "4d9c5c89f8cd4d05fe9ecc1bdf86eeec67c616d0470acab2194210bdbf24d858"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java",
+      "unchanged": true,
+      "actualFileSha256": "340eebbb632bf5115c0c58f3019a41e3819f9db9826406c543dea30bb7c5d6b5",
+      "observed027GitBlobSha256": "340eebbb632bf5115c0c58f3019a41e3819f9db9826406c543dea30bb7c5d6b5"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+      "unchanged": true,
+      "actualFileSha256": "c144970c74d41862ab957d43b4dad815ed486c0df6babdd8ed50f0c018a2cd11",
+      "observed027GitBlobSha256": "c144970c74d41862ab957d43b4dad815ed486c0df6babdd8ed50f0c018a2cd11"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java",
+      "unchanged": true,
+      "actualFileSha256": "892cfdeb97883a83666312bb380de1ee1f2d1ebdc63b35ddbcbf15414f049280",
+      "observed027GitBlobSha256": "892cfdeb97883a83666312bb380de1ee1f2d1ebdc63b35ddbcbf15414f049280"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomNativeContext.java",
+      "unchanged": true,
+      "actualFileSha256": "a9a846bc63e6dd138407237ae73d0f654a9a5db3205543af183cbee810718c74",
+      "observed027GitBlobSha256": "c225ed7d92b34e72a5e778618a4f390821cdd24f602da579ebe947ec2deb05aa"
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
+      "unchanged": true,
+      "actualFileSha256": "244577766bf02f602279452ebd11c0a661df1a4861bdd91bb003cc35b82601d5",
+      "observed027GitBlobSha256": "244577766bf02f602279452ebd11c0a661df1a4861bdd91bb003cc35b82601d5"
+    }
+  ],
+  "shutdown027ImplementationIdentical": true,
+  "agentsUsed": false,
+  "foreignWorktreesChanged": false,
+  "pass": true
+}

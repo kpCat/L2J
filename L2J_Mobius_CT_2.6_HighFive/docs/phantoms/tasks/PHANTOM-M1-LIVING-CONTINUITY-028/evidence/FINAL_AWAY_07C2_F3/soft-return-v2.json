@@ -1,0 +1,624 @@
+{
+  "contract": "NATIVE_SOFT_RETURN028",
+  "frozenSha": "07c2c1cc4036b47487c98e96943a39ce295a3920",
+  "requiredProfiles": [
+    "633",
+    "759",
+    "924",
+    "994",
+    "1159"
+  ],
+  "primaries": [
+    "633",
+    "759"
+  ],
+  "runId": "f0bbea8f-45b4-4795-b6fe-2d25452ad326",
+  "phases": [
+    "DEPART",
+    "AWAY_ARRIVED",
+    "BACKGROUND_ABSENT",
+    "RETURN",
+    "RETURNED",
+    "POST_RETURN_DONE"
+  ],
+  "wholeFlowSamples": 357,
+  "maxGapSeconds": 2.0276286,
+  "arrivals": [
+    {
+      "requestId": "c0b85b8c-ad32-4662-904c-9bce33eafa8e",
+      "sequence": "5",
+      "actualXYZ": [
+        42131,
+        42376,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "a9106060-d21d-49a1-8a2b-bc8a19c0c317",
+      "sequence": "6",
+      "actualXYZ": [
+        42131,
+        42079,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "9ffe3eba-9248-40e4-8251-9150c765c21e",
+      "sequence": "7",
+      "actualXYZ": [
+        42131,
+        41782,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "ec638c9d-1924-4c35-80e2-3da6e38ffdfd",
+      "sequence": "8",
+      "actualXYZ": [
+        42131,
+        41485,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "09cfd660-10ae-4424-855f-cfb772076afa",
+      "sequence": "9",
+      "actualXYZ": [
+        42131,
+        41188,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "216aa2a6-b5af-45b3-bbc9-cc95c932d510",
+      "sequence": "10",
+      "actualXYZ": [
+        42131,
+        40890,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "0cbca84e-5318-48b4-a91c-dfdcf88f2e5f",
+      "sequence": "11",
+      "actualXYZ": [
+        42131,
+        40593,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "0dce50f1-2329-494f-a98a-f3b40ce5f66e",
+      "sequence": "12",
+      "actualXYZ": [
+        42131,
+        40296,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "e97757e1-6282-4e9d-8553-d08d65a55a88",
+      "sequence": "13",
+      "actualXYZ": [
+        42131,
+        39999,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "dd6caa57-dc51-4a1c-b47d-0c2ecd82c0f1",
+      "sequence": "14",
+      "actualXYZ": [
+        42131,
+        39702,
+        -3496
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "fd1c644d-9bd8-4467-b235-8e6abcebc4c9",
+      "sequence": "15",
+      "actualXYZ": [
+        42131,
+        39405,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "78304bce-3c8b-4040-9c9a-7630392d3870",
+      "sequence": "16",
+      "actualXYZ": [
+        42131,
+        39108,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "028e3673-20f6-487a-9ad7-964641b9759b",
+      "sequence": "17",
+      "actualXYZ": [
+        42131,
+        38811,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "94b72798-3a9b-4aed-91ae-90406386ecea",
+      "sequence": "18",
+      "actualXYZ": [
+        42131,
+        38514,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "4e7b39c9-4b31-4450-b7e0-854f7b414271",
+      "sequence": "19",
+      "actualXYZ": [
+        42131,
+        38217,
+        -3496
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "08104425-d3c3-4f1e-9b18-11c1789550ba",
+      "sequence": "20",
+      "actualXYZ": [
+        42131,
+        37919,
+        -3504
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "f6a401ad-9c92-4431-8c43-c421c4122399",
+      "sequence": "21",
+      "actualXYZ": [
+        42131,
+        37622,
+        -3512
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "be46b3e9-0236-4202-8403-034f319a0f15",
+      "sequence": "22",
+      "actualXYZ": [
+        42131,
+        37325,
+        -3536
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "ee630941-4b45-49a8-9994-b0799d0700a5",
+      "sequence": "23",
+      "actualXYZ": [
+        42131,
+        37028,
+        -3544
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "84118e60-1071-4ee8-a217-84507688f583",
+      "sequence": "24",
+      "actualXYZ": [
+        42131,
+        36731,
+        -3544
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "c74e97f6-9d33-40c2-bb06-19eb47f42b81",
+      "sequence": "25",
+      "actualXYZ": [
+        42131,
+        37028,
+        -3544
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "b9fa9fc7-01fc-4803-b94a-7e00e9b4ea94",
+      "sequence": "26",
+      "actualXYZ": [
+        42131,
+        37325,
+        -3536
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "4019caeb-8830-47e2-9900-3e59b53ac7d2",
+      "sequence": "27",
+      "actualXYZ": [
+        42131,
+        37622,
+        -3512
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "5818d0cc-d392-4332-920a-de1d719e82e0",
+      "sequence": "28",
+      "actualXYZ": [
+        42131,
+        37919,
+        -3504
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "ed210052-516d-457b-a50a-af692ecc381f",
+      "sequence": "29",
+      "actualXYZ": [
+        42131,
+        38217,
+        -3496
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "dbea0995-4c36-4134-9040-10326a8400fa",
+      "sequence": "30",
+      "actualXYZ": [
+        42131,
+        38514,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "74f9709e-53b9-4f39-9e75-e9e4fc7a9ffe",
+      "sequence": "31",
+      "actualXYZ": [
+        42131,
+        38811,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "25d0df79-8ed7-441a-8b39-c835f1fe6892",
+      "sequence": "32",
+      "actualXYZ": [
+        42131,
+        39108,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "61cf1585-7641-465c-b382-547489633a83",
+      "sequence": "33",
+      "actualXYZ": [
+        42131,
+        39405,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "15a53a9f-0544-437e-a946-4a505f78e665",
+      "sequence": "34",
+      "actualXYZ": [
+        42131,
+        39702,
+        -3496
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "2a6c0956-1950-46d9-82c9-37c62495a447",
+      "sequence": "35",
+      "actualXYZ": [
+        42131,
+        39999,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "8031e0d7-55b3-48d4-aa7f-947775adcb65",
+      "sequence": "36",
+      "actualXYZ": [
+        42131,
+        40296,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "bb1c277a-02d8-4e1c-8cb0-5c64bc5db09e",
+      "sequence": "37",
+      "actualXYZ": [
+        42131,
+        40593,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "856882a3-c490-4860-af38-891055a80e93",
+      "sequence": "38",
+      "actualXYZ": [
+        42131,
+        40890,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "dd8faaa5-56ba-4329-8576-2e6aaaa787ef",
+      "sequence": "39",
+      "actualXYZ": [
+        42131,
+        41188,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "97c496ae-44ea-4933-b167-060b0cdac15e",
+      "sequence": "40",
+      "actualXYZ": [
+        42131,
+        41485,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "34a81453-88b8-4780-8e0b-57adeb8b3786",
+      "sequence": "41",
+      "actualXYZ": [
+        42131,
+        41782,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "a87b8930-2270-4efc-b4e0-dd1391bee3a6",
+      "sequence": "42",
+      "actualXYZ": [
+        42131,
+        42079,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "344be420-6c57-4505-909e-91f626cc9bbb",
+      "sequence": "43",
+      "actualXYZ": [
+        42131,
+        42376,
+        -3488
+      ],
+      "arrived": true
+    },
+    {
+      "requestId": "0ac34611-3b17-4865-b9e8-e2b84a2096b2",
+      "sequence": "44",
+      "actualXYZ": [
+        42131,
+        42673,
+        -3496
+      ],
+      "arrived": true
+    }
+  ],
+  "rows": [
+    {
+      "profileId": "633",
+      "enrolledEpoch": 239072425346600,
+      "receipts": [
+        {
+          "path": "docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_AWAY_07C2_F3\\full-native\\633-239072425346600-11367-finalized.properties",
+          "finalizedHook": true,
+          "exactArgument": true,
+          "exactSqlState": true,
+          "pendingOwned": false
+        }
+      ],
+      "earlyCanonical": {
+        "context": [
+          "633",
+          "12",
+          "context",
+          "COMPLETED",
+          "11368",
+          "157c0f80bbee331fc891c8c1a72d6bd4620a64f851100656ff907d4108466b98",
+          "VITALITY_REQUIRES_NATIVE",
+          "16361",
+          "false"
+        ],
+        "state": [
+          "633",
+          "11368",
+          "state",
+          "READY",
+          "157c0f80bbee331fc891c8c1a72d6bd4620a64f851100656ff907d4108466b98",
+          "Progress[level=11, experience=72061, skillPoints=3517, experienceBeforeDeath=7719]",
+          "Position[instanceId=0, x=42090, y=41529, z=-3488, heading=29713, committedAnchorId=generated.farm.58356b4e9844a379fecfbaf6.anchor]"
+        ]
+      },
+      "lateCanonical": {
+        "context": [
+          "633",
+          "12",
+          "context",
+          "COMPLETED",
+          "11368",
+          "157c0f80bbee331fc891c8c1a72d6bd4620a64f851100656ff907d4108466b98",
+          "VITALITY_REQUIRES_NATIVE",
+          "16361",
+          "false"
+        ],
+        "state": [
+          "633",
+          "11368",
+          "state",
+          "READY",
+          "157c0f80bbee331fc891c8c1a72d6bd4620a64f851100656ff907d4108466b98",
+          "Progress[level=11, experience=72061, skillPoints=3517, experienceBeforeDeath=7719]",
+          "Position[instanceId=0, x=42090, y=41529, z=-3488, heading=29713, committedAnchorId=generated.farm.58356b4e9844a379fecfbaf6.anchor]"
+        ]
+      },
+      "lawfulBackgroundStep": false,
+      "postReturnSegments": [
+        {
+          "epoch": 239751842171100,
+          "from": 0.0,
+          "to": 138.9628891,
+          "delta": {
+            "FarmCycleSequence": 11,
+            "KillSequence": 10,
+            "RewardSequence": 10,
+            "DamageSequence": 10,
+            "TargetSequence": 11,
+            "ExpGained": 8165,
+            "SpGained": 383
+          },
+          "cycles": 11,
+          "maxIdleSeconds": 29.452241200000003,
+          "tail120Rewards": 7
+        }
+      ],
+      "newEpoch5": true,
+      "newEpoch2": true,
+      "faults": []
+    },
+    {
+      "profileId": "759",
+      "enrolledEpoch": 239528140891000,
+      "receipts": [
+        {
+          "path": "docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_AWAY_07C2_F3\\full-native\\759-239528140891000-3847-finalized.properties",
+          "finalizedHook": true,
+          "exactArgument": true,
+          "exactSqlState": false,
+          "pendingOwned": false
+        },
+        {
+          "path": "docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_AWAY_07C2_F3\\full-native\\759-239528140891000-3849-finalized.properties",
+          "finalizedHook": true,
+          "exactArgument": true,
+          "exactSqlState": true,
+          "pendingOwned": false
+        }
+      ],
+      "earlyCanonical": {
+        "context": [
+          "759",
+          "17",
+          "context",
+          "COMPLETED",
+          "3850",
+          "2c21cf1315cb946c79bb981d8907f22662e34eafd197c9cfc99694f85c546e8e",
+          "POSITION_REQUIRES_NATIVE",
+          "421",
+          "false"
+        ],
+        "state": [
+          "759",
+          "3850",
+          "state",
+          "READY",
+          "2c21cf1315cb946c79bb981d8907f22662e34eafd197c9cfc99694f85c546e8e",
+          "Progress[level=7, experience=15206, skillPoints=628, experienceBeforeDeath=5823]",
+          "Position[instanceId=0, x=41581, y=41688, z=-3488, heading=31287, committedAnchorId=generated.farm.58356b4e9844a379fecfbaf6.anchor]"
+        ]
+      },
+      "lateCanonical": {
+        "context": [
+          "759",
+          "17",
+          "context",
+          "COMPLETED",
+          "3850",
+          "2c21cf1315cb946c79bb981d8907f22662e34eafd197c9cfc99694f85c546e8e",
+          "POSITION_REQUIRES_NATIVE",
+          "421",
+          "false"
+        ],
+        "state": [
+          "759",
+          "3850",
+          "state",
+          "READY",
+          "2c21cf1315cb946c79bb981d8907f22662e34eafd197c9cfc99694f85c546e8e",
+          "Progress[level=7, experience=15206, skillPoints=628, experienceBeforeDeath=5823]",
+          "Position[instanceId=0, x=41581, y=41688, z=-3488, heading=31287, committedAnchorId=generated.farm.58356b4e9844a379fecfbaf6.anchor]"
+        ]
+      },
+      "lawfulBackgroundStep": false,
+      "postReturnSegments": [
+        {
+          "epoch": 239751924519800,
+          "from": 0.0,
+          "to": 138.9628891,
+          "delta": {
+            "FarmCycleSequence": 7,
+            "KillSequence": 8,
+            "RewardSequence": 8,
+            "DamageSequence": 40,
+            "TargetSequence": 7,
+            "ExpGained": 3393,
+            "SpGained": 161
+          },
+          "cycles": 7,
+          "maxIdleSeconds": 26.156840100000004,
+          "tail120Rewards": 7
+        }
+      ],
+      "newEpoch5": true,
+      "newEpoch2": true,
+      "faults": []
+    }
+  ],
+  "faults": [
+    "LAWFUL_BACKGROUND_STEP_UNPROVEN"
+  ],
+  "pass": false,
+  "postOnlySamplesUsedAsWholeFlow": false,
+  "inputs": [
+    {
+      "path": "docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_AWAY_07C2_F3\\baseline-cohort.json",
+      "sha256": "98e2804d3ff7d103eb6e1b8bb1e7982bfae067b84fc9cf75540bd1c668539830"
+    },
+    {
+      "path": "docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_AWAY_07C2_F3\\primary.json",
+      "sha256": "1b9615bc9ed009777dcecef2e8a1c0dd05d475f923c8083c414a9733f16fa6e2"
+    },
+    {
+      "path": "docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_AWAY_07C2_F3\\phase-markers.jsonl",
+      "sha256": "475818476b6507910e852eeff9a0256c570b8fb09178fe6b13925d8839b33d77"
+    },
+    {
+      "path": "docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_AWAY_07C2_F3\\full-native\\full-cohort-samples.jsonl",
+      "sha256": "90f8689319d8cc95cdd2f4aa2e90c928aa74af73de88a66c24ef73ea7455c793"
+    },
+    {
+      "path": "docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\AWAY_SOUTH_300_PLAN.json",
+      "sha256": "fd37483fe7f7de9c811f6cde78455e1940d37eb538403009f451e1ed22203cc3"
+    }
+  ]
+}

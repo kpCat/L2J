@@ -1,0 +1,1605 @@
+{
+  "kind": "HISTORICAL_MEMBERSHIPS_IN_CURRENT_OWN_CLONE",
+  "groups": [
+    {
+      "group": "old026",
+      "requiredIds": [
+        110,
+        142,
+        175,
+        260,
+        275,
+        278,
+        404,
+        447
+      ],
+      "accounted": 8,
+      "rows": [
+        {
+          "profileId": 110,
+          "currentOwnCloneCharacter": {
+            "profileId": "110",
+            "objectId": "268485779",
+            "level": "4",
+            "exp": "2779",
+            "sp": "133",
+            "expBeforeDeath": "2727",
+            "hp": "140",
+            "maxHp": "140",
+            "mp": "135",
+            "maxMp": "135",
+            "cp": "62",
+            "maxCp": "70",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "1590",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "708",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "110",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=110, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:55:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=110, effectiveState=SLEEPING, requestedState=ACTIVE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=240216022136800, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=110, requestedHorizonMinute=29858534, committedCursorMinute=29852110, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=34, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "110",
+              "4",
+              "context",
+              "COMPLETED",
+              "34536",
+              "4ec36091b3170a34377b906a62dc321b67f7d50ab41726b7cf2085ce7a8e67d3",
+              "VITALITY_REQUIRES_NATIVE",
+              "708",
+              "false"
+            ],
+            "state": [
+              "110",
+              "34536",
+              "state",
+              "READY",
+              "4ec36091b3170a34377b906a62dc321b67f7d50ab41726b7cf2085ce7a8e67d3",
+              "Progress[level=4, experience=2779, skillPoints=133, experienceBeforeDeath=2727]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=1590, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 142,
+          "currentOwnCloneCharacter": {
+            "profileId": "142",
+            "objectId": "268486041",
+            "level": "6",
+            "exp": "10710",
+            "sp": "605",
+            "expBeforeDeath": "11463",
+            "hp": "143",
+            "maxHp": "197",
+            "mp": "75",
+            "maxMp": "75",
+            "cp": "10",
+            "maxCp": "78",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "25847",
+            "classIndex": "0",
+            "classId": "18",
+            "race": "1",
+            "vitality": "379",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "142",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=142, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T04:19:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=142, effectiveState=SLEEPING, requestedState=ACTIVE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=240216022136800, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=142, requestedHorizonMinute=29858534, committedCursorMinute=29852109, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=34, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "142",
+              "4",
+              "context",
+              "COMPLETED",
+              "14338",
+              "7978eec62c6440376e2cf2038a4f901bb4e0fdb57ab06f033448abb83f17ed9e",
+              "VITALITY_REQUIRES_NATIVE",
+              "379",
+              "false"
+            ],
+            "state": [
+              "142",
+              "14338",
+              "state",
+              "READY",
+              "7978eec62c6440376e2cf2038a4f901bb4e0fdb57ab06f033448abb83f17ed9e",
+              "Progress[level=6, experience=10710, skillPoints=605, experienceBeforeDeath=11463]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 175,
+          "currentOwnCloneCharacter": {
+            "profileId": "175",
+            "objectId": "268486304",
+            "level": "6",
+            "exp": "6115",
+            "sp": "363",
+            "expBeforeDeath": "6607",
+            "hp": "123",
+            "maxHp": "170",
+            "mp": "154",
+            "maxMp": "158",
+            "cp": "7",
+            "maxCp": "85",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "25847",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "1471",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "175",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=175, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:32:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=175, effectiveState=SLEEPING, requestedState=ACTIVE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=240216320911600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=175, requestedHorizonMinute=29858534, committedCursorMinute=29852109, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=34, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "175",
+              "4",
+              "context",
+              "COMPLETED",
+              "21684",
+              "3f0e0ee23d32f18552aa1a6f6c44c9c944aa61c503237b8b464f61d27da7ed6b",
+              "VITALITY_REQUIRES_NATIVE",
+              "1471",
+              "false"
+            ],
+            "state": [
+              "175",
+              "21684",
+              "state",
+              "READY",
+              "3f0e0ee23d32f18552aa1a6f6c44c9c944aa61c503237b8b464f61d27da7ed6b",
+              "Progress[level=6, experience=6115, skillPoints=363, experienceBeforeDeath=6607]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 260,
+          "currentOwnCloneCharacter": {
+            "profileId": "260",
+            "objectId": "268487041",
+            "level": "5",
+            "exp": "5847",
+            "sp": "350",
+            "expBeforeDeath": "6339",
+            "hp": "113",
+            "maxHp": "155",
+            "mp": "146",
+            "maxMp": "146",
+            "cp": "7",
+            "maxCp": "77",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "25847",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "477",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "260",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=260, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T04:43:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=260, effectiveState=SLEEPING, requestedState=ACTIVE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=240216022136800, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=260, requestedHorizonMinute=29858534, committedCursorMinute=29849016, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "260",
+              "4",
+              "context",
+              "COMPLETED",
+              "7989",
+              "9e9d1df3707a69cff3360736238c17c3673f8abd0026aaf05532dd33d94af42f",
+              "VITALITY_REQUIRES_NATIVE",
+              "477",
+              "false"
+            ],
+            "state": [
+              "260",
+              "7989",
+              "state",
+              "READY",
+              "9e9d1df3707a69cff3360736238c17c3673f8abd0026aaf05532dd33d94af42f",
+              "Progress[level=5, experience=5847, skillPoints=350, experienceBeforeDeath=6339]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 275,
+          "currentOwnCloneCharacter": {
+            "profileId": "275",
+            "objectId": "268487160",
+            "level": "8",
+            "exp": "25120",
+            "sp": "2380",
+            "expBeforeDeath": "26211",
+            "hp": "0",
+            "maxHp": "200",
+            "mp": "181",
+            "maxMp": "181",
+            "cp": "0",
+            "maxCp": "100",
+            "x": "53398",
+            "y": "63278",
+            "z": "-3480",
+            "heading": "23865",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "85",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "275",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=275, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T10:25:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=275, effectiveState=SLEEPING, requestedState=ACTIVE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=240215921498300, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=275, requestedHorizonMinute=29858534, committedCursorMinute=29849016, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "275",
+              "4",
+              "context",
+              "COMPLETED",
+              "26600",
+              "d3402ba6784af3ae6750a8007f06ac8ba89fc3ff6c253f30af507444d7933658",
+              "VITALITY_REQUIRES_NATIVE",
+              "85",
+              "false"
+            ],
+            "state": [
+              "275",
+              "26600",
+              "state",
+              "DEAD",
+              "d3402ba6784af3ae6750a8007f06ac8ba89fc3ff6c253f30af507444d7933658",
+              "Progress[level=8, experience=25120, skillPoints=2380, experienceBeforeDeath=26211]",
+              "Position[instanceId=0, x=53398, y=63278, z=-3480, heading=23865, committedAnchorId=generated.farm.946a41fbbc63614320c02954.anchor]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 278,
+          "currentOwnCloneCharacter": {
+            "profileId": "278",
+            "objectId": "268487193",
+            "level": "5",
+            "exp": "4503",
+            "sp": "250",
+            "expBeforeDeath": "4803",
+            "hp": "113",
+            "maxHp": "155",
+            "mp": "146",
+            "maxMp": "146",
+            "cp": "7",
+            "maxCp": "77",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "25847",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "421",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "278",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=278, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T04:39:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=278, effectiveState=SLEEPING, requestedState=ACTIVE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=240216022136800, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=278, requestedHorizonMinute=29858534, committedCursorMinute=29849025, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "278",
+              "4",
+              "context",
+              "COMPLETED",
+              "5585",
+              "20ee43ec51c28e92d315a8e12c4e44afb0e9dd606d1311ed58df7c18f8fa8cf3",
+              "VITALITY_REQUIRES_NATIVE",
+              "421",
+              "false"
+            ],
+            "state": [
+              "278",
+              "5585",
+              "state",
+              "READY",
+              "20ee43ec51c28e92d315a8e12c4e44afb0e9dd606d1311ed58df7c18f8fa8cf3",
+              "Progress[level=5, experience=4503, skillPoints=250, experienceBeforeDeath=4803]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 404,
+          "currentOwnCloneCharacter": {
+            "profileId": "404",
+            "objectId": "268488272",
+            "level": "6",
+            "exp": "6423",
+            "sp": "400",
+            "expBeforeDeath": "6915",
+            "hp": "111",
+            "maxHp": "170",
+            "mp": "146",
+            "maxMp": "158",
+            "cp": "0",
+            "maxCp": "85",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "0",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "365",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "404",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=404, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T04:21:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=404, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=SIGNAL_EXPIRED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=404, requestedHorizonMinute=29858534, committedCursorMinute=29849016, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "404",
+              "4",
+              "context",
+              "COMPLETED",
+              "7366",
+              "588441db1237bcbb0b4d56cb2666518a9c8018754c111f98c031c4175cb98780",
+              "VITALITY_REQUIRES_NATIVE",
+              "365",
+              "false"
+            ],
+            "state": [
+              "404",
+              "7366",
+              "state",
+              "READY",
+              "588441db1237bcbb0b4d56cb2666518a9c8018754c111f98c031c4175cb98780",
+              "Progress[level=6, experience=6423, skillPoints=400, experienceBeforeDeath=6915]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=0, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 447,
+          "currentOwnCloneCharacter": {
+            "profileId": "447",
+            "objectId": "268488615",
+            "level": "6",
+            "exp": "7377",
+            "sp": "390",
+            "expBeforeDeath": "7869",
+            "hp": "140",
+            "maxHp": "197",
+            "mp": "72",
+            "maxMp": "75",
+            "cp": "9",
+            "maxCp": "78",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "25847",
+            "classIndex": "0",
+            "classId": "18",
+            "race": "1",
+            "vitality": "659",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "447",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=447, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T04:23:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=447, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=SIGNAL_EXPIRED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=447, requestedHorizonMinute=29858534, committedCursorMinute=29849016, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "447",
+              "4",
+              "context",
+              "COMPLETED",
+              "22948",
+              "b9510cd6df1b45e83517c75c59f49a0069dd0b9009be1a02c1bac474ced339fb",
+              "VITALITY_REQUIRES_NATIVE",
+              "659",
+              "false"
+            ],
+            "state": [
+              "447",
+              "22948",
+              "state",
+              "READY",
+              "b9510cd6df1b45e83517c75c59f49a0069dd0b9009be1a02c1bac474ced339fb",
+              "Progress[level=6, experience=7377, skillPoints=390, experienceBeforeDeath=7869]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        }
+      ]
+    },
+    {
+      "group": "old027C",
+      "requiredIds": [
+        613,
+        752,
+        775,
+        832,
+        879,
+        975,
+        1009,
+        1241
+      ],
+      "accounted": 8,
+      "rows": [
+        {
+          "profileId": 613,
+          "currentOwnCloneCharacter": {
+            "profileId": "613",
+            "objectId": "268490030",
+            "level": "8",
+            "exp": "31244",
+            "sp": "2340",
+            "expBeforeDeath": "32761",
+            "hp": "0",
+            "maxHp": "231",
+            "mp": "90",
+            "maxMp": "90",
+            "cp": "0",
+            "maxCp": "92",
+            "x": "53398",
+            "y": "63278",
+            "z": "-3480",
+            "heading": "13902",
+            "classIndex": "0",
+            "classId": "18",
+            "race": "1",
+            "vitality": "204",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "613",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=613, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:40:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=613, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=SIGNAL_EXPIRED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=613, requestedHorizonMinute=29858534, committedCursorMinute=29849016, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "613",
+              "4",
+              "context",
+              "COMPLETED",
+              "12678",
+              "9200fe3febdb68ddfa7d83dc034ceef806f460ce77ccc05d7c6f103ef50d245a",
+              "VITALITY_REQUIRES_NATIVE",
+              "204",
+              "false"
+            ],
+            "state": [
+              "613",
+              "12678",
+              "state",
+              "DEAD",
+              "9200fe3febdb68ddfa7d83dc034ceef806f460ce77ccc05d7c6f103ef50d245a",
+              "Progress[level=8, experience=31244, skillPoints=2340, experienceBeforeDeath=32761]",
+              "Position[instanceId=0, x=53398, y=63278, z=-3480, heading=13902, committedAnchorId=generated.farm.946a41fbbc63614320c02954.anchor]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 752,
+          "currentOwnCloneCharacter": {
+            "profileId": "752",
+            "objectId": "268491177",
+            "level": "7",
+            "exp": "17406",
+            "sp": "1265",
+            "expBeforeDeath": "18159",
+            "hp": "0",
+            "maxHp": "185",
+            "mp": "169",
+            "maxMp": "169",
+            "cp": "0",
+            "maxCp": "92",
+            "x": "53372",
+            "y": "63275",
+            "z": "-3480",
+            "heading": "30679",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "57",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "752",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=752, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T10:06:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=752, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=SIGNAL_EXPIRED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=752, requestedHorizonMinute=29858534, committedCursorMinute=29849055, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "752",
+              "4",
+              "context",
+              "COMPLETED",
+              "9716",
+              "f03570fc0d880284905e37f445133b5cde1a04f91705bce5e1a65bdbaa31642f",
+              "VITALITY_REQUIRES_NATIVE",
+              "57",
+              "false"
+            ],
+            "state": [
+              "752",
+              "9716",
+              "state",
+              "DEAD",
+              "f03570fc0d880284905e37f445133b5cde1a04f91705bce5e1a65bdbaa31642f",
+              "Progress[level=7, experience=17406, skillPoints=1265, experienceBeforeDeath=18159]",
+              "Position[instanceId=0, x=53372, y=63275, z=-3480, heading=30679, committedAnchorId=generated.farm.946a41fbbc63614320c02954.anchor]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 775,
+          "currentOwnCloneCharacter": {
+            "profileId": "775",
+            "objectId": "268491382",
+            "level": "5",
+            "exp": "2982",
+            "sp": "160",
+            "expBeforeDeath": "3282",
+            "hp": "113",
+            "maxHp": "155",
+            "mp": "143",
+            "maxMp": "146",
+            "cp": "7",
+            "maxCp": "77",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "25847",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "736",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "775",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=775, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:56:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=775, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=SIGNAL_EXPIRED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=775, requestedHorizonMinute=29858534, committedCursorMinute=29849016, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "775",
+              "4",
+              "context",
+              "COMPLETED",
+              "27234",
+              "8c95c196c6a9132b5f894ce83d30f386d9e4c21e142275129fc1645b8eeca516",
+              "VITALITY_REQUIRES_NATIVE",
+              "736",
+              "false"
+            ],
+            "state": [
+              "775",
+              "27234",
+              "state",
+              "READY",
+              "8c95c196c6a9132b5f894ce83d30f386d9e4c21e142275129fc1645b8eeca516",
+              "Progress[level=5, experience=2982, skillPoints=160, experienceBeforeDeath=3282]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 832,
+          "currentOwnCloneCharacter": {
+            "profileId": "832",
+            "objectId": "268491865",
+            "level": "9",
+            "exp": "32476",
+            "sp": "2640",
+            "expBeforeDeath": "33993",
+            "hp": "0",
+            "maxHp": "249",
+            "mp": "90",
+            "maxMp": "97",
+            "cp": "0",
+            "maxCp": "99",
+            "x": "53398",
+            "y": "63278",
+            "z": "-3480",
+            "heading": "13901",
+            "classIndex": "0",
+            "classId": "18",
+            "race": "1",
+            "vitality": "1",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "832",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=832, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:33:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=832, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=REGISTERED, lastTransitionNanos=0, lastTransitionReason=], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=832, requestedHorizonMinute=29858534, committedCursorMinute=29849190, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=65, complete=false, reason=ecology.commit_pending], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "832",
+              "196",
+              "context",
+              "COMPLETED",
+              "11382",
+              "4202b2681ebfdddb7488aef85aef7c1e3e8cc085839552dd13c3c58774d853b6",
+              "SUPPORTED",
+              "1",
+              "true"
+            ],
+            "state": [
+              "832",
+              "11382",
+              "state",
+              "DEAD",
+              "4202b2681ebfdddb7488aef85aef7c1e3e8cc085839552dd13c3c58774d853b6",
+              "Progress[level=9, experience=32476, skillPoints=2640, experienceBeforeDeath=33993]",
+              "Position[instanceId=0, x=53398, y=63278, z=-3480, heading=13901, committedAnchorId=generated.farm.946a41fbbc63614320c02954.anchor]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 879,
+          "currentOwnCloneCharacter": {
+            "profileId": "879",
+            "objectId": "268492255",
+            "level": "8",
+            "exp": "25023",
+            "sp": "2300",
+            "expBeforeDeath": "26114",
+            "hp": "0",
+            "maxHp": "200",
+            "mp": "181",
+            "maxMp": "181",
+            "cp": "0",
+            "maxCp": "100",
+            "x": "53398",
+            "y": "63278",
+            "z": "-3480",
+            "heading": "1768",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "78",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "879",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=879, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T10:00:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=879, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=SIGNAL_EXPIRED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=879, requestedHorizonMinute=29858534, committedCursorMinute=29849040, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "879",
+              "4",
+              "context",
+              "COMPLETED",
+              "15528",
+              "6ffaeb1e1959b45d1f52422a739bbcba67ec24300ba6e1c82a836b1d28579856",
+              "VITALITY_REQUIRES_NATIVE",
+              "78",
+              "false"
+            ],
+            "state": [
+              "879",
+              "15528",
+              "state",
+              "DEAD",
+              "6ffaeb1e1959b45d1f52422a739bbcba67ec24300ba6e1c82a836b1d28579856",
+              "Progress[level=8, experience=25023, skillPoints=2300, experienceBeforeDeath=26114]",
+              "Position[instanceId=0, x=53398, y=63278, z=-3480, heading=1768, committedAnchorId=generated.farm.946a41fbbc63614320c02954.anchor]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 975,
+          "currentOwnCloneCharacter": {
+            "profileId": "975",
+            "objectId": "268493181",
+            "level": "4",
+            "exp": "2002",
+            "sp": "89",
+            "expBeforeDeath": "1962",
+            "hp": "140",
+            "maxHp": "140",
+            "mp": "135",
+            "maxMp": "135",
+            "cp": "65",
+            "maxCp": "70",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "1590",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "2087",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "975",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=975, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:59:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=975, effectiveState=SLEEPING, requestedState=ACTIVE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=240218020924600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=975, requestedHorizonMinute=29858534, committedCursorMinute=29849016, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "975",
+              "4",
+              "context",
+              "COMPLETED",
+              "27024",
+              "4b8c6b14f4a9348fe6e1c2ae7e4a43a7c2e1417b08808171487405ca419c8ce8",
+              "VITALITY_REQUIRES_NATIVE",
+              "2087",
+              "false"
+            ],
+            "state": [
+              "975",
+              "27024",
+              "state",
+              "READY",
+              "4b8c6b14f4a9348fe6e1c2ae7e4a43a7c2e1417b08808171487405ca419c8ce8",
+              "Progress[level=4, experience=2002, skillPoints=89, experienceBeforeDeath=1962]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=1590, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 1009,
+          "currentOwnCloneCharacter": {
+            "profileId": "1009",
+            "objectId": "268493469",
+            "level": "7",
+            "exp": "16479",
+            "sp": "1246",
+            "expBeforeDeath": "17232",
+            "hp": "0",
+            "maxHp": "185",
+            "mp": "169",
+            "maxMp": "169",
+            "cp": "0",
+            "maxCp": "92",
+            "x": "53398",
+            "y": "63278",
+            "z": "-3480",
+            "heading": "13291",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "92",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "1009",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=1009, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:43:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=1009, effectiveState=SLEEPING, requestedState=ACTIVE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=240217420917600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=1009, requestedHorizonMinute=29858534, committedCursorMinute=29849025, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "1009",
+              "4",
+              "context",
+              "COMPLETED",
+              "15160",
+              "8a7cb73349ce55edb896ab13651f23149a4945664022c22353e2a2611b4c8958",
+              "VITALITY_REQUIRES_NATIVE",
+              "92",
+              "false"
+            ],
+            "state": [
+              "1009",
+              "15160",
+              "state",
+              "DEAD",
+              "8a7cb73349ce55edb896ab13651f23149a4945664022c22353e2a2611b4c8958",
+              "Progress[level=7, experience=16479, skillPoints=1246, experienceBeforeDeath=17232]",
+              "Position[instanceId=0, x=53398, y=63278, z=-3480, heading=13291, committedAnchorId=generated.farm.946a41fbbc63614320c02954.anchor]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 1241,
+          "currentOwnCloneCharacter": {
+            "profileId": "1241",
+            "objectId": "268495452",
+            "level": "8",
+            "exp": "23562",
+            "sp": "2060",
+            "expBeforeDeath": "24653",
+            "hp": "0",
+            "maxHp": "200",
+            "mp": "181",
+            "maxMp": "181",
+            "cp": "0",
+            "maxCp": "100",
+            "x": "53398",
+            "y": "63278",
+            "z": "-3480",
+            "heading": "13003",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "211",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "1241",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=1241, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T10:25:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=1241, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=SIGNAL_EXPIRED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=1241, requestedHorizonMinute=29858534, committedCursorMinute=29849055, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "1241",
+              "4",
+              "context",
+              "COMPLETED",
+              "12824",
+              "1e3d13631397879429235a7d4cec7ba72066b559ed99739e844504262f1ee02e",
+              "VITALITY_REQUIRES_NATIVE",
+              "211",
+              "false"
+            ],
+            "state": [
+              "1241",
+              "12824",
+              "state",
+              "DEAD",
+              "1e3d13631397879429235a7d4cec7ba72066b559ed99739e844504262f1ee02e",
+              "Progress[level=8, experience=23562, skillPoints=2060, experienceBeforeDeath=24653]",
+              "Position[instanceId=0, x=53398, y=63278, z=-3480, heading=13003, committedAnchorId=generated.farm.946a41fbbc63614320c02954.anchor]"
+            ]
+          },
+          "farmPassInferred": false
+        }
+      ]
+    },
+    {
+      "group": "old027D",
+      "requiredIds": [
+        175,
+        424,
+        506,
+        775,
+        876,
+        924,
+        975,
+        1159
+      ],
+      "accounted": 8,
+      "rows": [
+        {
+          "profileId": 175,
+          "currentOwnCloneCharacter": {
+            "profileId": "175",
+            "objectId": "268486304",
+            "level": "6",
+            "exp": "6115",
+            "sp": "363",
+            "expBeforeDeath": "6607",
+            "hp": "123",
+            "maxHp": "170",
+            "mp": "154",
+            "maxMp": "158",
+            "cp": "7",
+            "maxCp": "85",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "25847",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "1471",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "175",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=175, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:32:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=175, effectiveState=SLEEPING, requestedState=ACTIVE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=240219421101600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=175, requestedHorizonMinute=29858534, committedCursorMinute=29852109, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=34, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "175",
+              "4",
+              "context",
+              "COMPLETED",
+              "21684",
+              "3f0e0ee23d32f18552aa1a6f6c44c9c944aa61c503237b8b464f61d27da7ed6b",
+              "VITALITY_REQUIRES_NATIVE",
+              "1471",
+              "false"
+            ],
+            "state": [
+              "175",
+              "21684",
+              "state",
+              "READY",
+              "3f0e0ee23d32f18552aa1a6f6c44c9c944aa61c503237b8b464f61d27da7ed6b",
+              "Progress[level=6, experience=6115, skillPoints=363, experienceBeforeDeath=6607]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 424,
+          "currentOwnCloneCharacter": {
+            "profileId": "424",
+            "objectId": "268488438",
+            "level": "9",
+            "exp": "32992",
+            "sp": "1509",
+            "expBeforeDeath": "5823",
+            "hp": "249",
+            "maxHp": "249",
+            "mp": "97",
+            "maxMp": "97",
+            "cp": "99",
+            "maxCp": "99",
+            "x": "45122",
+            "y": "44311",
+            "z": "-3704",
+            "heading": "51432",
+            "classIndex": "0",
+            "classId": "18",
+            "race": "1",
+            "vitality": "659",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "424",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=424, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=true, admitted=false, reason=capacity, pendingRebalance=false, nextBoundary=2026-10-09T06:09:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=424, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=7, nextDueNanos=0, tickSequence=7371, lastResult=TRANSITION_SUCCEEDED, lastTransitionNanos=240027020304600, lastTransitionReason=], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=424, requestedHorizonMinute=29858534, committedCursorMinute=29849529, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "424",
+              "21",
+              "context",
+              "COMPLETED",
+              "3644",
+              "48b60c79937966f6e2694b91bc044bea5788a745e84606f339ab90333cce0875",
+              "POSITION_REQUIRES_NATIVE",
+              "659",
+              "false"
+            ],
+            "state": [
+              "424",
+              "3644",
+              "state",
+              "READY",
+              "48b60c79937966f6e2694b91bc044bea5788a745e84606f339ab90333cce0875",
+              "Progress[level=9, experience=32992, skillPoints=1509, experienceBeforeDeath=5823]",
+              "Position[instanceId=0, x=45122, y=44311, z=-3704, heading=51432, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 506,
+          "currentOwnCloneCharacter": {
+            "profileId": "506",
+            "objectId": "268489117",
+            "level": "7",
+            "exp": "19382",
+            "sp": "1530",
+            "expBeforeDeath": "20473",
+            "hp": "0",
+            "maxHp": "185",
+            "mp": "169",
+            "maxMp": "169",
+            "cp": "0",
+            "maxCp": "92",
+            "x": "53398",
+            "y": "63278",
+            "z": "-3480",
+            "heading": "13903",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "1",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "506",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=506, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T10:19:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=506, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=REGISTERED, lastTransitionNanos=0, lastTransitionReason=], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=506, requestedHorizonMinute=29858534, committedCursorMinute=29849370, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=68, complete=false, reason=ecology.commit_pending], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "506",
+              "196",
+              "context",
+              "COMPLETED",
+              "10724",
+              "09feac309d3aade30af81a965b8c4b462160334785ee2a7d1cd8cca83379c194",
+              "SUPPORTED",
+              "1",
+              "true"
+            ],
+            "state": [
+              "506",
+              "10724",
+              "state",
+              "DEAD",
+              "09feac309d3aade30af81a965b8c4b462160334785ee2a7d1cd8cca83379c194",
+              "Progress[level=7, experience=19382, skillPoints=1530, experienceBeforeDeath=20473]",
+              "Position[instanceId=0, x=53398, y=63278, z=-3480, heading=13903, committedAnchorId=generated.farm.946a41fbbc63614320c02954.anchor]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 775,
+          "currentOwnCloneCharacter": {
+            "profileId": "775",
+            "objectId": "268491382",
+            "level": "5",
+            "exp": "2982",
+            "sp": "160",
+            "expBeforeDeath": "3282",
+            "hp": "113",
+            "maxHp": "155",
+            "mp": "143",
+            "maxMp": "146",
+            "cp": "7",
+            "maxCp": "77",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "25847",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "736",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "775",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=775, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:56:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=775, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=SIGNAL_EXPIRED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=775, requestedHorizonMinute=29858534, committedCursorMinute=29849016, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "775",
+              "4",
+              "context",
+              "COMPLETED",
+              "27234",
+              "8c95c196c6a9132b5f894ce83d30f386d9e4c21e142275129fc1645b8eeca516",
+              "VITALITY_REQUIRES_NATIVE",
+              "736",
+              "false"
+            ],
+            "state": [
+              "775",
+              "27234",
+              "state",
+              "READY",
+              "8c95c196c6a9132b5f894ce83d30f386d9e4c21e142275129fc1645b8eeca516",
+              "Progress[level=5, experience=2982, skillPoints=160, experienceBeforeDeath=3282]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=25847, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 876,
+          "currentOwnCloneCharacter": {
+            "profileId": "876",
+            "objectId": "268492234",
+            "level": "8",
+            "exp": "20272",
+            "sp": "969",
+            "expBeforeDeath": "9837",
+            "hp": "231",
+            "maxHp": "231",
+            "mp": "90",
+            "maxMp": "90",
+            "cp": "92",
+            "maxCp": "92",
+            "x": "45116",
+            "y": "44290",
+            "z": "-3704",
+            "heading": "10250",
+            "classIndex": "0",
+            "classId": "18",
+            "race": "1",
+            "vitality": "421",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "876",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=876, populationState=READY, desiredState=ACTIVE, effectiveState=WARM, eligible=true, admitted=false, reason=capacity, pendingRebalance=false, nextBoundary=2026-10-09T05:57:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=876, effectiveState=WARM, requestedState=WARM, transitionStatus=STABLE, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=8, nextDueNanos=240220121068000, tickSequence=7165, lastResult=WORK_DELIVERED, lastTransitionNanos=240026321184600, lastTransitionReason=], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=876, requestedHorizonMinute=29858534, committedCursorMinute=29849517, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "876",
+              "21",
+              "context",
+              "COMPLETED",
+              "4585",
+              "6311c18a8ff2c8dac955e7351030b1f685b4e49c2a2d40170108fdd2c47fd993",
+              "POSITION_REQUIRES_NATIVE",
+              "421",
+              "false"
+            ],
+            "state": [
+              "876",
+              "4585",
+              "state",
+              "READY",
+              "6311c18a8ff2c8dac955e7351030b1f685b4e49c2a2d40170108fdd2c47fd993",
+              "Progress[level=8, experience=20272, skillPoints=969, experienceBeforeDeath=9837]",
+              "Position[instanceId=0, x=45116, y=44290, z=-3704, heading=10250, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 924,
+          "currentOwnCloneCharacter": {
+            "profileId": "924",
+            "objectId": "268492641",
+            "level": "12",
+            "exp": "114997",
+            "sp": "5549",
+            "expBeforeDeath": "6696",
+            "hp": "263",
+            "maxHp": "263",
+            "mp": "228",
+            "maxMp": "228",
+            "cp": "131",
+            "maxCp": "131",
+            "x": "44121",
+            "y": "42426",
+            "z": "-3488",
+            "heading": "47854",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "5807",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "924",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=924, populationState=READY, desiredState=ACTIVE, effectiveState=WARM, eligible=true, admitted=false, reason=capacity, pendingRebalance=false, nextBoundary=2026-10-09T05:46:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=924, effectiveState=WARM, requestedState=WARM, transitionStatus=STABLE, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=8, nextDueNanos=240219921068700, tickSequence=9601, lastResult=WORK_DELIVERED, lastTransitionNanos=240023420513500, lastTransitionReason=], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=924, requestedHorizonMinute=29858534, committedCursorMinute=29849565, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=31, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "924",
+              "13",
+              "context",
+              "COMPLETED",
+              "5525",
+              "a155da1742c5dfb4ee4176440a1869c3affa6ea910a56460981d527d2820a2c5",
+              "VITALITY_REQUIRES_NATIVE",
+              "5807",
+              "false"
+            ],
+            "state": [
+              "924",
+              "5525",
+              "state",
+              "READY",
+              "a155da1742c5dfb4ee4176440a1869c3affa6ea910a56460981d527d2820a2c5",
+              "Progress[level=12, experience=114997, skillPoints=5549, experienceBeforeDeath=6696]",
+              "Position[instanceId=0, x=44121, y=42426, z=-3488, heading=47854, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 975,
+          "currentOwnCloneCharacter": {
+            "profileId": "975",
+            "objectId": "268493181",
+            "level": "4",
+            "exp": "2002",
+            "sp": "89",
+            "expBeforeDeath": "1962",
+            "hp": "140",
+            "maxHp": "140",
+            "mp": "135",
+            "maxMp": "135",
+            "cp": "65",
+            "maxCp": "70",
+            "x": "44126",
+            "y": "42751",
+            "z": "-3488",
+            "heading": "1590",
+            "classIndex": "0",
+            "classId": "25",
+            "race": "1",
+            "vitality": "2087",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "975",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=975, populationState=READY, desiredState=SLEEPING, effectiveState=SLEEPING, eligible=false, admitted=false, reason=schedule_not_active, pendingRebalance=false, nextBoundary=2026-10-09T09:59:00Z, calendarOnline=false], scheduler=PhantomActivitySnapshot[profileId=975, effectiveState=SLEEPING, requestedState=SLEEPING, transitionStatus=STABLE, activeSignalSources=0, enqueued=false, due=false, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=0, tickSequence=0, lastResult=SIGNAL_EXPIRED, lastTransitionNanos=0, lastTransitionReason=presence.no_current_local_demand], materialization=null, lastMaterializationFailure=null, busyReason=offline, readiness=DueSnapshot[profileId=975, requestedHorizonMinute=29858534, committedCursorMinute=29849016, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "975",
+              "4",
+              "context",
+              "COMPLETED",
+              "27024",
+              "4b8c6b14f4a9348fe6e1c2ae7e4a43a7c2e1417b08808171487405ca419c8ce8",
+              "VITALITY_REQUIRES_NATIVE",
+              "2087",
+              "false"
+            ],
+            "state": [
+              "975",
+              "27024",
+              "state",
+              "READY",
+              "4b8c6b14f4a9348fe6e1c2ae7e4a43a7c2e1417b08808171487405ca419c8ce8",
+              "Progress[level=4, experience=2002, skillPoints=89, experienceBeforeDeath=1962]",
+              "Position[instanceId=0, x=44126, y=42751, z=-3488, heading=1590, committedAnchorId=population.farming.elf.20534]"
+            ]
+          },
+          "farmPassInferred": false
+        },
+        {
+          "profileId": 1159,
+          "currentOwnCloneCharacter": {
+            "profileId": "1159",
+            "objectId": "268494774",
+            "level": "7",
+            "exp": "12054",
+            "sp": "571",
+            "expBeforeDeath": "5823",
+            "hp": "214",
+            "maxHp": "214",
+            "mp": "82",
+            "maxMp": "82",
+            "cp": "85",
+            "maxCp": "85",
+            "x": "40953",
+            "y": "43425",
+            "z": "-3616",
+            "heading": "0",
+            "classIndex": "0",
+            "classId": "18",
+            "race": "1",
+            "vitality": "659",
+            "online": "0"
+          },
+          "nativeMembership": {
+            "profileId": "1159",
+            "state": "ABSENT",
+            "worldPresent": "false",
+            "epoch": "0",
+            "hp": "none",
+            "x": "none",
+            "y": "none",
+            "z": "none",
+            "native": "none"
+          },
+          "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=1159, populationState=READY, desiredState=ACTIVE, effectiveState=WARM, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-09T06:03:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=1159, effectiveState=WARM, requestedState=WARM, transitionStatus=STABLE, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=12, nextDueNanos=240219921068700, tickSequence=7181, lastResult=WORK_DELIVERED, lastTransitionNanos=240014921093100, lastTransitionReason=], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=1159, requestedHorizonMinute=29858534, committedCursorMinute=29849523, initialCatchupComplete=true, requestPending=true, queued=true, running=false, revision=33, complete=false, reason=native_context.required:accepted], humanLocality=false, nativeVisible=false, retentionPins=[]]]",
+          "canonical": {
+            "context": [
+              "1159",
+              "15",
+              "context",
+              "COMPLETED",
+              "3720",
+              "be58004290491e379efb02f3b018385cc31a4e93a751f84cbed5e8bcaedfabfa",
+              "POSITION_REQUIRES_NATIVE",
+              "659",
+              "false"
+            ],
+            "state": [
+              "1159",
+              "3720",
+              "state",
+              "READY",
+              "be58004290491e379efb02f3b018385cc31a4e93a751f84cbed5e8bcaedfabfa",
+              "Progress[level=7, experience=12054, skillPoints=571, experienceBeforeDeath=5823]",
+              "Position[instanceId=0, x=40953, y=43425, z=-3616, heading=0, committedAnchorId=generated.farm.7451e61fe8e94f49afb1f9e2.anchor]"
+            ]
+          },
+          "farmPassInferred": false
+        }
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_0726_old026-membership.json",
+      "sha256": "7aa2f28cc9762d379d68136b4a44f9bb905e8fc23d28351bc7590347eb3bd713"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old026_NATIVE\\exact-selected-membership.tsv",
+      "sha256": "35a10a6ef9525fea9437219723f70bcce63c40b597add9fec5d4efb953159b89"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old026_NATIVE\\operator-admission.tsv",
+      "sha256": "575b514616d1d0a315795bfd5479db45089dd7d77f526f9c3dfadb4617eb1633"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old026_SQL\\characters.tsv",
+      "sha256": "7ffecfa0a935aa2815f5f755a25e47922703195602cb38235e8757621560b0d5"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old026_SQL\\durable-decoded.tsv",
+      "sha256": "f3173bbef7f425823846282359c3ff5be39a96226e28078c46fd33bfd4fbbab3"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old026_SQL\\runtime-manifest.json",
+      "sha256": "43f0cfb85a11c16db0ef5179c7247ca5adf52b4c1f0e415e1209f5a1e131fa25"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_0726_old027C-membership.json",
+      "sha256": "88a8bcc89a596829cb9371df2ba70912339d8177a6646df451ad9571f688fc4c"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027C_NATIVE\\exact-selected-membership.tsv",
+      "sha256": "41d128c401a790633ebc7ee6acdd229cbf0a950677126c656a034e938f49ae5b"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027C_NATIVE\\operator-admission.tsv",
+      "sha256": "53f6d5374367127775a7b9d54e71b54526bdd18c6c07ef45f5e0eca641655902"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027C_SQL\\characters.tsv",
+      "sha256": "c878a0ba75a965516e7a7667d5299e4c0d5eb5f0d9b483f5f90826a12f4ba235"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027C_SQL\\durable-decoded.tsv",
+      "sha256": "92a53a975b61690ca1864e8dadde508effc317b7bf1e1e49244ec28c5006467d"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027C_SQL\\runtime-manifest.json",
+      "sha256": "43f0cfb85a11c16db0ef5179c7247ca5adf52b4c1f0e415e1209f5a1e131fa25"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_0726_old027D-membership.json",
+      "sha256": "032ff5d33b8c1ce026b9e56b0e37b6e4ac7d0c527703f4c3b23852879f5a3b61"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027D_NATIVE\\exact-selected-membership.tsv",
+      "sha256": "29f1db6b986f4764bac915a719048f14ceb5a2bc8dadb9b0fce27e53260cc0ec"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027D_NATIVE\\operator-admission.tsv",
+      "sha256": "2760cb6deba4ef23dfc9fa5fbab7b6b126417a82888252f179512253499e8ab9"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027D_SQL\\characters.tsv",
+      "sha256": "bc14ffa1102483401e3fb7d38c6960e2c80926caa95567d906613980b5b0e1e2"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027D_SQL\\durable-decoded.tsv",
+      "sha256": "93bd1740b248cc9c55bc141293ca1ef96b7c6492e63675051e593d18ec8674eb"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\LONGITUDINAL_FINAL_07C2_old027D_SQL\\runtime-manifest.json",
+      "sha256": "43f0cfb85a11c16db0ef5179c7247ca5adf52b4c1f0e415e1209f5a1e131fa25"
+    },
+    {
+      "immutableHistoricalSource": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIFECYCLE-COMPLETION-027\\RESULT.md",
+      "sha256": "f16c3e034e96ff9c07767772eabf84059bd3e1d5c16f9d6264fa0c3de1082288"
+    },
+    {
+      "immutableHistoricalSource": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIFECYCLE-COMPLETION-027\\evidence\\FINAL027_OLD026_LONGITUDINAL24.json",
+      "sha256": "fc70af53ea725574eb0c7b7c816d6fa0dcef0535c3721a9fcc9030123c9776ab"
+    },
+    {
+      "immutableHistoricalSource": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIFECYCLE-COMPLETION-027\\evidence\\R12_D_NATURAL380\\baseline-cohort.json",
+      "sha256": "0d270bebcc685b126a4d9c3a033935c00193c18de23f596fe520ee7922c99509"
+    }
+  ],
+  "crossCloneEarnedStateEqualityClaimed": false,
+  "noMembershipReplacement": true
+}

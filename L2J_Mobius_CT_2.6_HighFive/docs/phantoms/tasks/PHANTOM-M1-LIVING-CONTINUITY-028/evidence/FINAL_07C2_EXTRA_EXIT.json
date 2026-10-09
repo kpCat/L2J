@@ -1,0 +1,26 @@
+[
+  {
+    "suite": "PhantomLifecycleCompletion027Suite",
+    "exit": 0
+  },
+  {
+    "suite": "LocalPlayPilotSuite",
+    "exit": 0
+  },
+  {
+    "suite": "LocalPlayPilotNativeSuite",
+    "exit": 0
+  },
+  {
+    "suite": "LocalPlayContinuity028Suite",
+    "exit": 0
+  },
+  {
+    "suite": "PhantomSoftReturn028Suite",
+    "exit": 0
+  },
+  {
+    "suite": "PhantomContinuity028Suite",
+    "exit": 0
+  }
+]

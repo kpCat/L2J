@@ -1,0 +1,19 @@
+{
+  "kind": "Away",
+  "sha": "07c2c1cc4036b47487c98e96943a39ce295a3920",
+  "runId": "f0bbea8f-45b4-4795-b6fe-2d25452ad326",
+  "seconds": 140.1773905,
+  "nativeUniqueSamples": 137,
+  "maxGapSeconds": 1.0198733,
+  "commandCount": 44,
+  "baselineCount": 5,
+  "primaryIds": [
+    "633",
+    "759"
+  ],
+  "sameSession": true,
+  "telemetryMailboxCommands": 0,
+  "sequenceBefore": 45,
+  "sequenceAfter": 45,
+  "arrivalProof": false
+}

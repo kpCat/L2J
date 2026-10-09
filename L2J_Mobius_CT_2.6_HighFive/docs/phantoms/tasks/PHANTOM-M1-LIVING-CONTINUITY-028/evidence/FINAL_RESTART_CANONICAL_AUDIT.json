@@ -1,0 +1,330 @@
+{
+  "kind": "ACTUAL_STOPPED_CANONICAL_RESTART_AUDIT",
+  "groups": [
+    {
+      "group": "FINAL_SCENE_07C2_F1",
+      "restart": 1,
+      "requiredProfiles": [
+        424,
+        633,
+        759,
+        876,
+        924,
+        994,
+        1159,
+        1176
+      ],
+      "counts": [
+        {
+          "database_name": "l2jmobiush5_localplay_contract028f",
+          "pendingOwnedStores": "0",
+          "onlineCharacters": "0"
+        }
+      ],
+      "sourceSha": "07c2c1cc4036b47487c98e96943a39ce295a3920",
+      "jarSha256": "31CBEF01BB38C78B22DF775F665568EC0242FBD5F7F7F00936E3B0DAAE53CA8F",
+      "tables": [
+        {
+          "name": "characters.tsv",
+          "beforeSha256": "a338d1927af1c94e66f3764a28f6536c9cffc00c16a580d879a0352101d70a60",
+          "afterSha256": "a338d1927af1c94e66f3764a28f6536c9cffc00c16a580d879a0352101d70a60",
+          "canonicalEqual": true
+        },
+        {
+          "name": "items.tsv",
+          "beforeSha256": "b65c23f546ba0fd051fbe39808c13215d6c49502a7348dfe671faece6fa8beab",
+          "afterSha256": "b65c23f546ba0fd051fbe39808c13215d6c49502a7348dfe671faece6fa8beab",
+          "canonicalEqual": true
+        },
+        {
+          "name": "skills.tsv",
+          "beforeSha256": "a5f4932d925eb2cd81a317b665417c928a8df9d579542c6793197cc4d16a02d5",
+          "afterSha256": "a5f4932d925eb2cd81a317b665417c928a8df9d579542c6793197cc4d16a02d5",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-hex.tsv",
+          "beforeSha256": "92569eb3ee9707617c400e407c01309e4a2a2ae5cb5c8638f3a9d8ee2b35e5be",
+          "afterSha256": "92569eb3ee9707617c400e407c01309e4a2a2ae5cb5c8638f3a9d8ee2b35e5be",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-decoded.tsv",
+          "beforeSha256": "8dbee41378802b97f0c5500cade1061b182e0f05ef6aabddd236c92dd0557deb",
+          "afterSha256": "8dbee41378802b97f0c5500cade1061b182e0f05ef6aabddd236c92dd0557deb",
+          "canonicalEqual": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "group": "FINAL_SCENE_07C2_F1",
+      "restart": 2,
+      "requiredProfiles": [
+        424,
+        633,
+        759,
+        876,
+        924,
+        994,
+        1159,
+        1176
+      ],
+      "counts": [
+        {
+          "database_name": "l2jmobiush5_localplay_contract028f",
+          "pendingOwnedStores": "0",
+          "onlineCharacters": "0"
+        }
+      ],
+      "sourceSha": "07c2c1cc4036b47487c98e96943a39ce295a3920",
+      "jarSha256": "31CBEF01BB38C78B22DF775F665568EC0242FBD5F7F7F00936E3B0DAAE53CA8F",
+      "tables": [
+        {
+          "name": "characters.tsv",
+          "beforeSha256": "a338d1927af1c94e66f3764a28f6536c9cffc00c16a580d879a0352101d70a60",
+          "afterSha256": "a338d1927af1c94e66f3764a28f6536c9cffc00c16a580d879a0352101d70a60",
+          "canonicalEqual": true
+        },
+        {
+          "name": "items.tsv",
+          "beforeSha256": "b65c23f546ba0fd051fbe39808c13215d6c49502a7348dfe671faece6fa8beab",
+          "afterSha256": "b65c23f546ba0fd051fbe39808c13215d6c49502a7348dfe671faece6fa8beab",
+          "canonicalEqual": true
+        },
+        {
+          "name": "skills.tsv",
+          "beforeSha256": "a5f4932d925eb2cd81a317b665417c928a8df9d579542c6793197cc4d16a02d5",
+          "afterSha256": "a5f4932d925eb2cd81a317b665417c928a8df9d579542c6793197cc4d16a02d5",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-hex.tsv",
+          "beforeSha256": "92569eb3ee9707617c400e407c01309e4a2a2ae5cb5c8638f3a9d8ee2b35e5be",
+          "afterSha256": "92569eb3ee9707617c400e407c01309e4a2a2ae5cb5c8638f3a9d8ee2b35e5be",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-decoded.tsv",
+          "beforeSha256": "8dbee41378802b97f0c5500cade1061b182e0f05ef6aabddd236c92dd0557deb",
+          "afterSha256": "8dbee41378802b97f0c5500cade1061b182e0f05ef6aabddd236c92dd0557deb",
+          "canonicalEqual": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "group": "FINAL_SCENE_07C2_F2",
+      "restart": 1,
+      "requiredProfiles": [
+        633,
+        872,
+        924,
+        1272
+      ],
+      "counts": [
+        {
+          "database_name": "l2jmobiush5_localplay_contract028f",
+          "pendingOwnedStores": "0",
+          "onlineCharacters": "0"
+        }
+      ],
+      "sourceSha": "07c2c1cc4036b47487c98e96943a39ce295a3920",
+      "jarSha256": "31CBEF01BB38C78B22DF775F665568EC0242FBD5F7F7F00936E3B0DAAE53CA8F",
+      "tables": [
+        {
+          "name": "characters.tsv",
+          "beforeSha256": "d74a8a9b04cca85cef1a10060fef54c434bf708f8f5691b170e69cd98d2cb0b7",
+          "afterSha256": "d74a8a9b04cca85cef1a10060fef54c434bf708f8f5691b170e69cd98d2cb0b7",
+          "canonicalEqual": true
+        },
+        {
+          "name": "items.tsv",
+          "beforeSha256": "c1491cee2b4f09dfacb7ff61a19cd18c7df91556037c018c06838066640f3516",
+          "afterSha256": "c1491cee2b4f09dfacb7ff61a19cd18c7df91556037c018c06838066640f3516",
+          "canonicalEqual": true
+        },
+        {
+          "name": "skills.tsv",
+          "beforeSha256": "d33f5ef6a40514723b1a5812ad74ac5c6ddf9b0f8c4266ed1c7d2d7d76a2bade",
+          "afterSha256": "d33f5ef6a40514723b1a5812ad74ac5c6ddf9b0f8c4266ed1c7d2d7d76a2bade",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-hex.tsv",
+          "beforeSha256": "4232f38c977951f190d4a060f77451b76a73e37597659e2af010024d5180f7dd",
+          "afterSha256": "4232f38c977951f190d4a060f77451b76a73e37597659e2af010024d5180f7dd",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-decoded.tsv",
+          "beforeSha256": "a6e315002bd1cf7e34c68ff2f76f30dbc15c945a45c27169ff6b4f720f4652ff",
+          "afterSha256": "a6e315002bd1cf7e34c68ff2f76f30dbc15c945a45c27169ff6b4f720f4652ff",
+          "canonicalEqual": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "group": "FINAL_SCENE_07C2_F2",
+      "restart": 2,
+      "requiredProfiles": [
+        633,
+        872,
+        924,
+        1272
+      ],
+      "counts": [
+        {
+          "database_name": "l2jmobiush5_localplay_contract028f",
+          "pendingOwnedStores": "0",
+          "onlineCharacters": "0"
+        }
+      ],
+      "sourceSha": "07c2c1cc4036b47487c98e96943a39ce295a3920",
+      "jarSha256": "31CBEF01BB38C78B22DF775F665568EC0242FBD5F7F7F00936E3B0DAAE53CA8F",
+      "tables": [
+        {
+          "name": "characters.tsv",
+          "beforeSha256": "d74a8a9b04cca85cef1a10060fef54c434bf708f8f5691b170e69cd98d2cb0b7",
+          "afterSha256": "d74a8a9b04cca85cef1a10060fef54c434bf708f8f5691b170e69cd98d2cb0b7",
+          "canonicalEqual": true
+        },
+        {
+          "name": "items.tsv",
+          "beforeSha256": "c1491cee2b4f09dfacb7ff61a19cd18c7df91556037c018c06838066640f3516",
+          "afterSha256": "c1491cee2b4f09dfacb7ff61a19cd18c7df91556037c018c06838066640f3516",
+          "canonicalEqual": true
+        },
+        {
+          "name": "skills.tsv",
+          "beforeSha256": "d33f5ef6a40514723b1a5812ad74ac5c6ddf9b0f8c4266ed1c7d2d7d76a2bade",
+          "afterSha256": "d33f5ef6a40514723b1a5812ad74ac5c6ddf9b0f8c4266ed1c7d2d7d76a2bade",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-hex.tsv",
+          "beforeSha256": "4232f38c977951f190d4a060f77451b76a73e37597659e2af010024d5180f7dd",
+          "afterSha256": "4232f38c977951f190d4a060f77451b76a73e37597659e2af010024d5180f7dd",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-decoded.tsv",
+          "beforeSha256": "a6e315002bd1cf7e34c68ff2f76f30dbc15c945a45c27169ff6b4f720f4652ff",
+          "afterSha256": "a6e315002bd1cf7e34c68ff2f76f30dbc15c945a45c27169ff6b4f720f4652ff",
+          "canonicalEqual": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "group": "FINAL_AWAY_07C2_F3",
+      "restart": 1,
+      "requiredProfiles": [
+        633,
+        759,
+        924,
+        994,
+        1159
+      ],
+      "counts": [
+        {
+          "database_name": "l2jmobiush5_localplay_contract028f",
+          "pendingOwnedStores": "0",
+          "onlineCharacters": "0"
+        }
+      ],
+      "sourceSha": "07c2c1cc4036b47487c98e96943a39ce295a3920",
+      "jarSha256": "31CBEF01BB38C78B22DF775F665568EC0242FBD5F7F7F00936E3B0DAAE53CA8F",
+      "tables": [
+        {
+          "name": "characters.tsv",
+          "beforeSha256": "0b43e79c228a63655c46bc86bdf85347bdcf413868aaa8e2106b1fa0c259e353",
+          "afterSha256": "0b43e79c228a63655c46bc86bdf85347bdcf413868aaa8e2106b1fa0c259e353",
+          "canonicalEqual": true
+        },
+        {
+          "name": "items.tsv",
+          "beforeSha256": "0baf74cc3ff2596063f745498aeae7763a5fef73eaf540d9f22442b253b9f98d",
+          "afterSha256": "0baf74cc3ff2596063f745498aeae7763a5fef73eaf540d9f22442b253b9f98d",
+          "canonicalEqual": true
+        },
+        {
+          "name": "skills.tsv",
+          "beforeSha256": "65c7a47fc9885fc7035a4d102f8dc1862926bbffe23127a6d748d4b62bcd4edc",
+          "afterSha256": "65c7a47fc9885fc7035a4d102f8dc1862926bbffe23127a6d748d4b62bcd4edc",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-hex.tsv",
+          "beforeSha256": "d3f8445e365b09d37c65e8247b4ae5c2e12affd1bdb92a1c7f6acd930a87903d",
+          "afterSha256": "d3f8445e365b09d37c65e8247b4ae5c2e12affd1bdb92a1c7f6acd930a87903d",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-decoded.tsv",
+          "beforeSha256": "35fcd69071afb183b1789ab1e315f069f30fb81b0fccabe8e582a399120467f2",
+          "afterSha256": "35fcd69071afb183b1789ab1e315f069f30fb81b0fccabe8e582a399120467f2",
+          "canonicalEqual": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "group": "FINAL_AWAY_07C2_F3",
+      "restart": 2,
+      "requiredProfiles": [
+        633,
+        759,
+        924,
+        994,
+        1159
+      ],
+      "counts": [
+        {
+          "database_name": "l2jmobiush5_localplay_contract028f",
+          "pendingOwnedStores": "0",
+          "onlineCharacters": "0"
+        }
+      ],
+      "sourceSha": "07c2c1cc4036b47487c98e96943a39ce295a3920",
+      "jarSha256": "31CBEF01BB38C78B22DF775F665568EC0242FBD5F7F7F00936E3B0DAAE53CA8F",
+      "tables": [
+        {
+          "name": "characters.tsv",
+          "beforeSha256": "0b43e79c228a63655c46bc86bdf85347bdcf413868aaa8e2106b1fa0c259e353",
+          "afterSha256": "0b43e79c228a63655c46bc86bdf85347bdcf413868aaa8e2106b1fa0c259e353",
+          "canonicalEqual": true
+        },
+        {
+          "name": "items.tsv",
+          "beforeSha256": "0baf74cc3ff2596063f745498aeae7763a5fef73eaf540d9f22442b253b9f98d",
+          "afterSha256": "0baf74cc3ff2596063f745498aeae7763a5fef73eaf540d9f22442b253b9f98d",
+          "canonicalEqual": true
+        },
+        {
+          "name": "skills.tsv",
+          "beforeSha256": "65c7a47fc9885fc7035a4d102f8dc1862926bbffe23127a6d748d4b62bcd4edc",
+          "afterSha256": "65c7a47fc9885fc7035a4d102f8dc1862926bbffe23127a6d748d4b62bcd4edc",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-hex.tsv",
+          "beforeSha256": "d3f8445e365b09d37c65e8247b4ae5c2e12affd1bdb92a1c7f6acd930a87903d",
+          "afterSha256": "d3f8445e365b09d37c65e8247b4ae5c2e12affd1bdb92a1c7f6acd930a87903d",
+          "canonicalEqual": true
+        },
+        {
+          "name": "durable-decoded.tsv",
+          "beforeSha256": "35fcd69071afb183b1789ab1e315f069f30fb81b0fccabe8e582a399120467f2",
+          "afterSha256": "35fcd69071afb183b1789ab1e315f069f30fb81b0fccabe8e582a399120467f2",
+          "canonicalEqual": true
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "SEALEDProofClaimed": false,
+  "completeTransitionLineageClaimed": false,
+  "pass": true
+}
