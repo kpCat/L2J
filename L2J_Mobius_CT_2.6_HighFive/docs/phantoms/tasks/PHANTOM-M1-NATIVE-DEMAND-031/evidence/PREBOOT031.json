@@ -1,0 +1,15 @@
+{
+  "utc": "2026-10-09T20:29:12.9105755Z",
+  "sourceDatabase": "l2jmobiush5_localplay3",
+  "ownDatabase": "l2jmobiush5_localplay_contract031a",
+  "immutableInputSHA": "1400D245B1950D65D6D221470298B581BC007D022028D72E711FE730DCF8BD7C",
+  "immutableInputBytes": 70509831,
+  "durableExportSHA": "E22914AF4A97BE179D4639474F010268E744D1F783DADA1D10DF9CC20443C413",
+  "sourceSHA": "e083f35d9b3b1c1441f484c8f760c8dc34bbdbc0",
+  "testedJarSourceSHA": "5375198db48575666623ac79b875373d1750cdc6",
+  "gameJarSHA": "F45EE49006FB54D9A0141B8C3511533D9F4A20AC0D5EE181388531FF61C87D9B",
+  "inputImmutable": true,
+  "buildCount": 0,
+  "gameStartCount": 0,
+  "sourceEquivalent": true
+}

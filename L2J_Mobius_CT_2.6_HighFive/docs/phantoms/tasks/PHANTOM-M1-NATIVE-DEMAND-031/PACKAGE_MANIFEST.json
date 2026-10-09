@@ -1,0 +1,30 @@
+{
+  "task": "PHANTOM-M1-NATIVE-DEMAND-031",
+  "required_base": "e083f35d9b3b1c1441f484c8f760c8dc34bbdbc0",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "High",
+  "max_wall_minutes": 120,
+  "production_semantic_fixes": false,
+  "m1_claim": "OPEN",
+  "files": {
+    "DEBUG_PLAYBOOK.md": "7c754acdc0f405f6d0993883881fdadc0d91e5ee6aee46653909018f885266d8",
+    "DESIGN.md": "c45dca11bfeaf30b48e7fc31b7469770b3f5a4a15a1255fe01d53de4b1b2a3e3",
+    "GOAL.md": "91296f7b95e8bbfc815d5a477a4b44cb9fd709e00433a0bab73ea1511cae7c6c",
+    "HANDOFF_TEMPLATE.md": "328cb7d4e4ef1d0f5a4154d0648c05e74dc7645646968c4f44064dbcea43b728",
+    "PLAN.md": "1d9254682a6dbaafe34877492963ccc2137f2a0f5b6a442f6940f13bf66b876d",
+    "RUN_GOAL.txt": "a24a8ebc8ef56cc61f685da1aef043dd900ae0ce84915313cbe9b472d085fee4",
+    "SCENARIOS.md": "fd413d8b93ce7c951ce9c10eb32fe1d75fc600eac65eb7de4e5ffbc0d15e516b",
+    "SOURCE_EXCERPTS.md": "bfe385af35093d4509665d18b9dbfe4f1c67579c89114e1cf0ec81e935e7fb5d",
+    "SOURCE_MAP.tsv": "80ff7935d7de032f6afb54fdfdf21abf9bc1ec9f50a0c7129bce22a347984603",
+    "TASK.md": "6621ec631fd9f44e60c79b9f697f86ac252b1d0d756a686508d637bf2830e883",
+    "tools/audit_census031.py": "d00703c19e6e67af312382f56a8459319684dabd356937015b2a314cce4cee82",
+    "tools/test_audit_census031.py": "6139706addfd589dd27a6f954e42d658d0fd05dd42bed38042cfdd93a16f8dba"
+  },
+  "revision": "DEBUG_FIRST",
+  "debug_playbook": "DEBUG_PLAYBOOK.md",
+  "first_server_probe_max_minutes": 35,
+  "diagnostic_only": true,
+  "own_game_server_starts_max": 2,
+  "jdwp": "loopback_only_on_own_game_server"
+}

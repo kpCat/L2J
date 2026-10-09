@@ -751,11 +751,25 @@ public final class LocalPlayPilotActions
 		final String includeCensus = args.getOrDefault("includeCensus", "false");
 		final long after = Long.parseLong(args.getOrDefault("censusAfterProfileId", "0"));
 		if ((!"true".equals(includeCensus) && !"false".equals(includeCensus)) || (after < 0)) { return Outcome.of("REJECTED", "INVALID_ARGUMENT"); }
-		final Outcome snapshot = candidate(actor);
+		final Outcome snapshot = args.containsKey("setupProfileId") ? setupCandidate(actor, args.get("setupProfileId")) : candidate(actor);
 		if (!"true".equals(includeCensus)) { return snapshot; }
 		final Map<String, String> data = new LinkedHashMap<>(snapshot.candidate());
 		data.putAll(PhantomSystem.operatorVisibleLifeCensus(actor, after));
 		return new Outcome(snapshot.status(), snapshot.reason(), Map.copyOf(data));
+	}
+
+	private Outcome setupCandidate(Player actor, String suppliedProfileId)
+	{
+		_candidatePosition = null;
+		_candidateObjectId = 0;
+		if (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(actor.getObjectId()) != PhantomIdentityLeaseRegistry.OwnerKind.LOCALPLAY_TEST_HUMAN) { return Outcome.of("REJECTED", "SETUP_SYNTHETIC_REQUIRED"); }
+		final long profileId = Long.parseLong(suppliedProfileId);
+		final var target = PhantomSystem.operatorSetupLocalityTarget(profileId).orElse(null);
+		if ((target == null) || actor.isDead() || actor.isInStoreMode() || actor.isMoving() || actor.isTeleporting() || (actor.getInstanceId() != 0)) { return Outcome.of("REJECTED", "SETUP_TARGET_UNAVAILABLE"); }
+		final var point = target.committedPosition();
+		if (!GeoEngine.getInstance().hasGeo(point.x(), point.y()) || (Math.abs(GeoEngine.getInstance().getHeight(point.x(), point.y(), point.z()) - point.z()) > 100)) { return Outcome.of("REJECTED", "SETUP_NATIVE_GEOMETRY_REJECTED"); }
+		_candidatePosition = new Location(point.x(), point.y(), point.z(), actor.getHeading(), point.instanceId());
+		return new Outcome("SUCCEEDED", "SETUP_CANDIDATE_SNAPSHOT", Map.of("profileId", Long.toString(profileId), "x", Integer.toString(point.x()), "y", Integer.toString(point.y()), "z", Integer.toString(point.z()), "instanceId", Integer.toString(point.instanceId()), "admissionGranted", "false"));
 	}
 
 	private Outcome candidate(Player actor)

@@ -1,0 +1,12 @@
+{
+  "utc": "2026-10-09T20:32:12.9067043Z",
+  "pid": 22472,
+  "startTicks": 639271746873832578,
+  "sourceSHA": "e083f35d9b3b1c1441f484c8f760c8dc34bbdbc0",
+  "gameStarts": 2,
+  "baselineBuilds": 0,
+  "jdwpAddress": "127.0.0.1:5031",
+  "commandSHA": "F23149EAFE061EBA0A6478851C5792966147BCDCD3B3EC45708BFE053FC832AD",
+  "threadsBeforeSHA": "8794D0E5993043CCB46656A52B333A5A1B1FC3A6F4AD1444C1F76D0DBA6327C8",
+  "rawLocation": "PRIVATE own contract031a/debug-first"
+}

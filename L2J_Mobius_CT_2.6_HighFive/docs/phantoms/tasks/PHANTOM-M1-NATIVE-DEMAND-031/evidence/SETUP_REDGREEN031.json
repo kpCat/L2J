@@ -1,0 +1,17 @@
+{
+  "red": {
+    "seed": 31003101,
+    "passed": 10,
+    "failure": "setup-addressing-requires-synthetic-owner expected REJECTED got SUCCEEDED",
+    "total": 11,
+    "failed": 1
+  },
+  "green": {
+    "seed": 31003101,
+    "passed": 11,
+    "total": 11,
+    "failed": 0
+  },
+  "database": "l2jmobiush5_localplay_contract031t",
+  "buildCount": 1
+}

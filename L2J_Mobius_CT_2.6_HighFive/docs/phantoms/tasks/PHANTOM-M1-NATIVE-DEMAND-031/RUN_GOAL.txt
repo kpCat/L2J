@@ -1,0 +1,38 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-DEMAND-031/GOAL.md.
+
+Required base: e083f35d9b3b1c1441f484c8f760c8dc34bbdbc0
+Branch: experiment/m1-candidate007-observe008
+GPT-6.1 Sol, reasoning High. Новый чат, без субагентов.
+
+Одобряю весь пакет031, включая ОБЯЗАТЕЛЬНЫЙ DEBUG_PLAYBOOK.md.
+Это DEBUG-FIRST редакция TASK031: старую архивную версию не использовать.
+Не менять C#/архитектуру. Autonomous native Synthetic, без ручного входа/arm.
+До120мин wall-clock, первый full-server debug probe до35мин, последние15мин cleanup.
+
+Сначала прочти DEBUG_PLAYBOOK: source build.xml уже с lines,vars,source.
+Изолированная GameServer на отдельной own DB, loopback JDWP при безопасном
+own process launch, suspend=n. Сними jcmd VM.command_line/Thread.print -l,
+JFR60s. При необходимости узкий JDWP/jdb breakpoint на точном actor/guard,
+фактические local variables/stack; никакого mass catch на всех1280.
+Не останавливай JVM под breakpoint дольше необходимого, тайминги таких сцен
+не входят в gameplay proof. Если debugger недоступен — jcmd/JFR/first-cause
+bounded readonly trace; не зависай на установке инструмента.
+
+Первое: task-only setup не смешивает PNC background FARM и physical demand.
+Второе: трасса до первого current native admission / typed backend failure,
+отдельно от inherited invalid state и cached error. При отсутствии exception
+зафиксируй первое логическое FALSE условие; не выдумывай stack trace.
+Не более2 own GameServer starts, без серии полных пересборок.
+HotSwap только несемантический diagnostic method-body при поддержке JVM.
+Он не меняет Jar и не считается acceptance. Production logic не исправлять
+без отдельного scope; не bypass ownership, PNC, SQL, materialization.
+
+Own worktree C:\Users\ZBook\.codex\worktrees\m1-native-demand-031\L2J_Mobius
+Main/foreign/kpCat не трогать; PLAY и старые clones READ/export.
+Own contract031a/b/t; исходную DB immutable preboot hash/export. Никаких SQL-heal.
+Git exact-path commit + normal push при GREEN/BLOCKED/FAILED. Без force/reset/clean.
+Отчёт: RESULT/HANDOFF + first guard, exact source:line, PID/time, source SHA,
+JFR/JDWP evidence, build/start counts, status каждого actor, uncertainties.
+JFR и чувствительные raw данные не публиковать без оценки приватности.
+Все own JVM STOPPED. M1=OPEN, REAL_FINAL=NOT_RUN.
+STOP_AUTHORITY=TASK031_CONTRACT. Следующую задачу автоматически не запускать.

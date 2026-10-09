@@ -1,0 +1,22 @@
+[
+  {
+    "Name": "DEAD",
+    "Count": 6181
+  },
+  {
+    "Name": "INCONSISTENT",
+    "Count": 43
+  },
+  {
+    "Name": "MATERIALIZED",
+    "Count": 175
+  },
+  {
+    "Name": "READY",
+    "Count": 3597
+  },
+  {
+    "Name": "VERIFY_PENDING",
+    "Count": 4
+  }
+]

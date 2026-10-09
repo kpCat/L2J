@@ -1,0 +1,10 @@
+component_type	rows_count
+background.catchup	10000
+background.state	10000
+goal.runtime	10000
+population.ecology	10000
+population.state	10000
+onlineCharacters
+128
+profiles
+10000

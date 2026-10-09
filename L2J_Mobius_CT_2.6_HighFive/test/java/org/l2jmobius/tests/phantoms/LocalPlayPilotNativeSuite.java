@@ -45,6 +45,15 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		registry.add("native-pose-and-read-only-snapshot", this::poseAndSnapshot);
+		registry.add("setup-addressing-requires-synthetic-owner", context ->
+        {
+            final var point = _actor.getLocation().clone();
+            final var result = execute(LocalPlayPilotProtocol.Operation.SNAPSHOT_PHANTOMS, Map.of("setupProfileId", "18"));
+            PhantomAssertions.assertEquals("REJECTED", result.status(), "Addressed setup must not silently use ordinary admitted selection.");
+            PhantomAssertions.assertEquals("SETUP_SYNTHETIC_REQUIRED", result.reason(), "Ordinary Player cannot acquire a setup teleport target.");
+            PhantomAssertions.assertEquals(point.getX(), _actor.getX(), "Readonly setup moved the Player.");
+            PhantomAssertions.assertEquals(point.getY(), _actor.getY(), "Readonly setup moved the Player.");
+        });
 		registry.add("chat-party-target-and-skill-refusals", this::refusals);
 		registry.add("learned-skill-native-path", this::learnedSkill);
 		registry.add("envelope-proof-requires-natural-target", this::envelopeProofRequiresNaturalTarget);

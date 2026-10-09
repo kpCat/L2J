@@ -1,0 +1,7 @@
+# Autonomous continuation031
+
+The direct user amendment received approximately 2026-10-09T20:32Z overrides the original two-start, 120-minute, first-cause stop and diagnostic-only production restrictions. Deadline: 2026-10-10T04:32Z; checkpoint every60-90min. Related Phantom Java/Mobius integration fixes require causal RED/GREEN; do not weaken rewards, ownership, SQL, lifecycle or acceptance thresholds. Main/PLAY/foreign worktrees remain read/export-only. Only own contract031a/b/t databases may be written. No subagents or fake REAL_LOGIN.
+
+All server M1 gates remain required: natural materialization, sustained native farm, genuine background progress, return farm, whole-group receipts/save, two sameDB restarts, crash recovery and mandatory regressions. Full long acceptance runs follow a stable frozen candidate. WAITING_REAL_FINAL only after those gates pass; M1 cannot close before the user's real-client final. All own JVMs must stop gracefully. Exact-path commit and normal push are mandatory. No next task.
+
+Checkpoint C01, 2026-10-09T21:03Z: production setup fix only. RED native pilot11/10pass/1fail; GREEN11/11. First current inventory cause captured for profile1149:157->165 tracked objects, representation cap160, native166/250 slots. Runtime initial demand probe still pending on the fixed JAR. Full-server builds1, GameServer starts2 (first premain-aborted), current own GameServer/LoginServer stopped gracefully. M1=OPEN, REAL_FINAL=NOT_RUN.

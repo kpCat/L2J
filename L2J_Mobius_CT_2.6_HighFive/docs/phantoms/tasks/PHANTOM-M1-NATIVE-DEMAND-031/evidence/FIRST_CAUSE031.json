@@ -1,0 +1,20 @@
+{
+  "utc": "2026-10-09T21:01:37.5760790Z",
+  "pid": 22472,
+  "startTicks": 639271746873832578,
+  "sourceSHA": "e083f35d9b3b1c1441f484c8f760c8dc34bbdbc0",
+  "gameJarSHA": "F45EE49006FB54D9A0141B8C3511533D9F4A20AC0D5EE181388531FF61C87D9B",
+  "jfrSHA": "00BE40ADFD955E091D4E4A49DC60384225F92A68FA6462E5B59EBB566D2EAE4B",
+  "jfrPublic": false,
+  "reason": "Raw JFR contains unrelated filesystem/account/runtime data; only bounded Phantom guard and aggregate exception counts public.",
+  "exceptionClass": "java.lang.IllegalArgumentException",
+  "profileId": 1149,
+  "trackedBefore": 157,
+  "trackedAfter": 165,
+  "trackedLimit": 160,
+  "usedSlots": 166,
+  "maximumSlots": 250,
+  "pauseNanos": 29990800,
+  "threadResumed": true,
+  "gameTimingExcluded": true
+}

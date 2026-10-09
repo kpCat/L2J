@@ -2068,6 +2068,20 @@ public final class PhantomSystem
 			.map(profile -> new OperatorLocalityTarget(profile.profileId(), profile.point(), profile.nodeId(), profile.topologyGeneration()));
 	}
 
+	/** Observation setup only: durable READY and calendar participation do not grant native admission. */
+	public static synchronized java.util.Optional<OperatorLocalityTarget> operatorSetupLocalityTarget(long profileId)
+	{
+		final PhantomSystem configured = _configuredInstance;
+		if ((profileId <= 0) || (configured == null) || (configured._state != State.RUNNING) || (configured._populationManager == null) || (configured._backgroundService == null)) { return java.util.Optional.empty(); }
+		final var admission = configured._populationManager.admissionProfile(profileId).orElse(null);
+		if ((admission == null) || (admission.populationState() != org.l2jmobius.gameserver.phantoms.population.PhantomPopulationState.State.READY) || !admission.calendarOnline()) { return java.util.Optional.empty(); }
+		final var durable = configured._backgroundService.acquisitionSnapshot(profileId).orElse(null);
+		if ((durable == null) || (durable.state() != org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.READY) || (durable.identity().profileId() != profileId)) { return java.util.Optional.empty(); }
+		final int objectId = durable.identity().characterObjectId();
+		if ((org.l2jmobius.gameserver.model.World.getInstance().findObject(objectId) != null) || (PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(objectId) != null) || org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(objectId)) { return java.util.Optional.empty(); }
+		return operatorLocalityTarget(profileId).filter(target -> target.committedPosition().instanceId() == 0);
+	}
+
 	/** Addressable M1 read: a live Player wins over the durable anchor only with a stable lifecycle epoch. */
 	public static synchronized java.util.Optional<OperatorM1TargetSnapshot> operatorM1TargetSnapshot(long profileId)
 	{

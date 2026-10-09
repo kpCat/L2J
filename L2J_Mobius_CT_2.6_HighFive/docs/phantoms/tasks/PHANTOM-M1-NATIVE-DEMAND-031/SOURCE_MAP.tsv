@@ -1,0 +1,10 @@
+mode	path	purpose
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/**	исходные source/отчёты/evidence, не переписывать
+DIAGNOSTIC_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	первый реальный exception до typedFailure; поведение прежнее
+DIAGNOSTIC_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	exception/SQLState перед generic BACKEND_FAILURE; транзакции прежние
+DIAGNOSTIC_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	необязательная readonly экспозиция существующих диагностик
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeDemand031Suite.java	composed setup vs actual native admission + observational parity
+WRITE_TASK	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-DEMAND-031/**	один адаптированный observer/entrypoints/evidence/result
+
+READ	L2J_Mobius_CT_2.6_HighFive/build.xml	debuglevel=lines,vars,source подтверждён на required base
+READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/Control030.ps1	own launcher/JAR/PID guards, не править старый
