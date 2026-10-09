@@ -189,6 +189,15 @@ public final class PhantomHumanLocalityControl implements PhantomSchedulerContro
 		return canPrewarmAt(profileId, human, _livePlayers.get());
 	}
 
+	/** Native context may itself be a readiness prerequisite; this is physical demand, never online admission. */
+	public boolean hasPhysicalDemand(long profileId)
+	{
+		final var live = _livePlayers.get().get(profileId);
+		final var profile = _topology.findProfile(profileId).orElse(null);
+		final var point = live != null ? live : profile == null ? null : profile.point();
+		return (point != null) && _humans.get().stream().limit(MAXIMUM_HUMANS_PER_REFRESH).anyMatch(human -> PhantomNativeLocalityEnvelope.prewarm(human, point));
+	}
+
 	private boolean canPrewarmAt(long profileId, PhantomTopologyPoint human, Map<Long, PhantomTopologyPoint> livePlayers)
 	{
 		final var live = livePlayers.get(profileId);

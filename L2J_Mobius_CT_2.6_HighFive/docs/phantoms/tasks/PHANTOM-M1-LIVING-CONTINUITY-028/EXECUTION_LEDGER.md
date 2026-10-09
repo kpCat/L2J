@@ -34,3 +34,10 @@ Local patterns: native Synthetic lifecycle, exact owned runtime controls027, bou
   hard holds, incident/checkpoint/pending and actual owner safety. Full-server proof
   on fresh d is pending. Acceptance for away absence applies to preselected two;
   all enrolled actors remain in denominator and whole-group persistence.
+- C 6362 full-server d: initial enrollment2 FAIL before MOVE; two original native
+  actors later absent and retained list empty. Withdrawal itself worked; broad
+  bootstrap predicate caused a readiness dependency regression. Original raw FAIL
+  remains. Own bootstrap/demand RED2 missing contracts → GREEN3/3. Finite intent is
+  stored only in the existing signal binding; first bootstrap unchanged, return
+  checks the existing native envelope independently of online readiness. New
+  controller, scheduler, owner registry and simulation authorization are absent.

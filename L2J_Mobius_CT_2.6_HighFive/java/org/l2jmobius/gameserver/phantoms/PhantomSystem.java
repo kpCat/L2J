@@ -2905,7 +2905,7 @@ public final class PhantomSystem
 			return _materializationRetention.observe(profileId).retained();
 		}
 		if ((entry != null) && (entry.state() != org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.State.STORED)) { return true; }
-		return _humanLocality.isLocal(profileId)
+		return !_backgroundService.nativeContextRetiring(profileId) || _humanLocality.hasPhysicalDemand(profileId)
 			|| ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId)))
 			|| ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId))
 			|| ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent());

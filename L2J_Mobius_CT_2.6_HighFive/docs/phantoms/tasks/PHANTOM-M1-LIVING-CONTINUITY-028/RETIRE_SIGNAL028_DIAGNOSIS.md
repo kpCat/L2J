@@ -29,3 +29,19 @@ their original identities remain in the full denominator and persistence report.
 
 Own contract RED/GREEN: evidence/L02_SIGNAL_RED.log and L02_SIGNAL_GREEN.log.
 Full-server correction proof remains pending until a new frozen episode completes.
+
+NATIVE_RETURN_D_6362_R1 failed the fixed60s enrollment guard (natural2, not4..8)
+before any MOVE. RETIRE_SIGNAL_D_6362_R1 later observed no retained materializations,
+proving that the signal withdrawal reached native retirement for those two actors.
+The first predicate additionally suppressed initial native-context bootstrap:
+isLocal requires online readiness, while native context may be that prerequisite.
+Native removal also deletes the materialization entry; absence alone cannot tell
+initial bootstrap from completed retirement.
+
+L02_BOOTSTRAP_RED and L02_DEMAND_RED expose missing finite-intent/physical-demand
+contracts. L02_DEMAND_GREEN passes3/3. The existing NativeContextSignal binding now
+retains a retirement boolean, not another controller/ownership registry. Initial
+bootstrap keeps the old default. Retired bindings resume only for native human
+geometry or protected party/store/reservation demand. hasPhysicalDemand uses the
+same prewarm envelope and actual live/committed point; it never changes online
+admission, publishes a signal, or substitutes an anchor for actual XYZ.

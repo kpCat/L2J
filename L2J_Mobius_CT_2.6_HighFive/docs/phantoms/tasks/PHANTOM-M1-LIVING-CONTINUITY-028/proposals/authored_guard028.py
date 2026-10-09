@@ -16,6 +16,7 @@ files += [MODULE / p for p in (
     'java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java',
     'java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java',
     'java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java',
+    'java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java',
     'java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java',
     'tools/phantom-local-play/Invoke-LocalPlayPilot.ps1',
     'tools/phantom-local-play/LocalPlay-Pilot.ps1',

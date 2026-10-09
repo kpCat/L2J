@@ -3,8 +3,10 @@ package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -15,6 +17,10 @@ import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentio
 import org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.PhantomPolicy;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickStatus;
@@ -48,16 +54,20 @@ public final class PhantomSoftReturn028Suite implements PhantomTestSuite
 			final var initial = ((Map<?, ?>) signals.get(f.background)).get(f.id);
 			final var requested = initial.getClass().getDeclaredMethod("requested"); requested.setAccessible(true);
 			PhantomAssertions.assertTrue((boolean) requested.invoke(initial), "Original native relevance is requested by default.");
+			final var retiring = f.background.getClass().getMethod("nativeContextRetiring", long.class);
+			PhantomAssertions.assertFalse((boolean) retiring.invoke(f.background, f.id), "Initial native-context bootstrap must remain eligible.");
 			final var install = f.background.getClass().getMethod("installNativeContextDemand", LongPredicate.class);
 			final var demand = new AtomicBoolean(false);
 			install.invoke(f.background, (LongPredicate) _ -> demand.get());
 			PhantomAssertions.assertEquals(PhantomBackgroundService.DirectiveKind.NATIVE_REQUIRED, f.background.directive(f.id, goal, PhantomActivityState.BACKGROUND).kind(), "Withdrawal never permits unsupported simulation.");
 			final var retired = ((Map<?, ?>) signals.get(f.background)).get(f.id);
 			PhantomAssertions.assertFalse((boolean) requested.invoke(retired), "RED: no demand withdraws the self-pinning ACTIVE source.");
+			PhantomAssertions.assertTrue((boolean) retiring.invoke(f.background, f.id), "Retire intent survives native removal in the existing signal binding.");
 			PhantomAssertions.assertEquals(before, f.transactions.nativeContext(f.id, f.objectId), "Relevance withdrawal changes no native context, reward or canonical state.");
 			demand.set(true);
 			f.background.directive(f.id, goal, PhantomActivityState.BACKGROUND);
 			PhantomAssertions.assertTrue((boolean) requested.invoke(((Map<?, ?>) signals.get(f.background)).get(f.id)), "New human/hard demand admits the same source again.");
+			PhantomAssertions.assertFalse((boolean) retiring.invoke(f.background, f.id), "Human return closes the finite retire intent.");
 			context.record("L02.native_context", f.background.nativeContextSignalDelivery(f.id));
 		}
 	}
@@ -77,6 +87,27 @@ public final class PhantomSoftReturn028Suite implements PhantomTestSuite
 		hard.set(true);
 		PhantomAssertions.assertTrue((boolean) admission.invoke(policy, 1L), "Real-party hard hold remains protected.");
 		context.record("B08.retention", policy.observe(1));
+		final var backend = new PhantomTopologyCoreSuite.TestBackend();
+		final var signals = new PhantomRelevanceSignalPort()
+		{
+			@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { throw new AssertionError("Physical fact must not submit."); }
+			@Override public SignalDelivery withdraw(long id, String source, long sequence) { throw new AssertionError("Physical fact must not withdraw."); }
+		};
+		final var topology = PhantomTopologyService.fromSnapshotForTesting(PhantomTopologyCoreSuite.snapshot(backend), backend, PhantomTopologyCoreSuite.POLICY, signals);
+		PhantomAssertions.assertTrue(topology.start(), "Existing topology fixture starts.");
+		try
+		{
+			topology.registerProfile(1); topology.updateProfile(1, PhantomTopologyCoreSuite.LEFT_POINT, 1);
+			final var humans = new AtomicReference<List<PhantomTopologyPoint>>(List.of(PhantomTopologyCoreSuite.LEFT_POINT));
+			final var locality = new PhantomHumanLocalityControl(topology, signals, humans::get, System::currentTimeMillis, _ -> false);
+			PhantomAssertions.assertFalse(locality.isLocal(1), "Online readiness remains fenced.");
+			final var physical = locality.getClass().getMethod("hasPhysicalDemand", long.class);
+			PhantomAssertions.assertTrue((boolean) physical.invoke(locality, 1L), "RED: native human geometry survives online/readiness dependency.");
+			humans.set(List.of());
+			PhantomAssertions.assertFalse((boolean) physical.invoke(locality, 1L), "Actual human departure removes physical demand.");
+			PhantomAssertions.assertFalse((boolean) physical.invoke(locality, 2L), "Unknown identity is never invented.");
+		}
+		finally { topology.beginStop(); topology.finishStop(); }
 	}
 	private void nativePool(PhantomTestContext context) throws Exception
 	{

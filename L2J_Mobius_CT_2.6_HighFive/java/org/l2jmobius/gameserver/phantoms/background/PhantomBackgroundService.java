@@ -2632,6 +2632,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	{
 		// Evaluate existing native/locality facts outside service, native and DB monitors.
 		final boolean requested = required && _nativeContextDemand.test(profileId);
+		final boolean retiring = required && !requested;
 		final long sequence;
 		final long version = proof.context().stateRowVersion();
 		synchronized (this)
@@ -2639,10 +2640,17 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			if (_state != ServiceState.RUNNING) { return PhantomRelevanceSignalPort.SignalDelivery.NOT_RUNNING; }
 			final var previous = _nativeContextSignals.get(profileId);
 			if ((previous != null) && (previous.stateRowVersion() > version)) { return PhantomRelevanceSignalPort.SignalDelivery.STALE; }
-			if (!requested && ((previous == null) || !previous.requested())) { return null; }
+			if (!requested && ((previous == null) || !previous.requested()))
+			{
+				if ((previous != null) && (previous.retiring() != retiring))
+				{
+					_nativeContextSignals.put(profileId, new NativeContextSignal(previous.sequence(), version, false, retiring, previous.delivery()));
+				}
+				return null;
+			}
 			if ((previous != null) && (previous.sequence() == Long.MAX_VALUE)) { return PhantomRelevanceSignalPort.SignalDelivery.SEQUENCE_EXHAUSTED; }
 			sequence = Math.max(Math.max(1, System.nanoTime()), previous == null ? 1 : previous.sequence() + 1);
-			_nativeContextSignals.put(profileId, new NativeContextSignal(sequence, version, requested, null));
+			_nativeContextSignals.put(profileId, new NativeContextSignal(sequence, version, requested, retiring, null));
 			_currentContextSignals++;
 		}
 		try
@@ -2651,7 +2659,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				? _signals.submit(profileId, new PhantomRelevanceSignal(NATIVE_CONTEXT_SIGNAL_SOURCE, sequence, PhantomActivityState.ACTIVE, NATIVE_CONTEXT_SIGNAL_TTL_MILLIS))
 				: _signals.withdraw(profileId, NATIVE_CONTEXT_SIGNAL_SOURCE, sequence);
 			_nativeContextSignals.computeIfPresent(profileId, (id, current) -> current.sequence() == sequence
-				? new NativeContextSignal(sequence, version, requested || ((delivery != PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED) && (delivery != PhantomRelevanceSignalPort.SignalDelivery.COALESCED)), delivery) : current);
+				? new NativeContextSignal(sequence, version, requested || ((delivery != PhantomRelevanceSignalPort.SignalDelivery.ACCEPTED) && (delivery != PhantomRelevanceSignalPort.SignalDelivery.COALESCED)), retiring, delivery) : current);
 			return delivery;
 		}
 		finally { synchronized (this) { _currentContextSignals--; } }
@@ -2664,7 +2672,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		return signal == null ? Optional.empty() : Optional.ofNullable(signal.delivery());
 	}
 
-	private record NativeContextSignal(long sequence, long stateRowVersion, boolean requested, PhantomRelevanceSignalPort.SignalDelivery delivery) {}
+	/** Existing signal binding keeps retire intent after the native entry is removed; no ownership is changed. */
+	public boolean nativeContextRetiring(long profileId)
+	{
+		final var signal = _nativeContextSignals.get(profileId);
+		return (signal != null) && signal.retiring();
+	}
+
+	private record NativeContextSignal(long sequence, long stateRowVersion, boolean requested, boolean retiring, PhantomRelevanceSignalPort.SignalDelivery delivery) {}
 
 	public enum OperationStatus
 	{
