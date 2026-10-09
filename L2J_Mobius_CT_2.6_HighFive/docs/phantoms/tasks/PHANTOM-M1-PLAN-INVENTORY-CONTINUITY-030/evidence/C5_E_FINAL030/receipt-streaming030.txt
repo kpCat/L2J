@@ -1,0 +1,155 @@
+suite=receipt-streaming030
+seed=15001501
+total=1
+passed=1
+failed=0
+measurement.E.activeReferenceHighwater=1
+measurement.E.actualOutput=C:\Users\ZBook\.codex\worktrees\m1-plan-inventory-030\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030\evidence\NATIVE_STREAM_297379909846500
+measurement.E.collectorFailure=
+measurement.E.finalBufferBytes=0
+measurement.E.nativeReleases=133
+measurement.E.reservedDiskBytes=908899
+measurement.E.sampledBufferHighwaterBytes=2186
+measurement.E05.actualTemporaryCheckpoint=NOT_TERMINAL_OWNER_RETAINED
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_localplay_contract030a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.focusedFixture.10913=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10914=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10915=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10916=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10917=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10918=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10919=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10920=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10921=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10922=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10923=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10924=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10925=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10926=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10927=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10928=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10929=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10930=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10931=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10932=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10933=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10934=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10935=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10936=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10937=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10938=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10939=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10940=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10941=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10942=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10943=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10944=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10945=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10946=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10947=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10948=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10949=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10950=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10951=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10952=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10953=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10954=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10955=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10956=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10957=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10958=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10959=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10960=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10961=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10962=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10963=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10964=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10965=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10966=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10967=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10968=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10969=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10970=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10971=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10972=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10973=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10974=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10975=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10976=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10977=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10978=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10979=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10980=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10981=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10982=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10983=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10984=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10985=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10986=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10987=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10988=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10989=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10990=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10991=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10992=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10993=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10994=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10995=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10996=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10997=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10998=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10999=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11000=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11001=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11002=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11003=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11004=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11005=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11006=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11007=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11008=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11009=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11010=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11011=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11012=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11013=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11014=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11015=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11016=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11017=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11018=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11019=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11020=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11021=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11022=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11023=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11024=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11025=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11026=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11027=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11028=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11029=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11030=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11031=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11032=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11033=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11034=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11035=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11036=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11037=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11038=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11039=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11040=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11041=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.11042=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+PASS receipt-streaming030.E01-E08-E09-native-sequential-births-and-terminal-export elapsedNanos=9318298700

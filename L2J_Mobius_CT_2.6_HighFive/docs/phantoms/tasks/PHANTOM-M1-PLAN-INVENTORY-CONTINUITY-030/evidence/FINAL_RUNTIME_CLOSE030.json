@@ -1,0 +1,70 @@
+[
+  {
+    "episode": "a",
+    "role": "GameServer",
+    "state": "STOPPED",
+    "pid": 0,
+    "recordVerified": false,
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-plan-inventory-030\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract030a\\runtime",
+    "exactPidAbsent": true,
+    "physicallyStopped": true
+  },
+  {
+    "episode": "a",
+    "role": "LoginServer",
+    "state": "STOPPED",
+    "pid": 0,
+    "recordVerified": false,
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-plan-inventory-030\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract030a\\runtime",
+    "exactPidAbsent": true,
+    "physicallyStopped": true
+  },
+  {
+    "episode": "b",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-plan-inventory-030\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract030b\\runtime",
+    "recordedPid": 7368,
+    "recordedStartTimeUtcTicks": 639271610732585875,
+    "exactPidAbsent": true,
+    "physicallyStopped": true
+  },
+  {
+    "episode": "b",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-plan-inventory-030\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract030b\\runtime",
+    "recordedPid": 12916,
+    "recordedStartTimeUtcTicks": 639271610720347920,
+    "exactPidAbsent": true,
+    "physicallyStopped": true
+  },
+  {
+    "episode": "c",
+    "role": "GameServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-plan-inventory-030\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract030c\\runtime",
+    "recordedPid": 22324,
+    "recordedStartTimeUtcTicks": 639271674667244401,
+    "exactPidAbsent": true,
+    "physicallyStopped": true
+  },
+  {
+    "episode": "c",
+    "role": "LoginServer",
+    "state": "STALE_RECORD",
+    "pid": 0,
+    "recordVerified": false,
+    "runtime": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-plan-inventory-030\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract030c\\runtime",
+    "recordedPid": 10336,
+    "recordedStartTimeUtcTicks": 639271674653605338,
+    "exactPidAbsent": true,
+    "physicallyStopped": true
+  }
+]

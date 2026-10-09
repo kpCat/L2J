@@ -1,0 +1,17 @@
+suite=sustained-farm026
+seed=26002601
+total=2
+passed=2
+failed=0
+measurement.E03.nativeGenerations.false=Snapshot[objectId=268435465, epoch=296394623561500, sampleNanos=296394765329000, overflow=true, sequence=16, damageSequence=0, killSequence=0, rewardSequence=0, targetSequence=16, farmCycleSequence=0, expGained=0, spGained=0, lootSequence=0, lastProgressNanos=296394765081900, phase=NONE, phaseSinceNanos=0, phaseDeadlineNanos=0, usefulProgressNanos=0, lootCount=0, trackedTargets=16, firstUnprovenReason=TARGET_CAP, firstUnprovenNanos=296394765280500]
+measurement.E03.nativeGenerations.true=Snapshot[objectId=268435465, epoch=296394885085500, sampleNanos=296394933897500, overflow=false, sequence=17, damageSequence=0, killSequence=0, rewardSequence=0, targetSequence=17, farmCycleSequence=0, expGained=0, spGained=0, lootSequence=0, lastProgressNanos=296394933882000, phase=NONE, phaseSinceNanos=0, phaseDeadlineNanos=0, usefulProgressNanos=0, lootCount=0, trackedTargets=1, firstUnprovenReason=NONE, firstUnprovenNanos=0]
+measurement.headless.database=l2jmobiush5_localplay_contract030a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS sustained-farm026.E03-distinct-native-target-cap-remains-fenced elapsedNanos=453821400
+PASS sustained-farm026.E03-native-respawn-selection-retires-only-undamaged-stale-generations elapsedNanos=108563900

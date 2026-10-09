@@ -1,0 +1,24 @@
+suite=sustained-farm026
+seed=26002601
+total=3
+passed=3
+failed=0
+measurement.F.census.false.true=[268481771:instance=0:xyz=-71001,254981,-3217, 268460394:instance=0:xyz=-70946,255024,-3232]
+measurement.F.census.true.false=[268460394:instance=0:xyz=-70946,255024,-3232]
+measurement.F.census.true.true=[268460394:instance=0:xyz=-70946,255024,-3232, 268480994:instance=0:xyz=-71001,254981,-3232]
+measurement.F.failure=Failure[profileId=10630, player=Player:PhT004A02601[268435465], epoch=296255857782100, goal=PhantomGoal[goalId=3850096020085293396, goalType=farm.background, status=ACTIVE, subject=PhantomDomainRef[namespace=profile, key=10630], target=PhantomDomainRef[namespace=npc, key=20545], requiredAmount=1, currentAmount=0, acquisitionMethod=background.farm, validSources=[PhantomDomainRef[namespace=background.farm, key=20545@population.farming.human-fighter.20545]], selectedAnchor=PhantomDomainRef[namespace=topology.anchor, key=population.farming.human-fighter.20545], purposeKey=farm.background, priority=500, riskBudget=0, expenseBudget=0, deadlineEpochMillis=0, constraints={}, reasonKey=background.catchup.plan, revision=0, payloadText=null], stepId=live.approach.population.farming.human-fighter.20545@-71081:254885:-3232, reason=travel.journey_deadline, disposition=NATIVE_ACTION_REJECTED, startedNanos=296256017532900, attempts=0]
+measurement.F.nativeWitness=origin=-71049,254981,-3217;geo=-3232;target=-71001,254981,-3217;nativePath=true
+measurement.F.priorWitnesses.false.true=[live.approach.population.farming.human-fighter.20545@-70946:255024:-3232]
+measurement.F.priorWitnesses.true.false=[live.approach.population.farming.human-fighter.20545@-70946:255024:-3232]
+measurement.F.priorWitnesses.true.true=[live.approach.population.farming.human-fighter.20545@-70946:255024:-3232]
+measurement.headless.database=l2jmobiush5_localplay_contract030a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS sustained-farm026.F01-fresh-independent-local-opportunity-after-terminal-standpoint elapsedNanos=564688300
+PASS sustained-farm026.F02-terminal-route-without-lawful-independent-target-remains-closed elapsedNanos=263991700
+PASS sustained-farm026.F10-native-z-local-opportunity-precedes-exact-standpoint elapsedNanos=113328500

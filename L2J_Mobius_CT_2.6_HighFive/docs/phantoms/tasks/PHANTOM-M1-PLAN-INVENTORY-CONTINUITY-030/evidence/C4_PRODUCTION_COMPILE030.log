@@ -1,0 +1,13 @@
+Buildfile: C:\Users\ZBook\.codex\worktrees\m1-plan-inventory-030\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml
+
+checkRequirements:
+
+init:
+   [delete] Deleting directory C:\Users\ZBook\.codex\worktrees\m1-plan-inventory-030\L2J_Mobius\build\bin
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\m1-plan-inventory-030\L2J_Mobius\build\bin
+
+compile:
+    [javac] Compiling 2314 source files to C:\Users\ZBook\.codex\worktrees\m1-plan-inventory-030\L2J_Mobius\build\bin
+
+BUILD SUCCESSFUL
+Total time: 20 seconds

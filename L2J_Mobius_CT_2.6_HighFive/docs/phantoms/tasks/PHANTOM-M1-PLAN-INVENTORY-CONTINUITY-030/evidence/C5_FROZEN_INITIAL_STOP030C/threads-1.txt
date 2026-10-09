@@ -1,0 +1,347 @@
+14644:
+2026-10-09 21:17:59
+Full thread dump OpenJDK 64-Bit Server VM (25.0.4.1+1-LTS mixed mode, sharing):
+
+Threads class SMR info:
+_java_thread_list=0x000001fa060f5e90, length=27, elements={
+0x000001fa6d9f2be0, 0x000001fa6d9f33a0, 0x000001fa6d9f9b90, 0x000001fa6d9031f0,
+0x000001fa6d905900, 0x000001fa6d9068a0, 0x000001fa6d9fbd20, 0x000001fa6d9fc530,
+0x000001fa6da08a20, 0x000001fa6da0a190, 0x000001fa6da0d840, 0x000001fa7e029780,
+0x000001fa7e029f50, 0x000001fa7e2a6ab0, 0x000001fa53c74490, 0x000001fa53c690e0,
+0x000001fa53c698b0, 0x000001fa53c62b50, 0x000001fa53c6b7f0, 0x000001fa53c6f670,
+0x000001fa059dcf00, 0x000001fa059dee40, 0x000001fa059dbf60, 0x000001fa059e0d80,
+0x000001fa0c2b6f00, 0x000001fa09053c10, 0x000001fa09053400
+}
+
+"Reference Handler" #33 [29844] daemon prio=10 os_prio=2 cpu=109.38ms elapsed=779.74s tid=0x000001fa6d9f2be0 nid=29844 waiting on condition  [0x000000bedcfff000]
+   java.lang.Thread.State: RUNNABLE
+	at java.lang.ref.Reference.waitForReferencePendingList(java.base@25.0.4.1/Native Method)
+	at java.lang.ref.Reference.processPendingReferences(java.base@25.0.4.1/Reference.java:246)
+	at java.lang.ref.Reference$ReferenceHandler.run(java.base@25.0.4.1/Reference.java:208)
+
+   Locked ownable synchronizers:
+	- None
+
+"Finalizer" #34 [6264] daemon prio=8 os_prio=1 cpu=0.00ms elapsed=779.74s tid=0x000001fa6d9f33a0 nid=6264 in Object.wait()  [0x000000bedd0fe000]
+   java.lang.Thread.State: WAITING (on object monitor)
+	at java.lang.Object.wait0(java.base@25.0.4.1/Native Method)
+	- waiting on <0x00000400008e4840> (a java.lang.ref.ReferenceQueue$Lock)
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:389)
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:351)
+	at java.lang.ref.ReferenceQueue.remove0(java.base@25.0.4.1/ReferenceQueue.java:137)
+	at java.lang.ref.ReferenceQueue.remove(java.base@25.0.4.1/ReferenceQueue.java:215)
+	- locked <0x00000400008e4840> (a java.lang.ref.ReferenceQueue$Lock)
+	at java.lang.ref.Finalizer$FinalizerThread.run(java.base@25.0.4.1/Finalizer.java:165)
+
+   Locked ownable synchronizers:
+	- None
+
+"Signal Dispatcher" #35 [20276] daemon prio=9 os_prio=2 cpu=0.00ms elapsed=779.74s tid=0x000001fa6d9f9b90 nid=20276 waiting on condition  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+
+   Locked ownable synchronizers:
+	- None
+
+"Attach Listener" #36 [24800] daemon prio=5 os_prio=2 cpu=2625.00ms elapsed=779.74s tid=0x000001fa6d9031f0 nid=24800 waiting on condition  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+
+   Locked ownable synchronizers:
+	- None
+
+"Service Thread" #37 [11484] daemon prio=9 os_prio=0 cpu=46.88ms elapsed=779.74s tid=0x000001fa6d905900 nid=11484 runnable  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+
+   Locked ownable synchronizers:
+	- None
+
+"Monitor Deflation Thread" #38 [21908] daemon prio=9 os_prio=0 cpu=0.00ms elapsed=779.74s tid=0x000001fa6d9068a0 nid=21908 runnable  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+
+   Locked ownable synchronizers:
+	- None
+
+"C2 CompilerThread0" #39 [23844] daemon prio=9 os_prio=2 cpu=44390.62ms elapsed=779.74s tid=0x000001fa6d9fbd20 nid=23844 waiting on condition  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+   No compile task
+
+   Locked ownable synchronizers:
+	- None
+
+"C1 CompilerThread0" #47 [36432] daemon prio=9 os_prio=2 cpu=4562.50ms elapsed=779.74s tid=0x000001fa6d9fc530 nid=36432 waiting on condition  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+   No compile task
+
+   Locked ownable synchronizers:
+	- None
+
+"Common-Cleaner" #51 [1900] daemon prio=8 os_prio=1 cpu=0.00ms elapsed=779.70s tid=0x000001fa6da08a20 nid=1900 in Object.wait()  [0x000000bedd9ff000]
+   java.lang.Thread.State: TIMED_WAITING (on object monitor)
+	at java.lang.Object.wait0(java.base@25.0.4.1/Native Method)
+	- waiting on <no object reference available>
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:389)
+	at java.lang.ref.ReferenceQueue.remove0(java.base@25.0.4.1/ReferenceQueue.java:123)
+	at java.lang.ref.ReferenceQueue.remove(java.base@25.0.4.1/ReferenceQueue.java:201)
+	- locked <0x0000040008ec56d8> (a java.lang.ref.ReferenceQueue$Lock)
+	at jdk.internal.ref.CleanerImpl.run(java.base@25.0.4.1/CleanerImpl.java:146)
+	at java.lang.Thread.runWith(java.base@25.0.4.1/Thread.java:1487)
+	at java.lang.Thread.run(java.base@25.0.4.1/Thread.java:1474)
+	at jdk.internal.misc.InnocuousThread.run(java.base@25.0.4.1/InnocuousThread.java:148)
+
+   Locked ownable synchronizers:
+	- None
+
+"TASK030-witness-export" #52 [36108] daemon prio=5 os_prio=0 cpu=8296.88ms elapsed=779.51s tid=0x000001fa6da0a190 nid=36108 sleeping [0x000000beddaff000]
+   java.lang.Thread.State: TIMED_WAITING (sleeping)
+	at java.lang.Thread.sleepNanos0(java.base@25.0.4.1/Native Method)
+	at java.lang.Thread.sleepNanos(java.base@25.0.4.1/Thread.java:509)
+	at java.lang.Thread.sleep(java.base@25.0.4.1/Thread.java:540)
+	at Contract030ObserverF08B228B9484.lambda$installHooks$0(Contract030ObserverF08B228B9484.java:453)
+	at Contract030ObserverF08B228B9484$$Lambda/0x000000008507c000.run(Unknown Source)
+	at java.lang.Thread.runWith(java.base@25.0.4.1/Thread.java:1487)
+	at java.lang.Thread.run(java.base@25.0.4.1/Thread.java:1474)
+
+   Locked ownable synchronizers:
+	- None
+
+"Notification Thread" #54 [8536] daemon prio=9 os_prio=0 cpu=0.00ms elapsed=779.50s tid=0x000001fa6da0d840 nid=8536 runnable  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+
+   Locked ownable synchronizers:
+	- None
+
+"mysql-cj-abandoned-connection-cleanup" #57 [36684] daemon prio=5 os_prio=0 cpu=0.00ms elapsed=779.19s tid=0x000001fa7e029780 nid=36684 in Object.wait()  [0x000000beddffe000]
+   java.lang.Thread.State: TIMED_WAITING (on object monitor)
+	at java.lang.Object.wait0(java.base@25.0.4.1/Native Method)
+	- waiting on <no object reference available>
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:389)
+	at java.lang.ref.ReferenceQueue.remove0(java.base@25.0.4.1/ReferenceQueue.java:123)
+	at java.lang.ref.ReferenceQueue.remove(java.base@25.0.4.1/ReferenceQueue.java:201)
+	- locked <0x0000040008e6b1c0> (a java.lang.ref.ReferenceQueue$Lock)
+	at com.mysql.cj.jdbc.AbandonedConnectionCleanupThread.run(AbandonedConnectionCleanupThread.java:84)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(java.base@25.0.4.1/ThreadPoolExecutor.java:1090)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(java.base@25.0.4.1/ThreadPoolExecutor.java:614)
+	at java.lang.Thread.runWith(java.base@25.0.4.1/Thread.java:1487)
+	at java.lang.Thread.run(java.base@25.0.4.1/Thread.java:1474)
+
+   Locked ownable synchronizers:
+	- <0x0000040008e6c618> (a java.util.concurrent.ThreadPoolExecutor$Worker)
+
+"L2JMobiusPool:housekeeper" #58 [13268] daemon prio=5 os_prio=0 cpu=0.00ms elapsed=779.05s tid=0x000001fa7e029f50 nid=13268 waiting on condition  [0x000000bede2ff000]
+   java.lang.Thread.State: TIMED_WAITING (parking)
+	at jdk.internal.misc.Unsafe.park(java.base@25.0.4.1/Native Method)
+	- parking to wait for  <0x00000400013bf498> (a java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject)
+	at java.util.concurrent.locks.LockSupport.parkNanos(java.base@25.0.4.1/LockSupport.java:271)
+	at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(java.base@25.0.4.1/AbstractQueuedSynchronizer.java:1803)
+	at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(java.base@25.0.4.1/ScheduledThreadPoolExecutor.java:1166)
+	at java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(java.base@25.0.4.1/ScheduledThreadPoolExecutor.java:883)
+	at java.util.concurrent.ThreadPoolExecutor.getTask(java.base@25.0.4.1/ThreadPoolExecutor.java:1016)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(java.base@25.0.4.1/ThreadPoolExecutor.java:1076)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(java.base@25.0.4.1/ThreadPoolExecutor.java:614)
+	at java.lang.Thread.runWith(java.base@25.0.4.1/Thread.java:1487)
+	at java.lang.Thread.run(java.base@25.0.4.1/Thread.java:1474)
+
+   Locked ownable synchronizers:
+	- None
+
+"GameTimeTaskManager" #156 [35368] daemon prio=10 os_prio=2 cpu=31.25ms elapsed=778.89s tid=0x000001fa7e2a6ab0 nid=35368 sleeping [0x000000bee45ff000]
+   java.lang.Thread.State: TIMED_WAITING (sleeping)
+	at java.lang.Thread.sleepNanos0(java.base@25.0.4.1/Native Method)
+	at java.lang.Thread.sleepNanos(java.base@25.0.4.1/Thread.java:509)
+	at java.lang.Thread.sleep(java.base@25.0.4.1/Thread.java:540)
+	at org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager.run(GameTimeTaskManager.java:121)
+
+   Locked ownable synchronizers:
+	- None
+
+"DeadlockWatcher" #179 [32288] daemon prio=5 os_prio=0 cpu=15.62ms elapsed=714.47s tid=0x000001fa53c74490 nid=32288 waiting on condition  [0x000000bee55ff000]
+   java.lang.Thread.State: TIMED_WAITING (sleeping)
+	at java.lang.Thread.sleepNanos0(java.base@25.0.4.1/Native Method)
+	at java.lang.Thread.sleepNanos(java.base@25.0.4.1/Thread.java:509)
+	at java.lang.Thread.sleep(java.base@25.0.4.1/Thread.java:540)
+	at org.l2jmobius.commons.util.DeadlockWatcher.run(DeadlockWatcher.java:95)
+
+   Locked ownable synchronizers:
+	- None
+
+"InnocuousThread-1" #180 [24012] daemon prio=5 os_prio=0 cpu=0.00ms elapsed=712.57s tid=0x000001fa53c690e0 nid=24012 runnable  [0x000000bedb2ff000]
+   java.lang.Thread.State: RUNNABLE
+	at sun.nio.ch.Iocp.getQueuedCompletionStatus(java.base@25.0.4.1/Native Method)
+	at sun.nio.ch.Iocp$EventHandlerTask.run(java.base@25.0.4.1/Iocp.java:323)
+	at java.lang.Thread.runWith(java.base@25.0.4.1/Thread.java:1487)
+	at java.lang.Thread.run(java.base@25.0.4.1/Thread.java:1474)
+	at jdk.internal.misc.InnocuousThread.run(java.base@25.0.4.1/InnocuousThread.java:148)
+
+   Locked ownable synchronizers:
+	- None
+
+"LoginServerThread" #181 [1772] prio=5 os_prio=0 cpu=78.12ms elapsed=712.56s tid=0x000001fa53c698b0 nid=1772 runnable  [0x000000bedb3fe000]
+   java.lang.Thread.State: RUNNABLE
+	at sun.nio.ch.SocketDispatcher.read0(java.base@25.0.4.1/Native Method)
+	at sun.nio.ch.SocketDispatcher.read(java.base@25.0.4.1/SocketDispatcher.java:47)
+	at sun.nio.ch.NioSocketImpl.tryRead(java.base@25.0.4.1/NioSocketImpl.java:255)
+	at sun.nio.ch.NioSocketImpl.implRead(java.base@25.0.4.1/NioSocketImpl.java:305)
+	at sun.nio.ch.NioSocketImpl.read(java.base@25.0.4.1/NioSocketImpl.java:354)
+	at sun.nio.ch.NioSocketImpl$1.read(java.base@25.0.4.1/NioSocketImpl.java:798)
+	at java.net.Socket$SocketInputStream.implRead(java.base@25.0.4.1/Socket.java:974)
+	at java.net.Socket$SocketInputStream.read(java.base@25.0.4.1/Socket.java:964)
+	at java.net.Socket$SocketInputStream.read(java.base@25.0.4.1/Socket.java:958)
+	at org.l2jmobius.gameserver.LoginServerThread.run(LoginServerThread.java:175)
+
+   Locked ownable synchronizers:
+	- <0x000004006eba9970> (a java.util.concurrent.locks.ReentrantLock$NonfairSync)
+
+"Java2D Disposer" #182 [30668] daemon prio=10 os_prio=2 cpu=0.00ms elapsed=712.48s tid=0x000001fa53c62b50 nid=30668 in Object.wait()  [0x000000bedd7fe000]
+   java.lang.Thread.State: WAITING (on object monitor)
+	at java.lang.Object.wait0(java.base@25.0.4.1/Native Method)
+	- waiting on <0x000004006eb9b908> (a java.lang.ref.ReferenceQueue$Lock)
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:389)
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:351)
+	at java.lang.ref.ReferenceQueue.remove0(java.base@25.0.4.1/ReferenceQueue.java:137)
+	at java.lang.ref.ReferenceQueue.remove(java.base@25.0.4.1/ReferenceQueue.java:215)
+	- locked <0x000004006eb9b908> (a java.lang.ref.ReferenceQueue$Lock)
+	at sun.java2d.Disposer.run(java.desktop@25.0.4.1/Disposer.java:133)
+	at java.lang.Thread.runWith(java.base@25.0.4.1/Thread.java:1487)
+	at java.lang.Thread.run(java.base@25.0.4.1/Thread.java:1474)
+
+   Locked ownable synchronizers:
+	- None
+
+"AWT-Windows" #184 [26420] daemon prio=6 os_prio=0 cpu=31.25ms elapsed=712.45s tid=0x000001fa53c6b7f0 nid=26420 runnable  [0x000000bede1ff000]
+   java.lang.Thread.State: RUNNABLE
+	at sun.awt.windows.WToolkit.eventLoop(java.desktop@25.0.4.1/Native Method)
+	at sun.awt.windows.WToolkit.run(java.desktop@25.0.4.1/WToolkit.java:272)
+	at java.lang.Thread.runWith(java.base@25.0.4.1/Thread.java:1487)
+	at java.lang.Thread.run(java.base@25.0.4.1/Thread.java:1474)
+
+   Locked ownable synchronizers:
+	- None
+
+"DestroyJavaVM" #187 [21048] prio=5 os_prio=0 cpu=58453.12ms elapsed=712.42s tid=0x000001fa53c6f670 nid=21048 waiting on condition  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+
+   Locked ownable synchronizers:
+	- None
+
+"MySQL Statement Cancellation Timer" #212 [31964] daemon prio=5 os_prio=0 cpu=593.75ms elapsed=178.75s tid=0x000001fa059dcf00 nid=31964 in Object.wait()  [0x000000bede0ff000]
+   java.lang.Thread.State: TIMED_WAITING (on object monitor)
+	at java.lang.Object.wait0(java.base@25.0.4.1/Native Method)
+	- waiting on <no object reference available>
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:389)
+	at java.util.TimerThread.mainLoop(java.base@25.0.4.1/Timer.java:569)
+	- locked <0x0000040071a029b0> (a java.util.TaskQueue)
+	at java.util.TimerThread.run(java.base@25.0.4.1/Timer.java:522)
+
+   Locked ownable synchronizers:
+	- None
+
+"MySQL Statement Cancellation Timer" #213 [34352] daemon prio=5 os_prio=0 cpu=468.75ms elapsed=175.37s tid=0x000001fa059dee40 nid=34352 in Object.wait()  [0x000000bee50ff000]
+   java.lang.Thread.State: WAITING (on object monitor)
+	at java.lang.Object.wait0(java.base@25.0.4.1/Native Method)
+	- waiting on <no object reference available>
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:389)
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:351)
+	at java.util.TimerThread.mainLoop(java.base@25.0.4.1/Timer.java:543)
+	- locked <0x0000040072200050> (a java.util.TaskQueue)
+	at java.util.TimerThread.run(java.base@25.0.4.1/Timer.java:522)
+
+   Locked ownable synchronizers:
+	- None
+
+"MySQL Statement Cancellation Timer" #215 [29920] daemon prio=5 os_prio=0 cpu=15.62ms elapsed=141.76s tid=0x000001fa059dbf60 nid=29920 in Object.wait()  [0x000000bedddff000]
+   java.lang.Thread.State: WAITING (on object monitor)
+	at java.lang.Object.wait0(java.base@25.0.4.1/Native Method)
+	- waiting on <no object reference available>
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:389)
+	at java.lang.Object.wait(java.base@25.0.4.1/Object.java:351)
+	at java.util.TimerThread.mainLoop(java.base@25.0.4.1/Timer.java:543)
+	- locked <0x00000400712004e0> (a java.util.TaskQueue)
+	at java.util.TimerThread.run(java.base@25.0.4.1/Timer.java:522)
+
+   Locked ownable synchronizers:
+	- None
+
+"Thread-11" #219 [25420] daemon prio=5 os_prio=0 cpu=46.88ms elapsed=7.83s tid=0x000001fa059e0d80 nid=25420 waiting on condition  [0x000000bee56ff000]
+   java.lang.Thread.State: TIMED_WAITING (sleeping)
+	at java.lang.Thread.sleepNanos0(java.base@25.0.4.1/Native Method)
+	at java.lang.Thread.sleepNanos(java.base@25.0.4.1/Thread.java:509)
+	at java.lang.Thread.sleep(java.base@25.0.4.1/Thread.java:540)
+	at org.l2jmobius.gameserver.Shutdown.saveData(Shutdown.java:595)
+	at org.l2jmobius.gameserver.Shutdown.startShutdownActions(Shutdown.java:468)
+	at org.l2jmobius.gameserver.Shutdown.run(Shutdown.java:155)
+
+   Locked ownable synchronizers:
+	- None
+
+"C1 CompilerThread1" #48 [13348] daemon prio=9 os_prio=2 cpu=0.00ms elapsed=4.04s tid=0x000001fa0c2b6f00 nid=13348 waiting on condition  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+   No compile task
+
+   Locked ownable synchronizers:
+	- None
+
+"C2 CompilerThread1" #40 [30432] daemon prio=9 os_prio=2 cpu=15.62ms elapsed=4.01s tid=0x000001fa09053c10 nid=30432 waiting on condition  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+   No compile task
+
+   Locked ownable synchronizers:
+	- None
+
+"C2 CompilerThread2" #41 [23252] daemon prio=9 os_prio=2 cpu=93.75ms elapsed=4.01s tid=0x000001fa09053400 nid=23252 waiting on condition  [0x0000000000000000]
+   java.lang.Thread.State: RUNNABLE
+   No compile task
+
+   Locked ownable synchronizers:
+	- None
+
+"VM Thread" os_prio=2 cpu=6546.88ms elapsed=779.75s tid=0x000001fa631aaf20 nid=4272 runnable  
+
+"VM Periodic Task Thread" os_prio=2 cpu=125.00ms elapsed=779.75s tid=0x000001fa7cee1650 nid=22172 waiting on condition  
+
+"RuntimeWorker#9" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631ab7c0 nid=35452 runnable  
+
+"RuntimeWorker#1" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631ada40 nid=8116 runnable  
+
+"RuntimeWorker#7" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631ad5f0 nid=22924 runnable  
+
+"RuntimeWorker#2" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631ae2e0 nid=22300 runnable  
+
+"RuntimeWorker#0" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631ad1a0 nid=12784 runnable  
+
+"RuntimeWorker#4" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631abc10 nid=14436 runnable  
+
+"ZStat" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa6d8e9f50 nid=28724 runnable  
+
+"RuntimeWorker#8" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631aaad0 nid=27760 runnable  
+
+"RuntimeWorker#6" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631ac4b0 nid=32656 runnable  
+
+"RuntimeWorker#5" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631ac060 nid=30664 runnable  
+
+"RuntimeWorker#3" os_prio=2 cpu=0.00ms elapsed=779.76s tid=0x000001fa631acd50 nid=8996 runnable  
+
+"ZDirector" os_prio=2 cpu=109.38ms elapsed=779.76s tid=0x000001fa6d8e8380 nid=22808 runnable  
+
+"ZDriverMajor" os_prio=2 cpu=109.38ms elapsed=779.76s tid=0x000001fa6d8e7340 nid=29140 runnable  
+
+"ZDriverMinor" os_prio=2 cpu=171.88ms elapsed=779.76s tid=0x000001fa6d8e5af0 nid=28540 runnable  
+
+"ZWorkerYoung#3" os_prio=2 cpu=6906.25ms elapsed=779.80s tid=0x000001fa631ab370 nid=36076 runnable  
+
+"ZWorkerYoung#1" os_prio=2 cpu=8296.88ms elapsed=779.80s tid=0x000001fa631ade90 nid=25312 runnable  
+
+"ZWorkerYoung#2" os_prio=2 cpu=8343.75ms elapsed=779.80s tid=0x000001fa631ac900 nid=28016 runnable  
+
+"ZWorkerYoung#0" os_prio=2 cpu=7640.62ms elapsed=779.80s tid=0x000001fa6d8d9290 nid=26520 runnable  
+
+"ZWorkerOld#3" os_prio=2 cpu=10062.50ms elapsed=779.80s tid=0x000001fa6d8d7920 nid=21896 runnable  
+
+"ZWorkerOld#2" os_prio=2 cpu=7234.38ms elapsed=779.80s tid=0x000001fa6d8d6130 nid=23796 runnable  
+
+"ZWorkerOld#1" os_prio=2 cpu=2828.12ms elapsed=779.80s tid=0x000001fa6d8d50e0 nid=18732 runnable  
+
+"ZWorkerOld#0" os_prio=2 cpu=9640.62ms elapsed=779.80s tid=0x000001fa630e6f00 nid=32404 runnable  
+
+"ZUncommitter#0" os_prio=2 cpu=31.25ms elapsed=779.80s tid=0x000001fa6d8bf250 nid=10316 runnable  
+
+JNI global refs: 47, weak refs: 0
+

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="2" passed="2" failures="0">
+  <properties>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract030a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="m1.Q09.review.false" value="actualBoundary=1 nativeOutstanding=0 pending=false open=true epoch=295939547114500"/>
+    <property name="m1.Q09.review.true" value="actualBoundary=1 nativeOutstanding=0 pending=false open=false epoch=295939344347000"/>
+    <property name="m1.focusedFixture.10597" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10598" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q09-native-arrival-finalized-mismatch-keeps-fence" elapsedNanos="360570600"></testcase>
+  <testcase name="m1-native-lifecycle.Q09-native-live-pending-resume-reopens-exact-lifetime" elapsedNanos="119581300"></testcase>
+</testsuite>

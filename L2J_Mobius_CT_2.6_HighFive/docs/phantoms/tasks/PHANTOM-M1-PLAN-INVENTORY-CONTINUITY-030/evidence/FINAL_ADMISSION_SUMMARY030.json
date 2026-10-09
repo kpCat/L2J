@@ -1,0 +1,76 @@
+{
+  "sample": "C5_FINAL_SCENE_A030C",
+  "rows": 1280,
+  "readyOnlineComplete": 0,
+  "firstGuards": [
+    {
+      "guard": "schedule_not_active:ecology.commit_pending:SUCCESS",
+      "count": 273
+    },
+    {
+      "guard": "ecology_fenced:transaction.backend_failure:SUCCESS",
+      "count": 178
+    },
+    {
+      "guard": "ecology_fenced:transaction.item_conflict_canonical:NATIVE_CONTEXT_REQUIRED",
+      "count": 165
+    },
+    {
+      "guard": "schedule_not_active:transaction.backend_failure:SUCCESS",
+      "count": 126
+    },
+    {
+      "guard": "ecology_fenced:catchup.travel.no_route:SUCCESS",
+      "count": 101
+    },
+    {
+      "guard": "schedule_not_active:transaction.item_conflict_canonical:NATIVE_CONTEXT_REQUIRED",
+      "count": 96
+    },
+    {
+      "guard": "ecology_fenced:ecology.commit_pending:SUCCESS",
+      "count": 88
+    },
+    {
+      "guard": "schedule_not_active:ecology.persistence_or_runtime_failure:SUCCESS",
+      "count": 70
+    },
+    {
+      "guard": "ecology_fenced:ecology.persistence_or_runtime_failure:SUCCESS",
+      "count": 60
+    },
+    {
+      "guard": "schedule_not_active:transaction.native_context_required:SUCCESS",
+      "count": 33
+    },
+    {
+      "guard": "schedule_not_active:catchup.renewal.background_state_invalid:INCONSISTENT",
+      "count": 30
+    },
+    {
+      "guard": "ecology_fenced:catchup.renewal.background_state_invalid:INCONSISTENT",
+      "count": 13
+    },
+    {
+      "guard": "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+      "count": 12
+    },
+    {
+      "guard": "schedule_not_active:ecology.cursor_pending:SUCCESS",
+      "count": 11
+    },
+    {
+      "guard": "ecology_fenced:ecology.cursor_pending:SUCCESS",
+      "count": 10
+    },
+    {
+      "guard": "ecology_fenced:transaction.native_context_required:SUCCESS",
+      "count": 9
+    },
+    {
+      "guard": "ecology_fenced:native_context.required:accepted:SUCCESS",
+      "count": 5
+    }
+  ],
+  "capacityCausality": "NOT_PROVEN"
+}

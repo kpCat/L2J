@@ -34,3 +34,20 @@ Ran 18 tests in 0.047s
 OK
 
 ```
+
+## Execution030 final checks
+
+Frozen5375198db48575666623ac79b875373d1750cdc6; projection focused4/4,
+streaming positive133 lifetimes plus expected-failure controls; regressions18routes92/92,
+lifecycle02711/11. Five capture server streams4182/4182 structural coverage only.
+Two actual frozen sameDB stops: DONE COMPLETE before pools, counters/refs0, stock physical stop.
+Natural admission FAIL; A blocked, B/return/crash not run; whole-save not proven. TASK BLOCKED.
+Scope: three production files, two suites, exact task030 package. No conditional product files.
+Bounded exception for generated evidence count per SOURCE_MAP WRITE_TASK; no broad refactor.
+Mojibake-маркеры в изменённых файлах проверены: совпадений нет.
+Escaped Cyrillic в изменённых файлах проверены: совпадений нет.
+Two distinct rg passes, evidence/FINAL_MOJIBAKE_CHECK030.json and FINAL_ESCAPED_CYRILLIC_CHECK030.json.
+Derived .sqlite/.pyc excluded; two accidentally published derived indexes removed by exact paths
+without history rewrite. Immutable raw witnesses retained. No binary runtime/DB dump/private keys.
+Git read/exact stage/commit/normal push authorized by TASK030. No add ., reset, clean,
+stash, rebase, force push or foreign/main mutation. Full result is RESULT.md.

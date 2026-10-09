@@ -40,3 +40,27 @@ U05 отсутствующие old872/1272/early252 witnesses не восста�
 ordinary batch читает эту committed проекцию. Защита mutateItems остаётся.
 Collector ограничивает активные/ещё не выгруженные данные, а не суммарное число персонажей
 за жизнь JVM. Все закрытые epochs остаются в append-only evidence, без удержания Player.
+
+## Execution030 — final factual update
+
+Own goalA→goalB production travel reproduced item1864 EXECUTE_NON_MUTABLE_ID before fix.
+Shared ordinary/historical gate now validates full authoritative footprint before RNG and
+metadata-only CAS switch. Canonical rows/rewards/receipt/clock/cursor remain unchanged.
+This establishes one current producer, not the exclusive old item118/finalC7 producer.
+Fatal projection Error control reproduced swallowed fatal outcome; rollback/rethrow fixed.
+
+Collector actual cumulative33 RED repaired by ACTIVE128 plus durable stream. Positive133
+lifetimes, three repeated epochs, actual temporary SEALED and post-terminal background work
+PASS. Expected ACTIVE/FS/full-ring failures invalidate proof while native releases succeed.
+Five startup-enrolled server JVM4182/4182 terminals structural PASS; SQL equality not evaluated.
+
+Current admission remains BLOCKED before scene window:1280 census, complete eligible0,
+first guards saved per actor. No capacity causal claim, no SQL-heal and no admission bypass.
+Old labelled finalC7 restart stderr line262 contains item118/HISTORICAL_FARM/profile110;
+retained manifest codeSha fd7b74f9984e6d6f16341d7ec36e3b69464fee03 does not establish exact
+final frozen C7 source/incarnation. U01/U04/U05 remain UNKNOWN; old missing receipts untouched.
+
+C5 before-pools measurement was NOT_PROVEN. C6 bounded memory sampler proved typed
+PENDING→DONE COMPLETE before shared pools in two sameSHA/sameDB runs, all residual counters0.
+This is healthy drain evidence, not whole-save equality. Product scenes, whole-return and
+crash dependency gates remain unpassed. TASK_RESULT=BLOCKED; M1=OPEN.

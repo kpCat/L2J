@@ -1,0 +1,13 @@
+{
+  "contract": "STRUCTURAL_LIFETIME_COVERAGE030",
+  "coverage_pass": true,
+  "raw_records": 19295,
+  "runs": 5,
+  "registered": 4182,
+  "terminals": 4182,
+  "fault_count": 0,
+  "first_faults": [],
+  "native_correctness": "NOT_EVALUATED",
+  "sql_equality": "NOT_EVALUATED",
+  "input_sha256": "5730a0af78c659fb3c3cf215e230938e582cf29c4251a5031fd84c731e1fd879"
+}

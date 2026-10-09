@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="receipt-streaming030" seed="15001501" tests="1" passed="1" failures="0">
+  <properties>
+    <property name="E.activeReferenceHighwater" value="1"/>
+    <property name="E.actualOutput" value="C:\Users\ZBook\.codex\worktrees\m1-plan-inventory-030\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030\evidence\NATIVE_STREAM_297379909846500"/>
+    <property name="E.collectorFailure" value=""/>
+    <property name="E.finalBufferBytes" value="0"/>
+    <property name="E.nativeReleases" value="133"/>
+    <property name="E.reservedDiskBytes" value="908899"/>
+    <property name="E.sampledBufferHighwaterBytes" value="2186"/>
+    <property name="E05.actualTemporaryCheckpoint" value="NOT_TERMINAL_OWNER_RETAINED"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract030a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="m1.focusedFixture.10913" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10914" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10915" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10916" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10917" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10918" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10919" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10920" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10921" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10922" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10923" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10924" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10925" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10926" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10927" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10928" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10929" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10930" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10931" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10932" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10933" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10934" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10935" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10936" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10937" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10938" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10939" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10940" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10941" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10942" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10943" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10944" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10945" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10946" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10947" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10948" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10949" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10950" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10951" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10952" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10953" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10954" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10955" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10956" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10957" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10958" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10959" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10960" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10961" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10962" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10963" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10964" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10965" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10966" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10967" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10968" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10969" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10970" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10971" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10972" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10973" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10974" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10975" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10976" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10977" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10978" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10979" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10980" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10981" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10982" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10983" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10984" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10985" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10986" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10987" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10988" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10989" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10990" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10991" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10992" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10993" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10994" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10995" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10996" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10997" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10998" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10999" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11000" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11001" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11002" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11003" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11004" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11005" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11006" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11007" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11008" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11009" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11010" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11011" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11012" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11013" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11014" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11015" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11016" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11017" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11018" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11019" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11020" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11021" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11022" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11023" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11024" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11025" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11026" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11027" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11028" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11029" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11030" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11031" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11032" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11033" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11034" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11035" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11036" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11037" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11038" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11039" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11040" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11041" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.11042" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+  </properties>
+  <testcase name="receipt-streaming030.E01-E08-E09-native-sequential-births-and-terminal-export" elapsedNanos="9318298700"></testcase>
+</testsuite>

@@ -1,0 +1,57 @@
+# Git command audit030
+
+Authorization: TASK030 Git/publication section explicitly permits read/fetch, isolated
+worktree, exact-path add/commit and normal push for BLOCKED/FAILED. No foreign/main changes.
+Read command invocations used during execution (working directory determines checkout):
+
+git status --short
+git branch --show-current
+git rev-parse HEAD
+git worktree list --porcelain
+git ls-remote origin refs/heads/experiment/m1-candidate007-observe008
+git diff --stat
+git diff --cached --stat
+git diff --name-only 758ee295518be5b9abba0f757cc240782bfd2987
+git diff --numstat 758ee295518be5b9abba0f757cc240782bfd2987 -- java test
+git diff --exit-code 54a45cefebb9caaeb83a36961eeb85aa9537ac4e 5375198db48575666623ac79b875373d1750cdc6 -- java test
+git ls-files --others --exclude-standard
+git ls-files --others --exclude-standard --full-name
+git ls-files -- docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/evidence/*.sqlite docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/evidence/**/*.sqlite
+git show -s --format=%cI 5375198db48575666623ac79b875373d1750cdc6
+git show 758ee295518be5b9abba0f757cc240782bfd2987:L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java
+
+Prepare030 read-only pinned catalog calls:
+git -C <own-module> show HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-population-v1.xml
+git -C <own-module> show HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-population-v2.xml
+git -C <own-module> show HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-ecology-v1.xml
+git -C <own-module> rev-parse HEAD
+
+Native create_worktree created/attached detached exact base because requested branch was busy.
+Earlier exact add batches used only SOURCE_MAP product/test paths and task030 files;
+commit content is recoverable from published commits. Final exact add invocations and all
+arguments are preserved separately in FINAL_GIT_STAGE_COMMANDS030.txt.
+Commit messages already normal-pushed:
+42b6b44: Fix ordinary phantom inventory projection before RNG and stream native lifetimes
+bea6239: startup properties correction (C2)
+251d03b: historical/catchup CAS, ring control and stop monitor (C3)
+a00dfcf: fatal rollback/rethrow and DONE counters (C4)
+54a45ce: bounded streaming measurement and actual SEALED control (C5)
+5375198: buffered phase sampling before FS (C6)
+The abbreviated descriptions for C2..C6 identify commits, not claimed literal commit messages.
+Every publication used: git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+Final exact publication command: git commit -m "Close TASK030 with bounded BLOCKED result and native evidence"
+Final exact normal push: git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+Final verification: git rev-parse HEAD; git ls-remote origin refs/heads/experiment/m1-candidate007-observe008
+No commit/push to any other branch. No destructive history operation or force push.
+Literal published commit subjects (read using git show -s --format='%H %s' with the six exact SHAs):
+42b6b44ca49604a19d1d2335add4859a5f3efc47 Fix ordinary phantom inventory projection before RNG and stream native lifetimes
+bea6239f27c6a0a560867bcb3e09276fda41bb22 Correct exact startup observer property lines
+251d03befb4a295e0ec347a64599618bae5953ce Add historical projection proof and bounded typed stop capture
+a00dfcf1840b8abab2fec799cec1147dd23135ee Preserve fatal rollback semantics and capture exact stop counters
+54a45cefebb9caaeb83a36961eeb85aa9537ac4e Measure native stream byte budgets and temporary checkpoint retention
+5375198db48575666623ac79b875373d1750cdc6 Buffer typed stop observations before filesystem export
+
+Publication byte-integrity read commands: git hash-object --no-filters <exact path>; git rev-parse :<exact indexed path>; git check-attr -a -- <exact path>; git show :<exact indexed path>; git add -h; git hash-object -h.
+Exact paths inspected: C5_E_FINAL_AUDIT030.json inside task030/evidence.
+
+Byte check commands: git -C .. ls-files --stage --full-name -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030; exact path list piped to git -C .. hash-object --stdin-paths --no-filters. All paths are in EXACT_CHANGED_PATHS030.txt.

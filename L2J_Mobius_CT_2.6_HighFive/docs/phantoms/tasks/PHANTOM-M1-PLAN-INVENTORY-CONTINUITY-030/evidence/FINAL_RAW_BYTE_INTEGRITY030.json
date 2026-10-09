@@ -1,0 +1,10 @@
+{
+  "checkedUtc": "2026-10-09T19:04:55.9527138Z",
+  "scope": "ALL_TASK_FILES_EXCEPT_THIS_PROOF_OUTPUT_AND_DERIVED_SQLITE_PYC",
+  "files": 30756,
+  "gitBlobEqualsRawFile": true,
+  "mismatchPaths": [],
+  "attribute": "task030 * -text",
+  "forcedExactEntries": 307,
+  "noHistoryRewrite": true
+}

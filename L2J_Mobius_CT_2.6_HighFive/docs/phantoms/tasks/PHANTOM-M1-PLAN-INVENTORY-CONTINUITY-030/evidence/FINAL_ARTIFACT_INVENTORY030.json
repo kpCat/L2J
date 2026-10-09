@@ -1,0 +1,11 @@
+{
+  "files": 30752,
+  "bytes": 97606318.0,
+  "forbiddenArtifacts": [],
+  "sensitiveMatches": [],
+  "excludedDerivedExtensions": [
+    ".sqlite",
+    ".pyc"
+  ],
+  "rawEvidenceChanged": false
+}

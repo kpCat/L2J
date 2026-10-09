@@ -37,13 +37,15 @@
     },
     {
       "path": "HANDOFF.md",
-      "sha256": "d1bc783deb985f6ff4ed8ef3d6a98aa1b4a7a94906897a5096a6d2ad4206d466",
-      "bytes": 911
+      "sha256": "23b434a35b5a14d2bdbda73f0b97e2032ad4d6d139aec238b8083ac6ade9d7fd",
+      "bytes": 4128,
+      "approved_sha256": "d1bc783deb985f6ff4ed8ef3d6a98aa1b4a7a94906897a5096a6d2ad4206d466"
     },
     {
       "path": "PACKAGE_CHECKS.md",
-      "sha256": "a872cd1f5824eb8eae5864b20865200cc7ad619df48d2d4066d069dd42a022cc",
-      "bytes": 2805
+      "sha256": "66f7f83b26a45e6da0bb089aac771872b627b772cfb15e13072e0ac3d9593469",
+      "bytes": 4138,
+      "approved_sha256": "a872cd1f5824eb8eae5864b20865200cc7ad619df48d2d4066d069dd42a022cc"
     },
     {
       "path": "PATCH_GUIDE.md",
@@ -72,8 +74,9 @@
     },
     {
       "path": "ROOT_CAUSES.md",
-      "sha256": "ed120b03d1613d92bec6406354d9f0315c8a637bafbad2648c6052a1931678fc",
-      "bytes": 4585
+      "sha256": "2f905a3aee71ef8f620ffdaea5904c9125c9c7ba48c072dc33d517e8d7f561b6",
+      "bytes": 6243,
+      "approved_sha256": "ed120b03d1613d92bec6406354d9f0315c8a637bafbad2648c6052a1931678fc"
     },
     {
       "path": "RUNBOOK.md",
@@ -92,8 +95,9 @@
     },
     {
       "path": "SOURCE_REVIEW.tsv",
-      "sha256": "5acf8ed33a98a104c0329177d95601e19c22af44a05324c8f9a93c16934de0d9",
-      "bytes": 897
+      "sha256": "9f87757c9713761c07de8c1710a43b2c29ee635d1b9ef04c047c560af17486db",
+      "bytes": 1644,
+      "approved_sha256": "5acf8ed33a98a104c0329177d95601e19c22af44a05324c8f9a93c16934de0d9"
     },
     {
       "path": "TASK.md",
@@ -107,13 +111,50 @@
     },
     {
       "path": "proposals/audit_lifetimes030.py",
-      "sha256": "51c9b47c319cc72db52743dad21cb96b60065b9a37bfd0022996ac79c3c19eff",
-      "bytes": 8186
+      "sha256": "f778507e93d5a1ab43a3c9b78ed8aaba6b6139b7093085b1f4b9b4e9873b208f",
+      "bytes": 8571,
+      "approved_sha256": "51c9b47c319cc72db52743dad21cb96b60065b9a37bfd0022996ac79c3c19eff"
     },
     {
       "path": "proposals/test_audit_lifetimes030.py",
       "sha256": "a3e523248c2cfc6ac6a3ad91ae371a6ab2c6b4418323ed2986f966c9b4c604e9",
       "bytes": 3718
+    },
+    {
+      "path": "RESULT.md",
+      "sha256": "e638c3568456a6146889ea8bc0cb166c47a23a993c4428981f68bef0349d8b62",
+      "bytes": 13846
+    },
+    {
+      "path": "MORNING.md",
+      "sha256": "2f14b5f8758a673928ad08236f017dc9f7075e4f1ef778930044ca84d1f34088",
+      "bytes": 1959
+    },
+    {
+      "path": "CAUSE_MATRIX030.tsv",
+      "sha256": "66b39a4ac5fed5155f574ec20e4adb06e156b838284f203b5a384991ed4b9f8a",
+      "bytes": 2064
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "443039d4fca8d729e8cac93d12d9cdfac436471ec4c86a93499dab187f46a06c",
+      "bytes": 86
     }
-  ]
+  ],
+  "execution": {
+    "taskResult": "BLOCKED",
+    "M1": "OPEN",
+    "realFinal": "NOT_RUN",
+    "stopAuthority": "TASK030_CONTRACT",
+    "frozenCodeSha": "5375198db48575666623ac79b875373d1750cdc6",
+    "regressionCasesPassed": 92,
+    "regressionRoutes": 18,
+    "lifecycle027CasesPassed": 11,
+    "capturedServerRuns": 5,
+    "registered": 4182,
+    "terminals": 4182,
+    "allOwnJvmsStopped": true,
+    "forceUsed": false,
+    "reportElapsedMinutes": 142.16
+  }
 }

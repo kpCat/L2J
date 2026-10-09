@@ -1,0 +1,20 @@
+[
+  {
+    "pattern": "(?s)private ItemMutationResult mutateItems\\(.*?(?=\\n\\s*private )",
+    "baseBytes": 3956,
+    "newBytes": 3956,
+    "equal": true
+  },
+  {
+    "pattern": "(?s)public record AcquisitionMutation\\(.*?(?=\\n\\s*public record )",
+    "baseBytes": 2956,
+    "newBytes": 2956,
+    "equal": true
+  },
+  {
+    "pattern": "(?s)final var owner = org\\.l2jmobius.*?\\{ throw new StateConflict\\(Status.STATE_CONFLICT\\); \\}",
+    "baseBytes": 715,
+    "newBytes": 715,
+    "equal": true
+  }
+]

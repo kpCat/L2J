@@ -1,0 +1,8 @@
+{
+  "routes": 18,
+  "failedRoutes": 0,
+  "totalCases": 92.0,
+  "productionSourceUnchangedToC6": true,
+  "frozenSha": "5375198db48575666623ac79b875373d1750cdc6",
+  "matrixSha": "54a45cefebb9caaeb83a36961eeb85aa9537ac4e"
+}

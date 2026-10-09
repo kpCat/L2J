@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="sustained-farm026" seed="26002601" tests="3" passed="3" failures="0">
+  <properties>
+    <property name="F.census.false.true" value="[268481771:instance=0:xyz=-71001,254981,-3217, 268460394:instance=0:xyz=-70946,255024,-3232]"/>
+    <property name="F.census.true.false" value="[268460394:instance=0:xyz=-70946,255024,-3232]"/>
+    <property name="F.census.true.true" value="[268460394:instance=0:xyz=-70946,255024,-3232, 268480994:instance=0:xyz=-71001,254981,-3232]"/>
+    <property name="F.failure" value="Failure[profileId=10630, player=Player:PhT004A02601[268435465], epoch=296255857782100, goal=PhantomGoal[goalId=3850096020085293396, goalType=farm.background, status=ACTIVE, subject=PhantomDomainRef[namespace=profile, key=10630], target=PhantomDomainRef[namespace=npc, key=20545], requiredAmount=1, currentAmount=0, acquisitionMethod=background.farm, validSources=[PhantomDomainRef[namespace=background.farm, key=20545@population.farming.human-fighter.20545]], selectedAnchor=PhantomDomainRef[namespace=topology.anchor, key=population.farming.human-fighter.20545], purposeKey=farm.background, priority=500, riskBudget=0, expenseBudget=0, deadlineEpochMillis=0, constraints={}, reasonKey=background.catchup.plan, revision=0, payloadText=null], stepId=live.approach.population.farming.human-fighter.20545@-71081:254885:-3232, reason=travel.journey_deadline, disposition=NATIVE_ACTION_REJECTED, startedNanos=296256017532900, attempts=0]"/>
+    <property name="F.nativeWitness" value="origin=-71049,254981,-3217;geo=-3232;target=-71001,254981,-3217;nativePath=true"/>
+    <property name="F.priorWitnesses.false.true" value="[live.approach.population.farming.human-fighter.20545@-70946:255024:-3232]"/>
+    <property name="F.priorWitnesses.true.false" value="[live.approach.population.farming.human-fighter.20545@-70946:255024:-3232]"/>
+    <property name="F.priorWitnesses.true.true" value="[live.approach.population.farming.human-fighter.20545@-70946:255024:-3232]"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract030a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="sustained-farm026.F01-fresh-independent-local-opportunity-after-terminal-standpoint" elapsedNanos="564688300"></testcase>
+  <testcase name="sustained-farm026.F02-terminal-route-without-lawful-independent-target-remains-closed" elapsedNanos="263991700"></testcase>
+  <testcase name="sustained-farm026.F10-native-z-local-opportunity-precedes-exact-standpoint" elapsedNanos="113328500"></testcase>
+</testsuite>

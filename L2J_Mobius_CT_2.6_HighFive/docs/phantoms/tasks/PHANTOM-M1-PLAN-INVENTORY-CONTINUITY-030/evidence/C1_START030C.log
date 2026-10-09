@@ -1,0 +1,10 @@
+WARNING: GameServer не открыл порт 7777 за 180 секунд. Выполняется остановка только записанных PID.
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+DB_LOGOUT_CONFIRMED l2jmobiush5_localplay_contract030c 268492939	TestAdmin	0	12	138026	13880	44131	42673	-3488
+ALREADY_STOPPED role=GameServer
+STOCK_GRACEFUL_STOP_CONFIRMED role=LoginServer pid=2340
+Exception: C:\Users\ZBook\.codex\worktrees\m1-plan-inventory-030\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\contract030c\runtime\Start-LocalPlay.ps1:138
+Line |
+ 138 |      throw "GameServer startup failed. Проверьте runtime/game/log."
+     |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | GameServer startup failed. Проверьте runtime/game/log.

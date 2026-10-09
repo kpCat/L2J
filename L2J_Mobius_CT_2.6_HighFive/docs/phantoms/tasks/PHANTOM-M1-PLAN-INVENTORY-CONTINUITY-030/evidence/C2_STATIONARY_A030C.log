@@ -1,0 +1,5 @@
+Exception: C:\Users\ZBook\.codex\worktrees\m1-plan-inventory-030\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030\Observe030.ps1:12
+Line |
+  12 |  …  $OutputRoot)){throw 'Immutable own TASK030 evidence path required.'}
+     |                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Immutable own TASK030 evidence path required.

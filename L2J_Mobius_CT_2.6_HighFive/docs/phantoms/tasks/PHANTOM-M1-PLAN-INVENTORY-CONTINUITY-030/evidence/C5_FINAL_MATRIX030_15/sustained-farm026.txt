@@ -1,0 +1,20 @@
+suite=sustained-farm026
+seed=26002601
+total=2
+passed=2
+failed=0
+measurement.F05.native=mp=1.0;cost=9;sitting=true;owner=298342888077400
+measurement.F05.nextNativeHit=mp=13.627647999999997;hpBefore=62.0;hpAfter=0.0;sitting=false;epoch=298342888077400
+measurement.F05.recoveryBoundary=mp=13.627647999999997;maxMp=126;sitting=false;online=true;dead=false;target=Monster:Young Keltir(20545)[268480994];scope=epoch=298342888077400 state=OPEN outstanding=6 pendingTimers=1 peak=6 failure= eventDispatch=[] work=[199:cast-hit:RUNNING:depth=3:ageMs=416, 203:cast-native-write-admission:RUNNING:depth=4:ageMs=14, 204:cast-native-write:RUNNING:depth=5:ageMs=12, 205:cast-skill-effects:RUNNING:depth=6:ageMs=12, 206:npc-reward-write-admission:RUNNING:depth=7:ageMs=8, 207:npc-reward-write:RUNNING:depth=8:ageMs=8];evidence=Snapshot[objectId=268435465, epoch=298342888077400, sampleNanos=298380386074600, overflow=false, sequence=2, damageSequence=1, killSequence=0, rewardSequence=0, targetSequence=1, farmCycleSequence=0, expGained=0, spGained=0, lootSequence=0, lastProgressNanos=298380374177100, phase=COMBAT, phaseSinceNanos=298373460374500, phaseDeadlineNanos=298493460374500, usefulProgressNanos=298380374177100, lootCount=0, trackedTargets=1, firstUnprovenReason=NONE, firstUnprovenNanos=0];policy={continuationSampleNanos=298380393277600, continuationSession=true, liveAutoPlay=true, liveAutoPlayRegistered=true, liveAutoUseRegistered=true, liveAutoPlayTickSequence=176, liveAutoPlayTickStartedNanos=298380248952800, liveAutoPlayTickFinishedNanos=298380251964900, liveAutoPlayTickReason=completed, liveAutoUseTickSequence=177, liveAutoUseTickStartedNanos=298380350946500, liveAutoUseTickFinishedNanos=298380353127300, liveAutoUseTickReason=completed, livePolicyIdentity=30636518, liveSessionEpoch=298342888077400, liveSessionCurrent=true, liveResourceRecovery=false, liveResourceReason=resource.affordable, liveResourceCost=9.0, liveResourceSinceNanos=298343156818400, continuationRead=NONATOMIC_VOLATILE, liveFirstStopNanos=0, liveFirstStopReason=, liveFirstStopCaller=}
+measurement.F07.native=casting=true;scope=epoch=298382069692500 state=OPEN outstanding=1 pendingTimers=1 peak=4 failure= eventDispatch=[] work=[10:cast-launch:RESERVED:depth=2:ageMs=1]
+measurement.F07.originalNativeHit=hpBefore=62.0;hpAfter=0.0
+measurement.headless.database=l2jmobiush5_localplay_contract030a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS sustained-farm026.F05-stock-low-MP-starts-bounded-native-rest elapsedNanos=41243298400
+PASS sustained-farm026.F07-generic-repair-preserves-original-published-cast elapsedNanos=9579499600

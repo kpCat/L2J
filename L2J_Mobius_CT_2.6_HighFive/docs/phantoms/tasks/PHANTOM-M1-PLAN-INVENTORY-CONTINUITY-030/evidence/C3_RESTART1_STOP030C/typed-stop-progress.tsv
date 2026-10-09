@@ -1,0 +1,5 @@
+296638136596700	null
+296638809295800	StopProgress[phase=CLOSE_PRODUCERS, outcome=PENDING, blocker=closing, deadlineNanos=296648805015100]
+296638830040200	StopProgress[phase=WAIT_ACCEPTED_CONTROL, outcome=PENDING, blocker=accepted_control, deadlineNanos=296648805015100]
+296638834921500	StopProgress[phase=FINISH_DEPENDENCIES, outcome=PENDING, blocker=dependencies, deadlineNanos=296648805015100]
+296638842000800	StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=296648805015100]

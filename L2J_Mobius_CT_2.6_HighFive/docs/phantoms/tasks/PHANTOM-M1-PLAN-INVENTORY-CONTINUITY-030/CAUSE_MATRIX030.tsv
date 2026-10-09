@@ -1,12 +1,15 @@
 episode	observation	classification	producer	proof_status
-C6	item118 NON_MUTABLE_ID HISTORICAL_FARM	product	previous projection	retained witness audit pending
-C6	candidate652 INCONSISTENT	admission	UNKNOWN	no SQL healing
-finalC7	cohort0	admission	UNKNOWN	saved actor-local census required
-finalC7	TASK029_RECEIPT_CAPACITY	observer proof	cumulative retention	code proven; native fault isolation
-NEW_PROOF	native capture retains old projection	projection candidate	capture nativePersistence	composed RED pending
-NEW_PROOF	P02 actual item1864 NON_MUTABLE_ID	product	production goalA-to-B FARM	own RED; shared pre-RNG projection GREEN
-NEW_PROOF	130 releases >32profiles	observer proof	ACTIVE and cumulative retention separated	133 lifetimes native GREEN; strong refs0 after ack
-C2	1280 current actors no READY ONLINE complete cluster	admission	captured first guards per actor	no capacity attribution; structural1152/1152 PASS
-C3	current catchup still incomplete	admission	sameDB exact census	991/991 structural PASS; no admission bypass
-finalC7_RESTART1	item118 delta8 before observer attach	product	HISTORICAL_FARM EXECUTE_NON_MUTABLE_ID	retained exact first-conflict stderr line262; initial C7 UNKNOWN
-NEW_PROOF	fatal metadata Error swallowed	transaction	refreshOrdinaryInventoryProjection rollback	own3/4 RED then4/4 GREEN; no canonical changes
+C6_old	item118 NON_MUTABLE_ID HISTORICAL_FARM	product	retained old witness	not whole C7 cause
+C6_old	profile652 INCONSISTENT	admission	catchup.renewal.background_state_invalid	no SQL healing
+finalC7_labelled_restart1	item118 delta8 profile110 before attach	product	HISTORICAL_FARM EXECUTE_NON_MUTABLE_ID	stderr line262 retained; exact frozen source/incarnation UNKNOWN
+finalC7_source_binding	SQL manifest fd7b74f differs from assured frozen binding	forensic limitation	UNKNOWN	filename not source identity; no late reconstruction
+OWN_P02	item1864 after production goalA-to-B travel	product	stale ordinary mutation footprint	actual RED; focused pre-RNG projection GREEN
+OWN_P_HISTORICAL	current full goal footprint before model	product	shared ordinaryProjectionGate	actual historical/catchupCAS focused GREEN
+OWN_FATAL_ERROR	metadata Error swallowed after rollback	transaction	projection transaction catch	own3/4 RED then4/4 GREEN; canonical unchanged
+OWN_E_RED	33 actual releases SUCCESS; birth33 rejected	observer	cumulative32 retention	actual RED; does not prove cohort0 causality
+OWN_E_FINAL	133 lifetimes/130profiles and temporary SEALED	observer	ACTIVE bound plus append-only stream	133terminal PASS; refs0; buffer2186 sampled/final0
+OWN_E_CAP_FS_RING	bounded observer fault controls	observer	expected capacity/FS/ring failure	native SUCCESS; proof INVALID; no native execution change
+C5_ADMISSION	0 current READY ONLINE complete from1280	admission	actor-local first guards saved	pending/backend/native context/route causes; capacity NOT_PROVEN
+C5_STOP	DONE sample after scheduled pool closure	measurement	filesystem work during sampler	before-pools NOT_PROVEN; retained RED
+C6_STOP1_2	DONE COMPLETE before all three pools close	measurement	bounded memory phase sampling	operations/leases/tx/claims/retained/refs0; physical STOPPED
+C2_C3_C5_C6_STREAMS	4182 registered and4182terminal in5captureJVMs	structural coverage	startup hooks before births	PASS structural only; SQL/reward equality NOT_EVALUATED

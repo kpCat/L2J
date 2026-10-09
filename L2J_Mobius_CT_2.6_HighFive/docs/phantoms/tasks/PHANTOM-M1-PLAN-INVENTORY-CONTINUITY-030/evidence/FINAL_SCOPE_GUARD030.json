@@ -1,0 +1,16 @@
+{
+  "checkedUtc": "2026-10-09T18:35:53.7336183Z",
+  "base": "758ee295518be5b9abba0f757cc240782bfd2987",
+  "allowlist": [
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
+    "L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomFarmProjection030Suite.java",
+    "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomReceiptStreaming030Suite.java"
+  ],
+  "taskPrefix": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/",
+  "outsideScope": [],
+  "pass": true,
+  "trackedPaths": 3194,
+  "untrackedPaths": 27565
+}

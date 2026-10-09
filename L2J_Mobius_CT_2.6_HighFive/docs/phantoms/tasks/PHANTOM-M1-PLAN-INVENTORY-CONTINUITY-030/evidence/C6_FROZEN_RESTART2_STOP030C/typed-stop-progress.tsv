@@ -1,0 +1,4 @@
+298908685603400	StopProgress[phase=CLOSE_PRODUCERS, outcome=PENDING, blocker=closing, deadlineNanos=298918684011300]	SCHEDULED_POOLShutdown=false;INSTANT_POOLShutdown=false;HIGH_PRIORITY_SCHEDULED_POOLShutdown=false;
+298908703480100	StopProgress[phase=WAIT_ACCEPTED_CONTROL, outcome=PENDING, blocker=accepted_control, deadlineNanos=298918684011300]	SCHEDULED_POOLShutdown=false;INSTANT_POOLShutdown=false;HIGH_PRIORITY_SCHEDULED_POOLShutdown=false;
+298908706454600	StopProgress[phase=FINISH_DEPENDENCIES, outcome=PENDING, blocker=dependencies, deadlineNanos=298918684011300]	SCHEDULED_POOLShutdown=false;INSTANT_POOLShutdown=false;HIGH_PRIORITY_SCHEDULED_POOLShutdown=false;
+298908711738400	StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=298918684011300]	SCHEDULED_POOLShutdown=false;INSTANT_POOLShutdown=false;HIGH_PRIORITY_SCHEDULED_POOLShutdown=false;

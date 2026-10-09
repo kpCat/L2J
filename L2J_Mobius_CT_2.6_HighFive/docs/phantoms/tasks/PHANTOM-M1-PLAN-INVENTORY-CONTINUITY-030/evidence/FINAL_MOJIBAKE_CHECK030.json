@@ -1,0 +1,13 @@
+{
+  "checkedUtc": "2026-10-09T18:40:41.7050984Z",
+  "targets": [
+    "docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030",
+    "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java",
+    "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
+    "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomFarmProjection030Suite.java",
+    "test/java/org/l2jmobius/tests/phantoms/PhantomReceiptStreaming030Suite.java"
+  ],
+  "mojibakeRgExit": 1,
+  "matches": []
+}

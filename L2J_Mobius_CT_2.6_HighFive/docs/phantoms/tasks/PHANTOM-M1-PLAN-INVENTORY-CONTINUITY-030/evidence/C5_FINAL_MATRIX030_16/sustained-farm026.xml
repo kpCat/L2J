@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="sustained-farm026" seed="26002601" tests="2" passed="2" failures="0">
+  <properties>
+    <property name="E03.nativeGenerations.false" value="Snapshot[objectId=268435465, epoch=298425909286500, sampleNanos=298426025972200, overflow=true, sequence=16, damageSequence=0, killSequence=0, rewardSequence=0, targetSequence=16, farmCycleSequence=0, expGained=0, spGained=0, lootSequence=0, lastProgressNanos=298426025826500, phase=NONE, phaseSinceNanos=0, phaseDeadlineNanos=0, usefulProgressNanos=0, lootCount=0, trackedTargets=16, firstUnprovenReason=TARGET_CAP, firstUnprovenNanos=298426025936500]"/>
+    <property name="E03.nativeGenerations.true" value="Snapshot[objectId=268435465, epoch=298426154051100, sampleNanos=298426214431400, overflow=false, sequence=17, damageSequence=0, killSequence=0, rewardSequence=0, targetSequence=17, farmCycleSequence=0, expGained=0, spGained=0, lootSequence=0, lastProgressNanos=298426214416200, phase=NONE, phaseSinceNanos=0, phaseDeadlineNanos=0, usefulProgressNanos=0, lootCount=0, trackedTargets=1, firstUnprovenReason=NONE, firstUnprovenNanos=0]"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract030a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="sustained-farm026.E03-distinct-native-target-cap-remains-fenced" elapsedNanos="408778500"></testcase>
+  <testcase name="sustained-farm026.E03-native-respawn-selection-retires-only-undamaged-stale-generations" elapsedNanos="132794200"></testcase>
+</testsuite>

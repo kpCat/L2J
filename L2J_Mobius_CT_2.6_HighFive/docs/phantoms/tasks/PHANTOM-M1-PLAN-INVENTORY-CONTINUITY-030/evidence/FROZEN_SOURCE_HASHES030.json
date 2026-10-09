@@ -1,0 +1,42 @@
+[
+  {
+    "path": "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java",
+    "sha256": "DA7E1C8D685F63F2B27D54007223EE17AD7528A3449E523DAE3981DF4AB94F85",
+    "bytes": 12597
+  },
+  {
+    "path": "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java",
+    "sha256": "F479DF4F817FC88081172B404298EB5ECBED8F889E5D0F9353383BC5FFAD1F08",
+    "bytes": 168240
+  },
+  {
+    "path": "java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java",
+    "sha256": "4E5A33FFAEBC5258423A82780AAE983F6CAEF8D32E0AD144D1593A2E2067A9BF",
+    "bytes": 158333
+  },
+  {
+    "path": "test/java/org/l2jmobius/tests/phantoms/PhantomFarmProjection030Suite.java",
+    "sha256": "E04B9A0EB62D28454869411571D69FBD384A660E5BE6BA9E987AEC1F321D811D",
+    "bytes": 24749
+  },
+  {
+    "path": "test/java/org/l2jmobius/tests/phantoms/PhantomReceiptStreaming030Suite.java",
+    "sha256": "EDB55ED93379788E281666A27A86C6F0CBD129A58A0D9DF35B40725197726EE0",
+    "bytes": 15509
+  },
+  {
+    "path": "docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/Contract030Observer.java",
+    "sha256": "9F4CCDDF14F47575FB0CABDF77B3F06EED56B5186FA1EFE52FDB8DCFE741D90C",
+    "bytes": 83516
+  },
+  {
+    "path": "docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py",
+    "sha256": "15C153D30FE7F85719B1698059F4E28C9C7FA325CAA420A02DE7AC19CFF35112",
+    "bytes": 7485
+  },
+  {
+    "path": "docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/Observe-Scene024.ps1",
+    "sha256": "FE0F963E0DFCCCEF13A39F4E1CFA075E990A62983BC891F23EAFC373EE976F1B",
+    "bytes": 13156
+  }
+]
