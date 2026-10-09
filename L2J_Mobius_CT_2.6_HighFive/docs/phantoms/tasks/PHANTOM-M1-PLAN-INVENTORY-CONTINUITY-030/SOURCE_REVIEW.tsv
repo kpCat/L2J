@@ -1,0 +1,7 @@
+path	blob_sha	read_range	claim
+PhantomNativeWorkScope.java	07a87b6b5e326c558c5fa4f44a84ea9d480272e2	1-220	passive observer errors isolated
+Contract029Observer.java	9bfe99b6a03ecbddac334ee22d7f61c242c2e2f2	1-230;295-410;550-690	cumulative cap, no active retirement, hook error boundaries
+PhantomBackgroundTransaction.java	3362f39c59f0fae22194b3e744cbfec6802074b4	825-1175;1570-1875;2150-2380;2590-2795	mutable guard, projection helpers, additional IDs acquisition contract
+PhantomBackgroundService.java	ca4ade19457f330ae443084a9eb4c6fe34ae1ed1	490-745;850-1030;1270-1740;2250-2430	ordinary/historical inputs and empty extension, native snapshot boundary
+PhantomHistoricalBackgroundService.java	06e4792f85235d62dc83f9db7ba128c0d8bd9ae6	350-825	existing replan and native baseline refresh
+RESULT029/HANDOFF029/ROOT_CAUSES029	PINNED_758ee295	full relevant sections	C6 evidence distinct from C7cohort0

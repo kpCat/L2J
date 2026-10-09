@@ -110,6 +110,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	// Optional exact-argument test observer. Transactions have returned; absent-Player ownership still fences admission.
 	private static volatile BiConsumer<Long, PhantomBackgroundState> _recoveryObserver;
     private static volatile BiConsumer<PhantomBackgroundTransaction.Command, PhantomBackgroundTransaction.Result> _commitObserver;
+    private static volatile BiConsumer<OrdinaryProjectionCommit, PhantomBackgroundTransaction.Result> _projectionObserver;
+    public record OrdinaryProjectionCommit(PhantomBackgroundState before, PhantomNativeContext context,
+        PhantomBackgroundAuthority.OrdinaryInventoryProjection projection, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease) { }
     private static volatile BiConsumer<Long, Player> _nativeLifetimeObserver;
 
 	private final PhantomProfileRepository _profiles;
@@ -472,6 +475,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final FarmInputAttempt attempt = ordinaryFarmAttempt(profileId, claim.characterObjectId(), state, spec);
 			if (!attempt.successful()) { return OperationResult.replan(farmFailureReason(attempt)); }
 			final FarmInput input = attempt.input();
+			final var projectionGate = ordinaryProjectionGate(claim, goal, input, null);
+			if (projectionGate != null) { return projectionGate; }
 			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, ActionKind.FARM, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes());
 			try (PhantomBackgroundCompetitionRegistry.Reservation reservation = _competition.tryReserve(input.topologyNodeId(), spec.npcId(), input.spawnCapacity()))
 			{
@@ -574,6 +579,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final FarmInputAttempt attempt = ordinaryFarmAttempt(profileId, claim.characterObjectId(), state, spec);
 			if (!attempt.successful()) { return OperationResult.replan(farmFailureReason(attempt)); }
 			final FarmInput input = attempt.input();
+			final var projectionGate = ordinaryProjectionGate(claim, goal, input, mutation);
+			if (projectionGate != null) { return projectionGate; }
 			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_FARM, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
 			try (PhantomBackgroundCompetitionRegistry.Reservation reservation = _competition.tryReserve(input.topologyNodeId(), spec.npcId(), input.spawnCapacity()))
 			{
@@ -2393,6 +2400,40 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 	}
 
+	private OperationResult ordinaryProjectionGate(OperationClaim claim, PhantomGoal goal, FarmInput input, PhantomBackgroundTransaction.CatchupMutation catchup)
+	{
+		try
+		{
+			final var state = claim.state();
+			final var skillIds = java.util.stream.Stream.concat(_authority.ordinarySpoilSkillIds(state.identity().activeClassId()).stream(), java.util.stream.Stream.of(state.loadout().selectedSkillId())).filter(id -> id > 0).distinct().sorted().toList();
+			Map<Integer, Integer> skills = Map.of();
+			if (!skillIds.isEmpty())
+			{
+				final var eligibility = transaction(() -> _transactions.readAcquisitionEligibility(claim.profileId(), claim.characterObjectId(), state.identity().classIndex(), state.identity().activeClassId(), skillIds, state.hashes().progression(), _authority.hashes()));
+				if (!eligibility.successful()) { return mapTransactionFailure(eligibility.status()); }
+				skills = eligibility.snapshot().skillLevels();
+			}
+			final var currentInput = _authority.tryFarmInput(state, PhantomBackgroundGoalSpec.parse(goal), skills);
+			if (!currentInput.successful()) { return OperationResult.replan(farmFailureReason(currentInput)); }
+			if (!currentInput.input().target().equals(input.target())) { return retry("farm.authority_input_changed"); }
+			final var projection = _authority.ordinaryInventoryProjection(state, goal, input, skills);
+			if (state.inventory().mutableItemIds().equals(projection.requiredItemIds())) { return null; }
+			final var refreshed = transaction(() -> _transactions.refreshOrdinaryInventoryProjection(state, goal, catchup, claim._nativeContext, projection, claim._lease));
+			if (refreshed.status() == PhantomBackgroundTransaction.Status.COMMIT_OUTCOME_UNKNOWN)
+			{
+				claim.retainIdentity(); failStop();
+				return OperationResult.inconsistent("farm.inventory_projection_outcome_unverified");
+			}
+			final var observer = _projectionObserver;
+			if (refreshed.successful() && observer != null)
+			{
+				try { observer.accept(new OrdinaryProjectionCommit(state, claim._nativeContext, projection, claim._lease), refreshed); }
+				catch (Throwable ignored) { /* Passive proof cannot change an already committed projection. */ }
+			}
+			return refreshed.successful() ? retry("farm.inventory_projection_refreshed") : mapTransactionFailure(refreshed.status());
+		}
+		catch (RuntimeException failure) { return OperationResult.replan("farm.inventory_projection_unavailable:" + failure.getClass().getSimpleName()); }
+	}
 	public static String farmFailureReason(FarmInputAttempt attempt)
 	{
 		return "catchup.authority." + attempt.failure().name().toLowerCase(java.util.Locale.ROOT) + (attempt.failure() == FarmInputFailure.UNKNOWN ? ":" + attempt.reason() : "");

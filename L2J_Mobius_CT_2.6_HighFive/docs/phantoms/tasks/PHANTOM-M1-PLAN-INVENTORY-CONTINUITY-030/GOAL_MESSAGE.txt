@@ -1,0 +1,46 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/GOAL.md.
+
+Required base:
+758ee295518be5b9abba0f757cc240782bfd2987
+Branch: experiment/m1-candidate007-observe008
+
+GPT-6.1 Sol, reasoning Very High. Новый диалог, без субагентов.
+Одобряю ограниченные TASK/DESIGN/PLAN/SOURCE_MAP/SCENARIOS пакета.
+Автономно до240мин, без ручного входа, arm и повторных согласований фаз.
+Первый full-server probe до75мин, semantic freeze150мин,
+оставшиеся90мин — acceptance/cleanup/publication.
+
+Не считать capacity причиной cohort0 без доказательства.
+C6 показал item118/NON_MUTABLE_ID/HISTORICAL_FARM и INCONSISTENT652;
+exact finalC7 producer ещё требуется установить.
+
+Цель: authoritative ordinary inventory footprint ДО RNG,
+безопасное metadata-only переключение проекции,
+natural admission и полная native/background/return цепочка.
+Не разрешать items из deltas.keySet(), не ослаблять mutateItems guard,
+не подменять acquisition allowlist, не SQL-heal старые профили.
+
+Collector: bounded ACTIVE scopes + append-only lifetime stream;
+terminal owner references освобождаются после подтверждённого export.
+Не менять32 на10000 вместо исправления cumulative retention.
+Failure observer не меняет native исполнение, но делает proof invalid.
+Старые missing receipts нельзя восстановить из поздней SQL.
+
+Own worktree:
+C:\Users\ZBook\.codex\worktrees\m1-plan-inventory-030\L2J_Mobius
+Свободный suffix/detached exact base разрешены.
+Main/foreign/kpCat не трогать. PLAY/old clones только READ/export.
+Own contract030a..h и exact-owned start/stop/crash — по TASK/RUNBOOK.
+Existing Synthetic, полный GameServer, штатные NPC.
+
+Связанные in-scope исправления разрешены после своих RED.
+Не превращать каждый следующий subreason в новую задачу.
+Не менять Player/ThreadPool/native managers/SQL schema/receipt формат.
+V2 и legacy028 evaluator не ослаблять, состав сцены не заменять.
+
+Exact-path commit + normal push обязательны при любом исходе.
+Один RESULT/HANDOFF/MORNING, свои JVM STOPPED.
+STOP_AUTHORITY=TASK030_CONTRACT.
+M1=OPEN; WAITING_FINAL_CLIENT только при всех server gates.
+REAL_FINAL без пользователя не объявлять.
+Следующую задачу автоматически не запускать.

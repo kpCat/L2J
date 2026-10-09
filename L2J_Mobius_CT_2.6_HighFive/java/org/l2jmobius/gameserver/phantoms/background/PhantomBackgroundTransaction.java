@@ -802,6 +802,118 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
+	/** Metadata-only projection switch under the same canonical locks as ordinary execution. */
+	public Result refreshOrdinaryInventoryProjection(PhantomBackgroundState expected, PhantomGoal goal, CatchupMutation catchup,
+		PhantomNativeContext expectedContext, PhantomBackgroundAuthority.OrdinaryInventoryProjection proof,
+		org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease)
+	{
+		PhantomBackgroundState proposed = null;
+		long expectedVersion = -1;
+		boolean commitAttempted = false;
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, expected.identity().profileId()), expected.identity().characterObjectId());
+				lockAndValidateGoal(connection, expected.identity().profileId(), goal);
+				if (catchup != null)
+				{
+					final var cursor = lockComponent(connection, expected.identity().profileId(), PhantomBackgroundCatchupState.COMPONENT_TYPE);
+					if (cursor == null || cursor.schemaVersion() != PhantomBackgroundCatchupState.SCHEMA_VERSION
+						|| cursor.rowVersion() != catchup.expectedRowVersion() || !Arrays.equals(cursor.payload(), _catchupCodec.encode(catchup.expectedState())))
+					{ throw new StateConflict(Status.CATCHUP_CONFLICT); }
+				}
+				final var component = requireStateComponent(lockComponent(connection, expected.identity().profileId(), PhantomBackgroundState.COMPONENT_TYPE));
+				expectedVersion = component.rowVersion();
+				if (expected.state() != State.READY || !Arrays.equals(component.payload(), _stateCodec.encode(expected)))
+				{ throw new StateConflict(Status.STATE_CONFLICT); }
+				final var context = boundContext(lockComponent(connection, expected.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE), component, expected.identity());
+				if (context == null || !context.equals(expectedContext) || context.phase() != PhantomNativeContext.Phase.COMPLETED
+					|| !context.permits(PhantomBackgroundSimulationPolicy.Operation.FARM, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint())
+					|| lockComponent(connection, expected.identity().profileId(), PhantomOwnedStoreIntent.COMPONENT_TYPE) != null)
+				{ throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
+				requireBackgroundOwner(lease, expected.identity().characterObjectId());
+				final var canonical = lockCanonical(connection, expected.identity());
+				final var skills = lockSkills(connection, expected.identity());
+				final var items = lockItems(connection, expected.identity().characterObjectId());
+				if (!context.matchesAfter(canonical.vitalityPoints()) || !durableMatches(expected, canonical, items, skills))
+				{ throw new StateConflict(Status.CANONICAL_MISMATCH); }
+				final var authority = proof.authority();
+				final var selectedSkills = new LinkedHashMap<Integer, Integer>();
+				java.util.stream.Stream.concat(authority.ordinarySpoilSkillIds(expected.identity().activeClassId()).stream(), java.util.stream.Stream.of(expected.loadout().selectedSkillId()))
+					.filter(id -> id > 0).distinct().sorted().forEach(id -> selectedSkills.put(id, skills.getOrDefault(id, 0)));
+				final var input = authority.tryFarmInput(expected, PhantomBackgroundGoalSpec.parse(goal), selectedSkills);
+				if (!input.successful() || !proof.equals(authority.ordinaryInventoryProjection(expected, goal, input.input(), selectedSkills))
+					|| !expected.hashes().equals(authority.hashes()) || proof.topologyGeneration() != authority.topologyGeneration())
+				{ throw new StateConflict(Status.HASH_STALE); }
+				final var old = expected.inventory();
+				final var retained = old.objects().stream().filter(item -> item.location() == ItemLocation.PAPERDOLL || proof.requiredItemIds().contains(item.itemId())).toList();
+				final var template = new InventoryFacts(proof.requiredItemIds(), retained, old.canonicalHash(), old.currentLoad(), old.maximumLoad(), old.usedSlots(), old.maximumSlots());
+				final var inventory = inventoryFacts(items, template);
+				proposed = new PhantomBackgroundState(expected.state(), expected.identity(), expected.progress(), expected.vitals(), expected.position(), expected.combat(), expected.loadout(), inventory, expected.autoGetSkills(), expected.clock(), expected.receipt(), expected.hashes());
+				if (proposed.equals(expected)) { connection.rollback(); return new Result(Status.IDEMPOTENT, expected); }
+				writeComponent(connection, component, proposed);
+				_faultInjector.inject(FaultPoint.AFTER_BACKGROUND_STATE_WRITE);
+				_faultInjector.inject(FaultPoint.BEFORE_OPERATION_COMMIT);
+				requireBackgroundOwner(lease, expected.identity().characterObjectId());
+				commitAttempted = true;
+				connection.commit();
+				return new Result(Status.SUCCESS, proposed);
+			}
+			catch (Throwable failure)
+			{
+				rollback(connection, failure);
+				if (!commitAttempted) { return failureResult(failure); }
+			}
+		}
+		catch (SQLException | RuntimeException failure)
+		{
+			if (!commitAttempted) { return failureResult(failure); }
+		}
+		return reconcileOrdinaryProjection(expected, proposed, expectedVersion, goal, catchup, expectedContext, proof, lease);
+	}
+	private Result reconcileOrdinaryProjection(PhantomBackgroundState expected, PhantomBackgroundState proposed, long version,
+		PhantomGoal goal, CatchupMutation catchup, PhantomNativeContext expectedContext,
+		PhantomBackgroundAuthority.OrdinaryInventoryProjection proof, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease)
+	{
+		try (Connection connection = _connections.open())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				requireProfileLink(lockProfile(connection, expected.identity().profileId()), expected.identity().characterObjectId());
+				lockAndValidateGoal(connection, expected.identity().profileId(), goal);
+				if (catchup != null)
+				{
+					final var cursor = lockComponent(connection, expected.identity().profileId(), PhantomBackgroundCatchupState.COMPONENT_TYPE);
+					if (cursor == null || cursor.schemaVersion() != PhantomBackgroundCatchupState.SCHEMA_VERSION || cursor.rowVersion() != catchup.expectedRowVersion()
+						|| !Arrays.equals(cursor.payload(), _catchupCodec.encode(catchup.expectedState()))) { throw new StateConflict(Status.CATCHUP_CONFLICT); }
+				}
+				final var component = requireStateComponent(lockComponent(connection, expected.identity().profileId(), PhantomBackgroundState.COMPONENT_TYPE));
+				final var stored = decodeState(component);
+				final var context = boundContext(lockComponent(connection, expected.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE), component, expected.identity());
+				final boolean committed = proposed != null && component.rowVersion() == Math.addExact(version, 1)
+					&& Arrays.equals(component.payload(), _stateCodec.encode(proposed))
+					&& expectedContext.rebind(component.rowVersion(), component.payload()).equals(context);
+				final boolean original = component.rowVersion() == version && Arrays.equals(component.payload(), _stateCodec.encode(expected)) && expectedContext.equals(context);
+				if (!committed && !original) { throw new StateConflict(Status.STATE_CONFLICT); }
+				requireBackgroundOwner(lease, expected.identity().characterObjectId());
+				final var canonical = lockCanonical(connection, expected.identity());
+				final var skills = lockSkills(connection, expected.identity());
+				final var items = lockItems(connection, expected.identity().characterObjectId());
+				if (!context.matchesAfter(canonical.vitalityPoints()) || !durableMatches(stored, canonical, items, skills)
+					|| lockComponent(connection, expected.identity().profileId(), PhantomOwnedStoreIntent.COMPONENT_TYPE) != null)
+				{ throw new StateConflict(Status.CANONICAL_MISMATCH); }
+				if (!proof.hashes().equals(proof.authority().hashes()) || proof.topologyGeneration() != proof.authority().topologyGeneration())
+				{ throw new StateConflict(Status.HASH_STALE); }
+				connection.rollback();
+				return new Result(committed ? Status.SUCCESS : Status.BACKEND_FAILURE, stored);
+			}
+			catch (Throwable failure) { rollback(connection, failure); if (failure instanceof Error error) { throw error; } return new Result(Status.COMMIT_OUTCOME_UNKNOWN, null); }
+		}
+		catch (SQLException | RuntimeException failure) { return new Result(Status.COMMIT_OUTCOME_UNKNOWN, null); }
+	}
 	public Result execute(Command command)
 	{
 		Objects.requireNonNull(command, "command");
@@ -2247,8 +2359,10 @@ public final class PhantomBackgroundTransaction
         else { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
     }
     private static void requirePolicyOwner(PolicyMutation mutation, int objectId)
+    { requireBackgroundOwner(mutation.lease(), objectId); }
+    private static void requireBackgroundOwner(org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease, int objectId)
     {
-        final var lease = mutation.lease();
+
         final var owner = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(objectId);
         if (lease == null || lease.isClosed() || lease.objectId() != objectId
             || lease.ownerKind() != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND

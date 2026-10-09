@@ -1,0 +1,15 @@
+captureNanos	294341464250900
+QUERY	SELECT DATABASE() AS database_name
+database_name
+l2jmobiush5_localplay_contract030a
+QUERY	SELECT c.charId,c.level,c.exp,c.sp,c.expBeforeDeath,c.curHp,c.maxHp,c.curMp,c.maxMp,c.curCp,c.maxCp,c.x,c.y,c.z,c.heading,c.classid,c.race,c.vitality_points,CASE WHEN c.classid=c.base_class THEN 0 ELSE sc.class_index END AS classIndex FROM characters c LEFT JOIN character_subclasses sc ON sc.charId=c.charId AND sc.class_id=c.classid WHERE c.charId=268435465
+charId	level	exp	sp	expBeforeDeath	curHp	maxHp	curMp	maxMp	curCp	maxCp	x	y	z	heading	classid	race	vitality_points	classIndex
+268435465	1	0	0	0	126	126	38	38	0	50	-71453	258305	-3104	0	0	0	1	0
+QUERY	SELECT object_id,item_id,count,loc,loc_data,enchant_level FROM items WHERE owner_id=268435465 ORDER BY object_id
+object_id	item_id	count	loc	loc_data	enchant_level
+268435466	57	7	INVENTORY	0	0
+QUERY	SELECT skill_id,skill_level,class_index FROM character_skills WHERE charId=268435465 ORDER BY class_index,skill_id
+skill_id	skill_level	class_index
+194	1	0
+QUERY	SELECT c.profile_id,c.component_type,c.row_version,HEX(c.payload) AS payload FROM phantom_profile_components c JOIN phantom_profiles p ON p.profile_id=c.profile_id WHERE p.character_object_id=268435465 AND c.component_type IN ('background.state','background.native-context','background.owned-store') ORDER BY c.component_type
+profile_id	component_type	row_version	payload

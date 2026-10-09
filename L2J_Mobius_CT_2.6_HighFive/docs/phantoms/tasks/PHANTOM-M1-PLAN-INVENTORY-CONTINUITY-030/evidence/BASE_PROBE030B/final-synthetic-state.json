@@ -1,0 +1,12 @@
+{
+  "actorMode": "SYNTHETIC",
+  "nextSequence": "3",
+  "startTimeUtcTicks": "639271610732585875",
+  "reason": "SYNTHETIC_NATIVE_PLAYER_STARTED",
+  "state": "STOPPED",
+  "sessionId": "b0d6be8a-e032-49e7-acca-57c6a1561e8f",
+  "version": "1",
+  "pid": "7368",
+  "expiresUtcMillis": "1791564960807",
+  "objectId": "268492939"
+}

@@ -1,0 +1,23 @@
+suite=farm-projection030
+seed=15001501
+total=2
+passed=0
+failed=2
+measurement.P02.actualProducer=OperationResult[status=INCONSISTENT, reason=transaction.item_conflict_canonical, encounters=3, elapsedMillis=60000, dead=false]
+measurement.P02.productionTravel.0=OperationResult[status=SUCCESS, reason=transaction.committed, encounters=0, elapsedMillis=0, dead=false]
+measurement.P02.selected=class=18;old=20534;new=20537;newIds=[308, 1060, 1864, 1869];controlledRoll=[1864]
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_localplay_contract030a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.focusedFixture.10040=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10041=npc20534 anchor=population.farming.elf.20534 class=ELVEN_FIGHTER
+FAIL farm-projection030.P02-P03-P07-production-plan-switch-before-rng-magic elapsedNanos=372447300 type=java.lang.AssertionError message=New plan must refresh the complete lawful projection before RNG, including a roll without the rare item. Expected <RETRY> but was <INCONSISTENT>. seed=15001501
+FAIL farm-projection030.P02-P12-production-plan-switch-before-rng-melee elapsedNanos=87658600 type=java.lang.AssertionError message=New plan must refresh the complete lawful projection before RNG, including a roll without the rare item. Expected <RETRY> but was <INCONSISTENT>. seed=15001501

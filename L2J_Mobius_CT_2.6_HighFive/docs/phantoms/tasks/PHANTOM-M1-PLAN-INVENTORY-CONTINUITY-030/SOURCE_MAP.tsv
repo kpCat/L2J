@@ -1,0 +1,18 @@
+mode	repo_relative_path	purpose
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java	immutable ordinary footprint proof if necessary
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	derive complete authoritative footprint, preserve native capture safety
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	shared pre-model projection preflight and typed retry
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	exact metadata-only projection CAS; mutation guard retained
+CONDITIONAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	only proven ordinary projection/retry/handoff producer
+CONDITIONAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	only read-only admission reason or proven projection dispatch wiring
+CONDITIONAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	only typed projection retry propagation; not broad admission bypass
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomFarmProjection030Suite.java	P01-P12
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomReceiptStreaming030Suite.java	E01-E10 with actual owned native fixture
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	keep ownership and failure containment
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomNativeContext.java	PNC1/PNC2 existing rebind
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	no new reward/combat math
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundRewardKernel.java	keep029native parity
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-BACKGROUND-HANDOFF-029/**	old evidence/source immutable
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py	unchanged evaluator
+WRITE_TASK	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/**	four entrypoints + observer1 + audit1; no arbitrary side artifacts
+PRIVATE_RUNTIME	L2J_Mobius_CT_2.6_HighFive/.phantom-local/contract030[a-h]/**	task-owned runtime manifests/readonly exports only

@@ -113,6 +113,37 @@ public interface PhantomBackgroundAuthority
 		return farmInput(state, goal);
 	}
 
+	/** Complete producer catalog, never a rolled delta allowlist. */
+	default OrdinaryInventoryProjection ordinaryInventoryProjection(PhantomBackgroundState state, PhantomGoal goal, FarmInput input, Map<Integer, Integer> learnedSkills)
+	{
+		final var spec = PhantomBackgroundGoalSpec.parse(goal);
+		if (input.target().npcId() != spec.npcId() || !state.hashes().equals(hashes()))
+		{
+			throw new IllegalArgumentException("Ordinary inventory projection source changed.");
+		}
+		final var ids = new java.util.TreeSet<Integer>();
+		input.target().drops().stream().filter(drop -> drop.disposition() == PhantomBackgroundModel.DropDisposition.ACQUIRE).forEach(drop -> ids.add(drop.itemId()));
+		if (state.loadout().shotItemId() > 0) { ids.add(state.loadout().shotItemId()); }
+		if (state.loadout().summonResourceItemId() > 0) { ids.add(state.loadout().summonResourceItemId()); }
+		if (!travelLegIds().isEmpty()) { ids.add(57); }
+		return new OrdinaryInventoryProjection(this, state.identity(), goal, state.hashes(), topologyGeneration(), state.loadout(), learnedSkills, state.inventory().canonicalHash(), List.copyOf(ids));
+	}
+
+	record OrdinaryInventoryProjection(PhantomBackgroundAuthority authority, PhantomBackgroundState.Identity identity, PhantomGoal goal,
+		Hashes hashes, long topologyGeneration, PhantomBackgroundState.Loadout loadout, Map<Integer, Integer> learnedSkills,
+		String inventoryHash, List<Integer> requiredItemIds)
+	{
+		public OrdinaryInventoryProjection
+		{
+			Objects.requireNonNull(authority); Objects.requireNonNull(identity); Objects.requireNonNull(goal);
+			Objects.requireNonNull(hashes); Objects.requireNonNull(loadout); Objects.requireNonNull(inventoryHash);
+			learnedSkills = Map.copyOf(learnedSkills); requiredItemIds = List.copyOf(requiredItemIds);
+			if (requiredItemIds.size() > PhantomBackgroundState.MAX_MUTABLE_ITEM_IDS
+				|| !requiredItemIds.equals(requiredItemIds.stream().distinct().sorted().toList())
+				|| requiredItemIds.stream().anyMatch(id -> id <= 0) || learnedSkills.size() > 8)
+			{ throw new IllegalArgumentException("Invalid bounded ordinary inventory projection."); }
+		}
+	}
 	default FarmInput acquisitionInput(PhantomBackgroundState state, Source source)
 	{
 		throw new UnsupportedOperationException("Acquisition background authority is unavailable.");

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="farm-projection030" seed="15001501" tests="3" passed="3" failures="0">
+  <properties>
+    <property name="P02.actualProducer" value="OperationResult[status=RETRY, reason=farm.inventory_projection_refreshed, encounters=0, elapsedMillis=0, dead=false]"/>
+    <property name="P02.followingBatch" value="OperationResult[status=SUCCESS, reason=transaction.committed, encounters=3, elapsedMillis=60000, dead=false]"/>
+    <property name="P02.productionTravel.0" value="OperationResult[status=SUCCESS, reason=transaction.committed, encounters=0, elapsedMillis=0, dead=false]"/>
+    <property name="P02.selected" value="class=25;old=20534;new=20537;newIds=[308, 1060, 1864, 1869];controlledRoll=[1864]"/>
+    <property name="P04.P08.negatives" value="foreign=HASH_STALE;noop=IDEMPOTENT"/>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="background.productionKnowledgeHash" value="4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd"/>
+    <property name="background.productionTopologyHash" value="cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract030a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+    <property name="m1.focusedFixture.10441" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10442" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_FIGHTER"/>
+    <property name="m1.focusedFixture.10443" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+    <property name="m1.focusedFixture.10444" value="npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE"/>
+  </properties>
+  <testcase name="farm-projection030.P02-P03-P07-production-plan-switch-before-rng-magic" elapsedNanos="408463400"></testcase>
+  <testcase name="farm-projection030.P02-P12-production-plan-switch-before-rng-melee" elapsedNanos="131625000"></testcase>
+  <testcase name="farm-projection030.P04-P05-P08-P09-exact-projection-negatives-and-lost-replies" elapsedNanos="243532100"></testcase>
+</testsuite>

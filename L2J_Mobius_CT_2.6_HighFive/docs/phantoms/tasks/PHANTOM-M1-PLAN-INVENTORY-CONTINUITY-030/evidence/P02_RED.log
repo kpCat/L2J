@@ -1,0 +1,2 @@
+[FAIL] farm-projection030.before-all - java.lang.AssertionError: Goal 015 mode seed changed. Expected <15001501> but was <30003001>. seed=30003001
+SUMMARY: suite=farm-projection030 seed=30003001 total=1 passed=0 failed=1

@@ -1,0 +1,6 @@
+episode	observation	classification	producer	proof_status
+C6	item118 NON_MUTABLE_ID HISTORICAL_FARM	product	previous projection	retained witness audit pending
+C6	candidate652 INCONSISTENT	admission	UNKNOWN	no SQL healing
+finalC7	cohort0	admission	UNKNOWN	saved actor-local census required
+finalC7	TASK029_RECEIPT_CAPACITY	observer proof	cumulative retention	code proven; native fault isolation
+NEW_PROOF	native capture retains old projection	projection candidate	capture nativePersistence	composed RED pending

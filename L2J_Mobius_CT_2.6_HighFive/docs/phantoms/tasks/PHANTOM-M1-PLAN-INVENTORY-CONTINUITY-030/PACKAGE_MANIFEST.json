@@ -1,0 +1,119 @@
+{
+  "task": "PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030",
+  "required_base": "758ee295518be5b9abba0f757cc240782bfd2987",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "Very High",
+  "subagents": false,
+  "maximum_wall_minutes": 240,
+  "semantic_freeze_minutes": 150,
+  "product_tests_run_by_coordinator": false,
+  "helper_tests_passed": 18,
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "sha256": "a790c0dadfee255bb26bcf98b78c5cf37f3580b77b498c2a6f4e82f9756744e3",
+      "bytes": 1617
+    },
+    {
+      "path": "ARCHITECTURE_NOTE.md",
+      "sha256": "8847103e43df9b9a53a184ca52cb3cc664db32862e5e3daf268651d0ac461925",
+      "bytes": 1275
+    },
+    {
+      "path": "DESIGN.md",
+      "sha256": "811c0a0de60ef7a7e6b0982adda9eb9b5ccb339a3e0f38925304efba0ad909bf",
+      "bytes": 10613
+    },
+    {
+      "path": "GOAL.md",
+      "sha256": "fa339c110866e238297ac6e6836df4d650c3e1bc75d8d836a0c45e6221e856d7",
+      "bytes": 1233
+    },
+    {
+      "path": "GOAL_MESSAGE.txt",
+      "sha256": "24438ac50ce32792905382cd59d279514c27ea403756f9fb555a46c449700be5",
+      "bytes": 2899
+    },
+    {
+      "path": "HANDOFF.md",
+      "sha256": "d1bc783deb985f6ff4ed8ef3d6a98aa1b4a7a94906897a5096a6d2ad4206d466",
+      "bytes": 911
+    },
+    {
+      "path": "PACKAGE_CHECKS.md",
+      "sha256": "a872cd1f5824eb8eae5864b20865200cc7ad619df48d2d4066d069dd42a022cc",
+      "bytes": 2805
+    },
+    {
+      "path": "PATCH_GUIDE.md",
+      "sha256": "957aa695eee9e95bc2827120635351a208c5349a80bc0ce30d8c99b5a567e464",
+      "bytes": 4154
+    },
+    {
+      "path": "PLAN.md",
+      "sha256": "5dcae710265bf33c5b9123e8b50d7a2ddb8bf9e2834ae21bf7acbfba3be9cbec",
+      "bytes": 4408
+    },
+    {
+      "path": "README.md",
+      "sha256": "ecced41a6d99f4e6498271a713e27bc0c82abb26bc99ced5e21fa2628a02d40f",
+      "bytes": 1160
+    },
+    {
+      "path": "RESULT_TEMPLATE.md",
+      "sha256": "5c5dff80eef670a285109e0d615087f275a88d346ccdebe42d55365bab3e9f8a",
+      "bytes": 831
+    },
+    {
+      "path": "REVIEW_LIMITATIONS.md",
+      "sha256": "ce36e7be83d329a5aef599ca5a46a75b469a05d6a2e58477f6df9a064a517e4e",
+      "bytes": 1045
+    },
+    {
+      "path": "ROOT_CAUSES.md",
+      "sha256": "ed120b03d1613d92bec6406354d9f0315c8a637bafbad2648c6052a1931678fc",
+      "bytes": 4585
+    },
+    {
+      "path": "RUNBOOK.md",
+      "sha256": "5be1881496a93d395cdd777c8735866c393b91e4376679359dce6dd94e4719b0",
+      "bytes": 3116
+    },
+    {
+      "path": "SCENARIOS.md",
+      "sha256": "59eae03e7502aa0c660de611defad38f93edc73f8661f7ff3592f3ae5b777bf5",
+      "bytes": 4758
+    },
+    {
+      "path": "SOURCE_MAP.tsv",
+      "sha256": "27139702e0c22e5e8262e964e9a733aca7acff38a034527d82d0a979b7007c9f",
+      "bytes": 2692
+    },
+    {
+      "path": "SOURCE_REVIEW.tsv",
+      "sha256": "5acf8ed33a98a104c0329177d95601e19c22af44a05324c8f9a93c16934de0d9",
+      "bytes": 897
+    },
+    {
+      "path": "TASK.md",
+      "sha256": "810ec3ee40239efcd7f615156f294009d1acc8ca2dc7bfde08e04f508efcfc9e",
+      "bytes": 5051
+    },
+    {
+      "path": "proposals/README.md",
+      "sha256": "2b61b5cc9f877baead66aba5802f62f630dd9e39b232a5692334d406d6ae1fe4",
+      "bytes": 1843
+    },
+    {
+      "path": "proposals/audit_lifetimes030.py",
+      "sha256": "51c9b47c319cc72db52743dad21cb96b60065b9a37bfd0022996ac79c3c19eff",
+      "bytes": 8186
+    },
+    {
+      "path": "proposals/test_audit_lifetimes030.py",
+      "sha256": "a3e523248c2cfc6ac6a3ad91ae371a6ab2c6b4418323ed2986f966c9b4c604e9",
+      "bytes": 3718
+    }
+  ]
+}
