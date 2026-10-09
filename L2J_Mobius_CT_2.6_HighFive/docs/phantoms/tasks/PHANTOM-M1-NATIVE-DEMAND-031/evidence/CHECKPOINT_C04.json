@@ -1,0 +1,22 @@
+{
+  "sourceSha": "d972996a5f2ec7b08d0b415780f3790869e65943",
+  "gamePid": 33552,
+  "gameStartTicks": 639271793546711389,
+  "nativeProfileId": "19",
+  "epoch": "311088984861200",
+  "nativeFarmCycles": "2",
+  "nativeExpGained": "174",
+  "nativeWorldPresent": "true",
+  "nativeAutoPlay": "true",
+  "nativeReason": "background.visible.autoplay_running",
+  "cohortGate": "FAIL_COUNT_1",
+  "warmupProof": "INVALID_RECEIPT_NOT_REGISTERED",
+  "javaJarBuilds": 3,
+  "sourceCompilations": 4,
+  "gameStarts": 5,
+  "ownServerState": "STOPPED_STOCK_GRACEFUL",
+  "rawPrivate": true,
+  "privacyAssessment": "Selected native scalar counters only; no account/inventory/DB/raw JFR",
+  "M1": "OPEN",
+  "REAL_FINAL": "NOT_RUN"
+}

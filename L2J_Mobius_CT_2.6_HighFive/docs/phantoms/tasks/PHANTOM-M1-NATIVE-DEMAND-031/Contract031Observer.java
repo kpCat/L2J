@@ -309,7 +309,7 @@ public final class Contract031Observer
             final var decisions = (org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine) field(configured.getClass(), "_decisionEngine").get(configured);
             final var topology = (org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService) field(configured.getClass(), "_topologyService").get(configured);
             final var globalBackground = (PhantomBackgroundService) field(configured.getClass(), "_backgroundService").get(configured);
-            final var global = new StringBuilder("profileId\tobjectId\tstate\tcalendarOnline\tadmitted\tx\ty\tz\tcontextPhase\tfarmAllowed\treadinessComplete\tfirstGuard\tsampleNanos\tpopulationState\tinstanceId\n");
+            final var global = new StringBuilder("profileId\tobjectId\tstate\tcalendarOnline\tadmitted\tx\ty\tz\tcontextPhase\tfarmAllowed\treadinessComplete\tfirstGuard\tsampleNanos\tpopulationState\tinstanceId\tcommittedCursorMinute\trequestedHorizonMinute\n");
             for (var profile : topology.listProfiles())
             {
                 final var admission = org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorAdmissionProfile(profile.profileId()).orElse(null);
@@ -326,7 +326,7 @@ public final class Contract031Observer
                     .append(state == null ? "ABSENT" : state.state()).append('\t').append(admission.admission().calendarOnline()).append('\t').append(admission.admission().admitted()).append('\t')
                     .append(state == null ? 0 : state.position().x()).append('\t').append(state == null ? 0 : state.position().y()).append('\t').append(state == null ? 0 : state.position().z()).append('\t')
                     .append(context == null ? "UNKNOWN" : context.phase()).append('\t').append(farm).append('\t').append(admission.readiness() != null && admission.readiness().complete()).append('\t')
-                    .append(guard).append('\t').append(System.nanoTime()).append('\t').append(admission.admission().populationState()).append('\t').append(state == null ? -1 : state.position().instanceId()).append('\n');
+                    .append(guard).append('\t').append(System.nanoTime()).append('\t').append(admission.admission().populationState()).append('\t').append(state == null ? -1 : state.position().instanceId()).append('\t').append(admission.readiness() == null ? -1 : admission.readiness().committedCursorMinute()).append('\t').append(admission.readiness() == null ? -1 : admission.readiness().requestedHorizonMinute()).append('\n');
             }
             write(output.resolve("global-admission.tsv"), global.toString());
             final var admissions = new StringBuilder("profileId\toperatorAdmission\n");

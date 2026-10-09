@@ -162,6 +162,8 @@ if($Action -ceq 'Collector'){
     if($hash -cne $build.sourceSha256 -or (Get-FileHash $agentJar).Hash -cne $build.jarSha256){throw 'Collector hash guard failed.'}
     $state=Get-LocalPlayRoleState $runtime031 'GameServer' 'GameServer.jar' @(7777)
     if($state.state -cne 'RUNNING' -or !$state.recordVerified -or (Get-Process -Id $state.pid).StartTime.ToUniversalTime().Ticks -ne [long]$state.startTimeUtcTicks){throw 'Exact PID/start guard failed.'}
+    $startupIdentity='-javaagent:'+$agentJar.Replace([char]92,[char]47)+'='
+    if(-not ([IO.File]::ReadAllText((Join-Path $runtime031 'game/java.cfg'))).Contains($startupIdentity)){throw 'STARTUP_COLLECTOR_IDENTITY_CHANGED: stop/restart required; no late observer version attach.'}
     $output=[IO.Path]::GetFullPath($OutputRoot)
     $allowed=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'evidence'))+[IO.Path]::DirectorySeparatorChar
     if(-not $output.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase)){throw 'Exact task evidence output guard failed.'}

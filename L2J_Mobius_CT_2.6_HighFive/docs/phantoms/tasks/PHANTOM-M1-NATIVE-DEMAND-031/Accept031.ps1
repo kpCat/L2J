@@ -1,0 +1,277 @@
+[CmdletBinding()]
+param([ValidateSet('Probe','Scene','Away')][string]$Mode='Probe',
+      [ValidateSet('a','b','t')][string]$Episode='a',
+      [Parameter(Mandatory)][string]$OutputRoot,[int]$Seconds=80,
+      [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha,
+      [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@())
+$ErrorActionPreference='Stop'
+$module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
+$runtime=Join-Path $module ".phantom-local/contract031$Episode/runtime"
+$allowed=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'evidence'))+[IO.Path]::DirectorySeparatorChar
+$OutputRoot=[IO.Path]::GetFullPath($OutputRoot)
+if(-not $OutputRoot.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path $OutputRoot)){throw 'Immutable own TASK031 evidence path required.'}
+if($Mode -ceq 'Scene' -and ($Seconds -lt 360 -or $Seconds -gt 420)){throw 'Final scene must be 360..420 seconds.'}
+if($Mode -ceq 'Probe' -and ($Seconds -lt 60 -or $Seconds -gt 90)){throw 'Probe must be 60..90 seconds.'}
+if($Mode -ceq 'Away' -and (-not $PathJson)){throw 'Dedicated dry native path required before away episode.'}
+if($Mode -ceq 'Away'){
+    $path=Get-Content -LiteralPath $PathJson -Raw | ConvertFrom-Json
+    $helper=Join-Path $module 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/ReadDryPath023.java'
+    if(-not $path.bidirectional -or $path.helperSha256 -cne (Get-FileHash $helper).Hash -or $path.geoLogSha256 -cne (Get-FileHash $path.geoLog).Hash){throw 'Immutable native dry path provenance invalid.'}
+    if($Seconds -lt 90 -or $Seconds -gt 160 -or $path.steps.Count -gt 40){throw 'Bounded away/return plan exceeds525s/400sequence budget.'}
+}
+$manifest=Get-Content (Join-Path $runtime 'local-play.json') -Raw | ConvertFrom-Json
+if($manifest.codeSha -cne $FrozenSha -or $manifest.databaseName -cne "l2jmobiush5_localplay_contract031$Episode"){throw 'Frozen SHA/exact clone mismatch.'}
+New-Item -ItemType Directory -Path $OutputRoot | Out-Null
+. (Join-Path $runtime 'LocalPlay-Pilot.ps1')
+$run=[guid]::NewGuid().ToString('D')
+$script:commands=0
+$started=$false; $heartbeatJob=$null; $fullStarted=$false
+$watch=[Diagnostics.Stopwatch]::StartNew()
+$fullRoot=Join-Path $OutputRoot 'full-native'
+$stopWriter=Join-Path $OutputRoot 'heartbeat-stop.request'
+function Capture031([string]$Operation,[hashtable]$Arguments=@{}){
+    if($script:commands -ge 350){throw 'Planned command budget exhausted; no cap extension.'}
+    $script:commands++
+    $label=('{0:D4}-{1}' -f $script:commands,$Operation)
+    try{
+        $raw=& (Join-Path $runtime 'Invoke-LocalPlayPilot.ps1') -Operation $Operation -Arguments $Arguments -RunId $run -ActorMode Synthetic -ExternalHeartbeat -TimeoutSeconds 20
+        $result=$raw | ConvertFrom-Json
+        $raw | Set-Content (Join-Path $OutputRoot "$label.json") -Encoding utf8
+        if($result.runId -cne $run){throw 'Exact run mismatch.'}
+        if($result.status -notin @('SUCCEEDED','ACCEPTED')){throw "CONTROL_REJECTED:$($result.status):$($result.reason)"}
+        return $result
+    }catch{
+        $_ | Out-String | Set-Content (Join-Path $OutputRoot "$label-error.txt") -Encoding utf8
+        # Exact request remains in its mailbox. No retry or replacement UUID is issued.
+        throw
+    }
+}
+function Discover031{
+    $actors=[Collections.Generic.List[object]]::new(); $after=0L
+    for($page=0;$page -lt 8;$page++){
+        $r=Capture031 'SNAPSHOT_PHANTOMS' @{includeCensus='true';censusAfterProfileId="$after"}
+        for($i=1;$i -le [int]$r.candidate.censusCount;$i++){
+            $prefix="census$i."; $fields=[ordered]@{}
+            foreach($property in $r.candidate.PSObject.Properties){if($property.Name.StartsWith($prefix)){$fields[$property.Name.Substring($prefix.Length)]=$property.Value}}
+            $actors.Add([pscustomobject]$fields)
+        }
+        if(-not $r.candidate.PSObject.Properties['censusNextProfileId'] -or [long]$r.candidate.censusNextProfileId -le $after){return @($actors)}
+        $after=[long]$r.candidate.censusNextProfileId
+    }
+    throw 'Bounded discovery page limit; no silent truncation.'
+}
+function ReadFrame031{
+    $frame=Get-Content -LiteralPath (Join-Path $fullRoot 'full-frame-latest.json') -Raw | ConvertFrom-Json
+    if($frame.proofFailure){throw ('OBSERVER_PROOF_INVALID:'+$frame.proofFailure)}
+    if($frame.observer.runId -cne $run -or $frame.observer.sessionState -cne 'RUNNING' -or -not $frame.observer.present -or -not $frame.observer.online -or $frame.observer.dead -or [int]$frame.observer.objectId -ne 268492939){throw 'Native observer identity lost; episode ends.'}
+    return $frame
+}
+function WaitArrival031([hashtable]$Point){
+    $arrival=[Diagnostics.Stopwatch]::StartNew()
+    do{
+        $frame=ReadFrame031
+        $distance=[Math]::Sqrt([Math]::Pow(([double]$frame.observer.x-[double]$Point.x),2)+[Math]::Pow(([double]$frame.observer.y-[double]$Point.y),2))
+        if($distance -le 32 -and [Math]::Abs([int]$frame.observer.z-[int]$Point.z) -le 48 -and -not $frame.observer.moving){
+            $frame | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $OutputRoot ('arrival-'+$script:commands+'.json')) -Encoding utf8
+            return
+        }
+        Start-Sleep -Milliseconds 250
+    }while($arrival.Elapsed.TotalSeconds -lt 12)
+    throw 'ACCEPTED_NOT_ARRIVED: factual native arrival missing; no MOVE replay.'
+}
+function MarkPhase031([string]$Phase){
+    $frame=ReadFrame031
+    @{phase=$Phase;sampleNanos=$frame.sampleNanos;elapsedFromStart=$watch.Elapsed.TotalSeconds;observer=$frame.observer;actors=$frame.actors} | ConvertTo-Json -Depth 14 -Compress | Add-Content (Join-Path $OutputRoot 'phase-markers.jsonl') -Encoding utf8
+}
+function Walk031([object[]]$Points){
+    foreach($point in $Points){
+        if($watch.Elapsed.TotalSeconds -gt 320){throw 'Away route budget exhausted before post-return proof.'}
+        $frame=ReadFrame031
+        $dx=[double]$point.x-[double]$frame.observer.x; $dy=[double]$point.y-[double]$frame.observer.y
+        if([Math]::Sqrt($dx*$dx+$dy*$dy) -gt 300.01 -or [Math]::Abs([int]$point.z-[int]$frame.observer.z) -gt 200){throw 'Factual next dry step bound violated; no MOVE.'}
+        $move=Capture031 'MOVE_SELF' @{x=[int]$point.x;y=[int]$point.y;z=[int]$point.z}
+        if($move.status -cne 'ACCEPTED'){throw 'Away MOVE admission missing.'}
+        WaitArrival031 @{x=[int]$point.x;y=[int]$point.y;z=[int]$point.z}
+    }
+}
+try{
+    # Install before Synthetic can cause any materialization/checkpoint. Epoch0 is not enrolled.
+    @([pscustomobject]@{profileId=275;materializedAtNanos=0}) | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'collector-bootstrap.json') -Encoding utf8
+    & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Enroll -Episode $Episode -CohortJson (Join-Path $OutputRoot 'collector-bootstrap.json') -OutputRoot $fullRoot *> (Join-Path $OutputRoot 'collector-bootstrap.log')
+    if($LASTEXITCODE -ne 0){throw 'Prospective receipt collector installation failed.'}
+    & (Join-Path $runtime 'Start-LocalPlaySynthetic.ps1') -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-start.json') -Encoding utf8
+    $started=$true; $watch.Restart()
+    $heartbeatJob=Start-Job -ArgumentList $runtime,$run,$OutputRoot,$stopWriter -ScriptBlock {
+        param($Runtime,$Run,$Output,$Stop)
+        $ErrorActionPreference='Stop'
+        . (Join-Path $Runtime 'LocalPlay-Pilot.ps1')
+        $context=Get-PilotContext -RequireEnabled -ActorMode Synthetic -SessionId $Run
+        $incarnation=$context.StartTimeUtcTicks
+        $clock=[Diagnostics.Stopwatch]::StartNew()
+        try{
+            while($clock.Elapsed.TotalSeconds -lt 525 -and -not (Test-Path -LiteralPath $Stop)){
+                $process=Get-Process -Id $context.Pid -ErrorAction Stop
+                if($process.StartTime.ToUniversalTime().Ticks -ne $incarnation){throw 'Heartbeat PID incarnation changed.'}
+                Write-PilotHeartbeat $context $Run $Run
+                "$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())`t$Run`t$($context.Pid)`t$incarnation`t$($clock.Elapsed.TotalSeconds)" | Add-Content (Join-Path $Output 'heartbeat-writer.tsv') -Encoding utf8
+                Start-Sleep -Seconds 5
+            }
+        }catch{$_ | Out-String | Set-Content (Join-Path $Output 'heartbeat-failure.txt') -Encoding utf8;throw}
+    }
+    $writerReady=[Diagnostics.Stopwatch]::StartNew()
+    while(-not (Test-Path (Join-Path $OutputRoot 'heartbeat-writer.tsv'))){
+        if($writerReady.Elapsed.TotalSeconds -gt 10 -or $heartbeatJob.State -ceq 'Failed'){throw 'Independent heartbeat did not start.'}
+        Start-Sleep -Milliseconds 100
+    }
+    $status=Capture031 'STATUS'
+    if($status.before.identityOwner -cne 'LOCALPLAY_TEST_HUMAN' -or $status.before.clientIdentity -cne 'none' -or $status.before.worldPresent -cne 'true'){throw 'Native synthetic identity unverified.'}
+    $globalRoot=Join-Path $OutputRoot 'global-before-outcomes'
+    & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'collector-bootstrap.json') -OutputRoot $globalRoot *> (Join-Path $OutputRoot 'global-census.log')
+    if($LASTEXITCODE -ne 0){throw 'Source-pinned global admission census failed.'}
+    $globalRows=@(Import-Csv (Join-Path $globalRoot 'global-admission.tsv') -Delimiter "`t")
+    $nearest=@($globalRows | Where-Object {$_.state -ne 'ABSENT'} | Sort-Object {[Math]::Pow([double]$_.x-[double]$status.before.x,2)+[Math]::Pow([double]$_.y-[double]$status.before.y,2)} | Select-Object -First 8)
+    $nearest | ForEach-Object {[pscustomobject]@{profileId=[long]$_.profileId;materializedAtNanos=0}} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'nearest-current-eight.json') -Encoding utf8
+    if($SetupAtNearestCandidate){
+        if($SetupTeleport.Count){throw 'One source-pinned setup required.'}
+        $eligible=@($globalRows | Where-Object {$_.populationState -ceq 'READY' -and $_.state -ceq 'READY' -and $_.calendarOnline -ceq 'true' -and $_.instanceId -ceq '0'})
+        $ranked=@($eligible | ForEach-Object {
+            $center=$_; $members=@($eligible | Where-Object {[Math]::Pow([double]$_.x-[double]$center.x,2)+[Math]::Pow([double]$_.y-[double]$center.y,2) -le 2250000})
+            [pscustomobject]@{profileId=[long]$center.profileId;x=[int]$center.x;y=[int]$center.y;z=[int]$center.z;count=$members.Count;preparedCount=@($members | Where-Object {[long]$_.committedCursorMinute -ge 0 -and ([long]$_.requestedHorizonMinute-[long]$_.committedCursorMinute) -le 15}).Count;members=@($members.profileId);distance=[Math]::Pow([double]$center.x-[double]$status.before.x,2)+[Math]::Pow([double]$center.y-[double]$status.before.y,2)}
+        } | Where-Object {$_.count -ge 4} | Sort-Object @{Expression='preparedCount';Descending=$true},@{Expression='count';Descending=$true},distance,profileId)
+        $clusters=[Collections.Generic.List[object]]::new()
+        foreach($candidate in $ranked){if(@($clusters | Where-Object {[Math]::Pow($_.x-$candidate.x,2)+[Math]::Pow($_.y-$candidate.y,2) -lt 4000000}).Count -eq 0){$clusters.Add($candidate)};if($clusters.Count -eq 3){break}}
+        @($clusters) | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'preranked-current-clusters.json') -Encoding utf8
+        if($clusters.Count -eq 0){
+            & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'nearest-current-eight.json') -OutputRoot (Join-Path $OutputRoot 'cohort0-first-guards') *> (Join-Path $OutputRoot 'cohort0-first-guards.log')
+            throw 'NATURAL_ADMISSION_NO_READY_ONLINE_CURRENT_CLUSTER: exact eight first guards exported.'
+        }
+        $fixed=$clusters[0]; $SetupTeleport=@{x=$fixed.x;y=$fixed.y;z=$fixed.z;instanceId=0}
+        $fixed | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'fixed-setup-candidate.json') -Encoding utf8
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action DryPath -Episode $Episode -OriginPoint @{x=$SetupTeleport.x;y=$SetupTeleport.y;z=$SetupTeleport.z} -EndpointPoint @{x=$SetupTeleport.x-200;y=$SetupTeleport.y} -OutputRoot (Join-Path $OutputRoot 'setup-dry') *> (Join-Path $OutputRoot 'setup-dry.log')
+        if($LASTEXITCODE -ne 0){throw 'Fixed current cluster native geometry rejected.'}
+    }
+    if($SetupTeleport.Count){
+        if(-not $SetupTeleport.ContainsKey('instanceId')){throw 'Checked setup requires exact instanceId.'}
+        $candidate=Capture031 'SNAPSHOT_PHANTOMS' @{setupProfileId=[long]$fixed.profileId}
+        $exactCandidate=$candidate.reason -ceq 'SETUP_CANDIDATE_SNAPSHOT' -and [int]$candidate.candidate.x -eq [int]$SetupTeleport.x -and [int]$candidate.candidate.y -eq [int]$SetupTeleport.y -and [int]$candidate.candidate.z -eq [int]$SetupTeleport.z -and [int]$candidate.candidate.instanceId -eq [int]$SetupTeleport.instanceId
+        $nearby=[Math]::Sqrt([Math]::Pow([int]$status.before.x-[int]$SetupTeleport.x,2)+[Math]::Pow([int]$status.before.y-[int]$SetupTeleport.y,2)) -le 2000
+        if(-not $exactCandidate -and -not $nearby -and -not $SetupAtNearestCandidate){throw 'Fixed setup differs from admitted candidate; no location retry.'}
+        $null=Capture031 'TELEPORT_SELF' $SetupTeleport
+        $status=Capture031 'STATUS'
+        if($status.before.teleporting -cne 'false' -or [Math]::Abs([int]$status.before.x-[int]$SetupTeleport.x) -gt 32 -or [Math]::Abs([int]$status.before.y-[int]$SetupTeleport.y) -gt 32){throw 'Pre-baseline setup arrival unconfirmed.'}
+    }
+    # Fixed enrollment time. No rewards-based spot or actor selection.
+    $enrollment=[Diagnostics.Stopwatch]::StartNew()
+    while($enrollment.Elapsed.TotalSeconds -lt 25){
+        if($heartbeatJob.State -ceq 'Failed'){throw 'Heartbeat writer failed during enrollment.'}
+        Start-Sleep -Seconds 1
+    }
+    if($watch.Elapsed.TotalSeconds -gt 60){throw 'SETUP_BOUND60: no Synthetic clock reset.'}
+    $baseline=@(Discover031 | Where-Object {$_.worldPresent -ceq 'true'} | Sort-Object {[long]$_.profileId})
+        if($baseline.Count -lt 4 -or $baseline.Count -gt 8){
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'nearest-current-eight.json') -OutputRoot (Join-Path $OutputRoot 'cohort0-first-guards') *> (Join-Path $OutputRoot 'cohort0-first-guards.log')
+        throw "NATURAL_COHORT_COUNT:$($baseline.Count); exact eight first guards exported"
+    }
+    $baseline | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $OutputRoot 'baseline-cohort.json') -Encoding utf8
+    $suitable=@($baseline | Where-Object {($Mode -ceq 'Probe' -or $_.dead -ceq 'false') -and [int]$_.npcId -gt 0})
+    $different=@($suitable | Where-Object {$_.profileId -notin $PreviousPrimaryIds})
+    $primary=@($(if($different.Count -ge 2){$different}else{$suitable}) | Select-Object -First 2)
+    if($primary.Count -ne 2){throw 'Two suitable primaries unavailable before outcomes.'}
+    $primary | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $OutputRoot 'primary.json') -Encoding utf8
+    $endpoint=if($Mode -ceq 'Away'){@{x=[int]$path.endpoint.x;y=[int]$path.endpoint.y;z=[int]$path.endpoint.z}}else{@{}}
+    & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot (Join-Path $OutputRoot 'enrollment-census') -EndpointPoint $endpoint *> (Join-Path $OutputRoot 'census-attach.log')
+    if($LASTEXITCODE -ne 0){throw 'One-shot World/capacity census failed.'}
+    & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode FullObserve -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot $fullRoot -ObserverRunId $run *> (Join-Path $OutputRoot 'full-attach.log')
+    if($LASTEXITCODE -ne 0){throw 'Existing FullObserve attach failed.'}
+    $fullStarted=$true
+    $frameReady=[Diagnostics.Stopwatch]::StartNew()
+    while(-not (Test-Path (Join-Path $fullRoot 'full-frame-latest.json'))){if($frameReady.Elapsed.TotalSeconds -gt 5){throw 'Full native first frame missing.'};Start-Sleep -Milliseconds 100}
+    $first=ReadFrame031
+    if($Mode -ceq 'Probe'){
+        $origin=@{x=[int]$first.observer.x;y=[int]$first.observer.y;z=[int]$first.observer.z}
+        $point=@{x=$origin.x-200;y=$origin.y;z=$origin.z}
+        $move=Capture031 'MOVE_SELF' $point
+        if($move.status -cne 'ACCEPTED'){throw 'Probe MOVE admission missing.'}
+        WaitArrival031 $point
+        $return=Capture031 'MOVE_SELF' $origin
+        if($return.status -cne 'ACCEPTED'){throw 'Probe return admission missing.'}
+        WaitArrival031 $origin
+    }
+    if($Mode -ceq 'Away'){
+        if([Math]::Abs($first.observer.x-[int]$path.origin.x) -gt 24 -or [Math]::Abs($first.observer.y-[int]$path.origin.y) -gt 24 -or [Math]::Abs($first.observer.z-[int]$path.origin.z) -gt 48){throw 'Actual observer origin differs from native dry path.'}
+        $admission=Import-Csv (Join-Path $OutputRoot 'enrollment-census/endpoint-locality.tsv') -Delimiter "`t"
+        foreach($id in $primary.profileId){
+            $row=@($admission | Where-Object {$_.profileId -ceq $id})
+            if($row.Count -ne 1 -or $row[0].worldPresent -cne 'true' -or $row[0].prewarm -cne 'false' -or $row[0].nativeVisible -cne 'false'){throw 'Endpoint lacks native no-demand proof for preselected actor.'}
+        }
+        MarkPhase031 'DEPART'
+        Walk031 @($path.steps)
+        MarkPhase031 'AWAY_ARRIVED'
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot (Join-Path $OutputRoot 'away-census') *> (Join-Path $OutputRoot 'away-census.log')
+        if($LASTEXITCODE -ne 0){throw 'Bounded away native census failed.'}
+        $humans=Import-Csv (Join-Path $OutputRoot 'away-census/world-identities.tsv') -Delimiter "`t" | Where-Object {$_.headless -ceq 'false' -and $_.objectId -cne '268492939'}
+        if(@($humans).Count){throw 'Other native human at away boundary.'}
+        $away=[Diagnostics.Stopwatch]::StartNew()
+        do{
+            $frame=ReadFrame031
+            foreach($id in $primary.profileId){$row=@($frame.actors | Where-Object {$_.profileId -ceq $id});if($row.Count -ne 1 -or $row[0].observerPrewarm -cne 'false' -or $row[0].observerNativeVisible -cne 'false'){throw 'Native away locality still demanded.'}}
+            if(@($frame.actors | Where-Object {$_.profileId -cin $primary.profileId -and $_.worldPresent -ceq 'true'}).Count -eq 0){break}
+            if($away.Elapsed.TotalSeconds -gt 120){throw 'SOFT_RETIRE_BOUND: preselected actors remain in World after native action/grace.'}
+            Start-Sleep -Seconds 1
+        }while($true)
+        MarkPhase031 'BACKGROUND_ABSENT'
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-early') *> (Join-Path $OutputRoot 'away-early-export.log')
+        if($LASTEXITCODE -ne 0){throw 'Exact away canonical export failed.'}
+        # One full native minute plus scheduling margin, inside the unchanged480s episode budget.
+        Start-Sleep -Seconds 75
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-late') *> (Join-Path $OutputRoot 'away-late-export.log')
+        if($LASTEXITCODE -ne 0){throw 'Exact background step export failed.'}
+        MarkPhase031 'RETURN'
+        $back=[Collections.Generic.List[object]]::new()
+        for($i=$path.steps.Count-2;$i -ge 0;$i--){$back.Add($path.steps[$i])}
+        $back.Add($path.origin); Walk031 @($back)
+        MarkPhase031 'RETURNED'
+    }
+    $first=ReadFrame031
+    $sequenceBefore=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
+    $observation=[Diagnostics.Stopwatch]::StartNew(); $lastNanos=[long]$first.sampleNanos; $maxGap=0.0; $unique=0; $lastFresh=0.0
+    $samples=[Collections.Generic.List[object]]::new()
+    $samples.Add([pscustomobject]@{elapsedSeconds=0.0;sampleNanos=$first.sampleNanos;observer=$first.observer;actors=$first.actors})
+    while($observation.Elapsed.TotalSeconds -lt $Seconds){
+        if($watch.Elapsed.TotalSeconds -gt 480){throw 'Episode budget480s exhausted; TTL not extended.'}
+        if($heartbeatJob.State -ceq 'Failed'){throw 'Heartbeat writer failed.'}
+        $session=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
+        if($session.state -cne 'RUNNING'){throw "NATIVE_SESSION_CLOSED:$($session.reason)"}
+        $frame=ReadFrame031
+        if($Mode -ceq 'Scene' -and ($frame.observer.moving -or $frame.observer.x -ne $first.observer.x -or $frame.observer.y -ne $first.observer.y -or $frame.observer.z -ne $first.observer.z -or $frame.observer.instance -ne $first.observer.instance)){throw 'STATIONARY_OBSERVER_CHANGED: frozen native scene ends.'}
+        if([long]$frame.sampleNanos -gt $lastNanos){
+            $gap=([long]$frame.sampleNanos-$lastNanos)/1e9; $maxGap=[Math]::Max($maxGap,$gap)
+            if($gap -gt 5){throw "TELEMETRY_GAP:$gap"}
+            $lastNanos=[long]$frame.sampleNanos; $unique++; $lastFresh=$observation.Elapsed.TotalSeconds
+            $samples.Add([pscustomobject]@{elapsedSeconds=$observation.Elapsed.TotalSeconds;sampleNanos=$frame.sampleNanos;observer=$frame.observer;actors=$frame.actors})
+        }
+        if($observation.Elapsed.TotalSeconds-$lastFresh -gt 5){throw 'TELEMETRY_STALE: no fresh native frame for5s.'}
+        Start-Sleep -Milliseconds 500
+    }
+    $samples | ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'all-samples.json') -Encoding utf8
+    if($Mode -ceq 'Away'){MarkPhase031 'POST_RETURN_DONE'}
+    $sequenceAfter=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
+    [ordered]@{kind=$Mode;sha=$FrozenSha;runId=$run;seconds=$observation.Elapsed.TotalSeconds;nativeUniqueSamples=$unique;maxGapSeconds=$maxGap;commandCount=$script:commands;baselineCount=$baseline.Count;primaryIds=@($primary.profileId);sameSession=$true;telemetryMailboxCommands=([long]$sequenceAfter.nextSequence-[long]$sequenceBefore.nextSequence);sequenceBefore=[long]$sequenceBefore.nextSequence;sequenceAfter=[long]$sequenceAfter.nextSequence;arrivalProof=($Mode -ceq 'Probe')} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'capture-result.json') -Encoding utf8
+    "TASK031_CAPTURE_COMPLETE mode=$Mode cohort=$($baseline.Count) samples=$unique gap=$maxGap commands=$script:commands"
+}catch{
+    $_ | Out-String | Set-Content (Join-Path $OutputRoot 'episode-failure.txt') -Encoding utf8
+    throw
+}finally{
+    if($started){
+        try{
+            & (Join-Path $runtime 'Stop-LocalPlayPilot.ps1') -ActorMode Synthetic -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-stop.json') -Encoding utf8
+            $finalState=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
+            $finalState | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'final-synthetic-state.json') -Encoding utf8
+            if($finalState.state -cne 'STOPPED'){throw 'Synthetic cleanup not confirmed.'}
+        }finally{
+            [IO.File]::WriteAllText($stopWriter,'STOP',[Text.UTF8Encoding]::new($false))
+            if($heartbeatJob){$heartbeatJob | Wait-Job -Timeout 10 | Out-Null; Receive-Job $heartbeatJob *> (Join-Path $OutputRoot 'heartbeat-job.log'); Remove-Job $heartbeatJob -Force}
+        }
+    }
+    if($fullStarted){& (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Flush -Episode $Episode -OutputRoot $fullRoot *> (Join-Path $OutputRoot 'full-flush.log')}
+}

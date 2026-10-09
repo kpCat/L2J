@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([ValidateSet('a','b','t')][string]$Episode='a',[Parameter(Mandatory)][string]$OutputRoot,[string]$FrozenSha='e083f35d9b3b1c1441f484c8f760c8dc34bbdbc0')
+param([ValidateSet('a','b','t')][string]$Episode='a',[Parameter(Mandatory)][string]$OutputRoot,[string]$FrozenSha='e083f35d9b3b1c1441f484c8f760c8dc34bbdbc0',[long]$SetupProfileId=0)
 $ErrorActionPreference='Stop'
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $runtime=Join-Path $module ".phantom-local/contract031$Episode/runtime"
@@ -49,6 +49,7 @@ try{
         $center=$_; $members=@($eligible | Where-Object {[Math]::Pow([double]$_.x-[double]$center.x,2)+[Math]::Pow([double]$_.y-[double]$center.y,2) -le 2250000})
         [pscustomobject]@{profileId=[long]$center.profileId;x=[int]$center.x;y=[int]$center.y;z=[int]$center.z;count=$members.Count;members=$members;distance=[Math]::Pow([double]$center.x-[double]$status.before.x,2)+[Math]::Pow([double]$center.y-[double]$status.before.y,2)}
     } | Sort-Object @{Expression='count';Descending=$true},distance,profileId)
+    if($SetupProfileId -gt 0){$ranked=@($ranked | Where-Object {$_.profileId -eq $SetupProfileId})}
     if($ranked.Count -eq 0){throw 'NO_PARTICIPATING_READY_ONLINE_DURABLE_READY_INSTANCE0'}
     $fixed=$ranked[0]
     $tracked=@($fixed.members | Sort-Object {[Math]::Pow([double]$_.x-$fixed.x,2)+[Math]::Pow([double]$_.y-$fixed.y,2)}, @{Expression={[long]$_.profileId}} | Select-Object -First 8)
