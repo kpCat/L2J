@@ -1,0 +1,14 @@
+suite=background-model
+seed=15001501
+total=9
+passed=9
+failed=0
+PASS background-model.01-state-codec-and-bound elapsedNanos=7307800
+PASS background-model.02-exp-sp-formula elapsedNanos=13694800
+PASS background-model.03-rng-replay-and-resources elapsedNanos=22071200
+PASS background-model.04-drop-object-capacity elapsedNanos=33206700
+PASS background-model.05-causal-death-and-loss elapsedNanos=1305600
+PASS background-model.06-competition-capacity-release elapsedNanos=7906000
+PASS background-model.07-grouped-ungrouped-occurrence-parity elapsedNanos=25544400
+PASS background-model.08-ordinary-spoil-separate-from-death-drops elapsedNanos=6871200
+PASS background-model.09-mixed-rate-empty-random-occurrence-parity031 elapsedNanos=14343100

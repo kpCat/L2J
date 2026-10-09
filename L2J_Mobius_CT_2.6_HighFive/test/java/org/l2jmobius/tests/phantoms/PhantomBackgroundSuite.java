@@ -429,6 +429,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("06-competition-capacity-release", _ -> testCompetition());
 		registry.add("07-grouped-ungrouped-occurrence-parity", _ -> testDropOccurrenceParity());
 		registry.add("08-ordinary-spoil-separate-from-death-drops", _ -> testOrdinarySpoil());
+		registry.add("09-mixed-rate-empty-random-occurrence-parity031", _ -> testMixedRateOccurrence031());
 	}
 
 	private void registerTransaction(PhantomTestRegistry registry)
@@ -5602,6 +5603,25 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(registry.tryReserve("node", TARGET_NPC_ID, 1) == null, "Competition exceeded spawn capacity.");
 		first.close();
 		PhantomAssertions.assertEquals(0, registry.currentReservations(), "Competition reservation was not released.");
+	}
+
+	private void testMixedRateOccurrence031()
+	{
+		// Stock NpcTemplate guards randomDrops.isEmpty() when custom-rate awards use the occurrence budget without joining that list.
+		final Drop custom = new Drop(57, 0, 0, 100, 25, 1, 1, 2, null, 1, 100, true, 0);
+		final Drop unity = new Drop(4037, 1, 0, 100, 99, 1, 1, 1, null, 1, 100, true, 0);
+		final Target target = singleEncounterTarget(List.of(custom, unity));
+		final PhantomBackgroundModel model = new PhantomBackgroundModel();
+		boolean both = false;
+		for (long seed=1; seed<=256; seed++)
+		{
+			final var base=state(1, 101, State.READY, 100, 100, inventory());
+			final var seeded=base.after(base.progress(),base.vitals(),base.position(),base.inventory(),base.autoGetSkills(),new Clock(seed,0,0),base.receipt());
+			final var result=model.evaluate(request(seeded,target));
+			PhantomAssertions.assertEquals(result,model.evaluate(request(seeded,target)),"Mixed-rate deterministic replay changed.");
+			both |= result.inventoryDelta().itemDeltas().containsKey(custom.itemId()) && result.inventoryDelta().itemDeltas().containsKey(unity.itemId());
+		}
+		PhantomAssertions.assertTrue(both,"Stock custom-rate/unity reset branch was not exercised.");
 	}
 
 	private void testDropOccurrenceParity()

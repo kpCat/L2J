@@ -434,7 +434,7 @@ public final class PhantomBackgroundModel
 					final double chance = cumulative * (drop.rawGroupChance() / 100d) * drop.chanceMultiplier();
 					if ((remainingOccurrences == 0) && (chance < 100) && !calculated.isEmpty())
 					{
-						if (drop.chanceMultiplier() == 1)
+						if ((drop.chanceMultiplier() == 1) && !randomAwards.isEmpty())
 						{
 							cached = randomAwards.removeFirst();
 							calculated.remove(cached);

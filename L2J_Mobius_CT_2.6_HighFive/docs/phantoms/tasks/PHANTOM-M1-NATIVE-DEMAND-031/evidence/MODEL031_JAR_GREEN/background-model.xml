@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="background-model" seed="15001501" tests="9" passed="9" failures="0">
+  <properties>
+  </properties>
+  <testcase name="background-model.01-state-codec-and-bound" elapsedNanos="7307800"></testcase>
+  <testcase name="background-model.02-exp-sp-formula" elapsedNanos="13694800"></testcase>
+  <testcase name="background-model.03-rng-replay-and-resources" elapsedNanos="22071200"></testcase>
+  <testcase name="background-model.04-drop-object-capacity" elapsedNanos="33206700"></testcase>
+  <testcase name="background-model.05-causal-death-and-loss" elapsedNanos="1305600"></testcase>
+  <testcase name="background-model.06-competition-capacity-release" elapsedNanos="7906000"></testcase>
+  <testcase name="background-model.07-grouped-ungrouped-occurrence-parity" elapsedNanos="25544400"></testcase>
+  <testcase name="background-model.08-ordinary-spoil-separate-from-death-drops" elapsedNanos="6871200"></testcase>
+  <testcase name="background-model.09-mixed-rate-empty-random-occurrence-parity031" elapsedNanos="14343100"></testcase>
+</testsuite>

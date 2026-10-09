@@ -1,0 +1,80 @@
+{
+  "sourceSha": "ba5d0fcdc50039618445c2161d6a911f400ddc47",
+  "gamePid": 22440,
+  "startTicks": 639271779966656035,
+  "approachUtc": "2026-10-09T21:36:09.9518743Z",
+  "runId": "b4687b99-b2a6-4c91-97f1-26ea2e9e6356",
+  "preselected": [
+    "6",
+    "7",
+    "33",
+    "40",
+    "48",
+    "76",
+    "89",
+    "122"
+  ],
+  "physicalDemand": 8,
+  "worldPresent": 0,
+  "timingDebuggerExcluded": true,
+  "actors": [
+    {
+      "profileId": "6",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "runtimeReason": "goal.reloaded",
+      "ecology.entry._lastReportedFailure": "transaction.item_conflict_canonical"
+    },
+    {
+      "profileId": "7",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "runtimeReason": "goal.reloaded",
+      "ecology.entry._lastReportedFailure": "transaction.item_conflict_canonical"
+    },
+    {
+      "profileId": "33",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "runtimeReason": "goal.reloaded",
+      "ecology.entry._lastReportedFailure": "ecology.persistence_or_runtime_failure"
+    },
+    {
+      "profileId": "40",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "runtimeReason": "goal.reloaded",
+      "ecology.entry._lastReportedFailure": "ecology.persistence_or_runtime_failure"
+    },
+    {
+      "profileId": "48",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "runtimeReason": "goal.reloaded",
+      "ecology.entry._lastReportedFailure": "transaction.item_conflict_canonical"
+    },
+    {
+      "profileId": "76",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "runtimeReason": "goal.reloaded",
+      "ecology.entry._lastReportedFailure": "transaction.item_conflict_canonical"
+    },
+    {
+      "profileId": "89",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "runtimeReason": "goal.reloaded",
+      "ecology.entry._lastReportedFailure": "transaction.item_conflict_canonical"
+    },
+    {
+      "profileId": "122",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "runtimeReason": "goal.reloaded",
+      "ecology.entry._lastReportedFailure": "transaction.item_conflict_canonical"
+    }
+  ],
+  "jfrPrivate": true,
+  "rawPrivacyAssessment": "Raw account/inventory/DB/JFR excluded; published scalar source stacks and IDs only."
+}

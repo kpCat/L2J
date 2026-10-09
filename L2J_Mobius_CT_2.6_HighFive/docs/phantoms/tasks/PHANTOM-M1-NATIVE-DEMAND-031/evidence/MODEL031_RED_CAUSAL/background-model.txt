@@ -1,0 +1,14 @@
+suite=background-model
+seed=15001501
+total=9
+passed=8
+failed=1
+PASS background-model.01-state-codec-and-bound elapsedNanos=7943600
+PASS background-model.02-exp-sp-formula elapsedNanos=15896400
+PASS background-model.03-rng-replay-and-resources elapsedNanos=24511800
+PASS background-model.04-drop-object-capacity elapsedNanos=34248900
+PASS background-model.05-causal-death-and-loss elapsedNanos=1673100
+PASS background-model.06-competition-capacity-release elapsedNanos=9835500
+PASS background-model.07-grouped-ungrouped-occurrence-parity elapsedNanos=32330300
+PASS background-model.08-ordinary-spoil-separate-from-death-drops elapsedNanos=9861700
+FAIL background-model.09-mixed-rate-empty-random-occurrence-parity031 elapsedNanos=2412700 type=java.util.NoSuchElementException message= seed=15001501

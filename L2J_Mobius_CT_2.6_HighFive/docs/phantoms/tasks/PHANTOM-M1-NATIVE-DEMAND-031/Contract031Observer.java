@@ -342,7 +342,14 @@ public final class Contract031Observer
                 final var background = (PhantomBackgroundService) field(configured.getClass(), "_backgroundService").get(configured);
                 fields.put("catchup", catchups.load(profile).toString());
                 fields.put("plannerGeneration", planner.generation().toString());
-                fields.put("background", background.acquisitionSnapshot(profile).toString());
+                final var durable031 = background.acquisitionSnapshot(profile).orElse(null);
+                fields.put("background", String.valueOf(durable031));
+                if (durable031 != null) {
+                    final int object031 = durable031.identity().characterObjectId();
+                    fields.put("setup.identityOwner", String.valueOf(org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(object031)));
+                    fields.put("setup.worldPresent", Boolean.toString(World.getInstance().findObject(object031) != null));
+                    fields.put("setup.autoSave", Boolean.toString(org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(object031)));
+                }
                 for (String name : java.util.List.of("_visiblePublications", "_visibleEpisodes", "_visibleFailures"))
                 {
                     final Object value = ((Map<?, ?>) field(history.getClass(), name).get(history)).get(profile);

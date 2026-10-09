@@ -30,13 +30,14 @@ class TraceGuard031 {
         var options = connector.defaultArguments();
         options.get("hostname").setValue("127.0.0.1"); options.get("port").setValue(args[0]); options.get("timeout").setValue("5000");
         VirtualMachine vm = connector.attach(options);
+        boolean ecology = args.length > 2 && args[2].startsWith("ecology:");
         boolean singleThread = args.length > 2 && args[2].startsWith("thread:");
-        Set<Long> targets = singleThread ? Set.of() : Set.of(args.length < 3 ? 18L : Long.parseLong(args[2]));
+        Set<Long> targets = singleThread ? Set.of() : Set.of(args.length < 3 ? 18L : Long.parseLong(ecology ? args[2].substring(8) : args[2]));
         List<String> lines = new ArrayList<>();
         long deadline = System.nanoTime() + 60_000_000_000L;
         int unrelated = 0;
         try {
-            ReferenceType type = vm.classesByName("org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState$InventoryFacts").stream().findFirst().orElseThrow();
+            ReferenceType type = vm.classesByName(ecology ? "org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService" : "org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState$InventoryFacts").stream().findFirst().orElseThrow();
             var request = vm.eventRequestManager().createBreakpointRequest(type.locationsOfLine(args.length < 4 ? 273 : Integer.parseInt(args[3])).getFirst());
             if (singleThread) request.addThreadFilter(vm.allThreads().stream().filter(t -> t.name().equals(args[2].substring(7))).findFirst().orElseThrow());
             request.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD); request.enable();
@@ -47,6 +48,20 @@ class TraceGuard031 {
                 try {
                     for (Event event : events) if (event instanceof BreakpointEvent hit) {
                         long start = System.nanoTime();
+                        if (ecology) {
+                            StackFrame guard = hit.thread().frame(0);
+                            long profile = ((LongValue) guard.getValue(guard.visibleVariableByName("profileId"))).value();
+                            if (!targets.contains(profile)) { unrelated++; continue; }
+                            Value exception = guard.getValue(guard.visibleVariableByName("exception"));
+                            lines.add("UTC=" + Instant.now() + " profileId=" + profile + " thread=" + hit.thread().name());
+                            for (int cause = 0; exception != null && cause < 4; cause++) {
+                                lines.add("cause" + cause + "=" + exception.type().name() + ":" + scalar(field(exception,"detailMessage")));
+                                Value next = field(exception,"cause"); if (next == exception || exception.equals(next)) break; exception = next;
+                            }
+                            int count = 0;
+                            for (StackFrame frame : hit.thread().frames()) { if (count++ == 16) break; lines.add("catchStack=" + frame.location().declaringType().name() + "." + frame.location().method().name() + ":" + frame.location().lineNumber()); }
+                            lines.add("captureNanos=" + (System.nanoTime()-start)); captured = true; continue;
+                        }
                         StackFrame transaction = null;
                         for (StackFrame frame : hit.thread().frames()) if (frame.location().declaringType().name().equals("org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction") && frame.location().method().name().equals("execute")) { transaction = frame; break; }
                         if (transaction == null) { unrelated++; continue; }

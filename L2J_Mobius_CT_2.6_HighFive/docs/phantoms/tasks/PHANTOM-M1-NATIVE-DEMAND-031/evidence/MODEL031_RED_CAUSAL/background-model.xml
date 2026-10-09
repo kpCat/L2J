@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="background-model" seed="15001501" tests="9" passed="8" failures="1">
+  <properties>
+  </properties>
+  <testcase name="background-model.01-state-codec-and-bound" elapsedNanos="7943600"></testcase>
+  <testcase name="background-model.02-exp-sp-formula" elapsedNanos="15896400"></testcase>
+  <testcase name="background-model.03-rng-replay-and-resources" elapsedNanos="24511800"></testcase>
+  <testcase name="background-model.04-drop-object-capacity" elapsedNanos="34248900"></testcase>
+  <testcase name="background-model.05-causal-death-and-loss" elapsedNanos="1673100"></testcase>
+  <testcase name="background-model.06-competition-capacity-release" elapsedNanos="9835500"></testcase>
+  <testcase name="background-model.07-grouped-ungrouped-occurrence-parity" elapsedNanos="32330300"></testcase>
+  <testcase name="background-model.08-ordinary-spoil-separate-from-death-drops" elapsedNanos="9861700"></testcase>
+  <testcase name="background-model.09-mixed-rate-empty-random-occurrence-parity031" elapsedNanos="2412700"><failure type="java.util.NoSuchElementException" message="" seed="15001501"/></testcase>
+</testsuite>
