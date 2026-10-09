@@ -21,6 +21,7 @@ files += [MODULE / p for p in (
     'tools/phantom-local-play/Invoke-LocalPlayPilot.ps1',
     'tools/phantom-local-play/LocalPlay-Pilot.ps1',
     'test/java/org/l2jmobius/tests/phantoms/LocalPlayContinuity028Suite.java',
+    'test/java/org/l2jmobius/tests/phantoms/PhantomContinuity028Suite.java',
     'test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java')]
 bad_mojibake, bad_escaped = [], []
 for path in files:

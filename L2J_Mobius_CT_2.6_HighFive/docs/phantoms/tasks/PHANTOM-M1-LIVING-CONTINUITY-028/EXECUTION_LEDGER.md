@@ -54,3 +54,15 @@ Local patterns: native Synthetic lifecycle, exact owned runtime controls027, bou
   damage differs. Exact original reward recipient is UNKNOWN, no native incident
   was observed. Lifecycle acceptance11/11; LocalPlay15/15, native10/10,
   transport3/3, soft-return3/3. No original test threshold or implementation changed.
+
+- E A33 scene A COMPLETE380.83s, natural6, V2 FAIL4/6; legacy count6 is separately
+  NOT_APPLICABLE. Native PHASE_DEADLINE for1059/1272 is preserved. All6 later absent
+  after native locality retirement; this is full-server withdrawal proof, not
+  away/return completion. Late SQL924 advanced lawfully in background after seal;
+  raw direct seal comparison5/6 remains FAIL until exact transition proof exists.
+- C B05 RED admitted a new root at combat+90s. Root-only pause failed passive
+  completion. Stock IDLE settlement GREEN2/2 includes a real earned attack-hit
+  completing without cancellation; soft-boundary3/3 PASS. Native core read-only.
+- Bounded exception: the third focused028 native test file is necessary for the
+  observed combat phase defect; 11 non-task files now serve the same vertical.
+  No independent artifact family or unrelated cleanup is introduced.

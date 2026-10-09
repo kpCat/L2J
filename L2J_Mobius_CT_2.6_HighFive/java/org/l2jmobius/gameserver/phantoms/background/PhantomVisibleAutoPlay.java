@@ -467,6 +467,20 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					return new TickAdmission(TickStatus.PAUSED, null, "locality_retire");
 				}
 				final Session session = _sessions.get(_profileId);
+				final var combat = ((session == null) || (session._policy != this)) ? null : nativeProgress(player, session._epoch);
+				if ((combat != null) && (combat.phase() == PlayerNativeEvidence.Phase.COMBAT)
+					&& (combat.phaseSinceNanos() > 0) && (_clock.getAsLong() - combat.phaseSinceNanos() >= STALL_DELAY_NANOS))
+				{
+					// Stop only new pool roots; earned attack/cast work reaches its original passive completion.
+					if (player.hasAI() && !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && (player.getAI().getIntention() != Intention.IDLE))
+					{
+						// Stock IDLE stops the next attack intention; it does not cancel captured earned hit tickets.
+						player.getAI().setIntention(Intention.IDLE);
+					}
+					lease.close();
+					publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "native_combat_settlement_paused"));
+					return new TickAdmission(TickStatus.PAUSED, null, "native_combat_settlement");
+				}
 				if (session != null && session._policy == this && resourcePause(session, player))
 				{
 					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "resource_paused"));
