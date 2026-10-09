@@ -532,8 +532,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return replay;
 			}
-			final var nativeGate = ordinaryContextGate(claim, state.position().committedAnchorId().equals(spec.anchorId())
-                && (state.state() != State.DEAD) ? PhantomBackgroundSimulationPolicy.Operation.FARM : PhantomBackgroundSimulationPolicy.Operation.TRAVEL);
+			final var nativeGate = ordinaryContextGate(claim, null);
 			if (nativeGate != null) { return nativeGate; }
 			if (state.state() == State.DEAD)
 			{
@@ -546,12 +545,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_IDLE, 0, state.position().committedAnchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical);
 				return commit(claim, new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), state.position(), state.clock(), Map.of(), state.autoGetSkills(), List.of(), null, mutation));
 			}
-			if (!state.position().committedAnchorId().equals(spec.anchorId()))
+			if (!state.position().committedAnchorId().equals(spec.anchorId()) || claim._nativeContext.afterPolicy() != null && !claim._nativeContext.afterPolicy().farmPosition())
 			{
 				final TravelAdvance advance;
 				try
 				{
-					advance = _authority.advanceTravel(state, spec, FARM_TRAVEL_BUDGET_MILLIS, expectedCatchup.cursorEpochMinute());
+					advance = _authority.advanceTravel(state, spec, FARM_TRAVEL_BUDGET_MILLIS, expectedCatchup.cursorEpochMinute(), claim._nativeContext.afterPolicy());
 				}
 				catch (RuntimeException exception)
 				{
@@ -568,7 +567,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final String travelLegId = advance.edgeId().startsWith("leg.") ? advance.edgeId() : "";
 				final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), 0, 0, ActionKind.HISTORICAL_TRAVEL, spec.npcId(), spec.anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, historical, travelLegId);
 				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), advance.feeAdena() == 0 ? Map.of() : Map.of(57, -advance.feeAdena()), state.autoGetSkills(), List.of(), null, mutation);
-				return commit(claim, command);
+				return commit(claim, travelCommand(claim, command, FARM_TRAVEL_BUDGET_MILLIS, expectedCatchup.cursorEpochMinute()));
 			}
 			final FarmInputAttempt attempt = ordinaryFarmAttempt(profileId, claim.characterObjectId(), state, spec);
 			if (!attempt.successful()) { return OperationResult.replan(farmFailureReason(attempt)); }
@@ -829,7 +828,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if ((_state != ServiceState.RUNNING) || (proof.context() == null)) { return PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE); }
 		if ((expected.state() != State.VERIFY_PENDING) && (proof.context().phase() != PhantomNativeContext.Phase.PENDING))
 		{
-			updateNativeContextSignal(profileId, proof, !proof.context().simulationEligible());
+			updateNativeContextSignal(profileId, proof, !proof.context().permits(proof.context().afterPolicy() != null && !proof.context().afterPolicy().farmPosition()
+                ? PhantomBackgroundSimulationPolicy.Operation.TRAVEL : PhantomBackgroundSimulationPolicy.Operation.FARM, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint()));
 		}
 		return _state == ServiceState.RUNNING ? proof : PhantomBackgroundTransaction.NativeContextResult.rejected(PhantomBackgroundTransaction.Status.BACKEND_FAILURE);
 	}
@@ -1457,9 +1457,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return retry("state.not_ready");
 			}
-			final var nativeGate = nativeContextGate(profileId, state);
+			final var nativeGate = ordinaryContextGate(claim, PhantomBackgroundSimulationPolicy.Operation.TRAVEL);
 			if (nativeGate != null) { return nativeGate; }
-			final TravelAdvance advance = _authority.advanceTravel(state, claim.spec(), FARM_TRAVEL_BUDGET_MILLIS, logicalEpochMinute);
+			final TravelAdvance advance = _authority.advanceTravel(state, claim.spec(), FARM_TRAVEL_BUDGET_MILLIS, logicalEpochMinute, claim._nativeContext.afterPolicy());
 			if (!advance.mutated())
 			{
 				return switch (advance.status())
@@ -1472,7 +1472,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final String travelLegId = advance.edgeId().startsWith("leg.") ? advance.edgeId() : "";
 			final PhantomBackgroundOperationKey key = new PhantomBackgroundOperationKey(profileId, claim.characterObjectId(), goal.goalId(), goal.revision(), activityGeneration, tickSequence, ActionKind.TRAVEL, claim.spec().npcId(), claim.spec().anchorId(), PhantomBackgroundState.MODEL_VERSION, _authority.hashes(), null, null, travelLegId);
 			final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, state.progress(), state.vitals(), advance.position(), advance.clock(), advance.feeAdena() == 0 ? Map.of() : Map.of(57, -advance.feeAdena()), state.autoGetSkills());
-			return commit(claim, command);
+			return commit(claim, travelCommand(claim, command, FARM_TRAVEL_BUDGET_MILLIS, logicalEpochMinute));
 		}
 	}
 
@@ -2621,11 +2621,21 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
         if (proof.status() != PhantomBackgroundTransaction.Status.SUCCESS && proof.status() != PhantomBackgroundTransaction.Status.NATIVE_CONTEXT_REQUIRED) { return mapTransactionFailure(proof.status()); }
         if (!claim.state().equals(proof.state())) { return OperationResult.replan("native_context.state_changed"); }
         if (proof.context().phase() == PhantomNativeContext.Phase.PENDING) { return retry("native_context.pending"); }
-        final boolean required = !proof.context().permits(operation, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
+        final var effective = operation != null ? operation : claim.state().position().committedAnchorId().equals(claim.spec().anchorId())
+            && (proof.context().afterPolicy() == null || proof.context().afterPolicy().farmPosition())
+            ? PhantomBackgroundSimulationPolicy.Operation.FARM : PhantomBackgroundSimulationPolicy.Operation.TRAVEL;
+        final boolean required = !proof.context().permits(effective, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
         final var delivery = updateNativeContextSignal(claim.profileId(), proof, required);
         if (required) { return OperationResult.replan(nativeContextReason(delivery)); }
         claim._nativeContext = proof.context();
         return null;
+    }
+        private PhantomBackgroundTransaction.Command travelCommand(OperationClaim claim, PhantomBackgroundTransaction.Command command, long budgetMillis, long epochMinute)
+    {
+        if (claim._nativeContext.afterPolicy() == null) { return command; }
+        final var policy = claim._nativeContext.afterPolicy().withPosition(_authority.canFarmAt(command.position(), claim.spec()), claim._nativeContext.afterPolicy().travelPosition());
+        return command.withPolicy(new PhantomBackgroundTransaction.PolicyMutation(claim._nativeContext, PhantomBackgroundSimulationPolicy.Operation.TRAVEL, policy, claim._lease,
+            new PhantomBackgroundTransaction.TravelProof(_authority, _authority.topologyGeneration(), budgetMillis, epochMinute)));
     }
     private static PhantomBackgroundTransaction.Command ordinaryCommand(OperationClaim claim, PhantomBackgroundTransaction.Command command, PhantomBackgroundSimulationPolicy proposed)
     {

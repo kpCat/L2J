@@ -21,3 +21,14 @@ T03 clean RED: actual native release succeeded, old common gate returned native_
 Typed FARM GREEN1/1: productive XP and vitality consumption, atomic rebound PNC2.
 First candidate remains incomplete: travel from off-area, policy numeric oracle, full-server gates and crash lanes unverified.
 Bootstrap collector is installed before Synthetic start; epoch0 bootstrap is not a real enrolled lifetime.
+
+12:16Z: first full-server probe C1 completed cohort8 / fresh79 / maxGap1.019s.
+First stock stop: exact GameServer35468 and Login28100 STOPPED; typed shutdown DONE/COMPLETE,
+collector20/20 pending0 overflow0 exporterFailure empty, eight owners DETACHED/permanent/zero work.
+This is NEW_PROOF, historical028 first failure remains UNKNOWN (no retrospective repair claim).
+Historical gate own semantic RED then GREEN2/2. Factual off-area return own RED AT_DESTINATION,
+then timed authority GREEN3/3 and actual atomic pure-position commit GREEN3/3.
+Unsupported party native-capture own semantic RED then GREEN3/3; solo FARM remains denied.
+First native scalar vector was Lucky (no consumption); strengthened actual level11 oracle
+NONLUCKY_NATIVE_ORACLE GREEN3/3 proves actual float consumption across all12 vitality points.
+C2 still not frozen final: actual natural background, whole-return and final crash gates remain.

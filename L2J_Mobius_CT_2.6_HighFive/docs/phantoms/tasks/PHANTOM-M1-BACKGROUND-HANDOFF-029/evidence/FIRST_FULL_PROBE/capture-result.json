@@ -1,0 +1,19 @@
+{
+  "kind": "Probe",
+  "sha": "85f7dac7a83ecc2c8a0bffef87ac1a59780109cc",
+  "runId": "e1b8193e-d2fd-458a-bbce-cace33c1238c",
+  "seconds": 80.5294827,
+  "nativeUniqueSamples": 79,
+  "maxGapSeconds": 1.0190883,
+  "commandCount": 5,
+  "baselineCount": 8,
+  "primaryIds": [
+    "110",
+    "142"
+  ],
+  "sameSession": true,
+  "telemetryMailboxCommands": 0,
+  "sequenceBefore": 6,
+  "sequenceAfter": 6,
+  "arrivalProof": true
+}

@@ -34,3 +34,13 @@ TRAVEL имеет нулевые reward/item/vitality/skill deltas и отдел
 Проверки: B01..B06, T01..T06, COMPATIBILITY и actual crash lanes на finalSHA.
 Старые872/1272 остаются UNPROVEN028. Route11 base replay PASS1/1 является NEW_PROOF;
 старый first cause UNKNOWN, не объявлен исправленным.
+Уточнение capsule algorithm2 до изменения codec: сохраняются native runSpeed,
+maximumBatchMillis=60000 и bounded unsupportedFacts bitmask. Horizon относится к одному
+batch: статические numeric facts действуют до смены level/class/loadout/rules binding;
+любой timed active effect заранее unsupported. Level boundary инвалидирует FARM.
+Algorithm1 раннего candidate029 остаётся readable, runSpeed0 не даёт новый TRAVEL;
+новый configured fingerprint требует fresh native attestation для FARM. PNC1 без изменений.
+Stored-origin return использует максимум4096 units, <=42 samples по100 units,
+stock GeoEngine в обе стороны и ZoneManager WaterZone. До завершения учитывается
+residualTravelMillis без XYZ/reward/resource deltas; commit пересчитывает тот же путь
+и проверяет topology generation под тем же held background lease и DB boundary.

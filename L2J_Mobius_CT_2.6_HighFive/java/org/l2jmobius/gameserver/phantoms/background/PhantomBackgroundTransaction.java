@@ -2230,6 +2230,20 @@ public final class PhantomBackgroundTransaction
                 || !state.position().equals(command.position()) || !context.afterPolicy().withPoints(mutation.proposedPolicy().points(), command.progress().level()).equals(mutation.proposedPolicy()))
             { throw new StateConflict(Status.STATE_CONFLICT); }
         }
+        else if (mutation.operation() == PhantomBackgroundSimulationPolicy.Operation.TRAVEL)
+        {
+            final var path = mutation.travel();
+            if (path == null || kind != PhantomBackgroundOperationKey.ActionKind.TRAVEL && kind != PhantomBackgroundOperationKey.ActionKind.HISTORICAL_TRAVEL
+                || !command.progress().equals(state.progress()) || !command.vitals().equals(state.vitals()) || !command.itemDeltas().isEmpty()
+                || !command.autoGetSkills().equals(state.autoGetSkills()) || command.acquisition() != null
+                || path.authority().topologyGeneration() != path.topologyGeneration() || !state.hashes().equals(path.authority().hashes()))
+            { throw new StateConflict(Status.STATE_CONFLICT); }
+            final var goal = PhantomBackgroundGoalSpec.parse(command.goal());
+            final var advance = path.authority().advanceTravel(state, goal, path.elapsedBudgetMillis(), path.logicalEpochMinute(), context.afterPolicy());
+            if (!advance.mutated() || advance.feeAdena() != 0 || !advance.position().equals(command.position()) || !advance.clock().equals(command.clock())
+                || !mutation.proposedPolicy().equals(context.afterPolicy().withPosition(path.authority().canFarmAt(command.position(), goal), context.afterPolicy().travelPosition())))
+            { throw new StateConflict(Status.STATE_CONFLICT); }
+        }
         else { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
     }
     private static void requirePolicyOwner(PolicyMutation mutation, int objectId)
@@ -2243,9 +2257,14 @@ public final class PhantomBackgroundTransaction
             || org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(objectId))
         { throw new StateConflict(Status.STATE_CONFLICT); }
     }
+    public record TravelProof(PhantomBackgroundAuthority authority, long topologyGeneration, long elapsedBudgetMillis, long logicalEpochMinute)
+    { public TravelProof { Objects.requireNonNull(authority); } }
     public record PolicyMutation(PhantomNativeContext expectedContext, PhantomBackgroundSimulationPolicy.Operation operation,
-        PhantomBackgroundSimulationPolicy proposedPolicy, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease)
+        PhantomBackgroundSimulationPolicy proposedPolicy, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease, TravelProof travel)
     {
+        public PolicyMutation(PhantomNativeContext expectedContext, PhantomBackgroundSimulationPolicy.Operation operation, PhantomBackgroundSimulationPolicy proposedPolicy,
+            org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease)
+        { this(expectedContext, operation, proposedPolicy, lease, null); }
         public PolicyMutation { Objects.requireNonNull(expectedContext); Objects.requireNonNull(operation); Objects.requireNonNull(proposedPolicy); Objects.requireNonNull(lease); }
     }
 

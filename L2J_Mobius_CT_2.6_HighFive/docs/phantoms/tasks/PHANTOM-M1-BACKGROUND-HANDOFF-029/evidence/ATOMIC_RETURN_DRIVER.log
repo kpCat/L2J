@@ -1,0 +1,14 @@
+окт. 09, 2026 3:13:38 PM org.l2jmobius.gameserver.data.xml.TeleporterData load
+INFO: TeleporterData: Loaded 195 npc teleporters.
+окт. 09, 2026 3:13:39 PM org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival <init>
+INFO: SevenSignsFestival: Initialization bypassed due to Seal Validation in effect.
+окт. 09, 2026 3:13:39 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 09, 2026 3:13:39 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] background-handoff029.T01-factual-off-area-no-reward-return
+[PASS] background-handoff029.T03-historical-ordinary-prerequisite
+[PASS] background-handoff029.T03-real-non1-release-background-commit
+SUMMARY: suite=background-handoff029 seed=15001501 total=3 passed=3 failed=0

@@ -125,6 +125,12 @@ public interface PhantomBackgroundAuthority
 
 	TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis);
 
+    /** Compatibility default: a policy alone does not manufacture an actual-origin route. */
+    default TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis, long logicalEpochMinute, PhantomBackgroundSimulationPolicy policy)
+    { return advanceTravel(state, goal, elapsedBudgetMillis, logicalEpochMinute); }
+    default long topologyGeneration() { return -1; }
+    default boolean canFarmAt(Position position, PhantomBackgroundGoalSpec goal) { return false; }
+
 	default TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis, long logicalEpochMinute)
 	{
 		return advanceTravel(state, goal, elapsedBudgetMillis);

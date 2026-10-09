@@ -1,0 +1,22 @@
+Buildfile: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml
+
+checkRequirements:
+
+init:
+   [delete] Deleting directory C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\bin
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\bin
+
+compile:
+    [javac] Compiling 2314 source files to C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\bin
+
+jar:
+      [jar] Building jar: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\dist\libs\LoginServer.jar
+      [jar] Building jar: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\dist\libs\GameServer.jar
+      [jar] Building jar: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\dist\db_installer\DatabaseInstaller.jar
+     [copy] Copying 1 file to C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\dist\libs
+     [copy] Copying C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\dist\libs\LoginServer.jar to C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\dist\libs\LoginServer.jar
+     [copy] Copying 1 file to C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\dist\libs
+     [copy] Copying C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\dist\libs\GameServer.jar to C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\dist\libs\GameServer.jar
+
+BUILD SUCCESSFUL
+Total time: 21 seconds

@@ -23,8 +23,75 @@ public final class PhantomBackgroundHandoff029Suite implements PhantomTestSuite
     @Override public void afterAll(PhantomTestContext context) throws Exception { base.afterAll(context); }
     @Override public void register(PhantomTestRegistry registry)
     {
+        registry.add("T01-factual-off-area-no-reward-return", context ->
+        {
+            final var environment = (PhantomHeadlessPlayerTestEnvironment) field(base, "_environment");
+            final var reset = Player.load(environment.primary().objectId());
+            try { reset.stopAllTasks(); reset.getStat().setVitalityPoints(1, true); }
+            finally { environment.cleanupLoadedPlayer(reset); }
+            final var method = PhantomBackgroundSuite.class.getDeclaredMethod("openNativeProductionFixture", PhantomTestContext.class, boolean.class); method.setAccessible(true);
+            try (var fixture = (AutoCloseable) method.invoke(base, context, true))
+            {
+                final var playerMethod = fixture.getClass().getDeclaredMethod("player"); playerMethod.setAccessible(true);
+                final var player = (Player) playerMethod.invoke(fixture);
+                final var idMethod = fixture.getClass().getDeclaredMethod("id"); idMethod.setAccessible(true); final long id = (long) idMethod.invoke(fixture);
+                final var production = (PhantomBackgroundSuite.ProductionAuthorityFixture) field(base, "_production");
+                final var anchor = production.topology().findAnchor("population.farming.elf.20534").orElseThrow();
+                final var area = production.topology().findNode(anchor.nodeId()).orElseThrow().area();
+                final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+                final int x = area.minX() - 64, y = anchor.point().y(), z = geo.getHeight(x, y, player.getZ());
+                player.setXYZInvisible(x, y, z); player.getStat().setVitalityPoints(16361, true);
+                final var transaction = (PhantomBackgroundTransaction) field(fixture, "transaction");
+                final var materialization = (PhantomMaterializationService) field(fixture, "materialization");
+                final Object seed = field(fixture, "seed"); final var goalMethod = seed.getClass().getDeclaredMethod("goal"); goalMethod.setAccessible(true);
+                final var goal = (PhantomGoal) goalMethod.invoke(seed);
+                PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Native store must preserve factual off-area XYZ.");
+                final var state = transaction.load(id).state(); final var proof = transaction.nativeContext(id, player.getObjectId());
+                PhantomAssertions.assertEquals(x, state.position().x(), "Actual XYZ must not normalize to anchor.");
+                PhantomAssertions.assertFalse(proof.context().afterPolicy().farmPosition(), "Off-area FARM denied.");
+                final var spec = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(goal);
+                final var advance = production.authority().advanceTravel(state, spec, 1, 0, proof.context().afterPolicy());
+                context.record("T01.actualTravel", advance.toString());
+                PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.TravelAdvance.Status.PARTIAL, advance.status(), "Actual off-area origin requires validated timed TRAVEL, not AT_DESTINATION.");
+                PhantomAssertions.assertEquals(state.position(), advance.position(), "Partial travel must preserve originXYZ.");
+                final var background = (PhantomBackgroundService) field(fixture, "background");
+                final var committed = background.travel(id, goal, 1, 1, PhantomActivityState.BACKGROUND, System.nanoTime());
+                context.record("T01.committed", committed.toString());
+                PhantomAssertions.assertTrue(committed.successful(), "Validated local return must atomically commit.");
+                final var after = transaction.load(id).state(); final var afterProof = transaction.nativeContext(id, player.getObjectId());
+                PhantomAssertions.assertEquals(state.progress(), after.progress(), "TRAVEL cannot award XP/SP.");
+                PhantomAssertions.assertEquals(state.inventory(), after.inventory(), "TRAVEL cannot alter items.");
+                PhantomAssertions.assertEquals(state.autoGetSkills(), after.autoGetSkills(), "TRAVEL cannot alter skills.");
+                PhantomAssertions.assertEquals(proof.context().afterPolicy().points(), afterProof.context().afterPolicy().points(), "TRAVEL cannot change float vitality.");
+                PhantomAssertions.assertTrue(afterProof.context().afterPolicy().farmPosition(), "Arrival proves farming area.");
+            }
+        });
+        registry.add("T03-historical-ordinary-prerequisite", context ->
+        {
+            final var history = new PhantomNativeContextHandoffSuite();
+            assign(history, "_environment", field(base, "_environment"));
+            assign(history, "_profiles", field(base, "_repository"));
+            assign(history, "_production", field(base, "_production"));
+            try (var fixture = history.new Fixture(true))
+            {
+                fixture.handoff();
+                try (var action = fixture.materialization.tryAcquireAction(fixture.id).orElseThrow())
+                { action.player().getStat().setVitalityPoints(16361, true); }
+                PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, fixture.materialization.dematerialize(fixture.id).status(), "Historical real native release.");
+                final var snapshot = fixture.catchups.load(fixture.id).orElseThrow();
+                final var method = fixture.historical.getClass().getDeclaredMethod("ensureNativeContext", long.class, snapshot.getClass(), org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.class);
+                method.setAccessible(true);
+                final var result = (org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result) method.invoke(fixture.historical, fixture.id, snapshot, fixture.transactions.load(fixture.id).state());
+                context.record("T03.historical", result.toString());
+                PhantomAssertions.assertTrue(result.successful(), "Ordinary non1 must pass actual historical prerequisite: " + result);
+            }
+        });
         registry.add("T03-real-non1-release-background-commit", context ->
         {
+            final var environment = (PhantomHeadlessPlayerTestEnvironment) field(base, "_environment");
+            final var reset = Player.load(environment.primary().objectId());
+            try { reset.stopAllTasks(); reset.getStat().setVitalityPoints(1, true); }
+            finally { environment.cleanupLoadedPlayer(reset); }
             final var method = PhantomBackgroundSuite.class.getDeclaredMethod("openNativeProductionFixture", PhantomTestContext.class, boolean.class);
             method.setAccessible(true);
             try (var fixture = (AutoCloseable) method.invoke(base, context, true))
@@ -55,6 +122,10 @@ public final class PhantomBackgroundHandoff029Suite implements PhantomTestSuite
                 PhantomAssertions.assertTrue(proof.context().afterPoints() < 16361, "Native-compatible background vitality consumption.");
             }
         });
+    }
+        private static void assign(Object target, String name, Object value) throws Exception
+    {
+        final var field = target.getClass().getDeclaredField(name); field.setAccessible(true); field.set(target, value);
     }
     private static Object field(Object target, String name) throws Exception
     {

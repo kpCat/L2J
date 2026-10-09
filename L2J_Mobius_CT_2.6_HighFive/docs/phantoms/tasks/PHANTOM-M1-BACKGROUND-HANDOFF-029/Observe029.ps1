@@ -187,7 +187,8 @@ try{
         MarkPhase029 'BACKGROUND_ABSENT'
         & (Join-Path $PSScriptRoot 'Control029.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-early') *> (Join-Path $OutputRoot 'away-early-export.log')
         if($LASTEXITCODE -ne 0){throw 'Exact away canonical export failed.'}
-        Start-Sleep -Seconds 15
+        # One full native minute plus scheduling margin, inside the unchanged480s episode budget.
+        Start-Sleep -Seconds 75
         & (Join-Path $PSScriptRoot 'Control029.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-late') *> (Join-Path $OutputRoot 'away-late-export.log')
         if($LASTEXITCODE -ne 0){throw 'Exact background step export failed.'}
         MarkPhase029 'RETURN'

@@ -47,6 +47,8 @@ import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.managers.ZoneManager;
+import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.handler.ItemHandler;
 import org.l2jmobius.gameserver.managers.CastleManager;
 import org.l2jmobius.gameserver.managers.TownManager;
@@ -441,6 +443,70 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		return new FarmInput(target, new RewardPolicy(RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE, expRate, spRate), deathPolicy(state), experienceTable(), levelForExperience(), source.topologyNodeId(), (int) Math.clamp(configuredAmount, 1, 32));
 	}
 
+    @Override public long topologyGeneration() { return _topology.get().snapshot().generation(); }
+    @Override public boolean canFarmAt(Position position, PhantomBackgroundGoalSpec goal)
+    {
+        final var anchor = _topology.get().findAnchor(goal.anchorId()).orElse(null);
+        return anchor != null && anchor.role() == PhantomTopologyAnchorRole.FARMING && atCanonicalAnchor(position, anchor);
+    }
+
+    @Override
+    public TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis, long logicalEpochMinute, PhantomBackgroundSimulationPolicy policy)
+    {
+        if (policy == null) { return advanceTravel(state, goal, elapsedBudgetMillis, logicalEpochMinute); }
+        if (!policy.permits(PhantomBackgroundSimulationPolicy.Operation.TRAVEL, configuredSimulationFingerprint())
+            || elapsedBudgetMillis < 1 || elapsedBudgetMillis > policy.maximumBatchMillis() || !state.hashes().equals(hashes()))
+        { return unchanged(Status.NO_ROUTE, state, ""); }
+        final var topology = _topology.get();
+        final var current = topology.findAnchor(state.position().committedAnchorId()).orElse(null);
+        final var arrival = topology.findAnchor(goal.anchorId()).orElse(null);
+        if (arrival == null || current == null || state.position().instanceId() != 0 || arrival.role() != PhantomTopologyAnchorRole.FARMING)
+        { return unchanged(Status.NO_ROUTE, state, ""); }
+        if (atCanonicalAnchor(state.position(), arrival)) { return unchanged(Status.AT_DESTINATION, state, ""); }
+        if (atCanonicalAnchor(state.position(), current) && !current.id().equals(arrival.id()))
+        { return advanceTravel(state, goal, elapsedBudgetMillis, logicalEpochMinute); }
+        final var target = canonicalCommittedAnchorPosition(arrival, state.position().heading()).orElse(null);
+        if (target == null || !dryStoredPath(state.position(), target) || !inFarmingArea(target.x(), target.y(), target.z(), 0, arrival))
+        { return unchanged(Status.NO_ROUTE, state, "local-return"); }
+        final long total = Math.max(1, (long) Math.ceil(Math.hypot((long) target.x() - state.position().x(), (long) target.y() - state.position().y()) * 1000 / policy.runSpeed()));
+        if (total > policy.maximumBatchMillis() || state.clock().residualTravelMillis() > total)
+        { return unchanged(Status.NO_ROUTE, state, "local-return"); }
+        final long remaining = state.clock().residualTravelMillis() == 0 ? total : state.clock().residualTravelMillis();
+        if (remaining > elapsedBudgetMillis)
+        { return new TravelAdvance(Status.PARTIAL, state.position(), new Clock(state.clock().rngState(), remaining - elapsedBudgetMillis, state.clock().residualEncounterMillis()), "local-return"); }
+        return new TravelAdvance(Status.ARRIVED, target, new Clock(state.clock().rngState(), 0, state.clock().residualEncounterMillis()), "local-return");
+    }
+    /** The same stock height, water and bidirectional movement guards as native local travel. */
+    private static boolean dryStoredPath(Position from, Position to)
+    {
+        final double distance = Math.hypot((long) to.x() - from.x(), (long) to.y() - from.y());
+        if (from.instanceId() != 0 || to.instanceId() != 0 || distance > 4096) { return false; }
+        final var geo = GeoEngine.getInstance();
+        if (!geo.hasGeo(from.x(), from.y()) || geo.getHeight(from.x(), from.y(), from.z()) != from.z()) { return false; }
+        final var cells = new org.l2jmobius.gameserver.geoengine.util.GridLineIterator2D(GeoEngine.getGeoX(from.x()), GeoEngine.getGeoY(from.y()), GeoEngine.getGeoX(to.x()), GeoEngine.getGeoY(to.y()));
+        int z = from.z();
+        while (cells.next())
+        {
+            final int x = GeoEngine.getWorldX(cells.x()), y = GeoEngine.getWorldY(cells.y());
+            if (!geo.hasGeo(x, y)) { return false; }
+            z = geo.getHeight(x, y, z);
+            if (z != geo.getHeight(x, y, z) || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) { return false; }
+        }
+        final int count = Math.max(1, (int) Math.ceil(distance / 100));
+        int px = from.x(), py = from.y(), pz = from.z();
+        for (int i = 1; i <= count; i++)
+        {
+            final int x = from.x() + (int) Math.round(((long) to.x() - from.x()) * (double) i / count);
+            final int y = from.y() + (int) Math.round(((long) to.y() - from.y()) * (double) i / count);
+            if (!geo.hasGeo(x, y)) { return false; }
+            z = geo.getHeight(x, y, pz);
+            if (Math.abs((long) z - pz) > 200 || z != geo.getHeight(x, y, z)
+                || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null
+                || !geo.canMoveToTarget(px, py, pz, x, y, z, 0) || !geo.canMoveToTarget(x, y, z, px, py, pz, 0)) { return false; }
+            px = x; py = y; pz = z;
+        }
+        return pz == to.z() && ZoneManager.getInstance().getZone(from.x(), from.y(), from.z(), WaterZone.class) == null;
+    }
 	@Override
 	public TravelAdvance advanceTravel(PhantomBackgroundState state, PhantomBackgroundGoalSpec goal, long elapsedBudgetMillis)
 	{
@@ -1155,7 +1221,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
     public static String configuredSimulationFingerprint()
     {
-        return digest("ORDINARY_SCALAR_V1", PlayerConfig.ENABLE_VITALITY, PlayerConfig.MAX_BONUS_EXP,
+        return digest("ORDINARY_SCALAR_V2", PlayerConfig.ENABLE_VITALITY, PlayerConfig.MAX_BONUS_EXP,
             PlayerConfig.MAX_BONUS_SP, RatesConfig.RATE_VITALITY_GAIN, RatesConfig.RATE_VITALITY_LOST,
             RatesConfig.RATE_VITALITY_LEVEL_1, RatesConfig.RATE_VITALITY_LEVEL_2,
             RatesConfig.RATE_VITALITY_LEVEL_3, RatesConfig.RATE_VITALITY_LEVEL_4,
@@ -1171,14 +1237,18 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
         final boolean rewards = !player.hasPremiumStatus() && !player.isInParty() && !player.hasSummon()
             && !player.getNevitSystem().isAdventBlessingActive() && player.getNevitHourglassMultiplier() == 1 && staticEffects
             && !DynamicExpRateData.getInstance().isEnabled() && player.getStat().calcStat(Stat.EXPSP_RATE, 1, null, null) == 1;
-        final var policy = new PhantomBackgroundSimulationPolicy(1, player.getLevel(), points, points,
+        final var policy = new PhantomBackgroundSimulationPolicy(PhantomBackgroundSimulationPolicy.ALGORITHM_VERSION, player.getLevel(), points, points,
             rewards, false, player.getInstanceId() == 0, PlayerConfig.ENABLE_VITALITY, player.isLucky(), consume,
             RatesConfig.RATE_VITALITY_GAIN, RatesConfig.RATE_VITALITY_LOST,
             RatesConfig.RATE_VITALITY_LEVEL_1, RatesConfig.RATE_VITALITY_LEVEL_2,
             RatesConfig.RATE_VITALITY_LEVEL_3, RatesConfig.RATE_VITALITY_LEVEL_4,
             player.getStat().calcStat(Stat.BONUS_EXP, 0, null, null), player.getStat().calcStat(Stat.BONUS_SP, 0, null, null),
-            PlayerConfig.MAX_BONUS_EXP, PlayerConfig.MAX_BONUS_SP, configuredSimulationFingerprint());
-        return new PhantomNativeContext.Capture(points, (points == 1) && ordinaryPolicy
+            PlayerConfig.MAX_BONUS_EXP, PlayerConfig.MAX_BONUS_SP, configuredSimulationFingerprint(), player.getRunSpeed(), 60000,
+            (player.hasPremiumStatus() ? 1 : 0) | (player.isInParty() ? 2 : 0) | (player.hasSummon() ? 4 : 0)
+            | (player.getNevitSystem().isAdventBlessingActive() || player.getNevitHourglassMultiplier() != 1 ? 8 : 0)
+            | (!staticEffects ? 16 : 0) | (DynamicExpRateData.getInstance().isEnabled() ? 32 : 0)
+            | (player.getStat().calcStat(Stat.EXPSP_RATE, 1, null, null) != 1 ? 64 : 0));
+        return new PhantomNativeContext.Capture(points, (points == 1) && ordinaryPolicy && rewards
             ? PhantomNativeContext.Eligibility.SUPPORTED : PhantomNativeContext.Eligibility.VITALITY_REQUIRES_NATIVE, policy);
 	}
 
@@ -1210,7 +1280,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		else if (player.isFlying()) { reason = "flying"; }
 		else if (player.isFlyingMounted()) { reason = "flyingMounted"; }
 		else if (player.isMounted()) { reason = "mounted"; }
-		else if (player.isInParty()) { reason = "party"; }
+		else if (player.isInParty() && !nativePersistence) { reason = "party"; }
 		else if (player.isInCombat()) { reason = "combat"; }
 		else if (player.isCombatFlagEquipped()) { reason = "combatFlag"; }
 		else if (player.isGM()) { reason = "gm"; }

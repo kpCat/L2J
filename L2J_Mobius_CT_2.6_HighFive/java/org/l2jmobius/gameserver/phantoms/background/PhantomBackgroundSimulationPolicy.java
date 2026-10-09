@@ -12,17 +12,18 @@ public record PhantomBackgroundSimulationPolicy(int algorithmVersion, int level,
     boolean vitalityEnabled, boolean lucky, int consumeStat, double gainRate, double lostRate,
     double level1Rate, double level2Rate, double level3Rate, double level4Rate,
     double bonusExpPercent, double bonusSpPercent, double maxExpBonus, double maxSpBonus,
-    String rulesFingerprint)
+    String rulesFingerprint, double runSpeed, long maximumBatchMillis, int unsupportedFacts)
 {
-    public static final int ALGORITHM_VERSION = 1;
+    public static final int ALGORITHM_VERSION = 2;
     public enum Operation { FARM, TRAVEL, REST }
     public PhantomBackgroundSimulationPolicy
     {
         Objects.requireNonNull(rulesFingerprint, "rulesFingerprint");
-        if (algorithmVersion != ALGORITHM_VERSION || level < 1 || level > 255
+        if ((algorithmVersion < 1 || algorithmVersion > ALGORITHM_VERSION) || level < 1 || level > 255
             || canonicalPoints < 1 || canonicalPoints > 20000 || !Float.isFinite(points)
             || points < 1 || points > 20000 || (int) points != canonicalPoints
-            || !rulesFingerprint.matches("[0-9a-f]{64}"))
+            || !rulesFingerprint.matches("[0-9a-f]{64}") || !Double.isFinite(runSpeed) || runSpeed < 0 || runSpeed > 10000
+            || maximumBatchMillis < 1 || maximumBatchMillis > PhantomBackgroundModel.MAX_ELAPSED_MILLIS || unsupportedFacts < 0 || unsupportedFacts > 255)
         { throw new IllegalArgumentException("Invalid ordinary policy binding."); }
         final double[] values = { gainRate, lostRate, level1Rate, level2Rate, level3Rate,
             level4Rate, bonusExpPercent, bonusSpPercent, maxExpBonus, maxSpBonus };
@@ -35,8 +36,8 @@ public record PhantomBackgroundSimulationPolicy(int algorithmVersion, int level,
     {
         return switch (operation)
         {
-            case FARM -> ordinaryRewards && farmPosition && rulesFingerprint.equals(currentRules);
-            case TRAVEL -> travelPosition;
+            case FARM -> algorithmVersion == ALGORITHM_VERSION && ordinaryRewards && farmPosition && rulesFingerprint.equals(currentRules);
+            case TRAVEL -> algorithmVersion == ALGORITHM_VERSION && travelPosition && runSpeed > 0;
             case REST -> false;
         };
     }
@@ -45,14 +46,14 @@ public record PhantomBackgroundSimulationPolicy(int algorithmVersion, int level,
         return new PhantomBackgroundSimulationPolicy(algorithmVersion, nextLevel, (int) nextPoints,
             nextPoints, ordinaryRewards && nextLevel == level, farmPosition, travelPosition, vitalityEnabled, lucky,
             consumeStat, gainRate, lostRate, level1Rate, level2Rate, level3Rate, level4Rate,
-            bonusExpPercent, bonusSpPercent, maxExpBonus, maxSpBonus, rulesFingerprint);
+            bonusExpPercent, bonusSpPercent, maxExpBonus, maxSpBonus, rulesFingerprint, runSpeed, maximumBatchMillis, nextLevel == level ? unsupportedFacts : unsupportedFacts | 128);
     }
     public PhantomBackgroundSimulationPolicy withPosition(boolean farm, boolean travel)
     {
         return new PhantomBackgroundSimulationPolicy(algorithmVersion, level, canonicalPoints,
             points, ordinaryRewards, farm, travel, vitalityEnabled, lucky, consumeStat, gainRate,
             lostRate, level1Rate, level2Rate, level3Rate, level4Rate, bonusExpPercent, bonusSpPercent,
-            maxExpBonus, maxSpBonus, rulesFingerprint);
+            maxExpBonus, maxSpBonus, rulesFingerprint, runSpeed, maximumBatchMillis, unsupportedFacts);
     }
     void write(DataOutputStream output) throws IOException
     {
@@ -63,13 +64,19 @@ public record PhantomBackgroundSimulationPolicy(int algorithmVersion, int level,
         output.writeDouble(level1Rate); output.writeDouble(level2Rate); output.writeDouble(level3Rate);
         output.writeDouble(level4Rate); output.writeDouble(bonusExpPercent); output.writeDouble(bonusSpPercent);
         output.writeDouble(maxExpBonus); output.writeDouble(maxSpBonus); output.writeUTF(rulesFingerprint);
+        if (algorithmVersion >= 2) { output.writeDouble(runSpeed); output.writeLong(maximumBatchMillis); output.writeInt(unsupportedFacts); }
     }
     static PhantomBackgroundSimulationPolicy read(DataInputStream input) throws IOException
     {
-        return new PhantomBackgroundSimulationPolicy(input.readInt(), input.readInt(), input.readInt(),
-            input.readFloat(), input.readBoolean(), input.readBoolean(), input.readBoolean(),
-            input.readBoolean(), input.readBoolean(), input.readInt(), input.readDouble(), input.readDouble(),
-            input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(),
-            input.readDouble(), input.readDouble(), input.readDouble(), input.readDouble(), input.readUTF());
+        final int version = input.readInt(), level = input.readInt(), canonical = input.readInt();
+        final float points = input.readFloat(); final boolean ordinary = input.readBoolean(), farm = input.readBoolean(), travel = input.readBoolean();
+        final boolean enabled = input.readBoolean(), lucky = input.readBoolean(); final int consume = input.readInt();
+        final double gain = input.readDouble(), lost = input.readDouble(), rate1 = input.readDouble(), rate2 = input.readDouble(), rate3 = input.readDouble(), rate4 = input.readDouble();
+        final double xp = input.readDouble(), sp = input.readDouble(), capXp = input.readDouble(), capSp = input.readDouble(); final String fingerprint = input.readUTF();
+        final double speed = version >= 2 ? input.readDouble() : 0;
+        final long horizon = version >= 2 ? input.readLong() : 60000;
+        final int unsupported = version >= 2 ? input.readInt() : ordinary ? 0 : 255;
+        return new PhantomBackgroundSimulationPolicy(version, level, canonical, points, ordinary, farm, travel, enabled, lucky, consume,
+            gain, lost, rate1, rate2, rate3, rate4, xp, sp, capXp, capSp, fingerprint, speed, horizon, unsupported);
     }
 }
