@@ -27,7 +27,7 @@ public final class PhantomFarmProjection030Suite implements PhantomTestSuite
     {
         registry.add("P02-P03-P07-production-plan-switch-before-rng-magic", c -> projection(c, true));
         registry.add("P02-P12-production-plan-switch-before-rng-melee", c -> projection(c, false));
-        registry.add("P04-P05-P08-P09-exact-projection-negatives-and-lost-replies", c -> { projection(c, true, 0); projection(c, true, 1); });
+        registry.add("P04-P05-P08-P09-exact-projection-negatives-and-lost-replies", c -> { projection(c, true, 0); projection(c, true, 1); projection(c, true, 2); });
         registry.add("P12-actual-historical-projection-and-catchup-cas", c -> projection(c, false, -1, true));
     }
     private void projection(PhantomTestContext context, boolean mage) throws Exception { projection(context, mage, -1); }
@@ -51,7 +51,7 @@ public final class PhantomFarmProjection030Suite implements PhantomTestSuite
                 catch (java.lang.reflect.InvocationTargetException failure) { throw failure.getCause(); }
             });
         }, PhantomBackgroundTransaction.ObjectIdAllocator.production(), point ->
-        { if (armed.get() && point == PhantomBackgroundTransaction.FaultPoint.AFTER_BACKGROUND_STATE_WRITE) { lose.set(true); } });
+        { if (armed.get() && point == PhantomBackgroundTransaction.FaultPoint.AFTER_BACKGROUND_STATE_WRITE) { if (lostReply == 2) { throw new AssertionError("CONTROLLED_METADATA_FATAL_030"); } lose.set(true); } });
         var open = PhantomBackgroundSuite.class.getDeclaredMethod("openNativeProductionFixture", PhantomTestContext.class, boolean.class, PhantomBackgroundTransaction.class);
         open.setAccessible(true);
         try (var fixture = (AutoCloseable) open.invoke(base, context, mage, faultTransaction))
@@ -88,6 +88,18 @@ public final class PhantomFarmProjection030Suite implements PhantomTestSuite
                 historicalBefore = catchups.claim(id, cursor);
             }
             armed.set(lostReply >= 0);
+            if (lostReply == 2)
+            {
+                boolean propagated = false;
+                try { background.farm(id, pair.goal, 300, 100, PhantomActivityState.BACKGROUND, System.nanoTime()); }
+                catch (AssertionError fatal) { propagated = "CONTROLLED_METADATA_FATAL_030".equals(fatal.getMessage()); }
+                armed.set(false);
+                PhantomAssertions.assertTrue(propagated, "Fatal transaction failure must propagate after rollback, following existing transaction boundaries.");
+                PhantomAssertions.assertEquals(before, transaction.load(id).state(), "Fatal metadata rollback preserves state.");
+                PhantomAssertions.assertEquals(canonicalBefore, canonical(player.getObjectId()), "Fatal metadata rollback changes no canonical rows.");
+                context.record("P09.fatalRollback", "PROPAGATED_EXACT_AND_UNCHANGED");
+                return;
+            }
             var attempt = historical ? background.advanceHistorical(id, pair.goal, historicalBefore, historicalBefore.state().advanceTo(historicalBefore.state().cursorEpochMinute() + 1)) : background.farm(id, pair.goal, 300, 100, PhantomActivityState.BACKGROUND, System.nanoTime());
             armed.set(false);
             if (lostReply == 0)

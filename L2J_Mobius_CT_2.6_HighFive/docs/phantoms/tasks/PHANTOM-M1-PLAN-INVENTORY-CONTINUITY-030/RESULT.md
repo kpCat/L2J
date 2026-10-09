@@ -71,3 +71,12 @@ RED addressed by bounded25s/1ms read-only stop monitor, outside native hooks.
 C3 adds one genuine HISTORICAL_FARM/catchup CAS case and full-ring native fault control.
 Private029 regressions adapt collector/owner/output/SHA guards only, preserve assertions.
 All source changes remain inside SOURCE_MAP; production remains the C1 implementation.
+
+P09_FATAL_RED030:3/4, swallowed controlled fatal transaction Error before commit.
+P09_FATAL_GREEN030:4/4 after rollback/rethrow matching existing transaction boundaries.
+C3 sameDB restart1:991 births/991 terminals,4149 records, structural audit PASS.
+Read-only bounded stop monitor captured CLOSE_PRODUCERS/WAIT_ACCEPTED_CONTROL/
+FINISH_DEPENDENCIES PENDING then DONE/COMPLETE. Game25008/Login25360 stock STOPPED.
+Retained finalC7 restart1 stderr line262 establishes exact HISTORICAL_FARM producer:
+item118 delta8, EXECUTE_NON_MUTABLE_ID, DURABLE_MATCH_GUARD_PASSED; before observer attach.
+This does not establish the initial C7 first producer or every cohort0 member's cause.

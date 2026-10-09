@@ -864,6 +864,7 @@ public final class PhantomBackgroundTransaction
 			catch (Throwable failure)
 			{
 				rollback(connection, failure);
+				if (failure instanceof Error error) { throw error; }
 				if (!commitAttempted) { return failureResult(failure); }
 			}
 		}

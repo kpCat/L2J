@@ -1,0 +1,11 @@
+{
+  "sourcePath": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-plan-inventory-030\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\FINAL_C7_H_GameServer-20261009-181802-stderr.log",
+  "line": 262,
+  "sourceSha256": "C0A1639B203771068D74EF8FA21654A7B900BB7CF505F79CCEFE5F770E32286D",
+  "witness": "PHANTOM_BACKGROUND_ITEM_CONFLICT_FIRST ItemConflictWitness[branch=EXECUTE_NON_MUTABLE_ID, domain=INVENTORY, profileId=110, characterObjectId=268485779, classIndex=0, goalId=6728948813076984772, goalRevision=30, action=HISTORICAL_FARM, operationDigest=7a387656ffb3bf54c04dc3db9a59161a3d2d17a77342fabc469093209bcacd55, previousReceiptOperation=78fc7272ed3cb636fd1017aefd8ed544fb8c1e41ad767953b6eec356f6f42bba, nativeEpoch=NOT_APPLICABLE, state=READY, previousState=READY, itemId=118, itemObjectId=0, itemSelection=SORTED_DELTA_ITEM, originalDelta=8, mutableAdmitted=false, expectedInventoryCount=0, expectedPaperdollCount=0, lockedInventoryCount=0, lockedPaperdollCount=0, shortage=NOT_APPLICABLE, expectedInventoryHash=f5826cf47bd9756aa7fa11b66aa021636b337aafd4781ee14ab396d5bfebce9b, lockedInventoryHash=DURABLE_MATCH_GUARD_PASSED, backgroundComponent=2/34549/11056ea52dbf47e79a1cbb0be544c5c73a092f55159d4df09569397c34ad3de1, goalComponent=1/30/10b0c55407fb1a3bce1ee7dc09b232467281544b76cd807e43cd3c5802d24d61, catchupComponent=1/20159/26dde6b6b9008f291c64f6899981ff2e2ae0e1aef0cee69029d5ec2c99480f02, acquisitionComponent=NOT_LOCKED, nativeContextComponent=NOT_EXPOSED_BY_ORIGINAL_CONTEXT_GUARD]",
+  "classification": "FIRST_CONFLICT_IN_FINAL_C7_RESTART1",
+  "observerAttachAfterWitness": true,
+  "initialC7Producer": "UNKNOWN_NOT_RECONSTRUCTED",
+  "nativeCause": "HISTORICAL_FARM_EXECUTE_NON_MUTABLE_ID_ITEM118_DELTA8",
+  "fullCohortCause": "NOT_PROVEN"
+}

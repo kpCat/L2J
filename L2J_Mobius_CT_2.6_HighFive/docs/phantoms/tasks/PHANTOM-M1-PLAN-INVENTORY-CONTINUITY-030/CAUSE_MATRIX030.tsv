@@ -4,3 +4,9 @@ C6	candidate652 INCONSISTENT	admission	UNKNOWN	no SQL healing
 finalC7	cohort0	admission	UNKNOWN	saved actor-local census required
 finalC7	TASK029_RECEIPT_CAPACITY	observer proof	cumulative retention	code proven; native fault isolation
 NEW_PROOF	native capture retains old projection	projection candidate	capture nativePersistence	composed RED pending
+NEW_PROOF	P02 actual item1864 NON_MUTABLE_ID	product	production goalA-to-B FARM	own RED; shared pre-RNG projection GREEN
+NEW_PROOF	130 releases >32profiles	observer proof	ACTIVE and cumulative retention separated	133 lifetimes native GREEN; strong refs0 after ack
+C2	1280 current actors no READY ONLINE complete cluster	admission	captured first guards per actor	no capacity attribution; structural1152/1152 PASS
+C3	current catchup still incomplete	admission	sameDB exact census	991/991 structural PASS; no admission bypass
+finalC7_RESTART1	item118 delta8 before observer attach	product	HISTORICAL_FARM EXECUTE_NON_MUTABLE_ID	retained exact first-conflict stderr line262; initial C7 UNKNOWN
+NEW_PROOF	fatal metadata Error swallowed	transaction	refreshOrdinaryInventoryProjection rollback	own3/4 RED then4/4 GREEN; no canonical changes

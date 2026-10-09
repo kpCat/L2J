@@ -205,7 +205,23 @@ public final class Contract030Observer
                             writeTelemetry(output.resolve("typed-stop-progress.tsv"), System.nanoTime() + "\t" + progress + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
                             prior = progress;
                         }
-                        if (progress.contains("phase=DONE")) { return; }
+                        if (progress.contains("phase=DONE"))
+                        {
+                            final var done = new StringBuilder("capturedNanos=" + System.nanoTime() + "\nprogress=" + progress + "\n");
+                            for (String pool : java.util.List.of("SCHEDULED_POOL", "INSTANT_POOL", "HIGH_PRIORITY_SCHEDULED_POOL"))
+                            {
+                                final var executor = (java.util.concurrent.ThreadPoolExecutor) field(org.l2jmobius.commons.threads.ThreadPool.class, pool).get(null);
+                                put(done, pool + "Shutdown", executor == null ? "ABSENT" : executor.isShutdown());
+                            }
+                            final var materialization = (org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService) field(system.getClass(), "_materializationService").get(system);
+                            final var background = (PhantomBackgroundService) field(system.getClass(), "_backgroundService").get(system);
+                            put(done, "materialization", materialization == null ? "ABSENT" : materialization.shutdownSnapshot());
+                            put(done, "background", background == null ? "ABSENT" : background.snapshot());
+                            put(done, "configured", org.l2jmobius.gameserver.phantoms.PhantomSystem.configuredShutdownSnapshot());
+                            put(done, "activeReferences", RECEIPT_OWNERS.size()); put(done, "proofFailure", exporterFailure);
+                            writeTelemetry(output.resolve("typed-stop-done.properties"), done.toString(), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+                            return;
+                        }
                         Thread.sleep(1);
                     }
                 }
