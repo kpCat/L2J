@@ -3,8 +3,8 @@ param([Parameter(Mandatory)][ValidateSet('Update','Start','Stop','Export','Colle
       [ValidateSet('a','b','t')][string]$Episode='a',
       [string]$Revision='R1',[string]$ExpectedSha='',
       [string]$OutputRoot='', [long[]]$ProfileIds=@(),[switch]$DumpDuringStop,
-      [ValidateSet('Build','Enroll','FullObserve','Probe031','Census','Flush','StopMonitor')][string]$Mode='Build', [string]$CohortJson='', [string]$ObserverRunId='',
-      [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{}, [switch]$UseStockRoute,
+      [ValidateSet('Build','Enroll','FullObserve','Probe031','Census','Flush','StopMonitor','CrashNative','CrashFinalize')][string]$Mode='Build', [string]$CohortJson='', [string]$ObserverRunId='', [long]$StartupRecoveryProfileId=0, [string]$RecoveryOutputRoot='',
+      [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{}, [switch]$UseStockRoute, [string]$ViaPoints='',
       [ValidateSet('Persistence','Restart')][string]$ProofKind='Restart', [string]$SqlRoot='', [string]$SealedRoot='', [string]$ShutdownLog='')
 function Update-Owned031 {
 param([string]$Episode,[string]$Revision)
@@ -120,7 +120,10 @@ if($Action -ceq 'DryPath'){
     $log=Join-Path $output 'stock-dry-path.log'
     Push-Location (Join-Path $runtime031 'game')
     try{
-        & (Join-Path $jdk 'java.exe') -Xmx2g -cp "$classes;../libs/*" $dryClass $OriginPoint.x $OriginPoint.y $OriginPoint.z $EndpointPoint.x $EndpointPoint.y *> $log
+        if($ViaPoints -and (-not $UseStockRoute -or $ViaPoints -notmatch '^-?\d+,-?\d+(;-?\d+,-?\d+){0,4}$')){throw 'Bounded explicit stock route waypoint format required.'}
+        $dryArgs=@('-Xmx2g','-cp',"$classes;../libs/*",$dryClass,$OriginPoint.x,$OriginPoint.y,$OriginPoint.z,$EndpointPoint.x,$EndpointPoint.y)
+        if($ViaPoints){$dryArgs+=('VIA:'+$ViaPoints)}
+        & (Join-Path $jdk 'java.exe') @dryArgs *> $log
         if($LASTEXITCODE -ne 0){throw 'Stock bidirectional dry path rejected; no MOVE allowed.'}
     }finally{Pop-Location}
     $points=@(Get-Content $log | Where-Object {$_ -match '^DRY_POINT\s'} | ForEach-Object {$parts=$_ -split '\s+';[pscustomobject]@{x=[int]$parts[1];y=[int]$parts[2];z=[int]$parts[3]}})
@@ -172,11 +175,22 @@ if($Action -ceq 'Collector'){
     $lines.Add('owner=TASK031_CONTRACT'); $lines.Add('pid='+$state.pid); $lines.Add('startTicks='+$state.startTimeUtcTicks)
     $lines.Add('codeSha='+$manifest.codeSha); $lines.Add('observerRunId='+$ObserverRunId)
     if($EndpointPoint.Count){foreach($key in @('x','y','z')){$lines.Add('endpoint.'+$key+'='+[int]$EndpointPoint[$key])}}
-    $lines.Add('mode='+$(switch($Mode){'Enroll'{'OBSERVE'} 'FullObserve'{'FULL_OBSERVE'} 'Probe031'{'PROBE031'} 'Census'{'CENSUS'} 'Flush'{'FLUSH'} 'StopMonitor'{'STOP_MONITOR'}}))
+    if($Mode -in @('CrashNative','CrashFinalize')){
+        if($Episode -cne 'b'){throw 'Crash allowed only in own031b.'}
+        $prior=@(Get-ChildItem (Join-Path $PSScriptRoot 'evidence') -Filter 'planned-crash.properties' -Recurse -File)
+        if($prior.Count -ge 2){throw 'Two exact crash windows already captured.'}
+        if(Test-Path (Join-Path $output 'pre-arm-threads.txt')){throw 'Crash cannot be re-armed.'}
+        New-Item -ItemType Directory -Path $output -Force | Out-Null
+        $dump=Join-Path $output 'pre-arm-threads.txt'
+        & (Join-Path $jdk 'jcmd.exe') $state.pid Thread.print -l *> $dump
+        if($LASTEXITCODE -ne 0){throw 'Exact pre-crash jcmd failed.'}
+        $lines.Add('preDump='+$dump.Replace('\','/'));$lines.Add('preDumpHash='+(Get-FileHash $dump).Hash.ToLowerInvariant())
+    }
+    $lines.Add('mode='+$(switch($Mode){'Enroll'{'OBSERVE'} 'FullObserve'{'FULL_OBSERVE'} 'Probe031'{'PROBE031'} 'Census'{'CENSUS'} 'Flush'{'FLUSH'} 'StopMonitor'{'STOP_MONITOR'} 'CrashNative'{'CRASH_NATIVE'} 'CrashFinalize'{'CRASH_FINALIZE'}}))
     if($Mode -notin @('Flush','StopMonitor')){
         $rows=@(Get-Content -LiteralPath $CohortJson -Raw | ConvertFrom-Json)
         if($rows.Count -lt 1 -or $rows.Count -gt 8 -or @($rows.profileId | Select-Object -Unique).Count -ne $rows.Count){throw 'Exact cohort 1..8 guard.'}
-        foreach($row in $rows){if([long]$row.profileId -le 0 -or ($Mode -ceq 'FullObserve' -and [long]$row.materializedAtNanos -le 0)){throw 'Exact profile/epoch required.'};$lines.Add('profile.'+$row.profileId+'='+$row.materializedAtNanos)}
+        foreach($row in $rows){if([long]$row.profileId -le 0 -or ($Mode -in @('FullObserve','CrashNative','CrashFinalize') -and [long]$row.materializedAtNanos -le 0)){throw 'Exact profile/epoch required.'};$lines.Add('profile.'+$row.profileId+'='+$row.materializedAtNanos)}
     }
     $spec=Join-Path (Split-Path $runtime031 -Parent) ('observer-'+[guid]::NewGuid().ToString('N')+'.properties')
     [IO.File]::WriteAllLines($spec,$lines,[Text.UTF8Encoding]::new($false))
@@ -203,13 +217,32 @@ switch($Action){
         $agent031=Join-Path $module031 ('.phantom-local/ops031/observer031-'+$build031.sourceSha256.Substring(0,12)+'.jar')
         if((Get-FileHash $agent031).Hash -cne $build031.jarSha256){throw 'Startup collector JAR changed.'}
         $capture031=Join-Path $PSScriptRoot ('evidence/STARTUP031'+$Episode+'-'+[guid]::NewGuid().ToString('N'))
+        if($StartupRecoveryProfileId -gt 0){
+            if($Episode -cne 'b' -or -not $RecoveryOutputRoot){throw 'Own031b exact recovery profile/output required.'}
+            $capture031=[IO.Path]::GetFullPath($RecoveryOutputRoot)
+            if(-not $capture031.StartsWith([IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'evidence'))+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path $capture031)){throw 'Immutable own recovery output required.'}
+        }
         $spec031=Join-Path (Split-Path $runtime031 -Parent) ('startup-'+[guid]::NewGuid().ToString('N')+'.properties')
         $lines031=@(('runtime='+$runtime031.Replace('\','/')),('output='+$capture031.Replace('\','/')),'owner=TASK031_CONTRACT','mode=STARTUP','profile.275=0',('codeSha='+$ExpectedSha))
+        if($StartupRecoveryProfileId -gt 0){$lines031=$lines031 | ForEach-Object {$_ -replace '^mode=STARTUP$','mode=STARTUP_RECOVERY' -replace '^profile.275=0$',('profile.'+$StartupRecoveryProfileId+'=0')}}
         [IO.File]::WriteAllLines($spec031,$lines031,[Text.UTF8Encoding]::new($false))
         $cfg031=Join-Path $runtime031 'game/java.cfg'
         $options031=[IO.File]::ReadAllText($cfg031) -replace '(?m)\s*-javaagent:\S+',''
         [IO.File]::WriteAllText($cfg031,$options031.Trim()+' -javaagent:'+($agent031.Replace('\','/'))+'='+($spec031.Replace('\','/')),[Text.UTF8Encoding]::new($false))
-        & (Join-Path $runtime031 'Start-LocalPlay.ps1') -Background -GameTimeoutSeconds 180
+        $recoveryJob031=$null
+        if($StartupRecoveryProfileId -gt 0){
+            $recoveryJob031=Start-Job -ArgumentList $capture031 -ScriptBlock {
+                param($Output)
+                $deadline=[DateTime]::UtcNow.AddSeconds(180)
+                while([DateTime]::UtcNow -lt $deadline){
+                    if(Test-Path (Join-Path $Output 'recovery-commit.properties')){[IO.File]::WriteAllText((Join-Path $Output 'release-recovery.signal'),'SQL_EXPORT_COMPLETE',[Text.UTF8Encoding]::new($false));return 'RECOVERY_EXACT_EXPORT_RELEASED'}
+                    Start-Sleep -Milliseconds 100
+                }
+                throw 'Recovery commit not observed before admission.'
+            }
+        }
+        try{ & (Join-Path $runtime031 'Start-LocalPlay.ps1') -Background -GameTimeoutSeconds 180 }
+        finally{if($recoveryJob031){$recoveryJob031 | Wait-Job -Timeout 5 | Out-Null; Receive-Job $recoveryJob031; Remove-Job $recoveryJob031 -Force}}
     }
     'Stop'{
         $dumpJob031=$null

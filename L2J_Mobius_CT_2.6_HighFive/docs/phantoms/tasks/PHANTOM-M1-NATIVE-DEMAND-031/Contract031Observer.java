@@ -241,7 +241,7 @@ public final class Contract031Observer
             return;
         }
         final String mode = spec.getProperty("mode");
-        if (!java.util.Set.of("OBSERVE", "FULL_OBSERVE", "PROBE031", "CENSUS").contains(mode) && !(startupEntry && mode.equals("STARTUP"))) { throw new IllegalStateException("TASK031_MODE_GUARD"); }
+        if (!java.util.Set.of("OBSERVE", "FULL_OBSERVE", "PROBE031", "CENSUS", "CRASH_NATIVE", "CRASH_FINALIZE").contains(mode) && !(startupEntry && java.util.Set.of("STARTUP", "STARTUP_RECOVERY").contains(mode))) { throw new IllegalStateException("TASK031_MODE_GUARD"); }
         final Map<Long, Long> selected = new HashMap<>();
         for (String key : spec.stringPropertyNames()) { if (key.startsWith("profile.")) { selected.put(Long.parseLong(key.substring(8)), Long.parseLong(spec.getProperty(key))); } }
         if (selected.isEmpty() || selected.size() > 8) { throw new IllegalStateException("TASK031_COHORT_GUARD"); }
@@ -255,9 +255,15 @@ public final class Contract031Observer
             appendLedger(Map.of("kind", jsonString("RUN_START"), "code_sha", jsonString(spec.getProperty("codeSha")), "incarnation", jsonString(ProcessHandle.current().pid() + ":" + ticks)));
         }
         final Selection nextSelection = new Selection(Map.copyOf(selected), output, spec.getProperty("codeSha"));
-        if (startupEntry && mode.equals("STARTUP"))
+        if (startupEntry && java.util.Set.of("STARTUP", "STARTUP_RECOVERY").contains(mode))
         {
-            selection = nextSelection; installHooks();
+            selection = nextSelection;
+            if(mode.equals("STARTUP_RECOVERY"))
+            {
+                if(!runtime.getParent().getFileName().toString().equals("contract031b") || selected.size()!=1){throw new IllegalStateException("TASK031_RECOVERY_LANE_GUARD");}
+                field(PhantomBackgroundService.class, "_recoveryObserver").set(null, (BiConsumer<Long, PhantomBackgroundState>) Contract031Observer::recovery);
+            }
+            installHooks();
             write(output.resolve("startup-capture.properties"), "owner=TASK031_CONTRACT\nsource=planned-premain\nrunId=" + lifetimeRunId + "\npid=" + ProcessHandle.current().pid() + "\nstartTicks=" + ticks + "\npreexistingScopes=0\n");
             return;
         }
@@ -309,7 +315,7 @@ public final class Contract031Observer
             final var decisions = (org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine) field(configured.getClass(), "_decisionEngine").get(configured);
             final var topology = (org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService) field(configured.getClass(), "_topologyService").get(configured);
             final var globalBackground = (PhantomBackgroundService) field(configured.getClass(), "_backgroundService").get(configured);
-            final var global = new StringBuilder("profileId\tobjectId\tstate\tcalendarOnline\tadmitted\tx\ty\tz\tcontextPhase\tfarmAllowed\treadinessComplete\tfirstGuard\tsampleNanos\tpopulationState\tinstanceId\tcommittedCursorMinute\trequestedHorizonMinute\n");
+            final var global = new StringBuilder("profileId\tobjectId\tstate\tcalendarOnline\tadmitted\tx\ty\tz\tcontextPhase\tfarmAllowed\treadinessComplete\tfirstGuard\tsampleNanos\tpopulationState\tinstanceId\tcommittedCursorMinute\trequestedHorizonMinute\tnextBoundary\n");
             for (var profile : topology.listProfiles())
             {
                 final var admission = org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorAdmissionProfile(profile.profileId()).orElse(null);
@@ -326,7 +332,7 @@ public final class Contract031Observer
                     .append(state == null ? "ABSENT" : state.state()).append('\t').append(admission.admission().calendarOnline()).append('\t').append(admission.admission().admitted()).append('\t')
                     .append(state == null ? 0 : state.position().x()).append('\t').append(state == null ? 0 : state.position().y()).append('\t').append(state == null ? 0 : state.position().z()).append('\t')
                     .append(context == null ? "UNKNOWN" : context.phase()).append('\t').append(farm).append('\t').append(admission.readiness() != null && admission.readiness().complete()).append('\t')
-                    .append(guard).append('\t').append(System.nanoTime()).append('\t').append(admission.admission().populationState()).append('\t').append(state == null ? -1 : state.position().instanceId()).append('\t').append(admission.readiness() == null ? -1 : admission.readiness().committedCursorMinute()).append('\t').append(admission.readiness() == null ? -1 : admission.readiness().requestedHorizonMinute()).append('\n');
+                    .append(guard).append('\t').append(System.nanoTime()).append('\t').append(admission.admission().populationState()).append('\t').append(state == null ? -1 : state.position().instanceId()).append('\t').append(admission.readiness() == null ? -1 : admission.readiness().committedCursorMinute()).append('\t').append(admission.readiness() == null ? -1 : admission.readiness().requestedHorizonMinute()).append('\t').append(admission.admission().nextBoundary()).append('\n');
             }
             write(output.resolve("global-admission.tsv"), global.toString());
             final var admissions = new StringBuilder("profileId\toperatorAdmission\n");
@@ -420,17 +426,13 @@ public final class Contract031Observer
             write(output.resolve("exact-selected-membership.tsv"), text.toString());
             return;
         }
-        if (mode.equals("RECOVERY"))
-        {
-            if (!runtime.toString().matches(".*[\\\\/]contract031[e-f][\\\\/]runtime") || selected.size() != 1) { throw new IllegalStateException("TASK031_RECOVERY_LANE_GUARD"); }
-            selection = nextSelection;
-            field(PhantomBackgroundService.class, "_recoveryObserver").set(null, (BiConsumer<Long, PhantomBackgroundState>) Contract031Observer::recovery);
-        }
         if (mode.startsWith("CRASH_"))
         {
-            if (!runtime.toString().matches(".*[\\\\/]contract031" + (mode.equals("CRASH_NATIVE") ? "e" : "f") + "[\\\\/]runtime")) { throw new IllegalStateException("TASK031_SEPARATE_CRASH_LANE"); }
-            if (installed || crash != null || !org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.isEnabled()
+            if (!runtime.getParent().getFileName().toString().equals("contract031b") || selected.size()!=1 || selected.values().stream().anyMatch(value -> value<=0)) { throw new IllegalStateException("TASK031_SEPARATE_CRASH_LANE"); }
+            if (!installed || crash != null || !org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.isEnabled()
                 || !org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.isSyntheticEnabled()) { throw new IllegalStateException("TASK031_CRASH_PREFLIGHT"); }
+            final var selectedProfile=selected.entrySet().iterator().next();
+            if(RECEIPT_OWNERS.entrySet().stream().noneMatch(value -> value.getKey().profileId()==selectedProfile.getKey() && value.getKey().epoch()==selectedProfile.getValue() && value.getValue().isCurrent() && World.getInstance().getPlayer(value.getKey().objectId())==value.getValue().player())){throw new IllegalStateException("TASK031_CRASH_CURRENT_LIFETIME_REQUIRED");}
             final Path dump = Path.of(spec.getProperty("preDump")).toRealPath();
             if (!dump.startsWith(output) || !PhantomBackgroundTransaction.payloadDigest(Files.readAllBytes(dump)).equals(spec.getProperty("preDumpHash"))) { throw new IllegalStateException("TASK031_CRASH_DUMP_GUARD"); }
             final var configured = field(org.l2jmobius.gameserver.phantoms.PhantomSystem.class, "_configuredInstance").get(null);
@@ -776,7 +778,7 @@ public final class Contract031Observer
             final String text = snapshot(intent, player, chosen.sha()) + "enrolledInitialEpoch=" + initialEpoch + "\nhookNanos=" + System.nanoTime() + "\ncheckpointStage=" + phase + "\n";
             final Witness witness = new Witness(chosen.output().resolve(key + (finalized ? "-finalized.properties" : ".properties")),
                 finalized ? text.replace("source=native-sealed-snapshot", "source=native-finalized-snapshot") : text, finalized ? player.getObjectId() : 0);
-            if (crash != null && owner.evidence().snapshot(System.nanoTime()).rewardSequence() > 0)
+            if (crash != null && chosen.profiles().getOrDefault(id, 0L) == initialEpoch && owner.evidence().snapshot(System.nanoTime()).expGained() > 0 && owner.evidence().snapshot(System.nanoTime()).spGained() > 0)
             {
                 PREPARED.set(new Prepared(player, (PhantomNativeWorkScope) owner, intent, witness));
                 return;

@@ -14,6 +14,17 @@ class ReadDryRoute031
         int endX = Integer.parseInt(args[3]), endY = Integer.parseInt(args[4]);
         ConfigLoader.init();
         var geo = GeoEngine.getInstance();
+        if(args.length==6 && args[5].equals("SCAN"))
+        {
+            for(int distance:new int[]{500,2000}) for(int angle=0;angle<8;angle++)
+            {
+                int tx=x+(int)Math.round(Math.cos(angle*Math.PI/4)*distance),ty=y+(int)Math.round(Math.sin(angle*Math.PI/4)*distance);
+                int pz=geo.getHeight(x,y,z),tz=geo.getHeight(tx,ty,pz);
+                var path=PathFinding.getInstance().findPath(x,y,pz,tx,ty,tz,0,true);
+                System.out.println("DRY_SCAN "+tx+","+ty+","+tz+" direct="+geo.canMoveToTarget(x,y,pz,tx,ty,tz,0)+" back="+geo.canMoveToTarget(tx,ty,tz,x,y,pz,0)+" nodes="+(path==null?-1:path.size()));
+            }
+            return;
+        }
         var factory = DocumentBuilderFactory.newInstance();
         factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
         var waters = new java.util.ArrayList<int[]>();
@@ -41,14 +52,28 @@ class ReadDryRoute031
         // Native buffer500 needs bounded hops. Every emitted step is checked both ways.
         var routePoints = new java.util.ArrayList<int[]>();
         int routeX=x, routeY=y, routeZ=geo.getHeight(x,y,z);
-        int hops=(int)Math.ceil(Math.hypot(endX-x,endY-y)/2000.0);
+        var hopPoints = new java.util.ArrayList<int[]>();
+        if(args.length==6 && args[5].startsWith("VIA:"))
+        {
+            String via=args[5].substring(4);
+            if(!via.matches("-?[0-9]+,-?[0-9]+(;(-?[0-9]+),(-?[0-9]+)){0,4}")){throw new IllegalArgumentException("DRY_VIA_FORMAT");}
+            for(String point:via.split(";")){String[] xy=point.split(",");hopPoints.add(new int[]{Integer.parseInt(xy[0]),Integer.parseInt(xy[1])});}
+            hopPoints.add(new int[]{endX,endY});
+        }
+        else
+        {
+            int straightHops=(int)Math.ceil(Math.hypot(endX-x,endY-y)/2000.0);
+            for(int hop=1;hop<=straightHops;hop++){hopPoints.add(new int[]{x+(int)Math.round((endX-x)*(double)hop/straightHops),y+(int)Math.round((endY-y)*(double)hop/straightHops)});}
+        }
+        int hops=hopPoints.size();
         if(hops<1 || hops>6){throw new IllegalStateException("DRY_ROUTE_HOP_BOUND");}
         for(int hop=1;hop<=hops;hop++)
         {
-            int tx=x+(int)Math.round((endX-x)*(double)hop/hops), ty=y+(int)Math.round((endY-y)*(double)hop/hops);
+            int tx=hopPoints.get(hop-1)[0], ty=hopPoints.get(hop-1)[1];
+            if(Math.hypot(tx-routeX,ty-routeY)>2000.01){throw new IllegalStateException("DRY_VIA_HOP_BOUND2000");}
             int tz=geo.getHeight(tx,ty,routeZ);
             var nativePath=PathFinding.getInstance().findPath(routeX,routeY,routeZ,tx,ty,tz,0,true);
-            if(nativePath==null || nativePath.isEmpty()){throw new IllegalStateException("DRY_STOCK_ROUTE_ABSENT");}
+            if(nativePath==null || nativePath.isEmpty()){throw new IllegalStateException("DRY_STOCK_ROUTE_ABSENT hop="+hop+" from="+routeX+","+routeY+","+routeZ+" to="+tx+","+ty+","+tz);}
             for(var node:nativePath){routePoints.add(new int[]{node.getX(),node.getY(),node.getZ()});}
             routePoints.add(new int[]{tx,ty,tz}); routeX=tx;routeY=ty;routeZ=tz;
         }
@@ -62,7 +87,7 @@ class ReadDryRoute031
             {
                 int px=sx+(int)Math.round((destination[0]-sx)*(double)leg/legs),py=sy+(int)Math.round((destination[1]-sy)*(double)leg/legs);
                 int pz=geo.getHeight(px,py,previousZ);
-                if(Math.abs(pz-previousZ)>200 || !geo.canMoveToTarget(previousX,previousY,previousZ,px,py,pz,0) || !geo.canMoveToTarget(px,py,pz,previousX,previousY,previousZ,0)){throw new IllegalStateException("DRY_ROUTE_NATIVE_GEOMETRY_REJECTED");}
+                if(Math.abs(pz-previousZ)>200 || !geo.canMoveToTarget(previousX,previousY,previousZ,px,py,pz,0) || !geo.canMoveToTarget(px,py,pz,previousX,previousY,previousZ,0)){throw new IllegalStateException("DRY_ROUTE_NATIVE_GEOMETRY_REJECTED from="+previousX+","+previousY+","+previousZ+" to="+px+","+py+","+pz+" forward="+geo.canMoveToTarget(previousX,previousY,previousZ,px,py,pz,0)+" reverse="+geo.canMoveToTarget(px,py,pz,previousX,previousY,previousZ,0));}
                 int samples=Math.max(1,(int)Math.ceil(Math.hypot(px-previousX,py-previousY)/100.0)),sampleZ=previousZ;
                 for(int sample=0;sample<=samples;sample++)
                 {

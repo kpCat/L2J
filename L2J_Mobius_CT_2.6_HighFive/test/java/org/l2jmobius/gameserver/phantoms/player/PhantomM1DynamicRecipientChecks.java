@@ -293,6 +293,7 @@ public final class PhantomM1DynamicRecipientChecks
 					context.record("N02.nativeFinisher." + attempt, "hp=" + before + "->" + npc.getCurrentHp() + ";dead=" + npc.isDead());
 				}
 			}
+			context.record("N02.finalRewardEligibility", "npcDead=" + npc.isDead() + ";firstDead=" + first.isDead() + ";secondDead=" + second.isDead() + ";firstHp=" + first.getCurrentHp() + ";secondHp=" + second.getCurrentHp() + ";firstExp=" + (first.getExp() - firstExp) + ";secondExp=" + (second.getExp() - secondExp) + ";firstIncident=" + one.scope.firstNativeIncident() + ";secondIncident=" + two.scope.firstNativeIncident());
 			PhantomAssertions.assertTrue(npc.isDead() && first.getExp() > firstExp && second.getExp() > secondExp, "N02 genuine damaging participants receive native death reward.");
 			if (ordinary != null) { PhantomAssertions.assertTrue(ordinary.getExp() > ordinaryExp && npc.getAggroList().get(ordinary) != null && npc.getAggroList().get(ordinary).getDamage() > 1, "N02 ordinary third native attack and reward remain stock."); }
 			context.record("N02.nativeRewards", "first=" + (first.getExp() - firstExp) + ";second=" + (second.getExp() - secondExp) + ";ordinary=" + (ordinary == null ? "NONE" : ordinary.getExp() - ordinaryExp));
