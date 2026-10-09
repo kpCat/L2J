@@ -82,3 +82,5 @@ item118 delta8, EXECUTE_NON_MUTABLE_ID, DURABLE_MATCH_GUARD_PASSED; before obser
 This does not establish the initial C7 first producer or every cohort0 member's cause.
 
 C5 focused evidence extends the same native133-lifetime case with an actual temporary checkpoint (E05), sampled buffer highwater/final drain bytes and fixed disk budget measurements. Production and collector semantics remain C4; no additional product producer change.
+
+C5 stop instrumentation RED: DONE sampled after scheduled pool shutdown; no before-pool health claim. C6 monitor buffers bounded32 scalar phase/pool samples in memory, flushes after DONE, with narrow final-phase read-only polling. Native/event collector hooks unchanged.

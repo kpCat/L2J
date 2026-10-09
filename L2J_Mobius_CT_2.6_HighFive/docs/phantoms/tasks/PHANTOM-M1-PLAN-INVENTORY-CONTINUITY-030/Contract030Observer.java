@@ -193,37 +193,47 @@ public final class Contract030Observer
             if (system == null) { throw new IllegalStateException("TASK030_STOP_SYSTEM_REQUIRED"); }
             final var monitor = new Thread(() ->
             {
-                String prior = "";
+                org.l2jmobius.gameserver.phantoms.PhantomSystem.StopProgress prior = null;
+                final var samples = new StringBuilder();
+                int changes = 0; boolean pollFinal = false;
                 final long deadline = System.nanoTime() + 25_000_000_000L;
                 try
                 {
                     while (System.nanoTime() < deadline)
                     {
-                        final String progress = String.valueOf(system.shutdownProgress());
-                        if (!prior.equals(progress))
+                        final var progress = system.shutdownProgress();
+                        if (progress != null && !progress.equals(prior))
                         {
-                            writeTelemetry(output.resolve("typed-stop-progress.tsv"), System.nanoTime() + "\t" + progress + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-                            prior = progress;
-                        }
-                        if (progress.contains("phase=DONE"))
-                        {
-                            final var done = new StringBuilder("capturedNanos=" + System.nanoTime() + "\nprogress=" + progress + "\n");
+                            if (++changes > 32) { throw new IllegalStateException("TASK030_STOP_PHASE_BOUND"); }
+                            final long captured = System.nanoTime();
+                            final var pools = new StringBuilder();
                             for (String pool : java.util.List.of("SCHEDULED_POOL", "INSTANT_POOL", "HIGH_PRIORITY_SCHEDULED_POOL"))
                             {
                                 final var executor = (java.util.concurrent.ThreadPoolExecutor) field(org.l2jmobius.commons.threads.ThreadPool.class, pool).get(null);
-                                put(done, pool + "Shutdown", executor == null ? "ABSENT" : executor.isShutdown());
+                                put(pools, pool + "Shutdown", executor == null ? "ABSENT" : executor.isShutdown());
                             }
-                            final var materialization = (org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService) field(system.getClass(), "_materializationService").get(system);
-                            final var background = (PhantomBackgroundService) field(system.getClass(), "_backgroundService").get(system);
-                            put(done, "materialization", materialization == null ? "ABSENT" : materialization.shutdownSnapshot());
-                            put(done, "background", background == null ? "ABSENT" : background.snapshot());
-                            put(done, "configured", org.l2jmobius.gameserver.phantoms.PhantomSystem.configuredShutdownSnapshot());
-                            put(done, "activeReferences", RECEIPT_OWNERS.size()); put(done, "proofFailure", exporterFailure);
-                            writeTelemetry(output.resolve("typed-stop-done.properties"), done.toString(), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
-                            return;
+                            samples.append(captured).append('\t').append(progress).append('\t').append(pools.toString().replace('\n', ';')).append('\n');
+                            prior = progress; pollFinal = progress.toString().contains("phase=FINISH_DEPENDENCIES");
+                            if (progress.toString().contains("phase=DONE"))
+                            {
+                                final var done = new StringBuilder("capturedNanos=" + captured + "\nprogress=" + progress + "\n" + pools);
+                                final var materialization = (org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService) field(system.getClass(), "_materializationService").get(system);
+                                final var background = (PhantomBackgroundService) field(system.getClass(), "_backgroundService").get(system);
+                                put(done, "materialization", materialization == null ? "ABSENT" : materialization.shutdownSnapshot());
+                                put(done, "background", background == null ? "ABSENT" : background.snapshot());
+                                put(done, "configured", org.l2jmobius.gameserver.phantoms.PhantomSystem.configuredShutdownSnapshot());
+                                put(done, "activeReferences", RECEIPT_OWNERS.size()); put(done, "proofFailure", exporterFailure);
+                                writeTelemetry(output.resolve("typed-stop-progress.tsv"), samples.toString(), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+                                writeTelemetry(output.resolve("typed-stop-done.properties"), done.toString(), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+                                return;
+                            }
                         }
-                        Thread.sleep(1);
+                        // Narrow final-phase polling has no filesystem/SQL or actor lock.
+                        if (pollFinal) { Thread.onSpinWait(); }
+                        else { Thread.sleep(1); }
                     }
+                    writeTelemetry(output.resolve("typed-stop-progress.tsv"), samples.toString(), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+                    proofFailure("TASK030_STOP_MONITOR_TIMEOUT");
                 }
                 catch (Throwable failure) { proofFailure("TASK030_STOP_MONITOR:" + failure); }
             }, "TASK030-stop-monitor");
