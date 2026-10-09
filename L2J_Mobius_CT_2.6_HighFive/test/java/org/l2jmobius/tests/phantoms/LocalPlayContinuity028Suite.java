@@ -49,6 +49,7 @@ public final class LocalPlayContinuity028Suite implements PhantomTestSuite
 		registry.add("T01-native-start-advertises-fixed-525s-expiry", this::expiry);
 		registry.add("T05-wrong-heartbeat-identity-closes-native-session", context -> guard(context, false));
 		registry.add("T05-expired-monotonic-deadline-closes-despite-fresh-heartbeat", context -> guard(context, true));
+		registry.add("T05-real-publisher-keeps-native-heartbeat-readable", this::publisher);
 	}
 	private static Field field(Class<?> type, String name) throws Exception
 	{
@@ -123,6 +124,40 @@ public final class LocalPlayContinuity028Suite implements PhantomTestSuite
 			PhantomAssertions.assertEquals("STOPPED", read(session.mailbox.resolve("session.properties")).getProperty("state"), "Guard must close the native session.");
 			PhantomAssertions.assertTrue(read(session.mailbox.resolve("session.properties")).getProperty("reason").startsWith(ttl ? "SYNTHETIC_TTL" : "SYNTHETIC_HEARTBEAT"), "First failed guard must be recorded without changing its closure.");
 			PhantomAssertions.assertEquals(null, org.l2jmobius.gameserver.model.World.getInstance().getPlayer(_environment.observer().objectId()), "Guard must remove only its native observer.");
+		}
+	}
+	private void publisher(PhantomTestContext context) throws Exception
+	{
+		try (var session = new NativeSession(context))
+		{
+			session.heartbeat(session.run);
+			final String library = context.moduleRoot().resolve("tools/phantom-local-play/LocalPlay-Pilot.ps1").toString().replace("'", "''");
+			final String mailbox = session.mailbox.toString().replace("'", "''");
+			final String script = ". '" + library + "'; $context028=@{PilotRoot='" + mailbox + "';ActorMode='Synthetic'}; for($i028=0;$i028 -lt 200;$i028++){ Write-PilotHeartbeat $context028 '" + session.run + "' '" + session.run + "'; Start-Sleep -Milliseconds 5 }";
+			final var output = session.runtime.resolve("publisher.log");
+			final var process = new ProcessBuilder("pwsh", "-NoProfile", "-Command", script).redirectErrorStream(true).redirectOutput(output.toFile()).start();
+			String failure = null;
+			final long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+			try
+			{
+				while (process.isAlive() && (System.nanoTime() < deadline))
+				{
+					if (!(boolean) method(session.type, "heartbeatCurrent").invoke(session.service))
+					{
+						failure = String.valueOf(field(session.type, "_heartbeatReason").get(session.service));
+						try { failure += ":postRead=" + read(session.mailbox.resolve("heartbeat.properties")); }
+						catch (Exception exact) { failure += ":postRead=" + exact; }
+						break;
+					}
+					Thread.sleep(1);
+				}
+				PhantomAssertions.assertTrue(failure == null, "Real single heartbeat publisher rejected by native guard: " + failure);
+				PhantomAssertions.assertTrue(process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS) && process.exitValue() == 0, "Bounded real publisher failed: " + Files.readString(output));
+				Files.delete(session.mailbox.resolve("heartbeat.properties"));
+				method(session.type, "poll").invoke(session.service);
+				PhantomAssertions.assertEquals("STOPPED", read(session.mailbox.resolve("session.properties")).getProperty("state"), "Missing heartbeat must still close the native session.");
+			}
+			finally { if (process.isAlive()) { process.destroyForcibly(); process.waitFor(); } }
 		}
 	}
 }

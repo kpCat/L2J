@@ -112,7 +112,7 @@ function Assert-PilotPrivateFile([string] $Path)
 	}
 }
 
-function Write-PilotAtomicBytes([string] $Path, [byte[]] $Bytes, [switch] $Replace)
+function Write-PilotAtomicBytes([string] $Path, [byte[]] $Bytes, [switch] $Replace, [switch] $RenameReplace)
 {
 	$parent = [IO.Path]::GetDirectoryName($Path)
 	Assert-PilotNoReparse $parent
@@ -126,7 +126,8 @@ function Write-PilotAtomicBytes([string] $Path, [byte[]] $Bytes, [switch] $Repla
 		{
 			if (-not $Replace) { throw "Private mailbox record уже существует: $Path" }
 			Assert-PilotPrivateFile $Path
-			[IO.File]::Replace($temp, $Path, $backup)
+			if ($RenameReplace) { Assert-PilotPrivateFile $temp; [IO.File]::Move($temp, $Path, $true) }
+			else { [IO.File]::Replace($temp, $Path, $backup) }
 		}
 		else { [IO.File]::Move($temp, $Path) }
 	}
@@ -137,10 +138,10 @@ function Write-PilotAtomicBytes([string] $Path, [byte[]] $Bytes, [switch] $Repla
 	}
 }
 
-function Write-PilotAtomicText([string] $Path, [string] $Text, [switch] $Replace)
+function Write-PilotAtomicText([string] $Path, [string] $Text, [switch] $Replace, [switch] $RenameReplace)
 {
 	$utf8 = New-Object Text.UTF8Encoding($false)
-	Write-PilotAtomicBytes $Path ($utf8.GetBytes($Text)) -Replace:$Replace
+	Write-PilotAtomicBytes $Path ($utf8.GetBytes($Text)) -Replace:$Replace -RenameReplace:$RenameReplace
 }
 
 function Read-PilotProperties([string] $Path)
@@ -176,7 +177,9 @@ function Write-PilotHeartbeat($Context, [string] $SessionId, [string] $RunId)
 	if (($SessionId -cnotmatch '^[0-9a-fA-F-]{36}$') -or ($RunId -cnotmatch '^[0-9a-fA-F-]{36}$')) { throw 'Некорректная pilot heartbeat identity.' }
 	$millis = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 	$record = "version=1`nsessionId=$SessionId`nupdatedUtcMillis=$millis`nrunId=$RunId`n"
-	Write-PilotAtomicText (Join-Path $Context.PilotRoot 'heartbeat.properties') $record -Replace
+	# Synthetic PowerShell 7 publication uses same-directory rename; legacy/RealClient defaults remain compatible.
+	$renameReplace = ($Context.ActorMode -ceq 'Synthetic') -and ($null -ne [IO.File].GetMethod('Move', [Type[]]@([string], [string], [bool])))
+	Write-PilotAtomicText (Join-Path $Context.PilotRoot 'heartbeat.properties') $record -Replace -RenameReplace:$renameReplace
 }
 
 function Assert-PilotResultIdentity($Result, [string] $RequestId, [string] $SessionId, [string] $RunId, [long] $Sequence, [string] $Operation)

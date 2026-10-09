@@ -41,3 +41,16 @@ Local patterns: native Synthetic lifecycle, exact owned runtime controls027, bou
   stored only in the existing signal binding; first bootstrap unchanged, return
   checks the existing native envelope independently of online readiness. New
   controller, scheduler, owner registry and simulation authorization are absent.
+
+- E candidate0726 scene1 COMPLETE381s, natural8, V2 PASS8/8 and unchanged legacy
+  PASS8/8. First sameDB restart and latest SEALED exact SQL comparison PASS8/8,
+  healthy drain/pending0 proved. Scene2 captured its full baseline8 and different
+  primaries724/876 but FAILED before380s on native HEARTBEAT:ACL_OR_ABSENT.
+- C heartbeat own publisher RED3/4 exposes the actual native read/publication race;
+  same-directory Synthetic rename GREEN4/4. Compatibility and missing-heartbeat
+  negative verification runs separately. Both historical capture failures remain.
+- Frozen0726 regression: first matrix17/18 routes,91/92 cases; cooperative assertion
+  failed. One justified isolated unchanged recheck PASS1/1, actual stock spell
+  damage differs. Exact original reward recipient is UNKNOWN, no native incident
+  was observed. Lifecycle acceptance11/11; LocalPlay15/15, native10/10,
+  transport3/3, soft-return3/3. No original test threshold or implementation changed.
