@@ -326,7 +326,7 @@ public class Attackable extends Npc
 		// calculateRewards already ran inside super.doDie; preserve that stock reward-before-kill order.
 		if ((nativeTarget != null) && (nativeKiller.getNativeWorkOwner() == nativeOwner) && nativeOwner.isCurrent() && nativeEvidence.matches(nativeKiller.getObjectId(), nativeOwner.epoch()))
 		{
-			nativeEvidence.killed(nativeTarget);
+			nativeEvidence.killedIfDamaged(nativeTarget);
 		}
 		
 		// Delayed notification.
@@ -411,6 +411,12 @@ public class Attackable extends Npc
 						if ((contribution.damage() <= 1) || (participant == null) || !seen.add(participant)) { continue; }
 						final var evidence = PlayerNativeWork.observationEvidence(participant);
 						if (evidence != null) { evidence.killedIfDamaged(getNativeEvidenceTarget()); }
+					}
+					// Original synchronous reward writers finished; no EXP/SP is synthesized by settlement.
+					for (Player recipient : roster.recipients())
+					{
+						final var evidence = PlayerNativeWork.observationEvidence(recipient);
+						if (evidence != null) { evidence.rewardSettled(getNativeEvidenceTarget()); }
 					}
 				}
 			}

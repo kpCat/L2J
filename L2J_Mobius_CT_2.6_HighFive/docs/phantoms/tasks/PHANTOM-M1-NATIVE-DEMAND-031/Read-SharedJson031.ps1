@@ -4,8 +4,9 @@ function Read-SharedJson031([string]$Path){
     $reader=$null
     try{
         $reader=[IO.StreamReader]::new($stream,[Text.Encoding]::UTF8,$true)
-        return ($reader.ReadToEnd() | ConvertFrom-Json)
+        $raw=$reader.ReadToEnd()
     }finally{
         if($reader){$reader.Dispose()}else{$stream.Dispose()}
     }
+    return ($raw | ConvertFrom-Json)
 }

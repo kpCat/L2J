@@ -56,7 +56,7 @@ if($Action -ceq 'Matrix'){
         @('PhantomNativeFarmContinuation022Suite','callback026',''), @('PhantomSustainedFarm026Suite','',''),
         @('PhantomSustainedFarm026Suite','resource026',''), @('PhantomSustainedFarm026Suite','generation026',''),
         @('PhantomRecoveryBoundary026Suite','',''), @('PhantomNativeEvidenceContinuation022Suite','',''))
-    $expected=@(8,3,10,2,3,30,6,8,1,3,1,2,2,3,2,2,2,4)
+    $expected=@(8,3,10,2,3,30,6,8,1,3,1,2,2,3,2,2,2,5)
     $matrix=Join-Path $PSScriptRoot "evidence/$Label-matrix.tsv"
     if(Test-Path $matrix){throw 'Immutable matrix exists.'}
     "route`tsuite`tfocus`tlauncher`texitCode`tsummary" | Set-Content $matrix -Encoding utf8

@@ -27,7 +27,7 @@ try{
     $heartbeatJob=Start-Job -ArgumentList $runtime,$run,$OutputRoot,$stopWriter -ScriptBlock {
         param($Runtime,$Run,$Output,$Stop)
         $ErrorActionPreference='Stop'
-. (Join-Path $PSScriptRoot 'Read-SharedJson031.ps1'); . (Join-Path $Runtime 'LocalPlay-Pilot.ps1')
+; . (Join-Path $Runtime 'LocalPlay-Pilot.ps1')
         $context=Get-PilotContext -RequireEnabled -ActorMode Synthetic -SessionId $Run
         $watch=[Diagnostics.Stopwatch]::StartNew()
         while($watch.Elapsed.TotalSeconds -lt 525 -and -not (Test-Path $Stop)){

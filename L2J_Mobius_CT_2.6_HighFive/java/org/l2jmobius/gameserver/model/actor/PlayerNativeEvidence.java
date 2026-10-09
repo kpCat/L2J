@@ -122,6 +122,17 @@ public final class PlayerNativeEvidence
 		if ((state != null) && state._damaged) { killed(target); }
 	}
 
+	/** Actual dead-NPC reward boundary has finished every original award writer.
+	 * Zero-SP or zero-award settlement is terminal truth, never an attributed farm cycle. */
+	public synchronized void rewardSettled(Target target)
+	{
+		if (_overflow) { return; }
+		final TargetState state = _targets.get(target);
+		if (state == null) { return; }
+		state._rewardSettled = true;
+		completeCycle(target, state);
+	}
+
 	public synchronized void selected(Target target, long now)
 	{
 		// Clearing/self/rejected targets are filtered by the native bridge and cannot erase a pending cycle.
@@ -329,6 +340,7 @@ public final class PlayerNativeEvidence
 		private boolean _sp;
 		private boolean _nextSelected;
 		private boolean _counted;
+		private boolean _rewardSettled;
 	}
 	private void completeCycle(Target target, TargetState state)
 	{
@@ -338,6 +350,7 @@ public final class PlayerNativeEvidence
 			_farmCycleSequence = add(_farmCycleSequence, 1);
 			_targets.remove(target);
 		}
+		else if (state._rewardSettled && state._nextSelected) { _targets.remove(target); }
 	}
 
 	/** The scoped native calculateRewards target survives reward-before-kill ordering, without actor references. */

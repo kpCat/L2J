@@ -17,6 +17,7 @@ if($Mode -ceq 'Away' -and (-not $PathJson)){throw 'Dedicated dry native path req
 if($Mode -ceq 'Away'){
     $path=Get-Content -LiteralPath $PathJson -Raw | ConvertFrom-Json
     $helper=Join-Path $module 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/ReadDryPath023.java'
+    if($path.helperSource){$helper=[IO.Path]::GetFullPath($path.helperSource);if($helper -cne (Join-Path $PSScriptRoot 'ReadDryRoute031.java') -and $helper -cne (Join-Path $module 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/ReadDryPath023.java')){throw 'Exact checked dry helper required.'}}
     if(-not $path.bidirectional -or $path.helperSha256 -cne (Get-FileHash $helper).Hash -or $path.geoLogSha256 -cne (Get-FileHash $path.geoLog).Hash){throw 'Immutable native dry path provenance invalid.'}
     if($Seconds -lt 90 -or $Seconds -gt 160 -or $path.steps.Count -gt 40){throw 'Bounded away/return plan exceeds525s/400sequence budget.'}
 }
@@ -105,7 +106,7 @@ try{
     $heartbeatJob=Start-Job -ArgumentList $runtime,$run,$OutputRoot,$stopWriter -ScriptBlock {
         param($Runtime,$Run,$Output,$Stop)
         $ErrorActionPreference='Stop'
-. (Join-Path $PSScriptRoot 'Read-SharedJson031.ps1')
+
         . (Join-Path $Runtime 'LocalPlay-Pilot.ps1')
         $context=Get-PilotContext -RequireEnabled -ActorMode Synthetic -SessionId $Run
         $incarnation=$context.StartTimeUtcTicks

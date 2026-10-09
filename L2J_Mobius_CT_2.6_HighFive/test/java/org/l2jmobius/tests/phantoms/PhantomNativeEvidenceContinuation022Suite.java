@@ -62,6 +62,28 @@ public final class PhantomNativeEvidenceContinuation022Suite implements PhantomT
 			foreign.selected(a, 100); foreign.killed(a, 101); foreign.reward(a, 20, 2, 102); foreign.selected(new Target(11, 0, 1), 103);
 			PhantomAssertions.assertEquals(0L, foreign.snapshot(104).farmCycleSequence(), "No own damage means no attributed cycle.");
 		});
+		registry.add("S12-native-terminal-zero-SP-retired-without-inventing-cycle", _ ->
+		{
+			final var sensor = new PlayerNativeEvidence(1, System.nanoTime());
+			java.lang.reflect.Method settle = null;
+			try { settle = PlayerNativeEvidence.class.getMethod("rewardSettled", Target.class); } catch (NoSuchMethodException legacy) { /* Replay the prior sensor behavior for RED. */ }
+			for (int i = 1; i <= 32; i++)
+			{
+				final var target = new Target(i, 0, 1);
+				sensor.selected(target); sensor.damage(target, 2); sensor.reward(target, 1, 0); sensor.killed(target);
+				if (settle != null) { settle.invoke(sensor, target); }
+			}
+			sensor.selected(new Target(100, 0, 1));
+			final var snapshot = sensor.snapshot();
+			PhantomAssertions.assertFalse(snapshot.overflow(), "RED: real reward settlement frees terminal zero-SP observations, not unfinished work.");
+			PhantomAssertions.assertEquals(0L, snapshot.farmCycleSequence(), "EXP-only terminal awards cannot become an EXP+SP farm cycle.");
+			PhantomAssertions.assertEquals(32L, snapshot.expGained(), "Only actual native EXP deltas remain recorded.");
+			PhantomAssertions.assertEquals(0L, snapshot.spGained(), "No fabricated SP.");
+			final var pending = new PlayerNativeEvidence(2, System.nanoTime());
+			for (int i = 1; i <= 17; i++) { pending.damage(new Target(i, 0, 1), 1); }
+			PhantomAssertions.assertEquals(PlayerNativeEvidence.UnprovenReason.TARGET_CAP, pending.snapshot().firstUnprovenReason(), "Genuine unfinished distinct targets remain capped at16.");
+		});
+
 		registry.add("S10-target-cap-generation-and-time-regression-truth", _ ->
 		{
 			final var sensor = new PlayerNativeEvidence(1, 100);

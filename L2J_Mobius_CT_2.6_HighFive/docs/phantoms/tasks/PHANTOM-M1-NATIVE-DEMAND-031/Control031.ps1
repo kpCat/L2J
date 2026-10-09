@@ -4,7 +4,7 @@ param([Parameter(Mandatory)][ValidateSet('Update','Start','Stop','Export','Colle
       [string]$Revision='R1',[string]$ExpectedSha='',
       [string]$OutputRoot='', [long[]]$ProfileIds=@(),[switch]$DumpDuringStop,
       [ValidateSet('Build','Enroll','FullObserve','Probe031','Census','Flush','StopMonitor')][string]$Mode='Build', [string]$CohortJson='', [string]$ObserverRunId='',
-      [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{},
+      [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{}, [switch]$UseStockRoute,
       [ValidateSet('Persistence','Restart')][string]$ProofKind='Restart', [string]$SqlRoot='', [string]$SealedRoot='', [string]$ShutdownLog='')
 function Update-Owned031 {
 param([string]$Episode,[string]$Revision)
@@ -113,23 +113,23 @@ if($Action -ceq 'DryPath'){
     $manifest=Get-Content (Join-Path $runtime031 'local-play.json') -Raw | ConvertFrom-Json
     if($manifest.databaseName -cne "l2jmobiush5_localplay_contract031$Episode" -or (Get-FileHash (Join-Path $runtime031 'libs/GameServer.jar')).Hash -cne $manifest.gameJarSha256){throw 'Own dry-path DB/JAR guard failed.'}
     $jdk='C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin'
-    $helper=Join-Path $taskRoot024 'ReadDryPath023.java'; $classes=Join-Path $module031 '.phantom-local/ops031/dry-classes'
+    $helper=if($UseStockRoute){Join-Path $PSScriptRoot 'ReadDryRoute031.java'}else{Join-Path $taskRoot024 'ReadDryPath023.java'}; $dryClass=[IO.Path]::GetFileNameWithoutExtension($helper); $classes=Join-Path $module031 '.phantom-local/ops031/dry-classes'
     New-Item -ItemType Directory -Path $output,$classes -Force | Out-Null
     & (Join-Path $jdk 'javac.exe') -encoding UTF-8 -cp (Join-Path $module031 'dist/libs/*') -d $classes $helper
     if($LASTEXITCODE -ne 0){throw 'Existing stock dry helper build failed.'}
     $log=Join-Path $output 'stock-dry-path.log'
     Push-Location (Join-Path $runtime031 'game')
     try{
-        & (Join-Path $jdk 'java.exe') -Xmx2g -cp "$classes;../libs/*" ReadDryPath023 $OriginPoint.x $OriginPoint.y $OriginPoint.z $EndpointPoint.x $EndpointPoint.y *> $log
+        & (Join-Path $jdk 'java.exe') -Xmx2g -cp "$classes;../libs/*" $dryClass $OriginPoint.x $OriginPoint.y $OriginPoint.z $EndpointPoint.x $EndpointPoint.y *> $log
         if($LASTEXITCODE -ne 0){throw 'Stock bidirectional dry path rejected; no MOVE allowed.'}
     }finally{Pop-Location}
     $points=@(Get-Content $log | Where-Object {$_ -match '^DRY_POINT\s'} | ForEach-Object {$parts=$_ -split '\s+';[pscustomobject]@{x=[int]$parts[1];y=[int]$parts[2];z=[int]$parts[3]}})
     if($points.Count -lt 2 -or -not (Select-String -LiteralPath $log -Pattern '^DRY_PATH_PASS ')){throw 'Complete native dry-path result missing.'}
     $steps=[Collections.Generic.List[object]]::new(); $previous=$points[0]
-    for($i=2;$i -lt $points.Count;$i+=2){$steps.Add($points[$i])}
+    if($UseStockRoute){for($i=1;$i -lt $points.Count;$i++){$steps.Add($points[$i])}}else{for($i=2;$i -lt $points.Count;$i+=2){$steps.Add($points[$i])}}
     if($steps.Count -eq 0 -or $steps[-1].x -ne $points[-1].x -or $steps[-1].y -ne $points[-1].y){$steps.Add($points[-1])}
     foreach($point in $steps){if([Math]::Sqrt([Math]::Pow($point.x-$previous.x,2)+[Math]::Pow($point.y-$previous.y,2)) -gt 300.01 -or [Math]::Abs($point.z-$previous.z) -gt 200){throw 'Native step bound exceeded.'};$previous=$point}
-    @{origin=$points[0];endpoint=$points[-1];points=$points;steps=@($steps);helperSha256=(Get-FileHash $helper).Hash;geoLog=$log;geoLogSha256=(Get-FileHash $log).Hash;jarSha256=$manifest.gameJarSha256;sourceSha=$manifest.codeSha;bidirectional=$true} | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $output 'path.json') -Encoding utf8
+    @{origin=$points[0];endpoint=$points[-1];points=$points;steps=@($steps);helperSource=$helper;helperSha256=(Get-FileHash $helper).Hash;geoLog=$log;geoLogSha256=(Get-FileHash $log).Hash;jarSha256=$manifest.gameJarSha256;sourceSha=$manifest.codeSha;bidirectional=$true} | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $output 'path.json') -Encoding utf8
     "TASK031_DRY_PATH samples=$($points.Count) steps=$($steps.Count)"
     return
 }

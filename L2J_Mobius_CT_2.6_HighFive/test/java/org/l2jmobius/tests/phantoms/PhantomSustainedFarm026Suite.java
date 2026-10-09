@@ -31,6 +31,10 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _handoff.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("settlement031".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("S12-actual-shared-native-zero-SP-terminal-cap", this::sharedSettlement); return;
+		}
 		if ("generation026".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("E03-native-respawn-selection-retires-only-undamaged-stale-generations", context -> generations(context, true));
@@ -49,6 +53,46 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 		registry.add("F10-native-z-local-opportunity-precedes-exact-standpoint", context -> local(context, false, true));
 		registry.add("F01-fresh-independent-local-opportunity-after-terminal-standpoint", context -> local(context, true, true));
 		registry.add("F02-terminal-route-without-lawful-independent-target-remains-closed", context -> local(context, true, false));
+	}
+	private void sharedSettlement(PhantomTestContext context) throws Exception
+	{
+		final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); field.setAccessible(true);
+		final var environment = (PhantomHeadlessPlayerTestEnvironment) field.get(_handoff);
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.handoff(); final Player player = World.getInstance().getPlayer(f.objectId);
+			final Player ordinary = Player.load(environment.observer().objectId());
+			final var sensor = player.getNativeWorkOwner().evidence();
+			final long exp = player.getExp(), sp = player.getSp(), damage = sensor.snapshot().damageSequence();
+			final var monsters = new java.util.ArrayList<Monster>();
+			try (var output = ordinary.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(8, 128)))
+			{
+				ordinary.stopAllTasks(); ordinary.setOnlineStatus(true, false);
+				ordinary.spawnMe(player.getX() + 30, player.getY(), player.getZ());
+				for (int index = 0; index < 24; index++)
+				{
+					final Monster target = monster(player, 18342, player.getInstanceId()); monsters.add(target);
+					org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(player, java.util.List.of(target), "TEST031_SHARED_NATIVE_HP", () ->
+					{
+						player.setTarget(target); target.reduceCurrentHp(2, player, true, false, null);
+					});
+					target.reduceCurrentHp(target.getCurrentHp() + 1, ordinary, true, false, null);
+					PhantomAssertions.assertTrue(target.isDead(), "Original ordinary HP writer completes actual NPC death/reward boundary.");
+				}
+				final Monster next = monster(player, 18342, player.getInstanceId()); monsters.add(next);
+				org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(player, java.util.List.of(next), "TEST031_NEXT_NATIVE_TARGET", () -> player.setTarget(next));
+				final var snapshot = sensor.snapshot(); context.record("S12.actualNative", snapshot);
+				PhantomAssertions.assertTrue(player.getExp() > exp && player.getSp() == sp, "Stock shared reward produces real positive EXP with rounded zero SP.");
+				PhantomAssertions.assertFalse(snapshot.overflow(), "RED: completed native zero-SP targets cannot fill unfinished-target capacity.");
+				PhantomAssertions.assertTrue(snapshot.damageSequence() >= damage + 24, "Every target received an actual original own HP write.");
+				PhantomAssertions.assertEquals(0L, snapshot.farmCycleSequence(), "Zero-SP shared rewards do not satisfy the unchanged EXP+SP cycle contract.");
+			}
+			finally
+			{
+				for (Monster monster : monsters) { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); }
+				environment.cleanupLoadedPlayer(ordinary);
+			}
+		}
 	}
 	private void generations(PhantomTestContext context, boolean reused) throws Exception
 	{
