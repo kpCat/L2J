@@ -1,0 +1,30 @@
+{
+  "checkpoint": "C02",
+  "utc": "2026-10-09T21:25:12.8809736Z",
+  "causalRED": "actual actor1149 HISTORICAL_FARM 157->165 guard273 at basee083; focused3/1pass/2fail",
+  "focusedGREEN": "3/3",
+  "prebootV2ByteParity": 10000,
+  "nativeHandoff": "15/15",
+  "native165StoreFarmReload": "2/2",
+  "projectionRollback": "4/4 existing magic/melee/historical/lost-reply/fatal rollback checks",
+  "originalPayloadBytes": 3703,
+  "expanded165CompressedBytes": 1137,
+  "durableLimitBytes": 4096,
+  "expandedLimitBytes": 8192,
+  "legacyMaxTrackedObjects": 160,
+  "compactMaxTrackedObjects": 275,
+  "nativeInventorySlots": 250,
+  "nativePaperdollSlots": 25,
+  "gameBuilds": 2,
+  "gameStarts": 3,
+  "ownGameLogin": "STOPPED_STOCK_GRACEFUL",
+  "M1": "OPEN",
+  "REAL_FINAL": "NOT_RUN",
+  "limitations": [
+    "Economy transaction retains independent160-row guard; not changed without current failure evidence.",
+    "No fixed-actor18 exception hit captured; cached backend failure not relabelled as current exception.",
+    "Raw JFR and fixture data retained private.",
+    "Two-server restart and crash acceptance not yet run."
+  ],
+  "gameJarSHA": "8A4E2F4676B4E3F14777627034BBCAA264A6B399282DD65E48A6C41B678282B9"
+}

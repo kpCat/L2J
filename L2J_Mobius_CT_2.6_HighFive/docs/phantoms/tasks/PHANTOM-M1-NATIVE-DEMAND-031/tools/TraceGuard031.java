@@ -37,10 +37,10 @@ class TraceGuard031 {
         int unrelated = 0;
         try {
             ReferenceType type = vm.classesByName("org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState$InventoryFacts").stream().findFirst().orElseThrow();
-            var request = vm.eventRequestManager().createBreakpointRequest(type.locationsOfLine(273).getFirst());
+            var request = vm.eventRequestManager().createBreakpointRequest(type.locationsOfLine(args.length < 4 ? 273 : Integer.parseInt(args[3])).getFirst());
             if (singleThread) request.addThreadFilter(vm.allThreads().stream().filter(t -> t.name().equals(args[2].substring(7))).findFirst().orElseThrow());
             request.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD); request.enable();
-            while (System.nanoTime() < deadline && unrelated < 16) {
+            while (System.nanoTime() < deadline && unrelated < 64) {
                 EventSet events = vm.eventQueue().remove(1000);
                 if (events == null) continue;
                 boolean captured = false;

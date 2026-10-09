@@ -30,6 +30,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
+import java.util.zip.DataFormatException;
 
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Clock;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.CombatFacts;
@@ -56,6 +59,9 @@ public final class PhantomBackgroundStateCodec
 {
 	private static final int MAGIC = 0x50424731;
 	private static final int FORMAT_VERSION = 2;
+	private static final int COMPACT_FORMAT_VERSION = 3;
+	private static final int COMPACT_HEADER_BYTES = 12;
+	private static final int MAX_EXPANDED_BYTES = 8192;
 	private static final int LEGACY_FORMAT_VERSION = 1;
 	private static final int LEGACY_SCHEMA_VERSION = 1;
 
@@ -158,6 +164,7 @@ public final class PhantomBackgroundStateCodec
 				writeString(output, hashes.commerce());
 			}
 			final byte[] payload = bytes.toByteArray();
+			if (state.inventory().objects().size() > PhantomBackgroundState.MAX_TRACKED_ITEMS) { return compress(payload); }
 			if (payload.length > PhantomProfileComponent.MAX_PAYLOAD_BYTES)
 			{
 				throw new IllegalArgumentException("Encoded background.state payload exceeds 4096 bytes.");
@@ -172,7 +179,12 @@ public final class PhantomBackgroundStateCodec
 
 	public PhantomBackgroundState decode(byte[] payload)
 	{
-		if ((payload == null) || (payload.length > PhantomProfileComponent.MAX_PAYLOAD_BYTES))
+		return decode(payload, false);
+	}
+
+	private PhantomBackgroundState decode(byte[] payload, boolean expanded)
+	{
+		if ((payload == null) || (payload.length > (expanded ? MAX_EXPANDED_BYTES : PhantomProfileComponent.MAX_PAYLOAD_BYTES)))
 		{
 			throw new IllegalArgumentException("Invalid background.state payload size.");
 		}
@@ -187,8 +199,14 @@ public final class PhantomBackgroundStateCodec
 				}
 				final int formatVersion = input.readUnsignedShort();
 				final int schemaVersion = input.readUnsignedShort();
+				if (!expanded && (formatVersion == COMPACT_FORMAT_VERSION) && (schemaVersion == PhantomBackgroundState.SCHEMA_VERSION))
+				{
+					final var result = decode(inflate(payload, input.readInt()), true);
+					if (!Arrays.equals(payload, encode(result))) { throw new IllegalArgumentException("Non-canonical compact background.state payload."); }
+					return result;
+				}
 				final boolean legacy = (formatVersion == LEGACY_FORMAT_VERSION) && (schemaVersion == LEGACY_SCHEMA_VERSION);
-				if (!legacy && ((formatVersion != FORMAT_VERSION) || (schemaVersion != PhantomBackgroundState.SCHEMA_VERSION)))
+				if ((expanded && legacy) || (!legacy && ((formatVersion != FORMAT_VERSION) || (schemaVersion != PhantomBackgroundState.SCHEMA_VERSION))))
 				{
 					throw new IllegalArgumentException("Unknown background.state version.");
 				}
@@ -219,7 +237,7 @@ public final class PhantomBackgroundStateCodec
 					}
 					itemCount = input.readUnsignedShort();
 				}
-				if (itemCount > PhantomBackgroundState.MAX_TRACKED_ITEMS)
+				if (itemCount > (expanded ? PhantomBackgroundState.MAX_COMPACT_TRACKED_ITEMS : PhantomBackgroundState.MAX_TRACKED_ITEMS))
 				{
 					throw new IllegalArgumentException("Too many tracked background items.");
 				}
@@ -257,7 +275,7 @@ public final class PhantomBackgroundStateCodec
 					throw new IllegalArgumentException("Trailing bytes after background.state payload.");
 				}
 				final PhantomBackgroundState result = new PhantomBackgroundState(state, identity, progress, vitals, position, combat, loadout, inventory, autoGetSkills, clock, receipt, hashes);
-				if (!legacy && !Arrays.equals(payload, encode(result)))
+				if (!legacy && !expanded && !Arrays.equals(payload, encode(result)))
 				{
 					throw new IllegalArgumentException("Non-canonical background.state payload.");
 				}
@@ -272,6 +290,46 @@ public final class PhantomBackgroundStateCodec
 		{
 			throw new IllegalArgumentException("Invalid background.state payload.", exception);
 		}
+	}
+
+	/** Same bounded compression pattern as PhantomOwnedStoreIntent; no expanded blob escapes this codec. */
+	private static byte[] compress(byte[] plain) throws IOException
+	{
+		if (plain.length > MAX_EXPANDED_BYTES) { throw new IllegalArgumentException("Expanded background.state exceeds8192 bytes."); }
+		final var bytes = new ByteArrayOutputStream(PhantomProfileComponent.MAX_PAYLOAD_BYTES);
+		try (var out = new DataOutputStream(bytes); var deflater = new Deflater())
+		{
+			out.writeInt(MAGIC); out.writeShort(COMPACT_FORMAT_VERSION); out.writeShort(PhantomBackgroundState.SCHEMA_VERSION); out.writeInt(plain.length);
+			deflater.setInput(plain); deflater.finish();
+			final byte[] buffer = new byte[512];
+			while (!deflater.finished())
+			{
+				final int count = deflater.deflate(buffer);
+				if ((count <= 0) || (bytes.size() + count > PhantomProfileComponent.MAX_PAYLOAD_BYTES)) { throw new IllegalArgumentException("Encoded compact background.state exceeds4096 bytes."); }
+				out.write(buffer, 0, count);
+			}
+		}
+		return bytes.toByteArray();
+	}
+
+	private static byte[] inflate(byte[] payload, int size)
+	{
+		if ((size < 1) || (size > MAX_EXPANDED_BYTES) || (payload.length <= COMPACT_HEADER_BYTES)) { throw new IllegalArgumentException("Invalid compact background.state expanded size."); }
+		final byte[] expanded = new byte[size + 1];
+		try (var inflater = new Inflater())
+		{
+			inflater.setInput(payload, COMPACT_HEADER_BYTES, payload.length - COMPACT_HEADER_BYTES);
+			int count = 0;
+			while (!inflater.finished())
+			{
+				final int next = inflater.inflate(expanded, count, expanded.length - count);
+				count += next;
+				if ((count > size) || ((next == 0) && !inflater.finished())) { throw new IllegalArgumentException("Invalid compact background.state compression."); }
+			}
+			if ((count != size) || (inflater.getRemaining() != 0)) { throw new IllegalArgumentException("Compact background.state trailing bytes or size mismatch."); }
+			return Arrays.copyOf(expanded, size);
+		}
+		catch (DataFormatException failure) { throw new IllegalArgumentException("Invalid compact background.state compression.", failure); }
 	}
 
 	private static void writeVitals(DataOutputStream output, Vitals vitals) throws IOException

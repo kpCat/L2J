@@ -36,6 +36,8 @@ public record PhantomBackgroundState(State state, Identity identity, Progress pr
 	public static final int MODEL_VERSION = 1;
 	public static final String MODEL_NAME = "BACKGROUND_MODEL_V1";
 	public static final int MAX_TRACKED_ITEMS = 160;
+	// Compact format covers the observed native250 inventory slots plus stock25 paperdoll slots.
+	public static final int MAX_COMPACT_TRACKED_ITEMS = 275;
 	public static final int MAX_MUTABLE_ITEM_IDS = 96;
 
 	public PhantomBackgroundState
@@ -268,7 +270,10 @@ public record PhantomBackgroundState(State state, Identity identity, Progress pr
 			mutableItemIds = List.copyOf(mutableItemIds);
 			objects = List.copyOf(objects);
 			canonicalHash = boundedHash(canonicalHash, "inventory canonical hash");
-			if ((mutableItemIds.size() > MAX_MUTABLE_ITEM_IDS) || (objects.size() > MAX_TRACKED_ITEMS) || (currentLoad < 0) || (maximumLoad < 0) || (usedSlots < 0) || (maximumSlots < 0))
+			final boolean compactCapacity = (objects.size() <= MAX_COMPACT_TRACKED_ITEMS) && (maximumSlots <= 250) && (usedSlots <= maximumSlots)
+				&& (objects.stream().filter(object -> object.location() == ItemLocation.INVENTORY).count() <= maximumSlots)
+				&& (objects.stream().filter(object -> object.location() == ItemLocation.PAPERDOLL).count() <= 25);
+			if ((mutableItemIds.size() > MAX_MUTABLE_ITEM_IDS) || ((objects.size() > MAX_TRACKED_ITEMS) && !compactCapacity) || (currentLoad < 0) || (maximumLoad < 0) || (usedSlots < 0) || (maximumSlots < 0))
 			{
 				throw new IllegalArgumentException("Invalid bounded background inventory.");
 			}

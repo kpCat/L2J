@@ -1,0 +1,90 @@
+{
+  "runId": "01806bec-851d-4b20-ab71-42c44056f8a2",
+  "sourceSHA": "7f6bcf47548d9932be0aabcc64093380f5b68f19",
+  "setup": "SYNTHETIC_ADDRESSABLE_READY_NOT_FARM_FILTER",
+  "physicalDemandCount": 8,
+  "worldPresentCount": 0,
+  "probeSeconds": 90,
+  "actors": [
+    {
+      "profileId": "10",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "populationState": null,
+      "currentStage": "historical.advance",
+      "cachedReportedFailure": "transaction.backend_failure",
+      "terminal": "false",
+      "admission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=10, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-09T23:09:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=10, effectiveState=SLEEPING, requestedState=NEARBY_PERCEPTIBLE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=308335200819600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=ecology.preparation_capacity], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=10, requestedHorizonMinute=29859669, committedCursorMinute=29846207, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=6, complete=false, reason=ecology.preparation_capacity], humanLocality=true, nativeVisible=false, retentionPins=[]]]"
+    },
+    {
+      "profileId": "18",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "populationState": null,
+      "currentStage": "historical.advance",
+      "cachedReportedFailure": "transaction.backend_failure",
+      "terminal": "false",
+      "admission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=18, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-09T22:39:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=18, effectiveState=SLEEPING, requestedState=NEARBY_PERCEPTIBLE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=308335200819600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=ecology.preparation_capacity], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=18, requestedHorizonMinute=29859669, committedCursorMinute=29846393, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=6, complete=false, reason=ecology.preparation_capacity], humanLocality=true, nativeVisible=false, retentionPins=[]]]"
+    },
+    {
+      "profileId": "26",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "populationState": null,
+      "currentStage": "historical.advance",
+      "cachedReportedFailure": "transaction.backend_failure",
+      "terminal": "false",
+      "admission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=26, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-09T22:42:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=26, effectiveState=SLEEPING, requestedState=NEARBY_PERCEPTIBLE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=308335200819600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=ecology.preparation_capacity], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=26, requestedHorizonMinute=29859669, committedCursorMinute=29846187, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=6, complete=false, reason=ecology.preparation_capacity], humanLocality=true, nativeVisible=false, retentionPins=[]]]"
+    },
+    {
+      "profileId": "36",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "populationState": null,
+      "currentStage": "historical.advance",
+      "cachedReportedFailure": "transaction.backend_failure",
+      "terminal": "false",
+      "admission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=36, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-09T23:18:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=36, effectiveState=SLEEPING, requestedState=NEARBY_PERCEPTIBLE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=308335200819600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=ecology.preparation_capacity], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=36, requestedHorizonMinute=29859669, committedCursorMinute=29846613, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=6, complete=false, reason=ecology.preparation_capacity], humanLocality=true, nativeVisible=false, retentionPins=[]]]"
+    },
+    {
+      "profileId": "41",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "populationState": null,
+      "currentStage": "historical.advance",
+      "cachedReportedFailure": "transaction.backend_failure",
+      "terminal": "false",
+      "admission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=41, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-09T23:17:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=41, effectiveState=SLEEPING, requestedState=NEARBY_PERCEPTIBLE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=308335200819600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=ecology.preparation_capacity], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=41, requestedHorizonMinute=29859669, committedCursorMinute=29846542, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=6, complete=false, reason=ecology.preparation_capacity], humanLocality=true, nativeVisible=false, retentionPins=[]]]"
+    },
+    {
+      "profileId": "45",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "populationState": null,
+      "currentStage": "historical.advance",
+      "cachedReportedFailure": "transaction.backend_failure",
+      "terminal": "false",
+      "admission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=45, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-09T23:19:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=45, effectiveState=SLEEPING, requestedState=NEARBY_PERCEPTIBLE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=308335200819600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=ecology.preparation_capacity], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=45, requestedHorizonMinute=29859669, committedCursorMinute=29846610, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=6, complete=false, reason=ecology.preparation_capacity], humanLocality=true, nativeVisible=false, retentionPins=[]]]"
+    },
+    {
+      "profileId": "49",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "populationState": null,
+      "currentStage": "historical.advance",
+      "cachedReportedFailure": "transaction.backend_failure",
+      "terminal": "false",
+      "admission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=49, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-09T22:46:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=49, effectiveState=SLEEPING, requestedState=NEARBY_PERCEPTIBLE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=308335200819600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=ecology.preparation_capacity], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=49, requestedHorizonMinute=29859669, committedCursorMinute=29846406, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=6, complete=false, reason=ecology.preparation_capacity], humanLocality=true, nativeVisible=false, retentionPins=[]]]"
+    },
+    {
+      "profileId": "52",
+      "worldPresent": "false",
+      "physicalDemand": "true",
+      "populationState": null,
+      "currentStage": "historical.advance",
+      "cachedReportedFailure": "transaction.backend_failure",
+      "terminal": "false",
+      "admission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=52, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-09T23:21:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=52, effectiveState=SLEEPING, requestedState=NEARBY_PERCEPTIBLE, transitionStatus=DEFERRED, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=1, nextDueNanos=308335200819600, tickSequence=0, lastResult=SIGNAL_ACCEPTED, lastTransitionNanos=0, lastTransitionReason=ecology.preparation_capacity], materialization=null, lastMaterializationFailure=null, busyReason=none, readiness=DueSnapshot[profileId=52, requestedHorizonMinute=29859669, committedCursorMinute=29846681, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=6, complete=false, reason=ecology.preparation_capacity], humanLocality=true, nativeVisible=false, retentionPins=[]]]"
+    }
+  ]
+}

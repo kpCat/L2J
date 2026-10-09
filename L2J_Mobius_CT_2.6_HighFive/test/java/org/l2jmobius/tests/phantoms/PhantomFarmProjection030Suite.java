@@ -25,6 +25,12 @@ public final class PhantomFarmProjection030Suite implements PhantomTestSuite
     @Override public void afterAll(PhantomTestContext context) throws Exception { base.afterAll(context); }
     @Override public void register(PhantomTestRegistry registry)
     {
+                if (Boolean.getBoolean("phantom.contract031.capacity"))
+        {
+            registry.add("N01-compact-native-store-farm-reload-conservation", c -> projection(c, false));
+            registry.add("N02-compact-historical-cas-and-native-reload", c -> projection(c, false, -1, true));
+            return;
+        }
         registry.add("P02-P03-P07-production-plan-switch-before-rng-magic", c -> projection(c, true));
         registry.add("P02-P12-production-plan-switch-before-rng-melee", c -> projection(c, false));
         registry.add("P04-P05-P08-P09-exact-projection-negatives-and-lost-replies", c -> { projection(c, true, 0); projection(c, true, 1); projection(c, true, 2); });
@@ -64,8 +70,28 @@ public final class PhantomFarmProjection030Suite implements PhantomTestSuite
             var production = (PhantomBackgroundSuite.ProductionAuthorityFixture) field(base, "_production");
             var goals = new PhantomGoalStateStore((PhantomProfileRepository) field(base, "_repository"));
             var original = goals.load(id).orElseThrow();
+                        if (Boolean.getBoolean("phantom.contract031.capacity"))
+            {
+                var captured = transaction.load(id).state();
+                var spec = PhantomBackgroundGoalSpec.parse(original.goal());
+                var skills = captured.loadout().selectedSkillId() == 0 ? Map.<Integer,Integer>of() : Map.of(captured.loadout().selectedSkillId(),captured.loadout().selectedSkillLevel());
+                var input = production.authority().tryFarmInput(captured,spec,skills);
+                PhantomAssertions.assertTrue(input.successful(),"Actual initial native goal must have a current farm input.");
+                int preloadId = input.input().target().drops().stream().filter(d -> d.disposition() == PhantomBackgroundModel.DropDisposition.ACQUIRE)
+                    .map(d -> org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(d.itemId())).filter(t -> t != null && !t.isStackable())
+                    .mapToInt(t -> t.getId()).findFirst().orElseThrow(() -> new AssertionError("Current actual farm has no non-stackable preload source."));
+                int added = 165 - captured.inventory().objects().size();
+                PhantomAssertions.assertTrue(added > 0 && added <= 165,"Bounded native fixture preload.");
+                try (var action = materialization.tryAcquireAction(id).orElseThrow())
+                {
+                    for (int n=0;n<added;n++) { player.getInventory().addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD,preloadId,1,player,this); }
+                    PhantomAssertions.assertTrue(player.getInventory().getNonQuestSize() <= player.getInventoryLimit() && player.getCurrentLoad() <= player.getMaxLoad(),"Native fixture exceeded actual capacity.");
+                }
+                context.record("NATIVE_CAPACITY031.preload", "ordinaryNativeAddItem=true;trackedTarget=165;actualItem="+preloadId+";added="+added);
+            }
             PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Actual native release must succeed before plan switch.");
             var before = transaction.load(id).state();
+            if (Boolean.getBoolean("phantom.contract031.capacity")) { PhantomAssertions.assertEquals(165,before.inventory().objects().size(),"Actual native store did not retain all165 item objects."); }
             var policy = transaction.nativeContext(id, player.getObjectId()).context().afterPolicy();
             var pair = select(production, before, original.goal(), policy);
             context.record("P02.selected", "class=" + before.identity().activeClassId() + ";old=" + PhantomBackgroundGoalSpec.parse(original.goal()).npcId() + ";new=" + pair.input.target().npcId() + ";newIds=" + pair.newIds + ";controlledRoll=" + pair.rolled);
