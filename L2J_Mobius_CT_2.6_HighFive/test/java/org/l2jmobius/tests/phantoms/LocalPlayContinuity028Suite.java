@@ -75,7 +75,7 @@ public final class LocalPlayContinuity028Suite implements PhantomTestSuite
 		final long startedWall;
 		NativeSession(PhantomTestContext context) throws Exception
 		{
-			runtime = Files.createTempDirectory(context.moduleRoot().resolve(".phantom-local/contract028a/test"), "synthetic028-");
+			runtime = Files.createTempDirectory(context.moduleRoot().resolve(System.getProperty("phantom.contract031.manifest") == null ? ".phantom-local/contract028a/test" : ".phantom-local/contract031t/test"), "synthetic028-");
 			final var user = runtime.getFileSystem().getUserPrincipalLookupService().lookupPrincipalByName(System.getProperty("user.name"));
 			Files.getFileAttributeView(runtime, AclFileAttributeView.class).setAcl(List.of(AclEntry.newBuilder().setType(AclEntryType.ALLOW).setPrincipal(user)
 				.setPermissions(EnumSet.allOf(AclEntryPermission.class)).setFlags(AclEntryFlag.FILE_INHERIT, AclEntryFlag.DIRECTORY_INHERIT).build()));

@@ -649,13 +649,26 @@ public final class Contract031Observer
         }
         final String json = "[" + rows.stream().map(row -> "{" + row.entrySet().stream().map(entry -> jsonString(entry.getKey()) + ":" + jsonString(entry.getValue())).collect(java.util.stream.Collectors.joining(",")) + "}").collect(java.util.stream.Collectors.joining(",")) + "]";
         writeTelemetry(selection.output().resolve("full-cohort-latest.json.tmp"), json, StandardCharsets.UTF_8);
-        Files.move(selection.output().resolve("full-cohort-latest.json.tmp"), selection.output().resolve("full-cohort-latest.json"), java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        replaceFrame(selection.output().resolve("full-cohort-latest.json.tmp"), selection.output().resolve("full-cohort-latest.json"));
         final String observerJson = "{\"runId\":" + jsonString((String) syntheticRun.get(syntheticService)) + ",\"sessionState\":" + jsonString((String) syntheticState.get(syntheticService)) + ",\"objectId\":" + (observer == null ? 0 : observer.getObjectId()) + ",\"present\":" + (observer != null) + ",\"online\":" + (observer != null && observer.isOnline()) + ",\"moving\":" + (observer != null && observer.isMoving()) + ",\"dead\":" + (observer != null && observer.isDead()) + ",\"x\":" + (observer == null ? 0 : observer.getX()) + ",\"y\":" + (observer == null ? 0 : observer.getY()) + ",\"z\":" + (observer == null ? 0 : observer.getZ()) + ",\"instance\":" + (observer == null ? 0 : observer.getInstanceId()) + "}";
         final String frame = "{\"proofFailure\":" + jsonString(exporterFailure) + ",\"sampleNanos\":" + now + ",\"observer\":" + observerJson + ",\"actors\":" + json + "}\n";
         writeTelemetry(selection.output().resolve("full-frame-latest.json.tmp"), frame, StandardCharsets.UTF_8);
-        Files.move(selection.output().resolve("full-frame-latest.json.tmp"), selection.output().resolve("full-frame-latest.json"), java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        replaceFrame(selection.output().resolve("full-frame-latest.json.tmp"), selection.output().resolve("full-frame-latest.json"));
         writeTelemetry(selection.output().resolve("full-cohort-samples.jsonl"), frame, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         fullLines++;
+    }
+    // Windows may briefly hold the replaced destination open. Exporter only; never a native hook.
+    private static void replaceFrame(Path source, Path target) throws Exception
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            try { Files.move(source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE); return; }
+            catch (java.nio.file.AccessDeniedException transientReader)
+            {
+                if (attempt == 4) { throw transientReader; }
+                Thread.sleep(5);
+            }
+        }
     }
     private static String jsonString(String value)
     {

@@ -1,6 +1,7 @@
 [CmdletBinding()]
-param([ValidateSet('a','b','t')][string]$Episode='a',[Parameter(Mandatory)][string]$OutputRoot,[string]$FrozenSha='e083f35d9b3b1c1441f484c8f760c8dc34bbdbc0',[long]$SetupProfileId=0)
+param([ValidateSet('a','b','t')][string]$Episode='a',[Parameter(Mandatory)][string]$OutputRoot,[string]$FrozenSha='e083f35d9b3b1c1441f484c8f760c8dc34bbdbc0',[long]$SetupProfileId=0,[long[]]$DebugProfileIds=@())
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Read-SharedJson031.ps1')
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $runtime=Join-Path $module ".phantom-local/contract031$Episode/runtime"
 $allowed=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'evidence'))+[IO.Path]::DirectorySeparatorChar
@@ -25,7 +26,8 @@ try{
     $started=$true
     $heartbeatJob=Start-Job -ArgumentList $runtime,$run,$OutputRoot,$stopWriter -ScriptBlock {
         param($Runtime,$Run,$Output,$Stop)
-        $ErrorActionPreference='Stop'; . (Join-Path $Runtime 'LocalPlay-Pilot.ps1')
+        $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Read-SharedJson031.ps1'); . (Join-Path $Runtime 'LocalPlay-Pilot.ps1')
         $context=Get-PilotContext -RequireEnabled -ActorMode Synthetic -SessionId $Run
         $watch=[Diagnostics.Stopwatch]::StartNew()
         while($watch.Elapsed.TotalSeconds -lt 525 -and -not (Test-Path $Stop)){
@@ -53,6 +55,12 @@ try{
     if($ranked.Count -eq 0){throw 'NO_PARTICIPATING_READY_ONLINE_DURABLE_READY_INSTANCE0'}
     $fixed=$ranked[0]
     $tracked=@($fixed.members | Sort-Object {[Math]::Pow([double]$_.x-$fixed.x,2)+[Math]::Pow([double]$_.y-$fixed.y,2)}, @{Expression={[long]$_.profileId}} | Select-Object -First 8)
+    if($DebugProfileIds.Count){
+        if($DebugProfileIds.Count -gt 8 -or @($DebugProfileIds | Select-Object -Unique).Count -ne $DebugProfileIds.Count){throw 'Bounded unique diagnostic subjects required'}
+        $tracked=@($globalRows | Where-Object {[long]$_.profileId -in $DebugProfileIds} | Sort-Object {[long]$_.profileId})
+        if($tracked.Count -ne $DebugProfileIds.Count){throw 'All fixed diagnostic subjects must exist in initial census'}
+        # Diagnostic state subjects include DEAD/terminal; these are never counted as healthy admission candidates.
+    }
     $tracked | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'fixed-before-outcomes.json') -Encoding utf8
     $cohort=Join-Path $OutputRoot 'tracked.json'; @($tracked | ForEach-Object {[pscustomobject]@{profileId=[long]$_.profileId;materializedAtNanos=0}}) | ConvertTo-Json | Set-Content $cohort -Encoding utf8
     & (Join-Path $PSScriptRoot 'Control031.ps1') -Action DryPath -Episode $Episode -OriginPoint @{x=$fixed.x;y=$fixed.y;z=$fixed.z} -EndpointPoint @{x=$fixed.x-200;y=$fixed.y} -OutputRoot (Join-Path $OutputRoot 'setup-dry') *> (Join-Path $OutputRoot 'setup-dry.log')
@@ -73,7 +81,7 @@ try{
     $null=Capture031 'TELEPORT_SELF' @{x=$fixed.x;y=$fixed.y;z=$fixed.z;instanceId=0}
     foreach($second031 in @(5,15,30,60,90)){
         while($watch031.Elapsed.TotalSeconds -lt $second031){if($heartbeatJob.State -ceq 'Failed'){throw 'Heartbeat failed during probe'};Start-Sleep -Milliseconds 250}
-        $frame=Get-Content -LiteralPath $framePath -Raw | ConvertFrom-Json
+        $frame=Read-SharedJson031 $framePath
         if($frame.proofFailure){throw ('OBSERVER_PROOF_INVALID:'+ $frame.proofFailure)}
         if($frame.observer.runId -cne $run -or $frame.observer.sessionState -cne 'RUNNING' -or -not $frame.observer.present -or -not $frame.observer.online -or $frame.observer.dead){throw 'Current native Synthetic unavailable'}
         $frame | ConvertTo-Json -Depth 16 | Set-Content (Join-Path $OutputRoot ("T$second031-after-approach.json")) -Encoding utf8

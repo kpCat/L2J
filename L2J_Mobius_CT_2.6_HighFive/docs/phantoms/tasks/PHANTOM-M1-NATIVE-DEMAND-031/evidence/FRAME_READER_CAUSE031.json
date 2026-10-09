@@ -1,0 +1,8 @@
+{
+  "newRuntimeGreen": "PENDING",
+  "actualRuntimeRed": "SCENE031_F1_TOWN_CURRENT AccessDenied full-frame-latest atomic replacement",
+  "sharedDeleteAlonePass": false,
+  "contract": "WINDOWS_ATOMIC_FRAME_READ",
+  "stickyFailureUnchanged": true,
+  "boundedRetryMillis": 20
+}

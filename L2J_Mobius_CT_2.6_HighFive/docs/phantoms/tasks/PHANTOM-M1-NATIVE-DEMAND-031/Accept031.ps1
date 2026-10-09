@@ -3,8 +3,9 @@ param([ValidateSet('Probe','Scene','Away')][string]$Mode='Probe',
       [ValidateSet('a','b','t')][string]$Episode='a',
       [Parameter(Mandatory)][string]$OutputRoot,[int]$Seconds=80,
       [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha,
-      [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@())
+      [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@(),[long]$SetupProfileId=0)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Read-SharedJson031.ps1')
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $runtime=Join-Path $module ".phantom-local/contract031$Episode/runtime"
 $allowed=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'evidence'))+[IO.Path]::DirectorySeparatorChar
@@ -61,7 +62,7 @@ function Discover031{
     throw 'Bounded discovery page limit; no silent truncation.'
 }
 function ReadFrame031{
-    $frame=Get-Content -LiteralPath (Join-Path $fullRoot 'full-frame-latest.json') -Raw | ConvertFrom-Json
+    $frame=Read-SharedJson031 (Join-Path $fullRoot 'full-frame-latest.json')
     if($frame.proofFailure){throw ('OBSERVER_PROOF_INVALID:'+$frame.proofFailure)}
     if($frame.observer.runId -cne $run -or $frame.observer.sessionState -cne 'RUNNING' -or -not $frame.observer.present -or -not $frame.observer.online -or $frame.observer.dead -or [int]$frame.observer.objectId -ne 268492939){throw 'Native observer identity lost; episode ends.'}
     return $frame
@@ -104,6 +105,7 @@ try{
     $heartbeatJob=Start-Job -ArgumentList $runtime,$run,$OutputRoot,$stopWriter -ScriptBlock {
         param($Runtime,$Run,$Output,$Stop)
         $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Read-SharedJson031.ps1')
         . (Join-Path $Runtime 'LocalPlay-Pilot.ps1')
         $context=Get-PilotContext -RequireEnabled -ActorMode Synthetic -SessionId $Run
         $incarnation=$context.StartTimeUtcTicks
@@ -138,6 +140,7 @@ try{
             $center=$_; $members=@($eligible | Where-Object {[Math]::Pow([double]$_.x-[double]$center.x,2)+[Math]::Pow([double]$_.y-[double]$center.y,2) -le 2250000})
             [pscustomobject]@{profileId=[long]$center.profileId;x=[int]$center.x;y=[int]$center.y;z=[int]$center.z;count=$members.Count;preparedCount=@($members | Where-Object {[long]$_.committedCursorMinute -ge 0 -and ([long]$_.requestedHorizonMinute-[long]$_.committedCursorMinute) -le 15}).Count;members=@($members.profileId);distance=[Math]::Pow([double]$center.x-[double]$status.before.x,2)+[Math]::Pow([double]$center.y-[double]$status.before.y,2)}
         } | Where-Object {$_.count -ge 4} | Sort-Object @{Expression='preparedCount';Descending=$true},@{Expression='count';Descending=$true},distance,profileId)
+        if($SetupProfileId -gt 0){$ranked=@($ranked | Where-Object {$_.profileId -eq $SetupProfileId})}
         $clusters=[Collections.Generic.List[object]]::new()
         foreach($candidate in $ranked){if(@($clusters | Where-Object {[Math]::Pow($_.x-$candidate.x,2)+[Math]::Pow($_.y-$candidate.y,2) -lt 4000000}).Count -eq 0){$clusters.Add($candidate)};if($clusters.Count -eq 3){break}}
         @($clusters) | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'preranked-current-clusters.json') -Encoding utf8

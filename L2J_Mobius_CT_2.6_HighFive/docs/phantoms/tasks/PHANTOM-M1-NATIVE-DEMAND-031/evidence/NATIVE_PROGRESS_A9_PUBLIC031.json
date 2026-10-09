@@ -1,0 +1,80 @@
+{
+  "limitation": "PROBE031 initialEpoch0: retained counters are unenrolled; these are actual current owner counters. Two camps; no single visible4..8 group proven.",
+  "sourceSha": "01c211fbf123d5ceec6e1834bc86b92f3a7e39e4",
+  "pid": 5720,
+  "gameplayAcceptance": false,
+  "contract": "TASK031_NATIVE_DIAGNOSIS_A9",
+  "startTimeUtcTicks": 639271801562639702,
+  "actors": [
+    {
+      "profileId": "19",
+      "objectId": "268484387",
+      "materializedAtNanos": "312024790071600",
+      "worldPresent": "true",
+      "dead": "false",
+      "x": "-86306",
+      "y": "253102",
+      "z": "-3704",
+      "current.nativeFarmCycleSequence": "0",
+      "current.nativeExpGained": "0",
+      "current.nativeSpGained": "0",
+      "current.nativeFirstUnprovenReason": "NONE"
+    },
+    {
+      "profileId": "20",
+      "objectId": "268484388",
+      "materializedAtNanos": "312024832388300",
+      "worldPresent": "true",
+      "dead": "false",
+      "x": "-86315",
+      "y": "253107",
+      "z": "-3704",
+      "current.nativeFarmCycleSequence": "0",
+      "current.nativeExpGained": "0",
+      "current.nativeSpGained": "0",
+      "current.nativeFirstUnprovenReason": "NONE"
+    },
+    {
+      "profileId": "27",
+      "objectId": "268484461",
+      "materializedAtNanos": "312024846669500",
+      "worldPresent": "true",
+      "dead": "false",
+      "x": "-90368",
+      "y": "248306",
+      "z": "-3568",
+      "current.nativeFarmCycleSequence": "15",
+      "current.nativeExpGained": "1121",
+      "current.nativeSpGained": "124",
+      "current.nativeFirstUnprovenReason": "NONE"
+    },
+    {
+      "profileId": "28",
+      "objectId": "0",
+      "materializedAtNanos": "0",
+      "worldPresent": "false",
+      "dead": "false",
+      "x": null,
+      "y": null,
+      "z": null,
+      "current.nativeFarmCycleSequence": null,
+      "current.nativeExpGained": null,
+      "current.nativeSpGained": null,
+      "current.nativeFirstUnprovenReason": null
+    },
+    {
+      "profileId": "50",
+      "objectId": "268484654",
+      "materializedAtNanos": "312024856771700",
+      "worldPresent": "true",
+      "dead": "false",
+      "x": "-90357",
+      "y": "248330",
+      "z": "-3568",
+      "current.nativeFarmCycleSequence": "13",
+      "current.nativeExpGained": "515",
+      "current.nativeSpGained": "56",
+      "current.nativeFirstUnprovenReason": "NONE"
+    }
+  ]
+}
