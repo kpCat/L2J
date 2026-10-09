@@ -1,0 +1,19 @@
+{
+  "login": {
+    "state": "RUNNING",
+    "pid": 20208,
+    "startTimeUtcTicks": 639271551865318383,
+    "staleRecord": false,
+    "recordVerified": true,
+    "reason": ""
+  },
+  "game": {
+    "state": "RUNNING",
+    "pid": 32256,
+    "startTimeUtcTicks": 639271551886073819,
+    "staleRecord": false,
+    "recordVerified": true,
+    "reason": ""
+  },
+  "utc": "2026-10-09T15:07:17.7455145Z"
+}

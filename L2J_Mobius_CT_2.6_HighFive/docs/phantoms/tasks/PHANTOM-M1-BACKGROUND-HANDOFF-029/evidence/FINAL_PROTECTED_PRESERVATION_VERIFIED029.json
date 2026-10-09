@@ -1,0 +1,40 @@
+{
+  "TTL": 525,
+  "mainEvaluatorCopies": "ABSENT; not evidence of equality; previous preliminary manifest invalid",
+  "utc": "2026-10-09T15:37:22.1080617Z",
+  "psEntrypoints": [
+    "Control029.ps1",
+    "Observe029.ps1",
+    "Prepare029.ps1",
+    "Verify029.ps1"
+  ],
+  "activeTarget": 8,
+  "schedulerCap": 10000,
+  "changedOriginalPlayFiles": [],
+  "originalPlayPreservationFiles": 304,
+  "populationTarget": 1280,
+  "pythonAuditPackages": [
+    "proposals/receipt_coverage029.py"
+  ],
+  "evaluatorsSameAsReadOnly028": false,
+  "materializedCap": 8,
+  "canonicalObservers": [
+    "Contract029Observer.java"
+  ],
+  "watchdog": 30,
+  "sequence": 400,
+  "originalPlayUnchanged": true,
+  "syntheticStartsPerJvm": 5,
+  "evaluators": [
+    {
+      "old028Sha256": "de3f46c75de4e2ad67cacd22fa7a0c6a58d3b915474fc3018c5f97e1cbaaf813",
+      "path": "docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py",
+      "ownSha256": "15c153d30fe7f85719b1698059f4e28c9c7fa325caa420a02de7ac19cff35112"
+    },
+    {
+      "old028Sha256": "fe0f963e0dfcccef13a39f4e1cfa075e990a62983bc891f23eafc373ee976f1b",
+      "path": "docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/Observe-Scene024.ps1",
+      "ownSha256": "fe0f963e0dfcccef13a39f4e1cfa075e990a62983bc891f23eafc373ee976f1b"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "utc": "2026-10-09T15:44:50.796865+00:00",
+  "scope": "all TASK029 text including immutable RAW and source guard inputs",
+  "fileCount": 2184,
+  "hits": {
+    "MOJIBAKE": [
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_D_CURRENT_NORTH\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_D_CURRENT_EAST\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_D_CURRENT_WEST\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\FINAL_C7_SCENE_F2\\setup-dry\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_C3_WEST\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_AWAY_R2\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\PROBE_G_NATIVE_C4\\setup-dry\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\FINAL_C6_SCENE_F2\\setup-dry\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_C3_CURRENT_JOIN\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_C3_APPROACH\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_AWAY_WEST_R2\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\GIT_TOOL_CALLS_VERIFIED029.json",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\C6_H_AWAY_DRY\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_D_SETUP_PROBE\\stock-dry-path.log",
+      "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\C6_H_HOME_DRY\\stock-dry-path.log"
+    ],
+    "ESCAPED_CYRILLIC": []
+  }
+}

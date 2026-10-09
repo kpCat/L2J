@@ -1,0 +1,103 @@
+{
+  "sourceSha": "fd7b74f9984e6d6f16341d7ec36e3b69464fee03",
+  "wholeFixedProfiles": [
+    110,
+    142,
+    175,
+    260,
+    278,
+    404,
+    447,
+    503
+  ],
+  "checks": [
+    {
+      "before": "FINAL_C7_H_AFTER_STOP_SQL",
+      "families": [
+        {
+          "byteEqual": false,
+          "afterSha256": "86b9495399e00a64347b8b4c46a40e2726985005c1ab4d313b8c86e153199f48",
+          "file": "characters.tsv",
+          "beforeSha256": "51315d360c74dac9dfc6cdee7c96540bd8f8b354c610b78e64514d953583d2fc",
+          "lineDifferences": 4
+        },
+        {
+          "byteEqual": false,
+          "afterSha256": "abbbd5e206399c05420910b5148f5f2c733b654f7123102d2b1f7713d368d1cf",
+          "file": "items.tsv",
+          "beforeSha256": "3ccb7e13039b0430a29dd771405cfa95de3ce8b76fb1e4464b43e4450f482f51",
+          "lineDifferences": 2
+        },
+        {
+          "byteEqual": true,
+          "afterSha256": "a6b5b00b47c9cf1340bc5005419c94d231cc03dae5ed4337f683a8f2c97ae3bf",
+          "file": "skills.tsv",
+          "beforeSha256": "a6b5b00b47c9cf1340bc5005419c94d231cc03dae5ed4337f683a8f2c97ae3bf",
+          "lineDifferences": 0
+        },
+        {
+          "byteEqual": false,
+          "afterSha256": "f6b32714dd6cb92678867c94f0aeaf922365d293b8bd28df181b9f870a3eed98",
+          "file": "durable-hex.tsv",
+          "beforeSha256": "08aab64946f202674c0f23f2eb87090bf43f10fcd7eaecf55181b128b17757cb",
+          "lineDifferences": 12
+        },
+        {
+          "byteEqual": false,
+          "afterSha256": "a34074e9116f10ba4021410c822251165e48f2c82400aede8f2cab3abc58babc",
+          "file": "durable-decoded.tsv",
+          "beforeSha256": "55680fb9783e95a451574adf188dc7241707dde1e34232d14f0760b7d4bc65d5",
+          "lineDifferences": 12
+        }
+      ],
+      "after": "FINAL_C7_H_RESTART1_SQL",
+      "meaning": "raw snapshot comparison; byte differences are visible, no invented native-seal equality"
+    },
+    {
+      "before": "FINAL_C7_H_RESTART1_AFTER_STOP_SQL",
+      "families": [
+        {
+          "byteEqual": true,
+          "afterSha256": "0ca26d153a43b83657732ff3b335f7d70d67f846b66069fafd2eb5a2db9ceb8e",
+          "file": "characters.tsv",
+          "beforeSha256": "0ca26d153a43b83657732ff3b335f7d70d67f846b66069fafd2eb5a2db9ceb8e",
+          "lineDifferences": 0
+        },
+        {
+          "byteEqual": true,
+          "afterSha256": "abbbd5e206399c05420910b5148f5f2c733b654f7123102d2b1f7713d368d1cf",
+          "file": "items.tsv",
+          "beforeSha256": "abbbd5e206399c05420910b5148f5f2c733b654f7123102d2b1f7713d368d1cf",
+          "lineDifferences": 0
+        },
+        {
+          "byteEqual": true,
+          "afterSha256": "a6b5b00b47c9cf1340bc5005419c94d231cc03dae5ed4337f683a8f2c97ae3bf",
+          "file": "skills.tsv",
+          "beforeSha256": "a6b5b00b47c9cf1340bc5005419c94d231cc03dae5ed4337f683a8f2c97ae3bf",
+          "lineDifferences": 0
+        },
+        {
+          "byteEqual": true,
+          "afterSha256": "e6bdf0c136f107cffe686e38083c1985fec52837002ad02f78bc65a43957b442",
+          "file": "durable-hex.tsv",
+          "beforeSha256": "e6bdf0c136f107cffe686e38083c1985fec52837002ad02f78bc65a43957b442",
+          "lineDifferences": 0
+        },
+        {
+          "byteEqual": true,
+          "afterSha256": "05816f17c13e78343f977419b5b113c9237a46d6e0ede65acf20c5d1d88e84d2",
+          "file": "durable-decoded.tsv",
+          "beforeSha256": "05816f17c13e78343f977419b5b113c9237a46d6e0ede65acf20c5d1d88e84d2",
+          "lineDifferences": 0
+        }
+      ],
+      "after": "FINAL_C7_H_RESTART2_SQL",
+      "meaning": "raw snapshot comparison; byte differences are visible, no invented native-seal equality"
+    }
+  ],
+  "actualRestarts": 2,
+  "database": "l2jmobiush5_localplay_contract029h",
+  "wholeNativeSavePass": false,
+  "sealLineageForOriginalWholeGroup": "NOT_PROVEN"
+}

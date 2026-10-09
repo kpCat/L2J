@@ -1,0 +1,23 @@
+[
+  {
+    "export": ".\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\HISTORICAL028_READONLY_1_GameServer-20261009-052826-stderr.log",
+    "exportSha256": "d2088edf2ef82ff6ac54a6e078d1f4161f977e1719e8c6ac9393d3fab94f0df1",
+    "sourceMutation": false,
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract028f\\runtime\\local-play\\logs\\GameServer-20261009-052826-stderr.log",
+    "sourceSha256": "d2088edf2ef82ff6ac54a6e078d1f4161f977e1719e8c6ac9393d3fab94f0df1"
+  },
+  {
+    "export": ".\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\HISTORICAL028_READONLY_2_threads-0.txt",
+    "exportSha256": "a32aa8903e79a0c1620a73d27920acce5400b8327d7b8fcaea153f61b72e38d5",
+    "sourceMutation": false,
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_RESTART_07C2_F1_STOP_DUMPS\\threads-0.txt",
+    "sourceSha256": "a32aa8903e79a0c1620a73d27920acce5400b8327d7b8fcaea153f61b72e38d5"
+  },
+  {
+    "export": ".\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\HISTORICAL028_READONLY_3_FINAL_07C2_REGRESSION_11.log",
+    "exportSha256": "bd0a0b04745aec8da29d70b8e8416606cbd2e1c6e6e4134d36b8938b7af69dfb",
+    "sourceMutation": false,
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-continuity-028\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\evidence\\FINAL_07C2_REGRESSION_11.log",
+    "sourceSha256": "bd0a0b04745aec8da29d70b8e8416606cbd2e1c6e6e4134d36b8938b7af69dfb"
+  }
+]

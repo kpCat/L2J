@@ -1,0 +1,110 @@
+{
+  "states": [
+    {
+      "episode": "b",
+      "markedPids": [],
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "runtimeId": "8284c8592be0d1022f1b16dca9d4828125befde90870d0968f5dde159532993d"
+    },
+    {
+      "episode": "c",
+      "markedPids": [],
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "runtimeId": "330b26ac2d43e5bad26ec3648d9828b12d3181bd429bf348eae5504666199efa"
+    },
+    {
+      "episode": "d",
+      "markedPids": [],
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "runtimeId": "6304b06d3bbc4c2426f720d9b3ebd117d0d3bb1ef22c7609f71a8663e1d4a118"
+    },
+    {
+      "episode": "g",
+      "markedPids": [],
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "runtimeId": "6a47c943eb94292a5a6d86de7a2bb7f326fbf30ce8a292c7591d4735ed373662"
+    },
+    {
+      "episode": "h",
+      "markedPids": [],
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "runtimeId": "e5c12574a08414bc8b37efdbde8a75d7244aad2c9d7990a9468a257303ac2624"
+    }
+  ],
+  "ownJavaPids": [],
+  "roleSidecars": "STALE_RECORD means saved PID has no marked live owner; preserved as provenance",
+  "unpreparedNeverStarted": [
+    "e",
+    "f"
+  ],
+  "allOwnJvmStopped": true,
+  "forceUsed": false,
+  "listeners": [],
+  "utc": "2026-10-09T15:26:10.5588939Z",
+  "testJavaPids": []
+}

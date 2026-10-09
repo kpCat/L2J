@@ -1,0 +1,96 @@
+{
+  "authoredSource": "MOJIBAKE NO_MATCH; ESCAPED_CYRILLIC NO_MATCH",
+  "rawMatches": [
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_D_CURRENT_NORTH\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_D_CURRENT_EAST\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_D_CURRENT_WEST\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\FINAL_C7_SCENE_F2\\setup-dry\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_C3_WEST\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_AWAY_R2\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\PROBE_G_NATIVE_C4\\setup-dry\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\FINAL_C6_SCENE_F2\\setup-dry\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_C3_CURRENT_JOIN\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_C3_APPROACH\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_AWAY_WEST_R2\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\GIT_TOOL_CALLS_VERIFIED029.json",
+      "utf8Valid": true,
+      "class": "RAW_GIT_TOOL_INPUT_WITH_GUARD_REGEX",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\C6_H_AWAY_DRY\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\DRY_D_SETUP_PROBE\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    },
+    {
+      "path": "L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\C6_H_HOME_DRY\\stock-dry-path.log",
+      "utf8Valid": true,
+      "class": "IMMUTABLE_NATIVE_DRY_STDOUT",
+      "authoredUserFacingSource": false
+    }
+  ],
+  "rawMutation": false
+}

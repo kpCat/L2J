@@ -165,3 +165,32 @@ native actions и bounded lifecycle — переиспользовать. Бон
   setup because there was no admitted exact candidate. It is not a completed birth probe.
   Initial and all restart G stops captured DONE/COMPLETE independently, with no Synthetic.
   C6_H_FIRST_STOP also used stock exits for Game24992/Login28332, without force.
+
+## Frozen C7 actual acceptance
+- SEMANTIC_FREEZE029.json: source fd7b74f9984e6d6f16341d7ec36e3b69464fee03, freeze15:19:18Z.
+  Production, tests and canonical observer were not changed after this boundary.
+- Final matrix18 routes92/92, policy4/4, handoff8/8, PNC1 contract3/3,
+  native handoff15/15, lifecycle02711/11. Historical U1/U2 remain UNKNOWN.
+- Actual C7 H restart1 observed profile260 epoch287334222436200. Native terminal
+  receipt e5e23a2b1b0538010785a89aad29791e84407b703a33e619a2811f36853d5544
+  links exactly to typed TRAVEL, then FARM10431787a2dd04a20d382011f35dbaa5880e72a00bfaf91f77f642e8f159cbfe.
+  BACKGROUND lease/World-absence witnessed; XP7182→8288, SP413→488,
+  normal vitality327→203. Result digest matches stopped SQL and actual restart2 SQL.
+  Final state DEAD; no completed native-farm-before-release/whole-return claim.
+- Final F1/F2 on the same frozenSHA both rejected NATURAL_COHORT_COUNT0.
+  F2 used one checked candidate652; no alternate winner. No evaluator threshold change.
+- Final restart2 prospectively registered32 actual lifetimes outside telemetry cohort.
+  All32 have native finalized/terminal evidence. Further births hit the approved
+  DESIGN capacity32profiles/128lifetimes; sticky TASK029_RECEIPT_CAPACITY is a proven
+  collector blocker. Ring overflow0/exported130; failure is not converted to coverage.
+- Across final C7 JVM incarnations,45 actual registered lifetimes/45 terminals exist.
+  Raw normalized audit refuses the combined union at capacity; missing births are
+  at least one and not countable from captured evidence. No retrospective enrollment.
+- Strict SEALED-to-current-SQL comparison:31/32 exact. Profile457 differs in XP/SP,
+  expBeforeDeath/XYZ/inventory; two subsequent typed FARM witnesses exist. These
+  differences are visible, not declared corruption or complete lineage reconciliation.
+- Initial and both C7 restart servers stopped normally. Initial/restart1 observer
+  exported DONE/COMPLETE. Restart2 completed in27ms before pool shutdown in the
+  stock exact stderr; the100ms passive sampler missed that final phase.
+- No owned Java/listener survives. PID sidecars remain STALE_RECORD/no marked owner,
+  preserved for provenance. No force or actual planned crash was used.

@@ -1,0 +1,102 @@
+{
+  "testJavaPids": [
+    null
+  ],
+  "states": [
+    {
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "episode": "b",
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      }
+    },
+    {
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "episode": "c",
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      }
+    },
+    {
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "episode": "d",
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      }
+    },
+    {
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "episode": "g",
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      }
+    },
+    {
+      "login": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      },
+      "episode": "h",
+      "game": {
+        "state": "STALE_RECORD",
+        "pid": 0,
+        "staleRecord": true,
+        "recordVerified": false,
+        "reason": "record has no marked owner"
+      }
+    }
+  ],
+  "forceUsed": false,
+  "utc": "2026-10-09T15:25:31.5478958Z",
+  "unpreparedNeverStarted": [
+    "e",
+    "f"
+  ],
+  "ownJavaPids": [
+    null
+  ],
+  "allOwnStopped": false
+}

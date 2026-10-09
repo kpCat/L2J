@@ -1,0 +1,211 @@
+окт. 09, 2026 6:12:33 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData load
+INFO: Network Config: ipconfig.xml does not exist, using automatic configuration...
+окт. 09, 2026 6:12:33 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 127.0.0.0/8 address: 127.0.0.1
+окт. 09, 2026 6:12:33 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 192.168.0.0/24 address: 192.168.0.55
+окт. 09, 2026 6:12:33 PM org.l2jmobius.gameserver.config.ServerConfig$IPConfigData autoIpConfig
+INFO: Network Config: Adding new subnet: 0.0.0.0/0 address: 89.149.88.222
+окт. 09, 2026 6:12:33 PM org.l2jmobius.gameserver.config.ServerConfig loadChatFilter
+INFO: Loaded 6 Filter Words.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Starting...
+[main] INFO com.zaxxer.hikari.pool.HikariPool - L2JMobiusPool - Added connection com.mysql.cj.jdbc.ConnectionImpl@23529fee
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Start completed.
+окт. 09, 2026 6:12:33 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ThreadPool: Initializing.
+окт. 09, 2026 6:12:33 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ...scheduled pool executor with 16 high priority threads.
+окт. 09, 2026 6:12:33 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ...scheduled pool executor with 64 total threads.
+окт. 09, 2026 6:12:33 PM org.l2jmobius.commons.threads.ThreadPool init
+INFO: ...instant pool executor with 32 total threads.
+окт. 09, 2026 6:12:34 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanDatabase
+INFO: DatabaseIdManager: Cleaned 0 elements in 0 seconds.
+окт. 09, 2026 6:12:34 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanCharacterStatus
+INFO: DatabaseIdManager: Updated character online status.
+окт. 09, 2026 6:12:34 PM org.l2jmobius.gameserver.managers.DatabaseIdManager cleanTimestamps
+INFO: DatabaseIdManager: Cleaned 0 expired timestamps.
+окт. 09, 2026 6:12:34 PM org.l2jmobius.gameserver.managers.IdManager <init>
+INFO: IdManager: 6327296 ids available.
+окт. 09, 2026 6:12:34 PM org.l2jmobius.gameserver.model.World <init>
+INFO: World: (256 by 272) World Region Grid set up.
+окт. 09, 2026 6:12:34 PM org.l2jmobius.gameserver.data.xml.CategoryData load
+INFO: CategoryData: Loaded 180 categories.
+окт. 09, 2026 6:12:34 PM org.l2jmobius.gameserver.data.xml.ExperienceData load
+INFO: ExperienceData: Loaded 86 levels.
+окт. 09, 2026 6:12:34 PM org.l2jmobius.gameserver.data.xml.ExperienceData load
+INFO: ExperienceData: Max Player Level is 85.
+окт. 09, 2026 6:12:34 PM org.l2jmobius.gameserver.data.xml.ExperienceData load
+INFO: ExperienceData: Max Pet Level is 85.
+окт. 09, 2026 6:12:35 PM org.l2jmobius.gameserver.scripting.ScriptEngine load
+INFO: Loaded 425 files to exclude.
+окт. 09, 2026 6:12:36 PM handlers.EffectMasterHandler main
+INFO: EffectMasterHandler: Loaded 165 effect handlers.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.EnchantSkillGroupsData load
+INFO: EnchantSkillGroupsData: Loaded 4 groups and 90 routes.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 17176 Class Skills for 103 class skill trees.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 76 sub-class skills.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 77 transfer skills for 3 transfer skill trees.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 117 fishing skills, 8 Dwarven only fishing skills.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 3 collect skills.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 94 clan skills, 64 for clan and 30 residential.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 18 sub-pledge skills.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 32 transform skills.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 8 noble skills.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 5 hero skills.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 46 game master skills.
+окт. 09, 2026 6:12:36 PM org.l2jmobius.gameserver.data.xml.SkillTreeData report
+INFO: SkillTreeData: Loaded 46 game master aura skills.
+окт. 09, 2026 6:12:39 PM org.l2jmobius.gameserver.data.xml.SkillData loadAllSkills
+INFO: SkillData: Loaded 65965 Skill templates from XML files.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Highest item id used: 50000
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 11482 etc items.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 3825 armor items.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 3893 weapon items.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.ItemData load
+INFO: ItemData: Loaded 19200 items in total.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.OptionData load
+INFO: OptionData: Loaded 24985 options.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.EnchantItemOptionsData parseDocument
+INFO: EnchantItemOptionsData: Loaded 23 items and 1093 options.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.RecipeData load
+INFO: RecipeData: Loaded 1000 recipes.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.ClassListData load
+INFO: ClassListData: Loaded 103 class data.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.PlayerTemplateData load
+INFO: PlayerTemplateData: Loaded 103 player templates.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.PlayerTemplateData load
+INFO: PlayerTemplateData: Loaded 52530 level up gain records.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.AdminData load
+INFO: AdminData: Loaded 10 access levels.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.xml.AdminData load
+INFO: AdminData: Loaded 468 access commands.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.sql.CharInfoTable <init>
+INFO: CharInfoTable: Loaded 10002 char names.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.communitybbs.Manager.ForumsBBSManager initRoot
+INFO: ForumsBBSManager: Loaded 4 forums. Last forum id used: 4
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.sql.ClanTable <init>
+INFO: ClanTable: Restored 0 clans from the database.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.managers.CHSiegeManager loadClanHalls
+INFO: CHSiegeManager: Loaded 6 conquerable clan halls.
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.managers.ClanHallAuctionManager load
+INFO: ClanHallAuctionManager: Loaded 38 auction(s)
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.sql.ClanHallTable load
+INFO: ClanHallTable: Loaded 0 clan halls
+окт. 09, 2026 6:12:40 PM org.l2jmobius.gameserver.data.sql.ClanHallTable load
+INFO: ClanHallTable: Loaded 38 free clan halls
+окт. 09, 2026 6:12:41 PM org.l2jmobius.gameserver.geoengine.GeoEngine <init>
+INFO: GeoEngine: Loaded 203 regions.
+окт. 09, 2026 6:12:41 PM org.l2jmobius.gameserver.data.xml.SkillLearnData load
+INFO: SkillLearnData: Loaded 256 skill learn data.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.data.xml.NpcData load
+INFO: NpcData: Loaded 10461 NPCs.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.data.xml.NpcData load
+INFO: NpcData: Loaded 21 custom NPCs.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.ZoneManager <init>
+INFO: ZoneManager 17 by 18 Zone Region Grid set up.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Gigantic Chaos Golem(25512) status is 0.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Queen Ant(29001) status is 0.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Core(29006) status is 0.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Orfen(29014) status is 0.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Baium(29020) status is 0.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Valakas(29028) status is 0.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Antharas(29068) status is 0.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Beleth(29118) status is 0.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.GrandBossManager init
+INFO: GrandBossManager: Loaded 8 Instances
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.ZoneManager load
+INFO: ZoneManager: Loaded 31 zone classes and 2860 zones.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.ZoneManager load
+INFO: ZoneManager: Last static id 200224.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.CastleManager loadInstances
+INFO: CastleManager: Loaded 9 castles
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.InstanceManager <init>
+INFO: InstanceManager: Multiverse Instance created.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.InstanceManager <init>
+INFO: InstanceManager: Universe Instance created.
+окт. 09, 2026 6:12:43 PM org.l2jmobius.gameserver.managers.InstanceManager load
+INFO: InstanceManager: Loaded 160 instance names.
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.managers.InstanceManager load
+INFO: InstanceManager: Loaded 142 instance templates.
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.managers.GrandBossManager initZones
+INFO: GrandBossManager: Initialized 8 Grand Boss Zones
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.managers.WalkingManager load
+INFO: WalkingManager: Loaded 123 walking routes.
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.model.olympiad.Hero init
+INFO: Hero System: Loaded 0 Heroes.
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.model.olympiad.Hero init
+INFO: Hero System: Loaded 0 all time Heroes.
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns <init>
+INFO: SevenSigns: Currently in the Seal Validation period!
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns initializeSeals
+INFO: SevenSigns: The Seal of Avarice remains unclaimed.
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns initializeSeals
+INFO: SevenSigns: The Seal of Gnosis remains unclaimed.
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns initializeSeals
+INFO: SevenSigns: The Seal of Strife remains unclaimed.
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns <init>
+INFO: SevenSigns: The competition ended with a tie last week.
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns setCalendarForNextPeriodChange
+INFO: SevenSigns: Next period change set to Mon Oct 12 18:00:44 EEST 2026
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.model.sevensigns.SevenSigns <init>
+INFO: SevenSigns: Next period begins in 2 days, 23 hours, 47 minutes, 59 seconds, 978 milliseconds
+окт. 09, 2026 6:12:44 PM org.l2jmobius.gameserver.managers.CursedWeaponsManager init
+INFO: CursedWeaponsManager: Loaded : 2 cursed weapon(s).
+окт. 09, 2026 6:12:47 PM org.l2jmobius.gameserver.data.xml.MapRegionData load
+INFO: MapRegionData: Loaded 57 map regions.
+окт. 09, 2026 6:12:47 PM org.l2jmobius.gameserver.data.xml.SpawnData load
+INFO: SpawnData: Initializing spawns...
+окт. 09, 2026 6:12:47 PM org.l2jmobius.gameserver.data.xml.DoorData parseDocument
+INFO: DoorData: Loaded 1301 doors.
+окт. 09, 2026 6:12:47 PM org.l2jmobius.gameserver.data.xml.FenceData load
+INFO: FenceData: Loaded 1 fences.
+окт. 09, 2026 6:12:49 PM org.l2jmobius.gameserver.data.xml.SpawnData load
+INFO: SpawnData: 42407 spawns have been initialized!
+окт. 09, 2026 6:12:56 PM org.l2jmobius.gameserver.data.xml.PetDataTable load
+INFO: PetDataTable: Loaded 49 pets.
+окт. 09, 2026 6:13:00 PM org.l2jmobius.commons.util.IXmlReader parseDirectory
+WARNING: Directory not found: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\contract029a\runtime\game\.\data\buylists\custom
+окт. 09, 2026 6:13:00 PM org.l2jmobius.gameserver.data.xml.BuyListData load
+INFO: BuyListData: Loaded 760 buyLists.
+окт. 09, 2026 6:13:00 PM org.l2jmobius.gameserver.data.xml.TeleporterData load
+INFO: TeleporterData: Loaded 195 npc teleporters.
+окт. 09, 2026 6:13:01 PM org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival <init>
+INFO: SevenSignsFestival: Initialization bypassed due to Seal Validation in effect.
+окт. 09, 2026 6:13:01 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Loaded 188 Instances
+окт. 09, 2026 6:13:01 PM org.l2jmobius.gameserver.managers.RaidBossSpawnManager load
+INFO: RaidBossSpawnManager: Scheduled 0 Instances
+окт. 09, 2026 6:13:02 PM org.l2jmobius.commons.threads.ThreadPool shutdown
+INFO: ThreadPool: Shutting down all thread pools.
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown initiated...
+[main] INFO com.zaxxer.hikari.HikariDataSource - L2JMobiusPool - Shutdown completed.
+окт. 09, 2026 6:13:02 PM org.l2jmobius.commons.database.DatabaseFactory close
+INFO: Database: HikariCP pool closed successfully.
+[PASS] sustained-farm026.F01-fresh-independent-local-opportunity-after-terminal-standpoint
+[PASS] sustained-farm026.F02-terminal-route-without-lawful-independent-target-remains-closed
+[PASS] sustained-farm026.F10-native-z-local-opportunity-precedes-exact-standpoint
+SUMMARY: suite=sustained-farm026 seed=26002601 total=3 passed=3 failed=0

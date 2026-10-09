@@ -1,0 +1,3 @@
+286611474741400	null
+286613832217300	StopProgress[phase=WAIT_ACCEPTED_CONTROL, outcome=PENDING, blocker=population_ecology, deadlineNanos=286623772183400]
+286613934867100	StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=286623772183400]

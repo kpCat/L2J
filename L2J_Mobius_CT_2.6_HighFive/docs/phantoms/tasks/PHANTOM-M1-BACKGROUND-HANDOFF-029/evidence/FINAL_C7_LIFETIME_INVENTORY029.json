@@ -1,0 +1,555 @@
+{
+  "prior028Profiles872And1272": "UNPROVEN; no retrospective enrollment",
+  "lifetimes": [
+    {
+      "terminalPresent": true,
+      "object": 268484216,
+      "profile": 1,
+      "epoch": 287430551517800,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/1-287430551517800-register.properties",
+      "receiptFiles": [
+        "1-287430551517800-11185-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/1-287430551517800-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484217,
+      "profile": 2,
+      "epoch": 287431035904900,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/2-287431035904900-register.properties",
+      "receiptFiles": [
+        "2-287431035904900-7713-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/2-287431035904900-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484237,
+      "profile": 3,
+      "epoch": 287431150980100,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/3-287431150980100-register.properties",
+      "receiptFiles": [
+        "3-287431150980100-22511-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/3-287431150980100-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484238,
+      "profile": 4,
+      "epoch": 287431310724400,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/4-287431310724400-register.properties",
+      "receiptFiles": [
+        "4-287431310724400-7891-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/4-287431310724400-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484256,
+      "profile": 5,
+      "epoch": 287431388630100,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/5-287431388630100-register.properties",
+      "receiptFiles": [
+        "5-287431388630100-27289-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/5-287431388630100-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484290,
+      "profile": 9,
+      "epoch": 287431744801900,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/9-287431744801900-register.properties",
+      "receiptFiles": [
+        "9-287431744801900-12502-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/9-287431744801900-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484291,
+      "profile": 10,
+      "epoch": 287431903499000,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/10-287431903499000-register.properties",
+      "receiptFiles": [
+        "10-287431903499000-30967-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/10-287431903499000-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484308,
+      "profile": 11,
+      "epoch": 287431976644200,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/11-287431976644200-register.properties",
+      "receiptFiles": [
+        "11-287431976644200-7565-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/11-287431976644200-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484309,
+      "profile": 12,
+      "epoch": 287432046568600,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/12-287432046568600-register.properties",
+      "receiptFiles": [
+        "12-287432046568600-19178-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/12-287432046568600-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484333,
+      "profile": 14,
+      "epoch": 287432184909100,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/14-287432184909100-register.properties",
+      "receiptFiles": [
+        "14-287432184909100-14240-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/14-287432184909100-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484350,
+      "profile": 15,
+      "epoch": 287432444015600,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/15-287432444015600-register.properties",
+      "receiptFiles": [
+        "15-287432444015600-5180-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/15-287432444015600-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484368,
+      "profile": 17,
+      "epoch": 287432715991900,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/17-287432715991900-register.properties",
+      "receiptFiles": [
+        "17-287432715991900-6526-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/17-287432715991900-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484369,
+      "profile": 18,
+      "epoch": 287432868373500,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/18-287432868373500-register.properties",
+      "receiptFiles": [
+        "18-287432868373500-10457-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/18-287432868373500-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484387,
+      "profile": 19,
+      "epoch": 287432934530400,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/19-287432934530400-register.properties",
+      "receiptFiles": [
+        "19-287432934530400-32924-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/19-287432934530400-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484388,
+      "profile": 20,
+      "epoch": 287433254804400,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/20-287433254804400-register.properties",
+      "receiptFiles": [
+        "20-287433254804400-5041-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/20-287433254804400-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484405,
+      "profile": 21,
+      "epoch": 287433562776600,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/21-287433562776600-register.properties",
+      "receiptFiles": [
+        "21-287433562776600-10559-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/21-287433562776600-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484406,
+      "profile": 22,
+      "epoch": 287433859693300,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/22-287433859693300-register.properties",
+      "receiptFiles": [
+        "22-287433859693300-11562-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/22-287433859693300-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484426,
+      "profile": 23,
+      "epoch": 287434109870900,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/23-287434109870900-register.properties",
+      "receiptFiles": [
+        "23-287434109870900-15986-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/23-287434109870900-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484427,
+      "profile": 24,
+      "epoch": 287434364968400,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/24-287434364968400-register.properties",
+      "receiptFiles": [
+        "24-287434364968400-4113-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/24-287434364968400-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484444,
+      "profile": 25,
+      "epoch": 287434434305000,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/25-287434434305000-register.properties",
+      "receiptFiles": [
+        "25-287434434305000-9034-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/25-287434434305000-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484447,
+      "profile": 26,
+      "epoch": 287434683552600,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/26-287434683552600-register.properties",
+      "receiptFiles": [
+        "26-287434683552600-30305-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/26-287434683552600-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484461,
+      "profile": 27,
+      "epoch": 287434740458500,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/27-287434740458500-register.properties",
+      "receiptFiles": [
+        "27-287434740458500-26196-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/27-287434740458500-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484462,
+      "profile": 28,
+      "epoch": 287435002453900,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/28-287435002453900-register.properties",
+      "receiptFiles": [
+        "28-287435002453900-16850-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/28-287435002453900-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484480,
+      "profile": 29,
+      "epoch": 287435305666500,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/29-287435305666500-register.properties",
+      "receiptFiles": [
+        "29-287435305666500-8525-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/29-287435305666500-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484499,
+      "profile": 32,
+      "epoch": 287435372753600,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/32-287435372753600-register.properties",
+      "receiptFiles": [
+        "32-287435372753600-11348-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/32-287435372753600-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484515,
+      "profile": 33,
+      "epoch": 287435526041200,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/33-287435526041200-register.properties",
+      "receiptFiles": [
+        "33-287435526041200-18085-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/33-287435526041200-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484517,
+      "profile": 34,
+      "epoch": 287435667867400,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/34-287435667867400-register.properties",
+      "receiptFiles": [
+        "34-287435667867400-8499-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/34-287435667867400-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484532,
+      "profile": 35,
+      "epoch": 287435734939100,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/35-287435734939100-register.properties",
+      "receiptFiles": [
+        "35-287435734939100-16308-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/35-287435734939100-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484533,
+      "profile": 36,
+      "epoch": 287435775805200,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/36-287435775805200-register.properties",
+      "receiptFiles": [
+        "36-287435775805200-11975-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/36-287435775805200-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484548,
+      "profile": 37,
+      "epoch": 287435837827500,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/37-287435837827500-register.properties",
+      "receiptFiles": [
+        "37-287435837827500-11870-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/37-287435837827500-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268484549,
+      "profile": 38,
+      "epoch": 287435989530300,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/38-287435989530300-register.properties",
+      "receiptFiles": [
+        "38-287435989530300-7400-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/38-287435989530300-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268486942,
+      "profile": 248,
+      "epoch": 287332656715500,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/248-287332656715500-register.properties",
+      "receiptFiles": [
+        "248-287332656715500-11754-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/248-287332656715500-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268486958,
+      "profile": 250,
+      "epoch": 287332730930300,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/250-287332730930300-register.properties",
+      "receiptFiles": [
+        "250-287332730930300-10490-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/250-287332730930300-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268486960,
+      "profile": 251,
+      "epoch": 287333033681000,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/251-287333033681000-register.properties",
+      "receiptFiles": [
+        "251-287333033681000-11916-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/251-287333033681000-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268486976,
+      "profile": 252,
+      "epoch": 287333326448100,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/252-287333326448100-register.properties",
+      "receiptFiles": [
+        "252-287333326448100-8585-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/252-287333326448100-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268486977,
+      "profile": 253,
+      "epoch": 287333369328500,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/253-287333369328500-register.properties",
+      "receiptFiles": [
+        "253-287333369328500-10758-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/253-287333369328500-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268486991,
+      "profile": 254,
+      "epoch": 287333455587400,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/254-287333455587400-register.properties",
+      "receiptFiles": [
+        "254-287333455587400-32237-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/254-287333455587400-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268486993,
+      "profile": 255,
+      "epoch": 287333755678100,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/255-287333755678100-register.properties",
+      "receiptFiles": [
+        "255-287333755678100-8468-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/255-287333755678100-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268487008,
+      "profile": 256,
+      "epoch": 287333821493000,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/256-287333821493000-register.properties",
+      "receiptFiles": [
+        "256-287333821493000-15278-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/256-287333821493000-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268487010,
+      "profile": 257,
+      "epoch": 287333883673700,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/257-287333883673700-register.properties",
+      "receiptFiles": [
+        "257-287333883673700-13852-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/257-287333883673700-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268487024,
+      "profile": 258,
+      "epoch": 287334152647400,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/258-287334152647400-register.properties",
+      "receiptFiles": [
+        "258-287334152647400-15471-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/258-287334152647400-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268487041,
+      "profile": 260,
+      "epoch": 287334222436200,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/260-287334222436200-register.properties",
+      "receiptFiles": [
+        "260-287334222436200-7998-finalized.properties",
+        "260-287334222436200-8001-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/260-287334222436200-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268487042,
+      "profile": 261,
+      "epoch": 287334300114900,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/261-287334300114900-register.properties",
+      "receiptFiles": [
+        "261-287334300114900-30615-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/261-287334300114900-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268487056,
+      "profile": 262,
+      "epoch": 287334539754700,
+      "registerFile": "FINAL_C7_H_RESTART1_WITNESS/262-287334539754700-register.properties",
+      "receiptFiles": [
+        "262-287334539754700-11994-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART1_WITNESS/262-287334539754700-terminal.properties"
+    },
+    {
+      "terminalPresent": true,
+      "object": 268488694,
+      "profile": 457,
+      "epoch": 287430966203000,
+      "registerFile": "FINAL_C7_H_RESTART2_WITNESS/457-287430966203000-register.properties",
+      "receiptFiles": [
+        "457-287430966203000-12778-finalized.properties"
+      ],
+      "terminalFile": "FINAL_C7_H_RESTART2_WITNESS/457-287430966203000-terminal.properties"
+    }
+  ],
+  "telemetryCohortCount": 0,
+  "registeredLifetimes": 45,
+  "wholeCoveragePass": false,
+  "terminalLifetimes": 45,
+  "sourceSha": "fd7b74f9984e6d6f16341d7ec36e3b69464fee03",
+  "completeUnion": false,
+  "missingNativeLifetimes": "AT_LEAST_ONE_UNCOUNTED; sticky TASK029_RECEIPT_CAPACITY",
+  "registeredProfiles": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    9,
+    10,
+    11,
+    12,
+    14,
+    15,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    248,
+    250,
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    260,
+    261,
+    262,
+    457
+  ]
+}

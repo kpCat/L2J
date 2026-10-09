@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="native-evidence-continuation022" seed="22002203" tests="4" passed="4" failures="0">
+  <properties>
+  </properties>
+  <testcase name="native-evidence-continuation022.S08-first-phase-deadline-reason-sticky-and-stale-clear" elapsedNanos="2861000"></testcase>
+  <testcase name="native-evidence-continuation022.S09-late-native-reward-after-next-target-counted-once" elapsedNanos="12722800"></testcase>
+  <testcase name="native-evidence-continuation022.S10-target-cap-generation-and-time-regression-truth" elapsedNanos="135500"></testcase>
+  <testcase name="native-evidence-continuation022.S11-useful-native-offense-finishes-rest-gap-without-clearing-invalidity" elapsedNanos="38500"></testcase>
+</testsuite>

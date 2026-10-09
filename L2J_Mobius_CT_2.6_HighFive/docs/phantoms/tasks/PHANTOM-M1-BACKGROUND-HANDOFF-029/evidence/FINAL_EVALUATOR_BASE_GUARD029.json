@@ -1,0 +1,45 @@
+{
+  "utc": "2026-10-09T15:38:08.0154548Z",
+  "priorByteHashDifference": "Compared to other checkout; no mutation of old source",
+  "noEvaluatorChanges": true,
+  "oldReadOnlyComparison": [
+    {
+      "differentLines": [
+        {
+          "InputObject": "\"\"\"CONTINUITY_V2 read-only evaluator. Native outcomes and every enrolled ID remain visible.",
+          "SideIndicator": "=>"
+        },
+        {
+          "InputObject": "",
+          "SideIndicator": "=>"
+        },
+        {
+          "InputObject": "Epoch transitions require separate immutable lineage proof; this evaluator never invents it.",
+          "SideIndicator": "=>"
+        },
+        {
+          "InputObject": "\"\"\"",
+          "SideIndicator": "=>"
+        },
+        {
+          "InputObject": "import argparse",
+          "SideIndicator": "=>"
+        },
+        {
+          "InputObject": "import hashlib",
+          "SideIndicator": "=>"
+        }
+      ],
+      "textEqualNormalizingOnlyCRLF": true,
+      "path": "docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py"
+    },
+    {
+      "differentLines": [],
+      "textEqualNormalizingOnlyCRLF": true,
+      "path": "docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/Observe-Scene024.ps1"
+    }
+  ],
+  "requiredBaseDiffExit": 0,
+  "base": "2b9496c935748803f8505c472bf4085977fb04d2",
+  "workingDiffExit": 0
+}

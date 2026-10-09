@@ -1,0 +1,9 @@
+suite=native-evidence-continuation022
+seed=22002203
+total=4
+passed=4
+failed=0
+PASS native-evidence-continuation022.S08-first-phase-deadline-reason-sticky-and-stale-clear elapsedNanos=2861000
+PASS native-evidence-continuation022.S09-late-native-reward-after-next-target-counted-once elapsedNanos=12722800
+PASS native-evidence-continuation022.S10-target-cap-generation-and-time-regression-truth elapsedNanos=135500
+PASS native-evidence-continuation022.S11-useful-native-offense-finishes-rest-gap-without-clearing-invalidity elapsedNanos=38500

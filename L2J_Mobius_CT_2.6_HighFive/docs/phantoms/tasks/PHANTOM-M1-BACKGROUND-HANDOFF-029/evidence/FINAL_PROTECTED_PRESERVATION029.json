@@ -1,0 +1,28 @@
+{
+  "activeTarget": 8,
+  "canonicalObservers": [
+    "Contract029Observer.java"
+  ],
+  "syntheticStartsPerJvm": 5,
+  "evaluatorsSameAsMain": true,
+  "psEntrypoints": [
+    "Control029.ps1",
+    "Observe029.ps1",
+    "Prepare029.ps1",
+    "Verify029.ps1"
+  ],
+  "schedulerCap": 10000,
+  "TTL": 525,
+  "utc": "2026-10-09T15:36:57.1948202Z",
+  "pythonAuditPackages": [
+    "proposals/receipt_coverage029.py"
+  ],
+  "watchdog": 30,
+  "materializedCap": 8,
+  "populationTarget": 1280,
+  "originalPlayUnchanged": true,
+  "sequence": 400,
+  "originalPlayPreservationFiles": 304,
+  "changedOriginalPlayFiles": [],
+  "evaluators": null
+}

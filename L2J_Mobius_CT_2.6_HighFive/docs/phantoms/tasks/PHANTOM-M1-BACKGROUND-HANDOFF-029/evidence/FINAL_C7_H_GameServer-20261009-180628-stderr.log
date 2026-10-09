@@ -1,0 +1,304 @@
+[09/10 18:06:28] Network Config: ipconfig.xml does not exist, using automatic configuration...
+[09/10 18:06:28] Network Config: Adding new subnet: 127.0.0.0/8 address: 127.0.0.1
+[09/10 18:06:28] Network Config: Adding new subnet: 192.168.0.0/24 address: 192.168.0.55
+[09/10 18:06:28] Network Config: Adding new subnet: 0.0.0.0/0 address: 89.149.88.222
+[09/10 18:06:28] Loaded 6 Filter Words.
+[09/10 18:06:29] ------------------------------------------------=[ Database ]
+[09/10 18:06:29] Database: HikariCP pool initialized successfully.
+[09/10 18:06:29] Database: Initialized with a valid connection.
+[09/10 18:06:29] ----------------------------------------------=[ ThreadPool ]
+[09/10 18:06:29] ThreadPool: Initializing.
+[09/10 18:06:29] ...scheduled pool executor with 16 high priority threads.
+[09/10 18:06:29] ...scheduled pool executor with 64 total threads.
+[09/10 18:06:29] ...instant pool executor with 32 total threads.
+[09/10 18:06:29] -----------------------------------------------=[ IdManager ]
+[09/10 18:06:29] DatabaseIdManager: Cleaned 0 elements in 0 seconds.
+[09/10 18:06:29] DatabaseIdManager: Updated character online status.
+[09/10 18:06:29] DatabaseIdManager: Cleaned 0 expired timestamps.
+[09/10 18:06:29] IdManager: 6327296 ids available.
+[09/10 18:06:29] ----------------------------------------=[ Scripting Engine ]
+[09/10 18:06:30] Loaded 425 files to exclude.
+[09/10 18:06:30] ---------------------------------------------------=[ World ]
+[09/10 18:06:30] InstanceManager: Multiverse Instance created.
+[09/10 18:06:30] InstanceManager: Universe Instance created.
+[09/10 18:06:30] InstanceManager: Loaded 160 instance names.
+[09/10 18:06:30] InstanceManager: Loaded 142 instance templates.
+[09/10 18:06:31] World: (256 by 272) World Region Grid set up.
+[09/10 18:06:31] MapRegionData: Loaded 57 map regions.
+[09/10 18:06:31] GlobalVariablesManager: Loaded 16 variables.
+[09/10 18:06:31] ----------------------------------------------------=[ Data ]
+[09/10 18:06:31] CategoryData: Loaded 180 categories.
+[09/10 18:06:31] SecondaryAuthData: Loaded 328 forbidden passwords.
+[09/10 18:06:31] --------------------------------------------------=[ Skills ]
+[09/10 18:06:33] EffectMasterHandler: Loaded 165 effect handlers.
+[09/10 18:06:33] EnchantSkillGroupsData: Loaded 4 groups and 90 routes.
+[09/10 18:06:33] SkillTreeData: Loaded 17176 Class Skills for 103 class skill trees.
+[09/10 18:06:33] SkillTreeData: Loaded 76 sub-class skills.
+[09/10 18:06:33] SkillTreeData: Loaded 77 transfer skills for 3 transfer skill trees.
+[09/10 18:06:33] SkillTreeData: Loaded 117 fishing skills, 8 Dwarven only fishing skills.
+[09/10 18:06:33] SkillTreeData: Loaded 3 collect skills.
+[09/10 18:06:33] SkillTreeData: Loaded 94 clan skills, 64 for clan and 30 residential.
+[09/10 18:06:33] SkillTreeData: Loaded 18 sub-pledge skills.
+[09/10 18:06:33] SkillTreeData: Loaded 32 transform skills.
+[09/10 18:06:33] SkillTreeData: Loaded 8 noble skills.
+[09/10 18:06:33] SkillTreeData: Loaded 5 hero skills.
+[09/10 18:06:33] SkillTreeData: Loaded 46 game master skills.
+[09/10 18:06:33] SkillTreeData: Loaded 46 game master aura skills.
+[09/10 18:06:36] SkillData: Loaded 65965 Skill templates from XML files.
+[09/10 18:06:37] PetSkillData: Loaded 881 skills.
+[09/10 18:06:37] ---------------------------------------------------=[ Items ]
+[09/10 18:06:37] ItemData: Highest item id used: 50000
+[09/10 18:06:37] ItemData: Loaded 11482 etc items.
+[09/10 18:06:37] ItemData: Loaded 3825 armor items.
+[09/10 18:06:37] ItemData: Loaded 3893 weapon items.
+[09/10 18:06:37] ItemData: Loaded 19200 items in total.
+[09/10 18:06:37] EnchantItemGroupsData: Loaded 4 item group templates.
+[09/10 18:06:37] EnchantItemGroupsData: Loaded 1 scroll group templates.
+[09/10 18:06:37] EnchantItemGroupsData: Max weapon enchant is set to 16.
+[09/10 18:06:37] EnchantItemGroupsData: Max armor enchant is set to 16.
+[09/10 18:06:37] EnchantItemGroupsData: Max accessory enchant is set to 16.
+[09/10 18:06:37] EnchantItemData: Loaded 63 enchant scrolls.
+[09/10 18:06:37] EnchantItemData: Loaded 20 support items.
+[09/10 18:06:38] OptionData: Loaded 24985 options.
+[09/10 18:06:38] EnchantItemOptionsData: Loaded 23 items and 1093 options.
+[09/10 18:06:38] ElementalAttributeData: Loaded 30 elemental attribute items.
+[09/10 18:06:38] EnchantItemHPBonusData: Loaded 6 enchant HP bonuses.
+[09/10 18:06:38] MerchantPriceConfigTable: Loaded 28 merchant price configs.
+[09/10 18:06:39] Directory not found: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\contract029h\runtime\game\.\data\buylists\custom
+[09/10 18:06:39] BuyListData: Loaded 760 buyLists.
+[09/10 18:06:39] MultisellData: Loaded 206 multisell lists.
+[09/10 18:06:39] Personal/Premium QoL enabled with 4 level-gap tiers; shop=true.
+[09/10 18:06:39] Personal progression shop catalog validated with 5 curated offers; shop=true.
+[09/10 18:06:39] RecipeData: Loaded 1000 recipes.
+[09/10 18:06:39] ArmorSetData: Loaded 204 armor sets.
+[09/10 18:06:39] FishData: Loaded 278 fishes.
+[09/10 18:06:39] FishingMonstersData: Loaded 8 fishing monsters.
+[09/10 18:06:39] FishingRodsData: Loaded 6 fishing rods.
+[09/10 18:06:39] HennaData: Loaded 180 henna data.
+[09/10 18:06:39] ----------------------------------------------=[ Characters ]
+[09/10 18:06:39] ClassListData: Loaded 103 class data.
+[09/10 18:06:39] InitialEquipmentData: Loaded 11 initial equipment data.
+[09/10 18:06:39] InitialShortcutData: Loaded 5 initial global shortcut data.
+[09/10 18:06:39] InitialShortcutData: Loaded 4 initial shortcut data.
+[09/10 18:06:39] InitialShortcutData: Loaded 0 macro presets.
+[09/10 18:06:39] ExperienceData: Loaded 86 levels.
+[09/10 18:06:39] ExperienceData: Max Player Level is 85.
+[09/10 18:06:39] ExperienceData: Max Pet Level is 85.
+[09/10 18:06:39] ExperienceLossData: Loaded 85 levels.
+[09/10 18:06:39] KarmaLossData: Loaded 85 modifiers.
+[09/10 18:06:39] HitConditionBonusData: Loaded hit condition bonuses.
+[09/10 18:06:39] PlayerTemplateData: Loaded 103 player templates.
+[09/10 18:06:39] PlayerTemplateData: Loaded 52530 level up gain records.
+[09/10 18:06:39] CharInfoTable: Loaded 10002 char names.
+[09/10 18:06:39] AdminData: Loaded 10 access levels.
+[09/10 18:06:39] AdminData: Loaded 468 access commands.
+[09/10 18:06:39] RaidBossPointsManager: Loaded 0 Characters Raid Points.
+[09/10 18:06:39] PetDataTable: Loaded 49 pets.
+[09/10 18:06:40] ---------------------------------------------------=[ Clans ]
+[09/10 18:06:40] ForumsBBSManager: Loaded 4 forums. Last forum id used: 4
+[09/10 18:06:40] ClanTable: Restored 0 clans from the database.
+[09/10 18:06:40] CHSiegeManager: Loaded 6 conquerable clan halls.
+[09/10 18:06:40] ClanHallAuctionManager: Loaded 38 auction(s)
+[09/10 18:06:40] ClanHallTable: Loaded 0 clan halls
+[09/10 18:06:40] ClanHallTable: Loaded 38 free clan halls
+[09/10 18:06:40] -------------------------------------------------=[ Geodata ]
+[09/10 18:06:41] GeoEngine: Loaded 203 regions.
+[09/10 18:06:41] ----------------------------------------------------=[ NPCs ]
+[09/10 18:06:41] ZoneManager 17 by 18 Zone Region Grid set up.
+[09/10 18:06:43] NpcData: Loaded 10461 NPCs.
+[09/10 18:06:43] NpcData: Loaded 21 custom NPCs.
+[09/10 18:06:43] SkillLearnData: Loaded 256 skill learn data.
+[09/10 18:06:43] GrandBossManager: Gigantic Chaos Golem(25512) status is 0.
+[09/10 18:06:43] GrandBossManager: Queen Ant(29001) status is 0.
+[09/10 18:06:43] GrandBossManager: Core(29006) status is 0.
+[09/10 18:06:43] GrandBossManager: Orfen(29014) status is 0.
+[09/10 18:06:43] GrandBossManager: Baium(29020) status is 0.
+[09/10 18:06:43] GrandBossManager: Valakas(29028) status is 0.
+[09/10 18:06:43] GrandBossManager: Antharas(29068) status is 0.
+[09/10 18:06:43] GrandBossManager: Beleth(29118) status is 0.
+[09/10 18:06:43] GrandBossManager: Loaded 8 Instances
+[09/10 18:06:43] ZoneManager: Loaded 31 zone classes and 2860 zones.
+[09/10 18:06:43] ZoneManager: Last static id 200224.
+[09/10 18:06:43] DoorData: Loaded 1301 doors.
+[09/10 18:06:43] FenceData: Loaded 1 fences.
+[09/10 18:06:43] Soul crystal data : Loaded 54
+[09/10 18:06:43] Npc leveling crystal data : Loaded 240
+[09/10 18:06:44] WalkingManager: Loaded 123 walking routes.
+[09/10 18:06:44] StaticObjectData: Loaded 51 static object templates.
+[09/10 18:06:44] ItemAuctionInstance: Loaded 82 item(s) and registered 3 auction(s) for instance 32320.
+[09/10 18:06:44] ItemAuctionInstance: Schedule current auction 10 for instance 32320
+[09/10 18:06:44] ItemAuctionInstance: Loaded 82 item(s) and registered 3 auction(s) for instance 32321.
+[09/10 18:06:44] ItemAuctionInstance: Schedule next auction 12 on 17:00:00 12.10.26 for instance 32321
+[09/10 18:06:44] ItemAuctionInstance: Loaded 82 item(s) and registered 3 auction(s) for instance 32322.
+[09/10 18:06:44] ItemAuctionInstance: Schedule next auction 13 on 17:00:00 14.10.26 for instance 32322
+[09/10 18:06:44] ItemAuctionManager: Loaded 3 instance(s).
+[09/10 18:06:44] CastleManager: Loaded 9 castles
+[09/10 18:06:44] SchemeBufferTable: Loaded 8 categories and 142 entries from ./data/SchemeBufferSkills.xml.
+[09/10 18:06:44] SchemeBufferTable: Loaded 0 scheme entries from database.
+[09/10 18:06:44] SchemeBufferTable: Loaded 0 players and 92 available skills.
+[09/10 18:06:44] GrandBossManager: Initialized 8 Grand Boss Zones
+[09/10 18:06:44] ------------------------------------------------=[ Olympiad ]
+[09/10 18:06:44] Olympiad System: Loading....
+[09/10 18:06:44] Olympiad System: Currently in Olympiad Period
+[09/10 18:06:44] Olympiad System: 22 days, 18 hours and 53 mins until period ends.
+[09/10 18:06:44] Olympiad System: Next weekly change is in 6 days, 22 hours and 6 mins.
+[09/10 18:06:44] Olympiad System: Loaded 0 Nobles
+[09/10 18:06:44] Olympiad System: Competition Period Starts in 0 days, 0 hours and 0 mins.
+[09/10 18:06:44] Olympiad System: Event starts/started: Fri Oct 09 18:00:44 EEST 2026
+[09/10 18:06:44] Hero System: Loaded 0 Heroes.
+[09/10 18:06:44] Hero System: Loaded 0 all time Heroes.
+[09/10 18:06:44] ---------------------------------------------=[ Seven Signs ]
+[09/10 18:06:44] SevenSigns: Currently in the Seal Validation period!
+[09/10 18:06:44] SevenSigns: The Seal of Avarice remains unclaimed.
+[09/10 18:06:44] SevenSigns: The Seal of Gnosis remains unclaimed.
+[09/10 18:06:44] SevenSigns: The Seal of Strife remains unclaimed.
+[09/10 18:06:44] SevenSigns: The competition ended with a tie last week.
+[09/10 18:06:44] SevenSigns: Next period change set to Mon Oct 12 18:00:44 EEST 2026
+[09/10 18:06:44] SevenSigns: Next period begins in 2 days, 23 hours, 53 minutes, 59 seconds, 996 milliseconds
+[09/10 18:06:44] ---------------------------------------------------=[ Cache ]
+[09/10 18:06:44] Cache[HTML]: Running lazy cache.
+[09/10 18:06:44] CrestTable: Loaded 0 Crests.
+[09/10 18:06:44] TeleporterData: Loaded 195 npc teleporters.
+[09/10 18:06:44] Olympiad System: Olympiad Games have started.
+[09/10 18:06:44] AugmentationData: Loaded 33960 augmentations.
+[09/10 18:06:44] AugmentationData: Loaded 2754 accessory augmentations.
+[09/10 18:06:44] CursedWeaponsManager: Loaded : 2 cursed weapon(s).
+[09/10 18:06:44] Olympiad System: Loaded 160 stadiums.
+[09/10 18:06:45] TransformData: Loaded 111 transform templates.
+[09/10 18:06:45] BotReportTable: Loaded 0 bot reports
+[09/10 18:06:45] SellBuffsManager: Loaded 128 allowed buffs.
+[09/10 18:06:45] -------------------------------------------------=[ Scripts ]
+[09/10 18:06:45] AirShipManager: Loaded 0 private airships
+[09/10 18:06:45] Seed of Destruction Manager: Loaded. Current stage is: 1
+[09/10 18:06:45] Seed of Infinity Manager: Loaded. Current stage is: 1
+[09/10 18:06:45] Loading server scripts...
+[09/10 18:06:46] Loading Handlers...
+[09/10 18:06:46] ActionClickHandler: Loaded 10 handlers.
+[09/10 18:06:46] ActionShiftHandler: Loaded 6 handlers.
+[09/10 18:06:46] AdminCommandHandler: Loaded 479 handlers.
+[09/10 18:06:46] BypassHandler: Loaded 47 handlers.
+[09/10 18:06:46] ChatHandler: Loaded 14 handlers.
+[09/10 18:06:46] CommunityBoardHandler: Loaded 25 handlers.
+[09/10 18:06:46] ItemHandler: Loaded 30 handlers.
+[09/10 18:06:46] PunishmentHandler: Loaded 3 handlers.
+[09/10 18:06:46] UserCommandHandler: Loaded 17 handlers.
+[09/10 18:06:46] VoicedCommandHandler: Loaded 10 handlers.
+[09/10 18:06:46] TargetHandler: Loaded 34 handlers.
+[09/10 18:06:46] Handlers Loaded...
+[09/10 18:06:54] Handy's Block Checker Event is enabled
+[09/10 18:06:54] Fantasy Isle: Parade starting at 2026/10/09 21:20 and is scheduled each next 1 hours.
+[09/10 18:06:54] Fantasy Isle: MC show script starting at 10/10/2026 02:55:54 and is scheduled each next 4 hours.
+[09/10 18:06:54] GraciaLoader: Loading Gracia related scripts.
+[09/10 18:06:54] HellboundLoader: Loading Hellbound related scripts:
+[09/10 18:06:54] HellboundPointData: Loaded 47 trust point reward data.
+[09/10 18:06:54] HellboundSpawns: Loaded 598 Hellbound spawns.
+[09/10 18:06:54] HellboundEngine: Level: 11
+[09/10 18:06:54] HellboundEngine: Trust: 4000000
+[09/10 18:06:54] HellboundEngine: Status: unlocked.
+[09/10 18:06:54] RaidBossSpawnManager: Loaded 188 Instances
+[09/10 18:06:54] RaidBossSpawnManager: Scheduled 0 Instances
+[09/10 18:06:54] [Four Sepulchers] Loaded 762 spawn zones data.
+[09/10 18:06:54] NpcBuffersData: Loaded 33 buffers data.
+[09/10 18:06:54] Bandit StrongHold siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[09/10 18:06:54] Devastated Castle siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[09/10 18:06:54] Fortress of Resistance siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[09/10 18:06:54] Fortress of the Dead siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[09/10 18:06:54] Rainbow Springs siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[09/10 18:06:54] Beast Farm siege scheduled for Thu Oct 15 12:00:00 EEST 2026.
+[09/10 18:06:54] Event Freya Celebration has passed... Ignored 
+[09/10 18:06:54] Event Gift of Vitality has passed... Ignored 
+[09/10 18:06:54] Event Heavy Medal has passed... Ignored 
+[09/10 18:06:54] Event L2 Day has passed... Ignored 
+[09/10 18:06:54] Event Love Your Gatekeeper has passed... Ignored 
+[09/10 18:06:54] Event Master of Enchanting has passed... Ignored 
+[09/10 18:06:54] Event Saving Santa has passed... Ignored 
+[09/10 18:06:54] Event Valentine Event has passed... Ignored 
+[09/10 18:06:54] Event Watermelon Ninja has passed... Ignored 
+[09/10 18:06:55] TerritoryWarSuperClass: Siege date: Sun Oct 11 22:00:00 EEST 2026
+[09/10 18:06:55] SpawnData: Initializing spawns...
+[09/10 18:06:55] HellboundEngine: Spawned 424 NPCs.
+[09/10 18:06:57] SpawnData: 42407 spawns have been initialized!
+[09/10 18:06:57] DayNightSpawnManager: Removed 0 night creatures
+[09/10 18:06:57] DayNightSpawnManager: Spawned 232 day creatures
+[09/10 18:06:57] DimensionalRiftManager: Loaded 7 room types with 56 rooms.
+[09/10 18:06:57] DimensionalRiftManager: Loaded 462 dimensional rift spawns, 0 errors.
+[09/10 18:06:57] ---------------------------------------------------=[ Siege ]
+[09/10 18:06:57] SiegeScheduleData: Loaded 9 siege schedulers.
+[09/10 18:06:57] Siege of Gludio: Sun Oct 11 16:00:00 EEST 2026
+[09/10 18:06:57] Siege of Dion: Sun Oct 11 20:00:00 EEST 2026
+[09/10 18:06:57] Siege of Giran: Sun Oct 11 16:00:00 EEST 2026
+[09/10 18:06:57] Siege of Oren: Sun Oct 11 20:00:00 EEST 2026
+[09/10 18:06:57] Siege of Aden: Sun Oct 11 16:00:00 EEST 2026
+[09/10 18:06:57] Siege of Innadril: Sun Oct 11 20:00:00 EEST 2026
+[09/10 18:06:57] Siege of Goddard: Sun Oct 11 16:00:00 EEST 2026
+[09/10 18:06:57] Siege of Rune: Sun Oct 11 20:00:00 EEST 2026
+[09/10 18:06:57] Siege of Schuttgart: Sun Oct 11 16:00:00 EEST 2026
+[09/10 18:06:57] FortManager: Loaded 21 fortress
+[09/10 18:06:57] CastleManorManager: Loaded 258 seeds.
+[09/10 18:06:57] CastleManorManager: Manor data loaded.
+[09/10 18:06:57] MercTicketManager: Loaded 0 Mercenary Tickets
+[09/10 18:06:57] ScriptManager: Loaded 539 quests.
+[09/10 18:06:57] ScriptManager: Loaded 306 scripts.
+[09/10 18:06:57] MonsterRace: loaded 514 records, currently on race #515
+[09/10 18:06:57] SevenSignsFestival: Initialization bypassed due to Seal Validation in effect.
+[09/10 18:06:57] AutoSpawnHandler: Loaded 129 handlers in total.
+[09/10 18:06:57] KrateisCubeManager: Loaded 3 arena templates.
+[09/10 18:06:57] UndergroundColiseumManager: Loaded 5 coliseum arenas.
+[09/10 18:06:57] UndergroundColiseumManager: Starts at 09/10/2026 21:00:00
+[09/10 18:06:57] DailyResetManager: Next schedule at 10/10/2026 06:30:00.
+[09/10 18:06:57] MailManager: Loaded 0 messages.
+[09/10 18:06:57] PunishmentManager: Loaded 0 active and 0 expired punishments.
+[09/10 18:06:57] IdManager: Free ObjectID's remaining: 1878838103
+[09/10 18:06:57] OfflineTraderTable: Loading offline traders...
+[09/10 18:06:57] OfflineTraderTable: Loaded 0 offline traders.
+[09/10 18:06:57] -------------------------------------------=[ Phantom World ]
+[09/10 18:07:15] LocalPlay pilot mailbox enabled for one real-client consent lease.
+[09/10 18:07:15] DeadlockWatcher: Thread started.
+[09/10 18:07:16] GameServer: Started, using 3352 of 4096 MB total memory.
+[09/10 18:07:16] GameServer: Maximum number of connected players is 2000.
+[09/10 18:07:16] GameServer: Server loaded in 47 seconds.
+[09/10 18:07:16] LoginServerThread: Connecting to login on 127.0.0.1:9014
+[09/10 18:07:16] LoginServerThread: Registered on login as Server 1: Bartz
+WARNING: A Java agent has been loaded dynamically (C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops029\observer029-8EF300778D8E.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+WARNING: A Java agent has been loaded dynamically (C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops029\graceful-shutdown.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+[09/10 18:07:20] Server scheduled restart issued shutdown command. Shutdown in 0 seconds!
+[09/10 18:07:20] GM shutdown countdown is over. shutting down NOW!
+[09/10 18:07:20] Phantom World: Initial subsystem drain completed, stopped=true(144ms).
+[09/10 18:07:20] All players disconnected and saved(1ms).
+[09/10 18:07:20] Game Time Task Manager: Thread interruped(1ms).
+[09/10 18:07:20] ThreadPool: Shutting down all thread pools.
+[09/10 18:07:20] Thread Pool Manager: Manager has been shut down(7ms).
+[09/10 18:07:20] Login Server Thread: Thread interruped(0ms).
+[09/10 18:07:20] GM shutdown received. Shutting down NOW!
+[09/10 18:07:20] SevenSigns: Seven Signs data saved(2ms).
+[09/10 18:07:20] SevenSigns: Seven Signs status saved(4ms).
+[09/10 18:07:20] RaidBossSpawnManager: All raidboss info saved(26ms).
+[09/10 18:07:20] GrandBossManager: All Grand Boss info saved(5ms).
+[09/10 18:07:20] Item Auction Manager: All tasks stopped(0ms).
+[09/10 18:07:20] Olympiad System: Data saved(2ms).
+[09/10 18:07:20] Hero System: Data saved(2ms).
+[09/10 18:07:20] Clan System: Data saved(0ms).
+[09/10 18:07:20] Cursed Weapons Manager: Data saved(2ms).
+[09/10 18:07:20] Castle Manor Manager: Data saved(2ms).
+[09/10 18:07:20] FortressOfTheDead: Successfully saved attackers to database.
+[09/10 18:07:20] DevastatedCastle: Successfully saved attackers to database.
+[09/10 18:07:20] BanditStronghold: Successfully saved attackers to database.
+[09/10 18:07:20] FortressOfResistance: Successfully saved attackers to database.
+[09/10 18:07:20] RainbowSpringsChateau: Successfully saved attackers to database.
+[09/10 18:07:20] WildBeastReserve: Successfully saved attackers to database.
+[09/10 18:07:20] CHSiegeManager: Siegable hall attacker lists saved!
+[09/10 18:07:20] Script Manager: Data saved(4ms).
+[09/10 18:07:20] GlobalVariablesManager: Stored 16 variables.
+[09/10 18:07:20] Global Variables Manager: Variables saved(40ms).
+[09/10 18:07:20] Fishing Championship Manager: Data saved(2ms).
+[09/10 18:07:20] SchemeBufferTable: Data saved(11ms).
+[09/10 18:07:20] Bot Report Table: Successfully saved reports to database!
+[09/10 18:07:25] Database: HikariCP pool closed successfully.
+[09/10 18:07:25] Database Factory: Database connection has been shut down(10ms).
+[09/10 18:07:25] The server has been successfully shut down in 5seconds.
