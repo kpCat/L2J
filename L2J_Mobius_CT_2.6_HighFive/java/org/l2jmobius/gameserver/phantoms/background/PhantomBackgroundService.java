@@ -386,7 +386,10 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			final boolean visiblePending = ((activityState == PhantomActivityState.WARM) || activityState.requiresMaterialization()) && hasVisibleOwnedStorePending(profileId, goal);
 			return new Directive(visiblePending ? DirectiveKind.REPLAN : DirectiveKind.RETRY, visiblePending ? "visible.owned_store_pending" : "native_context.pending", state.position().committedAnchorId());
 		}
-		final boolean nativeRequired = !context.context().simulationEligible();
+		final boolean farmPosition = context.context().afterPolicy() == null || context.context().afterPolicy().farmPosition();
+        final var operation = state.position().committedAnchorId().equals(spec.anchorId()) && farmPosition
+            ? PhantomBackgroundSimulationPolicy.Operation.FARM : PhantomBackgroundSimulationPolicy.Operation.TRAVEL;
+        final boolean nativeRequired = !context.context().permits(operation, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
 		final var delivery = updateNativeContextSignal(profileId, context, nativeRequired);
 		if (nativeRequired && (activityState == PhantomActivityState.BACKGROUND))
 		{
@@ -413,7 +416,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			return new Directive(state.state() == State.INCONSISTENT ? DirectiveKind.INCONSISTENT : DirectiveKind.RETRY, "state." + state.state().name().toLowerCase(), state.position().committedAnchorId());
 		}
-		return state.position().committedAnchorId().equals(spec.anchorId()) ? new Directive(DirectiveKind.FARM, "farm.ready", spec.anchorId()) : new Directive(DirectiveKind.TRAVEL, "travel.required", spec.anchorId());
+		return state.position().committedAnchorId().equals(spec.anchorId()) && farmPosition ? new Directive(DirectiveKind.FARM, "farm.ready", spec.anchorId()) : new Directive(DirectiveKind.TRAVEL, "travel.required", spec.anchorId());
 	}
 
 	public OperationResult farm(long profileId, PhantomGoal goal, long activityGeneration, long tickSequence, PhantomActivityState activityState, long logicalNowNanos)
@@ -457,7 +460,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return retry("state.not_ready");
 			}
-			final var nativeGate = nativeContextGate(profileId, state);
+			final var nativeGate = ordinaryContextGate(claim, PhantomBackgroundSimulationPolicy.Operation.FARM);
 			if (nativeGate != null) { return nativeGate; }
 			final PhantomBackgroundGoalSpec spec = claim.spec();
 			if (!state.position().committedAnchorId().equals(spec.anchorId()))
@@ -474,7 +477,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				{
 					return retry("competition.capacity");
 				}
-				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
+				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false), claim._nativeContext.afterPolicy());
 				if (!batch.mutated())
 				{
 					return switch (batch.reason())
@@ -486,7 +489,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(state.identity(), batch.progress().level());
 				final Clock clock = new Clock(batch.nextRngState(), 0, 0);
 				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, batch.progress(), batch.vitals(), state.position(), clock, batch.inventoryDelta().itemDeltas(), autoSkills);
-				final OperationResult result = commit(claim, command);
+				final OperationResult result = commit(claim, ordinaryCommand(claim, command, batch.policy()));
 				if (result.successful() && batch.dead())
 				{
 					_signals.submit(profileId, new PhantomRelevanceSignal(DEATH_SIGNAL_SOURCE, tickSequence, PhantomActivityState.WARM, DEATH_SIGNAL_TTL_MILLIS));
@@ -529,7 +532,8 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			{
 				return replay;
 			}
-			final var nativeGate = nativeContextGate(profileId, state);
+			final var nativeGate = ordinaryContextGate(claim, state.position().committedAnchorId().equals(spec.anchorId())
+                && (state.state() != State.DEAD) ? PhantomBackgroundSimulationPolicy.Operation.FARM : PhantomBackgroundSimulationPolicy.Operation.TRAVEL);
 			if (nativeGate != null) { return nativeGate; }
 			if (state.state() == State.DEAD)
 			{
@@ -576,7 +580,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				{
 					return retry("competition.capacity");
 				}
-				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false));
+				final BatchResult batch = _model.evaluate(new BatchRequest(state, input.target(), input.rewardPolicy(), input.deathPolicy(), input.experienceTable(), input.levelForExperience(), false), claim._nativeContext.afterPolicy());
 				if (!batch.mutated())
 				{
 					if (batch.indivisibleObjectCap())
@@ -588,7 +592,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(state.identity(), batch.progress().level());
 				final Clock clock = new Clock(batch.nextRngState(), 0, 0);
 				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, batch.progress(), batch.vitals(), state.position(), clock, batch.inventoryDelta().itemDeltas(), autoSkills, List.of(), null, mutation);
-				return commit(claim, command).withModel(batch.encounters(), batch.elapsedMillis(), batch.dead());
+				return commit(claim, ordinaryCommand(claim, command, batch.policy())).withModel(batch.encounters(), batch.elapsedMillis(), batch.dead());
 			}
 		}
 	}
@@ -2611,6 +2615,23 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		NATIVE_REQUIRED
 	}
 
+	    private OperationResult ordinaryContextGate(OperationClaim claim, PhantomBackgroundSimulationPolicy.Operation operation)
+    {
+        final var proof = transaction(() -> _transactions.nativeContext(claim.profileId(), claim.characterObjectId()));
+        if (proof.status() != PhantomBackgroundTransaction.Status.SUCCESS && proof.status() != PhantomBackgroundTransaction.Status.NATIVE_CONTEXT_REQUIRED) { return mapTransactionFailure(proof.status()); }
+        if (!claim.state().equals(proof.state())) { return OperationResult.replan("native_context.state_changed"); }
+        if (proof.context().phase() == PhantomNativeContext.Phase.PENDING) { return retry("native_context.pending"); }
+        final boolean required = !proof.context().permits(operation, L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
+        final var delivery = updateNativeContextSignal(claim.profileId(), proof, required);
+        if (required) { return OperationResult.replan(nativeContextReason(delivery)); }
+        claim._nativeContext = proof.context();
+        return null;
+    }
+    private static PhantomBackgroundTransaction.Command ordinaryCommand(OperationClaim claim, PhantomBackgroundTransaction.Command command, PhantomBackgroundSimulationPolicy proposed)
+    {
+        if (proposed == null) { return command; }
+        return command.withPolicy(new PhantomBackgroundTransaction.PolicyMutation(claim._nativeContext, PhantomBackgroundSimulationPolicy.Operation.FARM, proposed, claim._lease));
+    }
 	private OperationResult nativeContextGate(long profileId, PhantomBackgroundState state)
 	{
 		final var proof = transaction(() -> _transactions.nativeContext(profileId, state.identity().characterObjectId()));
@@ -2776,6 +2797,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		private final long _profileId;
 		private final int _characterObjectId;
 		private final Lease _lease;
+        private PhantomNativeContext _nativeContext;
 		private final PhantomBackgroundState _state;
 		private final PhantomBackgroundGoalSpec _spec;
 		private final OperationResult _failure;

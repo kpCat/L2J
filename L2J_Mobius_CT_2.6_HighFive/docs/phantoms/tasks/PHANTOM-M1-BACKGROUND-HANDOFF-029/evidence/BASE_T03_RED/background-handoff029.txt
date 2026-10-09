@@ -1,0 +1,6 @@
+suite=background-handoff029
+seed=29002902
+total=1
+passed=0
+failed=1
+FAIL background-handoff029.before-all elapsedNanos=0 type=java.lang.AssertionError message=Goal 015 mode seed changed. Expected <15001501> but was <29002902>. seed=29002902

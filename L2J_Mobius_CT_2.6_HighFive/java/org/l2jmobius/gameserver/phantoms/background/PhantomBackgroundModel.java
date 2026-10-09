@@ -57,10 +57,15 @@ public final class PhantomBackgroundModel
 	private static final long MIN_ENCOUNTER_MILLIS = 500;
 	private static final long MAX_ENCOUNTER_MILLIS = 20_000;
 
-	public BatchResult evaluate(BatchRequest request)
+	public BatchResult evaluate(BatchRequest request) { return evaluate(request, null); }
+
+	public BatchResult evaluate(BatchRequest request, PhantomBackgroundSimulationPolicy ordinary)
 	{
 		Objects.requireNonNull(request, "request");
 		final PhantomBackgroundState state = request.state();
+        if (ordinary != null && (!ordinary.ordinaryRewards() || !ordinary.farmPosition() || ordinary.level() != state.progress().level()))
+        { return BatchResult.retry(ResultReason.UNSUPPORTED_CONTEXT, state.clock().rngState()); }
+        float points = ordinary == null ? 1 : ordinary.points();
 		if (!state.acceptsBackgroundWork())
 		{
 			return BatchResult.retry(ResultReason.STATE_NOT_READY, state.clock().rngState());
@@ -233,9 +238,16 @@ public final class PhantomBackgroundModel
 			addedSlots = inventoryCheck.addedSlots();
 			newNonStackable = inventoryCheck.newNonStackableObjects();
 
-			final Rewards rewards = calculateRewards(state.progress().level(), target, request.rewardPolicy(), state.combat());
+			final Rewards rewards = calculateRewards(state.progress().level(), target, request.rewardPolicy(), state.combat(), ordinary == null ? null : ordinary.withPoints(points, state.progress().level()));
 			experience = Math.addExact(experience, rewards.experience());
 			skillPoints = Math.addExact(skillPoints, rewards.skillPoints());
+            final int awardedLevel = request.levelForExperience().levelFor(experience);
+            if (ordinary != null && rewards.experience() > 0)
+            {
+                final long targetExp = (long) (target.baseExperience() * request.rewardPolicy().experienceRate());
+                final float delta = PhantomBackgroundRewardKernel.targetDelta((long) Math.ceil(target.maximumHp()), target.level(), targetExp, (float) target.maximumHp(), (float) target.maximumHp());
+                points = PhantomBackgroundRewardKernel.update(points, delta, ordinary);
+            }
 			final double incoming = incomingDamage(state.combat(), target, encounterMillis, random);
 			hp = Math.min(state.vitals().maximumHp(), hp + (state.combat().hpRegenPerSecond() * seconds));
 			hp = Math.max(0, hp - incoming);
@@ -250,6 +262,7 @@ public final class PhantomBackgroundModel
 				break;
 			}
 			reason = ResultReason.COMPLETED;
+            if (ordinary != null && awardedLevel != state.progress().level()) { break; }
 			if ((request.targetItemId() > 0) && (acquisitionTargetDelta >= request.maximumTargetAmount()))
 			{
 				break;
@@ -261,7 +274,7 @@ public final class PhantomBackgroundModel
 		final Vitals vitals = new Vitals(hp, state.vitals().maximumHp(), mp, state.vitals().maximumMp(), dead ? 0 : state.vitals().currentCp(), state.vitals().maximumCp());
 		deltas.values().removeIf(value -> value == 0);
 		final InventoryDelta inventoryDelta = new InventoryDelta(Map.copyOf(deltas), addedWeight, addedSlots, newNonStackable);
-		return new BatchResult(reason, encounters, elapsed, progress, vitals, inventoryDelta, Map.copyOf(groundLosses), random.state(), dead, acquisitionTargetDelta, manorSowAttempts, manorHarvestAttempts);
+		return new BatchResult(reason, encounters, elapsed, progress, vitals, inventoryDelta, Map.copyOf(groundLosses), random.state(), dead, acquisitionTargetDelta, manorSowAttempts, manorHarvestAttempts, ordinary == null ? null : ordinary.withPoints(points, nextLevel));
 	}
 
 	/** Mandatory consumption is reserved first; only ordinary pickup overflows the transaction envelope. */
@@ -315,7 +328,9 @@ public final class PhantomBackgroundModel
 		return new DropRoll(Map.copyOf(items), Map.copyOf(acquisition), roll.groundLosses(), Map.copyOf(facts));
 	}
 
-	public static Rewards calculateRewards(int actorLevel, Target target, RewardPolicy policy, CombatFacts combat)
+	public static Rewards calculateRewards(int actorLevel, Target target, RewardPolicy policy, CombatFacts combat) { return calculateRewards(actorLevel, target, policy, combat, null); }
+
+    public static Rewards calculateRewards(int actorLevel, Target target, RewardPolicy policy, CombatFacts combat, PhantomBackgroundSimulationPolicy ordinary)
 	{
 		final int levelDifference = actorLevel - target.level();
 		double experience = 0;
@@ -342,7 +357,12 @@ public final class PhantomBackgroundModel
 				skillPoints *= multiplier;
 			}
 		}
-		experience *= combat.experienceMultiplier() * (1 - combat.servitorExperienceMultiplier());
+		if (ordinary != null)
+        {
+            final var award = PhantomBackgroundRewardKernel.award(Math.round(experience), (int) skillPoints, ordinary.points(), 0, ordinary, true);
+            return new Rewards(award.experience(), award.skillPoints());
+        }
+        experience *= combat.experienceMultiplier() * (1 - combat.servitorExperienceMultiplier());
 		skillPoints *= combat.skillPointMultiplier();
 		return new Rewards(Math.max(0, Math.round(experience)), Math.max(0, (long) skillPoints));
 	}
@@ -856,8 +876,15 @@ public final class PhantomBackgroundModel
 		}
 	}
 
-	public record BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals, InventoryDelta inventoryDelta, Map<Integer, Long> groundLosses, long nextRngState, boolean dead, long acquisitionTargetDelta, int manorSowAttempts, int manorHarvestAttempts)
+	public record BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals, InventoryDelta inventoryDelta, Map<Integer, Long> groundLosses, long nextRngState, boolean dead, long acquisitionTargetDelta, int manorSowAttempts, int manorHarvestAttempts, PhantomBackgroundSimulationPolicy policy)
 	{
+        public BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals,
+            InventoryDelta inventoryDelta, Map<Integer, Long> groundLosses, long nextRngState, boolean dead,
+            long acquisitionTargetDelta, int manorSowAttempts, int manorHarvestAttempts)
+        {
+            this(reason, encounters, elapsedMillis, progress, vitals, inventoryDelta, groundLosses, nextRngState,
+                dead, acquisitionTargetDelta, manorSowAttempts, manorHarvestAttempts, null);
+        }
 		public BatchResult(ResultReason reason, int encounters, long elapsedMillis, Progress progress, Vitals vitals, InventoryDelta inventoryDelta, Map<Integer, Long> groundLosses, long nextRngState, boolean dead)
 		{
 			this(reason, encounters, elapsedMillis, progress, vitals, inventoryDelta, groundLosses, nextRngState, dead, 0, 0, 0);

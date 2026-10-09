@@ -1,0 +1,11 @@
+file	github_blob_sha	read_ranges	finding
+PhantomNativeContext.java	e906ba1f15417b8030bd159bc2be20c48089d604	full	V1 sole points1 support and receipt binds
+L2jPhantomBackgroundAuthority.java	d76860af123302b2365f00d0a4a8dfed6c006ce3	1-485;500-710;735-890;905-1305	capture/position/bonuses/travel
+PhantomBackgroundModel.java	c8667ded938a17871f28e18abee770abe2ed6051	1-345	bounded approximate loop and per-encounter reward
+PhantomBackgroundTransaction.java	e879b08bce4df8c63811aa470f885ac69c4be069	1-260;470-670	canonical scalar SQL and exact native attestation
+PlayerStat.java	c995336cba8adae9e74eb7f27985930bdf585d0d	1-255;730-1110	float vitality thresholds and ordered bonus math
+Attackable.java	e7e09d15c217625639a01a2c6c895bffdbfe7fee	460-660;1570-1850	award before consumption, target delta
+Contract028Observer.java	26229af69b8fdafce5a7642a4c2d2e96b03cdf74	200-340;500-645	selection replacement, witness snapshot/export
+RESULT.md	a99d645298003b9f436243ec7629bd33c43fe119	full	V2/legacy outcomes and unproven gates
+PERSISTENCE028_DIAGNOSIS.md	ae9a98cc1867deeb70127ee915eb740e92fd50eb	full	missing receipts and first shutdown unknown
+continuity028.py	c441ecc621dc5936ba3b2ea7f8e9f6e6f74eb164	full	actual V2 requires per-segment rewards, same epoch, no unknown/missing and tail rewards

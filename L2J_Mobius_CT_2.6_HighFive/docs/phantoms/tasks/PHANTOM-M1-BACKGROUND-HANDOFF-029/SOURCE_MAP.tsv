@@ -1,0 +1,27 @@
+mode	repo_relative_path	constraint
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomNativeContext.java	V1/V2 opcode/capsule codec and binding; no native receipt format change
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundAuthority.java	typed ordinary input/result policy compatibility overloads
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	native policy capture; validated stored-position route
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	ordinary per-encounter vitality policy; legacy unchanged
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	atomic scalar+state+reward/context commit and recovery compatibility
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	operation-aware dispatch and exclusive handoff
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	exact claim/context operation and return replan integration
+MODIFY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	bounded factual from-stored-origin plan
+NEW	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundSimulationPolicy.java	immutable policy facts/capabilities only
+NEW	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundRewardKernel.java	pure native-compatible scalar math only
+CONDITIONAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	returned actual position/fresh local plan only
+CONDITIONAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	route11 or returned native-session admission only
+CONDITIONAL_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	operation wiring or exact proven first stop028 defect only
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundPolicy029Suite.java	native scalar oracle/codec
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundHandoff029Suite.java	composed transaction/position/return
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLifetimeReceipt029Suite.java	collector native lifetime membership
+TEST_CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/gameserver/phantoms/player/PhantomM1DynamicRecipientChecks.java	route11 exact fixture correction; no weakened negatives
+TEST_CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeFarmContinuation022Suite.java	composed native base fixtures only
+TEST_CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeContextHandoffSuite.java	nativeV2 compatibility without assumed supported zero
+TEST_CONDITIONAL	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java	background scalar overload parity; retain legacy expectations
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/stat/PlayerStat.java	native vitality/bonus oracle
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Attackable.java	native reward/update ordering oracle
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java	owned native snapshot protocol
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	lifetime ownership protocol
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/	runner/observer/evidence source; no mutation of028
+WRITE_TASK	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-BACKGROUND-HANDOFF-029/	task docs/evidence; Prepare029 Control029 Observe029 Verify029 observer1 and audit package1

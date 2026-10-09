@@ -327,7 +327,7 @@ public final class PhantomBackgroundTransaction
 				writeStateOnly(connection, component, after.withState(State.VERIFY_PENDING));
 				final var nativeContext = nativeCapture == null
 					? PhantomNativeContext.completed(captured.identity(), canonical.vitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN, intent.preparedRowVersion(), pendingPayload)
-					: PhantomNativeContext.pending(captured.identity(), canonical.vitalityPoints(), previousContext == null ? PhantomNativeContext.Eligibility.UNKNOWN : previousContext.afterEligibility(), nativeCapture, intent.preparedRowVersion(), pendingPayload, epoch, intent.encode());
+					: PhantomNativeContext.pending(captured.identity(), canonical.vitalityPoints(), previousContext == null ? PhantomNativeContext.Eligibility.UNKNOWN : previousContext.afterEligibility(), nativeCapture, intent.preparedRowVersion(), pendingPayload, epoch, intent.encode(), previousContext == null ? null : previousContext.afterPolicy());
 				writeNativeContext(connection, contextComponent, nativeContext);
 				try (var statement = prepare(connection, INSERT_COMPONENT))
 				{
@@ -554,7 +554,7 @@ public final class PhantomBackgroundTransaction
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
 				}
 				writeStateOnly(connection, component, captured);
-				writeNativeContext(connection, scalar, PhantomNativeContext.completed(captured.identity(), canonical.vitalityPoints(), nativeCapture == null || normalization ? PhantomNativeContext.Eligibility.UNKNOWN : nativeCapture.eligibility(), nextVersion(component), _stateCodec.encode(captured)));
+				writeNativeContext(connection, scalar, nativeCapture == null || normalization ? PhantomNativeContext.completed(captured.identity(), canonical.vitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN, nextVersion(component), _stateCodec.encode(captured)) : PhantomNativeContext.completed(captured.identity(), nativeCapture, nextVersion(component), _stateCodec.encode(captured)));
 				_faultInjector.inject(FaultPoint.BEFORE_CAPTURE_COMMIT);
 				connection.commit();
 				return new Result(Status.SUCCESS, captured);
@@ -895,7 +895,7 @@ public final class PhantomBackgroundTransaction
 				}
 				_faultInjector.inject(FaultPoint.AFTER_BACKGROUND_LOCK);
 				final Canonical canonical = lockCanonical(connection, expected.identity());
-				requireSimulationContext(connection, component, stored, canonical);
+				requireSimulationContext(connection, component, stored, canonical, command);
 				_faultInjector.inject(FaultPoint.AFTER_CHARACTER_LOCK);
 				final Map<Integer, Integer> skillRows = lockSkills(connection, expected.identity());
 				_faultInjector.inject(FaultPoint.AFTER_SKILL_LOCKS);
@@ -924,6 +924,14 @@ public final class PhantomBackgroundTransaction
 				final ItemMutationResult itemMutation = mutateItems(connection, expected, itemRows, command.itemDeltas(), mutableItemIds, reservedIds, releasedIds, command, component, lockedGoal.component(), catchupComponent, acquisitionComponent);
 				final Vitals canonicalVitals = canonicalVitals(command.vitals());
 				mutateProgressAndVitals(connection, expected.identity(), command.progress(), canonicalVitals, command.position());
+                if (command.policy() != null)
+                {
+                    try (var statement = prepare(connection, "UPDATE characters SET vitality_points = ? WHERE charId = ?"))
+                    {
+                        statement.setInt(1, command.policy().proposedPolicy().canonicalPoints()); statement.setInt(2, expected.identity().characterObjectId());
+                        requireOne(statement.executeUpdate(), "ordinary canonical vitality update");
+                    }
+                }
 				mutateAutoGetSkills(connection, expected.identity(), skillRows, expected.autoGetSkills(), command.autoGetSkills());
 				_faultInjector.inject(FaultPoint.AFTER_CANONICAL_WRITES);
 				final InventoryFacts inventoryProjection = new InventoryFacts(mutableItemIds.stream().sorted().toList(), expected.inventory().objects(), expected.inventory().canonicalHash(), expected.inventory().currentLoad(), expected.inventory().maximumLoad(), expected.inventory().usedSlots(), expected.inventory().maximumSlots());
@@ -935,6 +943,14 @@ public final class PhantomBackgroundTransaction
 				final PhantomBackgroundState completed = expected.after(command.progress(), canonicalVitals, command.position(), nextInventory, command.autoGetSkills(), command.clock(), receipt);
 				final PhantomBackgroundState pending = completed.withState(State.VERIFY_PENDING);
 				writeComponent(connection, component, pending);
+                if (command.policy() != null)
+                {
+                    final var scalar = lockComponent(connection, expected.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE);
+                    final var policy = command.policy().proposedPolicy();
+                    final var eligibility = policy.canonicalPoints() == 1 ? PhantomNativeContext.Eligibility.SUPPORTED : PhantomNativeContext.Eligibility.VITALITY_REQUIRES_NATIVE;
+                    final var next = PhantomNativeContext.completed(expected.identity(), new PhantomNativeContext.Capture(policy.canonicalPoints(), eligibility, policy), nextVersion(component), _stateCodec.encode(pending));
+                    writeNativeContext(connection, scalar, next);
+                }
 				_faultInjector.inject(FaultPoint.AFTER_BACKGROUND_STATE_WRITE);
 				if (command.catchup() != null)
 				{
@@ -961,6 +977,7 @@ public final class PhantomBackgroundTransaction
 					}
 				}
 				_faultInjector.inject(FaultPoint.BEFORE_OPERATION_COMMIT);
+                if (command.policy() != null) { requirePolicyOwner(command.policy(), expected.identity().characterObjectId()); }
 				commitAttempted = true;
 				connection.commit();
 				for (int objectId : releasedIds)
@@ -2160,9 +2177,9 @@ public final class PhantomBackgroundTransaction
 		if (scalar == null) { return null; }
 		try
 		{
-			if ((scalar.schemaVersion() != PhantomNativeContext.SCHEMA_VERSION) || (state == null)) { throw new IllegalArgumentException("Unbound native scalar."); }
+			if ((scalar.schemaVersion() != 1 && scalar.schemaVersion() != 2) || (state == null)) { throw new IllegalArgumentException("Unbound native scalar."); }
 			final var context = PhantomNativeContext.decode(scalar.payload());
-			if (!context.binds(identity, state.rowVersion(), state.payload())) { throw new IllegalArgumentException("Stale native scalar."); }
+			if (scalar.schemaVersion() != context.schemaVersion() || !context.binds(identity, state.rowVersion(), state.payload())) { throw new IllegalArgumentException("Stale native scalar."); }
 			return context;
 		}
 		catch (RuntimeException failure) { throw new StateConflict(Status.STATE_CONFLICT); }
@@ -2175,11 +2192,11 @@ public final class PhantomBackgroundTransaction
 			try (var statement = prepare(connection, INSERT_COMPONENT))
 			{
 				statement.setLong(1, context.identity().profileId()); statement.setString(2, PhantomNativeContext.COMPONENT_TYPE);
-				statement.setInt(3, PhantomNativeContext.SCHEMA_VERSION); statement.setBytes(4, context.encode());
+				statement.setInt(3, context.schemaVersion()); statement.setBytes(4, context.encode());
 				requireOne(statement.executeUpdate(), "native scalar insert");
 			}
 		}
-		else { writeRawComponent(connection, existing, context.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE, PhantomNativeContext.SCHEMA_VERSION, context.encode()); }
+		else { writeRawComponent(connection, existing, context.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE, context.schemaVersion(), context.encode()); }
 	}
 
 	private void verifyCompletedPoints(Connection connection, LockedComponent component, PhantomBackgroundState state, Canonical canonical) throws SQLException
@@ -2191,12 +2208,46 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
-	private void requireSimulationContext(Connection connection, LockedComponent component, PhantomBackgroundState state, Canonical canonical) throws SQLException
-	{
-		final var context = boundContext(lockComponent(connection, state.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE), component, state.identity());
-		if ((context != null) && !context.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
-		if ((context == null) || !context.simulationEligible()) { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
-	}
+    private void requireSimulationContext(Connection connection, LockedComponent component, PhantomBackgroundState state, Canonical canonical, Command command) throws SQLException
+    {
+        final var context = boundContext(lockComponent(connection, state.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE), component, state.identity());
+        if (context != null && !context.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
+        if (command.policy() == null)
+        {
+            if (context == null || !context.simulationEligible()) { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
+            return;
+        }
+        final var mutation = command.policy();
+        requirePolicyOwner(mutation, state.identity().characterObjectId());
+        if (context == null || !context.equals(mutation.expectedContext()) || context.afterPolicy() == null
+            || !context.permits(mutation.operation(), L2jPhantomBackgroundAuthority.configuredSimulationFingerprint())
+            || lockComponent(connection, state.identity().profileId(), PhantomOwnedStoreIntent.COMPONENT_TYPE) != null)
+        { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
+        final var kind = command.operationKey().actionKind();
+        if (mutation.operation() == PhantomBackgroundSimulationPolicy.Operation.FARM)
+        {
+            if (kind != PhantomBackgroundOperationKey.ActionKind.FARM && kind != PhantomBackgroundOperationKey.ActionKind.HISTORICAL_FARM
+                || !state.position().equals(command.position()) || !context.afterPolicy().withPoints(mutation.proposedPolicy().points(), command.progress().level()).equals(mutation.proposedPolicy()))
+            { throw new StateConflict(Status.STATE_CONFLICT); }
+        }
+        else { throw new StateConflict(Status.NATIVE_CONTEXT_REQUIRED); }
+    }
+    private static void requirePolicyOwner(PolicyMutation mutation, int objectId)
+    {
+        final var lease = mutation.lease();
+        final var owner = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(objectId);
+        if (lease == null || lease.isClosed() || lease.objectId() != objectId
+            || lease.ownerKind() != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND
+            || owner == null || owner.token() != lease.token() || owner.ownerKind() != lease.ownerKind()
+            || org.l2jmobius.gameserver.model.World.getInstance().findObject(objectId) != null
+            || org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(objectId))
+        { throw new StateConflict(Status.STATE_CONFLICT); }
+    }
+    public record PolicyMutation(PhantomNativeContext expectedContext, PhantomBackgroundSimulationPolicy.Operation operation,
+        PhantomBackgroundSimulationPolicy proposedPolicy, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.Lease lease)
+    {
+        public PolicyMutation { Objects.requireNonNull(expectedContext); Objects.requireNonNull(operation); Objects.requireNonNull(proposedPolicy); Objects.requireNonNull(lease); }
+    }
 
 	private static void writeRawComponent(Connection connection, LockedComponent existing, long profileId, String componentType, int schemaVersion, byte[] payload) throws SQLException
 	{
@@ -2500,8 +2551,12 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
-	public record Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills, List<Integer> additionalMutableItemIds, AcquisitionMutation acquisition, CatchupMutation catchup)
+	public record Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills, List<Integer> additionalMutableItemIds, AcquisitionMutation acquisition, CatchupMutation catchup, PolicyMutation policy)
 	{
+        public Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills, List<Integer> additionalMutableItemIds, AcquisitionMutation acquisition, CatchupMutation catchup)
+        { this(expectedState, goal, operationKey, progress, vitals, position, clock, itemDeltas, autoGetSkills, additionalMutableItemIds, acquisition, catchup, null); }
+        public Command withPolicy(PolicyMutation mutation)
+        { return new Command(expectedState, goal, operationKey, progress, vitals, position, clock, itemDeltas, autoGetSkills, additionalMutableItemIds, acquisition, catchup, mutation); }
 		public Command(PhantomBackgroundState expectedState, PhantomGoal goal, PhantomBackgroundOperationKey operationKey, Progress progress, Vitals vitals, Position position, Clock clock, Map<Integer, Long> itemDeltas, List<AutoGetSkill> autoGetSkills, List<Integer> additionalMutableItemIds, AcquisitionMutation acquisition)
 		{
 			this(expectedState, goal, operationKey, progress, vitals, position, clock, itemDeltas, autoGetSkills, additionalMutableItemIds, acquisition, null);

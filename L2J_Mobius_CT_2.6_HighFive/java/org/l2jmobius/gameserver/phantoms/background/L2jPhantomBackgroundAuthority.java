@@ -1153,13 +1153,33 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		requireSupportedPlayer(player, false);
 	}
 
+    public static String configuredSimulationFingerprint()
+    {
+        return digest("ORDINARY_SCALAR_V1", PlayerConfig.ENABLE_VITALITY, PlayerConfig.MAX_BONUS_EXP,
+            PlayerConfig.MAX_BONUS_SP, RatesConfig.RATE_VITALITY_GAIN, RatesConfig.RATE_VITALITY_LOST,
+            RatesConfig.RATE_VITALITY_LEVEL_1, RatesConfig.RATE_VITALITY_LEVEL_2,
+            RatesConfig.RATE_VITALITY_LEVEL_3, RatesConfig.RATE_VITALITY_LEVEL_4,
+            RatesConfig.RATE_XP, RatesConfig.RATE_SP, RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE,
+            DynamicExpRateData.getInstance().isEnabled());
+    }
 	private static PhantomNativeContext.Capture nativeContext(Player player)
 	{
 		final int points = player.getVitalityPoints();
 		final int consume = (int) player.getStat().calcStat(Stat.VITALITY_CONSUME_RATE, 1, player, null);
 		final boolean ordinaryPolicy = !PlayerConfig.ENABLE_VITALITY || ((consume == 1) && !player.getNevitSystem().isAdventBlessingActive());
-		return new PhantomNativeContext.Capture(points, (points == 1) && ordinaryPolicy
-			? PhantomNativeContext.Eligibility.SUPPORTED : PhantomNativeContext.Eligibility.VITALITY_REQUIRES_NATIVE);
+        final boolean staticEffects = player.getEffectList().getEffects().stream().allMatch(info -> info.getSkill().isPassive());
+        final boolean rewards = !player.hasPremiumStatus() && !player.isInParty() && !player.hasSummon()
+            && !player.getNevitSystem().isAdventBlessingActive() && player.getNevitHourglassMultiplier() == 1 && staticEffects
+            && !DynamicExpRateData.getInstance().isEnabled() && player.getStat().calcStat(Stat.EXPSP_RATE, 1, null, null) == 1;
+        final var policy = new PhantomBackgroundSimulationPolicy(1, player.getLevel(), points, points,
+            rewards, false, player.getInstanceId() == 0, PlayerConfig.ENABLE_VITALITY, player.isLucky(), consume,
+            RatesConfig.RATE_VITALITY_GAIN, RatesConfig.RATE_VITALITY_LOST,
+            RatesConfig.RATE_VITALITY_LEVEL_1, RatesConfig.RATE_VITALITY_LEVEL_2,
+            RatesConfig.RATE_VITALITY_LEVEL_3, RatesConfig.RATE_VITALITY_LEVEL_4,
+            player.getStat().calcStat(Stat.BONUS_EXP, 0, null, null), player.getStat().calcStat(Stat.BONUS_SP, 0, null, null),
+            PlayerConfig.MAX_BONUS_EXP, PlayerConfig.MAX_BONUS_SP, configuredSimulationFingerprint());
+        return new PhantomNativeContext.Capture(points, (points == 1) && ordinaryPolicy
+            ? PhantomNativeContext.Eligibility.SUPPORTED : PhantomNativeContext.Eligibility.VITALITY_REQUIRES_NATIVE, policy);
 	}
 
 	@Override
@@ -1177,8 +1197,10 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final var topology = _topology.get();
 		final var anchor = topology.findAnchor(captured.position().committedAnchorId()).orElseThrow(() -> new IllegalArgumentException("Native context anchor is absent."));
 		final var vitality = nativeContext(player);
-		return livePositionAllowed(topology, player, anchor) ? vitality
-			: new PhantomNativeContext.Capture(vitality.vitalityPoints(), PhantomNativeContext.Eligibility.POSITION_REQUIRES_NATIVE);
+        final boolean farmPosition = livePositionAllowed(topology, player, anchor);
+        return new PhantomNativeContext.Capture(vitality.vitalityPoints(), farmPosition ? vitality.eligibility()
+            : PhantomNativeContext.Eligibility.POSITION_REQUIRES_NATIVE,
+            vitality.policy().withPosition(farmPosition, captured.position().instanceId() == 0));
 	}
 
 	private static void requireSupportedPlayer(Player player, boolean nativePersistence)

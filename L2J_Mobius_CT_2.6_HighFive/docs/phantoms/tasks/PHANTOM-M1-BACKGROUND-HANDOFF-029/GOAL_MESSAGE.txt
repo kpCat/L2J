@@ -1,0 +1,48 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-BACKGROUND-HANDOFF-029/GOAL.md.
+
+Required base:
+2b9496c935748803f8505c472bf4085977fb04d2
+Branch: experiment/m1-candidate007-observe008
+
+GPT-6.1 Sol, reasoning Very High. Новый диалог, без субагентов.
+Одобряю ограниченные TASK/DESIGN/PLAN/SOURCE_MAP/SCENARIOS этого пакета.
+Автономно до360мин; без «в игре», arm и повторного согласования фаз.
+
+Цель: native farm → natural release → настоящий background farm
+с обычной vitality/actual XYZ → return → farm всей группы → сохранение/restart.
+Это НЕ новый AI/combat engine и не повтор расследования закрытого027 lifecycle.
+
+Protected scope PNC/model/authority/transaction разрешён именно для этого
+совместимого operation-specific контракта и native scalar parity.
+Не просто снять points==1 и не уменьшать vitality вручную.
+PNC1/old pending receipts должны продолжать читаться и восстанавливаться.
+Расширение PNC V2 — внутри existing component table; SQL schema и native owned
+receipt формат/защиты не менять. Политика FARM/TRAVEL не зависит от ID бота/моба.
+
+Receipt enrollment — union всех настоящих lifetimes, отдельно от текущей telemetry.
+Новые witnesses не заменяют упущенные872/1272 задним числом.
+Whole returned cohort, не primaries-only. V2/legacy evaluator028 не ослаблять.
+Route11 regression и first shutdown failure не списывать без root evidence.
+
+Несколько связанных in-scope fixes разрешены, каждый после собственного RED.
+Первый full-server probe до90мин; к180мин actual background attempt.
+После270мин semantic freeze, последние90мин acceptance/cleanup.
+
+Own worktree:
+C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius
+Свободный suffix/detached exact base разрешены.
+Main/foreign/kpCat не трогать. PLAY/old clones только READ/export.
+Own contract029a..h и их start/graceful stop разрешены по TASK/RUNBOOK.
+Две exact planned crash lanes разрешены после controlled save при REALcount0,
+по COMPATIBILITY; emergency own-only force не считается cleanupPASS.
+
+Existing Synthetic + full GameServer/stock NPC/AutoPlay/AutoUse.
+TTL525/watchdog30/sequence400 без увеличения. Не fake REAL_LOGIN.
+Две final scenes360–420с на одном frozenSHA, actual productive background commit,
+whole-return и полная terminal/receipt lineage, два actual sameDB restart.
+
+Exact-path commit + normal push обязательны при любом исходе.
+Один RESULT/HANDOFF/MORNING. Свои JVM STOPPED.
+STOP_AUTHORITY=TASK029_CONTRACT. M1=OPEN, максимум WAITING_FINAL_CLIENT
+только при всех server gates. REAL_FINAL без пользователя не объявлять.
+Следующую задачу автоматически не начинать.

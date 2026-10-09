@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="m1-native-lifecycle" seed="15001501" tests="3" passed="3" failures="0">
+  <properties>
+  </properties>
+  <testcase name="m1-native-lifecycle.Q14-native-context-exact-load-witness-contract" elapsedNanos="20462100"></testcase>
+  <testcase name="m1-native-lifecycle.Q14-native-context-pending-zero-native-points-contract" elapsedNanos="13198900"></testcase>
+  <testcase name="m1-native-lifecycle.Q14-native-context-unknown-exact-binding-contract" elapsedNanos="1820100"></testcase>
+</testsuite>

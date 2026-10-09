@@ -1,0 +1,4 @@
+[PASS] m1-native-lifecycle.Q14-native-context-exact-load-witness-contract
+[FAIL] m1-native-lifecycle.Q14-native-context-pending-zero-native-points-contract - java.lang.IllegalArgumentException: Invalid attested native vitality capture. seed=15001501
+[PASS] m1-native-lifecycle.Q14-native-context-unknown-exact-binding-contract
+SUMMARY: suite=m1-native-lifecycle seed=15001501 total=3 passed=2 failed=1
