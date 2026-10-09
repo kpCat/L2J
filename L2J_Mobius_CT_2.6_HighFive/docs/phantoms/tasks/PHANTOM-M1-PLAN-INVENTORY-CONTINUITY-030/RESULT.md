@@ -80,3 +80,5 @@ FINISH_DEPENDENCIES PENDING then DONE/COMPLETE. Game25008/Login25360 stock STOPP
 Retained finalC7 restart1 stderr line262 establishes exact HISTORICAL_FARM producer:
 item118 delta8, EXECUTE_NON_MUTABLE_ID, DURABLE_MATCH_GUARD_PASSED; before observer attach.
 This does not establish the initial C7 first producer or every cohort0 member's cause.
+
+C5 focused evidence extends the same native133-lifetime case with an actual temporary checkpoint (E05), sampled buffer highwater/final drain bytes and fixed disk budget measurements. Production and collector semantics remain C4; no additional product producer change.

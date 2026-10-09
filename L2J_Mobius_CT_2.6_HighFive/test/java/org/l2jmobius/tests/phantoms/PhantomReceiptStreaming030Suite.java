@@ -36,7 +36,7 @@ public final class PhantomReceiptStreaming030Suite implements PhantomTestSuite
         open.setAccessible(true);
         var output = context.moduleRoot().resolve("docs/phantoms/tasks/PHANTOM-M1-PLAN-INVENTORY-CONTINUITY-030/evidence/NATIVE_STREAM_" + System.nanoTime());
         attach(context, output);
-        int released = 0, highwater = 0;
+        int released = 0, highwater = 0; long sampledBufferHighwater = 0;
         for (int i = 0; i < 130; i++)
         {
             if (i == 30) { attach(context, output.resolve("rotated-telemetry")); }
@@ -44,9 +44,27 @@ public final class PhantomReceiptStreaming030Suite implements PhantomTestSuite
             {
                 long id = (long) invoke(fixture, "id");
                 var materialization = (PhantomMaterializationService) field(fixture, "materialization");
+                if (i == 0)
+                {
+                    var owner = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) ((Player) invoke(fixture, "player")).getNativeWorkOwner();
+                    owner.checkpoint(() ->
+                    {
+                        try { call("sampleTerminals"); call("drain"); PhantomAssertions.assertTrue(owners().containsValue(owner), "Actual temporary SEALED owner must remain enrolled."); }
+                        catch (Exception failure) { throw new IllegalStateException(failure); }
+                        try
+                        {
+                            var terminal = observer().getDeclaredField("TERMINAL"); terminal.setAccessible(true);
+                            PhantomAssertions.assertEquals(0, ((java.util.Set<?>) terminal.get(null)).size(), "Actual temporary checkpoint cannot create a terminal export.");
+                        }
+                        catch (Exception failure) { throw new IllegalStateException(failure); }
+                        return null;
+                    });
+                    context.record("E05.actualTemporaryCheckpoint", "NOT_TERMINAL_OWNER_RETAINED");
+                }
                 var outcome = materialization.dematerialize(id);
                 PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, outcome.status(), "Passive collector failure must not change actual native store/release.");
                 released++; highwater = Math.max(highwater, owners().size());
+                sampledBufferHighwater = Math.max(sampledBufferHighwater, counter("BUFFER_BYTES"));
                 if (i == 0)
                 {
                     call("sampleTerminals"); call("drain");
@@ -59,7 +77,8 @@ public final class PhantomReceiptStreaming030Suite implements PhantomTestSuite
                     {
                         PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Same actual profile rematerializes at a new native epoch.");
                         PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Same-profile next epoch has its own actual terminal receipt.");
-                        released++; highwater = Math.max(highwater, owners().size()); call("sampleTerminals"); call("drain");
+                        released++; highwater = Math.max(highwater, owners().size());
+                sampledBufferHighwater = Math.max(sampledBufferHighwater, counter("BUFFER_BYTES")); call("sampleTerminals"); call("drain");
                     }
                 }
             }
@@ -70,6 +89,11 @@ public final class PhantomReceiptStreaming030Suite implements PhantomTestSuite
         call("finishStream");
         context.record("E.nativeReleases", Integer.toString(released));
         context.record("E.activeReferenceHighwater", Integer.toString(highwater));
+        context.record("E.sampledBufferHighwaterBytes", Long.toString(sampledBufferHighwater));
+        context.record("E.finalBufferBytes", Long.toString(counter("BUFFER_BYTES")));
+        context.record("E.reservedDiskBytes", Long.toString(counter("DISK_BYTES")));
+        PhantomAssertions.assertEquals(0L, counter("BUFFER_BYTES"), "Confirmed export must drain all bounded buffer bytes.");
+        PhantomAssertions.assertTrue(sampledBufferHighwater <= 16 * 1024 * 1024 && counter("DISK_BYTES") <= 512L * 1024 * 1024, "Actual streaming bytes remain within fixed memory/disk budgets.");
         context.record("E.collectorFailure", failure());
         context.record("E.actualOutput", output.toString());
         PhantomAssertions.assertEquals("", failure(), "Collector must support cumulative births independently of simultaneous active scopes.");
@@ -154,6 +178,11 @@ public final class PhantomReceiptStreaming030Suite implements PhantomTestSuite
         try (var writer = Files.newBufferedWriter(file)) { spec.store(writer, "Actual owned native test process"); }
         var method = observer().getDeclaredMethod("agentmain", String.class, java.lang.instrument.Instrumentation.class);
         try { method.invoke(null, file.toString(), null); } catch (java.lang.reflect.InvocationTargetException failure) { throw new AssertionError("Observer attach: " + failure.getCause(), failure.getCause()); }
+    }
+    private static long counter(String name) throws Exception
+    {
+        var value = observer().getDeclaredField(name); value.setAccessible(true);
+        return ((java.util.concurrent.atomic.AtomicLong) value.get(null)).get();
     }
     private static Class<?> observer() throws Exception { return Class.forName("Contract030Observer"); }
     private static java.util.Map<?, ?> owners() throws Exception
