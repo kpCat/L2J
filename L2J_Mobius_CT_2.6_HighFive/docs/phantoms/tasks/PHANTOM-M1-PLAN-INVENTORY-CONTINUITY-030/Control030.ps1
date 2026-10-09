@@ -202,7 +202,7 @@ switch($Action){
         if((Get-FileHash $agent030).Hash -cne $build030.jarSha256){throw 'Startup collector JAR changed.'}
         $capture030=Join-Path $PSScriptRoot ('evidence/STARTUP030'+$Episode+'-'+[guid]::NewGuid().ToString('N'))
         $spec030=Join-Path (Split-Path $runtime030 -Parent) ('startup-'+[guid]::NewGuid().ToString('N')+'.properties')
-        $lines030=@('runtime='+$runtime030.Replace('\','/'),'output='+$capture030.Replace('\','/'),'owner=TASK030_CONTRACT','mode=STARTUP','profile.275=0','codeSha='+$ExpectedSha)
+        $lines030=@(('runtime='+$runtime030.Replace('\','/')),('output='+$capture030.Replace('\','/')),'owner=TASK030_CONTRACT','mode=STARTUP','profile.275=0',('codeSha='+$ExpectedSha))
         [IO.File]::WriteAllLines($spec030,$lines030,[Text.UTF8Encoding]::new($false))
         $cfg030=Join-Path $runtime030 'game/java.cfg'
         $options030=[IO.File]::ReadAllText($cfg030) -replace '(?m)\s*-javaagent:\S+',''

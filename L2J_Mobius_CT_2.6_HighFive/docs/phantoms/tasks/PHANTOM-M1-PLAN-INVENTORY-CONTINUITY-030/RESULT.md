@@ -56,3 +56,9 @@ Development tests used own TEST lane with current compiled sources and baseline 
 final source-pinned verification is still required after candidate commit/runtime update.
 Planned premain capture and global current-position cluster census compiled/parsed.
 No final scene gate passed yet. Current code is a candidate, M1 remains OPEN.
+
+C1_START030C: launcher setup RED. Startup spec array concatenated to one line, so
+premain refused before GameServer started. Launcher stopped exact LoginServer2340;
+GameServer ALREADY_STOPPED. This is observer binding failure, not gameplay/receipt proof.
+Corrected exact Control030 startup array; own contract030c DB preserved for next launch.
+First normal publication: 42b6b44ca49604a19d1d2335add4859a5f3efc47; remote verified equal.
