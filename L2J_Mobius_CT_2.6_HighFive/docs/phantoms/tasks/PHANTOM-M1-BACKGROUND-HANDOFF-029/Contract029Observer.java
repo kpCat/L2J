@@ -325,6 +325,7 @@ public final class Contract029Observer
         if (!installed)
         {
             field(PhantomNativeWorkScope.class, "_checkpointObserver").set(null, (BiConsumer<Player, String>) Contract029Observer::observe);
+            field(PhantomBackgroundService.class, "_commitObserver").set(null, (BiConsumer<PhantomBackgroundTransaction.Command, PhantomBackgroundTransaction.Result>) Contract029Observer::backgroundCommit);
             final Thread exporter = new Thread(() ->
             {
                 while (true)
@@ -344,6 +345,45 @@ public final class Contract029Observer
         }
         write(output.resolve("observer-installed-" + System.nanoTime() + ".properties"), "owner=TASK029_CONTRACT\nmode=" + mode + "\npid=" + ProcessHandle.current().pid() + "\ncodeSha=" + selection.sha() + "\nringCapacity=32\nexactArgument=true\n");
         if (mode.equals("FULL_OBSERVE")) { sampleFullCohort(); }
+    }
+    private static final Map<String, String> BACKGROUND_EDGES = new java.util.concurrent.ConcurrentHashMap<>();
+    private static void backgroundCommit(PhantomBackgroundTransaction.Command command, PhantomBackgroundTransaction.Result result)
+    {
+        try
+        {
+            final var chosen = selection; final var policy = command.policy();
+            final long profile = command.expectedState().identity().profileId();
+            if (chosen == null || policy == null || RECEIPT_OWNERS.keySet().stream().noneMatch(key -> key.profileId() == profile)) { return; }
+            final var lease = policy.lease(); final int object = command.expectedState().identity().characterObjectId();
+            final var owner = org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerSnapshot(object);
+            if (!result.successful() || result.state() == null || lease.isClosed() || owner == null || owner.token() != lease.token()
+                || owner.ownerKind() != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.BACKGROUND
+                || World.getInstance().findObject(object) != null || !result.state().receipt().operationKey().equals(command.operationKey().digest()))
+            { throw new IllegalStateException("TASK029_BACKGROUND_BOUNDARY"); }
+            final var codec = new PhantomBackgroundStateCodec();
+            final byte[] before = codec.encode(command.expectedState()), after = codec.encode(result.state());
+            final String digest = PhantomBackgroundTransaction.payloadDigest(after), operation = command.operationKey().digest();
+            final String previous = BACKGROUND_EDGES.putIfAbsent(operation, digest);
+            if (previous != null)
+            {
+                if (!previous.equals(digest)) { throw new IllegalStateException("TASK029_BACKGROUND_EDGE_CONFLICT"); }
+                return;
+            }
+            if (BACKGROUND_EDGES.size() > 4096) { throw new IllegalStateException("TASK029_BACKGROUND_EDGE_CAPACITY"); }
+            final boolean replay = command.expectedState().receipt().operationKey().equals(operation);
+            final var text = new StringBuilder("kind=" + (replay ? "BACKGROUND_REPLAY" : "BACKGROUND_COMMIT") + "\nsource=verified-typed-operation\ncodeSha=" + chosen.sha() + "\n");
+            put(text, "profileId", profile); put(text, "objectId", object); put(text, "hookNanos", System.nanoTime());
+            put(text, "operationKey", operation); put(text, "actionKind", command.operationKey().actionKind()); put(text, "ownerKind", owner.ownerKind()); put(text, "leaseToken", lease.token());
+            put(text, "worldPresent", false); put(text, "beforeRowVersion", policy.expectedContext().stateRowVersion());
+            put(text, "beforePayloadSha256", PhantomBackgroundTransaction.payloadDigest(before)); put(text, "afterPayloadSha256", digest);
+            put(text, "beforePayloadHex", java.util.HexFormat.of().formatHex(before)); put(text, "afterPayloadHex", java.util.HexFormat.of().formatHex(after));
+            put(text, "expectedContextHex", java.util.HexFormat.of().formatHex(policy.expectedContext().encode()));
+            put(text, "afterPolicy", policy.proposedPolicy()); put(text, "beforeExp", command.expectedState().progress().experience()); put(text, "afterExp", result.state().progress().experience());
+            put(text, "beforeSp", command.expectedState().progress().skillPoints()); put(text, "afterSp", result.state().progress().skillPoints());
+            put(text, "beforeVitality", policy.expectedContext().afterPoints()); put(text, "afterVitality", policy.proposedPolicy().canonicalPoints());
+            enqueue(new Witness(chosen.output().resolve(profile + "-bg-" + operation + ".properties"), text.toString()));
+        }
+        catch (Throwable failure) { exporterFailure = "TASK029_BACKGROUND_OBSERVER:" + failure; }
     }
     private static void sampleLifecycle() throws Exception
     {

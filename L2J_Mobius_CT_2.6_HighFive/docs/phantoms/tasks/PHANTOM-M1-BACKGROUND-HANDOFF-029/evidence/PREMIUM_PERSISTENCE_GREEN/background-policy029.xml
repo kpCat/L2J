@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="background-policy029" seed="29002901" tests="3" passed="3" failures="0">
+  <properties>
+    <property name="B01.base.capture" value="Capture[vitalityPoints=16361, eligibility=VITALITY_REQUIRES_NATIVE, policy=PhantomBackgroundSimulationPolicy[algorithmVersion=2, level=1, canonicalPoints=16361, points=16361.0, ordinaryRewards=true, farmPosition=false, travelPosition=true, vitalityEnabled=true, lucky=true, consumeStat=1, gainRate=5.0, lostRate=0.4000000059604645, level1Rate=2.5, level2Rate=3.5, level3Rate=4.5, level4Rate=6.0, bonusExpPercent=0.0, bonusSpPercent=0.0, maxExpBonus=10.0, maxSpBonus=10.0, rulesFingerprint=4f5349f146781d19b03800f9f7cf108ac0049d69120157b1415e56fad68e848e, runSpeed=126.50000000000001, maximumBatchMillis=60000, unsupportedFacts=0]]"/>
+    <property name="B02.native.1" value="PASS6 native encounters; finalFloat=1.0"/>
+    <property name="B02.native.13000" value="PASS6 native encounters; finalFloat=10816.668"/>
+    <property name="B02.native.13001" value="PASS6 native encounters; finalFloat=10817.668"/>
+    <property name="B02.native.16361" value="PASS6 native encounters; finalFloat=14177.668"/>
+    <property name="B02.native.17000" value="PASS6 native encounters; finalFloat=14816.668"/>
+    <property name="B02.native.17001" value="PASS6 native encounters; finalFloat=14817.668"/>
+    <property name="B02.native.2000" value="PASS6 native encounters; finalFloat=1.0"/>
+    <property name="B02.native.20000" value="PASS6 native encounters; finalFloat=17816.668"/>
+    <property name="B02.native.2001" value="PASS6 native encounters; finalFloat=1.0"/>
+    <property name="B02.native.240" value="PASS6 native encounters; finalFloat=1.0"/>
+    <property name="B02.native.241" value="PASS6 native encounters; finalFloat=1.0"/>
+    <property name="B02.native.421" value="PASS6 native encounters; finalFloat=1.0"/>
+    <property name="B05.partyCapture" value="Capture[vitalityPoints=17816, eligibility=VITALITY_REQUIRES_NATIVE, policy=PhantomBackgroundSimulationPolicy[algorithmVersion=2, level=11, canonicalPoints=17816, points=17816.0, ordinaryRewards=false, farmPosition=false, travelPosition=true, vitalityEnabled=true, lucky=false, consumeStat=1, gainRate=5.0, lostRate=0.4000000059604645, level1Rate=2.5, level2Rate=3.5, level3Rate=4.5, level4Rate=6.0, bonusExpPercent=0.0, bonusSpPercent=0.0, maxExpBonus=10.0, maxSpBonus=10.0, rulesFingerprint=4f5349f146781d19b03800f9f7cf108ac0049d69120157b1415e56fad68e848e, runSpeed=126.50000000000001, maximumBatchMillis=60000, unsupportedFacts=2]]"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract029a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="background-policy029.B01-ordinary-native-non1-farm-policy" elapsedNanos="56059800"></testcase>
+  <testcase name="background-policy029.B02-native-scalar-threshold-and-float-oracle" elapsedNanos="48449700"></testcase>
+  <testcase name="background-policy029.B05-unsupported-party-keeps-native-persistence" elapsedNanos="18844200"></testcase>
+</testsuite>

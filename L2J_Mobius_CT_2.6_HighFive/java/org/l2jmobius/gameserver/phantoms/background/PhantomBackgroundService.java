@@ -109,6 +109,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public static final long NATIVE_CONTEXT_SIGNAL_TTL_MILLIS = 60_000;
 	// Optional exact-argument test observer. Transactions have returned; absent-Player ownership still fences admission.
 	private static volatile BiConsumer<Long, PhantomBackgroundState> _recoveryObserver;
+    private static volatile BiConsumer<PhantomBackgroundTransaction.Command, PhantomBackgroundTransaction.Result> _commitObserver;
 
 	private final PhantomProfileRepository _profiles;
 	private final PhantomGoalStateStore _goals;
@@ -2426,12 +2427,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				_failedOperations.incrementAndGet();
 				return OperationResult.inconsistent("transaction.idempotent_unverified");
 			}
+			observeCommittedOperation(command, verified);
 			publishPosition(claim.profileId(), verified);
 			_idempotentOperations.incrementAndGet();
 			return OperationResult.idempotent("transaction.idempotent");
 		}
 		if (result.status() == PhantomBackgroundTransaction.Status.SUCCESS)
 		{
+			observeCommittedOperation(command, result);
 			publishPosition(claim.profileId(), result);
 			_completedOperations.incrementAndGet();
 			return OperationResult.success("transaction.committed");
@@ -2443,6 +2446,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		}
 		return failure;
 	}
+
+    private static void observeCommittedOperation(PhantomBackgroundTransaction.Command command, PhantomBackgroundTransaction.Result result)
+    {
+        final var observer = _commitObserver;
+        if (observer != null && command.policy() != null && exactOperationVerified(command, result))
+        {
+            try { observer.accept(command, result); }
+            catch (Throwable ignored) { /* Observation cannot alter an already verified durable operation. */ }
+        }
+    }
 
 	private static boolean exactOperationVerified(PhantomBackgroundTransaction.Command command, PhantomBackgroundTransaction.Result result)
 	{

@@ -1284,7 +1284,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		else if (player.isInCombat()) { reason = "combat"; }
 		else if (player.isCombatFlagEquipped()) { reason = "combatFlag"; }
 		else if (player.isGM()) { reason = "gm"; }
-		else if (player.hasPremiumStatus()) { reason = "premium"; }
+		else if (player.hasPremiumStatus() && !nativePersistence) { reason = "premium"; }
 		else if (player.isOnEvent()) { reason = "event"; }
 		else if (player.isFestivalParticipant()) { reason = "festival"; }
 		else if (player.getKarma() != 0) { reason = "karma"; }

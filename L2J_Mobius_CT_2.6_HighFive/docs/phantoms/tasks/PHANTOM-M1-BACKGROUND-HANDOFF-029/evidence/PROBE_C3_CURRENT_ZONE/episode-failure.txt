@@ -1,0 +1,7 @@
+Exception: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-BACKGROUND-HANDOFF-029\Observe029.ps1:41
+Line |
+  41 |  … ACCEPTED')){throw "CONTROL_REJECTED:$($result.status):$($result.reaso …
+     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | CONTROL_REJECTED:REJECTED:INVALID_ARGUMENT
+
+

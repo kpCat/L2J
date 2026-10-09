@@ -50,3 +50,21 @@ native actions и bounded lifecycle — переиспользовать. Бон
 - B_R2_STOP: Game/Login graceful exit и отсутствие listeners подтверждены. Login attach
   получил Premature EOF при выходе и оставил native exit1. Это диагностика helper,
   не доказательство first shutdown028; старый U1 остаётся UNKNOWN.
+
+## Доказательства candidate C4
+- PREMIUM_PERSISTENCE_RED: native capture отклонял premium вместо сохранения с unsupported
+  policy facts. Native persistence теперь сохраняет его; ordinary background reward запрещён.
+  PREMIUM_PERSISTENCE_GREEN:3/3. B05 party также сохраняется без ordinary permission.
+- P04_EDGE_RED: actual productive typed farm не публиковал независимый operation witness.
+  Commit observer добавлен после SQL success/exact resolution, до освобождения BACKGROUND lease.
+  P04_EDGE_GREEN:4/4; P04_OBSERVER_UNION_GREEN:1/1. Hook только bounded enqueue, без FS/SQL.
+- NATIVE_CONTROLS_RED_OR_GREEN: fixture применял passive rune через applyEffects и получил0.
+  Creature.addSkill подтверждает штатную установку stat funcs; исправлен только fixture.
+  NATIVE_CONTROLS_NATIVE_SKILL:4/4, реальные EXP30/SP50, caps, disabled/zero/use=false,
+  native consume0/negative, повторный float carry и clamps. Пороговые проверки не снижены.
+- ACTUAL_AWAY_C3: NATURAL_COHORT_COUNT0 до отхода. C3_PRE_SCENE и readonly PLAY export
+  доказывают, что startup background уже переместил группу из Elf area в current farm areas
+  и изменил XP/vitality. Это не доказанный F03: commit observer тогда ещё отсутствовал.
+  DRY_C3_APPROACH отклонён water bounds; MOVE не запускался. PROBE_C3_CURRENT_ZONE отклонён
+  INVALID_ARGUMENT (setup не передал instanceId); teleport к далёкой группе не выполнялся.
+  Старые U1/U2 и пропуски872/1272 остаются UNKNOWN/UNPROVEN.

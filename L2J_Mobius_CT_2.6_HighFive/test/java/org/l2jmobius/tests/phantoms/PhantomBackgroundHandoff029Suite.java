@@ -174,6 +174,9 @@ public final class PhantomBackgroundHandoff029Suite implements PhantomTestSuite
                 context.record("T03.release", released.toString());
                 PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, released.status(), "Actual native store/release.");
                 final var before = transaction.load(id).state();
+                final var observed = new java.util.concurrent.atomic.AtomicInteger();
+                try (var observation = observeCommits(context, observed))
+                {
                 final var result = background.farm(id, goal, 1, 1, PhantomActivityState.BACKGROUND, System.nanoTime());
                 context.record("T03.farm", result.toString());
                 PhantomAssertions.assertTrue(result.successful(), "Non1 ordinary native release must commit productive background FARM: " + result);
@@ -182,12 +185,27 @@ public final class PhantomBackgroundHandoff029Suite implements PhantomTestSuite
                 final var proof = transaction.nativeContext(id, player.getObjectId());
                 context.record("T03.policy", proof.toString());
                 PhantomAssertions.assertTrue(proof.context().afterPoints() < 16361, "Native-compatible background vitality consumption.");
+                PhantomAssertions.assertEquals(1, observed.get(), "P04 exact productive background edge must be observable at the verified operation boundary, not inferred from late SQL.");
+                }
             }
         });
     }
         private static void assign(Object target, String name, Object value) throws Exception
     {
         final var field = target.getClass().getDeclaredField(name); field.setAccessible(true); field.set(target, value);
+    }
+    private static AutoCloseable observeCommits(PhantomTestContext context, java.util.concurrent.atomic.AtomicInteger count) throws Exception
+    {
+        final java.lang.reflect.Field observer;
+        try { observer = PhantomBackgroundService.class.getDeclaredField("_commitObserver"); }
+        catch (NoSuchFieldException missing) { context.record("P04.existingProducer", "ABSENT"); return () -> { }; }
+        observer.setAccessible(true);
+        observer.set(null, (java.util.function.BiConsumer<PhantomBackgroundTransaction.Command, PhantomBackgroundTransaction.Result>) (command, result) ->
+        {
+            PhantomAssertions.assertTrue(result.successful() && result.state().receipt().operationKey().equals(command.operationKey().digest()), "Exact committed operation observer.");
+            count.incrementAndGet();
+        });
+        return () -> observer.set(null, null);
     }
     private static Object field(Object target, String name) throws Exception
     {
