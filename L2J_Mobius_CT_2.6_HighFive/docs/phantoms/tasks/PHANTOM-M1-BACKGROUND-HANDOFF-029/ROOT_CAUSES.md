@@ -34,3 +34,19 @@ U5. Legacy027 EVENT24354 first delayed executor-entry cause остаётся UNK
 capability + точная передача состояния и полный lifetime proof. Existing farming,
 native actions и bounded lifecycle — переиспользовать. Бонусы/position должны быть
 входными данными модели, а не специальным разрешением для633/759 либо Келтиров.
+
+## Доказательства candidate C3
+- EXACT_REPLY_RED: rollback с потерянным ответом принимался как SUCCESS по старому receipt.
+  Исправление commit() сверяет identity и точный operationKey; committed reply-loss даёт
+  IDEMPOTENT, unchanged prestate даёт RETRY. EXACT_REPLY_GREEN:4/4, реальная SQL/lease race.
+- P05_REGISTER_RED: отрицательный profile создавал обязательство. Теперь positive identity
+  и conflicting duplicate проверяются до регистрации; bounded32/128 без eviction.
+- P02_TERMINAL_RED: отсутствующий published work sample ошибочно считался ненулевым.
+  Повтор с именами штатных counters опроверг эту модель. Terminal sampler вне hooks
+  теперь читает actual outstanding()/pendingTimers() после DETACHED+permanent.
+  P02_NATIVE_COUNT_GREEN подтверждает temporary SEALED не terminal и отдельную new epoch.
+- FIRST_ACTUAL_AWAY_R2 остановлен на NATURAL_COHORT_COUNT0 до отхода; F03 НЕ выполнен.
+  R2_EMPTY_CENSUS фиксирует ecology_fenced и незавершённые catchup; root пока не установлен.
+- B_R2_STOP: Game/Login graceful exit и отсутствие listeners подтверждены. Login attach
+  получил Premature EOF при выходе и оставил native exit1. Это диагностика helper,
+  не доказательство first shutdown028; старый U1 остаётся UNKNOWN.

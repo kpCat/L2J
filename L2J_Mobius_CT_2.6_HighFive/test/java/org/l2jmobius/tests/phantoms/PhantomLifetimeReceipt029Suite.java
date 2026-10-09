@@ -55,8 +55,33 @@ public final class PhantomLifetimeReceipt029Suite implements PhantomTestSuite
                     final String text = Files.readString(exported);
                     context.record("P01.actualExport", text);
                     PhantomAssertions.assertTrue(text.contains("\"profileId\":\"101\"") && text.contains("\"profileId\":\"102\""), "Collector terminal scope must retain both real lifetimes after telemetryB selection.");
+                    PhantomAssertions.assertFalse(text.contains("\"nativeOwnerState\":\"DETACHED\""), "Live or temporary-sealed owners cannot be terminal.");
+                    final var enroll = observer.getDeclaredMethod("enroll", long.class, PhantomNativeWorkScope.class); enroll.setAccessible(true);
+                    boolean rejected = false;
+                    try { enroll.invoke(null, -1L, firstOwner); }
+                    catch (java.lang.reflect.InvocationTargetException failure) { rejected = failure.getCause() instanceof IllegalStateException; }
+                    PhantomAssertions.assertTrue(rejected, "P05 negative profile must fail registration before creating a receipt obligation.");
+                    final var sample = observer.getDeclaredMethod("sampleTerminals"); sample.setAccessible(true);
+                    firstOwner.checkpoint(() -> { try { sample.invoke(null); } catch (Exception failure) { throw new IllegalStateException(failure); } return null; });
+                    final var terminalField = observer.getDeclaredField("TERMINAL"); terminalField.setAccessible(true);
+                    final var terminals = (java.util.Set<?>) terminalField.get(null);
+                    PhantomAssertions.assertEquals(0, terminals.size(), "P03 temporary SEALED checkpoint must not be terminal.");
+                    firstOwner.drainAndSeal(System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5));
+                    firstOwner.detach(); first.detachNativeWorkOwner(firstOwner);
+                    sample.invoke(null);
+                    PhantomAssertions.assertEquals(1, terminals.size(), "P02 actual DETACHED/permanent/zero-work lifetime must have terminal witness.");
+                    final var nextOwner = constructor.newInstance(new Object(), first, firstLease, System.nanoTime());
+                    first.attachNativeWorkOwner(nextOwner);
+                    try
+                    {
+                        enroll.invoke(null, 101L, nextOwner);
+                        status.invoke(null, output);
+                        final var ownersField = observer.getDeclaredField("RECEIPT_OWNERS"); ownersField.setAccessible(true);
+                        PhantomAssertions.assertEquals(3, ((java.util.Map<?, ?>) ownersField.get(null)).size(), "P02 new epoch preserves both prior scopes and terminal parent.");
+                    }
+                    finally { first.deleteMe(); first.detachNativeWorkOwner(nextOwner); }
                 }
-                finally { first.deleteMe(); second.deleteMe(); first.detachNativeWorkOwner(firstOwner); second.detachNativeWorkOwner(secondOwner); }
+                finally { if (first.isOnline()) { first.deleteMe(); } second.deleteMe(); first.detachNativeWorkOwner(firstOwner); second.detachNativeWorkOwner(secondOwner); }
             }
             finally { first.stopAllTasks(); second.stopAllTasks(); }
         });

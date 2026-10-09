@@ -2400,9 +2400,13 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if ((result.status() == PhantomBackgroundTransaction.Status.COMMIT_OUTCOME_UNKNOWN) || (result.status() == PhantomBackgroundTransaction.Status.POST_COMMIT_VERIFICATION_FAILED))
 		{
 			final PhantomBackgroundTransaction.Result retryVerification = transaction(() -> _transactions.reconcileVerifyPending(claim.profileId(), claim.characterObjectId()));
-			if (retryVerification.successful())
+			if (exactOperationVerified(command, retryVerification))
 			{
-				result = retryVerification;
+				result = new PhantomBackgroundTransaction.Result(PhantomBackgroundTransaction.Status.IDEMPOTENT, retryVerification.state());
+			}
+			else if (retryVerification.successful() && command.expectedState().equals(retryVerification.state()))
+			{
+				return retry("transaction.outcome_uncommitted");
 			}
 			else
 			{
@@ -2415,7 +2419,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		if (result.status() == PhantomBackgroundTransaction.Status.IDEMPOTENT)
 		{
 			final PhantomBackgroundTransaction.Result verified = transaction(() -> _transactions.reconcileVerifyPending(claim.profileId(), claim.characterObjectId()));
-			if (!verified.successful())
+			if (!exactOperationVerified(command, verified))
 			{
 				claim.retainIdentity();
 				failStop();
@@ -2438,6 +2442,14 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 			_failedOperations.incrementAndGet();
 		}
 		return failure;
+	}
+
+	private static boolean exactOperationVerified(PhantomBackgroundTransaction.Command command, PhantomBackgroundTransaction.Result result)
+	{
+		return result.successful() && (result.state() != null)
+			&& result.state().identity().equals(command.expectedState().identity())
+			&& result.state().receipt().operationKey().equals(command.operationKey().digest())
+			&& !result.state().receipt().expectedAfterHash().isEmpty();
 	}
 
 	private void publishPosition(long profileId, PhantomBackgroundTransaction.Result result)

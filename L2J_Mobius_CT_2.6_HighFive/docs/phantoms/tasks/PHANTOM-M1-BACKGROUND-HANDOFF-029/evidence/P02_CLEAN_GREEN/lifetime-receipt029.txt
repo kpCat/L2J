@@ -1,0 +1,16 @@
+suite=lifetime-receipt029
+seed=29002903
+total=1
+passed=1
+failed=0
+measurement.P01.actualExport=[{"profileId":"101","objectId":"268435465","epoch":"278014668977800","nativeEventDispatch":"[]","nativeLastCompletedEvent":"","nativeRecentCompletedEvents":"[]","nativeOwnerRead":"NONATOMIC_VOLATILE","nativeOwnerState":"OPEN","nativeOwnerCurrent":"true","nativeOwnerPermanentSeal":"false","nativeOwnerCheckpoint":"false","nativeOwnerFailure":"","nativeCheckpointStage":"","nativeCheckpointObserverFailure":"","nativeCheckpointOutcome":"","nativeCheckpointReason":"","nativeCheckpointFirstStage":"","nativeCheckpointFirstClass":"","nativeCheckpointFirstMessage":"","nativeCheckpointFirstStack":"","nativeFirstIncident":"","nativeFirstIncidentUtc":"","nativeFirstIncidentDetail":""},{"profileId":"102","objectId":"268435467","epoch":"278014671915100","nativeEventDispatch":"[]","nativeLastCompletedEvent":"","nativeRecentCompletedEvents":"[]","nativeOwnerRead":"NONATOMIC_VOLATILE","nativeOwnerState":"OPEN","nativeOwnerCurrent":"true","nativeOwnerPermanentSeal":"false","nativeOwnerCheckpoint":"false","nativeOwnerFailure":"","nativeCheckpointStage":"","nativeCheckpointObserverFailure":"","nativeCheckpointOutcome":"","nativeCheckpointReason":"","nativeCheckpointFirstStage":"","nativeCheckpointFirstClass":"","nativeCheckpointFirstMessage":"","nativeCheckpointFirstStack":"","nativeFirstIncident":"","nativeFirstIncidentUtc":"","nativeFirstIncidentDetail":""}]
+
+measurement.headless.database=l2jmobiush5_localplay_contract029a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS lifetime-receipt029.P01-real-lifetime-survives-telemetry-switch elapsedNanos=138196000

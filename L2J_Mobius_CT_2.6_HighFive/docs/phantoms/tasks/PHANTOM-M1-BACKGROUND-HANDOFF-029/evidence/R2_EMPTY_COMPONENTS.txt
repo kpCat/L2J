@@ -1,0 +1,13 @@
+Field	Type	Null	Key	Default	Extra
+profile_id	bigint(20) unsigned	NO	PRI	NULL	
+component_type	varchar(64)	NO	PRI	NULL	
+component_schema_version	smallint(5) unsigned	NO		NULL	
+row_version	bigint(20) unsigned	NO		0	
+payload	varbinary(4096)	NO		NULL	
+created_at	timestamp(3)	NO		current_timestamp(3)	
+updated_at	timestamp(3)	NO		current_timestamp(3)	on update current_timestamp(3)
+--------------
+SELECT profile_id,component_type,schema_version,row_version,LENGTH(payload) FROM phantom_profile_components WHERE profile_id IN (110,142,175,260,278,404,447,503)
+--------------
+
+ERROR 1054 (42S22) at line 1: Unknown column 'schema_version' in 'SELECT'

@@ -44,22 +44,64 @@ public final class Contract029Observer
     private static volatile Map<Long, PhantomNativeWorkScope> dispatchOwners = Map.of();
     private record Lifetime(long profileId, int objectId, long epoch) { }
     private static final Map<Lifetime, PhantomNativeWorkScope> RECEIPT_OWNERS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<Lifetime, Long> REGISTERED = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<Lifetime, String> LAST_RECEIPT = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Set<Lifetime> TERMINAL = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Map<String, String> RECEIPT_EVENTS = new java.util.concurrent.ConcurrentHashMap<>();
     private static synchronized void enroll(long profile, PhantomNativeWorkScope owner)
     {
+        if (profile <= 0 || owner == null || owner.player().getObjectId() <= 0 || owner.epoch() <= 0) { throw new IllegalStateException("TASK029_REGISTER_IDENTITY"); }
         final var key = new Lifetime(profile, owner.player().getObjectId(), owner.epoch());
-        if (RECEIPT_OWNERS.containsKey(key)) { return; }
+        final var existing = RECEIPT_OWNERS.get(key);
+        if (existing != null)
+        {
+            if (existing != owner) { throw new IllegalStateException("TASK029_REGISTER_CONFLICT"); }
+            return;
+        }
         if (RECEIPT_OWNERS.size() >= 128 || (RECEIPT_OWNERS.keySet().stream().noneMatch(value -> value.profileId() == profile)
             && RECEIPT_OWNERS.keySet().stream().map(Lifetime::profileId).distinct().count() >= 32)) { throw new IllegalStateException("TASK029_RECEIPT_CAPACITY"); }
         if (!owner.isCurrent() || owner.player().getClient() != null) { throw new IllegalStateException("TASK029_REGISTER_OWNER_CHANGED"); }
-        for (var prior : RECEIPT_OWNERS.entrySet())
+        long parentEpoch = 0;
+        for (var prior : RECEIPT_OWNERS.keySet())
         {
-            if (prior.getKey().profileId() == profile && prior.getKey().epoch() != key.epoch())
+            if (prior.profileId() == profile && prior.epoch() != key.epoch())
             {
-                final var facts = prior.getValue().diagnosticScalars();
-                if (!"DETACHED".equals(facts.get("nativeOwnerState"))) { throw new IllegalStateException("TASK029_PARENT_NOT_TERMINAL"); }
+                if (!TERMINAL.contains(prior)) { throw new IllegalStateException("TASK029_PARENT_NOT_TERMINAL"); }
+                parentEpoch = Math.max(parentEpoch, prior.epoch());
             }
         }
+        final long now = System.nanoTime();
         RECEIPT_OWNERS.put(key, owner);
+        REGISTERED.put(key, now);
+        final var chosen = selection;
+        enqueue(new Witness(chosen.output().resolve(profile + "-" + key.epoch() + "-register.properties"),
+            "kind=REGISTER\nprofileId=" + profile + "\nobjectId=" + key.objectId() + "\nepoch=" + key.epoch()
+                + "\nparentEpoch=" + parentEpoch + "\nregisterNanos=" + now + "\nsource=actual-native-owner\n"));
+    }
+    private static void enqueue(Witness witness)
+    {
+        if (!RING.offer(witness)) { OVERFLOW.incrementAndGet(); throw new IllegalStateException("TASK029_WITNESS_RING_OVERFLOW"); }
+        CAPTURED.incrementAndGet();
+    }
+    private static void sampleTerminals()
+    {
+        final var chosen = selection;
+        if (chosen == null) { return; }
+        for (var entry : RECEIPT_OWNERS.entrySet())
+        {
+            if (TERMINAL.contains(entry.getKey())) { continue; }
+            final var facts = entry.getValue().diagnosticScalars();
+            if ("DETACHED".equals(facts.get("nativeOwnerState")) && "true".equals(facts.get("nativeOwnerPermanentSeal"))
+                && entry.getValue().outstanding() == 0 && entry.getValue().pendingTimers() == 0 && TERMINAL.add(entry.getKey()))
+            {
+                final var key = entry.getKey();
+                final var text = new StringBuilder("kind=TERMINAL\nprofileId=" + key.profileId() + "\nobjectId=" + key.objectId()
+                    + "\nepoch=" + key.epoch() + "\nterminalNanos=" + System.nanoTime() + "\nreceiptSha256=" + LAST_RECEIPT.getOrDefault(key, "") + "\n");
+                facts.forEach((name, value) -> put(text, name, value));
+                put(text, "terminalOutstanding", entry.getValue().outstanding()); put(text, "terminalPendingTimers", entry.getValue().pendingTimers());
+                enqueue(new Witness(chosen.output().resolve(key.profileId() + "-" + key.epoch() + "-terminal.properties"), text.toString()));
+            }
+        }
     }
     private static final Map<Long, String> dispatchLast = new HashMap<>();
     private static int dispatchLines;
@@ -287,7 +329,7 @@ public final class Contract029Observer
             {
                 while (true)
                 {
-                    try { Thread.sleep(100); drain(); sampleDispatch(); sampleNativeTarget(); sampleFullCohort(); exportRecovery(); sampleLifecycle(); sampleDeath(); }
+                    try { Thread.sleep(100); sampleTerminals(); drain(); sampleDispatch(); sampleNativeTarget(); sampleFullCohort(); exportRecovery(); sampleLifecycle(); sampleDeath(); }
                     catch (InterruptedException stopped) { return; }
                     catch (Exception failure) { exporterFailure = failure.toString(); }
                 }
@@ -488,6 +530,16 @@ public final class Contract029Observer
                 || THREAD.get(owner) != Thread.currentThread() || !STATE.get(owner).toString().equals("SEALED") || player.getObjectId() != intent.after().identity().characterObjectId()) { throw new IllegalStateException("TASK029_EXACT_SEALED_ARGUMENT"); }
             final String key = id + "-" + intent.materializedAtNanos() + "-" + intent.preparedRowVersion();
             final boolean finalized = phase.equals("FINALIZED");
+            final String eventKey = key + "-" + phase;
+            final String digest = PhantomBackgroundTransaction.payloadDigest(intent.encode());
+            final String previous = RECEIPT_EVENTS.putIfAbsent(eventKey, digest);
+            if (previous != null)
+            {
+                if (!previous.equals(digest)) { throw new IllegalStateException("TASK029_RECEIPT_CONFLICT"); }
+                return;
+            }
+            if (RECEIPT_EVENTS.size() > 4096) { throw new IllegalStateException("TASK029_RECEIPT_EVENT_CAPACITY"); }
+            LAST_RECEIPT.put(new Lifetime(id, player.getObjectId(), initialEpoch), digest);
             final String text = snapshot(intent, player, chosen.sha()) + "enrolledInitialEpoch=" + initialEpoch + "\nhookNanos=" + System.nanoTime() + "\ncheckpointStage=" + phase + "\n";
             final Witness witness = new Witness(chosen.output().resolve(key + (finalized ? "-finalized.properties" : ".properties")),
                 finalized ? text.replace("source=native-sealed-snapshot", "source=native-finalized-snapshot") : text, finalized ? player.getObjectId() : 0);
@@ -496,8 +548,7 @@ public final class Contract029Observer
                 PREPARED.set(new Prepared(player, (PhantomNativeWorkScope) owner, intent, witness));
                 return;
             }
-            if (!RING.offer(witness)) { OVERFLOW.incrementAndGet(); throw new IllegalStateException("TASK029_WITNESS_RING_OVERFLOW"); }
-            CAPTURED.incrementAndGet();
+            enqueue(witness);
         }
         catch (ReflectiveOperationException failure) { throw new IllegalStateException("TASK029_WITNESS_ARGUMENT", failure); }
     }
@@ -614,6 +665,7 @@ public final class Contract029Observer
     }
     private static void status(Path output) throws Exception
     {
+        sampleTerminals(); drain();
         final var owners = new java.util.ArrayList<String>();
         for (var entry : RECEIPT_OWNERS.entrySet().stream().sorted(java.util.Comparator.comparingLong(value -> value.getKey().profileId())).toList())
         {

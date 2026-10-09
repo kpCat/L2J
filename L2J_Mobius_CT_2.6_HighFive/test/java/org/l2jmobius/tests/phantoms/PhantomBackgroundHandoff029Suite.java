@@ -23,6 +23,68 @@ public final class PhantomBackgroundHandoff029Suite implements PhantomTestSuite
     @Override public void afterAll(PhantomTestContext context) throws Exception { base.afterAll(context); }
     @Override public void register(PhantomTestRegistry registry)
     {
+        registry.add("T04-T06-real-lease-and-exact-lost-reply", context ->
+        {
+            for (boolean committed : new boolean[] { false, true })
+            {
+                final var environment = (PhantomHeadlessPlayerTestEnvironment) field(base, "_environment");
+                final var reset = Player.load(environment.primary().objectId());
+                try { reset.stopAllTasks(); reset.getStat().setVitalityPoints(1, true); }
+                finally { environment.cleanupLoadedPlayer(reset); }
+                final var armed = new java.util.concurrent.atomic.AtomicBoolean();
+                final var loseReply = new java.util.concurrent.atomic.AtomicBoolean();
+                final var nativeOwner = new java.util.concurrent.atomic.AtomicReference<PhantomMaterializationService>();
+                final var profile = new java.util.concurrent.atomic.AtomicLong();
+                final var races = new java.util.concurrent.atomic.AtomicInteger();
+                final var transaction = new PhantomBackgroundTransaction(() ->
+                {
+                    final var delegate = org.l2jmobius.commons.database.DatabaseFactory.getConnection();
+                    return (java.sql.Connection) java.lang.reflect.Proxy.newProxyInstance(java.sql.Connection.class.getClassLoader(), new Class<?>[] { java.sql.Connection.class }, (proxy, method, arguments) ->
+                    {
+                        if (method.getName().equals("commit") && loseReply.compareAndSet(true, false))
+                        {
+                            if (committed) { delegate.commit(); } else { delegate.rollback(); }
+                            throw new java.sql.SQLException("CONTROLLED_COMMIT_REPLY_LOST_029");
+                        }
+                        try { return method.invoke(delegate, arguments); }
+                        catch (java.lang.reflect.InvocationTargetException failure) { throw failure.getCause(); }
+                    });
+                }, PhantomBackgroundTransaction.ObjectIdAllocator.production(), point ->
+                {
+                    if (armed.get() && point == PhantomBackgroundTransaction.FaultPoint.AFTER_CHARACTER_LOCK)
+                    {
+                        final var admission = nativeOwner.get().materialize(profile.get());
+                        PhantomAssertions.assertFalse(admission.status() == PhantomMaterializationService.ResultStatus.SUCCESS, "Held background lease must fence actual native materialization.");
+                        races.incrementAndGet();
+                    }
+                    if (armed.get() && point == PhantomBackgroundTransaction.FaultPoint.AFTER_BACKGROUND_STATE_WRITE) { loseReply.set(true); }
+                });
+                final var open = PhantomBackgroundSuite.class.getDeclaredMethod("openNativeProductionFixture", PhantomTestContext.class, boolean.class, PhantomBackgroundTransaction.class); open.setAccessible(true);
+                try (var fixture = (AutoCloseable) open.invoke(base, context, true, transaction))
+                {
+                    final var id = fixture.getClass().getDeclaredMethod("id"); id.setAccessible(true); profile.set((long) id.invoke(fixture));
+                    final var playerMethod = fixture.getClass().getDeclaredMethod("player"); playerMethod.setAccessible(true); ((Player) playerMethod.invoke(fixture)).getStat().setVitalityPoints(16361, true);
+                    nativeOwner.set((PhantomMaterializationService) field(fixture, "materialization"));
+                    PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, nativeOwner.get().dematerialize(profile.get()).status(), "Lost-reply native release.");
+                    final Object seed = field(fixture, "seed"); final var goalMethod = seed.getClass().getDeclaredMethod("goal"); goalMethod.setAccessible(true); final var goal = (PhantomGoal) goalMethod.invoke(seed);
+                    final var before = transaction.load(profile.get()).state(); armed.set(true);
+                    final var result = ((PhantomBackgroundService) field(fixture, "background")).farm(profile.get(), goal, 4, 6, PhantomActivityState.BACKGROUND, System.nanoTime());
+                    final var after = transaction.load(profile.get()).state();
+                    context.record("T06." + committed, result.toString() + ";before=" + before.progress() + ";after=" + after.progress());
+                    PhantomAssertions.assertEquals(1, races.get(), "One actual fenced native admission.");
+                    if (!committed)
+                    {
+                        PhantomAssertions.assertFalse(result.successful(), "Uncommitted lost reply must not accept the old unrelated receipt as success.");
+                        PhantomAssertions.assertEquals(before, after, "Rolled back scalar/state projection.");
+                    }
+                    else
+                    {
+                        PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.IDEMPOTENT, result.status(), "Exact durable operation id must resolve as IDEMPOTENT.");
+                        PhantomAssertions.assertTrue(after.progress().experience() > before.progress().experience(), "Lost reply committed productive reward exactly once.");
+                    }
+                }
+            }
+        });
         registry.add("T01-factual-off-area-no-reward-return", context ->
         {
             final var environment = (PhantomHeadlessPlayerTestEnvironment) field(base, "_environment");
