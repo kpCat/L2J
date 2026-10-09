@@ -14,6 +14,8 @@ START_UTC=2026-10-08T22:38:16Z
 SEMANTIC_WORK_STOP_UTC=2026-10-09T02:12:00Z
 SEMANTIC_DEADLINE_UTC=2026-10-09T03:08:16Z
 WALL_DEADLINE_UTC=2026-10-09T04:38:16Z
+WALL_MINUTES_AT_CLOSING_AUDIT=270.3167
+CLOSING_AUDIT_UTC=2026-10-09T03:08:35Z
 FIRST_SERVER_PROBE_MINUTE=36
 REQUEST_D_FIRST_CAUSE=UNKNOWN
 REQUEST_SOFT_FIRST_CAUSE=UNKNOWN
@@ -140,6 +142,9 @@ Git использован в рамках TASK028 bounded exception; переч
 publication guard — `GIT_COMMANDS.md`. Финальный publication commit содержит
 task-only reports/helpers/archive; tested production SHA остаётся указанным выше.
 Normal push в разрешённую branch, без force. Immutable raw originals локальны;
+Evidence/report publication `a59e5d89201914f1283d1dd0583576dc799a510b` normal push
+подтверждён remote HEAD. Closing audit commit сохраняет production SHA и raw archive;
+его exact SHA сообщён финально.
 в published archive только поле account runtime manifests удалено, пары original/
 published SHA записаны в `archives/ARCHIVE_MANIFEST.json`. Credentials/JAR/geodata/
 full DB dump/JFR не публикуются.
@@ -149,3 +154,4 @@ full DB dump/JFR не публикуются.
 
 Результат этих двух отдельных guards и strict UTF-8 сохраняется в
 `evidence/FINAL_ENCODING.log`. Новая задача автоматически не начинается.
+Финальный authored publication guard также записан в `PUBLICATION_ENCODING.log`.

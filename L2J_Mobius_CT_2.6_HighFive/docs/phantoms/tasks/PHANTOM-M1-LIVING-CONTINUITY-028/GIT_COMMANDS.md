@@ -57,3 +57,27 @@ raw files не переписывались.
 Проверка remote HEAD и exact publication SHA сообщаются финально. Commit SHA в
 самом отчёте не подменяет tested production SHA. `evidence/GIT_COMMANDS_EXACT.json` фиксирует
 invocations до final publication; final фиксированный command block приведён выше.
+
+Побайтная проверка observer/archive в index использовала ещё два exact reads:
+
+```text
+git show :L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Contract028Observer.java
+git show :L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/archives/RAW_EVIDENCE_028.zip
+git ls-files --others --exclude-standard
+git diff --cached --numstat -- L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/Contract028Observer.java
+git diff --name-only HEAD -- L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/test L2J_Mobius_CT_2.6_HighFive/tools
+git diff --name-only 07c2c1cc4036b47487c98e96943a39ce295a3920 HEAD -- L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/test L2J_Mobius_CT_2.6_HighFive/tools
+```
+
+Результаты: index bytes exact для обоих; non-task untracked0; production changes0;
+live own Java0. Закрывающий task-only audit commit:
+
+```text
+git commit -m "docs(phantoms): close continuity028 publication audit"
+git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
+git ls-remote origin refs/heads/experiment/m1-candidate007-observe008
+```
+
+Его exact files снова определяет обновлённый FINAL_STAGING_ALLOWLIST, с тем же
+`git add --` по одному literal path и staged/hash/whitespace guards. Новых Git
+permissions и repository/global config mutations это не вводит.

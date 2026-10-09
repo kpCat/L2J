@@ -43,3 +43,10 @@ UTF-8 and both independent Cyrillic checks: `evidence/FINAL_ENCODING.log` before
 archive closure, then `PUBLICATION_ENCODING.log` for final authored publication
 files. Git inputs/authorization: `GIT_COMMANDS.md` and raw exact-command history.
 Actual final commit/push/remote SHA confirmation is reported after executing them.
+
+Evidence/report commit `a59e5d89201914f1283d1dd0583576dc799a510b` successfully
+normal-pushed; remote HEAD matched at2026-10-09T03:06:00Z. Closing audit fixes only
+publication metadata: tested production remains07c2 despite later documentation
+HEAD. Updated scope report is separate from archived initial evidence and proves
+no production changes since the tested commit. Both raw ZIP and tested observer
+source matched index bytes exactly. Last own Java count0.

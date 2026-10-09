@@ -9,6 +9,7 @@ TASK = Path(__file__).resolve().parents[1]
 MODULE = TASK.parents[3]
 ROOT = MODULE.parent
 BASE = '9aeb4ac6c52970372f97637d26a5eb54c760ed1a'
+TESTED_PRODUCTION = '07c2c1cc4036b47487c98e96943a39ce295a3920'
 PREFIX = MODULE.name + '/'
 TASK_PREFIX = TASK.relative_to(ROOT).as_posix() + '/'
 NON_TASK = (
@@ -36,6 +37,9 @@ def main():
     allowed = {PREFIX + path for path in NON_TASK}
     outside = sorted(path for path in changed | staged if path not in allowed and not path.startswith(TASK_PREFIX))
     uncommitted_product = sorted(path for path in git('diff', '--name-only', 'HEAD').splitlines() if not path.startswith(TASK_PREFIX))
+    publication_head = git('rev-parse', 'HEAD').strip()
+    production_changes = git('diff', '--name-only', TESTED_PRODUCTION, 'HEAD', '--',
+                             PREFIX+'java', PREFIX+'test', PREFIX+'tools').splitlines()
     with (TASK / 'evidence/BASE027_PROVENANCE.tsv').open(encoding='utf-8-sig', newline='') as stream:
         protected = list(csv.DictReader(stream, delimiter='\t'))
     dependencies = []
@@ -50,14 +54,17 @@ def main():
     start, end = '\tpublic boolean shutdown()\n', '\tprivate boolean shutdownLegacyFailureCleanup()\n'
     baseline_stop = baseline[baseline.index(start):baseline.index(end)]
     current_stop = current[current.index(start):current.index(end)]
-    document = {'kind': 'TASK028_FINAL_SCOPE_GUARD', 'base': BASE, 'testedProductionSha': git('rev-parse', 'HEAD').strip(),
+    document = {'kind': 'TASK028_FINAL_SCOPE_GUARD', 'base': BASE, 'testedProductionSha': TESTED_PRODUCTION,
+                'publicationHeadAtAudit': publication_head, 'productionChangesSinceTest': production_changes,
                 'exactNonTaskAllowlist': sorted(allowed), 'changedNonTask': sorted(path for path in changed if not path.startswith(TASK_PREFIX)),
                 'outsideScope': outside, 'uncommittedProduction': uncommitted_product,
                 'protected027Dependencies': dependencies, 'shutdown027ImplementationIdentical': baseline_stop == current_stop,
                 'agentsUsed': False, 'foreignWorktreesChanged': False}
-    document['pass'] = not outside and not uncommitted_product and all(r['unchanged'] for r in dependencies) and baseline_stop == current_stop
+    document['pass'] = not outside and not uncommitted_product and not production_changes and all(r['unchanged'] for r in dependencies) and baseline_stop == current_stop
     output = TASK / 'evidence/FINAL_SCOPE_GUARD.json'
-    # This is a current audit report, never a replacement for immutable runtime evidence.
+    # Preserve the archived initial audit; publication-only HEAD must never be called tested code.
+    if output.exists():
+        output = TASK / 'PUBLICATION_SCOPE_GUARD.json'
     output.write_text(json.dumps(document, indent=2)+'\n', encoding='utf-8')
     print(json.dumps({'pass': document['pass'], 'nonTaskFiles': len(document['changedNonTask']),
                       'protectedDependencies': len(dependencies), 'shutdown027Identical': baseline_stop == current_stop,
