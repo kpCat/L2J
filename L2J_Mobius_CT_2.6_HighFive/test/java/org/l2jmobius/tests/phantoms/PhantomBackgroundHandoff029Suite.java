@@ -28,6 +28,32 @@ public final class PhantomBackgroundHandoff029Suite implements PhantomTestSuite
     }
     @Override public void register(PhantomTestRegistry registry)
     {
+        registry.add("B05-timed-hourglass-keeps-real-native-store", context ->
+        {
+            final var environment = (PhantomHeadlessPlayerTestEnvironment) field(base, "_environment");
+            final var reset = Player.load(environment.primary().objectId());
+            try { reset.stopAllTasks(); reset.getStat().setVitalityPoints(1, true); }
+            finally { environment.cleanupLoadedPlayer(reset); }
+            final var open = PhantomBackgroundSuite.class.getDeclaredMethod("openNativeProductionFixture", PhantomTestContext.class, boolean.class); open.setAccessible(true);
+            try (var fixture = (AutoCloseable) open.invoke(base, context, true))
+            {
+                final var idMethod = fixture.getClass().getDeclaredMethod("id"); idMethod.setAccessible(true); final long id = (long) idMethod.invoke(fixture);
+                final var playerMethod = fixture.getClass().getDeclaredMethod("player"); playerMethod.setAccessible(true); final var player = (Player) playerMethod.invoke(fixture);
+                player.setRecomHave(100); player.getStat().setPausedNevitHourglassStatus(true);
+                PhantomAssertions.assertTrue(player.isOnline() && player.getNevitHourglassMultiplier() > 1, "Actual native timed-hourglass predicate.");
+                final long xp = player.getExp(), sp = player.getSp(); final int points = player.getVitalityPoints();
+                final var materialization = (PhantomMaterializationService) field(fixture, "materialization");
+                final var result = materialization.dematerialize(id); context.record("B05.hourglassRelease", result.toString());
+                PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, result.status(), "Unsupported temporal rewards must preserve real native release/store.");
+                final var transaction = (PhantomBackgroundTransaction) field(fixture, "transaction");
+                final var proof = transaction.nativeContext(id, player.getObjectId());
+                PhantomAssertions.assertTrue(proof.context() != null && (proof.context().afterPolicy().unsupportedFacts() & 8) != 0, "Stored policy retains timed exclusion.");
+                PhantomAssertions.assertFalse(proof.context().afterPolicy().ordinaryRewards(), "Native persistence must not enable temporal background FARM.");
+                PhantomAssertions.assertEquals(xp, proof.state().progress().experience(), "Native release invents no XP.");
+                PhantomAssertions.assertEquals(sp, proof.state().progress().skillPoints(), "Native release invents no SP.");
+                PhantomAssertions.assertEquals(points, proof.canonicalPoints(), "Native release preserves stock integer vitality.");
+            }
+        });
         registry.add("P06-birth-before-first-owned-checkpoint", context ->
         {
             final var output = context.moduleRoot().resolve("docs/phantoms/tasks/PHANTOM-M1-BACKGROUND-HANDOFF-029/evidence/P06-BIRTH-" + System.nanoTime());

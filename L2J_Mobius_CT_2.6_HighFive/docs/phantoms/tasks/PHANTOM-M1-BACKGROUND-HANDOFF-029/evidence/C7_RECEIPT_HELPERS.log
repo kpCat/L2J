@@ -1,0 +1,23 @@
+test_capacity_no_eviction (test_receipt_coverage029.CoverageTests.test_capacity_no_eviction) ... ok
+test_checkpoint_not_terminal (test_receipt_coverage029.CoverageTests.test_checkpoint_not_terminal) ... ok
+test_complete (test_receipt_coverage029.CoverageTests.test_complete) ... ok
+test_distinct_epoch_not_merged (test_receipt_coverage029.CoverageTests.test_distinct_epoch_not_merged) ... ok
+test_duplicate_same_event_not_extra (test_receipt_coverage029.CoverageTests.test_duplicate_same_event_not_extra) ... ok
+test_empty_is_not_pass (test_receipt_coverage029.CoverageTests.test_empty_is_not_pass) ... ok
+test_finalize_without_prepare_rejected (test_receipt_coverage029.CoverageTests.test_finalize_without_prepare_rejected) ... ok
+test_latest_receipt_required (test_receipt_coverage029.CoverageTests.test_latest_receipt_required) ... ok
+test_missing_original_receipt_is_not_filled (test_receipt_coverage029.CoverageTests.test_missing_original_receipt_is_not_filled) ... ok
+test_missing_proof_rejected (test_receipt_coverage029.CoverageTests.test_missing_proof_rejected) ... ok
+test_no_new_receipt_after_detach (test_receipt_coverage029.CoverageTests.test_no_new_receipt_after_detach) ... ok
+test_not_detached (test_receipt_coverage029.CoverageTests.test_not_detached) ... ok
+test_not_permanent (test_receipt_coverage029.CoverageTests.test_not_permanent) ... ok
+test_old_receipt_cannot_cover_new_epoch (test_receipt_coverage029.CoverageTests.test_old_receipt_cannot_cover_new_epoch) ... ok
+test_switch_keeps_old_lifetime (test_receipt_coverage029.CoverageTests.test_switch_keeps_old_lifetime) ... ok
+test_terminal_without_verified_sql (test_receipt_coverage029.CoverageTests.test_terminal_without_verified_sql) ... ok
+test_unenrolled_hook_rejected (test_receipt_coverage029.CoverageTests.test_unenrolled_hook_rejected) ... ok
+test_zero_epoch_rejected (test_receipt_coverage029.CoverageTests.test_zero_epoch_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.001s
+
+OK

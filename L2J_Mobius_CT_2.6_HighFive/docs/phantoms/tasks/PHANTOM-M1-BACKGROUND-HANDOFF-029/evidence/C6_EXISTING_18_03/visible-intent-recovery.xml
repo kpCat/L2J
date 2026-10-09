@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="visible-intent-recovery" seed="21002101" tests="10" passed="10" failures="0">
+  <properties>
+    <property name="atomic.fixture.live" value="generated.farm.36714f071123eedc9cac6c05.anchor"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract029a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="visible-intent-recovery.R01-attach-before-current-publication-reloads-before-work" elapsedNanos="232417600"></testcase>
+  <testcase name="visible-intent-recovery.R02-busy-sync-defers-stale-action" elapsedNanos="50755500"></testcase>
+  <testcase name="visible-intent-recovery.R04-stale-epoch-and-goal-failure-rejected" elapsedNanos="79769700"></testcase>
+  <testcase name="visible-intent-recovery.R06-pending-native-owner-local-replacement-is-atomic" elapsedNanos="92212500"></testcase>
+  <testcase name="visible-intent-recovery.R07-historical-and-unowned-pending-stay-fenced" elapsedNanos="18617300"></testcase>
+  <testcase name="visible-intent-recovery.R08-atomic-CAS-conflict-has-no-partial-goal" elapsedNanos="20646000"></testcase>
+  <testcase name="visible-intent-recovery.R08-foreign-goal-write-never-rebinds-permit" elapsedNanos="55958800"></testcase>
+  <testcase name="visible-intent-recovery.R09-commit-then-load-failure-is-exactly-retryable" elapsedNanos="67175900"></testcase>
+  <testcase name="visible-intent-recovery.R10-cleanup-between-CAS-and-projection-never-grants" elapsedNanos="56466700"></testcase>
+  <testcase name="visible-intent-recovery.R11-failed-catchup-local-plan-keeps-status-and-cursor" elapsedNanos="57294700"></testcase>
+</testsuite>

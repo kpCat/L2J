@@ -1305,7 +1305,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		else
 		{
 			final double nevit = player.getNevitHourglassMultiplier();
-			if (nevit != 1) { reason = "nevit=" + nevit; }
+			if ((nevit != 1) && !nativePersistence) { reason = "nevit=" + nevit; }
 			else
 			{
 				if (nativePersistence) { return; }

@@ -1,0 +1,42 @@
+{
+  "helperSha256": "104FDFB80730909C8D2F0CF8AFB09256C41E6926FE7BDA5D36DD33A74E77FD2A",
+  "origin": {
+    "x": 44126,
+    "y": 42751,
+    "z": -3488
+  },
+  "endpoint": {
+    "x": 43926,
+    "y": 42751,
+    "z": -3488
+  },
+  "geoLog": "C:\\Users\\ZBook\\.codex\\worktrees\\m1-background-029\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-BACKGROUND-HANDOFF-029\\evidence\\FINAL_C6_SCENE_F2\\setup-dry\\stock-dry-path.log",
+  "points": [
+    {
+      "x": 44126,
+      "y": 42751,
+      "z": -3488
+    },
+    {
+      "x": 44026,
+      "y": 42751,
+      "z": -3488
+    },
+    {
+      "x": 43926,
+      "y": 42751,
+      "z": -3488
+    }
+  ],
+  "jarSha256": "C30075DD033EFDDBF09C41D7BAEC2AFBE228E90E59CDE9FC52CC8B3837C6FB48",
+  "sourceSha": "8f18339fdcd76442ce1a6bb4345980936f14a01a",
+  "bidirectional": true,
+  "steps": [
+    {
+      "x": 43926,
+      "y": 42751,
+      "z": -3488
+    }
+  ],
+  "geoLogSha256": "3FB94DED5D97C6809286FDED32321FE647FFA10CC970DDB1F037EEFD5B13B7FD"
+}

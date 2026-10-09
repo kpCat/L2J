@@ -1,0 +1,12 @@
+{
+  "pid": "24992",
+  "actorMode": "SYNTHETIC",
+  "objectId": "268492939",
+  "state": "STOPPED",
+  "expiresUtcMillis": "1791557846950",
+  "reason": "SYNTHETIC_NATIVE_PLAYER_STARTED",
+  "version": "1",
+  "nextSequence": "3",
+  "sessionId": "f58ef2d2-bfdc-4f97-9766-01998dca46e2",
+  "startTimeUtcTicks": "639271537105356381"
+}

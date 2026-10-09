@@ -1,0 +1,21 @@
+suite=native-farm-continuation022
+seed=22002201
+total=2
+passed=2
+failed=0
+measurement.E04.nativeWriter.false=hp=62.0->0.0;dead=true;EXP=0->105;npcInvul=false;player=-71338,258271,-3104;knownSkill=Skill Wind Strike(1177,1);owner=epoch=284448150816900 state=OPEN outstanding=2 pendingTimers=0 peak=7 failure= eventDispatch=[14:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=284448150816900:reserve=284448290696200:submit=284448290799700:executorEntered=0:start=0:bodyExit=0:bodyOutcome=NOT_ENTERED:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[7:attack-hit:RESERVED:depth=2:ageMs=23, 14:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=4:ageMs=3]
+measurement.E04.nativeWriter.true=hp=62.0->0.0;dead=true;EXP=0->105;npcInvul=false;player=-71338,258271,-3104;knownSkill=Skill Wind Strike(1177,1);owner=epoch=284450994257500 state=OPEN outstanding=2 pendingTimers=0 peak=7 failure= eventDispatch=[14:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=284450994257500:reserve=284450998770700:submit=284450998813300:executorEntered=0:start=0:bodyExit=0:bodyOutcome=NOT_ENTERED:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[7:attack-hit:RESERVED:depth=2:ageMs=3, 14:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=4:ageMs=0]
+measurement.E04.queued.false=epoch=284448150816900 state=OPEN outstanding=2 pendingTimers=0 peak=7 failure= eventDispatch=[14:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=284448150816900:reserve=284448290696200:submit=284448290799700:executorEntered=0:start=0:bodyExit=0:bodyOutcome=NOT_ENTERED:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2494] work=[7:attack-hit:RESERVED:depth=2:ageMs=25, 14:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=4:ageMs=5]
+measurement.E04.queued.true=epoch=284450994257500 state=OPEN outstanding=2 pendingTimers=0 peak=7 failure= eventDispatch=[14:EVENT:ON_ATTACKABLE_KILL:SUBMITTED:epoch=284450994257500:reserve=284450998770700:submit=284450998813300:executorEntered=0:start=0:bodyExit=0:bodyOutcome=NOT_ENTERED:end=0:delayMs=2500:future=done=false,cancelled=false,dueMs=2499] work=[7:attack-hit:RESERVED:depth=2:ageMs=3, 14:EVENT:ON_ATTACKABLE_KILL:RESERVED:depth=4:ageMs=0]
+measurement.E05.complete.false=calls=1;children=1;scope=epoch=284448150816900 state=SEALED outstanding=0 pendingTimers=0 peak=7 failure= eventDispatch=[] work=[]
+measurement.E05.complete.true=calls=1;children=0;scope=epoch=284450994257500 state=DRAINING outstanding=0 pendingTimers=0 peak=7 failure=NATIVE_WORK_FAILED:java.lang.IllegalStateException eventDispatch=[] work=[]
+measurement.headless.database=l2jmobiush5_localplay_contract029a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+PASS native-farm-continuation022.E04-E05-actual-kill-queued-and-stock-quest-child-drain elapsedNanos=2858675100
+PASS native-farm-continuation022.E07-actual-kill-listener-failure-after-native-mutation elapsedNanos=2524823300

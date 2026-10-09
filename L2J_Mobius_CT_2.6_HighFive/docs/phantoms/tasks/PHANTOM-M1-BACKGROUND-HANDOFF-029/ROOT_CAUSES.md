@@ -119,3 +119,49 @@ native actions и bounded lifecycle — переиспользовать. Бон
   later epoch281745537122100 cannot repair it. Both and old872/1272 remain UNPROVEN.
 - G_PRE_C6_STOCK_STOP: Game35600 and Login14824 stock exits confirmed; initial typed
   shutdown phase/reason still must be inspected independently. Attach EOF is not ignored.
+
+## C6 final candidate verification
+- C6_HANDOFF_FINAL exposed TEST-only SQL guard exclusion of029a, after7 behavior checks
+  passed. Observer SQL reads now allow029a only with exact existing own TEST manifest
+  path, owner and database; product lane b..h guard unchanged. No SQL writes added.
+- C6_HANDOFF_TEST_SQL_GREEN:7/7, explicit exporter drain before TEST pool close, no final
+  witness export error. Product ledger health is still an independent gate.
+- C6 sourceSHA8f18339fdcd76442ce1a6bb4345980936f14a01a committed and normally pushed.
+  Planned final attempts before outcomes: F1 uses stock original observer origin;
+  F2 uses one nearest committed candidate with checked native dry setup. Each requests
+ 380s and keeps strict4..8/alive/two-primary admission. No replacement winner search.
+
+## Bounded full-server diagnosis C6
+- FINAL_C6_SCENE_F1/F2 failed native cohort0 before the stationary window. The second
+  used exactly one checked native setup; no4..8 admission or productive background
+  episode is claimed. Gates remain open with unchanged evaluator028.
+- C6_INITIAL_CENSUS: existing original group is absent; initial110/447 are ecology_fenced
+  with transaction.item_conflict_canonical, others native-context/schedule gates.
+  Native first conflict evidence names item118 outside the committed mutable inventory
+  set in HISTORICAL_FARM. The guard is retained; this is not cleared as incidental.
+- Nearest652 has durable INCONSISTENT and catchup.renewal.background_state_invalid.
+  It is an operator prewarm candidate, not proof of admitted native materialization.
+- Fresh own029h selected prospectively as a controlled prestate contrast: pre-start
+  export has all original8 alive at44126,42751 with normal points379..1471. It has never
+  run prior candidate code. No reimport/reset of g or any earlier clone is performed.
+  Original8 fixed membership is retained; no alternate success search after H admission.
+- C6 matrix18/18,92/92; policy4/4, union1/1, PNC1 contract3/3, actual native handoff15/15,
+  lifecycle027 acceptance11/11. Old route11 U2 and shutdown U1 are still not explained
+  by current passes. Exact legacy pending restoration also exercised in matrix route1.
+
+## C7 native timed-policy persistence RED/GREEN
+- C7_HOURGLASS_RED: actual native multiplier1.5, real dematerialize returned
+  CLEANUP_FAILED_RETAINED; first incident phase=NATIVE_STORE/hook=PLAYER_STORE_ME,
+  firstPredicate=nevit=1.5. Later fixture failures are retained-owner consequences,
+  not independent defects. This is a direct violation of safe native persistence.
+- Existing nativePersistence exception for party/premium/vitality is reused for
+  hourglass. Background capture with nativePersistence=false retains the old guard.
+  Native context stores explicit unsupportedFacts8 and ordinaryRewards=false.
+- C7_HOURGLASS_GREEN:8/8, actual native release succeeds, XP/SP and integer vitality
+  preserved; temporal background FARM remains denied. No native receipt/schema change.
+- The hypothesis that ecology did not recognize native_context.required:* was rejected
+  by source: requiresNativeMaterialization already handles that prefix. No such fix.
+- Fresh H group moved before Synthetic admission; C6_H_COLD_BIRTH_PROBE rejected before
+  setup because there was no admitted exact candidate. It is not a completed birth probe.
+  Initial and all restart G stops captured DONE/COMPLETE independently, with no Synthetic.
+  C6_H_FIRST_STOP also used stock exits for Game24992/Login28332, without force.

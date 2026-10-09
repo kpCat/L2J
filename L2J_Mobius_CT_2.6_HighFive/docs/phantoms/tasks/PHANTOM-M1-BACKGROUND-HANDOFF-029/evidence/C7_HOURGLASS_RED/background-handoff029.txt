@@ -1,0 +1,83 @@
+suite=background-handoff029
+seed=15001501
+total=9
+passed=2
+failed=7
+measurement.B04.Lucky=OperationResult[status=SUCCESS, reason=transaction.committed, encounters=1, elapsedMillis=20000, dead=false];expectedPoints=15997.111;actual=PhantomBackgroundSimulationPolicy[algorithmVersion=2, level=10, canonicalPoints=15997, points=15997.111, ordinaryRewards=false, farmPosition=true, travelPosition=true, vitalityEnabled=true, lucky=false, consumeStat=1, gainRate=5.0, lostRate=0.4000000059604645, level1Rate=2.5, level2Rate=3.5, level3Rate=4.5, level4Rate=6.0, bonusExpPercent=0.0, bonusSpPercent=0.0, maxExpBonus=10.0, maxSpBonus=10.0, rulesFingerprint=ccb1da9dd2827b485d29ca1c32bc57c8046d6d7620c4c3ab9401312c923f55bd, runSpeed=126.88000000000001, maximumBatchMillis=60000, unsupportedFacts=128]
+measurement.B04.boundary=OperationResult[status=SUCCESS, reason=transaction.committed, encounters=1, elapsedMillis=20000, dead=false];progress=Progress[level=8, experience=19632, skillPoints=10, experienceBeforeDeath=0];context=PhantomNativeContext[identity=Identity[profileId=10279, characterObjectId=268435465, classIndex=0, activeClassId=25, raceOrdinal=1], phase=COMPLETED, beforePoints=1, beforeEligibility=SUPPORTED, afterPoints=1, afterEligibility=SUPPORTED, stateRowVersion=5, stateDigest=a0d42c4f53920b700b9c2212064f2f02a6c6d2b162fc71066efa3ada23fad418, preparedRowVersion=-1, epoch=0, receiptDigest=0000000000000000000000000000000000000000000000000000000000000000, beforePolicy=PhantomBackgroundSimulationPolicy[algorithmVersion=2, level=8, canonicalPoints=1, points=1.0, ordinaryRewards=false, farmPosition=true, travelPosition=true, vitalityEnabled=true, lucky=false, consumeStat=1, gainRate=5.0, lostRate=0.4000000059604645, level1Rate=2.5, level2Rate=3.5, level3Rate=4.5, level4Rate=6.0, bonusExpPercent=0.0, bonusSpPercent=0.0, maxExpBonus=10.0, maxSpBonus=10.0, rulesFingerprint=ccb1da9dd2827b485d29ca1c32bc57c8046d6d7620c4c3ab9401312c923f55bd, runSpeed=126.88000000000001, maximumBatchMillis=60000, unsupportedFacts=128], afterPolicy=PhantomBackgroundSimulationPolicy[algorithmVersion=2, level=8, canonicalPoints=1, points=1.0, ordinaryRewards=false, farmPosition=true, travelPosition=true, vitalityEnabled=true, lucky=false, consumeStat=1, gainRate=5.0, lostRate=0.4000000059604645, level1Rate=2.5, level2Rate=3.5, level3Rate=4.5, level4Rate=6.0, bonusExpPercent=0.0, bonusSpPercent=0.0, maxExpBonus=10.0, maxSpBonus=10.0, rulesFingerprint=ccb1da9dd2827b485d29ca1c32bc57c8046d6d7620c4c3ab9401312c923f55bd, runSpeed=126.88000000000001, maximumBatchMillis=60000, unsupportedFacts=128]]
+measurement.B04.nativeTargetHP=base=48.09168;max=75;npc=20534
+measurement.B04.next=OperationResult[status=REPLAN, reason=native_context.required:accepted, encounters=0, elapsedMillis=0, dead=false]
+measurement.B05.hourglassRelease=DematerializeResult[status=CLEANUP_FAILED_RETAINED, snapshot=MaterializationSnapshot[profileId=10280, characterObjectId=268435465, state=FAILED, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=false, admittedActionCount=0, worldPresent=true, materializedAtNanos=286094017489700, dematerializedAtNanos=0, cleanupPhase=NATIVE_STORE, cleanupFailurePhase=NATIVE_STORE, cleanupFailureClass=java.lang.IllegalArgumentException, cleanupFailureMessage=Canonical Player is in an unsupported background context. firstPredicate=nevit=1.5, cleanupFailureSequence=1, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=, firstCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=286094017489700, sequence=1, utc=2026-10-09T14:58:40.967561700Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=java.lang.IllegalArgumentException, message=Canonical Player is in an unsupported background context. firstPredicate=nevit=1.5, detail=primary java.lang.IllegalArgumentException: Canonical Player is in an unsupported background context. firstPredicate=nevit=1.5
+ at org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.requireSupportedPlayer(L2jPhantomBackgroundAuthority.java:1317)
+ at org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.capture(L2jPhantomBackgroundAuthority.java:203)
+ at org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.captureOwnedNative(L2jPhantomBackgroundAuthority.java:195)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.prepareStore(PhantomBackgroundService.java:1311)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.beforeStore(PhantomBackgroundService.java:1241)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7992)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundHandoff029Suite.lambda$register$0(PhantomBackgroundHandoff029Suite.java:46)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundHandoff029Suite.main(PhantomBackgroundHandoff029Suite.java:19)
+, nodes=1, frames=24, truncated=false], latestCleanupIncident=PhantomCleanupIncident[objectId=268435465, epoch=286094017489700, sequence=1, utc=2026-10-09T14:58:40.967561700Z, phase=NATIVE_STORE, hook=PLAYER_STORE_ME, admittedActions=0, exceptionClass=java.lang.IllegalArgumentException, message=Canonical Player is in an unsupported background context. firstPredicate=nevit=1.5, detail=primary java.lang.IllegalArgumentException: Canonical Player is in an unsupported background context. firstPredicate=nevit=1.5
+ at org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.requireSupportedPlayer(L2jPhantomBackgroundAuthority.java:1317)
+ at org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.capture(L2jPhantomBackgroundAuthority.java:203)
+ at org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.captureOwnedNative(L2jPhantomBackgroundAuthority.java:195)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.prepareStore(PhantomBackgroundService.java:1311)
+ at org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$1.beforeStore(PhantomBackgroundService.java:1241)
+ at org.l2jmobius.gameserver.model.actor.Player.storeQuiescent(Player.java:7992)
+ at org.l2jmobius.gameserver.model.actor.Player.lambda$store$0(Player.java:7937)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:333)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:301)
+ at org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(PlayerNativeWork.java:202)
+ at org.l2jmobius.gameserver.model.actor.Player.store(Player.java:7937)
+ at org.l2jmobius.gameserver.model.actor.Player.storeMe(Player.java:8043)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.lambda$cleanup$1(PhantomMaterializedPlayer.java:396)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.lambda$terminalStore$0(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.checkpoint(PhantomNativeWorkScope.java:339)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope.terminalStore(PhantomNativeWorkScope.java:312)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.cleanup(PhantomMaterializedPlayer.java:386)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.performCleanupEntry(PhantomMaterializationService.java:563)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanupEntry(PhantomMaterializationService.java:542)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.cleanup(PhantomMaterializationService.java:527)
+ at org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.dematerialize(PhantomMaterializationService.java:405)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundHandoff029Suite.lambda$register$0(PhantomBackgroundHandoff029Suite.java:46)
+ at org.l2jmobius.tests.phantoms.PhantomTestLauncher.runSuite(PhantomTestLauncher.java:170)
+ at org.l2jmobius.tests.phantoms.PhantomBackgroundHandoff029Suite.main(PhantomBackgroundHandoff029Suite.java:19)
+, nodes=1, frames=24, truncated=false]]]
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.background.productionKnowledgeHash=4912912557524a5ae9ae400e4b1c78ccf631aebacb36995fff7c2798e4a335cd
+measurement.background.productionTopologyHash=cff8cc0c758e460fe05752211258ef64f416f9da86e6f47fcafaa0f322cb51ac
+measurement.headless.database=l2jmobiush5_localplay_contract029a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.m1.focusedFixture.10278=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10279=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+measurement.m1.focusedFixture.10280=npc20534 anchor=population.farming.elf.20534 class=ELVEN_MAGE
+PASS background-handoff029.B04-native-Lucky-end-award-order elapsedNanos=653986300
+PASS background-handoff029.B04-real-level-boundary-must-not-enter-legacy-farm elapsedNanos=143196800
+FAIL background-handoff029.B05-timed-hourglass-keeps-real-native-store elapsedNanos=102797200 type=java.lang.AssertionError message=Unsupported temporal rewards must preserve real native release/store. Expected <SUCCESS> but was <CLEANUP_FAILED_RETAINED>. seed=15001501
+FAIL background-handoff029.P06-birth-before-first-owned-checkpoint elapsedNanos=129303100 type=java.lang.reflect.InvocationTargetException message= seed=15001501
+FAIL background-handoff029.T01-factual-off-area-no-reward-return elapsedNanos=17528300 type=java.lang.reflect.InvocationTargetException message= seed=15001501
+FAIL background-handoff029.T03-historical-ordinary-prerequisite elapsedNanos=12755700 type=org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException message=Could not create Phantom profile. seed=15001501
+FAIL background-handoff029.T03-real-non1-release-background-commit elapsedNanos=17430400 type=java.lang.reflect.InvocationTargetException message= seed=15001501
+FAIL background-handoff029.T04-T06-real-lease-and-exact-lost-reply elapsedNanos=17833700 type=java.lang.reflect.InvocationTargetException message= seed=15001501
+FAIL background-handoff029.after-all elapsedNanos=0 type=java.lang.RuntimeException message=java.lang.AssertionError: Identity registry is not empty after final fixture cleanup. Expected <0> but was <1>. seed=15001501
