@@ -1,0 +1,7 @@
+Exception: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-BACKGROUND-HANDOFF-029\Observe029.ps1:150
+Line |
+ 150 |  … ount -ne 2){throw 'Two suitable primaries unavailable before outcomes …
+     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Two suitable primaries unavailable before outcomes.
+
+

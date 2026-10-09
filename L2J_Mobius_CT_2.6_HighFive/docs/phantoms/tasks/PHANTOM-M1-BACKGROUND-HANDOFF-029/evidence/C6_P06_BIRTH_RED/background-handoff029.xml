@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="background-handoff029" seed="15001501" tests="7" passed="0" failures="7">
+  <properties>
+    <property name="background.database" value="l2jmobiush5_phantom_test"/>
+    <property name="headless.database" value="l2jmobiush5_localplay_contract029a"/>
+    <property name="headless.initializedSingletonCount" value="39"/>
+    <property name="headless.initializedSingletons" value="ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager"/>
+    <property name="headless.observerObjectId" value="268435467"/>
+    <property name="headless.primaryObjectId" value="268435465"/>
+    <property name="headless.schemaAggregateSha256" value="2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28"/>
+    <property name="headless.transitiveSingletonCount" value="5"/>
+    <property name="headless.transitiveSingletons" value="ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)"/>
+  </properties>
+  <testcase name="background-handoff029.B04-native-Lucky-end-award-order" elapsedNanos="59459400"><failure type="java.lang.reflect.InvocationTargetException" message="" seed="15001501"/></testcase>
+  <testcase name="background-handoff029.B04-real-level-boundary-must-not-enter-legacy-farm" elapsedNanos="10072800"><failure type="java.lang.reflect.InvocationTargetException" message="" seed="15001501"/></testcase>
+  <testcase name="background-handoff029.P06-birth-before-first-owned-checkpoint" elapsedNanos="87430700"><failure type="java.lang.reflect.InvocationTargetException" message="" seed="15001501"/></testcase>
+  <testcase name="background-handoff029.T01-factual-off-area-no-reward-return" elapsedNanos="9844400"><failure type="java.lang.reflect.InvocationTargetException" message="" seed="15001501"/></testcase>
+  <testcase name="background-handoff029.T03-historical-ordinary-prerequisite" elapsedNanos="13452200"><failure type="java.lang.NullPointerException" message="Cannot invoke &quot;org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$ProductionAuthorityFixture.authority()&quot; because &quot;this$0._production&quot; is null" seed="15001501"/></testcase>
+  <testcase name="background-handoff029.T03-real-non1-release-background-commit" elapsedNanos="9145300"><failure type="java.lang.reflect.InvocationTargetException" message="" seed="15001501"/></testcase>
+  <testcase name="background-handoff029.T04-T06-real-lease-and-exact-lost-reply" elapsedNanos="11138100"><failure type="java.lang.reflect.InvocationTargetException" message="" seed="15001501"/></testcase>
+</testsuite>

@@ -110,6 +110,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	// Optional exact-argument test observer. Transactions have returned; absent-Player ownership still fences admission.
 	private static volatile BiConsumer<Long, PhantomBackgroundState> _recoveryObserver;
     private static volatile BiConsumer<PhantomBackgroundTransaction.Command, PhantomBackgroundTransaction.Result> _commitObserver;
+    private static volatile BiConsumer<Long, Player> _nativeLifetimeObserver;
 
 	private final PhantomProfileRepository _profiles;
 	private final PhantomGoalStateStore _goals;
@@ -1892,6 +1893,12 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 	public void afterPlayerLoad(long profileId, Player player)
 	{
 		requireTransition(profileId, TransitionKind.MATERIALIZING);
+        final var lifetimeObserver = _nativeLifetimeObserver;
+        if (lifetimeObserver != null)
+        {
+            try { lifetimeObserver.accept(profileId, player); }
+            catch (Throwable ignored) { /* A passive observer cannot change native admission. */ }
+        }
 		installOwnedStoreBoundary(profileId, player);
 		final var historicalAdmission = _historicalAdmissions.get(profileId);
 		if ((historicalAdmission != null) && !currentHistoricalAdmission(profileId, player, player.getNativeWorkOwner(), historicalAdmission)) { throw new AdmissionRejectedException("background.historical_native_claim_or_epoch_changed"); }

@@ -1,0 +1,21 @@
+Buildfile: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml
+
+checkRequirements:
+
+init:
+   [delete] Deleting directory C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\bin
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\bin
+
+compile:
+    [javac] Compiling 2314 source files to C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\build\bin
+    [javac] C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\java\org\l2jmobius\gameserver\phantoms\background\L2jPhantomBackgroundAuthority.java:395: error: cannot find symbol
+    [javac]             if (World.getInstance().findObject(monster.getObjectId()) != null) { throw new FarmInputRejected(FarmInputFailure.TARGET_STALE, "farm.native_scalar_world_admission"); }
+    [javac]                 ^
+    [javac]   symbol:   variable World
+    [javac]   location: class L2jPhantomBackgroundAuthority
+    [javac] 1 error
+
+BUILD FAILED
+C:\Users\ZBook\.codex\worktrees\m1-background-029\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml:169: Compile failed; see the compiler error output for details.
+
+Total time: 15 seconds

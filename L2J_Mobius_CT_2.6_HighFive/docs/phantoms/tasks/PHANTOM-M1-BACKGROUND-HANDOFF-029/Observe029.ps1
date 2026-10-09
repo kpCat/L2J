@@ -3,7 +3,7 @@ param([ValidateSet('Probe','Scene','Away')][string]$Mode='Probe',
       [ValidateSet('b','c','d','e','f','g','h')][string]$Episode='b',
       [Parameter(Mandatory)][string]$OutputRoot,[int]$Seconds=80,
       [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha,
-      [hashtable]$SetupTeleport=@{}, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@())
+      [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@())
 $ErrorActionPreference='Stop'
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $runtime=Join-Path $module ".phantom-local/contract029$Episode/runtime"
@@ -124,21 +124,36 @@ try{
     }
     $status=Capture029 'STATUS'
     if($status.before.identityOwner -cne 'LOCALPLAY_TEST_HUMAN' -or $status.before.clientIdentity -cne 'none' -or $status.before.worldPresent -cne 'true'){throw 'Native synthetic identity unverified.'}
+    if($SetupAtNearestCandidate){
+        if($SetupTeleport.Count){throw 'One fixed setup source required.'}
+        $candidate=Capture029 'SNAPSHOT_PHANTOMS'
+        if($candidate.reason -cne 'CANDIDATE_SNAPSHOT' -or $candidate.candidate.admitted -cne 'true' -or [int]$candidate.candidate.instanceId -ne 0){throw 'No admitted exact setup candidate; no winner search.'}
+        $SetupTeleport=@{x=[int]$candidate.candidate.x;y=[int]$candidate.candidate.y;z=[int]$candidate.candidate.z;instanceId=0}
+        $candidate | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'fixed-setup-candidate.json') -Encoding utf8
+        & (Join-Path $PSScriptRoot 'Control029.ps1') -Action DryPath -Episode $Episode -OriginPoint @{x=$SetupTeleport.x;y=$SetupTeleport.y;z=$SetupTeleport.z} -EndpointPoint @{x=$SetupTeleport.x-200;y=$SetupTeleport.y} -OutputRoot (Join-Path $OutputRoot 'setup-dry') *> (Join-Path $OutputRoot 'setup-dry.log')
+        if($LASTEXITCODE -ne 0){throw 'Fixed candidate native setup geometry rejected; no alternate candidate.'}
+    }
     if($SetupTeleport.Count){
+        if(-not $SetupTeleport.ContainsKey('instanceId')){throw 'Checked setup requires exact instanceId.'}
+        $candidate=Capture029 'SNAPSHOT_PHANTOMS'
+        $exactCandidate=$candidate.reason -ceq 'CANDIDATE_SNAPSHOT' -and [int]$candidate.candidate.x -eq [int]$SetupTeleport.x -and [int]$candidate.candidate.y -eq [int]$SetupTeleport.y -and [int]$candidate.candidate.z -eq [int]$SetupTeleport.z -and [int]$candidate.candidate.instanceId -eq [int]$SetupTeleport.instanceId
+        $nearby=[Math]::Sqrt([Math]::Pow([int]$status.before.x-[int]$SetupTeleport.x,2)+[Math]::Pow([int]$status.before.y-[int]$SetupTeleport.y,2)) -le 2000
+        if(-not $exactCandidate -and -not $nearby){throw 'Fixed setup differs from admitted candidate; no location retry.'}
         $null=Capture029 'TELEPORT_SELF' $SetupTeleport
         $status=Capture029 'STATUS'
         if($status.before.teleporting -cne 'false' -or [Math]::Abs([int]$status.before.x-[int]$SetupTeleport.x) -gt 32 -or [Math]::Abs([int]$status.before.y-[int]$SetupTeleport.y) -gt 32){throw 'Pre-baseline setup arrival unconfirmed.'}
     }
     # Fixed enrollment time. No rewards-based spot or actor selection.
     $enrollment=[Diagnostics.Stopwatch]::StartNew()
-    while($enrollment.Elapsed.TotalSeconds -lt 60){
+    while($enrollment.Elapsed.TotalSeconds -lt 25){
         if($heartbeatJob.State -ceq 'Failed'){throw 'Heartbeat writer failed during enrollment.'}
         Start-Sleep -Seconds 1
     }
+    if($watch.Elapsed.TotalSeconds -gt 45){throw 'SETUP_BOUND45: no Synthetic clock reset.'}
     $baseline=@(Discover029 | Where-Object {$_.worldPresent -ceq 'true'} | Sort-Object {[long]$_.profileId})
     if($baseline.Count -lt 4 -or $baseline.Count -gt 8){throw "NATURAL_COHORT_COUNT:$($baseline.Count); expected4..8"}
     $baseline | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $OutputRoot 'baseline-cohort.json') -Encoding utf8
-    $suitable=@($baseline | Where-Object {$_.dead -ceq 'false' -and [int]$_.npcId -gt 0})
+    $suitable=@($baseline | Where-Object {($Mode -ceq 'Probe' -or $_.dead -ceq 'false') -and [int]$_.npcId -gt 0})
     $different=@($suitable | Where-Object {$_.profileId -notin $PreviousPrimaryIds})
     $primary=@($(if($different.Count -ge 2){$different}else{$suitable}) | Select-Object -First 2)
     if($primary.Count -ne 2){throw 'Two suitable primaries unavailable before outcomes.'}

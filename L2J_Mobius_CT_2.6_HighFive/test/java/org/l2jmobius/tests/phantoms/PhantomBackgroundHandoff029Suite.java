@@ -20,9 +20,110 @@ public final class PhantomBackgroundHandoff029Suite implements PhantomTestSuite
     }
     @Override public String id() { return "background-handoff029"; }
     @Override public void beforeAll(PhantomTestContext context) throws Exception { base.beforeAll(context); }
-    @Override public void afterAll(PhantomTestContext context) throws Exception { base.afterAll(context); }
+    @Override public void afterAll(PhantomTestContext context) throws Exception
+    {
+        final var observer = Class.forName("Contract029Observer");
+        final var drain = observer.getDeclaredMethod("drain"); drain.setAccessible(true); drain.invoke(null);
+        base.afterAll(context);
+    }
     @Override public void register(PhantomTestRegistry registry)
     {
+        registry.add("P06-birth-before-first-owned-checkpoint", context ->
+        {
+            final var output = context.moduleRoot().resolve("docs/phantoms/tasks/PHANTOM-M1-BACKGROUND-HANDOFF-029/evidence/P06-BIRTH-" + System.nanoTime());
+            final var attach = PhantomLifetimeReceipt029Suite.class.getDeclaredMethod("attach", Path.class, long.class, long.class); attach.setAccessible(true);
+            attach.invoke(null, output, 275L, 0L);
+            final var environment = (PhantomHeadlessPlayerTestEnvironment) field(base, "_environment");
+            final var reset = Player.load(environment.primary().objectId());
+            try { reset.stopAllTasks(); reset.getStat().setVitalityPoints(1, true); }
+            finally { environment.cleanupLoadedPlayer(reset); }
+            final var open = PhantomBackgroundSuite.class.getDeclaredMethod("openNativeProductionFixture", PhantomTestContext.class, boolean.class); open.setAccessible(true);
+            try (var fixture = (AutoCloseable) open.invoke(base, context, true))
+            {
+                final var playerMethod = fixture.getClass().getDeclaredMethod("player"); playerMethod.setAccessible(true); final var player = (Player) playerMethod.invoke(fixture);
+                final var owner = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner();
+                final var owners = Class.forName("Contract029Observer").getDeclaredField("RECEIPT_OWNERS"); owners.setAccessible(true);
+                context.record("P06.actualBirth", "epoch=" + owner.epoch() + ";registered=" + ((java.util.Map<?, ?>) owners.get(null)).containsValue(owner));
+                PhantomAssertions.assertTrue(((java.util.Map<?, ?>) owners.get(null)).containsValue(owner), "Real materialization birth must register exact owner before its first owned checkpoint.");
+                owner.checkpoint(() -> { owner.checkpointStage("CAPTURE"); return null; });
+                PhantomAssertions.assertEquals("", owner.diagnosticScalars().get("nativeCheckpointObserverFailure"), "Generic CAPTURE must retain already registered identity without manufacturing a receipt key.");
+            }
+        });
+        registry.add("B04-native-Lucky-end-award-order", context ->
+        {
+            final var environment = (PhantomHeadlessPlayerTestEnvironment) field(base, "_environment");
+            final var reset = Player.load(environment.primary().objectId());
+            try { reset.stopAllTasks(); reset.getStat().setVitalityPoints(1, true); }
+            finally { environment.cleanupLoadedPlayer(reset); }
+            final var open = PhantomBackgroundSuite.class.getDeclaredMethod("openNativeProductionFixture", PhantomTestContext.class, boolean.class); open.setAccessible(true);
+            try (var fixture = (AutoCloseable) open.invoke(base, context, true))
+            {
+                final var idMethod = fixture.getClass().getDeclaredMethod("id"); idMethod.setAccessible(true); final long id = (long) idMethod.invoke(fixture);
+                final var playerMethod = fixture.getClass().getDeclaredMethod("player"); playerMethod.setAccessible(true); final var player = (Player) playerMethod.invoke(fixture);
+                final long xp = org.l2jmobius.gameserver.data.xml.ExperienceData.getInstance().getExpForLevel(10) - 1, sp = player.getSp();
+                player.getStat().setLevel((byte) 9); player.getStat().setExp(xp); player.getStat().setVitalityPoints(16361, true);
+                player.addSkill(org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(194, 1), false);
+                PhantomAssertions.assertTrue(player.isLucky(), "Actual native Lucky before award.");
+                final var monsterMethod = fixture.getClass().getDeclaredMethod("monster", boolean.class); monsterMethod.setAccessible(true);
+                final var monster = (org.l2jmobius.gameserver.model.actor.instance.Monster) monsterMethod.invoke(fixture, false);
+                final var floatField = player.getStat().getClass().getDeclaredField("_vitalityPoints"); floatField.setAccessible(true);
+                final float expectedPoints;
+                context.record("B04.nativeTargetHP", "base=" + monster.getTemplate().getBaseHpMax() + ";max=" + monster.getMaxHp() + ";npc=" + monster.getId());
+                final long expectedXp;
+                try
+                {
+                    player.addExpAndSp(monster.getExpReward(9), monster.getSpReward(9), true);
+                    PhantomAssertions.assertTrue(player.getLevel() == 10 && !player.isLucky(), "Native level10 loses Lucky before vitality update.");
+                    player.getStat().updateVitalityPoints(monster.getVitalityPoints(player.getLevel(), (long) Math.ceil(monster.getMaxHp())), true, true);
+                    expectedPoints = floatField.getFloat(player.getStat()); expectedXp = player.getExp();
+                }
+                finally { monster.deleteMe(); }
+                player.getStat().setLevel((byte) 9); player.getStat().setExp(xp); player.getStat().setSp(sp); player.getStat().setVitalityPoints(16361, true);
+                player.addSkill(org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(194, 1), false);
+                PhantomAssertions.assertTrue(player.isLucky(), "Restored own TEST native Lucky before release.");
+                final var materialization = (PhantomMaterializationService) field(fixture, "materialization");
+                PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Actual Lucky level-boundary release.");
+                final Object seed = field(fixture, "seed"); final var goalMethod = seed.getClass().getDeclaredMethod("goal"); goalMethod.setAccessible(true); final var goal = (PhantomGoal) goalMethod.invoke(seed);
+                final var result = ((PhantomBackgroundService) field(fixture, "background")).farm(id, goal, 41, 41, PhantomActivityState.BACKGROUND, System.nanoTime());
+                final var transaction = (PhantomBackgroundTransaction) field(fixture, "transaction");
+                final var policy = transaction.nativeContext(id, player.getObjectId()).context().afterPolicy();
+                context.record("B04.Lucky", result + ";expectedPoints=" + expectedPoints + ";actual=" + policy);
+                PhantomAssertions.assertTrue(result.successful() && result.encounters() == 1, "Actual split at Lucky boundary.");
+                PhantomAssertions.assertEquals(expectedXp, transaction.load(id).state().progress().experience(), "Native bonus before level-up.");
+                PhantomAssertions.assertEquals(Float.floatToIntBits(expectedPoints), Float.floatToIntBits(policy.points()), "Native vitality consumes after award ends Lucky.");
+                PhantomAssertions.assertFalse(policy.lucky(), "Committed level10 capsule cannot retain Lucky predicate.");
+            }
+        });
+        registry.add("B04-real-level-boundary-must-not-enter-legacy-farm", context ->
+        {
+            final var environment = (PhantomHeadlessPlayerTestEnvironment) field(base, "_environment");
+            final var reset = Player.load(environment.primary().objectId());
+            try { reset.stopAllTasks(); reset.getStat().setVitalityPoints(1, true); }
+            finally { environment.cleanupLoadedPlayer(reset); }
+            final var open = PhantomBackgroundSuite.class.getDeclaredMethod("openNativeProductionFixture", PhantomTestContext.class, boolean.class); open.setAccessible(true);
+            try (var fixture = (AutoCloseable) open.invoke(base, context, true))
+            {
+                final var idMethod = fixture.getClass().getDeclaredMethod("id"); idMethod.setAccessible(true); final long id = (long) idMethod.invoke(fixture);
+                final var playerMethod = fixture.getClass().getDeclaredMethod("player"); playerMethod.setAccessible(true); final var player = (Player) playerMethod.invoke(fixture);
+                player.getStat().setLevel((byte) 7);
+                player.getStat().setExp(org.l2jmobius.gameserver.data.xml.ExperienceData.getInstance().getExpForLevel(8) - 1);
+                player.getStat().setVitalityPoints(1, true);
+                final var materialization = (PhantomMaterializationService) field(fixture, "materialization");
+                PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.dematerialize(id).status(), "Actual native level-boundary release.");
+                final Object seed = field(fixture, "seed"); final var goalMethod = seed.getClass().getDeclaredMethod("goal"); goalMethod.setAccessible(true); final var goal = (PhantomGoal) goalMethod.invoke(seed);
+                final var background = (PhantomBackgroundService) field(fixture, "background");
+                final var transaction = (PhantomBackgroundTransaction) field(fixture, "transaction");
+                final var result = background.farm(id, goal, 31, 31, PhantomActivityState.BACKGROUND, System.nanoTime());
+                final var after = transaction.load(id).state(); final var policy = transaction.nativeContext(id, player.getObjectId()).context();
+                context.record("B04.boundary", result + ";progress=" + after.progress() + ";context=" + policy);
+                PhantomAssertions.assertTrue(result.successful() && result.encounters() == 1 && after.progress().level() == 8, "Batch must split at actual level-up and invalidate old level facts.");
+                PhantomAssertions.assertFalse(policy.afterPolicy().ordinaryRewards(), "Next encounter needs fresh native level facts.");
+                final var denied = background.farm(id, goal, 32, 32, PhantomActivityState.BACKGROUND, System.nanoTime());
+                context.record("B04.next", denied.toString());
+                PhantomAssertions.assertTrue(!denied.successful() && denied.reason().startsWith("native_context.required"), "V2 points1 with invalidated level facts must require fresh attestation, not an unrelated failure.");
+                PhantomAssertions.assertEquals(after, transaction.load(id).state(), "Denied next encounter changes no canonical state.");
+            }
+        });
         registry.add("T04-T06-real-lease-and-exact-lost-reply", context ->
         {
             for (boolean committed : new boolean[] { false, true })

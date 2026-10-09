@@ -1,0 +1,24 @@
+suite=server-shutdown-handoff
+seed=23002301
+total=8
+passed=8
+failed=0
+measurement.TASK023.ecologyDrain=stopped=true;finished=true;configured=false
+measurement.headless.database=l2jmobiush5_localplay_contract029a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+measurement.serverShutdownHandoff.blockedFirstElapsedNanos=36304300
+measurement.serverShutdownHandoff.database=l2jmobiush5_phantom_test
+PASS server-shutdown-handoff.01-managed-classifier-fails-closed elapsedNanos=183412400
+PASS server-shutdown-handoff.02-two-phase-server-policy-and-source-order elapsedNanos=4345700
+PASS server-shutdown-handoff.03-in-flight-drain-reused-before-thread-pool-phase elapsedNanos=76696400
+PASS server-shutdown-handoff.04-persistent-failure-retains-configured-ownership elapsedNanos=53001500
+PASS server-shutdown-handoff.05-in-flight-scheduler-pulse-retains-configured-system elapsedNanos=11530900
+PASS server-shutdown-handoff.06-navigation-only-blocker-snapshot elapsedNanos=16612200
+PASS server-shutdown-handoff.07-final-diagnostic-includes-navigation-state elapsedNanos=344400
+PASS server-shutdown-handoff.08-configured-stop-awaits-original-ecology-worker-finally elapsedNanos=172212400

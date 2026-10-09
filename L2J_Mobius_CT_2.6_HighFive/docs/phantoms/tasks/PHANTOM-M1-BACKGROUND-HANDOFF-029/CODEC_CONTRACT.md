@@ -44,3 +44,12 @@ Stored-origin return использует максимум4096 units, <=42 sampl
 stock GeoEngine в обе стороны и ZoneManager WaterZone. До завершения учитывается
 residualTravelMillis без XYZ/reward/resource deltas; commit пересчитывает тот же путь
 и проверяет topology generation под тем же held background lease и DB boundary.
+
+## Native target HP correction C5
+Target input carries separate stock native maxHP for full-kill vitality damage. Existing
+maximumHp stays the prior combat/base template input and legacy Target constructors remain.
+Authority obtains scalar maxHP from an unspawned stock Monster and always deletes it;
+no NPC is admitted to World. Model contains only the float, no Player/World/provider.
+PNC1/PNC2 and owned receipt bytes do not change. Rules fingerprint now names
+ORDINARY_SCALAR_V2_NATIVE_TARGET_HP: prior V2 facts remain readable, but cannot permit
+FARM under corrected numeric semantics until a normal fresh native attestation.

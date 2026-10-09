@@ -1,0 +1,21 @@
+suite=background-handoff029
+seed=15001501
+total=7
+passed=0
+failed=7
+measurement.background.database=l2jmobiush5_phantom_test
+measurement.headless.database=l2jmobiush5_localplay_contract029a
+measurement.headless.initializedSingletonCount=39
+measurement.headless.initializedSingletons=ConfigLoader,PhantomTestDatabaseBootstrap,DatabaseFactory,ThreadPool,IdManager,World,CategoryData,ExperienceData,EffectHandler,EnchantSkillGroupsData,SkillTreeData,SkillData,ItemData,EnchantItemOptionsData,OptionData,RecipeData,ClassListData,PlayerTemplateData,AdminData,CharInfoTable,ClanTable,CHSiegeManager,ClanHallTable,ClanHallAuctionManager,GeoEngine,SkillLearnData,NpcData,CastleManager.loadInstances,InstanceManager,ZoneManager,GrandBossManager.initZones,TerritoryWarManager,Hero,SevenSigns,PartyMatchWaitingList,PartyMatchRoomList,CursedWeaponsManager,RecipeManager,OlympiadManager
+measurement.headless.observerObjectId=268435467
+measurement.headless.primaryObjectId=268435465
+measurement.headless.schemaAggregateSha256=2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28
+measurement.headless.transitiveSingletonCount=5
+measurement.headless.transitiveSingletons=ScriptEngine(effect-master-only),DatabaseIdManager(via-IdManager),ForumsBBSManager(via-ClanTable),GrandBossManager(via-ZoneManager),WalkingManager(via-TerritoryWarManager)
+FAIL background-handoff029.B04-native-Lucky-end-award-order elapsedNanos=59459400 type=java.lang.reflect.InvocationTargetException message= seed=15001501
+FAIL background-handoff029.B04-real-level-boundary-must-not-enter-legacy-farm elapsedNanos=10072800 type=java.lang.reflect.InvocationTargetException message= seed=15001501
+FAIL background-handoff029.P06-birth-before-first-owned-checkpoint elapsedNanos=87430700 type=java.lang.reflect.InvocationTargetException message= seed=15001501
+FAIL background-handoff029.T01-factual-off-area-no-reward-return elapsedNanos=9844400 type=java.lang.reflect.InvocationTargetException message= seed=15001501
+FAIL background-handoff029.T03-historical-ordinary-prerequisite elapsedNanos=13452200 type=java.lang.NullPointerException message=Cannot invoke "org.l2jmobius.tests.phantoms.PhantomBackgroundSuite$ProductionAuthorityFixture.authority()" because "this$0._production" is null seed=15001501
+FAIL background-handoff029.T03-real-non1-release-background-commit elapsedNanos=9145300 type=java.lang.reflect.InvocationTargetException message= seed=15001501
+FAIL background-handoff029.T04-T06-real-lease-and-exact-lost-reply elapsedNanos=11138100 type=java.lang.reflect.InvocationTargetException message= seed=15001501

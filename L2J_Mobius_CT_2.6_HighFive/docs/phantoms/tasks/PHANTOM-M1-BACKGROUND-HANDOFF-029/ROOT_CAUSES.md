@@ -68,3 +68,54 @@ native actions и bounded lifecycle — переиспользовать. Бон
   DRY_C3_APPROACH отклонён water bounds; MOVE не запускался. PROBE_C3_CURRENT_ZONE отклонён
   INVALID_ARGUMENT (setup не передал instanceId); teleport к далёкой группе не выполнялся.
   Старые U1/U2 и пропуски872/1272 остаются UNKNOWN/UNPROVEN.
+
+## Проверки C5 без предположительного product fix
+- C4_EXISTING_18:18/18 routes,92/92 cases. C4_NATIVE027_ACCEPTANCE:11/11.
+  Route11 текущего кода прошёл; исторический U2 этим не объявлен исправленным.
+- B04_BOUNDARY_RED был setup-only: неверное имя fixture field transactions.
+  После чтения NativeProductionFixture используется transaction. B04_BOUNDARY_SEMANTIC_RED
+  фактически GREEN:5/5. Actual native release, один encounter до level8, policy mask128;
+  следующий FARM = REPLAN/native_context.required:accepted, canonical state unchanged.
+  Гипотеза обхода level guard через legacy predicate НЕ подтверждена; production не изменён.
+- TASK single checked setup реализован existing SNAPSHOT_PHANTOMS→exact TELEPORT_SELF.
+  Геометрия checked через штатный dry helper до MOVE и до выбора rewards/outcomes.
+  Setup теперь bounded45s без reset clock; Probe может проследить cold-dead группу,
+  это диагностическое наблюдение, не снижение alive admission Scene/Away.
+- PROBE_D_CURRENT_C4: пять actual cold-dead участников, поэтому baseline primary admission
+  failed. Последующий SQL export подтверждает native return/HP и homeXYZ46045,41251.
+  PROBE_D_HOME_C4: native cohort0. Конкретный stale-route producer этим ещё не доказан.
+  Запад/восток/север current long dry routes rejected, MOVE не выполнялся.
+- D_C4_STOP: stock Game/Login exit подтверждены; force не использовался.
+
+## Native scalar RED/GREEN C5
+- B04_NATIVE_LUCKY_RED / B04_LUCKY_ATTESTED_RED: actual native XP reached level10,
+  but native vitality15997.111 != background16127.667. Native target20534 has
+  baseHP48.09168 and computed maxHP75; old model used baseHP as full damage too.
+- NATIVE_TARGET_HP_GREEN:6/6, actual release/SQL transaction and exact float bits agree.
+  Separate target maxHP scalar fixes full-kill loss; legacy Target constructor retained.
+  Unspawned native scalar projection always deletes its temporary NPC; no World admission.
+  Model/rate fingerprint discriminator changed as part of the same numeric correction,
+  so pre-correction V2 FARM facts require fresh native attestation; no codec migration.
+- G actual stock start was RUNNING despite stale helper LASTEXITCODE1; exact PID/incarnation
+  exported independently. No repeated START. PROBE_G_NATIVE_C4 admitted1 cold-dead actor,
+  so4..8 admission failed. PROBE_G_ORIGIN_ROOT retained native single actor252 with
+  actual new epoch and6 farm/reward cycles in the existing locality census. This is
+  individual native recovery evidence, NOT whole-group F03/F04 or a final scene.
+- At180min, no admitted4..8 actual away/background episode is proven. Deadline remains
+  MISSED; command admission attempts are not renamed into actual background success.
+
+## Prospectively observed lifetime birth C6
+- C6_P06_BIRTH_RED used an unsupported TEST focus acceptance: production fixture was
+  absent. This is setup-only and not counted as a semantic RED.
+- C6_P06_BIRTH_SEMANTIC_RED uses the existing review focus:6/7 PASS; actual materialized
+  owner was not enrolled before its first owned checkpoint. No manual enrollment in P06.
+- C6_P06_BIRTH_GREEN:7/7. Passive service afterPlayerLoad callback registers actual owner
+  before capture; generic CAPTURE accepts only a uniquely registered current exact owner.
+  Native owned checkpoint/key/receipt bytes remain unchanged. Callback failures stay in
+  observer exporterFailure and cannot alter native admission. Union stays bounded32/128.
+- TEST exporter shutdown initially raced pool close; explicit bounded drain was added
+  before closing the existing fixture database. Product acceptance requires zero errors.
+- First G cold252 epoch281699997540400 lacks prospective receipt enrollment; the healthy
+  later epoch281745537122100 cannot repair it. Both and old872/1272 remain UNPROVEN.
+- G_PRE_C6_STOCK_STOP: Game35600 and Login14824 stock exits confirmed; initial typed
+  shutdown phase/reason still must be inspected independently. Attach EOF is not ignored.

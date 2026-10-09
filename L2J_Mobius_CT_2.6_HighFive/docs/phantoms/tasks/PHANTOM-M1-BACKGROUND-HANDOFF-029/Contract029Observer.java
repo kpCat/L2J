@@ -326,6 +326,7 @@ public final class Contract029Observer
         {
             field(PhantomNativeWorkScope.class, "_checkpointObserver").set(null, (BiConsumer<Player, String>) Contract029Observer::observe);
             field(PhantomBackgroundService.class, "_commitObserver").set(null, (BiConsumer<PhantomBackgroundTransaction.Command, PhantomBackgroundTransaction.Result>) Contract029Observer::backgroundCommit);
+            field(PhantomBackgroundService.class, "_nativeLifetimeObserver").set(null, (BiConsumer<Long, Player>) Contract029Observer::nativeBirth);
             final Thread exporter = new Thread(() ->
             {
                 while (true)
@@ -345,6 +346,19 @@ public final class Contract029Observer
         }
         write(output.resolve("observer-installed-" + System.nanoTime() + ".properties"), "owner=TASK029_CONTRACT\nmode=" + mode + "\npid=" + ProcessHandle.current().pid() + "\ncodeSha=" + selection.sha() + "\nringCapacity=32\nexactArgument=true\n");
         if (mode.equals("FULL_OBSERVE")) { sampleFullCohort(); }
+    }
+    private static void nativeBirth(Long profile, Player player)
+    {
+        try
+        {
+            if (!(player.getNativeWorkOwner() instanceof PhantomNativeWorkScope owner) || owner.player() != player)
+            { throw new IllegalStateException("TASK029_BIRTH_EXACT_OWNER"); }
+            enroll(profile, owner);
+        }
+        catch (Throwable failure)
+        {
+            exporterFailure = "TASK029_BIRTH_FAILED:" + failure;
+        }
     }
     private static final Map<String, String> BACKGROUND_EDGES = new java.util.concurrent.ConcurrentHashMap<>();
     private static void backgroundCommit(PhantomBackgroundTransaction.Command command, PhantomBackgroundTransaction.Result result)
@@ -545,7 +559,15 @@ public final class Contract029Observer
             {
                 final var owner = (PhantomNativeWorkScope) player.getNativeWorkOwner();
                 final Object checkpoint = field(PhantomNativeWorkScope.class, "_ownedCheckpoint").get(owner);
-                if (checkpoint == null) { throw new IllegalStateException("TASK029_REGISTER_KEY_MISSING"); }
+                if (checkpoint == null)
+                {
+                    if (owner.player() != player || !owner.isCurrent() || THREAD.get(owner) != Thread.currentThread()
+                        || !STATE.get(owner).toString().equals("SEALED")
+                        || RECEIPT_OWNERS.entrySet().stream().filter(value -> value.getValue() == owner
+                            && value.getKey().objectId() == player.getObjectId() && value.getKey().epoch() == owner.epoch()).count() != 1)
+                    { throw new IllegalStateException("TASK029_GENERIC_CAPTURE_UNREGISTERED"); }
+                    return;
+                }
                 final var key = (PhantomNativeWorkScope.CheckpointKey) field(checkpoint.getClass(), "key").get(checkpoint);
                 if (key.objectId() != player.getObjectId() || key.epoch() != owner.epoch()
                     || THREAD.get(owner) != Thread.currentThread() || !STATE.get(owner).toString().equals("SEALED")) { throw new IllegalStateException("TASK029_REGISTER_EXACT_ARGUMENT"); }
@@ -668,7 +690,19 @@ public final class Contract029Observer
             }
             connection.rollback();
         }
-        if (!text.toString().matches("(?s).*l2jmobiush5_localplay_contract029[b-h].*")) { throw new IllegalStateException("TASK029_SQL_DB_GUARD"); }
+        boolean ownTest = false;
+        final String testManifest = System.getProperty("phantom.contract029.manifest", "");
+        if (!testManifest.isEmpty())
+        {
+            final Path exact = Path.of("").toRealPath().getParent().getParent().resolve("test/owned.properties").toRealPath();
+            if (!Path.of(testManifest).toRealPath().equals(exact)) { throw new IllegalStateException("TASK029_SQL_TEST_MANIFEST_PATH"); }
+            final var test = new Properties();
+            try (var reader = Files.newBufferedReader(exact, StandardCharsets.UTF_8)) { test.load(reader); }
+            ownTest = "TASK029_CONTRACT".equals(test.getProperty("owner"))
+                && "l2jmobiush5_localplay_contract029a".equals(test.getProperty("database"))
+                && text.toString().matches("(?s).*database_name\\r?\\nl2jmobiush5_localplay_contract029a\\r?\\n.*");
+        }
+        if (!ownTest && !text.toString().matches("(?s).*l2jmobiush5_localplay_contract029[b-h].*")) { throw new IllegalStateException("TASK029_SQL_DB_GUARD"); }
         return text.toString();
     }
     private static String snapshot(PhantomOwnedStoreIntent intent, Player player, String sha)

@@ -1,0 +1,2 @@
+280998483031000	StopProgress[phase=CLOSE_PRODUCERS, outcome=PENDING, blocker=closing, deadlineNanos=281008466417000]
+280998584291500	StopProgress[phase=DONE, outcome=COMPLETE, blocker=, deadlineNanos=281008466417000]

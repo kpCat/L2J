@@ -245,7 +245,7 @@ public final class PhantomBackgroundModel
             if (ordinary != null && rewards.experience() > 0)
             {
                 final long targetExp = (long) (target.baseExperience() * request.rewardPolicy().experienceRate());
-                final float delta = PhantomBackgroundRewardKernel.targetDelta((long) Math.ceil(target.maximumHp()), target.level(), targetExp, (float) target.maximumHp(), (float) target.maximumHp());
+                final float delta = PhantomBackgroundRewardKernel.targetDelta((long) Math.ceil(target.vitalityMaximumHp()), target.level(), targetExp, (float) target.maximumHp(), target.vitalityMaximumHp());
                 points = PhantomBackgroundRewardKernel.update(points, delta, ordinary);
             }
 			final double incoming = incomingDamage(state.combat(), target, encounterMillis, random);
@@ -791,11 +791,15 @@ public final class PhantomBackgroundModel
 		}
 	}
 
-	public record Target(int npcId, int level, boolean normalMonster, double maximumHp, double maximumMp, double physicalOffense, double magicOffense, double physicalDefense, double magicDefense, double attackSpeed, double castSpeed, double baseExperience, double baseSkillPoints, List<Drop> drops, int maximumRandomDropOccurrences)
+	public record Target(int npcId, int level, boolean normalMonster, double maximumHp, double maximumMp, double physicalOffense, double magicOffense, double physicalDefense, double magicDefense, double attackSpeed, double castSpeed, double baseExperience, double baseSkillPoints, List<Drop> drops, int maximumRandomDropOccurrences, float vitalityMaximumHp)
 	{
+        public Target(int npcId, int level, boolean normalMonster, double maximumHp, double maximumMp, double physicalOffense, double magicOffense, double physicalDefense, double magicDefense, double attackSpeed, double castSpeed, double baseExperience, double baseSkillPoints, List<Drop> drops, int maximumRandomDropOccurrences)
+        {
+            this(npcId, level, normalMonster, maximumHp, maximumMp, physicalOffense, magicOffense, physicalDefense, magicDefense, attackSpeed, castSpeed, baseExperience, baseSkillPoints, drops, maximumRandomDropOccurrences, (float) maximumHp);
+        }
 		public Target
 		{
-			if ((npcId <= 0) || (level < 1) || !Double.isFinite(maximumHp) || (maximumHp <= 0) || !Double.isFinite(maximumMp) || (maximumMp < 0) || !Double.isFinite(baseExperience) || (baseExperience < 0) || !Double.isFinite(baseSkillPoints) || (baseSkillPoints < 0) || (maximumRandomDropOccurrences < 0))
+			if ((npcId <= 0) || (level < 1) || !Double.isFinite(maximumHp) || (maximumHp <= 0) || !Double.isFinite(maximumMp) || (maximumMp < 0) || !Double.isFinite(baseExperience) || (baseExperience < 0) || !Double.isFinite(baseSkillPoints) || (baseSkillPoints < 0) || (maximumRandomDropOccurrences < 0) || !Float.isFinite(vitalityMaximumHp) || vitalityMaximumHp <= 0)
 			{
 				throw new IllegalArgumentException("Invalid background target.");
 			}

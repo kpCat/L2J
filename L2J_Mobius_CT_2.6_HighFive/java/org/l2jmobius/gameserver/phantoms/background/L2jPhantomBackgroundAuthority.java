@@ -380,11 +380,25 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			throw new FarmInputRejected(FarmInputFailure.UNSUPPORTED_LOOT, "farm.loot_evidence_bound");
 		}
-		final Target target = new Target(goal.npcId(), npc.level(), true, template.getBaseHpMax(), template.getBaseMpMax(), template.getBasePAtk(), template.getBaseMAtk(), template.getBasePDef(), template.getBaseMDef(), template.getBasePAtkSpd(), template.getBaseMAtkSpd(), npc.exp(), npc.sp(), drops, RatesConfig.DROP_MAX_OCCURRENCES_NORMAL);
+		final Target target = new Target(goal.npcId(), npc.level(), true, template.getBaseHpMax(), template.getBaseMpMax(), template.getBasePAtk(), template.getBaseMAtk(), template.getBasePDef(), template.getBaseMDef(), template.getBasePAtkSpd(), template.getBaseMAtkSpd(), npc.exp(), npc.sp(), drops, RatesConfig.DROP_MAX_OCCURRENCES_NORMAL, nativeVitalityMaximumHp(template));
 		final double expRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicExpRate(state.progress().level()) : RatesConfig.RATE_XP;
 		final double spRate = DynamicExpRateData.getInstance().isEnabled() ? DynamicExpRateData.getInstance().getDynamicSpRate(state.progress().level()) : RatesConfig.RATE_SP;
 		return new FarmInput(target, new RewardPolicy(RatesConfig.MONSTER_EXP_MAX_LEVEL_DIFFERENCE, expRate, spRate), deathPolicy(state), experienceTable(), levelForExperience(), anchor.nodeId(), (int) Math.clamp(configuredAmount, 1, 32));
 	}
+
+    /** Stock passive NPC stat projection, without spawn or World admission; only scalars reach the model. */
+    private static float nativeVitalityMaximumHp(NpcTemplate template)
+    {
+        final var monster = new org.l2jmobius.gameserver.model.actor.instance.Monster(template);
+        try
+        {
+            if (org.l2jmobius.gameserver.model.World.getInstance().findObject(monster.getObjectId()) != null) { throw new FarmInputRejected(FarmInputFailure.TARGET_STALE, "farm.native_scalar_world_admission"); }
+            final float hp = (float) monster.getMaxHp();
+            if (!Float.isFinite(hp) || hp <= 0) { throw new FarmInputRejected(FarmInputFailure.TARGET_STALE, "farm.native_scalar_hp"); }
+            return hp;
+        }
+        finally { monster.deleteMe(); }
+    }
 
 	@Override
 	public FarmInput acquisitionInput(PhantomBackgroundState state, Source source)
@@ -1221,7 +1235,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 
     public static String configuredSimulationFingerprint()
     {
-        return digest("ORDINARY_SCALAR_V2", PlayerConfig.ENABLE_VITALITY, PlayerConfig.MAX_BONUS_EXP,
+        return digest("ORDINARY_SCALAR_V2_NATIVE_TARGET_HP", PlayerConfig.ENABLE_VITALITY, PlayerConfig.MAX_BONUS_EXP,
             PlayerConfig.MAX_BONUS_SP, RatesConfig.RATE_VITALITY_GAIN, RatesConfig.RATE_VITALITY_LOST,
             RatesConfig.RATE_VITALITY_LEVEL_1, RatesConfig.RATE_VITALITY_LEVEL_2,
             RatesConfig.RATE_VITALITY_LEVEL_3, RatesConfig.RATE_VITALITY_LEVEL_4,

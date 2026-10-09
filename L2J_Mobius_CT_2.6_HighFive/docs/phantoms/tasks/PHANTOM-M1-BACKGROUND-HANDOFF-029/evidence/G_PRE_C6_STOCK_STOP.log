@@ -1,0 +1,12 @@
+WARNING: option --ssl-verify-server-cert is disabled, because of an insecure passwordless login.
+DB_LOGOUT_CONFIRMED l2jmobiush5_localplay_contract029g 268492939	TestAdmin	0	12	138026	13880	44131	42673	-3488
+STOCK_GRACEFUL_STOP_CONFIRMED role=GameServer pid=35600
+Exception in thread "main" java.io.IOException: Premature EOF
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.readInt(HotSpotVirtualMachine.java:448)
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.processCompletionStatus(HotSpotVirtualMachine.java:485)
+	at jdk.attach/sun.tools.attach.VirtualMachineImpl.execute(VirtualMachineImpl.java:141)
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.loadAgentLibrary(HotSpotVirtualMachine.java:109)
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.loadAgentLibrary(HotSpotVirtualMachine.java:140)
+	at jdk.attach/sun.tools.attach.HotSpotVirtualMachine.loadAgent(HotSpotVirtualMachine.java:168)
+	at RequestGracefulShutdown.main(RequestGracefulShutdown.java:16)
+STOCK_GRACEFUL_STOP_CONFIRMED role=LoginServer pid=14824

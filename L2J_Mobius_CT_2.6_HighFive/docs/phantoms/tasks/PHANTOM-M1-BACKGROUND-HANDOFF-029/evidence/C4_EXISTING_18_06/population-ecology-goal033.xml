@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="population-ecology-goal033" seed="33003300" tests="30" passed="30" failures="0">
+  <properties>
+    <property name="goal033.backgroundDueMinutes" value="10"/>
+    <property name="goal033.catalogHash" value="635576af8b4b92ac4f97e508cd1e9a6cb3639344a502cf5f899ee0e8b726fd9d"/>
+    <property name="goal033.codecBytes" value="216"/>
+    <property name="goal033.fresh.ageDays" value="{0=26, 1=24, 2=17, 3=18, 4=4, 5=4, 6=3, 7=4}"/>
+    <property name="goal033.fresh.pace" value="{CASUAL=50, REGULAR=40, FAST=9, OUTLIER=1}"/>
+    <property name="goal033.fresh.personality" value="{BALANCED=30, SOCIAL=20, COMPETITIVE=15, CAUTIOUS=20, GRINDER=10, TRADER=5}"/>
+    <property name="goal033.fresh.schedule" value="{evening=50, late=20, morning=30}"/>
+    <property name="goal033.humanFixtures" value="1,20,40,60,85 identical"/>
+    <property name="goal033.living.ageDays" value="{0=6, 1=6, 2=8, 3=4, 4=3, 5=10, 6=6, 7=7, 8=7, 9=3, 10=6, 11=4, 12=4, 13=3, 14=3, 16=2, 17=3, 18=4, 19=3, 20=3, 21=5}"/>
+    <property name="goal033.living.pace" value="{CASUAL=30, REGULAR=45, FAST=20, OUTLIER=5}"/>
+    <property name="goal033.living.personality" value="{BALANCED=25, SOCIAL=20, COMPETITIVE=15, CAUTIOUS=15, GRINDER=15, TRADER=10}"/>
+    <property name="goal033.living.schedule" value="{evening=50, late=20, morning=30}"/>
+    <property name="goal033.mature.ageDays" value="{0=2, 1=2, 2=4, 3=4, 4=1, 5=1, 6=3, 7=2, 8=1, 9=4, 10=3, 11=2, 12=1, 15=5, 16=1, 17=1, 18=3, 19=1, 20=2, 21=1, 22=1, 23=3, 24=4, 25=1, 26=3, 27=1, 28=2, 29=2, 30=1, 31=1, 33=1, 34=1, 37=2, 38=2, 39=2, 40=3, 41=2, 43=3, 44=2, 45=1, 46=1, 47=1, 49=2, 50=2, 51=1, 52=1, 54=1, 55=3, 56=1, 57=1, 58=2, 59=1, 60=1}"/>
+    <property name="goal033.mature.pace" value="{CASUAL=25, REGULAR=40, FAST=27, OUTLIER=8}"/>
+    <property name="goal033.mature.personality" value="{BALANCED=20, SOCIAL=15, COMPETITIVE=20, CAUTIOUS=15, GRINDER=20, TRADER=10}"/>
+    <property name="goal033.mature.schedule" value="{evening=50, late=20, morning=30}"/>
+    <property name="goal033.maximumPulse" value="1/16"/>
+    <property name="goal033.paceCycle" value="{CASUAL=2500, REGULAR=5000, FAST=7500, OUTLIER=9500}"/>
+    <property name="goal033.periodicContinuation" value="271"/>
+    <property name="goal033.periodicCrashRecovery" value="before_save,after_save"/>
+    <property name="goal033.periodicMaterializedBoundary" value="10_awarded,5_materialized_no_award,10_resumed"/>
+    <property name="goal033.productionComposition" value="population pulse + Goal033A + Social initializer"/>
+    <property name="goal033.restartProductiveMinutes" value="210"/>
+    <property name="goal033.restartRequests" value="29"/>
+    <property name="goal033.restoredReadinessCreated" value="5"/>
+    <property name="goal033.simulation128" value="{FRESH=Simulation[profiles=128, medianAgeMinutes=3068, medianProductiveMinutes=165, totalProductiveMinutes=33405, newcomers=62], LIVING=Simulation[profiles=128, medianAgeMinutes=12686, medianProductiveMinutes=930, totalProductiveMinutes=172620, newcomers=12], MATURE=Simulation[profiles=128, medianAgeMinutes=38031, medianProductiveMinutes=2925, totalProductiveMinutes=540735, newcomers=13]}"/>
+    <property name="goal033.socialTraits" value="{caution=385, empathy=3209, persistence=90, sociability=7668, loyalty=2740, assertiveness=1143}"/>
+    <property name="goal033.staleAuthorityRenewal" value="same_request,10_minutes_once"/>
+    <property name="goal033.turnover" value="managed=1 archived=1 replacement=2"/>
+    <property name="goal034.idleCalendarFenceChanges" value="1"/>
+    <property name="goal034.restartExistingFenceChanges" value="[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 1]"/>
+    <property name="goal034.restartExistingReconciliations" value="1"/>
+    <property name="task016.O01" value="exact ownership preserved"/>
+    <property name="task016.O02" value="exact ownership preserved"/>
+    <property name="task016.O03" value="exact ownership preserved"/>
+    <property name="task016.O10" value="exact ownership preserved"/>
+    <property name="task016.O11" value="exact ownership preserved"/>
+    <property name="task016.O12" value="exact ownership preserved"/>
+  </properties>
+  <testcase name="population-ecology-goal033.01-strict-catalog-config-and-codec" elapsedNanos="45813900"></testcase>
+  <testcase name="population-ecology-goal033.02-low-discrepancy-and-human-independence" elapsedNanos="27041500"></testcase>
+  <testcase name="population-ecology-goal033.03-pace-and-schedule-causal-time" elapsedNanos="568450200"></testcase>
+  <testcase name="population-ecology-goal033.04-bounded-calendar-restart-and-ongoing" elapsedNanos="33169800"></testcase>
+  <testcase name="population-ecology-goal033.05-safe-turnover-replacement-and-cap" elapsedNanos="39446300"></testcase>
+  <testcase name="population-ecology-goal033.06-personality-new-state-only" elapsedNanos="11614300"></testcase>
+  <testcase name="population-ecology-goal033.07-production-architecture-static-fences" elapsedNanos="1332900"></testcase>
+  <testcase name="population-ecology-goal033.08-idle-calendar-catchup-reopens-schedule-fence" elapsedNanos="2164300"></testcase>
+  <testcase name="population-ecology-goal033.09-restart-existing-ecology-reopens-schedule-fences" elapsedNanos="7283800"></testcase>
+  <testcase name="population-ecology-goal033.10-topology-block-quiet-and-resume" elapsedNanos="9320400"></testcase>
+  <testcase name="population-ecology-goal033.11-transient-item-retry-has-shared-pulse-backoff" elapsedNanos="2056300"></testcase>
+  <testcase name="population-ecology-goal033.12-background-due-reconciles-elapsed-cursor-once" elapsedNanos="604500"></testcase>
+  <testcase name="population-ecology-goal033.13-periodic-due-crash-before-and-after-durable-commit" elapsedNanos="1222700"></testcase>
+  <testcase name="population-ecology-goal033.14-periodic-cursor-materialized-boundary-and-resume" elapsedNanos="512800"></testcase>
+  <testcase name="population-ecology-goal033.15-stale-authority-renews-current-request" elapsedNanos="1344800"></testcase>
+  <testcase name="population-ecology-goal033.16-incomplete-periodic-due-continues-under-pulse-budgets" elapsedNanos="1444900"></testcase>
+  <testcase name="population-ecology-goal033.17-restored-inventory-readiness-starts-bounded-target-creation" elapsedNanos="1359900"></testcase>
+  <testcase name="population-ecology-goal033.18-native-context-releases-only-materialization-gate" elapsedNanos="15363400"></testcase>
+  <testcase name="population-ecology-goal033.O01-orphan-ownership-contract" elapsedNanos="3794300"></testcase>
+  <testcase name="population-ecology-goal033.O02-orphan-ownership-contract" elapsedNanos="250700"></testcase>
+  <testcase name="population-ecology-goal033.O03-orphan-ownership-contract" elapsedNanos="282500"></testcase>
+  <testcase name="population-ecology-goal033.O04-orphan-ownership-contract" elapsedNanos="186300"></testcase>
+  <testcase name="population-ecology-goal033.O05-orphan-ownership-contract" elapsedNanos="129400"></testcase>
+  <testcase name="population-ecology-goal033.O06-orphan-ownership-contract" elapsedNanos="140200"></testcase>
+  <testcase name="population-ecology-goal033.O07-orphan-ownership-contract" elapsedNanos="140900"></testcase>
+  <testcase name="population-ecology-goal033.O08-orphan-ownership-contract" elapsedNanos="101500"></testcase>
+  <testcase name="population-ecology-goal033.O09-orphan-ownership-contract" elapsedNanos="121800"></testcase>
+  <testcase name="population-ecology-goal033.O10-orphan-ownership-contract" elapsedNanos="189300"></testcase>
+  <testcase name="population-ecology-goal033.O11-orphan-ownership-contract" elapsedNanos="322500"></testcase>
+  <testcase name="population-ecology-goal033.O12-orphan-ownership-contract" elapsedNanos="231200"></testcase>
+</testsuite>
