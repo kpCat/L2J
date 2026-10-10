@@ -73,7 +73,7 @@ class ReadNativeState031 {
    Value materialization=field(system,"_materializationService");
    Value travelMaterialization=field(travel,"_materialization"); lines.add("SERVICES system="+(materialization instanceof ObjectReference o?o.uniqueID():0)+" travel="+(travelMaterialization instanceof ObjectReference o?o.uniqueID():0)+" systemState="+scalar(field(materialization,"_state"))+" travelState="+scalar(field(travelMaterialization,"_state")));
    for(ObjectReference entry:entries(field(materialization,"_activeByProfile"))) {
-    String profile=scalar(field(field(entry,"key"),"value"));if(!profiles.contains(profile))continue;
+    String profile=scalar(field(field(entry,"key"),"value"));Value owned=field(field(entry,"val"),"_materializedPlayer");lines.add("CAPACITY_OCCUPANT profile="+profile+" state="+scalar(field(owned,"_state"))+" outstanding="+scalar(field(field(field(owned,"_nativeWork"),"_outstanding"),"size"))+" playerDead="+scalar(field(field(owned,"_player"),"_isDead")));if(!profiles.contains(profile))continue;
     Value actor=field(field(entry,"val"),"_materializedPlayer"),p=field(actor,"_player"),scope=field(actor,"_nativeWork"),playerOwner=field(p,"_nativeWorkOwner");
     lines.add("MATERIALIZED PROFILE="+profile+" actor="+((ObjectReference)actor).uniqueID()+" serviceScope="+((ObjectReference)scope).uniqueID()+" playerOwner="+(playerOwner instanceof ObjectReference o?o.uniqueID():0));
     for(String f:List.of("_state","_actionAdmissionOpen","_materializedAtNanos","_actionGeneration"))lines.add("materialized."+f+"="+scalar(field(actor,f)));

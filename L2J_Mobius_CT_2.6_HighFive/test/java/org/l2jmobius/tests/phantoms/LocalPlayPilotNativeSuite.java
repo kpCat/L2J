@@ -44,6 +44,7 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if ("initial-position031".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("synthetic-first-world-publication-at-checked-setup", this::initialPosition031); return; }
 		registry.add("native-pose-and-read-only-snapshot", this::poseAndSnapshot);
 		registry.add("setup-addressing-requires-synthetic-owner", context ->
         {
@@ -120,6 +121,40 @@ public final class LocalPlayPilotNativeSuite implements PhantomTestSuite
 		});
 	}
 
+	private void initialPosition031(PhantomTestContext context) throws Exception
+	{
+		final var fixture = _environment.observer();
+		final Player original = Player.load(fixture.objectId());
+		final Location origin = original.getLocation().clone();
+		_environment.cleanupLoadedPlayer(original);
+		final int x = -90072, y = 248328;
+		final var geo = GeoEngine.getInstance();
+		PhantomAssertions.assertTrue(geo.hasGeo(x, y), "INVALID native setup TEST geometry is absent.");
+		final var setup = new Location(x, y, geo.getHeight(x, y, -3568), origin.getHeading(), 0);
+		final var session = new org.l2jmobius.gameserver.localplay.LocalPlaySyntheticHumanSession(fixture.objectId(), fixture.characterName());
+		Player actor = null;
+		java.lang.reflect.Method method = null;
+		try
+		{
+			try { method = session.getClass().getMethod("start", Location.class); } catch (NoSuchMethodException oldApi) { context.record("initialPosition031.oldApi", "original native start first publishes its stored origin"); }
+			actor = method == null ? session.start() : (Player) method.invoke(session, setup);
+			context.record("initialPosition031.firstWorld", "x=" + actor.getX() + ";y=" + actor.getY() + ";z=" + actor.getZ() + ";requested=" + setup);
+			PhantomAssertions.assertTrue(actor.getX() == setup.getX() && actor.getY() == setup.getY() && actor.getZ() == setup.getZ(), "INITIAL_WORLD_SETUP_RED: original native START published a foreign origin before setup.");
+			PhantomAssertions.assertTrue(session.valid() && actor.getClient() == null && !actor.hasHeadlessOutboundSession(), "Checked setup changed ordinary native Synthetic identity.");
+			final var point = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), 0);
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.PhantomSystem.onlineHumanPoints().contains(point), "First native human supplier did not expose the setup point.");
+			PhantomAssertions.assertEquals(null, org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().tryAcquire(actor.getObjectId(), org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.REAL_LOGIN), "Initial position bypassed identity ownership.");
+		}
+		finally { session.close(); }
+		_environment.assertClean(fixture, actor);
+		final Player reloaded = Player.load(fixture.objectId());
+		try { PhantomAssertions.assertEquals(origin, reloaded.getLocation(), "Checked setup overwrote immutable canonical origin."); }
+		finally { _environment.cleanupLoadedPlayer(reloaded); }
+		final var start = method;
+		PhantomAssertions.assertTrue(start != null, "Checked native start API absent.");
+		PhantomAssertions.assertThrows(java.lang.reflect.InvocationTargetException.class, () -> start.invoke(session, new Location(x, y, setup.getZ(), 0, 1)), "Unsupported initial instance must reject before native publication.");
+		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.World.getInstance().findObject(fixture.objectId()) == null, "Rejected setup leaked World identity.");
+	}
 	private void syntheticLifecycle(PhantomTestContext context) throws Exception
 	{
 		final var fixture = _environment.observer();

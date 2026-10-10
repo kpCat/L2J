@@ -3,7 +3,7 @@ param([ValidateSet('Probe','Scene','Away')][string]$Mode='Probe',
       [ValidateSet('a','b','t')][string]$Episode='a',
       [Parameter(Mandatory)][string]$OutputRoot,[int]$Seconds=80,
       [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha,
-      [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@(),[long]$SetupProfileId=0)
+      [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@(),[long]$SetupProfileId=0,[switch]$NativeStartAtSetup)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Read-SharedJson031.ps1')
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
@@ -101,8 +101,28 @@ try{
     @([pscustomobject]@{profileId=275;materializedAtNanos=0}) | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'collector-bootstrap.json') -Encoding utf8
     & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Enroll -Episode $Episode -CohortJson (Join-Path $OutputRoot 'collector-bootstrap.json') -OutputRoot $fullRoot *> (Join-Path $OutputRoot 'collector-bootstrap.log')
     if($LASTEXITCODE -ne 0){throw 'Prospective receipt collector installation failed.'}
-    & (Join-Path $runtime 'Start-LocalPlaySynthetic.ps1') -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-start.json') -Encoding utf8
+    $startArguments=@{RunId=$run}
+    if($NativeStartAtSetup){
+        if($SetupProfileId -le 0 -or -not $SetupAtNearestCandidate -or $SetupTeleport.Count){throw 'One explicit readonly initial setup profile required'}
+        $prestartRoot=Join-Path $OutputRoot 'global-pre-native-start'
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'collector-bootstrap.json') -OutputRoot $prestartRoot *> (Join-Path $OutputRoot 'prestart-census.log')
+        if($LASTEXITCODE -ne 0){throw 'Pre-start readonly census failed'}
+        $prestartRows=@(Import-Csv (Join-Path $prestartRoot 'global-admission.tsv') -Delimiter "`t")
+        $center=@($prestartRows | Where-Object {[long]$_.profileId -eq $SetupProfileId -and $_.populationState -ceq 'READY' -and $_.state -ceq 'READY' -and $_.calendarOnline -ceq 'true' -and $_.instanceId -ceq '0' -and $_.nextBoundary -and [DateTimeOffset]::Parse($_.nextBoundary) -gt [DateTimeOffset]::UtcNow.AddSeconds(540)})
+        if($center.Count -ne 1){throw 'Pre-start current READY calendar setup unavailable'}
+        $fixed=$center[0]
+        $fixed | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'fixed-setup-before-native-publication.json') -Encoding utf8
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action DryPath -Episode $Episode -OriginPoint @{x=[int]$fixed.x;y=[int]$fixed.y;z=[int]$fixed.z} -EndpointPoint @{x=[int]$fixed.x-200;y=[int]$fixed.y} -OutputRoot (Join-Path $OutputRoot 'setup-dry') *> (Join-Path $OutputRoot 'setup-dry.log')
+        if($LASTEXITCODE -ne 0){throw 'Initial native setup dry geometry rejected'}
+        $startArguments.SetupProfileId=$SetupProfileId
+    }
+    $startupRaw=& (Join-Path $runtime 'Start-LocalPlaySynthetic.ps1') @startArguments
+    $startupRaw | Set-Content (Join-Path $OutputRoot 'synthetic-start.json') -Encoding utf8
     $started=$true; $watch.Restart()
+    if($NativeStartAtSetup){
+        $startup=$startupRaw | ConvertFrom-Json
+        if([long]$startup.setupProfileId -ne $SetupProfileId -or $startup.initialPoint.admissionGranted -ne $false -or [int]$startup.initialPoint.x -ne [int]$fixed.x -or [int]$startup.initialPoint.y -ne [int]$fixed.y -or [int]$startup.initialPoint.z -ne [int]$fixed.z -or [int]$startup.initialPoint.instanceId -ne 0){throw 'Exact pre-publication native setup identity changed'}
+    }
     $heartbeatJob=Start-Job -ArgumentList $runtime,$run,$OutputRoot,$stopWriter -ScriptBlock {
         param($Runtime,$Run,$Output,$Stop)
         $ErrorActionPreference='Stop'
@@ -134,7 +154,7 @@ try{
     $globalRows=@(Import-Csv (Join-Path $globalRoot 'global-admission.tsv') -Delimiter "`t")
     $nearest=@($globalRows | Where-Object {$_.state -ne 'ABSENT'} | Sort-Object {[Math]::Pow([double]$_.x-[double]$status.before.x,2)+[Math]::Pow([double]$_.y-[double]$status.before.y,2)} | Select-Object -First 8)
     $nearest | ForEach-Object {[pscustomobject]@{profileId=[long]$_.profileId;materializedAtNanos=0}} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'nearest-current-eight.json') -Encoding utf8
-    if($SetupAtNearestCandidate){
+    if($SetupAtNearestCandidate -and -not $NativeStartAtSetup){
         if($SetupTeleport.Count){throw 'One source-pinned setup required.'}
         $eligible=@($globalRows | Where-Object {$_.populationState -ceq 'READY' -and $_.state -ceq 'READY' -and $_.calendarOnline -ceq 'true' -and $_.instanceId -ceq '0' -and $_.nextBoundary -and [DateTimeOffset]::Parse($_.nextBoundary) -gt [DateTimeOffset]::UtcNow.AddSeconds(540)})
         $ranked=@($eligible | ForEach-Object {
@@ -164,6 +184,7 @@ try{
         $status=Capture031 'STATUS'
         if($status.before.teleporting -cne 'false' -or [Math]::Abs([int]$status.before.x-[int]$SetupTeleport.x) -gt 32 -or [Math]::Abs([int]$status.before.y-[int]$SetupTeleport.y) -gt 32){throw 'Pre-baseline setup arrival unconfirmed.'}
     }
+    if($NativeStartAtSetup -and ([int]$status.before.x -ne [int]$fixed.x -or [int]$status.before.y -ne [int]$fixed.y -or [int]$status.before.z -ne [int]$fixed.z)){throw 'Initial native observer point changed before enrollment'}
     # Re-rank the same pre-outcome census around the factual post-setup observer position.
     $nearestSetup=@($globalRows | Where-Object {$_.state -ne 'ABSENT'} | Sort-Object {[Math]::Pow([double]$_.x-[double]$status.before.x,2)+[Math]::Pow([double]$_.y-[double]$status.before.y,2)} | Select-Object -First 8)
     $nearestSetup | ForEach-Object {[pscustomobject]@{profileId=[long]$_.profileId;materializedAtNanos=0}} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'nearest-setup-eight.json') -Encoding utf8

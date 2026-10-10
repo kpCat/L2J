@@ -1,0 +1,21 @@
+UTC 2026-10-10T02:52:47.4237712Z
+
+# Checkpoint C13 — native observer initial locality
+
+C12 source ebc7bffd9b684c7c578023c0180ced89a8dae6a9, Jar2F06328A2CA6BE89A1151070584F0E7F2FCE56F705FCD39956CD0DF99FBD13DF. Start14 Game36396/Login7904, own031a only. jcmd and60sJFR private; no new cast breakpoint was installed because T5/T15 had no alive mage.
+
+C12 handoff runtime GREEN atT90:33 epoch327707848994100 cycle1/+87EXP/+10SP;107 epoch327707857512500 cycle1/+83EXP/+9SP. Both ownerOPEN/firstUnprovenNONE, historical RUNNING claim retained. Others:50alive0cycles;133absent/step.retry_exhausted;237absent/start_retry;315absent/goal.reloaded;359absent/step.retry_exhausted;437alive0. All8 diagnostic IDs retained. Actual capacity8 occupied by33/50/107/172/368/437/694/737 later, not a raised cap.
+
+C12 full Scene did not enroll: NATURAL_COHORT_COUNT:0 at fixed25s, before gameplay observation. Setup133 was current durable(-86401,253927,-3736), not the previous town point. Current census at refusal:7 materialized profiles atGiran (276/381/711/776/920/1107/1259) plus20 nearTalkingIsland. Existing Synthetic first appears at canonical Giran origin before census/dry/teleport, causing unrelated physical materializations and real capacity contention. Full scene is FAILED/NOT_ENROLLED, not a dropped-ID PASS or a completed continuity result.
+
+C13 bounded LocalPlay setup: optional setupProfileId in existing private START transport uses unchanged operatorSetupLocalityTarget (durableREADY, calendar, noWorld/lease/autosave, no PNC FARM/admission). Native Session validates stock geo height/instance/water, snapshots immutable origin/vitals, sets initial XYZ before online/spawn. Default start remains unchanged; cleanup restores origin and normal owned native store. New session state records first native XYZ. No fake client/REAL_LOGIN, manual arm, Phantom teleport or admission grant.
+
+Accept031 opt-in NativeStartAtSetup captures immutable source-pinned census and dry geometry before START; verifies actual initial point against that pre-outcome candidate. It then uses actual World discovery at unchanged25s, keeps all enrolled IDs and two pre-outcome primaries. SetupBound60 and server525s/session cap5 stay unchanged. No clock reset during live session. Control031 updates only stopped owned runtime startup script with exact backup, alongside existingJar update.
+
+Focused first-publication original C12 RED1/0/1 ->actualC13Jar GREEN1/1. Native human supplier exposes checked point; identity arbitration preserved, canonical origin reloaded exactly after close; invalid initial instance rejects before publication. Default Pilot11/11 and Synthetic watchdog/TTL4/4 PASS. Script parserPASS. Public overload is confined to existing native LocalPlay Synthetic lifecycle, not a new architecture layer. Bounded connected exception now11production/11test textpaths22 cumulative; two localplay production paths added to isolate task setup. Existing test suite reused, no new project/subsystem.
+
+Jar8 SHA256427CF16E4F45D8A40141147B26095EBE7FF1C958680927C0F98620FD3B04C93F; full-source compilations12; completed Game starts14. C13 test compiled incrementally once; JDI helper capacity inventory reads max8 scalar occupants/no target method calls. All own current JVMs STOPPED; TEST pools closed.
+
+C12 stock graceful STOP, typedcapturedNanos328260905828500 DONE/COMPLETE before all3pools false, materializationSTOPPED/retained0, operations/leases/transactions/claims0, activeReferences0/proofFailureempty. Original exports immutable; noSQLheal. C09 observer unchanged: immutable ordinary FINALIZED hook, exporter timeout2s; full independent SQL-lineage remainsOPEN. Server binlog disabled (read-only inspection), so no binlog proof claimed. RawJFR/SQL/JDWP/threads withheld from publication.
+
+M1=OPEN; REAL_FINAL=NOT_RUN; whole naturalScene, away/productivebackground/return, whole-groupSQL, two proven sameDB restart, actualcrash gates, current93/93/lifecycle remain required. Next: exact frozen C13 native pre-publication setup, full Scene without debugger, then actual away and persistence if stable. Deadline10:31Z; no new task or subagents.

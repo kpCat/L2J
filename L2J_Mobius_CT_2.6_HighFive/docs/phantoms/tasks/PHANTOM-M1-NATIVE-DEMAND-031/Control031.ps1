@@ -41,6 +41,12 @@ foreach($role in @('GameServer','LoginServer')){
         Move-Item -LiteralPath $resolvedPid -Destination (Join-Path $resolvedBackup "$role-pid.json")
     }
 }
+$syntheticSource=Join-Path $module 'tools/phantom-local-play/Start-LocalPlaySynthetic.ps1'
+$syntheticRuntime=Join-Path $runtime 'Start-LocalPlaySynthetic.ps1'
+if((Get-FileHash $syntheticSource).Hash -cne (Get-FileHash $syntheticRuntime).Hash){
+    Copy-Item -LiteralPath $syntheticRuntime -Destination (Join-Path $backup 'Start-LocalPlaySynthetic.ps1')
+    Copy-Item -LiteralPath $syntheticSource -Destination $syntheticRuntime -Force
+}
 $manifest.codeSha=$sha023; $manifest.gameSourceCodeSha=$sha023
 $manifest.gameJarSha256=(Get-FileHash (Join-Path $runtime 'libs/GameServer.jar')).Hash
 $manifest.loginJarSha256=(Get-FileHash (Join-Path $runtime 'libs/LoginServer.jar')).Hash

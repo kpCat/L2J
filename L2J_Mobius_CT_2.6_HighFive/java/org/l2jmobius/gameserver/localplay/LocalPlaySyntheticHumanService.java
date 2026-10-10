@@ -34,6 +34,8 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 	private String _state = "OFF";
 	private String _reason = "NOT_STARTED";
 	private String _heartbeatReason = "NOT_READ";
+	private long _setupProfileId;
+	private org.l2jmobius.gameserver.model.Location _initialPosition;
 
 	LocalPlaySyntheticHumanService(Path runtime, String runtimeId, long pid, long startTicks, BooleanSupplier owned, BooleanSupplier startGuard)
 	{
@@ -87,7 +89,17 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 		_session = new LocalPlaySyntheticHumanSession(LocalPlayPilotConfig.syntheticObjectId(), LocalPlayPilotConfig.syntheticName());
 		try
 		{
-			_session.start();
+			_setupProfileId = Long.parseLong(control.getProperty("setupProfileId", "0"));
+			_initialPosition = null;
+			if (_setupProfileId < 0) { throw new IllegalArgumentException("SYNTHETIC_SETUP_PROFILE_INVALID"); }
+			if (_setupProfileId == 0) { _session.start(); }
+			else
+			{
+				final var target = org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorSetupLocalityTarget(_setupProfileId).orElseThrow(() -> new IllegalArgumentException("SYNTHETIC_SETUP_UNAVAILABLE"));
+				final var point = target.committedPosition();
+				_session.start(new org.l2jmobius.gameserver.model.Location(point.x(), point.y(), point.z(), 0, point.instanceId()));
+			}
+			_initialPosition = _session.actor().getLocation().clone();
 			_deadlineNanos = System.nanoTime() + 525_000_000_000L;
 			_expiresUtcMillis = System.currentTimeMillis() + 525000;
 			_state = "RUNNING"; _reason = "SYNTHETIC_NATIVE_PLAYER_STARTED";
@@ -152,6 +164,12 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 		state.setProperty("objectId", Integer.toString(LocalPlayPilotConfig.syntheticObjectId()));
 		state.setProperty("nextSequence", Long.toString(_sequence)); state.setProperty("expiresUtcMillis", Long.toString(_expiresUtcMillis));
 		state.setProperty("actorMode", "SYNTHETIC");
+		state.setProperty("setupProfileId", Long.toString(_setupProfileId));
+		if (_initialPosition != null)
+		{
+			state.setProperty("initialX", Integer.toString(_initialPosition.getX())); state.setProperty("initialY", Integer.toString(_initialPosition.getY())); state.setProperty("initialZ", Integer.toString(_initialPosition.getZ()));
+			state.setProperty("initialInstanceId", Integer.toString(_initialPosition.getInstanceId()));
+		}
 		LocalPlayPilotService.writeProperties(_root.resolve("session.properties"), state);
 		if ((_mailbox != null) && LocalPlayPilotService.safeDirectory(_mailbox) && LocalPlayPilotService.privateAcl(_mailbox)) { LocalPlayPilotService.writeProperties(_mailbox.resolve("session.properties"), state); }
 	}

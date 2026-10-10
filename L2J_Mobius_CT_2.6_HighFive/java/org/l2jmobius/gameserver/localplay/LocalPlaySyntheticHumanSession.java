@@ -40,8 +40,20 @@ public final class LocalPlaySyntheticHumanSession implements AutoCloseable
 		if (PhantomProfileRepository.open().findByCharacterObjectId(_objectId).isPresent()) { throw new IllegalStateException("SYNTHETIC_PHANTOM_IDENTITY_REJECTED"); }
 	}
 
-	public synchronized Player start()
+	public synchronized Player start() { return start(null); }
+
+	/** LocalPlay setup precedes first World publication; canonical origin remains the cleanup boundary. */
+	public synchronized Player start(Location initialPosition)
 	{
+		final Location setup = initialPosition == null ? null : initialPosition.clone();
+		if (setup != null)
+		{
+			final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+			if ((setup.getInstanceId() != 0) || !geo.hasGeo(setup.getX(), setup.getY())
+				|| (Math.abs((long) geo.getHeight(setup.getX(), setup.getY(), setup.getZ()) - setup.getZ()) > 100)
+				|| (org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(setup.getX(), setup.getY(), setup.getZ(), org.l2jmobius.gameserver.model.zone.type.WaterZone.class) != null))
+			{ throw new IllegalArgumentException("SYNTHETIC_INITIAL_POSITION_INVALID"); }
+		}
 		if ((_lease != null) || (_actor != null)) { throw new IllegalStateException("SYNTHETIC_ALREADY_ACTIVE"); }
 		requireFree();
 		_lease = PhantomIdentityLeaseRegistry.getInstance().tryAcquire(_objectId, OwnerKind.LOCALPLAY_TEST_HUMAN);
@@ -58,6 +70,7 @@ public final class LocalPlaySyntheticHumanSession implements AutoCloseable
 			if (_dead || _actor.isInStoreMode() || _actor.isInParty() || (_actor.getInstanceId() != 0)) { throw new IllegalStateException("SYNTHETIC_ACTOR_UNSAFE"); }
 			if (PlayerAutoSaveTaskManager.getInstance().containsObjectId(_objectId)) { throw new IllegalStateException("SYNTHETIC_AUTOSAVE_SUPPRESSION_FAILED"); }
 			_actor.setRunning(); _actor.standUp(); _actor.refreshOverloaded(); _actor.refreshExpertisePenalty();
+			if (setup != null) { _actor.setXYZInvisible(setup.getX(), setup.getY(), setup.getZ()); _actor.setHeading(setup.getHeading()); }
 			_actor.setOnlineStatus(true, false);
 			_actor.spawnMe();
 			if (!valid()) { throw new IllegalStateException("SYNTHETIC_SPAWN_IDENTITY_INVALID"); }
