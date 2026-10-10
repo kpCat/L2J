@@ -11,6 +11,7 @@ import java.util.function.LongSupplier;
 /** Bounded overlay of directed, proven native corridors. It never moves or owns a Player. */
 public final class PhantomWalkCorridorPlanner
 {
+	public record Edge(PhantomNavigationPoint from, PhantomNavigationPoint to) { }
 	public enum Status { FOUND, NO_ROUTE_WITHIN_BUDGET, SEARCH_LIMIT, CANCELLED, DEADLINE_EXPIRED }
 	public record Result(Status status, List<PhantomNavigationPoint> points, int nodes, int edges, int queries, int labels) { }
 	public interface Oracle
@@ -45,8 +46,17 @@ public final class PhantomWalkCorridorPlanner
 		}
 		private Result run()
 		{
+			if (cancellation.changedSince(0)) { return result(Status.CANCELLED, List.of()); }
+			if (interrupted() != null) { return result(interrupted(), List.of()); }
 			if (request.origin().instanceId() != request.destination().instanceId()) { return result(Status.NO_ROUTE_WITHIN_BUDGET, List.of()); }
 			add(request.origin(), 0, null, List.of());
+			if (_oracle.direct(request.origin(), request.destination()))
+			{
+				edges++;
+				add(request.destination(), request.origin().distanceTo(request.destination()), best.get(request.origin()), List.of(request.destination()));
+				final Status interrupted = interrupted();
+				return result(interrupted == null ? Status.FOUND : interrupted, interrupted == null ? List.of(request.destination()) : List.of());
+			}
 			while (!open.isEmpty())
 			{
 				final Status interrupted = interrupted();
@@ -81,7 +91,7 @@ public final class PhantomWalkCorridorPlanner
 							final Status status = interrupted();
 							return status == Status.CANCELLED ? PhantomNavigationResult.Status.CANCELLED : status == Status.DEADLINE_EXPIRED ? PhantomNavigationResult.Status.DEADLINE_EXPIRED : PhantomNavigationResult.Status.PATH_FOUND;
 						});
-						if (proof.status() != PhantomNavigationResult.Status.PATH_FOUND) { continue; }
+						if (proof.status() != PhantomNavigationResult.Status.PATH_FOUND) { if (proof.status() == PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED) { limited = true; } continue; }
 						corridor = proof.waypoints();
 					}
 					if (interrupted() != null) { return result(interrupted(), List.of()); }

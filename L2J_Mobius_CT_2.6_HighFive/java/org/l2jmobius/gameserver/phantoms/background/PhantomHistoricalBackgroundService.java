@@ -1221,7 +1221,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				final boolean local = _planner.isVisibleLocal(stored.goal(), live);
 				// An existing off-anchor native return keeps its current eligible goal until factual arrival.
 				if (local ? _planner.remainsVisibleSuitable(projected, stored.goal(), live)
-					: (_visibleTravel != null) && _visibleTravel.permitsCurrentAnchorReturn(baseline.position().committedAnchorId(), live)
+					: (_visibleTravel != null) && _visibleTravel.permitsCurrentAnchorReturn(baseline.position().committedAnchorId(), live, player)
 						&& baseline.position().committedAnchorId().equals(PhantomBackgroundGoalSpec.parse(stored.goal()).anchorId()) && _planner.remainsSuitable(projected, stored.goal())) { return true; }
 			}
 			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }

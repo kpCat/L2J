@@ -27,6 +27,7 @@ import org.l2jmobius.gameserver.config.custom.FactionSystemConfig;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.handler.IUserCommandHandler;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeTimer;
 import org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.network.SystemMessageId;
@@ -34,6 +35,7 @@ import org.l2jmobius.gameserver.network.serverpackets.ActionFailed;
 import org.l2jmobius.gameserver.network.serverpackets.MagicSkillUse;
 import org.l2jmobius.gameserver.network.serverpackets.SetupGauge;
 import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
 
 /**
  * Unstuck user command.
@@ -123,23 +125,36 @@ public class Unstuck implements IUserCommandHandler
 		// End SoE Animation section
 		
 		// continue execution later
-		player.setSkillCast(ThreadPool.schedule(new EscapeFinalizer(player), unstuckTimer));
+		final EscapeFinalizer finalizer = new EscapeFinalizer(player);
+		final java.util.concurrent.ScheduledFuture<?> future;
+		if (player.isNativeWorkManaged())
+		{
+			final PlayerNativeTimer timer = PlayerNativeTimer.ambient(player, "Unstuck", () -> { });
+			if (!timer.accepted()) { player.abortCast(); return false; }
+			timer.submit(finalizer, unstuckTimer);
+			future = timer.future();
+		}
+		else { future = ThreadPool.schedule(finalizer, unstuckTimer); }
+		if (player.isNativeWorkManaged()) { PhantomNativeTravelActions.bindReturnTimer(player, future); }
+		player.setSkillCast(future);
 		return true;
 	}
 	
 	private static class EscapeFinalizer implements Runnable
 	{
 		private final Player _player;
+		private final java.util.function.BooleanSupplier _managedGuard;
 		
 		protected EscapeFinalizer(Player player)
 		{
 			_player = player;
+			_managedGuard = player.isNativeWorkManaged() ? PhantomNativeTravelActions.captureReturnGuard(player) : null;
 		}
 		
 		@Override
 		public void run()
 		{
-			if (_player.isDead())
+			if (_player.isDead() || (_managedGuard != null && !_managedGuard.getAsBoolean()))
 			{
 				return;
 			}
@@ -149,6 +164,7 @@ public class Unstuck implements IUserCommandHandler
 			_player.setCastingNow(false);
 			_player.setInstanceId(0);
 			_player.teleToLocation(TeleportWhereType.TOWN);
+			if (_managedGuard != null && _player.hasHeadlessOutboundSession() && _player.isTeleporting()) { _player.onTeleported(); }
 		}
 	}
 	

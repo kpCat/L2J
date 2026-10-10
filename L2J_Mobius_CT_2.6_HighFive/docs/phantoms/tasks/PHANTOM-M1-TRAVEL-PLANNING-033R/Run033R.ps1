@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][ValidateSet('Initialize','Prepare','ResumePrepare','Build','Geometry','Control','Observe','Verify')][string]$Action,
+param([Parameter(Mandatory)][ValidateSet('Initialize','Prepare','ResumePrepare','Build','SyncNative','Geometry','Control','Observe','Verify')][string]$Action,
       [ValidateSet('a','b','c','t')][string]$Episode='a', [hashtable]$Arguments=@{})
 $ErrorActionPreference='Stop'
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
@@ -25,6 +25,46 @@ function Convert-Reused033R([string]$Name){
     $text=$text.Replace('PHANTOM-M1-CONTINUITY-CLOSEOUT-032/evidence','PHANTOM-M1-TRAVEL-PLANNING-033R/evidence')
     $text=$text.Replace('RETAINED_SOURCE033R','l2jmobiush5_localplay_contract032a')
     $text=$text.Replace('RETAINED_OPS033R',$retainedOps).Replace('RETAINED_LANE033R','contract032')
+	if($Name -ceq 'Contract032Observer.java'){
+		# Read-only early travel evidence on the existing exporter; no actor mutation/scheduler.
+		$birth='"nativeBirthBoundary=" + nativeBirthBoundary'
+		$birth033r='"initialX=" + owner.player().getX() + "\ninitialY=" + owner.player().getY() + "\ninitialZ=" + owner.player().getZ() + "\ninitialInstance=" + owner.player().getInstanceId() + "\ninitialExp=" + owner.player().getExp() + "\ninitialSp=" + owner.player().getSp() + "\ninitialAdena=" + owner.player().getAdena() + "\ninitialScrolls=" + owner.player().getInventory().getInventoryItemCount(736,-1) + "\nnativeBirthBoundary=" + nativeBirthBoundary'
+		if(-not $text.Contains($birth)){throw 'Native birth evidence shape changed.'}
+		$text=$text.Replace($birth,$birth033r)
+		$travel033r=@'
+    private static long lastTravel033R;
+    private static void sampleTravel033R() throws Exception
+    {
+        final long now=System.nanoTime();
+        if(streamRoot==null || now-lastTravel033R<100_000_000L){return;}
+        lastTravel033R=now;
+        final var rows=new StringBuilder();
+        for(var entry:RECEIPT_OWNERS.entrySet())
+        {
+            final var key=entry.getKey(); final var owner=entry.getValue(); final var player=owner.player();
+            if(player.getNativeWorkOwner()!=owner || !owner.isCurrent() || World.getInstance().getPlayer(key.objectId())!=player){continue;}
+            final var evidence=owner.evidence().snapshot().scalarMap();
+            rows.append(now).append('\t').append(key.profileId()).append('\t').append(key.objectId()).append('\t').append(key.epoch())
+                .append('\t').append(player.getX()).append('\t').append(player.getY()).append('\t').append(player.getZ()).append('\t').append(player.getInstanceId())
+                .append('\t').append(player.isMoving()).append('\t').append(player.isCastingNow()).append('\t').append(player.isTeleporting())
+                .append('\t').append(player.hasAI()?player.getAI().getIntention():"NO_AI")
+                .append('\t').append(player.getXdestination()).append('\t').append(player.getYdestination())
+                .append('\t').append(player.getExp()).append('\t').append(player.getSp()).append('\t').append(player.getAdena())
+                .append('\t').append(player.getInventory().getInventoryItemCount(736,-1))
+                .append('\t').append(evidence.get("nativePhase")).append('\t').append(evidence.get("nativeFarmCycleSequence"))
+                .append('\t').append(evidence.get("nativeKillSequence")).append('\t').append(evidence.get("nativeRewardSequence"))
+                .append('\t').append(evidence.get("nativeTargetSequence")).append('\t').append(evidence.get("nativeFirstUnprovenReason")).append('\n');
+        }
+        if(rows.length()>0){writeTelemetry(streamRoot.resolve("travel-033r.tsv"),rows.toString(),StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.APPEND);}
+    }
+'@
+		$marker='    private static boolean startupEntry;'
+		if(-not $text.Contains($marker)){throw 'Existing exporter travel insertion shape changed.'}
+		$text=$text.Replace($marker,$travel033r+"`n"+$marker)
+		$loop='sampleTerminals(); drain(); sampleDispatch();'
+		if(-not $text.Contains($loop)){throw 'Existing exporter loop shape changed.'}
+		$text=$text.Replace($loop,'sampleTerminals(); drain(); sampleTravel033R(); sampleDispatch();')
+	}
     if($Name -ceq 'Prepare032.ps1'){
         $text=$text.Replace("'C:/Users/ZBook/.codex/worktrees/m1-continuity-032/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/.phantom-local/travel033ra/runtime'",(Quote-Literal033R $retained))
     }
@@ -59,6 +99,22 @@ foreach($row in $inventory){
 if($Arguments.ContainsKey('Mode') -and $Arguments.Mode -in @('CrashNative','CrashFinalize')){throw 'TASK033R does not authorize planned crashes.'}
 if($Arguments.ContainsKey('SetupTeleport') -or $Arguments.ContainsKey('InitialObservationPoint')){throw 'TASK033R observation uses pre-publication native setup only.'}
 switch($Action){
+	'SyncNative' {
+		$private=Join-Path $module ".phantom-local/travel033r$Episode"
+		$runtime=Join-Path $private 'runtime'
+		$manifest=Get-Content -LiteralPath (Join-Path $runtime 'local-play.json') -Raw | ConvertFrom-Json
+		if($manifest.databaseName -cne "l2jmobiush5_localplay_travel033r$Episode"){throw 'Exact own native-script destination required.'}
+		$active=@(Get-CimInstance Win32_Process -Filter "Name='java.exe'" | Where-Object {$_.CommandLine -like "*$runtime*"})
+		if($active.Count){throw 'Own runtime must be stopped before native-script sync.'}
+		$relative='game/data/scripts/handlers/chat/commands/user/Unstuck.java'
+		$source=Join-Path $module "dist/$relative"; $destination=Join-Path $runtime $relative
+		$before=(Get-FileHash -LiteralPath $destination).Hash
+		$backup=Join-Path $ops "unstuck-before-$Episode-$before.java"
+		if(-not(Test-Path -LiteralPath $backup)){Copy-Item -LiteralPath $destination -Destination $backup}
+		Copy-Item -LiteralPath $source -Destination $destination -Force
+		if((Get-FileHash -LiteralPath $source).Hash -cne (Get-FileHash -LiteralPath $destination).Hash){throw 'Native-script copy hash mismatch.'}
+		@{source=$source;destination=$destination;beforeSha256=$before;afterSha256=(Get-FileHash $destination).Hash;backup=$backup;jarSha256=(Get-FileHash (Join-Path $runtime 'libs/GameServer.jar')).Hash} | ConvertTo-Json | Set-Content (Join-Path $ops "native-script-$Episode.json") -Encoding utf8
+	}
     'Prepare' { & (Join-Path $reuse 'Prepare032.ps1') -Episode $Episode }
     'ResumePrepare' {
         $private=Join-Path $module ".phantom-local/travel033r$Episode"

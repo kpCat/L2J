@@ -164,17 +164,25 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 		try (var f = _intent.handoff.new Fixture(true))
 		{
 			f.handoff(); offAnchor(f);
-			final var required = new java.util.concurrent.atomic.AtomicInteger();
+			// Capability checks describe endpoints; only findPath allocates a stock buffer.
+			final var required = new java.util.concurrent.atomic.AtomicInteger(64);
+			final var queries = new java.util.concurrent.atomic.AtomicInteger();
 			final var stock = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
 			final var observed = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
 			{
 				@Override public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to)
 				{
-					required.set(64 + 2 * Math.max(Math.abs(org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoX(from.x()) - org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoX(to.x())), Math.abs(org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoY(from.y()) - org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoY(to.y()))));
 					return stock.capability(from, to);
 				}
 				@Override public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return stock.canMoveDirect(from, to); }
-				@Override public java.util.List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken token) { return stock.findPath(request, token); }
+				@Override public java.util.List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken token)
+				{
+					final var from = request.origin(); final var to = request.destination(); queries.incrementAndGet();
+					final int dx = Math.abs(org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoX(from.x()) - org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoX(to.x()));
+					final int dy = Math.abs(org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoY(from.y()) - org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoY(to.y()));
+					required.accumulateAndGet(64 + 2 * Math.max(dx, dy), Math::max);
+					return stock.findPath(request, token);
+				}
 			};
 			try (var nativeTravel = new ReturnTravel(f, observed))
 			{
@@ -182,6 +190,7 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 				PhantomAssertions.assertFalse(nativeTravel.value.arrive(f.id, goal), "A partial native query cannot claim final arrival.");
 				final int capacity = java.util.Arrays.stream(org.l2jmobius.gameserver.config.GeoEngineConfig.PATHFIND_BUFFERS.split(";")).mapToInt(value -> Integer.parseInt(value.split("x")[0])).max().orElseThrow();
 				context.record("C08.actualBuffer", required.get() + "/" + capacity);
+				context.record("C08.actualQueries", queries.get());
 				PhantomAssertions.assertTrue(required.get() > 0 && required.get() <= capacity, "RED: actual stock query must fit unchanged native buffer capacity: " + required.get() + "/" + capacity);
 				PhantomAssertions.assertEquals(before, f.transactions.nativeContext(f.id, f.objectId), "Partial route request writes no native payload, XYZ or rewards.");
 				PhantomAssertions.assertEquals(goal, f.goals.load(f.id).orElseThrow().goal(), "Current goal/revision remains authoritative.");

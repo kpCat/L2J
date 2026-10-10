@@ -38,3 +38,49 @@ Search exhaustion reports SEARCH_LIMIT, not unreachable. No PathFinding/NodeBuff
 C15 stop launcher INVALID: escaped runtime script root was substituted by derivation.
 Corrected only own generated launchers and derivation; C16 ordinary stop confirms Game9640/Login19140 exits.
 Real route→arrival→5cycles, lawful transport modes and final acceptance remain unproven.
+
+C17 committed build PASS; candidate d4357795a74a8dacdb725df5d1f1ddbf1115d6c5.
+C19 early natural scene: 8 initial participants, 381.16s, 371 samples, max gap1.574s.
+Original5 epoch397780939163100 and19 epoch397780967583500 moved and reached >=6/7 native cycles
+with nativeFirstUnprovenReason=NONE; final group evaluator5/8, failed5/113/119 remain in denominator.
+Detailed consecutive cycle/arrival/save proof still requires review. Ordinary Game26344/Login35824 stop verified.
+C21 native-tariff RED: current visible legacy-BFS candidate requires actual fee but selects with zero budget.
+Legacy background route query is retained; new complete-candidate selector checks total time/fees/scrolls.
+WALK overlay plus <=7 direct-proven complete GK candidates uses the same max2 workers, no extra scheduler.
+No global optimum claim; UNKNOWN ingress/egress is not accepted. Native fees charged by stock holder once.
+RETURN currently explicitly unavailable: unsafe callback/random native landing/onward proof unresolved.
+No change to stock Unstuck or repository config yet; actual runtime60s/random respawn/offset50 preserved.
+
+C22 strategy Jar build PASS; C23 focused strategy/corridor6/6 PASS.
+C24 affected0327/8: decorated native backend incorrectly fell back to a full stock query.
+Fixed opt-in decorated backend integration; C08 instrumentation now measures maximum actual findPath
+buffer rather than metadata capability endpoints. Prior assertions/capacity/owner/goal/store guards retained.
+C26 genuine native Unstuck RED on unchanged stock script: actual60000ms cast accepted, native pending0.
+Managed-only callback now uses existing cancellable PlayerNativeWork schedule and captures owner/epoch,
+World/instance/cast and caller goal predicate. Ordinary REAL scheduling/finalizer semantics retained.
+Bounded exception: ten production/test paths in the same authorized route/lifecycle vertical scope,
+including conditional Unstuck and continuity032 instrumentation; no independent subsystem/refactor.
+Complete deterministic RETURN→GK→WALK candidate/executor implemented. Current random town/offset50
+remains typed unavailable until all possible landing/onward geometry is proven; no config override.
+C27 compile INVALID: test instrumentation extra parenthesis; corrected. C28 Jar/build PASS.
+
+C30 script bootstrap INVALID: stock script compiler uses Java8, var declarations corrected to explicit types.
+C32 actual native return PASS:60021ms against60000ms config, random native town XYZ, EXP/SP/adena/scrolls unchanged.
+C32 pending-return teardown genuine RED: reserved work ticket survives drain and caused CLEANUP_FAILED_RETAINED.
+Existing PlayerNativeTimer.ambient is the matching optional/cancellable producer; core lifetime classes remain readonly.
+C36 bootstrap INVALID after prior failed fixture cleanup left orphan TEST profiles10010/10012.
+Exact native payloads archived (SHA256 97A2B20998F344F51FEC993A287B32A5FF88FE76A713359ED2AF2971E184471F),
+then only these two own orphan profiles removed with ID/object/timestamp/absent-character guards; no DB reset/removal.
+C37 native return and cancellation/new-epoch late timer2/2 PASS, including actual unchanged timers and lifecycle store/drain.
+C35 pre-MOVE genuine native RED: dry/height checks accepted an NSWE-illegal stock edge.
+New revalidation uses native NSWE/height/doors, records directed exact edge in same attempt, replans within3 failures/120s.
+Bounded scope exception now11 production/test paths: related HistoricalBackgroundService transport admission accepts
+only resource/distance proposals for the same goal; physical proof remains in the existing max2-worker planner.
+Existing C07 distant Talking Island goal still has no proposed catalog transport; no raised WALK distance policy.
+Fresh owned033rb prepared from retained032 READ/export; all304 original hashes retained, DBs remain retained.
+Passive early travel ledger adds actual birth XYZ/resources and100ms XYZ/intent/phase/cycle samples on existing exporter;
+prior observer source/Jar kept by exact hash, original032 helpers unchanged. No extra scheduler or actor mutations.
+C38 Jar/compile-tests PASS; C39 complete travel suite7/7 PASS, including exact directed-edge native detour.
+C40 INVALID launcher (incorrect suite name); C41 existing visible-continuity0328/8 PASS.
+NORMAL GK uses the stock no-offset overload; RETURN uses actual random town/offset and remains unavailable
+for production complete planning on this runtime. No native setting or tariff is changed.

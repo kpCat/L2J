@@ -96,6 +96,7 @@ public final class PhantomNavigationService
 	private final Map<Long, RequestEntry> _activeByRequest = new LinkedHashMap<>();
 	private final Map<Long, RequestEntry> _activeByProfile = new LinkedHashMap<>();
 	private final LinkedHashMap<Long, PhantomNavigationResult> _completed = new LinkedHashMap<>();
+	private final LinkedHashMap<Long, PhantomTravelStrategy.Candidate> _completedTravelPlans = new LinkedHashMap<>();
 	private final LinkedHashMap<CacheKey, CacheEntry> _cache = new LinkedHashMap<>(16, 0.75f, true);
 	private final LinkedHashMap<Long, Long> _cooldowns = new LinkedHashMap<>(16, 0.75f, true);
 	private final List<WorkerClaim> _workerClaims = new ArrayList<>(2);
@@ -142,16 +143,24 @@ public final class PhantomNavigationService
 
 	public Submission submit(PhantomNavigationRequest request)
 	{
-		return submit(request, false);
+		return submit(request, false, null);
 	}
 
 	/** Opt-in visible WALK: same queue, workers, cancellation and limits as ordinary navigation. */
 	public Submission submitWalkCorridor(PhantomNavigationRequest request)
 	{
-		return submit(request, true);
+		return submit(request, true, null);
+	}
+	public Submission submitTravelPlan(PhantomNavigationRequest request, PhantomTravelStrategy.Options options)
+	{
+		return submit(request, true, Objects.requireNonNull(options, "options"));
+	}
+	public Optional<PhantomTravelStrategy.Candidate> consumeTravelPlan(long requestId)
+	{
+		synchronized (_monitor) { return Optional.ofNullable(_completedTravelPlans.remove(requestId)); }
 	}
 
-	private Submission submit(PhantomNavigationRequest request, boolean walkCorridor)
+	private Submission submit(PhantomNavigationRequest request, boolean walkCorridor, PhantomTravelStrategy.Options travelOptions)
 	{
 		Objects.requireNonNull(request, "request");
 		final RequestEntry entry;
@@ -178,7 +187,7 @@ public final class PhantomNavigationService
 				_metrics.recordNavigationSubmissionRejected();
 				return rejected(request.profileId(), Status.BACKEND_FAILURE);
 			}
-			entry = new RequestEntry(requestId, request, walkCorridor);
+			entry = new RequestEntry(requestId, request, walkCorridor, travelOptions);
 			_activeByRequest.put(requestId, entry);
 			_activeByProfile.put(request.profileId(), entry);
 		}
@@ -331,6 +340,7 @@ public final class PhantomNavigationService
 			_cache.clear();
 			_cooldowns.clear();
 			_completed.clear();
+			_completedTravelPlans.clear();
 			_state = ServiceState.STOPPED;
 			return true;
 		}
@@ -360,7 +370,7 @@ public final class PhantomNavigationService
 			return completeSubmission(entry, Status.DEADLINE_EXPIRED, null, false);
 		}
 		final double directDistance = entry._request.origin().distanceTo(entry._request.destination());
-		if (!Double.isFinite(directDistance) || (directDistance > routeDistanceBudget(entry._request)))
+		if (!Double.isFinite(directDistance) || (entry._travelOptions == null && directDistance > routeDistanceBudget(entry._request)))
 		{
 			_metrics.recordNavigationRouteBudgetRejected();
 			return completeSubmission(entry, Status.ROUTE_BUDGET_EXCEEDED, null, false);
@@ -372,7 +382,7 @@ public final class PhantomNavigationService
 		{
 			capability = Objects.requireNonNull(_backend.capability(entry._request.origin(), entry._request.destination()), "Backend capability must not be null.");
 			entry._capability = capability;
-			direct = canMove(entry, entry._request.origin(), entry._request.destination());
+			direct = (entry._travelOptions == null || directDistance <= _policy.maximumLocalStraightDistance()) && canMove(entry, entry._request.origin(), entry._request.destination());
 		}
 		catch (Throwable throwable)
 		{
@@ -387,7 +397,7 @@ public final class PhantomNavigationService
 		{
 			return completeSubmission(entry, Status.DEADLINE_EXPIRED, null, false);
 		}
-		if (direct)
+		if (direct && entry._travelOptions == null)
 		{
 			final Status status;
 			final Mode mode;
@@ -433,7 +443,7 @@ public final class PhantomNavigationService
 				return completeSubmission(entry, Status.BACKEND_FAILURE, null, false);
 		}
 
-		if (entry._request.origin().distanceTo(entry._request.destination()) > _policy.maximumLocalStraightDistance())
+		if (entry._travelOptions == null && entry._request.origin().distanceTo(entry._request.destination()) > _policy.maximumLocalStraightDistance())
 		{
 			_metrics.recordNavigationRouteBudgetRejected();
 			return completeSubmission(entry, Status.ROUTE_BUDGET_EXCEEDED, null, false);
@@ -661,7 +671,14 @@ public final class PhantomNavigationService
 				Throwable failure = null;
 				try
 				{
-					if (entry._walkCorridor && _backend instanceof L2jNavigationBackend nativeBackend)
+					if (entry._travelOptions != null)
+					{
+						final var nativeBackend = _backend instanceof L2jNavigationBackend nativeValue ? nativeValue : new L2jNavigationBackend();
+						final var planned = nativeBackend.planTravel(entry._request, entry._cancellation, _policy, _clock, entry._travelOptions, _backend);
+						corridorStatus = planned.status(); entry._selectedPlan = planned.candidate();
+						backendPath = entry._selectedPlan == null ? null : entry._selectedPlan.stages().getFirst().points();
+					}
+					else if (entry._walkCorridor && _backend instanceof L2jNavigationBackend nativeBackend)
 					{
 						final var corridor = nativeBackend.findWalkCorridor(entry._request, entry._cancellation, _policy, _clock);
 						backendPath = corridor.points();
@@ -756,7 +773,13 @@ public final class PhantomNavigationService
 	private ValidatedPath validateBackendPath(RequestEntry entry, List<PhantomNavigationPoint> backendPath, long cancellationGeneration)
 	{
 		final double maximumDistance = routeDistanceBudget(entry._request);
-		final var validation = PhantomNativeRouteContract.normalize(entry._request.origin(), entry._request.destination(), backendPath, _policy, maximumDistance, (from,to) -> canMove(entry, from, to), () -> interruption(entry, cancellationGeneration));
+		final var destination = entry._selectedPlan == null ? entry._request.destination() : entry._selectedPlan.stages().getFirst().to();
+		if (entry._selectedPlan != null && entry._request.origin().equals(destination))
+		{
+			final var status = interruption(entry, cancellationGeneration);
+			return new ValidatedPath(status, status == Status.PATH_FOUND ? new PhantomNavigationRoute(Mode.COMPUTED, destination, destination, List.of(destination), entry._capability, _clock.getAsLong(), false, _policy.maximumWaypoints(), maximumDistance) : null);
+		}
+		final var validation = PhantomNativeRouteContract.normalize(entry._request.origin(), destination, backendPath, _policy, maximumDistance, (from,to) -> canMove(entry, from, to), () -> interruption(entry, cancellationGeneration));
 		final Status validationStatus = validation.status();
 		if (validationStatus != Status.PATH_FOUND)
 		{
@@ -768,7 +791,7 @@ public final class PhantomNavigationService
 		{
 			return new ValidatedPath(
 				Status.PATH_FOUND,
-				new PhantomNavigationRoute(Mode.COMPUTED, entry._request.origin(), entry._request.destination(), waypoints, entry._capability, _clock.getAsLong(), true, _policy.maximumWaypoints(), maximumDistance));
+				new PhantomNavigationRoute(Mode.COMPUTED, entry._request.origin(), destination, waypoints, entry._capability, _clock.getAsLong(), !entry._walkCorridor, _policy.maximumWaypoints(), maximumDistance));
 		}
 		catch (IllegalArgumentException e)
 		{
@@ -907,9 +930,15 @@ public final class PhantomNavigationService
 		if (retain)
 		{
 			_completed.put(entry._requestId, result);
+			if (result.route() != null && entry._selectedPlan != null)
+			{
+				_completedTravelPlans.put(entry._requestId, entry._selectedPlan);
+				while (_completedTravelPlans.size() > _policy.maximumTrackedProfiles()) { _completedTravelPlans.remove(_completedTravelPlans.keySet().iterator().next()); }
+			}
 			while (_completed.size() > _policy.maximumTrackedProfiles())
 			{
-				_completed.remove(_completed.keySet().iterator().next());
+				final long oldest = _completed.keySet().iterator().next();
+				_completed.remove(oldest); _completedTravelPlans.remove(oldest);
 			}
 		}
 	}
@@ -1014,6 +1043,8 @@ public final class PhantomNavigationService
 		private final long _requestId;
 		private final PhantomNavigationRequest _request;
 		private final boolean _walkCorridor;
+		private final PhantomTravelStrategy.Options _travelOptions;
+		private PhantomTravelStrategy.Candidate _selectedPlan;
 		private final PhantomNavigationCancellationToken _cancellation = new PhantomNavigationCancellationToken();
 		private final long _initialCancellationGeneration = _cancellation.generation();
 		private RequestState _state = RequestState.DIRECT_CHECK;
@@ -1021,11 +1052,12 @@ public final class PhantomNavigationService
 		private PhantomNavigationResult _terminalResult;
 		private boolean _submissionCounted;
 
-		private RequestEntry(long requestId, PhantomNavigationRequest request, boolean walkCorridor)
+		private RequestEntry(long requestId, PhantomNavigationRequest request, boolean walkCorridor, PhantomTravelStrategy.Options travelOptions)
 		{
 			_requestId = requestId;
 			_request = request;
 			_walkCorridor = walkCorridor;
+			_travelOptions = travelOptions;
 		}
 	}
 
