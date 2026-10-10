@@ -198,10 +198,11 @@ try{
         foreach($point in $setupPath.steps){
             $null=Capture031 'TELEPORT_SELF' @{x=[int]$point.x;y=[int]$point.y;z=[int]$point.z;instanceId=0}
             $status=Capture031 'STATUS'
-            if($status.before.teleporting -cne 'false' -or [int]$status.before.x -ne [int]$point.x -or [int]$status.before.y -ne [int]$point.y -or [int]$status.before.z -ne [int]$point.z){throw 'Native setup prefix arrival unconfirmed; no replay.'}
+            if($status.before.teleporting -cne 'false' -or [int]$status.before.x -ne [int]$point.x -or [int]$status.before.y -ne [int]$point.y -or [int]$status.before.z -ne ([int]$point.z+5)){throw 'Native setup prefix arrival unconfirmed; no replay.'}
         }
-        if($status.before.teleporting -cne 'false' -or [int]$status.before.x -ne [int]$path.origin.x -or [int]$status.before.y -ne [int]$path.origin.y -or [int]$status.before.z -ne [int]$path.origin.z){throw 'Fixed initial place arrival unconfirmed.'}
-        $enrollmentPoint=$path.origin
+        if($status.before.teleporting -cne 'false' -or [int]$status.before.x -ne [int]$path.origin.x -or [int]$status.before.y -ne [int]$path.origin.y -or [int]$status.before.z -ne ([int]$path.origin.z+5)){throw 'Fixed initial place arrival unconfirmed.'}
+        # Creature.teleToLocation canonicalizes stock geodata height and adds exactly5 (Creature.java:858).
+        $enrollmentPoint=[pscustomobject]@{x=[int]$path.origin.x;y=[int]$path.origin.y;z=([int]$path.origin.z+5)}
         [ordered]@{scope='INITIAL_SETUP_BEFORE_ENROLLMENT';sourceProfile=$SetupProfileId;sourcePoint=$fixed;observationPoint=$path.origin;pathSha256=(Get-FileHash $PathJson).Hash;admissionGranted=$false} | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'fixed-initial-observation-place.json') -Encoding utf8
     }
     if($NativeStartAtSetup -and ([int]$status.before.x -ne [int]$enrollmentPoint.x -or [int]$status.before.y -ne [int]$enrollmentPoint.y -or [int]$status.before.z -ne [int]$enrollmentPoint.z)){throw 'Initial native observer point changed before enrollment'}

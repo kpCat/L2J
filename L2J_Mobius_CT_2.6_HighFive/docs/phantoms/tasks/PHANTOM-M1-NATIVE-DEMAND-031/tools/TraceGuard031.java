@@ -23,6 +23,59 @@ class TraceGuard031 {
         Value enumName = field(value, "name");
         return enumName instanceof StringReference text ? text.value() : value.type().name();
     }
+    static void startup(VirtualMachine vm, String[] args, Path output) throws Exception {
+        Path boundary = Path.of(args[3]).toAbsolutePath().normalize();
+        if (!boundary.toString().contains("PHANTOM-M1-NATIVE-DEMAND-031") || Files.exists(boundary)) throw new IllegalStateException("Own immutable startup boundary required");
+        Files.createDirectory(boundary);
+        String typeName = "org.l2jmobius.gameserver.phantoms.PhantomSystem";
+        var prepare = vm.eventRequestManager().createClassPrepareRequest();
+        prepare.addClassFilter(typeName); prepare.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD); prepare.enable();
+        BreakpointRequest breakpoint = null;
+        List<String> lines = new ArrayList<>();
+        long deadline = System.nanoTime() + 180_000_000_000L;
+        try {
+            var loaded = vm.classesByName(typeName);
+            if (!loaded.isEmpty()) {
+                breakpoint = vm.eventRequestManager().createBreakpointRequest(loaded.getFirst().locationsOfLine(808).getFirst());
+                breakpoint.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD); breakpoint.enable();
+            }
+            while (System.nanoTime() < deadline) {
+                EventSet events = vm.eventQueue().remove(1000);
+                if (events == null) continue;
+                boolean captured = false;
+                try {
+                    for (Event event : events) {
+                        if (event instanceof ClassPrepareEvent prepared && breakpoint == null) {
+                            breakpoint = vm.eventRequestManager().createBreakpointRequest(prepared.referenceType().locationsOfLine(808).getFirst());
+                            breakpoint.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD); breakpoint.enable();
+                        }
+                        if (event instanceof BreakpointEvent hit) {
+                            long begin = System.nanoTime();
+                            StackFrame frame = hit.thread().frame(0);
+                            Value manager = field(frame.thisObject(), "_populationManager");
+                            String lifecycle = scalar(field(manager, "_lifecycle"));
+                            String entries = scalar(field(field(manager, "_entries"), "size"));
+                            if (!"NEW".equals(lifecycle) || !"0".equals(entries)) throw new IllegalStateException("PRE_POPULATION_NOT_QUIET:" + lifecycle + ":" + entries);
+                            lines.add("UTC=" + Instant.now() + " thread=" + hit.thread().name() + " managerLifecycle=" + lifecycle + " managedEntries=" + entries);
+                            for (StackFrame stack : hit.thread().frames().stream().limit(12).toList()) lines.add("stack=" + stack.location().declaringType().name() + "." + stack.location().method().name() + ":" + stack.location().lineNumber());
+                            Files.writeString(boundary.resolve("paused.properties"), "owner=TASK031_CONTRACT\nphase=PRE_POPULATION_START\nsourceLine=808\nmanagerLifecycle=NEW\nmanagedEntries=0\nthread=" + hit.thread().name() + "\npausedNanos=" + begin + "\n");
+                            while (!Files.exists(boundary.resolve("release.signal")) && System.nanoTime() - begin < 8_000_000_000L) Thread.sleep(20);
+                            boolean released = Files.exists(boundary.resolve("release.signal"));
+                            lines.add("externalExportReleased=" + released + "\nstartupPauseNanos=" + (System.nanoTime() - begin));
+                            captured = released;
+                            if (!released) throw new IllegalStateException("STARTUP_EXPORT_TIMEOUT_THREAD_RESUMED");
+                        }
+                    }
+                } finally { events.resume(); }
+                if (captured) { lines.add("TARGET_THREAD_RESUMED=true\nGAMEPLAY_TIMING_PROOF=false"); return; }
+            }
+            throw new IllegalStateException("NO_STARTUP_BOUNDARY_HIT");
+        } finally {
+            if (breakpoint != null) vm.eventRequestManager().deleteEventRequest(breakpoint);
+            vm.eventRequestManager().deleteEventRequest(prepare); vm.dispose();
+            Files.write(output, lines, java.nio.charset.StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+        }
+    }
     public static void main(String[] args) throws Exception {
         Path output = Path.of(args[1]);
         if (Files.exists(output)) throw new IllegalStateException("Immutable debug output exists");
@@ -30,6 +83,7 @@ class TraceGuard031 {
         var options = connector.defaultArguments();
         options.get("hostname").setValue("127.0.0.1"); options.get("port").setValue(args[0]); options.get("timeout").setValue("5000");
         VirtualMachine vm = connector.attach(options);
+        if (args.length > 3 && args[2].equals("startup")) { startup(vm, args, output); return; }
         boolean ecology = args.length > 2 && args[2].startsWith("ecology:");
         boolean singleThread = args.length > 2 && args[2].startsWith("thread:");
         Set<Long> targets = singleThread ? Set.of() : Set.of(args.length < 3 ? 18L : Long.parseLong(ecology ? args[2].substring(8) : args[2]));
