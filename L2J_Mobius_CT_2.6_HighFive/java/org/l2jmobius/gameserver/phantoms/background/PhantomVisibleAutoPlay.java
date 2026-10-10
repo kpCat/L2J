@@ -530,7 +530,21 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		@Override
 		public boolean permitsTarget(Creature target)
 		{
-			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId);
+			if (!target.isMonster() || target.isRaid() || (target.getInstanceId() != _player.getInstanceId()) || (target.asNpc().getId() != _npcId)) { return false; }
+			// Keep an existing native selection: this observation never cancels earned attack/cast work.
+			if (_player.getTarget() == target) { return true; }
+			for (Session peer : _sessions.values())
+			{
+				final Player player = peer.player();
+				if (player == _player || !peer._current.get() || !player.isOnline() || player.isDead() || player.isSitting() || player.getInstanceId() != _player.getInstanceId() || player.getTarget() != target) { continue; }
+				final var owner = player.getNativeWorkOwner();
+				if (owner != null && owner.isCurrent() && owner.epoch() == peer._epoch)
+				{
+					// A target preference among current local sessions, not a combat or reward ownership claim.
+					return false;
+				}
+			}
+			return true;
 		}
 	}
 

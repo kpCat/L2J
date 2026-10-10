@@ -164,6 +164,9 @@ try{
         $status=Capture031 'STATUS'
         if($status.before.teleporting -cne 'false' -or [Math]::Abs([int]$status.before.x-[int]$SetupTeleport.x) -gt 32 -or [Math]::Abs([int]$status.before.y-[int]$SetupTeleport.y) -gt 32){throw 'Pre-baseline setup arrival unconfirmed.'}
     }
+    # Re-rank the same pre-outcome census around the factual post-setup observer position.
+    $nearestSetup=@($globalRows | Where-Object {$_.state -ne 'ABSENT'} | Sort-Object {[Math]::Pow([double]$_.x-[double]$status.before.x,2)+[Math]::Pow([double]$_.y-[double]$status.before.y,2)} | Select-Object -First 8)
+    $nearestSetup | ForEach-Object {[pscustomobject]@{profileId=[long]$_.profileId;materializedAtNanos=0}} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'nearest-setup-eight.json') -Encoding utf8
     # Fixed enrollment time. No rewards-based spot or actor selection.
     $enrollment=[Diagnostics.Stopwatch]::StartNew()
     while($enrollment.Elapsed.TotalSeconds -lt 25){
@@ -172,11 +175,11 @@ try{
     }
     if($watch.Elapsed.TotalSeconds -gt 60){throw 'SETUP_BOUND60: no Synthetic clock reset.'}
     $baseline=@(Discover031 | Where-Object {$_.worldPresent -ceq 'true'} | Sort-Object {[long]$_.profileId})
-        if($baseline.Count -lt 4 -or $baseline.Count -gt 8){
-        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'nearest-current-eight.json') -OutputRoot (Join-Path $OutputRoot 'cohort0-first-guards') *> (Join-Path $OutputRoot 'cohort0-first-guards.log')
+    $baseline | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $OutputRoot 'baseline-cohort.json') -Encoding utf8
+    if($baseline.Count -lt 4 -or $baseline.Count -gt 8){
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'nearest-setup-eight.json') -OutputRoot (Join-Path $OutputRoot 'cohort0-first-guards') *> (Join-Path $OutputRoot 'cohort0-first-guards.log')
         throw "NATURAL_COHORT_COUNT:$($baseline.Count); exact eight first guards exported"
     }
-    $baseline | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $OutputRoot 'baseline-cohort.json') -Encoding utf8
     $suitable=@($baseline | Where-Object {($Mode -ceq 'Probe' -or $_.dead -ceq 'false') -and [int]$_.npcId -gt 0})
     $different=@($suitable | Where-Object {$_.profileId -notin $PreviousPrimaryIds})
     $primary=@($(if($different.Count -ge 2){$different}else{$suitable}) | Select-Object -First 2)

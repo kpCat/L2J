@@ -31,12 +31,17 @@ class ReadNativeState031 {
   try {
    ReferenceType type=vm.classesByName(args[3]).getFirst();
    Value owners=type.getValue(type.fieldByName("RECEIPT_OWNERS"));
+   for(String metric:List.of("HOOK_CALLS","HOOK_NANOS","HOOK_MAX_NANOS"))lines.add("observer."+metric+"="+scalar(field(type.getValue(type.fieldByName(metric)),"value")));
    lines.add("UTC="+java.time.Instant.now()+" READ=NONATOMIC_NO_SUSPEND");
    for(ObjectReference entry:entries(owners)) {
     Value key=field(entry,"key"); String profile=scalar(field(key,"profileId"));
     if(!profiles.contains(profile))continue;
     Value owner=field(entry,"val"), player=field(owner,"_player"), sensor=field(owner,"_evidence");
     lines.add("PROFILE="+profile+" epoch="+scalar(field(key,"epoch"))+" object="+scalar(field(key,"objectId")));
+    for(String f:List.of("_waitTypeSitting","_isDead","_isRunning","_isCastingNow","_isAttackingNow"))lines.add("player."+f+"="+scalar(field(player,f)));
+    Value status=field(player,"_status"),regen=field(status,"_regTask");lines.add("status._flagsRegenActive="+scalar(field(status,"_flagsRegenActive")));lines.add("status._regTask="+scalar(regen));
+    if(regen instanceof ObjectReference future)for(Field f:future.referenceType().allFields())if(!f.isStatic()&&List.of("state","period","time","runner","callable").contains(f.name()))lines.add("regen."+f.name()+"="+scalar(future.getValue(f)));
+    for(String f:List.of("_currentHp","_currentMp","_currentCp"))lines.add("status."+f+"="+scalar(field(field(player,"_status"),f)));
     for(String f:List.of("_overflow","_firstUnprovenReason","_firstUnprovenNanos","_damageSequence","_killSequence","_rewardSequence","_farmCycleSequence"))lines.add(f+"="+scalar(field(sensor,f)));
     Value map=field(sensor,"_targets"), node=field(map,"head");
     for(int n=0;node!=null&&n<17;n++) {
@@ -46,9 +51,23 @@ class ReadNativeState031 {
      lines.add(s.toString()); node=field(node,"after");
     }
     for(ObjectReference skill:entries(field(player,"_skills"))) {
-     Value value=field(skill,"val"); lines.add("skill="+scalar(field(value,"_id"))+":"+scalar(field(value,"_level"))+":"+scalar(field(value,"_name"))+":"+scalar(field(value,"_operateType")));
+     Value value=field(skill,"val"); lines.add("skill="+scalar(field(value,"_id"))+":"+scalar(field(value,"_level"))+":"+scalar(field(value,"_name"))+":"+scalar(field(value,"_operateType")));     if("1177".equals(scalar(field(value,"_id")))) {
+      Value effects=field(value,"_effectLists"),values=field(effects,"vals");lines.add("skill1177.effectMap="+scalar(effects));
+      if(values instanceof ArrayReference a)for(int i=0;i<a.length();i++){Value list=a.getValue(i);if(list==null)continue;lines.add("skill1177.effectScopeIndex="+i+" size="+scalar(field(list,"size")));Value data=field(list,"elementData");if(data instanceof ArrayReference items)for(Value effect:items.getValues())if(effect instanceof ObjectReference object)lines.add("effect="+scalar(effect)+" loader="+(object.referenceType().classLoader()==null?0:object.referenceType().classLoader().uniqueID()));}
+     }
     }
    }
+   var holder=vm.classesByName("org.l2jmobius.gameserver.data.xml.SkillData$SingletonHolder").getFirst();Value skillData=holder.getValue(holder.fieldByName("INSTANCE"));
+   Value table=field(field(skillData,"_skillsByHash"),"table");
+   if(table instanceof ArrayReference buckets)for(int level=1;level<=5;level++) {
+    int hash=1177*1021+level,index=(hash^(hash>>>16))&(buckets.length()-1);Value node=buckets.getValue(index);
+    for(int n=0;node instanceof ObjectReference&&n<64;n++,node=field(node,"next")) {
+     if(!Integer.toString(hash).equals(scalar(field(field(node,"key"),"value"))))continue;Value skill=field(node,"val");lines.add("GLOBAL_SKILL1177_LEVEL="+level+" id="+scalar(field(skill,"_id")));
+     Value values=field(field(skill,"_effectLists"),"vals");if(values instanceof ArrayReference a)for(int i=0;i<a.length();i++){Value list=a.getValue(i);if(list==null)continue;lines.add("global.effectScopeIndex="+i+" size="+scalar(field(list,"size")));Value data=field(list,"elementData");if(data instanceof ArrayReference items)for(Value effect:items.getValues())if(effect instanceof ObjectReference object)lines.add("global.effect="+scalar(effect)+" loader="+(object.referenceType().classLoader()==null?0:object.referenceType().classLoader().uniqueID()));}
+    }
+   }
+   lines.add("MagicalDamage.loadedTypes="+vm.classesByName("handlers.skill.effects.MagicalDamage").size());
+   for(var effectType:vm.classesByName("handlers.skill.effects.MagicalDamage"))for(var method:effectType.methodsByName("onStart"))lines.add("MagicalDamage.onStart.lines="+method.allLineLocations().stream().map(Location::lineNumber).toList());
    ReferenceType systemType=vm.classesByName("org.l2jmobius.gameserver.phantoms.PhantomSystem").getFirst();
    Value system=systemType.getValue(systemType.fieldByName("_configuredInstance")),travel=field(system,"_visibleFarmTravel");
    Value materialization=field(system,"_materializationService");
@@ -61,6 +80,10 @@ class ReadNativeState031 {
     for(String f:List.of("_state","_permanentSeal","_failure","_epoch"))lines.add("serviceScope."+f+"="+scalar(field(scope,f)));
     Value identity=field(scope,"_identity");lines.add("scopeIdentity.closed="+scalar(field(identity,"_closed")));
    }
+   for(ObjectReference entry:entries(field(field(system,"_visibleAutoPlay"),"_sessions"))) {
+    String profile=scalar(field(field(entry,"key"),"value"));if(!profiles.contains(profile))continue;Value value=field(entry,"val");if(value==null)value=field(entry,"value");lines.add("AUTOPLAY PROFILE="+profile);
+    if(value instanceof ObjectReference session)for(Field f:session.referenceType().allFields())if(!f.isStatic()){Value v=session.getValue(f);if(v instanceof PrimitiveValue||v instanceof StringReference)lines.add("session."+f.name()+"="+scalar(v));}
+   }
    Value ecology=field(system,"_populationEcology");
    for(String f:List.of("_workerInFlight","_workerStarted","_activeProfile","_wakeFailure","_stopping","_preparationSlots","_focusId","_focusBatches","_lastBatchElapsedMillis","_pulses","_lastFailure","_metadataDraining","_inventoryReady","_populationPlanApplied"))lines.add("ecology."+f+"="+scalar(field(ecology,f)));
    for(ObjectReference entry:entries(field(ecology,"_entries"))) {
@@ -69,7 +92,10 @@ class ReadNativeState031 {
     lines.add("ECOLOGY PROFILE="+profile);
     if(value instanceof ObjectReference object)for(Field f:object.referenceType().allFields()) {
      if(f.isStatic())continue;Value item=object.getValue(f);lines.add(f.name()+"="+scalar(item));
-     if(f.name().equals("_stored")&&item instanceof ObjectReference nested)for(Field nf:nested.referenceType().allFields())if(!nf.isStatic())lines.add("stored."+nf.name()+"="+scalar(nested.getValue(nf)));
+     if(List.of("_stored","_historicalSnapshot").contains(f.name())&&item instanceof ObjectReference nested)for(Field nf:nested.referenceType().allFields())if(!nf.isStatic()) {
+      Value n=nested.getValue(nf);lines.add(f.name()+"."+nf.name()+"="+scalar(n));
+      if(nf.name().equals("state")&&n instanceof ObjectReference state)for(Field sf:state.referenceType().allFields())if(!sf.isStatic()){Value sv=state.getValue(sf);if(sv instanceof PrimitiveValue||sv instanceof StringReference||List.of("status","tier").contains(sf.name()))lines.add(f.name()+".state."+sf.name()+"="+scalar(sv));}
+     }
     }
    }
    for(ObjectReference entry:entries(field(ecology,"_demandFacts"))) {

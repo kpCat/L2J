@@ -97,6 +97,40 @@ public final class PhantomAutoPlayOwnership022Suite implements PhantomTestSuite
 				finally { adapter.stop(f.id); player.setSitting(false); PhantomVisibleIntentRecoverySuite.stop(engine); }
 			}
 		});
+		registry.add("S05-new-target-respects-current-peer-selection", context ->
+		{
+			try (var first = handoff.new Fixture(true); var second = handoff.new Fixture(true, false, 0, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultInjector.none(), true))
+			{
+				first.handoff(); second.handoff();
+				final var engine = PhantomVisibleIntentRecoverySuite.engine(first); final var peerEngine = PhantomVisibleIntentRecoverySuite.engine(second);
+				final var adapter = new PhantomVisibleAutoPlay(first.materialization, () -> engine, first.historical::permitsDecision);
+				final var peerAdapter = new PhantomVisibleAutoPlay(second.materialization, () -> peerEngine, second.historical::permitsDecision);
+				final var player = World.getInstance().getPlayer(first.objectId); final var peer = World.getInstance().getPlayer(second.objectId);
+				player.setSitting(true); peer.setSitting(true);
+				final var goal = first.goals.load(first.id).orElseThrow().goal();
+				final var target = new org.l2jmobius.gameserver.model.actor.instance.Monster(org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(goal).npcId()));
+				final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(target.getTemplate()); spawn.setXYZ(player.getX() + 48, player.getY(), player.getZ()); target.setSpawn(spawn);
+				target.setCurrentHpMp(target.getMaxHp(), target.getMaxMp()); target.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
+				try
+				{
+					PhantomAssertions.assertTrue(adapter.start(first.id, goal) && peerAdapter.start(second.id, second.goals.load(second.id).orElseThrow().goal()), "Both real owned native sessions start.");
+					// Production has one adapter. Publish its second actually admitted session in the policy fixture.
+					sessions(adapter).put(second.id, sessions(peerAdapter).get(second.id));
+					final var policy = policy(adapter, first.id); final var owner = player.getNativeWorkOwner();
+					player.setTarget(null); peer.setTarget(target); peer.setSitting(false);
+					PhantomAssertions.assertFalse(policy.permitsTarget(target), "RED: choosing a new target must avoid an already selected living native peer target.");
+					player.setTarget(target);
+					PhantomAssertions.assertTrue(policy.permitsTarget(target), "An existing selection is retained; earned native work is not cancelled by peer observation.");
+					player.setTarget(null); peer.setSitting(true);
+					PhantomAssertions.assertTrue(policy.permitsTarget(target), "A resting peer cannot indefinitely reserve a target.");
+					peer.setSitting(false); peerAdapter.stop(second.id);
+					PhantomAssertions.assertTrue(policy.permitsTarget(target), "A stopped or superseded session cannot reserve a target.");
+					PhantomAssertions.assertEquals(owner, player.getNativeWorkOwner(), "Target preference never replaces native ownership.");
+					context.record("S05.actual", "realOwners=true;newSelectionContested=false;existingSelection=true;restingReleased=true;stoppedReleased=true");
+				}
+				finally { sessions(adapter).remove(second.id); adapter.stop(first.id); peerAdapter.stop(second.id); player.setSitting(false); peer.setSitting(false); target.deleteMe(); PhantomVisibleIntentRecoverySuite.stop(engine); PhantomVisibleIntentRecoverySuite.stop(peerEngine); }
+			}
+		});
 	}
 	static AutoPlayTaskManager.PhantomPolicy policy(PhantomVisibleAutoPlay adapter, long id) throws Exception
 	{
@@ -104,6 +138,12 @@ public final class PhantomAutoPlayOwnership022Suite implements PhantomTestSuite
 		final var session = ((java.util.Map<?, ?>) sessionsField.get(adapter)).get(id);
 		final var policyField = session.getClass().getDeclaredField("_policy"); policyField.setAccessible(true);
 		return (AutoPlayTaskManager.PhantomPolicy) policyField.get(session);
+	}
+	@SuppressWarnings("unchecked")
+	static java.util.Map<Long, Object> sessions(PhantomVisibleAutoPlay adapter) throws Exception
+	{
+		final var field = adapter.getClass().getDeclaredField("_sessions"); field.setAccessible(true);
+		return (java.util.Map<Long, Object>) field.get(adapter);
 	}
 	@SuppressWarnings("unchecked")
 	static java.util.Map<String, String> snapshot(PhantomVisibleAutoPlay adapter, long id) throws Exception
