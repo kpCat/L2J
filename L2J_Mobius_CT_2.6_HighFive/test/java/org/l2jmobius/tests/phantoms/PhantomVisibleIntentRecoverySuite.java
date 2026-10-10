@@ -27,6 +27,11 @@ public final class PhantomVisibleIntentRecoverySuite implements PhantomTestSuite
 
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("completedAuthority031".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("R11-complete-old-authority-renews-only-after-current-owned-checkpoint", context -> completedAuthority(context, true));
+			registry.add("R12-unfinished-handoff-never-renews-authority", context -> completedAuthority(context, false)); return;
+		}
 		registry.add("R01-attach-before-current-publication-reloads-before-work", _ ->
 		{
 			try (var f = handoff.new Fixture(true))
@@ -181,6 +186,54 @@ public final class PhantomVisibleIntentRecoverySuite implements PhantomTestSuite
 		});
 	}
 
+	private void completedAuthority(PhantomTestContext context, boolean completed) throws Exception
+	{
+		final boolean priorLootSlot = org.l2jmobius.gameserver.config.PlayerConfig.AUTO_LOOT_SLOT_LIMIT;
+		try (var f = handoff.new Fixture(true))
+		{
+			if (completed) { complete(f); }
+			final var before = f.catchups.load(f.id).orElseThrow();
+			final var oldGoal = f.goals.load(f.id).orElseThrow();
+			if (completed) { PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Ordinary native load for completed catchup."); }
+			else { f.handoff(); }
+			final var player = World.getInstance().getPlayer(f.objectId);
+			final var progress = new PhantomBackgroundState.Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
+			final long epoch = f.materialization.find(f.id).orElseThrow().materializedAtNanos();
+			final long nativeVersion = f.transactions.nativeContext(f.id, f.objectId).context().stateRowVersion();
+			final var engine = engine(f);
+			try
+			{
+				// One isolated TEST JVM changes actual authority policy, without altering persisted native facts.
+				org.l2jmobius.gameserver.config.PlayerConfig.AUTO_LOOT_SLOT_LIMIT = !priorLootSlot;
+				boolean admitted = false;
+				final long deadline = System.nanoTime() + 15_000_000_000L;
+				do { admitted = prepare(f, engine); if (!admitted) { Thread.sleep(25); } }
+				while (!admitted && completed && System.nanoTime() < deadline);
+				final var after = f.catchups.load(f.id).orElseThrow();
+				if (!completed)
+				{
+					PhantomAssertions.assertFalse(admitted, "Unfinished old-authority handoff remains fenced.");
+					PhantomAssertions.assertEquals(before, after, "No unfinished cursor or authority laundering.");
+					PhantomAssertions.assertEquals(oldGoal, f.goals.load(f.id).orElseThrow(), "No unfinished plan publication."); return;
+				}
+				PhantomAssertions.assertTrue(admitted, "RED: completed old authority must renew via actual current owned checkpoint.");
+				final var proof = f.transactions.nativeContext(f.id, f.objectId);
+				PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, proof.status(), "Canonical native/state/context proof.");
+				PhantomAssertions.assertEquals(PhantomNativeContext.Phase.COMPLETED, proof.context().phase(), "Completed owned native receipt.");
+				PhantomAssertions.assertTrue(proof.context().stateRowVersion() > nativeVersion, "Actual owned checkpoint advances native/state/context binding.");
+				PhantomAssertions.assertEquals(proof.state().hashes(), after.state().authorityHashes(), "Authority renewal follows native checkpoint hashes.");
+				PhantomAssertions.assertFalse(before.state().authorityHashes().equals(after.state().authorityHashes()), "Actual authority change observed.");
+				PhantomAssertions.assertEquals(java.util.List.of(before.state().status(), before.state().requestId(), before.state().fromEpochMinute(), before.state().targetEpochMinute(), before.state().cursorEpochMinute(), before.state().intervalOrdinal(), before.state().generation()), java.util.List.of(after.state().status(), after.state().requestId(), after.state().fromEpochMinute(), after.state().targetEpochMinute(), after.state().cursorEpochMinute(), after.state().intervalOrdinal(), after.state().generation()), "Completed interval and reward cursor unchanged.");
+				PhantomAssertions.assertEquals(progress, proof.state().progress(), "No synthetic rewards during authority renewal.");
+				PhantomAssertions.assertEquals(f.baseline.inventory(), proof.state().inventory(), "Whole native inventory preserved.");
+				PhantomAssertions.assertEquals(epoch, f.materialization.find(f.id).orElseThrow().materializedAtNanos(), "No lifetime replacement.");
+				PhantomAssertions.assertEquals(oldGoal.goal().revision() + 1, after.state().goalRevision(), "One atomic current plan revision.");
+				context.record("completedAuthority.currentEpoch", epoch);
+			}
+			finally { org.l2jmobius.gameserver.config.PlayerConfig.AUTO_LOOT_SLOT_LIMIT = priorLootSlot; stop(engine); }
+		}
+		finally { org.l2jmobius.gameserver.config.PlayerConfig.AUTO_LOOT_SLOT_LIMIT = priorLootSlot; }
+	}
 	static void busy(PhantomDecisionEngine engine, long id, boolean value) throws Exception
 	{
 		final var slots = PhantomDecisionEngine.class.getDeclaredField("_slots"); slots.setAccessible(true); final Object slot = ((Map<?, ?>) slots.get(engine)).get(id);

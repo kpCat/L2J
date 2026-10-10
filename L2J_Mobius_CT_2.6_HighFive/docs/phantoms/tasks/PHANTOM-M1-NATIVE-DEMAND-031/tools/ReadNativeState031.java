@@ -92,6 +92,11 @@ class ReadNativeState031 {
      if(f.name().equals("attempt")&&v instanceof ObjectReference attempt)for(Field a:attempt.referenceType().allFields())if(!a.isStatic())lines.add("travel.attempt."+a.name()+"="+scalar(attempt.getValue(a)));
     }
    }
+   Value knowledge=field(field(system,"_gameKnowledgeService"),"_snapshot");
+   for(String f:List.of("_datasetId","_datasetVersion","_topologyHash","_combinedHash","_itemsHash","_npcDropSpoilHash","_spawnHash","_recipeHash","_manorHash","_classCapabilityHash","_contentRequirementHash"))lines.add("knowledge."+f+"="+scalar(field(knowledge,f)));
+   var playerConfig=vm.classesByName("org.l2jmobius.gameserver.config.PlayerConfig").getFirst();
+   for(String f:List.of("AUTO_LOOT","AUTO_LOOT_HERBS","AUTO_LOOT_SLOT_LIMIT"))lines.add("nativeLoot."+f+"="+scalar(playerConfig.getValue(playerConfig.fieldByName(f))));
+   Value lootItems=playerConfig.getValue(playerConfig.fieldByName("AUTO_LOOT_ITEM_IDS"));List<String> lootIds=new ArrayList<>();for(ObjectReference item:entries(field(lootItems,"map")))lootIds.add(scalar(field(field(item,"key"),"value")));Collections.sort(lootIds);lines.add("nativeLoot.AUTO_LOOT_ITEM_IDS="+lootIds);
    Value ecology=field(system,"_populationEcology");
    for(String f:List.of("_workerInFlight","_workerStarted","_activeProfile","_wakeFailure","_stopping","_preparationSlots","_focusId","_focusBatches","_lastBatchElapsedMillis","_pulses","_lastFailure","_metadataDraining","_inventoryReady","_populationPlanApplied"))lines.add("ecology."+f+"="+scalar(field(ecology,f)));
    for(ObjectReference entry:entries(field(ecology,"_entries"))) {
