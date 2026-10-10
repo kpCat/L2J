@@ -377,7 +377,16 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			journey.deadline = now + _navigation.policy().defaultRequestDeadlineNanos();
-			final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, current, destination, now, journey.deadline, 100_000));
+			var requested = destination;
+			final double distance = Math.hypot((long) destination.x() - current.x(), (long) destination.y() - current.y());
+			if (journey.currentAnchorReturn && distance > 2000)
+			{
+				// Keep each native query inside the existing local leg and stock buffer envelope.
+				final int x = current.x() + (int) Math.round(((long) destination.x() - current.x()) * 2000 / distance);
+				final int y = current.y() + (int) Math.round(((long) destination.y() - current.y()) * 2000 / distance);
+				requested = new PhantomNavigationPoint(x, y, GeoEngine.getInstance().getHeight(x, y, current.z()), current.instanceId());
+			}
+			final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, current, requested, now, journey.deadline, 100_000));
 			journey.requestId = submission.requestId();
 			if (submission.immediateResult() != null)
 			{
@@ -408,6 +417,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				return false;
 			}
 			if (!terminalResult(profileId, journey, result)) { return false; }
+		}
+		if (journey.currentAnchorReturn && !journey.route.destination().equals(destination) && (current.distanceTo(journey.waypoints.getLast()) <= _navigation.arrivalRadius()))
+		{
+			clearRoute(profileId, journey);
+			journey.reason = "travel.native_leg_complete";
+			hold(profileId);
+			return false; // Only the original final destination permits owned arrival/store.
 		}
 		while ((journey.index < journey.waypoints.size() - 1) && (current.distanceTo(journey.waypoints.get(journey.index)) <= _navigation.arrivalRadius()))
 		{
@@ -531,6 +547,18 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				default -> fail(profileId, journey, journey.reason, Disposition.ROUTE_UNUSABLE);
 			}
 			return false;
+		}
+		if (journey.currentAnchorReturn)
+		{
+			var point = result.route().origin(); double distance = 0;
+			for (var waypoint : result.route().waypoints()) { distance += point.distanceTo(waypoint); point = waypoint; }
+			journey.returnWaypoints += result.route().waypoints().size();
+			journey.returnDistance += distance;
+			if (journey.returnWaypoints > _navigation.policy().maximumWaypoints() || journey.returnDistance > _navigation.policy().maximumRouteDistance())
+			{
+				fail(profileId, journey, "travel.navigation_route_budget_exceeded", Disposition.ROUTE_UNUSABLE);
+				return false;
+			}
 		}
 		journey.route = result.route();
 		journey.waypoints = result.route().waypoints();
@@ -875,6 +903,9 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		private final PhantomNormalGatekeeperTravel.Step step;
 		private final PhantomGoal goal;
 		private final Attempt attempt;
+		private final boolean currentAnchorReturn;
+		private int returnWaypoints;
+		private double returnDistance;
 		private boolean teleported;
 		private boolean phaseClosed;
 		private boolean moveIssued;
@@ -899,6 +930,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			this.step = step;
 			this.goal = goal;
 			this.attempt = attempt;
+			currentAnchorReturn = step.id().startsWith("live.approach.") && step.fromAnchorId().equals(step.toAnchorId());
 		}
 	}
 

@@ -24,6 +24,10 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("nativeLeg032".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("C08-current-return-query-fits-unchanged-stock-buffers", this::nativeLeg); return;
+		}
 		if ("nativeReturn032".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("C05-current-off-anchor-return-keeps-valid-goal-and-guards", this::prepareReturn);
@@ -60,6 +64,7 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 		registry.add("C05-current-off-anchor-return-keeps-valid-goal-and-guards", this::prepareReturn);
 		registry.add("C06-same-anchor-native-return-uses-factual-navigation", this::navigateReturn);
 		registry.add("C07-outside-native-policy-cannot-retain-nonlocal-intent", this::boundedReturn);
+		registry.add("C08-current-return-query-fits-unchanged-stock-buffers", this::nativeLeg);
 	}
 	private static void offAnchor(PhantomNativeContextHandoffSuite.Fixture f)
 	{
@@ -136,10 +141,14 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 		private final PhantomVisibleFarmTravel value;
 		ReturnTravel(PhantomNativeContextHandoffSuite.Fixture f) throws Exception
 		{
+			this(f, new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend());
+		}
+		ReturnTravel(PhantomNativeContextHandoffSuite.Fixture f, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend backend) throws Exception
+		{
 			fixture = f;
 			final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_production"); field.setAccessible(true);
 			final var production = (PhantomBackgroundSuite.ProductionAuthorityFixture) field.get(_intent.handoff);
-			navigation = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend(), worker -> { worker.run(); return true; }, System::nanoTime, new org.l2jmobius.gameserver.phantoms.PhantomMetrics());
+			navigation = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), backend, worker -> { worker.run(); return true; }, System::nanoTime, new org.l2jmobius.gameserver.phantoms.PhantomMetrics());
 			navigation.start();
 			final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
 			{
@@ -149,6 +158,35 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 			value = new PhantomVisibleFarmTravel(f.materialization, f.background, production.authority().travelQuery(production.topology()), navigation, f.historical::permitsDecision, signals, f.historical::recordVisibleTravelFailure, System::nanoTime);
 		}
 		@Override public void close() { value.beforeMaterialize(fixture.id, fixture.objectId); navigation.beginStop(); navigation.finishStop(); }
+	}
+	private void nativeLeg(PhantomTestContext context) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); offAnchor(f);
+			final var required = new java.util.concurrent.atomic.AtomicInteger();
+			final var stock = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+			final var observed = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
+			{
+				@Override public CapabilitySnapshot capability(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to)
+				{
+					required.set(64 + 2 * Math.max(Math.abs(org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoX(from.x()) - org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoX(to.x())), Math.abs(org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoY(from.y()) - org.l2jmobius.gameserver.geoengine.GeoEngine.getGeoY(to.y()))));
+					return stock.capability(from, to);
+				}
+				@Override public boolean canMoveDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint to) { return stock.canMoveDirect(from, to); }
+				@Override public java.util.List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> findPath(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest request, org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken token) { return stock.findPath(request, token); }
+			};
+			try (var nativeTravel = new ReturnTravel(f, observed))
+			{
+				final var goal = f.goals.load(f.id).orElseThrow().goal(); final var before = f.transactions.nativeContext(f.id, f.objectId);
+				PhantomAssertions.assertFalse(nativeTravel.value.arrive(f.id, goal), "A partial native query cannot claim final arrival.");
+				final int capacity = java.util.Arrays.stream(org.l2jmobius.gameserver.config.GeoEngineConfig.PATHFIND_BUFFERS.split(";")).mapToInt(value -> Integer.parseInt(value.split("x")[0])).max().orElseThrow();
+				context.record("C08.actualBuffer", required.get() + "/" + capacity);
+				PhantomAssertions.assertTrue(required.get() > 0 && required.get() <= capacity, "RED: actual stock query must fit unchanged native buffer capacity: " + required.get() + "/" + capacity);
+				PhantomAssertions.assertEquals(before, f.transactions.nativeContext(f.id, f.objectId), "Partial route request writes no native payload, XYZ or rewards.");
+				PhantomAssertions.assertEquals(goal, f.goals.load(f.id).orElseThrow().goal(), "Current goal/revision remains authoritative.");
+			}
+		}
 	}
 	private void retirement(PhantomTestContext context) throws Exception
 	{

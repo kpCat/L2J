@@ -31,6 +31,7 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-03
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/tools/AnalyzeBaseline032.py
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/tools/AuditBoundary032.py
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/tools/CheckSource032.py
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/tools/CrashAcceptance032.ps1
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/tools/CompactRoute032.py
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/tools/ExportCrashSql032.py
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/tools/InspectLineage032.py

@@ -186,3 +186,22 @@ global eligibility. Native travel still owns factual Geo/arrival/store. No broad
 new global route, no changes to native writers/earned callbacks/persistence/shared pools.
 Preparing next exact-path source commit and clean committed build. All previous server
 outcomes remain attached to their original source/Jar; final current-server gates required.
+
+C43 clean committed5d1c1c47 Jar342B94E2: composed7/7, H16 1/1, matrix93/93,
+lifecycle acceptance11/11 PASS. C44 frozen380.72s retains all8 actors:6/8;
+C45 frozen380.84s retains all8 actors:5/8. Original5/19 still fail factual
+native return with navigation_no_path. No results transferred to a new Jar.
+Read actual GeoEngine.ini, PathFinding.findPath/alloc, L2j backend and Travel:
+configured maximum buffer500, full camp-to-current-goal request needs about764.
+C46 new C08 RED on committed342B: actual native adapter requests1314/500.
+C47 bounded live.approach return requests native legs from factual Player pose,
+at most2000 each; aggregate64 waypoints,100000 distance and whole120s remain.
+Only original final goal permits arrival/store; intermediate routes never do.
+No Geo/config/capacity change, canonical XYZ substitution or owner/debt reset.
+C47 composed8/8 GREEN and existing H16 1/1 PASS. Own032a old5d JVMs stopped
+through stock graceful shutdown. Current server acceptance still unverified.
+Read CrashAcceptance032 and reuse root Read-SharedJson032; the initially looked-up
+tools/Read-SharedJson032 path does not exist. Actual planned halt helper holds
+the original OS process handle, selects initial native NPC before counters/outcomes,
+retains whole raw cohort, and compares actual exit72/73 with the exact fault window.
+Preparing exact-path committed candidate; final clean Jar must repeat all gates.
