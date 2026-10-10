@@ -23,6 +23,10 @@ public final class PhantomAutoPlayOwnership022Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { handoff.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("preference031".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("S06-stock-selection-prefers-alternative-and-preserves-cooperative-fallback", this::preference); return;
+		}
 		registry.add("S01-live-state-is-independent-from-cached-decision", context ->
 		{
 			try (var f = handoff.new Fixture(true))
@@ -131,6 +135,54 @@ public final class PhantomAutoPlayOwnership022Suite implements PhantomTestSuite
 				finally { sessions(adapter).remove(second.id); adapter.stop(first.id); peerAdapter.stop(second.id); player.setSitting(false); peer.setSitting(false); target.deleteMe(); PhantomVisibleIntentRecoverySuite.stop(engine); PhantomVisibleIntentRecoverySuite.stop(peerEngine); }
 			}
 		});
+	}
+	private void preference(PhantomTestContext context) throws Exception
+	{
+		try (var first = handoff.new Fixture(true); var second = handoff.new Fixture(true, false, 0, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultInjector.none(), true))
+		{
+			first.handoff(); second.handoff();
+			final var engine = PhantomVisibleIntentRecoverySuite.engine(first); final var peerEngine = PhantomVisibleIntentRecoverySuite.engine(second);
+			final var adapter = new PhantomVisibleAutoPlay(first.materialization, () -> engine, first.historical::permitsDecision);
+			final var peerAdapter = new PhantomVisibleAutoPlay(second.materialization, () -> peerEngine, second.historical::permitsDecision);
+			final var player = World.getInstance().getPlayer(first.objectId); final var peer = World.getInstance().getPlayer(second.objectId);
+			player.setSitting(true); peer.setSitting(true);
+			final var goal = first.goals.load(first.id).orElseThrow().goal();
+			final int npcId = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(goal).npcId();
+			final int instance = org.l2jmobius.gameserver.managers.InstanceManager.getInstance().createDynamicInstance(0).getId();
+			player.setInstanceId(instance); peer.setInstanceId(instance);
+			final var nearby = preferenceMonster(player, npcId, 48); final var alternative = preferenceMonster(player, npcId, 160);
+			try
+			{
+				PhantomAssertions.assertTrue(adapter.start(first.id, goal) && peerAdapter.start(second.id, second.goals.load(second.id).orElseThrow().goal()), "Both original owned native sessions start.");
+				sessions(adapter).put(second.id, sessions(peerAdapter).get(second.id));
+				final var policy = policy(adapter, first.id); final var owner = player.getNativeWorkOwner();
+				player.getAutoUseSettings().getAutoSkills().clear(); peer.getAutoUseSettings().getAutoSkills().clear();
+				peer.setTarget(nearby); peer.setSitting(false); player.setTarget(null); player.setSitting(false);
+				stockSelection(player);
+				context.record("S06.firstSelection", "selected=" + player.getTarget() + ";near=" + nearby.getObjectId() + ";alternative=" + alternative.getObjectId());
+				PhantomAssertions.assertEquals(alternative, player.getTarget(), "RED: actual stock Phantom selection must prefer a reachable free alternative over a peer's current nearest target.");
+				PhantomAssertions.assertTrue(policy.permitsTarget(nearby), "Preference must never revoke cooperative target admission.");
+				player.setSitting(true); player.abortAttack(); player.abortCast(); player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE); alternative.deleteMe();
+				player.setTarget(null); player.setSitting(false); stockSelection(player);
+				PhantomAssertions.assertEquals(nearby, player.getTarget(), "With no free alternative actual stock selection still permits cooperative native farm.");
+				PhantomAssertions.assertEquals(owner, player.getNativeWorkOwner(), "Selection keeps the exact original native lifetime.");
+				context.record("S06.actual", "stockAutoPlay=true;alternativeSelected=true;cooperativeFallback=true;originalOwner=true");
+			}
+			finally { sessions(adapter).remove(second.id); adapter.stop(first.id); peerAdapter.stop(second.id); player.setSitting(false); peer.setSitting(false); nearby.deleteMe(); alternative.deleteMe(); player.setInstanceId(0); peer.setInstanceId(0); org.l2jmobius.gameserver.managers.InstanceManager.getInstance().destroyInstance(instance); PhantomVisibleIntentRecoverySuite.stop(engine); PhantomVisibleIntentRecoverySuite.stop(peerEngine); }
+		}
+	}
+	private static org.l2jmobius.gameserver.model.actor.instance.Monster preferenceMonster(org.l2jmobius.gameserver.model.actor.Player player, int npcId, int offset) throws Exception
+	{
+		final var target = new org.l2jmobius.gameserver.model.actor.instance.Monster(org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(npcId));
+		final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(target.getTemplate()); spawn.setXYZ(player.getX() + offset, player.getY(), player.getZ()); target.setSpawn(spawn);
+		target.setInstanceId(player.getInstanceId()); target.setCurrentHpMp(target.getMaxHp(), target.getMaxMp()); target.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ()); return target;
+	}
+	/** Runs the original stock pool body with the actual registered policy and its native lease. */
+	private static void stockSelection(org.l2jmobius.gameserver.model.actor.Player player) throws Exception
+	{
+		final var type = java.util.Arrays.stream(AutoPlayTaskManager.class.getDeclaredClasses()).filter(value -> value.getSimpleName().equals("AutoPlay")).findFirst().orElseThrow();
+		final var constructor = type.getDeclaredConstructor(AutoPlayTaskManager.class, java.util.Set.class); constructor.setAccessible(true);
+		((Runnable) constructor.newInstance(AutoPlayTaskManager.getInstance(), java.util.Set.of(player))).run();
 	}
 	static AutoPlayTaskManager.PhantomPolicy policy(PhantomVisibleAutoPlay adapter, long id) throws Exception
 	{

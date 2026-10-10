@@ -528,6 +528,21 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		}
 
 		@Override
+		public int targetSelectionLoad(Creature target)
+		{
+			int load = 0;
+			for (Session peer : _sessions.values())
+			{
+				final Player actor = peer.player();
+				final var owner = actor.getNativeWorkOwner();
+				if ((actor != _player) && peer._current.get() && (_sessions.get(peer._profileId) == peer)
+					&& actor.isAutoPlaying() && actor.isOnline() && actor.hasHeadlessOutboundSession() && !actor.isDead() && !actor.isSitting()
+					&& (actor.getInstanceId() == _player.getInstanceId()) && (actor.getTarget() == target)
+					&& (owner != null) && owner.isCurrent() && (owner.player() == actor) && (owner.epoch() == peer._epoch)) { load++; }
+			}
+			return load;
+		}
+		@Override
 		public boolean permitsTarget(Creature target)
 		{
 			return target.isMonster() && !target.isRaid() && (target.getInstanceId() == _player.getInstanceId()) && (target.asNpc().getId() == _npcId);

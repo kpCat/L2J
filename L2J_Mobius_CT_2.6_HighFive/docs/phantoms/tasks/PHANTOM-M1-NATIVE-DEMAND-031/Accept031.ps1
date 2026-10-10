@@ -3,7 +3,7 @@ param([ValidateSet('Probe','Scene','Away')][string]$Mode='Probe',
       [ValidateSet('a','b','t')][string]$Episode='a',
       [Parameter(Mandatory)][string]$OutputRoot,[int]$Seconds=80,
       [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha,
-      [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@(),[long]$SetupProfileId=0,[switch]$NativeStartAtSetup)
+      [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@(),[long]$SetupProfileId=0,[switch]$NativeStartAtSetup,[switch]$StopOwnServerOnComplete)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Read-SharedJson031.ps1')
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
@@ -27,7 +27,7 @@ New-Item -ItemType Directory -Path $OutputRoot | Out-Null
 . (Join-Path $runtime 'LocalPlay-Pilot.ps1')
 $run=[guid]::NewGuid().ToString('D')
 $script:commands=0
-$started=$false; $heartbeatJob=$null; $fullStarted=$false
+$started=$false; $heartbeatJob=$null; $fullStarted=$false; $serverStopped=$false
 $watch=[Diagnostics.Stopwatch]::StartNew()
 $fullRoot=Join-Path $OutputRoot 'full-native'
 $stopWriter=Join-Path $OutputRoot 'heartbeat-stop.request'
@@ -285,6 +285,19 @@ try{
     if($Mode -ceq 'Away'){MarkPhase031 'POST_RETURN_DONE'}
     $sequenceAfter=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
     [ordered]@{kind=$Mode;sha=$FrozenSha;runId=$run;seconds=$observation.Elapsed.TotalSeconds;nativeUniqueSamples=$unique;maxGapSeconds=$maxGap;commandCount=$script:commands;baselineCount=$baseline.Count;primaryIds=@($primary.profileId);sameSession=$true;telemetryMailboxCommands=([long]$sequenceAfter.nextSequence-[long]$sequenceBefore.nextSequence);sequenceBefore=[long]$sequenceBefore.nextSequence;sequenceAfter=[long]$sequenceAfter.nextSequence;arrivalProof=($Mode -ceq 'Probe')} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'capture-result.json') -Encoding utf8
+    if($StopOwnServerOnComplete){
+        if($Mode -notin @('Scene','Away')){throw 'Stock endpoint stop is restricted to completed acceptance scenes.'}
+        # Final observation has ended. Stock shutdown seals native actors; SQL is exported after all own writers stop.
+        [IO.File]::WriteAllText($stopWriter,'STOP',[Text.UTF8Encoding]::new($false))
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Stop -Episode $Episode -DumpDuringStop -OutputRoot (Join-Path $OutputRoot 'stock-stop') *> (Join-Path $OutputRoot 'stock-stop.log')
+        . (Join-Path $runtime 'LocalPlay-Ownership.ps1')
+        $gameEnd=Get-LocalPlayRoleState $runtime 'GameServer' 'GameServer.jar' @(7777)
+        $loginEnd=Get-LocalPlayRoleState $runtime 'LoginServer' 'LoginServer.jar' @(2106)
+        if($gameEnd.state -cne 'STOPPED' -or $loginEnd.state -cne 'STOPPED'){throw 'Stock endpoint stop did not confirm both own roles stopped.'}
+        $serverStopped=$true
+        & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'stopped-sql') *> (Join-Path $OutputRoot 'stopped-sql-export.log')
+        if($LASTEXITCODE -ne 0){throw 'Stopped whole-group SQL endpoint export failed.'}
+    }
     "TASK031_CAPTURE_COMPLETE mode=$Mode cohort=$($baseline.Count) samples=$unique gap=$maxGap commands=$script:commands"
 }catch{
     $_ | Out-String | Set-Content (Join-Path $OutputRoot 'episode-failure.txt') -Encoding utf8
@@ -292,7 +305,9 @@ try{
 }finally{
     if($started){
         try{
-            & (Join-Path $runtime 'Stop-LocalPlayPilot.ps1') -ActorMode Synthetic -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-stop.json') -Encoding utf8
+            if(-not $serverStopped){
+                & (Join-Path $runtime 'Stop-LocalPlayPilot.ps1') -ActorMode Synthetic -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-stop.json') -Encoding utf8
+            }
             $finalState=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
             $finalState | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'final-synthetic-state.json') -Encoding utf8
             if($finalState.state -cne 'STOPPED'){throw 'Synthetic cleanup not confirmed.'}
@@ -301,5 +316,5 @@ try{
             if($heartbeatJob){$heartbeatJob | Wait-Job -Timeout 10 | Out-Null; Receive-Job $heartbeatJob *> (Join-Path $OutputRoot 'heartbeat-job.log'); Remove-Job $heartbeatJob -Force}
         }
     }
-    if($fullStarted){& (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Flush -Episode $Episode -OutputRoot $fullRoot *> (Join-Path $OutputRoot 'full-flush.log')}
+    if($fullStarted -and -not $serverStopped){& (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Flush -Episode $Episode -OutputRoot $fullRoot *> (Join-Path $OutputRoot 'full-flush.log')}
 }

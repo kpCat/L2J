@@ -71,6 +71,8 @@ public class AutoPlayTaskManager
 		}
 
 		boolean permitsTarget(Creature target);
+		/** Advisory ranking only; it cannot grant or deny target admission. */
+		default int targetSelectionLoad(Creature target) { return 0; }
 		default void stopObserved(String reason) { }
 	}
 	public enum TickStatus { ACQUIRED, PAUSED, REVOKED }
@@ -309,6 +311,7 @@ public class AutoPlayTaskManager
 				else
 				{
 					double closestDistance = Double.MAX_VALUE;
+					int lowestLoad = Integer.MAX_VALUE;
 					TARGET: for (Creature nearby : World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() && (targetMode != 2 /* Characters */) ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE))
 					{
 						// Skip unavailable creatures.
@@ -333,10 +336,12 @@ public class AutoPlayTaskManager
 						if ((Math.abs(player.getZ() - nearby.getZ()) < 800) && GeoEngine.getInstance().canSeeTarget(player, nearby) && GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), nearby.getX(), nearby.getY(), nearby.getZ(), player.getInstanceId()))
 						{
 							final double creatureDistance = player.calculateDistance2D(nearby);
-							if (creatureDistance < closestDistance)
+							final int load = phantomPolicy == null ? 0 : Math.max(0, phantomPolicy.targetSelectionLoad(nearby));
+							if ((load < lowestLoad) || ((load == lowestLoad) && (creatureDistance < closestDistance)))
 							{
 								creature = nearby;
 								closestDistance = creatureDistance;
+								lowestLoad = load;
 							}
 						}
 					}
