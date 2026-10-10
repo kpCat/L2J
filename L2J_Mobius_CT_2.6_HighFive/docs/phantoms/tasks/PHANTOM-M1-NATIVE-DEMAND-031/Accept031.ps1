@@ -27,7 +27,7 @@ New-Item -ItemType Directory -Path $OutputRoot | Out-Null
 . (Join-Path $runtime 'LocalPlay-Pilot.ps1')
 $run=[guid]::NewGuid().ToString('D')
 $script:commands=0
-$started=$false; $heartbeatJob=$null; $fullStarted=$false; $serverStopped=$false
+$started=$false; $heartbeatJob=$null; $fullStarted=$false; $serverStopped=$false; $syntheticStopped=$false
 $watch=[Diagnostics.Stopwatch]::StartNew()
 $fullRoot=Join-Path $OutputRoot 'full-native'
 $stopWriter=Join-Path $OutputRoot 'heartbeat-stop.request'
@@ -251,7 +251,8 @@ try{
         & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-early') *> (Join-Path $OutputRoot 'away-early-export.log')
         if($LASTEXITCODE -ne 0){throw 'Exact away canonical export failed.'}
         # One full native minute plus scheduling margin, inside the unchanged480s episode budget.
-        Start-Sleep -Seconds 75
+        Start-Sleep -Seconds 40
+        Start-Sleep -Seconds 35
         & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-late') *> (Join-Path $OutputRoot 'away-late-export.log')
         if($LASTEXITCODE -ne 0){throw 'Exact background step export failed.'}
         MarkPhase031 'RETURN'
@@ -287,13 +288,28 @@ try{
     [ordered]@{kind=$Mode;sha=$FrozenSha;runId=$run;seconds=$observation.Elapsed.TotalSeconds;nativeUniqueSamples=$unique;maxGapSeconds=$maxGap;commandCount=$script:commands;baselineCount=$baseline.Count;primaryIds=@($primary.profileId);sameSession=$true;telemetryMailboxCommands=([long]$sequenceAfter.nextSequence-[long]$sequenceBefore.nextSequence);sequenceBefore=[long]$sequenceBefore.nextSequence;sequenceAfter=[long]$sequenceAfter.nextSequence;arrivalProof=($Mode -ceq 'Probe')} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'capture-result.json') -Encoding utf8
     if($StopOwnServerOnComplete){
         if($Mode -notin @('Scene','Away')){throw 'Stock endpoint stop is restricted to completed acceptance scenes.'}
-        # Final observation has ended. Stock shutdown seals native actors; SQL is exported after all own writers stop.
+        # Final observation has ended. Remove the exact owned Synthetic before the stock human-online guard.
+        & (Join-Path $runtime 'Stop-LocalPlayPilot.ps1') -ActorMode Synthetic -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-stop.json') -Encoding utf8
+        $syntheticEnd=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
+        if($syntheticEnd.state -cne 'STOPPED'){throw 'Exact Synthetic stop required before stock server shutdown.'}
+        $syntheticStopped=$true
+        # Stock shutdown seals native actors; SQL is exported only after all own writers stop.
         [IO.File]::WriteAllText($stopWriter,'STOP',[Text.UTF8Encoding]::new($false))
+        . (Join-Path $runtime 'LocalPlay-Ownership.ps1')
+        $gameBefore=Get-LocalPlayRoleState $runtime 'GameServer' 'GameServer.jar' @(7777)
+        $loginBefore=Get-LocalPlayRoleState $runtime 'LoginServer' 'LoginServer.jar' @(2106)
+        if($gameBefore.state -cne 'RUNNING' -or !$gameBefore.recordVerified -or $loginBefore.state -cne 'RUNNING' -or !$loginBefore.recordVerified){throw 'Both exact own incarnations required before stock stop.'}
         & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Stop -Episode $Episode -DumpDuringStop -OutputRoot (Join-Path $OutputRoot 'stock-stop') *> (Join-Path $OutputRoot 'stock-stop.log')
         . (Join-Path $runtime 'LocalPlay-Ownership.ps1')
         $gameEnd=Get-LocalPlayRoleState $runtime 'GameServer' 'GameServer.jar' @(7777)
         $loginEnd=Get-LocalPlayRoleState $runtime 'LoginServer' 'LoginServer.jar' @(2106)
-        if($gameEnd.state -cne 'STOPPED' -or $loginEnd.state -cne 'STOPPED'){throw 'Stock endpoint stop did not confirm both own roles stopped.'}
+        $stockText=[IO.File]::ReadAllText((Join-Path $OutputRoot 'stock-stop.log'))
+        $typedDone=Get-Content -LiteralPath (Join-Path $OutputRoot 'stock-stop/typed-stop-done.properties') -Raw | ConvertFrom-StringData
+        foreach($ended in @(@{role='GameServer';before=$gameBefore;after=$gameEnd},@{role='LoginServer';before=$loginBefore;after=$loginEnd})){
+            if($ended.after.state -cnotin @('STOPPED','STALE_RECORD') -or (Get-Process -Id $ended.before.pid -ErrorAction SilentlyContinue) -or !$stockText.Contains("STOCK_GRACEFUL_STOP_CONFIRMED role=$($ended.role) pid=$($ended.before.pid)")){throw 'Exact stock stop/process absence unconfirmed.'}
+        }
+        if((Get-LocalPlayPortOwners @(7777,2106)).Count -ne 0 -or $typedDone.progress -notmatch 'phase=DONE, outcome=COMPLETE,' -or $typedDone.materialization -cne 'ShutdownSnapshot[state=STOPPED, retainedEntries=0]' -or $typedDone.proofFailure){throw 'Stock drain/port-release proof unconfirmed.'}
+        [ordered]@{sourceSha=$FrozenSha;gamePid=$gameBefore.pid;gameStartTicks=$gameBefore.startTimeUtcTicks;loginPid=$loginBefore.pid;loginStartTicks=$loginBefore.startTimeUtcTicks;gameTerminalState=$gameEnd.state;loginTerminalState=$loginEnd.state;stockLogSha256=(Get-FileHash (Join-Path $OutputRoot 'stock-stop.log')).Hash;typedStopSha256=(Get-FileHash (Join-Path $OutputRoot 'stock-stop/typed-stop-done.properties')).Hash;healthyStockStop=$true} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'stock-stop-verified.json') -Encoding utf8
         $serverStopped=$true
         & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'stopped-sql') *> (Join-Path $OutputRoot 'stopped-sql-export.log')
         if($LASTEXITCODE -ne 0){throw 'Stopped whole-group SQL endpoint export failed.'}
@@ -305,7 +321,7 @@ try{
 }finally{
     if($started){
         try{
-            if(-not $serverStopped){
+            if(-not $serverStopped -and -not $syntheticStopped){
                 & (Join-Path $runtime 'Stop-LocalPlayPilot.ps1') -ActorMode Synthetic -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-stop.json') -Encoding utf8
             }
             $finalState=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
@@ -316,5 +332,10 @@ try{
             if($heartbeatJob){$heartbeatJob | Wait-Job -Timeout 10 | Out-Null; Receive-Job $heartbeatJob *> (Join-Path $OutputRoot 'heartbeat-job.log'); Remove-Job $heartbeatJob -Force}
         }
     }
-    if($fullStarted -and -not $serverStopped){& (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Flush -Episode $Episode -OutputRoot $fullRoot *> (Join-Path $OutputRoot 'full-flush.log')}
+    if($fullStarted -and -not $serverStopped){
+        . (Join-Path $runtime 'LocalPlay-Ownership.ps1')
+        $flushOwner=Get-LocalPlayRoleState $runtime 'GameServer' 'GameServer.jar' @(7777)
+        if($flushOwner.state -ceq 'RUNNING' -and $flushOwner.recordVerified){& (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Flush -Episode $Episode -OutputRoot $fullRoot *> (Join-Path $OutputRoot 'full-flush.log')}
+        else { "TASK031_FLUSH_SKIPPED state=$($flushOwner.state): no late attach to absent own JVM" | Set-Content (Join-Path $OutputRoot 'full-flush.log') -Encoding utf8 }
+    }
 }
