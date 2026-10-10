@@ -7,7 +7,6 @@ import java.util.function.BooleanSupplier;
 import java.util.concurrent.Future;
 
 import org.l2jmobius.gameserver.config.PlayerConfig;
-import org.l2jmobius.gameserver.data.xml.TeleporterData;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
@@ -30,7 +29,7 @@ public final class PhantomNativeTravelActions
 		final var owner = player.getNativeWorkOwner();
 		return player.isNativeWorkManaged() && owner != null && owner.isCurrent() && !owner.sealed() && World.getInstance().getPlayer(player.getObjectId()) == player
 			&& player.getInstanceId() == 0 && !player.isGM() && !player.isFlying() && !player.isFlyingMounted() && !player.isAlikeDead() && !player.isJailed() && !player.inObserverMode() && !player.isOnEvent() && !player.isInOlympiadMode()
-			&& !player.isCastingNow() && !player.isInCombat() && !player.isCombatFlagEquipped() && player.getParty() == null && !player.isInsideZone(ZoneId.SIEGE);
+			&& !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && !player.isSitting() && !player.isInStoreMode() && !player.isInCombat() && !player.isCombatFlagEquipped() && player.getParty() == null && !player.isInsideZone(ZoneId.SIEGE);
 	}
 	public static PhantomTravelStrategy.Options snapshot(Player player, List<PhantomNormalGatekeeperTravel.Leg> legs, long remainingMillis)
 	{
@@ -65,10 +64,11 @@ public final class PhantomNativeTravelActions
 		final var before = point(player); final long adena = player.getAdena();
 		final long fee = PhantomNormalGatekeeperTravel.fee(leg, player.getClassIndex(), player.getLevel(), Instant.now().toEpochMilli() / 60000);
 		final var npc = gatekeeperAt(leg);
-		if (!ordinary(player) || !available(leg) || npc == null || Math.hypot((long)player.getX() - npc.getX(), (long)player.getY() - npc.getY()) > 200) { return new GatekeeperResult(Status.UNAVAILABLE, fee, adena, adena, before, before); }
+		if (!ordinary(player) || !available(leg) || npc == null || !npc.canInteract(player)
+			|| !new L2jNavigationBackend().canWalkDirect(before,new PhantomNavigationPoint(npc.getX(),npc.getY(),GeoEngine.getInstance().getHeight(npc.getX(),npc.getY(),npc.getZ()),npc.getInstanceId()))) { return new GatekeeperResult(Status.UNAVAILABLE, fee, adena, adena, before, before); }
 		if (adena < fee) { return new GatekeeperResult(Status.INSUFFICIENT_RESOURCES, fee, adena, adena, before, before); }
 		player.stopMove(null);
-		TeleporterData.getInstance().getHolder(leg.teleporterNpcId(), leg.teleportListName()).doTeleport(player, npc, leg.destinationIndex());
+		npc.onBypassFeedback(player,"teleport "+leg.teleportListName()+" "+leg.destinationIndex());
 		if (player.hasHeadlessOutboundSession() && player.isTeleporting()) { player.onTeleported(); }
 		final var after = point(player); final long afterAdena = player.getAdena();
 		final var expected = new PhantomNavigationPoint(leg.destinationX(),leg.destinationY(),GeoEngine.getInstance().getHeight(leg.destinationX(),leg.destinationY(),leg.destinationZ())+5,0);

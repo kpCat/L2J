@@ -31,11 +31,23 @@ public final class PhantomTravelPlanning033RSuite implements PhantomTestSuite
 	@Override public void beforeAll(PhantomTestContext context) throws Exception
 	{
 		_intent.beforeAll(context);
-		if ("return033r".equals(System.getProperty("phantom.m1.native.focus"))) { org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(org.l2jmobius.gameserver.scripting.ScriptEngine.MASTER_HANDLER_FILE); }
+		if (List.of("return033r","returnDeath033r").contains(System.getProperty("phantom.m1.native.focus",""))) { org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(org.l2jmobius.gameserver.scripting.ScriptEngine.MASTER_HANDLER_FILE); }
 	}
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("gatekeeper033r".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("T14-native-GK-complete-plan-fee-arrival-and-final-MOVE", this::nativeGatekeeper); return;
+		}
+		if ("gatekeeperInteraction033r".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("T21-native-GK-rechecks-stock-interaction-before-fee",this::nativeGatekeeper);return;
+		}
+		if ("decoratedWalk033r".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("T20-decorated-native-WALK-keeps-corridor-and-stock-bounds", this::decoratedWalk); return;
+		}
 		if ("revalidation033r".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("T08-pre-move-revalidation-rejects-native-illegal-edge", this::revalidation); return;
@@ -44,6 +56,11 @@ public final class PhantomTravelPlanning033RSuite implements PhantomTestSuite
 		{
 			registry.add("T13-native-unstuck-timer-owned-before-publication", this::returnOwnership);
 			registry.add("T13-native-return-completes-actual-unchanged-timer", this::nativeReturn); return;
+		}
+		if ("returnDeath033r".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("T13-native-unstuck-timer-owned-before-publication", this::returnOwnership);
+			registry.add("T19-recorded-native-obstacle-route-and-five-cycles", this::recordedRoute); return;
 		}
 		if ("strategy033r".equals(System.getProperty("phantom.m1.native.focus")))
 		{
@@ -57,6 +74,12 @@ public final class PhantomTravelPlanning033RSuite implements PhantomTestSuite
 		registry.add("T08-pre-move-revalidation-rejects-native-illegal-edge", this::revalidation);
 		registry.add("T11-visible-candidate-rejects-full-unaffordable-native-fees", this::strategyBudget);
 		registry.add("T12-complete-plan-time-and-cumulative-resources", this::completeCost);
+		if("finalTravel033r".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("T14-native-GK-complete-plan-fee-arrival-and-final-MOVE",this::nativeGatekeeper);
+			registry.add("T20-decorated-native-WALK-keeps-corridor-and-stock-bounds",this::decoratedWalk);
+			registry.add("T21-native-GK-rechecks-stock-interaction-before-fee",context -> nativeGatekeeper(context,true));
+		}
 	}
 	private void lostTurn(PhantomTestContext context) throws Exception
 	{
@@ -181,10 +204,18 @@ public final class PhantomTravelPlanning033RSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Actual replacement lifetime admitted normally.");
 				final var replacement = f.loadedPlayer; final var position = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(replacement);
 				PhantomAssertions.assertTrue(replacement != player && f.loadedEpoch != scope.epoch(), "New Player and epoch required.");
+				org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(replacement,"TEST_RETURN_BEFORE_DEATH033R",()->accepted.set(handler.onCommand(52,replacement)));
+				PhantomAssertions.assertTrue(accepted.get() && replacement.isCastingNow(),"Actual replacement lifetime starts its own ordinary pending return.");
+				final var castField=org.l2jmobius.gameserver.model.actor.Creature.class.getDeclaredField("_skillCast"); castField.setAccessible(true);
+				final var capturedDeathReturn=(java.util.concurrent.Future<?>)castField.get(replacement);
+				PhantomAssertions.assertTrue(capturedDeathReturn!=null,"Capture the actual published Unstuck Future before death, rather than unrelated native safety timers.");
+				org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(replacement,"TEST_NATIVE_DEATH033R",()->replacement.doDie(null));
+				PhantomAssertions.assertTrue(replacement.isDead(),"Actual native death must precede the delayed finalizer; no synthetic flag.");
 				final long waitUntil = System.nanoTime() + (timer + 1500) * 1_000_000L;
 				while (System.nanoTime() < waitUntil) { Thread.sleep(100); }
 				PhantomAssertions.assertEquals(position, org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(replacement), "Late original timer cannot teleport the replacement lifetime.");
 				PhantomAssertions.assertEquals(0, scope.outstanding(), "Retired callback leaves no outstanding old native work.");
+				PhantomAssertions.assertTrue(capturedDeathReturn.isDone(),"The exact dead lifetime's native return Future is completed or cancelled after the unchanged interval.");
 				context.record("T13.lateTimer", "waitMillis="+(timer+1500)+";oldEpoch="+scope.epoch()+";newEpoch="+f.loadedEpoch+";replacementXYZ="+position+";oldOutstanding="+scope.outstanding());
 			}
 			finally { org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(player, "TEST_RETURN033R_CLEANUP", player::abortCast); }
@@ -193,6 +224,165 @@ public final class PhantomTravelPlanning033RSuite implements PhantomTestSuite
 	private static int pendingNative(org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope)
 	{
 		return scope.outstanding()+Integer.parseInt(scope.diagnosticScalars().get("nativeOwnerPendingTimers"));
+	}
+	private void recordedRoute(PhantomTestContext context) throws Exception
+	{
+		final var evidenceRoot=context.moduleRoot().resolve("docs/phantoms/tasks/PHANTOM-M1-TRAVEL-PLANNING-033R/evidence");
+		final var input=new java.util.Properties();
+		try(var reader=java.nio.file.Files.newBufferedReader(evidenceRoot.resolve("C45_ROUTE_PROOF_INPUT.properties"))){input.load(reader);}
+		final var birthPath=evidenceRoot.resolve(input.getProperty("birth")).normalize(); final var ledgerPath=evidenceRoot.resolve(input.getProperty("ledger")).normalize();
+		PhantomAssertions.assertTrue(birthPath.startsWith(evidenceRoot) && ledgerPath.startsWith(evidenceRoot),"Exact owned raw evidence paths required.");
+		for(var entry:java.util.Map.of("birth",birthPath,"ledger",ledgerPath).entrySet())
+		{
+			final var hash=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(java.nio.file.Files.readAllBytes(entry.getValue())));
+			PhantomAssertions.assertEquals(input.getProperty(entry.getKey()+"Sha256"),hash,"Immutable actual evidence hash required.");
+		}
+		final var birth=new java.util.Properties(); try(var reader=java.nio.file.Files.newBufferedReader(birthPath)){birth.load(reader);}
+		PhantomAssertions.assertEquals("true",birth.getProperty("worldAbsentAtRegister"),"Factual initial coordinates captured before World publication.");
+		PhantomAssertions.assertEquals("true",birth.getProperty("nativeBirthBoundary"),"Actual native birth hook required.");
+		final var origin=point(Integer.parseInt(birth.getProperty("initialX")),Integer.parseInt(birth.getProperty("initialY")),Integer.parseInt(birth.getProperty("initialZ")));
+		final var backend=new L2jNavigationBackend(); final var geo=GeoEngine.getInstance();
+		final List<PhantomNavigationPoint> turns=new ArrayList<>(); int provedCycles=0; long firstSample=0; String destination="";
+		try(var lines=java.nio.file.Files.lines(ledgerPath))
+		{
+			for(var line:(Iterable<String>)lines::iterator)
+			{
+				final var row=line.split("\t",-1);
+				if(row.length!=24 || !row[1].equals(birth.getProperty("profileId")) || !row[3].equals(birth.getProperty("epoch"))){continue;}
+				PhantomAssertions.assertEquals(birth.getProperty("objectId"),row[2],"Same exact Player object throughout proof.");
+				if(firstSample==0){firstSample=Long.parseLong(row[0]);}
+				PhantomAssertions.assertEquals("NONE",row[23],"No unproven native evidence in the recorded lifetime.");
+				if(row[18].equals("ROUTE"))
+				{
+					PhantomAssertions.assertEquals("false",row[10],"Actual obstacle route has no teleport.");
+					for(var field:java.util.Map.of(14,"initialExp",15,"initialSp",16,"initialAdena",17,"initialScrolls").entrySet()){PhantomAssertions.assertEquals(birth.getProperty(field.getValue()),row[field.getKey()],"Planning/native route creates no resources or rewards.");}
+					final var key=row[12]+","+row[13];
+					if(row[8].equals("true") && !key.equals(destination))
+					{
+						PhantomAssertions.assertEquals("MOVE_TO",row[11],"Observed stock MOVE intention required.");
+						final var from=point(Integer.parseInt(row[4]),Integer.parseInt(row[5]),Integer.parseInt(row[6]));
+						final int x=Integer.parseInt(row[12]),y=Integer.parseInt(row[13]); final var to=point(x,y,geo.getHeight(x,y,from.z()));
+						PhantomAssertions.assertTrue(backend.canWalkDirect(from,to),"Every observed issued segment has native height/dry/NSWE proof.");
+						turns.add(to); destination=key;
+					}
+				}
+				final int cycle=Integer.parseInt(row[19]);
+				if(cycle>provedCycles && provedCycles<5)
+				{
+					PhantomAssertions.assertEquals(provedCycles+1,cycle,"Five consecutive actual native cycle transitions required, no skipped proof.");
+					PhantomAssertions.assertTrue(Integer.parseInt(row[20])>=cycle && Integer.parseInt(row[21])>=cycle && Long.parseLong(row[14])>Long.parseLong(birth.getProperty("initialExp")) && Long.parseLong(row[15])>Long.parseLong(birth.getProperty("initialSp")),"Each cycle has actual kill/reward and native EXP/SP; shared targets remain lawful.");
+					provedCycles=cycle; context.record("T19.cycle"+cycle,line);
+				}
+			}
+		}
+		PhantomAssertions.assertTrue(firstSample>0 && firstSample-Long.parseLong(birth.getProperty("registerNanos"))<1_000_000_000L,"Evidence starts within one second of actual birth, before the first route completes.");
+		PhantomAssertions.assertTrue(turns.size()>1,"Actual native detour must contain useful turns.");
+		PhantomAssertions.assertFalse(backend.canWalkDirect(origin,turns.getLast()),"Actual full goal ray is blocked; the recorded native route is an obstacle detour.");
+		PhantomAssertions.assertEquals(5,provedCycles,"Actual route is followed by five consecutive proven native cycles.");
+		context.record("T19.actualBirth",origin); context.record("T19.actualMoves",turns);
+	}
+	private void decoratedWalk(PhantomTestContext context)
+	{
+		final var stock=new L2jNavigationBackend(); final var maximum=new java.util.concurrent.atomic.AtomicInteger();
+		final var wrapped=new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationBackend()
+		{
+			@Override public CapabilitySnapshot capability(PhantomNavigationPoint from,PhantomNavigationPoint to){return stock.capability(from,to);}
+			@Override public boolean canMoveDirect(PhantomNavigationPoint from,PhantomNavigationPoint to){return stock.canMoveDirect(from,to);}
+			@Override public List<PhantomNavigationPoint> findPath(PhantomNavigationRequest request,PhantomNavigationCancellationToken cancellation)
+			{
+				final var a=request.origin();final var b=request.destination();
+				maximum.accumulateAndGet(64+2*Math.max(Math.abs(GeoEngine.getGeoX(a.x())-GeoEngine.getGeoX(b.x())),Math.abs(GeoEngine.getGeoY(a.y())-GeoEngine.getGeoY(b.y()))),Math::max);
+				return stock.findPath(request,cancellation);
+			}
+		};
+		final var navigation=new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(PhantomNavigationPolicy.productionDefaults(),wrapped,worker -> {worker.run();return true;},System::nanoTime,new org.l2jmobius.gameserver.phantoms.PhantomMetrics());
+		navigation.start();
+		try
+		{
+			final long now=System.nanoTime();
+			final var submitted=navigation.submitWalkCorridor(new PhantomNavigationRequest(1,point(-88984,250008,-3568),point(-86401,253927,-3736),now,now+1_000_000_000L,100000));
+			final var result=navigation.consume(submitted.requestId()).orElseThrow(); context.record("T20.actualResult",result);context.record("T20.actualBuffer",maximum.get());
+			PhantomAssertions.assertEquals(PhantomNavigationResult.Status.PATH_FOUND,result.status(),"A decorated native WALK must use the same complete native corridor, including after transport; no fallback to the oversized whole query.");
+			PhantomAssertions.assertTrue(maximum.get()>0 && maximum.get()<=500,"Every actual native query fits unchanged production stock buffers.");
+		}
+		finally {navigation.beginStop();PhantomAssertions.assertTrue(navigation.finishStop(),"Existing worker/queue lifecycle drains normally.");}
+	}
+	private void nativeGatekeeper(PhantomTestContext context) throws Exception
+	{
+		nativeGatekeeper(context,"gatekeeperInteraction033r".equals(System.getProperty("phantom.m1.native.focus")));
+	}
+	private void nativeGatekeeper(PhantomTestContext context,boolean closedInteraction) throws Exception
+	{
+		// Reuse the initialized native fixture and ordinary materialization lifecycle (production suite pattern).
+		final var environmentField=PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); environmentField.setAccessible(true);
+		final var environment=(PhantomHeadlessPlayerTestEnvironment)environmentField.get(_intent.handoff);
+		final var productionField=PhantomNativeContextHandoffSuite.class.getDeclaredField("_production"); productionField.setAccessible(true);
+		final var production=(PhantomBackgroundSuite.ProductionAuthorityFixture)productionField.get(_intent.handoff);
+		final var travel=org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"),production.topology());
+		final var backend=new L2jNavigationBackend(); final var geo=GeoEngine.getInstance();
+		final var leg=travel.legs().stream().filter(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions::available).filter(value ->
+		{
+			final var landing=point(value.destinationX(),value.destinationY(),geo.getHeight(value.destinationX(),value.destinationY(),value.destinationZ())+5);
+			final var target=point(value.destinationX()+128,value.destinationY(),geo.getHeight(value.destinationX()+128,value.destinationY(),landing.z()));
+			return backend.canWalkDirect(landing,target);
+		}).findFirst().orElseThrow();
+		final var origin=point(leg.sourceX(),leg.sourceY(),geo.getHeight(leg.sourceX(),leg.sourceY(),leg.sourceZ()));
+		final var target=point(leg.destinationX()+128,leg.destinationY(),geo.getHeight(leg.destinationX()+128,leg.destinationY(),leg.destinationZ()));
+		final int objectId=environment.primary().objectId();
+		PhantomAssertions.assertEquals(null,org.l2jmobius.gameserver.model.World.getInstance().getPlayer(objectId),"TEST initial setup must precede World publication.");
+		final var setup=org.l2jmobius.gameserver.model.actor.Player.load(objectId);
+		try { setup.setXYZInvisible(origin.x(),origin.y(),origin.z()); setup.storeMe(); }
+		finally { environment.cleanupLoadedPlayer(setup); }
+		final var profiles=org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.open();
+		final long profile=profiles.create(objectId).profileId(); final var metrics=new org.l2jmobius.gameserver.phantoms.PhantomMetrics();
+		final var materialization=new org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService(profiles,org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance(),metrics,new org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace(false,64,16,metrics),1);
+		materialization.start();
+		try
+		{
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS,materialization.materialize(profile).status(),"Ordinary TEST lifetime admitted by existing native lifecycle.");
+			final var player=org.l2jmobius.gameserver.model.World.getInstance().getPlayer(objectId);
+			final long exp=player.getExp(),sp=player.getSp(),adena=player.getAdena(),scrolls=player.getInventory().getInventoryItemCount(736,-1);
+			final long now=System.nanoTime();
+			final var plan=backend.planTravel(new PhantomNavigationRequest(profile,origin,target,now,now+1_000_000_000L,100000),new PhantomNavigationCancellationToken(),PhantomNavigationPolicy.productionDefaults(),System::nanoTime,org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.snapshot(player,List.of(leg),120000));
+			context.record("T14.completePlan",plan);
+			PhantomAssertions.assertEquals(PhantomNavigationResult.Status.PATH_FOUND,plan.status(),"Complete native GK ingress/landing/egress is proven before action.");
+			PhantomAssertions.assertTrue(plan.candidate().stages().stream().anyMatch(stage -> stage.mode()==PhantomTravelStrategy.Mode.GK),"Remote TEST goal requires the actual catalog GK.");
+			final var receipt=new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.GatekeeperResult>();
+			if(closedInteraction)
+			{
+				org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(player,"TEST_NATIVE_SIT033R",player::sitDown);
+				final var npc=org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.gatekeeperAt(leg);
+				PhantomAssertions.assertTrue(player.isSitting() && !npc.canInteract(player),"Actual native sitting closes stock NPC interaction after planning.");
+				org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(player,"TEST_NATIVE_GK_CLOSED_INTERACTION033R",()->receipt.set(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.gatekeeper(player,leg)));
+				context.record("T21.actualReceipt",receipt.get());
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.Status.UNAVAILABLE,receipt.get().status(),"Native adapter must recheck stock NPC interaction before spending or teleporting.");
+				PhantomAssertions.assertEquals(origin,org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player),"Denied native interaction changes no XYZ.");
+				PhantomAssertions.assertEquals(adena,player.getAdena(),"Denied interaction spends nothing.");return;
+			}
+			org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(player,"TEST_NATIVE_GK033R",()->receipt.set(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.gatekeeper(player,leg)));
+			context.record("T14.nativeReceipt",receipt.get());
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.Status.ARRIVED,receipt.get().status(),"Stock holder charges its actual tariff once and arrives at the factual native XYZ.");
+			PhantomAssertions.assertEquals(adena-receipt.get().fee(),player.getAdena(),"Actual native fee; no grant or substitute balance.");
+			PhantomAssertions.assertTrue(backend.canWalkDirect(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player),target),"Actual landing has current final-WALK proof.");
+			org.l2jmobius.gameserver.model.actor.PlayerNativeWork.run(player,"TEST_NATIVE_GK_EGRESS033R",()->player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.MOVE_TO,new org.l2jmobius.gameserver.model.Location(target.x(),target.y(),target.z())));
+			PhantomAssertions.assertTrue(player.isMoving(),"Final native MOVE actually starts.");
+			final long deadline=System.nanoTime()+5_000_000_000L;
+			while(player.isMoving() && System.nanoTime()<deadline){Thread.sleep(50);}
+			final var after=org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(player);
+			PhantomAssertions.assertTrue(!player.isMoving() && after.distanceTo(target)<=16 && after.instanceId()==target.instanceId(),"Final native WALK actually arrives without XYZ writes.");
+			PhantomAssertions.assertEquals(exp,player.getExp(),"Transport creates no EXP."); PhantomAssertions.assertEquals(sp,player.getSp(),"Transport creates no SP."); PhantomAssertions.assertEquals(scrolls,player.getInventory().getInventoryItemCount(736,-1),"NORMAL GK consumes no scroll.");
+			PhantomAssertions.assertEquals(null,((org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope)player.getNativeWorkOwner()).firstNativeIncident(),"Each native mutation belongs to this exact lifetime.");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS,materialization.dematerialize(profile).status(),"Native arrival is stored through ordinary cleanup.");
+			final var reloaded=org.l2jmobius.gameserver.model.actor.Player.load(objectId);
+			try { PhantomAssertions.assertEquals(after,org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(reloaded),"Exact actual XYZ persists."); PhantomAssertions.assertEquals(player.getAdena(),reloaded.getAdena(),"Actual charged balance persists."); }
+			finally { environment.cleanupLoadedPlayer(reloaded); }
+			context.record("T14.finalNativeXYZ",after);
+		}
+		finally
+		{
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ServiceState.STOPPED,materialization.shutdown().state(),"Owned native GK fixture drains normally.");
+			profiles.find(profile).ifPresent(value -> profiles.delete(profile,value.rowVersion()));
+		}
 	}
 	private void nativeReturn(PhantomTestContext context) throws Exception
 	{

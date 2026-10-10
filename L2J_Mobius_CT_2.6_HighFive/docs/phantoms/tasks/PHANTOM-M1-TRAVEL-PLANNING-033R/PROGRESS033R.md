@@ -84,3 +84,21 @@ C38 Jar/compile-tests PASS; C39 complete travel suite7/7 PASS, including exact d
 C40 INVALID launcher (incorrect suite name); C41 existing visible-continuity0328/8 PASS.
 NORMAL GK uses the stock no-offset overload; RETURN uses actual random town/offset and remains unavailable
 for production complete planning on this runtime. No native setting or tariff is changed.
+C45 frozen R2 natural scene381.08s,6 initial participants, primaries19/27,370 samples,max gap1.075s.
+Primary19 actual birth(-89016,250024,-3568), native MOVE destinations(-87992,250024),(-86968,251048),(-86497,254023).
+Actual route has no resource/EXP/SP mutation; five consecutive native cycles/kill/rewards, nativeFirstUnprovenReason=NONE.
+Full primary19 result11cycles PASS; group5/6, profile28 USEFUL_PROGRESS_DEBT remains FAIL (maxIdle93.495s).
+C48 actual native GK plan/stock free low-level tariff/exact XYZ/final native MOVE/persistence PASS.
+C49 new death assertion incorrectly counted all timers (baseline already1); FAIL kept, measured exact native Unstuck Future instead.
+C56 native cancel/demat/new epoch/death and independent stock-GeoEngine review of SHA-bound C45 ledger2/2 PASS.
+The actual full goal ray is blocked; every recorded MOVE segment is native-proven, followed by5 consecutive native cycles.
+C45 six finalized native receipts match actual stopped SQL. Existing validator reports only unhealthy whole-subsystem drain.
+Fresh source clone reproduces pre-scene bounded-inventory cleanup incidents already present on unchanged baseline;
+all six scene lifetimes detach with pending/outstanding0, but whole shutdown retains4 and is not CLEANUP_PASS.
+C52 natural transport attempt381s,all5 initial participants retained,0/5cycles, no GK observed. Ordinary own Game/Login stop confirmed;
+same global drain debt remains. No calendar/goal/resource/XYZ repair and no failed participant dropped.
+C59 genuine decorated-WALK RED: oversized actual stock buffer554/500,NO_PATH. Both opt-in entry points now reuse factual native oracle.
+C61 genuine actual sitting/NPC-interaction RED: adapter teleported despite closed stock interaction. Recheck stock canInteract/current dry surface,
+then call stock NPC dispatcher (including transform restrictions), rather than bypassing its conditions with holder-only call.
+C62 Jar/compile-tests PASS; C63 composed final travel10/10 PASS including both RED-to-GREEN and actual GK/persistence.
+Own033rc prepared from retained032 READ/export (304 source hashes) for final clean committed runtime. Existing DBs remain retained.

@@ -98,6 +98,10 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 	{
 		return findWalkCorridor(request, cancellation, policy, clock, this, java.util.Set.copyOf(blockedEdges));
 	}
+	public PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths)
+	{
+		return findWalkCorridor(request,cancellation,policy,clock,paths,java.util.Set.of());
+	}
 	private PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomWalkCorridorPlanner.Edge> blockedEdges)
 	{
 		final var planner = new PhantomWalkCorridorPlanner(new PhantomWalkCorridorPlanner.Oracle()

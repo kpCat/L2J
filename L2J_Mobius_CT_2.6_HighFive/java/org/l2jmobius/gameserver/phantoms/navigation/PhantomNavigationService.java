@@ -678,9 +678,10 @@ public final class PhantomNavigationService
 						corridorStatus = planned.status(); entry._selectedPlan = planned.candidate();
 						backendPath = entry._selectedPlan == null ? null : entry._selectedPlan.stages().getFirst().points();
 					}
-					else if (entry._walkCorridor && _backend instanceof L2jNavigationBackend nativeBackend)
+					else if (entry._walkCorridor)
 					{
-						final var corridor = nativeBackend.findWalkCorridor(entry._request, entry._cancellation, _policy, _clock);
+						final var nativeBackend = _backend instanceof L2jNavigationBackend nativeValue ? nativeValue : new L2jNavigationBackend();
+						final var corridor = nativeBackend.findWalkCorridor(entry._request, entry._cancellation, _policy, _clock, _backend);
 						backendPath = corridor.points();
 						corridorStatus = switch (corridor.status())
 						{
@@ -1035,7 +1036,7 @@ public final class PhantomNavigationService
 
 	private boolean canMove(RequestEntry entry, PhantomNavigationPoint from, PhantomNavigationPoint to)
 	{
-		return entry._walkCorridor && _backend instanceof L2jNavigationBackend nativeBackend ? nativeBackend.canWalkDirect(from, to) : _backend.canMoveDirect(from, to);
+		return entry._walkCorridor ? (_backend instanceof L2jNavigationBackend nativeBackend ? nativeBackend : new L2jNavigationBackend()).canWalkDirect(from, to) : _backend.canMoveDirect(from, to);
 	}
 
 	private static final class RequestEntry
