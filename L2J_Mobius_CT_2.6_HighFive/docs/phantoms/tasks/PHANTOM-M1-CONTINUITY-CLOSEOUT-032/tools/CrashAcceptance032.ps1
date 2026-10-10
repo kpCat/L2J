@@ -25,16 +25,29 @@ while(-not (Test-Path $baseline)){
     if($held.HasExited -or [DateTime]::UtcNow -ge $deadline){throw 'Pre-outcome baseline unavailable; no fault submitted'}
     Start-Sleep -Milliseconds 100
 }
-$rows=@(Read-SharedJson032 $baseline)
+for($attempt=0;$attempt -lt 10;$attempt++){
+    try{$rows=@(Read-SharedJson032 $baseline);break}
+    catch{if($attempt -eq 9){throw};Start-Sleep -Milliseconds 50}
+}
 if($rows.Count -lt 4 -or $rows.Count -gt 8){throw 'Whole natural diagnostic cohort4..8 required'}
 # Select only by initial live native farm target, never by EXP/SP, cycles or debt.
 $chosen=@($rows | Where-Object {[int]$_.npcId -eq $RequiredNpcId -and $_.dead -ceq 'false' -and $_.worldPresent -ceq 'true'} | Sort-Object {[long]$_.profileId} | Select-Object -First 1)
 if($chosen.Count -ne 1 -or [long]$chosen[0].materializedAtNanos -le 0){throw 'Declared initial native farm actor unavailable; no replacement'}
 New-Item -ItemType Directory -Path $OutputRoot | Out-Null
 $cohort=Join-Path $OutputRoot 'fault-cohort.json'
-$chosen | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $cohort -Encoding utf8
+ConvertTo-Json -InputObject @($chosen) -Depth 15 | Set-Content -LiteralPath $cohort -Encoding utf8
 $role | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $OutputRoot 'held-game-incarnation.json') -Encoding utf8
 [ordered]@{criterion='FIRST_INITIAL_LIVE_REQUIRED_NPC_NO_COUNTER_FILTER';requiredNpcId=$RequiredNpcId;profileId=$chosen[0].profileId;epoch=$chosen[0].materializedAtNanos;wholeBaselineCount=$rows.Count;baselineSha256=(Get-FileHash $baseline).Hash;selectedUtc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'pre-outcome-selection.json') -Encoding utf8
+$moves=Join-Path $ProbeRoot 'probe-moves-complete.json'
+while(-not (Test-Path -LiteralPath $moves)){
+    if($held.HasExited -or [DateTime]::UtcNow -ge $deadline){throw 'Native probe moves not completed; no fault replacement during arrival'}
+    Start-Sleep -Milliseconds 100
+}
+for($attempt=0;$attempt -lt 10;$attempt++){
+    try{$ready=Read-SharedJson032 $moves;break}
+    catch{if($attempt -eq 9){throw};Start-Sleep -Milliseconds 50}
+}
+if($ready.owner -cne 'TASK032_CONTRACT' -or $ready.episode -cne $Episode -or $ready.nativeMovesComplete -ne $true -or [int]$ready.commandCount -lt 2 -or $ready.baselineSha256 -cne (Get-FileHash $baseline).Hash){throw 'Exact factual native probe readiness missing'}
 $mode=if($Episode -ceq 'b'){'CrashNative'}else{'CrashFinalize'}
 & (Join-Path $task 'Control032.ps1') -Action Collector -Episode $Episode -Mode $mode -CohortJson $cohort -OutputRoot $OutputRoot *> (Join-Path $OutputRoot 'fault-control.log')
 if(-not $?){throw 'Exact typed fault submission failed'}

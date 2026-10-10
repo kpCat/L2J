@@ -251,6 +251,7 @@ try{
         $return=Capture032 'MOVE_SELF' $origin
         if($return.status -cne 'ACCEPTED'){throw 'Probe return admission missing.'}
         WaitArrival032 $origin
+        [ordered]@{owner='TASK032_CONTRACT';episode=$Episode;sourceSha=$FrozenSha;runId=$run;nativeMovesComplete=$true;commandCount=$script:commands;baselineSha256=(Get-FileHash (Join-Path $OutputRoot 'baseline-cohort.json')).Hash} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $OutputRoot 'probe-moves-complete.json') -Encoding utf8
     }
     if($Mode -ceq 'Away'){
         if([Math]::Abs($first.observer.x-[int]$path.origin.x) -gt 24 -or [Math]::Abs($first.observer.y-[int]$path.origin.y) -gt 24 -or [Math]::Abs($first.observer.z-[int]$path.origin.z) -gt 48){throw 'Actual observer origin differs from native dry path.'}

@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param([ValidateSet('a','b','c','d')][string]$Episode='a', [Parameter(Mandatory)][string]$CohortJson,
-      [Parameter(Mandatory)][string]$OutputRoot, [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha)
+      [Parameter(Mandatory)][string]$OutputRoot, [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha,
+      [ValidateCount(0,2)][string[]]$AdditionalCohortJson=@())
 $ErrorActionPreference='Stop'
 $task=Split-Path $PSScriptRoot -Parent
 $module=[IO.Path]::GetFullPath((Join-Path $task '../../../..'))
@@ -10,14 +11,19 @@ foreach($path in @($CohortJson,$OutputRoot)){if(-not [IO.Path]::GetFullPath($pat
 if(Test-Path $OutputRoot){throw 'Immutable startup evidence exists'}
 $rows=@(Get-Content $CohortJson -Raw | ConvertFrom-Json)
 if($rows.Count -lt 1 -or $rows.Count -gt 8 -or @($rows.profileId | Select-Object -Unique).Count -ne $rows.Count){throw 'Exact whole cohort1..8 required'}
+foreach($extra in $AdditionalCohortJson){
+    if(-not [IO.Path]::GetFullPath($extra).StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase)){throw 'Exact own additional cohort required'}
+    $group=@(Get-Content -LiteralPath $extra -Raw | ConvertFrom-Json)
+    if($group.Count -lt 1 -or $group.Count -gt 8 -or @($group.profileId | Select-Object -Unique).Count -ne $group.Count){throw 'Each original whole cohort1..8 required'}
+}
 New-Item -ItemType Directory -Path $OutputRoot | Out-Null
 $jdk='C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin'
 $classes=Join-Path $module '.phantom-local/ops032/test-classes'
 & "$jdk/javac.exe" --add-modules jdk.jdi -d $classes (Join-Path $PSScriptRoot 'TraceGuard032.java') *> (Join-Path $OutputRoot 'jdi-compile.log')
 if($LASTEXITCODE){throw 'Exact startup JDI helper compile failed'}
 $control=Join-Path $task 'Control032.ps1'
-$job=Start-Job -ArgumentList $runtime,$OutputRoot,$CohortJson,$control,$jdk,$classes,$Episode -ScriptBlock {
-    param($Runtime,$Output,$Cohort,$Control,$Jdk,$Classes,$Episode)
+$job=Start-Job -ArgumentList $runtime,$OutputRoot,$CohortJson,$control,$jdk,$classes,$Episode,(ConvertTo-Json -InputObject @($AdditionalCohortJson) -Compress) -ScriptBlock {
+    param($Runtime,$Output,$Cohort,$Control,$Jdk,$Classes,$Episode,$ExtraJson)
     $ErrorActionPreference='Stop'; $helper=$null; $boundary=Join-Path $Output 'boundary'
     try{
         $deadline=[DateTime]::UtcNow.AddSeconds(180); $owned=$false
@@ -43,6 +49,13 @@ $job=Start-Job -ArgumentList $runtime,$OutputRoot,$CohortJson,$control,$jdk,$cla
         $ids=@((Get-Content $Cohort -Raw | ConvertFrom-Json).profileId | ForEach-Object {[long]$_})
         & $Control -Action Export -Episode $Episode -ProfileIds $ids -OutputRoot (Join-Path $Output 'quiet-sql') *> (Join-Path $Output 'quiet-sql-export.log')
         if(-not $?){throw 'External quiet SQL export failed'}
+        $index=0
+        foreach($extra in @(ConvertFrom-Json $ExtraJson)){
+            $index++
+            $extraIds=@((Get-Content -LiteralPath $extra -Raw | ConvertFrom-Json).profileId | ForEach-Object {[long]$_})
+            & $Control -Action Export -Episode $Episode -ProfileIds $extraIds -OutputRoot (Join-Path $Output "quiet-sql-group$index") *> (Join-Path $Output "quiet-sql-group$index-export.log")
+            if(-not $?){throw 'External original whole group SQL export failed'}
+        }
         if($watch.Elapsed.TotalSeconds -ge 7){throw 'Quiet SQL export exceeded diagnostic8s boundary'}
         [IO.File]::WriteAllText((Join-Path $boundary 'release.signal'),'EXTERNAL_EXPORT_COMPLETE',[Text.UTF8Encoding]::new($false))
         if(-not $helper.WaitForExit(10000) -or $helper.ExitCode -ne 0){throw 'Startup JDI did not confirm timely resume'}

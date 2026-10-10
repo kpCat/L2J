@@ -5,7 +5,7 @@ param([Parameter(Mandatory)][ValidateSet('Update','Start','Stop','Export','Colle
       [string]$OutputRoot='', [long[]]$ProfileIds=@(),[switch]$DumpDuringStop,
       [ValidateSet('Build','Enroll','FullObserve','Probe032','Census','Flush','StopMonitor','CrashNative','CrashFinalize')][string]$Mode='Build', [string]$CohortJson='', [string]$ObserverRunId='', [long]$StartupRecoveryProfileId=0, [string]$RecoveryOutputRoot='',
       [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{}, [switch]$UseStockRoute, [string]$ViaPoints='', [switch]$SearchBidirectional, [string]$VerifyPointsFile='',
-      [ValidateSet('Persistence','Restart')][string]$ProofKind='Restart', [string]$SqlRoot='', [string]$SealedRoot='', [string]$ShutdownLog='')
+      [ValidateSet('Persistence','Restart')][string]$ProofKind='Restart', [string]$SqlRoot='', [string]$SealedRoot='', [string]$ShutdownLog='', [string]$CrashReceipt='')
 function Update-Owned032 {
 param([string]$Episode,[string]$Revision)
 $ErrorActionPreference='Stop'
@@ -108,6 +108,10 @@ if($Action -ceq 'Proof'){
     $validator=[IO.File]::ReadAllText((Join-Path $taskRoot024 $name)).Replace('contract024','contract032').Replace('TASK024_CONTRACT','TASK032_CONTRACT')
     $arguments=@('--cohort',$CohortJson,'--sealed',$SealedRoot,'--sql',$SqlRoot,'--output',$OutputRoot)
     if($ProofKind -ceq 'Persistence'){$arguments+=@('--shutdown-log',$ShutdownLog)}
+    if($CrashReceipt){
+        if($ProofKind -cne 'Restart' -or -not [IO.Path]::GetFullPath($CrashReceipt).StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase)){throw 'Exact own restart crash receipt required'}
+        $arguments+=@('--crash-receipt',$CrashReceipt)
+    }
     $validator | & python - @arguments
     exit $LASTEXITCODE
 }

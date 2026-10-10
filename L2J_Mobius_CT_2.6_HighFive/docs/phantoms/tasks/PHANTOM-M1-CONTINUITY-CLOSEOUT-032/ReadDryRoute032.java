@@ -4,6 +4,7 @@ import org.w3c.dom.Element;
 import org.l2jmobius.gameserver.config.ConfigLoader;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
+import org.l2jmobius.gameserver.phantoms.navigation.*;
 
 /** Task-only read-only stock geodata/water diagnostic; never creates a Player or DB connection. */
 class ReadDryRoute032
@@ -69,6 +70,29 @@ class ReadDryRoute032
                     waters.add(new int[]{minX,maxX,minY,maxY,Integer.parseInt(zone.getAttribute("minZ")),Integer.parseInt(zone.getAttribute("maxZ"))});
                 }
             }
+        }
+        if(args.length==6 && args[5].equals("NATIVE"))
+        {
+            var origin=new PhantomNavigationPoint(x,y,z,0);
+            var destination=new PhantomNavigationPoint(endX,endY,geo.getHeight(endX,endY,z),0);
+            var nativePath=PathFinding.getInstance().findPath(x,y,z,endX,endY,destination.z(),0,true);
+            var points=new java.util.ArrayList<PhantomNavigationPoint>();
+            if(nativePath!=null)for(var point:nativePath){points.add(new PhantomNavigationPoint(point.getX(),point.getY(),point.getZ(),0));}
+            var backend=new L2jNavigationBackend();
+            var result=PhantomNativeRouteContract.normalize(origin,destination,points,PhantomNavigationPolicy.productionDefaults(),100000,backend::canMoveDirect,()->PhantomNavigationResult.Status.PATH_FOUND);
+            System.out.println("NATIVE_ROUTE origin="+origin+" destination="+destination+" points="+points.size()+" normalized="+result.status());
+            var previous=origin; boolean first=false,waterSafe=true;
+            if(!points.isEmpty()&&!points.getLast().equals(destination)){points.add(destination);}
+            for(var point:points){
+                boolean forward=backend.canMoveDirect(previous,point);
+                boolean dry=drySegment(geo,waters,previous.x(),previous.y(),previous.z(),point.x(),point.y());
+                waterSafe &= dry;
+                if(!forward&&!first){System.out.println("NATIVE_FIRST_FALSE from="+previous+" to="+point);first=true;}
+                System.out.println("NATIVE_SEGMENT from="+previous+" to="+point+" forward="+forward+" dry="+dry);
+                previous=point;
+            }
+            System.out.println("NATIVE_WATER_SAFE="+waterSafe);
+            return;
         }
         // Native buffer500 needs bounded hops. Every emitted step is checked both ways.
         var routePoints = new java.util.ArrayList<int[]>();

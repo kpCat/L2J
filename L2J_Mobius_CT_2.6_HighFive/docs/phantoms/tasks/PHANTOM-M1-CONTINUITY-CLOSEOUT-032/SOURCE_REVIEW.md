@@ -25,3 +25,31 @@ https://github.com/kpCat/L2J/blob/df6ee99c71a4c8b07ad05545b200e113d3b0d3c9/L2J_M
 Это не полное независимое исполнение031. Private raw находятся на Windows пользователя;
 мы не заявляем, что воспроизвели43, проверили SQL payload или запустили GameServer.
 SOURCE_MAP даёт approved область, не утверждение что каждый optional file нужен.
+
+## Исполнение032: финальный bounded self-review
+
+Работа выполнена в собственном detached exact-base worktree без субагентов.
+Read-first исполнителя и локальные аналоги записаны в WORK_LOG.md; final031
+использован как saved evidence, вся история заново не расследовалась.
+Ancestor AGENTS/root README не найдены; HighFive AGENTS/readme и релевантные
+phantom документы прочитаны. PRECHECK.md отсутствует; повторно не искался.
+
+Bounded exception:51 exact paths в STAGE_MANIFEST032.txt —3 production Java,
+2 existing test Java и46 task032 files. Общая artifact family — native continuity
+acceptance; инфраструктура/стек/persistence/earned/shared pools не менялись.
+Последний source/test candidate E0; последующие правки относятся только к task tools
+и отчёту. Ordinary hooks не получили SQL/I/O/wait. Native navigation/Geo/water
+authority не изменены. Cooperative targets не запрещены.
+
+Самостоятельно reviewed exact diff: CrashReceipt передаёт существующий024 argument;
+grouped restart сохраняет каждую исходную группу1..8 и общий quiet export<7s;
+actual exports2.88/2.99s и thread resume подтверждены. Fault helper держит исходный
+process handle, выбирает initial actor до rewards, сохраняет полный baseline и
+не меняет180s limit. Probe readiness исключает fault replacement во время MOVE.
+ReadDryRoute NATIVE только вызывает существующие stock APIs и не создаёт Player/DB.
+CollectWholeGroup проверяет actual payload digest/identity/source и не скрывает
+missing actor; epochs записаны отдельно, native expected из SQL не конструируется.
+
+Непроверенное/непринятое: roots original43/117, full away/return, полная lineage
+для всех original actors и точный промежуточный crash72 recovery payload.
+Широкая Geo/persistence переработка за пределами032 не выполнялась.
