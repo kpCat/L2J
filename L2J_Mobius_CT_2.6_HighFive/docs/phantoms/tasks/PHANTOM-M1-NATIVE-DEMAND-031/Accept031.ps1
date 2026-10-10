@@ -68,14 +68,16 @@ function ReadFrame031{
     if($frame.observer.runId -cne $run -or $frame.observer.sessionState -cne 'RUNNING' -or -not $frame.observer.present -or -not $frame.observer.online -or $frame.observer.dead -or [int]$frame.observer.objectId -ne 268492939){throw 'Native observer identity lost; episode ends.'}
     return $frame
 }
+function ReadArrivalFrame031{
+    if($Mode -cne 'Away'){return ReadFrame031}
+    $native=Read-SharedJson031 (Join-Path $fullRoot 'arrival-pose-latest.json')
+    if($native.proofFailure -or $native.observer.runId -cne $run -or $native.observer.sessionState -cne 'RUNNING' -or -not $native.observer.present -or -not $native.observer.online -or $native.observer.dead -or [int]$native.observer.objectId -ne 268492939){throw 'Exact native arrival pose identity lost.'}
+    return $native
+}
 function WaitArrival031([hashtable]$Point){
     $arrival=[Diagnostics.Stopwatch]::StartNew()
     do{
-        $frame=if($Mode -ceq 'Away'){
-            $native=Read-SharedJson031 (Join-Path $fullRoot 'arrival-pose-latest.json')
-            if($native.proofFailure -or $native.observer.runId -cne $run -or $native.observer.sessionState -cne 'RUNNING' -or -not $native.observer.present -or -not $native.observer.online -or $native.observer.dead -or [int]$native.observer.objectId -ne 268492939){throw 'Exact native arrival pose identity lost.'}
-            $native
-        }else{ReadFrame031}
+        $frame=ReadArrivalFrame031
         $distance=[Math]::Sqrt([Math]::Pow(([double]$frame.observer.x-[double]$Point.x),2)+[Math]::Pow(([double]$frame.observer.y-[double]$Point.y),2))
         if($distance -le 32 -and [Math]::Abs([int]$frame.observer.z-[int]$Point.z) -le 48 -and -not $frame.observer.moving){
             $frame | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $OutputRoot ('arrival-'+$script:commands+'.json')) -Encoding utf8
@@ -92,7 +94,7 @@ function MarkPhase031([string]$Phase){
 function Walk031([object[]]$Points){
     foreach($point in $Points){
         if($watch.Elapsed.TotalSeconds -gt 320){throw 'Away route budget exhausted before post-return proof.'}
-        $frame=ReadFrame031
+        $frame=ReadArrivalFrame031
         $dx=[double]$point.x-[double]$frame.observer.x; $dy=[double]$point.y-[double]$frame.observer.y
         if([Math]::Sqrt($dx*$dx+$dy*$dy) -gt 300.01 -or [Math]::Abs([int]$point.z-[int]$frame.observer.z) -gt 200){throw 'Factual next dry step bound violated; no MOVE.'}
         $move=Capture031 'MOVE_SELF' @{x=[int]$point.x;y=[int]$point.y;z=[int]$point.z}

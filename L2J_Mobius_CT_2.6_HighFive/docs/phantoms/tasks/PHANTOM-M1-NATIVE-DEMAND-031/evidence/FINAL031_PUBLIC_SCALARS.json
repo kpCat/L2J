@@ -1,0 +1,219 @@
+{
+  "kind": "TASK031_FINAL_PUBLIC_SCALARS",
+  "capturedUtc": "2026-10-10T10:24:01.5160716Z",
+  "result": "FAILED_ACCEPTANCE",
+  "m1": "OPEN",
+  "realFinal": "NOT_RUN",
+  "stopAuthority": "TASK031_CONTRACT",
+  "runtimeSourceSha": "7e765ca426e089e5cd9837bde84d749236657420",
+  "javaTree": "df3732e6a5c2849f1ce83166a8735e2a5b2ad07e",
+  "jarSha256": "98C1A4D9C7379C8C0B2F7A04C886513F6461A2630D4498E6A197D2F7E262D5B7",
+  "counts": {
+    "appliedHotSwap": 0,
+    "ownGameStarts": 36,
+    "jarBuilds": 14,
+    "fullProductionCompiles": 20
+  },
+  "continuity": {
+    "passed": 6,
+    "rows": [
+      {
+        "id": "3",
+        "epoch": 352625083588300,
+        "cycles": 12,
+        "exp": 976,
+        "sp": 105,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "id": "43",
+        "epoch": 352625110465400,
+        "cycles": 2,
+        "exp": 174,
+        "sp": 20,
+        "pass": false,
+        "faults": [
+          "SAME_SEGMENT_CYCLES_EXP_SP",
+          "TAIL120_REWARD",
+          "USEFUL_PROGRESS_DEBT"
+        ]
+      },
+      {
+        "id": "95",
+        "epoch": 352625134999000,
+        "cycles": 41,
+        "exp": 1423,
+        "sp": 150,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "id": "117",
+        "epoch": 352625168495000,
+        "cycles": 18,
+        "exp": 1438,
+        "sp": 160,
+        "pass": false,
+        "faults": [
+          "USEFUL_PROGRESS_DEBT"
+        ]
+      },
+      {
+        "id": "121",
+        "epoch": 352625188621100,
+        "cycles": 18,
+        "exp": 1262,
+        "sp": 137,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "id": "155",
+        "epoch": 352625209855900,
+        "cycles": 18,
+        "exp": 1526,
+        "sp": 170,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "id": "195",
+        "epoch": 352625228012500,
+        "cycles": 25,
+        "exp": 2106,
+        "sp": 235,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "id": "204",
+        "epoch": 352625245070200,
+        "cycles": 21,
+        "exp": 1636,
+        "sp": 179,
+        "pass": true,
+        "faults": []
+      }
+    ],
+    "denominator": 8,
+    "contract": "CONTINUITY_V2",
+    "seconds": 380.8903016
+  },
+  "regressions": {
+    "lifecycleTotal": 11,
+    "mandatoryPassed": 93,
+    "mandatoryTotal": 93,
+    "lifecyclePassed": 11
+  },
+  "persistence": {
+    "sameDb34Passed": 8,
+    "wholeGroupPassed": 8,
+    "wholeGroupTotal": 8,
+    "sameDb35Unresolved": [
+      {
+        "id": 95,
+        "differenceFields": [
+          "x",
+          "y",
+          "z"
+        ]
+      },
+      {
+        "id": 117,
+        "differenceFields": [
+          "x",
+          "y",
+          "z"
+        ]
+      },
+      {
+        "id": 121,
+        "differenceFields": [
+          "x",
+          "y",
+          "z"
+        ]
+      },
+      {
+        "id": 155,
+        "differenceFields": [
+          "x",
+          "y",
+          "z"
+        ]
+      },
+      {
+        "id": 195,
+        "differenceFields": [
+          "x",
+          "y",
+          "z"
+        ]
+      },
+      {
+        "id": 204,
+        "differenceFields": [
+          "x",
+          "y",
+          "z"
+        ]
+      }
+    ],
+    "sameDb34Total": 8,
+    "sameDb35Total": 8,
+    "sameDb35Passed": 2
+  },
+  "currentJarCrash72": "NOT_RUN",
+  "currentJarCrash73": "NOT_RUN",
+  "fullAway": "NOT_PASSED",
+  "taskArrivalCorrectionRuntimeGreen": false,
+  "cleanup": {
+    "gamePid": 26628,
+    "retainedEntries": 0,
+    "proofFailure": "",
+    "method": "STOCK_GRACEFUL",
+    "loginPid": 30792,
+    "typedOutcome": "COMPLETE",
+    "observedJavaProcessCount": 0,
+    "allOwnJvmsStopped": true,
+    "gameStartUtcTicks": 639272224786237169,
+    "typedPhase": "DONE",
+    "materializationState": "STOPPED"
+  },
+  "evidence": [
+    {
+      "file": "C26_FROZEN_MATRIX-matrix.tsv",
+      "sha256": "89E75951E4322450B05D52D6464E3F71D5518B58D6E26A07C3820453A5397F9D"
+    },
+    {
+      "file": "C26_FROZEN_LIFECYCLE.log",
+      "sha256": "143142B69B7A7AD23309FACF01FB30ED25563025289AF5688CFA54C8CE258F0A"
+    },
+    {
+      "file": "C26_FROZEN_CONTINUITY38/continuity-v2.json",
+      "sha256": "BD84176C285426A1AE2E046A22ECABFB4D0AEBB9B6E1B8FD233D268D48A7E9D2"
+    },
+    {
+      "file": "C26_ALL8_NATIVE_FINALIZED_PERSISTENCE_VALIDATED.json",
+      "sha256": "B0F3E18D9859554BC5DEFA15C666D57063D48150F5C93CF43CC35851F566BCEC"
+    },
+    {
+      "file": "C26_RESTART34_ALL8_PROOF.json",
+      "sha256": "C795B72BC9522942C66284FEE08706329BC28DC7B5294CC391BBC79E0AE37784"
+    },
+    {
+      "file": "C26_RESTART35_ALL8_PROOF.json",
+      "sha256": "6309AA8EAF7167A15812ECC5039C4D9BDD2527F195AF7686D9DC8ACBEDB88F04"
+    },
+    {
+      "file": "C27_STALE_POSE_RECORDED_COUNTEREXAMPLE.json",
+      "sha256": "B3F3743900E42B49BE65EE3A04C9A64DFBB305734A79E8DC4039A686397460E6"
+    },
+    {
+      "file": "C27_FINAL_STOCK_STOP/typed-stop-done.properties",
+      "sha256": "46FB1C804DCCB176600521D76C2820A6B9D6F6F3F1363C811BBD65EED1AC13A9"
+    }
+  ],
+  "privacy": "Scalar-only reviewed; no JFR/raw SQL/account/Base64/thread dump included"
+}
