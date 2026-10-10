@@ -73,7 +73,36 @@ class ReadDryRoute031
         // Native buffer500 needs bounded hops. Every emitted step is checked both ways.
         var routePoints = new java.util.ArrayList<int[]>();
         int routeX=x, routeY=y, routeZ=geo.getHeight(x,y,z);
-        if(args.length==6 && args[5].equals("GRID"))
+        if(args.length==6 && args[5].startsWith("VERIFY:"))
+        {
+            var input=Path.of(args[5].substring(7));
+            if(java.nio.file.Files.size(input)>65536){throw new IllegalStateException("DRY_INPUT_BYTE_BOUND");}
+            var rows=java.nio.file.Files.readAllLines(input);
+            if(rows.size()<2 || rows.size()>41){throw new IllegalStateException("DRY_INPUT_POINT_BOUND");}
+            var verified=new java.util.ArrayList<int[]>();
+            for(var row:rows)
+            {
+                if(!row.matches("-?[0-9]+\\s+-?[0-9]+\\s+-?[0-9]+")){throw new IllegalStateException("DRY_INPUT_FORMAT");}
+                var parts=row.split("\\s+"); verified.add(new int[]{Integer.parseInt(parts[0]),Integer.parseInt(parts[1]),Integer.parseInt(parts[2])});
+            }
+            var first=verified.getFirst();var last=verified.getLast();
+            if(first[0]!=x || first[1]!=y || first[2]!=routeZ || last[0]!=endX || last[1]!=endY){throw new IllegalStateException("DRY_INPUT_ENDPOINT_MISMATCH");}
+            for(int at=0;at<verified.size()-1;)
+            {
+                var from=verified.get(at);int next=-1;
+                for(int candidate=at+1;candidate<verified.size();candidate++)
+                {
+                    var to=verified.get(candidate);
+                    if(Math.hypot(to[0]-from[0],to[1]-from[1])<=300 && Math.abs(to[2]-from[2])<=200
+                        && geo.canMoveToTarget(from[0],from[1],from[2],to[0],to[1],to[2],0) && geo.canMoveToTarget(to[0],to[1],to[2],from[0],from[1],from[2],0)
+                        && drySegment(geo,waters,from[0],from[1],from[2],to[0],to[1])){next=candidate;}
+                }
+                if(next<0){throw new IllegalStateException("DRY_INPUT_NATIVE_EDGE_REJECTED at="+at);}
+                routePoints.add(verified.get(next));at=next;
+            }
+            System.out.println("DRY_VERIFY inputPoints="+verified.size()+" compressedPoints="+routePoints.size()+" stockBidirectional=true");
+        }
+        else if(args.length==6 && args[5].equals("GRID"))
         {
             // Diagnostic search uses original stock GeoEngine predicates for every edge, in both directions.
             // It cannot relax water/height/40-step checks below, and never touches World or SQL.

@@ -252,10 +252,22 @@ public final class PhantomPopulationEcologyService
 	/** Physical facts do not imply an expensive preparation lease. */
 	public void updateMaterializationDemand(List<DemandFact> facts, int availablePreparationSlots)
 	{
+		final Set<Long> previousOwners = new HashSet<>();
+		synchronized (_monitor)
+		{
+			for (var entry : _entries.entrySet()) { if (entry.getValue()._liveOwner) { previousOwners.add(entry.getKey()); } }
+		}
 		final Set<Long> live = new HashSet<>();
+		// Query native ownership outside the ecology monitor, including owners whose physical demand was withdrawn.
+		for (long id : previousOwners) { if (_materialized.test(id)) { live.add(id); } }
 		for (DemandFact fact : facts) { if (_materialized.test(fact.profileId())) { live.add(fact.profileId()); } }
 		synchronized (_monitor)
 		{
+			for (long id : previousOwners)
+			{
+				final Entry entry = _entries.get(id);
+				if ((entry != null) && entry._liveOwner && !live.contains(id)) { entry._liveOwner = false; queueLocked(id); }
+			}
 			_batchAdmission = true;
 			_preparationSlots = Math.max(0, Math.min(8, availablePreparationSlots));
 			final Map<Long, DemandFact> previous = new HashMap<>(_demandFacts);

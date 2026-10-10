@@ -3,7 +3,7 @@ param([ValidateSet('Probe','Scene','Away')][string]$Mode='Probe',
       [ValidateSet('a','b','t')][string]$Episode='a',
       [Parameter(Mandatory)][string]$OutputRoot,[int]$Seconds=80,
       [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$FrozenSha,
-      [ValidateRange(75,135)][int]$BackgroundSeconds=75, [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@(),[long]$SetupProfileId=0,[switch]$NativeStartAtSetup,[switch]$StopOwnServerOnComplete)
+      [ValidateRange(75,135)][int]$BackgroundSeconds=75, [hashtable]$InitialObservationPoint=@{}, [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [string]$PathJson='', [string[]]$PreviousPrimaryIds=@(),[long]$SetupProfileId=0,[switch]$NativeStartAtSetup,[switch]$StopOwnServerOnComplete)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Read-SharedJson031.ps1')
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
@@ -184,7 +184,20 @@ try{
         $status=Capture031 'STATUS'
         if($status.before.teleporting -cne 'false' -or [Math]::Abs([int]$status.before.x-[int]$SetupTeleport.x) -gt 32 -or [Math]::Abs([int]$status.before.y-[int]$SetupTeleport.y) -gt 32){throw 'Pre-baseline setup arrival unconfirmed.'}
     }
-    if($NativeStartAtSetup -and ([int]$status.before.x -ne [int]$fixed.x -or [int]$status.before.y -ne [int]$fixed.y -or [int]$status.before.z -ne [int]$fixed.z)){throw 'Initial native observer point changed before enrollment'}
+    $enrollmentPoint=$fixed
+    if($InitialObservationPoint.Count){
+        if($Mode -cne 'Away' -or -not $NativeStartAtSetup -or $SetupTeleport.Count -or $InitialObservationPoint.Count -ne 3){throw 'One explicit checked initial away observation place required.'}
+        foreach($axis in @('x','y','z')){if(-not $InitialObservationPoint.ContainsKey($axis) -or [int]$InitialObservationPoint[$axis] -ne [int]$path.origin.$axis){throw 'Initial place differs from immutable native path origin.'}}
+        $nearby=[Math]::Sqrt([Math]::Pow([int]$fixed.x-[int]$path.origin.x,2)+[Math]::Pow([int]$fixed.y-[int]$path.origin.y,2)) -le 2000
+        # Source World.SHIFT_BY=11; preserve source-known region, instance0 and the existing initial setup2000 bound.
+        if(-not $nearby -or [Math]::Abs(([int]$fixed.x -shr 11)-([int]$path.origin.x -shr 11)) -gt 1 -or [Math]::Abs(([int]$fixed.y -shr 11)-([int]$path.origin.y -shr 11)) -gt 1 -or [Math]::Abs([int]$fixed.z-[int]$path.origin.z) -gt 200){throw 'Initial place leaves the source native-known envelope.'}
+        $null=Capture031 'TELEPORT_SELF' @{x=[int]$path.origin.x;y=[int]$path.origin.y;z=[int]$path.origin.z;instanceId=0}
+        $status=Capture031 'STATUS'
+        if($status.before.teleporting -cne 'false' -or [int]$status.before.x -ne [int]$path.origin.x -or [int]$status.before.y -ne [int]$path.origin.y -or [int]$status.before.z -ne [int]$path.origin.z){throw 'Fixed initial place arrival unconfirmed.'}
+        $enrollmentPoint=$path.origin
+        [ordered]@{scope='INITIAL_SETUP_BEFORE_ENROLLMENT';sourceProfile=$SetupProfileId;sourcePoint=$fixed;observationPoint=$path.origin;pathSha256=(Get-FileHash $PathJson).Hash;admissionGranted=$false} | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'fixed-initial-observation-place.json') -Encoding utf8
+    }
+    if($NativeStartAtSetup -and ([int]$status.before.x -ne [int]$enrollmentPoint.x -or [int]$status.before.y -ne [int]$enrollmentPoint.y -or [int]$status.before.z -ne [int]$enrollmentPoint.z)){throw 'Initial native observer point changed before enrollment'}
     # Re-rank the same pre-outcome census around the factual post-setup observer position.
     $nearestSetup=@($globalRows | Where-Object {$_.state -ne 'ABSENT'} | Sort-Object {[Math]::Pow([double]$_.x-[double]$status.before.x,2)+[Math]::Pow([double]$_.y-[double]$status.before.y,2)} | Select-Object -First 8)
     $nearestSetup | ForEach-Object {[pscustomobject]@{profileId=[long]$_.profileId;materializedAtNanos=0}} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'nearest-setup-eight.json') -Encoding utf8

@@ -4,7 +4,7 @@ param([Parameter(Mandatory)][ValidateSet('Update','Start','Stop','Export','Colle
       [string]$Revision='R1',[string]$ExpectedSha='',
       [string]$OutputRoot='', [long[]]$ProfileIds=@(),[switch]$DumpDuringStop,
       [ValidateSet('Build','Enroll','FullObserve','Probe031','Census','Flush','StopMonitor','CrashNative','CrashFinalize')][string]$Mode='Build', [string]$CohortJson='', [string]$ObserverRunId='', [long]$StartupRecoveryProfileId=0, [string]$RecoveryOutputRoot='',
-      [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{}, [switch]$UseStockRoute, [string]$ViaPoints='', [switch]$SearchBidirectional,
+      [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{}, [switch]$UseStockRoute, [string]$ViaPoints='', [switch]$SearchBidirectional, [string]$VerifyPointsFile='',
       [ValidateSet('Persistence','Restart')][string]$ProofKind='Restart', [string]$SqlRoot='', [string]$SealedRoot='', [string]$ShutdownLog='')
 function Update-Owned031 {
 param([string]$Episode,[string]$Revision)
@@ -128,6 +128,11 @@ if($Action -ceq 'DryPath'){
     try{
         if($ViaPoints -and (-not $UseStockRoute -or $ViaPoints -notmatch '^-?\d+,-?\d+(;-?\d+,-?\d+){0,4}$')){throw 'Bounded explicit stock route waypoint format required.'}
         $dryArgs=@('-Xmx2g','-cp',"$classes;../libs/*",$dryClass,$OriginPoint.x,$OriginPoint.y,$OriginPoint.z,$EndpointPoint.x,$EndpointPoint.y)
+        if($VerifyPointsFile){
+            $input031=[IO.Path]::GetFullPath($VerifyPointsFile)
+            if(-not $UseStockRoute -or $ViaPoints -or $SearchBidirectional -or -not $input031.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $input031)){throw 'Exact own immutable points/native verifier required.'}
+            $dryArgs+=('VERIFY:'+$input031)
+        }
         if($ViaPoints){$dryArgs+=('VIA:'+$ViaPoints)}
         if($SearchBidirectional){if(-not $UseStockRoute -or $ViaPoints){throw 'Search requires exact stock helper without VIA.'};$dryArgs+='GRID'}
         & (Join-Path $jdk 'java.exe') @dryArgs *> $log

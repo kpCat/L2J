@@ -48,6 +48,11 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (System.getProperty("phantom.m1.native.focus", "").equals("releasedOwner031"))
+		{
+			registry.add("16-released-native-owner-resumes-background-before-minute-refresh", this::releasedNativeOwner031);
+			return;
+		}
 		registry.add("01-calendar-online-survives-readiness", this::calendarOnline);
 		registry.add("02-io-stall-does-not-block-population-pulse", this::nonblockingPulse);
 		registry.add("03-native-one-point-result-is-executable", _ -> singlePointPath());
@@ -65,6 +70,36 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 		registry.add("15-mixed-recoverable-history-keeps-demand-and-ordinary-live", this::mixedRecoverableHistory);
 	}
 
+	private void releasedNativeOwner031(PhantomTestContext context)
+	{
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null);
+		final var history = new PhantomPopulationEcologyGoal033Suite.HistoricalMemoryPort();
+		final var initial = state(population.seedReady(1, 1));
+		final var begun = history.begin(1, initial.calendarCursorEpochMinute(), initial.calendarCursorEpochMinute() + 100, 1);
+		store.insert(1, initial.beginRequest(begun.snapshot().state().requestId(), initial.calendarCursorEpochMinute() + 100));
+		final var live = new java.util.concurrent.atomic.AtomicBoolean(true);
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(NOW);
+		final var ecology = new PhantomPopulationEcologyService(_catalog, _population, store, history, _ -> live.get(), _ -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, 1, 1, 4, 4, 1, 64);
+		manager.installEcology(ecology); manager.start();
+		try
+		{
+			ecology.holdStartupPopulationPlan(); ecology.onPopulationPulse(); ecology.startupPopulationPlanApplied();
+			ecology.updateMaterializationDemand(java.util.List.of(new PhantomPopulationEcologyService.DemandFact(1, 1, true, 1, 1)), 1);
+			ecology.onPopulationPulse();
+			final long heldCursor = history.status(1).orElseThrow().state().cursorEpochMinute();
+			ecology.updateMaterializationDemand(java.util.List.of(), 1);
+			for (int pulse = 0; pulse < 4; pulse++) { ecology.onPopulationPulse(); }
+			PhantomAssertions.assertEquals(heldCursor, history.status(1).orElseThrow().state().cursorEpochMinute(), "Withdrawn physical demand bypassed the still-live native owner.");
+			live.set(false);
+			ecology.updateMaterializationDemand(java.util.List.of(), 1);
+			for (int pulse = 0; pulse < 4; pulse++) { ecology.onPopulationPulse(); }
+			PhantomAssertions.assertTrue(history.status(1).orElseThrow().state().cursorEpochMinute() > heldCursor, "Released native owner kept background fenced until the next wall-clock minute.");
+			PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseProfiles() <= _catalog.limits().maximumProfilesPerPulse() && ecology.snapshot().maximumPulseIntervals() <= _catalog.limits().maximumIntervalsPerPulse(), "Owner release multiplied the shared work budget.");
+		}
+		finally { ecology.beginStop(); manager.beginStop(); manager.finishStop(); }
+	}
 	private void mixedRecoverableHistory(PhantomTestContext context)
 	{
 		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
