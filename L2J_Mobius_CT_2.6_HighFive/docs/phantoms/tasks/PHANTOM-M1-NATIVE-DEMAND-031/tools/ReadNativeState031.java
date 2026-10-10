@@ -61,6 +61,25 @@ class ReadNativeState031 {
     for(String f:List.of("_state","_permanentSeal","_failure","_epoch"))lines.add("serviceScope."+f+"="+scalar(field(scope,f)));
     Value identity=field(scope,"_identity");lines.add("scopeIdentity.closed="+scalar(field(identity,"_closed")));
    }
+   Value ecology=field(system,"_populationEcology");
+   for(String f:List.of("_workerInFlight","_workerStarted","_activeProfile","_wakeFailure","_stopping","_preparationSlots","_focusId","_focusBatches","_lastBatchElapsedMillis","_pulses","_lastFailure","_metadataDraining","_inventoryReady","_populationPlanApplied"))lines.add("ecology."+f+"="+scalar(field(ecology,f)));
+   for(ObjectReference entry:entries(field(ecology,"_entries"))) {
+    String profile=scalar(field(field(entry,"key"),"value"));if(!profiles.contains(profile))continue;
+    Value value=field(entry,"value");if(value==null)value=field(entry,"val");
+    lines.add("ECOLOGY PROFILE="+profile);
+    if(value instanceof ObjectReference object)for(Field f:object.referenceType().allFields()) {
+     if(f.isStatic())continue;Value item=object.getValue(f);lines.add(f.name()+"="+scalar(item));
+     if(f.name().equals("_stored")&&item instanceof ObjectReference nested)for(Field nf:nested.referenceType().allFields())if(!nf.isStatic())lines.add("stored."+nf.name()+"="+scalar(nested.getValue(nf)));
+    }
+   }
+   for(ObjectReference entry:entries(field(ecology,"_demandFacts"))) {
+    String profile=scalar(field(field(entry,"key"),"value"));if(!profiles.contains(profile))continue;
+    Value value=field(entry,"value");if(value==null)value=field(entry,"val");lines.add("DEMAND PROFILE="+profile);
+    if(value instanceof ObjectReference object)for(Field f:object.referenceType().allFields())if(!f.isStatic())lines.add(f.name()+"="+scalar(object.getValue(f)));
+   }
+   for(String q:List.of("_due","_materializationDue")) {
+    Value array=field(field(ecology,q),"elements"); if(array instanceof ArrayReference a){List<String> ids=new ArrayList<>();for(Value v:a.getValues())if(v!=null&&profiles.contains(scalar(field(v,"value"))))ids.add(scalar(field(v,"value")));lines.add("ecology."+q+".selected="+ids);}
+   }
    for(String mapName:List.of("_journeys","_attempts","_pendingStores","_terminalReasons"))for(ObjectReference entry:entries(field(travel,mapName))) {
     String profile=scalar(field(field(entry,"key"),"value"));if(!profiles.contains(profile))continue;
     Value value=field(entry,"val");lines.add("TRAVEL PROFILE="+profile+" map="+mapName);
