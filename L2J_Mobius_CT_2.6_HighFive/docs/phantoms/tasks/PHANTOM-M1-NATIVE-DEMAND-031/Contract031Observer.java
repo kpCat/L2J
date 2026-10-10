@@ -60,7 +60,7 @@ public final class Contract031Observer
     private static final Map<Lifetime, String> LAST_RECEIPT = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Set<Lifetime> TERMINAL = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
-    private static void enroll(long profile, PhantomNativeWorkScope owner)
+    private static void enroll(long profile, PhantomNativeWorkScope owner, boolean nativeBirthBoundary)
     {
         if (profile <= 0 || owner == null || owner.player().getObjectId() <= 0 || owner.epoch() <= 0) { throw new IllegalStateException("TASK031_REGISTER_IDENTITY"); }
         final var key = new Lifetime(profile, owner.player().getObjectId(), owner.epoch());
@@ -89,7 +89,9 @@ public final class Contract031Observer
         final var chosen = selection;
         enqueue(new Witness(chosen.output().resolve(profile + "-" + key.epoch() + "-register.properties"),
             "kind=REGISTER\nprofileId=" + profile + "\nobjectId=" + key.objectId() + "\nepoch=" + key.epoch()
-                + "\nparentEpoch=" + parentEpoch + "\nregisterNanos=" + now + "\nsource=actual-native-owner\n"));
+                + "\nparentEpoch=" + parentEpoch + "\nregisterNanos=" + now + "\nsource=actual-native-owner\n"
+                + "nativeBirthBoundary=" + nativeBirthBoundary + "\nworldAbsentAtRegister=" + (World.getInstance().findObject(key.objectId()) == null && World.getInstance().getPlayer(key.objectId()) == null)
+                + "\nparentTerminalVerified=" + (parentEpoch > 0) + "\nownerCurrentAtRegister=" + owner.isCurrent() + "\n"));
     }
     private static void enqueue(Witness witness)
     {
@@ -453,7 +455,7 @@ public final class Contract031Observer
             for (var entry : selected.entrySet()) { if (entry.getValue() == owner.epoch() && owner.player() == player && owner.isCurrent()) { exactOwners.put(entry.getKey(), owner); } }
         }
         dispatchOwners = Map.copyOf(exactOwners);
-        for (var entry : exactOwners.entrySet()) { enroll(entry.getKey(), entry.getValue()); }
+        for (var entry : exactOwners.entrySet()) { enroll(entry.getKey(), entry.getValue(), false); }
         installHooks();
         write(output.resolve("observer-installed-" + System.nanoTime() + ".properties"), "owner=TASK031_CONTRACT\nmode=" + mode + "\npid=" + ProcessHandle.current().pid() + "\ncodeSha=" + selection.sha() + "\nringCapacity=512\nexactArgument=true\n");
         if (mode.equals("FULL_OBSERVE") || mode.equals("PROBE031")) { sampleFullCohort(); }
@@ -491,7 +493,7 @@ public final class Contract031Observer
         {
             if (!(player.getNativeWorkOwner() instanceof PhantomNativeWorkScope owner) || owner.player() != player)
             { throw new IllegalStateException("TASK031_BIRTH_EXACT_OWNER"); }
-            enroll(profile, owner);
+            enroll(profile, owner, true);
         }
         catch (Throwable failure)
         {
@@ -752,7 +754,7 @@ public final class Contract031Observer
                 final var key = (PhantomNativeWorkScope.CheckpointKey) field(checkpoint.getClass(), "key").get(checkpoint);
                 if (key.objectId() != player.getObjectId() || key.epoch() != owner.epoch()
                     || THREAD.get(owner) != Thread.currentThread() || !STATE.get(owner).toString().equals("SEALED")) { throw new IllegalStateException("TASK031_REGISTER_EXACT_ARGUMENT"); }
-                enroll(key.profileId(), owner);
+                enroll(key.profileId(), owner, false);
             }
             catch (ReflectiveOperationException failure) { throw new IllegalStateException("TASK031_REGISTER_KEY", failure); }
         }
@@ -897,8 +899,12 @@ public final class Contract031Observer
         put(text,"profileId",id.profileId()); put(text,"objectId",player.getObjectId()); put(text,"epoch",intent.materializedAtNanos()); put(text,"initialEpoch",intent.materializedAtNanos()); put(text,"preparedRowVersion",intent.preparedRowVersion());
         put(text,"beforeState",intent.before().state()); put(text,"beforeHp",intent.before().vitals().currentHp());
         put(text,"afterState",state.state());
-        put(text,"beforePayloadSha256",PhantomBackgroundTransaction.payloadDigest(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().encode(intent.before())));
-        put(text,"afterPayloadSha256",PhantomBackgroundTransaction.payloadDigest(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().encode(intent.after())));
+        final var codec = new PhantomBackgroundStateCodec();
+        final byte[] beforePayload = codec.encode(intent.before()), afterPayload = codec.encode(state);
+        put(text,"beforePayloadSha256",PhantomBackgroundTransaction.payloadDigest(beforePayload));
+        put(text,"afterPayloadSha256",PhantomBackgroundTransaction.payloadDigest(afterPayload));
+        put(text,"beforeStateBase64",java.util.Base64.getEncoder().encodeToString(beforePayload));
+        put(text,"fullStateBase64",java.util.Base64.getEncoder().encodeToString(afterPayload));
         put(text,"level",player.getLevel()); put(text,"exp",player.getExp()); put(text,"sp",player.getSp()); put(text,"expBeforeDeath",player.getExpBeforeDeath());
         // These are the exact scalars supplied to Player.OwnedStoreSnapshot, already canonicalized by the existing resolver.
         put(text,"hp",vitals.currentHp()); put(text,"maxHp",vitals.maximumHp()); put(text,"mp",vitals.currentMp()); put(text,"maxMp",vitals.maximumMp()); put(text,"cp",vitals.currentCp()); put(text,"maxCp",vitals.maximumCp());
