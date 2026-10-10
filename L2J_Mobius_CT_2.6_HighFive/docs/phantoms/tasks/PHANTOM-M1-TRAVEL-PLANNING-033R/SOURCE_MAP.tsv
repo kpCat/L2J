@@ -1,0 +1,29 @@
+role	path	constraint
+EDIT	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	journey/corridor execution; final arrival unchanged
+EDIT	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	route failure/replan/publication exact owner
+CONDITIONAL_EDIT	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	reachable ingress and legitimate alternate farm goal only
+CONDITIONAL_EDIT	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomNormalGatekeeperTravel.java	explicit weighted query, retain legacy background query
+EDIT	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/L2jNavigationBackend.java	native route oracle/copy; no Geo bypass
+CONDITIONAL_EDIT	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationService.java	bounded corridor integration in existing worker; no extra scheduler
+NEW_ALLOWED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomWalkCorridorPlanner.java	bounded graph of validated native local routes
+NEW_ALLOWED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomTravelStrategy.java	cost/resource selection of already lawful modes
+NEW_ALLOWED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNativeTravelActions.java	narrow scroll/return adapter and delayed lifetime integration
+CONDITIONAL_EDIT	L2J_Mobius_CT_2.6_HighFive/dist/game/data/scripts/handlers/chat/commands/user/Unstuck.java	managed-only callback guard if required; REAL branch unchanged
+CONDITIONAL_EDIT	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/geoengine/pathfinding/PathFinding.java	opt-in access to full native parent chain only AFTER lost-turn RED; no stock default behavior change
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/geoengine/pathfinding/NodeBuffer.java	existing A*, NSWE, layers, bounded search
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/geoengine/pathfinding/GeoLocation.java	native floor/NSWE interpretation
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/geoengine/GeoEngine.java	authoritative movement/height/doors
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNativeRouteContract.java	normalize and segment validation authoritative
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationPolicy.java	2workers/64waypoints/120s etc; keep bounds
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/Player.java	native actions, teleport legality; no rewrite
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	real delayed-work interfaces; no rewrite
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	lifetime capture/release; no rewrite
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/dist/game/config/Player.ini	UnstuckInterval300 repository; inspect local value
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/dist/game/config/Custom/PersonalCharacterQoL.ini	do not borrow REAL allowlist
+NEW_ALLOWED	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTravelPlanning033RSuite.java	composed/native scenarios T01–T18
+CONDITIONAL_EDIT	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomVisibleContinuity032Suite.java	reuse fixture; preserve earlier assertions
+CONDITIONAL_EDIT	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	exact033rt owned lane, no broad DB guard
+REUSE_READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/Control032.ps1	reuse own runtime lifecycle
+REUSE_READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/Observe032.ps1	existing observer; do not alter old files
+REUSE_READ	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/ReadDryRoute032.java	verify actual geometry, no handwritten route
+EDIT_OWN_TREE	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-TRAVEL-PLANNING-033R/	task files, exact manifest before git add

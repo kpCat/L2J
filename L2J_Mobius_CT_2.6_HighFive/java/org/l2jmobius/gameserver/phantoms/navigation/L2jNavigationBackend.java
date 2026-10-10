@@ -22,11 +22,15 @@ package org.l2jmobius.gameserver.phantoms.navigation;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.LongSupplier;
 
 import org.l2jmobius.gameserver.config.GeoEngineConfig;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.geoengine.pathfinding.GeoLocation;
 import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
+import org.l2jmobius.gameserver.geoengine.util.GridLineIterator2D;
+import org.l2jmobius.gameserver.managers.ZoneManager;
+import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 
 /**
  * Lazy factual adapter over the current High Five geo/pathfinding APIs.
@@ -63,6 +67,47 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 	public boolean canMoveDirect(PhantomNavigationPoint origin, PhantomNavigationPoint destination)
 	{
 		return GeoEngine.getInstance().canMoveToTarget(origin.x(), origin.y(), origin.z(), destination.x(), destination.y(), destination.z(), origin.instanceId());
+	}
+
+	/** The existing visible-travel dry-cell/height contract, plus factual doors/NSWE. */
+	public boolean canWalkDirect(PhantomNavigationPoint from, PhantomNavigationPoint to)
+	{
+		final var geo = GeoEngine.getInstance();
+		if (from.instanceId() != to.instanceId() || !geo.hasGeo(from.x(), from.y()) || !geo.hasGeo(to.x(), to.y()) || geo.getHeight(to.x(), to.y(), to.z()) != to.z()) { return false; }
+		boolean dry = ZoneManager.getInstance().getZone(from.x(), from.y(), from.z(), WaterZone.class) == null;
+		int z = from.z();
+		final var cells = new GridLineIterator2D(GeoEngine.getGeoX(from.x()), GeoEngine.getGeoY(from.y()), GeoEngine.getGeoX(to.x()), GeoEngine.getGeoY(to.y()));
+		while (cells.next())
+		{
+			final int x = GeoEngine.getWorldX(cells.x()), y = GeoEngine.getWorldY(cells.y());
+			if (!geo.hasGeo(x, y)) { return false; }
+			z = geo.getHeight(x, y, z);
+			if (z != geo.getHeight(x, y, z)) { return false; }
+			if (ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) { if (dry) { return false; } }
+			else { dry = true; }
+		}
+		return ZoneManager.getInstance().getZone(to.x(), to.y(), to.z(), WaterZone.class) == null && canMoveDirect(from, to);
+	}
+
+	public PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock)
+	{
+		final var planner = new PhantomWalkCorridorPlanner(new PhantomWalkCorridorPlanner.Oracle()
+		{
+			@Override public PhantomNavigationPoint project(int x, int y, PhantomNavigationPoint surface)
+			{
+				final var geo = GeoEngine.getInstance();
+				if (!geo.hasGeo(x, y)) { return null; }
+				final int z = geo.getHeight(x, y, surface.z());
+				if (z != geo.getHeight(x, y, z) || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) { return null; }
+				return new PhantomNavigationPoint(x, y, z, surface.instanceId());
+			}
+			@Override public boolean direct(PhantomNavigationPoint from, PhantomNavigationPoint to) { return canWalkDirect(from, to); }
+			@Override public List<PhantomNavigationPoint> path(PhantomNavigationPoint from, PhantomNavigationPoint to)
+			{
+				return findPath(new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance()), cancellation);
+			}
+		}, clock);
+		return planner.plan(request, cancellation, policy);
 	}
 
 	@Override

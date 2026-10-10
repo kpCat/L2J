@@ -377,16 +377,7 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		{
 			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
 			journey.deadline = now + _navigation.policy().defaultRequestDeadlineNanos();
-			var requested = destination;
-			final double distance = Math.hypot((long) destination.x() - current.x(), (long) destination.y() - current.y());
-			if (journey.currentAnchorReturn && distance > 2000)
-			{
-				// Keep each native query inside the existing local leg and stock buffer envelope.
-				final int x = current.x() + (int) Math.round(((long) destination.x() - current.x()) * 2000 / distance);
-				final int y = current.y() + (int) Math.round(((long) destination.y() - current.y()) * 2000 / distance);
-				requested = new PhantomNavigationPoint(x, y, GeoEngine.getInstance().getHeight(x, y, current.z()), current.instanceId());
-			}
-			final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, current, requested, now, journey.deadline, 100_000));
+			final var submission = _navigation.submitWalkCorridor(new PhantomNavigationRequest(profileId, current, destination, now, journey.deadline, 100_000));
 			journey.requestId = submission.requestId();
 			if (submission.immediateResult() != null)
 			{
@@ -417,13 +408,6 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				return false;
 			}
 			if (!terminalResult(profileId, journey, result)) { return false; }
-		}
-		if (journey.currentAnchorReturn && !journey.route.destination().equals(destination) && (current.distanceTo(journey.waypoints.getLast()) <= _navigation.arrivalRadius()))
-		{
-			clearRoute(profileId, journey);
-			journey.reason = "travel.native_leg_complete";
-			hold(profileId);
-			return false; // Only the original final destination permits owned arrival/store.
 		}
 		while ((journey.index < journey.waypoints.size() - 1) && (current.distanceTo(journey.waypoints.get(journey.index)) <= _navigation.arrivalRadius()))
 		{

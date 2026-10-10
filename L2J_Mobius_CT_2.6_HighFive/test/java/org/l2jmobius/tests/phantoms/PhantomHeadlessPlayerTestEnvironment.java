@@ -248,7 +248,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 		stabilizeInfrastructureThreads();
 		_environmentThreadIds = liveNonDaemonThreadIds();
-		context.record("headless.database", owned026Enabled() ? System.getProperty("phantom.contract032.manifest") != null ? "l2jmobiush5_localplay_contract032t" : System.getProperty("phantom.contract031.manifest") != null ? "l2jmobiush5_localplay_contract031t" : "l2jmobiush5_localplay_contract" + (System.getProperty("phantom.contract027.manifest") != null ? "027" : "026") + "a" : PhantomContracts025DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract025b" : PhantomContracts024DatabaseLane.enabled()
+		context.record("headless.database", owned026Enabled() ? System.getProperty("phantom.travel033r.manifest") != null ? "l2jmobiush5_localplay_travel033rt" : System.getProperty("phantom.contract032.manifest") != null ? "l2jmobiush5_localplay_contract032t" : System.getProperty("phantom.contract031.manifest") != null ? "l2jmobiush5_localplay_contract031t" : "l2jmobiush5_localplay_contract" + (System.getProperty("phantom.contract027.manifest") != null ? "027" : "026") + "a" : PhantomContracts025DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract025b" : PhantomContracts024DatabaseLane.enabled()
 			? "l2jmobiush5_localplay_contract024a" : PhantomTestDatabaseGuard.TARGET_DATABASE);
 		context.record("headless.schemaAggregateSha256", ((PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled() || owned026Enabled())
 			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());
@@ -262,7 +262,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	private static boolean owned026Enabled()
 	{
-		return (System.getProperty("phantom.contract026.manifest") != null) || (System.getProperty("phantom.contract027.manifest") != null) || (System.getProperty("phantom.contract031.manifest") != null) || (System.getProperty("phantom.contract032.manifest") != null);
+		return (System.getProperty("phantom.contract026.manifest") != null) || (System.getProperty("phantom.contract027.manifest") != null) || (System.getProperty("phantom.contract031.manifest") != null) || (System.getProperty("phantom.contract032.manifest") != null) || (System.getProperty("phantom.travel033r.manifest") != null);
 	}
 
 	/** Same exact export/config/catalog guard as TASK025; shared TEST metadata remains untouched. */
@@ -275,10 +275,13 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		PhantomAssertions.assertFalse(task031 && (task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
 		final boolean task032 = System.getProperty("phantom.contract032.manifest") != null;
 		PhantomAssertions.assertFalse(task032 && (task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
-		final String contract = task032 ? "032" : task031 ? "031" : task027 ? "027" : "026";
-		final String episode = task032 || task031 ? "t" : "a";
-		final Path lane = root.resolve(".phantom-local/contract" + contract + episode).toRealPath();
-		final Path manifest = Path.of(System.getProperty("phantom.contract" + contract + ".manifest")).toRealPath();
+		final boolean task033r = System.getProperty("phantom.travel033r.manifest") != null;
+		PhantomAssertions.assertFalse(task033r && (task032 || task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
+		final String contract = task033r ? "033R" : task032 ? "032" : task031 ? "031" : task027 ? "027" : "026";
+		final String episode = task033r || task032 || task031 ? "t" : "a";
+		final String laneName = task033r ? "travel033rt" : "contract" + contract + episode;
+		final Path lane = root.resolve(".phantom-local/" + laneName).toRealPath();
+		final Path manifest = Path.of(System.getProperty(task033r ? "phantom.travel033r.manifest" : "phantom.contract" + contract + ".manifest")).toRealPath();
 		PhantomAssertions.assertEquals(lane.resolve("test/owned.properties"), manifest, "Exact owned TASK026 manifest required.");
 		PhantomAssertions.assertEquals(lane.resolve("test/Database.test.ini"), config.toRealPath(), "Exact owned TASK026 config required.");
 		PhantomAssertions.assertEquals(lane.resolve("runtime/game"), Path.of("").toRealPath(), "Exact owned TASK026 runtime required.");
@@ -287,7 +290,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		try (var reader = java.nio.file.Files.newBufferedReader(manifest)) { ownership.load(reader); }
 		try (var reader = java.nio.file.Files.newBufferedReader(config)) { settings.load(reader); }
 		PhantomAssertions.assertEquals("TASK" + contract + "_CONTRACT", ownership.getProperty("owner"), "Exact task authority required.");
-		PhantomAssertions.assertEquals("l2jmobiush5_localplay_contract" + contract + episode, ownership.getProperty("database"), "Exact task catalog required.");
+		PhantomAssertions.assertEquals("l2jmobiush5_localplay_" + laneName, ownership.getProperty("database"), "Exact task catalog required.");
 		final var digest = java.security.MessageDigest.getInstance("SHA-256");
 		try (var input = java.nio.file.Files.newInputStream(lane.resolve("play-snapshot.sql")))
 		{
@@ -296,7 +299,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		}
 		PhantomAssertions.assertEquals(ownership.getProperty("exportSha256"), java.util.HexFormat.of().formatHex(digest.digest()), "Immutable TASK026 export changed.");
 		final String url = settings.getProperty("URL");
-		PhantomAssertions.assertTrue(url != null && url.matches("jdbc:(mysql|mariadb)://127\\.0\\.0\\.1:3308/l2jmobiush5_localplay_contract" + contract + episode + "\\?.*"), "Only the exact task TEST clone may be written.");
+		PhantomAssertions.assertTrue(url != null && url.matches("jdbc:(mysql|mariadb)://127\\.0\\.0\\.1:3308/l2jmobiush5_localplay_" + laneName + "\\?.*"), "Only the exact task TEST clone may be written.");
 		PhantomAssertions.assertEquals("4", settings.getProperty("MaximumDatabaseConnections"), "Bounded TEST pool required.");
 		DatabaseFactory.initFromConfig(config.toString());
 		try (var connection = DatabaseFactory.getConnection(); var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT DATABASE()"))
