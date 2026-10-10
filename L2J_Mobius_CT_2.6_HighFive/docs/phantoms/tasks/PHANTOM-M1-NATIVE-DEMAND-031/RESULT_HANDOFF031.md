@@ -84,3 +84,10 @@ git -C $r ls-remote origin refs/heads/experiment/m1-candidate007-observe008
 - Escaped Cyrillic в изменённых файлах проверены отдельно (\\u04/05 и XML x/X04/05); совпадений нет.
 
 STOP_AUTHORITY=TASK031_CONTRACT; все own JVM STOPPED штатно в финальном cleanup. Серверная приёмка НЕ GREEN; M1=OPEN, REAL_FINAL=NOT_RUN.
+
+
+### C28 — заключительный read-only audit до предельного срока
+
+10:29:55Z: actual successful OrdinaryProjectionCommit receipts own34 для117/121/155/195/204 имеют beforeVersion8427/15330/13206/14236/13798; quietSQL35 stateVersion ровно +1 у всех пяти. Это новые committed промежуточные записи после исходных native receipts. Для95 такой projection receipt в этом каталоге не найден. Evidence C28_POST_NATIVE_PROJECTION_METADATA.json содержит только числовые версии, sourceSHA и hashes. Полная последовательность переходов и equality afterPayload/SQL не проверены; restart35 остаётся OPEN, semanticLineagePassClaimed=false. Никаких JVM/SQL изменений. Предыдущий goal turn — progress (code/report/evidence exact commit); этот — progress (новое authoritative lineage evidence). Новый runtime за оставшийся cleanup интервал не запускался.
+
+Exact follow-up команды: `git -C $r add -- "$p/RESULT_HANDOFF031.md" "$p/evidence/C28_POST_NATIVE_PROJECTION_METADATA.json"`; `git -C $r diff --cached --name-only`; `git -C $r -c core.whitespace=cr-at-eol diff --cached --check`; `git -C $r commit -m 'TASK031: preserve intervening projection metadata without closing lineage'`; `git -C $r push origin HEAD:refs/heads/experiment/m1-candidate007-observe008`; `git -C $r rev-parse HEAD`; `git -C $r ls-remote origin refs/heads/experiment/m1-candidate007-observe008`. Exact allowlist2 paths; raw payload не публикуется.

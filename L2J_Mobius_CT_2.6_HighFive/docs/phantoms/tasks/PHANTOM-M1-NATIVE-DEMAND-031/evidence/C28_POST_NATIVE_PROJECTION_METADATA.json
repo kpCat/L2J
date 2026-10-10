@@ -1,0 +1,64 @@
+{
+  "kind": "POST_NATIVE_PROJECTION_METADATA_ONLY",
+  "capturedUtc": "2026-10-10T10:29:59.4770947Z",
+  "semanticLineagePassClaimed": false,
+  "sourceBoundary": "Contract031Observer.java:505 successful OrdinaryProjectionCommit under open lease",
+  "rows": [
+    {
+      "id": 117,
+      "kind": "PROJECTION_COMMIT",
+      "codeSha": "7e765ca426e089e5cd9837bde84d749236657420",
+      "beforeRowVersion": 8427,
+      "quiet35StateVersion": 8428,
+      "nextVersionEqualsQuiet35": true,
+      "afterPayloadSha256": "df0211f417200e939e6bb80958374602b34c0bef196156a0cb479159352e9da1",
+      "receiptFile": "117-projection-8427.properties",
+      "receiptSha256": "6D089E784AE2E83054B209B9B6BFCABCF6688EB86957C525398655B75A5E4620"
+    },
+    {
+      "id": 121,
+      "kind": "PROJECTION_COMMIT",
+      "codeSha": "7e765ca426e089e5cd9837bde84d749236657420",
+      "beforeRowVersion": 15330,
+      "quiet35StateVersion": 15331,
+      "nextVersionEqualsQuiet35": true,
+      "afterPayloadSha256": "c2fc4b1a7b4d6d2bbf86fe1aed731c9a4bea9015b20c0577ad1e2e45c452a965",
+      "receiptFile": "121-projection-15330.properties",
+      "receiptSha256": "34C6A80187C9F92415EC137953C1DB54D7C3A9AAF2E1B2B220294915179FD42C"
+    },
+    {
+      "id": 155,
+      "kind": "PROJECTION_COMMIT",
+      "codeSha": "7e765ca426e089e5cd9837bde84d749236657420",
+      "beforeRowVersion": 13206,
+      "quiet35StateVersion": 13207,
+      "nextVersionEqualsQuiet35": true,
+      "afterPayloadSha256": "b22e55e162c57ddcaf27cc388980f5237e7ea7b2b034255390d883f3fbc354ba",
+      "receiptFile": "155-projection-13206.properties",
+      "receiptSha256": "893BB592384A51124EADCA785276C1CD20392C61A7666F575AA963E5C3CE52A4"
+    },
+    {
+      "id": 195,
+      "kind": "PROJECTION_COMMIT",
+      "codeSha": "7e765ca426e089e5cd9837bde84d749236657420",
+      "beforeRowVersion": 14236,
+      "quiet35StateVersion": 14237,
+      "nextVersionEqualsQuiet35": true,
+      "afterPayloadSha256": "83e7d5f829261deb90c87aeab2ca2acff4e1c00edd70920851629313421437b7",
+      "receiptFile": "195-projection-14236.properties",
+      "receiptSha256": "59E546D97FD4C808F0B19C4B1F47C0B289D80B4F5AB6186333AADA7BB10E8F03"
+    },
+    {
+      "id": 204,
+      "kind": "PROJECTION_COMMIT",
+      "codeSha": "7e765ca426e089e5cd9837bde84d749236657420",
+      "beforeRowVersion": 13798,
+      "quiet35StateVersion": 13799,
+      "nextVersionEqualsQuiet35": true,
+      "afterPayloadSha256": "d2d6096c6d1d9dc1584161f169786a56e5bc5a89748eeb2ede222c0cd101751c",
+      "receiptFile": "204-projection-13798.properties",
+      "receiptSha256": "C24B70C14F64D4E0CAB9562CE454A5A7762E55E2A733ADFE4B3134BB2F9F6547"
+    }
+  ],
+  "limitations": "Metadata verifies an intervening committed projection exists; exact after-state SQL payload equality and complete lineage remain unverified."
+}
