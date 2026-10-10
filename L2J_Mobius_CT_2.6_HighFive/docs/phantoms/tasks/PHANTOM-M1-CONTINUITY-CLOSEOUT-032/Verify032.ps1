@@ -37,7 +37,9 @@ if($Action -ceq 'Evaluate'){
     return
 }
 if($Action -ceq 'Helpers'){
-    & python -m unittest discover -s (Join-Path $PSScriptRoot 'proposals') -p test_tools028.py -v
+    $helpers=Join-Path $module 'docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals'
+    if(-not (Test-Path (Join-Path $helpers 'test_tools028.py'))){throw 'Existing028 helper tests absent.'}
+    & python -m unittest discover -s $helpers -p test_tools028.py -v
     exit $LASTEXITCODE
 }
 if($Action -ceq 'Build'){

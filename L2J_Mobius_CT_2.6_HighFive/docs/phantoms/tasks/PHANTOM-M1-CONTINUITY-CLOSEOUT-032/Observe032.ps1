@@ -19,7 +19,7 @@ if($Mode -ceq 'Away'){
     $helper=Join-Path $module 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/ReadDryPath023.java'
     if($path.helperSource){$helper=[IO.Path]::GetFullPath($path.helperSource);if($helper -cne (Join-Path $PSScriptRoot 'ReadDryRoute032.java') -and $helper -cne (Join-Path $module 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/ReadDryPath023.java')){throw 'Exact checked dry helper required.'}}
     if(-not $path.bidirectional -or $path.helperSha256 -cne (Get-FileHash $helper).Hash -or $path.geoLogSha256 -cne (Get-FileHash $path.geoLog).Hash){throw 'Immutable native dry path provenance invalid.'}
-    if($Seconds -lt 90 -or $Seconds -gt 160 -or $path.steps.Count -gt 40){throw 'Bounded away/return plan exceeds525s/400sequence budget.'}
+    if($Seconds -lt 90 -or $Seconds -gt 160 -or (2 * $path.steps.Count) -gt 40){throw 'Bounded away/return plan exceeds40 total native steps or525s/400sequence budget.'}
 }
 $manifest=Get-Content (Join-Path $runtime 'local-play.json') -Raw | ConvertFrom-Json
 if($manifest.codeSha -cne $FrozenSha -or $manifest.databaseName -cne "l2jmobiush5_localplay_contract032$Episode"){throw 'Frozen SHA/exact clone mismatch.'}

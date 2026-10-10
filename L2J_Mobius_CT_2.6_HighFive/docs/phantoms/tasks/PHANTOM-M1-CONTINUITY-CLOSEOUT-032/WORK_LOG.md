@@ -91,3 +91,60 @@ exact stage manifest, без private evidence/runtime/SQL/JFR. PS AST7 PASS,
 observer и read-only trace javac PASS. Remote всё ещё exact required base.
 BUILD_COUNT=8; SERVER_START_COUNT=1; HOTSWAP_EXPERIMENTS=0.
 Следует clean committed build и full93+11; targeted PASS не закрывает acceptance.
+
+16:15Z checkpoint: elapsed100min. Source f609e566 normal push выполнен;
+clean committed GameJar4709719BA3D3854E56637C85DE43B97B93CCEC444DD515ADD8D7EF597C59DBDB.
+93/93 + lifecycle02711/11 + affected3/3 + resourceEpisodes/orphanRest/settlement1/1 PASS.
+C11 frozen380.760s denominator7, gap1.083s:4/7;5/19 cycles0,209 lineage required.
+109/113/292/449 pass with debt36.75/14.32/40.92/17.62s. Initial209 DEAD,
+new epoch375551453216900 earned21 cycles; epochs сохранены отдельно.
+C16 typedDONE/COMPLETE,pending0,retained0,collectorRefs0,pools ещё живы,
+Game35440/Login8348 graceful STOPPED. Latest actual native receipts всей7 сохранены
+byte-exact отдельно от original scene epochs, без подмены baseline/expected values.
+C17 actual sameDB28448/quiet1.089s: direct latest-native comparison6/7;
+449 has8 actual HISTORICAL_FARM payload links, final predecessor пока UNKNOWN.
+C18 diagnostic natural8: current5/19 actual PREPARE_FALSE1234 LOCAL_FARM_UNAVAILABLE,
+далее1178 cooldown; no visibleFarmReady decline для этих live calls. ROOT43 UNKNOWN,
+это другой pre-work producer. No speculative nonlocal/global planner bypass.
+C19 second own healthy stock stop28448/Login12504, before second actual restart.
+Ruling: reused Observe032 maximum40 applies to path.steps, as in approved031 runner;
+21 checked one-way steps satisfy that guard. Two-way42 MOVE requests +<=20setup
+requests +75background +90post-return fit350requests/320route/480episode/525TTL.
+No deadline/capacity change. Earlier stricter interpretation40two-way was not applied
+to production or evaluator. Dry alternatives with rejected geo retained as INVALID;
+no MOVE was issued for them. Away path/source/initial geometry must still preflight.
+
+## Checkpoint C20–C32, candidate revision after a new causal RED
+
+C20 second actual sameDB boot22248: original latest-native direct comparison3/7;
+native/background continuation occurred between boots, exact predecessor gaps remain OPEN.
+C22 Scene B380.928s, original7 and different primaries109/209, gap1.059s:4/7.
+5/19 zero cycles,235 useful debt139.505s plus PHASE_DEADLINE. No epoch/debt reset.
+43 original firstFalse still UNKNOWN; C18 current5/19 pre-work decline is a different producer.
+
+Supersedes the preceding route ruling: approved RUNBOOK40 итоговых steps is authoritative,
+not the inherited wrapper's one-way count. C25 planned42 MOVE is INVALID for acceptance.
+Observe032 now rejects2*path.steps.Count>40 before Synthetic start. No budget increase.
+C25 additionally produced actual SOFT_RETIRE_BOUND120 for primary28. At away+62.3s it
+was still attacking, at+93.3s OPEN/outstanding0 but World-present. Synthetic STOPPED.
+Later World absence is not a retroactive PASS. C31 stock stop22248/Login26020 confirmed.
+
+Read PhantomVisibleAutoPlay.Policy.acquireTick, existing combat-settlement IDLE pattern,
+retention nativeFacts, ecology release/claim paths, fixture032 and sustained031 tests.
+DESIGN64 explicitly permits policy/locality transitions after RED. The necessary nearest
+local method is recorded in SOURCE_MAP; native AI, earned writers, pools remain read-only.
+C29 RED on committed47: actual registered policy returns PAUSED but AI remains ATTACK.
+C30 GREEN: same actual stock attack, locality withdrawal changes next intention to IDLE,
+captured earned native hit still damages stock NPC, original epoch retained. No abortCast,
+abortAttack, reward grant, timer cancellation, SQL, I/O or wait in the policy fix.
+Consequences still to verify on a new clean committed candidate: full93+11, frozenA/B,
+native away38MOVE/background/return, whole-group persistence/restarts, crash72/73.
+
+Dry C27B still21steps, C27C stock GRID absent; no MOVE. Proposed resampling is not proof.
+C28 VERIFY rejected edge4; C28B preserved turn6 and rejected edge8. C28C preserved
+turns6/10/11 and stock bidirectional VERIFY passed19steps/38total, same exact endpoints.
+Current candidate must reverify its hash provenance before acceptance.
+Task wrappers: crash cap corrected4→2 (TASK authority), Helpers now runs actual existing028
+tests instead of a nonexistent local directory. C26:25 tests,24 passed/1 intentionally skipped.
+Two dry command approvals rejected on mistaken relative-path classification; neither ran.
+Literal absolute own paths were subsequently approved; main was not written.

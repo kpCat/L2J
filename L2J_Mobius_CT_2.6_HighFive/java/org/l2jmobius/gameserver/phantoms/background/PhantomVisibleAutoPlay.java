@@ -472,6 +472,11 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			{
 				if (!_permitsNewRoots.test(_profileId))
 				{
+					// Stop the next native intention while captured earned hit/cast work completes.
+					if (player.hasAI() && !player.isCastingNow() && !player.isCastingSimultaneouslyNow() && (player.getAI().getIntention() != Intention.IDLE))
+					{
+						player.getAI().setIntention(Intention.IDLE);
+					}
 					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "locality_retire_paused"));
 					return new TickAdmission(TickStatus.PAUSED, null, "locality_retire");
 				}

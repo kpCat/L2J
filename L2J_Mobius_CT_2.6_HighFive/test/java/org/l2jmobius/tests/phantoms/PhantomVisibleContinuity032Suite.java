@@ -24,6 +24,10 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("retirement032".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("C04-locality-pause-stops-next-intention-but-completes-earned-hit", this::retirement); return;
+		}
 		registry.add("C03-first-decline-recording-preserves-short-circuit-and-SQL-failure", this::readiness);
 		if ("readiness032".equals(System.getProperty("phantom.m1.native.focus"))) { return; }
 		registry.add("C01-old-native-target-failure-does-not-fence-new-epoch", context ->
@@ -46,6 +50,48 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 			}
 		});
 		registry.add("C02-stock-autoplay-can-damage-lawful-shared-target", this::cooperative);
+		registry.add("C04-locality-pause-stops-next-intention-but-completes-earned-hit", this::retirement);
+	}
+	private void retirement(PhantomTestContext context) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			final var permitsRoots = new java.util.concurrent.atomic.AtomicBoolean(true);
+			final var autoPlay = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision, _ -> permitsRoots.get(), System::nanoTime);
+			final Player player = f.loadedPlayer;
+			final int instance = InstanceManager.getInstance().createDynamicInstance(0).getId();
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final Monster target = new Monster(NpcData.getInstance().getTemplate(PhantomBackgroundGoalSpec.parse(goal).npcId()));
+			try
+			{
+				player.setInstanceId(instance); target.setInstanceId(instance);
+				final var spawn = new Spawn(target.getTemplate()); spawn.setXYZ(player.getX() + 32, player.getY(), player.getZ()); target.setSpawn(spawn);
+				target.setCurrentHpMp(target.getMaxHp(), target.getMaxMp()); target.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
+				PhantomAssertions.assertTrue(autoPlay.start(f.id, goal), "Current native AutoPlay starts before locality withdrawal.");
+				final var policies = org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.class.getDeclaredField("PHANTOM_POLICIES"); policies.setAccessible(true);
+				final var policy = (org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.PhantomPolicy) ((java.util.Map<?, ?>) policies.get(null)).get(player);
+				PhantomAssertions.assertTrue(policy != null, "Actual registered native policy required.");
+				player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, target);
+				final long deadline = System.nanoTime() + 5_000_000_000L;
+				while (!player.isAttackingNow() && System.nanoTime() < deadline) { Thread.sleep(10); }
+				PhantomAssertions.assertTrue(player.isAttackingNow(), "Real stock attack must already have captured its native hit.");
+				final long damage = player.getNativeWorkOwner().evidence().snapshot().damageSequence();
+				permitsRoots.set(false);
+				final var admission = policy.acquireTick(player, "AutoPlay");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickStatus.PAUSED, admission.status(), "Withdrawal pauses ordinary pool roots.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.ai.Intention.IDLE, player.getAI().getIntention(), "RED: paused locality must stop the next stock attack intention.");
+				while (player.getNativeWorkOwner().evidence().snapshot().damageSequence() == damage && System.nanoTime() < deadline) { Thread.sleep(10); }
+				PhantomAssertions.assertTrue(player.getNativeWorkOwner().evidence().snapshot().damageSequence() > damage, "Captured earned native hit still completes after IDLE.");
+				PhantomAssertions.assertEquals(f.loadedEpoch, player.getNativeWorkOwner().epoch(), "No owner replacement or debt reset.");
+				context.record("C04.native", autoPlay.snapshotContinuation(f.id).scalarMap());
+			}
+			finally
+			{
+				autoPlay.stop(f.id); target.abortAttack(); target.abortCast(); target.deleteMe();
+				player.setInstanceId(0); InstanceManager.getInstance().destroyInstance(instance); PhantomVisibleIntentRecoverySuite.stop(engine);
+			}
+		}
 	}
 	private void readiness(PhantomTestContext context) throws Exception
 	{
