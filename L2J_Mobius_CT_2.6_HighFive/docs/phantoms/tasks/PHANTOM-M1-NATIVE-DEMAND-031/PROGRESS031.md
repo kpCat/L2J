@@ -39,3 +39,5 @@ C13_UTC=2026-10-10T02:52:47.4316720Z; C12 actual33/107 nativecycle1 +87/10,+83/9
 C14_UTC=2026-10-10T03:23:45.6118722Z; C13Scene4/8FAIL all8retained; actor33 exact dead launch5945/paidimpact6094. Advisory stock target preference isolatedoldJarRED1/0/1->freshJarGREEN1/1, defaultownership4/4; runtimeGREENpending. STOP15stockCOMPLETE productionretained0; finalledger1002births/dropped0/emptyfailure/refs0. Task-only stock-endpointSQLoutsidecheckpoint added. Builds9/compilations13/starts15; M1OPEN.
 
 C14a: exact PhVisible mixed-EOL preservation correction, semanticdelta15lines againstC13; no rebuild/restart or acceptance claim. Invalid earlier check orchestration not counted as verification.
+
+C15_UTC=2026-10-10T04:02:19.7259500Z; rest-episode oldJarRED1/0/1->JarGREEN1/1, nativeF05/F07 2/2; C14Scene2/7FAIL/all7retained; exact50 history false1193 generation/hash comparison, differingmemberUNPROVEN. STOP16initial agentfailure nothealthy; emptyWorld retry stockSTOP. Own32416/36336 STOP17typedCOMPLETE/poolsfalse, all7SQLpending0/online0. Builds10/compiles14/starts17; currentmatrix/Scene/away/SQL/restarts/crash pending; M1OPEN.

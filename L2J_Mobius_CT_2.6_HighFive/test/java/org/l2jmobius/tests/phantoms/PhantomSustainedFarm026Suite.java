@@ -31,6 +31,10 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _handoff.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("resourceEpisodes031".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("F08-distinct-native-rest-episodes-preserve-useful-debt", context -> resources(context, false, true)); return;
+		}
 		if ("settlement031".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("S12-actual-shared-native-zero-SP-terminal-cap", this::sharedSettlement); return;
@@ -122,7 +126,8 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 			finally { for (Monster monster : monsters) { monster.abortAttack(); monster.abortCast(); monster.deleteMe(); } }
 		}
 	}
-	private void resources(PhantomTestContext context, boolean inFlight) throws Exception
+	private void resources(PhantomTestContext context, boolean inFlight) throws Exception { resources(context, inFlight, false); }
+	private void resources(PhantomTestContext context, boolean inFlight, boolean episodes) throws Exception
 	{
 		final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); field.setAccessible(true);
 		final var environment = (PhantomHeadlessPlayerTestEnvironment) field.get(_handoff);
@@ -144,14 +149,45 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 		{
 			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
 			final var clock = new AtomicLong(System.nanoTime());
-			final var adapter = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision, inFlight ? clock::get : System::nanoTime);
+			final var adapter = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision, (inFlight || episodes) ? clock::get : System::nanoTime);
 			final Player player = World.getInstance().getPlayer(f.objectId);
 			final var goal = f.goals.load(f.id).orElseThrow().goal();
 			final var skill = player.getKnownSkill(1177);
 			Monster target = null;
+			final int isolatedInstance = episodes ? InstanceManager.getInstance().createDynamicInstance(0).getId() : 0;
+			if (episodes) { player.setInstanceId(isolatedInstance); }
 			try
 			{
-				if (!inFlight)
+				if (episodes)
+				{
+					final long began = clock.get(), epoch = player.getNativeWorkOwner().epoch(), exp = player.getExp(), sp = player.getSp();
+					PhantomAssertions.assertTrue(adapter.start(f.id, goal), "Original owned native pools start in an empty isolated instance.");
+					adapter.noTargetExpired(f.id, goal);
+					PhantomAssertions.assertTrue(player.isSitting(), "Low native MP begins the first actual rest.");
+					Thread.sleep(2_600); // The stock sit animation owns2.5s before stand can be admitted.
+					clock.addAndGet(10_000_000_000L);
+					try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.setCurrentMp(player.getMaxMp()); }
+					adapter.noTargetExpired(f.id, goal);
+					await(6_000, () -> !player.isSitting(), "Original native stand completes.");
+					clock.addAndGet(1_000_000_000L); adapter.noTargetExpired(f.id, goal);
+					var first = adapter.snapshotContinuation(f.id).scalarMap(); context.record("F08.firstAffordable", first);
+					PhantomAssertions.assertEquals("false", first.get("liveResourceRecovery"), "Affordable actor has completed rest.");
+					PhantomAssertions.assertEquals("0", first.get("liveResourceSinceNanos"), "RED: a completed rest cannot age the next distinct rest episode.");
+					try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.setCurrentMp(1); }
+					clock.addAndGet(1_000_000_000L); adapter.noTargetExpired(f.id, goal);
+					PhantomAssertions.assertEquals(Long.toString(clock.get()), adapter.snapshotContinuation(f.id).scalarMap().get("liveResourceSinceNanos"), "The second actual rest owns its own start time.");
+					Thread.sleep(2_600); // Complete the second original sit animation before testing expiry.
+					clock.addAndGet(46_000_000_000L);
+					PhantomAssertions.assertTrue(adapter.noTargetExpired(f.id, goal), "The unchanged45s resource bound still expires an unsuccessful rest.");
+					await(6_000, () -> !player.isSitting(), "Expired rest stands through the native action.");
+					try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.setCurrentMp(player.getMaxMp()); }
+					clock.set(began + 91_000_000_000L);
+					PhantomAssertions.assertTrue(adapter.noTargetExpired(f.id, goal), "Completed rest never renews unchanged90s useful-progress debt.");
+					PhantomAssertions.assertEquals(epoch, player.getNativeWorkOwner().epoch(), "Original native ownership remains.");
+					PhantomAssertions.assertEquals(exp, player.getExp(), "Resource control grants no EXP.");
+					PhantomAssertions.assertEquals(sp, player.getSp(), "Resource control grants no SP.");
+				}
+				else if (!inFlight)
 				{
 					target = monster(player, PhantomBackgroundGoalSpec.parse(goal).npcId(), player.getInstanceId());
 					final double nativeHp = target.getCurrentHp();
@@ -196,7 +232,7 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 					}
 				}
 			}
-			finally { adapter.stop(f.id); if (target != null) { target.deleteMe(); } PhantomVisibleIntentRecoverySuite.stop(engine); }
+			finally { adapter.stop(f.id); if (target != null) { target.deleteMe(); } if (episodes) { player.setInstanceId(0); InstanceManager.getInstance().destroyInstance(isolatedInstance); } PhantomVisibleIntentRecoverySuite.stop(engine); }
 		}
 	}
 	private static void await(long millis, java.util.function.BooleanSupplier condition, String message) throws Exception

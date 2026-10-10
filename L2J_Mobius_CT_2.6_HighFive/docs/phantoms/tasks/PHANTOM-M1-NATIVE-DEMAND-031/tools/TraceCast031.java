@@ -66,6 +66,46 @@ class TraceCast031 {
   }finally{for(var bp:points){bp.disable();requests.deleteEventRequest(bp);}}
   lines.add("BACKGROUND_POINTS="+count+" foreignResumed="+foreign+" NO_VM_SUSPEND=true");
  }
+ static void traceGeneration(VirtualMachine vm,String profile,List<String> lines)throws Exception {
+  var systemType=vm.classesByName("org.l2jmobius.gameserver.phantoms.PhantomSystem").getFirst();Value system=systemType.getValue(systemType.fieldByName("_configuredInstance"));
+  var history=(ObjectReference)ReadNativeState031.field(system,"_historicalBackgroundService");var requests=vm.eventRequestManager();
+  var point=requests.createBreakpointRequest(history.referenceType().locationsOfLine(1193).getFirst());point.addInstanceFilter(history);point.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD);point.enable();
+  boolean done=false;int foreign=0;long deadline=System.nanoTime()+40_000_000_000L;
+  try {while(!done&&foreign<8&&System.nanoTime()<deadline){EventSet events=vm.eventQueue().remove(500);if(events==null)continue;
+   try {for(Event event:events)if(event instanceof BreakpointEvent hit){long began=System.nanoTime();var frame=hit.thread().frame(0);var values=frame.getValues(frame.visibleVariables());
+    Value id=frame.getValue(frame.visibleVariableByName("profileId"));if(!profile.equals(ReadNativeState031.scalar(id))){foreign++;continue;}
+    lines.add("UTC="+java.time.Instant.now()+" profile="+profile+" source=PhantomHistoricalBackgroundService.java:1193");
+    for(var item:values.entrySet()){String name=item.getKey().name();Value value=item.getValue();if(!List.of("replacement","catchup","projected","live","stored").contains(name))continue;
+     if(name.equals("replacement"))value=ReadNativeState031.field(value,"generation");if(name.equals("catchup"))value=ReadNativeState031.field(value,"state");
+     for(String field:List.of("knowledgeGeneration","topologyGeneration","authorityHashes","hashes","x","y","z","instanceId","rowVersion","goal")){Value v=ReadNativeState031.field(value,field);if(v==null)continue;lines.add(name+"."+field+"="+ReadNativeState031.scalar(v));
+      if((field.equals("authorityHashes")||field.equals("hashes"))&&v instanceof ObjectReference hash)for(String h:List.of("knowledge","topology","progression","commerce"))lines.add(name+"."+field+"."+h+"="+ReadNativeState031.scalar(ReadNativeState031.field(hash,h)));
+     }
+    }
+    for(var f:hit.thread().frames().stream().limit(8).toList())lines.add("stack="+f.location().declaringType().name()+"."+f.location().method().name()+":"+f.location().lineNumber());lines.add("captureNanos="+(System.nanoTime()-began));done=true;
+   }}finally{events.resume();lines.add("EVENT_THREAD_RESUMED=true");}
+  }}finally{point.disable();requests.deleteEventRequest(point);}lines.add("GENERATION_HIT="+done+" foreignResumed="+foreign+" NO_VM_SUSPEND=true");
+ }
+ static void traceHistory(VirtualMachine vm,String profile,List<String> lines)throws Exception {
+  var systemType=vm.classesByName("org.l2jmobius.gameserver.phantoms.PhantomSystem").getFirst();Value system=systemType.getValue(systemType.fieldByName("_configuredInstance"));
+  var history=(ObjectReference)ReadNativeState031.field(system,"_historicalBackgroundService");var requests=vm.eventRequestManager();
+  var entry=requests.createBreakpointRequest(history.referenceType().locationsOfLine(1122).getFirst());entry.addInstanceFilter(history);entry.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD);entry.enable();
+  StepRequest step=null;MethodExitRequest exit=null;int foreign=0,count=0;boolean done=false;long deadline=System.nanoTime()+40_000_000_000L;
+  try {while(!done&&System.nanoTime()<deadline&&foreign<8&&count<64){EventSet events=vm.eventQueue().remove(500);if(events==null)continue;
+   try {for(Event event:events)if(event instanceof LocatableEvent hit){long began=System.nanoTime();
+    if(event instanceof MethodExitEvent returned){if(returned.method().name().equals("prepareVisibleDecision")){lines.add("RETURN="+(vm.canGetMethodReturnValues()?ReadNativeState031.scalar(returned.returnValue()):"UNAVAILABLE")+" source="+returned.location().sourceName()+":"+returned.location().lineNumber());done=true;}continue;}
+    var frame=hit.thread().frame(0);if(event instanceof BreakpointEvent){Value id=frame.getValue(frame.visibleVariableByName("profileId"));if(!profile.equals(ReadNativeState031.scalar(id))){foreign++;continue;}entry.disable();
+     step=requests.createStepRequest(hit.thread(),StepRequest.STEP_LINE,StepRequest.STEP_OVER);step.addClassFilter(history.referenceType().name());step.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD);step.enable();
+     exit=requests.createMethodExitRequest();exit.addInstanceFilter(history);exit.addClassFilter(history.referenceType());exit.addThreadFilter(hit.thread());exit.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD);exit.enable();
+     for(var f:hit.thread().frames().stream().limit(8).toList())lines.add("stack="+f.location().declaringType().name()+"."+f.location().method().name()+":"+f.location().lineNumber());
+    }
+    if(!frame.location().method().name().equals("prepareVisibleDecision"))continue;count++;lines.add("UTC="+java.time.Instant.now()+" profile="+profile+" source="+frame.location().sourceName()+":"+frame.location().lineNumber());
+    var values=frame.getValues(frame.visibleVariables());for(var item:values.entrySet()){String name=item.getKey().name();Value value=item.getValue();lines.add("local "+name+"="+ReadNativeState031.scalar(value));
+     if(List.of("runtime","stored","admitted","baseline","checkpoint","catchup").contains(name)&&value instanceof ObjectReference object){for(String field:List.of("goalId","goalRevision","goalType","goalStatus","inFlight","persistenceInFlight","worldPresent","actionAdmissionOpen","characterObjectId","materializedAtNanos","state","outcome","reason","rowVersion","goal")){Value v=ReadNativeState031.field(object,field);if(v!=null)lines.add(name+"."+field+"="+ReadNativeState031.scalar(v));}}
+    }lines.add("captureNanos="+(System.nanoTime()-began));
+   }}finally{events.resume();lines.add("EVENT_THREAD_RESUMED=true");}
+  }}finally{entry.disable();requests.deleteEventRequest(entry);if(step!=null){step.disable();requests.deleteEventRequest(step);}if(exit!=null){exit.disable();requests.deleteEventRequest(exit);}}
+  lines.add("HISTORY_POINTS="+count+" foreignResumed="+foreign+" NO_VM_SUSPEND=true");
+ }
  static void tracePolicy(VirtualMachine vm,String profile,List<String> lines)throws Exception {
   var systemType=vm.classesByName("org.l2jmobius.gameserver.phantoms.PhantomSystem").getFirst();Value system=systemType.getValue(systemType.fieldByName("_configuredInstance"));ObjectReference policy=null;
   for(ObjectReference e:ReadNativeState031.entries(ReadNativeState031.field(ReadNativeState031.field(system,"_visibleAutoPlay"),"_sessions")))if(profile.equals(ReadNativeState031.scalar(ReadNativeState031.field(ReadNativeState031.field(e,"key"),"value"))))policy=(ObjectReference)ReadNativeState031.field(ReadNativeState031.field(e,"val"),"_policy");
@@ -138,6 +178,8 @@ class TraceCast031 {
     Value key=ReadNativeState031.field(entry,"key");
     if(args[2].equals(ReadNativeState031.scalar(ReadNativeState031.field(key,"profileId"))))player=(ObjectReference)ReadNativeState031.field(ReadNativeState031.field(entry,"val"),"_player");
    }
+   if(args.length==6&&args[5].equals("GENERATION")){traceGeneration(vm,args[2],lines);Files.write(output,lines,java.nio.charset.StandardCharsets.UTF_8,StandardOpenOption.CREATE_NEW);System.out.println(String.join("\n",lines));return;}
+   if(args.length==6&&args[5].equals("HISTORY")){traceHistory(vm,args[2],lines);Files.write(output,lines,java.nio.charset.StandardCharsets.UTF_8,StandardOpenOption.CREATE_NEW);System.out.println(String.join("\n",lines));return;}
    if(args.length==6&&args[5].equals("BACKGROUND")){traceBackground(vm,args[2],lines);Files.write(output,lines,java.nio.charset.StandardCharsets.UTF_8,StandardOpenOption.CREATE_NEW);System.out.println(String.join("\n",lines));return;}
    if(args.length==6&&args[5].equals("POLICY")){tracePolicy(vm,args[2],lines);Files.write(output,lines,java.nio.charset.StandardCharsets.UTF_8,StandardOpenOption.CREATE_NEW);System.out.println(String.join("\n",lines));return;}
    var systemType=vm.classesByName("org.l2jmobius.gameserver.phantoms.PhantomSystem").getFirst();
