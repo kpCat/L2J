@@ -1,0 +1,19 @@
+# Checkpoint C22 — exact crash72 storage recovery; diagnostic limitation
+
+UTC 2026-10-10T08:13Z. Source e1339ec0844851203c5db1460fa7e8463e70099d; Java tree c0f1a61b57c0cce2decc282d7dc431871c9a08cb; production Jar87FD5F8A7EFFE7CA55B01B5EE7B0346B7751F1FDCDD386151386DD0F9B1D2B0D unchanged. Jar builds12, production compiles16, own Game starts29. HotSwap applied0: own28 had no JDWP listener; private diagnostic compilation is not acceptance. Own29 had verified loopback5031, suspend=n.
+
+C21 current continuity8/8, persistence8/8 and two sameDB restarts8/8 remain confirmed. Mandatory93/93 and lifecycle11/11 unchanged.
+
+Own28 Game24452 / Login1728. C22 initial source25 natural4 probe ended TELEMETRY_GAP11.4054935 at Accept031.ps1:304; native farm failure not inferred. Source25 later failed prepublication READY guard112. Readonly selected source751 probe on unchanged observer passed: natural6 IDs751/756/760/795/878/1082,77 unique samples, gap1.088248s,4 commands, telemetry mailbox0. This is a short causal probe, not CONTINUITY_V2.
+
+Exact current1082 epoch347333508907900 showed native+1463EXP/+68SP before arm. CRASH_NATIVE fired at AFTER_OWNED_NATIVE_STORE on own28. Expected planned halt is not healthy shutdown. Login1728 subsequently stopped stock.
+
+Own29 Game28584 / Login28312. Actual pending1082 background version26805/contextPENDING/owned receipt survived boot; readonly JDI at08:08:21.576414400Z measured ordinary queue rank12/1026, no target exception. Actual recovery-commit captured08:08:26.2014224Z before admission. Existing024 strict comparator PASS1/1 and receiptIntegrity=true: all integer/vital/whole-inventory/skill fields exact, recovered canonical version26806=prepared+1, exact payload digest, COMPLETED context, no pending owned stores. ExportCrashSql031 changes format only; actual recovery SQL stays immutable, separate stopped counts explicitly identified.
+
+Diagnostic limitation: Control031 startup finally removes the recovery release job after Wait-Job5s, before late ordinary-queue recovery. The native transaction had already committed, but diagnostic barrier reached45s timeout. Manual release signal08:09:39.1281162Z was late. Therefore recovery storage proof is confirmed; observer-clean startup acceptance is not claimed. This delay is excluded from gameplay timing. Own29 stock Game/Login stop confirmed, native DONE/COMPLETE, retainedEntries0, observer proofFailure=TASK031_RECOVERY_BARRIER_TIMEOUT explicitly retained.
+
+C08 audit: ordinary FINALIZED captures immutable native receipt and enqueues; SQL/I/O/wait absent from that hook. SQL views run on TASK031-witness-export, repeatable-read/read-only, statement timeout2s. Measured individual views1976, maximum0.0055859s,total2.3521578s; this does not prove an11.4s SQL-induced gap or absence of every possible indirect pool/queue delay. Exporter sample stacks sleeping, no retained ownable synchronizer. Recovery hook uses an explicit diagnostic barrier, separately identified above; crash fault SQL is also excluded from gameplay proof. Unbounded exporter drain is a hypothesis, not a proven production defect.
+
+Correctly persisted private JFR own29,60s,SHA9ED6192D625BFC0CFDA42F92DD25194926F37AAAC57EA9E34091094877232506:39 GC pauses,max0.000021222s,sum0.000467161s,0 JavaMonitorEnter events. These timings cover recovery29, not the earlier gap. Two earlier jcmd invocations incorrectly passed filename as a separate setting: recordings started but expected files absent; they are not exported JFR evidence. Raw JFR/JDI/thread/SQL remain private after privacy review; publish only these scalar/hash findings.
+
+Remaining: crash73, observer-clean crash72 startup, real native away/background75s/return/post-return farm. C20 actual background receipts are outside its measured75s; no data-loss claim. M1=OPEN; REAL_FINAL=NOT_RUN; STOP_AUTHORITY=TASK031_CONTRACT. No next task.
