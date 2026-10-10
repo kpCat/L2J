@@ -95,6 +95,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if ("travel031".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("H16-blocked-attested-travel-retains-history-and-hands-off", this::blockedTravel031); return; }
 		if ("lifecycle027".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("S01-accepted-native-materialization-before-system-drain", this::composedStop027);
@@ -286,6 +287,45 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 		}
 	}
 
+	private void blockedTravel031(PhantomTestContext context) throws Exception
+	{
+		// Ordinary guarded TEST preparation precedes the Phantom profile and its first baseline.
+		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=0,base_class=0,race=0,level=7,exp=?,online=0 WHERE charId=?"))
+		{
+			statement.setLong(1, org.l2jmobius.gameserver.data.xml.ExperienceData.getInstance().getExpForLevel(7)); statement.setInt(2, _environment.primary().objectId());
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact ordinary pre-profile TEST level.");
+		}
+		try (var f = new Fixture(true))
+		{
+			f.handoff();
+			final var player = f.loadedPlayer;
+			final var ticket = player.getNativeWorkOwner().reserve(null, "TEST_BLOCKED_TRAVEL031_SETUP", org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Semantics.CANCELLABLE);
+			PhantomAssertions.assertTrue(ticket != null && ticket.tryStart(), "Exact owned native TEST setup admission.");
+			Throwable failure = null;
+			try (var held = org.l2jmobius.gameserver.model.actor.PlayerNativeWork.enter(ticket)) { player.setXYZInvisible(player.getX() + 10000, player.getY(), player.getZ()); }
+			catch (RuntimeException | Error thrown) { failure = thrown; throw thrown; }
+			finally { ticket.complete(failure); }
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.dematerialize(f.id).status(), "Off-anchor owned native store.");
+			final var pending = f.catchups.load(f.id).orElseThrow();
+			final var running = f.catchups.replace(f.id, pending, pending.state().running());
+			final var before = f.transactions.nativeContext(f.id, f.objectId);
+			PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, before.status(), "Actual finalized context.");
+			PhantomAssertions.assertTrue(before.context().afterPolicy() != null && !before.context().afterPolicy().farmPosition() && before.context().afterPolicy().travelPosition(), "Attested TRAVEL must be permitted while FARM is unsupported.");
+			final var goal = f.goals.load(f.id).orElseThrow();
+			final var route = _production.authority().advanceTravel(before.state(), org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(goal.goal()), PhantomBackgroundService.FARM_TRAVEL_BUDGET_MILLIS, f.from, before.context().afterPolicy());
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundAuthority.TravelAdvance.Status.NO_ROUTE, route.status(), "Original dry route must reject.");
+			final var result = f.background.advanceHistorical(f.id, goal.goal(), running, running.state().advanceTo(f.target));
+			context.record("H16.actual", "result=" + result.status() + ":" + result.reason() + ";route=" + route.status() + ";cursor=" + running.state().cursorEpochMinute());
+			PhantomAssertions.assertTrue(result.reason().startsWith("native_context.required:"), "BLOCKED_TRAVEL_HANDOFF_RED: exact dry rejection must request native execution: " + result.status() + ":" + result.reason());
+			PhantomAssertions.assertEquals(before, f.transactions.nativeContext(f.id, f.objectId), "Refusal changed native/state/context facts or rewards.");
+			PhantomAssertions.assertEquals(running, f.catchups.load(f.id).orElseThrow(), "Refusal advanced historical cursor or changed its claim.");
+			PhantomAssertions.assertEquals(goal, f.goals.load(f.id).orElseThrow(), "Refusal changed goal ownership.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.CATCHUP_FENCED, f.materialization.materialize(f.id).status(), "NORMAL remains fenced.");
+			f.afterHistoricalLoad = () -> { };
+			f.handoff();
+			PhantomAssertions.assertEquals(PhantomMaterializationService.MaterializationPurpose.NATIVE_CONTEXT_HANDOFF, f.loadedPurpose, "Original claim must use typed handoff.");
+		}
+	}
 	private void integrated(PhantomTestContext context) throws Exception
 	{
 		try (var f = new Fixture())
@@ -441,6 +481,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 		Runnable beforeLoad = () -> { };
 		Runnable afterHistoricalLoad = () -> { };
 		PhantomBackgroundState baseline;
+		Player loadedPlayer;
 		long loadedEpoch;
 		PhantomMaterializationService.MaterializationPurpose loadedPurpose;
 
@@ -480,6 +521,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 				@Override public void afterPlayerLoad(long id, Player player)
 				{
 					Fixture.this.historical.afterPlayerLoad(id, player);
+					loadedPlayer = player;
 					loadedEpoch = player.getNativeWorkOwner().epoch();
 					afterHistoricalLoad.run();
 					background.afterPlayerLoad(id, player);

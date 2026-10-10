@@ -565,6 +565,16 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 				}
 				if (!advance.mutated())
 				{
+					// A native-attested off-anchor position may permit TRAVEL while the exact dry route is unsupported.
+					// Keep the original history/cursor fenced and let its existing exact-owner native handoff execute it.
+					if ((advance.status() == TravelAdvance.Status.NO_ROUTE) && "local-return".equals(advance.edgeId())
+						&& (claim._nativeContext.afterPolicy() != null) && !claim._nativeContext.afterPolicy().farmPosition())
+					{
+						final var proof = transaction(() -> _transactions.nativeContext(profileId, claim.characterObjectId()));
+						if (proof.status() != PhantomBackgroundTransaction.Status.SUCCESS) { return mapTransactionFailure(proof.status()); }
+						if (!state.equals(proof.state()) || !claim._nativeContext.equals(proof.context())) { return OperationResult.replan("native_context.state_changed"); }
+						return OperationResult.replan(nativeContextReason(updateNativeContextSignal(profileId, proof, true)));
+					}
 					return switch (advance.status())
 					{
 						case EDGE_CLOSED, NO_ROUTE, INSUFFICIENT_ADENA -> retry("catchup.travel." + advance.status().name().toLowerCase());
