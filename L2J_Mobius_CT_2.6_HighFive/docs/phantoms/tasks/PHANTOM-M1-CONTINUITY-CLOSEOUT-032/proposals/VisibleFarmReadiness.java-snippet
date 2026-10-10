@@ -1,0 +1,49 @@
+// DESIGN/DIAGNOSTIC SHAPE ONLY. Integrate inside PhantomHistoricalBackgroundService.
+// НЕ готовый автоматически применяемый patch. Не изменяет boolean admission.
+// Тот же порядок predicates и количество SQL reads; exceptions не перехватывать.
+// Производитель tracing обязан быть non-throwing, bounded и не делать SQL/FS/wait.
+// Снимать reason внутри реального вызова, не вторым поздним вызовом из observer.
+
+private record VisibleFarmReadiness(boolean ready, String reason, long epoch, long retryAtNanos)
+{
+}
+
+private VisibleFarmReadiness evaluateVisibleFarmReadiness(long profileId, PhantomGoal goal)
+{
+    final var failures = _visibleFailures.get(profileId);
+    final long epoch = _materialization.find(profileId)
+        .map(value -> value.materializedAtNanos()).orElse(0L);
+    final var episode = _visibleEpisodes.get(profileId);
+    if ((episode != null) && (episode.epoch == epoch)
+        && (_visibleClock.getAsLong() < episode.cooldownUntil))
+    {
+        return new VisibleFarmReadiness(false, "visible.cooldown", epoch, episode.cooldownUntil);
+    }
+    if (failures != null)
+    {
+        if (failures.protocolBlocked(goal, epoch))
+        {
+            return new VisibleFarmReadiness(false, "visible.protocol_blocked", epoch, 0L);
+        }
+        if (failures.routeBlocked(goal, epoch))
+        {
+            return new VisibleFarmReadiness(false, "visible.route_blocked", epoch, 0L);
+        }
+        if (failures.exclusions(_visibleClock.getAsLong()).targets().contains(targetKey(goal)))
+        {
+            return new VisibleFarmReadiness(false, "visible.target_excluded", epoch, 0L);
+        }
+    }
+    final PhantomGoal storedGoal = _goals.load(profileId).map(StoredGoal::goal).orElse(null);
+    final boolean sameGoal = Objects.equals(storedGoal, goal);
+    return new VisibleFarmReadiness(sameGoal,
+        sameGoal ? "visible.ready" : "visible.stored_goal_mismatch", epoch, 0L);
+}
+
+public boolean visibleFarmReady(long profileId, PhantomGoal goal)
+{
+    final VisibleFarmReadiness evaluated = evaluateVisibleFarmReadiness(profileId, goal);
+    // Здесь можно смотреть evaluated через узкий JDI или передать в existing recorder.
+    // Не вызывать evaluateVisibleFarmReadiness повторно; не выдавать по reason новый grant.
+    return evaluated.ready();
+}

@@ -248,7 +248,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 		stabilizeInfrastructureThreads();
 		_environmentThreadIds = liveNonDaemonThreadIds();
-		context.record("headless.database", owned026Enabled() ? System.getProperty("phantom.contract031.manifest") != null ? "l2jmobiush5_localplay_contract031t" : "l2jmobiush5_localplay_contract" + (System.getProperty("phantom.contract027.manifest") != null ? "027" : "026") + "a" : PhantomContracts025DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract025b" : PhantomContracts024DatabaseLane.enabled()
+		context.record("headless.database", owned026Enabled() ? System.getProperty("phantom.contract032.manifest") != null ? "l2jmobiush5_localplay_contract032t" : System.getProperty("phantom.contract031.manifest") != null ? "l2jmobiush5_localplay_contract031t" : "l2jmobiush5_localplay_contract" + (System.getProperty("phantom.contract027.manifest") != null ? "027" : "026") + "a" : PhantomContracts025DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract025b" : PhantomContracts024DatabaseLane.enabled()
 			? "l2jmobiush5_localplay_contract024a" : PhantomTestDatabaseGuard.TARGET_DATABASE);
 		context.record("headless.schemaAggregateSha256", ((PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled() || owned026Enabled())
 			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());
@@ -262,7 +262,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	private static boolean owned026Enabled()
 	{
-		return (System.getProperty("phantom.contract026.manifest") != null) || (System.getProperty("phantom.contract027.manifest") != null) || (System.getProperty("phantom.contract031.manifest") != null);
+		return (System.getProperty("phantom.contract026.manifest") != null) || (System.getProperty("phantom.contract027.manifest") != null) || (System.getProperty("phantom.contract031.manifest") != null) || (System.getProperty("phantom.contract032.manifest") != null);
 	}
 
 	/** Same exact export/config/catalog guard as TASK025; shared TEST metadata remains untouched. */
@@ -273,8 +273,10 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		PhantomAssertions.assertFalse(task027 && (System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
 		final boolean task031 = System.getProperty("phantom.contract031.manifest") != null;
 		PhantomAssertions.assertFalse(task031 && (task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
-		final String contract = task031 ? "031" : task027 ? "027" : "026";
-		final String episode = task031 ? "t" : "a";
+		final boolean task032 = System.getProperty("phantom.contract032.manifest") != null;
+		PhantomAssertions.assertFalse(task032 && (task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
+		final String contract = task032 ? "032" : task031 ? "031" : task027 ? "027" : "026";
+		final String episode = task032 || task031 ? "t" : "a";
 		final Path lane = root.resolve(".phantom-local/contract" + contract + episode).toRealPath();
 		final Path manifest = Path.of(System.getProperty("phantom.contract" + contract + ".manifest")).toRealPath();
 		PhantomAssertions.assertEquals(lane.resolve("test/owned.properties"), manifest, "Exact owned TASK026 manifest required.");

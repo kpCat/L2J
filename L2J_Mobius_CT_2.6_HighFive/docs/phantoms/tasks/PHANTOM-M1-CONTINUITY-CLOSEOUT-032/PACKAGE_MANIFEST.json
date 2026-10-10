@@ -1,0 +1,126 @@
+{
+  "task": "PHANTOM-M1-CONTINUITY-CLOSEOUT-032",
+  "packageVersion": 1,
+  "requiredBase": "df6ee99c71a4c8b07ad05545b200e113d3b0d3c9",
+  "branch": "experiment/m1-candidate007-observe008",
+  "model": "GPT-6.1 Sol",
+  "reasoning": "Very High",
+  "subagents": false,
+  "productSourcesOverwrittenOnExtraction": false,
+  "maximumWallMinutes": 480,
+  "semanticFreezeMinutes": 360,
+  "coordinatorProductRuntimeTested": false,
+  "proposalJavaCompiled": false,
+  "files": [
+    {
+      "path": "ACCEPTANCE.md",
+      "sha256": "1a4a04da9a7be2e94f67f590f8a3a6051f2f209878cc029823e9e4fac26105f0",
+      "bytes": 3456
+    },
+    {
+      "path": "DESIGN.md",
+      "sha256": "3e6c049b8d3f7a5d5bacce71581415343d49e07ad4ee407f6092a6efe6dfbe40",
+      "bytes": 5713
+    },
+    {
+      "path": "GIT.md",
+      "sha256": "fb64aa95822a282ed0ac0c3b4f43e00f0fcf06aeab7877368d2f656f0da9fe55",
+      "bytes": 1826
+    },
+    {
+      "path": "GOAL.md",
+      "sha256": "e205b63c57d87b23f7133c4a5f807730a3e90258498fb11d79d8413fbc326f2d",
+      "bytes": 2754
+    },
+    {
+      "path": "HANDOFF.md",
+      "sha256": "bf2455207ed1d8ff1084d8eec7b9965357e9bc58afb077cd23367d1bdc703add",
+      "bytes": 4312
+    },
+    {
+      "path": "LINEAGE.md",
+      "sha256": "499de19781af36b19fe99211f698244beb5585123663b5241398aae4c37feae7",
+      "bytes": 4037
+    },
+    {
+      "path": "PATCH_GUIDE.md",
+      "sha256": "82a75b465459921d0713f32b219b40a898192ca7c4ca9c48df6b1a87bd5f7f1a",
+      "bytes": 5473
+    },
+    {
+      "path": "PLAN.md",
+      "sha256": "dc5800231facc1f26c2f5cb7adbb160097642cfd3df72b99f395cad0ae5c3f3b",
+      "bytes": 7002
+    },
+    {
+      "path": "README.md",
+      "sha256": "f0f153cb799e8ee422b45e1cd37e21723235c4da47f088891301a763d89de85e",
+      "bytes": 2557
+    },
+    {
+      "path": "RESULT_TEMPLATE.md",
+      "sha256": "66c748520ec7e1d99fd8e3997e10d8bea82c6cf4ed2cd5fa6f8329f321a64959",
+      "bytes": 2070
+    },
+    {
+      "path": "ROOT_CAUSES.md",
+      "sha256": "6623a6e3c6c69ce2de9bebf0ca89f125389ba20ad9c500872c1bd60420fa20e9",
+      "bytes": 2887
+    },
+    {
+      "path": "RUNBOOK.md",
+      "sha256": "e74d3d686922d06267c56935436d65a98f5fed4c9b3e3c68b1881223b877549f",
+      "bytes": 7647
+    },
+    {
+      "path": "SCENARIOS.md",
+      "sha256": "872104bf8f2cb02a49e77125305ca8ff36d18336825285923b25fdb38530cf32",
+      "bytes": 3923
+    },
+    {
+      "path": "SOURCE_MAP.tsv",
+      "sha256": "8dde3767fd16efae3a23b79c9c846315d2f2103fe6dc92969377c13cc44a81c0",
+      "bytes": 6106
+    },
+    {
+      "path": "SOURCE_REVIEW.md",
+      "sha256": "76216f995f81d7cbd32b78f9eac10ec179c00d7ef4b22323818d7b2cf7be8f49",
+      "bytes": 1899
+    },
+    {
+      "path": "START_CODEX.txt",
+      "sha256": "e5e23f7d71f38232a6772a5ff1421ae5afcd9671d7a2c6960d8ff2a17732ece5",
+      "bytes": 3478
+    },
+    {
+      "path": "STATE_MACHINE.md",
+      "sha256": "b5cac633c17b4e755a8b77fb8d47d74be991760d9b7a2520b79f7359358c6ee9",
+      "bytes": 1722
+    },
+    {
+      "path": "TASK.md",
+      "sha256": "aa0ddc157a56e100946dfd1e3eca7b9892de0b79547c37784a5bcd6ab12030b4",
+      "bytes": 4240
+    },
+    {
+      "path": "proposals/CURRENT_FAILURE_BOUNDARIES.java-snippet",
+      "sha256": "c554695da7aeed31b3fcb64dacab6979404eb8ef21d4b89418783acc5cc3d89d",
+      "bytes": 1251
+    },
+    {
+      "path": "proposals/README.md",
+      "sha256": "4e1afd332fa37191db97ae0bd34bcef830078372c1713d8db59395a235c1b2a5",
+      "bytes": 1352
+    },
+    {
+      "path": "proposals/Read-Task032Budget.ps1",
+      "sha256": "44585f64772821a7eaaa345d0879343630bbf581d30d1c2f2fa893578f684f76",
+      "bytes": 2145
+    },
+    {
+      "path": "proposals/VisibleFarmReadiness.java-snippet",
+      "sha256": "be456d8ad9cfdb66eb354652439784fd6e8be38f956afa025375413349426b05",
+      "bytes": 2531
+    }
+  ]
+}

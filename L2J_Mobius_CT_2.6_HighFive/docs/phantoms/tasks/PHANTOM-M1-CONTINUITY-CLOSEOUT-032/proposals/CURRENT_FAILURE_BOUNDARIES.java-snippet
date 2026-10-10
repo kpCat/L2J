@@ -1,0 +1,30 @@
+// CURRENT SOURCE EXCERPTS ONLY — pinned df6ee99c71a4c8b07ad05545b200e113d3b0d3c9.
+// Это выдержки для root tracing, а не файл для javac.
+
+// PhantomBackgroundDecision.startVisible / awaitVisible
+if (!_visibleSuitable.apply(context.profileId(), context.goal()))
+{
+    _visibleStop.accept(context.profileId());
+    return PhantomStepResult.of(Type.REPLAN, "background.visible.replan_required");
+}
+
+// PhantomHistoricalBackgroundService.VisibleEpisode
+void unavailable(long now)
+{
+    reason = "LOCAL_FARM_UNAVAILABLE";
+    cooldownUntil = Math.max(now + 10_000_000_000L, started + 60_000_000_000L);
+}
+
+// PhantomHistoricalBackgroundService.VisibleFailures
+private synchronized boolean routeBlocked(PhantomGoal goal, long epoch)
+{
+    return (_route != null) && (_route.goalId == goal.goalId())
+        && (_route.revision == goal.revision()) && (_route.epoch == epoch);
+}
+private synchronized boolean protocolBlocked(PhantomGoal goal, long epoch)
+{
+    return (_protocol != null) && (_protocol.goalId == goal.goalId())
+        && (_protocol.revision == goal.revision()) && (_protocol.epoch == epoch);
+}
+
+// НЕ исправлять автоматическим return true/TTL-clear. Сначала actual producer/recovery.

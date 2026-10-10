@@ -1,0 +1,45 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/GOAL.md.
+
+Required base:
+df6ee99c71a4c8b07ad05545b200e113d3b0d3c9
+Branch: experiment/m1-candidate007-observe008
+GPT-6.1 Sol, reasoning Very High. Новый диалог, без субагентов.
+
+Одобряю ограниченные TASK/DESIGN/PLAN/SOURCE_MAP/SCENARIOS пакета032.
+Это diagnosis+fix+server acceptance, НЕ остановка после первого guard.
+Исправляй несколько связанных причин внутри scope после собственных RED.
+
+Начни с final031: точный firstFalse visibleFarmReady для43 и отдельный debt117.
+Root пока UNKNOWN. Не приписывать ему старый rest238 или journey_deadline без timeline.
+Не переисследовать31задачу с нуля. Пакет даёт actual source и точные точки диагностики.
+
+Ориентир4–6ч, максимум8ч от фактического старта; semantic freeze после6ч,
+последние30мин cleanup/publication. Раньше достигнут результат — закончить раньше.
+Нет лимита числа связанных fixes, но не повторять неизменённый RED и не потратить
+час без нового причинного факта на тот же setup/camp. Первый full-server probe до60мин.
+
+Worktree:
+C:\Users\ZBook\.codex\worktrees\m1-continuity-032\L2J_Mobius
+Свободный suffix/detached exactbase разрешены.
+Main/PLAY/foreign/kpCat не трогать. Retained031DB только READ/export.
+Свои contract032[a-dt] по RUNBOOK; существующий Synthetic и полныйGameServer.
+Никаких «в игре», «вышел», arm или повторных подтверждений этапов.
+
+Stock cooperative gameplay сохранить. Не увеличивать deadlines/limits,
+не сбрасывать debt/overflow и не делать SQL-heal/награды ради PASS.
+Не менять persistence/earned protocol/shared pools за пределами SOURCE_MAP.
+Ordinary hooks безSQL/I/O/wait. Late projection version+1 не доказывает XYZ lineage.
+
+После доказанного fix: frozenA/B continuity, полный away/background/return,
+whole-group save, два sameDB restart и crash72/73 по имеющимся механизмам.
+Не переносить PASS старогоJar на текущий, не заменять enrolledID/epoch.
+HotSwap только проверяемый эксперимент; final — чистая committed сборка.
+Сначала targetedchecks, full93+11 на стабильном кандидате, не после каждой строки.
+
+Exact-path commit + normal push обязательны при любом исходе.
+Разрешения на собственные start/gracefulstop/plannedfault и emergencycleanup
+ограничены TASK.md; чужие процессы/DB не трогать.
+Один RESULT/HANDOFF/MORNING, свои JVM STOPPED.
+STOP_AUTHORITY=TASK032_CONTRACT. M1=CLOSED без REAL_FINAL запрещён.
+При всех serverPASS — M1=WAITING_REAL_FINAL; иначе M1=OPEN.
+Следующую задачу автоматически не начинать.

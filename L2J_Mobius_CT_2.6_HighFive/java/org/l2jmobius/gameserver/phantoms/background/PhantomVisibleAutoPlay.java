@@ -380,6 +380,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		player.getAutoUseSettings().setAutoPotionItem(0);
 		player.getAutoPlaySettings().setNextTargetMode(1);
 		player.getAutoPlaySettings().setShortRange(false);
+		// Shared lawful NPCs remain selectable; targetSelectionLoad only prefers a free target.
+		player.getAutoPlaySettings().setRespectfulHunting(false);
 		player.getAutoPlaySettings().setPickup(true);
 		player.getAutoUseSettings().getAutoActions().add(2);
 		if (AutoPlayConfig.ENABLE_AUTO_SKILL)
@@ -588,6 +590,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			fields.put("liveResourceReason", session._resourceReason);
 			fields.put("liveResourceCost", Double.toString(session._resourceCost));
 			fields.put("liveResourceSinceNanos", Long.toString(session._resourceSince));
+			fields.put("liveUsefulSinceNanos", Long.toString(session._usefulSince));
+			fields.put("liveNativeUsefulNanos", Long.toString(session._nativeUsefulNanos));
+			fields.put("liveNoTargetSinceNanos", Long.toString(session.noTargetSince));
+			fields.put("liveResourceExpired", Boolean.toString(session._resourceExpired));
 			fields.put("continuationRead", "NONATOMIC_VOLATILE");
 			if (session._policy instanceof Policy policy)
 			{

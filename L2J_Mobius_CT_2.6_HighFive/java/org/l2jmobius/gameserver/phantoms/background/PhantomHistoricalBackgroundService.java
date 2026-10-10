@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -146,11 +147,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	{
 		final var spec = PhantomBackgroundGoalSpec.parse(goal);
 		final long now = _visibleClock.getAsLong();
+		final long epoch = _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L);
 		// Failures are rare; only admission/eviction takes this lock, never the decision hot path.
 		synchronized (_visibleFailures)
 		{
 			_visibleFailures.entrySet().removeIf(entry -> (now - entry.getValue()._lastFailureNanos) >= VisibleFailures.TTL_NANOS);
-			_visibleFailures.computeIfAbsent(profileId, _ -> new VisibleFailures()).record(spec.npcId() + "@" + spec.anchorId(), failedStep, now);
+			_visibleFailures.computeIfAbsent(profileId, _ -> new VisibleFailures()).record(spec.npcId() + "@" + spec.anchorId(), failedStep, epoch, now);
 			if (_visibleFailures.size() > 1024)
 			{
 				_visibleFailures.entrySet().stream().min(java.util.Comparator.<java.util.Map.Entry<Long, VisibleFailures>>comparingLong(entry -> entry.getValue()._lastFailureNanos).thenComparingLong(java.util.Map.Entry::getKey)).ifPresent(entry -> _visibleFailures.remove(entry.getKey(), entry.getValue()));
@@ -1099,7 +1101,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		travel.bindRouteExclusions(profileId ->
 		{
 			final var failures = _visibleFailures.get(profileId);
-			return failures == null ? Set.of() : failures.exclusions(_visibleClock.getAsLong()).steps();
+			final long epoch = _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L);
+			return failures == null ? Set.of() : failures.exclusions(_visibleClock.getAsLong(), epoch).steps();
 		});
 	}
 
@@ -1109,9 +1112,26 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		final var failures = _visibleFailures.get(profileId);
 		final long epoch = _materialization.find(profileId).map(value -> value.materializedAtNanos()).orElse(0L);
 		final var episode = _visibleEpisodes.get(profileId);
-		if ((episode != null) && (episode.epoch == epoch) && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return false; }
-		if ((failures != null) && (failures.protocolBlocked(goal, epoch) || failures.routeBlocked(goal, epoch) || failures.exclusions(_visibleClock.getAsLong()).targets().contains(targetKey(goal)))) { return false; }
-		return Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), goal);
+		if ((episode != null) && (episode.epoch == epoch) && (_visibleClock.getAsLong() < episode.cooldownUntil)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.cooldown"); }
+		if (failures != null)
+		{
+			if (failures.protocolBlocked(goal, epoch)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.protocol_blocked"); }
+			if (failures.routeBlocked(goal, epoch)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.route_blocked"); }
+			if (failures.exclusions(_visibleClock.getAsLong(), epoch).targets().contains(targetKey(goal))) { return visibleFarmResult(profileId, goal, epoch, false, "visible.target_excluded"); }
+		}
+		final boolean ready = Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), goal);
+		return visibleFarmResult(profileId, goal, epoch, ready, ready ? "visible.ready" : "visible.stored_goal_mismatch");
+	}
+
+	/** First result of the real evaluation; no second read, action, I/O or diagnostic exception. */
+	private static boolean visibleFarmResult(long profileId, PhantomGoal goal, long epoch, boolean ready, String reason)
+	{
+		try
+		{
+			org.l2jmobius.gameserver.phantoms.diagnostics.PhantomRuntimeFlightRecorder.getInstance().record(profileId, "VISIBLE_FARM_READINESS", ready ? "READY" : "DECLINED", "", reason, epoch, goal == null ? 0 : goal.goalId(), goal == null ? 0 : goal.revision());
+		}
+		catch (Throwable ignored) { }
+		return ready;
 	}
 
 	/** The scheduler boundary owns sync and recovery, outside gameplay/decision locks. */
@@ -1194,7 +1214,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				projected = new PhantomBackgroundState(baseline.state(), baseline.identity(), progress, baseline.vitals(), baseline.position(), baseline.combat(), baseline.loadout(), baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
 				live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 			}
-			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong());
+			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
 			final boolean routeRecovery = (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos());
 			if (!authorityRenewal && !routeRecovery && !exclusions.targets().contains(targetKey(stored.goal())) && _planner.isVisibleLocal(stored.goal(), live) && _planner.remainsVisibleSuitable(projected, stored.goal(), live)) { return true; }
 			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }
@@ -1547,8 +1567,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private static final class VisibleFailures
 	{
 		private static final long TTL_NANOS = 120_000_000_000L;
-		private final LinkedHashMap<String, Long> _targets = new LinkedHashMap<>();
-		private final LinkedHashMap<String, Long> _steps = new LinkedHashMap<>();
+		private final LinkedHashMap<String, VisibleExclusion> _targets = new LinkedHashMap<>();
+		private final LinkedHashMap<String, VisibleExclusion> _steps = new LinkedHashMap<>();
 		private volatile long _lastFailureNanos;
 		private ProtocolFailure _protocol;
 		private RouteFailure _route;
@@ -1556,7 +1576,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		private synchronized void route(PhantomGoal goal, long epoch, String witness, long now)
 		{
 			_lastFailureNanos = now;
-			put(_steps, witness, now);
+			put(_steps, witness, epoch, now);
 			_route = new RouteFailure(goal.goalId(), goal.revision(), epoch, witness);
 		}
 
@@ -1581,33 +1601,38 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 			return (_protocol != null) && (_protocol.goalId == goal.goalId()) && (_protocol.revision == goal.revision()) && (_protocol.epoch == epoch);
 		}
 
-		private synchronized void record(String target, String step, long now)
+		private synchronized void record(String target, String step, long epoch, long now)
 		{
 			_lastFailureNanos = now;
-			put(_targets, target, now);
+			put(_targets, target, epoch, now);
 			if (!step.isEmpty())
 			{
-				put(_steps, step, now);
+				put(_steps, step, epoch, now);
 			}
 		}
 
-		private static void put(LinkedHashMap<String, Long> values, String key, long now)
+		private static void put(LinkedHashMap<String, VisibleExclusion> values, String key, long epoch, long now)
 		{
 			values.remove(key);
-			values.put(key, now);
+			values.put(key, new VisibleExclusion(epoch, now));
 			if (values.size() > 8)
 			{
 				values.remove(values.keySet().iterator().next());
 			}
 		}
 
-		private synchronized Exclusions exclusions(long now)
+		private synchronized Exclusions exclusions(long now, long epoch)
 		{
-			_targets.values().removeIf(time -> (now - time) >= TTL_NANOS);
-			_steps.values().removeIf(time -> (now - time) >= TTL_NANOS);
-			return new Exclusions(Set.copyOf(_targets.keySet()), Set.copyOf(_steps.keySet()));
+			_targets.values().removeIf(value -> (now - value.recordedAtNanos()) >= TTL_NANOS);
+			_steps.values().removeIf(value -> (now - value.recordedAtNanos()) >= TTL_NANOS);
+			return new Exclusions(current(_targets, epoch), current(_steps, epoch));
+		}
+		private static Set<String> current(Map<String, VisibleExclusion> values, long epoch)
+		{
+			return values.entrySet().stream().filter(entry -> entry.getValue().epoch() == epoch).map(Map.Entry::getKey).collect(java.util.stream.Collectors.toUnmodifiableSet());
 		}
 	}
+	private record VisibleExclusion(long epoch, long recordedAtNanos) { }
 
 	private record ProtocolFailure(long goalId, long revision, long epoch, String reason) { }
 	private record RouteFailure(long goalId, long revision, long epoch, String witness) { }

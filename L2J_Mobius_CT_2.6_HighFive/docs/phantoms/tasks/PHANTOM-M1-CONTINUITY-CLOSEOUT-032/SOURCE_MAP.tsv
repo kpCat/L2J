@@ -1,0 +1,33 @@
+mode	path	symbols	purpose
+MODIFY_AFTER_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	visibleFarmReady;prepareVisibleDecision;VisibleFailures;VisibleEpisode;finishVisiblePublication	primary first guard, finite recovery, existing exact CAS/handoff
+MODIFY_AFTER_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	startVisible;awaitVisible;existing rest/replan outcome	consumer and continuation only; not second brain
+MODIFY_AFTER_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	resourcePause;noTargetExpired;session stop/resume	117 if causal; preserve cooperative native mechanics
+CONDITIONAL_AFTER_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	current local journey/failure/cancelSuperseded	current route/epoch handling; no water/geo relaxation
+CONDITIONAL_AFTER_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	replanVisibleLocal;remainsVisibleSuitable;local exclusions	only proven local candidate/recovery defect, no whole planner rewrite
+CONDITIONAL_BINDING	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	existing visible binding/scalar diagnostic	no shutdown reorder or new executors
+CONDITIONAL_AFTER_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	current native-return/control/recovery dispatch	only same proved continuity/away boundary; transaction semantics frozen
+CONDITIONAL_AFTER_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	nativeReleaseDue/processRequested/readiness publication	only proved away starvation after C24; budget/fairness guards unchanged
+CONDITIONAL_AFTER_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java	existing soft-release conditions	earned/hardholds preserved; no instant disappearance
+CONDITIONAL_AFTER_RED	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	demand publication	current identity/current physical source only
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomVisibleContinuity032Suite.java	S01-S10	composed root tests
+NEW_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomContinuityLineage032Suite.java	S11-S14	only if existing tests insufficient
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomVisibleIntentRecoverySuite.java	reuse exact fixture/add cases	existing assertions preserved; resolve path once if not present
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomLocalFarmRecoverySuite.java	reuse exact fixture/add cases	existing assertions preserved; resolve path once if not present
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomNativeContextHandoffSuite.java	reuse exact fixture/add cases	existing assertions preserved; resolve path once if not present
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomSustainedFarm026Suite.java	reuse exact fixture/add cases	existing assertions preserved; resolve path once if not present
+CONDITIONAL_TEST	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomM1RuntimeHandoffSuite.java	reuse exact fixture/add cases	existing assertions preserved; resolve path once if not present
+REGISTRATION_ONLY	L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomTestLauncher.java	new suite routing	no existing route removal
+REGISTRATION_ONLY	L2J_Mobius_CT_2.6_HighFive/build.xml	new targeted target if needed	existing JDK25/debug flags and all tests unchanged
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	persistence/compatibility	no semantic writes/codec redesign
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	persistence/compatibility	no semantic writes/codec redesign
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundStateCodec.java	persistence/compatibility	no semantic writes/codec redesign
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomNativeContext.java	persistence/compatibility	no semantic writes/codec redesign
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundCatchupStore.java	persistence/compatibility	no semantic writes/codec redesign
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/model/actor/**	native gameplay/earned writers	no native guard changes
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/taskmanagers/**	AutoPlay/AutoUse etc	reuse native policies; do not rewrite pools
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/player/**	owned-store/lifecycle	031 safety retained
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/commons/threads/**	ThreadPool	no shared executor changes
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-DEMAND-031/**	handoff/tools/private sources	copy only needed tools; old evidence immutable
+READ_ONLY	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/**	evaluators	no threshold edits
+WRITE_TASK	L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-CONTINUITY-CLOSEOUT-032/**	docs/proposals/4entrypoints/oneobserver/reviewed evidence	bounded >10 artifacts exception; exact-stage manifest required
+PRIVATE_UNTRACKED	L2J_Mobius_CT_2.6_HighFive/.phantom-local/contract032*/**	runtime/clones/JFR/JDI/SQL	no credentials/raw in git
