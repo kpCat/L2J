@@ -4,7 +4,7 @@ param([Parameter(Mandatory)][ValidateSet('Update','Start','Stop','Export','Colle
       [string]$Revision='R1',[string]$ExpectedSha='',
       [string]$OutputRoot='', [long[]]$ProfileIds=@(),[switch]$DumpDuringStop,
       [ValidateSet('Build','Enroll','FullObserve','Probe031','Census','Flush','StopMonitor','CrashNative','CrashFinalize')][string]$Mode='Build', [string]$CohortJson='', [string]$ObserverRunId='', [long]$StartupRecoveryProfileId=0, [string]$RecoveryOutputRoot='',
-      [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{}, [switch]$UseStockRoute, [string]$ViaPoints='',
+      [hashtable]$OriginPoint=@{}, [hashtable]$EndpointPoint=@{}, [switch]$UseStockRoute, [string]$ViaPoints='', [switch]$SearchBidirectional,
       [ValidateSet('Persistence','Restart')][string]$ProofKind='Restart', [string]$SqlRoot='', [string]$SealedRoot='', [string]$ShutdownLog='')
 function Update-Owned031 {
 param([string]$Episode,[string]$Revision)
@@ -123,6 +123,7 @@ if($Action -ceq 'DryPath'){
         if($ViaPoints -and (-not $UseStockRoute -or $ViaPoints -notmatch '^-?\d+,-?\d+(;-?\d+,-?\d+){0,4}$')){throw 'Bounded explicit stock route waypoint format required.'}
         $dryArgs=@('-Xmx2g','-cp',"$classes;../libs/*",$dryClass,$OriginPoint.x,$OriginPoint.y,$OriginPoint.z,$EndpointPoint.x,$EndpointPoint.y)
         if($ViaPoints){$dryArgs+=('VIA:'+$ViaPoints)}
+        if($SearchBidirectional){if(-not $UseStockRoute -or $ViaPoints){throw 'Search requires exact stock helper without VIA.'};$dryArgs+='GRID'}
         & (Join-Path $jdk 'java.exe') @dryArgs *> $log
         if($LASTEXITCODE -ne 0){throw 'Stock bidirectional dry path rejected; no MOVE allowed.'}
     }finally{Pop-Location}

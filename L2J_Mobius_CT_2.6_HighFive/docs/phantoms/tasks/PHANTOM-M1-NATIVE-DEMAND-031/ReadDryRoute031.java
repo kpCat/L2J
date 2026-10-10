@@ -8,12 +8,33 @@ import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
 /** Task-only read-only stock geodata/water diagnostic; never creates a Player or DB connection. */
 class ReadDryRoute031
 {
+    private static boolean drySegment(GeoEngine geo, java.util.List<int[]> waters,int x,int y,int z,int tx,int ty)
+    {
+        int count=Math.max(1,(int)Math.ceil(Math.hypot(tx-x,ty-y)/100.0));
+        for(int i=0;i<=count;i++)
+        {
+            int px=x+(int)Math.round((tx-x)*(double)i/count),py=y+(int)Math.round((ty-y)*(double)i/count);
+            if(!geo.hasGeo(px,py)){return false;}z=geo.getHeight(px,py,z);
+            for(var w:waters){if(px>=w[0]&&px<=w[1]&&py>=w[2]&&py<=w[3]&&z>=w[4]&&z<=w[5]){return false;}}
+        }
+        return true;
+    }
     public static void main(String[] args) throws Exception
     {
         int x = Integer.parseInt(args[0]), y = Integer.parseInt(args[1]), z = Integer.parseInt(args[2]);
         int endX = Integer.parseInt(args[3]), endY = Integer.parseInt(args[4]);
         ConfigLoader.init();
         var geo = GeoEngine.getInstance();
+        if(args.length==6 && args[5].equals("HEIGHTS"))
+        {
+            for(int gy=y-7000;gy<=y+7000;gy+=1000)
+            {
+                var row=new StringBuilder("HEIGHT y="+gy+":");
+                for(int gx=x-7000;gx<=x+7000;gx+=1000){row.append(" ").append(gx).append("=").append(geo.getHeight(gx,gy,z));}
+                System.out.println(row);
+            }
+            return;
+        }
         if(args.length==6 && args[5].equals("SCAN"))
         {
             for(int distance:new int[]{500,2000}) for(int angle=0;angle<8;angle++)
@@ -52,6 +73,49 @@ class ReadDryRoute031
         // Native buffer500 needs bounded hops. Every emitted step is checked both ways.
         var routePoints = new java.util.ArrayList<int[]>();
         int routeX=x, routeY=y, routeZ=geo.getHeight(x,y,z);
+        if(args.length==6 && args[5].equals("GRID"))
+        {
+            // Diagnostic search uses original stock GeoEngine predicates for every edge, in both directions.
+            // It cannot relax water/height/40-step checks below, and never touches World or SQL.
+            record Cell(int x,int y,int z){}
+            record Node(Cell cell,double cost,Node parent){}
+            var best=new java.util.HashMap<Cell,Node>();
+            var open=new java.util.PriorityQueue<Node>(java.util.Comparator.comparingDouble(n -> n.cost()+Math.hypot(endX-n.cell().x(),endY-n.cell().y())));
+            var start=new Node(new Cell(x,y,routeZ),0,null);best.put(start.cell(),start);open.add(start);
+            Node found=null;int expanded=0;
+            while(!open.isEmpty() && expanded++<60000)
+            {
+                Node current=open.poll();if(best.get(current.cell())!=current){continue;}
+                var c=current.cell();int goalZ=geo.getHeight(endX,endY,c.z());
+                if(drySegment(geo,waters,c.x(),c.y(),c.z(),endX,endY) && Math.hypot(endX-c.x(),endY-c.y())<=240 && Math.abs(goalZ-c.z())<=200 && geo.canMoveToTarget(c.x(),c.y(),c.z(),endX,endY,goalZ,0) && geo.canMoveToTarget(endX,endY,goalZ,c.x(),c.y(),c.z(),0))
+                {found=new Node(new Cell(endX,endY,goalZ),current.cost()+Math.hypot(endX-c.x(),endY-c.y()),current);break;}
+                for(int stride:new int[]{224,128,64,16})for(int dx=-1;dx<=1;dx++)for(int dy=-1;dy<=1;dy++)
+                {
+                    if(dx==0&&dy==0){continue;}int nx=c.x()+dx*stride,ny=c.y()+dy*stride;
+                    if(nx<Math.min(x,endX)-1600||nx>Math.max(x,endX)+1600||ny<Math.min(y,endY)-1600||ny>Math.max(y,endY)+1600||!geo.hasGeo(nx,ny)){continue;}
+                    int nz=geo.getHeight(nx,ny,c.z());boolean water=false;
+                    for(var w:waters){if(nx>=w[0]&&nx<=w[1]&&ny>=w[2]&&ny<=w[3]&&nz>=w[4]&&nz<=w[5]){water=true;break;}}
+                    if(water||!drySegment(geo,waters,c.x(),c.y(),c.z(),nx,ny)||Math.abs(nz-c.z())>200||!geo.canMoveToTarget(c.x(),c.y(),c.z(),nx,ny,nz,0)||!geo.canMoveToTarget(nx,ny,nz,c.x(),c.y(),c.z(),0)){continue;}
+                    var cell=new Cell(nx,ny,nz);double cost=current.cost()+Math.hypot(dx*stride,dy*stride);var prior=best.get(cell);
+                    if(prior!=null&&prior.cost()<=cost){continue;}var node=new Node(cell,cost,current);best.put(cell,node);open.add(node);
+                }
+            }
+            if(found==null){throw new IllegalStateException("DRY_BIDIRECTIONAL_SEARCH_ABSENT expanded="+expanded);}
+            var grid=new java.util.ArrayList<Cell>();for(Node node=found;node!=null;node=node.parent()){grid.add(node.cell());}java.util.Collections.reverse(grid);
+            for(int at=0;at<grid.size()-1;)
+            {
+                var from=grid.get(at);int next=at+1;
+                for(int candidate=at+1;candidate<grid.size();candidate++)
+                {
+                    var to=grid.get(candidate);if(Math.hypot(to.x()-from.x(),to.y()-from.y())>300){break;}
+                    if(Math.abs(to.z()-from.z())<=200&&geo.canMoveToTarget(from.x(),from.y(),from.z(),to.x(),to.y(),to.z(),0)&&geo.canMoveToTarget(to.x(),to.y(),to.z(),from.x(),from.y(),from.z(),0)){next=candidate;}
+                }
+                var point=grid.get(next);routePoints.add(new int[]{point.x(),point.y(),point.z()});at=next;
+            }
+            System.out.println("DRY_SEARCH expanded="+expanded+" points="+routePoints.size()+" stockBidirectional=true");
+        }
+        else
+        {
         var hopPoints = new java.util.ArrayList<int[]>();
         if(args.length==6 && args[5].startsWith("VIA:"))
         {
@@ -77,12 +141,13 @@ class ReadDryRoute031
             for(var node:nativePath){routePoints.add(new int[]{node.getX(),node.getY(),node.getZ()});}
             routePoints.add(new int[]{tx,ty,tz}); routeX=tx;routeY=ty;routeZ=tz;
         }
+        }
         int previousX=x, previousY=y, previousZ=geo.getHeight(x,y,z), emitted=0, count=0;
         System.out.println("DRY_POINT\t"+previousX+"\t"+previousY+"\t"+previousZ);
         for(var destination:routePoints)
         {
             int sx=previousX,sy=previousY;
-            int legs=(int)Math.ceil(Math.hypot(destination[0]-sx,destination[1]-sy)/250.0);
+            int legs=(int)Math.ceil(Math.hypot(destination[0]-sx,destination[1]-sy)/300.0);
             for(int leg=1;leg<=legs;leg++)
             {
                 int px=sx+(int)Math.round((destination[0]-sx)*(double)leg/legs),py=sy+(int)Math.round((destination[1]-sy)*(double)leg/legs);

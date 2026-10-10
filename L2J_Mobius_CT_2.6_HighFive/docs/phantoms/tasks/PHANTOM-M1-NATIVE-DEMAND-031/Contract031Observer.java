@@ -22,13 +22,14 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec;
 import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
 
-/** Task-only exact-argument observer. Hook has no World scan, I/O, waits or other actor locks. */
+/** Task-only exact-argument observer. No World scan or other actor locks; selected FINALIZED SQL is read inside its owned boundary. */
 public final class Contract031Observer
 {
     private record Selection(Map<Long, Long> profiles, Path output, String sha) { }
-    private record Witness(Path path, String text, int sqlObjectId)
+    private record Witness(Path path, String text, int sqlObjectId, String exactSql)
     {
-        Witness(Path path, String text) { this(path, text, 0); }
+        Witness(Path path, String text) { this(path, text, 0, null); }
+        Witness(Path path, String text, int sqlObjectId) { this(path, text, sqlObjectId, null); }
     }
     private record Prepared(Player player, PhantomNativeWorkScope owner, PhantomOwnedStoreIntent intent, Witness witness) { }
     private record Crash(String mode, Path output, String dumpHash) { }
@@ -93,10 +94,10 @@ public final class Contract031Observer
     private static void enqueue(Witness witness)
     {
         if (streamRoot == null) { throw new IllegalStateException("TASK031_STREAM_NOT_STARTED"); }
-        final long bytes = witness.text().getBytes(StandardCharsets.UTF_8).length;
+        final long bytes = witness.text().getBytes(StandardCharsets.UTF_8).length + (witness.exactSql() == null ? 0 : witness.exactSql().getBytes(StandardCharsets.UTF_8).length);
         if (bytes > 2 * 1024 * 1024 || BUFFER_BYTES.addAndGet(bytes) > 16 * 1024 * 1024)
         { BUFFER_BYTES.addAndGet(-bytes); OVERFLOW.incrementAndGet(); proofFailure("TASK031_BUFFER_BUDGET"); throw new IllegalStateException("TASK031_BUFFER_BUDGET"); }
-        final var routed = new Witness(streamRoot.resolve(witness.path().getFileName()), witness.text(), witness.sqlObjectId());
+        final var routed = new Witness(streamRoot.resolve(witness.path().getFileName()), witness.text(), witness.sqlObjectId(), witness.exactSql());
         if (!RING.offer(routed))
         { BUFFER_BYTES.addAndGet(-bytes); OVERFLOW.incrementAndGet(); proofFailure("TASK031_WITNESS_RING_OVERFLOW"); throw new IllegalStateException("TASK031_WITNESS_RING_OVERFLOW"); }
         CAPTURED.incrementAndGet();
@@ -776,8 +777,19 @@ public final class Contract031Observer
             final String digest = PhantomBackgroundTransaction.payloadDigest(intent.encode());
             LAST_RECEIPT.put(new Lifetime(id, player.getObjectId(), initialEpoch), digest);
             final String text = snapshot(intent, player, chosen.sha()) + "enrolledInitialEpoch=" + initialEpoch + "\nhookNanos=" + System.nanoTime() + "\ncheckpointStage=" + phase + "\n";
+            String exactSql = null;
+            if (finalized && chosen.profiles().containsKey(id))
+            {
+                final long sqlBegin = System.nanoTime();
+                try
+                {
+                    final String sql = sqlAtWindow(player.getObjectId());
+                    exactSql = "captureScope=EXACT_FINALIZED_HOOK\ncaptureNanos\t" + sqlBegin + "\ncaptureEndNanos\t" + System.nanoTime() + "\n" + sql;
+                }
+                catch (Exception failure) { proofFailure("TASK031_EXACT_SQL_CAPTURE:" + failure); }
+            }
             final Witness witness = new Witness(chosen.output().resolve(key + (finalized ? "-finalized.properties" : ".properties")),
-                finalized ? text.replace("source=native-sealed-snapshot", "source=native-finalized-snapshot") : text, finalized ? player.getObjectId() : 0);
+                finalized ? text.replace("source=native-sealed-snapshot", "source=native-finalized-snapshot") : text, finalized ? player.getObjectId() : 0, exactSql);
             if (crash != null && chosen.profiles().getOrDefault(id, 0L) == initialEpoch && owner.evidence().snapshot(System.nanoTime()).expGained() > 0 && owner.evidence().snapshot(System.nanoTime()).spGained() > 0)
             {
                 PREPARED.set(new Prepared(player, (PhantomNativeWorkScope) owner, intent, witness));
@@ -901,7 +913,7 @@ public final class Contract031Observer
         Witness witness;
         while ((witness = RING.poll()) != null)
         {
-            BUFFER_BYTES.addAndGet(-witness.text().getBytes(StandardCharsets.UTF_8).length);
+            BUFFER_BYTES.addAndGet(-witness.text().getBytes(StandardCharsets.UTF_8).length - (witness.exactSql() == null ? 0 : witness.exactSql().getBytes(StandardCharsets.UTF_8).length));
             try
             {
                 final byte[] bytes = witness.text().getBytes(StandardCharsets.UTF_8);
@@ -945,7 +957,7 @@ public final class Contract031Observer
                 }
                 if (witness.sqlObjectId() > 0)
                 {
-                    try { write(witness.path().resolveSibling(witness.path().getFileName() + ".sql.tsv"), "captureNanos\t" + System.nanoTime() + "\n" + sqlAtWindow(witness.sqlObjectId())); }
+                    try { write(witness.path().resolveSibling(witness.path().getFileName() + ".sql.tsv"), witness.exactSql() == null ? "captureScope=ASYNC_EXPORTER\ncaptureNanos\t" + System.nanoTime() + "\n" + sqlAtWindow(witness.sqlObjectId()) : witness.exactSql()); }
                     catch (Exception failure) { EXPORT_FAILURES.incrementAndGet(); proofFailure("TASK031_SQL_VIEW:" + failure); }
                 }
             }
