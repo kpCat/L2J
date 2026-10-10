@@ -149,6 +149,7 @@ public final class Contract031Observer
     private static int fullLines;
     private static boolean installed;
     private static String observerRunId = "";
+    private static volatile boolean arrivalPoseEnabled;
     private static Object syntheticService;
     private static Field syntheticRun;
     private static Field syntheticState;
@@ -282,7 +283,7 @@ public final class Contract031Observer
             fullAutoPlay = (org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay) field(configured.getClass(), "_visibleAutoPlay").get(configured);
             fullDecision = (org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine) field(configured.getClass(), "_decisionEngine").get(configured);
             fullBackground = (PhantomBackgroundService) field(configured.getClass(), "_backgroundService").get(configured);
-            observerRunId = spec.getProperty("observerRunId", "");
+            observerRunId = spec.getProperty("observerRunId", ""); arrivalPoseEnabled = spec.containsKey("endpoint.x");
             if (!observerRunId.matches("[0-9a-f-]{36}")) { throw new IllegalStateException("TASK031_OBSERVER_RUN_GUARD"); }
             syntheticService = field(org.l2jmobius.gameserver.localplay.LocalPlayPilotService.class, "_synthetic").get(org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance());
             syntheticRun = field(syntheticService.getClass(), "_runId");
@@ -472,7 +473,7 @@ public final class Contract031Observer
             {
                 while (true)
                 {
-                    try { Thread.sleep(100); sampleTerminals(); drain(); sampleDispatch(); sampleNativeTarget(); sampleFullCohort(); exportRecovery(); sampleLifecycle(); sampleDeath(); }
+                    try { Thread.sleep(100); sampleTerminals(); drain(); sampleDispatch(); sampleNativeTarget(); sampleArrivalPose(); sampleFullCohort(); exportRecovery(); sampleLifecycle(); sampleDeath(); }
                     catch (InterruptedException stopped) { return; }
                     catch (Exception failure) { proofFailure(failure.toString()); }
                 }
@@ -577,6 +578,22 @@ public final class Contract031Observer
         if (text.equals(deathLast)) { return; }
         deathLast = text; deathLines++;
         writeTelemetry(selection.output().resolve("native-death-control.tsv"), System.nanoTime() + "\t" + text + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+    /** Away arrival pose only: immutable native scalar sample on exporter, no actor telemetry or mailbox. */
+    private static void sampleArrivalPose() throws Exception
+    {
+        if (!arrivalPoseEnabled || fullMaterialization == null || syntheticService == null || fullLines >= 525 || !observerRunId.equals(syntheticRun.get(syntheticService)) || !"RUNNING".equals(syntheticState.get(syntheticService))) { return; }
+        final long now = System.nanoTime();
+        final var object = World.getInstance().findObject(org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.syntheticObjectId());
+        final var player = object instanceof Player human ? human : null;
+        final var row = new java.util.LinkedHashMap<String, String>();
+        row.put("runId", jsonString((String) syntheticRun.get(syntheticService))); row.put("sessionState", jsonString((String) syntheticState.get(syntheticService)));
+        row.put("objectId", Integer.toString(player == null ? 0 : player.getObjectId())); row.put("present", Boolean.toString(player != null)); row.put("online", Boolean.toString(player != null && player.isOnline()));
+        row.put("dead", Boolean.toString(player != null && player.isDead())); row.put("moving", Boolean.toString(player != null && player.isMoving()));
+        row.put("x", Integer.toString(player == null ? 0 : player.getX())); row.put("y", Integer.toString(player == null ? 0 : player.getY())); row.put("z", Integer.toString(player == null ? 0 : player.getZ())); row.put("instance", Integer.toString(player == null ? 0 : player.getInstanceId()));
+        final String json = "{\"proofFailure\":" + jsonString(exporterFailure) + ",\"sampleNanos\":" + now + ",\"observer\":{" + row.entrySet().stream().map(entry -> jsonString(entry.getKey()) + ":" + entry.getValue()).collect(java.util.stream.Collectors.joining(",")) + "}}\n";
+        writeTelemetry(selection.output().resolve("arrival-pose-latest.json.tmp"), json, StandardCharsets.UTF_8);
+        replaceFrame(selection.output().resolve("arrival-pose-latest.json.tmp"), selection.output().resolve("arrival-pose-latest.json"));
     }
     /** Exact initial scopes, including actors outside Synthetic surrounding regions. No admission or Player mutation. */
     private static synchronized void sampleFullCohort() throws Exception
@@ -707,6 +724,8 @@ public final class Contract031Observer
             put(text,"fullStateSha256",PhantomBackgroundTransaction.payloadDigest(payload)); put(text,"fullStateBase64",java.util.Base64.getEncoder().encodeToString(payload));
             write(captured.chosen().output().resolve("recovery-sql.tsv"), sqlAtWindow(state.identity().characterObjectId()));
             write(captured.chosen().output().resolve("recovery-commit.properties"), text.toString());
+            // The exporter releases only after its exact immutable SQL and receipt have been written.
+            captured.release().countDown(); waitingRecovery = null;
         }
         final var waiting = waitingRecovery;
         if (waiting != null && Files.exists(waiting.chosen().output().resolve("release-recovery.signal")))

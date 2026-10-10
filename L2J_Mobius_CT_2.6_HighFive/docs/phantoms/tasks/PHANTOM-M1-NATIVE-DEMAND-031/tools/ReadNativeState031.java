@@ -116,7 +116,7 @@ class ReadNativeState031 {
     Value value=field(entry,"value");if(value==null)value=field(entry,"val");lines.add("DEMAND PROFILE="+profile);
     if(value instanceof ObjectReference object)for(Field f:object.referenceType().allFields())if(!f.isStatic())lines.add(f.name()+"="+scalar(object.getValue(f)));
    }
-   for(String q:List.of("_due","_materializationDue")) {
+   for(String q:List.of("_due","_materializationDue","_nativeReleaseDue")) {
     Value deque=field(ecology,q),array=field(deque,"elements"); if(array instanceof ArrayReference a){int head=((IntegerValue)field(deque,"head")).value(),tail=((IntegerValue)field(deque,"tail")).value(),rank=0;List<String> ids=new ArrayList<>();for(int i=head;i!=tail;i=(i+1)%a.length(),rank++){Value v=a.getValue(i);String id=scalar(field(v,"value"));if(profiles.contains(id))ids.add(id+"@rank="+rank);}lines.add("ecology."+q+".selected="+ids);lines.add("ecology."+q+".size="+rank);}
    }
    for(String mapName:List.of("_journeys","_attempts","_pendingStores","_terminalReasons"))for(ObjectReference entry:entries(field(travel,mapName))) {

@@ -71,13 +71,17 @@ function ReadFrame031{
 function WaitArrival031([hashtable]$Point){
     $arrival=[Diagnostics.Stopwatch]::StartNew()
     do{
-        $frame=ReadFrame031
+        $frame=if($Mode -ceq 'Away'){
+            $native=Read-SharedJson031 (Join-Path $fullRoot 'arrival-pose-latest.json')
+            if($native.proofFailure -or $native.observer.runId -cne $run -or $native.observer.sessionState -cne 'RUNNING' -or -not $native.observer.present -or -not $native.observer.online -or $native.observer.dead -or [int]$native.observer.objectId -ne 268492939){throw 'Exact native arrival pose identity lost.'}
+            $native
+        }else{ReadFrame031}
         $distance=[Math]::Sqrt([Math]::Pow(([double]$frame.observer.x-[double]$Point.x),2)+[Math]::Pow(([double]$frame.observer.y-[double]$Point.y),2))
         if($distance -le 32 -and [Math]::Abs([int]$frame.observer.z-[int]$Point.z) -le 48 -and -not $frame.observer.moving){
             $frame | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $OutputRoot ('arrival-'+$script:commands+'.json')) -Encoding utf8
             return
         }
-        Start-Sleep -Milliseconds 250
+        Start-Sleep -Milliseconds 100
     }while($arrival.Elapsed.TotalSeconds -lt 12)
     throw 'ACCEPTED_NOT_ARRIVED: factual native arrival missing; no MOVE replay.'
 }
@@ -230,7 +234,7 @@ try{
     $endpoint=if($Mode -ceq 'Away'){@{x=[int]$path.endpoint.x;y=[int]$path.endpoint.y;z=[int]$path.endpoint.z}}else{@{}}
     & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode Census -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot (Join-Path $OutputRoot 'enrollment-census') -EndpointPoint $endpoint *> (Join-Path $OutputRoot 'census-attach.log')
     if($LASTEXITCODE -ne 0){throw 'One-shot World/capacity census failed.'}
-    & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode FullObserve -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot $fullRoot -ObserverRunId $run *> (Join-Path $OutputRoot 'full-attach.log')
+    & (Join-Path $PSScriptRoot 'Control031.ps1') -Action Collector -Mode FullObserve -Episode $Episode -CohortJson (Join-Path $OutputRoot 'baseline-cohort.json') -OutputRoot $fullRoot -ObserverRunId $run -EndpointPoint $endpoint *> (Join-Path $OutputRoot 'full-attach.log')
     if($LASTEXITCODE -ne 0){throw 'Existing FullObserve attach failed.'}
     $fullStarted=$true
     $frameReady=[Diagnostics.Stopwatch]::StartNew()

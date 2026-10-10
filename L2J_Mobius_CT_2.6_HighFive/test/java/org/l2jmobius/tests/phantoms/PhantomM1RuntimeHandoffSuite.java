@@ -51,6 +51,7 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 		if (System.getProperty("phantom.m1.native.focus", "").equals("releasedOwner031"))
 		{
 			registry.add("16-released-native-owner-resumes-background-before-minute-refresh", this::releasedNativeOwner031);
+			registry.add("17-native-release-handoff-shares-budget-with-ordinary-backlog", this::nativeReleaseBacklog031);
 			return;
 		}
 		registry.add("01-calendar-online-survives-readiness", this::calendarOnline);
@@ -474,6 +475,41 @@ public final class PhantomM1RuntimeHandoffSuite implements PhantomTestSuite
 		return manager;
 	}
 
+	private void nativeReleaseBacklog031(PhantomTestContext context)
+	{
+		final int count = _catalog.limits().maximumProfilesPerPulse() + 16;
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new PhantomPopulationEcologyGoal033Suite.EcologyMemoryStore(null);
+		final var history = new PhantomPopulationEcologyGoal033Suite.HistoricalMemoryPort();
+		for (long id = 1; id <= count; id++)
+		{
+			final var initial = state(population.seedReady(id, Math.toIntExact(id)));
+			final var begun = history.begin(id, initial.calendarCursorEpochMinute(), initial.calendarCursorEpochMinute() + 100, id);
+			store.insert(id, initial.beginRequest(begun.snapshot().state().requestId(), initial.calendarCursorEpochMinute() + 100));
+		}
+		final var live = new java.util.concurrent.atomic.AtomicBoolean(true);
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(NOW);
+		final var ecology = new PhantomPopulationEcologyService(_catalog, _population, store, history, id -> id == count && live.get(), _ -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10, worker -> { worker.run(); return true; });
+		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(), clock, ZoneOffset.UTC, count, 0, count, 4, 1, 64);
+		manager.installEcology(ecology); manager.start();
+		try
+		{
+			ecology.holdStartupPopulationPlan();
+			for (int pulse = 0; pulse < count; pulse++) { ecology.onPopulationPulse(); }
+			ecology.startupPopulationPlanApplied();
+			ecology.updateMaterializationDemand(java.util.List.of(new PhantomPopulationEcologyService.DemandFact(count, 1, true, 1, 1)), 1);
+			ecology.onPopulationPulse();
+			final long held = history.status(count).orElseThrow().state().cursorEpochMinute();
+			final long ordinary = java.util.stream.LongStream.range(1, count).map(id -> history.status(id).orElseThrow().state().cursorEpochMinute()).sum();
+			ecology.updateMaterializationDemand(java.util.List.of(), 1);
+			live.set(false); ecology.updateMaterializationDemand(java.util.List.of(), 1);
+			for (int pulse = 0; pulse < 2; pulse++) { ecology.onPopulationPulse(); }
+			PhantomAssertions.assertTrue(history.status(count).orElseThrow().state().cursorEpochMinute() > held, "Released native handoff waited behind the ordinary backlog.");
+			PhantomAssertions.assertTrue(java.util.stream.LongStream.range(1, count).map(id -> history.status(id).orElseThrow().state().cursorEpochMinute()).sum() > ordinary, "Native handoff starved ordinary work.");
+			PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseProfiles() <= _catalog.limits().maximumProfilesPerPulse() && ecology.snapshot().maximumPulseIntervals() <= _catalog.limits().maximumIntervalsPerPulse(), "Native handoff multiplied shared budgets.");
+		}
+		finally { ecology.beginStop(); manager.beginStop(); manager.finishStop(); }
+	}
 	private void calendarOnline(PhantomTestContext context)
 	{
 		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());

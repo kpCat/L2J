@@ -190,7 +190,7 @@ if($Action -ceq 'Collector'){
     if($Mode -in @('CrashNative','CrashFinalize')){
         if($Episode -cne 'b'){throw 'Crash allowed only in own031b.'}
         $prior=@(Get-ChildItem (Join-Path $PSScriptRoot 'evidence') -Filter 'planned-crash.properties' -Recurse -File)
-        if($prior.Count -ge 2){throw 'Two exact crash windows already captured.'}
+        if($prior.Count -ge 4){throw 'Four bounded crash windows already captured: two causal plus two frozen.'}
         if(Test-Path (Join-Path $output 'pre-arm-threads.txt')){throw 'Crash cannot be re-armed.'}
         New-Item -ItemType Directory -Path $output -Force | Out-Null
         $dump=Join-Path $output 'pre-arm-threads.txt'
