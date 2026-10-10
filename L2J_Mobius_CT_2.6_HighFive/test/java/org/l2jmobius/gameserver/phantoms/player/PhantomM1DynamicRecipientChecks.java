@@ -287,8 +287,11 @@ public final class PhantomM1DynamicRecipientChecks
 				for (int attempt = 0; attempt < 3 && !npc.isDead(); attempt++)
 				{
 					final double before = npc.getCurrentHp();
+					context.record("N02.finisherBefore." + attempt, "hp=" + first.getCurrentHp() + ";dead=" + first.isDead() + ";mp=" + first.getCurrentMp() + ";disabled=" + first.isSkillDisabled(magic) + ";stun=" + first.isStunned() + ";see=" + org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().canSeeTarget(first, npc) + ";distance=" + first.calculateDistance3D(npc) + ";npcTarget=" + npc.getTarget());
 					setup(one, null, () -> cast(first, npc, magic));
+					context.record("N02.finisherStarted." + attempt, "casting=" + first.isCastingNow() + ";scope=" + one.scope.snapshot());
 					await(12_000, () -> !first.isCastingNow() && one.scope.outstanding() == 0, "N02 native finisher and children must complete.");
+					context.record("N02.finisherAfter." + attempt, "npcHp=" + npc.getCurrentHp() + ";hp=" + first.getCurrentHp() + ";dead=" + first.isDead() + ";mp=" + first.getCurrentMp() + ";stun=" + first.isStunned() + ";casting=" + first.isCastingNow() + ";incident=" + one.scope.firstNativeIncident());
 					PhantomAssertions.assertTrue(npc.getCurrentHp() < before, "N02 bounded original finisher must write actual stock HP.");
 					context.record("N02.nativeFinisher." + attempt, "hp=" + before + "->" + npc.getCurrentHp() + ";dead=" + npc.isDead());
 				}

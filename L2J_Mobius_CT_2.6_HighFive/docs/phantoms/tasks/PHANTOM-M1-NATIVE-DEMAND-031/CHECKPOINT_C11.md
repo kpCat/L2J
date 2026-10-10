@@ -1,0 +1,24 @@
+RecordedUtc=2026-10-10T01:58:42.9371849Z
+# TASK031 checkpoint C11
+
+C10 target preference REJECTED by whole-group runtime evidence; original cooperative eligibility restored. M1=OPEN; REAL_FINAL=NOT_RUN; server gates NOT_PASS.
+
+C10 frozen source3a48072c66a602c34dc9b3d2171cc9652bff409e; Jar06DDD6E596861B83F7A43E66A4F3AC07A750820BDE846F5DAF94A3FD64FB271A. Game29264 startTicks639271920721626705, Login26404. Own031a only, loopbackJDWP5031 suspend=n. Private command-line/thread/JFR artifacts retained. Short probe60s JFR5532655bytes. Epoch0 enrolled probe fields are not current native proof: current33 had3cycles atT90/4atcensus,1332,2371,3151; do not substitute cached zeros.
+
+Full C10 Scene F1:7enrolled IDs33/50/133/237/315/359/437, primaries33/50 chosen before outcome,371samples,maximumgap1.5794449s. Unchanged CONTINUITY_V2 result3/7 PASS.33 cycles20 PASS;50 cycles4 FAIL same-segment minimum/useful debt;133 cycles0 FAIL complete lineage/minimum/tail/debt;237 cycles39 PASS;315 cycles3 FAIL useful debt;359 cycles26 PASS;437 cycles16 FAIL complete lineage.133/437 entered dead and stayed in denominator. No failed ID removed or replacement enrolled.
+
+Exact added C10 guard observed2026-10-10T01:38:28.851377900Z: profile50 FALSE at PhantomVisibleAutoPlay.java:544; actual peer profile359/object268487872, owner epoch324410427530000/stateOPEN. Actual stack: Policy.permitsTarget544 -> AutoPlayTaskManager.isTargetModeValid378 -> AutoPlay.run327. Capture32995000ns, EVENT_THREAD_RESUMED; no VM-wide suspension. Private traceSHA2561E21DA40CB0B178F876557B65EDD11765EDF5CED7C16EDBB14BBEFDC3B6427D8. This target restriction is rejected; native combat/reward cooperation remains stock.
+
+C11 RED against actual C10 Jar: cooperative-eligibility ownership4/3/1. After restoring only original permitsTarget predicate and normal Jar build: ownership4/4/0. No ownership/PNC/reward/SQL/lifecycle/sensor guard changed. S05 retains real two-owner session fixture and checks cooperative/current/resting/stopped eligibility.
+
+Native cooperative regression R1 failed original finisher HP-write assertion (NPC HP11 after original writes37/74, ownersOPEN/no incident). Added only bounded before/started/after first-cause measurements before unchanged assertion. R2 PASS1/1 (both actual+261EXP);R3 PASS1/1 (both actual+259EXP), but neither exercised optional finisher. Therefore prior finisher failure cause remains UNPROVEN; no production fix or threshold relaxation attributed to those passes. Full current frozen93-route/lifecycle acceptance still pending; C07 actual93/93 and11/11 historical evidence retained separately.
+
+Launch trace2026-10-10T01:38:52 samecast36 reached Creature.java5861/5945/6094. Early target collection decode was incomplete (null fields); paid impact target268477388 was alive HP62, MP190.7230752->183.7230752,mpConsume7. No stale-launch conclusion from this trace. PrivateSHA2566877E7E394ED4A47E80EE8BAFAFC699526349068458B75B2EEEB09A261BA3D39. Task helper now captures actual target local at5945 and at most3casts/40s; production casting unchanged pending exact evidence. All debugger-scene timing excluded gameplay.
+
+Production SQL boundary read-first finding: PhantomBackgroundTransaction.finalizeOwnedStore358 and resolveOwnedStore enforce profile/intent/epoch/state versions, lock canonical/items/skills, require afterMatches for non-restart, then commit. This is a candidate basis for immutable finalized-receipt attestation plus offline SQL lineage, not an already passed independent whole-group SQL proof. Ordinary observer hook remains immutable/passive/noSQL; C09 measured durations and exporter timeout evidence remain valid. Late SQL mismatch is not declared data loss.
+
+Game29264/Login26404 stock graceful STOP confirmed. TypedDONE/COMPLETE at324706421355300 before all pools shutdown=false, retained0. Consistent private stopped SQL export covers all7 C10 enrolled IDs. No SQL heal. All own test JVMs completed pool shutdown. Next start uses preserved own DB and restored native cooperation to diagnose exact launch/impact cause, then stable full scene/away/persistence/restarts/crash if evidence permits.
+
+C11 Jar SHA256133F59D0D5FA45D9C6ED38EF601E25B2DDD079FE835B2D97DEDB4B4675A5EF59. Counts:6Jar builds,10full-source compilations,12GameServer starts; two incremental existing-test compilations and task-only helper compilations are not full-source builds. Current text scope8production/10test paths (18 bounded connected paths); C10 added semantic target restriction removed. Main/foreign/PLAY untouched. No HotSwap/subagents/new task.
+
+Privacy: raw JFR/SQL/thread/traces remain private and are excluded from exact commit. Mojibake-markers and escaped Cyrillic checked separately in changed files. Git inspection/exact add/commit/normal push directly authorized by user.

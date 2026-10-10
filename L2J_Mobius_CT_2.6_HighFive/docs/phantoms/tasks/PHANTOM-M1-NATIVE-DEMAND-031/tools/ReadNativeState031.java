@@ -84,6 +84,14 @@ class ReadNativeState031 {
     String profile=scalar(field(field(entry,"key"),"value"));if(!profiles.contains(profile))continue;Value value=field(entry,"val");if(value==null)value=field(entry,"value");lines.add("AUTOPLAY PROFILE="+profile);
     if(value instanceof ObjectReference session)for(Field f:session.referenceType().allFields())if(!f.isStatic()){Value v=session.getValue(f);if(v instanceof PrimitiveValue||v instanceof StringReference)lines.add("session."+f.name()+"="+scalar(v));}
    }
+   for(String mapName:List.of("_journeys","_attempts","_pendingStores","_terminalReasons"))for(ObjectReference entry:entries(field(travel,mapName))) {
+    String profile=scalar(field(field(entry,"key"),"value"));if(!profiles.contains(profile))continue;
+    Value value=field(entry,"val");if(value==null)value=field(entry,"value");lines.add("TRAVEL "+mapName+" PROFILE="+profile);
+    if(value instanceof ObjectReference object)for(Field f:object.referenceType().allFields())if(!f.isStatic()) {
+     Value v=object.getValue(f);lines.add("travel."+f.name()+"="+scalar(v));
+     if(f.name().equals("attempt")&&v instanceof ObjectReference attempt)for(Field a:attempt.referenceType().allFields())if(!a.isStatic())lines.add("travel.attempt."+a.name()+"="+scalar(attempt.getValue(a)));
+    }
+   }
    Value ecology=field(system,"_populationEcology");
    for(String f:List.of("_workerInFlight","_workerStarted","_activeProfile","_wakeFailure","_stopping","_preparationSlots","_focusId","_focusBatches","_lastBatchElapsedMillis","_pulses","_lastFailure","_metadataDraining","_inventoryReady","_populationPlanApplied"))lines.add("ecology."+f+"="+scalar(field(ecology,f)));
    for(ObjectReference entry:entries(field(ecology,"_entries"))) {

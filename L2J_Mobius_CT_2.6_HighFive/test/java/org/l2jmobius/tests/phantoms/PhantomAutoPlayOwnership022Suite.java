@@ -97,7 +97,7 @@ public final class PhantomAutoPlayOwnership022Suite implements PhantomTestSuite
 				finally { adapter.stop(f.id); player.setSitting(false); PhantomVisibleIntentRecoverySuite.stop(engine); }
 			}
 		});
-		registry.add("S05-new-target-respects-current-peer-selection", context ->
+		registry.add("S05-live-peer-target-remains-eligible-for-cooperative-native-farm", context ->
 		{
 			try (var first = handoff.new Fixture(true); var second = handoff.new Fixture(true, false, 0, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultInjector.none(), true))
 			{
@@ -118,7 +118,7 @@ public final class PhantomAutoPlayOwnership022Suite implements PhantomTestSuite
 					sessions(adapter).put(second.id, sessions(peerAdapter).get(second.id));
 					final var policy = policy(adapter, first.id); final var owner = player.getNativeWorkOwner();
 					player.setTarget(null); peer.setTarget(target); peer.setSitting(false);
-					PhantomAssertions.assertFalse(policy.permitsTarget(target), "RED: choosing a new target must avoid an already selected living native peer target.");
+					PhantomAssertions.assertTrue(policy.permitsTarget(target), "RED: a living current peer selection must preserve lawful cooperative native target eligibility.");
 					player.setTarget(target);
 					PhantomAssertions.assertTrue(policy.permitsTarget(target), "An existing selection is retained; earned native work is not cancelled by peer observation.");
 					player.setTarget(null); peer.setSitting(true);
@@ -126,7 +126,7 @@ public final class PhantomAutoPlayOwnership022Suite implements PhantomTestSuite
 					peer.setSitting(false); peerAdapter.stop(second.id);
 					PhantomAssertions.assertTrue(policy.permitsTarget(target), "A stopped or superseded session cannot reserve a target.");
 					PhantomAssertions.assertEquals(owner, player.getNativeWorkOwner(), "Target preference never replaces native ownership.");
-					context.record("S05.actual", "realOwners=true;newSelectionContested=false;existingSelection=true;restingReleased=true;stoppedReleased=true");
+					context.record("S05.actual", "realOwners=true;cooperativeSelection=true;existingSelection=true;restingEligible=true;stoppedEligible=true");
 				}
 				finally { sessions(adapter).remove(second.id); adapter.stop(first.id); peerAdapter.stop(second.id); player.setSitting(false); peer.setSitting(false); target.deleteMe(); PhantomVisibleIntentRecoverySuite.stop(engine); PhantomVisibleIntentRecoverySuite.stop(peerEngine); }
 			}
