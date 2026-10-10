@@ -284,7 +284,13 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			if (!session._current.get()) { return false; }
 			session._resourceCost = cost;
-			if (!session._recovering && mp >= cost) { session._resourceSince = 0; session._resourceExpired = false; return false; }
+			if (!session._recovering && mp >= cost)
+			{
+				session._resourceSince = 0; session._resourceExpired = false;
+				if (!sitting) { return false; }
+				// A current policy may replace the one that began this actual native rest.
+				session._recovering = true;
+			}
 			if (session._resourceSince == 0) { session._resourceSince = now; }
 			session._resourceExpired = cost > maximumMp || now - session._resourceSince >= RESOURCE_RECOVERY_NANOS;
 			if (threatened || session._resourceExpired)

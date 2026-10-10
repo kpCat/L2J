@@ -31,6 +31,10 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _handoff.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("orphanRest031".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("F09-current-policy-reentry-stands-affordable-native-rest", context -> resources(context, false, true, true)); return;
+		}
 		if ("resourceEpisodes031".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("F08-distinct-native-rest-episodes-preserve-useful-debt", context -> resources(context, false, true)); return;
@@ -127,7 +131,8 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 		}
 	}
 	private void resources(PhantomTestContext context, boolean inFlight) throws Exception { resources(context, inFlight, false); }
-	private void resources(PhantomTestContext context, boolean inFlight, boolean episodes) throws Exception
+	private void resources(PhantomTestContext context, boolean inFlight, boolean episodes) throws Exception { resources(context, inFlight, episodes, false); }
+	private void resources(PhantomTestContext context, boolean inFlight, boolean episodes, boolean orphanRest) throws Exception
 	{
 		final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); field.setAccessible(true);
 		final var environment = (PhantomHeadlessPlayerTestEnvironment) field.get(_handoff);
@@ -165,6 +170,19 @@ public final class PhantomSustainedFarm026Suite implements PhantomTestSuite
 					adapter.noTargetExpired(f.id, goal);
 					PhantomAssertions.assertTrue(player.isSitting(), "Low native MP begins the first actual rest.");
 					Thread.sleep(2_600); // The stock sit animation owns2.5s before stand can be admitted.
+					if (orphanRest)
+					{
+						adapter.stop(f.id);
+						PhantomAssertions.assertTrue(player.isSitting(), "Stopping policy preserves the actual native rest.");
+						try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.setCurrentMp(player.getMaxMp()); }
+						PhantomAssertions.assertTrue(adapter.start(f.id, goal), "Current exact policy reenters the same owned player.");
+						clock.addAndGet(1_000_000_000L); adapter.noTargetExpired(f.id, goal);
+						await(6_000, () -> !player.isSitting(), "RED: an affordable native rest must stand after current policy reentry.");
+						PhantomAssertions.assertEquals(epoch, player.getNativeWorkOwner().epoch(), "Native ownership stays exact.");
+						PhantomAssertions.assertEquals(exp, player.getExp(), "Native stand grants no EXP.");
+						PhantomAssertions.assertEquals(sp, player.getSp(), "Native stand grants no SP.");
+						return;
+					}
 					clock.addAndGet(10_000_000_000L);
 					try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.setCurrentMp(player.getMaxMp()); }
 					adapter.noTargetExpired(f.id, goal);

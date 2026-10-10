@@ -1,0 +1,11 @@
+# Checkpoint C26 — affordable native rest after policy reentry
+
+UTC2026-10-10T09:14Z. Ordinary Jar98C1A4D9C7379C8C0B2F7A04C886513F6461A2630D4498E6A197D2F7E262D5B7. Jar builds14 / production compiles20 / own Game starts32 / applied HotSwap0.
+
+C24 Jar matrix93/93, coordinator15/15, lifecycle acceptance11/11. C25 own32 Game29560/startTicks639272188630671352/Login20284, source2f0b888b00308ceff776a193bdc517e9a97b86fc: natural7 original IDs21/43/134/138/238/251/417, primaries21/43,380.6309191s/372 samples/maxgap1.0660244s/2 commands/mailbox0. CONTINUITY_V2 fails6/7:238 NATIVE_UNPROVEN, TAIL120_REWARD, USEFUL_PROGRESS_DEBT. No actor omitted. Stock Game/Login32 healthy DONE/COMPLETE, retained0, proofFailure empty. Actual FINALIZED exact original epochs; strict024 assembly7/7 nativeFinalized, no differences, pendingOwnedStores0, collectorErrors empty. Gameplay failure distinct from exact storage.
+
+Non-suspending JDI2026-10-10T09:06:58.363606600Z:238 epoch351030531545300/object268486859, sitting=true, MP180, HP208, regeneration task=null/flags0, owner==serviceScope ACTIVE/outstanding0. Current policy resource.not_required/recovering=false. First logical guard PhantomVisibleAutoPlay.java:287 returns false for !recovering && MP>=cost despite actual sitting; stock AutoPlayTaskManager.java:125 skips sitting. No exception or invented stack.
+
+Correction reuses current-session/action lease and stock standUp: affordable sitting actor enters existing stand-pending branch. Native sticky phase deadline never reset; original45s resource/90s debt/120s phase remain. No rewards, SQL, identity, ownership, lifecycle eligibility or catalog changes. Existing native fixture adds one orphanRest031: stop policy during actual rest, affordable MP under TEST lease, reentry must stand with exact epoch and no EXP/SP. Old Jar RED1/0/1; new ordinary Jar GREEN1/1. New full matrix/runtime pending.
+
+C08 ordinary FINALIZED immutable capture/enqueue only; SQL outside native hook in separate exporter, RR/read-only/query timeout2. Pool/queue indirect interference not universally disproven. Private JFR/JDI/native SQL not published. M1=OPEN / REAL_FINAL=NOT_RUN / STOP_AUTHORITY=TASK031_CONTRACT. Deadline10:31Z, cleanup10:16Z. No next task.
