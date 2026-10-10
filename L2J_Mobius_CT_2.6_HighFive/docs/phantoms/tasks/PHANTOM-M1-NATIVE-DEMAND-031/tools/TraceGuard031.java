@@ -35,7 +35,7 @@ class TraceGuard031 {
         long deadline = System.nanoTime() + 180_000_000_000L;
         try {
             var loaded = vm.classesByName(typeName);
-            if (!loaded.isEmpty()) {
+            if (!loaded.isEmpty() && loaded.getFirst().isPrepared()) {
                 breakpoint = vm.eventRequestManager().createBreakpointRequest(loaded.getFirst().locationsOfLine(808).getFirst());
                 breakpoint.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD); breakpoint.enable();
             }
