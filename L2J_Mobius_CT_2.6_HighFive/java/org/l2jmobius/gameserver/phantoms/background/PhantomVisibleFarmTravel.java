@@ -66,6 +66,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		_routeExclusions = Objects.requireNonNull(exclusions);
 	}
 
+	boolean permitsCurrentAnchorReturn(String anchorId, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint live)
+	{
+		final var anchor = _travel.topology().findAnchor(anchorId).orElse(null);
+		return (anchor != null) && (anchor.point().instanceId() == live.instanceId())
+			&& (Math.hypot((long) live.x() - anchor.point().x(), (long) live.y() - anchor.point().y()) <= _navigation.policy().maximumLocalStraightDistance());
+	}
+
 	public PhantomVisibleFarmTravel(PhantomMaterializationService materialization, PhantomBackgroundService background, PhantomNormalGatekeeperTravel travel, PhantomNavigationService navigation, LongPredicate permitsOrdinary, PhantomRelevanceSignalPort signals)
 	{
 		this(materialization, background, travel, navigation, permitsOrdinary, signals, (_id, _failure) -> {}, System::nanoTime);
@@ -210,7 +217,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			if ((attempt == null) || attempt.terminal) { return false; }
 			if (journey == null)
 			{
-				final boolean local = (targetAnchor != null) && (targetAnchor.point().instanceId() == player.getInstanceId()) && (Math.hypot((long) player.getX() - targetAnchor.point().x(), (long) player.getY() - targetAnchor.point().y()) <= 2000);
+				final boolean local = (targetAnchor != null) && (targetAnchor.point().instanceId() == player.getInstanceId())
+					&& (Math.hypot((long) player.getX() - targetAnchor.point().x(), (long) player.getY() - targetAnchor.point().y()) <= (sameAnchor ? _navigation.policy().maximumLocalStraightDistance() : 2000));
 				final var route = local ? List.of(new PhantomNormalGatekeeperTravel.Step(PhantomNormalGatekeeperTravel.Type.TOPOLOGY_BACKGROUND, "live.approach." + spec.anchorId(), state.position().committedAnchorId(), spec.anchorId(), 0, null)) : _travel.route(state.position().committedAnchorId(), spec.anchorId()).orElse(List.of());
 				if (route.isEmpty())
 				{

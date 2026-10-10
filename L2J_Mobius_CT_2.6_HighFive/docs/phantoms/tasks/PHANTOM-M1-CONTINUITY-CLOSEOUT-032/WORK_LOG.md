@@ -148,3 +148,41 @@ Task wrappers: crash cap corrected4→2 (TASK authority), Helpers now runs actua
 tests instead of a nonexistent local directory. C26:25 tests,24 passed/1 intentionally skipped.
 Two dry command approvals rejected on mistaken relative-path classification; neither ran.
 Literal absolute own paths were subsequently approved; main was not written.
+
+C34B clean committed a6bed045 Jar15FA33ED: ant jar compile-tests successful; build.xml
+has no clean target (C34 clean invocation INVALID, no source mutation). Own a/b/c stopped
+runtimes updated to the same source/Jar. C35 targeted4 and three focused031 tests PASS;
+matrix93/93 PASS. Wrong lifecycle class setup INVALID, default actual class covered3/3;
+C35C exact existing acceptance focus covered11/11 PASS on this same Jar.
+
+C36 nativeReturn032: two independent RED assertions on unchanged committed Jar15FA33ED.
+C05 actual H16 owned test setup off-anchor by10000 preserves current valid goal/native
+context, but prepare enters LOCAL_FARM_UNAVAILABLE. C06 same current committed anchor
+produces travel.route_absent before factual stock navigation. These are current composed
+contract defects; original final031 profile43 firstFalse and117 root remain UNKNOWN.
+Read actual HistoricalService, VisibleTravel, HistoricalPlanner.remainsSuitable, H16/R15,
+navigation policy and exact conditional SOURCE_MAP before production changes. Reuse current
+eligible goal and live.approach within unchanged native navigation maximum12000; local
+farm radius2000, all exclusions/protocol/epoch/store guards and native arrival remain.
+C37 builds/checks the two bounded guard corrections; no canonical XYZ, reward, SQL heal,
+goal publication, debt reset, deadline/capacity or earned/persistence/pool rewrite.
+
+C37 nativeReturn2/2 GREEN; C38 full composed6/6 GREEN. Nearest unchanged local recovery
+suite4/7; C38B comparison on committed Jar15FA33ED also4/7 with the same three test names.
+R05/R15 actual ARRIVED/SUCCESS instead of fixture-assumed terminal; R03 baseline ARRIVED,
+first return candidate TERMINAL. No assertion weakened or baseline failure called PASS.
+Consequence found: nonlocal current intent must not bypass recovery beyond real navigation
+policy. C39 unchanged working Jar3207DA2D: C05/C06 GREEN, new C07 RED on this exact range
+guard. Bind real native travel in C05/C07, use its unchanged configured policy in preparation.
+C40 tests all seven contracts plus original H16. Original43/117 roots remain UNKNOWN.
+An attempted CRLF normalization expanded mixed historical endings; corrected only endings
+of unchanged lines from exact read-only HEAD blobs, preserving semantic changes. No git
+restore, broad source restoration, index reset or history rewrite was performed.
+
+C40 bounded candidate: composed7/7 GREEN and exact existing H16 1/1 PASS. Self-review:
+preparation retains epoch/protocol/target/route/current-goal guards; off-anchor exception
+requires actual bound travel, same committed anchor, unchanged navigation range and current
+global eligibility. Native travel still owns factual Geo/arrival/store. No broad replan or
+new global route, no changes to native writers/earned callbacks/persistence/shared pools.
+Preparing next exact-path source commit and clean committed build. All previous server
+outcomes remain attached to their original source/Jar; final current-server gates required.

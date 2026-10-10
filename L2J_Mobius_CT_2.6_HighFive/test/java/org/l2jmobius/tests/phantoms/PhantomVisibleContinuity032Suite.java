@@ -24,6 +24,12 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("nativeReturn032".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("C05-current-off-anchor-return-keeps-valid-goal-and-guards", this::prepareReturn);
+			registry.add("C06-same-anchor-native-return-uses-factual-navigation", this::navigateReturn);
+			registry.add("C07-outside-native-policy-cannot-retain-nonlocal-intent", this::boundedReturn); return;
+		}
 		if ("retirement032".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("C04-locality-pause-stops-next-intention-but-completes-earned-hit", this::retirement); return;
@@ -51,6 +57,98 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 		});
 		registry.add("C02-stock-autoplay-can-damage-lawful-shared-target", this::cooperative);
 		registry.add("C04-locality-pause-stops-next-intention-but-completes-earned-hit", this::retirement);
+		registry.add("C05-current-off-anchor-return-keeps-valid-goal-and-guards", this::prepareReturn);
+		registry.add("C06-same-anchor-native-return-uses-factual-navigation", this::navigateReturn);
+		registry.add("C07-outside-native-policy-cannot-retain-nonlocal-intent", this::boundedReturn);
+	}
+	private static void offAnchor(PhantomNativeContextHandoffSuite.Fixture f)
+	{
+		final var player = f.loadedPlayer;
+		final var ticket = player.getNativeWorkOwner().reserve(null, "TEST_OFF_ANCHOR_RETURN032_SETUP", org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Semantics.CANCELLABLE);
+		PhantomAssertions.assertTrue(ticket != null && ticket.tryStart(), "Existing H16 exact owned TEST setup admission.");
+		Throwable failure = null;
+		try (var held = org.l2jmobius.gameserver.model.actor.PlayerNativeWork.enter(ticket)) { player.setXYZInvisible(player.getX() + 10000, player.getY(), player.getZ()); }
+		catch (RuntimeException | Error thrown) { failure = thrown; throw thrown; }
+		finally { ticket.complete(failure); }
+	}
+	private void prepareReturn(PhantomTestContext context) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			try (var nativeTravel = new ReturnTravel(f))
+			{
+				final var autoPlay = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision);
+				f.historical.bindVisibleRecovery(nativeTravel.value, autoPlay);
+				final var goal = f.goals.load(f.id).orElseThrow(); offAnchor(f);
+				final var before = f.transactions.nativeContext(f.id, f.objectId);
+				PhantomAssertions.assertTrue(PhantomVisibleIntentRecoverySuite.prepare(f, engine), "RED: valid current committed goal must reach its native return executor instead of local-farm cooldown.");
+				PhantomAssertions.assertEquals(goal, f.goals.load(f.id).orElseThrow(), "Return publishes no new goal or revision.");
+				PhantomAssertions.assertEquals(before, f.transactions.nativeContext(f.id, f.objectId), "Preparation changes no native/state/context payload.");
+				f.historical.recordVisibleFailure(f.id, goal.goal(), "");
+				PhantomAssertions.assertFalse(PhantomVisibleIntentRecoverySuite.prepare(f, engine), "Current target failure still requires existing guarded local recovery.");
+				PhantomAssertions.assertEquals(f.loadedEpoch, f.loadedPlayer.getNativeWorkOwner().epoch(), "No owner or debt replacement.");
+				context.record("C05.current", f.historical.visibleRecoveryReason(f.id));
+			}
+			finally { PhantomVisibleIntentRecoverySuite.stop(engine); }
+		}
+	}
+	private void boundedReturn(PhantomTestContext context) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			try (var nativeTravel = new ReturnTravel(f))
+			{
+				f.historical.bindVisibleRecovery(nativeTravel.value, new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision));
+				final var goal = f.goals.load(f.id).orElseThrow(); offAnchor(f); offAnchor(f);
+				final var before = f.transactions.nativeContext(f.id, f.objectId);
+				final boolean prepared = PhantomVisibleIntentRecoverySuite.prepare(f, engine);
+				PhantomAssertions.assertFalse(prepared && goal.equals(f.goals.load(f.id).orElseThrow()), "RED: outside unchanged native navigation policy must retain existing local recovery, not the nonlocal intent.");
+				PhantomAssertions.assertEquals(before, f.transactions.nativeContext(f.id, f.objectId), "Range rejection writes no native payload or position.");
+				context.record("C07.range", f.historical.visibleRecoveryReason(f.id));
+			}
+			finally { PhantomVisibleIntentRecoverySuite.stop(engine); }
+		}
+	}
+	private void navigateReturn(PhantomTestContext context) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); offAnchor(f);
+			try (var nativeTravel = new ReturnTravel(f))
+			{
+				final var travel = nativeTravel.value;
+				final var goal = f.goals.load(f.id).orElseThrow().goal(); final var before = f.transactions.nativeContext(f.id, f.objectId);
+				PhantomAssertions.assertFalse(travel.arrive(f.id, goal), "Off-anchor Player cannot claim immediate native arrival.");
+				final var result = travel.observeArrival(f.id, goal);
+				PhantomAssertions.assertFalse("travel.route_absent".equals(result.reason()), "RED: same committed anchor must still invoke factual stock navigation; its native path may reject.");
+				PhantomAssertions.assertEquals(before, f.transactions.nativeContext(f.id, f.objectId), "Navigation request grants no reward, canonical position or owned receipt.");
+				PhantomAssertions.assertEquals(goal, f.goals.load(f.id).orElseThrow().goal(), "Existing goal authority preserved.");
+				context.record("C06.actual", result);
+			}
+		}
+	}
+	private final class ReturnTravel implements AutoCloseable
+	{
+		private final PhantomNativeContextHandoffSuite.Fixture fixture;
+		private final org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService navigation;
+		private final PhantomVisibleFarmTravel value;
+		ReturnTravel(PhantomNativeContextHandoffSuite.Fixture f) throws Exception
+		{
+			fixture = f;
+			final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_production"); field.setAccessible(true);
+			final var production = (PhantomBackgroundSuite.ProductionAuthorityFixture) field.get(_intent.handoff);
+			navigation = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend(), worker -> { worker.run(); return true; }, System::nanoTime, new org.l2jmobius.gameserver.phantoms.PhantomMetrics());
+			navigation.start();
+			final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
+			{
+				@Override public SignalDelivery submit(long id, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+				@Override public SignalDelivery withdraw(long id, String source, long sequence) { return SignalDelivery.ACCEPTED; }
+			};
+			value = new PhantomVisibleFarmTravel(f.materialization, f.background, production.authority().travelQuery(production.topology()), navigation, f.historical::permitsDecision, signals, f.historical::recordVisibleTravelFailure, System::nanoTime);
+		}
+		@Override public void close() { value.beforeMaterialize(fixture.id, fixture.objectId); navigation.beginStop(); navigation.finishStop(); }
 	}
 	private void retirement(PhantomTestContext context) throws Exception
 	{

@@ -13,6 +13,7 @@ paths = sorted(p for p in task.rglob("*") if p.is_file()
 paths += [module / p for p in (
     "java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java",
     "java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java",
+    "java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java",
     "test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java",
     "test/java/org/l2jmobius/tests/phantoms/PhantomVisibleContinuity032Suite.java")]
 markers = ["Р" + c for c in "џќћ•Ў›¤њЈљґµ°»Ѕѕ"]
