@@ -1,5 +1,17 @@
 # TASK037 progress ledger
 
+## Финальный результат2026-10-11T18:51Z
+
+TASK_RESULT=FAILED_GROUP_CONTINUITY. M1=OPEN; REAL_FINAL=NOT_RUN.
+J1 source7fafb0673c0d9ad87e6b417d3cd3876b61732045; Jar492e5bf9...;
+focused RED0/2→GREEN2/2;full0328/8;matrix93/93,lifecycle11/native9/Q15/inventory035 PASS.
+FinalB8/8,FinalC7/8(tail357),diagnostic thirdC4/8. Все faults/unknowns сохранены.
+FULL_SAVE B/C8/8 и252 inventories/reloads PASS; третья SQL parity566 NOT_VERIFIED.
+Все global drains DONE/COMPLETE retained0/poolsLive; own JVM0,DB/worktree retained.
+Starts6/6,production builds1/4,full scenes3/3. Следующая задача не запускается.
+См.RESULT_HANDOFF037/EVIDENCE_INDEX037/CLEANUP037; final binding external.
+Ниже сохранена датированная история работы; её промежуточные budgets не являются финальными.
+
 STOP_AUTHORITY=TASK037_CONTRACT. M1=OPEN; REAL_FINAL=NOT_RUN.
 Старт2026-10-11T16:31:32Z; freeze deadline21:01:32Z; hard deadline22:31:32Z.
 Без субагентов. MAIN read-only; phantom-dev reused, detached exact BASE.

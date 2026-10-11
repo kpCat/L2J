@@ -25,14 +25,19 @@ beforeMaterialize удаляют retired Session. Отдельный map, нов
 
 Проверяются exact registries после resume, неизменность damage, исходный90с deadline и удаление
 Session terminal lifecycle. Guard нового037t расширен в существующем Headless environment;
-старые lane exclusions сохранены. Compilation PASS; GREEN и финальные сцены ещё не заявлены.
+старые lane exclusions сохранены. Compilation PASS. На committed J1 focused GREEN2/2,
+full0328/8 и обязательная matrix93/93 с lifecycle11/native9/Q15/inventory035 прошли.
+FinalB8/8,FinalC7/8,diagnostic third4/8: GROUP_CONTINUITY не достигнута.
+Подробный финальный ledger — RESULT_HANDOFF037.md.
 
 История036:27 PASS. Пять остальных последние sampled живые; region delta по World.SHIFT_BY=11
 у28=[2,3,0], у40/57/106/173=[1,3,0] от неподвижного observer. Prewarm допускает максимум2,
 couldKnow1. У28/40 также записан presence.no_current_local_demand. У57/106/173 конкретный
 межкадровый producer удаления пока не доказан.173: первый PHASE_DEADLINE, REGEN120с, MP
-достаточна, positive damage отсутствует. Current probe подтверждает касты на уже мёртвую
-общую цель, но исходный173 не содержит аналогичного target trace; это ограничение доказательства.
+достаточна, positive damage отсутствует. Current probe фиксирует мёртвую общую цель во время
+casting; это не доказывает, что цель была мёртвой до launch. Исходный173 не содержит
+аналогичного target trace; это ограничение доказательства.
 
 Protected inventory035/native drain036/core/evaluator не меняются. Исторический raw и все
-ошибки capture/helper сохраняются. Runtime starts3/6, production Jar builds0/4, full scenes0/3.
+ошибки capture/helper сохраняются. Финальные budgets: starts6/6, production Jar builds1/4,
+full scenes3/3. Source/Jar frozen, дополнительных semantic fixes после приёмки не внесено.

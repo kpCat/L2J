@@ -24,3 +24,7 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-GROUP-CONTINUITY-037/S
 L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java
 L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomVisibleContinuity032Suite.java
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-GROUP-CONTINUITY-037/RESULT_HANDOFF037.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-GROUP-CONTINUITY-037/EVIDENCE_INDEX037.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-GROUP-CONTINUITY-037/CLEANUP037.md
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-GROUP-CONTINUITY-037/GIT_COMMANDS037.md
