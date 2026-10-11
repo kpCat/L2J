@@ -86,7 +86,8 @@ $cp="$root/build/phantom-test/bin;$root/build/phantom-test/resources;$module/dis
 $arguments=@('-Xmx6g','-Dfile.encoding=UTF-8','-Dsun.stdout.encoding=UTF-8','-Dsun.stderr.encoding=UTF-8',
     "-Dphantom.test.config=$lane/test/Database.test.ini","-Dphantom.contract035.manifest=$lane/test/owned.properties",
     "-Dphantom.module.root=$module","-Dphantom.test.reports=$reports")
-if($Focus){$arguments+="-Dphantom.m1.native.focus=$Focus"}
+if($Focus -and $Focus -cne 'capacity031'){$arguments+="-Dphantom.m1.native.focus=$Focus"}
+if($Suite -ceq 'PhantomFarmProjection030Suite' -and $Focus -ceq 'capacity031'){$arguments+='-Dphantom.contract031.capacity=true'}
 if($Suite -ceq 'PhantomNativeFarmContinuation022Suite' -and $Focus){$arguments+="-Dphantom023.nativeFarmFocus=$Focus"}
 if($Suite -ceq 'position' -and $Focus){$arguments+="-Dphantom.background.position.focus=$Focus"}
 $arguments+=@('-cp',$cp)

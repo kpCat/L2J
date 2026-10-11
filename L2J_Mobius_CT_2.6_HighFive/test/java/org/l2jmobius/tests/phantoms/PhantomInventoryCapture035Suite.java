@@ -24,6 +24,7 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 public final class PhantomInventoryCapture035Suite implements PhantomTestSuite
 {
 	private PhantomBackgroundSuite.ProductionAuthorityFixture _production;
+	private PhantomHeadlessPlayerTestEnvironment _questEnvironment;
 
 	public static void main(String[] args)
 	{
@@ -35,14 +36,15 @@ public final class PhantomInventoryCapture035Suite implements PhantomTestSuite
 
 	@Override public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(context);
+		_questEnvironment = new PhantomHeadlessPlayerTestEnvironment();
+		_questEnvironment.initialize(context);
 		_production = PhantomBackgroundSuite.ProductionAuthorityFixture.start();
 	}
 
-	@Override public void afterAll(PhantomTestContext context)
+	@Override public void afterAll(PhantomTestContext context) throws Exception
 	{
 		try { if (_production != null) { _production.close(); } }
-		finally { ThreadPool.shutdown(); DatabaseFactory.close(); }
+		finally { if (_questEnvironment != null) { _questEnvironment.shutdown(); } else { ThreadPool.shutdown(); DatabaseFactory.close(); } }
 	}
 
 	@Override public void register(PhantomTestRegistry registry)
@@ -69,6 +71,22 @@ public final class PhantomInventoryCapture035Suite implements PhantomTestSuite
 				capacity(c, 249, 3, true);
 			}
 			finally { player.stopAllTasks(); }
+			// Actual quest object only on the ordinary owned TEST fixture; inherited36/45 stay read-only.
+			var fixture = Player.load(_questEnvironment.primary().objectId());
+			try
+			{
+				int nonquestBefore = fixture.getInventory().getNonQuestSize();
+				int questBefore = fixture.getInventory().getQuestSize();
+				var quest = Arrays.stream(org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getAllItems()).filter(item -> item != null && item.isQuestItem()).findFirst().orElseThrow();
+				var added = fixture.getInventory().addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD, quest.getId(), 1, fixture, this);
+				PhantomAssertions.assertTrue(added != null, "Actual quest fixture item not created.");
+				PhantomAssertions.assertEquals(nonquestBefore, fixture.getInventory().getNonQuestSize(), "Quest object consumed a nonquest stock slot.");
+				PhantomAssertions.assertEquals(questBefore + 1, fixture.getInventory().getQuestSize(), "Quest object escaped its separate stock count.");
+				var full = fixture.getInventory().getItems().stream().map(item -> new PhantomBackgroundInventoryHash.CanonicalItem(item.getObjectId(), item.getId(), item.getCount(), ItemLocation.valueOf(item.getItemLocation().name()))).toList();
+				PhantomAssertions.assertTrue(full.stream().anyMatch(item -> item.objectId() == added.getObjectId()), "Full canonical multiset hid the quest object.");
+				c.record("quest.actualFixture", "itemId=" + quest.getId() + ";fullCount=" + full.size() + ";quest=" + fixture.getInventory().getQuestSize() + ";nonquest=" + nonquestBefore + ";fullHash=" + PhantomBackgroundInventoryHash.compute(full));
+			}
+			finally { _questEnvironment.cleanupLoadedPlayer(fixture); }
 		});
 		registry.add("C06-compact-object-duplicate-and-codec-bounds", c -> bounds());
 	}
