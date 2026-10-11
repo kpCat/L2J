@@ -248,7 +248,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 		stabilizeInfrastructureThreads();
 		_environmentThreadIds = liveNonDaemonThreadIds();
-		context.record("headless.database", owned026Enabled() ? System.getProperty("phantom.contract036.manifest") != null ? "l2jmobiush5_localplay_contract036t" : System.getProperty("phantom.contract035.manifest") != null ? "l2jmobiush5_localplay_contract035t" : System.getProperty("phantom.travel033r.manifest") != null ? "l2jmobiush5_localplay_travel033rt" : System.getProperty("phantom.contract032.manifest") != null ? "l2jmobiush5_localplay_contract032t" : System.getProperty("phantom.contract031.manifest") != null ? "l2jmobiush5_localplay_contract031t" : "l2jmobiush5_localplay_contract" + (System.getProperty("phantom.contract027.manifest") != null ? "027" : "026") + "a" : PhantomContracts025DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract025b" : PhantomContracts024DatabaseLane.enabled()
+		context.record("headless.database", owned026Enabled() ? System.getProperty("phantom.contract037.manifest") != null ? "l2jmobiush5_localplay_contract037t" : System.getProperty("phantom.contract036.manifest") != null ? "l2jmobiush5_localplay_contract036t" : System.getProperty("phantom.contract035.manifest") != null ? "l2jmobiush5_localplay_contract035t" : System.getProperty("phantom.travel033r.manifest") != null ? "l2jmobiush5_localplay_travel033rt" : System.getProperty("phantom.contract032.manifest") != null ? "l2jmobiush5_localplay_contract032t" : System.getProperty("phantom.contract031.manifest") != null ? "l2jmobiush5_localplay_contract031t" : "l2jmobiush5_localplay_contract" + (System.getProperty("phantom.contract027.manifest") != null ? "027" : "026") + "a" : PhantomContracts025DatabaseLane.enabled() ? "l2jmobiush5_localplay_contract025b" : PhantomContracts024DatabaseLane.enabled()
 			? "l2jmobiush5_localplay_contract024a" : PhantomTestDatabaseGuard.TARGET_DATABASE);
 		context.record("headless.schemaAggregateSha256", ((PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled() || owned026Enabled())
 			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());
@@ -262,7 +262,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	private static boolean owned026Enabled()
 	{
-		return (System.getProperty("phantom.contract026.manifest") != null) || (System.getProperty("phantom.contract027.manifest") != null) || (System.getProperty("phantom.contract031.manifest") != null) || (System.getProperty("phantom.contract032.manifest") != null) || (System.getProperty("phantom.travel033r.manifest") != null) || (System.getProperty("phantom.contract035.manifest") != null) || (System.getProperty("phantom.contract036.manifest") != null);
+		return (System.getProperty("phantom.contract026.manifest") != null) || (System.getProperty("phantom.contract027.manifest") != null) || (System.getProperty("phantom.contract031.manifest") != null) || (System.getProperty("phantom.contract032.manifest") != null) || (System.getProperty("phantom.travel033r.manifest") != null) || (System.getProperty("phantom.contract035.manifest") != null) || (System.getProperty("phantom.contract036.manifest") != null) || (System.getProperty("phantom.contract037.manifest") != null);
 	}
 
 	/** Same exact export/config/catalog guard as TASK025; shared TEST metadata remains untouched. */
@@ -282,8 +282,10 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		PhantomAssertions.assertFalse(task035 && (task033r || task032 || task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
 		final boolean task036 = System.getProperty("phantom.contract036.manifest") != null;
 		PhantomAssertions.assertFalse(task036 && (task035 || task033r || task032 || task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
-		final String contract = task036 ? "036" : task035 ? "035" : task033r ? "033R" : task032 ? "032" : task031 ? "031" : task027 ? "027" : "026";
-		final String episode = task036 || task035 || task033r || task032 || task031 ? "t" : "a";
+		final boolean task037 = System.getProperty("phantom.contract037.manifest") != null;
+		PhantomAssertions.assertFalse(task037 && (task036 || task035 || task033r || task032 || task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
+		final String contract = task037 ? "037" : task036 ? "036" : task035 ? "035" : task033r ? "033R" : task032 ? "032" : task031 ? "031" : task027 ? "027" : "026";
+		final String episode = task037 || task036 || task035 || task033r || task032 || task031 ? "t" : "a";
 		final String laneName = task033r ? "travel033rt" : "contract" + contract + episode;
 		final Path lane = root.resolve(".phantom-local/" + laneName).toRealPath();
 		final Path manifest = Path.of(System.getProperty(task033r ? "phantom.travel033r.manifest" : "phantom.contract" + contract + ".manifest")).toRealPath();

@@ -147,6 +147,18 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		final Session session;
 		synchronized (owner(profileId))
 		{
+			// Replan stops registrations, but the same live epoch still owes its original useful progress.
+			session = _sessions.get(profileId);
+			if (session != null) { session._current.set(false); }
+		}
+		stopRegistrations(session);
+	}
+
+	private void forget(long profileId)
+	{
+		final Session session;
+		synchronized (owner(profileId))
+		{
 			session = _sessions.remove(profileId);
 			if (session != null) { session._current.set(false); }
 		}
@@ -157,7 +169,6 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	{
 		synchronized (owner(profileId))
 		{
-			_sessions.remove(profileId, expected);
 			expected._current.set(false);
 		}
 		stopRegistrations(expected);
@@ -647,7 +658,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			_epoch = epoch;
 			_usefulSince = now;
 			baseline(nativeProgress(player, epoch));
-			if ((previous != null) && (previous.player() == player) && (previous.goalId() == goalId) && (previous.revision() == revision) && (previous._epoch == epoch))
+			if ((previous != null) && (previous.player() == player) && (previous._epoch == epoch))
 			{
 				synchronized (previous)
 				{
@@ -688,6 +699,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	@Override
 	public void beforeMaterialize(long profileId, int characterObjectId)
 	{
+		forget(profileId);
 	}
 
 	@Override
@@ -703,13 +715,13 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	@Override
 	public void materializeAborted(long profileId, int characterObjectId)
 	{
-		stop(profileId);
+		forget(profileId);
 	}
 
 	@Override
 	public void beforeStore(long profileId, Player player)
 	{
-		stop(profileId);
+		forget(profileId);
 	}
 
 	@Override

@@ -1,0 +1,35 @@
+path	permission	base_git_blob	boundary
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	CONDITIONAL_WRITE	93cb92f573f570f75427cd996c0bc74b0df3c7a9	exact policy/session, resourcePause, noTargetExpired, current recovery; no deadline/rate changes
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	CONDITIONAL_WRITE	fe6f6c8d1a6fbadd0d61879005d3c7986011d639	bindVisibleLife/startVisible/awaitVisible recovery propagation only
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	CONDITIONAL_WRITE	920970933e8df9bedc50aa6b6b2a81da423a3ba5	visibleFarmReady/prepareVisibleDecision/finishVisiblePublication/exact local exclusions; no historical schema/store protocol
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	CONDITIONAL_WRITE	7ac58cca0301fe150513e6883a14e5eea5e7a887	existing local suitability/selection only on causal proof; no new world routes
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	CONDITIONAL_WRITE	6efea5aa87e0e0e440a71f2748a3c32eaef3a08a	local terminal-to-replan/arrival/current-goal handoff only; preserve033R corridor/GK/return
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	CONDITIONAL_OBSERVATION_WRITE	88588ab55733ee1773f726fd67d333f1ef97588a	proven attribution/phase completion only; no threshold/counter/overflow reset, no forged event
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_WIRING_WRITE		only existing pre-work visible decision invocation and snapshot binding, not shutdown/persistence rewrite
+java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	READ_ONLY_PROTECTED_035	5238661b794898038c3ac56d312c020e986732bd	native inventory capture
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	READ_ONLY_PROTECTED_035	e7f31c5c83f19f7e7cf2cd338ede0411f64cca95	representation/codec contract
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	READ_ONLY_PROTECTED_035	8ce2404ae1fba972e9c1e15611f6a7149ec18722	native cap250 and rewards
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	READ_ONLY_PROTECTED_036	dc0ca4952c2cebfe4689ccfef4eb9637c7e83f55	earned admission/dispatch/drain
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	READ_ONLY		native earned ownership
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	READ_ONLY		owned checkpoint and persistence; trace existing input/output
+java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	READ_ONLY		read calendar/current admission; do not suppress legitimate retirement
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	READ_ONLY		diagnose natural locality without fake human
+java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	READ_ONLY		stock executor/policy/selection
+java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	READ_ONLY		stock skill executor
+java/org/l2jmobius/gameserver/model/actor/Creature.java	READ_ONLY		native combat formulas/writers
+java/org/l2jmobius/gameserver/model/actor/Player.java	READ_ONLY		stock Player and personal inventory
+docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py	READ_ONLY_PINNED	c441ecc621dc5936ba3b2ea7f8e9f6e6f74eb164	original acceptance function and CLI checks
+test/java/org/l2jmobius/tests/phantoms/PhantomGroupContinuity037Suite.java	CREATE		one composed causal suite via existing native fixtures
+test/java/org/l2jmobius/gameserver/phantoms/background/PhantomGroupContinuity037Checks.java	CREATE_IF_NEEDED		one package-local test helper, no fake runtime
+test/java/org/l2jmobius/tests/phantoms/PhantomVisibleContinuity032Suite.java	ADD_REGRESSION_ONLY		preserve original assertions, append actual causal cases
+test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	CONDITIONAL_GUARD_WRITE		only exact037t manifest/config/cwd/export exclusivity; oldguards retained
+test/java/org/l2jmobius/tests/phantoms/PhantomSustainedFarm026Suite.java	ADD_REGRESSION_ONLY		existing stock fixture, do not weaken target/reward expectations
+test/java/org/l2jmobius/tests/phantoms/PhantomNativeCastDrain036Suite.java	READ_ONLY		accepted native9 preserved
+test/java/org/l2jmobius/tests/phantoms/PhantomInventoryCapture035Suite.java	READ_ONLY		accepted inventory6 preserved
+test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java	READ_ONLY		Q15/matrix fixtures; do not patch expected values
+docs/phantoms/tasks/PHANTOM-M1-GROUP-CONTINUITY-037/	WRITE_TASK_FAMILY		packet/import/limitedrunner+reports; task only
+.phantom-local/ops037/	WRITE_PRIVATE		bounded helpers reused from036, not public raw
+.phantom-local/contract037a/	WRITE_OWN_RUNTIME		diagnosis exactmanifest
+.phantom-local/contract037b/	WRITE_OWN_RUNTIME		finalA exactmanifest
+.phantom-local/contract037c/	WRITE_OWN_RUNTIME		finalB exactmanifest
+.phantom-local/contract037t/	WRITE_OWN_TEST		test exactmanifest

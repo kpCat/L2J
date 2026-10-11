@@ -24,6 +24,11 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("continuity037".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("G37-stop-resume-preserves-same-epoch-useful-debt", context -> stoppedDebt(context, false));
+			registry.add("G38-goal-revision-preserves-same-epoch-useful-debt", context -> stoppedDebt(context, true)); return;
+		}
 		if ("nativeLeg032".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("C08-current-return-query-fits-unchanged-stock-buffers", this::nativeLeg); return;
@@ -96,6 +101,47 @@ public final class PhantomVisibleContinuity032Suite implements PhantomTestSuite
 				context.record("C05.current", f.historical.visibleRecoveryReason(f.id));
 			}
 			finally { PhantomVisibleIntentRecoverySuite.stop(engine); }
+		}
+	}
+	private void stoppedDebt(PhantomTestContext context, boolean revision) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			final var clock = new java.util.concurrent.atomic.AtomicLong(System.nanoTime());
+			final var autoPlay = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision, clock::get);
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final var type = Class.forName("org.l2jmobius.gameserver.phantoms.player.PhantomM1DynamicRecipientChecks$WorkerGate");
+			final var constructor = type.getDeclaredConstructor(); constructor.setAccessible(true);
+			final var acquire = type.getDeclaredMethod("acquire"); acquire.setAccessible(true);
+			final var release = type.getDeclaredMethod("release"); release.setAccessible(true);
+			try (var gate = (AutoCloseable) constructor.newInstance())
+			{
+				acquire.invoke(gate);
+				PhantomAssertions.assertTrue(autoPlay.start(f.id, goal), "Exact original native session starts.");
+				final var before = autoPlay.snapshotContinuation(f.id).scalarMap();
+				final long initial = clock.get(), damage = f.loadedPlayer.getNativeWorkOwner().evidence().snapshot().damageSequence();
+				clock.addAndGet(20_000_000_000L); autoPlay.stop(f.id);
+				if (revision)
+				{
+					final var place = PhantomVisibleIntentRecoverySuite.class.getDeclaredMethod("placeAtAlternativeFactualAnchor", PhantomNativeContextHandoffSuite.Fixture.class, PhantomTestContext.class);
+					place.setAccessible(true); place.invoke(_intent, f, context);
+					f.historical.recordVisibleFailure(f.id, goal, "");
+					PhantomAssertions.assertTrue(PhantomVisibleIntentRecoverySuite.prepare(f, engine), "Existing guarded factual local replan completes.");
+				}
+				final var current = f.goals.load(f.id).orElseThrow().goal();
+				if (revision) { PhantomAssertions.assertEquals(goal.revision() + 1, current.revision(), "Real existing CAS published the new revision."); }
+				PhantomAssertions.assertTrue(autoPlay.start(f.id, current) && autoPlay.running(f.id, current), "Current native registrations resume.");
+				final var after = autoPlay.snapshotContinuation(f.id).scalarMap(); context.record("G37.resume." + revision, after);
+				PhantomAssertions.assertEquals(before.get("liveUsefulSinceNanos"), after.get("liveUsefulSinceNanos"), "RED: stop/replan cannot restart useful debt of the same native epoch.");
+				PhantomAssertions.assertEquals(damage, f.loadedPlayer.getNativeWorkOwner().evidence().snapshot().damageSequence(), "No actual native damage occurred while the existing worker gate was held.");
+				clock.set(initial + 91_000_000_000L);
+				PhantomAssertions.assertTrue(autoPlay.noTargetExpired(f.id, current), "Original 90s debt still expires after stop/resume.");
+				autoPlay.beforeStore(f.id, f.loadedPlayer);
+				PhantomAssertions.assertFalse(autoPlay.snapshotContinuation(f.id).scalarMap().containsKey("liveUsefulSinceNanos"), "Terminal lifecycle releases the retired Session reference.");
+				release.invoke(gate);
+			}
+			finally { autoPlay.beforeStore(f.id, f.loadedPlayer); PhantomVisibleIntentRecoverySuite.stop(engine); }
 		}
 	}
 	private void boundedReturn(PhantomTestContext context) throws Exception
