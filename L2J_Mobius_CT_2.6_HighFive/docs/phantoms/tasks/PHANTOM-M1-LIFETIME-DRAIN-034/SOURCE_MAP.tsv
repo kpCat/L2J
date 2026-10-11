@@ -1,0 +1,19 @@
+path	permission	why	probe
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	CONDITIONAL_WRITE	active map, cleanup retry, shutdown, archived incident	requestCleanup/cleanupEntry/releaseStoredEntry/shutdown/cleanupBlockers
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	CONDITIONAL_WRITE	owner native drain/store/delete/identity lifetime	cleanup/claimCleanup/recordCleanupFailure/terminalCleanupReady
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_WRITE	global DRAIN_PLAYERS vs own Player completion	shutdownProgress/requestShutdown/failStop
+java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	READ_ONLY_BY_DEFAULT	calendar/release producer & native handoff	beginStop/finishStop/releaseDue/owned claim
+java/org/l2jmobius/gameserver/phantoms/player/PhantomCleanupIncident.java	READ_ONLY	first/latest incident evidence and archival distinctions	capture/id/record
+java/org/l2jmobius/gameserver/phantoms/player/PhantomRetainedIdentityRecovery.java	READ_ONLY	foreign REAL_LOGIN/retained lease guard	recover, collision fail-closed
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	READ_ONLY_BY_DEFAULT	native pending store and terminal worker	cleanupStore/materializationQuiescence/finishStop
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	READ_ONLY	route producer must not be changed by lifecycle task	stopForRecovery/remove/arrival
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomWalkCorridorPlanner.java	READ_ONLY	proven TASK033R navigation	no modification
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	READ_ONLY	terminal drain/owner/outstanding	callback ownership
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeTimer.java	READ_ONLY	old epoch native timers	ambient/cancel
+java/org/l2jmobius/gameserver/model/actor/Player.java	READ_ONLY	stock actor identity and store	no generic Player edits
+java/org/l2jmobius/gameserver/geoengine/pathfinding/PathFinding.java	READ_ONLY	native A* unrelated	no route changes
+dist/game/data/scripts/handlers/chat/commands/user/Unstuck.java	READ_ONLY	R3 guarded native callback, do not rewrite	no timer change
+test/java/org/l2jmobius/tests/phantoms/PhantomProductionMaterializationSuite.java	CONDITIONAL_WRITE	existing focused retained/drain/incident tests	cases 11-15,22,23
+test/java/org/l2jmobius/tests/phantoms/PhantomLifecycleCompletion027Suite.java	CONDITIONAL_WRITE	full accepted 11/11 lifecycle and native death windows	acceptance focus
+test/java/org/l2jmobius/tests/phantoms/PhantomMaterializationDrain034Suite.java	CREATE_IF_NEEDED	one bounded new causal suite using existing test infrastructure	only if old suite cannot express causal test
+test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	CONDITIONAL_WRITE	exact owned034t DB fixture guard if necessary for causally focused tests	only allow034t after verifying test manifest; never widen generic DB access
