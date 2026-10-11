@@ -1,6 +1,6 @@
 # RESULT_HANDOFF035
 
-Status: `PARTIAL_VERIFIED` pending publication only. G0-G7 PASS; G8 REQUIRED normal push and local=remote receipt. Inventory technical result is GREEN. M1=`OPEN`; REAL_FINAL=`NOT_RUN`. No following task started.
+Status: `GREEN_INVENTORY_SAFE`. G0-G8 PASS. Normal non-force publication of `e53a243a717192a4d8f621446958742bb9723c0d` was verified local=remote at11:46:19UTC; the final report confirmation commit is bound by the external TASK035-publication.json receipt after its own normal push. M1=`OPEN`; REAL_FINAL=`NOT_RUN`. No following task started.
 
 Base: `d6d8c4b9d32276aff5563c239c5f822cf8ec83fa`. Frozen production commit: `e156e566062a3de5c26c26b088c021c8948f0469`. Focused test refinement commit: `e1bfe8c004617899cc26d60b0b35bc57c54c747b`. Later changes are TASK035 tools/reports only. No production difference after the frozen commit.
 
@@ -49,7 +49,7 @@ R2 typed stop reached DONE/COMPLETE with retained0 while all three thread pools 
 | G5 | PASS: exact terminal triad absent AFTER FINALIZED; owner DETACHED/work0/timers0; typed healthy drain and final observer drain0 |
 | G6 | PASS: v2/schema unchanged; 10000 original032a payloads decoded and10000 byte-identical re-encodes, including314 compact; compact275 bounds; existing native/historical031 capacity routes and sameDB reload2/2 |
 | G7 | PASS: complete final93/93 and lifecycle11/11 on J2; focused suites below; no acceptance edits |
-| G8 | REQUIRED: selected external archive SHA verified and own stock JVM STOPPED; final normal publication and local=remote receipt still required |
+| G8 | PASS: selected external archive every entry SHA verified, own stock JVM STOPPED, exact-path commit and normal push verified local=remote; initial receipt TASK035-publication-initial.json and final receipt TASK035-publication.json |
 
 | Current J2 regression | Result | Immutable raw label |
 |---|---:|---|

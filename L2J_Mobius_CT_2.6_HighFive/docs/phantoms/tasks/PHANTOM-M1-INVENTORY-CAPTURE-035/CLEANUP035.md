@@ -8,7 +8,7 @@ Reusable registered worktree retained: `C:\Users\ZBook\.codex\worktrees\phantom-
 
 Audit data saved at the separate worktree-audit/REPORT.txt path in EVIDENCE_INDEX035.md; deletion phase PAUSED until separate permission. This task claims0 bytes freed by deletion. Final pre-publication C: free bytes470022651904; disk writes/builds elsewhere prevent interpreting the free-space change as cleanup savings.
 
-Publication is still REQUIRED at this report's initial commit. Use exact paths only, normal push to origin/experiment/m1-candidate007-observe008 and verify local HEAD=remote. Keep detached reusable checkout; no branch creation or merge. Final confirmation belongs in RESULT_HANDOFF035 and the external TASK035-publication.json receipt.
+Publication of `e53a243a717192a4d8f621446958742bb9723c0d` completed at11:46:19UTC by normal non-force push to origin/experiment/m1-candidate007-observe008; local HEAD=remote and tracked checkout clean verified. This two-report confirmation uses another exact-path commit and normal push, verified in external TASK035-publication.json. Detached reusable checkout retained; no branch creation or merge.
 
 Git was explicitly authorized by user and GIT035. Read-only exact commands used: `git -C <main> worktree list --porcelain`; `git -C <own> rev-parse HEAD`; `git -C <own> status --porcelain --untracked-files=no`; `git -C <own> ls-remote origin refs/heads/experiment/m1-candidate007-observe008`; `git -C <own> diff -- <exact paths>`; `git -C <own> diff <base-or-frozen-commit> -- <exact paths>`; `git -C <own> diff --stat`; `git -C <own> diff --name-only <base>`. Audit separately used read-only registration/status/refs/reachability commands recorded in its saved report; no audit mutation occurred.
 
@@ -16,4 +16,8 @@ Authorized commit commands: `git -C <own> add -- <literal allowlist>`; `git -c c
 
 Exact product/test paths: the three background files L2jPhantomBackgroundAuthority.java, PhantomBackgroundState.java, PhantomBackgroundModel.java; PhantomHeadlessPlayerTestEnvironment.java; new PhantomInventoryCapture035Suite.java. Remaining allowed paths are the13 approved packet files, CONSISTENCY035.md, Verify035.ps1, VerifyInventoryEvidence035.py and these three result reports, all under task035. The bounded packet/import/report exception is24 paths total, one inventory subsystem; production changes are only3 files. No product family/UI/client/config change.
 
-Encoding guards must pass separately before final commit: mojibake markers and escaped Cyrillic/XML Cyrillic over all24 exact public paths. UTF-8 and original newline style retained. No source test acceptance was changed. M1=`OPEN`; REAL_FINAL=`NOT_RUN`; profile27 cast-launch remains outside scope. No next task started.
+Mojibake markers in changed files: separately checked, PASS over all24 exact public paths before publication.
+
+Escaped Cyrillic/XML Cyrillic in changed files: separately checked, PASS over all24 exact public paths before publication.
+
+Both guards are rerun for this final confirmation. UTF-8 and original newline style retained. No source test acceptance was changed. M1=`OPEN`; REAL_FINAL=`NOT_RUN`; profile27 cast-launch remains outside scope. No next task started.
