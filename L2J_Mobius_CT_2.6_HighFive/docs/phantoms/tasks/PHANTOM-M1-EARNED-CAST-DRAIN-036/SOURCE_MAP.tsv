@@ -1,0 +1,29 @@
+path	permission	boundary	base_git_blob
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	CONDITIONAL_WRITE	WorkTicket dispatch/accounting; reserve/complete; existing drain/quiescent monitor	07a87b6b5e326c558c5fa4f44a84ea9d480272e2
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	CONDITIONAL_WRITE	cast-used overloads/ParticipantWork/Future bookkeeping only; exact participants unchanged	3cbd0e5ec1e96c83dc64dd9735b233ac16149d7a
+java/org/l2jmobius/gameserver/model/actor/tasks/creature/MagicUseTask.java	CONDITIONAL_WRITE	current-task and failure/completion integration only; no new damage/cast engine	09bb596b00bda15922963cd0f2c19c5553fadd0b
+java/org/l2jmobius/gameserver/model/actor/Creature.java	CONDITIONAL_WRITE	native managed beginCast scheduling/abort/finalizer integration only; no reward/formula/target policy	2f13b5a35dc3f30c71a79655609c894354d7b866
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	CONDITIONAL_WRITE	requestCleanup/control result/quiescent retry only after cause; no failed store bypass	50973670f8b809252aa18db782a69b21d5edd707
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	CONDITIONAL_WRITE	drain invocation and exact post-finalize release order; guards preserved	
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_WRITE	existing stop control/failure isolation within unchanged single deadline	74c638f13ebc2d33636962924a2eed9b8d764353
+java/org/l2jmobius/gameserver/Shutdown.java	CONDITIONAL_WRITE	Phantom drain integration/observation only on proven ordering cause; no general shutdown rewrite	101b3a3dc62fce791fd57020b81f331704fe21e7
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeTimer.java	READ_ONLY	ordinary vs earned timer contrast; no new timer protocol	
+java/org/l2jmobius/commons/threads/ThreadPool.java	READ_ONLY	inspect actual implementation/path if present; no capacity/queue/rejection rewrite	
+java/org/l2jmobius/gameserver/model/actor/Player.java	READ_ONLY	stock lifecycle and skill/owned-store API, no generic edits	
+java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	READ_ONLY_PROTECTED_035	preserve inventory35 and252 actual slots boundary	5238661b794898038c3ac56d312c020e986732bd
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	READ_ONLY_PROTECTED_035	no schema/compact bounds change	e7f31c5c83f19f7e7cf2cd338ede0411f64cca95
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	READ_ONLY_PROTECTED_035	stock250 capacity and no fake reward	8ce2404ae1fba972e9c1e15611f6a7149ec18722
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	READ_ONLY	owned prepare/finalize and pending capture; no persistence rewriting	
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	READ_ONLY	native gameplay enrollment and phases; no tactics/range/timeouts changes	
+test/java/org/l2jmobius/tests/phantoms/PhantomNativeCastDrain036Suite.java	CREATE	one focused composed native suite E01-E13	
+test/java/org/l2jmobius/gameserver/phantoms/player/PhantomCastDrain036Checks.java	CREATE_IF_NEEDED	package-local access using existing native fixture, not duplicate fake runtime	
+test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	CONDITIONAL_WRITE	exact036t manifest/config/cwd/export/JDBC guard only	
+test/java/org/l2jmobius/tests/phantoms/PhantomLifecycleCompletion027Suite.java	CONDITIONAL_WRITE	add regression only; original11 meanings/assertions/deadline preserved	
+test/java/org/l2jmobius/gameserver/phantoms/player/PhantomCallbackContinuation026Checks.java	CONDITIONAL_WRITE	reuse actual cast/event barriers; add proven regression, no weakening	71121fba16811d4de18d0cf612c5a55eccbc74a4
+test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java	CONDITIONAL_WRITE	only identified relatedQ15 premise isolation or added cast regression; no broad suite rewrite	
+build.xml	CONDITIONAL_WRITE	only test dispatch if existing standalone runner cannot suffice; compiler/native settings unchanged	
+docs/phantoms/tasks/PHANTOM-M1-EARNED-CAST-DRAIN-036/	WRITE_TASK_FAMILY	packet+bounded helpers+one RESULT_HANDOFF036/EVIDENCE_INDEX036/CLEANUP036/GIT_COMMANDS036	
+.phantom-local/ops036/	WRITE_PRIVATE_HELPERS	reuse current035 sources; raw ignored/external, no tools in public Git by default	
+.phantom-local/contract036a/	WRITE_OWN_RUNTIME	exact new manifest/runtime only	
+.phantom-local/contract036b/	WRITE_OWN_RUNTIME	exact new manifest/runtime only	
+.phantom-local/contract036t/	WRITE_OWN_TEST	exact guarded clone only	

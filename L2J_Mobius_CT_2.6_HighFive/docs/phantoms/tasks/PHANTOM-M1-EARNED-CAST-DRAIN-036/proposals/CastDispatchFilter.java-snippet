@@ -1,0 +1,16 @@
+// REFERENCE ONLY — integrate into PhantomNativeWorkScope after E01 RED.
+// No scheduler, SQL, I/O or change to EARNED semantics.
+private static boolean isCastContinuationKind(String kind)
+{
+    return switch (kind)
+    {
+        case "cast-launch", "cast-hit", "cast-finalizer", "cast-delayed-finalizer",
+             "cast-queued-skill", "cast-simultaneous-retry" -> true;
+        default -> false;
+    };
+}
+
+// WorkTicket constructor, replacing only its current EVENT-only expression:
+// _traceDispatch = (kind.startsWith("EVENT:") || isCastContinuationKind(kind))
+//     && org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().diagnosticsEnabled();
+// Keep all existing EVENT fields and bounds. Do not retain completed Future via late SUBMITTED.

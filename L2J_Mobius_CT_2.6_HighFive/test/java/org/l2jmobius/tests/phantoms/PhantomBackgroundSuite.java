@@ -890,6 +890,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	private void testNativeLogoutOrdering(PhantomTestContext context) throws Exception
 	{
 		final var entered = new CountDownLatch(1); final var release = new CountDownLatch(1); final var finished = new CountDownLatch(1);
+		final var deliveries = new java.util.concurrent.atomic.AtomicInteger();
 		final var prepared = new AtomicBoolean(); final var callbackFailure = new AtomicReference<Throwable>();
 		final var cleanupResult = new AtomicReference<PhantomMaterializationService.DematerializeResult>();
 		try (var runtime = createRuntimeFixture(_environment.primary().objectId(), new PhantomBackgroundTransaction(), point -> { if (point == FailurePoint.BEFORE_STORE_OPERATION) { prepared.set(true); } }))
@@ -897,11 +898,16 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Q15 native fixture materialization failed.");
 			final Player player; try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow()) { player = action.player(); }
 			final long before = player.getInventory().getInventoryItemCount(1334, -1);
+			final var template = org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(1334);
+			PhantomAssertions.assertTrue(template != null && template.isQuestItem(), "Q15 requires the actual quest-item template.");
+			// Quest.giveItems applies this native amount multiplier to quest items before the write.
+			final long expectedGrant = (long) (1 * org.l2jmobius.gameserver.config.RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER);
+			context.record("m1.Q15.premise", "item=1334;questItem=true;requested=1;expectedGrant=" + expectedGrant + ";rate=" + org.l2jmobius.gameserver.config.RatesConfig.QUEST_ITEM_DROP_AMOUNT_MULTIPLIER);
 			final var listener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(player, org.l2jmobius.gameserver.model.events.EventType.ON_PLAYER_LOGOUT,
 				(org.l2jmobius.gameserver.model.events.holders.actor.player.OnPlayerLogout event) ->
 				{
 					entered.countDown();
-					try { if (!release.await(5, TimeUnit.SECONDS)) { throw new AssertionError("Q15 native logout barrier timed out"); } org.l2jmobius.gameserver.model.script.Quest.giveItems(event.getPlayer(), 1334, 1); }
+					try { if (!release.await(5, TimeUnit.SECONDS)) { throw new AssertionError("Q15 native logout barrier timed out"); } deliveries.incrementAndGet(); org.l2jmobius.gameserver.model.script.Quest.giveItems(event.getPlayer(), 1334, 1); }
 					catch (Throwable failure) { callbackFailure.set(failure); }
 					finally { finished.countDown(); }
 				}, this);
@@ -916,9 +922,10 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				release.countDown(); PhantomAssertions.assertTrue(finished.await(3, TimeUnit.SECONDS), "Native logout callback did not complete."); cleanup.join(5000);
 				PhantomAssertions.assertFalse(cleanup.isAlive(), "Native logout cleanup deadlocked.");
 				PhantomAssertions.assertEquals(null, callbackFailure.get(), "Native logout writer failed.");
+				PhantomAssertions.assertEquals(1, deliveries.get(), "Native logout reward must be delivered exactly once.");
 				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, cleanupResult.get().status(), "Native logout cleanup failed.");
 				final Player loaded = Player.load(player.getObjectId());
-				try { PhantomAssertions.assertEquals(before + 1, loaded.getInventory().getInventoryItemCount(1334, -1), "Native logout reward was not captured by canonical reload."); }
+				try { PhantomAssertions.assertEquals(before + expectedGrant, loaded.getInventory().getInventoryItemCount(1334, -1), "Native rate-scaled logout reward was not captured by canonical reload."); }
 				finally { _environment.cleanupLoadedPlayer(loaded); }
 			}
 			finally { release.countDown(); cleanup.join(5000); player.removeListener(listener); }

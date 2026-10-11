@@ -45,6 +45,7 @@ public final class PhantomNativeWorkScope implements Owner
 	private volatile String _lastCompletedEvent = "";
 	private final java.util.ArrayDeque<String> _completedEvents = new java.util.ArrayDeque<>(8);
 	private volatile String _recentCompletedEvents = "[]";
+	private volatile long _completedDispatchCount;
 	private volatile String _checkpointStage = "";
 	private volatile CheckpointFailure _checkpointFirstFailure;
 	public enum CheckpointOutcome { WAIT_EARNED, RETRY_BEFORE_WRITE, RESOLVE_RECEIPT, VERIFY_WRITE_OUTCOME, PUBLISH_COMMITTED, RESUME, TERMINAL_RETAIN }
@@ -222,7 +223,7 @@ public final class PhantomNativeWorkScope implements Owner
 				if (child && (semantics == Semantics.EARNED)) { _failure = "UNREGISTERED_EARNED_WORK_CAP"; }
 				throw new IllegalStateException("NATIVE_WORK_ACCOUNTING_CAP");
 			}
-			final var ticket = new WorkTicket(++_sequence, kind, semantics, child ? ((WorkTicket) parent)._depth + 1 : 0);
+			final var ticket = new WorkTicket(++_sequence, kind, semantics, child ? ((WorkTicket) parent)._depth + 1 : 0, child ? ((WorkTicket) parent)._id : 0);
 			_outstanding.put(ticket._id, ticket);
 			_peak = Math.max(_peak, _outstanding.size());
 			publishWork();
@@ -397,7 +398,7 @@ public final class PhantomNativeWorkScope implements Owner
 		{
 			if (!isCurrent() || !_permanentSeal || (_checkpointThread != null) || (_state != State.SEALED) || !_outstanding.isEmpty() || !_failure.isEmpty()) { throw new IllegalStateException("NATIVE_TEARDOWN_NOT_QUIESCENT"); }
 			_state = State.DRAINING;
-			ticket = new WorkTicket(++_sequence, "NATIVE_TEARDOWN", Semantics.EARNED, 0);
+			ticket = new WorkTicket(++_sequence, "NATIVE_TEARDOWN", Semantics.EARNED, 0, 0);
 			_outstanding.put(ticket._id, ticket); _peak = Math.max(_peak, _outstanding.size());
 		}
 		if (!ticket.tryStart()) { throw new IllegalStateException("NATIVE_TEARDOWN_OWNER_CHANGED"); }
@@ -487,6 +488,9 @@ public final class PhantomNativeWorkScope implements Owner
 		fields.put("nativeEventDispatch", _publishedEventTickets.stream().map(WorkTicket::dispatchSnapshot).toList().toString());
 		fields.put("nativeLastCompletedEvent", _lastCompletedEvent);
 		fields.put("nativeRecentCompletedEvents", _recentCompletedEvents);
+		fields.put("nativeDispatchSampleNanos", Long.toString(System.nanoTime()));
+		fields.put("nativeCompletedDispatchCount", Long.toString(_completedDispatchCount));
+		fields.put("nativeCompletedDispatchCapacity", "8");
 		fields.put("nativeOwnerRead", "NONATOMIC_VOLATILE");
 		fields.put("nativeOwnerState", _state.name()); fields.put("nativeOwnerCurrent", Boolean.toString(isCurrent()));
 		fields.put("nativeOwnerPermanentSeal", Boolean.toString(_permanentSeal)); fields.put("nativeOwnerCheckpoint", Boolean.toString(_checkpointThread != null));
@@ -514,12 +518,22 @@ public final class PhantomNativeWorkScope implements Owner
 		private DrainTimeoutException(String detail) { super("NATIVE_WORK_DRAIN_TIMEOUT " + detail); }
 	}
 
+	private static boolean isCastContinuationKind(String kind)
+	{
+		return switch (kind)
+		{
+			case "cast-launch", "cast-hit", "cast-finalizer", "cast-delayed-finalizer", "cast-queued-skill", "cast-simultaneous-retry" -> true;
+			default -> false;
+		};
+	}
+
 	private final class WorkTicket implements Ticket
 	{
 		private final long _id;
 		private final String _kind;
 		private final Semantics _semantics;
 		private final int _depth;
+		private final long _parentId;
 		private final long _created = System.nanoTime();
 		private final PlayerNativeEvidence.CombatEpisode _combatEpisode;
 		private WorkState _state = WorkState.RESERVED;
@@ -528,11 +542,11 @@ public final class PhantomNativeWorkScope implements Owner
 		private volatile String _bodyOutcome = "NOT_ENTERED";
 		private volatile String _dispatchStatus = "RESERVED";
 		private volatile java.util.concurrent.ScheduledFuture<?> _dispatchFuture;
-		private WorkTicket(long id, String kind, Semantics semantics, int depth)
+		private WorkTicket(long id, String kind, Semantics semantics, int depth, long parentId)
 		{
-			_id = id; _kind = PhantomCleanupIncident.bounded(kind, 80); _semantics = semantics; _depth = depth;
+			_id = id; _kind = PhantomCleanupIncident.bounded(kind, 80); _semantics = semantics; _depth = depth; _parentId = parentId;
 			_combatEpisode = PlayerNativeWork.captureCombatEpisode(PhantomNativeWorkScope.this);
-			_traceDispatch = kind.startsWith("EVENT:") && org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().diagnosticsEnabled();
+			_traceDispatch = (kind.startsWith("EVENT:") || isCastContinuationKind(kind)) && org.l2jmobius.gameserver.config.custom.PhantomPlayersConfig.settings().diagnosticsEnabled();
 		}
 		@Override public Owner owner() { return PhantomNativeWorkScope.this; }
 		@Override public Semantics semantics() { return _semantics; }
@@ -549,16 +563,21 @@ public final class PhantomNativeWorkScope implements Owner
 		@Override public void dispatchStage(String stage, long delayMillis, java.util.concurrent.ScheduledFuture<?> future)
 		{
 			if (!_traceDispatch) { return; }
-			_delayMillis = delayMillis;
-			if (future != null) { _dispatchFuture = future; }
-			if (stage.equals("SUBMITTED")) { _submitNanos = System.nanoTime(); }
-			if (_startNanos == 0) { _dispatchStatus = stage; }
+			synchronized (_monitor)
+			{
+				_delayMillis = delayMillis;
+				if (stage.equals("SUBMITTED")) { _submitNanos = System.nanoTime(); }
+				// Zero-delay completion may precede publication; never retain its finished Future again.
+				if ((_state == WorkState.COMPLETED) || (_state == WorkState.CANCELLED)) { return; }
+				if (future != null) { _dispatchFuture = future; }
+				if (_startNanos == 0) { _dispatchStatus = stage; }
+			}
 		}
 		private String dispatchSnapshot()
 		{
 			final var future = _dispatchFuture;
 			return _id + ":" + _kind + ":" + _dispatchStatus + ":epoch=" + _epoch + ":reserve=" + _created + ":submit=" + _submitNanos + ":executorEntered=" + _executorEnteredNanos + ":start=" + _startNanos + ":bodyExit=" + _bodyExitNanos + ":bodyOutcome=" + _bodyOutcome + ":end=" + _endNanos
-				+ ":delayMs=" + _delayMillis + ":future=" + (future == null ? "NONE" : "done=" + future.isDone() + ",cancelled=" + future.isCancelled() + ",dueMs=" + future.getDelay(TimeUnit.MILLISECONDS));
+				+ ":semantics=" + _semantics + ":parent=" + _parentId + ":depth=" + _depth + ":delayMs=" + _delayMillis + ":future=" + (future == null ? "NONE" : "done=" + future.isDone() + ",cancelled=" + future.isCancelled() + ",dueMs=" + future.getDelay(TimeUnit.MILLISECONDS));
 		}
 		@Override public boolean tryStart()
 		{
@@ -614,6 +633,7 @@ public final class PhantomNativeWorkScope implements Owner
 			if (_traceDispatch)
 			{
 				_endNanos = System.nanoTime(); _dispatchStatus = state.name(); _lastCompletedEvent = dispatchSnapshot(); _dispatchFuture = null;
+				_completedDispatchCount++;
 				if (_completedEvents.size() == 8) { _completedEvents.removeFirst(); }
 				_completedEvents.addLast(_lastCompletedEvent); _recentCompletedEvents = _completedEvents.toString();
 			}
