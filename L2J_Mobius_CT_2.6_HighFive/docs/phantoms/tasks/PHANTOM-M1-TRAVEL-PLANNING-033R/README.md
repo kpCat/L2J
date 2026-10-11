@@ -1,8 +1,15 @@
 # TASK033R — планировать путь, а не дробить прямую
 
+Исполнение2026-10-11: **PARTIAL**, M1=OPEN, REAL_FINAL=NOT_RUN.
+Реальный clean R3 obstacle route → native arrival/farm →5 consecutive cycles PASS;
+93/93 и lifecycle11/11 PASS. RETURN_GK runtime chain, whole-cohort lineage и
+whole-system drain не закрыты. Полный результат: [RESULT_HANDOFF033R.md](RESULT_HANDOFF033R.md),
+границы source review: [SOURCE_REVIEW033R.md](SOURCE_REVIEW033R.md), cleanup: [CLEANUP033R.md](CLEANUP033R.md).
+
 Этот пакет ЗАМЕНЯЕТ ещё не запущенный PHANTOM-M1-NATIVE-ROUTE-033.
 Старый TASK033 не продолжать и не объединять его STOP/allowlist с новым.
-Распаковка создаёт только эту папку; production source не перезаписывается.
+Исходный planning archive создавал только эту папку; исполненные11 source/test
+paths перечислены в FINAL_SCOPE_GUARD.tsv.
 
 Base: `df71140e659670e2e3d225605f64689a6d32d281`; branch: `experiment/m1-candidate007-observe008`.
 Новый Codex-чат, GPT-6.1 Sol, Very High, без субагентов.

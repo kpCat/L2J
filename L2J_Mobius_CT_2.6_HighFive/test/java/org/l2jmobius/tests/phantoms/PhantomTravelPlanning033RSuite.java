@@ -62,6 +62,10 @@ public final class PhantomTravelPlanning033RSuite implements PhantomTestSuite
 			registry.add("T13-native-unstuck-timer-owned-before-publication", this::returnOwnership);
 			registry.add("T19-recorded-native-obstacle-route-and-five-cycles", this::recordedRoute); return;
 		}
+		if ("recordedRoute033r".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("T19-recorded-native-obstacle-route-and-five-cycles", this::recordedRoute); return;
+		}
 		if ("strategy033r".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("T11-visible-candidate-rejects-full-unaffordable-native-fees", this::strategyBudget);
@@ -243,6 +247,7 @@ public final class PhantomTravelPlanning033RSuite implements PhantomTestSuite
 		final var origin=point(Integer.parseInt(birth.getProperty("initialX")),Integer.parseInt(birth.getProperty("initialY")),Integer.parseInt(birth.getProperty("initialZ")));
 		final var backend=new L2jNavigationBackend(); final var geo=GeoEngine.getInstance();
 		final List<PhantomNavigationPoint> turns=new ArrayList<>(); int provedCycles=0; long firstSample=0; String destination="";
+		PhantomNavigationPoint previousPose=null; boolean previousMoving=false;
 		try(var lines=java.nio.file.Files.lines(ledgerPath))
 		{
 			for(var line:(Iterable<String>)lines::iterator)
@@ -260,9 +265,16 @@ public final class PhantomTravelPlanning033RSuite implements PhantomTestSuite
 					if(row[8].equals("true") && !key.equals(destination))
 					{
 						PhantomAssertions.assertEquals("MOVE_TO",row[11],"Observed stock MOVE intention required.");
-						final var from=point(Integer.parseInt(row[4]),Integer.parseInt(row[5]),Integer.parseInt(row[6]));
+						final var sampled=point(Integer.parseInt(row[4]),Integer.parseInt(row[5]),Integer.parseInt(row[6]));
+						// Creature.updatePosition snaps to the factual prior destination before the next native leg.
+						// A 100ms sample can already be partway along that leg; it is not its issued origin.
+						final var from=turns.isEmpty()?origin:turns.getLast();
 						final int x=Integer.parseInt(row[12]),y=Integer.parseInt(row[13]); final var to=point(x,y,geo.getHeight(x,y,from.z()));
-						PhantomAssertions.assertTrue(backend.canWalkDirect(from,to),"Every observed issued segment has native height/dry/NSWE proof.");
+						PhantomAssertions.assertTrue(previousPose!=null && (previousMoving || previousPose.equals(from)),"Idle pre-MOVE pose must equal the actual issued origin.");
+						final double sampledDistance=Math.hypot((long)sampled.x()-from.x(),(long)sampled.y()-from.y())+Math.hypot((long)sampled.x()-to.x(),(long)sampled.y()-to.y());
+						PhantomAssertions.assertTrue(sampledDistance<=Math.hypot((long)from.x()-to.x(),(long)from.y()-to.y())+2,"Actual native sampled XY must remain on its issued segment (integer movement rounding only).");
+						PhantomAssertions.assertTrue(backend.canWalkDirect(from,to),"Every actual issued segment has native height/dry/NSWE proof: " + from + " -> " + to);
+						if(!backend.canWalkDirect(sampled,to)){context.record("T19.sampleRayDifference"+turns.size(),"issued="+from+" -> "+to+";sampled="+sampled+";issuedDirect="+backend.canMoveDirect(from,to)+";sampledDirect="+backend.canMoveDirect(sampled,to));}
 						turns.add(to); destination=key;
 					}
 				}
@@ -273,6 +285,7 @@ public final class PhantomTravelPlanning033RSuite implements PhantomTestSuite
 					PhantomAssertions.assertTrue(Integer.parseInt(row[20])>=cycle && Integer.parseInt(row[21])>=cycle && Long.parseLong(row[14])>Long.parseLong(birth.getProperty("initialExp")) && Long.parseLong(row[15])>Long.parseLong(birth.getProperty("initialSp")),"Each cycle has actual kill/reward and native EXP/SP; shared targets remain lawful.");
 					provedCycles=cycle; context.record("T19.cycle"+cycle,line);
 				}
+				previousPose=point(Integer.parseInt(row[4]),Integer.parseInt(row[5]),Integer.parseInt(row[6])); previousMoving=row[8].equals("true");
 			}
 		}
 		PhantomAssertions.assertTrue(firstSample>0 && firstSample-Long.parseLong(birth.getProperty("registerNanos"))<1_000_000_000L,"Evidence starts within one second of actual birth, before the first route completes.");

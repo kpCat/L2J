@@ -102,3 +102,18 @@ C61 genuine actual sitting/NPC-interaction RED: adapter teleported despite close
 then call stock NPC dispatcher (including transform restrictions), rather than bypassing its conditions with holder-only call.
 C62 Jar/compile-tests PASS; C63 composed final travel10/10 PASS including both RED-to-GREEN and actual GK/persistence.
 Own033rc prepared from retained032 READ/export (304 source hashes) for final clean committed runtime. Existing DBs remain retained.
+C64 clean committed R3 build PASS; GameJar EBC6918A38D634964028A171AFF62CB24926B5E7432040EB50B3A5E5CD620D46.
+C67 final native scene380.387s,initial123/328/375/437/492/601,primaries123/328,369samples,maxgap1.092s.
+Primary123 birth(-90072,248328,-3568),9native issued legs,10cycles/11kills/13rewards,EXP+3458/SP+161.
+Whole cohort0/6: calendar departures require COMPLETE_LINEAGE_REQUIRED; failed/missing actors retained.
+C68 matrix93/93 PASS,C69 helpers24PASS/1existingSKIP,C72 composed-stop1/1,C73 affected8/8,C74 H16 1/1.
+C75 unchanged recovery4/7 with previous R03/R05/R15 failures; C77 exact lifecycle acceptance11/11 PASS.
+C78 native return/death T13 PASS; recorded T19 FAIL measured mid-MOVE sampled pose as issued origin.
+C81 narrowed failure to second edge: sampled(-89056,249360) rayfalse versus actual issued(-89048,249352) raytrue.
+C83 test-only correlation correction: actual birth/previous native destination, strict native geometry and sampled XY alignment;
+all9issued edges/blocked fullray/5consecutive native cycles1/1 PASS. Production R3 Jar unchanged; failure raws preserved.
+C76 first save invocation INVALID missing stdout.log; C76V actual java0.log validator all6 native fields match stopped SQL,
+pending stores0, only error unhealthy whole drain. Current global retained3; all6 scene lifetimes DETACHED/outstanding0/timers0.
+Game23688/Login24028 stock graceful STOP confirmed, Synthetic STOPPED/restored. Own JVM census empty after final tests.
+Preliminary own file inventory711404 files/11171305030bytes; selective SHA-256 raw copy outside worktree verified.
+Result PARTIAL_TRAVEL_MODES/cohort+globaldrainFAIL; M1 OPEN,REAL_FINAL NOT_RUN. Final publication/cleanup recorded externally.
