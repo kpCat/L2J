@@ -1,0 +1,21 @@
+path	permission	reason	read_first
+java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	CONDITIONAL_WRITE	Native capture and owned acquisition usedSlots	capture/captureAcquisition 217/255
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	CONDITIONAL_WRITE	InventoryFacts invariant: safely represent inherited over-capacity	MAX_COMPACT_TRACKED_ITEMS / InventoryFacts
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	CONDITIONAL_WRITE	No new reward slots when stock capacity already full	inventoryCheck 597–632
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	CONDITIONAL_WRITE	Native⇄SQL used-slot parity if required	inventoryFacts 2045–2066 / prepareOwnedStore
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	CONDITIONAL_WRITE	Full canonical inventory hash and owned store parity if required	captureOwnedInventory 1394 / prepareStore
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundStateCodec.java	READ_ONLY_UNLESS_SCHEME_APPROVED	Verify existing v2 bytes/legacy roundtrip; schema change requires STOP	encode/decode inventory
+java/org/l2jmobius/gameserver/model/itemcontainer/ItemContainer.java	READ_ONLY	Authoritative size semantics	getSize
+java/org/l2jmobius/gameserver/model/itemcontainer/PlayerInventory.java	READ_ONLY	Stock nonquest capacity and equipped semantics	getNonQuestSize / validateCapacity
+java/org/l2jmobius/gameserver/model/actor/Player.java	READ_ONLY	Real per-character cap and store, no generic changes	getInventoryLimit
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializedPlayer.java	READ_ONLY	Must retain owner until successful native store	cleanup/firstIncident
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	READ_ONLY	Must preserve global failure and retained map	requestShutdown/cleanupBlockers
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	READ_ONLY	No synthetic global drain PASS	DRAIN_PLAYERS
+test/java/org/l2jmobius/tests/phantoms/PhantomInventoryCapacity031Suite.java	CONDITIONAL_WRITE	Existing compact 250+25 and negative tests	C01–C03
+test/java/org/l2jmobius/tests/phantoms/PhantomFarmProjection030Suite.java	CONDITIONAL_WRITE	Existing native and historical projection parity	N01/N02/P02–P12
+test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java	CONDITIONAL_WRITE	Stock model/codec/canonical tests	compact/background state/transaction modes
+test/java/org/l2jmobius/tests/phantoms/PhantomInventoryCapture035Suite.java	CREATE_IF_REQUIRED	Minimal new negative/positive causal regression only if existing suites insufficient	C01–C06
+test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	CONDITIONAL_WRITE	Separate exact 035t test DB manifest only	No generic permission expansion
+dist/game/config/Player.ini	READ_ONLY	Never alter bot/global slot limits	MaximumSlotsForNoDwarf etc
+dist/game/config/Custom/PersonalCharacterQoL.ini	READ_ONLY	User personal 1000-slot feature separate future task	No changes 035
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomWalkCorridorPlanner.java	READ_ONLY	Keep proven 033R nav untouched	No route changes

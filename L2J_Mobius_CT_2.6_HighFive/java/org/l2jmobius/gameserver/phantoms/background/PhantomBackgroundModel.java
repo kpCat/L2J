@@ -625,7 +625,10 @@ public final class PhantomBackgroundModel
 		{
 			return InventoryCheck.rejected(ResultReason.WEIGHT_CAPACITY);
 		}
-		if ((inventory.usedSlots() + addedSlots) > inventory.maximumSlots())
+		// Durable v2/SQL usedSlots counts INVENTORY rows; PAPERDOLL also occupies stock slots.
+		// Keep that byte contract and count equipment here so inherited overfull data cannot grow.
+		final long occupiedSlots = inventory.usedSlots() + inventory.objects().stream().filter(object -> object.location() == PhantomBackgroundState.ItemLocation.PAPERDOLL).count();
+		if ((occupiedSlots + addedSlots) > inventory.maximumSlots())
 		{
 			return InventoryCheck.rejected(ResultReason.SLOT_CAPACITY);
 		}

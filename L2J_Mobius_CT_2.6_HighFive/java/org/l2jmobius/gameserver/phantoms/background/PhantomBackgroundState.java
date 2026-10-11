@@ -270,7 +270,9 @@ public record PhantomBackgroundState(State state, Identity identity, Progress pr
 			mutableItemIds = List.copyOf(mutableItemIds);
 			objects = List.copyOf(objects);
 			canonicalHash = boundedHash(canonicalHash, "inventory canonical hash");
-			final boolean compactCapacity = (objects.size() <= MAX_COMPACT_TRACKED_ITEMS) && (maximumSlots <= 250) && (usedSlots <= maximumSlots)
+			// Capture represents existing native objects, including lawful inherited over-capacity.
+			// This bounded representation is not permission to acquire another slot.
+			final boolean compactCapacity = (objects.size() <= MAX_COMPACT_TRACKED_ITEMS) && (maximumSlots <= 250) && (usedSlots <= MAX_COMPACT_TRACKED_ITEMS)
 				&& (objects.stream().filter(object -> object.location() == ItemLocation.INVENTORY).count() <= maximumSlots)
 				&& (objects.stream().filter(object -> object.location() == ItemLocation.PAPERDOLL).count() <= 25);
 			if ((mutableItemIds.size() > MAX_MUTABLE_ITEM_IDS) || ((objects.size() > MAX_TRACKED_ITEMS) && !compactCapacity) || (currentLoad < 0) || (maximumLoad < 0) || (usedSlots < 0) || (maximumSlots < 0))

@@ -1,0 +1,17 @@
+# SOURCE_FACTS035 — pinned read-first facts, not prescribed implementation
+
+Pinned repository `kpCat/L2J`, source HEAD `d6d8c4b9d32276aff5563c239c5f822cf8ec83fa`. Verify actual lines and compiled source, do not trust this document instead of Java.
+
+- `java/.../model/itemcontainer/ItemContainer.java:77–79` `getSize() = _items.size()` includes equipped items; `PlayerInventory.java:809–811` `getNonQuestSize() = _items.size() - _questItemSize`; `PlayerInventory.java:948–951` normal `validateCapacity(slots,false)` tests `getNonQuestSize() + slots <= player.getInventoryLimit()` (with its real 0-slot exception).
+- `java/.../model/actor/Player.java:13125` `getInventoryLimit()` chooses GM/Dwarf/ordinary global limit plus `Stat.INV_LIM`. **Do not change** for Phantom fix.
+- `java/.../phantoms/background/L2jPhantomBackgroundAuthority.java:217`: `InventoryFacts.sorted(... player.getInventory().getSize(), player.getInventoryLimit())` in `capture` (also an acquisition path around 255).
+- `java/.../phantoms/background/PhantomBackgroundState.java:39–41`: normal tracked bound160, compact tracked bound275, mutable96. `InventoryFacts` constructor around273: compact requires `objects.size<=275`, `maximumSlots<=250`, `usedSlots<=maximumSlots`, tracked INVENTORY count within max and PAPERDOLL count<=25. Relaxing a single condition without aligning capacity semantics can introduce rewards bugs.
+- `java/.../phantoms/background/PhantomBackgroundService.java:1394–1406`: `captureOwnedInventory` enumerates all actual INVE/PAPERDOLL for full canonical hash, but sets usedSlots from INVE only. It proves tracked-object parity.
+- `java/.../phantoms/background/PhantomBackgroundTransaction.java:2045–2066`: SQL `inventoryFacts` counts INVE only; schema v2 currently stores `usedSlots` as unsigned short. `PhantomBackgroundStateCodec.java:125–145/240–259` encodes and decodes these scalars and compressed representation.
+- `java/.../phantoms/background/PhantomBackgroundModel.java:597–632`: added slots/weight and `inventory.usedSlots+addedSlots > maximumSlots` check; must stay equivalent or stricter than real Player capacity in overfull case.
+- `java/.../phantoms/player/PhantomMaterializedPlayer.java` stores canonically before deleting World/owner; `PhantomMaterializationService` retains failed actors with first/latest cleanup incidents. Do not bypass.
+- Existing suites `PhantomInventoryCapacity031Suite` C01–C03; `PhantomFarmProjection030Suite` N01/N02/P02..; `PhantomBackgroundSuite` state codec/drop/transaction & native; `PhantomNativeContextHandoffSuite` H09/H16.
+
+**TASK034 observed facts:** profiles36/45, original item count252 with249 INVENTORY +3 PAPERDOLL, actual nonquest252, max250, mutable6, trackedObjects246 (243 INVENTORY +3 PAPERDOLL), exact native store `NATIVE_STORE/PLAYER_STORE_ME` throws `Invalid bounded background inventory`. Native owners SEALED/current/outstanding0/timers0. Pre-Synthetic own034t reproduction showed retained2 and typed FAILED. Profile27's reserved `cast-launch` is a DIFFERENT unproven failure; no direct patch authorization.
+
+**Hypotheses to test, not assert as proven:** which invariant should store faithful overcapacity in v2; whether changes should be limited to native capture + constructor or need background slot-accounting adjustment; handling of quest items and equipped count. Never infer client support for a 1000-slot personal inventory from this task.
