@@ -51,6 +51,9 @@ def verify(root):
     pre = rows(root / "R2_PRE_SQL035/items.tsv")
     post = rows(root / "R2_POST_SQL035/items.tsv")
     assert pre == post, "Any item row/object/count/location/enchant changed"
+    for before, after in zip(rows(root / "R2_PRE_SQL035/characters.tsv"), rows(root / "R2_POST_SQL035/characters.tsv"), strict=True):
+        assert before["online"] == "2" and after["online"] == "0", "Stock logout online transition missing"
+        assert {k: v for k, v in before.items() if k != "online"} == {k: v for k, v in after.items() if k != "online"}, "Canonical progress/vitals/position or earned values changed"
     assert rows(root / "R2_PRE_SQL035/skills.tsv") == rows(root / "R2_POST_SQL035/skills.tsv"), "Skill rows changed"
     counts = rows(root / "R2_POST_SQL035/counts.tsv")
     assert counts[0] == {"database_name": "l2jmobiush5_localplay_contract035b", "pendingOwnedStores": "0", "onlineCharacters": "0"}
@@ -123,6 +126,9 @@ if __name__ == "__main__":
     evidence = pathlib.Path(sys.argv[1]).resolve()
     result = verify(evidence)
     output = evidence / "R2_FULL_INVENTORY_PROOF035.json"
-    assert not output.exists(), "Immutable proof already exists"
-    output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    if len(sys.argv) > 2 and sys.argv[2] == "--verify-existing":
+        assert json.loads(output.read_text(encoding="utf-8")) == result, "Immutable proof differs from fresh verification"
+    else:
+        assert not output.exists(), "Immutable proof already exists"
+        output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result))

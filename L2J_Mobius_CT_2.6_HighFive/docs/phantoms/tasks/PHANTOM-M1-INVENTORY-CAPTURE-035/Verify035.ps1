@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([ValidateSet('Build','Test','Matrix','Helpers','Evaluate')][string]$Action='Build',
       [string]$Suite='LocalPlayContinuity028Suite',[string]$Focus='',
-      [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Label='R1', [string]$LauncherId='', [string]$EpisodeOutput='')
+      [ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Label='R1', [string]$LauncherId='', [long]$LauncherSeed=33003300, [string]$EpisodeOutput='')
 $ErrorActionPreference='Stop'
 $module=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $root=Split-Path $module -Parent
@@ -91,7 +91,7 @@ if($Suite -ceq 'PhantomFarmProjection030Suite' -and $Focus -ceq 'capacity031'){$
 if($Suite -ceq 'PhantomNativeFarmContinuation022Suite' -and $Focus){$arguments+="-Dphantom023.nativeFarmFocus=$Focus"}
 if($Suite -ceq 'position' -and $Focus){$arguments+="-Dphantom.background.position.focus=$Focus"}
 $arguments+=@('-cp',$cp)
-if($LauncherId){$arguments+=@('org.l2jmobius.tests.phantoms.PhantomTestLauncher',$LauncherId,'33003300')}
+if($LauncherId){$arguments+=@('org.l2jmobius.tests.phantoms.PhantomTestLauncher',$LauncherId,[string]$LauncherSeed)}
 elseif($Suite -ceq 'native'){$arguments+=@('org.l2jmobius.tests.phantoms.PhantomTestLauncher','m1-native-lifecycle','15001501')}
 elseif($Suite -ceq 'server-shutdown'){$arguments+=@('org.l2jmobius.tests.phantoms.PhantomTestLauncher','server-shutdown-handoff','23002301')}
 elseif($Suite -ceq 'position'){$arguments+=@('org.l2jmobius.tests.phantoms.PhantomTestLauncher','background-position-canonicalization','15001502')}
