@@ -1,0 +1,11 @@
+SNAPSHOT_UTC	2026-10-12T22:54:31.792282800Z
+READ_ONLY	noInvoke=true;noSet=true;noSuspend=true;noAgent=true;methodEvents=true
+TRACE_START_UTC	2026-10-12T22:54:36.186223700Z	SUSPEND_NONE;durationSeconds=60;eventCap=1024
+RECEIVED	ENTRY:org.l2jmobius.gameserver.ai.AbstractAI.getAttackTarget	6
+RECEIVED	ENTRY:org.l2jmobius.gameserver.ai.AbstractAI.getCastTarget	6
+RECEIVED	ENTRY:org.l2jmobius.gameserver.ai.AbstractAI.getFollowTarget	6
+RECEIVED	ENTRY:org.l2jmobius.gameserver.ai.AbstractAI.getTarget	6
+RECEIVED	ENTRY:org.l2jmobius.gameserver.ai.AbstractAI.notifyAction	12
+RECEIVED	ENTRY:org.l2jmobius.gameserver.ai.PlayerAI.onActionForgetObject	6
+TRACE_END_UTC	2026-10-12T22:55:37.036182600Z	events=0
+SNAPSHOT_END_UTC	2026-10-12T22:55:37.462253600Z

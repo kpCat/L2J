@@ -1,0 +1,186 @@
+Compiled from "PlayableAI.java"
+public abstract class org.l2jmobius.gameserver.ai.PlayableAI extends org.l2jmobius.gameserver.ai.CreatureAI {
+  protected org.l2jmobius.gameserver.ai.PlayableAI(org.l2jmobius.gameserver.model.actor.Playable);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokespecial #1                  // Method org/l2jmobius/gameserver/ai/CreatureAI."<init>":(Lorg/l2jmobius/gameserver/model/actor/Creature;)V
+         5: return
+
+  protected void onIntentionAttack(org.l2jmobius.gameserver.model.actor.Creature);
+    Code:
+         0: aload_1
+         1: ifnull        180
+         4: aload_1
+         5: invokevirtual #7                  // Method org/l2jmobius/gameserver/model/actor/Creature.isPlayable:()Z
+         8: ifeq          180
+        11: aload_0
+        12: getfield      #13                 // Field _actor:Lorg/l2jmobius/gameserver/model/actor/Creature;
+        15: invokevirtual #19                 // Method org/l2jmobius/gameserver/model/actor/Creature.asPlayer:()Lorg/l2jmobius/gameserver/model/actor/Player;
+        18: astore_2
+        19: aload_1
+        20: invokevirtual #19                 // Method org/l2jmobius/gameserver/model/actor/Creature.asPlayer:()Lorg/l2jmobius/gameserver/model/actor/Player;
+        23: astore_3
+        24: aload_3
+        25: invokevirtual #23                 // Method org/l2jmobius/gameserver/model/actor/Player.isProtectionBlessingAffected:()Z
+        28: ifeq          74
+        31: aload_2
+        32: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+        35: aload_3
+        36: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+        39: isub
+        40: bipush        10
+        42: if_icmplt     74
+        45: aload_2
+        46: invokevirtual #32                 // Method org/l2jmobius/gameserver/model/actor/Player.getKarma:()I
+        49: ifle          74
+        52: aload_1
+        53: getstatic     #35                 // Field org/l2jmobius/gameserver/model/zone/ZoneId.PVP:Lorg/l2jmobius/gameserver/model/zone/ZoneId;
+        56: invokevirtual #41                 // Method org/l2jmobius/gameserver/model/actor/Creature.isInsideZone:(Lorg/l2jmobius/gameserver/model/zone/ZoneId;)Z
+        59: ifne          74
+        62: aload_2
+        63: getstatic     #45                 // Field org/l2jmobius/gameserver/network/SystemMessageId.THAT_IS_AN_INCORRECT_TARGET:Lorg/l2jmobius/gameserver/network/SystemMessageId;
+        66: invokevirtual #51                 // Method org/l2jmobius/gameserver/model/actor/Player.sendPacket:(Lorg/l2jmobius/gameserver/network/SystemMessageId;)V
+        69: aload_0
+        70: invokevirtual #55                 // Method clientActionFailed:()V
+        73: return
+        74: aload_2
+        75: invokevirtual #23                 // Method org/l2jmobius/gameserver/model/actor/Player.isProtectionBlessingAffected:()Z
+        78: ifeq          124
+        81: aload_3
+        82: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+        85: aload_2
+        86: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+        89: isub
+        90: bipush        10
+        92: if_icmplt     124
+        95: aload_3
+        96: invokevirtual #32                 // Method org/l2jmobius/gameserver/model/actor/Player.getKarma:()I
+        99: ifle          124
+       102: aload_1
+       103: getstatic     #35                 // Field org/l2jmobius/gameserver/model/zone/ZoneId.PVP:Lorg/l2jmobius/gameserver/model/zone/ZoneId;
+       106: invokevirtual #41                 // Method org/l2jmobius/gameserver/model/actor/Creature.isInsideZone:(Lorg/l2jmobius/gameserver/model/zone/ZoneId;)Z
+       109: ifne          124
+       112: aload_2
+       113: getstatic     #45                 // Field org/l2jmobius/gameserver/network/SystemMessageId.THAT_IS_AN_INCORRECT_TARGET:Lorg/l2jmobius/gameserver/network/SystemMessageId;
+       116: invokevirtual #51                 // Method org/l2jmobius/gameserver/model/actor/Player.sendPacket:(Lorg/l2jmobius/gameserver/network/SystemMessageId;)V
+       119: aload_0
+       120: invokevirtual #55                 // Method clientActionFailed:()V
+       123: return
+       124: aload_3
+       125: invokevirtual #59                 // Method org/l2jmobius/gameserver/model/actor/Player.isCursedWeaponEquipped:()Z
+       128: ifeq          152
+       131: aload_2
+       132: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+       135: bipush        20
+       137: if_icmpgt     152
+       140: aload_2
+       141: getstatic     #45                 // Field org/l2jmobius/gameserver/network/SystemMessageId.THAT_IS_AN_INCORRECT_TARGET:Lorg/l2jmobius/gameserver/network/SystemMessageId;
+       144: invokevirtual #51                 // Method org/l2jmobius/gameserver/model/actor/Player.sendPacket:(Lorg/l2jmobius/gameserver/network/SystemMessageId;)V
+       147: aload_0
+       148: invokevirtual #55                 // Method clientActionFailed:()V
+       151: return
+       152: aload_2
+       153: invokevirtual #59                 // Method org/l2jmobius/gameserver/model/actor/Player.isCursedWeaponEquipped:()Z
+       156: ifeq          180
+       159: aload_3
+       160: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+       163: bipush        20
+       165: if_icmpgt     180
+       168: aload_2
+       169: getstatic     #45                 // Field org/l2jmobius/gameserver/network/SystemMessageId.THAT_IS_AN_INCORRECT_TARGET:Lorg/l2jmobius/gameserver/network/SystemMessageId;
+       172: invokevirtual #51                 // Method org/l2jmobius/gameserver/model/actor/Player.sendPacket:(Lorg/l2jmobius/gameserver/network/SystemMessageId;)V
+       175: aload_0
+       176: invokevirtual #55                 // Method clientActionFailed:()V
+       179: return
+       180: aload_0
+       181: aload_1
+       182: invokespecial #62                 // Method org/l2jmobius/gameserver/ai/CreatureAI.onIntentionAttack:(Lorg/l2jmobius/gameserver/model/actor/Creature;)V
+       185: return
+
+  protected void onIntentionCast(org.l2jmobius.gameserver.model.skill.Skill, org.l2jmobius.gameserver.model.WorldObject);
+    Code:
+         0: aload_2
+         1: ifnull        175
+         4: aload_2
+         5: invokevirtual #65                 // Method org/l2jmobius/gameserver/model/WorldObject.isPlayable:()Z
+         8: ifeq          175
+        11: aload_1
+        12: invokevirtual #68                 // Method org/l2jmobius/gameserver/model/skill/Skill.hasNegativeEffect:()Z
+        15: ifeq          175
+        18: aload_0
+        19: getfield      #13                 // Field _actor:Lorg/l2jmobius/gameserver/model/actor/Creature;
+        22: invokevirtual #19                 // Method org/l2jmobius/gameserver/model/actor/Creature.asPlayer:()Lorg/l2jmobius/gameserver/model/actor/Player;
+        25: astore_3
+        26: aload_2
+        27: invokevirtual #73                 // Method org/l2jmobius/gameserver/model/WorldObject.asPlayer:()Lorg/l2jmobius/gameserver/model/actor/Player;
+        30: astore        4
+        32: aload         4
+        34: invokevirtual #23                 // Method org/l2jmobius/gameserver/model/actor/Player.isProtectionBlessingAffected:()Z
+        37: ifeq          84
+        40: aload_3
+        41: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+        44: aload         4
+        46: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+        49: isub
+        50: bipush        10
+        52: if_icmplt     84
+        55: aload_3
+        56: invokevirtual #32                 // Method org/l2jmobius/gameserver/model/actor/Player.getKarma:()I
+        59: ifle          84
+        62: aload_2
+        63: getstatic     #35                 // Field org/l2jmobius/gameserver/model/zone/ZoneId.PVP:Lorg/l2jmobius/gameserver/model/zone/ZoneId;
+        66: invokevirtual #74                 // Method org/l2jmobius/gameserver/model/WorldObject.isInsideZone:(Lorg/l2jmobius/gameserver/model/zone/ZoneId;)Z
+        69: ifne          84
+        72: aload_3
+        73: getstatic     #45                 // Field org/l2jmobius/gameserver/network/SystemMessageId.THAT_IS_AN_INCORRECT_TARGET:Lorg/l2jmobius/gameserver/network/SystemMessageId;
+        76: invokevirtual #51                 // Method org/l2jmobius/gameserver/model/actor/Player.sendPacket:(Lorg/l2jmobius/gameserver/network/SystemMessageId;)V
+        79: aload_0
+        80: invokevirtual #55                 // Method clientActionFailed:()V
+        83: return
+        84: aload_3
+        85: invokevirtual #23                 // Method org/l2jmobius/gameserver/model/actor/Player.isProtectionBlessingAffected:()Z
+        88: ifeq          136
+        91: aload         4
+        93: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+        96: aload_3
+        97: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+       100: isub
+       101: bipush        10
+       103: if_icmplt     136
+       106: aload         4
+       108: invokevirtual #32                 // Method org/l2jmobius/gameserver/model/actor/Player.getKarma:()I
+       111: ifle          136
+       114: aload_2
+       115: getstatic     #35                 // Field org/l2jmobius/gameserver/model/zone/ZoneId.PVP:Lorg/l2jmobius/gameserver/model/zone/ZoneId;
+       118: invokevirtual #74                 // Method org/l2jmobius/gameserver/model/WorldObject.isInsideZone:(Lorg/l2jmobius/gameserver/model/zone/ZoneId;)Z
+       121: ifne          136
+       124: aload_3
+       125: getstatic     #45                 // Field org/l2jmobius/gameserver/network/SystemMessageId.THAT_IS_AN_INCORRECT_TARGET:Lorg/l2jmobius/gameserver/network/SystemMessageId;
+       128: invokevirtual #51                 // Method org/l2jmobius/gameserver/model/actor/Player.sendPacket:(Lorg/l2jmobius/gameserver/network/SystemMessageId;)V
+       131: aload_0
+       132: invokevirtual #55                 // Method clientActionFailed:()V
+       135: return
+       136: aload         4
+       138: invokevirtual #59                 // Method org/l2jmobius/gameserver/model/actor/Player.isCursedWeaponEquipped:()Z
+       141: ifeq          175
+       144: aload_3
+       145: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+       148: bipush        20
+       150: if_icmple     163
+       153: aload         4
+       155: invokevirtual #28                 // Method org/l2jmobius/gameserver/model/actor/Player.getLevel:()I
+       158: bipush        20
+       160: if_icmpgt     175
+       163: aload_3
+       164: getstatic     #45                 // Field org/l2jmobius/gameserver/network/SystemMessageId.THAT_IS_AN_INCORRECT_TARGET:Lorg/l2jmobius/gameserver/network/SystemMessageId;
+       167: invokevirtual #51                 // Method org/l2jmobius/gameserver/model/actor/Player.sendPacket:(Lorg/l2jmobius/gameserver/network/SystemMessageId;)V
+       170: aload_0
+       171: invokevirtual #55                 // Method clientActionFailed:()V
+       174: return
+       175: aload_0
+       176: aload_1
+       177: aload_2
+       178: invokespecial #75                 // Method org/l2jmobius/gameserver/ai/CreatureAI.onIntentionCast:(Lorg/l2jmobius/gameserver/model/skill/Skill;Lorg/l2jmobius/gameserver/model/WorldObject;)V
+       181: return
+}

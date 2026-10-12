@@ -1,0 +1,153 @@
+SOURCE	C:\Users\ZBook\.codex\visualizations\2026\10\12\01a13118-dbe0-7271-9e69-84aa8a70ea4d\incident040\player-before.tsv	sha256=5d947d1c6775626877509f81a65360c5f3c2a83a0f1e730c5541e4eef90796c1	bytes=42254
+SNAPSHOT_UTC	2026-10-12T22:40:26.680410100Z
+READ_ONLY	noInvoke=true;noSet=true;noSuspend=true;noEvents=true;noAgent=true
+player._nativeWorkOwner	org.l2jmobius.gameserver.model.actor.PlayerNativeWork$Owner	null
+player._classIndex	int	0
+player._pkKills	int	1
+player._telemode	int	0
+player._waitTypeSitting	boolean	false
+player._observerMode	boolean	false
+player._fishing	boolean	false
+player._notMoveUntil	long	0
+player._isCastingNow	boolean	true
+player._isCastingSimultaneouslyNow	boolean	false
+player._isDead	boolean	false
+player._isImmobilized	boolean	false
+player._isOverloaded	boolean	false
+player._isParalyzed	boolean	false
+player._isTeleporting	boolean	false
+player._allSkillsDisabled	boolean	false
+player._move	org.l2jmobius.gameserver.model.actor.Creature$MoveData	null
+player._attackEndTime	long	0
+player._castInterruptTime	int	0
+player._skillCast	java.util.concurrent.Future	null
+player._skillCast2	java.util.concurrent.Future	null
+player._nativeMagicUseTask	org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask	null
+player._nativeMagicUseTask2	org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask	null
+player._disabledAI	boolean	false
+player._name	java.lang.String	TestAdmin
+player._objectId	int	268492939
+player._client._connectionState	org.l2jmobius.gameserver.network.ConnectionState	org.l2jmobius.gameserver.network.ConnectionState#230 enum=IN_GAME
+player._client._isDetached	boolean	false
+player._client._connectionState	TYPE	org.l2jmobius.gameserver.network.ConnectionState#230
+player._stat._level	byte	12
+player._effectList._effectFlags	int	1
+player._ai._thinking	boolean	false
+player._ai._intention	org.l2jmobius.gameserver.ai.Intention	org.l2jmobius.gameserver.ai.Intention#345 enum=IDLE
+player._ai._castTarget	org.l2jmobius.gameserver.model.actor.Creature	null
+player._ai._attackTarget	org.l2jmobius.gameserver.model.actor.Creature	null
+player._ai._intention	TYPE	org.l2jmobius.gameserver.ai.Intention#345
+player._location._x	int	45786
+player._location._y	int	41244
+player._location._z	int	-3504
+SNAPSHOT_END_UTC	2026-10-12T22:40:31.462940900Z
+SOURCE	C:\Users\ZBook\.codex\visualizations\2026\10\12\01a13118-dbe0-7271-9e69-84aa8a70ea4d\incident040\player-forensic.tsv	sha256=5f5195ab1c7a8cace1e73597a347729af8149bd443ef34587bc6dbdca0b624b0	bytes=55876
+SNAPSHOT_UTC	2026-10-12T22:53:05.454270100Z
+READ_ONLY	noInvoke=true;noSet=true;noSuspend=true;noAgent=true;methodEvents=false
+player._nativeWorkOwner	org.l2jmobius.gameserver.model.actor.PlayerNativeWork$Owner	null
+player._classIndex	int	0
+player._pkKills	int	1
+player._telemode	int	0
+player._waitTypeSitting	boolean	false
+player._observerMode	boolean	false
+player._fishing	boolean	false
+player._cursedWeaponEquippedId	int	8190
+player._notMoveUntil	long	0
+player._isCastingNow	boolean	true
+player._isCastingSimultaneouslyNow	boolean	false
+player._isDead	boolean	false
+player._isImmobilized	boolean	false
+player._isOverloaded	boolean	false
+player._isParalyzed	boolean	false
+player._isTeleporting	boolean	false
+player._allSkillsDisabled	boolean	false
+player._move	org.l2jmobius.gameserver.model.actor.Creature$MoveData	null
+player._attackEndTime	long	0
+player._castInterruptTime	int	0
+player._skillCast	java.util.concurrent.Future	null
+player._skillCast2	java.util.concurrent.Future	null
+player._nativeMagicUseTask	org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask	null
+player._nativeMagicUseTask2	org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask	null
+player._disabledAI	boolean	false
+player._name	java.lang.String	TestAdmin
+player._objectId	int	268492939
+player._client._connectionState	org.l2jmobius.gameserver.network.ConnectionState	org.l2jmobius.gameserver.network.ConnectionState#230 enum=IN_GAME
+player._client._isDetached	boolean	false
+player._client._connectionState	TYPE	org.l2jmobius.gameserver.network.ConnectionState#230
+player._currentSkill._skill._id	int	3630
+player._currentSkill._skill._targetType	org.l2jmobius.gameserver.model.skill.targets.TargetType	org.l2jmobius.gameserver.model.skill.targets.TargetType#302 enum=AURA
+player._currentSkill._skill._effectPoint	int	-1
+player._queuedSkill._skill._id	int	3631
+player._stat._level	byte	12
+player._effectList._effectFlags	int	1
+player._ai._thinking	boolean	false
+player._ai._intention	org.l2jmobius.gameserver.ai.Intention	org.l2jmobius.gameserver.ai.Intention#352 enum=IDLE
+player._ai._castTarget	org.l2jmobius.gameserver.model.actor.Creature	null
+player._ai._attackTarget	org.l2jmobius.gameserver.model.actor.Creature	null
+player._ai._nextIntention._intention	org.l2jmobius.gameserver.ai.Intention	org.l2jmobius.gameserver.ai.Intention#356 enum=MOVE_TO
+player._ai._intention	TYPE	org.l2jmobius.gameserver.ai.Intention#352
+player._location._x	int	45786
+player._location._y	int	41244
+player._location._z	int	-3504
+pendingMove._x	int	45474
+pendingMove._y	int	41138
+pendingMove._z	int	-3534
+pendingMove._heading	int	0
+pendingMove._instanceId	int	0
+FORENSIC_INSTANCE_COUNT	org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope	9
+FORENSIC_INSTANCE_COUNT	org.l2jmobius.gameserver.model.actor.holders.player.CursedWeapon	2
+cursedWeapon._itemId	int	8190
+cursedWeapon._nbKills	int	1
+cursedWeapon._playerId	int	268492939
+cursedWeapon.transformationId	int	301
+FORENSIC_INSTANCE_COUNT	org.l2jmobius.gameserver.network.clientpackets.MoveToLocation	0
+SNAPSHOT_END_UTC	2026-10-12T22:53:21.661277700Z
+SOURCE	C:\Users\ZBook\.codex\visualizations\2026\10\12\01a13118-dbe0-7271-9e69-84aa8a70ea4d\incident040\player-after-relogin.tsv	sha256=5e8abc763efb68b893a7536c7eb9d0dea9d623334dabe7b8429ee4d744bdc2f0	bytes=38652
+SNAPSHOT_UTC	2026-10-12T22:59:12.820312100Z
+READ_ONLY	noInvoke=true;noSet=true;noSuspend=true;noAgent=true;methodEvents=false
+player._nativeWorkOwner	org.l2jmobius.gameserver.model.actor.PlayerNativeWork$Owner	null
+player._classIndex	int	0
+player._pkKills	int	1
+player._telemode	int	0
+player._waitTypeSitting	boolean	false
+player._observerMode	boolean	false
+player._fishing	boolean	false
+player._cursedWeaponEquippedId	int	8190
+player._notMoveUntil	long	0
+player._isCastingNow	boolean	true
+player._isCastingSimultaneouslyNow	boolean	false
+player._isDead	boolean	false
+player._isImmobilized	boolean	false
+player._isOverloaded	boolean	false
+player._isParalyzed	boolean	false
+player._isTeleporting	boolean	false
+player._allSkillsDisabled	boolean	false
+player._move	org.l2jmobius.gameserver.model.actor.Creature$MoveData	null
+player._attackEndTime	long	0
+player._castInterruptTime	int	71535
+player._skillCast	java.util.concurrent.Future	org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantFuture#112
+player._skillCast2	java.util.concurrent.Future	null
+player._nativeMagicUseTask	org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask	org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask#113
+player._nativeMagicUseTask2	org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask	null
+player._disabledAI	boolean	false
+player._name	java.lang.String	TestAdmin
+player._objectId	int	268492939
+player._client._connectionState	org.l2jmobius.gameserver.network.ConnectionState	org.l2jmobius.gameserver.network.ConnectionState#232 enum=IN_GAME
+player._client._isDetached	boolean	false
+player._client._connectionState	TYPE	org.l2jmobius.gameserver.network.ConnectionState#232
+player._currentSkill._skill._id	int	3329
+player._currentSkill._skill._targetType	org.l2jmobius.gameserver.model.skill.targets.TargetType	org.l2jmobius.gameserver.model.skill.targets.TargetType#303 enum=ONE
+player._currentSkill._skill._effectPoint	int	-1
+player._stat._level	byte	12
+player._effectList._effectFlags	int	1
+player._ai._thinking	boolean	false
+player._ai._intention	org.l2jmobius.gameserver.ai.Intention	org.l2jmobius.gameserver.ai.Intention#339 enum=MOVE_TO
+player._ai._castTarget	org.l2jmobius.gameserver.model.actor.Creature	org.l2jmobius.gameserver.model.actor.Player#8
+player._ai._attackTarget	org.l2jmobius.gameserver.model.actor.Creature	null
+player._ai._intention	TYPE	org.l2jmobius.gameserver.ai.Intention#339
+player._skillCast	TYPE	org.l2jmobius.gameserver.model.actor.PlayerNativeWork$ParticipantFuture#112
+player._nativeMagicUseTask	TYPE	org.l2jmobius.gameserver.model.actor.tasks.creature.MagicUseTask#113
+player._location._x	int	46686
+player._location._y	int	41441
+player._location._z	int	-3504
+SNAPSHOT_END_UTC	2026-10-12T22:59:17.919146300Z

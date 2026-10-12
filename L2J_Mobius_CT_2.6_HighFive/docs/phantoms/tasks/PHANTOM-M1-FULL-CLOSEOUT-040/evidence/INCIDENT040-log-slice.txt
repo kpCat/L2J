@@ -1,0 +1,6 @@
+2026.10.13 01:02:48,800	WARNING	288	org.l2jmobius.gameserver.model.actor.Creature	Master access level set for character TestAdmin! Just a warning to be careful ;)
+2026.10.13 01:38:48,528	WARNING	366	org.l2jmobius.gameserver.network.PacketLogger	Player:TestAdmin[268492939] used action which he does not have! Id = 0 transform: 301
+2026.10.13 01:38:49,489	WARNING	368	org.l2jmobius.gameserver.network.PacketLogger	Player:TestAdmin[268492939] used action which he does not have! Id = 0 transform: 301
+2026.10.13 01:38:50,276	WARNING	370	org.l2jmobius.gameserver.network.PacketLogger	Player:TestAdmin[268492939] used action which he does not have! Id = 0 transform: 301
+2026.10.13 01:38:50,445	WARNING	369	org.l2jmobius.gameserver.network.PacketLogger	Player:TestAdmin[268492939] used action which he does not have! Id = 0 transform: 301
+2026.10.13 01:38:50,639	WARNING	372	org.l2jmobius.gameserver.network.PacketLogger	Player:TestAdmin[268492939] used action which he does not have! Id = 0 transform: 301
