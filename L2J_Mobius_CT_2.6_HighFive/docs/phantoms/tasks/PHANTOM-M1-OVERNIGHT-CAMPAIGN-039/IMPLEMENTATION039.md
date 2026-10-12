@@ -18,6 +18,32 @@ TEST-only guard039t добавлен в существующий PhantomHeadless
 старые exact lane guards сохранены. Новый native suite039 переиспользует fixture028/038.
 Данные/положение/Monster baseline в native TEST не подменяют natural scene.
 
+J1 Jar-first initial FAIL was a fixture command-gate race: liveCommandGate=true,
+so noTargetExpired returned PAUSED before reaching the tested boundary. Preserved.
+Bounded fixture wait respects that existing gate; RED_A02_GATE039 on base remained RED,
+GREEN_A02_GATE_J1_039 passed1/1. No production adjustment for this fixture race.
+
+## B: optional owning commit witness
+
+BOUNDARY_MAP039 was written before this patch. PhantomBackgroundTransaction now captures
+immutable scalar state/PNC writes from existing owning reads and encoded payloads, publishing
+only after JDBC commit returns. Every actual increment has component/version/hash identity.
+PREPARE retains intended receipt but never claims canonical AFTER checked. FINALIZE/recovery
+records actual selected completed state, receipt/epoch, locked full inventory/skills and
+the existing canonical comparison. VERIFY promotion remains a separate real commit.
+SQL, locks, writes, rounding, fault points and business results are unchanged.
+Callback failures cannot roll back a known commit; queue/capture errors remain proof GAP.
+Disabled observer captures no payload; private collector filter selects all born profiles
+and their subsequent background writes, rather than all unrelated1280 history transitions.
+No Player/Connection is retained by exporter; existing ring512/buffer/disk budgets remain.
+
+RED_BOUNDARY_J1_0392/2 missing owning seam; GREEN_BOUNDARY_DEV0392/2 and
+GREEN_BOUNDARY_FILTER_DEV0392/2. P01 uses real native FINALIZE followed by actual MATERIALIZED
+state increment and late SQL. This does not yet prove the natural background P01 scenario.
+P04 verifies the real BEFORE_OWNED_PREPARE_COMMIT rollback was reached, emits no witness,
+and a throwing observer does not change successful native store. Current all-birth G3 pending.
+Affected BOUNDARY_Q_DEV039 passed15/15 with observer disabled. Final Jar-first repeat pending.
+
 ## Read-first и scope
 
 Прочитаны AGENTS, master plan, workflow/package standard, packet039, handoff/result038,

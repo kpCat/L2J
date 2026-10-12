@@ -16,3 +16,9 @@ Only1 production file changed: native evidence observation precedes resource ear
 All16 historical038 IDs exported read-only with original FAIL/UNKNOWN. B437 initial ROUTE/start_retry cause remains unresolved.
 Next: reviewed exact-path commit/push, clean committed Jar1, rebuild039 collector, current native probe, exact save witness analysis.
 Initial model requested GPT-6.1 Sol/Very High; not API-attested. No own GameServer launched yet.
+2026-10-12T10:12Z: J1 published4c4ca498abc8f224289d7bfd0b45397379620cfe; Jar1 SHA1c219c491d32534355ea9b752a1f3519b47ae42bf2662c45833cc08adb516196.
+GameServer starts1/16; production builds1/8; full scenes0/8.039a Login34608/Game28560 ended gracefully; elevated CIM JVM0.
+J1 causal test initially hit busy gate (retained FAIL); bounded fixture wait gives RED base and GREEN Jar1 1/1.
+Probe J1: natural7 alive; five actors earned1–3 cycles;106/113 left after no_local_opportunity; cause not yet attributed to combat. Drain COMPLETE retained0 before pools.
+B optional immutable commit witness: missing-field RED2/2; development native FINALIZE/successor + rollback/observer failure GREEN2/2. Q affected running.
+Next: publish reviewed B block/Jar2; current natural groups and exact all-birth normalization. Freeze still15:16:54Z; remaining approximately7h.

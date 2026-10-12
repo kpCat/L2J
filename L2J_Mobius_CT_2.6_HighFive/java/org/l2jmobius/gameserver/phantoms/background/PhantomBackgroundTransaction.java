@@ -29,6 +29,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +40,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.function.LongPredicate;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
@@ -110,6 +114,99 @@ public final class PhantomBackgroundTransaction
 	private final PhantomAcquisitionStateCodec _acquisitionCodec;
 	private final PhantomBackgroundCatchupStateCodec _catchupCodec = new PhantomBackgroundCatchupStateCodec();
 	private final AtomicReference<ItemConflictWitness> _firstItemConflict = new AtomicReference<>();
+	// Optional diagnostic publication from the existing JDBC owner; no exporter retains a connection or Player.
+	private static volatile Consumer<Map<String, String>> _commitWitnessObserver;
+	private static volatile LongPredicate _commitWitnessProfiles;
+	private static final ThreadLocal<CommitWitnessScope> ACTIVE_COMMIT_WITNESS = new ThreadLocal<>();
+	private static final AtomicLong COMMIT_WITNESS_SEQUENCE = new AtomicLong();
+
+	private static final class CommitWitnessScope implements AutoCloseable
+	{
+		private final CommitWitnessScope _previous = ACTIVE_COMMIT_WITNESS.get();
+		private final Consumer<Map<String, String>> _observer;
+		private final String _producer;
+		private final List<Map<String, String>> _writes = new ArrayList<>();
+		private final Map<String, String> _facts = new LinkedHashMap<>();
+		private String _failure = "";
+		private CommitWitnessScope(String producer, Consumer<Map<String, String>> observer)
+		{
+			_producer = producer; _observer = observer; ACTIVE_COMMIT_WITNESS.set(this);
+		}
+		private static CommitWitnessScope open(String producer)
+		{
+			final var observer = _commitWitnessObserver;
+			return observer == null ? null : new CommitWitnessScope(producer, observer);
+		}
+		private void publish()
+		{
+			try
+			{
+				final long sequence = COMMIT_WITNESS_SEQUENCE.incrementAndGet(); final long committed = System.nanoTime();
+				if (!_failure.isEmpty()) { try { _observer.accept(Map.of("producer", _producer, "commitOutcome", "SUCCESS", "captureFailure", _failure, "proofGap", "true", "transactionSequence", Long.toString(sequence))); } catch (Throwable ignored) { } }
+				for (int index = 0; index < _writes.size(); index++)
+				{
+					final Map<String, String> record = new LinkedHashMap<>(_writes.get(index)); record.putAll(_facts);
+					record.put("producer", _producer); record.put("commitOutcome", "SUCCESS"); record.put("commitNanos", Long.toString(committed));
+					record.put("transactionSequence", Long.toString(sequence)); record.put("writeIndex", Integer.toString(index)); record.put("captureFailure", _failure);
+					try { _observer.accept(Map.copyOf(record)); } catch (Throwable ignored) { /* Publication cannot undo the successful JDBC commit. */ }
+				}
+			}
+			finally { _writes.clear(); _facts.clear(); }
+		}
+		@Override public void close() { _writes.clear(); _facts.clear(); if (_previous == null) { ACTIVE_COMMIT_WITNESS.remove(); } else { ACTIVE_COMMIT_WITNESS.set(_previous); } }
+	}
+
+	private static void commitWithWitness(Connection connection) throws SQLException
+	{
+		connection.commit();
+		final var witness = ACTIVE_COMMIT_WITNESS.get();
+		if (witness != null) { try { witness.publish(); } catch (Throwable ignored) { /* Diagnostic capture must not alter business outcome. */ } }
+	}
+
+	private static void witnessWrite(Identity identity, String component, LockedComponent before, byte[] payload)
+	{
+		final var witness = ACTIVE_COMMIT_WITNESS.get(); if (witness == null) { return; }
+		try
+		{
+			if ((_commitWitnessProfiles != null) && !_commitWitnessProfiles.test(identity.profileId())) { return; }
+			final Map<String, String> facts = new LinkedHashMap<>();
+			facts.put("profileId", Long.toString(identity.profileId())); facts.put("objectId", Integer.toString(identity.characterObjectId())); facts.put("classIndex", Integer.toString(identity.classIndex()));
+			facts.put("componentName", component); facts.put("beforeRowVersion", before == null ? "ABSENT" : Long.toString(before.rowVersion()));
+			facts.put("beforePayloadSha256", before == null ? "ABSENT" : payloadDigest(before.payload())); facts.put("afterRowVersion", Long.toString(nextVersion(before)));
+			facts.put("afterPayloadSha256", payloadDigest(payload)); facts.put("afterPayloadBase64", Base64.getEncoder().encodeToString(payload));
+			facts.put("canonicalChecked", "false"); witness._writes.add(Map.copyOf(facts));
+		}
+		catch (Throwable failure) { witness._failure = failure.getClass().getName(); }
+	}
+
+	private static void witnessIntent(PhantomOwnedStoreIntent intent, boolean afterMatched, boolean contextMatched)
+	{
+		final var witness = ACTIVE_COMMIT_WITNESS.get(); if (witness == null) { return; }
+		try
+		{
+			if ((_commitWitnessProfiles != null) && !_commitWitnessProfiles.test(intent.after().identity().profileId())) { return; }
+			witness._facts.put("nativeEpoch", Long.toString(intent.materializedAtNanos())); witness._facts.put("receiptSha256", payloadDigest(intent.encode()));
+			witness._facts.put("receiptBase64", Base64.getEncoder().encodeToString(intent.encode())); witness._facts.put("nativeAfterMatched", Boolean.toString(afterMatched)); witness._facts.put("nativeContextMatched", Boolean.toString(contextMatched));
+		}
+		catch (Throwable failure) { witness._failure = failure.getClass().getName(); }
+	}
+
+	private void witnessCanonical(PhantomBackgroundState checked, Canonical canonical, List<ItemRow> items, Map<Integer, Integer> skills)
+	{
+		final var witness = ACTIVE_COMMIT_WITNESS.get(); if (witness == null) { return; }
+		try
+		{
+			if ((_commitWitnessProfiles != null) && !_commitWitnessProfiles.test(checked.identity().profileId())) { return; }
+			witness._facts.put("canonicalChecked", "true"); witness._facts.put("canonicalEncoder", "durableMatches/ownedCanonicalFactsMatch/canonicalVitals");
+			witness._facts.put("canonicalFacts", canonical.toString()); witness._facts.put("inventoryScope", "FULL"); witness._facts.put("inventoryCount", Integer.toString(items.size()));
+			witness._facts.put("inventorySha256", inventoryFacts(items, checked.inventory()).canonicalHash()); witness._facts.put("skillsSha256", ownedSkillsHash(skills));
+			witness._facts.put("checkedStateSha256", payloadDigest(_stateCodec.encode(checked)));
+			witness._facts.put("canonical.level", Integer.toString(canonical.level())); witness._facts.put("canonical.exp", Long.toString(canonical.experience())); witness._facts.put("canonical.sp", Long.toString(canonical.skillPoints())); witness._facts.put("canonical.expBeforeDeath", Long.toString(canonical.experienceBeforeDeath()));
+			witness._facts.put("canonical.hp", Double.toString(canonical.vitals().currentHp())); witness._facts.put("canonical.maxHp", Double.toString(canonical.vitals().maximumHp())); witness._facts.put("canonical.mp", Double.toString(canonical.vitals().currentMp())); witness._facts.put("canonical.maxMp", Double.toString(canonical.vitals().maximumMp())); witness._facts.put("canonical.cp", Double.toString(canonical.vitals().currentCp())); witness._facts.put("canonical.maxCp", Double.toString(canonical.vitals().maximumCp()));
+			witness._facts.put("canonical.x", Integer.toString(canonical.position().x())); witness._facts.put("canonical.y", Integer.toString(canonical.position().y())); witness._facts.put("canonical.z", Integer.toString(canonical.position().z())); witness._facts.put("canonical.heading", Integer.toString(canonical.position().heading())); witness._facts.put("canonical.classId", Integer.toString(canonical.classId())); witness._facts.put("canonical.race", Integer.toString(canonical.raceOrdinal())); witness._facts.put("canonical.vitality", Integer.toString(canonical.vitalityPoints()));
+		}
+		catch (Throwable failure) { witness._failure = failure.getClass().getName(); }
+	}
 
 	public PhantomBackgroundTransaction()
 	{
@@ -295,7 +392,7 @@ public final class PhantomBackgroundTransaction
 		boolean commitAttempted = false;
 		PhantomOwnedStoreIntent preparedIntent = null;
 		ItemConflictWitness itemWitness = null;
-		try (Connection connection = _connections.open())
+		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("prepareOwnedStore"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -323,6 +420,7 @@ public final class PhantomBackgroundTransaction
 				if (!captured.inventory().canonicalHash().isEmpty() && !captured.inventory().equals(after.inventory())) { throw ownedItemConflict(captured, after, previous, goal, epoch, target, items, component, goalComponent, contextComponent); }
 				final var intent = new PhantomOwnedStoreIntent(component == null ? 0 : Math.addExact(component.rowVersion(), 1), epoch, target, previous == null ? "ABSENT" : previous.state().name(), component == null ? "ABSENT" : payloadDigest(component.payload()), ownedSkillsHash(skills), before, after);
 				preparedIntent = intent;
+				witnessIntent(intent, false, false);
 				final byte[] pendingPayload = _stateCodec.encode(after.withState(State.VERIFY_PENDING));
 				writeStateOnly(connection, component, after.withState(State.VERIFY_PENDING));
 				final var nativeContext = nativeCapture == null
@@ -335,7 +433,7 @@ public final class PhantomBackgroundTransaction
 				}
 				_faultInjector.inject(FaultPoint.BEFORE_OWNED_PREPARE_COMMIT);
 				commitAttempted = true;
-				connection.commit();
+				commitWithWitness(connection);
 				_faultInjector.inject(FaultPoint.AFTER_OWNED_PREPARE_COMMIT);
 				return new OwnedStorePreparation(Status.SUCCESS, intent);
 			}
@@ -358,7 +456,7 @@ public final class PhantomBackgroundTransaction
 	public Result finalizeOwnedStore(long profileId, int objectId, long epoch)
 	{
 		boolean commitAttempted = false;
-		try (Connection connection = _connections.open())
+		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("finalizeOwnedStore"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -369,7 +467,7 @@ public final class PhantomBackgroundTransaction
 				if (intent == null) { throw new StateConflict(Status.STATE_CONFLICT); }
 				final Result result = resolveOwnedStore(connection, component, intent, profileId, objectId, epoch, false);
 				_faultInjector.inject(FaultPoint.BEFORE_OWNED_FINALIZE_COMMIT);
-				commitAttempted = true; connection.commit();
+				commitAttempted = true; commitWithWitness(connection);
 				_faultInjector.inject(FaultPoint.AFTER_OWNED_FINALIZE_COMMIT);
 				return result;
 			}
@@ -392,6 +490,7 @@ public final class PhantomBackgroundTransaction
 		final var canonical = lockCanonical(connection, current.identity());
 		final var items = lockItems(connection, objectId);
 		final var skills = lockSkills(connection, current.identity());
+		Canonical checkedCanonical = canonical;
 		boolean afterMatches = intent.skillsHash().equals(ownedSkillsHash(skills)) && durableMatches(intent.after(), canonical, items, skills) && (!attested || context.matchesAfter(canonical.vitalityPoints()));
 		final boolean beforeMatches = intent.skillsHash().equals(ownedSkillsHash(skills)) && ownedCanonicalFactsMatch(intent.before(), canonical, items) && (!attested || context.matchesBefore(canonical.vitalityPoints()));
 		if (!afterMatches && !beforeMatches)
@@ -422,11 +521,14 @@ public final class PhantomBackgroundTransaction
 				statement.setDouble(1, intent.after().vitals().maximumHp()); statement.setDouble(2, intent.after().vitals().maximumMp()); statement.setDouble(3, intent.after().vitals().maximumCp()); statement.setInt(4, id); requireOne(statement.executeUpdate(), "owned replay maxima");
 			}
 			final var replayed = lockCanonical(connection, intent.after().identity());
+			checkedCanonical = replayed;
 			afterMatches = durableMatches(intent.after(), replayed, items, skills) && (!attested || context.matchesAfter(replayed.vitalityPoints()));
 			if (!afterMatches) { throw new StateConflict(Status.POST_COMMIT_VERIFICATION_FAILED); }
 		}
 		final var chosen = afterMatches ? intent.after() : intent.before();
 		final var completed = chosen.withState(restart ? (chosen.vitals().currentHp() == 0 ? State.DEAD : State.READY) : intent.targetState());
+		witnessIntent(intent, afterMatches, attested && (afterMatches ? context.matchesAfter(checkedCanonical.vitalityPoints()) : context.matchesBefore(checkedCanonical.vitalityPoints())));
+		witnessCanonical(completed, checkedCanonical, items, skills);
 		writeStateOnly(connection, component, completed);
 		final var completedContext = attested ? context.complete(afterMatches, nextVersion(component), _stateCodec.encode(completed))
 			: PhantomNativeContext.completed(completed.identity(), lockCanonical(connection, completed.identity()).vitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN, nextVersion(component), _stateCodec.encode(completed));
@@ -442,7 +544,7 @@ public final class PhantomBackgroundTransaction
 	public OwnedStorePreparation resumeOwnedStore(PhantomOwnedStoreIntent expected)
 	{
 		boolean commitAttempted = false;
-		try (Connection connection = _connections.open())
+		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("resumeOwnedStore"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -467,7 +569,7 @@ public final class PhantomBackgroundTransaction
 				if ((receipt.schemaVersion() != PhantomOwnedStoreIntent.SCHEMA_VERSION) || !Arrays.equals(receipt.payload(), expected.encode())) { throw new StateConflict(Status.STATE_CONFLICT); }
 				final var result = resolveOwnedStore(connection, component, receipt, identity.profileId(), identity.characterObjectId(), expected.materializedAtNanos(), false);
 				if (result.status() == Status.POST_COMMIT_VERIFICATION_FAILED) { connection.rollback(); return new OwnedStorePreparation(result.status(), expected); }
-				commitAttempted = true; connection.commit();
+				commitAttempted = true; commitWithWitness(connection);
 				return new OwnedStorePreparation(result.status(), null);
 			}
 			catch (Throwable failure) { if (!commitAttempted) { rollback(connection, failure); } return new OwnedStorePreparation(commitAttempted ? Status.COMMIT_OUTCOME_UNKNOWN : failureResult(failure).status(), expected); }
@@ -530,7 +632,7 @@ public final class PhantomBackgroundTransaction
 		{
 			return Result.rejected(Status.STATE_CONFLICT);
 		}
-		try (Connection connection = _connections.open())
+		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("captureBaseline"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -553,10 +655,11 @@ public final class PhantomBackgroundTransaction
 				{
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
 				}
+				witnessCanonical(captured, canonical, items, skills);
 				writeStateOnly(connection, component, captured);
 				writeNativeContext(connection, scalar, nativeCapture == null || normalization ? PhantomNativeContext.completed(captured.identity(), canonical.vitalityPoints(), PhantomNativeContext.Eligibility.UNKNOWN, nextVersion(component), _stateCodec.encode(captured)) : PhantomNativeContext.completed(captured.identity(), nativeCapture, nextVersion(component), _stateCodec.encode(captured)));
 				_faultInjector.inject(FaultPoint.BEFORE_CAPTURE_COMMIT);
-				connection.commit();
+				commitWithWitness(connection);
 				return new Result(Status.SUCCESS, captured);
 			}
 			catch (Throwable failure)
@@ -573,7 +676,7 @@ public final class PhantomBackgroundTransaction
 
 	public Result markMaterialized(long profileId, int characterObjectId)
 	{
-		try (Connection connection = _connections.open())
+		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("markMaterialized"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -594,9 +697,10 @@ public final class PhantomBackgroundTransaction
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
 				}
 				final PhantomBackgroundState materialized = current.withState(State.MATERIALIZED);
+				witnessCanonical(materialized, canonical, items, skills);
 				writeComponent(connection, component, materialized);
 				_faultInjector.inject(FaultPoint.BEFORE_MATERIALIZED_COMMIT);
-				connection.commit();
+				commitWithWitness(connection);
 				return new Result(Status.SUCCESS, materialized);
 			}
 			catch (Throwable failure)
@@ -613,7 +717,7 @@ public final class PhantomBackgroundTransaction
 
 	public Result abortMaterialization(long profileId, int characterObjectId)
 	{
-		try (Connection connection = _connections.open())
+		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("abortMaterialization"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -624,7 +728,7 @@ public final class PhantomBackgroundTransaction
 				if (ownedReceipt != null)
 				{
 					final Result resolved = resolveOwnedStore(connection, component, ownedReceipt, profileId, characterObjectId, 0, true);
-					connection.commit(); return resolved;
+					commitWithWitness(connection); return resolved;
 				}
 				final PhantomBackgroundState current = decodeState(component);
 				if (current.state() == State.INCONSISTENT)
@@ -640,14 +744,15 @@ public final class PhantomBackgroundTransaction
 				{
 					final PhantomBackgroundState inconsistent = current.withState(State.INCONSISTENT);
 					writeComponent(connection, component, inconsistent);
-					connection.commit();
+					commitWithWitness(connection);
 					return new Result(Status.INCONSISTENT, inconsistent);
 				}
 				final PhantomBackgroundState recovered = current.withState(current.vitals().currentHp() == 0 ? State.DEAD : State.READY);
+				witnessCanonical(recovered, canonical, items, skills);
 				if (current.state() != recovered.state())
 				{
 					writeComponent(connection, component, recovered);
-					connection.commit();
+					commitWithWitness(connection);
 				}
 				else
 				{
@@ -684,7 +789,7 @@ public final class PhantomBackgroundTransaction
 
 	private Result recoverAttestedLegacyVolatile(LegacyHeadlessWitness witness, LegacyMaterializedWitness materialized)
 	{
-		try (Connection connection = _connections.open())
+		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("recoverAttestedLegacyVolatile"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -735,7 +840,7 @@ public final class PhantomBackgroundTransaction
 				}
 				final PhantomBackgroundState recovered = current.withState(current.vitals().currentHp() == 0 ? State.DEAD : State.READY);
 				writeComponent(connection, component, recovered);
-				connection.commit();
+				commitWithWitness(connection);
 				return new Result(Status.SUCCESS, recovered);
 			}
 			catch (Throwable failure)
@@ -810,7 +915,7 @@ public final class PhantomBackgroundTransaction
 		PhantomBackgroundState proposed = null;
 		long expectedVersion = -1;
 		boolean commitAttempted = false;
-		try (Connection connection = _connections.open())
+		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("refreshOrdinaryInventoryProjection"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -858,7 +963,7 @@ public final class PhantomBackgroundTransaction
 				_faultInjector.inject(FaultPoint.BEFORE_OPERATION_COMMIT);
 				requireBackgroundOwner(lease, expected.identity().characterObjectId());
 				commitAttempted = true;
-				connection.commit();
+				commitWithWitness(connection);
 				return new Result(Status.SUCCESS, proposed);
 			}
 			catch (Throwable failure)
@@ -937,7 +1042,7 @@ public final class PhantomBackgroundTransaction
 				return new Result(Status.ITEM_BUSY, null);
 			}
 		}
-		try (economyClaim; Connection connection = _connections.open())
+		try (economyClaim; Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("execute"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -1092,7 +1197,7 @@ public final class PhantomBackgroundTransaction
 				_faultInjector.inject(FaultPoint.BEFORE_OPERATION_COMMIT);
                 if (command.policy() != null) { requirePolicyOwner(command.policy(), expected.identity().characterObjectId()); }
 				commitAttempted = true;
-				connection.commit();
+				commitWithWitness(connection);
 				for (int objectId : releasedIds)
 				{
 					_ids.release(objectId);
@@ -1135,7 +1240,7 @@ public final class PhantomBackgroundTransaction
 
 	public Result reconcileVerifyPending(long profileId, int characterObjectId)
 	{
-		try (Connection connection = _connections.open())
+		try (Connection connection = _connections.open(); var commitWitness = CommitWitnessScope.open("reconcileVerifyPending"))
 		{
 			connection.setAutoCommit(false);
 			try
@@ -1146,7 +1251,7 @@ public final class PhantomBackgroundTransaction
 				if (ownedReceipt != null)
 				{
 					final Result resolved = resolveOwnedStore(connection, component, ownedReceipt, profileId, characterObjectId, 0, true);
-					connection.commit(); return resolved;
+					commitWithWitness(connection); return resolved;
 				}
 				final PhantomBackgroundState pending = decodeState(component);
 				if (pending.state() == State.INCONSISTENT)
@@ -1162,7 +1267,7 @@ public final class PhantomBackgroundTransaction
 				{
 					final PhantomBackgroundState inconsistent = pending.withState(State.INCONSISTENT);
 					writeComponent(connection, component, inconsistent);
-					connection.commit();
+					commitWithWitness(connection);
 					return new Result(Status.INCONSISTENT, inconsistent);
 				}
 				if (pending.state() != State.VERIFY_PENDING)
@@ -1171,9 +1276,10 @@ public final class PhantomBackgroundTransaction
 					return new Result(Status.SUCCESS, pending);
 				}
 				final PhantomBackgroundState promoted = pending.withState(pending.vitals().currentHp() == 0 ? State.DEAD : State.READY);
+				witnessCanonical(promoted, canonical, items, skills);
 				writeComponent(connection, component, promoted);
 				_faultInjector.inject(FaultPoint.BEFORE_VERIFY_COMMIT);
-				connection.commit();
+				commitWithWitness(connection);
 				return new Result(Status.SUCCESS, promoted);
 			}
 			catch (Throwable failure)
@@ -2281,6 +2387,7 @@ public final class PhantomBackgroundTransaction
 				requireOne(statement.executeUpdate(), "background state update");
 			}
 		}
+		witnessWrite(state.identity(), PhantomBackgroundState.COMPONENT_TYPE, existing, payload);
 	}
 
 	private static long nextVersion(LockedComponent component) { return component == null ? 0 : Math.addExact(component.rowVersion(), 1); }
@@ -2300,16 +2407,18 @@ public final class PhantomBackgroundTransaction
 
 	private static void writeNativeContext(Connection connection, LockedComponent existing, PhantomNativeContext context) throws SQLException
 	{
+		final byte[] payload = context.encode();
 		if (existing == null)
 		{
 			try (var statement = prepare(connection, INSERT_COMPONENT))
 			{
 				statement.setLong(1, context.identity().profileId()); statement.setString(2, PhantomNativeContext.COMPONENT_TYPE);
-				statement.setInt(3, context.schemaVersion()); statement.setBytes(4, context.encode());
+				statement.setInt(3, context.schemaVersion()); statement.setBytes(4, payload);
 				requireOne(statement.executeUpdate(), "native scalar insert");
 			}
 		}
-		else { writeRawComponent(connection, existing, context.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE, context.schemaVersion(), context.encode()); }
+		else { writeRawComponent(connection, existing, context.identity().profileId(), PhantomNativeContext.COMPONENT_TYPE, context.schemaVersion(), payload); }
+		witnessWrite(context.identity(), PhantomNativeContext.COMPONENT_TYPE, existing, payload);
 	}
 
 	private void verifyCompletedPoints(Connection connection, LockedComponent component, PhantomBackgroundState state, Canonical canonical) throws SQLException

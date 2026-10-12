@@ -2,7 +2,11 @@
 package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
@@ -13,6 +17,8 @@ import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
 
 /** Causal native campaign checks, reusing the current owned handoff fixture. */
@@ -28,7 +34,67 @@ public final class PhantomM1Campaign039Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
-		registry.add("A02-earned-native-damage-is-observed-before-resource-return", this::progressBeforePause);
+		if (!"boundary039".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("A02-earned-native-damage-is-observed-before-resource-return", this::progressBeforePause); }
+		if ("boundary039".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("P01-real-finalize-commit-is-linked-to-later-state-increment", this::committedSuccessor);
+			registry.add("P04-rollback-is-silent-and-observer-failure-does-not-undo-commit", this::rollbackAndObserverFailure);
+		}
+	}
+	private void committedSuccessor(PhantomTestContext context) throws Exception
+	{
+		final var observer = PhantomBackgroundTransaction.class.getDeclaredField("_commitWitnessObserver"); observer.setAccessible(true);
+		final var records = new ArrayList<Map<String, String>>();
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			observer.set(null, (Consumer<Map<String, String>>) records::add);
+			try
+			{
+				f.handoff();
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.dematerialize(f.id).status(), "Real owning native store completes.");
+				final var finalized = records.stream().filter(row -> "finalizeOwnedStore".equals(row.get("producer")) && PhantomBackgroundState.COMPONENT_TYPE.equals(row.get("componentName"))).reduce((a,b) -> b).orElseThrow();
+				PhantomAssertions.assertEquals("true", finalized.get("canonicalChecked"), "Exact canonical comparison occurs under owning transaction.");
+				PhantomAssertions.assertEquals("FULL", finalized.get("inventoryScope"), "All inventory rows are represented by the existing canonical hash.");
+				PhantomAssertions.assertEquals(Long.toString(f.loadedEpoch), finalized.get("nativeEpoch"), "Actual receipt epoch is retained.");
+				PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, f.transactions.markMaterialized(f.id, f.objectId).status(), "A real later state commit.");
+				final var successor = records.stream().filter(row -> "markMaterialized".equals(row.get("producer")) && PhantomBackgroundState.COMPONENT_TYPE.equals(row.get("componentName"))).reduce((a,b) -> b).orElseThrow();
+				PhantomAssertions.assertEquals(finalized.get("afterRowVersion"), successor.get("beforeRowVersion"), "Successor follows exact finalized row version.");
+				PhantomAssertions.assertEquals(finalized.get("afterPayloadSha256"), successor.get("beforePayloadSha256"), "Successor reads exact committed predecessor.");
+				try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT row_version,payload FROM phantom_profile_components WHERE profile_id=? AND component_type=?"))
+				{
+					statement.setLong(1, f.id); statement.setString(2, PhantomBackgroundState.COMPONENT_TYPE);
+					try (var result = statement.executeQuery()) { PhantomAssertions.assertTrue(result.next(), "Late SQL exists."); PhantomAssertions.assertEquals(successor.get("afterRowVersion"), Long.toString(result.getLong(1)), "Late SQL is a committed successor, not the earlier finalized row."); PhantomAssertions.assertEquals(successor.get("afterPayloadSha256"), PhantomBackgroundTransaction.payloadDigest(result.getBytes(2)), "Late payload matches actual successor."); }
+				}
+				PhantomAssertions.assertThrows(UnsupportedOperationException.class, () -> finalized.put("afterPayloadSha256", "tampered"), "Published map is immutable.");
+				context.record("P01.finalized", finalized); context.record("P01.successor", successor); context.record("P01.records", records.size());
+				PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, f.transactions.abortMaterialization(f.id, f.objectId).status(), "Controlled TEST state returns through existing recovery.");
+			}
+			finally { observer.set(null, null); }
+		}
+	}
+	private void rollbackAndObserverFailure(PhantomTestContext context) throws Exception
+	{
+		final var observer = PhantomBackgroundTransaction.class.getDeclaredField("_commitWitnessObserver"); observer.setAccessible(true);
+		final List<Map<String, String>> records = new ArrayList<>();
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); final var current = f.transactions.load(f.id).state(); final var goal = f.goals.load(f.id).orElseThrow().goal();
+			observer.set(null, (Consumer<Map<String, String>>) records::add);
+			try
+			{
+				final var faultReached = new java.util.concurrent.atomic.AtomicBoolean();
+				final var rollback = new PhantomBackgroundTransaction(DatabaseFactory::getConnection, PhantomBackgroundTransaction.ObjectIdAllocator.production(), point -> { if (point == PhantomBackgroundTransaction.FaultPoint.BEFORE_OWNED_PREPARE_COMMIT) { faultReached.set(true); throw new IllegalStateException("TEST039 bounded rollback"); } });
+				PhantomAssertions.assertTrue(rollback.prepareOwnedStore(current, goal, f.loadedEpoch, PhantomBackgroundState.State.READY).status() != PhantomBackgroundTransaction.Status.SUCCESS, "Real precommit rollback is rejected.");
+				PhantomAssertions.assertTrue(faultReached.get(), "The rollback reached the actual precommit fault point.");
+				PhantomAssertions.assertEquals(0, records.size(), "Rollback emits no committed witness.");
+				PhantomAssertions.assertEquals(current, f.transactions.load(f.id).state(), "Rollback preserved prior durable state.");
+				observer.set(null, (Consumer<Map<String, String>>) row -> { throw new IllegalStateException("TEST039 exporter rejection"); });
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.dematerialize(f.id).status(), "Observer failure cannot undo the actual store commit.");
+				PhantomAssertions.assertEquals(PhantomBackgroundState.State.READY, f.transactions.load(f.id).state().state(), "Successful canonical state remains committed.");
+				context.record("P04.rollbackRecords", records.size());
+			}
+			finally { observer.set(null, null); }
+		}
 	}
 	private void progressBeforePause(PhantomTestContext context) throws Exception
 	{
@@ -74,7 +140,8 @@ public final class PhantomM1Campaign039Suite implements PhantomTestSuite
 				try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.sitDown(); }
 				PhantomAssertions.assertTrue(player.isSitting(), "The native resource branch sees actual stock rest.");
 				clock.addAndGet(1_000_000_000L);
-				adapter.noTargetExpired(f.id, goal);
+				// Pool ticks share the existing command gate. A busy tick is PAUSED, so wait for this boundary to run.
+				await(2_000, () -> { adapter.noTargetExpired(f.id, goal); return Long.parseLong(adapter.snapshotContinuation(f.id).scalarMap().get("liveNativeUsefulNanos")) > 0; }, "Native progress reaches the owned no-target boundary after concurrent pool work.");
 				final var after = adapter.snapshotContinuation(f.id).scalarMap();
 				context.record("A02.before", before); context.record("A02.after", after); context.record("A02.native", player.getNativeWorkOwner().evidence().snapshot());
 				PhantomAssertions.assertEquals(Long.toString(clock.get()), after.get("liveUsefulSinceNanos"), "RED: already-earned native damage must be observed before the resource early return.");
