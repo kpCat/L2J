@@ -28,6 +28,9 @@ import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementController;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TargetDirective;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope;
@@ -53,6 +56,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 	private final LongPredicate _permitsNewRoots;
 	private final Map<Long, Session> _sessions = new ConcurrentHashMap<>();
 	private final LongSupplier _clock;
+	private volatile PhantomNavigationService _navigation;
+	public void bindNavigation(PhantomNavigationService navigation) { _navigation = Objects.requireNonNull(navigation); }
 	private final Object[] _sessionOwners = java.util.stream.IntStream.range(0, 64).mapToObj(_ -> new Object()).toArray();
 
 	public PhantomVisibleAutoPlay(PhantomMaterializationService materialization, Supplier<PhantomDecisionEngine> decision, LongPredicate permitsOrdinary)
@@ -111,9 +116,17 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				}
 			}
 			if (!_permitsNewRoots.test(profileId)) { return false; }
+			final AtomicBoolean commandGate = previous != null && previous.player() == player && previous._epoch == snapshot.materializedAtNanos() ? previous._commandGate : new AtomicBoolean();
+			if (!commandGate.compareAndSet(false, true)) { return false; }
+			try
+			{
+			if (previous != null && previous.player() == player && previous._epoch == snapshot.materializedAtNanos() && previous._engagement != null)
+			{
+				previous._engagement.stopMovement(player, previous._epoch);
+			}
 			configure(player);
 			final PhantomPolicy policy = new Policy(player, profileId, goal.goalId(), goal.revision(), spec.npcId());
-			final Session session = new Session(player, goal.goalId(), goal.revision(), policy, snapshot.materializedAtNanos(), _clock.getAsLong(), previous);
+			final Session session = new Session(player, goal.goalId(), goal.revision(), policy, snapshot.materializedAtNanos(), _clock.getAsLong(), previous, commandGate, _navigation, () -> current(profileId, goal) && _permitsNewRoots.test(profileId));
 			final Session replaced;
 			synchronized (owner(profileId))
 			{
@@ -123,6 +136,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			try
 			{
 				stopRegistrations(replaced);
+				if (session._engagement != null)
+				{
+					session._engagement.advance(profileId, player, goal, spec.npcId(), policy::targetSelectionLoad, _clock.getAsLong());
+				}
 				if (!AutoPlayTaskManager.getInstance().startPhantomAutoPlay(player, policy, session._current) || !AutoUseTaskManager.getInstance().startPhantomAutoUse(player, policy, session._current) || !healthy(profileId, goal, session, player))
 				{
 					stop(profileId, session);
@@ -139,6 +156,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			{
 				return (_sessions.get(profileId) == session) && session._current.get();
 			}
+			}
+			finally { commandGate.set(false); }
 		}
 	}
 
@@ -174,9 +193,18 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		stopRegistrations(expected);
 	}
 
-	private static void stopRegistrations(Session session)
+	private void stopRegistrations(Session session)
 	{
 		if (session == null) { return; }
+		if (session._engagement != null) { session._engagement.revoke(); }
+		if (session._engagement != null && session._commandGate.compareAndSet(false, true))
+		{
+			try (var action = _materialization.tryAcquireAction(session._profileId).orElse(null))
+			{
+				if (action != null && action.player() == session.player()) { session._engagement.stopMovement(action.player(), session._epoch); }
+			}
+			finally { session._commandGate.set(false); }
+		}
 		try { AutoUseTaskManager.getInstance().stopPhantomAutoUse(session.player(), session._policy); }
 		finally { AutoPlayTaskManager.getInstance().stopPhantomAutoPlay(session.player(), session._policy); }
 	}
@@ -212,6 +240,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			return false;
 		}
+		if (!session._commandGate.compareAndSet(false, true)) { return false; }
+		try
+		{
 		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
 			if ((action == null) || !healthy(profileId, goal, session, action.player())) { return false; }
@@ -221,6 +252,11 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			if (resourcePause(session, player))
 			{
 				synchronized (session) { return session._resourceExpired || stalled(session, _clock.getAsLong()); }
+			}
+			if (session._engagement != null)
+			{
+				final var outcome = session._engagement.advance(profileId, player, goal, npcId, session._policy::targetSelectionLoad, _clock.getAsLong());
+				if (outcome == PhantomEngagementController.Outcome.EXHAUSTED) { return true; }
 			}
 			final var progress = nativeProgress(player, session._epoch);
 			final boolean repair;
@@ -243,7 +279,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				if (target) { session.noTargetSince = -1; }
 				else if (session.noTargetSince < 0) { session.noTargetSince = now; }
 				expired = stalled(session, now);
-				repair = !expired && !inFlight && !session._repairAttempted && (((now - session._usefulSince) >= RECOVERY_DELAY_NANOS) || ((session.noTargetSince >= 0) && ((now - session.noTargetSince) >= RECOVERY_DELAY_NANOS)));
+				repair = !expired && !inFlight && (session._engagement == null || !session._engagement.holdsMovement()) && !session._repairAttempted && (((now - session._usefulSince) >= RECOVERY_DELAY_NANOS) || ((session.noTargetSince >= 0) && ((now - session.noTargetSince) >= RECOVERY_DELAY_NANOS)));
 				if (repair) { session._repairAttempted = true; }
 				reportStall = expired && !session._stallReported;
 				if (reportStall) { session._stallReported = true; }
@@ -260,6 +296,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			if (reportStall) { LOGGER.warning("Phantom visible farm stalled profile=" + profileId + " object=" + player.getObjectId() + " epoch=" + session._epoch + " reason=" + reason); }
 			return expired;
 		}
+		}
+		finally { session._commandGate.set(false); }
 	}
 
 	/** Exact session policy uses stock sit/stand and existing regeneration; useful farm debt is never renewed by rest. */
@@ -478,7 +516,22 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			publishTick(source, new TickObservation(sequence, started, 0, "acquiring"));
 			final var originalOwner = player.getNativeWorkOwner();
 			final boolean checkpointBefore = (originalOwner instanceof PhantomNativeWorkScope scope) && scope.temporaryCheckpoint();
-			final TickLease lease = acquire(player);
+			final Session writer = _sessions.get(_profileId);
+			if (writer == null || writer._policy != this || !writer._current.get())
+			{
+				return new TickAdmission(TickStatus.REVOKED, null, "owner_or_goal_revoked");
+			}
+			if (!writer._commandGate.compareAndSet(false, true))
+			{
+				publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "command_writer_paused"));
+				return new TickAdmission(TickStatus.PAUSED, null, "command_writer");
+			}
+			final TickLease nativeLease;
+			try { nativeLease = acquireOwned(player); }
+			catch (RuntimeException | Error failure) { writer._commandGate.set(false); throw failure; }
+			final TickLease lease;
+			if (nativeLease == null) { writer._commandGate.set(false); lease = null; }
+			else { lease = () -> { try { nativeLease.close(); } finally { writer._commandGate.set(false); } }; }
 			if (lease != null)
 			{
 				if (!_permitsNewRoots.test(_profileId))
@@ -517,8 +570,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			final Session session = _sessions.get(_profileId);
 			final var engine = _decision.get(); final var runtime = engine == null ? null : engine.find(_profileId).orElse(null);
 			final boolean current = (player == _player) && (session != null) && (session._policy == this) && session._current.get() && player.isOnline() && player.hasHeadlessOutboundSession() && !player.isDead() && !player.hasPendingOwnedStore() && (runtime != null) && (runtime.goalId() == _goalId) && (runtime.goalRevision() == _revision) && (runtime.goalStatus() == PhantomGoalStatus.ACTIVE) && _permitsOrdinary.test(_profileId);
-			final boolean paused = current && (player.getNativeWorkOwner() == originalOwner) && (originalOwner instanceof PhantomNativeWorkScope scope) && (scope.epoch() == session._epoch) && scope.checkpointPauseAllowed(checkpointBefore);
-			final String reason = paused ? "checkpoint_paused" : "owner_or_goal_revoked";
+			final boolean commandBusy = current && session._commandGate.get();
+			final boolean paused = commandBusy || (current && (player.getNativeWorkOwner() == originalOwner) && (originalOwner instanceof PhantomNativeWorkScope scope) && (scope.epoch() == session._epoch) && scope.checkpointPauseAllowed(checkpointBefore));
+			final String reason = commandBusy ? "command_writer_paused" : paused ? "checkpoint_paused" : "owner_or_goal_revoked";
 			publishTick(source, new TickObservation(sequence, started, System.nanoTime(), reason));
 			return new TickAdmission(paused ? TickStatus.PAUSED : TickStatus.REVOKED, null, reason);
 		}
@@ -529,10 +583,18 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		public TickLease acquire(Player player)
 		{
 			final Session session = _sessions.get(_profileId);
-			if ((player != _player) || (session == null) || (session._policy != this) || !session._current.get())
-			{
-				return null;
-			}
+			if (session == null || session._policy != this || !session._current.get() || !session._commandGate.compareAndSet(false, true)) { return null; }
+			final TickLease lease;
+			try { lease = acquireOwned(player); }
+			catch (RuntimeException | Error failure) { session._commandGate.set(false); throw failure; }
+			if (lease == null) { session._commandGate.set(false); return null; }
+			return () -> { try { lease.close(); } finally { session._commandGate.set(false); } };
+		}
+
+		private TickLease acquireOwned(Player player)
+		{
+			final Session session = _sessions.get(_profileId);
+			if (player != _player || session == null || session._policy != this || !session._current.get()) { return null; }
 			final PhantomDecisionEngine engine = _decision.get();
 			final var runtime = engine == null ? null : engine.find(_profileId).orElse(null);
 			if ((runtime == null) || (runtime.goalId() != _goalId) || (runtime.goalRevision() != _revision) || (runtime.goalStatus() != PhantomGoalStatus.ACTIVE) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(runtime.goalType()) || !_permitsOrdinary.test(_profileId))
@@ -550,6 +612,14 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				return null;
 			}
 			return action::close;
+		}
+
+		@Override
+		public TargetDirective targetDirective(Player player)
+		{
+			final Session session = _sessions.get(_profileId);
+			if (player != _player || session == null || session._policy != this || !session._current.get()) { return new TargetDirective(TargetDirective.Mode.HOLD, null); }
+			return session._engagement == null ? new TargetDirective(TargetDirective.Mode.STOCK, null) : session._engagement.directive(player);
 		}
 
 		@Override
@@ -611,6 +681,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			fields.put("liveNoTargetSinceNanos", Long.toString(session.noTargetSince));
 			fields.put("liveResourceExpired", Boolean.toString(session._resourceExpired));
 			fields.put("continuationRead", "NONATOMIC_VOLATILE");
+			fields.put("liveCommandGate", Boolean.toString(session._commandGate.get()));
+			if (session._engagement != null) { fields.putAll(session._engagement.snapshot()); }
 			if (session._policy instanceof Policy policy)
 			{
 				tickScalars(fields, "liveAutoPlayTick", policy._autoPlayTick); tickScalars(fields, "liveAutoUseTick", policy._autoUseTick);
@@ -631,6 +703,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private final PhantomPolicy _policy;
 		private final long _epoch;
 		private final AtomicBoolean _current = new AtomicBoolean(true);
+		private final AtomicBoolean _commandGate;
+		private final PhantomEngagementController _engagement;
 		private long nextTargetCheck;
 		private long noTargetSince = -1;
 		private long _usefulSince;
@@ -648,8 +722,10 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private volatile double _resourceCost;
 		private volatile String _resourceReason = "resource.not_required";
 
-		private Session(Player player, long goalId, long revision, PhantomPolicy policy, long epoch, long now, Session previous)
+		private Session(Player player, long goalId, long revision, PhantomPolicy policy, long epoch, long now, Session previous, AtomicBoolean commandGate, PhantomNavigationService navigation, java.util.function.BooleanSupplier permits)
 		{
+			_commandGate = commandGate;
+			_engagement = navigation == null ? null : new PhantomEngagementController(navigation, () -> _current.get() && permits.getAsBoolean());
 			_player = player;
 			_profileId = ((Policy) policy)._profileId;
 			_goalId = goalId;

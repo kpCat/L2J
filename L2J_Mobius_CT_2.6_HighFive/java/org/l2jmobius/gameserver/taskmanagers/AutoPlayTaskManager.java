@@ -73,8 +73,10 @@ public class AutoPlayTaskManager
 		boolean permitsTarget(Creature target);
 		/** Advisory ranking only; it cannot grant or deny target admission. */
 		default int targetSelectionLoad(Creature target) { return 0; }
+		default TargetDirective targetDirective(Player player) { return new TargetDirective(TargetDirective.Mode.STOCK, null); }
 		default void stopObserved(String reason) { }
 	}
+	public record TargetDirective(Mode mode, Creature target) { public enum Mode { STOCK, HOLD, USE_EXACT_TARGET } }
 	public enum TickStatus { ACQUIRED, PAUSED, REVOKED }
 	public record TickAdmission(TickStatus status, TickLease lease, String reason) { }
 	
@@ -129,6 +131,14 @@ public class AutoPlayTaskManager
 				
 				// Next target mode.
 				final int targetMode = player.getAutoPlaySettings().getNextTargetMode();
+				final TargetDirective directive = phantomPolicy == null ? new TargetDirective(TargetDirective.Mode.STOCK, null) : phantomPolicy.targetDirective(player);
+				if (directive.mode() == TargetDirective.Mode.HOLD) { continue PLAY; }
+				if (directive.mode() == TargetDirective.Mode.USE_EXACT_TARGET)
+				{
+					final Creature exact = directive.target();
+					if (exact == null || exact.isAlikeDead() || !isTargetModeValid(targetMode, player, exact, phantomPolicy) || !GeoEngine.getInstance().canSeeTarget(player, exact)) { continue PLAY; }
+					player.setTarget(exact);
+				}
 				
 				// Skip thinking.
 				final WorldObject target = player.getTarget();
@@ -312,7 +322,7 @@ public class AutoPlayTaskManager
 				{
 					double closestDistance = Double.MAX_VALUE;
 					int lowestLoad = Integer.MAX_VALUE;
-					TARGET: for (Creature nearby : World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() && (targetMode != 2 /* Characters */) ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE))
+					TARGET: for (Creature nearby : directive.mode() == TargetDirective.Mode.USE_EXACT_TARGET ? java.util.List.of(directive.target()) : World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() && (targetMode != 2 /* Characters */) ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE))
 					{
 						// Skip unavailable creatures.
 						if ((nearby == null) || nearby.isAlikeDead())

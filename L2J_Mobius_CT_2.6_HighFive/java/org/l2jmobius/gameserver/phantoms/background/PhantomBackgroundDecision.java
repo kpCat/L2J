@@ -96,6 +96,7 @@ public final class PhantomBackgroundDecision
 		Objects.requireNonNull(history, "history");
 		Objects.requireNonNull(engine, "engine");
 		history.bindVisibleRecovery(travel, autoPlay);
+		autoPlay.bindNavigation(travel.navigation());
 		final var adapter = new PhantomBackgroundDecision(service, (profileId, goal) ->
 		{
 			if (autoPlay.running(profileId, goal)) { return true; }

@@ -287,6 +287,16 @@ public class AutoUseTaskManager
 					}
 					
 					final int count = player.getAutoUseSettings().getAutoSkills().size();
+					if (phantomPolicy != null)
+					{
+						final var directive = phantomPolicy.targetDirective(player);
+						if (directive.mode() == AutoPlayTaskManager.TargetDirective.Mode.HOLD) { continue; }
+						if (directive.mode() == AutoPlayTaskManager.TargetDirective.Mode.USE_EXACT_TARGET)
+						{
+							if (directive.target() == null || directive.target().isAlikeDead() || !phantomPolicy.permitsTarget(directive.target())) { continue; }
+							player.setTarget(directive.target());
+						}
+					}
 					SKILLS: for (int i = 0; i < count; i++)
 					{
 						// Already casting.

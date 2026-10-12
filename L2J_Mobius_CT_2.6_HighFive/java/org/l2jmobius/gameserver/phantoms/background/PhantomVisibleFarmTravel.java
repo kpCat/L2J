@@ -25,6 +25,7 @@ import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
@@ -50,6 +51,8 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 	private final PhantomBackgroundService _background;
 	private final PhantomNormalGatekeeperTravel _travel;
 	private final PhantomNavigationService _navigation;
+	public PhantomNavigationService navigation() { return _navigation; }
+	private final PhantomEngagementPlanner _engagementPlanner = new PhantomEngagementPlanner();
 	private final LongPredicate _permitsOrdinary;
 	private final PhantomRelevanceSignalPort _signals;
 	private final Map<Long, Journey> _journeys = new ConcurrentHashMap<>();
@@ -211,6 +214,15 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 				return true;
 			}
 			if ((existingAttempt != null) && existingAttempt.matches(goal, player, epoch) && existingAttempt.terminal) { return false; }
+			// Same-anchor local execution can discover a lawful target before its exact action position is ready.
+			// Travel releases only its own route; the Session controller then owns any approach.
+			if (sameAnchor && targetAnchor != null && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor)
+				&& isUsableLocalFarmPosition(player, targetAnchor)
+				&& _engagementPlanner.inspect(player, spec.npcId(), java.util.Set.of(), _ -> 0).kind() != PhantomEngagementPlanner.Kind.UNAVAILABLE)
+			{
+				if (journey != null) { remove(profileId, journey); }
+				return true;
+			}
 			if ((targetAnchor != null) && L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, targetAnchor) && isUsableLocalFarmPosition(player, targetAnchor))
 			{
 				if ((journey == null) && sameAnchor) { return true; }
@@ -266,20 +278,37 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		}
 	}
 
+	/** Read-only fresh action proof; a failed stand-point receipt remains in its existing history. */
+	public boolean hasFreshLocalAction(long profileId, PhantomGoal goal, long epoch)
+	{
+		if (!_permitsOrdinary.test(profileId)) { return false; }
+		final var lifetime = _materialization.find(profileId).orElse(null);
+		if (lifetime == null || lifetime.materializedAtNanos() != epoch || !lifetime.actionAdmissionOpen()) { return false; }
+		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (action == null) { return false; }
+			final var player = action.player();
+			if (player.isDead() || player.isInParty() || player.hasPendingOwnedStore() || player.getObjectId() != lifetime.characterObjectId()) { return false; }
+			final var spec = PhantomBackgroundGoalSpec.parse(goal);
+			final var state = _background.acquisitionSnapshot(profileId).orElse(null);
+			final var anchor = _travel.topology().findAnchor(spec.anchorId()).orElse(null);
+			return state != null && state.state() == PhantomBackgroundState.State.MATERIALIZED
+				&& state.position().committedAnchorId().equals(spec.anchorId()) && anchor != null
+				&& hasLocalOpportunity(profileId, player, anchor, spec.npcId());
+		}
+	}
+
 	private boolean hasLocalOpportunity(long profileId, Player player, PhantomTopologyAnchor anchor, int npcId)
 	{
 		if ((anchor.role() != PhantomTopologyAnchorRole.FARMING) || !L2jPhantomBackgroundAuthority.livePositionAllowed(_travel.topology(), player, anchor)) { return false; }
 		final var geo = GeoEngine.getInstance();
 		if (!geo.hasGeo(player.getX(), player.getY()) || player.isInsideZone(ZoneId.WATER)
 			|| (ZoneManager.getInstance().getZone(player.getX(), player.getY(), player.getZ(), WaterZone.class) != null)) { return false; }
-		final var origin = new PhantomNavigationPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
-		final var excluded = _routeExclusions.apply(profileId);
 		return World.getInstance().getVisibleObjectsInRange(player, Creature.class, AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream().anyMatch(target ->
 		{
-			if (!PhantomVisibleAutoPlay.selectableTarget(player, target, npcId) || !geo.hasGeo(target.getX(), target.getY())) { return false; }
-			// Native legality already proved the actual floor; inspect its projected dry cells without rewriting XYZ.
-			final var destination = new PhantomNavigationPoint(target.getX(), target.getY(), geo.getHeight(target.getX(), target.getY(), target.getZ()), target.getInstanceId());
-			return !excluded.contains(localRouteWitness(anchor.id(), destination)) && (unsafeSegment(origin, destination, false, 0) == null);
+			final var opportunity = _engagementPlanner.inspect(player, target, npcId);
+			// No stand-point MOVE is needed when the actor's current native action is independently ready.
+			return opportunity.kind() == PhantomEngagementPlanner.Kind.READY && geo.hasGeo(target.getX(), target.getY());
 		});
 	}
 

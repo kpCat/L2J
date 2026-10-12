@@ -1,0 +1,34 @@
+path	permission	boundary	base_git_blob
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	CONDITIONAL_WRITE	Session controller/gate/TickAdmission/targetDirective; preserve debt037	a0b5c4e6ce00e0d058caf7a9b9b406fb473e8d04
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	CONDITIONAL_WRITE	common opportunity and route-only failure invalidation; existing store	6efea5aa87e0e0e440a71f2748a3c32eaef3a08a
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	CONDITIONAL_WRITE	START/AWAIT advancement and typed pending; no second brain	fe6f6c8d1a6fbadd0d61879005d3c7986011d639
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	CONDITIONAL_WRITE	visible failure disposition/replan continuation only; preserve CAS/fences	920970933e8df9bedc50aa6b6b2a81da423a3ba5
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_WRITE	existing construction/lifecycle registration only	74c638f13ebc2d33636962924a2eed9b8d764353
+java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	CONDITIONAL_WRITE	one policy directive seam, ordinary default unchanged; no damage/threads	88b2e8cbda712079789b330ba0cc84e98beddd55
+java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	CONDITIONAL_WRITE	only optional directive/yield before offensive root; no skill/reward logic	08eeac61caed967e09ab92cd515c4e66d641b38c
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementController.java	CREATE	bounded per-live-session approach/result; no new scheduler	
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementPlanner.java	CREATE	one shared domain/action-position query; reuse geometry/navigation	
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomActionAttempt.java	CREATE_OPTIONAL	scalar identity/status only if nested/existing types insufficient	
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationService.java	READ_ONLY	reuse queue submitWalkCorridor/cancel/consume/progressTracker	c75bdac7060af640a8b7efadc768ff3f5625195d
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationRequest.java	READ_ONLY	scalar request and one profile route	761efac23c137d78f6262346ff599ae53b5b63fc
+java/org/l2jmobius/gameserver/ai/PlayerAI.java	READ_ONLY	native ATTACK/CAST/PICKUP/INTERACT executor	b016e70ff50fc53616a1bdf39ffe21325f800d68
+java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatBackend.java	READ_ONLY	existing target modes/results; no second engine	46361a4ef858d357ddcb19a44fd84ee935dfeb70
+java/org/l2jmobius/gameserver/phantoms/combat/PhantomCombatCapabilityResolver.java	READ_ONLY	reuse facts; do not take competing combat lease	c3bfe5059d2cdea03213d20619b709d2d975859f
+java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	READ_ONLY_PROTECTED	035 capture conservation	5238661b794898038c3ac56d312c020e986732bd
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	READ_ONLY_PROTECTED	035 inventory representation	e7f31c5c83f19f7e7cf2cd338ede0411f64cca95
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	READ_ONLY_PROTECTED	035 native capacity250	8ce2404ae1fba972e9c1e15611f6a7149ec18722
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	READ_ONLY_PROTECTED	036 earned/dispatch/drain	dc0ca4952c2cebfe4689ccfef4eb9637c7e83f55
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	READ_ONLY_PROTECTED	sameepoch counters and sticky faults	88588ab55733ee1773f726fd67d333f1ef97588a
+docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py	READ_ONLY_PROTECTED	legacy evaluator unchanged	c441ecc621dc5936ba3b2ea7f8e9f6e6f74eb164
+test/java/org/l2jmobius/tests/phantoms/PhantomActionLoop038Suite.java	CREATE	composed native integration S01-S18	
+test/java/org/l2jmobius/gameserver/phantoms/actions/PhantomActionLoop038Checks.java	CREATE_OPTIONAL	package-local checks, real native fixtures	
+test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	CONDITIONAL_WRITE	add exact038t lane/provenance guard only	
+test/java/org/l2jmobius/tests/phantoms/PhantomVisibleContinuity032Suite.java	CONDITIONAL_WRITE	new regressions only; G37/G38 preserved	
+test/java/org/l2jmobius/tests/phantoms/PhantomTravelPlanning033RSuite.java	CONDITIONAL_WRITE	add opportunity/geometry cases without weakening old	
+build.xml	CONDITIONAL_WRITE	test dispatch only if standalone runner insufficient	
+docs/phantoms/tasks/PHANTOM-M1-ACTION-LOOP-038/	WRITE_TASK_FAMILY	bounded task artifacts, private raw not staged	
+.phantom-local/ops038/	WRITE_PRIVATE	minimal copies of verified037 wrappers	
+.phantom-local/contract038a/	WRITE_OWN_RUNTIME	own diagnosis clone/runtime	
+.phantom-local/contract038b/	WRITE_OWN_RUNTIME	own finalA	
+.phantom-local/contract038c/	WRITE_OWN_RUNTIME	own finalB	
+.phantom-local/contract038t/	WRITE_OWN_TEST	exact owned native TEST

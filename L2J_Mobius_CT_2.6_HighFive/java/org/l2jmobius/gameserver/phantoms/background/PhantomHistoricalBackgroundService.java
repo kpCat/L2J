@@ -1116,11 +1116,17 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		if (failures != null)
 		{
 			if (failures.protocolBlocked(goal, epoch)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.protocol_blocked"); }
-			if (failures.routeBlocked(goal, epoch)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.route_blocked"); }
+			if (failures.routeBlocked(goal, epoch) && !freshLocalAction(profileId, goal, epoch)) { return visibleFarmResult(profileId, goal, epoch, false, "visible.route_blocked"); }
 			if (failures.exclusions(_visibleClock.getAsLong(), epoch).targets().contains(targetKey(goal))) { return visibleFarmResult(profileId, goal, epoch, false, "visible.target_excluded"); }
 		}
 		final boolean ready = Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), goal);
 		return visibleFarmResult(profileId, goal, epoch, ready, ready ? "visible.ready" : "visible.stored_goal_mismatch");
+	}
+
+	private boolean freshLocalAction(long profileId, PhantomGoal goal, long epoch)
+	{
+		return _visibleTravel != null && Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), goal)
+			&& _visibleTravel.hasFreshLocalAction(profileId, goal, epoch);
 	}
 
 	/** First result of the real evaluation; no second read, action, I/O or diagnostic exception. */
@@ -1215,7 +1221,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 				live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 			}
 			final var exclusions = failures == null ? new Exclusions(Set.of(), Set.of()) : failures.exclusions(_visibleClock.getAsLong(), lifetime.materializedAtNanos());
-			final boolean routeRecovery = (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos());
+			final boolean routeRecovery = (failures != null) && failures.routeBlocked(stored.goal(), lifetime.materializedAtNanos())
+				&& !freshLocalAction(profileId, stored.goal(), lifetime.materializedAtNanos());
 			if (!authorityRenewal && !routeRecovery && !exclusions.targets().contains(targetKey(stored.goal())))
 			{
 				final boolean local = _planner.isVisibleLocal(stored.goal(), live);
