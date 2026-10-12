@@ -48,7 +48,8 @@ Affected BOUNDARY_Q_DEV039 passed15/15 with observer disabled. Final Jar-first r
 
 Прочитаны AGENTS, master plan, workflow/package standard, packet039, handoff/result038,
 build.xml, action planner/controller, progress/resource/owned-store paths и fixtures.
-README.md, общий code-map и pattern-файлы не найдены. Есть readme.txt и SOURCE_MAP039.
+Root README.md, общий code-map и pattern-файлы не найдены. Есть readme.txt,
+task README.md, SOURCE_MAP.tsv и SOURCE_MAP_NOTES.md.
 JDK25/Ant/MariaDB3308; без новых библиотек, провайдеров, scheduler или schema.
 Предел16 production files — утверждённый bounded exception SOURCE_MAP_NOTES; пока1.
 Task-family packet/docs не расширяет production scope.
@@ -121,3 +122,16 @@ hash и class skills hash из actual locked witness на той же конеч
 verify_commit_run039 теперь требует explicit all-birth stopped cut для FULL_SAVE;
 bounded native interval отдельно обозначен NATIVE_BOUNDARY_INTERVAL. Все реальные
 before/after version/hash links обязательны; структурный helper сам по себе не PASS.
+
+## Финальное состояние039
+
+Chronological pending statements выше относятся к прежним checkpoint, не final gate.
+Current committed09e5f38/Jar4:93/93+11/11, protected/affected/action5 PASS.
+Exact all-birth stopped proof PASS для B634, C957 и C284 births; finite coverage
+и полная матрица представлены в RESULT_HANDOFF039. Ни cross-boot goal lineage,
+ни full natural groups, ни useful ordinary return не выданы за PASS.
+Latest human authority запретила дальнейшие crash72/73 и injectors. Старый OS72
+raw сохранён; reconciliation/idempotence NOT_VERIFIED, x73 NOT_RUN. Запрет соблюдён.
+Private collector fsync batching исправлен по actual exporter stack; original dropped
+run independently rejected, current dropped0. No producer/clock/cap/SQL edits.
+Final RESULT=PARTIAL_VERIFIED; M1=OPEN; REAL_FINAL=NOT_RUN; roadmap M2–M7 сохранён.
