@@ -34,11 +34,47 @@ public final class PhantomM1Campaign039Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("snapshot039".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("P05-resource-diagnostics-use-one-existing-session-monitor", this::coherentSnapshot); return; }
 		if (!"boundary039".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("A02-earned-native-damage-is-observed-before-resource-return", this::progressBeforePause); }
 		if ("boundary039".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("P01-real-finalize-commit-is-linked-to-later-state-increment", this::committedSuccessor);
 			registry.add("P04-rollback-is-silent-and-observer-failure-does-not-undo-commit", this::rollbackAndObserverFailure);
+		}
+	}
+	private void coherentSnapshot(PhantomTestContext context) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			final var adapter = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision);
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			PhantomAssertions.assertTrue(adapter.start(f.id, goal), "Actual native policy provides the existing session.");
+			final var sessions = PhantomVisibleAutoPlay.class.getDeclaredField("_sessions"); sessions.setAccessible(true);
+			final Object session = ((Map<?, ?>) sessions.get(adapter)).get(f.id);
+			final var entered = new java.util.concurrent.CountDownLatch(1);
+			final var done = new java.util.concurrent.CountDownLatch(1);
+			final var observed = new java.util.concurrent.atomic.AtomicReference<PhantomVisibleAutoPlay.ContinuationSnapshot>();
+			final var failure = new java.util.concurrent.atomic.AtomicReference<Throwable>();
+			final var reader = new Thread(() ->
+			{
+				entered.countDown();
+				try { observed.set(adapter.snapshotContinuation(f.id)); }
+				catch (Throwable error) { failure.set(error); }
+				finally { done.countDown(); }
+			}, "TEST039-coherent-resource-snapshot");
+			try
+			{
+				synchronized (session)
+				{
+					reader.start();
+					PhantomAssertions.assertTrue(entered.await(1, java.util.concurrent.TimeUnit.SECONDS), "Controlled reader reaches the original session.");
+					PhantomAssertions.assertFalse(done.await(150, java.util.concurrent.TimeUnit.MILLISECONDS), "RED: resource tuple must wait for the same monitor used by its real writer.");
+				}
+				PhantomAssertions.assertTrue(done.await(2, java.util.concurrent.TimeUnit.SECONDS) && failure.get() == null && observed.get() != null, "Coherent observation completes after the existing writer monitor releases.");
+				context.record("P05.snapshot", observed.get().scalarMap());
+			}
+			finally { reader.join(2_000); adapter.beforeStore(f.id, f.loadedPlayer); PhantomVisibleIntentRecoverySuite.stop(engine); }
 		}
 	}
 	private void committedSuccessor(PhantomTestContext context) throws Exception

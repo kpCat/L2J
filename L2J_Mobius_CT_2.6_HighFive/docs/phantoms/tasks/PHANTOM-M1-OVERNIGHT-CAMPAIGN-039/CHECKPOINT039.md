@@ -22,3 +22,26 @@ J1 causal test initially hit busy gate (retained FAIL); bounded fixture wait giv
 Probe J1: natural7 alive; five actors earned1–3 cycles;106/113 left after no_local_opportunity; cause not yet attributed to combat. Drain COMPLETE retained0 before pools.
 B optional immutable commit witness: missing-field RED2/2; development native FINALIZE/successor + rollback/observer failure GREEN2/2. Q affected running.
 Next: publish reviewed B block/Jar2; current natural groups and exact all-birth normalization. Freeze still15:16:54Z; remaining approximately7h.
+2026-10-12T10:43Z: J2 published7e64c4f5aca0740e966858b4f43920b9abbe96e7; committed clean Jar2 SHA50932bf4224830c8a8abedf0a921c3e6850323038fb2e681af37adecfb59b8ef.
+Production builds2/8; GS starts3/16; full scene attempts2/8 including pre-enrollment invalid attempt; completed0.
+Jar-first boundary2/2 PASS; Action038 default1/1, full038 running (not5/5 yet).
+039a J2 first scene INVALID_PRECONDITION: startup inventory not ready; same JVM later census1280. Second scene FAIL TELEMETRY_STALE.
+Exporter accumulated111k commit records after980 births because terminal subscriptions never retired; all records/FAIL preserved, no combat attribution.
+039a Game31568/Login35728 stock stopped; typed-stop witness missing (disk pressure), so drain proof UNKNOWN despite actual process exits.
+Private collector repair: ordinary exporter batch64; all native births observed through FINALIZED/lateSQL/terminal; enrolled cohort continuous background subscription. Ring/disk/caps unchanged.
+039b fresh own clone started with same committed Jar2/repaired collector; current source proof normalization pending.
+Next: ready census, natural second geometry, every FINALIZED boundary through actual codecs, targeted protected routes; then lifecycle/restart/crash.
+2026-10-12T11:11Z: GS starts4/16, builds2/8; own full servers stopped, only own native/compile test JVM transient.
+Batch64 with unconditional100ms sleep caused new startup burst ring overflow4197/active references124: FAIL preserved; stock COMPLETE/retained0 before pools despite collector gap.
+Fair exporter sleeps only with empty ring: same039b restart, overflow0 and active references1 at ready census, no caps/budgets raised.
+Natural B fair complete380s,6 enrolled,370 fresh samples,max gap1.0963852. CONTINUITY_V2 1/6 (profile40); other FAIL retained.
+Caster27 real53 cycles,EXP16791/SP1930; REST_BOUND from one NONATOMIC_VOLATILE mixed resource tuple: recovering=true,since=0 at341.486s. Causal snapshot repair in progress.
+Melee28 initial ROUTE/start_retry/no session; walks away, disappears36.5s with0 cycles. Similar to historical437 shape, not yet causal combat failure or repaired.
+Other native actors have6–11 useful cycles then lifecycle absence/tail failures. No actor filtered or healed.
+Current owning boundary normalization:870 births/terminal,893 FINALIZED/native codec PASS,37938 exact commit records, lateSQL exact/linked, typed global COMPLETE/retained0/pools live. Bounded native→lateSQL interval verified.
+Strict final all-birth stopped component cut remains pending: interval subscription retired non-enrolled terminal profiles, so do not extend bounded PASS to unobserved future background increments.
+Verifier actual positive + wrong epoch/tampered payload/wrong lockedEXP negatives4/4; original raw unchanged. Existing structural helper23/23.
+Jar2 Matrix93/93, lifecycle11/11,native0369/9,Q15/15,inventory0356/6,projection/capacity/debt037/A02 all PASS. Actual receipts in PROTECTED_J2_039.tsv; boundary2/2 earlier.
+Own isolated039x72 andx73 prepared (same verified036 export), sourceJar2, original304 hashes each unchanged. Not armed; private collector exact x-lane guards still need adaptation after own ordinary JVM stops.
+Snapshot039 new native Session-monitor contract test added, compile-tests running/completed; RED Jar2 required before production observer edit.
+Source freeze still15:16:54Z; remaining6h05. Next: causal snapshot RED/GREEN/source checkpoint, short final all-birth cut, native death/useful return and logout/background/return, sameDB/crash72/73.

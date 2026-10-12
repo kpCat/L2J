@@ -677,15 +677,19 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			fields.put("livePolicyIdentity", Integer.toHexString(System.identityHashCode(session._policy)));
 			fields.put("liveSessionEpoch", Long.toString(session._epoch));
 			fields.put("liveSessionCurrent", Boolean.toString(session._current.get()));
-			fields.put("liveResourceRecovery", Boolean.toString(session._recovering));
-			fields.put("liveResourceReason", session._resourceReason);
-			fields.put("liveResourceCost", Double.toString(session._resourceCost));
-			fields.put("liveResourceSinceNanos", Long.toString(session._resourceSince));
-			fields.put("liveUsefulSinceNanos", Long.toString(session._usefulSince));
-			fields.put("liveNativeUsefulNanos", Long.toString(session._nativeUsefulNanos));
-			fields.put("liveNoTargetSinceNanos", Long.toString(session.noTargetSince));
-			fields.put("liveResourceExpired", Boolean.toString(session._resourceExpired));
-			fields.put("continuationRead", "NONATOMIC_VOLATILE");
+			// Copy the resource/debt tuple under its existing writer monitor, without nested calls.
+			synchronized (session)
+			{
+				fields.put("liveResourceRecovery", Boolean.toString(session._recovering));
+				fields.put("liveResourceReason", session._resourceReason);
+				fields.put("liveResourceCost", Double.toString(session._resourceCost));
+				fields.put("liveResourceSinceNanos", Long.toString(session._resourceSince));
+				fields.put("liveUsefulSinceNanos", Long.toString(session._usefulSince));
+				fields.put("liveNativeUsefulNanos", Long.toString(session._nativeUsefulNanos));
+				fields.put("liveNoTargetSinceNanos", Long.toString(session.noTargetSince));
+				fields.put("liveResourceExpired", Boolean.toString(session._resourceExpired));
+			}
+			fields.put("continuationRead", "SESSION_TUPLE_OTHER_FIELDS_NONATOMIC");
 			fields.put("liveCommandGate", Boolean.toString(session._commandGate.get()));
 			if (session._engagement != null) { fields.putAll(session._engagement.snapshot()); }
 			if (session._policy instanceof Policy policy)

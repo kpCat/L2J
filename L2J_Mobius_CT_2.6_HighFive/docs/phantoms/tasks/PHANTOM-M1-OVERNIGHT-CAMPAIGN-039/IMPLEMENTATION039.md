@@ -69,3 +69,35 @@ CHECKPOINT039 — ledger вместо нового SDD workspace вне SOURCE_M
 TASK039 RUNBOOK/GIT/BUDGET имеют приоритет над generic feature/main branch defaults
 и прежним STOP038. Exact detached HEAD push разрешён; branch/worktree creation запрещены.
 Источник отчётов расположен в task-family039 по более узкому task scope.
+
+## Согласованный resource/debt snapshot
+
+Current B Jar2 сохранил реальный mixed tuple: profile27, elapsed341.486s,
+liveResourceRecovery=true при liveResourceSinceNanos=0. Изменён только observer
+snapshotContinuation(): связанный tuple копируется под существующим Session monitor,
+без Player/controller вызовов внутри. Остальные поля явно остаются non-atomic.
+Native Session fixture: Jar2 RED1/1, development GREEN1/1; Jar3 proof ещё требуется.
+Никаких новых clocks, resource/debt resets, горизонтов или gameplay-решений.
+
+## Текущие server/proof facts
+
+Jar2 Matrix93/93 + lifecycle11/11 и protected native0369, Q15, inventory0356,
+action0385, debt0372 прошли. Natural B:6 enrolled,380s,max gap1.096s; CONTINUITY_V2
+1/6. Caster27 получил53 cycles и реальные EXP/SP; melee28 прошёл native ROUTE
+и вышел из locality без damage. Это пока не исправленный engagement defect.
+После принятого точечного observer block новые committed Jar/gates обязательны.
+
+Bounded proof B:870 births,893 exact FINALIZED checks через actual codecs;
+все native intervals до asynchronous lateSQL связаны реальными commits, global typed
+COMPLETE/retained0 получен до остановки пулов. Исходный SAVE_B_FAIR_J2_039.json
+проверяет эти интервалы. Он не доказывает последующие unobserved increments всех
+не-enrolled profiles до конца JVM. Для final G3 нужен отдельный all-birth stopped cut.
+Поэтому private collector следующего запуска сохраняет scalar subscriptions до
+конца run; Player references по-прежнему удаляются на реальном terminal.
+Ни512 ring, ни512MiB disk, ни active/player/population caps не увеличены.
+Новый read-only stopped export всех зарегистрированных profiles имеет diagnostic
+budget1280 и допускается только после остановки обеих own JVM; product cohort cap8
+сохранён. Секреты и raw остаются private.
+
+Exact RUNBOOK fault authority адаптирована с прежних b/c на own039x72/x73;
+обычные a/b не могут arm crash. На этом checkpoint ни один crash ещё не запущен.
