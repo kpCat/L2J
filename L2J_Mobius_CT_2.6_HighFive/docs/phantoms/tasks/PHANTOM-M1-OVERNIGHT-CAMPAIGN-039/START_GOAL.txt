@@ -1,0 +1,65 @@
+/goal Выполни L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-OVERNIGHT-CAMPAIGN-039/GOAL.md.
+
+Required base:
+8bf4df23a23854b9ff57c13b83a8ab34f07aa4c2
+Remote branch:
+experiment/m1-candidate007-observe008
+Own reusable worktree:
+C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius
+Read-only main:
+C:\Users\ZBook\L2J_Mobius
+
+GPT-6.1 Sol, reasoning Very High. Новый диалог, без субагентов.
+
+Одобряю TASK039: GOAL/DESIGN/PLAN/PATCH_GUIDE/COMMIT_BOUNDARY/SOURCE_MAP/
+ACCEPTANCE/SCENARIOS/RUNBOOK/GIT/BUDGET/MILESTONES и указанные полномочия.
+Я буду спать; согласованные этапы выполняй автономно, без просьб войти,
+ввести arm, продлить время или подтвердить очередной in-scope шаг.
+
+Это НОВАЯ восьмичасовая кампания, не прежний STOP038 и не задача на одного бота.
+Разрешены последовательные связанные исправления, анализ последствий,
+повторная проверка и переход между уже согласованными полосами:
+полезная native игра → exact save boundary → natural группы →
+away/background/return и смерть → sameDB restart → crash72/73.
+Не останавливаться после первой failed пары или первого зелёного unit-теста.
+Не повторять неизменный FAIL ради удачи. Не менять архитектуру заново.
+
+Сначала проверить base/remote/packet/архив038. Начальные факты:
+B437 без useful progress; B515/576 длинные перерывы;
+C lifecycle failures не считать автоматически сломанным боем;
+FULL_SAVE должен проверяться на настоящей commit-границе,
+а не равенством sealed payload и заведомо более позднего SQL.
+Все старые FAIL/UNKNOWN сохраняются. Никакого вымышленного producer.
+
+Сохранить035 inventory250,036 earned/drain,037 debt,038 single-writer и
+native movement/target generation. Никаких fake HP/MP/EXP/SP/loot/XYZ,
+SQL-heal, reset/force/clean, изменения схемы, увеличения45/90/120,
+радиусов/cap/population или запрета shared attack ради PASS.
+Не писать новый combat engine, клиентский эмулятор, C#, Recast/gdx-ai.
+M2–M7 сохраняются как следующие этапы и точки расширения; не запускать их.
+
+Переиспользуй phantom-dev, не создавай новый worktree. MAIN/PLAY/старые DB
+read-only/export. Писать только собственные039 clones с exact DB authority.
+Очистка диска и удаления остаются PAUSED.
+
+8часов максимум от фактического старта, закончить раньше при готовности.
+После6часов semantic freeze; последние45мин только проверка остановки,
+публикация и утренний отчёт. Запуски/сборки и резервы — по BUDGET.md.
+Несколько связанных repair rounds до freeze разрешены. Нет необходимости
+спрашивать новое разрешение после каждого внутреннего guard.
+
+Итоговая приёмка — чистая committed сборка, Jar-first current93/93+11/11,
+protected/affected suites, реальные группы, FULL_SAVE/global drain и
+максимально полный lifecycle/restart/crash gate по ACCEPTANCE.
+Для изолированных crash72/73 действует точное разрешение RUNBOOK;
+это НЕ разрешение force-stop PLAY, обычных или чужих процессов.
+
+Любой итог: reviewed exact-path commit + normal non-force push,
+local=remote, RESULT_HANDOFF039/MORNING039/EVIDENCE_INDEX039/CLEANUP039,
+проверенный private archive, собственные JVM остановлены.
+phantom-dev и DB сохранить. Никаких merge/branch delete.
+Все server gates PASS: M1=WAITING_REAL_FINAL, REAL_FINAL=NOT_RUN.
+Иначе M1=OPEN с точной матрицей частичных результатов.
+Без настоящего клиентского финала M1=CLOSED не объявлять.
+Следующую задачу автоматически не начинать.
+STOP_AUTHORITY=TASK039_CONTRACT.

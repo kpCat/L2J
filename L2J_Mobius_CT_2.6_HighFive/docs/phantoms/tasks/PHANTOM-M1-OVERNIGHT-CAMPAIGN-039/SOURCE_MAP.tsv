@@ -1,0 +1,43 @@
+path	permission	boundary	base_git_blob
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementPlanner.java	CONDITIONAL_WRITE	capability/target/action-position coherence; no class hardcode	723757e031200b1cbaa7e5c71fb87115fd39ffef
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementController.java	CONDITIONAL_WRITE	native busy/continuation/retry/stale target; one writer	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	CONDITIONAL_WRITE	progress ordering/resource pause/sameepoch controller; preserve037 debt	74c90b01a592ed5fb88e0c3c9d04c2f0b9f7b458
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	CONDITIONAL_WRITE	existing approach/arrival handoff; no new router or arbitrary teleport	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	CONDITIONAL_WRITE	existing typed start/await/recover routing only	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	CONDITIONAL_WRITE	existing visible recovery/foreground and background resume; preserve CAS	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	CONDITIONAL_WRITE	local target/capability suitability after proven stall; existing facts and CAS semantics	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	CONDITIONAL_WRITE	existing recovery/handoff/immutable completed-state evidence only; preserve owned protocol	1035fecc2d986c5c0c8c46b9e9ce747a3df89e27
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	CONDITIONAL_OBSERVER_ONLY	commit witness on existing locked facts; NO mutation/order/schema/semantics change	dcd395469e487c7678317128caae960e4dd85239
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_WRITE	existing lifecycle wiring/background resume and safe stop; no new scheduler	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	CONDITIONAL_WRITE	only proven locality/handoff defect; no radius/config/identity spoof	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java	CONDITIONAL_WRITE	proven soft-vs-hard release predicate; no shorter TTL	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	CONDITIONAL_WRITE	control-state retry/handoff after known earned completion; no force release	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	CONDITIONAL_OBSERVER_ONLY	only proven attribution/phase lifecycle defect; counters/caps/sticky guards preserved	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	CONDITIONAL_HOOK_ONLY	existing optional Phantom target/yield seam; ordinary branch unchanged	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	CONDITIONAL_HOOK_ONLY	existing optional Phantom capability/target/yield seam; no damage/resources math	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java	CONDITIONAL_TOOLING	exact current native move/stop workflow only; no fake real/teleport/buff	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/background/PhantomCommitWitness.java	CREATE_OPTIONAL	immutable data only; prefer existing nested result/observer; no new WAL/scheduler	ABSENT_VERIFY
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationService.java	READ_ONLY	reuse queues/cancel/consume/progress, do not rewrite	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/navigation/L2jNavigationBackend.java	READ_ONLY	reuse native paths/geometry	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomWalkCorridorPlanner.java	READ_ONLY	accepted033R route search	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/localplay/LocalPlayPhantomStoreJournal.java	READ_ONLY	existing end/completed diagnostics; synchronous selected8 journal not scale replacement	5ccd9e826c5461155fb2ac4e7081ad671cb772c3
+java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	PROTECTED_READ_ONLY	035 safe native capture	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	PROTECTED_READ_ONLY	035 overfull representation/codec invariants	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	PROTECTED_READ_ONLY	035 actual inventory limits/rewards model	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	PROTECTED_READ_ONLY	036 earned lifetime/drain and trace	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	PROTECTED_READ_ONLY	earned semantics no workaround	PIN_BASE_PATH
+java/org/l2jmobius/gameserver/ai/PlayerAI.java	PROTECTED_READ_ONLY	stock executor, not second combat engine	PIN_BASE_PATH
+docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py	PROTECTED_READ_ONLY	legacy stable evaluator unchanged	c441ecc621dc5936ba3b2ea7f8e9f6e6f74eb164
+test/java/org/l2jmobius/tests/phantoms/PhantomM1Campaign039Suite.java	CREATE	native causal/recovery/witness tests; not production code	ABSENT_VERIFY
+test/java/org/l2jmobius/gameserver/phantoms/PhantomM1Campaign039Checks.java	CREATE_OPTIONAL	package-local test access only	ABSENT_VERIFY
+test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	CONDITIONAL_TEST_WRITE	exact039t guard only; old lanes preserved	PIN_BASE_PATH
+test/java/org/l2jmobius/tests/phantoms/PhantomActionLoop038Suite.java	CONDITIONAL_TEST_WRITE	append causal cases, old asserts unchanged	PIN_BASE_PATH
+build.xml	CONDITIONAL_TEST_WRITE	test registration only if existing standalone runner insufficient	PIN_BASE_PATH
+docs/phantoms/tasks/PHANTOM-M1-OVERNIGHT-CAMPAIGN-039/	WRITE_TASK_FAMILY	task docs/selected source/helpers; raw excluded from public	TASK_ONLY
+.phantom-local/ops039/	WRITE_PRIVATE	minimal verified038 adapters/collector, not public whole runtime	PRIVATE_ONLY
+.phantom-local/contract039a/	WRITE_OWN_RUNTIME	exact own039a schema/runtime; no old DB writes	PRIVATE_ONLY
+.phantom-local/contract039b/	WRITE_OWN_RUNTIME	exact own039b schema/runtime; no old DB writes	PRIVATE_ONLY
+.phantom-local/contract039c/	WRITE_OWN_RUNTIME	exact own039c schema/runtime; no old DB writes	PRIVATE_ONLY
+.phantom-local/contract039t/	WRITE_OWN_RUNTIME	exact own039t schema/runtime; no old DB writes	PRIVATE_ONLY
+.phantom-local/contract039x72/	WRITE_OWN_RUNTIME	exact own039x72 schema/runtime; no old DB writes	PRIVATE_ONLY
+.phantom-local/contract039x73/	WRITE_OWN_RUNTIME	exact own039x73 schema/runtime; no old DB writes	PRIVATE_ONLY

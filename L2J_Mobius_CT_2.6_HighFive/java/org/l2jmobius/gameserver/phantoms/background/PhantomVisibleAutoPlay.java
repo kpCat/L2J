@@ -249,6 +249,13 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			final Player player = action.player();
 			final int npcId = PhantomBackgroundGoalSpec.parse(goal).npcId();
 			final boolean inFlight = player.isCastingNow() || player.isAttackingNow();
+			final var progress = nativeProgress(player, session._epoch);
+			synchronized (session)
+			{
+				if (!session._current.get() || (_sessions.get(profileId) != session)) { return false; }
+				// Earned progress belongs to this lifetime even when the next root must pause for native rest.
+				observeProgress(session, progress, _clock.getAsLong());
+			}
 			if (resourcePause(session, player))
 			{
 				synchronized (session) { return session._resourceExpired || stalled(session, _clock.getAsLong()); }
@@ -258,7 +265,6 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				final var outcome = session._engagement.advance(profileId, player, goal, npcId, session._policy::targetSelectionLoad, _clock.getAsLong());
 				if (outcome == PhantomEngagementController.Outcome.EXHAUSTED) { return true; }
 			}
-			final var progress = nativeProgress(player, session._epoch);
 			final boolean repair;
 			final boolean expired;
 			final boolean reportStall;
@@ -267,7 +273,6 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			{
 				if (!session._current.get() || (_sessions.get(profileId) != session)) { return false; }
 				final long now = _clock.getAsLong();
-				observeProgress(session, progress, now);
 				if (now < session.nextTargetCheck)
 				{
 					return stalled(session, now);
