@@ -9,6 +9,7 @@ $ops=Join-Path $module '.phantom-local/ops040'
 $lane=Join-Path $module '.phantom-local/contract040t'
 $jdk='C:/Program Files/Eclipse Adoptium/jdk-25.0.4.101-hotspot/bin'
 New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot 'evidence') -Force | Out-Null
+if($Label -match '^C3(?:_|93_)' -and (Test-Path -LiteralPath (Join-Path $ops 'C3.invalidated'))){throw 'C3 campaign invalidated; no new JVM launched. Existing JVM must finish normally.'}
 if($Action -ceq 'Evaluate'){
     $allowed=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'evidence'))+[IO.Path]::DirectorySeparatorChar
     $EpisodeOutput=[IO.Path]::GetFullPath($EpisodeOutput)
@@ -75,6 +76,8 @@ if($Action -ceq 'Matrix'){
     }
     if($failures){exit 1}; exit 0
 }
+$laneLock040=[IO.File]::Open((Join-Path $ops 'test-lane040t.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+try {
 $owned=Get-Content -LiteralPath (Join-Path $lane 'test/owned.properties') | ConvertFrom-StringData
 if($owned.owner -cne 'TASK040_CONTRACT' -or $owned.database -cne 'l2jmobiush5_phantom_test_040t' -or (Get-FileHash (Join-Path $lane 'play-snapshot.sql')).Hash.ToLowerInvariant() -cne $owned.exportSha256){throw 'Exact own TEST authority/export guard failed.'}
 $active=& 'C:/Program Files/MariaDB 11.4/bin/mariadb.exe' "--defaults-extra-file=$(Join-Path $lane 'secrets/client.cnf')" --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE DB='l2jmobiush5_phantom_test_040t'"
@@ -111,3 +114,4 @@ else{$arguments+=@("org.l2jmobius.tests.phantoms.$Suite",$module,$reports)}
 Push-Location (Join-Path $lane 'runtime/game')
 try{ & (Join-Path $jdk 'java.exe') @arguments *> $log; $testExit=$LASTEXITCODE; Get-Content -LiteralPath $log -Tail 14; exit $testExit }
 finally{Pop-Location}
+} finally {$laneLock040.Dispose()}

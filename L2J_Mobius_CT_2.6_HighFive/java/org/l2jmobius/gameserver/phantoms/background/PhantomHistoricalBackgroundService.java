@@ -725,6 +725,12 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private Result recoverNativeContext(long profileId, Snapshot current)
 	{
 		if ((current.state().status() != Status.FAILED_REPLAN_REQUIRED) || !requiresNativeMaterialization(current.state().failureReason())) { return Result.rejected(ResultStatusCode.REPLAN_REQUIRED, "catchup.native_context.failure_not_owned", current); }
+		final var generation = _planner.generation();
+		if (!current.state().authorityHashes().equals(generation.authorityHashes()) || (current.state().knowledgeGeneration() != generation.knowledgeGeneration()) || (current.state().topologyGeneration() != generation.topologyGeneration()))
+		{
+			// Attestation needs current authority; preserve the same request through its existing CAS recovery first.
+			return recoverStale(profileId, current, generation);
+		}
 		final Result attested = ensureNativeContext(profileId, current, _background.acquisitionSnapshot(profileId).orElse(null));
 		if (!attested.successful()) { return attested; }
 		try { return Result.success(_store.replace(profileId, current, current.state().retryRunning()), 0); }

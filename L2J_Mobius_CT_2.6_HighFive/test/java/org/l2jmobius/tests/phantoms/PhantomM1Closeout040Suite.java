@@ -27,9 +27,41 @@ public final class PhantomM1Closeout040Suite implements PhantomTestSuite
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		if ("resource040".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("A04-earned-native-progress-completes-the-resource-tuple", this::completedRest); return; }
+		if ("stale040".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("B01-stale-native-capacity-restores-authority-before-attestation", this::staleCapacity); return; }
 		registry.add("A01-known-native-capability-and-actual-skill-order", context -> capability(context, false));
 		registry.add("A02-depleted-native-resource-does-not-plan-unavailable-cast", context -> capability(context, true));
 		registry.add("A03-changed-capability-invalidates-old-action-positions", this::changedApproach);
+	}
+	private void staleCapacity(PhantomTestContext context) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff();
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.dematerialize(f.id).status(), "Actual original owned native store precedes stale replay.");
+			final var before = f.transactions.load(f.id).state();
+			final var original = f.catchups.load(f.id).orElseThrow();
+			final var failed = original.state().failed("model.slot_capacity");
+			final var h = failed.authorityHashes();
+			final var old = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Hashes("old-" + h.knowledge(), h.topology(), h.progression(), h.commerce());
+			final var stale = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState(failed.status(), failed.requestId(), failed.deterministicSeed(), failed.fromEpochMinute(), failed.targetEpochMinute(), failed.cursorEpochMinute(), failed.planOrdinal(), failed.intervalOrdinal(), failed.generation(), failed.knowledgeGeneration(), failed.topologyGeneration(), failed.goalId(), failed.goalRevision(), failed.planIdentity(), failed.modelVersion(), old, failed.failureReason());
+			final var owned = f.catchups.replace(f.id, original, stale);
+			// Isolate the actual recovery boundary: advance(1,1) also performs one legitimate model interval.
+			final var recover = f.historical.getClass().getDeclaredMethod("recoverNativeContext", long.class, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStore.Snapshot.class); recover.setAccessible(true);
+			final var recovered = (org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService.Result) recover.invoke(f.historical, f.id, owned); context.record("B01.recovered", recovered);
+			PhantomAssertions.assertTrue(recovered.successful(), "RED: stale capacity-owned native failure must use existing authority recovery before context attestation: " + recovered.reason());
+			PhantomAssertions.assertEquals(h, recovered.snapshot().state().authorityHashes(), "Current authority restored.");
+			PhantomAssertions.assertEquals(original.state().requestId(), recovered.snapshot().state().requestId(), "Original historical request.");
+			PhantomAssertions.assertEquals(original.state().cursorEpochMinute(), recovered.snapshot().state().cursorEpochMinute(), "No manufactured historical interval.");
+			PhantomAssertions.assertEquals(before.progress(), f.transactions.load(f.id).state().progress(), "Recovery grants no XP/SP.");
+			PhantomAssertions.assertEquals(before.inventory().canonicalHash(), f.transactions.load(f.id).state().inventory().canonicalHash(), "All real native items retained.");
+			final var current = f.catchups.load(f.id).orElseThrow();
+			final var unknown = current.state().failed("model.slot_capacity_unknown");
+			final var staleUnknown = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupState(unknown.status(), unknown.requestId(), unknown.deterministicSeed(), unknown.fromEpochMinute(), unknown.targetEpochMinute(), unknown.cursorEpochMinute(), unknown.planOrdinal(), unknown.intervalOrdinal(), unknown.generation(), unknown.knowledgeGeneration(), unknown.topologyGeneration(), unknown.goalId(), unknown.goalRevision(), unknown.planIdentity(), unknown.modelVersion(), old, unknown.failureReason());
+			final var permanent = f.catchups.replace(f.id, current, staleUnknown);
+			final var blocked = f.historical.advance(f.id, 1, 1);
+			PhantomAssertions.assertFalse(blocked.successful(), "Unknown permanent failure remains fenced despite stale hashes.");
+			PhantomAssertions.assertEquals(permanent, f.catchups.load(f.id).orElseThrow(), "No mutation of permanent failure ownership/cursor.");
+		}
 	}
 	private void completedRest(PhantomTestContext context) throws Exception
 	{
@@ -71,6 +103,13 @@ public final class PhantomM1Closeout040Suite implements PhantomTestSuite
 					final var pause = adapter.getClass().getDeclaredMethod("resourcePause", session.getClass(), org.l2jmobius.gameserver.model.actor.Player.class); pause.setAccessible(true);
 					player.sitDown(); PhantomAssertions.assertTrue(player.isSitting(), "Actual stock rest.");
 					PhantomAssertions.assertEquals(true, pause.invoke(adapter, session, player), "Native rest/stand boundary retains a pending resource tuple.");
+					// Sit/stand each finish through an earned stock2500ms animation task.
+					final long standDeadline = System.nanoTime() + 30_000_000_000L;
+					while (player.isSitting() && System.nanoTime() < standDeadline)
+					{
+						Thread.sleep(250); clock.addAndGet(500_000_000L);
+						if (player.isSitting()) { pause.invoke(adapter, session, player); }
+					}
 					final var before = adapter.snapshotContinuation(f.id).scalarMap();
 					PhantomAssertions.assertEquals("true", before.get("liveResourceRecovery"), "INPUT: actual resource recovery.");
 					PhantomAssertions.assertTrue(Long.parseLong(before.get("liveResourceSinceNanos")) > 0, "INPUT: original rest start.");
