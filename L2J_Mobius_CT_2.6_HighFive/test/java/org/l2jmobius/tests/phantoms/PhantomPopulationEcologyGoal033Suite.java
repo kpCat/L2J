@@ -271,9 +271,9 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		final Instant now = Instant.parse("2026-01-05T20:30:00Z");
 		final long from = minute(now) - 1;
 		final long target = minute(now);
-		for (String reason : List.of("native_context.required:coalesced", "transaction.native_context_required", "native_context.required:accepted", "synthetic.permanent_failure"))
+		for (String reason : List.of("native_context.required:coalesced", "transaction.native_context_required", "native_context.required:accepted", "model.slot_capacity", "model.slot_capacity_unknown", "synthetic.permanent_failure"))
 		{
-			final boolean nativeRequired = !reason.equals("synthetic.permanent_failure");
+			final boolean nativeRequired = !reason.equals("synthetic.permanent_failure") && !reason.equals("model.slot_capacity_unknown");
 			PhantomAssertions.assertEquals(nativeRequired, PhantomHistoricalBackgroundService.requiresNativeMaterialization(reason), "Exact native materialization classification changed.");
 			PhantomAssertions.assertFalse(PhantomHistoricalBackgroundService.isRecoverableFailure(reason), "Foreground requirement entered generic background recovery.");
 			final String requestId = "e".repeat(64);

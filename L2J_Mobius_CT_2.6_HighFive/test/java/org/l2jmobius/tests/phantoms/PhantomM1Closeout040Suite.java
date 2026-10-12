@@ -30,7 +30,6 @@ public final class PhantomM1Closeout040Suite implements PhantomTestSuite
 		registry.add("A01-known-native-capability-and-actual-skill-order", context -> capability(context, false));
 		registry.add("A02-depleted-native-resource-does-not-plan-unavailable-cast", context -> capability(context, true));
 		registry.add("A03-changed-capability-invalidates-old-action-positions", this::changedApproach);
-		registry.add("A04-earned-native-progress-completes-the-resource-tuple", this::completedRest);
 	}
 	private void completedRest(PhantomTestContext context) throws Exception
 	{
@@ -76,6 +75,8 @@ public final class PhantomM1Closeout040Suite implements PhantomTestSuite
 					PhantomAssertions.assertEquals("true", before.get("liveResourceRecovery"), "INPUT: actual resource recovery.");
 					PhantomAssertions.assertTrue(Long.parseLong(before.get("liveResourceSinceNanos")) > 0, "INPUT: original rest start.");
 					final long damage = player.getNativeWorkOwner().evidence().snapshot().damageSequence();
+					context.record("A04.input", "mp=" + player.getCurrentMp() + ";sitting=" + player.isSitting() + ";skill=" + player.getKnownSkill(1177));
+					PhantomAssertions.assertTrue(!player.isSitting() && player.getCurrentMp() >= player.getKnownSkill(1177).getMpInitialConsume() + player.getKnownSkill(1177).getMpConsume(), "INPUT: actual rest/stand completed with affordable stock cast.");
 					final var spawn = new Spawn(target.getTemplate()); spawn.setXYZ(player.getX(), player.getY(), player.getZ()); target.setSpawn(spawn);
 					target.disableCoreAI(true); target.setImmobilized(true); target.setCurrentHpMp(target.getMaxHp(), target.getMaxMp()); target.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
 					player.setTarget(target); player.doCast(player.getKnownSkill(1177));

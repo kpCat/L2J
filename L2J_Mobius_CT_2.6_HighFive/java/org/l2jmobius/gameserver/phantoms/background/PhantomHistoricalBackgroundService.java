@@ -718,7 +718,8 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	public static boolean requiresNativeMaterialization(String reason)
 	{
-		return (reason != null) && (reason.startsWith("native_context.required:") || reason.equals("transaction.native_context_required"));
+		// Stock full-inventory combat can continue in the existing demand/claim guarded native lane.
+		return (reason != null) && (reason.startsWith("native_context.required:") || reason.equals("transaction.native_context_required") || reason.equals("model.slot_capacity"));
 	}
 
 	private Result recoverNativeContext(long profileId, Snapshot current)
