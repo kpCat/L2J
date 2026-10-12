@@ -45,3 +45,14 @@ Jar2 Matrix93/93, lifecycle11/11,native0369/9,Q15/15,inventory0356/6,projection/
 Own isolated039x72 andx73 prepared (same verified036 export), sourceJar2, original304 hashes each unchanged. Not armed; private collector exact x-lane guards still need adaptation after own ordinary JVM stops.
 Snapshot039 new native Session-monitor contract test added, compile-tests running/completed; RED Jar2 required before production observer edit.
 Source freeze still15:16:54Z; remaining6h05. Next: causal snapshot RED/GREEN/source checkpoint, short final all-birth cut, native death/useful return and logout/background/return, sameDB/crash72/73.
+2026-10-12T11:46Z: J3 committed/pushed34cf907f9050e96fe5165c8ab7df13a8eb861b8c; Jar3 CF13E95DBA88629F118C772B0FD9838381C12A9D0CFB851220BABAED69C873FF.
+Successful production builds3/8; one invalid nonexistent clean-target command retained; GS starts6/16.
+Jar-first snapshot1/1 and Matrix93/93 PASS. Actual45s controlled death then stock useful melee damage1/1 PASS on Jar3.
+039c first final setup17 INVALID_PRECONDITION whole calendar253/271; no actors filtered. Stock global COMPLETE/retained0, all795 births terminal, exporter dropped0.
+Strict C stopped proof:812 native FINALIZED PASS,49653 real commit records; all1624 state/PNC intervals EXACT/LINKED.756/757 stopped profiles canonical PASS.
+One strict GAP1205: refreshOrdinaryInventoryProjection real locked checks omitted canonical facts in witness. Old proof remains FULL_SAVE=false.
+One production helper call added using existing locked canonical/items/skills; no SQL/store/gameplay change. Strict helper and focused death extension await reviewed J4 checkpoint.
+SameDB actual Jar3 restart1 own039c (Login2800/Game25540) no import/reset. Whole nearest cohort at source-preselected301 locality enrolled7, primary5 melee/40 caster;380s capture in progress.
+Scene command attempts7 (including setup failures), actual full measurement windows3 including failed telemetry window, completed1 before current. Absolute8 full scenes applies to measurement windows, invalid setup attempts listed separately.
+Private all-birth subscriptions remain through stopped cut; no caps raised. Export adapter null module path repaired after immutable SQL batch; partitions completed without a second SQL read.
+Current main M1 OPEN. Freeze15:16:54Z; next J4 committed build, affected/final gates, logout/background/return, two sameDB restarts and isolated crash72/73.

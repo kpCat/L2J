@@ -1,5 +1,5 @@
 """Read-only current all-birth proof; owning commit fields and late component chains are separate."""
-import argparse, base64, hashlib, json, re, subprocess
+import argparse, base64, csv, hashlib, json, re, subprocess
 from collections import defaultdict
 from pathlib import Path
 from commit_chain039 import check_chain
@@ -24,6 +24,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('startup',type=Path); parser.add_argument('scene',type=Path); parser.add_argument('--jar',type=Path,required=True); parser.add_argument('--source',required=True); parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--stock-stop',type=Path)
+    parser.add_argument('--stopped-sql',type=Path)
     args=parser.parse_args(); startup=args.startup.resolve(); scene=args.scene.resolve(); output=args.output.resolve()
     if output.exists(): raise ValueError('Immutable proof exists')
     jar_sha=sha(args.jar.read_bytes())
@@ -106,8 +107,56 @@ def main():
     stop=(args.stock_stop.resolve() if args.stock_stop else scene/'stock-stop')/'typed-stop-done.properties'
     typed=props(stop) if stop.exists() else {}
     drain='phase=DONE, outcome=COMPLETE,' in typed.get('progress','') and 'retainedEntries=0' in typed.get('materialization','') and not typed.get('proofFailure','') and all(typed.get(k)=='false' for k in ('SCHEDULED_POOLShutdown','INSTANT_POOLShutdown','HIGH_PRIORITY_SCHEDULED_POOLShutdown'))
-    full=not failures and births and len(result)==len(seals_by_key) and all(row['nativeCommit']=='PASS' and row['lateComponent'] in ('EXACT','LINKED') for row in result)
-    value={'contract':'TASK039_CURRENT_OWNING_COMMIT_PROOF','sourceSha':args.source,'jarSha256':jar_sha,'startup':str(startup),'scene':str(scene),'ledgerFrames':len(ledger),'commitRecords':len(commits),'nativeBirths':len(births),'allBirthsTerminal':births==terminal_keys,'GLOBAL_DRAIN':drain,'FULL_SAVE':bool(full),'pass':bool(full and drain),'failures':failures,'rows':result,'rawPins':pinned,'nativeVerifierCommand':command,'nativeVerifierExit':checked.returncode,'old038Ruling':'All historical FAIL/UNKNOWN retained; no retrospective producer'}
+    boundary=not failures and births and len(result)==len(seals_by_key) and all(row['nativeCommit']=='PASS' and row['lateComponent'] in ('EXACT','LINKED') for row in result)
+    stopped_rows=[]; stopped_pins=[]; stopped_ok=False; stopped_command=[]; stopped_exit=None
+    if args.stopped_sql:
+        cut=args.stopped_sql.resolve()
+        manifest=json.loads((cut/'runtime-manifest.json').read_text(encoding='utf-8-sig'))
+        with (cut/'counts.tsv').open(encoding='utf-8-sig',newline='') as stream: counts=list(csv.DictReader(stream,delimiter='\t'))[0]
+        if manifest['codeSha']!=args.source or manifest['gameJarSha256'].lower()!=jar_sha or counts['database_name']!=manifest['databaseName'] or counts['pendingOwnedStores']!='0' or counts['onlineCharacters']!='0': failures.append('STOPPED_CUT_AUTHORITY_OR_PENDING')
+        components={}
+        for line in (cut/'durable-hex.tsv').read_text(encoding='utf-8-sig').splitlines():
+            if not line: continue
+            pid,version,component,payload=line.split('\t',3)
+            if (pid,component) in components: failures.append('DUPLICATE_STOPPED_COMPONENT')
+            components[(pid,component)]={'version':int(version),'digest':sha(bytes.fromhex(payload))}
+        for item in cut.iterdir():
+            if item.is_file(): stopped_pins.append({'file':str(item),'sha256':sha(item.read_bytes())})
+        def stopped_chain(p):
+            identity_row=integer_identity(p)
+            end_component=components.get((p['profileId'],p['componentName']))
+            if not end_component: return {'status':'GAP','reason':'NO_STOPPED_COMPONENT'}
+            origin=identity_row|{'version':int(p['afterRowVersion']),'digest':p['afterPayloadSha256']}
+            links=[]
+            for cp,c in component_commits[tuple(identity(p).values())]:
+                if c['beforeRowVersion']=='ABSENT' or not origin['version']<=int(c['beforeRowVersion'])<end_component['version']: continue
+                links.append(integer_identity(c)|{'beforeVersion':int(c['beforeRowVersion']),'afterVersion':int(c['afterRowVersion']),'beforeDigest':c['beforePayloadSha256'],'afterDigest':c['afterPayloadSha256'],'status':'COMMITTED','producer':c['producer'],'operationId':c['runId']+':'+c['transactionSequence']+':'+c['writeIndex'],'evidenceId':cp.name})
+            return check_chain(origin,identity_row|end_component,links,maximum_links=4096)
+        commit_paths={str(path):p for path,p in commits}
+        for row in result:
+            item={'profileId':row['profileId'],'objectId':row['objectId'],'epoch':row['epoch']}
+            for label in ('commit','context'):
+                item[label]=stopped_chain(commit_paths[row[label]]) if row.get(label) in commit_paths else {'status':'GAP','reason':'NO_ORIGIN'}
+            stopped_rows.append(item)
+        cut_inputs=output.with_suffix('.stopped-input.tsv'); profile_rows=[]
+        with cut_inputs.open('x',encoding='utf-8') as stream:
+            for pid in sorted({key[0] for key in births},key=int):
+                current=components.get((pid,'background.state'),{})
+                matches=[(path,p) for path,p in commits if p['profileId']==pid and p['componentName']=='background.state' and p.get('canonicalChecked')=='true' and int(p['afterRowVersion'])==current.get('version') and p['afterPayloadSha256']==current.get('digest')]
+                if len(matches)!=1: profile_rows.append({'profileId':int(pid),'status':'GAP','reason':'LATEST_LOCKED_CANONICAL_WITNESS_MISSING_OR_AMBIGUOUS'}); continue
+                stream.write(pid+'\t'+str(matches[0][0])+'\n')
+        stopped_command=[str(java),'-cp',cp,str(Path(__file__).with_name('VerifyStoppedCut039.java')),str(cut),str(cut_inputs)]
+        # cp is the immutable Jar classpath; loop variables above must not replace it.
+        stopped_command[2]=str(args.jar)+';'+str(args.jar.parent/'*')
+        stopped_check=subprocess.run(stopped_command,capture_output=True,text=True,encoding='utf-8'); stopped_exit=stopped_check.returncode
+        output.with_suffix('.stopped.log').write_text(stopped_check.stdout+stopped_check.stderr,encoding='utf-8')
+        for line in stopped_check.stdout.splitlines():
+            fields=line.split('\t',2)
+            if len(fields)==3 and fields[0].isdigit(): profile_rows.append({'profileId':int(fields[0]),'status':fields[1],'reason':fields[2]})
+        stopped_ok=stopped_exit==0 and len(profile_rows)==len({key[0] for key in births}) and all(r['status']=='PASS' for r in profile_rows) and all(r[label]['status'] in ('EXACT','LINKED') for r in stopped_rows for label in ('commit','context'))
+    else: profile_rows=[]
+    full=boundary and stopped_ok and not failures
+    value={'contract':'TASK039_CURRENT_OWNING_COMMIT_PROOF','sourceSha':args.source,'jarSha256':jar_sha,'startup':str(startup),'scene':str(scene),'ledgerFrames':len(ledger),'commitRecords':len(commits),'nativeBirths':len(births),'allBirthsTerminal':births==terminal_keys,'GLOBAL_DRAIN':drain,'NATIVE_BOUNDARY_INTERVAL':bool(boundary),'FINAL_STOPPED_CUT':bool(stopped_ok),'FULL_SAVE':bool(full),'pass':bool(full and drain),'failures':failures,'rows':result,'rawPins':pinned,'stoppedChains':stopped_rows,'stoppedProfiles':profile_rows,'stoppedPins':stopped_pins,'stoppedVerifierCommand':stopped_command,'stoppedVerifierExit':stopped_exit,'nativeVerifierCommand':command,'nativeVerifierExit':checked.returncode,'old038Ruling':'All historical FAIL/UNKNOWN retained; no retrospective producer'}
     with output.open('x',encoding='utf-8') as stream: json.dump(value,stream,ensure_ascii=False,indent=2); stream.write('\n')
     print(json.dumps({k:value[k] for k in ('nativeBirths','commitRecords','allBirthsTerminal','GLOBAL_DRAIN','FULL_SAVE','pass','failures')},ensure_ascii=False))
     return 0 if value['pass'] else 2

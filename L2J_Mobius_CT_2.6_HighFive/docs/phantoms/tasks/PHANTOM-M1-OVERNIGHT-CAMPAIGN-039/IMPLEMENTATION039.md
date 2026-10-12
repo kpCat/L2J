@@ -101,3 +101,23 @@ budget1280 и допускается только после остановки 
 
 Exact RUNBOOK fault authority адаптирована с прежних b/c на own039x72/x73;
 обычные a/b не могут arm crash. На этом checkpoint ни один crash ещё не запущен.
+
+## Strict stopped cut и projection witness
+
+Jar3 resource snapshot1/1 и current93/93 подтверждены Jar-first. Controlled039t
+death extension повторяет actual-clock02745s workflow, затем recovered owner
+производит настоящий stock melee damage;1/1 PASS. Native actor stats не чинятся.
+
+Первый strict all-birth039c cut:812 finalized boundaries,795 births/terminal,
+49653 actual commits, все1624 state/PNC chains связаны до остановленного SQL.
+756/757 canonical profiles PASS;1205 GAP. Последний metadata-only projection
+commit уже держит canonical/items/skills locks и делает durableMatches, но не
+публиковал canonical facts. Добавлен один существующий witnessCanonical вызов
+после формирования proposed и перед existing write. Новых SQL/locks/порядка нет.
+Old GAP1205 и FULL_SAVE=false сохранены, producer задним числом не добавляется.
+
+VerifyStoppedCut039 использует actual state/PNC/goal codecs, FULL items canonical
+hash и class skills hash из actual locked witness на той же конечной версии.
+verify_commit_run039 теперь требует explicit all-birth stopped cut для FULL_SAVE;
+bounded native interval отдельно обозначен NATIVE_BOUNDARY_INTERVAL. Все реальные
+before/after version/hash links обязательны; структурный helper сам по себе не PASS.

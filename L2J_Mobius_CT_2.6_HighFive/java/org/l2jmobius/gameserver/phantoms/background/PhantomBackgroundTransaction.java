@@ -958,6 +958,7 @@ public final class PhantomBackgroundTransaction
 				final var inventory = inventoryFacts(items, template);
 				proposed = new PhantomBackgroundState(expected.state(), expected.identity(), expected.progress(), expected.vitals(), expected.position(), expected.combat(), expected.loadout(), inventory, expected.autoGetSkills(), expected.clock(), expected.receipt(), expected.hashes());
 				if (proposed.equals(expected)) { connection.rollback(); return new Result(Status.IDEMPOTENT, expected); }
+				witnessCanonical(proposed, canonical, items, skills);
 				writeComponent(connection, component, proposed);
 				_faultInjector.inject(FaultPoint.AFTER_BACKGROUND_STATE_WRITE);
 				_faultInjector.inject(FaultPoint.BEFORE_OPERATION_COMMIT);

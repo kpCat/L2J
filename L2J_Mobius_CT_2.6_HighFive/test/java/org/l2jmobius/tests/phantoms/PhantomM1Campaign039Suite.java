@@ -14,6 +14,7 @@ import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
 import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
@@ -34,12 +35,51 @@ public final class PhantomM1Campaign039Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("death039".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("L01-real-45s-death-return-produces-stock-native-damage", this::deathUsefulReturn); return; }
 		if ("snapshot039".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("P05-resource-diagnostics-use-one-existing-session-monitor", this::coherentSnapshot); return; }
 		if (!"boundary039".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("A02-earned-native-damage-is-observed-before-resource-return", this::progressBeforePause); }
 		if ("boundary039".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("P01-real-finalize-commit-is-linked-to-later-state-increment", this::committedSuccessor);
 			registry.add("P04-rollback-is-silent-and-observer-failure-does-not-undo-commit", this::rollbackAndObserverFailure);
+		}
+	}
+	private void deathUsefulReturn(PhantomTestContext context) throws Exception
+	{
+		// Extend the existing027 actual-clock death fixture with an action by the recovered owner.
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.removeCatchup(); f.background.installPresencePolicy(id -> id == f.id);
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Original native player materializes.");
+			final var original = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(f.objectId);
+			final var oldOwner = original.getNativeWorkOwner(); final long started = System.nanoTime();
+			try (var death = new org.l2jmobius.gameserver.phantoms.background.PhantomOrdinaryDeathRecovery(f.materialization, f.goals, f.background))
+			{
+				PhantomAssertions.assertTrue(death.install(), "Existing stock native death workflow.");
+				PlayerNativeWork.run(original, "TEST039_ACTUAL_NATIVE_DEATH", () -> original.doDie(null));
+				Thread.sleep(1000); death.pulse();
+				PhantomAssertions.assertTrue(original.isDead() && death.snapshot().observedDeaths() == 1, "Actual corpse observed before original45s boundary.");
+				final long deadline = started + 55_000_000_000L;
+				while (System.nanoTime() < deadline && (org.l2jmobius.gameserver.model.World.getInstance().getPlayer(f.objectId) == original || !death.drained())) { Thread.sleep(100); }
+				final var recovered = org.l2jmobius.gameserver.model.World.getInstance().getPlayer(f.objectId);
+				PhantomAssertions.assertTrue(System.nanoTime() - started >= 45_000_000_000L && recovered != null && recovered != original && !recovered.isDead() && recovered.getNativeWorkOwner().epoch() != oldOwner.epoch() && !oldOwner.isCurrent() && death.drained() && death.snapshot().firstFailure().isEmpty(), "Native resurrection/store creates one new current owner after real45s.");
+				final var owner = recovered.getNativeWorkOwner(); final var before = owner.evidence().snapshot();
+				final var goal = f.goals.load(f.id).orElseThrow().goal();
+				final var target = new Monster(NpcData.getInstance().getTemplate(PhantomBackgroundGoalSpec.parse(goal).npcId()));
+				final int isolated = InstanceManager.getInstance().createDynamicInstance(0).getId();
+				recovered.setInstanceId(isolated);
+				try
+				{
+					final var spawn = new Spawn(target.getTemplate()); spawn.setXYZ(recovered.getX(), recovered.getY(), recovered.getZ()); target.setSpawn(spawn);
+					target.setInstanceId(isolated); target.disableCoreAI(true); target.setImmobilized(true); target.setCurrentHpMp(target.getMaxHp(), target.getMaxMp()); target.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
+					try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { recovered.setTarget(target); recovered.doAttack(target); }
+					await(10_000, () -> owner.evidence().snapshot().damageSequence() > before.damageSequence(), "Recovered owner earns actual stock melee damage without stat repair.");
+					await(5_000, () -> !recovered.isAttackingNow(), "Recovered stock attack completes.");
+					PhantomAssertions.assertEquals(owner.epoch(), recovered.getNativeWorkOwner().epoch(), "Useful return retains recovered epoch.");
+					context.record("L01.death", death.snapshot()); context.record("L01.oldEpoch", oldOwner.epoch()); context.record("L01.returnBefore", before); context.record("L01.returnAfter", owner.evidence().snapshot());
+				}
+				finally { target.deleteMe(); recovered.setInstanceId(0); InstanceManager.getInstance().destroyInstance(isolated); }
+			}
 		}
 	}
 	private void coherentSnapshot(PhantomTestContext context) throws Exception

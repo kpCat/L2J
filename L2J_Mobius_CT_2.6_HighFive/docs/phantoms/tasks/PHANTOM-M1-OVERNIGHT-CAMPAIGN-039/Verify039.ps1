@@ -66,7 +66,7 @@ if($Action -ceq 'Matrix'){
     $failures=0
     for($i=0;$i -lt $routes.Count;$i++){
         $r=$routes[$i]; $routeLabel=('{0}_{1:D2}' -f $Label,($i+1))
-        & pwsh -NoProfile -File $PSCommandPath -Action Test -Suite $r[0] -Focus $r[1] -LauncherId $r[2] -Label $routeLabel
+        & pwsh -NoProfile -File $PSCommandPath -Action Test -Suite $r[0] -Focus $r[1] -LauncherId $r[2] -Label $routeLabel -JarPath $JarPath
         $routeExit=$LASTEXITCODE
         $summary=(Select-String -LiteralPath (Join-Path $PSScriptRoot "evidence/$routeLabel.log") -Pattern '^SUMMARY:' | Select-Object -Last 1).Line
         if($summary -notmatch 'total=(\d+) passed=(\d+) failed=(\d+)' -or [int]$Matches[1] -ne $expected[$i]){$summary='INVALID:cardinality '+$summary}
