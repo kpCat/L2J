@@ -115,3 +115,12 @@ a TEST continuation-premise failure, not evidence of a protected counter defect.
 The bounded fixture now keeps one sixth eligible NPC for ordinary stock discovery;
 it does not assign a target or fabricate a reward. The five completed-cycle assertion,
 160s window and target cap8 remain unchanged; all failed raw is preserved.
+
+Final candidate95c0572f2ffa6c25ab92bdd6297e1f07d3f2136f is normally pushed; production
+Jar161e304a7f90b2ec4b5b36a5913635a8a2a8cbaa2e2035d2424e226298044f96 is frozen.
+J2_ACTION0385/5, current93/93 and all required protected/affected routes pass Jar-first.
+Natural B/C both have4/8 CONTINUITY_V2, with every original ID retained. FULL_SAVE
+all-lifetime audit is339/792 and332/746 exact verified, remaining SQL parity/lineage
+NOT_VERIFIED. Both ledgers all-terminal/exporter-drained; typed global COMPLETE/retained0
+before pool shutdown. No source change is made to reinterpret these remaining failures.
+Task result FAILED_ACTION_LOOP; see RESULT_HANDOFF038 for full proof/limits and delivery.

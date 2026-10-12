@@ -61,3 +61,12 @@ ordinary next-target selection completes the last cycle, so FULL6 supplies one
 additional native NPC without assigning a target or changing native counters.
 The final candidate source is now ready for J2 freeze. Budgets remain starts3/8,
 production builds1/4, full scenes0/4. Final Jar proof and natural pair remain required.
+
+01:38Z final runtime checkpoint: J2 freeze95c0572f/Jar161e304a, action5/5, current93/93,
+11/11 lifecycle, native0369/9,Q15,inventory0356/6,affected032/033/037 all PASS Jar-first.
+Final natural B/C381.033/380.751s both4/8 CONTINUITY_V2; original failures retained.
+FULL_SAVE all-lifetime exact verified339/792 and332/746;453/414 remain NOT_VERIFIED.
+Global typed COMPLETE/retained0 before pools in both. Own JVM/listeners0, four038 DBs
+and worktree/Maria retained; cleanup PAUSED. Final budget5/8 starts,2/4 builds,2/4 scenes.
+Delivery phase: exact docs/helpers commit+normal push+remote verify, private archive/SHA.
+TASK_RESULT=FAILED_ACTION_LOOP; M1=OPEN;REAL_FINAL=NOT_RUN; next Goal not started.
