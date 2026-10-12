@@ -50,7 +50,7 @@ public final class PhantomEngagementPlanner
 		if(!eligible(player,target,npcId)){return unavailable();}
 		final var geo=GeoEngine.getInstance();final var position=new PhantomNavigationPoint(target.getX(),target.getY(),target.getZ(),target.getInstanceId());
 		// Stock PlayerAI.maybeMoveToPawn adds both native collision radii to the actual capability range.
-		final Skill skill=offensiveSkill(player);final int range=Math.max(1,(skill==null?player.getPhysicalAttackRange():player.getMagicalAttackRange(skill))+player.getTemplate().getCollisionRadius()+target.getTemplate().getCollisionRadius());
+		final Skill skill=offensiveSkill(player,target);final int range=Math.max(1,(skill==null?player.getPhysicalAttackRange():player.getMagicalAttackRange(skill))+player.getTemplate().getCollisionRadius()+target.getTemplate().getCollisionRadius());
 		final boolean visible=geo.canSeeTarget(player,target);
 		final boolean direct=visible&&geo.canMoveToTarget(player.getX(),player.getY(),player.getZ(),target.getX(),target.getY(),target.getZ(),player.getInstanceId());
 		if(visible&&player.calculateDistance3D(target)<=range){return new Opportunity(Kind.READY,key(target),position,skill==null?0:skill.getId(),range,direct,List.of());}
@@ -68,14 +68,22 @@ public final class PhantomEngagementPlanner
 		points.sort(Comparator.comparingDouble(point->Math.hypot((long)point.x()-player.getX(),(long)point.y()-player.getY())));
 		return new Opportunity(direct||!points.isEmpty()?Kind.NEED_APPROACH:Kind.UNAVAILABLE,key(target),position,skill==null?0:skill.getId(),range,direct,List.copyOf(points));
 	}
-	private static Skill offensiveSkill(Player player)
+	private static Skill offensiveSkill(Player player, Creature target)
 	{
-		if(!player.getPlayerClass().isMage()){return null;}
-		return player.getAutoUseSettings().getAutoSkills().stream().map(player::getKnownSkill)
-			.filter(skill->skill!=null&&skill.isActive()&&!skill.isPassive()&&!skill.isToggle()&&skill.hasNegativeEffect()&&!player.isSkillDisabled(skill))
-			.filter(skill->player.getCurrentMp()>=Math.max(skill.getMpInitialConsume()+skill.getMpConsume(),player.getStat().getMpInitialConsume(skill)+player.getStat().getMpConsume(skill))&&player.getCharges()>=skill.getChargeConsumeCount())
-			.filter(skill->skill.getItemConsumeCount()==0||player.getInventory().getInventoryItemCount(skill.getItemConsumeId(),-1)>=skill.getItemConsumeCount())
-			.sorted(Comparator.comparingInt(Skill::getId)).findFirst().orElse(null);
+		final var skills=List.copyOf(player.getAutoUseSettings().getAutoSkills());
+		if(skills.isEmpty()){return null;}
+		// AutoUse rotates from its current cursor; class labels and numeric IDs do not select its next action.
+		final int start=Math.max(0,skills.indexOf(player.getAutoUseSettings().getNextSkillId()));
+		for(int offset=0;offset<skills.size();offset++)
+		{
+			final Skill skill=player.getKnownSkill(skills.get((start+offset)%skills.size()));
+			if(skill==null||!skill.isActive()||skill.isPassive()||skill.isToggle()||!skill.hasNegativeEffect()||player.isSkillDisabled(skill)){continue;}
+			if(player.getCurrentMp()<Math.max(skill.getMpInitialConsume()+skill.getMpConsume(),player.getStat().getMpInitialConsume(skill)+player.getStat().getMpConsume(skill))||player.getCharges()<skill.getChargeConsumeCount()){continue;}
+			if(skill.getItemConsumeCount()>0&&player.getInventory().getInventoryItemCount(skill.getItemConsumeId(),-1)<skill.getItemConsumeCount()){continue;}
+			if(!skill.checkCondition(player,target,false)){continue;}
+			return skill;
+		}
+		return null;
 	}
 	public static PlayerNativeEvidence.Target key(Creature target){return target!=null&&target.isAttackable()?target.asAttackable().getNativeEvidenceTarget():null;}
 	private static Opportunity unavailable(){return new Opportunity(Kind.UNAVAILABLE,null,null,0,0,false,List.of());}

@@ -10,6 +10,56 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 /** Pure decisions for one consented M1 observation; no runtime ownership or I/O. */
 public final class LocalPlayM1Observation
 {
+	public enum FocusMode { WAITING, AUTONOMOUS, SYNTHETIC, REAL }
+
+	/** Candidates have already passed the owner's actual network/identity guards. */
+	public record FocusCandidate(int objectId, Object connection, PhantomTopologyPoint point)
+	{
+		public FocusCandidate
+		{
+			if (objectId <= 0) { throw new IllegalArgumentException("Real focus needs a current object identity."); }
+			Objects.requireNonNull(connection);
+			Objects.requireNonNull(point);
+		}
+	}
+
+	public record FocusSnapshot(FocusMode mode, int objectId, Object connection, PhantomTopologyPoint point, long generation) { }
+
+	/** One passive focus, independent of the finite consent and Synthetic action leases. */
+	public static final class Focus
+	{
+		private volatile FocusSnapshot _snapshot = new FocusSnapshot(FocusMode.WAITING, 0, null, null, 0);
+		private PhantomTopologyPoint _autonomous;
+
+		public FocusSnapshot snapshot() { return _snapshot; }
+
+		public synchronized FocusSnapshot refresh(List<FocusCandidate> real, PhantomTopologyPoint synthetic, PhantomTopologyPoint autonomous)
+		{
+			_autonomous = autonomous;
+			final var previous = _snapshot;
+			final var selected = real.stream().filter(candidate -> candidate.connection() == previous.connection() && candidate.objectId() == previous.objectId()).findFirst()
+				.orElseGet(() -> real.stream().min(java.util.Comparator.comparingInt(FocusCandidate::objectId)).orElse(null));
+			if (selected != null) { return publish(FocusMode.REAL, selected.objectId(), selected.connection(), selected.point()); }
+			if (synthetic != null) { return publish(FocusMode.SYNTHETIC, 0, null, synthetic); }
+			return publish(autonomous == null ? FocusMode.WAITING : FocusMode.AUTONOMOUS, 0, null, autonomous);
+		}
+
+		public synchronized void disconnect(Object connection)
+		{
+			if (_snapshot.mode() == FocusMode.REAL && _snapshot.connection() == connection)
+			{
+				publish(_autonomous == null ? FocusMode.WAITING : FocusMode.AUTONOMOUS, 0, null, _autonomous);
+			}
+		}
+
+		private FocusSnapshot publish(FocusMode mode, int objectId, Object connection, PhantomTopologyPoint point)
+		{
+			final var previous = _snapshot;
+			final boolean changed = previous.mode() != mode || previous.objectId() != objectId || previous.connection() != connection;
+			return _snapshot = new FocusSnapshot(mode, objectId, connection, point, previous.generation() + (changed ? 1 : 0));
+		}
+	}
+
 	public enum PositionSource
 	{
 		LIVE,

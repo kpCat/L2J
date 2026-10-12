@@ -1,0 +1,53 @@
+path	permission	boundary	source_basis
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementPlanner.java	CONDITIONAL_M1_WRITE	capability/target/action-position coherence; без ID/zone exceptions	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementController.java	CONDITIONAL_M1_WRITE	один исполнитель; stale generation/busy/retry; earned work сохраняется	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	CONDITIONAL_M1_WRITE	action/resource/progress; сохранить039 ordering/snapshot и037 debt	039_HANDOFF
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	CONDITIONAL_M1_WRITE	existing approach/arrival/handoff; без произвольного teleport	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	CONDITIONAL_M1_WRITE	typed decision/resume/recover в существующем owner	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	CONDITIONAL_M1_WRITE	background/foreground/death/useful resume; сохранить CAS	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	CONDITIONAL_M1_WRITE	существующий выбор доступной работы/capability; не подбирать outcomes	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	CONDITIONAL_M1_WRITE	existing owned recovery/handoff; не второй протокол	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	CONDITIONAL_M1_WRITE	existing atomic commit/CAS/witness; без нового WAL/schema; success только after commit	039_HANDOFF
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_M1_WRITE	existing lifecycle/observer wiring/safe stop; без нового scheduler	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	CONDITIONAL_M1_WRITE	soft-away/REAL focus handoff; без радиусных обходов/identity spoof	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java	CONDITIONAL_M1_WRITE	корректное soft/hard release; hard earned retention сохраняется	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	CONDITIONAL_M1_WRITE	materialize/store/reentry owner; без force release/reset identity	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationService.java	CONDITIONAL_M1_WRITE	разрешение040 шире039: узкий доказанный defect queue/cancel/consume; не rewrite	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/navigation/L2jNavigationBackend.java	CONDITIONAL_M1_WRITE	native path/geo integration; stock legality сохраняется	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomWalkCorridorPlanner.java	CONDITIONAL_M1_WRITE	существующий общий corridor search; без вручную заданных actor routes	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/**/*.java	CONDITIONAL_RELATED_M1_WRITE	только causally required adjacent existing owner/helper; exact path+method объявить до правки; более строгие строки ниже приоритетны	BOUNDED_EXTENSION040
+java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java	CONDITIONAL_OBSERVER_WRITE	развести passive/synthetic lifecycle; сохранить auth/525s/cap5/heartbeat	DIRECT_READ_e1b434c6eaf92aa8bb282022083603bf7e7ccd3d
+java/org/l2jmobius/gameserver/localplay/LocalPlayM1Observation.java	CONDITIONAL_OBSERVER_WRITE	existing pure position/epoch/instance/route decisions	DIRECT_READ_a53e821ca43161ab1d60b346e2e7de4e951e6d47
+java/org/l2jmobius/gameserver/localplay/LocalPlayPilotService.java	CONDITIONAL_OBSERVER_WRITE	existing worker/owner lifecycle; не обход consent и ownership	DIRECTORY_AT_BASE
+java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java	CONDITIONAL_OBSERVER_WRITE	только existing observer handoff seam; нет управления REAL без consent	DIRECTORY_AT_BASE
+java/org/l2jmobius/gameserver/localplay/*.java	CONDITIONAL_RELATED_OBSERVER_WRITE	только фактический найденный owner автономного/REAL observer; exact source map до правки	BOUNDED_EXTENSION040
+java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	CONDITIONAL_EXISTING_HOOK	только optional Phantom capability/target/yield; обычные игроки без изменений	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	CONDITIONAL_EXISTING_HOOK	только existing optional Phantom seam; без изменения resources/damage math	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	CONDITIONAL_OBSERVER_ONLY	атрибуция/phase только при доказанном defect; counts/guards не сбрасывать	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/localplay/LocalPlayPhantomStoreJournal.java	PROTECTED_READ_ONLY	existing journal reuse; не новый scale exporter	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	PROTECTED_READ_ONLY	035 native capture guarantees	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	PROTECTED_READ_ONLY	035 overfull representation/codec	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	PROTECTED_READ_ONLY	inventory250/current stock rewards rules	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	PROTECTED_READ_ONLY	036 earned lifetime/drain	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	PROTECTED_READ_ONLY	earned semantics; не обходить blockers	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/ai/PlayerAI.java	PROTECTED_READ_ONLY	stock executor, не второй бой	039_SOURCE_MAP
+java/org/l2jmobius/gameserver/model/actor/Player.java	PROTECTED_READ_ONLY	stock mechanics вне040	CONTRACT040
+java/org/l2jmobius/gameserver/model/actor/Creature.java	PROTECTED_READ_ONLY	stock mechanics вне040	CONTRACT040
+java/org/l2jmobius/gameserver/geoengine/**	PROTECTED_READ_ONLY	reuse stock GeoEngine/PathFinding; не переписывать backend	CONTRACT040
+docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py	PROTECTED_READ_ONLY	CONTINUITY_V2 byte-exact; threshold contract неизменен	039_SOURCE_MAP
+docs/phantoms/tasks/PHANTOM-M1-OVERNIGHT-CAMPAIGN-039/**	HISTORICAL_READ_ONLY	читать/ссылаться; не переписывать039 outcomes	CONTRACT040
+test/java/org/l2jmobius/tests/phantoms/**	CONDITIONAL_TEST_WRITE	причинные040 cases и affected suites; старые assertions сохраняются	TEST_SCOPE040
+test/java/org/l2jmobius/gameserver/phantoms/**	CONDITIONAL_TEST_WRITE	package-local tests; не production bypass	TEST_SCOPE040
+build.xml	CONDITIONAL_TEST_REGISTRATION	только необходимая регистрация новых suite; текущие targets сохраняются	039_SOURCE_MAP
+docs/phantoms/tasks/PHANTOM-M1-FULL-CLOSEOUT-040/**	WRITE_040_FAMILY	пакет040 и ограниченные outputs; без raw/secret вGit	TASK040
+.phantom-local/ops040/**	WRITE_PRIVATE040	reuse adapters/collector/Control-Acceptance040; exact schema and process guard	TASK040
+.phantom-local/contract040a/**	WRITE_OWN_RUNTIME040	own040a schema; normal final/preview runtime	TASK040
+.phantom-local/contract040b/**	WRITE_OWN_RUNTIME040	own040b natural group	TASK040
+.phantom-local/contract040t/**	WRITE_OWN_RUNTIME040	own040t test fixtures	TASK040
+.phantom-local/contract040r72/**	FAULT_OFF_RECOVERY_ONLY	новая копия настоящего preserved input; без инъекций	TASK040
+.phantom-local/contract040r73/**	FAULT_OFF_RECOVERY_ONLY	только при существующем настоящем input;039 NOT_RUN не такой input	TASK040
+.phantom-local/contract040x72/**	DENIED_UNTIL_EXPLICIT_CRASH040	SCENARIOS S5A только после отдельного прямого разрешения	TASK040
+.phantom-local/contract040x73/**	DENIED_UNTIL_EXPLICIT_CRASH040	SCENARIOS S5A только после отдельного прямого разрешения	TASK040
+.phantom-local/ops039/**	HISTORICAL_READ_ONLY	копировать только нужные helpers в040; оригинал и raw не менять	039_HANDOFF
+.phantom-local/contract039*/**	HISTORICAL_READ_ONLY	старые БД/файлы/read-only export; оригинальныйx72 не восстанавливать	039_HANDOFF
+OTHER_CHRONICLES_OR_REPOSITORIES	PROTECTED_READ_ONLY	вне High Five и вне040 не писать	USER_CONSTRAINT

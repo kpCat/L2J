@@ -18,7 +18,7 @@ import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TargetDirective
 public final class PhantomEngagementController
 {
 	public enum Outcome { STOCK, NATIVE, WAIT_NAV, APPROACH, TRANSIENT, UNAVAILABLE, EXHAUSTED, REVOKED }
-	private record Token(long profileId,int objectId,long epoch,long goalId,long revision,long sequence,PlayerNativeEvidence.Target target,PhantomNavigationPoint targetPosition) { }
+	private record Token(long profileId,int objectId,long epoch,long goalId,long revision,long sequence,PlayerNativeEvidence.Target target,PhantomNavigationPoint targetPosition,int skillId,int range) { }
 	private final PhantomNavigationService _navigation;
 	private final java.util.function.BooleanSupplier _current;
 	private final PhantomEngagementPlanner _planner=new PhantomEngagementPlanner();
@@ -72,16 +72,17 @@ public final class PhantomEngagementController
 		if(token==null||!token.target().equals(opportunity.target()))
 		{
 			clearRoute();if(_started==0){_started=now;}
-			_token=token=new Token(profileId,player.getObjectId(),player.getNativeWorkOwner().epoch(),goal.goalId(),goal.revision(),++_sequence,opportunity.target(),opportunity.targetPosition());
+			_token=token=new Token(profileId,player.getObjectId(),player.getNativeWorkOwner().epoch(),goal.goalId(),goal.revision(),++_sequence,opportunity.target(),opportunity.targetPosition(),opportunity.skillId(),opportunity.range());
 			_positions=opportunity.positions();_positionIndex=0;_nativeSince=now;_lastNativePosition=PhantomNativeTravelActions.point(player);
 		}
 		if(now-_started>=_navigation.policy().maximumAttemptDurationNanos()){stopOwnedMove(player);clearRoute();return publish(Outcome.EXHAUSTED,TargetDirective.Mode.HOLD,"action.attempt_deadline");}
 		final var target=restore(player,token);
 		if(target==null){clearRoute();return publish(Outcome.TRANSIENT,TargetDirective.Mode.HOLD,"action.target_changed");}
-		if(!token.targetPosition().equals(opportunity.targetPosition()))
+		if(!token.targetPosition().equals(opportunity.targetPosition())||token.skillId()!=opportunity.skillId()||token.range()!=opportunity.range())
 		{
+			// A route to the old capability's stand-point cannot authorize the replacement action.
 			stopOwnedMove(player);clearRoute();_positions=opportunity.positions();_positionIndex=0;
-			_token=token=new Token(profileId,player.getObjectId(),token.epoch(),goal.goalId(),goal.revision(),++_sequence,opportunity.target(),opportunity.targetPosition());
+			_token=token=new Token(profileId,player.getObjectId(),token.epoch(),goal.goalId(),goal.revision(),++_sequence,opportunity.target(),opportunity.targetPosition(),opportunity.skillId(),opportunity.range());
 		}
 		if(opportunity.kind()==PhantomEngagementPlanner.Kind.READY)
 		{

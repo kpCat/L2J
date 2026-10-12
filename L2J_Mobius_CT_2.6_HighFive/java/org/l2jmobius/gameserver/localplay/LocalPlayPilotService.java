@@ -30,14 +30,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig;
+import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.network.ConnectionState;
 import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint;
 
 /** One private LocalPlay mailbox and one real-client consent lease. */
 public final class LocalPlayPilotService
@@ -66,6 +69,10 @@ public final class LocalPlayPilotService
 	private long _lastHeartbeatNanos;
 	private long _runDeadlineNanos;
 	private LocalPlaySyntheticHumanService _synthetic;
+	private final LocalPlayM1Observation.Focus _observerFocus = new LocalPlayM1Observation.Focus();
+	private PhantomTopologyPoint _autonomousPoint;
+	private volatile boolean _observerActive;
+	private long _nextObserverStatus;
 
 	private LocalPlayPilotService()
 	{
@@ -112,6 +119,8 @@ public final class LocalPlayPilotService
 					try { return validManifest() && ownedProcess() && privateAcl(_runtimeRoot.resolve("game/config/Custom/LocalPlayPilot.ini")); } catch (Exception exception) { return false; }
 				});
 			}
+			_autonomousPoint = loadObservationOrigin();
+			_observerActive = LocalPlayPilotConfig.isEnabled() && LocalPlayPilotConfig.isAutoAttachEnabled();
 			_poller = ThreadPool.scheduleAtFixedRate(this::safePoll, 100, 200);
 			LOGGER.info("LocalPlay pilot mailbox enabled for one real-client consent lease.");
 			return true;
@@ -127,6 +136,7 @@ public final class LocalPlayPilotService
 
 	public synchronized void shutdown()
 	{
+		_observerActive = false;
 		if (_poller != null)
 		{
 			_poller.cancel(false);
@@ -520,6 +530,7 @@ public final class LocalPlayPilotService
 
 	public synchronized void onDisconnect(GameClient client)
 	{
+		_observerFocus.disconnect(client);
 		if ((_client != null) && (_client == client))
 		{
 			revoke();
@@ -626,6 +637,7 @@ public final class LocalPlayPilotService
 			synchronized (this)
 			{
 				if (_synthetic != null) { _synthetic.poll(); }
+				refreshObserverFocus();
 				poll();
 			}
 		}
@@ -634,6 +646,71 @@ public final class LocalPlayPilotService
 			LOGGER.log(Level.WARNING, "LocalPlay pilot mailbox stopped after a private I/O failure.", exception);
 			shutdown();
 		}
+	}
+
+	/** A virtual observation point is supplied only when no native human is present. */
+	public PhantomTopologyPoint autonomousObservationPoint()
+	{
+		final var snapshot = _observerFocus.snapshot();
+		return _observerActive && snapshot.mode() == LocalPlayM1Observation.FocusMode.AUTONOMOUS ? snapshot.point() : null;
+	}
+
+	private PhantomTopologyPoint loadObservationOrigin() throws Exception
+	{
+		if (!LocalPlayPilotConfig.isEnabled() || !LocalPlayPilotConfig.isAutoAttachEnabled() || LocalPlayPilotConfig.syntheticObjectId() <= 0 || LocalPlayPilotConfig.syntheticName() == null || LocalPlayPilotConfig.syntheticName().isBlank()) { return null; }
+		// Read a configured ordinary character's persisted viewpoint once, without loading a Player or acquiring its identity.
+		try (var connection = DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT x,y,z FROM characters WHERE charId=? AND char_name=?"))
+		{
+			statement.setInt(1, LocalPlayPilotConfig.syntheticObjectId());
+			statement.setString(2, LocalPlayPilotConfig.syntheticName());
+			try (var rows = statement.executeQuery())
+			{
+				if (!rows.next()) { return null; }
+				final var point = new PhantomTopologyPoint(rows.getInt(1), rows.getInt(2), rows.getInt(3), 0);
+				return org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().hasGeo(point.x(), point.y()) ? point : null;
+			}
+		}
+	}
+
+	private void refreshObserverFocus() throws IOException
+	{
+		if (!_observerActive) { return; }
+		if (!mailboxSafe() || !ownedProcess())
+		{
+			_observerActive = false;
+			_observerFocus.refresh(List.of(), null, null);
+			return;
+		}
+		final var humans = World.getInstance().getPlayers().stream().filter(LocalPlayPilotService::realClient).limit(256).toList();
+		// A real presence replaces the finite test anchor through its existing stock cleanup.
+		if (!humans.isEmpty() && _synthetic != null && _synthetic.observationPoint() != null) { _synthetic.close(); }
+		final var candidates = humans.stream().filter(player -> LocalPlayPilotConfig.isAutoAttachCharacter(player.getName()))
+			.map(LocalPlayPilotService::focusCandidate).filter(java.util.Objects::nonNull).toList();
+		final var snapshot = _observerFocus.refresh(candidates, _synthetic == null ? null : _synthetic.observationPoint(), _autonomousPoint);
+		final long now = System.nanoTime();
+		if (now < _nextObserverStatus) { return; }
+		_nextObserverStatus = now + 1_000_000_000L;
+		final Properties status = new Properties();
+		status.setProperty("mode", snapshot.mode().name());
+		status.setProperty("objectId", Integer.toString(snapshot.objectId()));
+		status.setProperty("generation", Long.toString(snapshot.generation()));
+		status.setProperty("pid", Long.toString(_pid));
+		status.setProperty("startTimeUtcTicks", Long.toString(_startTicks));
+		status.setProperty("actualNetworkSession", Boolean.toString(snapshot.mode() == LocalPlayM1Observation.FocusMode.REAL));
+		status.setProperty("updatedUtcMillis", Long.toString(System.currentTimeMillis()));
+		if (snapshot.point() != null)
+		{
+			status.setProperty("x", Integer.toString(snapshot.point().x())); status.setProperty("y", Integer.toString(snapshot.point().y()));
+			status.setProperty("z", Integer.toString(snapshot.point().z())); status.setProperty("instanceId", Integer.toString(snapshot.point().instanceId()));
+		}
+		writeProperties(_pilotRoot.resolve("observer.properties"), status);
+	}
+
+	private static LocalPlayM1Observation.FocusCandidate focusCandidate(Player player)
+	{
+		final GameClient client = player.getClient();
+		if (client == null || !realClient(player) || player.getClient() != client) { return null; }
+		return new LocalPlayM1Observation.FocusCandidate(player.getObjectId(), client, new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()));
 	}
 
 	private void poll() throws Exception

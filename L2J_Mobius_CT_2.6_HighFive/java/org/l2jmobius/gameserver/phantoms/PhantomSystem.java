@@ -3074,7 +3074,10 @@ public final class PhantomSystem
 	/** The production locality supplier; bounded and independent of transport/identity kind. */
 	public static java.util.List<PhantomTopologyPoint> onlineHumanPoints()
 	{
-		return World.getInstance().getPlayers().stream().filter(player -> player.isOnline() && !player.hasHeadlessOutboundSession()).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList();
+		final var humans = World.getInstance().getPlayers().stream().filter(player -> player.isOnline() && !player.hasHeadlessOutboundSession()).limit(256).map(player -> new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId())).toList();
+		if (!humans.isEmpty()) { return humans; }
+		final var autonomous = org.l2jmobius.gameserver.localplay.LocalPlayPilotService.getInstance().autonomousObservationPoint();
+		return autonomous == null ? humans : java.util.List.of(autonomous);
 	}
 
 	public record OperatorM1TargetSnapshot(long profileId, int objectId, long materializedAtNanos, long sampledAtNanos, PhantomTopologyPoint committedPosition, long committedSequence, PhantomTopologyPoint observedPosition, LocalPlayM1Observation.PositionSource positionSource, boolean worldPresent, boolean snapshotWorldPresent, String materializationState, boolean online, boolean visibleForHuman, boolean moving, boolean attacking, boolean casting, boolean autoPlay, int targetObjectId, boolean targetMonsterAlive, Map<String, String> nativeEvidence)

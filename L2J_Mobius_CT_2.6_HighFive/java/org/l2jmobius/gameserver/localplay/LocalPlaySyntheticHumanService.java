@@ -174,6 +174,14 @@ final class LocalPlaySyntheticHumanService implements AutoCloseable
 		if ((_mailbox != null) && LocalPlayPilotService.safeDirectory(_mailbox) && LocalPlayPilotService.privateAcl(_mailbox)) { LocalPlayPilotService.writeProperties(_mailbox.resolve("session.properties"), state); }
 	}
 
+	/** Observation only; never renews the bounded test session or grants consent. */
+	org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint observationPoint()
+	{
+		if (_session == null || !_session.valid()) { return null; }
+		final var actor = _session.actor();
+		return new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(actor.getX(), actor.getY(), actor.getZ(), actor.getInstanceId());
+	}
+
 	@Override
 	public void close()
 	{
