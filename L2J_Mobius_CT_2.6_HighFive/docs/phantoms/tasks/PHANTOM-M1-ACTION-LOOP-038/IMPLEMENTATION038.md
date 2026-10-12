@@ -72,3 +72,46 @@ the actual PlayerAI code; they are not a configuration increase.
 357/253/566 remain historical FAILED/UNKNOWN observations. None is declared the
 established historical cause. Runtime pair, final Jar-first regression matrix,
 all-lifetime FULL_SAVE and global drain remain required, with outcomes in handoff.
+
+J1 intermediate matrix is91/93: F01 rejected a fresh48-unit native range-approach
+behind an old terminal stand-point; F10 unnecessarily entered another route at stock
+Z+15 and its navigation drain failed. GREEN_RANGE_DEV038 first restored those two
+but exposed F02: an excluded prior native Monster could reopen the route. The final
+minimal predicate permits READY independently and permits nativeDirect approach only
+with a fresh non-excluded existing localRouteWitness. GREEN_RANGE2_DEV038 is3/3,
+including the foreign-instance/excluded-route negative. No radius is enlarged.
+
+Portable native geometry: origin(-50385,-115833,-186), target(-49489,-115033,-160).
+The independent corridor is FOUND, with every native edge verified. BASE RED_GEOMETRY038
+fails actual damage. The first candidate GREEN_GEOMETRY_DEV038 also fails: its first
+native turn is35 units away, but skipping it at radius50 makes the next edge illegal;
+three action.edge_changed transitions occur without MOVE. The controller now advances
+a near intermediate waypoint only when the next edge is freshly native legal; near
+turns retain physical progress observation. Existing50/20/3s/120s policies remain.
+FULL4_DEV038 passes5/5 including five real native kills and EXP/SP in each geometry,
+pre-root corpse/no-fake-reward, instance/height/queue/owner and original120s bound.
+Separate S02/S06 evidence keys prevent the second case overwriting the first.
+
+The first WRITER_DEBT_DEV038 test incorrectly used beforeStore (forget/store boundary)
+to represent stop/replan. It establishes no defect in protected037 debt. The corrected
+test uses stop, holds the actual policy writer, observes competing AutoUse PAUSED with
+no lease, and proves sameepoch resume retains usefulSince and epoch; FULL4_DEV038 PASS.
+No debt037 implementation changed. Development proof is not final Jar-first proof.
+
+J1 matrix overlapped one test-output rebuild and is preserved as intermediate evidence;
+the final current matrix will run after targeted checks on the next frozen Jar and
+unchanged test artifacts. Both natural final scenes are still reserved and NOT_RUN.
+
+FULL4's last second-zone sample has five deaths/rewards but only four completed farm
+cycles before the last asynchronous settlement/target release. It is not asserted as
+A4 complete proof. The final test now waits for both five deaths and five actual
+farmCycleSequence advances inside the unchanged160s TEST window; each controlled
+corpse is counted once. No native036/evidence/reward implementation is changed.
+
+FULL5_DEV038 is4/5: the second fixture stopped supplying NPCs after its fifth death.
+Source PlayerNativeEvidence.selected/completeCycle requires a different actual native
+selection to close the last cycle; selected(null) deliberately cannot do so. This is
+a TEST continuation-premise failure, not evidence of a protected counter defect.
+The bounded fixture now keeps one sixth eligible NPC for ordinary stock discovery;
+it does not assign a target or fabricate a reward. The five completed-cycle assertion,
+160s window and target cap8 remain unchanged; all failed raw is preserved.

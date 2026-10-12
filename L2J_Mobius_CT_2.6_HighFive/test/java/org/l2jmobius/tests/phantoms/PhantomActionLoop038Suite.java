@@ -26,6 +26,16 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("geometry038".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("S06-native-second-zone-obstructed-action", context -> obstructed(context, new PhantomNavigationPoint(-50385, -115833, -186, 0), "S06"));
+			return;
+		}
+		if ("continuation038".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("S11-S12-S16-one-writer-and-same-epoch-debt", this::writerAndDebt);
+			return;
+		}
 		if ("boundaries038".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("S03-S08-S09-S10-native-target-and-owner-boundaries", this::boundaries);
@@ -41,6 +51,46 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 		{
 			registry.add("S05-old-standpoint-receipt-allows-fresh-native-action", this::freshStandpoint);
 			registry.add("S03-S08-S09-S10-native-target-and-owner-boundaries", this::boundaries);
+			registry.add("S06-native-second-zone-obstructed-action", context -> obstructed(context, new PhantomNavigationPoint(-50385, -115833, -186, 0), "S06"));
+			registry.add("S11-S12-S16-one-writer-and-same-epoch-debt", this::writerAndDebt);
+		}
+	}
+	private void writerAndDebt(PhantomTestContext context) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); final var player = f.loadedPlayer; final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final var clock = new java.util.concurrent.atomic.AtomicLong(System.nanoTime());
+			final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			final var navigation = new PhantomNavigationService(new PhantomMetrics()); navigation.start();
+			final var autoPlay = new PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision, f.historical::permitsDecision, clock::get);
+			autoPlay.bindNavigation(navigation);
+			try
+			{
+				PhantomAssertions.assertTrue(autoPlay.start(f.id, goal), "Actual shared action controller is registered.");
+				final var policies = org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.class.getDeclaredField("PHANTOM_POLICIES"); policies.setAccessible(true);
+				final var policy = (org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.PhantomPolicy) ((java.util.Map<?, ?>) policies.get(null)).get(player);
+				org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickLease writer = null;
+				final long deadline = System.nanoTime() + 1_000_000_000L;
+				while (writer == null && System.nanoTime() < deadline) { writer = policy.acquire(player); if (writer == null) { Thread.sleep(10); } }
+				PhantomAssertions.assertTrue(writer != null, "Current policy grants its exact native writer.");
+				try
+				{
+					final var busy = policy.acquireTick(player, "AutoUse");
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TickStatus.PAUSED, busy.status(), "S11/S12 a competing stock root is PAUSED while the command writer is held.");
+					PhantomAssertions.assertTrue(busy.lease() == null, "The competing root has no second native writer.");
+					context.record("writer.actual", busy);
+				}
+				finally { writer.close(); }
+				final var before = autoPlay.snapshotContinuation(f.id).scalarMap();
+				autoPlay.stop(f.id); clock.addAndGet(5_000_000_000L);
+				PhantomAssertions.assertTrue(autoPlay.start(f.id, goal), "Same native lifetime resumes through the same production entry.");
+				final var after = autoPlay.snapshotContinuation(f.id).scalarMap();
+				PhantomAssertions.assertEquals(before.get("liveUsefulSinceNanos"), after.get("liveUsefulSinceNanos"), "S16 controller restart does not renew original useful debt.");
+				PhantomAssertions.assertEquals(before.get("liveSessionEpoch"), after.get("liveSessionEpoch"), "Same epoch is retained.");
+				context.record("debt.before", before); context.record("debt.after", after);
+			}
+			finally { autoPlay.beforeStore(f.id, player); navigation.beginStop(); PhantomAssertions.assertTrue(navigation.finishStop(), "Writer/debt navigation drains."); PhantomVisibleIntentRecoverySuite.stop(engine); }
 		}
 	}
 	private void boundaries(PhantomTestContext context) throws Exception
@@ -63,6 +113,16 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 				target.disableCoreAI(true); target.setImmobilized(true); target.setCurrentHpMp(target.getMaxHp(),target.getMaxMp()); target.spawnMe(spawn.getX(),spawn.getY(),spawn.getZ());
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementController.Outcome.NATIVE, controller.advance(f.id,player,goal,npcId,_ -> 0,System.nanoTime()), "S01 direct native opportunity.");
 				PhantomAssertions.assertEquals(target, controller.directive(player).target(), "Exact native target key is restored.");
+				final var bounded = new org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementController(navigation, current::get);
+				try
+				{
+					final long attempt = System.nanoTime();
+					bounded.advance(f.id, player, goal, npcId, _ -> 0, attempt);
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementController.Outcome.EXHAUSTED, bounded.advance(f.id, player, goal, npcId, _ -> 0, attempt + navigation.policy().maximumAttemptDurationNanos() + 1), "S17 unchanged attempt deadline prevents an infinite local continuation.");
+					PhantomAssertions.assertFalse(player.isMoving(), "A deadline cannot issue another native MOVE.");
+					context.record("S17.actual", bounded.snapshot());
+				}
+				finally { bounded.revoke(); }
 				target.setXYZ(target.getX(),target.getY(),target.getZ()+400);
 				PhantomAssertions.assertTrue(planner.inspect(player,target,npcId).kind()!=org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.Kind.READY, "S08 same XY on another height cannot mean ARRIVED.");
 				target.setXYZ(spawn.getX(),spawn.getY(),spawn.getZ()); target.setInstanceId(instance);
@@ -142,8 +202,11 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 	}
 	private void obstructed(PhantomTestContext context) throws Exception
 	{
+		obstructed(context, new PhantomNavigationPoint(-88984, 250008, -3568, 0), "S02");
+	}
+	private void obstructed(PhantomTestContext context, PhantomNavigationPoint origin, String evidence) throws Exception
+	{
 		final var geo = GeoEngine.getInstance(); final var backend = new L2jNavigationBackend();
-		final var origin = new PhantomNavigationPoint(-88984, 250008, -3568, 0);
 		PhantomAssertions.assertTrue(geo.hasGeo(origin.x(), origin.y()), "INPUT: actual retained native geometry required.");
 		PhantomNavigationPoint destination = null;
 		final int[][] offsets = {{896,800},{1100,600},{1000,900},{600,1000},{0,1100},{-600,1000},{1100,0},{800,-600}};
@@ -154,16 +217,17 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 			if (backend.canMoveDirect(origin,point)) { continue; }
 			final long now=System.nanoTime();
 			final var route=backend.findWalkCorridor(new PhantomNavigationRequest(1,origin,point,now,now+1_000_000_000L,100000),new PhantomNavigationCancellationToken(),PhantomNavigationPolicy.productionDefaults(),System::nanoTime);
-			context.record("S02.premise."+x+"."+y,route);
+			context.record(evidence+".premise."+x+"."+y,route);
 			if(route.status()==PhantomWalkCorridorPlanner.Status.FOUND)
 			{
 				var previous=origin;
 				for(var next:route.points()){PhantomAssertions.assertTrue(backend.canWalkDirect(previous,next),"Independent native corridor edge must be legal.");previous=next;}
+				context.record(evidence+".firstTurn", "distance="+origin.distanceTo(route.points().getFirst())+";nextDirect="+(route.points().size()>1&&backend.canWalkDirect(origin,route.points().get(1))));
 				destination=point; break;
 			}
 		}
 		PhantomAssertions.assertTrue(destination!=null,"INPUT: no independently proven local obstructed path; this is not a causal RED.");
-		context.record("S02.origin",origin);context.record("S02.destination",destination);
+		context.record(evidence+".origin",origin);context.record(evidence+".destination",destination);
 		try(var f=_intent.handoff.new Fixture(true))
 		{
 			f.handoff();final var engine=PhantomVisibleIntentRecoverySuite.engine(f);
@@ -171,7 +235,7 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 			final var navigation=new PhantomNavigationService(new PhantomMetrics());navigation.start();
 			// Optional only on the historical Jar: the old real entry has no approach binding.
 			try { PhantomVisibleAutoPlay.class.getMethod("bindNavigation",PhantomNavigationService.class).invoke(autoPlay,navigation); }
-			catch(NoSuchMethodException baseline){context.record("S02.historicalBinding","absent");}
+			catch(NoSuchMethodException baseline){context.record(evidence+".historicalBinding","absent");}
 			final Player player=f.loadedPlayer;final var goal=f.goals.load(f.id).orElseThrow().goal();
 			Monster target=new Monster(NpcData.getInstance().getTemplate(PhantomBackgroundGoalSpec.parse(goal).npcId()));
 			try
@@ -184,39 +248,46 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 				PhantomAssertions.assertFalse(geo.canMoveToTarget(player.getX(),player.getY(),player.getZ(),target.getX(),target.getY(),target.getZ(),0),"Actual actor-target ray must be obstructed.");
 				final long damage=player.getNativeWorkOwner().evidence().snapshot().damageSequence();
 				final long killsBefore=player.getNativeWorkOwner().evidence().snapshot().killSequence();
+				final long cyclesBefore=player.getNativeWorkOwner().evidence().snapshot().farmCycleSequence();
 				final long expBefore=player.getExp(),spBefore=player.getSp();
 				PhantomAssertions.assertTrue(autoPlay.start(f.id,goal),"Actual native session starts with current goal/owner.");
 				final boolean cycles=java.util.Set.of("cycles038","full038").contains(System.getProperty("phantom.m1.native.focus", ""));
 				// The unarmed native TEST fixture takes about 25 seconds per kill; observe five lawful
 				// kills across native reselection, without changing any production 45/90/120 deadline.
+				// The unchanged evidence contract closes a cycle on the next actual target selection;
+				// keep one sixth NPC available for that stock reevaluation, without assigning it.
 				final long deadline=System.nanoTime()+(cycles?160_000_000_000L:20_000_000_000L);
 				int completed=0;
+				boolean accountedDeath=false;
 				long observedKills=killsBefore;
 				String previous="";int transitions=0;
-				while((cycles?observedKills<killsBefore+5:player.getNativeWorkOwner().evidence().snapshot().damageSequence()==damage)&&System.nanoTime()<deadline)
+				while((cycles?(observedKills<killsBefore+5||player.getNativeWorkOwner().evidence().snapshot().farmCycleSequence()<cyclesBefore+5):player.getNativeWorkOwner().evidence().snapshot().damageSequence()==damage)&&System.nanoTime()<deadline)
 				{
 					autoPlay.noTargetExpired(f.id,goal);
 					final var nativeSample=player.getNativeWorkOwner().evidence().snapshot();
-					if(nativeSample.killSequence()>observedKills){observedKills=nativeSample.killSequence();context.record("S02.nativeCycle."+observedKills,nativeSample);}
+					if(nativeSample.killSequence()>observedKills){observedKills=nativeSample.killSequence();context.record(evidence+".nativeCycle."+observedKills,nativeSample);}
 					final var fields=autoPlay.snapshotContinuation(f.id).scalarMap();final String state=fields.getOrDefault("actionReason","");
-					if(!state.equals(previous)&&transitions<32){context.record("S02.transition."+(++transitions),fields+";pose="+PhantomNativeTravelActions.point(player)+";moving="+player.isMoving()+";destination="+player.getXdestination()+","+player.getYdestination()+","+player.getZdestination()+";intention="+player.getAI().getIntention()+";disabled="+player.isMovementDisabled()+";speed="+player.getStat().getMoveSpeed()+";tick="+org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager.getInstance().getGameTicks()+";targetHP="+target.getCurrentHp());previous=state;}
-					if(cycles&&target.isDead())
+					if(!state.equals(previous)&&transitions<32){context.record(evidence+".transition."+(++transitions),fields+";pose="+PhantomNativeTravelActions.point(player)+";moving="+player.isMoving()+";destination="+player.getXdestination()+","+player.getYdestination()+","+player.getZdestination()+";intention="+player.getAI().getIntention()+";disabled="+player.isMovementDisabled()+";speed="+player.getStat().getMoveSpeed()+";tick="+org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager.getInstance().getGameTicks()+";targetHP="+target.getCurrentHp());previous=state;}
+					if(cycles&&target.isDead()&&!accountedDeath)
 					{
-						completed++; context.record("S02.cycle."+completed, player.getNativeWorkOwner().evidence().snapshot());
-						if(completed<5)
+						accountedDeath=true;
+						completed++; context.record(evidence+".cycle."+completed, player.getNativeWorkOwner().evidence().snapshot());
+						if(completed<6)
 						{
 							target.deleteMe(); target=new Monster(NpcData.getInstance().getTemplate(PhantomBackgroundGoalSpec.parse(goal).npcId())); target.setSpawn(spawn);
 							target.disableCoreAI(true); target.setImmobilized(true); target.setCurrentHpMp(target.getMaxHp(),target.getMaxMp()); target.spawnMe(spawn.getX(),spawn.getY(),spawn.getZ());
+							accountedDeath=false;
 						}
 					}
 					Thread.sleep(100);
 				}
-				context.record("S02.actual",autoPlay.snapshotContinuation(f.id).scalarMap());context.record("S02.finalPosition",PhantomNativeTravelActions.point(player));
+				context.record(evidence+".actual",autoPlay.snapshotContinuation(f.id).scalarMap());context.record(evidence+".finalPosition",PhantomNativeTravelActions.point(player));
 				PhantomAssertions.assertTrue(player.getNativeWorkOwner().evidence().snapshot().damageSequence()>damage,"RED: a domain-valid target with independently proven native detour must reach actual stock damage.");
 				if(cycles)
 				{
-					context.record("S02.rewards", "expDelta="+(player.getExp()-expBefore)+";spDelta="+(player.getSp()-spBefore)+";nativeKills="+(observedKills-killsBefore)+";controlledNpcDeaths="+completed);
+					context.record(evidence+".rewards", "expDelta="+(player.getExp()-expBefore)+";spDelta="+(player.getSp()-spBefore)+";nativeKills="+(observedKills-killsBefore)+";controlledNpcDeaths="+completed);
 					PhantomAssertions.assertTrue(observedKills>=killsBefore+5, "Five successive actual native deaths required across lawful stock reselection.");
+					PhantomAssertions.assertTrue(player.getNativeWorkOwner().evidence().snapshot().farmCycleSequence()>=cyclesBefore+5, "Five completed native EXP+SP farm cycles are required before cleanup, not only five deaths.");
 					PhantomAssertions.assertTrue(player.getExp()>expBefore&&player.getSp()>spBefore, "Stock native EXP/SP must increase.");
 				}
 			}

@@ -307,8 +307,12 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 		return World.getInstance().getVisibleObjectsInRange(player, Creature.class, AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream().anyMatch(target ->
 		{
 			final var opportunity = _engagementPlanner.inspect(player, target, npcId);
-			// No stand-point MOVE is needed when the actor's current native action is independently ready.
-			return opportunity.kind() == PhantomEngagementPlanner.Kind.READY && geo.hasGeo(target.getX(), target.getY());
+			// A fresh stock range-approach is also legal execution. It does not claim ARRIVED at
+			// the action position: the Session controller and native PlayerAI still prove that.
+			if (!geo.hasGeo(target.getX(), target.getY())) { return false; }
+			if (opportunity.kind() == PhantomEngagementPlanner.Kind.READY) { return true; }
+			final var nativePoint = new PhantomNavigationPoint(target.getX(), target.getY(), geo.getHeight(target.getX(), target.getY(), target.getZ()), target.getInstanceId());
+			return opportunity.nativeDirect() && !_routeExclusions.apply(profileId).contains(localRouteWitness(anchor.id(), nativePoint));
 		});
 	}
 

@@ -122,7 +122,8 @@ public final class PhantomEngagementController
 		if(!matches(token,profileId,player,goal)||restore(player,token)==null){clearRoute();return publish(Outcome.TRANSIENT,TargetDirective.Mode.HOLD,"action.stale_reply");}
 		// The navigation arrival radius advances intermediate legs. The final action point is complete
 		// only after the independent native capability/LOS check above says READY.
-		while(_waypointIndex<_route.waypoints().size()-1&&current.distanceTo(_route.waypoints().get(_waypointIndex))<=_navigation.arrivalRadius()){_waypointIndex++;}
+		while(_waypointIndex<_route.waypoints().size()-1&&current.distanceTo(_route.waypoints().get(_waypointIndex))<=_navigation.arrivalRadius()
+			&&new L2jNavigationBackend().canWalkDirect(current,_route.waypoints().get(_waypointIndex+1))){_waypointIndex++;}
 		if(_waypointIndex>=_route.waypoints().size()){stopOwnedMove(player);clearRoute();_positionIndex++;return publish(Outcome.TRANSIENT,TargetDirective.Mode.HOLD,"action.position_reinspect");}
 		final var waypoint=_route.waypoints().get(_waypointIndex);
 		if(_trackedIndex!=_waypointIndex)
@@ -132,9 +133,11 @@ public final class PhantomEngagementController
 			if(_navigation.progressTracker().begin(profileId,_requestId,leg,now).status()!=PhantomNavigationProgressTracker.BeginStatus.TRACKING){return publish(Outcome.TRANSIENT,TargetDirective.Mode.HOLD,"action.progress_busy");}
 			_trackedIndex=_waypointIndex;
 		}
-		final boolean finalNear=_waypointIndex==_route.waypoints().size()-1&&current.distanceTo(waypoint)<=_navigation.arrivalRadius();
+		// Near a turn, the next edge may still be blocked. Preserve that native leg until
+		// the fresh edge above permits advancing; radius proximity cannot erase a corner.
+		final boolean nearWaypoint=current.distanceTo(waypoint)<=_navigation.arrivalRadius();
 		final PhantomNavigationProgressTracker.ProgressStatus status;
-		if(finalNear)
+		if(nearWaypoint)
 		{
 			if(_lastNativePosition==null||current.distanceTo(_lastNativePosition)>=_navigation.policy().minimumProgress()){_lastNativePosition=current;_nativeSince=now;}
 			status=now-_nativeSince>=_navigation.policy().stuckWindowNanos()?PhantomNavigationProgressTracker.ProgressStatus.STUCK:PhantomNavigationProgressTracker.ProgressStatus.TRACKING;
