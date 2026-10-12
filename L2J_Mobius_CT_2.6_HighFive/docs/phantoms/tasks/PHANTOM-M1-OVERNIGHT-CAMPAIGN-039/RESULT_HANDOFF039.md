@@ -103,7 +103,11 @@ Own worktree и шесть039 DB сохранены. FINAL_CENSUS039: Java0, gam
 DB sessions0/online0; x72 pendingOwnedStores1 сохранён, остальные0; Maria PID7704 жив.
 MAIN/PLAY/старые DB read-only/export. Disk cleanup/delete PAUSED. Force stops after
 resume0, deletions0. Старый OS72 отдельно документирован и не повторялся.
-Private TASK039-review.zip и PRIVATE_ARCHIVE039_RECEIPT.json описаны в EVIDENCE_INDEX039.
+Private TASK039-review-verified.zip и PRIVATE_ARCHIVE039_RECEIPT.json описаны в EVIDENCE_INDEX039.
+Первый TASK039-review.zip не принят: internal manifest попал в ZIP до flush последних
+строк. Все876327 selected entries прошли byte/hash check, но manifest mismatch
+сделал archive gate FAIL. Неудачный ZIP/log/source сохранены; исправлен только
+packaging flush, отдельный verified ZIP полностью проверен заново по тому же контракту.
 Final normal push/local=remote подтверждены внешним receipt, без merge/delete/history edits.
 mojibake-маркеры в изменённых файлах проверены;
 escaped Cyrillic в изменённых файлах проверены.

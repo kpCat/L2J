@@ -31,10 +31,14 @@ Private raw не включаются в Git; исходные файлы сох
 |Encoding/protected|OUT/FINAL-encoding039.json; FINAL-review-inventory039.json; each J1…J4 encoding receipt|
 |Git exact argv/UTC|OUT/J1-git039.json…J4-git039.json, FINAL-git039.json; literal allowlists and publication receipts|
 |Final cleanup|OUT/FINAL_CENSUS039.json; CLEANUP039.md|
-|Archive|OUT/TASK039-review.zip; OUT/PRIVATE_ARCHIVE039_RECEIPT.json; OUT/PRIVATE_ARCHIVE039_MANIFEST.tsv|
+|Verified archive|OUT/TASK039-review-verified.zip; OUT/PRIVATE_ARCHIVE039_RECEIPT.json; OUT/PRIVATE_ARCHIVE039_VERIFIED_MANIFEST.tsv|
+|Rejected packaging preserved|OUT/TASK039-review.zip; OUT/ARCHIVE039.log; OUT/Archive039_FAILED_MANIFEST.py; OUT/ARCHIVE039_FAILED_PLAN.json; OUT/PRIVATE_ARCHIVE039_MANIFEST.tsv; OUT/ARCHIVE039_FAILURE_RECEIPT.json|
+|Earlier docs publication retained|OUT/FINAL1-publication039.json; OUT/FINAL1-git039.json; final HEAD uses FINAL-publication039.json|
 
 Archive root PHANTOM-M1-OVERNIGHT-CAMPAIGN-039/{docs,source,jars,evidence,receipts,tools-private}.
 Archive receipt содержит actual bytes/SHA256/entry count и полную byte/hash verification.
+Первый ZIP получил manifest mismatch из-за отсутствующего flush; он не принят и
+не удалён. Verified ZIP создан отдельно после flush/fsync manifest и проверен полностью.
 Manifest содержит SHA256, bytes и безопасный relative entry для каждого файла; mappings
 связывают оригинальные roots. Полные DB/runtime/secrets не архивируются. Original038 zip
 не перепаковывался:83312088 bytes,18856 entries,
