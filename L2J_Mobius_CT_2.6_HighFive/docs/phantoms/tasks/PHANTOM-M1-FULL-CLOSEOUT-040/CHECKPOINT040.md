@@ -1,25 +1,29 @@
 # CHECKPOINT040
 
-Plan: approved PLAN.md in this task family; inline, no subagents.
-Actual goal start: 2026-10-12T16:51:23Z; maximum autonomous budget 12h, reserve 90m for delivery.
-BASE=96bf5d2cba14bf6ad561f334ec49f9010716681b; OWN detached HEAD confirmed, tracked diff empty.
-Remote verification initially sandbox-blocked, pending elevated read.
-CRASH_AUTHORIZATION=DENIED_INHERITED; G6=BLOCKED_AUTHORITY; M1=OPEN; REAL_FINAL=NOT_RUN.
-Step1: read-first / package verified before exact copy; no runtime040 provisioned yet.
-Ruling: use this approved ledger and ops040, no SDD workspace or reviewer agent; explicit task scope and no-subagents prevail.
-Ruling: historical039 results remain historical; final040 matrix must bind one product candidate.
-Pre-flight dependencies: action→lifecycle→save/restart share native identity/epoch/earned ownership; observer handoff must not leave a synthetic anchor.
-Read: task040 full contract, research as unverified context; High Five AGENTS/workflow/package standard, README/build, selected native/retention/setup/stop analogues,039 result/checkpoint/index.
-Absent: AGENTS at repository root and docs/phantoms/tasks ancestor levels; task040 previously absent in OWN.
-2026-10-12T17:48Z: elevated remote=BASE; Java0 at preflight, Maria3308 PID7704, free disk395GB. No foreign staged or tracked diff at input. Historical untracked035–039 preserved (INVENTORY_STATUS040.txt).
-New exact040t/040a created from immutable PREBOOT036 export SHA8B85B1AC34A5A3DBFD42E274DACA0D42798FCDA40688B102786493237141A2D6;304 source files unchanged. No x/r clones or crash controls run.
-BASE040a Login21124/Game17536 ran one diagnostic baseline; both stock gracefully stopped with exact guards. Initial natural selector27 produced count1 after25s enrollment: INVALID_PRECONDITION, not G2 measurement. Backlog/current readiness retained without reset or clock change.
-Observer development3/3 + original Pilot15/15 PASS. Native planner RED (non-mage known capability/cursor) and controller RED (old long-range positions after depletion) obtained. Product fixes bounded to six listed production files; new focused native3/observer3 tests and exact TEST environment extension. Current development native GREEN pending.
-Ruling: historical mixed EOL requires preserving each unchanged base line byte-exact; uniform normalization was detected by diff check and repaired before commit. Encoding audit25 paths: both marker classes empty; diff--check now clean.
-Next: native GREEN, exact source checkpoint, committed clean JAR, final protected matrix and ordinary sameDB/lifetime/native scenarios, then healthy preview/publication. G6 BLOCKED_AUTHORITY; M1 OPEN.
+Фактический старт: 2026-10-12T16:51:23Z. Максимум12h до2026-10-13T04:51:23Z, без сброса. На переходе к delivery21:38Z использовано около4h47m; окончательный wall-clock — PUBLICATION040.json. Goal-counter учитывается отдельно и не выдаётся за wall-clock.
 
-2026-10-12T18:58Z: C1 groups A7/7, B7/8; B resource tuple defect causally reproduced by actual cast. C1B all-birth save27/27 and full drain PASS. C1a collector hit unchanged512MiB cap during unrelated diagnostics: invalid G3 retained, stock stopped. Both current episode writers stopped. C2 bounded resource transition fix now under test; no crash/kill/injector run. Original93/93 and lifecycle11/11 C1 passed; full038 isolated5/5 PASS with existing TEST-only festival startup isolation. Remaining: final candidate commit/build, fresh complete A/B proof, away/productive-return, two sameDB normal restarts, final regression/self-review/delivery/live preview. About2h07m budget used; no reset.
+OWN: `C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius`; только `L2J_Mobius_CT_2.6_HighFive`. MAIN/PLAY/старые БД/raw/foreign changes сохранены. BASE=`96bf5d2cba14bf6ad561f334ec49f9010716681b`; remote=`experiment/m1-candidate007-observe008`. Субагентов, новой модели, нового worktree и следующего task не было.
 
-2026-10-12T19:25Z: C2 B8/8 and27/27 full save/drain PASS; C2 original93/93 and all protected routes PASS. A premeasurement counts3/0 expose an exact inventory-capacity background guard missing its lawful native handoff classification. Causal033 C2 RED29/30 obtained; one-line owner correction in development GREEN. No model/cap/gift/debt changes. C3 will be the next final candidate, invalidating dependent C2 gates. All server/test JVM currently stock stopped. Private collector V2 only adds actual native-load scalars and early previous-cohort subscription for cross-boot; source version V1 retained. Remaining: C3 natural A/B, real away/background/return, two sameDB normal restarts, final regressions, publication/archive/one healthy preview. G6 BLOCKED_AUTHORITY; M1 OPEN; budget about2h34m used of12h.
+Final CODE_COMMIT=C4 `5d84cbf46cfb97735fe2c7ef4b52e589de0d073b`.
+GameServer SHA256=`6DABD52DE07ACF2A9A0C5BEB0510EC737F95302DA104AF46320B05130FD7221E`.
+LoginServer SHA256=`842DE13026715111D88E0A6EF5AD9727EAEC73E99EB958BFBE0F5ACD325C37D6`.
+Clean `ant -noinput jar`19s PASS. TEST-only caster extension и report publication не меняют product JAR; финальный REPORT_COMMIT фиксируется внешним PUBLICATION040.json, без self-reference.
 
-2026-10-12T20:00Z: C3 exposes stale-authority ordering before native attestation. Causal serial/phase RED on C3, minimal existing CAS path reuse, focused development GREEN1/1 with permanent-failure negative. Stock-animation resource fixture now GREEN1/1 without gifts. C3 matrix invalidated after one own TEST startup collision; current JVM finished normally, future cases not launched. Own040t runner now has exclusive file lock, busy negative confirmed. No production JVM live at this checkpoint. Freeze C4 next, then natural A/B, away/productive return, two actual sameDB restarts, full final protected matrix, self-review and delivery. Exact early read-only Git argv/UTC recovered; unknown exit recorded honestly. G6 BLOCKED_AUTHORITY, M1 OPEN, REAL NOT_RUN. Budget about3h09m used of12h; no reset.
+Read-first: весь040 пакет и research как непроверенный источник; High Five AGENTS/workflow/task standard, README/build,039 handoff/index/result, фактические owners/native analogues. Корневые AGENTS и отдельный code-map не найдены. JDK25.0.4.1, Ant1.10.17, MariaDB11.4/3308 PID7704. Initial Java0; protected source304/304 совпал повторно. Task input13 entries проверены по PACKAGE_SHA256.txt; сам checksum file также сохранён.
+
+Scope: bounded exception13 source/test файлов одного M1 lifecycle:8 production+5 TEST, плюс одна040 task family. Exact allowlist и file SHA — FINAL_SCOPE040.json. Player/Creature/PlayerNativeWork/PhantomNativeWorkScope/Model/Authority/State/GeoEngine/schema/другие chronicles не изменены. Historical untracked и чужой index не очищались. Git только по HANDOFF040, точные команды в GIT040.jsonl.
+
+Только новые `l2jmobiush5_phantom_test_040a/b/t`, один исходный import из immutable PREBOOT036 SHA256=`8B85B1AC34A5A3DBFD42E274DACA0D42798FCDA40688B102786493237141A2D6`; после этого reset/reimport не было. Старые schemas,039x72/x73 и raw не изменялись. CRASH_AUTHORIZATION=DENIED_INHERITED; G6=BLOCKED_AUTHORITY. Ни injectors, ни Runtime.halt/kill/taskkill/Stop-Process не запускались.
+
+C4 факты:
+
+- G1: actual blocked melee и caster routes, native damage/five cycles; applicable natural loot отдельно в A/B; original negative routes и nativecapability negatives PASS.
+- G2: A040a8/8,381.048s/362fresh/maxgap1.105s; B040b7/7,380.950s/368fresh/maxgap1.169s; unchanged CONTINUITY_V2. Cohorts имеют4 общих ID и одинаковые primary IDs, но разные schemas/history/locality inputs; это не ID-disjoint claim. Ни actor, ни epoch не исключался.
+- G3 A/B:32/39 births,15626/3438 actual commits, FULL_SAVE и global COMPLETE/retained0 до pools stop PASS. Restart1 дополнительно40 births/14792commits PASS. G3 всей кампании NOT_VERIFIED из-за incomplete recording restart2.
+- G4 death-useful1/1 PASS; productive soft-away/useful same-profile return NOT_VERIFIED. Last S3B cohort:776 dead=true, живой productive input не допущен. Endpoint/count/arrival/full-export preconditions сохранены отдельно. Повторная лотерея cohorts прекращена.
+- G5 два actual normal sameDB C4 restart состоялись без reset/import. Первый cross-boot cut не охватил все original IDs; changed goal.runtime без actual producer witness. Native loads68/220/363 PASS;220 useful resume;3 background positive receipts без повторного operationKey. Второй collector достиг прежнего512MiB cap, RUN_END отсутствует, последующий stopped SQL union534profiles сохранён. G5 NOT_VERIFIED, это не доказательство corruption или потерянных profiles.
+- G7: original93/93;17 focused routes68/68, включая lifecycle11/11; additional caster1/1; full038 после TEST extension5/5; chain23/23; native verifier positive+3 negatives4/4; continuity helpers24PASS+1SKIP. All product checks jar-first C4.
+
+Delivery: exact source self-review завершён; остаются/проверяются внешними receipts report commit/push/local=remote, final ZIP full readback и late runtime status. Один preview Game30312/Login18688 уже здоров; observer внутри Game JVM AUTONOMOUS, actualNetworkSession=false; audit javaagent удалён перед финальным live boot. Final passive longevity после525s отражается RUNTIME040.json. Других Java JVM и test controllers не оставляется, MariaPID7704 сохранён.
+
+TASK_RESULT=PARTIAL_VERIFIED; M1=OPEN; RUNTIME_MODE=READY_FOR_PREVIEW. ACTUAL_REAL_BINDING=NOT_RUN; REAL_FINAL=NOT_RUN; USER_ACCEPTANCE=NOT_RUN. Конечная матрица — GATES040.tsv, статус delivery — PUBLICATION040.json/ZIP040.json/RUNTIME040.json. Продолжение только этого TASK040 после личного входа; следующий task не запускать.

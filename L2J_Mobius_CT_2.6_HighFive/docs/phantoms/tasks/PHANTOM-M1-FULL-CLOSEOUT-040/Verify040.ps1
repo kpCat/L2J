@@ -99,7 +99,7 @@ $arguments=@('-Xmx6g','-Dfile.encoding=UTF-8','-Dsun.stdout.encoding=UTF-8','-Ds
     "-Dphantom.test.config=$lane/test/Database.test.ini","-Dphantom.contract040.manifest=$lane/test/owned.properties",
     "-Dphantom.module.root=$module","-Dphantom.test.reports=$reports")
 if($Focus -and $Focus -cne 'capacity031'){$arguments+="-Dphantom.m1.native.focus=$Focus"}
-if($Suite -ceq 'PhantomActionLoop038Suite' -and $Focus -ceq 'full038'){$arguments+='-Dphantom.test.minimumFestivalStartMillis=600000'}
+if($Suite -ceq 'PhantomActionLoop038Suite' -and $Focus -cin @('full038','caster040')){$arguments+='-Dphantom.test.minimumFestivalStartMillis=600000'}
 if($Suite -ceq 'PhantomFarmProjection030Suite' -and $Focus -ceq 'capacity031'){$arguments+='-Dphantom.contract031.capacity=true'}
 if($Suite -ceq 'PhantomNativeFarmContinuation022Suite' -and $Focus){$arguments+="-Dphantom023.nativeFarmFocus=$Focus"}
 if($Suite -ceq 'position' -and $Focus){$arguments+="-Dphantom.background.position.focus=$Focus"}

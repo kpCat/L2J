@@ -26,6 +26,10 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("caster040".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("S040-native-caster-detour-five-stock-cycles", this::casterObstructed); return;
+		}
 		if ("geometry038".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("S06-native-second-zone-obstructed-action", context -> obstructed(context, new PhantomNavigationPoint(-50385, -115833, -186, 0), "S06"));
@@ -204,6 +208,26 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 	{
 		obstructed(context, new PhantomNavigationPoint(-88984, 250008, -3568, 0), "S02");
 	}
+	private void casterObstructed(PhantomTestContext context) throws Exception
+	{
+		// Reuse039's lawful pre-World TEST class/skill setup; production actors receive no resources.
+		final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); field.setAccessible(true);
+		final var environment = (PhantomHeadlessPlayerTestEnvironment) field.get(_intent.handoff);
+		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=25,base_class=25,race=1,level=7,exp=?,online=0 WHERE charId=?"))
+		{
+			statement.setLong(1, org.l2jmobius.gameserver.data.xml.ExperienceData.getInstance().getExpForLevel(7)); statement.setInt(2, environment.primary().objectId());
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact owned pre-World TEST caster.");
+		}
+		final var setup = Player.load(environment.primary().objectId());
+		try
+		{
+			final var learn = org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getCompleteClassSkillTree(setup.getPlayerClass()).values().stream().filter(entry -> entry.getSkillId() == 1177 && entry.getSkillLevel() == 1 && entry.getGetLevel() <= setup.getLevel()).findFirst().orElseThrow();
+			setup.addSkill(org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel()), true); setup.storeMe();
+		}
+		finally { environment.cleanupLoadedPlayer(setup); }
+		org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(org.l2jmobius.gameserver.scripting.ScriptEngine.MASTER_HANDLER_FILE);
+		obstructed(context, new PhantomNavigationPoint(-88984, 250008, -3568, 0), "S040");
+	}
 	private void obstructed(PhantomTestContext context, PhantomNavigationPoint origin, String evidence) throws Exception
 	{
 		final var geo = GeoEngine.getInstance(); final var backend = new L2jNavigationBackend();
@@ -251,7 +275,10 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 				final long cyclesBefore=player.getNativeWorkOwner().evidence().snapshot().farmCycleSequence();
 				final long expBefore=player.getExp(),spBefore=player.getSp();
 				PhantomAssertions.assertTrue(autoPlay.start(f.id,goal),"Actual native session starts with current goal/owner.");
-				final boolean cycles=java.util.Set.of("cycles038","full038").contains(System.getProperty("phantom.m1.native.focus", ""));
+				final boolean caster="caster040".equals(System.getProperty("phantom.m1.native.focus", ""));
+				if(caster){PhantomAssertions.assertTrue(player.getPlayerClass().isMage()&&player.getKnownSkill(1177)!=null,"Actual known native caster input.");}
+				final var castHits=new java.util.HashSet<String>();
+				final boolean cycles=java.util.Set.of("cycles038","full038","caster040").contains(System.getProperty("phantom.m1.native.focus", ""));
 				// The unarmed native TEST fixture takes about 25 seconds per kill; observe five lawful
 				// kills across native reselection, without changing any production 45/90/120 deadline.
 				// The unchanged evidence contract closes a cycle on the next actual target selection;
@@ -265,6 +292,12 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 				{
 					autoPlay.noTargetExpired(f.id,goal);
 					final var nativeSample=player.getNativeWorkOwner().evidence().snapshot();
+					if(caster)
+					{
+						final var owner=(org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope)player.getNativeWorkOwner();
+						final var hit=java.util.regex.Pattern.compile("(\\d+):cast-hit:COMPLETED:epoch=(\\d+):[^\\[\\]]*?bodyOutcome=SUCCESS").matcher(owner.diagnosticScalars().getOrDefault("nativeRecentCompletedEvents",""));
+						while(hit.find()){castHits.add(hit.group(2)+":"+hit.group(1));}
+					}
 					if(nativeSample.killSequence()>observedKills){observedKills=nativeSample.killSequence();context.record(evidence+".nativeCycle."+observedKills,nativeSample);}
 					final var fields=autoPlay.snapshotContinuation(f.id).scalarMap();final String state=fields.getOrDefault("actionReason","");
 					if(!state.equals(previous)&&transitions<32){context.record(evidence+".transition."+(++transitions),fields+";pose="+PhantomNativeTravelActions.point(player)+";moving="+player.isMoving()+";destination="+player.getXdestination()+","+player.getYdestination()+","+player.getZdestination()+";intention="+player.getAI().getIntention()+";disabled="+player.isMovementDisabled()+";speed="+player.getStat().getMoveSpeed()+";tick="+org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager.getInstance().getGameTicks()+";targetHP="+target.getCurrentHp());previous=state;}
@@ -289,6 +322,7 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 					PhantomAssertions.assertTrue(observedKills>=killsBefore+5, "Five successive actual native deaths required across lawful stock reselection.");
 					PhantomAssertions.assertTrue(player.getNativeWorkOwner().evidence().snapshot().farmCycleSequence()>=cyclesBefore+5, "Five completed native EXP+SP farm cycles are required before cleanup, not only five deaths.");
 					PhantomAssertions.assertTrue(player.getExp()>expBefore&&player.getSp()>spBefore, "Stock native EXP/SP must increase.");
+					if(caster){context.record(evidence+".castHits",castHits.size());PhantomAssertions.assertTrue(castHits.size()>=5,"Five actual earned stock cast hits across the blocked native approach.");}
 				}
 			}
 			finally
