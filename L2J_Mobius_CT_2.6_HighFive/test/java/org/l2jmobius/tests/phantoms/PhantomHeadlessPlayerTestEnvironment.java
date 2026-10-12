@@ -149,7 +149,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	public void initialize(PhantomTestContext context) throws Exception
 	{
-		initialize(context, 0L);
+		initialize(context, Long.getLong("phantom.test.minimumFestivalStartMillis", 0L));
 	}
 
 	/** Native infrastructure only: never deletes, recreates or loads the persisted TEST fixture. */
@@ -394,7 +394,8 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		{
 			Thread.sleep(25);
 		}
-		PhantomAssertions.assertFalse(hasInfrastructureThread(), "Headless suite left Hikari or L2jMobius infrastructure threads.");
+		final boolean infrastructureRemaining = hasInfrastructureThread();
+		PhantomAssertions.assertFalse(infrastructureRemaining, "Headless suite left Hikari or L2jMobius infrastructure threads." + (infrastructureRemaining ? infrastructureThreadDiagnostic() : ""));
 
 		if (cleanupFailure != null)
 		{
@@ -710,6 +711,20 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			}
 		}
 		return false;
+	}
+
+	private static String infrastructureThreadDiagnostic()
+	{
+		final var detail = new StringBuilder(); int count = 0;
+		for (var entry : Thread.getAllStackTraces().entrySet())
+		{
+			final var thread = entry.getKey();
+			if (!thread.isAlive() || thread.isDaemon() || !(thread.getName().startsWith("L2jMobius ") || thread.getName().startsWith("L2JMobiusPool"))) { continue; }
+			detail.append(" thread=").append(thread.getName()).append('/').append(thread.getState());
+			for (int index = 0; index < Math.min(6, entry.getValue().length); index++) { detail.append(" -> ").append(entry.getValue()[index]); }
+			if (++count == 4) { break; }
+		}
+		return detail.toString();
 	}
 
 	private record InfrastructureThreadIdentity(long id, String name)

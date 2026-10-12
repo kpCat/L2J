@@ -40,7 +40,7 @@ if($Action -ceq 'Evaluate'){
 if($Action -ceq 'Helpers'){
     $helpers=Join-Path $module 'docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals'
     if(-not (Test-Path (Join-Path $helpers 'test_tools028.py'))){throw 'Existing028 helper tests absent.'}
-    & python -m unittest discover -s $helpers -p test_tools028.py -v
+    & python -B -m unittest discover -s $helpers -p test_tools028.py -v
     exit $LASTEXITCODE
 }
 if($Action -ceq 'Build'){
@@ -96,6 +96,7 @@ $arguments=@('-Xmx6g','-Dfile.encoding=UTF-8','-Dsun.stdout.encoding=UTF-8','-Ds
     "-Dphantom.test.config=$lane/test/Database.test.ini","-Dphantom.contract040.manifest=$lane/test/owned.properties",
     "-Dphantom.module.root=$module","-Dphantom.test.reports=$reports")
 if($Focus -and $Focus -cne 'capacity031'){$arguments+="-Dphantom.m1.native.focus=$Focus"}
+if($Suite -ceq 'PhantomActionLoop038Suite' -and $Focus -ceq 'full038'){$arguments+='-Dphantom.test.minimumFestivalStartMillis=600000'}
 if($Suite -ceq 'PhantomFarmProjection030Suite' -and $Focus -ceq 'capacity031'){$arguments+='-Dphantom.contract031.capacity=true'}
 if($Suite -ceq 'PhantomNativeFarmContinuation022Suite' -and $Focus){$arguments+="-Dphantom023.nativeFarmFocus=$Focus"}
 if($Suite -ceq 'position' -and $Focus){$arguments+="-Dphantom.background.position.focus=$Focus"}

@@ -395,6 +395,8 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			session._usefulSince = now;
 			session._repairAttempted = false;
 			session._stallReported = false;
+			// Earned native progress completes the same rest tuple, including its cached admission.
+			session._recovering = false; session._resourceCheckDue = 0; session._resourceReason = "resource.native_progress";
 			session._resourceSince = 0; session._resourceExpired = false;
 		}
 		session.baseline(progress);

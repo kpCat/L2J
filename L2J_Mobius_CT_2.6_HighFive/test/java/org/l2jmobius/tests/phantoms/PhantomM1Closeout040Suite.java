@@ -26,9 +26,80 @@ public final class PhantomM1Closeout040Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("resource040".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("A04-earned-native-progress-completes-the-resource-tuple", this::completedRest); return; }
 		registry.add("A01-known-native-capability-and-actual-skill-order", context -> capability(context, false));
 		registry.add("A02-depleted-native-resource-does-not-plan-unavailable-cast", context -> capability(context, true));
 		registry.add("A03-changed-capability-invalidates-old-action-positions", this::changedApproach);
+		registry.add("A04-earned-native-progress-completes-the-resource-tuple", this::completedRest);
+	}
+	private void completedRest(PhantomTestContext context) throws Exception
+	{
+		// Reuse039's pre-World native caster setup; only the owned TEST character changes.
+		final var environmentField = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); environmentField.setAccessible(true);
+		final var environment = (PhantomHeadlessPlayerTestEnvironment) environmentField.get(_intent.handoff);
+		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=25,base_class=25,race=1,level=7,exp=?,online=0 WHERE charId=?"))
+		{
+			statement.setLong(1, org.l2jmobius.gameserver.data.xml.ExperienceData.getInstance().getExpForLevel(7)); statement.setInt(2, environment.primary().objectId());
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact owned TEST pre-World caster.");
+		}
+		final var setup = org.l2jmobius.gameserver.model.actor.Player.load(environment.primary().objectId());
+		try
+		{
+			final var learn = org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getCompleteClassSkillTree(setup.getPlayerClass()).values().stream().filter(entry -> entry.getSkillId() == 1177 && entry.getSkillLevel() == 1 && entry.getGetLevel() <= setup.getLevel()).findFirst().orElseThrow();
+			setup.addSkill(SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel()), true); setup.storeMe();
+		}
+		finally { environment.cleanupLoadedPlayer(setup); }
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+			final var clock = new java.util.concurrent.atomic.AtomicLong(System.nanoTime());
+			final var adapter = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision, clock::get);
+			final var player = f.loadedPlayer; final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final var target = new Monster(NpcData.getInstance().getTemplate(PhantomBackgroundGoalSpec.parse(goal).npcId()));
+			try
+			{
+				PhantomAssertions.assertTrue(adapter.start(f.id, goal), "Current native caster policy.");
+				final var sessionsField = adapter.getClass().getDeclaredField("_sessions"); sessionsField.setAccessible(true);
+				final Object session = ((java.util.Map<?, ?>) sessionsField.get(adapter)).get(f.id);
+				final var gateField = session.getClass().getDeclaredField("_commandGate"); gateField.setAccessible(true);
+				final var gate = (java.util.concurrent.atomic.AtomicBoolean) gateField.get(session);
+				final long gateDeadline = System.nanoTime() + 2_000_000_000L;
+				boolean ownsGate = false;
+				while (!(ownsGate = gate.compareAndSet(false, true)) && System.nanoTime() < gateDeadline) { Thread.sleep(20); }
+				PhantomAssertions.assertTrue(ownsGate, "Controlled existing policy gate.");
+				try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow())
+				{
+					final var pause = adapter.getClass().getDeclaredMethod("resourcePause", session.getClass(), org.l2jmobius.gameserver.model.actor.Player.class); pause.setAccessible(true);
+					player.sitDown(); PhantomAssertions.assertTrue(player.isSitting(), "Actual stock rest.");
+					PhantomAssertions.assertEquals(true, pause.invoke(adapter, session, player), "Native rest/stand boundary retains a pending resource tuple.");
+					final var before = adapter.snapshotContinuation(f.id).scalarMap();
+					PhantomAssertions.assertEquals("true", before.get("liveResourceRecovery"), "INPUT: actual resource recovery.");
+					PhantomAssertions.assertTrue(Long.parseLong(before.get("liveResourceSinceNanos")) > 0, "INPUT: original rest start.");
+					final long damage = player.getNativeWorkOwner().evidence().snapshot().damageSequence();
+					final var spawn = new Spawn(target.getTemplate()); spawn.setXYZ(player.getX(), player.getY(), player.getZ()); target.setSpawn(spawn);
+					target.disableCoreAI(true); target.setImmobilized(true); target.setCurrentHpMp(target.getMaxHp(), target.getMaxMp()); target.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
+					player.setTarget(target); player.doCast(player.getKnownSkill(1177));
+					final long deadline = System.nanoTime() + 10_000_000_000L;
+					while (player.getNativeWorkOwner().evidence().snapshot().damageSequence() == damage && System.nanoTime() < deadline) { Thread.sleep(20); }
+					final var progress = player.getNativeWorkOwner().evidence().snapshot();
+					PhantomAssertions.assertTrue(progress.damageSequence() > damage, "INPUT: actual stock damage, no manufactured progress.");
+					clock.addAndGet(100_000_000L); // Inside the unchanged500ms cached resource boundary.
+					final var observe = adapter.getClass().getDeclaredMethod("observeProgress", session.getClass(), progress.getClass(), long.class); observe.setAccessible(true);
+					synchronized (session) { observe.invoke(null, session, progress, clock.get()); }
+					final var after = adapter.snapshotContinuation(f.id).scalarMap(); context.record("A04.before", before); context.record("A04.after", after); context.record("A04.native", progress);
+					PhantomAssertions.assertEquals("false", after.get("liveResourceRecovery"), "RED: earned native progress must finish recovery together with its zeroed start.");
+					PhantomAssertions.assertEquals("0", after.get("liveResourceSinceNanos"), "Completed rest has no start.");
+					PhantomAssertions.assertEquals(Long.toString(clock.get()), after.get("liveUsefulSinceNanos"), "Only actual earned progress renews useful debt.");
+					PhantomAssertions.assertEquals(before.get("liveSessionEpoch"), after.get("liveSessionEpoch"), "Original native lifetime.");
+					clock.addAndGet(100_000_000L);
+					synchronized (session) { observe.invoke(null, session, progress, clock.get()); }
+					PhantomAssertions.assertEquals(after.get("liveUsefulSinceNanos"), adapter.snapshotContinuation(f.id).scalarMap().get("liveUsefulSinceNanos"), "Duplicate native evidence never renews useful debt.");
+					while (player.isCastingNow() && System.nanoTime() < deadline) { Thread.sleep(20); }
+				}
+				finally { gate.set(false); }
+			}
+			finally { adapter.beforeStore(f.id, player); target.deleteMe(); PhantomVisibleIntentRecoverySuite.stop(engine); }
+		}
 	}
 	private void changedApproach(PhantomTestContext context) throws Exception
 	{
