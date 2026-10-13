@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidateSet('a','b')][string]$Episode,[Parameter(Mandatory)][string]$FrozenSha,[Parameter(Mandatory)][string]$OriginalScene,[Parameter(Mandatory)][string]$PriorCut)
+param([Parameter(Mandatory)][ValidateSet('a','b')][string]$Episode,[Parameter(Mandatory)][string]$FrozenSha,[Parameter(Mandatory)][string]$OriginalScene,[Parameter(Mandatory)][string]$PriorCut,[ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Candidate='C4')
 $ErrorActionPreference='Stop'
 $module041=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $evidence041=Join-Path $module041 'docs/phantoms/tasks/PHANTOM-M1-FINAL-CLOSURE-041/evidence'
@@ -9,14 +9,18 @@ $prior041=[IO.Path]::GetFullPath($PriorCut)
 $cohort041=Join-Path $original041 'baseline-cohort.json'
 foreach($input041 in @($original041,$prior041)){if(-not $input041.StartsWith([IO.Path]::GetFullPath($evidence041)+[IO.Path]::DirectorySeparatorChar)){throw 'Exact041 input required.'}}
 for($restart041=1;$restart041 -le 2;$restart041++){
- $label041='C4_RESTART'+$restart041+'_'+$Episode+'041'
+ $label041=$Candidate+'_RESTART'+$restart041+'_'+$Episode+'041'
  $scene041=Join-Path $evidence041 $label041
  $known041=@((Get-ChildItem -LiteralPath $evidence041 -Directory -Filter ('STARTUP032'+$Episode+'-*')).Name)
  & $control041 -Action Start -Episode $Episode -ExpectedSha $FrozenSha -StartupCohortJson $cohort041 *> (Join-Path $PSScriptRoot ($label041+'-start.log'))
  if($LASTEXITCODE -ne 0){throw 'Actual normal sameDB start failed; no reset/reimport.'}
  $startup041=@(Get-ChildItem -LiteralPath $evidence041 -Directory -Filter ('STARTUP032'+$Episode+'-*') | Where-Object {$_.Name -notin $known041})
  if($startup041.Count -ne 1){throw 'Exact new startup namespace ambiguous.'}
- & (Join-Path $PSScriptRoot 'Observe032.ps1') -Mode Scene -Episode $Episode -Seconds 380 -FrozenSha $FrozenSha -OutputRoot $scene041 -StopOwnServerOnComplete *> (Join-Path $PSScriptRoot ($label041+'-scene.log'))
+ $preparation041=Join-Path $evidence041 ($label041+'_PREP90')
+ & (Join-Path $PSScriptRoot 'Run-CensusPreparation041.ps1') -Episode $Episode -KeepSession041 -CohortJson $cohort041 -OutputRoot $preparation041 *> (Join-Path $PSScriptRoot ($label041+'-prep.log'))
+ if($LASTEXITCODE -ne 0){throw 'SameDB original-position native preparation failed.'}
+ $prepared041=(Get-Content (Join-Path $preparation041 'session-start.json') -Raw | ConvertFrom-Json).runId
+ & (Join-Path $PSScriptRoot 'Observe032.ps1') -Mode Scene -Episode $Episode -Seconds 380 -FrozenSha $FrozenSha -PreparedRunId $prepared041 -OutputRoot $scene041 -StopOwnServerOnComplete *> (Join-Path $PSScriptRoot ($label041+'-scene.log'))
  if($LASTEXITCODE -ne 0){
   & $control041 -Action Stop -Episode $Episode -DumpDuringStop -OutputRoot (Join-Path $evidence041 ($label041+'-failed-stock-stop')) *> (Join-Path $PSScriptRoot ($label041+'-failed-stop.log'))
   throw 'Restart useful scene failed; exact guards/raw retained.'

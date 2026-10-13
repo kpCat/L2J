@@ -1,8 +1,18 @@
 # CHECKPOINT041 — plan: PLAN.md
 
-TASK_RESULT=IN_PROGRESS; M1=OPEN; READY_FOR_M2=false; USER_ACCEPTANCE=NOT_GIVEN.
+TASK_RESULT=PARTIAL_VERIFIED; M1=OPEN; READY_FOR_M2=false; USER_ACCEPTANCE=NOT_GIVEN. Latest control stage: read-only audit and save/publish, then STOP_BY_USER; see CURRENT_STATE041.md.
 
 Campaign start: 2026-10-13T00:19:22Z (03:19:22 Europe/Chisinau). Deadline: 2026-10-13T12:19:22Z; delivery/recovery reserve begins 10:49:22Z. Interruptions do not reset this clock.
+
+## 2026-10-13T20:28Z safe state audit — no new execution
+
+- Latest user instruction limits this stage to reading current facts and preserving/publishing existing useful changes. No server/test/crash/network/client actions, no forced stop, no deletions or rollback. The earlier four-hour extension ended17:42:40Z; this is a separate short control stage.
+- HEAD and remote before saving=f95eda6dcab5f7d848d8f90af7658cfad2de72d1. Semantic candidate92400b and external standalone CODE_COMMIT17fd041 unchanged. Nine exact task041 report/controller paths saved; no product Java/config/data edit.
+- Second fault-off sameDB recovery C23x73 completed: Game28840/Login18632, healthy stock stop, startup2da3f807a2a84535855be7c230de8f9c, Probe80.7664666s/7actors/77samples; all-birth cut76profiles/RUN_END/dropped0/failure empty, stoppedSQL pending0/online0. Later wrapper JSON shape error did not leave the boot running.
+- Existing readonly C23_X73_READBACK2_041.json has nativeLoad418 PASS/goalLineage LINKED, but pass_=false/ORIGINAL_PROFILE_NO_USEFUL_RESUME:418. Component chains are STRUCTURAL_CHAIN_ONLY/fullSaveProven=false; no FULL or complete G6 inferred. Actual73 C21 and first recovery retained;72 never armed/reached, C22 stock-stopped.
+- Previously launched C24b independently finished by15:40:12.9496509Z: CONTINUITY_V2 PASS8/8,381.6816272s/366samples, primary418/42639/36cycles; exact Game16988/Login3412 stock-stopped and typed DONE/COMPLETE/retained0 before pools. C8 groupA profile276 FAIL remains, so G2 not closed.
+- Current CIM Java census only protected040a18688/30312; no041 JVM or unfinished041 orchestrator. Protected UTC ticks and both JAR SHA unchanged. No active041 injector, no new launches to replace stopped processes. Own finalM1-041 built but NOT_RUNNING; final operator/client/personal gates pending.
+- CURRENT_STATE041.md distinguishes full G0-G8 conditions from scoped C8 save/regression/operator PASS. G3 whole declared set remains NOT_VERIFIED despite C8 FULL_SAVE PASS; G4/G5/G6/full review and delivery incomplete. All raw/DB/original failures retained locally. Stop after ordinary exact-path commit/push; noM2.
 
 ## Read-first / authority
 
@@ -34,6 +44,17 @@ Protected040a read-only Status: Game30312/startTicks639274376723876308; Login186
 - Census preparation can now retain its original bounded synthetic lease for the next Probe/Scene. The next capture verifies same run/PID/start/remaining525s expiry and never renews it. Initial placement still uses existing READY/native/calendar guard, no heal/teleport bypass.
 - C17 cold041b census two seconds after stock startup contained zero registered topology profiles; exact own pair stock-stopped. C18 fixed90s startup settling produced1280 rows, but no READY/calendar/farm group passed the existing cursor15 prerequisite:56 READY+calendar+farm rows, minimum actual cursor debt3324min, recovery materialization capacity reached. This is a prerequisite FAIL, not a native continuity PASS; no reimport or criterion relaxation. C19 independently checks preserved fully-drained041a DB with the same current-input rule.
 - Useful late orchestration and review packager sources preserved under041 proposals. Client route remains paused; M1 OPEN/READY_FOR_M2=false; no actual crash72/73 or recovery claimed.
+
+## 2026-10-13T15:25Z actual isolated73 and recovery
+
+- Normal push f95eda6dcab published the bounded preparation/source checkpoint. Game semantic candidate remains92400b; standalone CODE_COMMIT17fd041 and focused finalJar4/4 remain valid.
+- C19 preserved041a also lacked an eligible current READY/cursor15 preparation group after90s; stock-stopped. This alternative selection did not weaken Scene criteria. C20 original saved-observer-position route produced eight living native actors. Actual primary73 kept object268485461/epoch631185247022200 and earned cycles8/damage22/EXP257/SP27 in80.78s.
+- C20 controller failed before arm because WinPS5.1 wrapped JSON arrays: outer primary/sample counts1/1, each element System.Object[]. Reused Verify041 double-parenthesis pattern: primary2, samples78, exact original delta passes. Original C20 failure remains; no actor substitution or criterion change.
+- C21x73 actual negative guards and earned gate passed; exact window arm successful. No natural close within180s, then existing owned stock close reached actual AFTER_OWNED_FINALIZE_COMMIT and Runtime.halt73. Receipt ownerTASK041_CONTRACT, PID19380, profile418, object268488381, epoch631935825218100, REALcount0, exit73. This is the first real041 crash; no72 yet.
+- Mandatory fallback fault-off sameDB boot completed (Game5184/Login26188), then exact stock stop both confirmed. Read-only first-recovery FULL SQL418 cut C21_X73_FIRST_RECOVERY_SQL041: pendingOwnedStores0/onlineCharacters0. Canonical boundary and initial load semantic verification still pending. C23 executes second fault-off sameDB boot/useful continuation and original exact418 CrossBoot check; no PASS inferred.
+- C22x72 passed guards but actual natural cohort count1; never armed/crashed, exact stock stop confirmed (Game33908/Login1968). Four-person Probe retained. A future planned stock-close trigger reuses the demonstrated existing boundary rather than treating the close as injector disarm; catch always audits real receipt and performs first fault-off recovery if a crash occurred.
+- Complete immutable C8 transport prepared for review:4275 entries/97,629,363bytes inside one nested input ZIP, all original entry bytes SHA-verified and CRC checked. Full raw/scene/stopped SQL and pinned924 candidate libs retained, no required data dropped to hit the outer-entry guideline.
+- Ordinary final directory built but not yet running; only currently active own test pair is C23x73 continuation. Protected040a remains untouched. G2/G4/G5/G6/ordinary final operator and personal acceptance remain incomplete; M1 OPEN, noM2.
 - Useful test-only recorder/decoders/controllers are promoted as exact source under proposals/ops041, with execution still confined to own041 lanes. No client interception prototype or compiled private binary is promoted. Ordinary M1 runtime does not depend on these test tools.
 
 JDK25.0.4.101, Ant1.10.17, Python3.12, Windows PowerShell5.1 required for operator scripts. About68GiB free RAM, one new test Game/Login pair at a time. No new dependencies/game policy/schema/WAL. Preserve population1280/active8/materialized8, inventory250 and45–90–120,035–040 native earned/CAS/debt/capability contracts. Zariche DEFERRED_BY_USER, no investigation/patch.

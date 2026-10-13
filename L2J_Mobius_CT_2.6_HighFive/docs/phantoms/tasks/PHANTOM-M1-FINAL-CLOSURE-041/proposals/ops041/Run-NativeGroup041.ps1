@@ -1,4 +1,4 @@
-param([ValidateSet('a','b')][string]$Episode='b',[Parameter(Mandatory)][string]$Candidate,[Parameter(Mandatory)][string]$FrozenSha)
+param([ValidateSet('a','b')][string]$Episode='b',[Parameter(Mandatory)][string]$Candidate,[Parameter(Mandatory)][string]$FrozenSha,[switch]$CurrentOriginPreparation041)
 $ErrorActionPreference='Stop'
 $module041=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $task041=Join-Path $module041 'docs/phantoms/tasks/PHANTOM-M1-FINAL-CLOSURE-041'
@@ -19,7 +19,12 @@ try {
  & $control041 -Action Collector -Mode Census -Episode $Episode -CohortJson $bootstrap041 -OutputRoot $census041 *> (Join-Path $PSScriptRoot ($prefix041+'_CENSUS.log'))
  if($LASTEXITCODE -ne 0){throw 'Current native input census failed.'}
  $selection041=Join-Path $task041 ('evidence/'+$prefix041+'_SELECTION.json')
- $profile041=& (Join-Path $PSScriptRoot 'Select-ReadySetup041.ps1') -CensusRoot $census041 -OutputFile $selection041
+ if($CurrentOriginPreparation041){
+  # Existing original observer-position route, independently validated by C20 native eight.
+  # This grants no admission and does not apply the alternative READY-location selector.
+  $profile041=0
+  [ordered]@{rule='EXISTING_SAVED_OBSERVER_ORIGIN_NO_TELEPORT_NO_PROFILE_SELECTION';source=$census041;utc=[DateTime]::UtcNow.ToString('o');outcomesInspected=$false} | ConvertTo-Json | Set-Content $selection041 -Encoding utf8
+ }else{$profile041=& (Join-Path $PSScriptRoot 'Select-ReadySetup041.ps1') -CensusRoot $census041 -OutputFile $selection041}
  $preparation041=Join-Path $task041 ('evidence/'+$prefix041+'_PREP90')
  & (Join-Path $PSScriptRoot 'Run-CensusPreparation041.ps1') -Episode $Episode -SetupProfileId $profile041 -KeepSession041 -CohortJson $bootstrap041 -OutputRoot $preparation041 *> (Join-Path $PSScriptRoot ($prefix041+'_PREP.log'))
  if($LASTEXITCODE -ne 0){throw 'Selected native preparation failed.'}

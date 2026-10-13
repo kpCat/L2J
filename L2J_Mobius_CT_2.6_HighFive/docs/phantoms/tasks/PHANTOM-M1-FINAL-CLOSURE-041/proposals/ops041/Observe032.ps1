@@ -12,7 +12,7 @@ $allowed=[IO.Path]::GetFullPath((Join-Path 'C:\Users\ZBook\.codex\worktrees\phan
 $OutputRoot=[IO.Path]::GetFullPath($OutputRoot)
 if(-not $OutputRoot.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path $OutputRoot)){throw 'Immutable own TASK032 evidence path required.'}
 if($Mode -ceq 'Scene' -and ($Seconds -lt 360 -or $Seconds -gt 420)){throw 'Final scene must be 360..420 seconds.'}
-if($SetupAtVisibleNativeCluster041 -and ($Mode -cnotin @('Scene','Probe') -or $PreparedRunId -or $SetupAtNearestCandidate -or $NativeStartAtSetup -or $SetupTeleport.Count)){throw 'One prospective native census setup required.'}
+if($SetupAtVisibleNativeCluster041 -and ($Mode -cnotin @('Scene','Probe') -or $SetupAtNearestCandidate -or $NativeStartAtSetup -or $SetupTeleport.Count)){throw 'One prospective native census setup required.'}
 if($Mode -ceq 'Probe' -and ($Seconds -lt 60 -or $Seconds -gt 150)){throw 'Probe must be 60..150 seconds.'}
 if($Mode -ceq 'Away' -and (-not $PathJson)){throw 'Dedicated dry native path required before away episode.'}
 if($SingleLifePrimary041 -and $Mode -cne 'Away'){throw 'Single profile lifecycle proof is only S3B soft-away, never G1/G2.'}
@@ -233,7 +233,7 @@ try{
         if(-not $SetupTeleport.ContainsKey('instanceId')){throw 'Checked setup requires exact instanceId.'}
         if($SetupAtVisibleNativeCluster041){
             # Reuse the stock bidirectional dry route before enrollment; never widen TELEPORT_SELF.
-            & (Join-Path $PSScriptRoot 'Control032.ps1') -Action DryPath -Episode $Episode -OriginPoint @{x=[int]$status.before.x;y=[int]$status.before.y;z=[int]$status.before.z} -EndpointPoint @{x=[int]$fixed.x;y=[int]$fixed.y} -OutputRoot (Join-Path $OutputRoot 'native-setup-prefix') *> (Join-Path $OutputRoot 'native-setup-prefix.log')
+            & (Join-Path $PSScriptRoot 'Control032.ps1') -Action DryPath -Episode $Episode -UseStockRoute -OriginPoint @{x=[int]$status.before.x;y=[int]$status.before.y;z=[int]$status.before.z} -EndpointPoint @{x=[int]$fixed.x;y=[int]$fixed.y} -OutputRoot (Join-Path $OutputRoot 'native-setup-prefix') *> (Join-Path $OutputRoot 'native-setup-prefix.log')
             if($LASTEXITCODE -ne 0){throw 'Native setup prefix rejected before enrollment.'}
             $prefixPath041=Get-Content (Join-Path $OutputRoot 'native-setup-prefix/path.json') -Raw | ConvertFrom-Json
             if(-not $prefixPath041.bidirectional -or $prefixPath041.steps.Count -gt 10 -or $prefixPath041.jarSha256 -cne $manifest.gameJarSha256){throw 'Existing ten-step native setup budget exceeded.'}

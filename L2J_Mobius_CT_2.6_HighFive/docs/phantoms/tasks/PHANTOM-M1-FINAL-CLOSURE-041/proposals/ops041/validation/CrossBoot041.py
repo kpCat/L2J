@@ -19,7 +19,11 @@ p.add_argument('--source',required=True)
 a=p.parse_args()
 if a.output.exists(): raise ValueError('Immutable output exists')
 before,after=components(a.prior_cut),components(a.next_cut)
-cohort=json.loads(a.cohort.read_text(encoding='utf-8-sig')); ids=[int(row['profileId']) for row in cohort]
+cohort=json.loads(a.cohort.read_text(encoding='utf-8-sig'))
+if isinstance(cohort,dict): cohort=[cohort]  # WinPS5 single-member JSON; same exact immutable identity.
+if not isinstance(cohort,list) or not 1<=len(cohort)<=8 or any(not isinstance(row,dict) for row in cohort): raise ValueError('Exact one-to-eight cohort objects required')
+ids=[int(row['profileId']) for row in cohort]
+if any(pid<=0 for pid in ids) or len(ids)!=len(set(ids)): raise ValueError('Positive distinct exact cohort IDs required')
 errors=[]; records=[]; pins=[]; loads=[]; results=[]
 jarsha=sha(a.jar.read_bytes()); database=None
 for root in (a.prior_cut,a.next_cut):
