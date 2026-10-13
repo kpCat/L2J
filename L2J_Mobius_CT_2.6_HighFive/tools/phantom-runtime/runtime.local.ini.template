@@ -1,0 +1,8 @@
+# Локальные настройки оператора. Путь JDK допускает пробелы.
+JavaHome = C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot
+# Секреты находятся только в game/config/Database.ini и login/config/Database.ini.
+# Схема здесь должна совпадать с обоими JDBC URL и manifest.
+DatabaseName = l2jmobiush5_phantom_test_041final
+LoginTimeoutSeconds = 60
+GameTimeoutSeconds = 180
+StopTimeoutSeconds = 120

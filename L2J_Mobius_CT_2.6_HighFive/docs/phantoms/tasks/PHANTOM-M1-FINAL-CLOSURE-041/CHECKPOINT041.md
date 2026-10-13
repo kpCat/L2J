@@ -52,3 +52,18 @@ Exact adjacent test owner declared: PhantomHeadlessPlayerTestEnvironment.initial
 Ruling: task041 ledger/ops replaces skill-generated .superpowers workspace; exact task scope forbids another artifact family. Final review is adversarial self-review because user explicitly forbids subagents. Scope may exceed10 files only for this bounded single M1 contour and operator integration expressly listed in SOURCE_MAP; each added owner declared before edit. No broader refactor.
 
 FINAL_ACCEPTANCE_SET041: GROUP_A/GROUP_B/LIFE/NORMAL_RESTART1/2/CRASH72+RECOVERY1+IDEMPOTENCE2/CRASH73+RECOVERY1+IDEMPOTENCE2. All normal native stops require complete all-birth proof; uninstrumented R1 smoke/live final are separate declared operator checks, not retroactive scope exclusion. Product changes after freeze invalidate affected final gates.
+
+## 2026-10-13T01:58Z checkpoint
+
+- First owning-goal source commit ceafcafee42dee2e9453215c9a1f598d4f546158 normally pushed to experiment/m1-candidate007-observe008; exact goal tests3/3.
+- C1 batch diagnostic FULL_SAVE/GLOBAL_DRAIN PASS:83 births,9236 owning commit records; missing-tail negative rejects absent RUN_END. It is not a natural-group PASS.
+- WinPS5.1 Synthetic heartbeat File.Replace raced Java read with NoSuchFileException. Minimal tracked same-directory MoveFileEx publication fallback; original TTL/identity/ACL retained. C3/C4 preparation survived90s, no lease renewal.
+- Natural preconditions failed C3count5 (two dead), C4count0 after prospective readiness/calendar ranking. No actors excluded and no criteria weakened. Investigate current lifecycle/history ownership before further group attempts.
+- C2 boot32016/Login1584 normally stopped after diagnostic scenes. Actual typed drain/process absence retained. Its RUN_END records failure TASK041_SCALAR_INDEX_BOUND;787 births/708 profiles. This remains FAIL. Recorder no longer indexes monotonically unique JDBC transaction/write-index records;65k repeatable index and original ring/disk caps unchanged. New positive run required.
+- Preliminary existing93-route matrix C4_BASE93B passed93/93 on ceaf GameServer, isolated041t. WindowsPS native empty-argument bug corrected in041 runner; original failure preserved.
+- Added tracked ordinary Build-Package/Runtime/Verify-M1, three minimal operator Java helpers, templates and START/STOP/STATUS/RU guide; javac APIs and WinPS parser/stale-incarnation/foreign-port checks PASS. R1 real clean package/start-stop not yet proved. New UTF8 CyrillicPS scripts have BOM for WindowsPS5.1.
+- RELEASE_CONTRACT includes real038 M1-M7 roadmap, retention035-041/QoL, explicit external geodata, cumulative normal build and mandatory fully-built/configurable M7 delivery. Agents link only2 added lines.
+- New041final schema imported once from immutable036 SQL. Actual export has10000 profiles, distinct from configured1280 population target; mistaken count expectation corrected by read-only verification, no reimport/heal. Private inputB under release041 only.
+- Protected040a read-only incarnation still Game30312/start639274376723876308 and Login18688/start639274376704922975; no writes/stop/agents. Zariche untouched/deferred.
+- Encoding: mojibake markers PASS; escaped Cyrillic PASS separately on explicit current changed allowlist.
+- Campaign still IN_PROGRESS/OPEN; G2/G4/G5/G6/R1 final remain pending; personal acceptance REQUIRED; READY_FOR_M2=false.

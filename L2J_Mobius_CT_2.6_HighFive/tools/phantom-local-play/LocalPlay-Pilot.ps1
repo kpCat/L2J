@@ -126,7 +126,16 @@ function Write-PilotAtomicBytes([string] $Path, [byte[]] $Bytes, [switch] $Repla
 		{
 			if (-not $Replace) { throw "Private mailbox record уже существует: $Path" }
 			Assert-PilotPrivateFile $Path
-			if ($RenameReplace) { Assert-PilotPrivateFile $temp; [IO.File]::Move($temp, $Path, $true) }
+			if ($RenameReplace)
+			{
+				Assert-PilotPrivateFile $temp
+				if ($null -ne [IO.File].GetMethod('Move', [Type[]]@([string], [string], [bool]))) { [IO.File]::Move($temp, $Path, $true) }
+				else
+				{
+					if (-not ('LocalPlayAtomicRename' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'LocalPlay-AtomicRename.cs') }
+					[LocalPlayAtomicRename]::Replace($temp, $Path)
+				}
+			}
 			else { [IO.File]::Replace($temp, $Path, $backup) }
 		}
 		else { [IO.File]::Move($temp, $Path) }
@@ -177,8 +186,8 @@ function Write-PilotHeartbeat($Context, [string] $SessionId, [string] $RunId)
 	if (($SessionId -cnotmatch '^[0-9a-fA-F-]{36}$') -or ($RunId -cnotmatch '^[0-9a-fA-F-]{36}$')) { throw 'Некорректная pilot heartbeat identity.' }
 	$millis = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 	$record = "version=1`nsessionId=$SessionId`nupdatedUtcMillis=$millis`nrunId=$RunId`n"
-	# Synthetic PowerShell 7 publication uses same-directory rename; legacy/RealClient defaults remain compatible.
-	$renameReplace = ($Context.ActorMode -ceq 'Synthetic') -and ($null -ne [IO.File].GetMethod('Move', [Type[]]@([string], [string], [bool])))
+	# Synthetic publication uses same-directory rename on Windows PowerShell5.1 and PowerShell7.
+	$renameReplace = $Context.ActorMode -ceq 'Synthetic'
 	Write-PilotAtomicText (Join-Path $Context.PilotRoot 'heartbeat.properties') $record -Replace -RenameReplace:$renameReplace
 }
 
