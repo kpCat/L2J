@@ -26,9 +26,47 @@ public final class PhantomM1Closure041Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("idle041".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("A01-no-target-replans-before-useful-debt-without-renewing-it", this::noTargetRecovery); return; }
 		registry.add("G01-owning-goal-commit-links-exact-payload-and-versions", this::goalCommit);
 		registry.add("G02-losing-cas-emits-no-successful-goal-witness", this::losingCas);
 		registry.add("G03-diagnostic-failure-cannot-undo-goal-commit", this::observerFailure);
+		registry.add("A01-no-target-replans-before-useful-debt-without-renewing-it", this::noTargetRecovery);
+	}
+	private void noTargetRecovery(PhantomTestContext context) throws Exception
+	{
+		try (var fixture = _intent.handoff.new Fixture(true))
+		{
+			fixture.handoff(); final var engine = PhantomVisibleIntentRecoverySuite.engine(fixture);
+			final var clock = new java.util.concurrent.atomic.AtomicLong(System.nanoTime());
+			final var roots = new java.util.concurrent.atomic.AtomicBoolean(true);
+			final var adapter = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay(fixture.materialization, () -> engine, fixture.historical::permitsDecision, _ -> roots.get(), clock::get);
+			final var player = fixture.loadedPlayer; final var goal = fixture.goals.load(fixture.id).orElseThrow().goal();
+			final int isolated = org.l2jmobius.gameserver.managers.InstanceManager.getInstance().createDynamicInstance(0).getId();
+			player.setInstanceId(isolated);
+			try
+			{
+				PhantomAssertions.assertTrue(adapter.start(fixture.id, goal), "Current native session in an empty same-instance target set.");
+				PhantomAssertions.assertFalse(adapter.noTargetExpired(fixture.id, goal), "Transient no-target state is tolerated.");
+				final var before = adapter.snapshotContinuation(fixture.id).scalarMap();
+				PhantomAssertions.assertTrue(Long.parseLong(before.get("liveNoTargetSinceNanos")) > 0, "Actual no-target observation starts its clock.");
+				clock.addAndGet(29_000_000_000L);
+				PhantomAssertions.assertFalse(adapter.noTargetExpired(fixture.id, goal), "Existing thirty-second recovery delay is respected.");
+				clock.addAndGet(2_000_000_000L);
+				PhantomAssertions.assertTrue(adapter.noTargetExpired(fixture.id, goal), "RED: a depleted local target set requests existing replan before the ninety-second useful-debt limit.");
+				final var after = adapter.snapshotContinuation(fixture.id).scalarMap();
+				PhantomAssertions.assertEquals(before.get("liveUsefulSinceNanos"), after.get("liveUsefulSinceNanos"), "No-target recovery never manufactures earned progress.");
+				PhantomAssertions.assertEquals(before.get("liveSessionEpoch"), after.get("liveSessionEpoch"), "The original native lifetime is retained.");
+				roots.set(false);
+				PhantomAssertions.assertFalse(adapter.noTargetExpired(fixture.id, goal), "Soft retirement cannot launch offscreen replan or repair.");
+				context.record("A01.before", before); context.record("A01.after", after);
+			}
+			finally
+			{
+				adapter.beforeStore(fixture.id, player); player.setInstanceId(0);
+				org.l2jmobius.gameserver.managers.InstanceManager.getInstance().destroyInstance(isolated);
+				PhantomVisibleIntentRecoverySuite.stop(engine);
+			}
+		}
 	}
 	private static java.lang.reflect.Field observer() throws Exception
 	{

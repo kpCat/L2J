@@ -46,8 +46,13 @@ $report=[IO.Path]::GetFullPath($ReportRoot)
 if (Test-Path -LiteralPath $report) {throw 'Immutable operator smoke output exists.'}
 New-Item -ItemType Directory -Path $report | Out-Null
 function Invoke-Runtime([string]$Operation,[string]$Name) {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Runtime.ps1') -Action $Operation -RuntimeRoot $runtime *> (Join-Path $report "$Name.log")
-    if ($LASTEXITCODE -ne 0) {throw "Operator $Operation failed; log=$Name.log"}
+    # A START child may leave inherited output handles in its background JVMs.
+    # Wait for the controller incarnation, independently of descendant pipe EOF.
+    $arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $PSScriptRoot 'Runtime.ps1')+'" -Action '+$Operation+' -RuntimeRoot "'+$runtime+'"'
+    $controller=Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden -RedirectStandardOutput (Join-Path $report "$Name.log") -RedirectStandardError (Join-Path $report "$Name.stderr.log") -PassThru
+    if (!$controller.WaitForExit(650000)) {throw "Operator $Operation controller timeout; no force fallback."}
+    if ($Operation -cne 'Start') {$controller.WaitForExit()}
+    if ($controller.ExitCode -ne 0) {throw "Operator $Operation failed; log=$Name.log"}
 }
 function Get-State([string]$Name) {
     Invoke-Runtime 'Status' $Name

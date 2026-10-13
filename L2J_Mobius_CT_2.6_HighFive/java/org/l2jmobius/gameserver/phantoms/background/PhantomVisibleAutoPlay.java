@@ -283,7 +283,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				final boolean target = offensive || World.getInstance().getVisibleObjectsInRange(player, Creature.class, player.getAutoPlaySettings().isShortRange() ? AutoPlayConfig.AUTO_PLAY_SHORT_RANGE : AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream().anyMatch(creature -> selectableTarget(player, creature, npcId));
 				if (target) { session.noTargetSince = -1; }
 				else if (session.noTargetSince < 0) { session.noTargetSince = now; }
-				expired = stalled(session, now);
+				// A depleted local target set needs time for the existing alternate-goal route
+				// before useful debt expires. This requests replan without renewing earned progress.
+				expired = stalled(session, now) || (!target && !inFlight && (session.noTargetSince >= 0) && ((now - session.noTargetSince) >= RECOVERY_DELAY_NANOS));
 				repair = !expired && !inFlight && (session._engagement == null || !session._engagement.holdsMovement()) && !session._repairAttempted && (((now - session._usefulSince) >= RECOVERY_DELAY_NANOS) || ((session.noTargetSince >= 0) && ((now - session.noTargetSince) >= RECOVERY_DELAY_NANOS)));
 				if (repair) { session._repairAttempted = true; }
 				reportStall = expired && !session._stallReported;
