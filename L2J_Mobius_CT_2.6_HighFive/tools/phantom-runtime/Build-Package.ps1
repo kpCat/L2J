@@ -55,6 +55,8 @@ try {
 } finally {Pop-Location}
 Expand-Archive -LiteralPath $archive -DestinationPath (Join-Path $stage 'source')
 $cleanModule=Join-Path $stage "source/$moduleName"
+$predecessor=Join-Path $cleanModule 'dist/game/data/phantoms/population/high-five-population-v1.xml'
+if ((Get-FileHash -LiteralPath $predecessor).Hash -ine '23b12fc523de83d1bdea54a75677823b2e8129978792a9c9fec684accfaa4748') {throw 'Tracked population predecessor fingerprint differs; packaging refused.'}
 $env:JAVA_HOME=$JavaHome
 $savedPath=$env:PATH
 try {
