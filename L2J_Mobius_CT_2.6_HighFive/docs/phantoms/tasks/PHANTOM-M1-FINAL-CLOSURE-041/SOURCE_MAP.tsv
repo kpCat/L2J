@@ -1,0 +1,72 @@
+path	permission	boundary
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementPlanner.java	CONDITIONAL_M1_WRITE	existing capability/target/standpoint; сохранить040 AutoUse cursor agreement; no actor/zone exceptions
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementController.java	CONDITIONAL_M1_WRITE	single command owner; stale/busy/retry/earned guarantees
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	CONDITIONAL_M1_WRITE	native progress/rest/debt;035–040 invariants; useful alternative after proven stall
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleFarmTravel.java	CONDITIONAL_M1_WRITE	actual approach/arrival/handoff; stock geo; no teleport-heal
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	CONDITIONAL_M1_WRITE	productive resume/recoverNativeContext/requiresNativeMaterialization; preserve existing CAS and040 fixes
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	CONDITIONAL_M1_WRITE	existing eligibility/useful activity; not new career/economy system
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	CONDITIONAL_M1_WRITE	typed recovery/start/await; actual owner
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	CONDITIONAL_M1_WRITE	existing owned recovery/admission/drain; no new persistence protocol
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	CONDITIONAL_M1_WRITE	existing atomic/CAS/after-commit witness; no new schema/WAL; no success on unknown outcome
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_M1_WRITE	existing lifecycle/observer/safe stop wiring; no scheduler duplication
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	CONDITIONAL_M1_WRITE	soft-away and current observer locality; no radius/cap increase
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java	CONDITIONAL_M1_WRITE	correct soft release without removing hard earned/interaction pins
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	CONDITIONAL_M1_WRITE	store/reentry/recovery existing owner; no replacing identity to clear debt
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomNavigationService.java	CONDITIONAL_M1_WRITE	proven existing route consume/cancel/generation defect only
+java/org/l2jmobius/gameserver/phantoms/navigation/L2jNavigationBackend.java	CONDITIONAL_M1_WRITE	stock geo/native movement adapter; no new backend
+java/org/l2jmobius/gameserver/phantoms/navigation/PhantomWalkCorridorPlanner.java	CONDITIONAL_M1_WRITE	bounded existing search defect; no hand-coded zones/paths
+java/org/l2jmobius/gameserver/phantoms/**/*.java	RELATED_M1_OWNER_ONLY	actual adjacent goal/commit/recovery owner; declare exact method/path before change; stricter rows override
+java/org/l2jmobius/gameserver/localplay/LocalPlayM1Observation.java	CONDITIONAL_OBSERVER_WRITE	passive focus identity/affinity/instance; no player control
+java/org/l2jmobius/gameserver/localplay/LocalPlayPilotService.java	CONDITIONAL_OBSERVER_WRITE	existing worker/focus/status; security/consent preserved; bounded transitions only
+java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java	CONDITIONAL_OBSERVER_WRITE	keep525s/cap5/heartbeat; Synthetic not fake REAL
+java/org/l2jmobius/gameserver/localplay/LocalPlayPilotActions.java	READ_FIRST_CONDITIONAL_SEAM	only proven M1 passive handoff non-interference; no actions for REAL without consent
+java/org/l2jmobius/gameserver/localplay/*.java	RELATED_OBSERVER_OWNER_ONLY	actual found owner needed for standalone passive runtime; exact map first; guards not disabled
+java/org/l2jmobius/gameserver/taskmanagers/AutoPlayTaskManager.java	OPTIONAL_EXISTING_PHANTOM_HOOK	ordinary branch unchanged; no stock battle math edits
+java/org/l2jmobius/gameserver/taskmanagers/AutoUseTaskManager.java	OPTIONAL_EXISTING_PHANTOM_HOOK	actual capability/target seam only; existing resource/damage rules
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeEvidence.java	CONDITIONAL_OBSERVER_ONLY	attribution/phase with causal test; no counter or sticky fault reset
+java/org/l2jmobius/gameserver/phantoms/background/L2jPhantomBackgroundAuthority.java	PROTECTED_READ_ONLY	035 safe full capture
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	PROTECTED_READ_ONLY	035 full/overfull representation and codec
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundModel.java	PROTECTED_READ_ONLY	stock rewards/inventory cap250
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	PROTECTED_READ_ONLY	036 earned lifetime/drain; no cancelling debt
+java/org/l2jmobius/gameserver/model/actor/PlayerNativeWork.java	PROTECTED_READ_ONLY	native earned semantics
+java/org/l2jmobius/gameserver/model/actor/Player.java	PROTECTED_READ_ONLY	no Zariche/general cast fix in041
+java/org/l2jmobius/gameserver/model/actor/Creature.java	PROTECTED_READ_ONLY	stock mechanics
+java/org/l2jmobius/gameserver/ai/PlayerAI.java	PROTECTED_READ_ONLY	stock native execution; not second combat engine
+java/org/l2jmobius/gameserver/ai/PlayableAI.java	PROTECTED_READ_ONLY	Zariche explicitly deferred
+java/org/l2jmobius/gameserver/geoengine/**	PROTECTED_READ_ONLY	stock GeoEngine/PathFinding reused
+java/org/l2jmobius/gameserver/localplay/LocalPlayPhantomStoreJournal.java	PROTECTED_READ_ONLY	existing journal not new scale recorder
+java/org/l2jmobius/gameserver/config/custom/LocalPlayPilotConfig.java	CONDITIONAL_OPERATOR_CONFIG	only proven standalone observer configuration need; no guard bypass/new game policy
+build.xml	CONDITIONAL_BUILD_INTEGRATION	existing target output/copy safety and needed test/pack registration; no build-system rewrite
+Agents.md	ONE_RELEASE_CONTRACT_REFERENCE	append narrow cumulative delivery requirement/link; no wholesale rewrite
+scripts/** or tools/** existing runtime helper	DISCOVER_THEN_EXACT_ALLOWLIST	read equivalent first; only approved minimal deployment helpers; not directory-wide write permission
+tools/phantom-runtime/Build-Package.ps1	CREATE_OR_REUSE_EQUIVALENT	tracked clean input package; scoped outputs; external dependencies explicit
+tools/phantom-runtime/Runtime.ps1	CREATE_OR_REUSE_EQUIVALENT	WinPS5.1 Start/Stop/Status; real incarnation/DB/root/ports; stock shutdown only
+tools/phantom-runtime/Verify-M1.ps1	CREATE_OR_REUSE_EQUIVALENT	reuse existing suites; no private ops-only dependency
+dist/START.cmd	CREATE_OR_REUSE_EQUIVALENT	thin relative-path operator entrypoint; no fault injection
+dist/STOP.cmd	CREATE_OR_REUSE_EQUIVALENT	stock own stop; never force fallback
+dist/STATUS.cmd	CREATE_OR_REUSE_EQUIVALENT	read-only actual status
+dist/START_HERE_RU.md	CREATE_OR_UPDATE_OPERATOR_DOC	real tested commands/paths/configs and required prerequisites
+dist/game/config/Custom/PhantomPlayers.ini	PRESERVE_CONFIG_TEMPLATES	map real config values; no changing gameplay profile to pass
+dist/game/config/Custom/LocalPlayPilot.ini	VERIFY_EXISTS_THEN_NARROW_CONFIG	actual file name from loader; template only; never runtime040a overwrite
+dist/game/config/** and dist/login/config/**	OPERATOR_EXACT_PATH_ONLY	list actual necessary templates first; secrets private; preserve defaults unless justified deploy isolation
+dist/game/data/phantoms/**	RETENTION_READ_ONLY_BY_DEFAULT	include cumulative data; no redesign/hand-picked seed to pass
+other existing deploy templates	DISCOVER_THEN_EXACT_ALLOWLIST	only reusable startup/config template needed by R1; no broad permission
+test/java/org/l2jmobius/tests/phantoms/PhantomM1Closure041Suite.java	CREATE	causal focused native lifecycle/restart/recovery/observer cases
+test/java/org/l2jmobius/gameserver/phantoms/PhantomM1Closure041Checks.java	CREATE_IF_REQUIRED	package-local tests only; no production bypass
+test/java/org/l2jmobius/tests/phantoms/**	CONDITIONAL_RELATED_TEST_WRITE	append041 regressions; retain old assertions and existing test guards
+docs/phantoms/RELEASE_CONTRACT.md	CREATE_OR_REUSE_EQUIVALENT	one durable cumulative feature/build/operator/M7 delivery contract
+docs/phantoms/tasks/PHANTOM-M1-FINAL-CLOSURE-041/**	WRITE_041_FAMILY	input packet and compact outputs; no secrets inGit
+docs/phantoms/tasks/PHANTOM-M1-FULL-CLOSEOUT-040/**	HISTORICAL_READ_ONLY	040 outcomes/known Zariche not rewritten
+docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py	PROTECTED_READ_ONLY	CONTINUITY_V2 byte-exact
+.phantom-local/ops041/**	OWN_PRIVATE041	bounded runner/collector/receipts, strict exact schemas
+.phantom-local/build041/** and .phantom-local/release041/**	OWN_NEW_STAGING041	tracked-input builds only; no alias to protectedruntime
+.phantom-local/client041/**	OWN_NEW_CLIENT_PROFILE041	separate private endpoint; original client/tools not modified
+.phantom-local/contract041a/**	OWN_RUNTIME041	only041a DB/ports
+.phantom-local/contract041b/**	OWN_RUNTIME041	only041b DB/ports
+.phantom-local/contract041t/**	OWN_TEST041	only041t guarded fixtures
+.phantom-local/contract041x72/**	AUTHORIZED_CRASH041	AUTHORITY pre-arm and recovery required; never sharedMaria
+.phantom-local/contract041x73/**	AUTHORIZED_CRASH041	AUTHORITY pre-arm and recovery required; never sharedMaria
+C:/Users/ZBook/PhantomWorld/M1-041/**	NEW_STANDALONE041	only new own directory and041final schema; no arbitrary old overwrite
+.phantom-local/contract040a/**	PROTECTED_LIVE_NO_WRITE	no stop/restart/agent/config/JAR/DB changes; read-only status only
+all prior runtime/ops/raw/DB and MAIN/PLAY	PROTECTED_READ_ONLY	no deletion/repair/recovery on originals
+other chronicles/repositories	PROTECTED_READ_ONLY	HighFive only

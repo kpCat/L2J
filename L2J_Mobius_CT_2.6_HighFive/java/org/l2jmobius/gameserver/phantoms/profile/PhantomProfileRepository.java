@@ -34,7 +34,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.LongFunction;
+import java.util.function.LongPredicate;
 
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceException.Category;
@@ -44,6 +46,12 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfilePersistenceExcept
  */
 public final class PhantomProfileRepository
 {
+	// Optional scalar diagnostics, following the existing owning-transaction witness.
+	// No observer means no extra SQL, payload encoding or durable protocol.
+	private static volatile Consumer<Map<String, String>> _commitWitnessObserver;
+	private static volatile LongPredicate _commitWitnessProfiles;
+	private static final ThreadLocal<List<Map<String, String>>> COMMIT_WITNESSES = new ThreadLocal<>();
+	private static final java.util.concurrent.atomic.AtomicLong COMMIT_SEQUENCE = new java.util.concurrent.atomic.AtomicLong();
 	public record ComponentMutation(String componentType, long expectedRowVersion, int componentSchemaVersion, byte[] payload)
 	{
 		public ComponentMutation
@@ -324,6 +332,7 @@ public final class PhantomProfileRepository
 		final byte[] payloadCopy = PhantomProfileComponent.copyPayload(payload);
 		return write("insert Phantom profile component", connection ->
 		{
+			final var beforeWitness = witnessBefore(connection, profileId, componentType);
 			try (PreparedStatement statement = connection.prepareStatement(INSERT_COMPONENT))
 			{
 				statement.setLong(1, profileId);
@@ -335,7 +344,9 @@ public final class PhantomProfileRepository
 					throw new SQLException("Component insert did not affect exactly one row.");
 				}
 			}
-			return requireComponent(connection, profileId, componentType);
+			final var after = requireComponent(connection, profileId, componentType);
+			witnessGoal(connection, profileId, componentType, beforeWitness, after);
+			return after;
 		});
 	}
 
@@ -385,6 +396,7 @@ public final class PhantomProfileRepository
 		final byte[] payloadCopy = PhantomProfileComponent.copyPayload(payload);
 		return write("update Phantom profile component", connection ->
 		{
+			final var beforeWitness = witnessBefore(connection, profileId, componentType);
 			try (PreparedStatement statement = connection.prepareStatement(UPDATE_COMPONENT))
 			{
 				statement.setInt(1, componentSchemaVersion);
@@ -394,7 +406,9 @@ public final class PhantomProfileRepository
 				statement.setLong(5, expectedRowVersion);
 				requireOptimisticWinner(statement.executeUpdate(), "Phantom profile component update");
 			}
-			return requireComponent(connection, profileId, componentType);
+			final var after = requireComponent(connection, profileId, componentType);
+			witnessGoal(connection, profileId, componentType, beforeWitness, after);
+			return after;
 		});
 	}
 
@@ -420,6 +434,14 @@ public final class PhantomProfileRepository
 		}
 		return write("mutate Phantom profile components atomically", connection ->
 		{
+			final Map<String, PhantomProfileComponent> beforeWitness = COMMIT_WITNESSES.get() == null ? Map.of() : new HashMap<>();
+			if (COMMIT_WITNESSES.get() != null)
+			{
+				for (ComponentMutation mutation : ordered)
+				{
+					beforeWitness.put(mutation.componentType(), witnessBefore(connection, profileId, mutation.componentType()));
+				}
+			}
 			for (ComponentMutation mutation : ordered)
 			{
 				if (mutation.expectedRowVersion() < 0)
@@ -452,7 +474,9 @@ public final class PhantomProfileRepository
 			final List<PhantomProfileComponent> result = new ArrayList<>(ordered.size());
 			for (ComponentMutation mutation : ordered)
 			{
-				result.add(requireComponent(connection, profileId, mutation.componentType()));
+				final var after = requireComponent(connection, profileId, mutation.componentType());
+				result.add(after);
+				witnessGoal(connection, profileId, mutation.componentType(), beforeWitness.get(mutation.componentType()), after);
 			}
 			return List.copyOf(result);
 		});
@@ -465,6 +489,7 @@ public final class PhantomProfileRepository
 		requireRowVersion(expectedRowVersion);
 		write("delete Phantom profile component", connection ->
 		{
+			final var beforeWitness = witnessBefore(connection, profileId, componentType);
 			try (PreparedStatement statement = connection.prepareStatement(DELETE_COMPONENT))
 			{
 				statement.setLong(1, profileId);
@@ -472,6 +497,7 @@ public final class PhantomProfileRepository
 				statement.setLong(3, expectedRowVersion);
 				requireOptimisticWinner(statement.executeUpdate(), "Phantom profile component delete");
 			}
+			witnessGoal(connection, profileId, componentType, beforeWitness, null);
 			return null;
 		});
 	}
@@ -784,6 +810,12 @@ public final class PhantomProfileRepository
 
 	private static <T> T write(String operation, SqlWrite<T> write)
 	{
+		final var previous = COMMIT_WITNESSES.get();
+		final List<Map<String, String>> witnesses = _commitWitnessObserver == null ? null : new ArrayList<>(1);
+		if (witnesses != null)
+		{
+			COMMIT_WITNESSES.set(witnesses);
+		}
 		try (Connection connection = getConnection(operation))
 		{
 			connection.setAutoCommit(false);
@@ -791,6 +823,8 @@ public final class PhantomProfileRepository
 			{
 				final T result = write.execute(connection);
 				connection.commit();
+				// Unknown/failed commit throws before publication; diagnostic rejection never rolls back success.
+				publishCommitted(witnesses, operation);
 				return result;
 			}
 			catch (SQLException e)
@@ -807,6 +841,130 @@ public final class PhantomProfileRepository
 		catch (SQLException e)
 		{
 			throw persistenceFailure(operation, e);
+		}
+		finally
+		{
+			if (previous == null)
+			{
+				COMMIT_WITNESSES.remove();
+			}
+			else
+			{
+				COMMIT_WITNESSES.set(previous);
+			}
+		}
+	}
+
+	private static boolean witnessEnabled(long profileId, String componentType)
+	{
+		final var profiles = _commitWitnessProfiles;
+		if ((COMMIT_WITNESSES.get() == null) || !"goal.runtime".equals(componentType))
+		{
+			return false;
+		}
+		try
+		{
+			return (profiles == null) || profiles.test(profileId);
+		}
+		catch (Throwable failure)
+		{
+			witnessFailure(profileId, componentType, failure);
+			return false;
+		}
+	}
+
+	private static PhantomProfileComponent witnessBefore(Connection connection, long profileId, String componentType)
+	{
+		if (!witnessEnabled(profileId, componentType))
+		{
+			return null;
+		}
+		try
+		{
+			return findComponent(connection, profileId, componentType).orElse(null);
+		}
+		catch (Throwable failure)
+		{
+			witnessFailure(profileId, componentType, failure);
+			return null;
+		}
+	}
+
+	private static void witnessGoal(Connection connection, long profileId, String componentType, PhantomProfileComponent before, PhantomProfileComponent after)
+	{
+		if (!witnessEnabled(profileId, componentType) || COMMIT_WITNESSES.get().stream().anyMatch(row -> row.containsKey("captureFailure")))
+		{
+			return;
+		}
+		try
+		{
+			final var facts = new HashMap<String, String>();
+			final var profile = requireProfile(connection, profileId);
+			facts.put("profileId", Long.toString(profileId));
+			facts.put("objectId", profile.characterObjectId() == null ? "0" : profile.characterObjectId().toString());
+			facts.put("componentName", componentType);
+			facts.put("beforeRowVersion", before == null ? "ABSENT" : Long.toString(before.rowVersion()));
+			facts.put("afterRowVersion", after == null ? "ABSENT" : Long.toString(after.rowVersion()));
+			facts.put("beforePayloadSha256", digest(before == null ? new byte[0] : before.payload()));
+			facts.put("afterPayloadSha256", digest(after == null ? new byte[0] : after.payload()));
+			facts.put("beforePayloadBase64", before == null ? "" : java.util.Base64.getEncoder().encodeToString(before.payload()));
+			facts.put("afterPayloadBase64", after == null ? "" : java.util.Base64.getEncoder().encodeToString(after.payload()));
+			COMMIT_WITNESSES.get().add(Map.copyOf(facts));
+		}
+		catch (Throwable failure)
+		{
+			witnessFailure(profileId, componentType, failure);
+		}
+	}
+
+	private static void witnessFailure(long profileId, String componentType, Throwable failure)
+	{
+		COMMIT_WITNESSES.get().add(Map.of("profileId", Long.toString(profileId), "componentName", componentType, "captureFailure", failure.toString()));
+	}
+
+	private static String digest(byte[] payload)
+	{
+		try
+		{
+			return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(payload));
+		}
+		catch (java.security.NoSuchAlgorithmException impossible)
+		{
+			throw new IllegalStateException(impossible);
+		}
+	}
+
+	private static void publishCommitted(List<Map<String, String>> witnesses, String operation)
+	{
+		try
+		{
+			final var observer = _commitWitnessObserver;
+			if ((observer == null) || (witnesses == null) || witnesses.isEmpty())
+			{
+				return;
+			}
+			final long sequence = COMMIT_SEQUENCE.incrementAndGet();
+			for (int index = 0; index < witnesses.size(); index++)
+			{
+				final var facts = new HashMap<>(witnesses.get(index));
+				facts.put("producer", "PhantomProfileRepository:" + operation);
+				facts.put("commitOutcome", "SUCCESS");
+				facts.put("transactionSequence", "profile-" + sequence);
+				facts.put("writeIndex", Integer.toString(index));
+				facts.put("commitNanos", Long.toString(System.nanoTime()));
+				try
+				{
+					observer.accept(Map.copyOf(facts));
+				}
+				catch (Throwable diagnosticFailure)
+				{
+					// Successful product commit remains authoritative.
+				}
+			}
+		}
+		catch (Throwable diagnosticFailure)
+		{
+			// Allocation/encoding failure cannot turn commit into rollback.
 		}
 	}
 
