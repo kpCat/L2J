@@ -50,6 +50,8 @@ function Invoke-Runtime([string]$Operation,[string]$Name) {
     # Wait for the controller incarnation, independently of descendant pipe EOF.
     $arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $PSScriptRoot 'Runtime.ps1')+'" -Action '+$Operation+' -RuntimeRoot "'+$runtime+'"'
     $controller=Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden -RedirectStandardOutput (Join-Path $report "$Name.log") -RedirectStandardError (Join-Path $report "$Name.stderr.log") -PassThru
+    # WinPS5.1 otherwise closes a redirected child's handle before ExitCode is read.
+    $null=$controller.Handle
     if (!$controller.WaitForExit(650000)) {throw "Operator $Operation controller timeout; no force fallback."}
     if ($Operation -cne 'Start') {$controller.WaitForExit()}
     if ($controller.ExitCode -ne 0) {throw "Operator $Operation failed; log=$Name.log"}
