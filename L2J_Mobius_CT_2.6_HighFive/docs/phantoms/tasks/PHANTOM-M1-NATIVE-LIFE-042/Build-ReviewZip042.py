@@ -18,8 +18,10 @@ digest = lambda data: hashlib.sha256(data).hexdigest()
 if target.exists():
     assert args.replace_sha and digest(target.read_bytes()) == args.replace_sha.lower(), 'Exact own ZIP SHA required before replacing'
     backup = repo / 'L2J_Mobius_CT_2.6_HighFive/.phantom-local/ops042' / ('TASK042-review-' + args.replace_sha[:16] + '.zip')
-    assert not backup.exists(), 'Preserve previous own archive without overwrite'
-    shutil.copyfile(target, backup)
+    if backup.exists():
+        assert digest(backup.read_bytes()) == args.replace_sha.lower(), 'Existing own backup exact SHA'
+    else:
+        shutil.copyfile(target, backup)
 else:
     assert not args.replace_sha, 'Initial ZIP absent'
 excluded = {'TASK042-review.zip', 'TASK042-review.sha256', 'ZIP_VERIFIED042.json'}
@@ -30,7 +32,7 @@ for name in relative:
     if path.name in excluded:
         continue
     if not path.exists():
-        assert not args.replace_sha and path.name in ('PUBLICATION1_042.json', 'GIT_COMMANDS042.json'), name
+        assert path.name in ('PUBLICATION1_042.json', 'GIT_COMMANDS042.json'), name
         continue
     assert path.stat().st_size < 350000, 'Bounded member size'
     members[name] = path.read_bytes()
@@ -51,6 +53,7 @@ with zipfile.ZipFile(temporary) as archive:
     for name, row in actual_hashes.items():
         data = archive.read(name)
         assert digest(data) == row['sha256'] and len(data) == row['bytes'], name
+        assert data == (repo/name).read_bytes(), 'Actual archived source/evidence differs: '+name
     assert digest(archive.read('HASHES042.json')) == digest(members['HASHES042.json'])
 os.replace(temporary, target)
 sha = digest(target.read_bytes())

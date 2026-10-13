@@ -7,7 +7,7 @@ P3_BACKGROUND	NOT_VERIFIED	LIFE042.json	No release or productive background rece
 P3_USEFUL_RETURN	NOT_VERIFIED	LIFE042.json	No return phase reached; no replacement actor
 P4_CONSERVATION	NOT_VERIFIED	CONSERVATION_INDEX042.json	A3/A4/A5/B1/B2 PASS; A1 incomplete; A2 missing typed DONE
 P5_REGRESS	PASS	REGRESSIONS042.json; CURRENT93_042-matrix.tsv	Actual jar-first93/93, lifecycle11/11, soft3/3, debt2/2, action5/5; authority negatives2; chain26
-P6_DELIVERY	REQUIRED	REVIEW_ALLOWLIST042.txt	Ordinary exact-path publication and verified ZIP pending
+P6_DELIVERY	PASS	PUBLICATION1_042.json; ZIP_VERIFIED042.json; DELIVERY042.json	Ordinary exact-path push4006ccc HEAD=remote verified; final delivery commit separately receipted; own JVM0
 TASK042	PARTIAL_VERIFIED	RESULT042.md	G2 PASS; G4 FAIL; P4 NOT_VERIFIED
 M1_G0	UNCHANGED	CURRENT_STATE041.md	No new overall legacy gate claim
 M1_G1	OPEN	CURRENT_STATE041.md	Full G1 separate; affected tests do not close it

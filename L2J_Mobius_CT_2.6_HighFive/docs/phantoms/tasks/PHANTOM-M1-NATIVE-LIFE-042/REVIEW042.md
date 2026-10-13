@@ -40,11 +40,13 @@ Full-save039 validator staged без изменения контрактов. Co
 
 Git прямо разрешён GOAL/TASK/HANDOFF042 и пользователем. Только OWN read audit (status, rev-parse HEAD, ls-remote, exact diff/name-only/cached, exact show population XML) и exact add/ordinary commit/non-force push. Никаких reset/force/clean/restore/merge/rebase/branch/worktree mutations. Exact publication argv — GIT_COMMANDS042.json и DELIVERY042.json; prep argv сохранены в scoped GIT042.jsonl.
 
-До первого commit повторно HEAD=remote=BASE. Два ordinary commits: полезный reviewable результат, затем проверенный ZIP/финальные delivery reports. После первого successful push записывается factual publication receipt. Final SHA не встраивается в собственный commit из-за hash cycle; он записывается в DELIVERY042.json после проверки remote. P6 до фактической проверки REQUIRED.
+До первого commit повторно HEAD=remote=BASE. Первый ordinary commit4006ccc80d4b8bf58d9aa757ffb8f125b88077da опубликован22:45:42 UTC, local=remote/tracked clean подтверждены в PUBLICATION1_042.json. P6=PASS по actual publication/verified compact ZIP/own JVM0. Второй ordinary delivery commit сохраняет финальные отчёты, receipts и повторно проверенный ZIP. Final SHA не встраивается в собственный commit из-за hash cycle; он записывается в DELIVERY042.json после проверки final remote. Ручной gate REQUIRED.
 
 Первый staging не дошёл до commit: default whitespace check посчитал CRLF в локальном Java trailing whitespace, literal unified-diff context — space-before-tab, и inherited blank EOF frozen stock helper. Исходный HEAD остался BASE. Финальный check распознаёт CRLF без изменения repo config; только два точных artifact exceptions — SOURCE_DIFF042.patch и byte-pinned stock Stop-ExactOwnedGracefully.ps1. Сами оба файла просмотрены и SHA-проверены; остальные staged пути проверяются. Resume допускает только ранее подготовленный exact allowlist, без сброса index.
 
 ZIP ограничен allowlist: reports/source/typed stop proofs/bounded metadata. Big raw proofs не перепакованы; paths/SHA доступны локально. Verify проверяет actual ZIP duplicate/path traversal/CRC/member SHA и общий SHA. Manual gate REQUIRED независимо от доставки.
+
+Обновление draft ZIP до первого push было отклонено guard отсутствующего publication receipt; shell продолжил отдельно разрешённый ordinary push первоначального CRC/SHA-verified draft. Final builder допускает только точный SHA собственного draft, сохраняет его backup и перед delivery commit проверяет каждый final member против фактического OWN файла. Исходный draft и финальный ZIP различаются только TASK042 review artifacts; game/evaluator/native outcomes не менялись.
 
 mojibake-маркеры в изменённых файлах проверены: PASS, exact allowlist.
 escaped Cyrillic в изменённых файлах проверены: PASS, отдельная regex-проверка exact allowlist.

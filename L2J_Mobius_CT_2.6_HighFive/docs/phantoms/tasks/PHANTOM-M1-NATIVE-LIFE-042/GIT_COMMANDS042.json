@@ -1,0 +1,190 @@
+[
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "ls-remote",
+      "origin",
+      "refs/heads/experiment/m1-candidate007-observe008"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "diff",
+      "--cached",
+      "--name-only"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "diff",
+      "--name-only"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "diff",
+      "a5674811479d087ec7f67ca62921ffa85d298263",
+      "--",
+      "L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "add",
+      "--pathspec-from-file=C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\publication-pathspec042.txt"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "diff",
+      "--cached",
+      "--name-only"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "-c",
+      "core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol",
+      "diff",
+      "--cached",
+      "--check",
+      "--",
+      ".",
+      ":(exclude)L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-LIFE-042/SOURCE_DIFF042.patch",
+      ":(exclude)L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-NATIVE-LIFE-042/proposals/ops042/Stop-ExactOwnedGracefully.ps1"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "ls-remote",
+      "origin",
+      "refs/heads/experiment/m1-candidate007-observe008"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "commit",
+      "-m",
+      "TASK042: preserve native G2 proof and honest G4 combat failure"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "ls-remote",
+      "origin",
+      "refs/heads/experiment/m1-candidate007-observe008"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "push",
+      "origin",
+      "HEAD:refs/heads/experiment/m1-candidate007-observe008"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "ls-remote",
+      "origin",
+      "refs/heads/experiment/m1-candidate007-observe008"
+    ],
+    "exitCode": 0
+  },
+  {
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "status",
+      "--porcelain=v1",
+      "--untracked-files=no"
+    ],
+    "exitCode": 0
+  }
+]

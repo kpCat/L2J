@@ -27,4 +27,6 @@ A3/A4 — проверки входных условий, A1 — неполны�
 
 FINAL_OWNERSHIP042.json: own JVM0, protected040a Login18688/Game30312 с прежними start ticks/runtime, immutable source preserved. Все собственные игровые JVM штатно закрыты. Старые DB/raw,040a,041x72/73,041final,MAIN/PLAY не изменялись. Crash, forced termination, client probes/hooks, SQL heal и M2 не выполнялись. Нового worktree/субагентов нет.
 
-Scope exception >10 paths ограничен одним новым TASK042 artifact family и одним существующим TEST owner; точный перечень — REVIEW_ALLOWLIST042.txt. Полные raw/SQL/proofs остаются локально, хеши и пути в компактных evidence. До публикации P6=REQUIRED; финальное подтверждение — DELIVERY042.json после ordinary commit/push и HEAD=remote.
+Scope exception >10 paths ограничен одним новым TASK042 artifact family и одним существующим TEST owner; точный перечень — REVIEW_ALLOWLIST042.txt. Полные raw/SQL/proofs остаются локально, хеши и пути в компактных evidence.
+
+22:45:42 UTC: ordinary commit4006ccc80d4b8bf58d9aa757ffb8f125b88077da опубликован; HEAD=remote, tracked clean, actual compact ZIP CRC/memberSHA PASS. P6=PASS по PUBLICATION1_042.json и ZIP_VERIFIED042.json. Финальный delivery commit публикует обновлённые отчёты/receipt и заново проверенный ZIP; его exact SHA/remote записывается в DELIVERY042.json после push. Ручная приёмка REQUIRED; G4/P4 от доставки не меняются.
