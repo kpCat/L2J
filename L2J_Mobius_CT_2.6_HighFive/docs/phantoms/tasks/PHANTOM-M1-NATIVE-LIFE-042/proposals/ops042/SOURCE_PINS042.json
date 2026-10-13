@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Control032.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Control032.ps1",
+    "sha256": "a6f5715d2aaab942bb7dd1e376b8ba39c9b4085b32950a69ca852c31c14ff709"
+  },
+  {
+    "name": "Observe032.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Observe032.ps1",
+    "sha256": "fc60c624a7181598f939a576125528a2caf35989dc9bf2345df3fa292aeddcbb"
+  },
+  {
+    "name": "Contract032Observer.java",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Contract032Observer.java",
+    "sha256": "00e40be35b48c58eb4dfbff4b38b13ac11268d4ee43d4d434202ce7e86549e62"
+  },
+  {
+    "name": "Read-SharedJson032.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Read-SharedJson032.ps1",
+    "sha256": "d3f3a0f57e557f60cb1d20c87286d5ebddd79fd40b6ac53ec9c5a1238eec1eda"
+  },
+  {
+    "name": "ReadDryRoute032.java",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\ReadDryRoute032.java",
+    "sha256": "1f366c120f4213efb1a0c01ec920793e5ba1a3a449c27da8dea8074fff0425b6"
+  },
+  {
+    "name": "ReadDryPath042.java",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\ReadDryPath042.java",
+    "sha256": "27e2e8ba8bc10f7101569120ccaa9316d2ca528606377617d029975feefb22c5"
+  },
+  {
+    "name": "Select-Primary042.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Select-Primary042.ps1",
+    "sha256": "78ced30b3a7d05f1bd744d7709fdac2da970d175b00f7be9e487c3548f863f2e"
+  },
+  {
+    "name": "Select-ReadySetup042.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Select-ReadySetup042.ps1",
+    "sha256": "2c32257b9e7800824915ceee1bf8d364fd7de66d9a78370402488ff7b57a33d2"
+  },
+  {
+    "name": "Run-CensusPreparation042.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Run-CensusPreparation042.ps1",
+    "sha256": "eee5f8b01679bb5255c379e4bacd9ec913af510613520dccf33f08f6d67f30a6"
+  },
+  {
+    "name": "Run-NativeGroup042.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Run-NativeGroup042.ps1",
+    "sha256": "e80c18c3f5fa2c397e50468328515f0424abd0745cccb945cbd8ecaa91adc53d"
+  },
+  {
+    "name": "All-Birth-Cut042.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\All-Birth-Cut042.ps1",
+    "sha256": "d7c360166fe484a13c65a0941a5b08d4638c41e57a580648a9c81593232ca2b3"
+  },
+  {
+    "name": "SplitSql039.py",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\SplitSql039.py",
+    "sha256": "59f6152fcaa525ca6b4116cbda065d83a097a6041d98f0383047f02a1cf520d2"
+  },
+  {
+    "name": "Build-StockShutdown042.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Build-StockShutdown042.ps1",
+    "sha256": "7bdccfa819c0455a6470c7738ae0a9e941827adf674fc53745dfbab29d48807b"
+  },
+  {
+    "name": "Stop-ExactOwnedGracefully.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Stop-ExactOwnedGracefully.ps1",
+    "sha256": "8b7713f1a858484595c919f32e8297b3d5cb5c73ad38572e5d903f856b25c446"
+  },
+  {
+    "name": "RequestShutdown.java",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\RequestShutdown.java",
+    "sha256": "f6d4d7cebe8a96940a734ca04c5161f34417707cc1feacba91d6c9409a00b473"
+  },
+  {
+    "name": "RuntimeShutdownAgent.java",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\RuntimeShutdownAgent.java",
+    "sha256": "c57a1b36f3d31c45bd05c2452efb2873d7c0f10b6005f1bd341b1b12b8a36012"
+  },
+  {
+    "name": "Prepare032.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Prepare032.ps1",
+    "sha256": "755545fda43b5e7204b566be3de832c8992aeb1c29c68ff49b1750c7418e4e94"
+  },
+  {
+    "name": "Invoke-Git042.ps1",
+    "source": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops042\\Invoke-Git042.ps1",
+    "sha256": "3876a24ea1135aa28f1254c4b16f7450c56bbe8f7e552ddfdc8dbebf9914d291"
+  }
+]

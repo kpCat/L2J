@@ -1,0 +1,127 @@
+{
+  "G2": "PASS",
+  "gameJarSha256": "5c4ae8bfff0568ad2fd204f6c3be79268d03c55ed95862c5b24619ad3719e98c",
+  "evaluatorSha256": "15c153d30fe7f85719b1698059f4e28c9c7fa325caa420a02de7ac19cff35112",
+  "independentDatabase": true,
+  "distinctCohortIdentities": true,
+  "C24": {
+    "seconds": 381.6816272,
+    "cohort": [
+      {
+        "profileId": "418",
+        "primary": true,
+        "cycles": 39,
+        "pass": true
+      },
+      {
+        "profileId": "426",
+        "primary": true,
+        "cycles": 36,
+        "pass": true
+      },
+      {
+        "profileId": "448",
+        "primary": false,
+        "cycles": 35,
+        "pass": true
+      },
+      {
+        "profileId": "506",
+        "primary": false,
+        "cycles": 23,
+        "pass": true
+      },
+      {
+        "profileId": "606",
+        "primary": false,
+        "cycles": 34,
+        "pass": true
+      },
+      {
+        "profileId": "697",
+        "primary": false,
+        "cycles": 34,
+        "pass": true
+      },
+      {
+        "profileId": "1009",
+        "primary": false,
+        "cycles": 16,
+        "pass": true
+      },
+      {
+        "profileId": "1032",
+        "primary": false,
+        "cycles": 33,
+        "pass": true
+      }
+    ],
+    "metadataSha256": "8a2e66cdbc8bab65fba5f1a903769605706ce0fe56498b927702eae293f897f2"
+  },
+  "A5": {
+    "seconds": 382.3743138,
+    "denominator": 8,
+    "rows": [
+      {
+        "profileId": "553",
+        "primary": true,
+        "cycles": 33,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "profileId": "676",
+        "primary": false,
+        "cycles": 34,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "profileId": "872",
+        "primary": true,
+        "cycles": 40,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "profileId": "981",
+        "primary": false,
+        "cycles": 41,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "profileId": "1241",
+        "primary": false,
+        "cycles": 36,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "profileId": "1259",
+        "primary": false,
+        "cycles": 34,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "profileId": "1267",
+        "primary": false,
+        "cycles": 34,
+        "pass": true,
+        "faults": []
+      },
+      {
+        "profileId": "1272",
+        "primary": false,
+        "cycles": 34,
+        "pass": true,
+        "faults": []
+      }
+    ],
+    "originalResultSha256": "4afec7938ff0c7b8192a6a56832f12301d3f570cdccecf85bdf25aa6649190fd",
+    "allSamplesSha256": "4ce8e09958f2aca896232e323410ef9f52bcb6616774412f8233fea34f0014df",
+    "prospectiveRuleSha256": "ce6bdfde245a15a24f289301394e31ce05d779d92f728934fc786c546c0aaffc"
+  },
+  "originalC8": "FAIL_PRESERVED; profile276 not excluded or re-evaluated"
+}

@@ -1,0 +1,7 @@
+﻿{
+    "case":  "MixedOwners",
+    "expectedFailure":  "Only one exact owned lane may be selected.",
+    "processExit":  1,
+    "pass":  true,
+    "beforeDatabaseInit":  true
+}

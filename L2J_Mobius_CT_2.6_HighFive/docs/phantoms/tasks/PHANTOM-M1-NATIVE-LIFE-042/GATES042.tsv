@@ -1,0 +1,24 @@
+gate	status	evidence	qualification
+P0_INPUT	PASS	CHECKPOINT042.md; FINAL_OWNERSHIP042.json	Exact initial BASE/remote; OWN HighFive; protected040a/source preserved
+P1_CAUSE276	PASS	CAUSE276042.json	LEGAL_SOFT_RELEASE; original C8 FAIL retained
+P2_GROUPS_G2	PASS	GROUPS042.json; C24_REUSE042.json	Original CONTINUITY_V2 A5 8/8 382.3743138s; independent exact-candidate C24 8/8 381.6816272s
+P3_LIFE_G4	FAIL	LIFE042.json; LIFE_B2_AI_FAILURE042.json	Same367 native earned; actual combat held ACTIVE_ACTION past SOFT_RETIRE_BOUND120
+P3_BACKGROUND	NOT_VERIFIED	LIFE042.json	No release or productive background receipt reached
+P3_USEFUL_RETURN	NOT_VERIFIED	LIFE042.json	No return phase reached; no replacement actor
+P4_CONSERVATION	NOT_VERIFIED	CONSERVATION_INDEX042.json	A3/A4/A5/B1/B2 PASS; A1 incomplete; A2 missing typed DONE
+P5_REGRESS	PASS	REGRESSIONS042.json; CURRENT93_042-matrix.tsv	Actual jar-first93/93, lifecycle11/11, soft3/3, debt2/2, action5/5; authority negatives2; chain26
+P6_DELIVERY	REQUIRED	REVIEW_ALLOWLIST042.txt	Ordinary exact-path publication and verified ZIP pending
+TASK042	PARTIAL_VERIFIED	RESULT042.md	G2 PASS; G4 FAIL; P4 NOT_VERIFIED
+M1_G0	UNCHANGED	CURRENT_STATE041.md	No new overall legacy gate claim
+M1_G1	OPEN	CURRENT_STATE041.md	Full G1 separate; affected tests do not close it
+M1_G2	PASS	GROUPS042.json	Only scoped natural group claim
+M1_G3	OPEN	CONSERVATION_INDEX042.json	Across acceptance set separate; P4 gap retained
+M1_G4	FAIL	LIFE042.json	Productive lifecycle not demonstrated
+M1_G5	OPEN	CURRENT_STATE041.md	Separate cross-boot task
+M1_G6	OPEN	CURRENT_STATE041.md	No crash72/73 or emergency route
+M1_G7	REQUIRED	REVIEW042.md	Final manual review not self-passed
+M1_G8	OPEN	CURRENT_STATE041.md	Separate final acceptance
+R1	OPEN	CURRENT_STATE041.md	Separate delivery campaign
+REAL_FINAL	OPEN	CURRENT_STATE041.md	Actual final gate not run
+M1	OPEN	RESULT042.md	Not CLOSED
+READY_FOR_M2	false	RESULT042.md	M2 not started

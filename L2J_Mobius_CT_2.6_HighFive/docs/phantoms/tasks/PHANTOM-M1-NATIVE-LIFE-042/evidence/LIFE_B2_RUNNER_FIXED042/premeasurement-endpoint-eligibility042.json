@@ -1,0 +1,74 @@
+﻿[
+    {
+        "profileId":  "367",
+        "worldPresent":  "true",
+        "x":  "46760",
+        "y":  "41478",
+        "z":  "-3504",
+        "prewarm":  "false",
+        "nativeVisible":  "false"
+    },
+    {
+        "profileId":  "381",
+        "worldPresent":  "true",
+        "x":  "46760",
+        "y":  "41478",
+        "z":  "-3504",
+        "prewarm":  "false",
+        "nativeVisible":  "false"
+    },
+    {
+        "profileId":  "389",
+        "worldPresent":  "true",
+        "x":  "46408",
+        "y":  "41262",
+        "z":  "-3504",
+        "prewarm":  "false",
+        "nativeVisible":  "false"
+    },
+    {
+        "profileId":  "394",
+        "worldPresent":  "true",
+        "x":  "44722",
+        "y":  "43002",
+        "z":  "-3536",
+        "prewarm":  "false",
+        "nativeVisible":  "false"
+    },
+    {
+        "profileId":  "407",
+        "worldPresent":  "true",
+        "x":  "46706",
+        "y":  "41427",
+        "z":  "-3504",
+        "prewarm":  "false",
+        "nativeVisible":  "false"
+    },
+    {
+        "profileId":  "418",
+        "worldPresent":  "true",
+        "x":  "46458",
+        "y":  "41682",
+        "z":  "-3504",
+        "prewarm":  "false",
+        "nativeVisible":  "false"
+    },
+    {
+        "profileId":  "426",
+        "worldPresent":  "true",
+        "x":  "45714",
+        "y":  "41650",
+        "z":  "-3504",
+        "prewarm":  "false",
+        "nativeVisible":  "false"
+    },
+    {
+        "profileId":  "448",
+        "worldPresent":  "true",
+        "x":  "46446",
+        "y":  "41104",
+        "z":  "-3504",
+        "prewarm":  "false",
+        "nativeVisible":  "false"
+    }
+]

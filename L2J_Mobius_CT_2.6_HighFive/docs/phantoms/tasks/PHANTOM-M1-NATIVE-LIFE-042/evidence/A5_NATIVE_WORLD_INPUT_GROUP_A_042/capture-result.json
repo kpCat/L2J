@@ -1,0 +1,19 @@
+﻿{
+    "kind":  "Scene",
+    "sha":  "a5674811479d087ec7f67ca62921ffa85d298263",
+    "runId":  "026e2572-7234-439b-9448-b5944432d84e",
+    "seconds":  382.3743138,
+    "nativeUniqueSamples":  367,
+    "maxGapSeconds":  1.2536294,
+    "commandCount":  9,
+    "baselineCount":  8,
+    "primaryIds":  [
+                       "553",
+                       "872"
+                   ],
+    "sameSession":  true,
+    "telemetryMailboxCommands":  0,
+    "sequenceBefore":  10,
+    "sequenceAfter":  10,
+    "arrivalProof":  false
+}

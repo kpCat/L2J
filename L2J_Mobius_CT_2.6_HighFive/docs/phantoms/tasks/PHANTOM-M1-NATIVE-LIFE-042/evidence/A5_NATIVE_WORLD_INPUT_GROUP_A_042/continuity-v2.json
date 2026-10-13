@@ -1,0 +1,244 @@
+{
+  "contract": "CONTINUITY_V2",
+  "denominator": 8,
+  "seconds": 382.3743138,
+  "problems": [],
+  "rows": [
+    {
+      "profileId": "553",
+      "primary": true,
+      "minimum": 5,
+      "cycles": 33,
+      "segments": [
+        {
+          "epoch": 657898001302400,
+          "from": 0.0,
+          "to": 379.2053778,
+          "delta": {
+            "FarmCycleSequence": 33,
+            "KillSequence": 33,
+            "RewardSequence": 33,
+            "DamageSequence": 129,
+            "TargetSequence": 41,
+            "ExpGained": 1749,
+            "SpGained": 192
+          },
+          "cycles": 33,
+          "maxIdleSeconds": 16.787026600000047,
+          "tail120Rewards": 8
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "676",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 34,
+      "segments": [
+        {
+          "epoch": 657904102309000,
+          "from": 0.0,
+          "to": 379.2053778,
+          "delta": {
+            "FarmCycleSequence": 34,
+            "KillSequence": 34,
+            "RewardSequence": 34,
+            "DamageSequence": 136,
+            "TargetSequence": 43,
+            "ExpGained": 1948,
+            "SpGained": 216
+          },
+          "cycles": 34,
+          "maxIdleSeconds": 20.078207999999997,
+          "tail120Rewards": 10
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "872",
+      "primary": true,
+      "minimum": 5,
+      "cycles": 40,
+      "segments": [
+        {
+          "epoch": 657972347201700,
+          "from": 0.0,
+          "to": 379.2053778,
+          "delta": {
+            "FarmCycleSequence": 40,
+            "KillSequence": 41,
+            "RewardSequence": 41,
+            "DamageSequence": 41,
+            "TargetSequence": 48,
+            "ExpGained": 3287,
+            "SpGained": 374
+          },
+          "cycles": 40,
+          "maxIdleSeconds": 23.6972121,
+          "tail120Rewards": 11
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "981",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 41,
+      "segments": [
+        {
+          "epoch": 657896401623400,
+          "from": 0.0,
+          "to": 379.2053778,
+          "delta": {
+            "FarmCycleSequence": 41,
+            "KillSequence": 42,
+            "RewardSequence": 42,
+            "DamageSequence": 44,
+            "TargetSequence": 41,
+            "ExpGained": 8820,
+            "SpGained": 420
+          },
+          "cycles": 41,
+          "maxIdleSeconds": 21.6840593,
+          "tail120Rewards": 12
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "1241",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 36,
+      "segments": [
+        {
+          "epoch": 657897201306000,
+          "from": 0.0,
+          "to": 379.2053778,
+          "delta": {
+            "FarmCycleSequence": 36,
+            "KillSequence": 36,
+            "RewardSequence": 37,
+            "DamageSequence": 36,
+            "TargetSequence": 45,
+            "ExpGained": 2952,
+            "SpGained": 332
+          },
+          "cycles": 36,
+          "maxIdleSeconds": 26.195888200000013,
+          "tail120Rewards": 11
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "1259",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 34,
+      "segments": [
+        {
+          "epoch": 657897543211900,
+          "from": 0.0,
+          "to": 379.2053778,
+          "delta": {
+            "FarmCycleSequence": 34,
+            "KillSequence": 34,
+            "RewardSequence": 35,
+            "DamageSequence": 112,
+            "TargetSequence": 47,
+            "ExpGained": 1616,
+            "SpGained": 174
+          },
+          "cycles": 34,
+          "maxIdleSeconds": 17.410567499999985,
+          "tail120Rewards": 11
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "1267",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 34,
+      "segments": [
+        {
+          "epoch": 657896227808200,
+          "from": 0.0,
+          "to": 379.2053778,
+          "delta": {
+            "FarmCycleSequence": 34,
+            "KillSequence": 36,
+            "RewardSequence": 36,
+            "DamageSequence": 121,
+            "TargetSequence": 46,
+            "ExpGained": 1857,
+            "SpGained": 202
+          },
+          "cycles": 34,
+          "maxIdleSeconds": 16.797126200000008,
+          "tail120Rewards": 12
+        }
+      ],
+      "faults": [],
+      "pass": true
+    },
+    {
+      "profileId": "1272",
+      "primary": false,
+      "minimum": 2,
+      "cycles": 34,
+      "segments": [
+        {
+          "epoch": 657896408382200,
+          "from": 0.0,
+          "to": 379.2053778,
+          "delta": {
+            "FarmCycleSequence": 34,
+            "KillSequence": 35,
+            "RewardSequence": 35,
+            "DamageSequence": 104,
+            "TargetSequence": 50,
+            "ExpGained": 1481,
+            "SpGained": 156
+          },
+          "cycles": 34,
+          "maxIdleSeconds": 15.176585799999998,
+          "tail120Rewards": 9
+        }
+      ],
+      "faults": [],
+      "pass": true
+    }
+  ],
+  "pass": true,
+  "inputs": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-NATIVE-LIFE-042\\evidence\\A5_NATIVE_WORLD_INPUT_GROUP_A_042\\capture-result.json",
+      "sha256": "0ff27933eccd90a58b1fc8d32ef46a0dd5bd2cb21cc10c4772ea3e380ce75faf"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-NATIVE-LIFE-042\\evidence\\A5_NATIVE_WORLD_INPUT_GROUP_A_042\\baseline-cohort.json",
+      "sha256": "80674b0c537b6914cf214ed42db53ddafd340276398d901ca78cfe8085b64cb8"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-NATIVE-LIFE-042\\evidence\\A5_NATIVE_WORLD_INPUT_GROUP_A_042\\all-samples.json",
+      "sha256": "4ce8e09958f2aca896232e323410ef9f52bcb6616774412f8233fea34f0014df"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-NATIVE-LIFE-042\\evidence\\A5_NATIVE_WORLD_INPUT_GROUP_A_042\\primary.json",
+      "sha256": "d55d329a4f2feb54724e9c5a1910c3cdcc24afe3873e90cda1fd3de3426aa38e"
+    }
+  ],
+  "frozenSha": "a5674811479d087ec7f67ca62921ffa85d298263"
+}

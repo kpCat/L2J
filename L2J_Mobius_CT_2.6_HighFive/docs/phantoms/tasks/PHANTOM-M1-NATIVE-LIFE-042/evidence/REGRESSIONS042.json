@@ -1,0 +1,82 @@
+{
+  "matrixRoutes": 18,
+  "matrixPassed": 93,
+  "matrixFailed": 0,
+  "matrixSha256": "c56293e831744e7e61ea1dc54d619c56f1f280565b1320a1c6b5d11d47df21f2",
+  "tests": [
+    {
+      "label": "TESTLANE_GREEN042",
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "suite": "lifecycle-completion027",
+      "focus": "",
+      "jarSha256": "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+      "logSha256": "ad60f7da7cd711c1a814db9a0c45f52396dfa1c99297a83819eac96b7fa416a1",
+      "provenanceSha256": "bce5b411ff2060681b07fbd4decfe53c2f434646e56135bb9427ac803410f4f1",
+      "qualification": "ACTUAL_CURRENT_JAR_FIRST"
+    },
+    {
+      "label": "LIFECYCLE11_RUN042",
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "suite": "lifecycle-completion027",
+      "focus": "acceptance",
+      "jarSha256": "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+      "logSha256": "931aef39ca3aec6b5b13905b45e484228d4dd542830e502335ca47145b33a932",
+      "provenanceSha256": "dec3f5d425387bdb571853aa7d7db3d2aedc9308aef9561e4bf1c6e3e4e2078e",
+      "qualification": "ACTUAL_CURRENT_JAR_FIRST"
+    },
+    {
+      "label": "SOFT_RETURN042",
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "suite": "soft-return028",
+      "focus": "",
+      "jarSha256": "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+      "logSha256": "870d7cbd8d4f4619124184d8ecc2bbe98dd51e2751962f0201b866c72e26d9ec",
+      "provenanceSha256": "444712c8fab2272d6467fc12870430d2ba74d74b503ab475e91c9fffd7b88b95",
+      "qualification": "ACTUAL_CURRENT_JAR_FIRST"
+    },
+    {
+      "label": "DEBT_NEGATIVE042",
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "suite": "visible-continuity032",
+      "focus": "debt037",
+      "jarSha256": "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+      "logSha256": "791a383c99a9a5acdc56eb43d38d57a81a3e5285eae85923d323a64cf30e0ec8",
+      "provenanceSha256": "4e1ad9bf3ae455b153c7073a6b42540a0d9e82905a2c64463959c88f5d0b2f18",
+      "qualification": "Unsupported debt037 focus ran default continuity8; actual debt2 is DEBT90_RUN042"
+    },
+    {
+      "label": "DEBT90_RUN042",
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "suite": "visible-continuity032",
+      "focus": "continuity037",
+      "jarSha256": "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+      "logSha256": "551dadc7da43762e89a44c8fba92723480fc9054bdbe278528200282dc0a7922",
+      "provenanceSha256": "46533f5bf2c07e1b1916cc686c3ebc44dc9ab9046dc7af4ce120e6749013d5f1",
+      "qualification": "ACTUAL_CURRENT_JAR_FIRST"
+    },
+    {
+      "label": "ACTION_LOOP042",
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "suite": "action-loop038",
+      "focus": "full038",
+      "jarSha256": "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+      "logSha256": "4bf7a996b699bcd3cea5b7ffcd309cd2c22760eedde9d094447e0163139ccf99",
+      "provenanceSha256": "44f71e4a8d08edc31fff142249fde7b74574d3229689b97d481fd7dd0518c8d5",
+      "qualification": "ACTUAL_CURRENT_JAR_FIRST"
+    }
+  ],
+  "chainNegativeCases": 26,
+  "chainLogSha256": "bd6b3f96787f9ea26a1f4bc120f2826194b2179bead69096ca0bd251a2f2852a"
+}

@@ -1,0 +1,208 @@
+{
+  "contract": "TASK042_B2_SOFT_RETIRE_FAILURE",
+  "profileId": 367,
+  "objectId": 268487935,
+  "actualFailure": "SOFT_RETIRE_BOUND120",
+  "frames": 120,
+  "pinCounts": {
+    "ACTIVE_ACTION, RECENT_HUMAN": 30,
+    "ACTIVE_ACTION": 90
+  },
+  "tickCounts": {
+    "completed": 30,
+    "locality_retire_paused": 89,
+    "command_writer_paused": 1
+  },
+  "samples": [
+    {
+      "seconds": 2.0839218,
+      "sampleNanos": 657417632835300,
+      "world": "true",
+      "xyz": [
+        "46623",
+        "41156",
+        "-3504"
+      ],
+      "physical": "false",
+      "prewarm": "false",
+      "lastHuman": "657387667767800",
+      "recentAge": "29.9650675",
+      "pins": "ACTIVE_ACTION, RECENT_HUMAN",
+      "tick": "completed",
+      "inCombat": "true",
+      "attacking": "true",
+      "moving": "false",
+      "hp": "180.0",
+      "aiAutoAttacking": "true",
+      "aiAttackTarget": "268477408",
+      "aiAttackTargetDead": "false",
+      "cycles": "19",
+      "damage": "61",
+      "runtime": "background.visible.autoplay_running",
+      "current": {
+        "current.nativeOwnerOutstanding": "1",
+        "current.nativeOwnerWorkSampleNanos": "657417581279900",
+        "current.nativeOwnerPendingTimers": "1",
+        "current.nativeOwnerWork": "[8994:attack-ready:RESERVED:CANCELLABLE:depth=2:ageMs=1005]",
+        "current.nativeLastCompletedEvent": "8702:EVENT:ON_ATTACKABLE_KILL:COMPLETED:epoch=657223077372300:reserve=657410448894000:submit=657410448904200:executorEntered=657412949485600:start=657412949486500:bodyExit=657412949534600:bodyOutcome=SUCCESS:end=657412949534700:semantics=EARNED:parent=8699:depth=5:delayMs=2500:future=done=false,cancelled=false,dueMs=0",
+        "current.nativeOwnerState": "OPEN",
+        "current.nativeFirstIncident": "",
+        "current.nativeFirstIncidentUtc": "",
+        "current.nativeFirstIncidentDetail": ""
+      }
+    },
+    {
+      "seconds": 32.7926853,
+      "sampleNanos": 657448341598800,
+      "world": "true",
+      "xyz": [
+        "46191",
+        "41615",
+        "-3504"
+      ],
+      "physical": "false",
+      "prewarm": "false",
+      "lastHuman": "657387667767800",
+      "recentAge": "60.673831",
+      "pins": "ACTIVE_ACTION",
+      "tick": "locality_retire_paused",
+      "inCombat": "true",
+      "attacking": "true",
+      "moving": "false",
+      "hp": "179.70585599999998",
+      "aiAutoAttacking": "true",
+      "aiAttackTarget": "0",
+      "aiAttackTargetDead": "false",
+      "cycles": "22",
+      "damage": "71",
+      "runtime": "background.visible.autoplay_running",
+      "current": {
+        "current.nativeOwnerOutstanding": "2",
+        "current.nativeOwnerWorkSampleNanos": "657448279006000",
+        "current.nativeOwnerPendingTimers": "2",
+        "current.nativeOwnerWork": "[10479:attack-ready:RESERVED:CANCELLABLE:depth=2:ageMs=900, 10503:attack-hit:RESERVED:EARNED:depth=2:ageMs=325]",
+        "current.nativeLastCompletedEvent": "10210:EVENT:ON_ATTACKABLE_KILL:COMPLETED:epoch=657223077372300:reserve=657442397805200:submit=657442397816400:executorEntered=657444898032900:start=657444898034000:bodyExit=657444898075000:bodyOutcome=SUCCESS:end=657444898075300:semantics=EARNED:parent=10207:depth=5:delayMs=2500:future=done=false,cancelled=false,dueMs=0",
+        "current.nativeOwnerState": "OPEN",
+        "current.nativeFirstIncident": "",
+        "current.nativeFirstIncidentUtc": "",
+        "current.nativeFirstIncidentDetail": ""
+      }
+    },
+    {
+      "seconds": 63.0686628,
+      "sampleNanos": 657478617576300,
+      "world": "true",
+      "xyz": [
+        "46191",
+        "41615",
+        "-3504"
+      ],
+      "physical": "false",
+      "prewarm": "false",
+      "lastHuman": "657387667767800",
+      "recentAge": "90.9498085",
+      "pins": "ACTIVE_ACTION",
+      "tick": "locality_retire_paused",
+      "inCombat": "true",
+      "attacking": "false",
+      "moving": "false",
+      "hp": "133.82329599999997",
+      "aiAutoAttacking": "true",
+      "aiAttackTarget": "0",
+      "aiAttackTargetDead": "false",
+      "cycles": "22",
+      "damage": "71",
+      "runtime": "background.visible.autoplay_running",
+      "current": {
+        "current.nativeOwnerOutstanding": "1",
+        "current.nativeOwnerWorkSampleNanos": "657478578772200",
+        "current.nativeOwnerPendingTimers": "2",
+        "current.nativeOwnerWork": "[12598:attack-hit:RESERVED:EARNED:depth=2:ageMs=33]",
+        "current.nativeLastCompletedEvent": "10210:EVENT:ON_ATTACKABLE_KILL:COMPLETED:epoch=657223077372300:reserve=657442397805200:submit=657442397816400:executorEntered=657444898032900:start=657444898034000:bodyExit=657444898075000:bodyOutcome=SUCCESS:end=657444898075300:semantics=EARNED:parent=10207:depth=5:delayMs=2500:future=done=false,cancelled=false,dueMs=0",
+        "current.nativeOwnerState": "OPEN",
+        "current.nativeFirstIncident": "",
+        "current.nativeFirstIncidentUtc": "",
+        "current.nativeFirstIncidentDetail": ""
+      }
+    },
+    {
+      "seconds": 93.2216627,
+      "sampleNanos": 657508770576200,
+      "world": "true",
+      "xyz": [
+        "46191",
+        "41615",
+        "-3504"
+      ],
+      "physical": "false",
+      "prewarm": "false",
+      "lastHuman": "657387667767800",
+      "recentAge": "121.1028084",
+      "pins": "ACTIVE_ACTION",
+      "tick": "locality_retire_paused",
+      "inCombat": "true",
+      "attacking": "false",
+      "moving": "false",
+      "hp": "81.94073599999996",
+      "aiAutoAttacking": "true",
+      "aiAttackTarget": "0",
+      "aiAttackTargetDead": "false",
+      "cycles": "22",
+      "damage": "71",
+      "runtime": "background.visible.autoplay_running",
+      "current": {
+        "current.nativeOwnerOutstanding": "0",
+        "current.nativeOwnerWorkSampleNanos": "657508680417000",
+        "current.nativeOwnerPendingTimers": "2",
+        "current.nativeOwnerWork": "[]",
+        "current.nativeLastCompletedEvent": "10210:EVENT:ON_ATTACKABLE_KILL:COMPLETED:epoch=657223077372300:reserve=657442397805200:submit=657442397816400:executorEntered=657444898032900:start=657444898034000:bodyExit=657444898075000:bodyOutcome=SUCCESS:end=657444898075300:semantics=EARNED:parent=10207:depth=5:delayMs=2500:future=done=false,cancelled=false,dueMs=0",
+        "current.nativeOwnerState": "OPEN",
+        "current.nativeFirstIncident": "",
+        "current.nativeFirstIncidentUtc": "",
+        "current.nativeFirstIncidentDetail": ""
+      }
+    },
+    {
+      "seconds": 122.6341681,
+      "sampleNanos": 657538183081600,
+      "world": "true",
+      "xyz": [
+        "46191",
+        "41615",
+        "-3504"
+      ],
+      "physical": "false",
+      "prewarm": "false",
+      "lastHuman": "657387667767800",
+      "recentAge": "150.5153138",
+      "pins": "ACTIVE_ACTION",
+      "tick": "locality_retire_paused",
+      "inCombat": "true",
+      "attacking": "false",
+      "moving": "false",
+      "hp": "20.058175999999946",
+      "aiAutoAttacking": "true",
+      "aiAttackTarget": "0",
+      "aiAttackTargetDead": "false",
+      "cycles": "22",
+      "damage": "71",
+      "runtime": "background.visible.autoplay_running",
+      "current": {
+        "current.nativeOwnerOutstanding": "1",
+        "current.nativeOwnerWorkSampleNanos": "657538179060400",
+        "current.nativeOwnerPendingTimers": "2",
+        "current.nativeOwnerWork": "[22656:attack-hit:RESERVED:EARNED:depth=2:ageMs=256]",
+        "current.nativeLastCompletedEvent": "10210:EVENT:ON_ATTACKABLE_KILL:COMPLETED:epoch=657223077372300:reserve=657442397805200:submit=657442397816400:executorEntered=657444898032900:start=657444898034000:bodyExit=657444898075000:bodyOutcome=SUCCESS:end=657444898075300:semantics=EARNED:parent=10207:depth=5:delayMs=2500:future=done=false,cancelled=false,dueMs=0",
+        "current.nativeOwnerState": "OPEN",
+        "current.nativeFirstIncident": "",
+        "current.nativeFirstIncidentUtc": "",
+        "current.nativeFirstIncidentDetail": ""
+      }
+    }
+  ],
+  "newProductFix": "NONE_UNTIL_CAUSAL_RED",
+  "source": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-NATIVE-LIFE-042\\evidence\\LIFE_B2_RUNNER_FIXED042\\full-native\\full-cohort-samples.jsonl",
+    "sha256": "52cf75a556fc979ce1681d488cdfd79f83a5d1d17c3ebbd45aa55c12906d6727"
+  }
+}

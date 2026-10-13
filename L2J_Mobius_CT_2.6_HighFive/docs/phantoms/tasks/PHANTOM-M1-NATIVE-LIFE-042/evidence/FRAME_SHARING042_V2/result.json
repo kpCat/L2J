@@ -1,0 +1,8 @@
+﻿{
+    "negativeNoDeleteShareRejected":  true,
+    "positiveDeleteShareAllowed":  true,
+    "atomicBytesPreserved":  true,
+    "productionChange":  false,
+    "collectorChange":  false,
+    "diagnosticReaderCorrected":  true
+}

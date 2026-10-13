@@ -1,0 +1,62 @@
+{
+  "source": "LIFE_B1_042/baseline-cohort.json",
+  "sourceSha256": "91768d8583324128a4b6d84c3d3b1bee7ea810cde572303f6e04e89e703c657e",
+  "items": [
+    {
+      "profileId": "68",
+      "objectId": "268485428",
+      "dead": "false",
+      "npcId": "18342",
+      "inventorySlots": "14"
+    },
+    {
+      "profileId": "167",
+      "objectId": "268486238",
+      "dead": "false",
+      "npcId": "18342",
+      "inventorySlots": "37"
+    },
+    {
+      "profileId": "189",
+      "objectId": "268486429",
+      "dead": "false",
+      "npcId": "18342",
+      "inventorySlots": "83"
+    },
+    {
+      "profileId": "211",
+      "objectId": "268486622",
+      "dead": "false",
+      "npcId": "18342",
+      "inventorySlots": "31"
+    },
+    {
+      "profileId": "220",
+      "objectId": "268486696",
+      "dead": "false",
+      "npcId": "20534",
+      "inventorySlots": "11"
+    },
+    {
+      "profileId": "276",
+      "objectId": "268487174",
+      "dead": "false",
+      "npcId": "18342",
+      "inventorySlots": "39"
+    },
+    {
+      "profileId": "294",
+      "objectId": "268487330",
+      "dead": "false",
+      "npcId": "18342",
+      "inventorySlots": "31"
+    },
+    {
+      "profileId": "363",
+      "objectId": "268487904",
+      "dead": "false",
+      "npcId": "18342",
+      "inventorySlots": "17"
+    }
+  ]
+}

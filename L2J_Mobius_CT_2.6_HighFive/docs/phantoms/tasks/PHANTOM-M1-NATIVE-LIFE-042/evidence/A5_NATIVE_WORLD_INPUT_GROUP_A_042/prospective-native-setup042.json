@@ -1,0 +1,23 @@
+﻿{
+    "method":  "PRE_OUTCOME_CURRENT_WORLD_COUNT_DISTANCE_PROFILE",
+    "selected":  {
+                     "profileId":  981,
+                     "x":  44081,
+                     "y":  42668,
+                     "z":  -3488,
+                     "count":  8,
+                     "memberObjects":  [
+                                           "268495600",
+                                           "268495666",
+                                           "268490547",
+                                           "268495703",
+                                           "268489514",
+                                           "268492202",
+                                           "268495452",
+                                           "268493231"
+                                       ],
+                     "distance":  2525
+                 },
+    "source":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-NATIVE-LIFE-042\\evidence\\A5_NATIVE_WORLD_INPUT_GROUP_A_042\\global-before-outcomes\\world-identities.tsv",
+    "sourceSha256":  "FA80957E1CC7DF6E8F424EE7ED6E62658C079B8C2A4DFFC3F16449AED4FBDFDE"
+}

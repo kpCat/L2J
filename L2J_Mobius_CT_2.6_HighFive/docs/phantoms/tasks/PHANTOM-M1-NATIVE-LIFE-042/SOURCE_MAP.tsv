@@ -1,0 +1,33 @@
+path	permission	responsibility
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	CONDITIONAL_WRITE	Native progress/no-target/037-debt/04130s preservation; source-guided fix only
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	CONDITIONAL_WRITE	Background eligibility/work/reentry existing CAS; no new sim
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	CONDITIONAL_WRITE	Only proven suitable-goal/eligibility fault
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	CONDITIONAL_WRITE	Existing owned-store/soft release path; no new protocol
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundDecision.java	CONDITIONAL_WRITE	Existing bounded routing/recovery only
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	CONDITIONAL_WRITE	Real locality/observer pin; no radius change
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java	CONDITIONAL_WRITE	Distinguish soft release vs hard pin
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	CONDITIONAL_WRITE	Reentry of same profile and epoch legality
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementController.java	CONDITIONAL_WRITE	Only confirmed route/locality handoff defect; no second AI
+java/org/l2jmobius/gameserver/phantoms/actions/PhantomEngagementPlanner.java	CONDITIONAL_WRITE	Only confirmed target capability/position defect
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_WRITE	Only proven locality/observer supplier issue
+java/org/l2jmobius/gameserver/localplay/LocalPlayPilotService.java	CONDITIONAL_WRITE	Only proven passive anchor/handoff; no consent/TTL changes
+java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java	TEST_OR_READ	Keep TTL525/session caps/REAL separation
+java/org/l2jmobius/gameserver/phantoms/profile/PhantomProfileRepository.java	READ_ONLY	041 owning-goal witness protected
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	READ_ONLY	039 actual commit witness preserved
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	PROTECTED_READ_ONLY	036 earned/drain semantics
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundState.java	PROTECTED_READ_ONLY	035 FULL inventory codec
+java/org/l2jmobius/gameserver/model/actor/Player.java	PROTECTED_READ_ONLY	No Zariche/general cast changes
+java/org/l2jmobius/gameserver/ai/PlayableAI.java	PROTECTED_READ_ONLY	Zariche deferred
+java/org/l2jmobius/gameserver/geoengine/**	PROTECTED_READ_ONLY	Reuse stock geometry
+
+test/java/org/l2jmobius/tests/phantoms/**	RELATED_FOCUSED_TESTS	Append minimal causal/negative tests without replacing baseline asserts
+docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py	PROTECTED_READ_ONLY	Original byte-exact CONTINUITY_V2
+build.xml	TEST_REGISTRATION_ONLY	Only if new native suite needs registration
+.phantom-local/ops042/**	PRIVATE_NEW042	Bounded runner/collector/manifest only; no cloned huge 041 raw
+.phantom-local/contract042a/**	NEW_OWN042	Fresh exact own 042a schema/runtime only
+.phantom-local/contract042b/**	NEW_OWN042	Fresh exact own 042b schema/runtime only
+docs/phantoms/tasks/PHANTOM-M1-NATIVE-LIFE-042/**	TASK_ARTIFACT	Only task docs/report/compact evidence
+.phantom-local/contract040a/**	PROTECTED_NO_WRITE	Never stop/update/attach/import
+.phantom-local/contract041*/**	PROTECTED_READ_ONLY	Old041 DB/raw/JVM/crash input incl041x72/73 and041final
+C:/Users/ZBook/PhantomWorld/M1-041/**	PROTECTED_READ_ONLY	Final standalone existing; no overwrite
+other chronicles/PLAY/MAIN/existing client/tools	PROTECTED_NO_WRITE	No modifications

@@ -1,0 +1,12 @@
+﻿{
+    "sourceSha":  "a5674811479d087ec7f67ca62921ffa85d298263",
+    "gamePid":  2196,
+    "gameStartTicks":  639275264723726735,
+    "loginPid":  27116,
+    "loginStartTicks":  639275264711042341,
+    "gameTerminalState":  "STALE_RECORD",
+    "loginTerminalState":  "STALE_RECORD",
+    "stockLogSha256":  "78E4F8DCD0727FB837986CCA2E63BF77B46B34CB9170EA4165509CFD65CF5D8B",
+    "typedStopSha256":  "0500FABB616490DD8D78755397EDF9FD468E336BEF640E1D2665BB76ABBC798C",
+    "healthyStockStop":  true
+}

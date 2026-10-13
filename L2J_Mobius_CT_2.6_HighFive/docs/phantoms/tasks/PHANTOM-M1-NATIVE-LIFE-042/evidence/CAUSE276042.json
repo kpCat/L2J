@@ -1,0 +1,382 @@
+{
+  "classification": "LEGAL_SOFT_RELEASE",
+  "historicalVerdict": "FAIL_PRESERVED",
+  "profileId": 276,
+  "objectId": 268487174,
+  "epoch": 590209020958800,
+  "rule": "Native live region prewarm distance2 / visible distance1; RECENT_HUMAN60000ms expires; hard native work drains before detach.",
+  "transitions": [
+    {
+      "elapsed": 0,
+      "observer": {
+        "runId": "ae05a6e4-a94d-4207-8001-20af997be009",
+        "sessionState": "RUNNING",
+        "objectId": 268492939,
+        "present": true,
+        "online": true,
+        "moving": false,
+        "dead": false,
+        "x": 43788,
+        "y": 42639,
+        "z": -3483,
+        "instance": 0,
+        "running": true,
+        "moveSpeed": 121.2,
+        "runSpeed": 121.2,
+        "overloaded": false,
+        "currentLoad": 16425
+      },
+      "actor": {
+        "profileId": "276",
+        "objectId": "268487174",
+        "materializedAtNanos": "590209020958800",
+        "x": "42217",
+        "y": "44085",
+        "z": "-3672",
+        "worldPresent": "true",
+        "observerPrewarm": "true",
+        "observerNativeVisible": "true",
+        "physicalDemand": "true",
+        "recentHumanAgeSeconds": "0.018898",
+        "nativeFarmCycleSequence": "2",
+        "nativePhase": "COMBAT",
+        "nativeOwnerOutstanding": "1",
+        "nativeOwnerWork": "[3079:attack-ready:RESERVED:CANCELLABLE:depth=2:ageMs=847]",
+        "dead": "false"
+      }
+    },
+    {
+      "elapsed": 56.3987171,
+      "observer": {
+        "runId": "ae05a6e4-a94d-4207-8001-20af997be009",
+        "sessionState": "RUNNING",
+        "objectId": 268492939,
+        "present": true,
+        "online": true,
+        "moving": false,
+        "dead": false,
+        "x": 43788,
+        "y": 42639,
+        "z": -3483,
+        "instance": 0,
+        "running": true,
+        "moveSpeed": 121.2,
+        "runSpeed": 121.2,
+        "overloaded": false,
+        "currentLoad": 16425
+      },
+      "actor": {
+        "profileId": "276",
+        "objectId": "268487174",
+        "materializedAtNanos": "590209020958800",
+        "x": "40885",
+        "y": "43273",
+        "z": "-3631",
+        "worldPresent": "true",
+        "observerPrewarm": "true",
+        "observerNativeVisible": "false",
+        "physicalDemand": "true",
+        "recentHumanAgeSeconds": "0.1694582",
+        "nativeFarmCycleSequence": "3",
+        "nativePhase": "ROUTE",
+        "nativeOwnerOutstanding": "0",
+        "nativeOwnerWork": "[]",
+        "dead": "false"
+      }
+    },
+    {
+      "elapsed": 121.25555759999999,
+      "observer": {
+        "runId": "ae05a6e4-a94d-4207-8001-20af997be009",
+        "sessionState": "RUNNING",
+        "objectId": 268492939,
+        "present": true,
+        "online": true,
+        "moving": false,
+        "dead": false,
+        "x": 43788,
+        "y": 42639,
+        "z": -3483,
+        "instance": 0,
+        "running": true,
+        "moveSpeed": 121.2,
+        "runSpeed": 121.2,
+        "overloaded": false,
+        "currentLoad": 16425
+      },
+      "actor": {
+        "profileId": "276",
+        "objectId": "268487174",
+        "materializedAtNanos": "590209020958800",
+        "x": "38907",
+        "y": "42284",
+        "z": "-3552",
+        "worldPresent": "true",
+        "observerPrewarm": "false",
+        "observerNativeVisible": "false",
+        "physicalDemand": "false",
+        "recentHumanAgeSeconds": "0.3922132",
+        "nativeFarmCycleSequence": "6",
+        "nativePhase": "NONE",
+        "nativeOwnerOutstanding": "2",
+        "nativeOwnerWork": "[8762:attack-hit:RESERVED:EARNED:depth=2:ageMs=131, 8763:attack-ready:RESERVED:CANCELLABLE:depth=2:ageMs=131]",
+        "dead": "false"
+      }
+    },
+    {
+      "elapsed": 163.269721,
+      "observer": {
+        "runId": "ae05a6e4-a94d-4207-8001-20af997be009",
+        "sessionState": "RUNNING",
+        "objectId": 268492939,
+        "present": true,
+        "online": true,
+        "moving": false,
+        "dead": false,
+        "x": 43788,
+        "y": 42639,
+        "z": -3483,
+        "instance": 0,
+        "running": true,
+        "moveSpeed": 121.2,
+        "runSpeed": 121.2,
+        "overloaded": false,
+        "currentLoad": 16425
+      },
+      "actor": {
+        "profileId": "276",
+        "objectId": "268487174",
+        "materializedAtNanos": "590209020958800",
+        "x": "38917",
+        "y": "42273",
+        "z": "-3552",
+        "worldPresent": "true",
+        "observerPrewarm": "true",
+        "observerNativeVisible": "false",
+        "physicalDemand": "true",
+        "recentHumanAgeSeconds": "42.7533275",
+        "nativeFarmCycleSequence": "7",
+        "nativePhase": "NONE",
+        "nativeOwnerOutstanding": "1",
+        "nativeOwnerWork": "[10563:movement-revalidate:RESERVED:CANCELLABLE:depth=2:ageMs=43]",
+        "dead": "false"
+      }
+    },
+    {
+      "elapsed": 202.40053269999999,
+      "observer": {
+        "runId": "ae05a6e4-a94d-4207-8001-20af997be009",
+        "sessionState": "RUNNING",
+        "objectId": 268492939,
+        "present": true,
+        "online": true,
+        "moving": false,
+        "dead": false,
+        "x": 43788,
+        "y": 42639,
+        "z": -3483,
+        "instance": 0,
+        "running": true,
+        "moveSpeed": 121.2,
+        "runSpeed": 121.2,
+        "overloaded": false,
+        "currentLoad": 16425
+      },
+      "actor": {
+        "profileId": "276",
+        "objectId": "268487174",
+        "materializedAtNanos": "590209020958800",
+        "x": "38888",
+        "y": "40789",
+        "z": "-3590",
+        "worldPresent": "true",
+        "observerPrewarm": "false",
+        "observerNativeVisible": "false",
+        "physicalDemand": "false",
+        "recentHumanAgeSeconds": "0.1854911",
+        "nativeFarmCycleSequence": "9",
+        "nativePhase": "COMBAT",
+        "nativeOwnerOutstanding": "2",
+        "nativeOwnerWork": "[12536:movement-revalidate:RESERVED:CANCELLABLE:depth=1:ageMs=1678, 12593:movement-revalidate:RESERVED:CANCELLABLE:depth=1:ageMs=677]",
+        "dead": "false"
+      }
+    },
+    {
+      "elapsed": 276.0399612,
+      "observer": {
+        "runId": "ae05a6e4-a94d-4207-8001-20af997be009",
+        "sessionState": "RUNNING",
+        "objectId": 268492939,
+        "present": true,
+        "online": true,
+        "moving": false,
+        "dead": false,
+        "x": 43788,
+        "y": 42639,
+        "z": -3483,
+        "instance": 0,
+        "running": true,
+        "moveSpeed": 121.2,
+        "runSpeed": 121.2,
+        "overloaded": false,
+        "currentLoad": 16425
+      },
+      "actor": {
+        "profileId": "276",
+        "objectId": "0",
+        "materializedAtNanos": "590209020958800",
+        "worldPresent": "false",
+        "observerPrewarm": "false",
+        "observerNativeVisible": "false",
+        "physicalDemand": "false",
+        "recentHumanAgeSeconds": "74.2029068",
+        "nativeFarmCycleSequence": "0",
+        "dead": "false"
+      }
+    }
+  ],
+  "receipts": [
+    {
+      "ledger": {
+        "run_id": "33036-639274583855510000-92400bebb9126ec4364ac57b05f8c453fe42690d-7b433c37-4cd1-418f-b86b-e0b855517272",
+        "seq": 72871,
+        "kind": "REGISTER",
+        "profile_id": 276,
+        "object_id": 268487174,
+        "epoch": 590209020958800,
+        "receipt": "",
+        "raw_file": "276-590209020958800-register.properties",
+        "raw_sha256": "4fa485629fa2594b11484fc8cdbd3d6c5155c9f1251502bbe7f25e58aea09cb3",
+        "raw_archive": "witnesses-1562.zip",
+        "raw_entry": "record:276-590209020958800-register.properties",
+        "raw_format": "BATCH_PROPERTIES_JSONL041",
+        "raw_archive_sha256": "4be6a9e8a7fc34dcc43f9d5b21a7e081e57842c5f14e654e37baf7de7aa0de52"
+      },
+      "fields": {
+        "kind": "REGISTER",
+        "source": "actual-native-owner"
+      }
+    },
+    {
+      "ledger": {
+        "run_id": "33036-639274583855510000-92400bebb9126ec4364ac57b05f8c453fe42690d-7b433c37-4cd1-418f-b86b-e0b855517272",
+        "seq": 94348,
+        "kind": "PREPARED",
+        "profile_id": 276,
+        "object_id": 268487174,
+        "epoch": 590209020958800,
+        "receipt": "6f82e1a7bb3875d2fa6025dec64dab265473713aefb027752e7326705359f912",
+        "raw_file": "276-590209020958800-14653.properties",
+        "raw_sha256": "6eecec826bf24f55453188d5e9b2049dd80cd5278a2ae1f2b4ec1753a554e4a1",
+        "raw_archive": "witnesses-1887.zip",
+        "raw_entry": "record:276-590209020958800-14653.properties",
+        "raw_format": "BATCH_PROPERTIES_JSONL041",
+        "raw_archive_sha256": "0aa14b2a9b3a5f7a9b14501ee531549e1f2c1c494ca3e4d1a97a373deefcf691"
+      },
+      "fields": {
+        "source": "native-sealed-snapshot",
+        "checkpointStage": "PREPARED"
+      }
+    },
+    {
+      "ledger": {
+        "run_id": "33036-639274583855510000-92400bebb9126ec4364ac57b05f8c453fe42690d-7b433c37-4cd1-418f-b86b-e0b855517272",
+        "seq": 94353,
+        "kind": "FINALIZED",
+        "profile_id": 276,
+        "object_id": 268487174,
+        "epoch": 590209020958800,
+        "receipt": "6f82e1a7bb3875d2fa6025dec64dab265473713aefb027752e7326705359f912",
+        "raw_file": "276-590209020958800-14653-finalized.properties",
+        "raw_sha256": "129f45dd6f7d487f0d5e66febe7ae690f68cb828b06bc9df7fd2c895414a7349",
+        "raw_archive": "witnesses-1887.zip",
+        "raw_entry": "record:276-590209020958800-14653-finalized.properties",
+        "raw_format": "BATCH_PROPERTIES_JSONL041",
+        "raw_archive_sha256": "0aa14b2a9b3a5f7a9b14501ee531549e1f2c1c494ca3e4d1a97a373deefcf691"
+      },
+      "fields": {
+        "source": "native-finalized-snapshot",
+        "checkpointStage": "FINALIZED"
+      }
+    },
+    {
+      "ledger": {
+        "run_id": "33036-639274583855510000-92400bebb9126ec4364ac57b05f8c453fe42690d-7b433c37-4cd1-418f-b86b-e0b855517272",
+        "seq": 131906,
+        "kind": "PREPARED",
+        "profile_id": 276,
+        "object_id": 268487174,
+        "epoch": 590209020958800,
+        "receipt": "e76b5a8cca90242cb5c71f898c0afc0a1232796003ecec97746695f537df2793",
+        "raw_file": "276-590209020958800-14655.properties",
+        "raw_sha256": "9c6cc963a40662af257508550c3ea2dcc1e5ed026169f786545dfd895a606785",
+        "raw_archive": "witnesses-2473.zip",
+        "raw_entry": "record:276-590209020958800-14655.properties",
+        "raw_format": "BATCH_PROPERTIES_JSONL041",
+        "raw_archive_sha256": "b082e29ed86f586f01ede24cb3cf6983a21ce4684e1a509c63cf2925e2a5abc4"
+      },
+      "fields": {
+        "source": "native-sealed-snapshot",
+        "checkpointStage": "PREPARED"
+      }
+    },
+    {
+      "ledger": {
+        "run_id": "33036-639274583855510000-92400bebb9126ec4364ac57b05f8c453fe42690d-7b433c37-4cd1-418f-b86b-e0b855517272",
+        "seq": 131909,
+        "kind": "FINALIZED",
+        "profile_id": 276,
+        "object_id": 268487174,
+        "epoch": 590209020958800,
+        "receipt": "e76b5a8cca90242cb5c71f898c0afc0a1232796003ecec97746695f537df2793",
+        "raw_file": "276-590209020958800-14655-finalized.properties",
+        "raw_sha256": "6ba550e7acb8af0a430fc1257d3271c94e05871f260a42d69c733adedf1144af",
+        "raw_archive": "witnesses-2473.zip",
+        "raw_entry": "record:276-590209020958800-14655-finalized.properties",
+        "raw_format": "BATCH_PROPERTIES_JSONL041",
+        "raw_archive_sha256": "b082e29ed86f586f01ede24cb3cf6983a21ce4684e1a509c63cf2925e2a5abc4"
+      },
+      "fields": {
+        "source": "native-finalized-snapshot",
+        "checkpointStage": "FINALIZED"
+      }
+    },
+    {
+      "ledger": {
+        "run_id": "33036-639274583855510000-92400bebb9126ec4364ac57b05f8c453fe42690d-7b433c37-4cd1-418f-b86b-e0b855517272",
+        "seq": 131914,
+        "kind": "TERMINAL",
+        "profile_id": 276,
+        "object_id": 268487174,
+        "epoch": 590209020958800,
+        "receipt": "e76b5a8cca90242cb5c71f898c0afc0a1232796003ecec97746695f537df2793",
+        "raw_file": "276-590209020958800-terminal.properties",
+        "raw_sha256": "5c64da5d906378ce56f03d0490c34632aa818f1743b857bcd501492357be5913",
+        "raw_archive": "witnesses-2473.zip",
+        "raw_entry": "record:276-590209020958800-terminal.properties",
+        "raw_format": "BATCH_PROPERTIES_JSONL041",
+        "owner_state": "DETACHED",
+        "permanent": true,
+        "outstanding": 0,
+        "timers": 0,
+        "raw_archive_sha256": "b082e29ed86f586f01ede24cb3cf6983a21ce4684e1a509c63cf2925e2a5abc4"
+      },
+      "fields": {
+        "kind": "TERMINAL",
+        "terminalNanos": "590535872816200",
+        "nativeOwnerState": "DETACHED",
+        "nativeOwnerPermanentSeal": "true",
+        "nativeOwnerFailure": "",
+        "nativeFirstIncident": "",
+        "terminalOutstanding": "0",
+        "terminalPendingTimers": "0",
+        "nativeLastCompletedEvent": "16163:EVENT:ON_PLAYER_LOGOUT:COMPLETED:epoch=590209020958800:reserve=590535826088900:submit=590535826119100:executorEntered=590535826184600:start=590535826185000:bodyExit=590535826237900:bodyOutcome=SUCCESS:end=590535826238000:semantics=EARNED:parent=16162:depth=1:delayMs=0:future=NONE"
+      }
+    }
+  ],
+  "inputs": {
+    "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-FINAL-CLOSURE-041\\evidence\\C8_GROUP_A2_041\\all-samples.json": "13b9ffb41f26d987deb7e6658968e683bc79f0d63d9f23fbed8155f732ddd94d",
+    "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-FINAL-CLOSURE-041\\evidence\\C8_GROUP_A2_041\\continuity-v2.json": "22d7b113d9809a2cf6b6d0dff5f6e74186007e2da72468cc50f590abbff8b0cf",
+    "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-FINAL-CLOSURE-041\\evidence\\STARTUP032a-4380ed4d269f437eb2678e75d171d334\\lifetimes.jsonl": "0e5629ec9e7f989ee6e125ae4628c053ec7246e8b5745f771ad59c3424d58d5b"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "G4": "FAIL",
+  "profileId": "367",
+  "objectId": "268487935",
+  "epoch": "657223077372300",
+  "nativeEarnedDelta": {
+    "nativeFarmCycleSequence": 1,
+    "nativeRewardSequence": 1,
+    "nativeDamageSequence": 1,
+    "nativeExpGained": 20,
+    "nativeSpGained": 2
+  },
+  "failure": "SOFT_RETIRE_BOUND120",
+  "classification": "LEGAL_HARD_NATIVE_COMBAT_HOLD",
+  "actualIncomingDamage": "HP180 ->20; ACTIVE_ACTION retained while actual earned attack-hit tickets arrive",
+  "invisibleLocalityPin": false,
+  "newRootsPaused": true,
+  "productiveBackground": "NOT_VERIFIED",
+  "usefulNativeReturn": "NOT_VERIFIED",
+  "actualDeathObserved": false,
+  "productFix": "NONE; no causal product defect proven",
+  "failureFrameMetadataSha256": "1e1bd211dccfc2bb49df94280a84aacc4bcca8e112e8e93cb970df80544a41f8",
+  "stockTypedDoneSha256": "3d2aa6f6c50490661cb3f2ac6e3f90423d68b8ace026a28e5234e19ea341a8c7"
+}

@@ -1,0 +1,210 @@
+﻿[
+    {
+        "profileId":  "553",
+        "calendarEligible":  true,
+        "candidate":  [
+                          {
+                              "profileId":  "553",
+                              "objectId":  "268489514",
+                              "state":  "MATERIALIZED",
+                              "calendarOnline":  "true",
+                              "admitted":  "false",
+                              "x":  "46045",
+                              "y":  "41251",
+                              "z":  "-3504",
+                              "contextPhase":  "COMPLETED",
+                              "farmAllowed":  "true",
+                              "readinessComplete":  "false",
+                              "firstGuard":  "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+                              "sampleNanos":  "657998140492600",
+                              "populationState":  "READY",
+                              "instanceId":  "0",
+                              "committedCursorMinute":  "29839410",
+                              "requestedHorizonMinute":  "29865497",
+                              "nextBoundary":  "2026-10-13T22:44:00Z"
+                          }
+                      ]
+    },
+    {
+        "profileId":  "676",
+        "calendarEligible":  true,
+        "candidate":  [
+                          {
+                              "profileId":  "676",
+                              "objectId":  "268490547",
+                              "state":  "MATERIALIZED",
+                              "calendarOnline":  "true",
+                              "admitted":  "false",
+                              "x":  "46045",
+                              "y":  "41251",
+                              "z":  "-3504",
+                              "contextPhase":  "COMPLETED",
+                              "farmAllowed":  "true",
+                              "readinessComplete":  "false",
+                              "firstGuard":  "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+                              "sampleNanos":  "657998270141400",
+                              "populationState":  "READY",
+                              "instanceId":  "0",
+                              "committedCursorMinute":  "29861055",
+                              "requestedHorizonMinute":  "29865497",
+                              "nextBoundary":  "2026-10-14T05:48:00Z"
+                          }
+                      ]
+    },
+    {
+        "profileId":  "872",
+        "calendarEligible":  true,
+        "candidate":  [
+                          {
+                              "profileId":  "872",
+                              "objectId":  "268492202",
+                              "state":  "MATERIALIZED",
+                              "calendarOnline":  "true",
+                              "admitted":  "false",
+                              "x":  "46045",
+                              "y":  "41251",
+                              "z":  "-3504",
+                              "contextPhase":  "COMPLETED",
+                              "farmAllowed":  "true",
+                              "readinessComplete":  "false",
+                              "firstGuard":  "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+                              "sampleNanos":  "657998480333900",
+                              "populationState":  "READY",
+                              "instanceId":  "0",
+                              "committedCursorMinute":  "29865495",
+                              "requestedHorizonMinute":  "29865497",
+                              "nextBoundary":  "2026-10-14T05:53:00Z"
+                          }
+                      ]
+    },
+    {
+        "profileId":  "981",
+        "calendarEligible":  true,
+        "candidate":  [
+                          {
+                              "profileId":  "981",
+                              "objectId":  "268493231",
+                              "state":  "MATERIALIZED",
+                              "calendarOnline":  "true",
+                              "admitted":  "false",
+                              "x":  "44039",
+                              "y":  "42648",
+                              "z":  "-3488",
+                              "contextPhase":  "COMPLETED",
+                              "farmAllowed":  "true",
+                              "readinessComplete":  "false",
+                              "firstGuard":  "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+                              "sampleNanos":  "657998595976200",
+                              "populationState":  "READY",
+                              "instanceId":  "0",
+                              "committedCursorMinute":  "29861046",
+                              "requestedHorizonMinute":  "29865497",
+                              "nextBoundary":  "2026-10-14T06:06:00Z"
+                          }
+                      ]
+    },
+    {
+        "profileId":  "1241",
+        "calendarEligible":  true,
+        "candidate":  [
+                          {
+                              "profileId":  "1241",
+                              "objectId":  "268495452",
+                              "state":  "MATERIALIZED",
+                              "calendarOnline":  "true",
+                              "admitted":  "false",
+                              "x":  "46045",
+                              "y":  "41251",
+                              "z":  "-3504",
+                              "contextPhase":  "COMPLETED",
+                              "farmAllowed":  "true",
+                              "readinessComplete":  "false",
+                              "firstGuard":  "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+                              "sampleNanos":  "657998873342200",
+                              "populationState":  "READY",
+                              "instanceId":  "0",
+                              "committedCursorMinute":  "29849055",
+                              "requestedHorizonMinute":  "29865497",
+                              "nextBoundary":  "2026-10-13T23:25:00Z"
+                          }
+                      ]
+    },
+    {
+        "profileId":  "1259",
+        "calendarEligible":  true,
+        "candidate":  [
+                          {
+                              "profileId":  "1259",
+                              "objectId":  "268495600",
+                              "state":  "MATERIALIZED",
+                              "calendarOnline":  "true",
+                              "admitted":  "false",
+                              "x":  "46045",
+                              "y":  "41251",
+                              "z":  "-3504",
+                              "contextPhase":  "COMPLETED",
+                              "farmAllowed":  "true",
+                              "readinessComplete":  "false",
+                              "firstGuard":  "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+                              "sampleNanos":  "657998892103400",
+                              "populationState":  "READY",
+                              "instanceId":  "0",
+                              "committedCursorMinute":  "29861054",
+                              "requestedHorizonMinute":  "29865497",
+                              "nextBoundary":  "2026-10-14T06:14:00Z"
+                          }
+                      ]
+    },
+    {
+        "profileId":  "1267",
+        "calendarEligible":  true,
+        "candidate":  [
+                          {
+                              "profileId":  "1267",
+                              "objectId":  "268495666",
+                              "state":  "MATERIALIZED",
+                              "calendarOnline":  "true",
+                              "admitted":  "false",
+                              "x":  "46045",
+                              "y":  "41251",
+                              "z":  "-3504",
+                              "contextPhase":  "COMPLETED",
+                              "farmAllowed":  "true",
+                              "readinessComplete":  "false",
+                              "firstGuard":  "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+                              "sampleNanos":  "657998899302100",
+                              "populationState":  "READY",
+                              "instanceId":  "0",
+                              "committedCursorMinute":  "29833755",
+                              "requestedHorizonMinute":  "29865497",
+                              "nextBoundary":  "2026-10-13T22:46:00Z"
+                          }
+                      ]
+    },
+    {
+        "profileId":  "1272",
+        "calendarEligible":  true,
+        "candidate":  [
+                          {
+                              "profileId":  "1272",
+                              "objectId":  "268495703",
+                              "state":  "MATERIALIZED",
+                              "calendarOnline":  "true",
+                              "admitted":  "false",
+                              "x":  "46045",
+                              "y":  "41251",
+                              "z":  "-3504",
+                              "contextPhase":  "COMPLETED",
+                              "farmAllowed":  "true",
+                              "readinessComplete":  "false",
+                              "firstGuard":  "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+                              "sampleNanos":  "657998904319000",
+                              "populationState":  "READY",
+                              "instanceId":  "0",
+                              "committedCursorMinute":  "29861035",
+                              "requestedHorizonMinute":  "29865497",
+                              "nextBoundary":  "2026-10-14T05:55:00Z"
+                          }
+                      ]
+    }
+]

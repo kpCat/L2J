@@ -1,0 +1,105 @@
+{
+  "historicalPass": true,
+  "currentJarExact": true,
+  "evaluatorExact": true,
+  "semanticCodeSha": "92400bebb9126ec4364ac57b05f8c453fe42690d",
+  "sourceCodeSha": "a5674811479d087ec7f67ca62921ffa85d298263",
+  "jarSha256": "5c4ae8bfff0568ad2fd204f6c3be79268d03c55ed95862c5b24619ad3719e98c",
+  "evaluatorSha256": "15c153d30fe7f85719b1698059f4e28c9c7fa325caa420a02de7ac19cff35112",
+  "database": "l2jmobiush5_phantom_test_041b",
+  "currentDatabase": "l2jmobiush5_phantom_test_042a",
+  "independentDatabase": true,
+  "policy": {
+    "populationTarget": 1280,
+    "activeTarget": 8,
+    "materializedCap": 8,
+    "schedulerPulseMillis": 100,
+    "schedulerProfilesPerPulse": 256,
+    "ecology": "LIVING",
+    "humanizedV3": true,
+    "mature": true,
+    "preset": "Lively"
+  },
+  "seconds": 381.6816272,
+  "cohort": [
+    {
+      "profileId": "418",
+      "primary": true,
+      "cycles": 39,
+      "pass": true
+    },
+    {
+      "profileId": "426",
+      "primary": true,
+      "cycles": 36,
+      "pass": true
+    },
+    {
+      "profileId": "448",
+      "primary": false,
+      "cycles": 35,
+      "pass": true
+    },
+    {
+      "profileId": "506",
+      "primary": false,
+      "cycles": 23,
+      "pass": true
+    },
+    {
+      "profileId": "606",
+      "primary": false,
+      "cycles": 34,
+      "pass": true
+    },
+    {
+      "profileId": "697",
+      "primary": false,
+      "cycles": 34,
+      "pass": true
+    },
+    {
+      "profileId": "1009",
+      "primary": false,
+      "cycles": 16,
+      "pass": true
+    },
+    {
+      "profileId": "1032",
+      "primary": false,
+      "cycles": 33,
+      "pass": true
+    }
+  ],
+  "pins": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-FINAL-CLOSURE-041\\evidence\\C24_GROUP_B_041\\continuity-v2.json",
+      "sha256": "89107c41d8c2cfc751c30b03dac7384da4983758f820863a1b49be3727c5fee2"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-FINAL-CLOSURE-041\\evidence\\C24_GROUP_B_041\\baseline-cohort.json",
+      "sha256": "0e2da7bd5341d9badad98f0a53ccd7ea695c24c5bdc253f9c09f502949b845c1"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-FINAL-CLOSURE-041\\evidence\\C24_GROUP_B_041\\primary.json",
+      "sha256": "52be0ce11cd943d329d943f8bcf10beb46c3d915529316fb204b7aea4cf7db1e"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-FINAL-CLOSURE-041\\evidence\\C24_GROUP_B_041\\all-samples.json",
+      "sha256": "d50d882e82c4b33ff3e5ff994d22b6e948db9291f1823bacede4b779d24ad80d"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-FINAL-CLOSURE-041\\evidence\\C24_GROUP_B_041\\stopped-sql\\runtime-manifest.json",
+      "sha256": "c83bd60f479a9d2ebc0c178d78f31c6bc9d7ce7fd58bf6741215a34bf23d28eb"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\proposals\\continuity028.py",
+      "sha256": "15c153d30fe7f85719b1698059f4e28c9c7fa325caa420a02de7ac19cff35112"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\GameServer.jar",
+      "sha256": "5c4ae8bfff0568ad2fd204f6c3be79268d03c55ed95862c5b24619ad3719e98c"
+    }
+  ],
+  "qualification": "Reuse valid only while product code/config/evaluator remain unchanged; separate original FAIL retained."
+}

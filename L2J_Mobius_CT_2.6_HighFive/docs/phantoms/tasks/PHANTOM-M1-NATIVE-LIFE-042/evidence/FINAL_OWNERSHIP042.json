@@ -1,0 +1,46 @@
+﻿{
+    "ownJvmCount":  0,
+    "protected040a":  [
+                          {
+                              "pid":  18688,
+                              "ticks":  "639274376704922975",
+                              "role":  "LoginServer"
+                          },
+                          {
+                              "pid":  30312,
+                              "ticks":  "639274376723876308",
+                              "role":  "GameServer"
+                          }
+                      ],
+    "protectedRuntime":  "d41f9ba822d51f3e95487a6d94b55bd85d7e62df4522ecfb7abc64f1e575429d",
+    "protectedIncarnationsExact":  true,
+    "namespaces":  [
+                       {
+                           "episode":  "a",
+                           "database":  "l2jmobiush5_phantom_test_042a",
+                           "codeSha":  "a5674811479d087ec7f67ca62921ffa85d298263",
+                           "jarSha256":  "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+                           "runtime":  "1778c329753c10234616d8cda67e0dc23fe65bfff0787c53f47405e92bd2c365"
+                       },
+                       {
+                           "episode":  "b",
+                           "database":  "l2jmobiush5_phantom_test_042b",
+                           "codeSha":  "a5674811479d087ec7f67ca62921ffa85d298263",
+                           "jarSha256":  "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+                           "runtime":  "f859b48b908da01bb8bb29272d982925fea3a98d1b07d7fc28df68e683f9a011"
+                       }
+                   ],
+    "immutableSourcePreserved":  [
+                                     {
+                                         "episode":  "a",
+                                         "sourceFiles":  304,
+                                         "preserved":  true
+                                     },
+                                     {
+                                         "episode":  "b",
+                                         "sourceFiles":  304,
+                                         "preserved":  true
+                                     }
+                                 ],
+    "utc":  "2026-10-13T22:29:33.8422952Z"
+}
