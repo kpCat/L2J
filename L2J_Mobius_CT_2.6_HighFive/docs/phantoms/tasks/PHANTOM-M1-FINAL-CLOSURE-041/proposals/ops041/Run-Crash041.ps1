@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidateSet('x72','x73')][string]$Episode,[Parameter(Mandatory)][string]$Candidate,[Parameter(Mandatory)][string]$FrozenSha)
+param([Parameter(Mandatory)][ValidateSet('x72','x73')][string]$Episode,[Parameter(Mandatory)][string]$Candidate,[Parameter(Mandatory)][string]$FrozenSha,[ValidateRange(0,10000)][long]$PreparationProfileId041=0)
 $ErrorActionPreference='Stop'
 $module041=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $evidence041=Join-Path $module041 'docs/phantoms/tasks/PHANTOM-M1-FINAL-CLOSURE-041/evidence'
@@ -11,14 +11,16 @@ $bootstrap041=Join-Path $evidence041 ($prefix041+'_BOOTSTRAP.json')
 if(Test-Path $bootstrap041){throw 'Immutable crash campaign exists.'}
 @([pscustomobject]@{profileId=68;materializedAtNanos=0}) | ConvertTo-Json | Set-Content $bootstrap041 -Encoding utf8
 $crashed041=$false
+$preparedRun041=''
 try {
  & $control041 -Action Start -Episode $Episode -ExpectedSha $FrozenSha *> (Join-Path $PSScriptRoot ($prefix041+'_START.log'))
  if($LASTEXITCODE -ne 0){throw 'Exact crash-lane start failed.'}
  & (Join-Path $PSScriptRoot 'Verify-CrashGuards041.ps1') -Episode $Episode -Label ($prefix041+'_GUARDS') *> (Join-Path $PSScriptRoot ($prefix041+'_GUARDS.log'))
  if($LASTEXITCODE -ne 0 -or !(Test-Path (Join-Path $evidence041 ($prefix041+'_GUARDS/result.json')))){throw 'Actual negative crash guards not proved.'}
- & (Join-Path $PSScriptRoot 'Run-CensusPreparation041.ps1') -Episode $Episode -CohortJson $bootstrap041 -OutputRoot (Join-Path $evidence041 ($prefix041+'_PREP90')) *> (Join-Path $PSScriptRoot ($prefix041+'_PREP.log'))
+ & (Join-Path $PSScriptRoot 'Run-CensusPreparation041.ps1') -Episode $Episode -SetupProfileId $PreparationProfileId041 -KeepSession041 -CohortJson $bootstrap041 -OutputRoot (Join-Path $evidence041 ($prefix041+'_PREP90')) *> (Join-Path $PSScriptRoot ($prefix041+'_PREP.log'))
  if($LASTEXITCODE -ne 0){throw 'Prospective fixed native preparation failed.'}
- & (Join-Path $PSScriptRoot 'Observe032.ps1') -Mode Probe -Episode $Episode -Seconds 80 -FrozenSha $FrozenSha -SetupAtVisibleNativeCluster041 -OutputRoot $probe041 *> (Join-Path $PSScriptRoot ($prefix041+'_EARNED.log'))
+ $preparedRun041=(Get-Content (Join-Path $evidence041 ($prefix041+'_PREP90/session-start.json')) -Raw | ConvertFrom-Json).runId
+ & (Join-Path $PSScriptRoot 'Observe032.ps1') -Mode Probe -Episode $Episode -Seconds 80 -FrozenSha $FrozenSha -PreparedRunId $preparedRun041 -OutputRoot $probe041 *> (Join-Path $PSScriptRoot ($prefix041+'_EARNED.log'))
  if($LASTEXITCODE -ne 0){throw 'Actual pre-enrolled earned native probe failed.'}
  $primary041=@(Get-Content (Join-Path $probe041 'primary.json') -Raw | ConvertFrom-Json)[0]
  $samples041=@(Get-Content (Join-Path $probe041 'all-samples.json') -Raw | ConvertFrom-Json)
@@ -51,9 +53,10 @@ try {
  if($LASTEXITCODE -ne 0){throw 'First fault-off sameDB recovery boot failed.'}
  for($boot041=1;$boot041 -le 2;$boot041++){
   $label041=$prefix041+'_RECOVERY'+$boot041+'_USEFUL'
-  & (Join-Path $PSScriptRoot 'Run-CensusPreparation041.ps1') -Episode $Episode -CohortJson $single041 -OutputRoot (Join-Path $evidence041 ($label041+'_PREP90')) *> (Join-Path $PSScriptRoot ($label041+'_PREP.log'))
+  & (Join-Path $PSScriptRoot 'Run-CensusPreparation041.ps1') -Episode $Episode -SetupProfileId ([long]$primary041.profileId) -KeepSession041 -CohortJson $single041 -OutputRoot (Join-Path $evidence041 ($label041+'_PREP90')) *> (Join-Path $PSScriptRoot ($label041+'_PREP.log'))
   if($LASTEXITCODE -ne 0){throw 'Recovery prospective native preparation failed.'}
-  & (Join-Path $PSScriptRoot 'Observe032.ps1') -Mode Probe -Episode $Episode -Seconds 80 -FrozenSha $FrozenSha -SetupAtVisibleNativeCluster041 -OutputRoot (Join-Path $evidence041 $label041) -StopOwnServerOnComplete *> (Join-Path $PSScriptRoot ($label041+'.log'))
+  $preparedRun041=(Get-Content (Join-Path $evidence041 ($label041+'_PREP90/session-start.json')) -Raw | ConvertFrom-Json).runId
+  & (Join-Path $PSScriptRoot 'Observe032.ps1') -Mode Probe -Episode $Episode -Seconds 80 -FrozenSha $FrozenSha -PreparedRunId $preparedRun041 -OutputRoot (Join-Path $evidence041 $label041) -StopOwnServerOnComplete *> (Join-Path $PSScriptRoot ($label041+'.log'))
   if($LASTEXITCODE -ne 0){throw 'Recovery useful continuation/stock-stop failed.'}
   if($boot041 -eq 1){
    & $control041 -Action Start -Episode $Episode -ExpectedSha $FrozenSha -StartupCohortJson $single041 *> (Join-Path $PSScriptRoot ($prefix041+'_IDEMPOTENCE2_START.log'))
@@ -64,6 +67,7 @@ try {
  'ACTUAL_ISOLATED_CRASH_RECOVERY_EXECUTION_COMPLETE; semantic gates still require exact SQL/native validation'
 } catch {
  $_ | Out-String | Set-Content (Join-Path $PSScriptRoot ($prefix041+'_FAILURE.txt')) -Encoding utf8
+ if($preparedRun041){& (Join-Path $runtime041 'Stop-LocalPlayPilot.ps1') -ActorMode Synthetic -RunId $preparedRun041 *> (Join-Path $PSScriptRoot ($prefix041+'_LEASE_STOP.log'))}
  & $control041 -Action Stop -Episode $Episode *> (Join-Path $PSScriptRoot ($prefix041+'_SAFE_STOCK_STOP.log'))
  if($crashed041){'MANDATORY_RECOVERY_AUDIT_REQUIRED' | Set-Content (Join-Path $PSScriptRoot ($prefix041+'_RECOVERY_REQUIRED.txt'))}
  throw

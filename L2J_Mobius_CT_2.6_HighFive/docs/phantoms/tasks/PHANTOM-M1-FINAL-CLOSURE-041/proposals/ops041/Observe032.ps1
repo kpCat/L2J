@@ -28,7 +28,7 @@ if($manifest.codeSha -cne $FrozenSha -or $manifest.databaseName -cne "l2jmobiush
 New-Item -ItemType Directory -Path $OutputRoot | Out-Null
 . (Join-Path $runtime 'LocalPlay-Pilot.ps1')
 $run=if($PreparedRunId){
-    if($Mode -cne 'Scene' -or $PreparedRunId -notmatch '^[0-9a-f-]{36}$' -or $NativeStartAtSetup -or $SetupAtNearestCandidate -or $SetupTeleport.Count){throw 'Prepared scene must reuse one unchanged native session.'}
+    if($Mode -cnotin @('Scene','Probe') -or $PreparedRunId -notmatch '^[0-9a-f-]{36}$' -or $NativeStartAtSetup -or $SetupAtNearestCandidate -or $SetupTeleport.Count){throw 'Prepared capture must reuse one unchanged native session.'}
     $PreparedRunId
 }else{[guid]::NewGuid().ToString('D')}
 $script:commands=0
