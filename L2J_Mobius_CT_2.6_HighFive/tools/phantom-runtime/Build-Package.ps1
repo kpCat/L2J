@@ -20,6 +20,7 @@ Set-StrictMode -Version Latest
 $moduleRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $repositoryRoot=Split-Path $moduleRoot -Parent
 $moduleName=Split-Path $moduleRoot -Leaf
+if (!(Test-Path -LiteralPath (Join-Path $JavaHome 'release')) -or [IO.File]::ReadAllText((Join-Path $JavaHome 'release')) -notmatch '(?m)^JAVA_VERSION="25(?:\.|\")') {throw 'Требуется JDK25.'}
 $output=[IO.Path]::GetFullPath($OutputRoot)
 $stage=[IO.Path]::GetFullPath($StageRoot)
 if ((Test-Path -LiteralPath $output) -or (Test-Path -LiteralPath $stage)) { throw 'Нужны два новых пустых пути; overwrite запрещён.' }
@@ -98,6 +99,7 @@ Set-Ini (Join-Path $output 'login/config/Server.ini') 'LoginserverPort' ([string
 Set-Ini (Join-Path $output 'login/config/Server.ini') 'LoginPort' ([string]$ControlPort)
 # Existing LocalPlay personal configuration pattern; M1 acceptance caps remain unchanged.
 $patches=@{
+    'game/config/Interface.ini'=@{EnableGUI='False'}
     'game/config/Custom/PhantomPlayers.ini'=@{EnablePhantomSystem='True';MaxMaterializedPhantoms='8';PhantomPopulationTarget='1280';PhantomPopulationActiveTarget='8';EnablePhantomDiagnostics='True'}
     'game/config/Rates.ini'=@{RateXp='3';RateSp='5';RatePartyXp='2';RatePartySp='2'}
     'game/config/Custom/PhantomMarket.ini'=@{EnableAutonomousPhantomMarket='True'}
@@ -113,7 +115,10 @@ Set-Ini (Join-Path $output 'runtime.local.ini') 'DatabaseName' $DatabaseName
 $gameHash=(Get-FileHash (Join-Path $output 'libs/GameServer.jar')).Hash
 $loginHash=(Get-FileHash (Join-Path $output 'libs/LoginServer.jar')).Hash
 [ordered]@{format=1;codeSha=$commit;databaseName=$DatabaseName;databaseConfig='USER_CONFIRMED_EXISTING';gameJarSha256=$gameHash;loginJarSha256=$loginHash;observerCharacter=$ObserverCharacter} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'local-play.json') -Encoding UTF8
-[ordered]@{format=1;codeCommit=$commit;trackedInputSha256=(Get-FileHash $archive).Hash;gameJarSha256=$gameHash;loginJarSha256=$loginHash;shutdownJarSha256=(Get-FileHash (Join-Path $tools 'runtime-shutdown.jar')).Hash;registrationSha256=(Get-FileHash $RegistrationFile).Hash;externalGeodata=$geoHashes;createdUtc=[DateTime]::UtcNow.ToString('o');toolchain='Java25 / Ant / Windows PowerShell5.1';m1Status='OPEN';personalAcceptance='REQUIRED'} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $output 'BUILD_INFO.json') -Encoding UTF8
+$configurationHashes=@(foreach ($role in @('game','login')) {Get-ChildItem -LiteralPath (Join-Path $output "$role/config") -Recurse -File | Sort-Object FullName | ForEach-Object {[ordered]@{path=$_.FullName.Substring($output.Length+1).Replace('\','/');sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}}})
+$operatorHashes=@(Get-ChildItem -LiteralPath $tools -File | Sort-Object Name | ForEach-Object {[ordered]@{path='tools/'+$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
+[ordered]@{format=1;codeCommit=$commit;trackedInputSha256=(Get-FileHash $archive).Hash;gameJarSha256=$gameHash;loginJarSha256=$loginHash;shutdownJarSha256=(Get-FileHash (Join-Path $tools 'runtime-shutdown.jar')).Hash;registrationSha256=(Get-FileHash $RegistrationFile).Hash;initialConfiguration=$configurationHashes;operatorInputs=$operatorHashes;externalGeodata=$geoHashes;createdUtc=[DateTime]::UtcNow.ToString('o');toolchain='Java25 / Ant / Windows PowerShell5.1';m1Status='OPEN';personalAcceptance='REQUIRED'} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $output 'BUILD_INFO.json') -Encoding UTF8
+[ordered]@{format=1;updatedUtc=[DateTime]::UtcNow.ToString('o');codeCommit=$commit;gameJarSha256=$gameHash;taskResult='IN_PROGRESS';m1='OPEN';readyForM2=$false;serverGates='PENDING';personalAcceptance='REQUIRED'} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'ACCEPTANCE_STATUS.json') -Encoding UTF8
 # Use the existing private ACL routine; no permissive observer mailbox or shared mutable links.
 . (Join-Path $tools 'LocalPlay-Pilot.ps1')
 foreach ($directory in @('playtest-pilot','playtest-pilot/inbox','playtest-pilot/processing','playtest-pilot/results','playtest-pilot/journal')) {Protect-PilotDirectory (Join-Path $output $directory)}

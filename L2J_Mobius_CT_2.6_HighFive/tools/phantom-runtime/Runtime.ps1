@@ -61,12 +61,19 @@ function Read-Observer {
 }
 function Write-Status {
     Assert-Jars
-    [ordered]@{runtime=$runtime;runtimeId=$runtimeId;database=$database;source=$build.codeCommit;game=(Role-State 'GameServer');login=(Role-State 'LoginServer');ports=$ports;observer=(Read-Observer);acceptance='REQUIRED_MANUAL_GATE'} | ConvertTo-Json -Depth 7
+    $acceptance=[ordered]@{m1='UNKNOWN';readyForM2=$false;reason='ACCEPTANCE_RESULT_ABSENT'}
+    $resultPath=Join-Path $runtime 'ACCEPTANCE_STATUS.json'
+    if (Test-Path -LiteralPath $resultPath) {
+        $result=Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
+        if ($result.format -eq 1 -and $result.codeCommit -ceq $build.codeCommit -and $result.gameJarSha256 -ieq $build.gameJarSha256 -and $result.updatedUtc) {$acceptance=$result}
+    }
+    [ordered]@{runtime=$runtime;runtimeId=$runtimeId;database=$database;source=$build.codeCommit;game=(Role-State 'GameServer');login=(Role-State 'LoginServer');ports=$ports;observer=(Read-Observer);acceptance=$acceptance} | ConvertTo-Json -Depth 7
 }
 if ($Action -ceq 'Status') { Write-Status; exit 0 }
 $javaHome = Read-Ini $settings 'JavaHome'
 $java = Join-Path $javaHome 'bin/java.exe'
 if (!(Test-Path -LiteralPath $java) -or !(Test-Path -LiteralPath (Join-Path $javaHome 'bin/jcmd.exe'))) { throw 'Требуется установленный JDK25 с attach tooling.' }
+if (!(Test-Path -LiteralPath (Join-Path $javaHome 'release')) -or [IO.File]::ReadAllText((Join-Path $javaHome 'release')) -notmatch '(?m)^JAVA_VERSION="25(?:\.|\")') {throw 'Требуется JDK25.'}
 New-Item -ItemType Directory -Path (Join-Path $runtime 'local-play/pids') -Force | Out-Null
 $lock = [IO.File]::Open((Join-Path $runtime 'local-play/operator.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
 function Stop-Owned([string]$Role) {
