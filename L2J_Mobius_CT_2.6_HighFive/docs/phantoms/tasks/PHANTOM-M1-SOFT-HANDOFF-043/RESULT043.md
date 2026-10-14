@@ -94,8 +94,10 @@ Private ops043/contract043a/raw/DB/JAR/secrets в commit и ZIP не включ�
 Bounded exception >10 paths: один043 artifact family и один ближайший TEST owner;
 другие subsystem/artifact families не редактировались.
 
-P6 до завершения обычной публикации REQUIRED. Exact-path self-review/allowlist,
-CRC/all-member SHA/no duplicate/no traversal проверяются перед commit; final receipt
+P6 delivery PASS: первый actual exact-path ordinary commit/non-force push
+`0175d1bbd5e2038c347a4fa1297975238fdc4dfc`, HEAD=remote, tracked clean подтверждены.
+Exact-path self-review/allowlist, CRC/all-member SHA/no duplicate/no traversal PASS.
+Final receipt
 `DELIVERY043.json` создаётся после второго normal push и отдельно фиксирует HEAD=remote.
 Publication receipts не превращают P2/P3 в PASS. См. `GATES043.tsv`, `REVIEW043.md`.
 

@@ -81,3 +81,7 @@ escaped Cyrillic в изменённых файлах проверены: PASS, 
 
 Итог self-review: пригоден к публикации как ограниченный PARTIAL_VERIFIED с data
 preservation и P3 FAIL. Не пригоден для M1_G4 PASS или READY_FOR_M2.
+
+Первый actual ordinary commit/non-force push0175d1bbd5e2038c347a4fa1297975238fdc4dfc
+проверен HEAD=remote/tracked clean. Final ZIP содержит этот immutable publication
+receipt; final post-push DELIVERY043.json отдельно проверяет окончательный HEAD/ZIP.

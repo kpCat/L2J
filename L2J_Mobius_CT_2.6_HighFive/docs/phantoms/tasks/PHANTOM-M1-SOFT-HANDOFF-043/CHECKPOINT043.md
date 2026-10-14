@@ -86,3 +86,8 @@ exact incarnation, исходные304 files/B2 raw SHA preserved; DB/raw сох
 Личная приёмка REQUIRED. Выполнение остановлено на лимите двух полных attempts,
 в пределах4h; текущий task не расширяется на следующую кампанию/goal.
 RESULT/GATES/REVIEW/compact ZIP и ordinary exact-path publication завершаются отдельно.
+
+Publication1 actual PASS:0175d1bbd5e2038c347a4fa1297975238fdc4dfc=remote, tracked clean.
+P6 delivery PASS по actual first push; final reports/compact ZIP/publication receipt
+публикуются вторым обычным commit без amend/force. Final DELIVERY043.json остаётся
+local post-push receipt (не self-referential member). TASK043/P2/P3 verdicts unchanged.

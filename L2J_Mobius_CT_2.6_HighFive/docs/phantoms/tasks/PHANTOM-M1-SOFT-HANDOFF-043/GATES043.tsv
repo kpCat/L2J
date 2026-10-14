@@ -5,7 +5,7 @@ P2 NATIVE SETTLEMENT	NOT_VERIFIED	evidence/C1-LIFE043.json; evidence/D1-LIFE043.
 P3 G4 FULL LIFE	FAIL	evidence/C1-LIFE043.json; evidence/D1-LIFE043.json	No actual productive C1 background/useful same-profile return; D1 never released; two full attempts exhausted
 P4 CONSERVATION043	PASS	evidence/CONSERVATION_INDEX043.json	Final D1 982 births/80260 commits, full save/global drain/stopped SQL/RUN_END dropped0; own043 only
 P5 REGRESS/G2	PASS	evidence/REGRESSIONS043.json; evidence/G2_REUSE043.json	Current93/93 +11/11 +3/3 exact unchanged JAR; G2 A5/C24 reused; no product semantic edits
-P6 DELIVERY	REQUIRED	REVIEW_ALLOWLIST043.txt; ZIP_VERIFIED043.json; PUBLICATION1_043.json; DELIVERY043.json	Await actual exact-path commit/non-force push verification; final receipt after push
+P6 DELIVERY	PASS	REVIEW_ALLOWLIST043.txt; ZIP_VERIFIED043.json; PUBLICATION1_043.json; DELIVERY043.json	First actual ordinary push0175d1bbd5e2038c347a4fa1297975238fdc4dfc HEAD=remote/tracked clean; final post-push receipt separately verifies final ZIP/HEAD
 TASK043	PARTIAL_VERIFIED	RESULT043.md	G4 remains FAIL; do not convert partial into PASS
 M1	OPEN	ACCEPTANCE.md	Other M1 gates and personal acceptance remain open
 READY_FOR_M2	false	GOAL.md	No next task or M2
