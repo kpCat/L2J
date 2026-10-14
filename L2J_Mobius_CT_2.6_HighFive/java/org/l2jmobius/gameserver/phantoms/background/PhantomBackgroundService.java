@@ -1794,6 +1794,9 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 		{
 			final PhantomMaterializationService.MaterializeResult restored = handoff == null ? materialization.materialize(profileId)
 				: _nativeRecoveryHistory.resumeNativeRecoveryHandoff(handoff, characterObjectId, originalEpoch);
+			// The verified store is complete; another admission may temporarily own its released slot.
+			// Retain the accepted recovery control and its original deadline until capacity or stop.
+			if (restored.status() == ResultStatus.CAPACITY_REACHED) { return retry("recovery.rematerialization_capacity_reached"); }
 			if ((restored.status() != ResultStatus.SUCCESS) && (restored.status() != ResultStatus.ALREADY_ACTIVE))
 			{
 				return OperationResult.inconsistent("recovery.rematerialization_" + restored.status().name().toLowerCase());

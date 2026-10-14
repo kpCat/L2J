@@ -48,6 +48,12 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom.m1.native.focus", "all");
+		if (focus.equals("capacity049"))
+		{
+			registry.add("S06-post-store-capacity-retains-recovery-before-stop", this::capacityRecovery);
+			registry.add("S07-accepted-capacity-recovery-drains-before-pools", this::capacityControlStop);
+			return;
+		}
 		final boolean acceptance = focus.equals("acceptance");
 		if (acceptance || focus.equals("all") || focus.equals("callback")) { registry.add("S02-native-delayed-kill-child-before-system-store", this::callback); }
 		if (acceptance || focus.equals("all") || focus.equals("death")) { registry.add("D05-accepted-queued-native-return-survives-close", this::queuedDeath); }
@@ -62,6 +68,86 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 		{
 			registry.add("D01-real-45s-native-death-return-and-new-epoch", this::realDeathReturn);
 			registry.add("D02-secondary-native-revive-does-not-return-twice", this::secondaryRevive);
+		}
+	}
+	private void capacityRecovery(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true); var other = _handoff.new Fixture(true, false, 0, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultInjector.none(), true))
+		{
+			f.removeCatchup(); other.removeCatchup();
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Original native owner.");
+			final long epoch = f.materialization.find(f.id).orElseThrow().materializedAtNanos();
+			final var player = World.getInstance().getPlayer(f.objectId);
+			player.setHeading(3210);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.dematerialize(f.id).status(), "Recovery's original native store completes before rematerialization.");
+			final var saved = f.transactions.load(f.id);
+			PhantomAssertions.assertTrue(saved.successful() && saved.state().state() == PhantomBackgroundState.State.READY, "Original checkpoint must be verified READY.");
+			PhantomAssertions.assertEquals(3210, saved.state().position().heading(), "Actual native change survives store.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(other.id).status(), "Another ordinary owner takes the sole slot after original store.");
+			final var boundary = PhantomBackgroundService.class.getDeclaredMethod("finishRecoveryStore", long.class, int.class, boolean.class, boolean.class, boolean.class,
+				Class.forName("org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundService$NativeRecoveryHandoff"), long.class);
+			boundary.setAccessible(true);
+			try
+			{
+				final var pending = (PhantomBackgroundService.OperationResult) boundary.invoke(f.background, f.id, f.objectId, true, false, false, null, epoch);
+				context.record("S06.capacity", pending);
+				PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.RETRY, pending.status(), "RED049: verified store plus temporary capacity is pending recovery, not permanent INCONSISTENT.");
+				PhantomAssertions.assertEquals(saved, f.transactions.load(f.id), "Capacity cannot change earned checkpoint or receipt.");
+				PhantomAssertions.assertTrue(f.materialization.find(f.id).isEmpty() && f.materialization.find(other.id).isPresent(), "Capacity cannot displace another owner or invent a successful rematerialization.");
+				final var invalid = (PhantomBackgroundService.OperationResult) boundary.invoke(f.background, f.id, other.objectId, true, false, false, null, epoch);
+				PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.INCONSISTENT, invalid.status(), "Negative049: failed exact-owner verification remains terminal, even while capacity is occupied.");
+				PhantomAssertions.assertEquals(saved, f.transactions.load(f.id), "Failed verification cannot rewrite the original save.");
+				final var stopping = (PhantomBackgroundService.OperationResult) boundary.invoke(f.background, f.id, f.objectId, true, false, true, null, epoch);
+				PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.SUCCESS, stopping.status(), "Accepted post-store recovery finishes during stop without opening a new lifetime.");
+				PhantomAssertions.assertEquals(saved, f.transactions.load(f.id), "Stop cannot erase or rewrite original earned save.");
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.dematerialize(other.id).status(), "Competing owner releases normally.");
+				final var resumed = (PhantomBackgroundService.OperationResult) boundary.invoke(f.background, f.id, f.objectId, true, false, false, null, epoch);
+				PhantomAssertions.assertEquals(PhantomBackgroundService.OperationStatus.SUCCESS, resumed.status(), "Same verified recovery resumes when capacity becomes available.");
+				PhantomAssertions.assertTrue(f.materialization.find(f.id).orElseThrow().materializedAtNanos() != epoch, "Success requires a real new native lifetime.");
+				PhantomAssertions.assertEquals(3210, World.getInstance().getPlayer(f.objectId).getHeading(), "Resumed native actor retains the earned checkpoint.");
+			}
+			finally { if (f.materialization.find(other.id).isPresent()) { f.materialization.dematerialize(other.id); } }
+		}
+	}
+	private void capacityControlStop(PhantomTestContext context) throws Exception
+	{
+		try (var f = _handoff.new Fixture(true); var other = _handoff.new Fixture(true, false, 0, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultInjector.none(), true))
+		{
+			f.removeCatchup(); other.removeCatchup();
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Original accepted recovery lifetime.");
+			final var original = f.materialization.find(f.id).orElseThrow();
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			World.getInstance().getPlayer(f.objectId).setHeading(4321);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.dematerialize(f.id).status(), "Real accepted recovery store.");
+			final var saved = f.transactions.load(f.id);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(other.id).status(), "Ordinary admission occupies the released slot.");
+			// Reuse the existing reflection fixture pattern at the captured post-store boundary.
+			final var controlType = Class.forName("org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService$RecoveryControl");
+			final var constructor = controlType.getDeclaredConstructor(long.class, org.l2jmobius.gameserver.phantoms.decision.PhantomGoal.class, PhantomActivityState.class,
+				java.util.function.BooleanSupplier.class, PhantomMaterializationService.MaterializationSnapshot.class);
+			constructor.setAccessible(true);
+			final var control = constructor.newInstance(f.id, goal, PhantomActivityState.ACTIVE, (java.util.function.BooleanSupplier) () -> false, original);
+			for (String name : List.of("storeRequested", "restoreExisting")) { final var field = controlType.getDeclaredField(name); field.setAccessible(true); field.setBoolean(control, true); }
+			final var controlsField = PhantomBackgroundService.class.getDeclaredField("_recoveryControls"); controlsField.setAccessible(true);
+			@SuppressWarnings("unchecked") final var controls = (java.util.Map<Long, Object>) controlsField.get(f.background);
+			final var recoveriesField = PhantomBackgroundService.class.getDeclaredField("_recoveries"); recoveriesField.setAccessible(true);
+			@SuppressWarnings("unchecked") final var recoveries = (java.util.Map<Long, Boolean>) recoveriesField.get(f.background);
+			final var operationsField = PhantomBackgroundService.class.getDeclaredField("_currentOperations"); operationsField.setAccessible(true);
+			controls.put(f.id, control); recoveries.put(f.id, true); ((AtomicInteger) operationsField.get(f.background)).incrementAndGet();
+			final var advance = PhantomBackgroundService.class.getDeclaredMethod("advanceRecovery", controlType); advance.setAccessible(true); advance.invoke(f.background, control);
+			context.record("S07.pending", f.background.materializationQuiescence());
+			PhantomAssertions.assertTrue(f.background.firstRecoveryFailure().isEmpty() && !f.background.materializationQuiescence().ready() && f.background.snapshot().currentOperations() == 1,
+				"RED049: actual accepted control must remain pending after capacity rejection, with no permanent failure.");
+			PhantomAssertions.assertEquals(saved, f.transactions.load(f.id), "Pending control retains original checkpoint and receipt.");
+			final var system = configure(f);
+			PhantomAssertions.assertTrue(PhantomSystem.shutdownIfStarted(), "Actual PhantomSystem shutdown settles accepted recovery before draining players.");
+			PhantomAssertions.assertEquals(PhantomSystem.StopPhase.DONE, system.shutdownProgress().phase(), "Typed DONE is required.");
+			PhantomAssertions.assertEquals(PhantomSystem.StopOutcome.COMPLETE, system.shutdownProgress().outcome(), "Typed COMPLETE is required.");
+			PhantomAssertions.assertTrue(f.background.firstRecoveryFailure().isEmpty() && f.background.snapshot().currentOperations() == 0 && f.materialization.snapshot().materializations().isEmpty(), "Completed stop has no accepted recovery or retained native owner.");
+			PhantomAssertions.assertEquals(saved, f.transactions.load(f.id), "Completed stop cannot erase the original earned store.");
+			final var poolField = ThreadPool.class.getDeclaredField("SCHEDULED_POOL"); poolField.setAccessible(true);
+			PhantomAssertions.assertFalse(((java.util.concurrent.ScheduledThreadPoolExecutor) poolField.get(null)).isShutdown(), "Typed completion precedes pool shutdown.");
+			context.record("S07.done", system.shutdownProgress());
 		}
 	}
 	private void recoveryPreflight(PhantomTestContext context) throws Exception
