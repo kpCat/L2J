@@ -8,6 +8,8 @@ module = task.parents[3]
 previous = task.parent / "PHANTOM-M1-G4-CAUSAL-044"
 ops = module / ".phantom-local/ops045"
 proposals = task / "proposals/ops045"
+if (proposals / "Control032.ps1").exists():
+    raise SystemExit("045 adapters already exist; stage the reviewed tracked sources without regeneration.")
 ops.mkdir(parents=True, exist_ok=True)
 proposals.mkdir(parents=True, exist_ok=True)
 names = ["Prepare032.ps1", "Control032.ps1", "Observe032.ps1",

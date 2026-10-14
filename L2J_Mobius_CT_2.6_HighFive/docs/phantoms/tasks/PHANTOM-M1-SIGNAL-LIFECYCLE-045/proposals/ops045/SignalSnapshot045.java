@@ -29,6 +29,25 @@ public final class SignalSnapshot045
         final Player player = object instanceof Player value ? value : null;
         final var text = new StringBuilder("scope=PASSIVE_ONE_PROFILE_READ\nnativeReadConsistency=NONATOMIC_VOLATILE\nprofileId=" + profile + "\nsampleNanos=" + System.nanoTime() + "\n");
         text.append("sources=").append(scheduler.signalSources(profile)).append("\nadmission=").append(admission).append('\n');
+        final var monitor = PhantomScheduler.class.getDeclaredField("_monitor"); monitor.setAccessible(true);
+        final var slots = PhantomScheduler.class.getDeclaredField("_slots"); slots.setAccessible(true);
+        synchronized (monitor.get(scheduler))
+        {
+            final var slot = ((java.util.Map<?, ?>) slots.get(scheduler)).get(profile);
+            final var due = slot.getClass().getDeclaredField("_nextWorkDueNanos"); due.setAccessible(true);
+            text.append("nextWorkDueNanos=").append(due.getLong(slot)).append('\n');
+        }
+        text.append("objectId=").append(materialization == null ? 0 : materialization.characterObjectId()).append('\n');
+        text.append("materializedAtNanos=").append(materialization == null ? 0 : materialization.materializedAtNanos()).append('\n');
+        text.append("worldPresent=").append(player != null && materialization.worldPresent()).append('\n');
+        if (player != null && player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope owner)
+        {
+            owner.evidence().snapshot().scalarMap().forEach((key, value) -> text.append(key).append('=').append(value).append('\n'));
+            owner.diagnosticScalars().forEach((key, value) -> text.append("current.").append(key).append('=').append(value).append('\n'));
+        }
+        final var autoField = system.getClass().getDeclaredField("_visibleAutoPlay"); autoField.setAccessible(true);
+        final var auto = (org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay) autoField.get(system);
+        auto.snapshotContinuation(profile).scalarMap().forEach((key, value) -> text.append(key).append('=').append(value).append('\n'));
         if (player != null) { text.append("hp=").append(player.getCurrentHp()).append("\ndead=").append(player.isDead()).append("\nmoving=").append(player.isMoving()).append("\nattacking=").append(player.isAttackingNow()).append("\ncasting=").append(player.isCastingNow()).append("\n"); }
         Files.writeString(output, text);
     }

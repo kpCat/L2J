@@ -6,6 +6,7 @@ param([ValidateSet('Probe','Scene','Away')][string]$Mode='Probe',
       [ValidateRange(75,135)][int]$BackgroundSeconds=75, [hashtable]$InitialObservationPoint=@{}, [hashtable]$SetupTeleport=@{}, [switch]$SetupAtNearestCandidate, [switch]$SetupAtVisibleNativeCluster045, [string]$PathJson='', [string]$InitialSetupPathJson='', [string[]]$PreviousPrimaryIds=@(),[long]$SetupProfileId=0,[switch]$NativeStartAtSetup,[switch]$StopOwnServerOnComplete,[string]$PreparedRunId='',[switch]$SingleLifePrimary045,[long]$FixedLifeProfileId045=0,[int]$LifeNpcId045=0,[string]$PreconditionsFile045='',[switch]$LifeCurrentReady045,[switch]$LifeProductive045)
 $ErrorActionPreference='Stop'
 $DiagnosticOnly045 = $env:PHANTOM_TASK045_DIAGNOSTIC -ceq 'true'
+$returnSession045=$false; $returnSnapshotIndex045=0; $sessionWatch045=$null
 . ('C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\Read-SharedJson032.ps1')
 $module=[IO.Path]::GetFullPath((Join-Path 'C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\docs\phantoms\tasks\PHANTOM-M1-SIGNAL-LIFECYCLE-045' '../../../..'))
 $runtime=Join-Path $module ".phantom-local/contract045$Episode/runtime"
@@ -42,7 +43,7 @@ function Capture032([string]$Operation,[hashtable]$Arguments=@{}){
     $script:commands++
     $label=('{0:D4}-{1}' -f $script:commands,$Operation)
     try{
-        $raw=& (Join-Path $runtime 'Invoke-LocalPlayPilot.ps1') -Operation $Operation -Arguments $Arguments -RunId $run -ActorMode Synthetic -ExternalHeartbeat -TimeoutSeconds 20
+        $raw=& (Join-Path $runtime 'Invoke-LocalPlayPilot.ps1') -Operation $Operation -Arguments $Arguments -RunId $run -ActorMode Synthetic -ExternalHeartbeat:(!$returnSession045) -TimeoutSeconds 20
         $result=$raw | ConvertFrom-Json
         $raw | Set-Content (Join-Path $OutputRoot "$label.json") -Encoding utf8
         if($result.runId -cne $run){throw 'Exact run mismatch.'}
@@ -69,12 +70,17 @@ function Discover032{
     throw 'Bounded discovery page limit; no silent truncation.'
 }
 function ReadFrame032{
+    if($returnSession045){return ReadReturnFrame045}
     $frame=Read-SharedJson032 (Join-Path $fullRoot 'full-frame-latest.json')
     if($frame.proofFailure){throw ('OBSERVER_PROOF_INVALID:'+$frame.proofFailure)}
     if($frame.observer.runId -cne $run -or $frame.observer.sessionState -cne 'RUNNING' -or -not $frame.observer.present -or -not $frame.observer.online -or $frame.observer.dead -or [int]$frame.observer.objectId -ne 268492939){throw 'Native observer identity lost; episode ends.'}
     return $frame
 }
 function ReadArrivalFrame032{
+    if($returnSession045){
+        $status045=Capture032 'STATUS'
+        return [pscustomobject]@{observer=[pscustomobject]@{x=[int]$status045.before.x;y=[int]$status045.before.y;z=[int]$status045.before.z;moving=($status045.before.moving -ceq 'true')}}
+    }
     if($Mode -cne 'Away'){return ReadFrame032}
     $arrivalPath045=Join-Path $fullRoot 'arrival-pose-latest.json'
     $arrivalReady045=[Diagnostics.Stopwatch]::StartNew()
@@ -105,7 +111,8 @@ function MarkPhase032([string]$Phase){
 }
 function Walk032([object[]]$Points){
     foreach($point in $Points){
-        if($watch.Elapsed.TotalSeconds -gt 320){throw 'Away route budget exhausted before post-return proof.'}
+        $routeElapsed045=if($returnSession045){$sessionWatch045.Elapsed.TotalSeconds}else{$watch.Elapsed.TotalSeconds}
+        if($routeElapsed045 -gt 320){throw 'Away route budget exhausted before post-return proof.'}
         $frame=ReadArrivalFrame032
         $dx=[double]$point.x-[double]$frame.observer.x; $dy=[double]$point.y-[double]$frame.observer.y
         if([Math]::Sqrt($dx*$dx+$dy*$dy) -gt 300.01 -or [Math]::Abs([int]$point.z-[int]$frame.observer.z) -gt 200){throw 'Factual next dry step bound violated; no MOVE.'}
@@ -113,6 +120,21 @@ function Walk032([object[]]$Points){
         if($move.status -cne 'ACCEPTED'){throw 'Away MOVE admission missing.'}
         WaitArrival032 @{x=[int]$point.x;y=[int]$point.y;z=[int]$point.z}
     }
+}
+function ReadReturnFrame045{
+    $script:returnSnapshotIndex045++
+    if($script:returnSnapshotIndex045 -gt 150){throw 'Bounded same-profile return read budget exhausted.'}
+    $status045=Capture032 'STATUS'
+    $file045=Join-Path $OutputRoot ('return-frame-{0:D3}.properties' -f $script:returnSnapshotIndex045)
+    & (Join-Path $PSScriptRoot 'Invoke-SignalSnapshot045.ps1') -ProfileId ([long]$primary[0].profileId) -OutputFile $file045 *> (Join-Path $OutputRoot ('return-read-{0:D3}.log' -f $script:returnSnapshotIndex045))
+    if($LASTEXITCODE -ne 0){throw 'Same-profile passive return read failed.'}
+    $facts045=Get-Content -LiteralPath $file045 -Raw | ConvertFrom-StringData
+    $actor045=[ordered]@{profileId=[string]$primary[0].profileId;missing=([string]($facts045.worldPresent -cne 'true')).ToLowerInvariant();dead='UNKNOWN';nativeFarmCycleSequence='0';nativeRewardSequence='0';nativeDamageSequence='0'}
+    foreach($key045 in $facts045.Keys){$actor045[$key045]=$facts045[$key045]}
+    $session045=Read-PilotProperties (Join-Path $runtime "playtest-synthetic/$run/session.properties")
+    if($session045.state -cne 'RUNNING' -or $session045.sessionId -cne $run -or $status045.before.identityOwner -cne 'LOCALPLAY_TEST_HUMAN' -or $status045.before.clientIdentity -cne 'none' -or $status045.before.worldPresent -cne 'true'){throw 'Actual return session/native observer identity missing.'}
+    $observer045=[pscustomobject]@{runId=$run;sessionState=$session045.state;objectId=268492939;present=($status045.before.worldPresent -ceq 'true');online=($status045.before.online -ceq 'true');dead=($status045.before.dead -ceq 'true');x=[int]$status045.before.x;y=[int]$status045.before.y;z=[int]$status045.before.z;moving=($status045.before.moving -ceq 'true')}
+    return [pscustomobject]@{sampleNanos=$facts045.sampleNanos;observer=$observer045;actors=@([pscustomobject]$actor045)}
 }
 try{
     # Install before Synthetic can cause any materialization/checkpoint. Epoch0 is not enrolled.
@@ -322,7 +344,7 @@ try{
         $eligibleIds045=@($endpointEligibility045 | Where-Object {$_.worldPresent -ceq 'true' -and $_.prewarm -ceq 'false' -and $_.nativeVisible -ceq 'false'} | ForEach-Object {$_.profileId})
         # Select roles prospectively by capability and the actual dry endpoint, keeping every enrolled actor.
         $farmInputs045=@(Import-Csv (Join-Path $OutputRoot 'enrollment-census/global-admission.tsv') -Delimiter "`t")
-        $farmIds045=@($farmInputs045 | Where-Object {$_.farmAllowed -ceq 'true' -and $_.calendarOnline -ceq 'true' -and $_.nextBoundary -and [DateTimeOffset]::Parse($_.nextBoundary) -gt [DateTimeOffset]::UtcNow.AddSeconds(480)} | ForEach-Object {$_.profileId})
+        $farmIds045=@($farmInputs045 | Where-Object {$_.admitted -ceq 'true' -and $_.farmAllowed -ceq 'true' -and $_.calendarOnline -ceq 'true' -and $_.nextBoundary -and [DateTimeOffset]::Parse($_.nextBoundary) -gt [DateTimeOffset]::UtcNow.AddSeconds(1200)} | ForEach-Object {$_.profileId})
         $farmInputs045 | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputRoot 'premeasurement-farm-inputs045.json') -Encoding utf8
         $eligibleLife045=@($suitable | Where-Object {$_.profileId -cin $eligibleIds045 -and $_.profileId -cin $farmIds045})
         $eligibleLife045=@(Select-CurrentLifeInputs045 -Suitable $eligibleLife045 -FarmInputs $farmInputs045 -RequireCurrent:($LifeCurrentReady045 -and !$DiagnosticOnly045))
@@ -437,16 +459,31 @@ try{
         MarkPhase032 'BACKGROUND_ABSENT'
         & ('C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\Control032.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-early') *> (Join-Path $OutputRoot 'away-early-export.log')
         if($LASTEXITCODE -ne 0){throw 'Exact away canonical export failed.'}
-        # One full native minute plus scheduling margin, inside the unchanged480s episode budget.
-        $backgroundRemaining=$BackgroundSeconds
-        while($backgroundRemaining -gt 0){
-            $chunk=[Math]::Min(40,$backgroundRemaining)
-            Start-Sleep -Seconds $chunk
-            $backgroundRemaining-=$chunk
-            if($watch.Elapsed.TotalSeconds -gt 320){throw 'Background observation exceeded route-return budget; no threshold extension.'}
-        }
+        & (Join-Path $PSScriptRoot 'Invoke-SignalSnapshot045.ps1') -ProfileId ([long]$primary[0].profileId) -OutputFile (Join-Path $OutputRoot 'background-due045.properties') *> (Join-Path $OutputRoot 'background-due-read045.log')
+        if($LASTEXITCODE -ne 0){throw 'Actual work due could not be measured.'}
+        $due045=Get-Content -LiteralPath (Join-Path $OutputRoot 'background-due045.properties') -Raw | ConvertFrom-StringData
+        $untilWork045=([long]$due045.nextWorkDueNanos-[long]$due045.sampleNanos)/1000000000.0
+        if($untilWork045 -lt 0 -or $untilWork045 -gt 900 -or $due045.admission -notmatch 'effectiveState=BACKGROUND'){throw 'Ordinary background due input absent; no short-window PASS.'}
+        $waitSeconds045=[int][Math]::Ceiling($untilWork045)+75
+        @{nextWorkDueNanos=$due045.nextWorkDueNanos;sampleNanos=$due045.sampleNanos;actualRemainingSeconds=$untilWork045;plannedWaitSeconds=$waitSeconds045;cadenceChanged=$false} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'MEASURED_BG045.json') -Encoding utf8
+        & (Join-Path $runtime 'Stop-LocalPlayPilot.ps1') -ActorMode Synthetic -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-away-stop045.json') -Encoding utf8
+        $awayStopped045=Read-PilotProperties (Join-Path $runtime "playtest-synthetic/$run/session.properties")
+        if($awayStopped045.state -cne 'STOPPED'){throw 'Original Synthetic stop required before long background wait.'}
+        $syntheticStopped=$true
+        [IO.File]::WriteAllText($stopWriter,'STOP',[Text.UTF8Encoding]::new($false))
+        $heartbeatJob | Wait-Job -Timeout 10 | Out-Null
+        Receive-Job $heartbeatJob -ErrorAction Continue *> (Join-Path $OutputRoot 'away-heartbeat-job.log')
+        Remove-Job $heartbeatJob; $heartbeatJob=$null
+        $backgroundWait045=[Diagnostics.Stopwatch]::StartNew()
+        while($backgroundWait045.Elapsed.TotalSeconds -lt $waitSeconds045){Start-Sleep -Seconds ([Math]::Min(40,[Math]::Max(1,$waitSeconds045-[int]$backgroundWait045.Elapsed.TotalSeconds)))}
+        @{actualWaitSeconds=$backgroundWait045.Elapsed.TotalSeconds;originalRunId=$run;originalStopped=$true} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'ACTUAL_BG_WAIT045.json') -Encoding utf8
         & ('C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\Control032.ps1') -Action Export -Episode $Episode -ProfileIds @($baseline.profileId | ForEach-Object {[long]$_}) -OutputRoot (Join-Path $OutputRoot 'away-late') *> (Join-Path $OutputRoot 'away-late-export.log')
         if($LASTEXITCODE -ne 0){throw 'Exact background step export failed.'}
+        $originalRun045=$run
+        $run=[guid]::NewGuid().ToString('D')
+        & (Join-Path $runtime 'Start-LocalPlaySynthetic.ps1') -RunId $run | Set-Content (Join-Path $OutputRoot 'synthetic-return-start045.json') -Encoding utf8
+        $returnSession045=$true; $syntheticStopped=$false; $sessionWatch045=[Diagnostics.Stopwatch]::StartNew()
+        @{originalRunId=$originalRun045;returnRunId=$run;profileId=$primary[0].profileId;lifetime525Unchanged=$true} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'SESSION_BOUNDARY045.json') -Encoding utf8
         MarkPhase032 'RETURN'
         $back=[Collections.Generic.List[object]]::new()
         for($i=$path.steps.Count-2;$i -ge 0;$i--){$back.Add($path.steps[$i])}
@@ -460,7 +497,8 @@ try{
     $samples=[Collections.Generic.List[object]]::new()
     $samples.Add([pscustomobject]@{elapsedSeconds=0.0;sampleNanos=$first.sampleNanos;observer=$first.observer;actors=$first.actors})
     while($observation.Elapsed.TotalSeconds -lt $Seconds){
-        if($watch.Elapsed.TotalSeconds -gt 480){throw 'Episode budget480s exhausted; TTL not extended.'}
+        $sessionElapsed045=if($returnSession045){$sessionWatch045.Elapsed.TotalSeconds}else{$watch.Elapsed.TotalSeconds}
+        if($sessionElapsed045 -gt 480){throw 'Session budget480s exhausted; TTL not extended.'}
         if($heartbeatJob.State -ceq 'Failed'){throw 'Heartbeat writer failed.'}
         $session=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
         if($session.state -cne 'RUNNING'){throw "NATIVE_SESSION_CLOSED:$($session.reason)"}
@@ -478,7 +516,7 @@ try{
     $samples | ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'all-samples.json') -Encoding utf8
     if($Mode -ceq 'Away' -and !$DiagnosticOnly045){MarkPhase032 'POST_RETURN_DONE'}
     $sequenceAfter=Read-PilotProperties (Join-Path (Join-Path $runtime "playtest-synthetic/$run") 'session.properties')
-    [ordered]@{kind=$Mode;sha=$FrozenSha;runId=$run;seconds=$observation.Elapsed.TotalSeconds;nativeUniqueSamples=$unique;maxGapSeconds=$maxGap;commandCount=$script:commands;baselineCount=$baseline.Count;primaryIds=@($primary.profileId);sameSession=$true;telemetryMailboxCommands=([long]$sequenceAfter.nextSequence-[long]$sequenceBefore.nextSequence);sequenceBefore=[long]$sequenceBefore.nextSequence;sequenceAfter=[long]$sequenceAfter.nextSequence;arrivalProof=($Mode -ceq 'Probe')} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'capture-result.json') -Encoding utf8
+    [ordered]@{kind=$Mode;sha=$FrozenSha;runId=$run;seconds=$observation.Elapsed.TotalSeconds;nativeUniqueSamples=$unique;maxGapSeconds=$maxGap;commandCount=$script:commands;baselineCount=$baseline.Count;primaryIds=@($primary.profileId);sameSession=(!$returnSession045);telemetryMailboxCommands=([long]$sequenceAfter.nextSequence-[long]$sequenceBefore.nextSequence);sequenceBefore=[long]$sequenceBefore.nextSequence;sequenceAfter=[long]$sequenceAfter.nextSequence;arrivalProof=($Mode -ceq 'Probe')} | ConvertTo-Json | Set-Content (Join-Path $OutputRoot 'capture-result.json') -Encoding utf8
     if($StopOwnServerOnComplete){
         if($Mode -notin @('Probe','Scene','Away')){throw 'Stock endpoint stop requires a completed owned capture.'}
         # Final observation has ended. Remove the exact owned Synthetic before the stock human-online guard.
