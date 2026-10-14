@@ -111,6 +111,7 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("16-incomplete-periodic-due-continues-under-pulse-budgets", this::testIncompletePeriodicDueContinues);
 		registry.add("17-restored-inventory-readiness-starts-bounded-target-creation", this::testRestoredInventoryReadinessStartsCreation);
 		registry.add("18-native-context-releases-only-materialization-gate", this::testNativeMaterializationReadiness);
+		registry.add("19-live-capacity-release-catchup-reopens-current-admission", this::testLiveCapacityReleaseAdmission);
 		for (int control = 1; control <= 12; control++)
 		{
 			final int selected = control;
@@ -264,6 +265,91 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 			loadMetadata(service, 1);
 		}
 		private void turn() { service.requestBackgroundDue(1); service.onPopulationPulse(); }
+	}
+
+	private void testLiveCapacityReleaseAdmission(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:30:00Z");
+		final long target = minute(now);
+		final long from = target - 48;
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new EcologyMemoryStore(population);
+		final var history = new HistoricalMemoryPort();
+		final AtomicBoolean liveOwners = new AtomicBoolean(true);
+		final AtomicInteger capacityRetries = new AtomicInteger();
+		for (long id = 1; id <= 9; id++)
+		{
+			final var ready = population.seedReady(id, 1);
+			final var pending = history.begin(id, from, from + 15, SEED).snapshot();
+			store.insert(id, new PhantomPopulationEcologyState(_ecology.hash(), Preset.LIVING, 1, id, target, from, from, target,
+				Pace.OUTLIER, 10_000, _ecology.limits().productiveBlockMinutes(), Personality.BALANCED,
+				Map.of(1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0), ready.state().scheduleTemplate(), Disposition.MANAGED,
+				target + 10_000, 0, pending.state().requestId(), from + 15, 0, 0, ""));
+		}
+		final HistoricalPort historical = new HistoricalPort()
+		{
+			@Override
+			public Optional<Snapshot> status(long id) { return history.status(id); }
+			@Override
+			public PhantomHistoricalBackgroundService.Result begin(long id, long start, long end, long seed) { return history.begin(id, start, end, seed); }
+			@Override
+			public PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes)
+			{
+				if (liveOwners.get())
+				{
+					PhantomAssertions.assertEquals(9L, id, "Historical advance raced a live native owner.");
+					capacityRetries.incrementAndGet();
+					return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.RETRY,
+						"catchup.baseline.materialize_capacity_reached", history.status(id).orElseThrow());
+				}
+				return history.advance(id, intervals, minutes);
+			}
+		};
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(now);
+		final var ecology = new PhantomPopulationEcologyService(_ecology, _population, store, historical,
+			id -> liveOwners.get() && id <= 8, id -> "", clock, ZoneOffset.UTC, Preset.LIVING, -1, 10,
+			worker -> { worker.run(); return true; });
+		ecology.enablePeriodicDueMode();
+		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(),
+			clock, ZoneOffset.UTC, 9, 8, 16, 8, 2, 64);
+		manager.installEcology(ecology);
+		PhantomAssertions.assertTrue(manager.start(), "Capacity fixture population did not start.");
+		try
+		{
+			loadMetadata(ecology, 9);
+			final List<PhantomPopulationEcologyService.DemandFact> demand = new ArrayList<>();
+			for (long id = 1; id <= 8; id++) { demand.add(new PhantomPopulationEcologyService.DemandFact(id, 1, true, id, id)); }
+			ecology.updateMaterializationDemand(demand, 0);
+			for (int pulse = 0; pulse < 64; pulse++) { manager.onPulse(); }
+			PhantomAssertions.assertTrue(capacityRetries.get() > 0 && capacityRetries.get() < 16, "Capacity retries lost bounded backoff.");
+			PhantomAssertions.assertEquals(0L, history.advancedMinutes(), "Live capacity fabricated historical progress.");
+			PhantomAssertions.assertEquals(0, manager.admissionSnapshot().admittedActive(), "Live Player bypassed current ecology admission.");
+			for (long id = 1; id <= 8; id++)
+			{
+				final var due = ecology.dueSnapshot(id);
+				PhantomAssertions.assertFalse(due.complete(), "Pending live history became current.");
+				PhantomAssertions.assertEquals(from, due.committedCursorMinute(), "Live owner advanced a pending cursor.");
+				PhantomAssertions.assertEquals("ecology.preparation_capacity", due.reason(), "Occupied live preparation gate changed.");
+			}
+			// Only external lifetime/capacity facts change; the owners drain their original queues and requests.
+			liveOwners.set(false);
+			ecology.updateMaterializationDemand(List.of(), 8);
+			pulseUntil(manager, () -> manager.admissionSnapshot().eligibleActive() == 9, 256, "Ordinary released catchup did not reopen admission.");
+			PhantomAssertions.assertEquals(8, manager.admissionSnapshot().admittedActive(), "Current admission changed the native cap.");
+			for (long id = 1; id <= 9; id++)
+			{
+				final var due = ecology.dueSnapshot(id);
+				PhantomAssertions.assertTrue(due.complete() && due.initialCatchupComplete() && !due.requestPending(), "Prepared identity retained a historical fence.");
+				PhantomAssertions.assertEquals(target, due.committedCursorMinute(), "Catchup did not reach the current horizon.");
+				PhantomAssertions.assertTrue(ecology.permitsScheduling(id), "Committed current history did not permit ordinary scheduling.");
+			}
+			PhantomAssertions.assertEquals(9 * 48L, history.advancedMinutes(), "Released catchup lost or replayed productive history.");
+			PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseProfiles() <= _ecology.limits().maximumProfilesPerPulse(), "Preparation exceeded profile budget.");
+			PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseIntervals() <= _ecology.limits().maximumIntervalsPerPulse(), "Preparation exceeded interval budget.");
+			PhantomAssertions.assertEquals(now, clock.instant(), "Preparation required a clock change.");
+			context.record("task046.releaseAdmission", "live8/capacity_retry/admitted0 -> ordinary_catchup/current9/admitted8; clock_unchanged");
+		}
+		finally { stop(manager); }
 	}
 
 	private void testNativeMaterializationReadiness(PhantomTestContext context)

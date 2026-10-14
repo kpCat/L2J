@@ -1,0 +1,203 @@
+{
+  "task": "TASK046",
+  "base": "d76462dd933301bb5e05aebf4c33275ef8896bf2",
+  "verdict": "DIAGNOSED_CONTRACT_PASS_NO_CONFIRMED_PRODUCT_DEFECT",
+  "gameJarSha256": "fc19dc90786947eff5ad427792ac4f3a491340c0e647feb194ecb088f29adec2",
+  "nativeBoots046": 0,
+  "databaseConnections046": 0,
+  "rawReadOnlyNonatomic": true,
+  "earlier": {
+    "utc": "2026-10-14T13:40:53.912512600Z",
+    "profiles": 815,
+    "admitted": 0,
+    "currentReady": 4
+  },
+  "enrollment": {
+    "utc": "2026-10-14T13:41:21.354538Z",
+    "profiles": 967,
+    "admitted": 0,
+    "currentReady": 0,
+    "calendarActive": 485,
+    "newReadyProfiles": 152,
+    "sameProfilePositiveCursorProgress": 97,
+    "guards": [
+      {
+        "count": 337,
+        "reason": "ecology_fenced:catchup.baseline.materialize_capacity_reached:STATE_ABSENT"
+      },
+      {
+        "count": 335,
+        "reason": "schedule_not_active:catchup.baseline.materialize_capacity_reached:STATE_ABSENT"
+      },
+      {
+        "count": 63,
+        "reason": "ecology_fenced:ecology.initial_catchup_pending:STATE_ABSENT"
+      },
+      {
+        "count": 62,
+        "reason": "ecology_fenced:ecology.commit_pending:STATE_ABSENT"
+      },
+      {
+        "count": 60,
+        "reason": "schedule_not_active:ecology.initial_catchup_pending:STATE_ABSENT"
+      },
+      {
+        "count": 59,
+        "reason": "schedule_not_active:ecology.commit_pending:STATE_ABSENT"
+      },
+      {
+        "count": 10,
+        "reason": "schedule_not_active:native_context.required:accepted:SUCCESS"
+      },
+      {
+        "count": 10,
+        "reason": "schedule_not_active:native_context.required:coalesced:SUCCESS"
+      },
+      {
+        "count": 8,
+        "reason": "ecology_fenced:native_context.required:accepted:SUCCESS"
+      },
+      {
+        "count": 8,
+        "reason": "ecology_fenced:native_context.required:coalesced:SUCCESS"
+      },
+      {
+        "count": 7,
+        "reason": "ecology_fenced:ecology.preparation_capacity:SUCCESS"
+      },
+      {
+        "count": 5,
+        "reason": "schedule_not_active:ecology.cursor_pending:STATE_ABSENT"
+      },
+      {
+        "count": 3,
+        "reason": "schedule_not_active:ecology.preparation_capacity:SUCCESS"
+      }
+    ]
+  },
+  "enrolled": [
+    {
+      "profileId": "10008",
+      "lagMinutes": 11779,
+      "guard": "schedule_not_active:ecology.preparation_capacity:SUCCESS",
+      "nativeAlive": true,
+      "initialCatchupComplete": false,
+      "requestPending": true
+    },
+    {
+      "profileId": "10009",
+      "lagMinutes": 3014,
+      "guard": "schedule_not_active:ecology.preparation_capacity:SUCCESS",
+      "nativeAlive": true,
+      "initialCatchupComplete": false,
+      "requestPending": true
+    },
+    {
+      "profileId": "10011",
+      "lagMinutes": 23186,
+      "guard": "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+      "nativeAlive": true,
+      "initialCatchupComplete": false,
+      "requestPending": true
+    },
+    {
+      "profileId": "10015",
+      "lagMinutes": 12679,
+      "guard": "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+      "nativeAlive": true,
+      "initialCatchupComplete": false,
+      "requestPending": true
+    },
+    {
+      "profileId": "10024",
+      "lagMinutes": 20265,
+      "guard": "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+      "nativeAlive": true,
+      "initialCatchupComplete": false,
+      "requestPending": true
+    },
+    {
+      "profileId": "10031",
+      "lagMinutes": 20351,
+      "guard": "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+      "nativeAlive": true,
+      "initialCatchupComplete": false,
+      "requestPending": true
+    },
+    {
+      "profileId": "10037",
+      "lagMinutes": 2450,
+      "guard": "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+      "nativeAlive": true,
+      "initialCatchupComplete": false,
+      "requestPending": true
+    },
+    {
+      "profileId": "10040",
+      "lagMinutes": 5951,
+      "guard": "ecology_fenced:ecology.preparation_capacity:SUCCESS",
+      "nativeAlive": true,
+      "initialCatchupComplete": false,
+      "requestPending": true
+    }
+  ],
+  "tests": [
+    {
+      "suite": "population-ecology-goal033",
+      "seed": "33003300",
+      "total": "31",
+      "passed": "31",
+      "failed": "0",
+      "exitCode": 0,
+      "report": ".phantom-local/ops046/build/phantom-test/reports/population-ecology-goal033.txt",
+      "sha256": "2dd4f4c38830f9db8d0a9d53fc8e41d334c1d7b05f56f89a3286e8a59f6d86d3"
+    },
+    {
+      "suite": "activity-scheduler",
+      "seed": "20260725001",
+      "total": "30",
+      "passed": "30",
+      "failed": "0",
+      "exitCode": 0,
+      "report": ".phantom-local/ops046/build/phantom-test/reports/activity-scheduler.txt",
+      "sha256": "06dca4f46db4e49c34a966150a9c9393467b93e5dd04369af3f1b5f4ec68049d"
+    }
+  ],
+  "originalEvidence": [
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/NATIVE_INPUT045.json",
+      "sha256": "c666e5fe58391c799b490c671a16dbb4a27813da347e7b9ccd80554f61684ec1"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/NATIVE045/global-before-outcomes/global-admission.tsv",
+      "sha256": "70e878ba1c062311ace71146a7ae7e205054241b4d110aba06f8ea02e9576a00"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/NATIVE045/global-before-outcomes/global034-census.txt",
+      "sha256": "a5715163712edbc62195114b86107ab96f2bb685374733350df3a7fb7b89680b"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/NATIVE045/enrollment-census/global-admission.tsv",
+      "sha256": "37bbbda6b30df316c2328b325c3b02227b46d0b91b28906760747d25567b8a88"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/NATIVE045/enrollment-census/global034-census.txt",
+      "sha256": "676136ba3896d069cf7d153cf2abafe5cdb7f1f0660d0ff60ca4cc459f337be8"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/NATIVE045/enrollment-census/operator-admission.tsv",
+      "sha256": "695361fb5f4af179b7ec0c34ba083ef45392bbd941243e5a7fdf8833a3454375"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/POPULATION_GREEN2_045.provenance.json",
+      "sha256": "26691df63d685bb0caeaf1fb342c9d494195967b3b62be7599e04d8ff4868594"
+    },
+    {
+      "path": "docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/POPULATION_GREEN2_045.log",
+      "sha256": "9918b275b8cbc0d69aa62c1af0dfcc3d05da86b2e65118e9be9955f864f4e218"
+    }
+  ],
+  "P07": "OPEN_SEPARATE_NOT_RETRIED",
+  "M1": "OPEN",
+  "READY_FOR_M2": false
+}
