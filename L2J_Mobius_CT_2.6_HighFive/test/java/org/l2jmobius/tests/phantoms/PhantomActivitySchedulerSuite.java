@@ -135,6 +135,123 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("26-soft-reclamation-preserves-scheduler-ownership", _ -> testSoftReclamation());
 		registry.add("27-source-view-immutable-replacement-withdrawal", _ -> testSourceView());
 		registry.add("28-source-view-overdue-read-does-not-expire", _ -> testOverdueSourceView());
+		registry.add("29-calendar-active-releases-after-real-locality-expiry", this::testCalendarLocalityRelease);
+		registry.add("30-calendar-sleeping-denies-locality-and-background-work", this::testSleepingCalendarLocality);
+	}
+
+	private void testCalendarLocalityRelease(PhantomTestContext context)
+	{
+		testCalendarLocality(context, false);
+	}
+
+	private void testSleepingCalendarLocality(PhantomTestContext context)
+	{
+		testCalendarLocality(context, true);
+	}
+
+	private void testCalendarLocality(PhantomTestContext context, boolean sleeping)
+	{
+		final var clock = new ManualClock();
+		final var delegate = new FakeMaterializationPort();
+		final var port = new PhantomReconcileFirstActivityPort(delegate);
+		final var metrics = new PhantomMetrics();
+		final List<PhantomActivityWorkItem> work = new ArrayList<>();
+		final var scheduler = new PhantomScheduler(2, 100, 2, PhantomSchedulerPolicy.productionDefaults(100), clock, (_pulse, _period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), port, work::add);
+		PhantomAssertions.assertTrue(scheduler.start(), "Calendar/locality scheduler did not start.");
+		final var catalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"), java.time.ZoneOffset.UTC);
+		final var store = new org.l2jmobius.tests.phantoms.PhantomPopulationTestDoubles.MemoryStore(catalog.hash());
+		store.seedReady(1, 1);
+		store.seedReady(2, 1);
+		final var calendarClock = java.time.Clock.fixed(java.time.Instant.parse(sleeping ? "2026-01-05T12:00:00Z" : "2026-01-05T20:00:00Z"), java.time.ZoneOffset.UTC);
+		final var population = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager(store, catalog, null, new CalendarSchedulerOwnership(scheduler, delegate), calendarClock, java.time.ZoneOffset.UTC, 2, 1, 2, 1, 1, 64);
+		final var backend = new PhantomTopologyCoreSuite.TestBackend();
+		final var signals = new PhantomSchedulerRelevanceSignalPort(scheduler);
+		final var topology = PhantomTopologyService.fromSnapshotForTesting(PhantomTopologyCoreSuite.snapshot(backend), backend, PhantomTopologyCoreSuite.POLICY, signals);
+		PhantomAssertions.assertTrue(topology.start(), "Calendar/locality topology did not start.");
+		population.installTopologyMembership(id ->
+		{
+			topology.registerProfile(id);
+			topology.updateProfile(id, id == 1 ? PhantomTopologyCoreSuite.LEFT_POINT : new PhantomTopologyPoint(10000, 10000, 0, 0), 1);
+		}, topology::unregisterProfile);
+		final var humans = new java.util.concurrent.atomic.AtomicReference<List<PhantomTopologyPoint>>(List.of(PhantomTopologyCoreSuite.LEFT_POINT));
+		final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, signals, humans::get, () -> clock.nanoTime() / 1_000_000L, population.presence()::isOnline);
+		final var retention = new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy(id -> new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(delegate.isMaterialized(id), locality.isLocal(id), false, false, false), clock::nanoTime, 60_000);
+		port.installPopulationReadiness(population.presence(), locality, null);
+		port.installRetention(id -> retention.observe(id).retained());
+		PhantomAssertions.assertTrue(population.start(), "Calendar population did not start.");
+		try
+		{
+			for (int pulse = 0; pulse < 12; pulse++) { population.onPulse(); }
+			PhantomAssertions.assertEquals(sleeping ? 0 : 1, population.admissionSnapshot().admittedActive(), "Calendar admission capacity changed.");
+			final long admitted = sleeping || population.admissionProfile(1).orElseThrow().admitted() ? 1 : 2;
+			topology.updateProfile(admitted, PhantomTopologyCoreSuite.LEFT_POINT, 2);
+			topology.updateProfile(3 - admitted, new PhantomTopologyPoint(10000, 10000, 0, 0), 2);
+			locality.onPulse();
+			scheduler.pulse();
+			if (sleeping)
+			{
+				PhantomAssertions.assertFalse(population.presence().permitsOrdinaryFarm(1), "Sleeping calendar granted ordinary farm.");
+				PhantomAssertions.assertFalse(locality.isLocal(1), "Sleeping calendar admitted a human.local signal.");
+				PhantomAssertions.assertTrue(scheduler.signalSources(1).isEmpty(), "Sleeping calendar retained a work source.");
+				PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, scheduler.find(1).orElseThrow().effectiveState(), "Sleeping calendar started work.");
+				PhantomAssertions.assertTrue(work.isEmpty(), "Sleeping calendar dispatched background work.");
+				return;
+			}
+			PhantomAssertions.assertTrue(population.presence().permitsOrdinaryFarm(admitted), "Active calendar lost logical farm eligibility.");
+			PhantomAssertions.assertTrue(delegate.isMaterialized(admitted), "Real human.local did not prewarm native ownership.");
+			retention.observe(admitted);
+			humans.set(List.of());
+			clock.advanceMillis(11_000);
+			locality.onPulse();
+			scheduler.pulse();
+			PhantomAssertions.assertTrue(delegate.isMaterialized(admitted), "Recent human continuity was torn down early.");
+			clock.advanceMillis(50_000);
+			locality.onPulse();
+			scheduler.pulse();
+			clock.advanceMillis(30_000);
+			scheduler.pulse();
+			context.record("task045.scheduleSourcesAfterAway", scheduler.signalSources(admitted).toString());
+			context.record("task045.requestedAfterAway", scheduler.find(admitted).orElseThrow().requestedState().name());
+			PhantomAssertions.assertFalse(retention.observe(admitted).retained(), "Fixture still has a legitimate native hold.");
+			PhantomAssertions.assertFalse(scheduler.find(admitted).orElseThrow().requestedState().requiresMaterialization(), "Calendar ACTIVE still requests a physical Player after human.local expiry and settlement.");
+			PhantomAssertions.assertFalse(delegate.isMaterialized(admitted), "Calendar-only profile did not finish lawful native release.");
+			PhantomAssertions.assertEquals(PhantomActivityState.BACKGROUND, scheduler.find(admitted).orElseThrow().effectiveState(), "Admitted active calendar lost ordinary background execution.");
+			PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, population.admissionProfile(admitted).orElseThrow().effectiveState(), "Physical projection rewrote logical admission.");
+			PhantomAssertions.assertTrue(population.presence().permitsOrdinaryFarm(admitted), "Release made the active calendar offline.");
+			PhantomAssertions.assertEquals(PhantomActivityState.WARM, scheduler.find(3 - admitted).orElseThrow().effectiveState(), "Non-admitted schedule bypassed ACTIVE admission capacity.");
+			PhantomAssertions.assertEquals(1, delegate.materializeCalls, "Calendar alone constructed another Player.");
+			final var schedule = scheduler.signalSources(admitted).stream().filter(source -> source.sourceKey().equals("population.schedule")).findFirst().orElseThrow();
+			PhantomAssertions.assertEquals(SignalStatus.STALE, scheduler.submitSignal(admitted, signal("population.schedule", schedule.sequence(), PhantomActivityState.ACTIVE, 10_000)).status(), "Stale schedule sequence replaced the lawful projection.");
+			humans.set(List.of(PhantomTopologyCoreSuite.LEFT_POINT));
+			clock.advanceMillis(1000);
+			locality.onPulse();
+			scheduler.pulse();
+			PhantomAssertions.assertTrue(delegate.isMaterialized(admitted), "Current human.local did not rematerialize the same profile.");
+			PhantomAssertions.assertEquals(2, delegate.materializeCalls, "Same-profile return duplicated native ownership.");
+		}
+		finally
+		{
+			population.beginStop();
+			PhantomAssertions.assertTrue(population.finishStop(), "Calendar population did not stop.");
+			stop(scheduler);
+			topology.beginStop();
+			PhantomAssertions.assertTrue(topology.finishStop(), "Calendar topology did not stop.");
+		}
+	}
+
+	/** Only decision attachment is inert; both producers deliver through the real scheduler API. */
+	private record CalendarSchedulerOwnership(PhantomScheduler scheduler, FakeMaterializationPort nativeOwner) implements org.l2jmobius.gameserver.phantoms.population.PhantomPopulationOwnershipPort
+	{
+		@Override public RegistrationStatus register(long id) { return scheduler.register(id).status(); }
+		@Override public PhantomDecisionEngine.AttachResult attach(long id) { return PhantomDecisionEngine.AttachResult.ATTACHED; }
+		@Override public SignalStatus submit(long id, String source, long sequence, PhantomActivityState state, long ttl) { return scheduler.submitSignal(id, signal(source, sequence, state, ttl)).status(); }
+		@Override public SignalStatus withdraw(long id, String source, long sequence) { return scheduler.withdrawSignal(id, source, sequence).status(); }
+		@Override public UnregisterStatus unregister(long id) { return scheduler.unregister(id).status(); }
+		@Override public PhantomDecisionEngine.DetachResult detach(long id) { return PhantomDecisionEngine.DetachResult.DETACHED; }
+		@Override public PhantomDecisionEngine.ReloadResult reload(long id) { return PhantomDecisionEngine.ReloadResult.RELOADED; }
+		@Override public boolean registered(long id) { return scheduler.find(id).isPresent(); }
+		@Override public boolean materialized(long id) { return nativeOwner.isMaterialized(id); }
+		@Override public int registeredCount() { return scheduler.snapshot().registered(); }
 	}
 
 	private void testSourceView()

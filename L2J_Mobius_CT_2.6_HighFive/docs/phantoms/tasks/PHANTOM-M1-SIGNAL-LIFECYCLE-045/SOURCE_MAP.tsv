@@ -1,0 +1,24 @@
+path	permission	reason
+java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationManager.java	CONDITIONAL_PRODUCT_WRITE	schedule ACTIVE versus logical presence; first candidate only after causal RED
+java/org/l2jmobius/gameserver/phantoms/population/PhantomPresenceRegistry.java	READ_ONLY_FIRST	preserve online, ordinary farm eligibility, schedule semantics
+java/org/l2jmobius/gameserver/phantoms/PhantomScheduler.java	CONDITIONAL_NARROW	read-only signalSources044 protected; change scheduler only if causal RED here, avoid global policy rewrite
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java	READ_ONLY_FIRST	native materialize/dematerialize boundary; no forced cleanup
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java	PROTECTED_READ_ONLY	60s recent-human, ACTIVE_ACTION, REAL_PARTY, native visibility
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	READ_ONLY_FIRST	human.local TTL 10s; existing real prewarm
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomPerceptionProvider.java	PROTECTED_READ_ONLY	combat/targetability ownership negative
+java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	READ_ONLY_FIRST	actual eligible due and native-release catch-up, no clock/rate change
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	READ_ONLY_FIRST	actual historical producer/commit and same-profile return
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	READ_ONLY_FIRST	producer/consumer installation, no new scheduler
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	PROTECTED_READ_ONLY	035-044 earned/retire/no-target behavior
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	PROTECTED_READ_ONLY	earned native drain/epochs
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	PROTECTED_READ_ONLY	commit boundary/owned protocol
+java/org/l2jmobius/gameserver/phantoms/ai/PlayerAI.java	PROTECTED_READ_ONLY	stock native behavior (verify actual path if needed)
+test/java/org/l2jmobius/tests/phantoms/PhantomActivitySchedulerSuite.java	CONDITIONAL_TEST_APPEND	actual owner signal semantics and RED/GREEN
+test/java/org/l2jmobius/tests/phantoms/PhantomPopulationEcologyGoal033Suite.java	CONDITIONAL_TEST_APPEND	logical schedule/online/ecology/real engagement negatives
+test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java	CONDITIONAL_TEST_APPEND	hard holds and valid soft return
+test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	CONDITIONAL_TEST_EXACT	only exact045a namespace guard; existing owners preserved
+docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/**	WRITE_TASK_FAMILY	input docs plus compact outputs and select test adapters
+.phantom-local/ops045/**	OWN_PRIVATE	short reproducible ordinary runner, no fault/client capture
+.phantom-local/contract045a/**	OWN_RUNTIME	new own schema, safe ports, normal stock stop
+.phantom-local/contract040a/**	PROTECTED_NO_WRITE	actual live040a no change
+all old DB/raw/PLAY/MAIN/041x72/041x73/044	PROTECTED_READ_ONLY	no crash/reimport/reset/cleanup

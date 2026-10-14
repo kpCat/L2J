@@ -1,0 +1,28 @@
+Buildfile: C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\build.xml
+
+checkRequirements:
+
+init:
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\build-red\bin
+
+compile:
+    [javac] Compiling 2319 source files to C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\build-red\bin
+
+init-test:
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\build-red\phantom-test\bin
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\build-red\phantom-test\resources
+    [mkdir] Created dir: C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\build-red\phantom-test\reports
+     [copy] Copying 11 files to C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\build-red\phantom-test\resources
+
+compile-tests:
+    [javac] Compiling 256 source files to C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops045\build-red\phantom-test\bin
+    [javac] C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnduranceGoal029Checkpoint3Suite.java:897: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\test\java\org\l2jmobius\tests\phantoms\PhantomScaleEnvironmentGoal029Checkpoint2Suite.java:574: warning: [removal] runFinalization() in System has been deprecated and marked for removal
+    [javac] 			System.runFinalization();
+    [javac] 			      ^
+    [javac] 2 warnings
+
+BUILD SUCCESSFUL
+Total time: 24 seconds

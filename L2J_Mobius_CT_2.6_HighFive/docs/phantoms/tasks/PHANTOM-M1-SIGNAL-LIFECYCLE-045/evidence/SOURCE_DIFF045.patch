@@ -1,0 +1,188 @@
+diff --git a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationManager.java b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationManager.java
+index 2b540fbb007..172706dde89 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationManager.java
++++ b/L2J_Mobius_CT_2.6_HighFive/java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationManager.java
+@@ -1123 +1123,2 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
+-			effective = entry._effectiveState;
++			// Calendar admission permits ordinary work; current locality owns physical detail.
++			effective = entry._effectiveState == PhantomActivityState.ACTIVE ? PhantomActivityState.BACKGROUND : entry._effectiveState;
+diff --git a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomActivitySchedulerSuite.java b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomActivitySchedulerSuite.java
+index 512ebbafff6..e2bdd6bad8a 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomActivitySchedulerSuite.java
++++ b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomActivitySchedulerSuite.java
+@@ -137,0 +138,117 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
++		registry.add("29-calendar-active-releases-after-real-locality-expiry", this::testCalendarLocalityRelease);
++		registry.add("30-calendar-sleeping-denies-locality-and-background-work", this::testSleepingCalendarLocality);
++	}
++
++	private void testCalendarLocalityRelease(PhantomTestContext context)
++	{
++		testCalendarLocality(context, false);
++	}
++
++	private void testSleepingCalendarLocality(PhantomTestContext context)
++	{
++		testCalendarLocality(context, true);
++	}
++
++	private void testCalendarLocality(PhantomTestContext context, boolean sleeping)
++	{
++		final var clock = new ManualClock();
++		final var delegate = new FakeMaterializationPort();
++		final var port = new PhantomReconcileFirstActivityPort(delegate);
++		final var metrics = new PhantomMetrics();
++		final List<PhantomActivityWorkItem> work = new ArrayList<>();
++		final var scheduler = new PhantomScheduler(2, 100, 2, PhantomSchedulerPolicy.productionDefaults(100), clock, (_pulse, _period) -> null, false, metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), port, work::add);
++		PhantomAssertions.assertTrue(scheduler.start(), "Calendar/locality scheduler did not start.");
++		final var catalog = org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.load(context.moduleRoot().resolve("dist/game/data/phantoms/population/high-five-population-v1.xml"), java.time.ZoneOffset.UTC);
++		final var store = new org.l2jmobius.tests.phantoms.PhantomPopulationTestDoubles.MemoryStore(catalog.hash());
++		store.seedReady(1, 1);
++		store.seedReady(2, 1);
++		final var calendarClock = java.time.Clock.fixed(java.time.Instant.parse(sleeping ? "2026-01-05T12:00:00Z" : "2026-01-05T20:00:00Z"), java.time.ZoneOffset.UTC);
++		final var population = new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager(store, catalog, null, new CalendarSchedulerOwnership(scheduler, delegate), calendarClock, java.time.ZoneOffset.UTC, 2, 1, 2, 1, 1, 64);
++		final var backend = new PhantomTopologyCoreSuite.TestBackend();
++		final var signals = new PhantomSchedulerRelevanceSignalPort(scheduler);
++		final var topology = PhantomTopologyService.fromSnapshotForTesting(PhantomTopologyCoreSuite.snapshot(backend), backend, PhantomTopologyCoreSuite.POLICY, signals);
++		PhantomAssertions.assertTrue(topology.start(), "Calendar/locality topology did not start.");
++		population.installTopologyMembership(id ->
++		{
++			topology.registerProfile(id);
++			topology.updateProfile(id, id == 1 ? PhantomTopologyCoreSuite.LEFT_POINT : new PhantomTopologyPoint(10000, 10000, 0, 0), 1);
++		}, topology::unregisterProfile);
++		final var humans = new java.util.concurrent.atomic.AtomicReference<List<PhantomTopologyPoint>>(List.of(PhantomTopologyCoreSuite.LEFT_POINT));
++		final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, signals, humans::get, () -> clock.nanoTime() / 1_000_000L, population.presence()::isOnline);
++		final var retention = new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy(id -> new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(delegate.isMaterialized(id), locality.isLocal(id), false, false, false), clock::nanoTime, 60_000);
++		port.installPopulationReadiness(population.presence(), locality, null);
++		port.installRetention(id -> retention.observe(id).retained());
++		PhantomAssertions.assertTrue(population.start(), "Calendar population did not start.");
++		try
++		{
++			for (int pulse = 0; pulse < 12; pulse++) { population.onPulse(); }
++			PhantomAssertions.assertEquals(sleeping ? 0 : 1, population.admissionSnapshot().admittedActive(), "Calendar admission capacity changed.");
++			final long admitted = sleeping || population.admissionProfile(1).orElseThrow().admitted() ? 1 : 2;
++			topology.updateProfile(admitted, PhantomTopologyCoreSuite.LEFT_POINT, 2);
++			topology.updateProfile(3 - admitted, new PhantomTopologyPoint(10000, 10000, 0, 0), 2);
++			locality.onPulse();
++			scheduler.pulse();
++			if (sleeping)
++			{
++				PhantomAssertions.assertFalse(population.presence().permitsOrdinaryFarm(1), "Sleeping calendar granted ordinary farm.");
++				PhantomAssertions.assertFalse(locality.isLocal(1), "Sleeping calendar admitted a human.local signal.");
++				PhantomAssertions.assertTrue(scheduler.signalSources(1).isEmpty(), "Sleeping calendar retained a work source.");
++				PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, scheduler.find(1).orElseThrow().effectiveState(), "Sleeping calendar started work.");
++				PhantomAssertions.assertTrue(work.isEmpty(), "Sleeping calendar dispatched background work.");
++				return;
++			}
++			PhantomAssertions.assertTrue(population.presence().permitsOrdinaryFarm(admitted), "Active calendar lost logical farm eligibility.");
++			PhantomAssertions.assertTrue(delegate.isMaterialized(admitted), "Real human.local did not prewarm native ownership.");
++			retention.observe(admitted);
++			humans.set(List.of());
++			clock.advanceMillis(11_000);
++			locality.onPulse();
++			scheduler.pulse();
++			PhantomAssertions.assertTrue(delegate.isMaterialized(admitted), "Recent human continuity was torn down early.");
++			clock.advanceMillis(50_000);
++			locality.onPulse();
++			scheduler.pulse();
++			clock.advanceMillis(30_000);
++			scheduler.pulse();
++			context.record("task045.scheduleSourcesAfterAway", scheduler.signalSources(admitted).toString());
++			context.record("task045.requestedAfterAway", scheduler.find(admitted).orElseThrow().requestedState().name());
++			PhantomAssertions.assertFalse(retention.observe(admitted).retained(), "Fixture still has a legitimate native hold.");
++			PhantomAssertions.assertFalse(scheduler.find(admitted).orElseThrow().requestedState().requiresMaterialization(), "Calendar ACTIVE still requests a physical Player after human.local expiry and settlement.");
++			PhantomAssertions.assertFalse(delegate.isMaterialized(admitted), "Calendar-only profile did not finish lawful native release.");
++			PhantomAssertions.assertEquals(PhantomActivityState.BACKGROUND, scheduler.find(admitted).orElseThrow().effectiveState(), "Admitted active calendar lost ordinary background execution.");
++			PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, population.admissionProfile(admitted).orElseThrow().effectiveState(), "Physical projection rewrote logical admission.");
++			PhantomAssertions.assertTrue(population.presence().permitsOrdinaryFarm(admitted), "Release made the active calendar offline.");
++			PhantomAssertions.assertEquals(PhantomActivityState.WARM, scheduler.find(3 - admitted).orElseThrow().effectiveState(), "Non-admitted schedule bypassed ACTIVE admission capacity.");
++			PhantomAssertions.assertEquals(1, delegate.materializeCalls, "Calendar alone constructed another Player.");
++			final var schedule = scheduler.signalSources(admitted).stream().filter(source -> source.sourceKey().equals("population.schedule")).findFirst().orElseThrow();
++			PhantomAssertions.assertEquals(SignalStatus.STALE, scheduler.submitSignal(admitted, signal("population.schedule", schedule.sequence(), PhantomActivityState.ACTIVE, 10_000)).status(), "Stale schedule sequence replaced the lawful projection.");
++			humans.set(List.of(PhantomTopologyCoreSuite.LEFT_POINT));
++			clock.advanceMillis(1000);
++			locality.onPulse();
++			scheduler.pulse();
++			PhantomAssertions.assertTrue(delegate.isMaterialized(admitted), "Current human.local did not rematerialize the same profile.");
++			PhantomAssertions.assertEquals(2, delegate.materializeCalls, "Same-profile return duplicated native ownership.");
++		}
++		finally
++		{
++			population.beginStop();
++			PhantomAssertions.assertTrue(population.finishStop(), "Calendar population did not stop.");
++			stop(scheduler);
++			topology.beginStop();
++			PhantomAssertions.assertTrue(topology.finishStop(), "Calendar topology did not stop.");
++		}
++	}
++
++	/** Only decision attachment is inert; both producers deliver through the real scheduler API. */
++	private record CalendarSchedulerOwnership(PhantomScheduler scheduler, FakeMaterializationPort nativeOwner) implements org.l2jmobius.gameserver.phantoms.population.PhantomPopulationOwnershipPort
++	{
++		@Override public RegistrationStatus register(long id) { return scheduler.register(id).status(); }
++		@Override public PhantomDecisionEngine.AttachResult attach(long id) { return PhantomDecisionEngine.AttachResult.ATTACHED; }
++		@Override public SignalStatus submit(long id, String source, long sequence, PhantomActivityState state, long ttl) { return scheduler.submitSignal(id, signal(source, sequence, state, ttl)).status(); }
++		@Override public SignalStatus withdraw(long id, String source, long sequence) { return scheduler.withdrawSignal(id, source, sequence).status(); }
++		@Override public UnregisterStatus unregister(long id) { return scheduler.unregister(id).status(); }
++		@Override public PhantomDecisionEngine.DetachResult detach(long id) { return PhantomDecisionEngine.DetachResult.DETACHED; }
++		@Override public PhantomDecisionEngine.ReloadResult reload(long id) { return PhantomDecisionEngine.ReloadResult.RELOADED; }
++		@Override public boolean registered(long id) { return scheduler.find(id).isPresent(); }
++		@Override public boolean materialized(long id) { return nativeOwner.isMaterialized(id); }
++		@Override public int registeredCount() { return scheduler.snapshot().registered(); }
+diff --git a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java
+index 12187eb8a72..c2ec02f735f 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java
++++ b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java
+@@ -268,0 +269,4 @@ public final class PhantomHeadlessPlayerTestEnvironment
++		if (System.getProperty("phantom.contract045.manifest") != null)
++		{
++			context.record("headless.database", "l2jmobiush5_phantom_test_045a");
++		}
+@@ -281 +285 @@ public final class PhantomHeadlessPlayerTestEnvironment
+-		if ((System.getProperty("phantom.contract041.manifest") != null) || (System.getProperty("phantom.contract042.manifest") != null) || (System.getProperty("phantom.contract043.manifest") != null) || (System.getProperty("phantom.contract044.manifest") != null))
++		if ((System.getProperty("phantom.contract041.manifest") != null) || (System.getProperty("phantom.contract042.manifest") != null) || (System.getProperty("phantom.contract043.manifest") != null) || (System.getProperty("phantom.contract044.manifest") != null) || (System.getProperty("phantom.contract045.manifest") != null))
+@@ -323,3 +327,5 @@ public final class PhantomHeadlessPlayerTestEnvironment
+-		final String contract = task044 ? "044" : task043 ? "043" : task042 ? "042" : task041 ? "041" : task040 ? "040" : task039 ? "039" : task038 ? "038" : task037 ? "037" : task036 ? "036" : task035 ? "035" : task033r ? "033R" : task032 ? "032" : task031 ? "031" : task027 ? "027" : "026";
+-		final String episode = task044 || task043 ? "a" : task042 ? "b" : task041 || task040 || task039 || task038 || task037 || task036 || task035 || task033r || task032 || task031 ? "t" : "a";
+-		final String database = task044 || task043 || task042 || task041 || task040 ? "l2jmobiush5_phantom_test_" + contract + episode : "l2jmobiush5_localplay_" + (task033r ? "travel033rt" : "contract" + contract + episode);
++		final boolean task045 = System.getProperty("phantom.contract045.manifest") != null;
++		PhantomAssertions.assertFalse(task045 && (task044 || task043 || task042 || task041 || task040 || task039 || task038 || task037 || task036 || task035 || task033r || task032 || task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
++		final String contract = task045 ? "045" : task044 ? "044" : task043 ? "043" : task042 ? "042" : task041 ? "041" : task040 ? "040" : task039 ? "039" : task038 ? "038" : task037 ? "037" : task036 ? "036" : task035 ? "035" : task033r ? "033R" : task032 ? "032" : task031 ? "031" : task027 ? "027" : "026";
++		final String episode = task045 || task044 || task043 ? "a" : task042 ? "b" : task041 || task040 || task039 || task038 || task037 || task036 || task035 || task033r || task032 || task031 ? "t" : "a";
++		final String database = task045 || task044 || task043 || task042 || task041 || task040 ? "l2jmobiush5_phantom_test_" + contract + episode : "l2jmobiush5_localplay_" + (task033r ? "travel033rt" : "contract" + contract + episode);
+diff --git a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPopulationSuite.java b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPopulationSuite.java
+index 319b9bb421d..c72a961ee78 100644
+--- a/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPopulationSuite.java
++++ b/L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomPopulationSuite.java
+@@ -1131,0 +1132,20 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
++		final org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService topology;
++		if (realMaterialization)
++		{
++			// The native lifecycle fixture supplies physical locality independently of its calendar.
++			final var backend = new PhantomTopologyCoreSuite.TestBackend();
++			final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSignalPort(scheduler);
++			topology = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService.fromSnapshotForTesting(PhantomTopologyCoreSuite.snapshot(backend), backend, PhantomTopologyCoreSuite.POLICY, signals);
++			PhantomAssertions.assertTrue(topology.start(), "Population fixture topology did not start.");
++			manager.installTopologyMembership(id ->
++			{
++				topology.registerProfile(id);
++				topology.updateProfile(id, PhantomTopologyCoreSuite.LEFT_POINT, 1);
++			}, topology::unregisterProfile);
++			final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, signals, () -> List.of(PhantomTopologyCoreSuite.LEFT_POINT), System::currentTimeMillis, manager.presence()::isOnline);
++			PhantomAssertions.assertTrue(scheduler.installLocalControlPort(locality), "Population fixture locality installation failed.");
++		}
++		else
++		{
++			topology = null;
++		}
+@@ -1135 +1155 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
+-		return new RunningManager(manager, scheduler, engine, materialization, clock);
++		return new RunningManager(manager, scheduler, engine, materialization, clock, topology);
+@@ -1508 +1528 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
+-	private record RunningManager(PhantomPopulationManager manager, PhantomScheduler scheduler, PhantomDecisionEngine engine, PhantomMaterializationService materialization, MutableClock clock)
++	private record RunningManager(PhantomPopulationManager manager, PhantomScheduler scheduler, PhantomDecisionEngine engine, PhantomMaterializationService materialization, MutableClock clock, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService topology)
+@@ -1531,0 +1552,5 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
++			if (topology != null)
++			{
++				topology.beginStop();
++				PhantomAssertions.assertTrue(topology.finishStop(), "Population fixture topology did not stop.");
++			}

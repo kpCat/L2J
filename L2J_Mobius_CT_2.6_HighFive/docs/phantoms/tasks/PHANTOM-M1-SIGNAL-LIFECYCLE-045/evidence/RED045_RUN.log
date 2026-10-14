@@ -1,0 +1,31 @@
+[PASS] activity-scheduler.01-start-zero-and-registration-bounds
+[PASS] activity-scheduler.02-signal-validation-source-sequence-and-coalescing
+[PASS] activity-scheduler.03-queue-backpressure-leaves-signal-unchanged
+[PASS] activity-scheduler.04-highest-detail-expiry-and-demotion-grace
+[PASS] activity-scheduler.05-active-nearby-canonical-materialization
+[PASS] activity-scheduler.06-clean-transition-block-bounded-retry
+[PASS] activity-scheduler.07-retained-failure-explicit-retry
+[PASS] activity-scheduler.08-work-cadence-sleeping-and-sink-isolation
+[PASS] activity-scheduler.09-fair-cohort-and-once-per-pulse
+[PASS] activity-scheduler.10-overload-cadence-only-no-demotion
+[PASS] activity-scheduler.11-unregister-materialized-and-stop-retention
+[PASS] activity-scheduler.12-fixed-metrics-and-bounded-snapshots
+[PASS] activity-scheduler.13-in-flight-promotion-unregister-cleans-late-success
+[PASS] activity-scheduler.14-in-flight-promotion-unregister-retained-explicit-retry
+[PASS] activity-scheduler.15-retained-dematerialization-new-active-requires-fresh-materialize
+[PASS] activity-scheduler.16-retained-materialization-survives-withdrawal-and-expiry
+[PASS] activity-scheduler.17-stopping-quiesces-boundary-and-work
+[PASS] activity-scheduler.18-cleanup-retry-recomputes-warm-to-sleeping
+[PASS] activity-scheduler.19-cleanup-retry-recomputes-warm-to-active
+[PASS] activity-scheduler.20-manual-scheduler-drives-one-decision-slice
+[PASS] activity-scheduler.21-production-background-first-due-waits-5-to-15-minutes
+[PASS] activity-scheduler.22-materialization-reconciles-before-canonical-player
+[PASS] activity-scheduler.23-production-policy-10000-profiles-24h
+[PASS] activity-scheduler.24-fresh-human-preempts-policy-wait
+[PASS] activity-scheduler.25-hard-and-recent-human-retention
+[PASS] activity-scheduler.26-soft-reclamation-preserves-scheduler-ownership
+[PASS] activity-scheduler.27-source-view-immutable-replacement-withdrawal
+[PASS] activity-scheduler.28-source-view-overdue-read-does-not-expire
+[FAIL] activity-scheduler.29-calendar-active-releases-after-real-locality-expiry - java.lang.AssertionError: Calendar ACTIVE still requests a physical Player after human.local expiry and settlement. seed=20260725001
+[PASS] activity-scheduler.30-calendar-sleeping-denies-locality-and-background-work
+SUMMARY: suite=activity-scheduler seed=20260725001 total=30 passed=29 failed=1

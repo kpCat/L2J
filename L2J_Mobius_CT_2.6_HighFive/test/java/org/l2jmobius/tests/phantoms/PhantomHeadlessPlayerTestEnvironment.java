@@ -266,6 +266,10 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		{
 			context.record("headless.database", "l2jmobiush5_phantom_test_044a");
 		}
+		if (System.getProperty("phantom.contract045.manifest") != null)
+		{
+			context.record("headless.database", "l2jmobiush5_phantom_test_045a");
+		}
 		context.record("headless.schemaAggregateSha256", ((PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled() || owned026Enabled())
 			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());
 		context.record("headless.initializedSingletonCount", INITIALIZED_SINGLETONS.size());
@@ -278,7 +282,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	private static boolean owned026Enabled()
 	{
-		if ((System.getProperty("phantom.contract041.manifest") != null) || (System.getProperty("phantom.contract042.manifest") != null) || (System.getProperty("phantom.contract043.manifest") != null) || (System.getProperty("phantom.contract044.manifest") != null))
+		if ((System.getProperty("phantom.contract041.manifest") != null) || (System.getProperty("phantom.contract042.manifest") != null) || (System.getProperty("phantom.contract043.manifest") != null) || (System.getProperty("phantom.contract044.manifest") != null) || (System.getProperty("phantom.contract045.manifest") != null))
 		{
 			return true;
 		}
@@ -320,9 +324,11 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		PhantomAssertions.assertFalse(task043 && (task042 || task041 || task040 || task039 || task038 || task037 || task036 || task035 || task033r || task032 || task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
 		final boolean task044 = System.getProperty("phantom.contract044.manifest") != null;
 		PhantomAssertions.assertFalse(task044 && (task043 || task042 || task041 || task040 || task039 || task038 || task037 || task036 || task035 || task033r || task032 || task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
-		final String contract = task044 ? "044" : task043 ? "043" : task042 ? "042" : task041 ? "041" : task040 ? "040" : task039 ? "039" : task038 ? "038" : task037 ? "037" : task036 ? "036" : task035 ? "035" : task033r ? "033R" : task032 ? "032" : task031 ? "031" : task027 ? "027" : "026";
-		final String episode = task044 || task043 ? "a" : task042 ? "b" : task041 || task040 || task039 || task038 || task037 || task036 || task035 || task033r || task032 || task031 ? "t" : "a";
-		final String database = task044 || task043 || task042 || task041 || task040 ? "l2jmobiush5_phantom_test_" + contract + episode : "l2jmobiush5_localplay_" + (task033r ? "travel033rt" : "contract" + contract + episode);
+		final boolean task045 = System.getProperty("phantom.contract045.manifest") != null;
+		PhantomAssertions.assertFalse(task045 && (task044 || task043 || task042 || task041 || task040 || task039 || task038 || task037 || task036 || task035 || task033r || task032 || task031 || task027 || System.getProperty("phantom.contract026.manifest") != null), "Only one exact owned lane may be selected.");
+		final String contract = task045 ? "045" : task044 ? "044" : task043 ? "043" : task042 ? "042" : task041 ? "041" : task040 ? "040" : task039 ? "039" : task038 ? "038" : task037 ? "037" : task036 ? "036" : task035 ? "035" : task033r ? "033R" : task032 ? "032" : task031 ? "031" : task027 ? "027" : "026";
+		final String episode = task045 || task044 || task043 ? "a" : task042 ? "b" : task041 || task040 || task039 || task038 || task037 || task036 || task035 || task033r || task032 || task031 ? "t" : "a";
+		final String database = task045 || task044 || task043 || task042 || task041 || task040 ? "l2jmobiush5_phantom_test_" + contract + episode : "l2jmobiush5_localplay_" + (task033r ? "travel033rt" : "contract" + contract + episode);
 		final String laneName = task033r ? "travel033rt" : "contract" + contract + episode;
 		final Path lane = root.resolve(".phantom-local/" + laneName).toRealPath();
 		final Path manifest = Path.of(System.getProperty(task033r ? "phantom.travel033r.manifest" : "phantom.contract" + contract + ".manifest")).toRealPath();

@@ -1129,10 +1129,30 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 		engine.start();
 		manager.installDecisionEngine(engine);
 		PhantomAssertions.assertTrue(scheduler.installControlPort(manager), "Population control port installation failed.");
+		final org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService topology;
+		if (realMaterialization)
+		{
+			// The native lifecycle fixture supplies physical locality independently of its calendar.
+			final var backend = new PhantomTopologyCoreSuite.TestBackend();
+			final var signals = new org.l2jmobius.gameserver.phantoms.topology.PhantomSchedulerRelevanceSignalPort(scheduler);
+			topology = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService.fromSnapshotForTesting(PhantomTopologyCoreSuite.snapshot(backend), backend, PhantomTopologyCoreSuite.POLICY, signals);
+			PhantomAssertions.assertTrue(topology.start(), "Population fixture topology did not start.");
+			manager.installTopologyMembership(id ->
+			{
+				topology.registerProfile(id);
+				topology.updateProfile(id, PhantomTopologyCoreSuite.LEFT_POINT, 1);
+			}, topology::unregisterProfile);
+			final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, signals, () -> List.of(PhantomTopologyCoreSuite.LEFT_POINT), System::currentTimeMillis, manager.presence()::isOnline);
+			PhantomAssertions.assertTrue(scheduler.installLocalControlPort(locality), "Population fixture locality installation failed.");
+		}
+		else
+		{
+			topology = null;
+		}
 		bridge.install(engine);
 		PhantomAssertions.assertTrue(scheduler.start(), "Population test scheduler did not start.");
 		PhantomAssertions.assertTrue(manager.start(), "Population manager did not start.");
-		return new RunningManager(manager, scheduler, engine, materialization, clock);
+		return new RunningManager(manager, scheduler, engine, materialization, clock, topology);
 	}
 
 	private static ScheduleInstants activeInstants(String scheduleTemplate)
@@ -1505,7 +1525,7 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 		}
 	}
 
-	private record RunningManager(PhantomPopulationManager manager, PhantomScheduler scheduler, PhantomDecisionEngine engine, PhantomMaterializationService materialization, MutableClock clock)
+	private record RunningManager(PhantomPopulationManager manager, PhantomScheduler scheduler, PhantomDecisionEngine engine, PhantomMaterializationService materialization, MutableClock clock, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService topology)
 	{
 		void shutdown() throws Exception
 		{
@@ -1528,6 +1548,11 @@ public final class PhantomPopulationSuite implements PhantomTestSuite
 			if (materialization != null)
 			{
 				materialization.shutdown();
+			}
+			if (topology != null)
+			{
+				topology.beginStop();
+				PhantomAssertions.assertTrue(topology.finishStop(), "Population fixture topology did not stop.");
 			}
 		}
 	}

@@ -1,0 +1,104 @@
+[
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\Prepare032.ps1",
+    "sourceSha256": "dbb90106b992a4b099f09a91114f8363ed5ef12a9442abd3dccdbda52868e11c",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\Prepare032.ps1",
+    "targetSha256": "27c8ee5688b0203ca5c19839c597b150b5f51bd0861e7e1918ea3ab62ea7ec8e"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\Control032.ps1",
+    "sourceSha256": "a93d2e8855cd1a494ad7bca6d41df65e2d748001cac281a5aa7c7beebec6c26a",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\Control032.ps1",
+    "targetSha256": "6d1e292e9352637e1a43277a4c7f0d260a9855dc4df95c3bd9e50c0b88539594"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\Observe032.ps1",
+    "sourceSha256": "e425148ead555486fd81ae2be245cb5890ed4cceeca2a618e931ce1a20429051",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\Observe032.ps1",
+    "targetSha256": "01b78b44fd5f4eea728a16f8c7219c3c96b89d5b7328ebaa0cf7af6646e3055e"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\Read-SharedJson032.ps1",
+    "sourceSha256": "ce3a5004740be49e134c99dcd80c44f0dfe0ca72ca95c186c0c8815707896c5d",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\Read-SharedJson032.ps1",
+    "targetSha256": "ce3a5004740be49e134c99dcd80c44f0dfe0ca72ca95c186c0c8815707896c5d"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\Contract032Observer.java",
+    "sourceSha256": "6d3c8a5c23b13beb9879325db6d35ff171cdef9ad6075d8818a1de867fc555c5",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\Contract032Observer.java",
+    "targetSha256": "4b83f28e7ea87523caf2dfa0b6ff867e7de9232da0901999ffe7afd132faff52"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\ReadDryRoute032.java",
+    "sourceSha256": "aca2a08e87f210512836bb6e71351d9ab0bef2ca0f54d544f5c796ef553568c4",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\ReadDryRoute032.java",
+    "targetSha256": "aca2a08e87f210512836bb6e71351d9ab0bef2ca0f54d544f5c796ef553568c4"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\ReadDryPath044.java",
+    "sourceSha256": "0d06839944ab42fb4e682a10f004baeca69cec1d2f69d201749d4fb0e6bc2542",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\ReadDryPath045.java",
+    "targetSha256": "8865efb59858baa5e8f76aaef3dbb86c7c5fcd34451cc2d7f65a6eeaf733b93d"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\Select-Primary044.ps1",
+    "sourceSha256": "7e91fdbd0eebddecd9350bf67af08e3d9da1a82fe5d6e5cf122e58b27e79fad2",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\Select-Primary045.ps1",
+    "targetSha256": "28231552c861cfab6e6ade785cd2a3b68147f89d3a2d761b53e062909e0f03bb"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\Stop-ExactOwnedGracefully.ps1",
+    "sourceSha256": "6a8b83ca37292f010f6474dae700e026958a7bc03b5dc3ada2d668d2fbc091aa",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\Stop-ExactOwnedGracefully.ps1",
+    "targetSha256": "a5df615f30a87028c4de2bb3e8fbab051c3dab2e01eb69f6aa4640680d99396f"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\Build-StockShutdown044.ps1",
+    "sourceSha256": "096869d483d9664e9a1dfc9f0b43c4f9bc4c325bb00cac76ef0b9294b21a1f3c",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\Build-StockShutdown045.ps1",
+    "targetSha256": "1f0f4d343d6f8a44cf24de5a40ad76a315d9f158ce9d61d5098f3ff669046883"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\RequestShutdown.java",
+    "sourceSha256": "d317d74c60831ee6949d2fb53b6957724cf356aed1fc94c05372926b983b5ee7",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\RequestShutdown.java",
+    "targetSha256": "d317d74c60831ee6949d2fb53b6957724cf356aed1fc94c05372926b983b5ee7"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\RuntimeShutdownAgent044.java",
+    "sourceSha256": "a57cb012cc9872138ab185a235e1cd2824beaf5543695e9fac22a862c721c81d",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\RuntimeShutdownAgent045.java",
+    "targetSha256": "d375dbcbd448e5da24792f36de1770990a78959b63b2e4f45c61192e190b5f45"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\All-Birth-Cut044.ps1",
+    "sourceSha256": "7aa9b9ef583192fab49df1ebd88206246fd00a34f222db3c9fa157c2f7f7b4e2",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\All-Birth-Cut045.ps1",
+    "targetSha256": "b66f932a8908c353e16b1f5302d9f8d0b614f9529c2577ca9d09a681e0326856"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\SplitSql039.py",
+    "sourceSha256": "bc9365cb1825a0af67fbc330989d4e060d2cff9095bb5b29c93de977f14b393d",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\SplitSql039.py",
+    "targetSha256": "bc9365cb1825a0af67fbc330989d4e060d2cff9095bb5b29c93de977f14b393d"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\Invoke-SignalSnapshot044.ps1",
+    "sourceSha256": "754073447b734dea1f1d4aa04e9faeaa8653d7a747f0ef27325c84e2c3a60c54",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\Invoke-SignalSnapshot045.ps1",
+    "targetSha256": "d4f5ee2c1a0c68b64789c417ffc31cdadc1a5f44f48da364b80ed13325ccd05e"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\SignalSnapshot044.java",
+    "sourceSha256": "9a7982cdfbd0561f22586b40ea8052adc9c01392cf82cb133d74ba9f84d7e239",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\SignalSnapshot045.java",
+    "targetSha256": "c8bb2cbf183a1462327e355486d6939e300fd857e8469335d2d6a1ebb69ac207"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\Verify044.ps1",
+    "sourceSha256": "9ff4b4429de138263860c8cc8cb7d097e1896fc974b40e77401e1c13124ebe1d",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\Verify045.ps1",
+    "targetSha256": "c7da805a7c258f1ca9e5abd4ea8461faba1425b3921976229c1aa5b9fb5f1fa8"
+  }
+]

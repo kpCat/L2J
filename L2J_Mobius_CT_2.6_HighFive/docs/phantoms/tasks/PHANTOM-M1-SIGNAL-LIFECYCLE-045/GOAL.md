@@ -1,0 +1,15 @@
+# GOAL045 — восстановить переход календарной активности в фоновую жизнь
+
+Прочитай весь пакет `PHANTOM-M1-SIGNAL-LIFECYCLE-045`: TASK.md, CONTEXT.md, DESIGN.md, PLAN.md, ACCEPTANCE.md, SOURCE_MAP.tsv, HANDOFF.md. Затем обязательные `Agents.md`, workflow/package standard, `RESULT043.md`, `RESULT044.md`, `CAUSE044.md`, `GATES044.tsv`, `CURRENT_STATE041.md` и код реальных владельцев сигналов.
+
+**Новая узкая TASK045, продолжение М1.** Исходный HEAD/remote=`a6fde1df1b1785b93e2248a20786c61878e05428`; remote=`experiment/m1-candidate007-observe008`. Только High Five. Работа в существующем OWN `C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius`; MAIN `C:\Users\ZBook\L2J_Mobius` используется лишь для чтения входного пакета. Без нового worktree/ветки, без субагентов. До **4 часов wall-clock** от начала; 25 минут оставить на stock stop, отчёт и публикацию.
+
+**Цель:** проверить возможное смешение логического `population.schedule=ACTIVE` с физической необходимостью удерживать `Player` без реального наблюдателя. Сначала детерминированный causal RED на существующих Java-источниках и контрактах; только при доказанной причине — узкая правка настоящего владельца, GREEN/negatives, реальный safe native→background→native путь с учётом действительного срока background due. Дополнительный historical1189 owner не назначать по догадке.
+
+Ни одна игровая правка не может быть оправдана желанием немедленно получить PASS. Сохранять 45/90/120, Synthetic525, retention60s, original CONTINUITY_V2, reward/owned-CAS/native earned, population/queue/caps. **Не менять расписание, часы, уровни, цели, инвентарь или cooldown ради теста.** Никаких принудительных release/heal/teleport, обнуления стейта или ID/zone exceptions.
+
+В этом пакете **нет crash72/73, intentional process termination, fault hook, клиентского патчинга/маршрутизации, сетевых экспериментов**. Все собственные серверы останавливаться только штатно. Защитить current040a, 041x72/x73, старые DB/raw, MAIN/PLAY/клиент, общую MariaDB. Для эксперимента использовать только новое собственное пространство 045a, проверив существование и владение перед инициализацией; никаких импорта/сброса после старта.
+
+Если причина не подтверждена тестом — не придумывать fix; зафиксировать на какой границе гипотеза опроверглась и выполнить разрешённые независимые проверки. **Не тратить 4 часа на новые записи одного и того же без изменения причинной гипотезы.** Команды Git только read-first, затем exact-path add, ordinary commits и normal non-force push; final HEAD=remote, tracked clean; никаких force/reset/clean/restore/rebase/merge.
+
+Выход: `RESULT045.md`, `GATES045.tsv`, `REVIEW045.md`, `CHECKPOINT045.md`, компактный проверенный `TASK045-review.zip` (только точные источники/отчёты, без полных DB/raw/JAR). Весь полезный game source и TEST остаётся в Git и будущей обычной сборке М1–М7. G4 PASS только при real productive committed background и useful same-profile native return. М1 не CLOSED, М2 не запускать, пользовательская приёмка остаётся последней.

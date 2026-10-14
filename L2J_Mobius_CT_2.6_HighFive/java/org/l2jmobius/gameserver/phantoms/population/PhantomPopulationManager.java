@@ -1120,7 +1120,8 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 			}
 			entry._effectiveState = ((_ecology != null) && !_ecology.permitsScheduling(action.profileId(), now)) ? PhantomActivityState.SLEEPING : effectiveStateLocked(entry);
 			calendar = ((_ecology != null) && !_ecology.managed(action.profileId())) ? PhantomActivityState.SLEEPING : entry._desiredState;
-			effective = entry._effectiveState;
+			// Calendar admission permits ordinary work; current locality owns physical detail.
+			effective = entry._effectiveState == PhantomActivityState.ACTIVE ? PhantomActivityState.BACKGROUND : entry._effectiveState;
 			sequence = ++entry._signalSequence;
 			final long untilBoundary = Math.max(1, ChronoUnit.MILLIS.between(now, entry._nextBoundary));
 			ttl = Math.min(PhantomRelevanceSignal.MAXIMUM_TTL_MILLIS, Math.min(SIGNAL_HEARTBEAT_MILLIS, untilBoundary));

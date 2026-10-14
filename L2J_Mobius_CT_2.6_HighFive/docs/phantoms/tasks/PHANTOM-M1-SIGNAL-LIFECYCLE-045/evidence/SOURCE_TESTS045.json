@@ -1,0 +1,197 @@
+[
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\RED045_RUN.log",
+    "sha256": "bb30a0363628bc29a19ddb43fb8548e312a334311ef7a2d7f7b87dcc52d61698",
+    "facts": [
+      "[PASS] activity-scheduler.01-start-zero-and-registration-bounds",
+      "[PASS] activity-scheduler.02-signal-validation-source-sequence-and-coalescing",
+      "[PASS] activity-scheduler.03-queue-backpressure-leaves-signal-unchanged",
+      "[PASS] activity-scheduler.04-highest-detail-expiry-and-demotion-grace",
+      "[PASS] activity-scheduler.05-active-nearby-canonical-materialization",
+      "[PASS] activity-scheduler.06-clean-transition-block-bounded-retry",
+      "[PASS] activity-scheduler.07-retained-failure-explicit-retry",
+      "[PASS] activity-scheduler.08-work-cadence-sleeping-and-sink-isolation",
+      "[PASS] activity-scheduler.09-fair-cohort-and-once-per-pulse",
+      "[PASS] activity-scheduler.10-overload-cadence-only-no-demotion",
+      "[PASS] activity-scheduler.11-unregister-materialized-and-stop-retention",
+      "[PASS] activity-scheduler.12-fixed-metrics-and-bounded-snapshots",
+      "[PASS] activity-scheduler.13-in-flight-promotion-unregister-cleans-late-success",
+      "[PASS] activity-scheduler.14-in-flight-promotion-unregister-retained-explicit-retry",
+      "[PASS] activity-scheduler.15-retained-dematerialization-new-active-requires-fresh-materialize",
+      "[PASS] activity-scheduler.16-retained-materialization-survives-withdrawal-and-expiry",
+      "[PASS] activity-scheduler.17-stopping-quiesces-boundary-and-work",
+      "[PASS] activity-scheduler.18-cleanup-retry-recomputes-warm-to-sleeping",
+      "[PASS] activity-scheduler.19-cleanup-retry-recomputes-warm-to-active",
+      "[PASS] activity-scheduler.20-manual-scheduler-drives-one-decision-slice",
+      "[PASS] activity-scheduler.21-production-background-first-due-waits-5-to-15-minutes",
+      "[PASS] activity-scheduler.22-materialization-reconciles-before-canonical-player",
+      "[PASS] activity-scheduler.23-production-policy-10000-profiles-24h",
+      "[PASS] activity-scheduler.24-fresh-human-preempts-policy-wait",
+      "[PASS] activity-scheduler.25-hard-and-recent-human-retention",
+      "[PASS] activity-scheduler.26-soft-reclamation-preserves-scheduler-ownership",
+      "[PASS] activity-scheduler.27-source-view-immutable-replacement-withdrawal",
+      "[PASS] activity-scheduler.28-source-view-overdue-read-does-not-expire",
+      "[FAIL] activity-scheduler.29-calendar-active-releases-after-real-locality-expiry - java.lang.AssertionError: Calendar ACTIVE still requests a physical Player after human.local expiry and settlement. seed=20260725001",
+      "[PASS] activity-scheduler.30-calendar-sleeping-denies-locality-and-background-work",
+      "SUMMARY: suite=activity-scheduler seed=20260725001 total=30 passed=29 failed=1"
+    ]
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\GREEN045.log",
+    "sha256": "f93f06a2da0d6d4a9085d5c3a9db138a6f8c112746f2054c1bba434b86e23fce",
+    "facts": [
+      "[PASS] activity-scheduler.01-start-zero-and-registration-bounds",
+      "[PASS] activity-scheduler.02-signal-validation-source-sequence-and-coalescing",
+      "[PASS] activity-scheduler.03-queue-backpressure-leaves-signal-unchanged",
+      "[PASS] activity-scheduler.04-highest-detail-expiry-and-demotion-grace",
+      "[PASS] activity-scheduler.05-active-nearby-canonical-materialization",
+      "[PASS] activity-scheduler.06-clean-transition-block-bounded-retry",
+      "[PASS] activity-scheduler.07-retained-failure-explicit-retry",
+      "[PASS] activity-scheduler.08-work-cadence-sleeping-and-sink-isolation",
+      "[PASS] activity-scheduler.09-fair-cohort-and-once-per-pulse",
+      "[PASS] activity-scheduler.10-overload-cadence-only-no-demotion",
+      "[PASS] activity-scheduler.11-unregister-materialized-and-stop-retention",
+      "[PASS] activity-scheduler.12-fixed-metrics-and-bounded-snapshots",
+      "[PASS] activity-scheduler.13-in-flight-promotion-unregister-cleans-late-success",
+      "[PASS] activity-scheduler.14-in-flight-promotion-unregister-retained-explicit-retry",
+      "[PASS] activity-scheduler.15-retained-dematerialization-new-active-requires-fresh-materialize",
+      "[PASS] activity-scheduler.16-retained-materialization-survives-withdrawal-and-expiry",
+      "[PASS] activity-scheduler.17-stopping-quiesces-boundary-and-work",
+      "[PASS] activity-scheduler.18-cleanup-retry-recomputes-warm-to-sleeping",
+      "[PASS] activity-scheduler.19-cleanup-retry-recomputes-warm-to-active",
+      "[PASS] activity-scheduler.20-manual-scheduler-drives-one-decision-slice",
+      "[PASS] activity-scheduler.21-production-background-first-due-waits-5-to-15-minutes",
+      "[PASS] activity-scheduler.22-materialization-reconciles-before-canonical-player",
+      "[PASS] activity-scheduler.23-production-policy-10000-profiles-24h",
+      "[PASS] activity-scheduler.24-fresh-human-preempts-policy-wait",
+      "[PASS] activity-scheduler.25-hard-and-recent-human-retention",
+      "[PASS] activity-scheduler.26-soft-reclamation-preserves-scheduler-ownership",
+      "[PASS] activity-scheduler.27-source-view-immutable-replacement-withdrawal",
+      "[PASS] activity-scheduler.28-source-view-overdue-read-does-not-expire",
+      "[PASS] activity-scheduler.29-calendar-active-releases-after-real-locality-expiry",
+      "[PASS] activity-scheduler.30-calendar-sleeping-denies-locality-and-background-work",
+      "SUMMARY: suite=activity-scheduler seed=20260725001 total=30 passed=30 failed=0"
+    ]
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\DBFREE_population-schedule.log",
+    "sha256": "3fd27fe5f948ddc5482f27661871b68fa57d51b08cc10d30f5db8d5cb5ddaa45",
+    "facts": [
+      "[PASS] population-schedule.01-midnight-gap-and-latest-state",
+      "[PASS] population-schedule.02-dst-gap-overlap-and-clock-direction",
+      "[PASS] population-schedule.03-active-admission-region-quota-and-rotation",
+      "SUMMARY: suite=population-schedule seed=16001601 total=3 passed=3 failed=0"
+    ]
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\DBFREE_population-catalog.log",
+    "sha256": "795681e7f5802e7e601f37a5503cf2f49d9b0417c6a8c68a47f24ebcfa93ab5e",
+    "facts": [
+      "[PASS] population-catalog.01-production-catalog-determinism-and-coverage",
+      "[PASS] population-catalog.02-invalid-xxe-and-overlap-controls",
+      "[PASS] population-catalog.03-state-codec-canonical-bounds",
+      "SUMMARY: suite=population-catalog seed=16001601 total=3 passed=3 failed=0"
+    ]
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\DBFREE_population-ecology-goal033.log",
+    "sha256": "b9c960273e6b6fe4c1ef7ef8beeb28074a6c7711f39d11aa28525b4fda571ba1",
+    "facts": [
+      "[PASS] population-ecology-goal033.01-strict-catalog-config-and-codec",
+      "[PASS] population-ecology-goal033.02-low-discrepancy-and-human-independence",
+      "[PASS] population-ecology-goal033.03-pace-and-schedule-causal-time",
+      "[PASS] population-ecology-goal033.04-bounded-calendar-restart-and-ongoing",
+      "[PASS] population-ecology-goal033.05-safe-turnover-replacement-and-cap",
+      "[PASS] population-ecology-goal033.06-personality-new-state-only",
+      "[PASS] population-ecology-goal033.07-production-architecture-static-fences",
+      "[PASS] population-ecology-goal033.08-idle-calendar-catchup-reopens-schedule-fence",
+      "[PASS] population-ecology-goal033.09-restart-existing-ecology-reopens-schedule-fences",
+      "[PASS] population-ecology-goal033.10-topology-block-quiet-and-resume",
+      "[PASS] population-ecology-goal033.11-transient-item-retry-has-shared-pulse-backoff",
+      "[PASS] population-ecology-goal033.12-background-due-reconciles-elapsed-cursor-once",
+      "[PASS] population-ecology-goal033.13-periodic-due-crash-before-and-after-durable-commit",
+      "[PASS] population-ecology-goal033.14-periodic-cursor-materialized-boundary-and-resume",
+      "[PASS] population-ecology-goal033.15-stale-authority-renews-current-request",
+      "[PASS] population-ecology-goal033.16-incomplete-periodic-due-continues-under-pulse-budgets",
+      "[PASS] population-ecology-goal033.17-restored-inventory-readiness-starts-bounded-target-creation",
+      "[PASS] population-ecology-goal033.18-native-context-releases-only-materialization-gate",
+      "[PASS] population-ecology-goal033.O01-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O02-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O03-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O04-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O05-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O06-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O07-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O08-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O09-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O10-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O11-orphan-ownership-contract",
+      "[PASS] population-ecology-goal033.O12-orphan-ownership-contract",
+      "SUMMARY: suite=population-ecology-goal033 seed=33003300 total=30 passed=30 failed=0"
+    ]
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\DBFREE_topology-scheduler-signal-integration.log",
+    "sha256": "28ae41d88da1a5d3400611b433a7b46c5d97982b2b81bd8b9b89538b8a4bd27b",
+    "facts": [
+      "[PASS] topology-scheduler-signal-integration.01-fresh-no-event-unregister-reconciles-absent-sources",
+      "[PASS] topology-scheduler-signal-integration.02-partial-source-unregister-reconciles-never-submitted",
+      "[PASS] topology-scheduler-signal-integration.03-reregistration-submit-is-monotonic-and-accepted",
+      "[PASS] topology-scheduler-signal-integration.04-reload-before-events-reconciles-absent-sources",
+      "[PASS] topology-scheduler-signal-integration.05-all-not-registered-releases-ledger",
+      "SUMMARY: suite=topology-scheduler-signal-integration seed=20260725001 total=5 passed=5 failed=0"
+    ]
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\DBFREE_topology-signal-ledger.log",
+    "sha256": "3411905eb4256e5830ac9151929dc295927cd6948ab10938645f8ce1450f95c8",
+    "facts": [
+      "[PASS] topology-signal-ledger.01-never-owned-inactive-target-no-state-or-port-call",
+      "[PASS] topology-signal-ledger.02-one-profile-one-fixed-three-source-ledger",
+      "[PASS] topology-signal-ledger.03-scheduler-present-unregister-retains-ledger",
+      "[PASS] topology-signal-ledger.04-retained-reregistration-sequences-monotonic",
+      "[PASS] topology-signal-ledger.05-all-not-registered-cleanup-releases-ledger",
+      "[PASS] topology-signal-ledger.06-high-identity-churn-remains-bounded",
+      "[PASS] topology-signal-ledger.07-retained-identities-reach-exact-capacity",
+      "[PASS] topology-signal-ledger.08-failed-cleanup-counts-against-capacity",
+      "[PASS] topology-signal-ledger.09-accepted-retry-retains-sequence-ledger",
+      "[PASS] topology-signal-ledger.10-all-not-registered-retry-releases-ledger",
+      "[PASS] topology-signal-ledger.11-inactive-retained-targetability-uses-newer-sequence",
+      "[PASS] topology-signal-ledger.12-stale-possibly-active-cleanup-fails-closed",
+      "[PASS] topology-signal-ledger.13-stale-confirmed-inactive-cleanup-is-safe-retained",
+      "[PASS] topology-signal-ledger.14-stale-submit-is-signal-failure",
+      "[PASS] topology-signal-ledger.15-rejected-and-not-running-submit-fail-closed",
+      "[PASS] topology-signal-ledger.16-ledger-current-peak-capacity-metrics-exact",
+      "[PASS] topology-signal-ledger.17-reload-uses-owned-ledger-and-rejects-uncertain-cleanup",
+      "[PASS] topology-signal-ledger.18-final-stop-clears-all-ledgers",
+      "[PASS] topology-signal-ledger.19-concurrent-registration-event-unregister-retry-is-bounded",
+      "[PASS] topology-signal-ledger.20-no-dynamic-source-map-or-pending-cleanup-set",
+      "SUMMARY: suite=topology-signal-ledger seed=20260725001 total=20 passed=20 failed=0"
+    ]
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\TEST_OWNER_RED045.log",
+    "sha256": "7dcae8babad51199f665b43cf3aa095720071b40596ef0d9b1e887e839365ccf",
+    "facts": []
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\TEST_OWNER_GREEN045.log",
+    "sha256": "93c01b9132fc17a8b0ff4c55286170de0c04063c2d4a61247d564b321111145c",
+    "facts": []
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\POPULATION_BASE_CONTRACT045.log",
+    "sha256": "f125a0f8b95c5092277c9da840a69e2c07c46442d4772e5386d321b5ac1764a1",
+    "facts": []
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\POPULATION_GREEN045.log",
+    "sha256": "3c64613f8e239031df52eac4ba066127e55ca19a7370e8748dc3365770e40ab3",
+    "facts": []
+  },
+  {
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\POPULATION_GREEN2_045.log",
+    "sha256": "9918b275b8cbc0d69aa62c1af0dfcc3d05da86b2e65118e9be9955f864f4e218",
+    "facts": []
+  }
+]
