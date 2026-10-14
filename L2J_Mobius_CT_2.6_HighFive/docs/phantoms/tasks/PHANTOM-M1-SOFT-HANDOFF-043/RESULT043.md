@@ -98,12 +98,14 @@ P6 delivery PASS: первый actual exact-path ordinary commit/non-force push
 `0175d1bbd5e2038c347a4fa1297975238fdc4dfc`, HEAD=remote, tracked clean подтверждены.
 Exact-path self-review/allowlist, CRC/all-member SHA/no duplicate/no traversal PASS.
 Final receipt
-`DELIVERY043.json` создаётся после второго normal push и отдельно фиксирует HEAD=remote.
+`DELIVERY_AUDIT043.json` создаётся после третьего audit-only normal push и отдельно
+фиксирует final HEAD=remote. Исходный second-push DELIVERY043.json сохранён.
 Publication receipts не превращают P2/P3 в PASS. См. `GATES043.tsv`, `REVIEW043.md`.
 
 Git использовался по прямому `/goal` и TASK/HANDOFF043 для input/scope/diff verification
 и exact-path ordinary commit/non-force push. Точные publication argv —
-`GIT_COMMANDS043.json` и final `DELIVERY043.json`; read-only inventory — `GIT_INSPECTION043.md`.
+`GIT_COMMANDS043.json`, `DELIVERY043.json` и final `DELIVERY_AUDIT043.json`;
+read-only inventory — `GIT_INSPECTION043.md`.
 Ни branch mutation, reset, restore, clean, merge, rebase, amend, force, broad add не было.
 
 mojibake-маркеры в изменённых файлах проверены: PASS, см. `evidence/ENCODING043.json`.

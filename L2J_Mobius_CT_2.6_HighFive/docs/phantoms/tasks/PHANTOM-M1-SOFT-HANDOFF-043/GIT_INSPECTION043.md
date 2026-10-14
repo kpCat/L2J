@@ -8,7 +8,7 @@ HANDOFF043 Git safety и exact-path публикация. OWN остаётся d
 `C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius`.
 Read-only проверка входа: `git status --short`,
 `git status --short --untracked-files=no`, `git rev-parse HEAD`,
-`git rev-parse --abbrev-ref --symbolic-full-name @{u}` (detached upstream отсутствует;
+`git rev-parse --abbrev-ref HEAD`, `git rev-parse --abbrev-ref '@{upstream}'` (detached upstream отсутствует;
 failed result не использован как evidence),
 `git ls-remote origin refs/heads/experiment/m1-candidate007-observe008`.
 Начальный sandbox network failure не принят за проверку remote; authorized normal
@@ -35,7 +35,9 @@ git diff --name-only 9a378d0e8984b3673b41538a9f5f9c9823507317 -- L2J_Mobius_CT_2
 git diff 9a378d0e8984b3673b41538a9f5f9c9823507317 -- L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java
 ```
 
-Пробная module-relative diff команда не использовалась для semantic PASS;
+Пробная module-relative команда
+`git diff --stat -- L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java`
+не использовалась для semantic PASS;
 повторная repo-relative проверка имеет явные пути выше. Preparatory one-off read calls
 не имели общего argv журнала; этот документ не заявляет его полноту задним числом.
 
@@ -52,6 +54,7 @@ git add --pathspec-from-file=C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mob
 git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check -- . :(exclude)L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SOFT-HANDOFF-043/SOURCE_DIFF043.patch :(exclude)L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SOFT-HANDOFF-043/proposals/ops043/Stop-ExactOwnedGracefully.ps1
 git commit -m "phantom(task-043): preserve bounded native handoff proofs and gates"
 git commit -m "phantom(task-043): verify final review publication receipts"
+git commit -m "phantom(task-043): correct exact inspection command inventory"
 git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008
 git status --porcelain=v1 --untracked-files=no
 ```
@@ -67,3 +70,7 @@ read-only exact diff --cached --check показал эти четыре стр�
 команде добавлены четыре exact :(exclude) для immutable episode-failure.txt;
 исходные trace bytes не редактировались. Остальные staged paths прошли guard.
 Никакой rollback/reset index/history не выполнялся; resume допускает только exact allowlist.
+
+После второго push argv сверены с actual command execution metadata текущего chat:
+вариант upstream/HEAD и module-relative diff записаны буквально. Это третий обычный
+scoped audit-only commit; final post-push receipt — DELIVERY_AUDIT043.json.

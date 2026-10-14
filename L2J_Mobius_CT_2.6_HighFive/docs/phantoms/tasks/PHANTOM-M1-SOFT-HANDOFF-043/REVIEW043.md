@@ -85,3 +85,9 @@ preservation и P3 FAIL. Не пригоден для M1_G4 PASS или READY_FO
 Первый actual ordinary commit/non-force push0175d1bbd5e2038c347a4fa1297975238fdc4dfc
 проверен HEAD=remote/tracked clean. Final ZIP содержит этот immutable publication
 receipt; final post-push DELIVERY043.json отдельно проверяет окончательный HEAD/ZIP.
+
+После второго push read-only Git inventory сверено с actual chat command metadata;
+неточный вариант upstream command исправлен на literal executed argv. Третий scoped
+ordinary commit содержит audit corrections и regenerated verified ZIP. Native proof
+не изменён. Latest final receipt DELIVERY_AUDIT043.json остаётся отдельно после push;
+second-push DELIVERY043.json не перезаписывается.

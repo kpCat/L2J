@@ -12,7 +12,7 @@ assert str(repo).lower() == r'C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mo
 base = '9a378d0e8984b3673b41538a9f5f9c9823507317'
 ref = 'refs/heads/experiment/m1-candidate007-observe008'
 parser = argparse.ArgumentParser()
-parser.add_argument('--phase', choices=('1', '2'), required=True)
+parser.add_argument('--phase', choices=('1', '2', '3'), required=True)
 parser.add_argument('--resume-exact-stage', action='store_true')
 args = parser.parse_args()
 records = []
@@ -29,7 +29,8 @@ def equal(expected):
     assert head == remote == expected, dict(reason='EXACT_MISMATCH_STOP_NO_RESET_FORCE', expected=expected, HEAD=head, remote=remote)
     return head
 receipt1 = task / 'PUBLICATION1_043.json'
-expected = base if args.phase == '1' else json.loads(receipt1.read_text(encoding='utf-8'))['HEAD']
+previous_receipt = task/'DELIVERY043.json' if args.phase == '3' else receipt1
+expected = base if args.phase == '1' else json.loads(previous_receipt.read_text(encoding='utf-8'))['HEAD']
 equal(expected)
 prior_staged = git('diff', '--cached', '--name-only').splitlines()
 allowlist = (task / 'REVIEW_ALLOWLIST043.txt').read_text(encoding='utf-8').splitlines()
@@ -57,7 +58,9 @@ git('-c', 'core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol'
     ':(exclude)' + (task/'proposals/ops043/Stop-ExactOwnedGracefully.ps1').relative_to(repo).as_posix(),
     *(':(exclude)' + name for name in failure_traces))
 equal(expected)
-message = 'phantom(task-043): preserve bounded native handoff proofs and gates' if args.phase == '1' else 'phantom(task-043): verify final review publication receipts'
+message = {'1':'phantom(task-043): preserve bounded native handoff proofs and gates',
+    '2':'phantom(task-043): verify final review publication receipts',
+    '3':'phantom(task-043): correct exact inspection command inventory'}[args.phase]
 git('commit', '-m', message)
 head = git('rev-parse', 'HEAD')
 assert git('ls-remote', 'origin', ref).split()[0] == expected, 'Remote changed before push; stop without force'
@@ -67,7 +70,7 @@ assert not git('status', '--porcelain=v1', '--untracked-files=no'), 'Tracked cha
 receipt = dict(utc=datetime.now(timezone.utc).isoformat(), phase=args.phase, BASE=base, HEAD=head,
                remote=head, ref=ref, ordinaryNonForce=True, trackedClean=True,
                zipSha256=hashlib.sha256((task/'TASK043-review.zip').read_bytes()).hexdigest(), argv=records)
-dest = receipt1 if args.phase == '1' else task / 'DELIVERY043.json'
+dest = {'1':receipt1,'2':task/'DELIVERY043.json','3':task/'DELIVERY_AUDIT043.json'}[args.phase]
 assert not dest.exists(), 'Publication receipt immutable'
 dest.write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding='utf-8')
 if args.phase == '1':

@@ -91,3 +91,8 @@ Publication1 actual PASS:0175d1bbd5e2038c347a4fa1297975238fdc4dfc=remote, tracke
 P6 delivery PASS по actual first push; final reports/compact ZIP/publication receipt
 публикуются вторым обычным commit без amend/force. Final DELIVERY043.json остаётся
 local post-push receipt (не self-referential member). TASK043/P2/P3 verdicts unchanged.
+
+Second push actual eb5524d4c1041a6e4035e678c3bc9dea09e374b9=remote/tracked clean.
+Последующая literal argv correction в Git inventory — только audit metadata; third
+ordinary exact commit/non-force push имеет отдельный DELIVERY_AUDIT043.json.
+Исходные DB/raw/outcomes и second-push receipt сохранены.
