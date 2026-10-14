@@ -1,0 +1,52 @@
+{
+  "nativeBirths": 75,
+  "commitRecords": 35702,
+  "allBirthsTerminal": true,
+  "GLOBAL_DRAIN": false,
+  "NATIVE_BOUNDARY_INTERVAL": false,
+  "FINAL_STOPPED_CUT": true,
+  "FULL_SAVE": false,
+  "pass": false,
+  "failures": [
+    "EXPORTER_GAP_OR_RUN_NOT_ENDED"
+  ],
+  "nativeVerifierExit": 0,
+  "stoppedVerifierExit": 0,
+  "closedRunEnd": {
+    "run_id": "20640-639275392563860000-80e7bdd346c24faf2153dcf04f5d0adf7a7e06ae-b03cf6eb-57bd-4c03-b6c7-a37a906b67ce",
+    "seq": 36066,
+    "dropped": 0,
+    "native_births": 75,
+    "exporter_drained": true,
+    "kind": "RUN_END",
+    "failure": "TASK032_STOP_MONITOR_TIMEOUT"
+  },
+  "nativeWitnesses": 82,
+  "nativePassing": 82,
+  "stoppedProfiles": 44,
+  "proof": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops044\\DIAG_CONSERVATION044.json",
+    "bytes": 12682112,
+    "sha256": "f7227e12fd55a1ed65633a51b7e14dd085ed813a49467843a40b90a775b76650"
+  },
+  "ledger": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\STARTUP032a-7f1b59f7658e47a0a3d000a8dd721939\\lifetimes.jsonl",
+    "bytes": 20327058,
+    "sha256": "76d9fdf1bbe180ccd9490111f406066b0c20267fea087ae5f73207d9c6875ea0"
+  },
+  "typedStop": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A1_044-STOCK-REPAIR\\typed-stop-done.properties",
+    "bytes": 1935,
+    "sha256": "7238108dc2bb2c2768204df4892ec7c8f648a972dfcb99e287f9766e2f71b9e0"
+  },
+  "counts": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A1_044-STOPPED_SQL\\counts.tsv",
+    "bytes": 84,
+    "sha256": "84f47abcd842995658f9413f4867c46eeeb972d8a8fe8d5893bdf0abf3cbb99f"
+  },
+  "originalDiagnosticFailure": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A1_044\\episode-failure.txt",
+    "bytes": 564,
+    "sha256": "049cebf44aab27070bdd4179499b31f2b2b8a669b961030e79be27a0f3032f90"
+  }
+}

@@ -1,0 +1,197 @@
+{
+  "jar": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract044a\\runtime\\libs\\GameServer.jar",
+    "bytes": 9928679,
+    "sha256": "e5029f38d0c3cd3a338fda420fd8a31a35aa1d7d3bc519a7b5a73a40ebc88d47"
+  },
+  "jarFirst": true,
+  "matrix": [
+    {
+      "route": "1",
+      "suite": "PhantomCheckpointRecovery025Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=checkpoint-recovery025 seed=25002501 total=8 passed=8 failed=0"
+    },
+    {
+      "route": "2",
+      "suite": "PhantomCheckpointDrain025Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=checkpoint-drain025 seed=25002502 total=3 passed=3 failed=0"
+    },
+    {
+      "route": "3",
+      "suite": "PhantomVisibleIntentRecoverySuite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=visible-intent-recovery seed=21002101 total=10 passed=10 failed=0"
+    },
+    {
+      "route": "4",
+      "suite": "native",
+      "focus": "review",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=m1-native-lifecycle seed=15001501 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "5",
+      "suite": "PhantomLivingWorld023Suite",
+      "focus": "retaliation024",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=living-world023 seed=23002301 total=3 passed=3 failed=0"
+    },
+    {
+      "route": "6",
+      "suite": "",
+      "focus": "",
+      "launcher": "population-ecology-goal033",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=population-ecology-goal033 seed=33003300 total=30 passed=30 failed=0"
+    },
+    {
+      "route": "7",
+      "suite": "",
+      "focus": "",
+      "launcher": "population-ecology-handoff-regression",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=population-ecology-goal033 seed=33003300 total=6 passed=6 failed=0"
+    },
+    {
+      "route": "8",
+      "suite": "server-shutdown",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=server-shutdown-handoff seed=23002301 total=8 passed=8 failed=0"
+    },
+    {
+      "route": "9",
+      "suite": "position",
+      "focus": "owned-store",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=background-position-canonicalization seed=15001502 total=1 passed=1 failed=0"
+    },
+    {
+      "route": "10",
+      "suite": "PhantomNativeFarmContinuation022Suite",
+      "focus": "raw",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=native-farm-continuation022 seed=22002201 total=3 passed=3 failed=0"
+    },
+    {
+      "route": "11",
+      "suite": "PhantomLivingWorld023Suite",
+      "focus": "cooperative",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=living-world023 seed=23002301 total=1 passed=1 failed=0"
+    },
+    {
+      "route": "12",
+      "suite": "PhantomNativeFarmContinuation022Suite",
+      "focus": "observation026",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=native-farm-continuation022 seed=22002201 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "13",
+      "suite": "PhantomNativeFarmContinuation022Suite",
+      "focus": "callback026",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=native-farm-continuation022 seed=22002201 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "14",
+      "suite": "PhantomSustainedFarm026Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=sustained-farm026 seed=26002601 total=3 passed=3 failed=0"
+    },
+    {
+      "route": "15",
+      "suite": "PhantomSustainedFarm026Suite",
+      "focus": "resource026",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=sustained-farm026 seed=26002601 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "16",
+      "suite": "PhantomSustainedFarm026Suite",
+      "focus": "generation026",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=sustained-farm026 seed=26002601 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "17",
+      "suite": "PhantomRecoveryBoundary026Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=recovery-boundary026 seed=26002603 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "18",
+      "suite": "PhantomNativeEvidenceContinuation022Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=native-evidence-continuation022 seed=22002203 total=5 passed=5 failed=0"
+    }
+  ],
+  "focused": {
+    "scheduler28": {
+      "total": 28,
+      "passed": 28,
+      "failed": 0,
+      "log": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops044\\SNAPSHOT_JAR_GREEN044.log",
+        "bytes": 2105,
+        "sha256": "611ce70467c2e39bc4679521e23044fdea86ac3da16be3c52f577dba574d60e7"
+      }
+    },
+    "soft3": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "log": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\TEST_OWNER_GREEN044.log",
+        "bytes": 30476,
+        "sha256": "6f5017e7919a89bad9bd9cd09bbd05ac78ed829ce413b7efe7c920b4de036705"
+      }
+    },
+    "lifecycle11": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "log": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\LIFECYCLE11_FINAL044.log",
+        "bytes": 37696,
+        "sha256": "7116ed2c7ed100d5d5dc0d644aabaa347ce9f93bad7ea7490ae7c04d83bf769c"
+      }
+    }
+  },
+  "existingValidatorNegatives": {
+    "total": 26,
+    "passed": 26,
+    "log": {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops044\\CHAIN_NEGATIVES044.log",
+      "bytes": 2708,
+      "sha256": "82c4f20693899a8fe5654bd91278189c7afeec81b2b6740804c7f6e779dc90cd"
+    }
+  },
+  "G2Historical": "PASS_ON_ORIGINAL_5c4ae8bf",
+  "G2Current": "NOT_VERIFIED"
+}

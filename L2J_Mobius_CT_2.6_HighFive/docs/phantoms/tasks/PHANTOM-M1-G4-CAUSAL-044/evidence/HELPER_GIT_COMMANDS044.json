@@ -1,0 +1,57 @@
+[
+  {
+    "utc": "2026-10-14T01:29:13.6493184Z",
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "show",
+      "HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-population-v1.xml"
+    ],
+    "exitCode": 0
+  },
+  {
+    "utc": "2026-10-14T01:29:13.7317714Z",
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "show",
+      "HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-population-v2.xml"
+    ],
+    "exitCode": 0
+  },
+  {
+    "utc": "2026-10-14T01:29:13.7753512Z",
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "show",
+      "HEAD:L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms/population/high-five-ecology-v1.xml"
+    ],
+    "exitCode": 0
+  },
+  {
+    "utc": "2026-10-14T01:29:13.8513231Z",
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exitCode": 0
+  },
+  {
+    "utc": "2026-10-14T01:34:19.0433447Z",
+    "argv": [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exitCode": 0
+  }
+]

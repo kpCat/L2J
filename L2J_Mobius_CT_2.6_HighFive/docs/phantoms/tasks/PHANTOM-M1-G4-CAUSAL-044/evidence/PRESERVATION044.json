@@ -1,0 +1,12 @@
+{
+  "original036Files": 304,
+  "original036Unchanged": true,
+  "raw043PinnedInputsUnchanged": true,
+  "mainInputPacketUnchanged": true,
+  "evaluator028": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\proposals\\continuity028.py",
+    "bytes": 7485,
+    "sha256": "15c153d30fe7f85719b1698059f4e28c9c7fa325caa420a02de7ac19cff35112"
+  },
+  "protected040a": "PID18688/30312; original runtime/start times; final census only those JVMs; no actions"
+}

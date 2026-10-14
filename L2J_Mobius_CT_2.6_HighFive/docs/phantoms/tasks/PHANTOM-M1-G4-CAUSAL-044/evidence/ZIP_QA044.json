@@ -1,0 +1,327 @@
+{
+  "contract": "TASK044_COMPACT_REVIEW",
+  "memberCount": 63,
+  "members": [
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/GOAL.md",
+      "bytes": 5861,
+      "sha256": "eb342f305b9ccdfcd92f41fed7fae5a3bbe5bf98efa857d53ed8791f875cb0f6"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/TASK.md",
+      "bytes": 6705,
+      "sha256": "5088c52d31f10e631024baadfb28e0706bacc2c9da8566c87d0a2bf15ea59d11"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/CONTEXT.md",
+      "bytes": 4813,
+      "sha256": "3aaad884d283b512b14ecd5e9137a1da196a8f598b6141122cf96f5a1a046efc"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/DESIGN.md",
+      "bytes": 3405,
+      "sha256": "a675c713031710bde821fe40c1016b763685a00b98275da2cc552f6b865400e2"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/PLAN.md",
+      "bytes": 5388,
+      "sha256": "0bdbd66d27cf3dd78cec4cba2756bd71eed5ec55eb8c429d8cad37e5078ae912"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/ACCEPTANCE.md",
+      "bytes": 2900,
+      "sha256": "ab8a0bc78285cf93030bfda647b0781a09a89ca4954655bc8c24fa57822d5f6f"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/SOURCE_MAP.tsv",
+      "bytes": 4838,
+      "sha256": "1736f73ffc18d597f86055ee77590bde0ee08544153dee76b615f711be1cf389"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/SIGNAL_PATH.md",
+      "bytes": 5050,
+      "sha256": "0d8b91e57020fb092cecbf01abaab127ecb04cc6812c55fd44e12e952aac5fb3"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/HANDOFF.md",
+      "bytes": 3298,
+      "sha256": "00b476fdc6654fcaf7f0bf054977d966e0a937055ddd3d559283368ab56cab91"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/PACKAGE_SHA256.txt",
+      "bytes": 771,
+      "sha256": "998709fa848fd8487c2b6941b3b300d352bc080f0cc06487663af8226a3c0417"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/CAUSE044.md",
+      "bytes": 5022,
+      "sha256": "a7958eb28797806f36b15c73ece8e179027c16377437be59cba811c361a9ecab"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/RESULT044.md",
+      "bytes": 5513,
+      "sha256": "43f385f7f0c453d01e00d25681528d170e31d0ec5647f39dbb254e7352cc6ad4"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/GATES044.tsv",
+      "bytes": 2271,
+      "sha256": "38b9421a05ad77d1fec4c797e542017721c735ebb2c56c2a3f88495d6f10da2b"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/REVIEW044.md",
+      "bytes": 5098,
+      "sha256": "2585c50f5e2635edab356cfa8d5ef809e078a591dd656b0a31fb5c2e899e8e6a"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/CHECKPOINT044.md",
+      "bytes": 4767,
+      "sha256": "236ba203e3cb8a756240394f64fcc03ac980e7b67967e92e883e03a3e7a486f0"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/GIT_COMMANDS044.md",
+      "bytes": 3612,
+      "sha256": "0100e3ab33d67d433ad24c90df0efcc7cd3bfc8902bd27479347c365968f618f"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/PRECONDITIONS044.md",
+      "bytes": 1791,
+      "sha256": "f649280459223f909879328951b72eee76106d0df249b16cd8fd27b87f38705b"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/SOURCE_DIFF044.patch",
+      "bytes": 11145,
+      "sha256": "e685534c1b928e33dde3cbc5839dbaac2ee3447820189df865302410d6f7ddef"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/Verify044.ps1",
+      "bytes": 10989,
+      "sha256": "9ff4b4429de138263860c8cc8cb7d097e1896fc974b40e77401e1c13124ebe1d"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/Run-Diagnostic044.ps1",
+      "bytes": 1313,
+      "sha256": "1a2e549b98c7725e66a473139642925d8ae6ac4bba00f94b6b22c24c835c59a7"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/Run-Dry044.ps1",
+      "bytes": 342,
+      "sha256": "f02d48f79cb48e252408b45db72fabce12549b9f7883ffed8611d5ff25a74639"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/Run-Life044.ps1",
+      "bytes": 3144,
+      "sha256": "dbbc938d58df1d6cdee31c120c580305590ceec348f28f418d4840c372c4eeb9"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/Check-LifeBoundary044.ps1",
+      "bytes": 2137,
+      "sha256": "09995f2271a89948bb4565cf3958f5312aa985e0f88ecbeaff10f4889803c15d"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/Verify-Life044.py",
+      "bytes": 8365,
+      "sha256": "c65570260d163f4d0062e68f637b00bcaf8e451c4b7831839b6d61932bbd3a65"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/Decode-LifeReceipts044.java",
+      "bytes": 2104,
+      "sha256": "1ca8c67b382727d832712a05d5bf9f76a4e3d96da18bd57741741ee571b914a7"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/Bootstrap044.ps1",
+      "bytes": 1974,
+      "sha256": "1853abc86b02543b344625b4004e17fde86343be106507c90afee3d97c48fe23"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/Invoke-Git044.ps1",
+      "bytes": 778,
+      "sha256": "846565c3ddf7aae144e5cd733911bbf67f311bab2d3121e0dde1433225175664"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/TraceRaw043.py",
+      "bytes": 3766,
+      "sha256": "8ba1d6e485789f090783120c32aac26fdbeed96e3f10eb3b5094c988800317bb"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/FinalizeEvidence044.py",
+      "bytes": 5673,
+      "sha256": "e4dced9f0bc0d22a18a2d2c3d5e2faab03890c5252d76a7e3034c47d6ae1d2f2"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/Package044.py",
+      "bytes": 6601,
+      "sha256": "be49c4c965bc5c22c56eebd8cd290d15eedabf4315a905da8366fac329e02719"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/Publish044.ps1",
+      "bytes": 4103,
+      "sha256": "a411421b0604ccccb8c838e615f2abf451e7986da14039a4ab0c2e28e253db67"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/OFFLINE044.json",
+      "bytes": 5558,
+      "sha256": "59e5f42de7dcaecbbe34591d2535062e5980bc8c0b158aa485c44d68e26f9b16"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/REGRESSIONS044.json",
+      "bytes": 6618,
+      "sha256": "356faa31ba7e9d69380f121b46c1e86aede4d1fd1dec33ad653e05a09f1ee444"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/CONSERVATION044.json",
+      "bytes": 2368,
+      "sha256": "d74d86a7f54e1221482aed5c91f570c9fd0151d338c1aea2dd0c42848e370583"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/PRESERVATION044.json",
+      "bytes": 573,
+      "sha256": "b4841cf07a2272f7291f77c8f628d99d0c7b217f22c49e031bbd8e4a941d1c63"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/HELPER_GIT_COMMANDS044.json",
+      "bytes": 1402,
+      "sha256": "2b06893316a160bca718102277de1ffee1b96a044da6fc92e90474bd1c875a75"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/CURRENT93_044-matrix.tsv",
+      "bytes": 2221,
+      "sha256": "c56293e831744e7e61ea1dc54d619c56f1f280565b1320a1c6b5d11d47df21f2"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/DIAGNOSTIC_INPUT044.json",
+      "bytes": 1636,
+      "sha256": "106038c91b8c9bba8f35211e38cfc4820e5b5a84efb648513df7ee7f556617c9"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Prepare032.ps1",
+      "bytes": 12172,
+      "sha256": "dbb90106b992a4b099f09a91114f8363ed5ef12a9442abd3dccdbda52868e11c"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Control032.ps1",
+      "bytes": 31979,
+      "sha256": "a93d2e8855cd1a494ad7bca6d41df65e2d748001cac281a5aa7c7beebec6c26a"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Observe032.ps1",
+      "bytes": 55858,
+      "sha256": "0e6aa7395adae7df05b5a7beae8b5f80eb57ebd4b2088df4405478b7c96e42b1"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Contract032Observer.java",
+      "bytes": 120946,
+      "sha256": "6d3c8a5c23b13beb9879325db6d35ff171cdef9ad6075d8818a1de867fc555c5"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Read-SharedJson032.ps1",
+      "bytes": 531,
+      "sha256": "ce3a5004740be49e134c99dcd80c44f0dfe0ca72ca95c186c0c8815707896c5d"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/ReadDryRoute032.java",
+      "bytes": 15730,
+      "sha256": "aca2a08e87f210512836bb6e71351d9ab0bef2ca0f54d544f5c796ef553568c4"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/ReadDryPath044.java",
+      "bytes": 3799,
+      "sha256": "0d06839944ab42fb4e682a10f004baeca69cec1d2f69d201749d4fb0e6bc2542"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Select-Primary044.ps1",
+      "bytes": 1957,
+      "sha256": "5d9526de5fd3e7c7736e561a227a811273efbbd44a76acd925e293c6634be232"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/All-Birth-Cut044.ps1",
+      "bytes": 1995,
+      "sha256": "7aa9b9ef583192fab49df1ebd88206246fd00a34f222db3c9fa157c2f7f7b4e2"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Build-StockShutdown044.ps1",
+      "bytes": 1305,
+      "sha256": "096869d483d9664e9a1dfc9f0b43c4f9bc4c325bb00cac76ef0b9294b21a1f3c"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Stop-ExactOwnedGracefully.ps1",
+      "bytes": 3717,
+      "sha256": "6a8b83ca37292f010f6474dae700e026958a7bc03b5dc3ada2d668d2fbc091aa"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/RuntimeShutdownAgent044.java",
+      "bytes": 1792,
+      "sha256": "a57cb012cc9872138ab185a235e1cd2824beaf5543695e9fac22a862c721c81d"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/RequestShutdown.java",
+      "bytes": 1133,
+      "sha256": "d317d74c60831ee6949d2fb53b6957724cf356aed1fc94c05372926b983b5ee7"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/SplitSql039.py",
+      "bytes": 1021,
+      "sha256": "bc9365cb1825a0af67fbc330989d4e060d2cff9095bb5b29c93de977f14b393d"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/SignalSnapshot044.java",
+      "bytes": 3170,
+      "sha256": "ec0ada350ee923ebe527924100cc9da16b86db9fd371e7723a766c05e3865913"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/validation/commit_chain039.py",
+      "bytes": 6118,
+      "sha256": "c438df031282729c39dc7931cb3fceb345acbb1d7ce169e37a6ed9d5005beb1d"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/validation/complete_chain044.py",
+      "bytes": 2695,
+      "sha256": "683c5439ad6d79904b9ebbfcf2cd68214a813c7cf2149d274f17541a4a807b82"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/validation/raw_archive044.py",
+      "bytes": 4029,
+      "sha256": "47ee7fbf202ca61940c2fa332c2e2d47b7d4b4bf3477c7fbcc5aa42843a209c5"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/validation/verify_commit_run039.py",
+      "bytes": 14715,
+      "sha256": "f8013809932fdea2424a2d766de930439ee8bbb650424cc58e40107d62668a2c"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/validation/test_commit_chain039.py",
+      "bytes": 4793,
+      "sha256": "574cd61ad269cdb70a53d20afb5cbdbef44983e0c92e2b0963a9ba158b2ed8a7"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/validation/test_complete_chain044.py",
+      "bytes": 1750,
+      "sha256": "2d47a10311a1bdc0e9e6396c299b3ef02034bb9eab04148af037d6fa5cba87c7"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/validation/VerifyNativeCommit039.java",
+      "bytes": 8371,
+      "sha256": "bf06ec98f9629d134f205050f6a3e4f35087da0ad3d53ca8963b36ace5ca8669"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/validation/VerifyStoppedCut039.java",
+      "bytes": 6814,
+      "sha256": "bddee663daeae783a10c396ff8d9c3252a1038ac54341d55cc20c95550444542"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/HELPER_SOURCE_PINS044.json",
+      "bytes": 9224,
+      "sha256": "5d537e98cc1f428e090995f1ef34a233977b564224838c2fb97f95937d297f5d"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/ENCODING044.json",
+      "bytes": 1506,
+      "sha256": "5b983384072f840059c177ca49482241de0d7081be3cf972ac863dba184b003e"
+    }
+  ],
+  "crcAll": "PASS",
+  "allMemberSha256": "PASS",
+  "sourceBytesEqual": "PASS",
+  "duplicateTraversal": "PASS",
+  "zipSha256": "21184b3bc06bc1a3ddf726156cf1fd9c473f7d7a2910761f44e5ca1f616e919a",
+  "zipBytes": 165721
+}

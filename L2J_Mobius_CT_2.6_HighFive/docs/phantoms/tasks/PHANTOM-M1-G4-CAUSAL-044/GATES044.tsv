@@ -1,0 +1,24 @@
+gate	status	evidence_or_limit
+A0_SAFE	PASS	BASE=initial remote; own044a once imported; protected040a/old artifacts unchanged; own JVM0; no crash/force/network/heal
+A1_SIGNAL_OWNER	NOT_VERIFIED	D1 raw gap; diagnostic INPUT_FAIL before MOVE/one-profile attach; same-boot passive identity rejection before read
+A2_BACKGROUND_TIMING	PASS	C1 77.229855s/77samples SLEEPING/ecology_fenced/nextDue0; ordinary first BG cadence300000..900000ms; separate catch-up not committed in window
+A3_PRODUCT_FIX	NOT_APPLICABLE	No causal gameplay RED; only read-only diagnostic API and exact TEST/tooling namespace changes
+A4_G4_NATIVE	NOT_VERIFIED	No full positive G4; max one diagnostic consumed; no new lottery/actor replacement
+A5_REGRESSIONS	PASS	Exact E5029F38 jar-first93/93; lifecycle11/11; soft3/3; scheduler28/28; validator negatives26/26
+A5_CONSERVATION	NOT_VERIFIED	75 births terminal/35702 owning commits/82 native PASS/44 stopped full PASS; strict outer FAIL: original RUN_END STOP_MONITOR_TIMEOUT
+A6_DELIVERY	PENDING	Exact paths/compact verified ZIP/ordinary commit+non-force push/HEAD=remote/tracked clean receipt required
+G1_ACTION	NOT_VERIFIED	Original complete M1 native action set not closed by044
+G2_HISTORICAL	PASS	A5 8/8/382.3743138s; C24 8/8/381.6816272s on original5c4ae8bf JAR
+G2_CURRENT	NOT_VERIFIED	New exact E5029F38 JAR; two current groups not rerun
+G3_SAVE	NOT_VERIFIED	Own044 strict outer proof FAIL; original wider historical gates remain open
+G4_LIFE	OPEN	Signal owner unresolved; full real native-background-native chain not obtained
+G5_RESTART	NOT_VERIFIED	No new restarts044
+G6_CRASH	FAIL_HISTORICAL	Previous041 failures preserved; crash72/73 not executed044
+G7_REGRESS	NOT_VERIFIED	Current test subset PASS; complete M1 self-review/remaining gameplay gates still open
+G8_DELIVERY	NOT_VERIFIED	Scoped044 delivery distinct from full ordinary M1 final integration/operator/client delivery
+R1_INTEGRATION	NOT_VERIFIED	Protected M1-041 ordinary delivery untouched
+O_SERVER_CURRENT	NOT_VERIFIED	Historical autonomous observer result not transferred to changed exact JAR
+O_REAL	NOT_VERIFIED	No client/network operations
+USER_ACCEPTANCE	REQUIRED	User manual gate pending
+M1	OPEN	All remaining gates and user acceptance required
+READY_FOR_M2	false	M2 not started

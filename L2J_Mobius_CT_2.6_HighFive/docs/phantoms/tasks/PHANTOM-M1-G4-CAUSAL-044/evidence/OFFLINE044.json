@@ -1,0 +1,151 @@
+{
+  "contract": "TASK044_OFFLINE_CAUSAL_INPUT",
+  "inputSha256": {
+    "docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\LIFE_C1_043\\phase-markers.jsonl": "08af3a20ce934c3b6ca95804c78eef08bc1a4f8bb207be57de1bdea955b162a2",
+    "docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\LIFE_C1_043\\full-native\\full-cohort-samples.jsonl": "cdd106fa2986c58408bf2b2538871484978cfadb8289234b52b56e71dd14b73e",
+    "docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\D1-LIFE043.json": "2e637b6d5b3350e8905df60215e798d4d30d7a80401504222805ace1cd9703ca"
+  },
+  "D1": {
+    "profileId": 1189,
+    "lastAwayNanos": 666113459201100,
+    "signalKey": "EVIDENCE_GAP",
+    "reason": "No signal-key/sequence/expiry fields or flight events in retained043 exporter; count cannot identify source."
+  },
+  "C1": {
+    "profileId": 776,
+    "actualAbsentSeconds": 77.229855,
+    "sampleCount": 77,
+    "observedSchedulerStates": [
+      "SLEEPING"
+    ],
+    "schedulerBackgroundDue": null,
+    "phases": {
+      "DEPART": {
+        "sampleNanos": 664960226187900,
+        "scheduler": {
+          "effectiveState": "ACTIVE",
+          "requestedState": "ACTIVE",
+          "activeSignalSources": "2",
+          "tickSequence": "800",
+          "nextDueNanos": "664960165571600",
+          "lastTransitionNanos": "664832564915700"
+        },
+        "worldPresent": "true",
+        "readiness": {
+          "committedCursorMinute": "29865613",
+          "requestedHorizonMinute": "29865613",
+          "reason": "admitted"
+        },
+        "ecologyLiveOwner": "true",
+        "ecologyStage": "historical.status",
+        "nativeOutstanding": "0"
+      },
+      "AWAY_ARRIVED": {
+        "sampleNanos": 665019453963700,
+        "scheduler": {
+          "effectiveState": "ACTIVE",
+          "requestedState": "ACTIVE",
+          "activeSignalSources": "1",
+          "tickSequence": "1176",
+          "nextDueNanos": "665019464454800",
+          "lastTransitionNanos": "664832564915700"
+        },
+        "worldPresent": "true",
+        "readiness": {
+          "committedCursorMinute": "29865613",
+          "requestedHorizonMinute": "29865614",
+          "reason": "admitted"
+        },
+        "ecologyLiveOwner": "false",
+        "ecologyStage": "historical.status",
+        "nativeOutstanding": "1"
+      },
+      "BACKGROUND_ABSENT": {
+        "sampleNanos": 665059409662600,
+        "scheduler": {
+          "effectiveState": "SLEEPING",
+          "requestedState": "SLEEPING",
+          "activeSignalSources": "0",
+          "tickSequence": "1423",
+          "nextDueNanos": "0",
+          "lastTransitionNanos": "665058564471200"
+        },
+        "worldPresent": "false",
+        "readiness": {
+          "committedCursorMinute": "29865613",
+          "requestedHorizonMinute": "29865614",
+          "reason": "ecology_fenced"
+        },
+        "ecologyLiveOwner": "false",
+        "ecologyStage": "historical.status",
+        "nativeOutstanding": null
+      },
+      "RETURN": {
+        "sampleNanos": 665136639517600,
+        "scheduler": {
+          "effectiveState": "SLEEPING",
+          "requestedState": "SLEEPING",
+          "activeSignalSources": "0",
+          "tickSequence": "1423",
+          "nextDueNanos": "0",
+          "lastTransitionNanos": "665058564471200"
+        },
+        "worldPresent": "false",
+        "readiness": {
+          "committedCursorMinute": "29865613",
+          "requestedHorizonMinute": "29865616",
+          "reason": "ecology_fenced"
+        },
+        "ecologyLiveOwner": "false",
+        "ecologyStage": "historical.status",
+        "nativeOutstanding": null
+      },
+      "RETURNED": {
+        "sampleNanos": 665195398609400,
+        "scheduler": {
+          "effectiveState": "NEARBY_PERCEPTIBLE",
+          "requestedState": "NEARBY_PERCEPTIBLE",
+          "activeSignalSources": "1",
+          "tickSequence": "1589",
+          "nextDueNanos": "665195514889700",
+          "lastTransitionNanos": "665189564335900"
+        },
+        "worldPresent": "true",
+        "readiness": {
+          "committedCursorMinute": "29865616",
+          "requestedHorizonMinute": "29865617",
+          "reason": "ecology_fenced"
+        },
+        "ecologyLiveOwner": "true",
+        "ecologyStage": "historical.status",
+        "nativeOutstanding": "0"
+      },
+      "POST_RETURN_DONE": {
+        "sampleNanos": 665305981541300,
+        "scheduler": {
+          "effectiveState": "NEARBY_PERCEPTIBLE",
+          "requestedState": "NEARBY_PERCEPTIBLE",
+          "activeSignalSources": "1",
+          "tickSequence": "1958",
+          "nextDueNanos": "665306214654200",
+          "lastTransitionNanos": "665189564335900"
+        },
+        "worldPresent": "true",
+        "readiness": {
+          "committedCursorMinute": "29865616",
+          "requestedHorizonMinute": "29865618",
+          "reason": "ecology_fenced"
+        },
+        "ecologyLiveOwner": "true",
+        "ecologyStage": "historical.status",
+        "nativeOutstanding": "1"
+      }
+    },
+    "classification": "NO_BACKGROUND_WORK_DUE_SLEEPING_ECOLOGY_FENCED",
+    "ordinaryCadenceMillis": [
+      300000,
+      900000
+    ],
+    "alternativeProducer": "Ecology native-release catch-up is separately queued; requested horizon advances, cursor remains29865613 through RETURN. No committed producer in the measured interval; no causal failure of that producer established."
+  }
+}

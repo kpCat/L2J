@@ -1,0 +1,33 @@
+path	permission	purpose
+java/org/l2jmobius/gameserver/phantoms/PhantomScheduler.java	CONDITIONAL_MINIMAL_READONLY_API	Snapshot sourceKey/sequence/state/TTL/signed remaining/overdue under existing _monitor; no scheduler decisions/time changes
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_LOCAL_OPERATOR_VIEW	Expose one-profile bounded read-only immutable source view only if needed; no REAL network endpoint/Player control
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomRelevanceSignal.java	PROTECTED_READONLY	Existing immutable source/sequence/ttl contract
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomSchedulerPolicy.java	PROTECTED_READONLY	Existing 5-15 min BG cadence and 2s demotion grace; no tuning
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java	READ_FIRST_CAUSAL_WRITE_ONLY	Only if real retention bug; legitimate ACTIVE_ACTION/REAL_PARTY preserved
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomReconcileFirstActivityPort.java	READ_FIRST_CAUSAL_WRITE_ONLY	Only proven boundary deferral error
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	READ_FIRST_CAUSAL_WRITE_ONLY	Existing 10s NEARBY signal, retain actual locality
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomPerceptionProvider.java	READ_FIRST_CAUSAL_WRITE_ONLY	Only exact real offending topology source producer/withdraw; never blanket invalidation
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomTopologySignalLedger.java	PROTECTED_READONLY	Existing three source ownership ledger; no disabling guards
+java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationManager.java	READ_FIRST_CAUSAL_WRITE_ONLY	Only if confirmed actual signal owner, no population cap/calendar manipulation
+java/org/l2jmobius/gameserver/phantoms/population/PhantomPopulationEcologyService.java	READ_FIRST_CAUSAL_WRITE_ONLY	Check actual eligible BG due/producer, no rate/clock change
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	READ_FIRST_CAUSAL_WRITE_ONLY	Same-profile producer/goal reentry once real source failure proven; existing CAS
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	READ_FIRST_CAUSAL_WRITE_ONLY	Actual owning producer/commit/recovery, not new WAL or force completion
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	READ_FIRST_CAUSAL_WRITE_ONLY	Do not restart combat offscreen or cancel earned callbacks
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	READ_FIRST_CAUSAL_WRITE_ONLY	Native store/reentry exact stable profile, no second owner
+java/org/l2jmobius/gameserver/phantoms/diagnostics/PhantomRuntimeFlightRecorder.java	PROTECTED_READONLY	Reuse existing SCHED_SIGNAL_ACCEPTED, avoid new exporter/storage/thread
+java/org/l2jmobius/gameserver/ai/**	PROTECTED_READONLY	Stock Player AI and deferred Zariche unchanged
+java/org/l2jmobius/gameserver/model/actor/**	PROTECTED_READONLY	No general player combat/resource math changes
+java/org/l2jmobius/gameserver/geoengine/**	PROTECTED_READONLY	No geodata rewrite
+build.xml	TEST_REGISTRATION_ONLY	Only if existing native test runner cannot invoke focused suite
+test/java/org/l2jmobius/tests/phantoms/PhantomActivitySchedulerSuite.java	CONDITIONAL_FOCUSED_TEST	Prefer existing signal/TTL tests + add targeted immutable view/expiry negatives
+test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java	CONDITIONAL_FOCUSED_TEST	Preserve legitimate combat hard hold/stale epoch negative
+test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java	CONDITIONAL_EXACT044_OWNER	One fresh exact044a namespace if necessary; previous auths untouched
+test/java/org/l2jmobius/tests/phantoms/**	RELATED_FOCUSED_TEST_ONLY	Only actual verified owner tests; do not expand suite broadly
+docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py	PROTECTED_READONLY	CONTINUITY_V2 byte exact
+docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/**	WRITE_TASK044	Packet and bounded result artifacts only
+.phantom-local/ops044/**	OWN_PRIVATE_TOOLS	Read old raw; optional short owner trace/one LIFE run, no new recorder service
+.phantom-local/contract044a/**	OWN_ORDINARY_RUNTIME	One isolated fresh schema, no old DB writes or crash actions
+.phantom-local/contract040a/**	PROTECTED_NO_WRITE	User live session no stop/rebuild/DB modify
+.phantom-local/contract041*/**; .phantom-local/contract042*/**; .phantom-local/contract043*/**	PROTECTED_READONLY	Old raw, DB, runtimes and outcomes immutable
+C:/Users/ZBook/PhantomWorld/M1-041/**	PROTECTED_READONLY	Self contained existing delivery no overwrite
+MAIN/PLAY/other chronicles/foreign DB/client/shared MariaDB service	PROTECTED_NO_WRITE	No process/port/network intervention
