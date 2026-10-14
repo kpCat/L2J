@@ -1,0 +1,25 @@
+gate	status	evidence_or_limit
+A0_SAFE	PASS	Exact BASE/remote; one045a; stock Game8292/Login28476 stopped; pending/online0; protected040a/304old inputs/MAIN/evaluator unchanged
+A1_CAUSAL	PASS	Real Population+Locality+Scheduler BASE RED release29; old28/sleep30 PASS; historical1189 owner UNKNOWN
+A2_FIX	PASS	One-line existing owner ACTIVE->BACKGROUND projection; GREEN30/30; logical admission/online and WARM/sleep/stale/native holds preserved
+A3_NATIVE	NOT_VERIFIED	8 living native profiles with earned counters; all non-admitted/current readinessfalse; input FAIL before quiet/MOVE; no actor replacement
+A4_G4	NOT_VERIFIED	No away/BG/return; actual productive committed same-profile sequence absent; no short due window PASS
+A5_REGRESSION	PASS	Current FC19 jar-first93/93; acceptance11/11; soft3/3; scheduler30/30; population3+3/topology5+20; strict validator26; REGRESSIONS_FINAL045.json; extra24 FAIL separate
+A5_CONSERVATION	PASS	54 births terminal/485owning commits/62native witnesses/46stopped canonical profiles; FULL_SAVE/GLOBAL_DRAIN true; only045 scope
+A5_EXTRA_NATIVE24	FAIL	Additional wrong route19/24: P07 replacement publication not observed; four Q03-Q12 queued tests refused base TEST DB guard on045a; not retried/softened
+A6_DELIVERY	PENDING_FINAL_PUBLICATION	Source2c318/helper0a074 published ordinary; exact final ZIP/member SHA/CRC and final normal publication receipt required
+TASK045	BLOCKED_NATIVE_INPUT	A3 not passed; not PASS_SCOPED
+G1_ACTION	NOT_VERIFIED	Useful native farm subset does not close full M1 action set
+G2_HISTORICAL	PASS	A5/C24 original5c4ae8bf JAR only
+G2_CURRENT	NOT_VERIFIED	No two accepted groups on current FC19 JAR
+G3_SAVE	NOT_VERIFIED	Own045 FULL_SAVE PASS; wider historical/all required M1 scenes not closed
+G4_LIFE	OPEN	Current ACTIVE/readiness inputs absent; full productive BG/useful return not executed
+G5_RESTART	NOT_VERIFIED	Cold fixture regression not full normal restart acceptance
+G6_CRASH	FAIL_HISTORICAL	041 failures preserved; no72/73/fault/forced termination in045
+G7_REGRESS	NOT_VERIFIED	Focused current subset independent of complete M1 integration/review
+G8_DELIVERY	NOT_VERIFIED	Scoped045 source delivery distinct from final ordinary M1 release
+R1_INTEGRATION	NOT_VERIFIED	Protected final delivery untouched
+O_REAL	NOT_VERIFIED	No client/network routing operations
+REAL_FINAL	REQUIRED	Actual human acceptance pending
+M1	OPEN	All required server gates and user acceptance remain required
+READY_FOR_M2	false	M2/next task not started

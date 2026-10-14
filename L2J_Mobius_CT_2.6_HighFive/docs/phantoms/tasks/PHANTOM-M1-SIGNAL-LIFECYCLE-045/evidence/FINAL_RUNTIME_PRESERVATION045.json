@@ -1,0 +1,56 @@
+{
+  "nativeRowsPreserved": [
+    {
+      "byteEqual": true,
+      "afterSha256": "CEAA1225F4EE3CD1565F44A41E2A56EB44F689582D3BC3ECC3BC7EC8F979FDA1",
+      "file": "characters.tsv",
+      "beforeSha256": "CEAA1225F4EE3CD1565F44A41E2A56EB44F689582D3BC3ECC3BC7EC8F979FDA1"
+    },
+    {
+      "byteEqual": true,
+      "afterSha256": "5A0719C86B4B3985DC95662BBD60DF8FEAA81FC93B10BFC5D0D032A302411741",
+      "file": "items.tsv",
+      "beforeSha256": "5A0719C86B4B3985DC95662BBD60DF8FEAA81FC93B10BFC5D0D032A302411741"
+    },
+    {
+      "byteEqual": true,
+      "afterSha256": "EA1408B61D2137B119BD06F9FD16C43EBB3B3C91B6AB2605130A58A19AEFF117",
+      "file": "skills.tsv",
+      "beforeSha256": "EA1408B61D2137B119BD06F9FD16C43EBB3B3C91B6AB2605130A58A19AEFF117"
+    },
+    {
+      "byteEqual": true,
+      "afterSha256": "7E4407E92861E303BF632A4EF2FC7CDEB01516048D273F19162F7D47B3E2E98A",
+      "file": "durable-hex.tsv",
+      "beforeSha256": "7E4407E92861E303BF632A4EF2FC7CDEB01516048D273F19162F7D47B3E2E98A"
+    }
+  ],
+  "utc": "2026-10-14T14:09:08.8710133Z",
+  "protectedJarHashes": [
+    {
+      "sha256": "6DABD52DE07ACF2A9A0C5BEB0510EC737F95302DA104AF46320B05130FD7221E",
+      "file": "GameServer.jar"
+    },
+    {
+      "sha256": "842DE13026715111D88E0A6EF5AD9727EAEC73E99EB958BFBE0F5ACD325C37D6",
+      "file": "LoginServer.jar"
+    }
+  ],
+  "protected040a": [
+    {
+      "pid": 18688,
+      "runtimeId": "d41f9ba822d51f3e95487a6d94b55bd85d7e62df4522ecfb7abc64f1e575429d",
+      "markerMatched": true,
+      "creationUtc": "2026-10-12T21:34:30.492297Z",
+      "startTimeUtcTicks": 639274376704922975
+    },
+    {
+      "pid": 30312,
+      "runtimeId": "d41f9ba822d51f3e95487a6d94b55bd85d7e62df4522ecfb7abc64f1e575429d",
+      "markerMatched": true,
+      "creationUtc": "2026-10-12T21:34:32.38763Z",
+      "startTimeUtcTicks": 639274376723876308
+    }
+  ],
+  "ownJVMCount": 0
+}

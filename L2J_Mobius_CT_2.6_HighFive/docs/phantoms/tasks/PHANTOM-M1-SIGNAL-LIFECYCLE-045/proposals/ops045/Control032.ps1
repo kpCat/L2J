@@ -191,8 +191,12 @@ if($Action -ceq 'Collector'){
         $generated=Join-Path $ops ($agentClass+'.java')
         [IO.File]::WriteAllText($generated,[IO.File]::ReadAllText($source).Replace('Contract032Observer',$agentClass),[Text.UTF8Encoding]::new($false))
         $attach=Join-Path $module032 'docs/phantoms/tasks/PHANTOM-M1-RUNTIME-CONTRACTS-024/AttachContract024.java'
-        & (Join-Path $jdk 'javac.exe') -encoding UTF-8 -cp (Join-Path $module032 'dist/libs/*') -d $classes $generated $attach
-        if($LASTEXITCODE -ne 0){throw 'Collector compile failed.'}
+        $compilePreference045=$ErrorActionPreference; $ErrorActionPreference='Continue'
+        try {
+            & (Join-Path $jdk 'javac.exe') -encoding UTF-8 -cp (Join-Path $module032 'dist/libs/*') -d $classes $generated $attach
+            $compileExit045=$LASTEXITCODE
+        } finally { $ErrorActionPreference=$compilePreference045 }
+        if($compileExit045 -ne 0){throw 'Collector compile failed.'}
         $mf=Join-Path $ops 'observer032.mf'
         [IO.File]::WriteAllText($mf,"Manifest-Version: 1.0`nAgent-Class: $agentClass`nPremain-Class: $agentClass`n`n",[Text.UTF8Encoding]::new($false))
         & (Join-Path $jdk 'jar.exe') --create --file $agentJar --manifest $mf -C $classes .

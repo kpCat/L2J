@@ -1,0 +1,21 @@
+{
+  "contract": "TASK039_CURRENT_OWNING_COMMIT_PROOF",
+  "sourceSha": "0a07452b40d246459954ed98fb8a76f1fa7e463f",
+  "jarSha256": "fc19dc90786947eff5ad427792ac4f3a491340c0e647feb194ecb088f29adec2",
+  "nativeBirths": 54,
+  "commitRecords": 485,
+  "allBirthsTerminal": true,
+  "GLOBAL_DRAIN": true,
+  "NATIVE_BOUNDARY_INTERVAL": true,
+  "FINAL_STOPPED_CUT": true,
+  "FULL_SAVE": true,
+  "pass": true,
+  "failures": [],
+  "nativeWitnesses": 62,
+  "stoppedProfiles": 46,
+  "fullProof": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\CONSERVATION045.json",
+  "fullProofSha256": "3f28c8e4e8b7153b73792895ca894aeaaa33ee5bfd6172ff7eda1f0dfee882ee",
+  "rawPinsCount": 752,
+  "nativeVerifierExit": 0,
+  "stoppedVerifierExit": 0
+}

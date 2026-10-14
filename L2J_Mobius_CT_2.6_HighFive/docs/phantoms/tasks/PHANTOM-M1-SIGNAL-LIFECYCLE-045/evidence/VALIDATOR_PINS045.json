@@ -1,0 +1,58 @@
+[
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\validation\\commit_chain039.py",
+    "sourceSha256": "c438df031282729c39dc7931cb3fceb345acbb1d7ce169e37a6ed9d5005beb1d",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\validation\\commit_chain039.py",
+    "sha256": "c438df031282729c39dc7931cb3fceb345acbb1d7ce169e37a6ed9d5005beb1d",
+    "change": "044 namespace/name only; DB mask narrowed to exact045a; all proof criteria unchanged"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\validation\\complete_chain044.py",
+    "sourceSha256": "683c5439ad6d79904b9ebbfcf2cd68214a813c7cf2149d274f17541a4a807b82",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\validation\\complete_chain045.py",
+    "sha256": "683c5439ad6d79904b9ebbfcf2cd68214a813c7cf2149d274f17541a4a807b82",
+    "change": "044 namespace/name only; DB mask narrowed to exact045a; all proof criteria unchanged"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\validation\\raw_archive044.py",
+    "sourceSha256": "47ee7fbf202ca61940c2fa332c2e2d47b7d4b4bf3477c7fbcc5aa42843a209c5",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\validation\\raw_archive045.py",
+    "sha256": "7d5cddeb652da5f773a27d6b04a7acf5e24bf524e06e97e3d30aa9707135c855",
+    "change": "044 namespace/name only; DB mask narrowed to exact045a; all proof criteria unchanged"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\validation\\verify_commit_run039.py",
+    "sourceSha256": "f8013809932fdea2424a2d766de930439ee8bbb650424cc58e40107d62668a2c",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\validation\\verify_commit_run039.py",
+    "sha256": "a0ab1ae2c7ed3799969aab2aeae4219d557c3c7311036a4eb13425ba07261eaa",
+    "change": "044 namespace/name only; DB mask narrowed to exact045a; all proof criteria unchanged"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\validation\\test_commit_chain039.py",
+    "sourceSha256": "574cd61ad269cdb70a53d20afb5cbdbef44983e0c92e2b0963a9ba158b2ed8a7",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\validation\\test_commit_chain039.py",
+    "sha256": "574cd61ad269cdb70a53d20afb5cbdbef44983e0c92e2b0963a9ba158b2ed8a7",
+    "change": "044 namespace/name only; DB mask narrowed to exact045a; all proof criteria unchanged"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\validation\\test_complete_chain044.py",
+    "sourceSha256": "2d47a10311a1bdc0e9e6396c299b3ef02034bb9eab04148af037d6fa5cba87c7",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\validation\\test_complete_chain045.py",
+    "sha256": "ada787aaa50090b5427001c007f35693b03630f0b4a1121514cc9ed97d67c5eb",
+    "change": "044 namespace/name only; DB mask narrowed to exact045a; all proof criteria unchanged"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\validation\\VerifyNativeCommit039.java",
+    "sourceSha256": "bf06ec98f9629d134f205050f6a3e4f35087da0ad3d53ca8963b36ace5ca8669",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\validation\\VerifyNativeCommit039.java",
+    "sha256": "bf06ec98f9629d134f205050f6a3e4f35087da0ad3d53ca8963b36ace5ca8669",
+    "change": "044 namespace/name only; DB mask narrowed to exact045a; all proof criteria unchanged"
+  },
+  {
+    "source": "docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\proposals\\ops044\\validation\\VerifyStoppedCut039.java",
+    "sourceSha256": "bddee663daeae783a10c396ff8d9c3252a1038ac54341d55cc20c95550444542",
+    "target": "docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\proposals\\ops045\\validation\\VerifyStoppedCut039.java",
+    "sha256": "bddee663daeae783a10c396ff8d9c3252a1038ac54341d55cc20c95550444542",
+    "change": "044 namespace/name only; DB mask narrowed to exact045a; all proof criteria unchanged"
+  }
+]

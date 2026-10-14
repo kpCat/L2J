@@ -26,7 +26,8 @@ logs += [task / "evidence" / name for name in ["TEST_OWNER_RED045.log", "TEST_OW
 tests = []
 for log in logs:
     data = log.read_bytes()
-    facts = [line for line in data.decode("utf-8-sig", errors="replace").splitlines()
+    encoding = "utf-16" if data.startswith((b"\xff\xfe", b"\xfe\xff")) else "utf-8-sig"
+    facts = [line for line in data.decode(encoding, errors="replace").splitlines()
              if line.startswith(("[PASS]", "[FAIL]", "SUMMARY:"))]
     tests.append({"raw": str(log), "sha256": hashlib.sha256(data).hexdigest(), "facts": facts})
 (task / "evidence/SOURCE_TESTS045.json").write_text(json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8")

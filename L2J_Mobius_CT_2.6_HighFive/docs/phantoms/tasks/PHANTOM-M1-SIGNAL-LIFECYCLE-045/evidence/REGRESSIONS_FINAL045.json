@@ -1,0 +1,303 @@
+{
+  "jar": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract045a\\runtime\\libs\\GameServer.jar",
+  "jarSha256": "fc19dc90786947eff5ad427792ac4f3a491340c0e647feb194ecb088f29adec2",
+  "jarFirst": true,
+  "matrixTotal": 93,
+  "matrix": [
+    {
+      "route": "1",
+      "suite": "PhantomCheckpointRecovery025Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=checkpoint-recovery025 seed=25002501 total=8 passed=8 failed=0"
+    },
+    {
+      "route": "2",
+      "suite": "PhantomCheckpointDrain025Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=checkpoint-drain025 seed=25002502 total=3 passed=3 failed=0"
+    },
+    {
+      "route": "3",
+      "suite": "PhantomVisibleIntentRecoverySuite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=visible-intent-recovery seed=21002101 total=10 passed=10 failed=0"
+    },
+    {
+      "route": "4",
+      "suite": "native",
+      "focus": "review",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=m1-native-lifecycle seed=15001501 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "5",
+      "suite": "PhantomLivingWorld023Suite",
+      "focus": "retaliation024",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=living-world023 seed=23002301 total=3 passed=3 failed=0"
+    },
+    {
+      "route": "6",
+      "suite": "",
+      "focus": "",
+      "launcher": "population-ecology-goal033",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=population-ecology-goal033 seed=33003300 total=30 passed=30 failed=0"
+    },
+    {
+      "route": "7",
+      "suite": "",
+      "focus": "",
+      "launcher": "population-ecology-handoff-regression",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=population-ecology-goal033 seed=33003300 total=6 passed=6 failed=0"
+    },
+    {
+      "route": "8",
+      "suite": "server-shutdown",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=server-shutdown-handoff seed=23002301 total=8 passed=8 failed=0"
+    },
+    {
+      "route": "9",
+      "suite": "position",
+      "focus": "owned-store",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=background-position-canonicalization seed=15001502 total=1 passed=1 failed=0"
+    },
+    {
+      "route": "10",
+      "suite": "PhantomNativeFarmContinuation022Suite",
+      "focus": "raw",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=native-farm-continuation022 seed=22002201 total=3 passed=3 failed=0"
+    },
+    {
+      "route": "11",
+      "suite": "PhantomLivingWorld023Suite",
+      "focus": "cooperative",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=living-world023 seed=23002301 total=1 passed=1 failed=0"
+    },
+    {
+      "route": "12",
+      "suite": "PhantomNativeFarmContinuation022Suite",
+      "focus": "observation026",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=native-farm-continuation022 seed=22002201 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "13",
+      "suite": "PhantomNativeFarmContinuation022Suite",
+      "focus": "callback026",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=native-farm-continuation022 seed=22002201 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "14",
+      "suite": "PhantomSustainedFarm026Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=sustained-farm026 seed=26002601 total=3 passed=3 failed=0"
+    },
+    {
+      "route": "15",
+      "suite": "PhantomSustainedFarm026Suite",
+      "focus": "resource026",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=sustained-farm026 seed=26002601 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "16",
+      "suite": "PhantomSustainedFarm026Suite",
+      "focus": "generation026",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=sustained-farm026 seed=26002601 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "17",
+      "suite": "PhantomRecoveryBoundary026Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=recovery-boundary026 seed=26002603 total=2 passed=2 failed=0"
+    },
+    {
+      "route": "18",
+      "suite": "PhantomNativeEvidenceContinuation022Suite",
+      "focus": "",
+      "launcher": "",
+      "exitCode": "0",
+      "summary": "SUMMARY: suite=native-evidence-continuation022 seed=22002203 total=5 passed=5 failed=0"
+    }
+  ],
+  "requiredFocused": [
+    {
+      "label": "FINAL_ACCEPTANCE11_045",
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\FINAL_ACCEPTANCE11_045.log",
+      "sha256": "3b05a56099ac942d0f1a29bb28b937f36171ec0fac56bbabc29d488d307b6802",
+      "provenance": {
+        "suite": "PhantomLifecycleCompletion027Suite",
+        "focus": "acceptance",
+        "developmentBinFirst": false,
+        "database": "l2jmobiush5_phantom_test_045a",
+        "label": "FINAL_ACCEPTANCE11_045",
+        "utc": "2026-10-14T14:04:52.9727041Z",
+        "jarSha256": "FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2",
+        "jar": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\build-native\\jar-input\\FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2\\GameServer.jar"
+      }
+    },
+    {
+      "label": "FINAL_SOFT045",
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\FINAL_SOFT045.log",
+      "sha256": "1cdde780e19e6dcf62907751de3a145b854d0d2bc037b273f958248e7ca79dc5",
+      "provenance": {
+        "suite": "PhantomSoftReturn028Suite",
+        "focus": "",
+        "developmentBinFirst": false,
+        "database": "l2jmobiush5_phantom_test_045a",
+        "label": "FINAL_SOFT045",
+        "utc": "2026-10-14T14:06:34.4737636Z",
+        "jarSha256": "FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2",
+        "jar": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\build-native\\jar-input\\FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2\\GameServer.jar"
+      }
+    },
+    {
+      "label": "FINAL_SCHEDULER045",
+      "total": 30,
+      "passed": 30,
+      "failed": 0,
+      "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\FINAL_SCHEDULER045.log",
+      "sha256": "83508776a42f3182312637db05ee329cad84b2621e23864c8c4664640cac4b19",
+      "provenance": {
+        "suite": "unused",
+        "focus": "",
+        "developmentBinFirst": false,
+        "database": "l2jmobiush5_phantom_test_045a",
+        "label": "FINAL_SCHEDULER045",
+        "utc": "2026-10-14T14:07:08.5775307Z",
+        "jarSha256": "FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2",
+        "jar": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\build-native\\jar-input\\FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2\\GameServer.jar"
+      }
+    },
+    {
+      "label": "FINAL_POP_SCHEDULE045",
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\FINAL_POP_SCHEDULE045.log",
+      "sha256": "4693b91bab331e1922ca6b7eb6f8eff655dd0c81b00af77709fa81fd2f8e0c8d",
+      "provenance": {
+        "suite": "unused",
+        "focus": "",
+        "developmentBinFirst": false,
+        "database": "l2jmobiush5_phantom_test_045a",
+        "label": "FINAL_POP_SCHEDULE045",
+        "utc": "2026-10-14T14:07:10.3705327Z",
+        "jarSha256": "FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2",
+        "jar": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\build-native\\jar-input\\FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2\\GameServer.jar"
+      }
+    },
+    {
+      "label": "FINAL_POP_CATALOG045",
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\FINAL_POP_CATALOG045.log",
+      "sha256": "7f4ae817610cfaf98873da154b381f550a5d5529bf5a236d0cee6102b0c8be1c",
+      "provenance": {
+        "suite": "unused",
+        "focus": "",
+        "developmentBinFirst": false,
+        "database": "l2jmobiush5_phantom_test_045a",
+        "label": "FINAL_POP_CATALOG045",
+        "utc": "2026-10-14T14:07:11.0818764Z",
+        "jarSha256": "FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2",
+        "jar": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\build-native\\jar-input\\FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2\\GameServer.jar"
+      }
+    },
+    {
+      "label": "FINAL_TOPOLOGY045",
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\FINAL_TOPOLOGY045.log",
+      "sha256": "7ed0c63e39d28f1025c8ca2d62291d1332d7bf114c9f7648375fa87db06c9659",
+      "provenance": {
+        "suite": "unused",
+        "focus": "",
+        "developmentBinFirst": false,
+        "database": "l2jmobiush5_phantom_test_045a",
+        "label": "FINAL_TOPOLOGY045",
+        "utc": "2026-10-14T14:07:11.8314153Z",
+        "jarSha256": "FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2",
+        "jar": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\build-native\\jar-input\\FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2\\GameServer.jar"
+      }
+    },
+    {
+      "label": "FINAL_LEDGER045",
+      "total": 20,
+      "passed": 20,
+      "failed": 0,
+      "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\FINAL_LEDGER045.log",
+      "sha256": "4b5ebbec467e7f8d3e5bfa0da87b929305a17a270c1708b762ed80724d3b1981",
+      "provenance": {
+        "suite": "unused",
+        "focus": "",
+        "developmentBinFirst": false,
+        "database": "l2jmobiush5_phantom_test_045a",
+        "label": "FINAL_LEDGER045",
+        "utc": "2026-10-14T14:07:12.6354095Z",
+        "jarSha256": "FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2",
+        "jar": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\build-native\\jar-input\\FC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2\\GameServer.jar"
+      }
+    }
+  ],
+  "strictValidatorNegatives": {
+    "tests": 26,
+    "passed": 26,
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops045\\VALIDATOR_NEGATIVES045.log"
+  },
+  "extraWrongNative24": {
+    "status": "FAIL",
+    "total": 24,
+    "passed": 19,
+    "failed": 5,
+    "raw": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\evidence\\FINAL_LIFECYCLE045.log",
+    "sha256": "8a74ad69068ec55f1d06daaa1319797080209088e72eb47cfa6c93537043e158",
+    "failures": [
+      "[FAIL] m1-native-lifecycle.P07-stale-visible-start-rollback-keeps-current-session - java.lang.AssertionError: Replacement Session was not published before native registration resumed. seed=15001501",
+      "[FAIL] m1-native-lifecycle.Q03-Q12-native-queued-attack - java.lang.AssertionError: Queued native tests require the initialized allowlisted headless TEST environment. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_phantom_test_045a>. seed=15001501",
+      "[FAIL] m1-native-lifecycle.Q03-Q12-native-queued-cast - java.lang.AssertionError: Queued native tests require the initialized allowlisted headless TEST environment. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_phantom_test_045a>. seed=15001501",
+      "[FAIL] m1-native-lifecycle.Q03-Q12-native-queued-incomingAttack - java.lang.AssertionError: Queued native tests require the initialized allowlisted headless TEST environment. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_phantom_test_045a>. seed=15001501",
+      "[FAIL] m1-native-lifecycle.Q03-Q12-native-queued-incomingCast - java.lang.AssertionError: Queued native tests require the initialized allowlisted headless TEST environment. Expected <l2jmobiush5_phantom_test> but was <l2jmobiush5_phantom_test_045a>. seed=15001501"
+    ],
+    "resolved": false
+  },
+  "G2_HISTORY": "PASS_ON_ORIGINAL_5c4ae8bf_ONLY",
+  "G2_CURRENT": "NOT_VERIFIED"
+}

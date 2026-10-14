@@ -132,8 +132,8 @@ function ReadReturnFrame045{
     $actor045=[ordered]@{profileId=[string]$primary[0].profileId;missing=([string]($facts045.worldPresent -cne 'true')).ToLowerInvariant();dead='UNKNOWN';nativeFarmCycleSequence='0';nativeRewardSequence='0';nativeDamageSequence='0'}
     foreach($key045 in $facts045.Keys){$actor045[$key045]=$facts045[$key045]}
     $session045=Read-PilotProperties (Join-Path $runtime "playtest-synthetic/$run/session.properties")
-    if($session045.state -cne 'RUNNING' -or $session045.sessionId -cne $run -or $status045.before.identityOwner -cne 'LOCALPLAY_TEST_HUMAN' -or $status045.before.clientIdentity -cne 'none' -or $status045.before.worldPresent -cne 'true'){throw 'Actual return session/native observer identity missing.'}
-    $observer045=[pscustomobject]@{runId=$run;sessionState=$session045.state;objectId=268492939;present=($status045.before.worldPresent -ceq 'true');online=($status045.before.online -ceq 'true');dead=($status045.before.dead -ceq 'true');x=[int]$status045.before.x;y=[int]$status045.before.y;z=[int]$status045.before.z;moving=($status045.before.moving -ceq 'true')}
+    if($session045.state -cne 'RUNNING' -or $session045.sessionId -cne $run -or $status045.before.identityOwner -cne 'LOCALPLAY_TEST_HUMAN' -or $status045.before.clientIdentity -cne 'none' -or $status045.before.worldPresent -cne 'true' -or $facts045.observerPresent -cne 'true' -or $facts045.observerOnline -cne 'true' -or $facts045.observerDead -cne 'false'){throw 'Actual return session/native observer identity missing.'}
+    $observer045=[pscustomobject]@{runId=$run;sessionState=$session045.state;objectId=[int]$status045.before.actorObjectId;present=($facts045.observerPresent -ceq 'true');online=($facts045.observerOnline -ceq 'true');dead=($facts045.observerDead -ceq 'true');x=[int]$status045.before.x;y=[int]$status045.before.y;z=[int]$status045.before.z;moving=($status045.before.moving -ceq 'true')}
     return [pscustomobject]@{sampleNanos=$facts045.sampleNanos;observer=$observer045;actors=@([pscustomobject]$actor045)}
 }
 try{

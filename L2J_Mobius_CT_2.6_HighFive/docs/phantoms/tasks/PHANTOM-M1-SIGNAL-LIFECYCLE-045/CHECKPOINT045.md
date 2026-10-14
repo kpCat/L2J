@@ -54,3 +54,28 @@ local ops pattern, lifetime525 не менялся. До native start повто
 exact045a masks и ordinary-only guard проверены. Stock shutdown helper собран.
 Mixed EOL исходного TEST owner сохранены для всех неизменённых строк;
 git diff --check после минимальной byte-splice коррекции PASS.
+
+Code commit2c31819277012abb72f49402ff6497dbb6131d88 и helper commit
+0a07452b40d246459954ed98fb8a76f1fa7e463f ordinary/non-force опубликованы.
+Native exact GameJarFC19DC90786947EFF5AD427792AC4F3A491340C0E647FEB194ECB088F29ADEC2,
+source0a074. Первый preboot collector javac NOTE ошибочно вызвал WinPS exception
+при exit0; only045 wrapper исправлен, исходный log сохранён. Первый real boot:
+Game8292/Login28476; один baseline8, все living/native earned, но admitted=0 и
+current readiness=false в967 census profiles. Input FAIL до departure; никакого
+MOVE/BG/return/замены actor/DB/retry. Historical1189 owner UNKNOWN.
+
+Stock stop обеих own JVM PASS. Strict FULL_SAVE/GLOBAL_DRAIN PASS:
+54 lifetimes terminal,485 owning commits,62native witnesses,46canonical stopped
+profiles; dropped0/failure empty/pendingOwnedStores0/onlineCharacters0.
+Current FC19 jar-first18 routes93/93, acceptance11/11, soft3/3, scheduler30/30,
+affected population3+3/topology5+20, validator26 PASS.
+По ошибке выбран общий native24 вместо acceptance11:19/24, пять FAIL сохранены
+(P07 publication; четыре queued base-DB guards), не исправлялись/не повторялись.
+
+После всех tests native characters/items/skills/durable-hex byte-identical.
+Own JVM0, protected040a exact original ticks/JAR SHA PASS;304 old input files,
+MAIN8 и original evaluator unchanged. Only one product owner и три TEST paths;
+дальнейшие изменения — только045 reports/helpers. Long due/return branches не
+достигнуты; compile/parse evidence не превращается в G4 PASS.
+Compact review CRC/member SHA/две отдельные Cyrillic checks PASS перед publication.
+TASK045=BLOCKED_NATIVE_INPUT; M1 OPEN, READY_FOR_M2=false, USER_ACCEPTANCE REQUIRED.

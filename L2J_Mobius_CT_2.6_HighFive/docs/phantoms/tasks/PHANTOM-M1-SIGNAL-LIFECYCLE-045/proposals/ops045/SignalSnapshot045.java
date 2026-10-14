@@ -40,6 +40,11 @@ public final class SignalSnapshot045
         text.append("objectId=").append(materialization == null ? 0 : materialization.characterObjectId()).append('\n');
         text.append("materializedAtNanos=").append(materialization == null ? 0 : materialization.materializedAtNanos()).append('\n');
         text.append("worldPresent=").append(player != null && materialization.worldPresent()).append('\n');
+        final var observerObject = World.getInstance().findObject(org.l2jmobius.gameserver.config.custom.LocalPlayPilotConfig.syntheticObjectId());
+        final Player observer = observerObject instanceof Player value ? value : null;
+        text.append("observerPresent=").append(observer != null).append('\n');
+        text.append("observerOnline=").append(observer != null && observer.isOnline()).append('\n');
+        text.append("observerDead=").append(observer == null ? "UNKNOWN" : Boolean.toString(observer.isDead())).append('\n');
         if (player != null && player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope owner)
         {
             owner.evidence().snapshot().scalarMap().forEach((key, value) -> text.append(key).append('=').append(value).append('\n'));
