@@ -45,6 +45,9 @@ def main():
     write_json(TASK / 'evidence/HELPER_SOURCE_PINS044.json', copied)
     paths = [TASK / name for name in ROOT_FILES] + [TASK / 'proposals' / name for name in PROPOSALS] + [TASK / 'evidence' / name for name in INDICES]
     paths += [REPO / row['path'] for row in copied] + [TASK / 'evidence/HELPER_SOURCE_PINS044.json']
+    publication = TASK / 'evidence/PUBLICATION1_RECEIPT044.json'
+    if publication.exists():
+        paths.append(publication)
     markers = ['Рџ','Рќ','Рћ','Р•','РЎ','Р›','Р¤','Рњ','РЈ','Рљ','Рґ','Рµ','Р°','Р»','РЅ','Рѕ','СЏ','С€','СЂ','С‹','СЊ','С‚','Сѓ','С‡','С…','С†','�']
     escaped = re.compile(r'\\u0[45][0-9A-Fa-f]{2}|&#[xX]0[45][0-9A-Fa-f]{2};')
     mojibake_hits, escaped_hits, python_files = [], [], []

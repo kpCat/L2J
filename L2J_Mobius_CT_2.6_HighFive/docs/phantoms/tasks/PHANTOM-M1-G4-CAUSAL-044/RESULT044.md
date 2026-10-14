@@ -60,11 +60,19 @@ Exact-path ordinary commits и normal non-force push разрешены user /go
 TASK/HANDOFF044; actual publication SHA/HEAD=remote/clean записываются в receipt
 после push. Они не превращают A1/A4/A5 в PASS. Матрица: GATES044.tsv.
 
+First actual publication PASS:7d98a63515b7bcc84a15ad5fda599a5874181560=remote,
+tracked clean. Compact literal argv/exit receipt:evidence/PUBLICATION1_RECEIPT044.json.
+Final report/ZIP update имеет отдельный обычный commit/push и local post-push
+receipt; self-reference на будущий SHA не выдумывается.
+
 Ошибки оркестрации сохранены: неверное имя lifecycle suite, преждевременный
 запуск под DB lock, CLI hashtable argument, copied shutdown043 mask, missing
 SplitSql helper (partition завершён из тех же original SQL bytes без нового
 DB query), wrong marker passive fallback. Это ограничения исполнения044;
 product defects им не приписаны. Результаты после исправления указаны отдельно.
+First publisher guard также дал ложный remote-advanced отказ: WinPS single stdout
+стал scalar, индекс0 прочитал только первый символ. Actual remote оставался BASE,
+writes не было; explicit arrays → ordinary commit/push GREEN, исходный refusal сохранён.
 
 mojibake-маркеры в изменённых файлах проверены — итог evidence/ENCODING044.json.
 escaped Cyrillic в изменённых файлах проверены — отдельный итог там же.

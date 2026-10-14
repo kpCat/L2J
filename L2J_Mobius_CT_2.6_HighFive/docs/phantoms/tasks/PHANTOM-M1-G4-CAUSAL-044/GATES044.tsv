@@ -6,7 +6,7 @@ A3_PRODUCT_FIX	NOT_APPLICABLE	No causal gameplay RED; only read-only diagnostic 
 A4_G4_NATIVE	NOT_VERIFIED	No full positive G4; max one diagnostic consumed; no new lottery/actor replacement
 A5_REGRESSIONS	PASS	Exact E5029F38 jar-first93/93; lifecycle11/11; soft3/3; scheduler28/28; validator negatives26/26
 A5_CONSERVATION	NOT_VERIFIED	75 births terminal/35702 owning commits/82 native PASS/44 stopped full PASS; strict outer FAIL: original RUN_END STOP_MONITOR_TIMEOUT
-A6_DELIVERY	PENDING	Exact paths/compact verified ZIP/ordinary commit+non-force push/HEAD=remote/tracked clean receipt required
+A6_DELIVERY	PASS	Actual ordinary publication7d98a63515b7bcc84a15ad5fda599a5874181560=remote/tracked clean; verified compact ZIP; own JVM0; final receipt update separate
 G1_ACTION	NOT_VERIFIED	Original complete M1 native action set not closed by044
 G2_HISTORICAL	PASS	A5 8/8/382.3743138s; C24 8/8/381.6816272s on original5c4ae8bf JAR
 G2_CURRENT	NOT_VERIFIED	New exact E5029F38 JAR; two current groups not rerun

@@ -1,7 +1,7 @@
 {
   "mojibakeMarkers": "PASS",
   "escapedCyrillic": "PASS",
-  "checkedFiles": 65,
+  "checkedFiles": 66,
   "technicalScannerLiteralExemption": "Package044.py marker definitions only",
   "pythonSyntax": [
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/Verify-Life044.py",

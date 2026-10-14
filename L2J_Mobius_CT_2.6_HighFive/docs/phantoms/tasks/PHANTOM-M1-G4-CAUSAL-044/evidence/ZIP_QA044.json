@@ -1,6 +1,6 @@
 {
   "contract": "TASK044_COMPACT_REVIEW",
-  "memberCount": 63,
+  "memberCount": 64,
   "members": [
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/GOAL.md",
@@ -59,23 +59,23 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/RESULT044.md",
-      "bytes": 5513,
-      "sha256": "43f385f7f0c453d01e00d25681528d170e31d0ec5647f39dbb254e7352cc6ad4"
+      "bytes": 6201,
+      "sha256": "50d96df2cc54811d81c48e4bb0611603c522a2b81c2a1a2742a80d8899d5b95e"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/GATES044.tsv",
-      "bytes": 2271,
-      "sha256": "38b9421a05ad77d1fec4c797e542017721c735ebb2c56c2a3f88495d6f10da2b"
+      "bytes": 2313,
+      "sha256": "57de31d7a24450d5de1a4e52963907bb0e785b01f690e11f3d4bd81e7ffa7507"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/REVIEW044.md",
-      "bytes": 5098,
-      "sha256": "2585c50f5e2635edab356cfa8d5ef809e078a591dd656b0a31fb5c2e899e8e6a"
+      "bytes": 5357,
+      "sha256": "cbf62849e4574ee6ae3caf1fecc0e80d3ab3331423e989eb65fe80ae0295d561"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/CHECKPOINT044.md",
-      "bytes": 4767,
-      "sha256": "236ba203e3cb8a756240394f64fcc03ac980e7b67967e92e883e03a3e7a486f0"
+      "bytes": 5153,
+      "sha256": "fb4322a3d1bd61d18b09fe9589775e24c0aa46d27f08d7821e6712319e5912e6"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/GIT_COMMANDS044.md",
@@ -149,8 +149,8 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/Package044.py",
-      "bytes": 6601,
-      "sha256": "be49c4c965bc5c22c56eebd8cd290d15eedabf4315a905da8366fac329e02719"
+      "bytes": 6729,
+      "sha256": "d46b900124fc242385cde83b79174378fa72f031b10382ffb39469968afcb143"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/Publish044.ps1",
@@ -313,15 +313,20 @@
       "sha256": "5d537e98cc1f428e090995f1ef34a233977b564224838c2fb97f95937d297f5d"
     },
     {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/PUBLICATION1_RECEIPT044.json",
+      "bytes": 26159,
+      "sha256": "5709f1ffacdf75dcaf9a822906db1a7098b9a4b13b6d9a79665a48686a8628c0"
+    },
+    {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/ENCODING044.json",
       "bytes": 1506,
-      "sha256": "5b983384072f840059c177ca49482241de0d7081be3cf972ac863dba184b003e"
+      "sha256": "b246d06d067f400158170babe56b73e0e85c4c2380542b1cf43ffe5bf2c101dd"
     }
   ],
   "crcAll": "PASS",
   "allMemberSha256": "PASS",
   "sourceBytesEqual": "PASS",
   "duplicateTraversal": "PASS",
-  "zipSha256": "21184b3bc06bc1a3ddf726156cf1fd9c473f7d7a2910761f44e5ca1f616e919a",
-  "zipBytes": 165721
+  "zipSha256": "8332e17947f1ff4ec21354537d8dae19519249fe57d586ceb6b8bad2cced50bc",
+  "zipBytes": 168461
 }

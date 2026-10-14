@@ -62,3 +62,8 @@ G2_CURRENT NOT_VERIFIED; historical A5/C24 PASS на исходном JAR сох
 Delivery self-review/ZIP/exact commit+non-force publication завершаются отдельно.
 Дальнейший native trace требует следующего явно разрешённого scope; текущая
 execution заканчивается с PARTIAL_VERIFIED, M1 OPEN и manual gate REQUIRED.
+
+First publication actual PASS:7d98a63515b7bcc84a15ad5fda599a5874181560=remote,
+tracked clean. Public compact receipt сохранён; final report/ZIP update отдельно.
+Original false remote-advanced guard refusal был WinPS scalar error до writes;
+remote BASE был повторно подтверждён, исправление не меняло history/remote policy.

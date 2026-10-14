@@ -45,6 +45,9 @@ premature call, missing SQL partition helper. Source-only passive fallback бы�
 original D1 RUNNING-away measurement. Failed helper call не дал owner evidence.
 WinPS log BOM UTF-16 распознан reader без изменения raw. Эти ошибки не являются
 product causal RED и не стирают historical042/043 failures.
+Publisher scalar stdout guard отказал до writes при неизменном BASE remote;
+explicit array wrapping и native stderr handling исправлены, actual guarded
+ordinary push7d98a63515b7bcc84a15ad5fda599a5874181560 PASS/tracked clean.
 
 ## Итог и поставка
 
