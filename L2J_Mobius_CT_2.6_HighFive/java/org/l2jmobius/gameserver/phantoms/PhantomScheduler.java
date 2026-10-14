@@ -495,6 +495,30 @@ public final class PhantomScheduler
 		}
 	}
 
+	/** Passive one-profile view; overdue entries remain visible until the ordinary pulse expires them. */
+	public List<SignalSourceSnapshot> signalSources(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final Slot slot = _slots.get(profileId);
+			if (slot == null) { return List.of(); }
+			final long now = _clock.nanoTime();
+			final List<SignalSourceSnapshot> sources = new ArrayList<>(slot._sources.size());
+			for (SourceEntry source : slot._sources.values())
+			{
+				if (source._signal != null)
+				{
+					final long remaining = source._expiresAtNanos - now;
+					sources.add(new SignalSourceSnapshot(source._signal.sourceKey(), source._sequence, source._signal.requiredState(), source._signal.ttlMillis(), now, source._expiresAtNanos, Math.floorDiv(remaining, 1_000_000L), source._expiresAtNanos <= now));
+				}
+			}
+			sources.sort(Comparator.comparing(SignalSourceSnapshot::sourceKey));
+			return List.copyOf(sources);
+		}
+	}
+
+	public record SignalSourceSnapshot(String sourceKey, long sequence, PhantomActivityState requiredState, long originalTtlMillis, long sampleNanos, long expiresAtNanos, long remainingTtlMillis, boolean expiredAtRead) { }
+
 	public List<PhantomActivitySnapshot> list()
 	{
 		synchronized (_monitor)

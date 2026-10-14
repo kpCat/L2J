@@ -133,6 +133,65 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("24-fresh-human-preempts-policy-wait", _ -> testFreshHumanPolicyWait());
 		registry.add("25-hard-and-recent-human-retention", _ -> testRetentionReasons());
 		registry.add("26-soft-reclamation-preserves-scheduler-ownership", _ -> testSoftReclamation());
+		registry.add("27-source-view-immutable-replacement-withdrawal", _ -> testSourceView());
+		registry.add("28-source-view-overdue-read-does-not-expire", _ -> testOverdueSourceView());
+	}
+
+	private void testSourceView()
+	{
+		final Fixture fixture = fixture(2, 2);
+		final PhantomScheduler scheduler = fixture.scheduler();
+		scheduler.register(1);
+		scheduler.submitSignal(1, signal("combat", 1, PhantomActivityState.ACTIVE, 100));
+		scheduler.submitSignal(1, signal("human.local", 2, PhantomActivityState.NEARBY_PERCEPTIBLE, 200));
+		final var before = scheduler.find(1).orElseThrow();
+		final var metrics = fixture.metrics().snapshot();
+		final var sources = scheduler.signalSources(1);
+		PhantomAssertions.assertEquals(2, sources.size(), "Both accepted source owners must be visible.");
+		PhantomAssertions.assertEquals("combat", sources.get(0).sourceKey(), "Sources must be sorted by key.");
+		PhantomAssertions.assertEquals(1L, sources.get(0).sequence(), "Accepted sequence was lost.");
+		PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, sources.get(0).requiredState(), "Required state was lost.");
+		PhantomAssertions.assertEquals(100L, sources.get(0).originalTtlMillis(), "Original TTL was lost.");
+		PhantomAssertions.assertEquals(100_000_000L, sources.get(0).expiresAtNanos(), "Absolute expiry was lost.");
+		PhantomAssertions.assertEquals(100L, sources.get(0).remainingTtlMillis(), "Remaining TTL was lost.");
+		PhantomAssertions.assertFalse(sources.get(0).expiredAtRead(), "Fresh source was marked overdue.");
+		PhantomAssertions.assertEquals(before, scheduler.find(1).orElseThrow(), "Source read changed scheduler state.");
+		PhantomAssertions.assertEquals(metrics, fixture.metrics().snapshot(), "Source read changed metrics.");
+		PhantomAssertions.assertTrue(scheduler.signalSources(999).isEmpty(), "Unknown profile must have no sources.");
+		boolean immutable = false;
+		try { sources.clear(); }
+		catch (UnsupportedOperationException expected) { immutable = true; }
+		PhantomAssertions.assertTrue(immutable, "Source list must be immutable.");
+		fixture.clock().advanceMillis(25);
+		scheduler.submitSignal(1, signal("combat", 3, PhantomActivityState.ACTIVE, 300));
+		final var replaced = scheduler.signalSources(1).get(0);
+		PhantomAssertions.assertEquals(3L, replaced.sequence(), "Replacement sequence was not captured.");
+		PhantomAssertions.assertEquals(325_000_000L, replaced.expiresAtNanos(), "Replacement expiry was not captured.");
+		PhantomAssertions.assertEquals(100L, sources.get(0).remainingTtlMillis(), "Old snapshot changed after replacement.");
+		scheduler.withdrawSignal(1, "combat", 4);
+		PhantomAssertions.assertEquals(1, scheduler.signalSources(1).size(), "Withdrawn source must be omitted.");
+		PhantomAssertions.assertEquals("human.local", scheduler.signalSources(1).get(0).sourceKey(), "Wrong remaining source owner.");
+		stop(scheduler);
+	}
+
+	private void testOverdueSourceView()
+	{
+		final Fixture fixture = fixture(1, 1);
+		final PhantomScheduler scheduler = fixture.scheduler();
+		scheduler.register(1);
+		scheduler.submitSignal(1, signal("combat", 1, PhantomActivityState.ACTIVE, 100));
+		scheduler.pulse();
+		fixture.clock().advanceMillis(101);
+		final var before = scheduler.find(1).orElseThrow();
+		final var sources = scheduler.signalSources(1);
+		PhantomAssertions.assertEquals(1, sources.size(), "Overdue unpulsed source must remain visible.");
+		PhantomAssertions.assertTrue(sources.get(0).expiredAtRead(), "Overdue source must be identified.");
+		PhantomAssertions.assertEquals(-1L, sources.get(0).remainingTtlMillis(), "Signed overdue time must be preserved.");
+		PhantomAssertions.assertEquals(101_000_000L, sources.get(0).sampleNanos(), "Snapshot must use scheduler clock.");
+		PhantomAssertions.assertEquals(before, scheduler.find(1).orElseThrow(), "Read must not expire source or demote ACTIVE.");
+		scheduler.pulse();
+		PhantomAssertions.assertTrue(scheduler.signalSources(1).isEmpty(), "Ordinary pulse must expire the source.");
+		stop(scheduler);
 	}
 
 	private void testLocalPromotionUnderBlockedPulse() throws InterruptedException
