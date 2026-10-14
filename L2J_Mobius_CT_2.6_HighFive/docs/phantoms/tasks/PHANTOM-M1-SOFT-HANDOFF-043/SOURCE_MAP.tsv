@@ -1,0 +1,32 @@
+path	permission	exact_relevance
+java/org/l2jmobius/gameserver/phantoms/activity/PhantomMaterializationRetentionPolicy.java	CONDITIONAL_M1_WRITE	Native activeAction/hard reasons; do not dematerialize while actual incoming/earned combat
+java/org/l2jmobius/gameserver/phantoms/background/PhantomVisibleAutoPlay.java	CONDITIONAL_M1_WRITE	Policy.acquireTick/permitsNewRoots/earned settlement; no abort earned callbacks
+java/org/l2jmobius/gameserver/phantoms/PhantomSystem.java	CONDITIONAL_M1_WRITE	retentionFacts/nativeContextDemand/locality supplier only with proven causal defect
+java/org/l2jmobius/gameserver/phantoms/topology/PhantomHumanLocalityControl.java	CONDITIONAL_M1_WRITE	Current physicalDemand and actual human locality, no radius changes
+java/org/l2jmobius/gameserver/phantoms/player/PhantomMaterializationService.java	CONDITIONAL_M1_WRITE	Single native owner and legal cleanup/reentry after native settled
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundService.java	CONDITIONAL_M1_WRITE	Existing productive background lifecycle/recovery same profile
+java/org/l2jmobius/gameserver/phantoms/background/PhantomHistoricalBackgroundPlanner.java	CONDITIONAL_M1_WRITE	Only demonstrated eligibility/goal cause, never actor ID hack
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundService.java	READ_FIRST_CONDITIONAL	Existing owning background producer/cas, no new WAL/protocol
+java/org/l2jmobius/gameserver/phantoms/background/PhantomBackgroundTransaction.java	PROTECTED_READ_ONLY	039 commit truth, preserve rollback/unknown
+java/org/l2jmobius/gameserver/phantoms/profile/PhantomProfileRepository.java	PROTECTED_READ_ONLY	041 owning-goal after-commit witness
+java/org/l2jmobius/gameserver/phantoms/player/PhantomNativeWorkScope.java	PROTECTED_READ_ONLY	036 earned tickets/drain, no cancelling work
+java/org/l2jmobius/gameserver/model/actor/Player.java	PROTECTED_READ_ONLY	No Zariche/cursed weapon changes
+java/org/l2jmobius/gameserver/ai/PlayerAI.java	PROTECTED_READ_ONLY	Stock native AI; no forced reset/second engine
+java/org/l2jmobius/gameserver/ai/PlayableAI.java	PROTECTED_READ_ONLY	Zariche deferred, no general cast change
+java/org/l2jmobius/gameserver/geoengine/**	PROTECTED_READ_ONLY	Stock nav/GeoEngine unchanged
+java/org/l2jmobius/gameserver/localplay/LocalPlayPilotService.java	OBSERVATION_ONLY	Existing observer focus, no REAL interventions
+java/org/l2jmobius/gameserver/localplay/LocalPlaySyntheticHumanService.java	PROTECTED_READ_ONLY	TTL525 original; no renewal bypass
+build.xml	TEST_REGISTRATION_ONLY	Use real Ant targets, no build redesign
+test/java/org/l2jmobius/tests/phantoms/PhantomSoftReturn028Suite.java	RELATED_FOCUSED_TESTS	Existing return/soft gate negatives retained
+test/java/org/l2jmobius/tests/phantoms/PhantomLifecycleCompletion027Suite.java	RELATED_FOCUSED_TESTS	Stock native lifecycle rules retained
+test/java/org/l2jmobius/tests/phantoms/PhantomM1Handoff043Suite.java	CREATE_OPTIONAL	Focused causal fixture only when needed
+other test/java/org/l2jmobius/tests/phantoms/**	CONDITIONAL_RELATED_TESTS	Actual owner tests, append only; preserve original assertions
+docs/phantoms/tasks/PHANTOM-M1-LIVING-CONTINUITY-028/proposals/continuity028.py	PROTECTED_READ_ONLY	CONTINUITY_V2 byte-exact
+docs/phantoms/tasks/PHANTOM-M1-SOFT-HANDOFF-043/**	WRITE_043_FAMILY	Inputs and bounded reports only, no private secrets/raw
+.phantom-local/ops043/**	PRIVATE_OWN043	Exact normal runners/counters/cuts, no fault or client route
+.phantom-local/contract043a/**	NEW_OWN_NORMAL	Only own fresh043a DB/schema/runtime/ports, normal graceful lifecycle
+.phantom-local/contract043b/**	CREATE_IF_NEEDED	Only if semantic change forces second independent G2 group; fresh exact own schema
+.phantom-local/contract040a/**	PROTECTED_NO_WRITE	Current user live server never stop/restart/update
+.phantom-local/contract041*/** and .phantom-local/contract042*/**	PROTECTED_READ_ONLY	Old own raw/schema/JAR/crash incidents stay immutable
+C:/Users/ZBook/PhantomWorld/M1-041/**	PROTECTED_READ_ONLY	Final standalone delivery remains intact
+MAIN/PLAY/other chronicles/original client/shared MariaDB SERVICE/foreign schemas	PROTECTED_NO_WRITE	Do not stop/reconfigure service or write outside own043 schema

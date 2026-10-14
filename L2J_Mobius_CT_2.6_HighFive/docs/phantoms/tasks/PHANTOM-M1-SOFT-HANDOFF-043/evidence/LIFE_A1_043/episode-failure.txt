@@ -1,0 +1,9 @@
+﻿LIFE043_SAFE_BOUNDARY_INPUT_ABSENT: preselected caster retained; no MOVE or replacement.
+At C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops043\Observe032.p
+s1:389 char:66
++ ... nds -gt 45){throw 'LIFE043_SAFE_BOUNDARY_INPUT_ABSENT: preselected ca ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (LIFE043_SAFE_BO...or replacement.:String) [], RuntimeException
+    + FullyQualifiedErrorId : LIFE043_SAFE_BOUNDARY_INPUT_ABSENT: preselected caster retained; no MOVE or replacement.
+ 
+

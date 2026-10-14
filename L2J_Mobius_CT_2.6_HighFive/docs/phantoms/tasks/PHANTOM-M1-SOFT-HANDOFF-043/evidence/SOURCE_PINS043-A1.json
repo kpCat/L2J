@@ -1,0 +1,209 @@
+{
+  "contract": "TASK043_PROSPECTIVE_INPUT_FREEZE",
+  "utc": "2026-10-13T23:22:57.642161+00:00",
+  "normalOnly": true,
+  "positiveAttempt": 1,
+  "profileReplacementAllowed": false,
+  "pins": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\All-Birth-Cut043.ps1",
+      "sha256": "5b41268e2745c6186d6ae2fd2f4777181a7f6333e60a0090279b05d383dcf73c",
+      "bytes": 2002
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\Build-StockShutdown043.ps1",
+      "sha256": "9ad609fd3f3837d2981bd31fc48b848f3ef36db5b5afb71361e4d0dd2673fa15",
+      "bytes": 1299
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\Contract032Observer.java",
+      "sha256": "ecf190863e9efd1206676d1daec2b031490da74ce3d618250a011de071981554",
+      "bytes": 118592
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\Control032.ps1",
+      "sha256": "08891e72b8121f3a757d6c955d134ace67f55005fb64e4962a592152640be941",
+      "bytes": 32010
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\Invoke-Git043.ps1",
+      "sha256": "ac0a7d7e1ef9c22fb6e672865676c71e12672745d28b742bcf04cf1b1e279fe2",
+      "bytes": 953
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\Observe032.ps1",
+      "sha256": "0636df663e5073f53bd760920eface9edfe155073c53c49d9a971132a6a0b32b",
+      "bytes": 54415
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\Prepare032.ps1",
+      "sha256": "9e1240b19571d438c5f9c6c0feea60b207866f28bb298dddd22b9f5a089ed1d6",
+      "bytes": 12179
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\Read-SharedJson032.ps1",
+      "sha256": "bf4c09ffbdf53f2bb0f560bfab78d0e18e25ae0b63f1cb56352e7d67d70e6cb2",
+      "bytes": 535
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\ReadDryPath043.java",
+      "sha256": "2d31fab3514681471c139e1f34471f38715d5ac7c7dd500f8a30d38f72527a8f",
+      "bytes": 3800
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\ReadDryRoute032.java",
+      "sha256": "1f366c120f4213efb1a0c01ec920793e5ba1a3a449c27da8dea8074fff0425b6",
+      "bytes": 15731
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\RequestShutdown.java",
+      "sha256": "f6d4d7cebe8a96940a734ca04c5161f34417707cc1feacba91d6c9409a00b473",
+      "bytes": 1134
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\RuntimeShutdownAgent.java",
+      "sha256": "03cd3f858a424b76dd20d3d721b13c6402c5100ab53dffee3562c716634e99c7",
+      "bytes": 1793
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\Select-Primary043.ps1",
+      "sha256": "e8f9ed2e39137ed92d6f02a814f2b80a57783ef65379add094713c238399350e",
+      "bytes": 1248
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\SplitSql039.py",
+      "sha256": "59f6152fcaa525ca6b4116cbda065d83a097a6041d98f0383047f02a1cf520d2",
+      "bytes": 1022
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\Stop-ExactOwnedGracefully.ps1",
+      "sha256": "3821a8a38328f68d39d1095cdf1cd0baff21ab3a12440ca31971bbe25b16018c",
+      "bytes": 3719
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\ACCEPTANCE.md",
+      "sha256": "a37528a07e532e7f495f91d0368f345740ea4c7b464f32f2d56a4af5455c30c6",
+      "bytes": 4133
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Bootstrap043.py",
+      "sha256": "f442aee9abee7afdb48a427a6a35d8ae3c6f8bb35ae9e603844e391f08e16253",
+      "bytes": 2737
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Check-G2Reuse043.py",
+      "sha256": "b5ccb514788035cf8a25359a627f66a505a6114e0a05f6276b32d3a5347c6f59",
+      "bytes": 2393
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Check-LaneGuards043.ps1",
+      "sha256": "b94bcf3f73afbeadd84f9d19fbce7c43223a2a5ff0f5eeb5a448b720a3323b34",
+      "bytes": 2093
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Check-NormalGuard043.ps1",
+      "sha256": "8fcb72c465d8ef9275f5ba2eafc69e098a16d4245292b7ca986edf758a76176f",
+      "bytes": 1052
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Check-Preflight043.ps1",
+      "sha256": "ceb1746de8268f6597691b01a590b4fd4ef9f59f328ab735d69f862f08e7008f",
+      "bytes": 2746
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Check-Syntax043.ps1",
+      "sha256": "31561178d61113cf083830e0a3c483c8cc43035a962934315e08bbdb62a0109a",
+      "bytes": 576
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\CHECKPOINT043.md",
+      "sha256": "7d2315b7777a9bb5631218e4fc895e8828552ba32d93996f255cfebdb444b33a",
+      "bytes": 2445
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\CONTEXT.md",
+      "sha256": "53c938eceb0fa16be5a7967118dfbbbee25e19a8029736b3654ee23dba23b594",
+      "bytes": 5013
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\DESIGN.md",
+      "sha256": "42ff2d437c0acabdebc13fc5879205bdf42588744c7614cd130abdbe964f874f",
+      "bytes": 6216
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Freeze-Run043.py",
+      "sha256": "82222d22b2e515a00ab54631b2f600007181286c3e20142a85712d5c06993bd4",
+      "bytes": 1488
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\GOAL.md",
+      "sha256": "f95342d516775efe2452ef5fbc5c9972e5caa70fd2726d41f14e2c1b18023a0c",
+      "bytes": 5382
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\HANDOFF.md",
+      "sha256": "ea114bd13bc27a9f8768acb882ba464d9f8a668a45f36fae5f0427c838895b74",
+      "bytes": 3251
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Inspect-B2043.py",
+      "sha256": "b81b67b56cda85c40f6c56995ca0eddd6e1623d7489deeec7f04937e05bb12b4",
+      "bytes": 4353
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\PLAN.md",
+      "sha256": "48a1899bd129513a6445d5097aaf7433cf35414838dc8b75532927c91698976d",
+      "bytes": 4391
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\PRECONDITIONS043.md",
+      "sha256": "7c65827fc29d3a8a868dc253d6b70ea07edf36cf020521ecd1b490f7be2ea44a",
+      "bytes": 2703
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Read-Frame043.ps1",
+      "sha256": "7708c528f66ff233af47fcd577c4812cc9f3d29b16891b815229484d93689952",
+      "bytes": 910
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Run-Dry043.ps1",
+      "sha256": "ac5b2038ab766a7485fd50c7cefa6f904595dd2fb14019ec1358e3ed5c9ff549",
+      "bytes": 348
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Run-Life043.ps1",
+      "sha256": "bfc414416a836ab8e3652df09e0e2ba35eb0efd5294f6955f517f58dc2afea1f",
+      "bytes": 2487
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\SOURCE_MAP.tsv",
+      "sha256": "d8d839d4680cec275c0722121b89fa06ce5d80e0b87a2275bd7427007ffa89b3",
+      "bytes": 4245
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\TASK.md",
+      "sha256": "e42f1e3d20dde52ec59c7a55970495280257bfbc688306940eb6b7f71e979cc4",
+      "bytes": 7296
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Verify043.ps1",
+      "sha256": "fd4a34db50d772ae79062d558de748969245f1a9c55f2ff9c4c003b8dd4c66ff",
+      "bytes": 10992
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\test\\java\\org\\l2jmobius\\tests\\phantoms\\PhantomHeadlessPlayerTestEnvironment.java",
+      "sha256": "b84f2bac065d921c23b6c8d305ddd862e6d4087f71a335a49f871da40ad6d406",
+      "bytes": 36898
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract043a\\runtime\\libs\\GameServer.jar",
+      "sha256": "5c4ae8bfff0568ad2fd204f6c3be79268d03c55ed95862c5b24619ad3719e98c",
+      "bytes": 9926883
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract043a\\runtime\\libs\\LoginServer.jar",
+      "sha256": "9422797c0bb7f28136fabd885e5e85f7f7bb78a057096d1bba742e578e855cb8",
+      "bytes": 314691
+    }
+  ]
+}

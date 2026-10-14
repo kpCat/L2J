@@ -1,0 +1,10 @@
+﻿{
+    "suite":  "position",
+    "focus":  "owned-store",
+    "developmentBinFirst":  false,
+    "database":  "l2jmobiush5_phantom_test_043a",
+    "label":  "CURRENT93_043_09",
+    "utc":  "2026-10-13T23:15:34.0753593Z",
+    "jarSha256":  "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+    "jar":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\build\\jar-input\\5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C\\GameServer.jar"
+}

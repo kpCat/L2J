@@ -1,0 +1,7 @@
+﻿{
+    "case":  "WrongManifest",
+    "expectedFailure":  "Exact owned TASK026 manifest required.",
+    "processExit":  1,
+    "pass":  true,
+    "beforeDatabaseInit":  true
+}

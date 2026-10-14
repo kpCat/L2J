@@ -1,0 +1,9 @@
+﻿SOFT_RETIRE_BOUND: preselected actors remain in World after native action/grace.
+At C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops043\Observe032.p
+s1:419 char:52
++ ... ds -gt 120){throw 'SOFT_RETIRE_BOUND: preselected actors remain in Wo ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (SOFT_RETIRE_BOU...e action/grace.:String) [], RuntimeException
+    + FullyQualifiedErrorId : SOFT_RETIRE_BOUND: preselected actors remain in World after native action/grace.
+ 
+

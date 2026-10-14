@@ -1,0 +1,15 @@
+# ACCEPTANCE043 — один полный G4, без ложного закрытия М1
+
+| Gate | PASS только при | FAIL / NOT_VERIFIED |
+|---|---|---|
+| P0 OWNERSHIP | Exact HEAD/remote/input, собственный043 root/schema/ports и protected040a/041/042 read-only. Отрицательные guards до новых запусков | Чужие changes/process/DB ownership ambiguous: STOP safety, другие разрешённые read-only действия возможны |
+| P1 CAUSAL CLASSIFICATION | B2 profile367 последовательно разделён на `NEW_NATIVE_ROOT / EARNED_IN_FLIGHT / INCOMING_COMBAT_HARD_HOLD / STALE_HOLD_AFTER_SETTLEMENT / BACKGROUND_INELIGIBLE / EVIDENCE_GAP`; timestamps подтверждены фактами, вывод с явными UNKNOWN | Ретроспективно объявлять законный incoming combat «виновным продуктом» нельзя |
+| P2 NATIVE SETTLEMENT | При уходе новые attacking roots не открываются после истечения разрешённого locality, captured earned work завершается в native owner; hard hold сохраняется при действительных incoming hits, снимается законно после завершения боя; causal regression при product change | Force demat/kill/clock/threshold/HP/AI patches или чужой writer = FAIL |
+| P3 G4 FULL LIFE | **Один тот же заранее enrolled profile:** positive useful native → authentic soft release (нет active native owner) → actual fully committed store → productive background operation при реальном прошедшем времени → legal reentry того же profile + useful native damage/cycles; real loss при death + законный recovery, no duplicate rewards | Один BACKGROUND флаг, sleep90, другой actor, planned/simulated producer, незавершённый comeback = NOT_VERIFIED/FAIL |
+| P4 CONSERVATION043 | В собственном final043 normal stopped episode **все** births/terminals, native fields/items/skills/context/goal/PNC, actual linked commits, global COMPLETE/retained0 ДО pools stop, closed RUN_END/dropped0, readonly stopped SQL | Historical042 A1/A2 не переписывать, новый P4 PASS не переносить на общий M1 G3; любой gap собственного финального run = NOT_VERIFIED |
+| P5 REGRESS/G2 | Current JAR/affected focused tests и93/93/lifecycle11/11; protected035–042 retained. Если **нет semantic source changes**, reuse verified A5/C24 G2 по exact SHA. Если есть — две fresh natural группы на одном новом final candidate, исходный evaluator/threshold unchanged | Нельзя объявлять PASS старой G2 на изменённом семантически продукте |
+| P6 DELIVERY | Scoped self-review diff, committed source if modified, exact-path ordinary commit + nonforce push, HEAD=remote; compact ZIP CRC/SHA; own043 JVM0, protected environments untouched | Не закрывать М1 по одному G4 |
+
+**Только P0–P6 PASS дают TASK043=PASS и M1_G4=PASS.** Прочие M1 G1/G3/G5/G6/G7/G8/R1/REAL_FINAL остаются открыты по своим контрактам и не запускаются тут. М1=CLOSED/READY_FOR_M2 запрещено. Отдельный старый `SOFT_RETIRE_BOUND120` сохраняется — не увеличивать/переписывать для positive.
+
+Исторический B2 сохраняет FAIL навсегда. Если не удалось получить позитивный outcome в существующих legal предикатах: `TASK043=PARTIAL_VERIFIED`, P3=FAIL/NOT_VERIFIED, точная причина, следующий адресный owner. Нельзя выбирать новую группу по уже известному результату или расширять task без пользователя.

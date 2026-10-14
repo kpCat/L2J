@@ -1,0 +1,15 @@
+﻿{
+    "positiveProfileReplacementAllowed":  false,
+    "sourceSha":  "9a378d0e8984b3673b41538a9f5f9c9823507317",
+    "normalOnly":  true,
+    "episode":  "a",
+    "preconditionsSha256":  "060C852C92438FF7762CEEEF17EDBF21F7E2AB689BF1B0911FA16C2830BB4DD7",
+    "utc":  "2026-10-14T00:25:48.7115963Z",
+    "lifeNpcId":  0,
+    "contract":  "LIFE043_PROSPECTIVE_NATIVE_CASTER",
+    "attempt":  2,
+    "label":  "LIFE_D1_043",
+    "fixedProfileId":  0,
+    "initialPreparationSeconds":  90,
+    "pathSha256":  "31321B87F9E576F38CB0E38A0895E70DC2F037FB89E84D3C45C664CBEC8BF99B"
+}

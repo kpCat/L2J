@@ -1,0 +1,16 @@
+{
+  "existingFocusedTests": 26,
+  "passed": 26,
+  "failed": 0,
+  "log": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\CHAIN_NEGATIVES043.log",
+    "sha256": "966ed0541506e69c3e13fe417d34908682cc15e5ce7ff25fe33c162e248cefd2",
+    "bytes": 2708
+  },
+  "originalSummary": [
+    "Ran 26 tests in 0.121s",
+    "",
+    "OK"
+  ],
+  "newTestsCreated": false
+}

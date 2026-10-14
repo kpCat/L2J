@@ -1,0 +1,10 @@
+{
+  "zip": "TASK043-review.zip",
+  "sha256": "37ffcb0d9a2acef23b3f5e51799c38a5f811bffeee8730ab1f70e7959e34e69f",
+  "bytes": 279971,
+  "members": 135,
+  "CRC": "PASS",
+  "memberSHA256": "PASS",
+  "duplicateAndTraversal": "PASS",
+  "maxBytes": 2000000
+}

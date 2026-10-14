@@ -1,0 +1,57 @@
+{
+  "G2": "PASS_REUSED_EXACT_CANDIDATE",
+  "productEdits": false,
+  "jarSha256": "5c4ae8bfff0568ad2fd204f6c3be79268d03c55ed95862c5b24619ad3719e98c",
+  "evaluatorSha256": "15c153d30fe7f85719b1698059f4e28c9c7fa325caa420a02de7ac19cff35112",
+  "sourcePins": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-NATIVE-LIFE-042\\evidence\\GROUPS042.json",
+      "sha256": "0b04e7469e24268e62479836df990143c5741d55c06753bfcacde3bfcfe1eda6"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-NATIVE-LIFE-042\\evidence\\C24_REUSE042.json",
+      "sha256": "8a2e66cdbc8bab65fba5f1a903769605706ce0fe56498b927702eae293f897f2"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-NATIVE-LIFE-042\\evidence\\A5_NATIVE_WORLD_INPUT_GROUP_A_042\\continuity-v2.json",
+      "sha256": "4afec7938ff0c7b8192a6a56832f12301d3f570cdccecf85bdf25aa6649190fd"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-FINAL-CLOSURE-041\\evidence\\C24_GROUP_B_041\\continuity-v2.json",
+      "sha256": "89107c41d8c2cfc751c30b03dac7384da4983758f820863a1b49be3727c5fee2"
+    }
+  ],
+  "commands": [
+    [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "diff",
+      "--name-only",
+      "92400bebb9126ec4364ac57b05f8c453fe42690d",
+      "9a378d0e8984b3673b41538a9f5f9c9823507317",
+      "--",
+      "L2J_Mobius_CT_2.6_HighFive/java",
+      "L2J_Mobius_CT_2.6_HighFive/dist/game/config",
+      "L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms"
+    ],
+    [
+      "git",
+      "-C",
+      "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius",
+      "diff",
+      "--name-only",
+      "9a378d0e8984b3673b41538a9f5f9c9823507317",
+      "--",
+      "L2J_Mobius_CT_2.6_HighFive/java",
+      "L2J_Mobius_CT_2.6_HighFive/dist/game/config",
+      "L2J_Mobius_CT_2.6_HighFive/dist/game/data/phantoms"
+    ]
+  ],
+  "semanticDiffEmpty": true,
+  "currentProductDiffEmpty": true,
+  "historicalA5": "8/8 PASS 382.3743138s",
+  "independentC24": "8/8 PASS 381.6816272s",
+  "historicalFailuresRetained": true,
+  "rerunRequiredOnlyForSemanticChange": true
+}

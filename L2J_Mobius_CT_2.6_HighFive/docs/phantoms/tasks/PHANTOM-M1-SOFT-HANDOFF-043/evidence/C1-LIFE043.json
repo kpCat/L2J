@@ -1,0 +1,67 @@
+{
+  "contract": "TASK043_ACTUAL_FULL_LIFE",
+  "G4": "FAIL",
+  "profileId": "776",
+  "objectId": "268491397",
+  "originEpoch": "664878110173300",
+  "facts": {
+    "nativeUseful": true,
+    "predepartureFrozen": true,
+    "legalSoftRelease": true,
+    "fullOwningSave": true,
+    "nativeAbsentDuringBackground": true,
+    "realBackgroundInterval": true,
+    "actualProductiveCommittedProducer": false,
+    "sameProfileUsefulReturn": false,
+    "noRepeatedPositiveOperation": true
+  },
+  "nativeEarnedDelta": {
+    "nativeFarmCycleSequence": 1,
+    "nativeRewardSequence": 1,
+    "nativeDamageSequence": 1,
+    "nativeExpGained": 87,
+    "nativeSpGained": 10
+  },
+  "phases": {
+    "DEPART": 664960226187900,
+    "AWAY_ARRIVED": 665019453963700,
+    "BACKGROUND_ABSENT": 665059409662600,
+    "RETURN": 665136639517600,
+    "RETURNED": 665195398609400,
+    "POST_RETURN_DONE": 665305981541300
+  },
+  "backgroundElapsedSeconds": 77.229855,
+  "actualProductiveReceipts": [],
+  "usefulReturnSamples": [],
+  "repeatedPositiveOperations": [],
+  "terminalPins": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\d9887d15dc29a07dc3e5da2b1c8da69fec690929b6f0824638d87c5645dfb330\\776-664878110173300-terminal.properties",
+      "sha256": "621b1e5adc5becfa684663a8c4b390e05146ef32550c16edd9e6a704c2570627"
+    }
+  ],
+  "negativeNoActualProducer": true,
+  "negativeNoUsefulSameProfileReturn": true,
+  "conservation": {
+    "path": ".phantom-local\\ops043\\C1_CONSERVATION043.json",
+    "sha256": "def32dbffc330bfcfad5b98296eba496a0cb2d9a8c3e67d742868cb4915cfc61"
+  },
+  "rawFrames": {
+    "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\LIFE_C1_043\\full-native\\full-cohort-samples.jsonl",
+    "sha256": "cdd106fa2986c58408bf2b2538871484978cfadb8289234b52b56e71dd14b73e"
+  },
+  "producerCounts": {
+    "markMaterialized": 5,
+    "prepareOwnedStore": 5,
+    "finalizeOwnedStore": 5,
+    "execute": 880,
+    "reconcileVerifyPending": 880
+  },
+  "command": [
+    "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+    "-cp",
+    "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract043a\\runtime\\libs\\GameServer.jar;C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract043a\\runtime\\libs\\*",
+    "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Decode-LifeReceipts043.java",
+    "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\C1-LIFE-receipts.txt"
+  ]
+}

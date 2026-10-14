@@ -1,0 +1,2700 @@
+{
+  "contract": "TASK043_A2_189_ACTUAL_BACKGROUND",
+  "profileId": 189,
+  "G4": "NOT_VERIFIED_NO_SOFT_AWAY_MEASUREMENT",
+  "recordCount": 134,
+  "records": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\2da12801a94cf2c112a9d50a121da9a0266034a6e1144c4d5ccb9a96cd940060\\commit039-66-0-189.properties",
+      "sha256": "f5f18efbd44a8878b59b5bd446b20ac3bdd38d9d4894e8db294efbb62430be3d",
+      "producer": "markMaterialized",
+      "component": "background.state",
+      "commitNanos": "662790509094300",
+      "beforeVersion": "22171",
+      "afterVersion": "22172",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "db92971261616b413bc893e748261b14c1ca70a5376a21e4ea71b508e5ac9ab6",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\2da12801a94cf2c112a9d50a121da9a0266034a6e1144c4d5ccb9a96cd940060\\commit039-67-0-189.properties",
+      "sha256": "4a948f221165fdb9296a19b7d83c5dc7af3dc20fa60821ee980fc1c92aab82a5",
+      "producer": "prepareOwnedStore",
+      "component": "background.state",
+      "commitNanos": "662790520140200",
+      "beforeVersion": "22172",
+      "afterVersion": "22173",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "db92971261616b413bc893e748261b14c1ca70a5376a21e4ea71b508e5ac9ab6",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\2da12801a94cf2c112a9d50a121da9a0266034a6e1144c4d5ccb9a96cd940060\\commit039-68-0-189.properties",
+      "sha256": "8d1b8af00e04d25951fd8042a389ccdb0562290cde1dbbe01ee3d59467e7791d",
+      "producer": "finalizeOwnedStore",
+      "component": "background.state",
+      "commitNanos": "662790525094900",
+      "beforeVersion": "22173",
+      "afterVersion": "22174",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "db92971261616b413bc893e748261b14c1ca70a5376a21e4ea71b508e5ac9ab6",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\2da12801a94cf2c112a9d50a121da9a0266034a6e1144c4d5ccb9a96cd940060\\commit039-69-0-189.properties",
+      "sha256": "2dfba2ae2ea7acac94594e3f330562a9df002bc1571de50e9bafe281a2fd937a",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662790541297700",
+      "beforeVersion": "22174",
+      "afterVersion": "22175",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "15e205a8f671926bf361ae08b3e866192f10619ac5595f71a0f99c8728f2dd4b",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\2da12801a94cf2c112a9d50a121da9a0266034a6e1144c4d5ccb9a96cd940060\\commit039-71-0-189.properties",
+      "sha256": "439851b0a6a253706e6ec619272410f33edcb93f997e7b327711c356c0a46059",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662790544369000",
+      "beforeVersion": "22175",
+      "afterVersion": "22176",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "15e205a8f671926bf361ae08b3e866192f10619ac5595f71a0f99c8728f2dd4b",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\2da12801a94cf2c112a9d50a121da9a0266034a6e1144c4d5ccb9a96cd940060\\commit039-72-0-189.properties",
+      "sha256": "c20370ed36730b41b743f50ce684a82d0e5363590168d931ddbc965a51e43931",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662790556039900",
+      "beforeVersion": "22176",
+      "afterVersion": "22177",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "e780113917449a17235364529e5e6c7fdf5940dac90a7d9d5a58924b0a7131da",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\2da12801a94cf2c112a9d50a121da9a0266034a6e1144c4d5ccb9a96cd940060\\commit039-73-0-189.properties",
+      "sha256": "215fa4c5b49eea507b1f5cf033cf9bed6193b10cee513e74d1a446a010624d74",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662790558874400",
+      "beforeVersion": "22177",
+      "afterVersion": "22178",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "e780113917449a17235364529e5e6c7fdf5940dac90a7d9d5a58924b0a7131da",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a77e562e10c3ad953e16992239e5af3a38bac37e101e32f84ad9516cd507e652\\commit039-74-0-189.properties",
+      "sha256": "b3f7b140b493979c314907c8c30c4ea9a5ca60aa7a35c76942f845e0feb312ef",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662790570297000",
+      "beforeVersion": "22178",
+      "afterVersion": "22179",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "c22ae2134f3c454d84d1872d5e2d61a75a976bc71b0aad05c9328a88f865f4d5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a77e562e10c3ad953e16992239e5af3a38bac37e101e32f84ad9516cd507e652\\commit039-75-0-189.properties",
+      "sha256": "41e1523b3ac008ced534932c8db03bbc48a11f3a7cac68a8e53fc807a76b7820",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662790573913100",
+      "beforeVersion": "22179",
+      "afterVersion": "22180",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "c22ae2134f3c454d84d1872d5e2d61a75a976bc71b0aad05c9328a88f865f4d5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a77e562e10c3ad953e16992239e5af3a38bac37e101e32f84ad9516cd507e652\\commit039-76-0-189.properties",
+      "sha256": "f9554ec59fb015db40714417925336dbd48971c605154af27f88c725cea6c0bd",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662790585506200",
+      "beforeVersion": "22180",
+      "afterVersion": "22181",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "554341a6981646071a28f62a47c6bd09ab0a6fa407b1c145e9d2078ea2b20c31",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a77e562e10c3ad953e16992239e5af3a38bac37e101e32f84ad9516cd507e652\\commit039-77-0-189.properties",
+      "sha256": "db28d4f52ecad3e1b0047588088abb72fd36231dd6232103b3ce85f252eec063",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662790589350400",
+      "beforeVersion": "22181",
+      "afterVersion": "22182",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "554341a6981646071a28f62a47c6bd09ab0a6fa407b1c145e9d2078ea2b20c31",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a77e562e10c3ad953e16992239e5af3a38bac37e101e32f84ad9516cd507e652\\commit039-78-0-189.properties",
+      "sha256": "ca939d94a9bcbb005e3b1ca2c8334e22704fe132d6b3c1b681bf58ce015584ac",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662790602227600",
+      "beforeVersion": "22182",
+      "afterVersion": "22183",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "1323faa841a0b3d5d974edec95319755a16d871d5245c5f8aa907edec44a9f14",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a77e562e10c3ad953e16992239e5af3a38bac37e101e32f84ad9516cd507e652\\commit039-79-0-189.properties",
+      "sha256": "58c7615154f183eb3f6867a63fa594ef5558be232c09f6e66d25ff2cd8cdd583",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662790606814500",
+      "beforeVersion": "22183",
+      "afterVersion": "22184",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "1323faa841a0b3d5d974edec95319755a16d871d5245c5f8aa907edec44a9f14",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a77e562e10c3ad953e16992239e5af3a38bac37e101e32f84ad9516cd507e652\\commit039-80-0-189.properties",
+      "sha256": "1081ff4532dd7dc99bba51b2c738b15e0554cf48190cbb3d301536955bcb6609",
+      "producer": "refreshOrdinaryInventoryProjection",
+      "component": "background.state",
+      "commitNanos": "662790619696000",
+      "beforeVersion": "22184",
+      "afterVersion": "22185",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24053",
+          "2147",
+          "1323faa841a0b3d5d974edec95319755a16d871d5245c5f8aa907edec44a9f14",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-104-0-189.properties",
+      "sha256": "45cab8e093c9b5ba4a77acec0bba4807b92e8d1e511acc8f23d8409d4ed2b7a1",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791061561200",
+      "beforeVersion": "22185",
+      "afterVersion": "22186",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d5db03a694187bf38ea4427c55a96b3f7d967429f3d893689cfdd52bb18c873e",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-105-0-189.properties",
+      "sha256": "5e0a168bfd216d451a6b9c0608ca1dbd4f309cd17051217b55ff5b5e7d94a418",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791064218600",
+      "beforeVersion": "22186",
+      "afterVersion": "22187",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d5db03a694187bf38ea4427c55a96b3f7d967429f3d893689cfdd52bb18c873e",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-106-0-189.properties",
+      "sha256": "5aa4dedb59c67566cd7080a334e80ddecd9d6252f7034cef1d713e1bd9e56623",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791074432800",
+      "beforeVersion": "22187",
+      "afterVersion": "22188",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7b020e8a7f476920b812f5c1d4b3c1d32eddbc6dfa505fe6e329241fef93e70a",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-107-0-189.properties",
+      "sha256": "ab9315ed9e1ea39a42216df534ab296bd28428a662902578976e5ba1aacbf1c3",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791077060300",
+      "beforeVersion": "22188",
+      "afterVersion": "22189",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7b020e8a7f476920b812f5c1d4b3c1d32eddbc6dfa505fe6e329241fef93e70a",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-108-0-189.properties",
+      "sha256": "1193650c37da64f30c8c688df10fd86812b34c12b6b6cf22d7b224d89fb8fd55",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791085511200",
+      "beforeVersion": "22189",
+      "afterVersion": "22190",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d3bbb7b85ecbd98c85b0cc15e0f90b5dd4d07895cc3707c27ece50ec8c70f738",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-109-0-189.properties",
+      "sha256": "93d360317c0491d6e00f6b217b43d7b6ac99c5f5ffa966f71c6687c2962a7aaa",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791088862200",
+      "beforeVersion": "22190",
+      "afterVersion": "22191",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d3bbb7b85ecbd98c85b0cc15e0f90b5dd4d07895cc3707c27ece50ec8c70f738",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-110-0-189.properties",
+      "sha256": "7409e479cacbf6dd064f62197d13f6dd86adce9b67d37bebbe687f6e62777bd1",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791097047100",
+      "beforeVersion": "22191",
+      "afterVersion": "22192",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "17e3bc0132524f5e51c327e1b5e67e5add223257ee02c7d7768d1b4dce2ec9d5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-111-0-189.properties",
+      "sha256": "f02cf29dcb8566c46ba7f99ff29c9efad40f1e565b52d8bb94b88fefe9757c7b",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791099810200",
+      "beforeVersion": "22192",
+      "afterVersion": "22193",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "17e3bc0132524f5e51c327e1b5e67e5add223257ee02c7d7768d1b4dce2ec9d5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-112-0-189.properties",
+      "sha256": "c54f6ab8f92d22e6b75f2780875175f1be9cd57a5405b01f40488d078d01a327",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791109543500",
+      "beforeVersion": "22193",
+      "afterVersion": "22194",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "c91c070899903f03dfc9096435b8e0a064035f92876685429c37f2b54245ba6a",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-113-0-189.properties",
+      "sha256": "bfcb764dfd2622a5fa40e89d5310ba5683e283545f4e9799ade48cb6ea58106e",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791112255500",
+      "beforeVersion": "22194",
+      "afterVersion": "22195",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "c91c070899903f03dfc9096435b8e0a064035f92876685429c37f2b54245ba6a",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-114-0-189.properties",
+      "sha256": "951a6b5a2b8a031745917841d238abcc377ad134a6aa6f69b7e277b190209294",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791120788900",
+      "beforeVersion": "22195",
+      "afterVersion": "22196",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "61f799285b4e8d79d3dce9dc6af4f6d9bfab20c2ee01dfe54d209d7c9233f0a1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-115-0-189.properties",
+      "sha256": "40d6f826ec42c3b8cf0756492045ce60776f226c807956e46bf7a14f3eb34a08",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791123726600",
+      "beforeVersion": "22196",
+      "afterVersion": "22197",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "61f799285b4e8d79d3dce9dc6af4f6d9bfab20c2ee01dfe54d209d7c9233f0a1",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-116-0-189.properties",
+      "sha256": "27f5ed372df6e03521ec3a798703b2bf8f1c6a9181aebfb05a0cc302e2999464",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791131825300",
+      "beforeVersion": "22197",
+      "afterVersion": "22198",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "40a63e6516823bf86606386297f266a4827ec6ed1b899dd8d7d02a8a50e2fa86",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-117-0-189.properties",
+      "sha256": "0fbc8ad296f8a4d9d382ac1c56d04ed3b16886b69e1a5d604dda19e5d4f74f9b",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791134788600",
+      "beforeVersion": "22198",
+      "afterVersion": "22199",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "40a63e6516823bf86606386297f266a4827ec6ed1b899dd8d7d02a8a50e2fa86",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-118-0-189.properties",
+      "sha256": "546b8ecee5625a7607cb64d86f042bb3564dff3f5f10077926ba7ff65483fd5a",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791143443000",
+      "beforeVersion": "22199",
+      "afterVersion": "22200",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "34d01031f18d2f6eed9e06b035882c89128f6f494b0c9203416e5c2ffa6a959d",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-119-0-189.properties",
+      "sha256": "ad582cd50dfaf96b523a5c71224ddde1f9c2ab3c698a3294faf5b666d9353dbb",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791146413800",
+      "beforeVersion": "22200",
+      "afterVersion": "22201",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "34d01031f18d2f6eed9e06b035882c89128f6f494b0c9203416e5c2ffa6a959d",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-120-0-189.properties",
+      "sha256": "5954e33343e5aca7aa9b5c8cb77d567a84c1952ba10b63b90e42ef857832643d",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791155397000",
+      "beforeVersion": "22201",
+      "afterVersion": "22202",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "a9f095db99489519c26ec3fa52d6414cf86569a1be9cf477051901007628ce07",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-121-0-189.properties",
+      "sha256": "38435d9500f3484825c63801920931a384720360dfc40ca4f5a92c798208bad7",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791158349700",
+      "beforeVersion": "22202",
+      "afterVersion": "22203",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "a9f095db99489519c26ec3fa52d6414cf86569a1be9cf477051901007628ce07",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-122-0-189.properties",
+      "sha256": "058b0165871d4ce50b4a5a63664fdc879f157e9208a446a1a830f51281013f21",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791165717500",
+      "beforeVersion": "22203",
+      "afterVersion": "22204",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "41b8671d5909ace6b5e36678271da35fa4a70b6ed6fb9e2319fee78d5dc67119",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-123-0-189.properties",
+      "sha256": "789d1bec8fe29e3905ea55096d75bb95dd8a799d896b3c1e0f4b66855f4646d3",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791168839500",
+      "beforeVersion": "22204",
+      "afterVersion": "22205",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "41b8671d5909ace6b5e36678271da35fa4a70b6ed6fb9e2319fee78d5dc67119",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-124-0-189.properties",
+      "sha256": "a8c85cdee2ffd15942f51bfb110ab956b760bc88c18d6fce20b7ab12b6d8cabd",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791186336600",
+      "beforeVersion": "22205",
+      "afterVersion": "22206",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7b5b1a6065f6cea05425b342669ff7106cbb968a331e0a6ac7cb2679f639d252",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-125-0-189.properties",
+      "sha256": "1cc3af7a68dec2d74d7313abf209bcec8c0ba2a84c111ec9f616df96fa48c17a",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791189815600",
+      "beforeVersion": "22206",
+      "afterVersion": "22207",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7b5b1a6065f6cea05425b342669ff7106cbb968a331e0a6ac7cb2679f639d252",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-126-0-189.properties",
+      "sha256": "07773608ba0322d4cbee71fac2863346d71e71bd73a6cb5efbd53389112753dc",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662791198859900",
+      "beforeVersion": "22207",
+      "afterVersion": "22208",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "84d66dee541247680a9d2f920b8bf5f1a13922513185e6d3ef871d966066608b",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\a7234216ef17e98e7307496b4afd08681288b5210ed93620f86b9f5937cedcc0\\commit039-127-0-189.properties",
+      "sha256": "e6af49dd0e1eecc36217194060952efb452a9683134b13ddafb87930faf3720f",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662791202133300",
+      "beforeVersion": "22208",
+      "afterVersion": "22209",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "84d66dee541247680a9d2f920b8bf5f1a13922513185e6d3ef871d966066608b",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-408-0-189.properties",
+      "sha256": "d3b5d9d5d1910b5fccdf760e1c3ec6dfa319d930e4b75a2c55a3bbff5eec106b",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834150388100",
+      "beforeVersion": "22209",
+      "afterVersion": "22210",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "f0b096486ecb6a66f0f398cda3d595641b026c7c32d2fc20dc1856e3796748db",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-409-0-189.properties",
+      "sha256": "b653f3c81e6dc6164ef20e6ed37e810690da7a51664a4e2b42a7089ad7019b7e",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834152487600",
+      "beforeVersion": "22210",
+      "afterVersion": "22211",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "f0b096486ecb6a66f0f398cda3d595641b026c7c32d2fc20dc1856e3796748db",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-410-0-189.properties",
+      "sha256": "a4f819a3535a53e9571109302612b281ad7fc63ffab50a79d402036ac79c58ea",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834158396700",
+      "beforeVersion": "22211",
+      "afterVersion": "22212",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "039bca33c56dbded73f6bb09352bb72f5e64d3142f988177b28644f154500cfd",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-411-0-189.properties",
+      "sha256": "b9f32f3e4f36bd12ce24dfe62d30c6108a7b753043c88d26fc9c1dc7b49ec895",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834160252400",
+      "beforeVersion": "22212",
+      "afterVersion": "22213",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "039bca33c56dbded73f6bb09352bb72f5e64d3142f988177b28644f154500cfd",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-412-0-189.properties",
+      "sha256": "b5aa64e3815736f045fd8d7bbbc98545979272df323705f3d7d6ccf3f0c26733",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834166412700",
+      "beforeVersion": "22213",
+      "afterVersion": "22214",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d7ac902af9003c4f3ef036d556cac1d2603d4bfaba43e05ffc0f25aa710db3c5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-413-0-189.properties",
+      "sha256": "019efecbf417606f671eb1d409519ac40ac1f037aa8de024cf2ca097548aee05",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834169163200",
+      "beforeVersion": "22214",
+      "afterVersion": "22215",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d7ac902af9003c4f3ef036d556cac1d2603d4bfaba43e05ffc0f25aa710db3c5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-414-0-189.properties",
+      "sha256": "58889ce1ea3396f7de5ffd2ee3bebe6afd4006e81d535365ea42524c57a6c619",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834175899100",
+      "beforeVersion": "22215",
+      "afterVersion": "22216",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "f4257efb59294bf9ce80ab458468f5f55eb5b1553f4f0032d81d9ec5967a193d",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-415-0-189.properties",
+      "sha256": "73191ae78f5d5f516a203354d881406309dad2aa118180530d698b6ea1ca59b9",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834178165100",
+      "beforeVersion": "22216",
+      "afterVersion": "22217",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "f4257efb59294bf9ce80ab458468f5f55eb5b1553f4f0032d81d9ec5967a193d",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-416-0-189.properties",
+      "sha256": "345de038b5a26b5e826cfbb74cde8dd9798084f162ed729f786e9ab27fda4e77",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834185105600",
+      "beforeVersion": "22217",
+      "afterVersion": "22218",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "f7910300716ac304298aebb3290ac5939fac5b9312ba794ba5f0a083d614b77e",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-417-0-189.properties",
+      "sha256": "2da1a17af8baff067f89f835f4aeb7be64cff47c42fe6df498a2b9783c631ab3",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834187269000",
+      "beforeVersion": "22218",
+      "afterVersion": "22219",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "f7910300716ac304298aebb3290ac5939fac5b9312ba794ba5f0a083d614b77e",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-418-0-189.properties",
+      "sha256": "fd890aba3a45514eb1299deaf39eac02a20c3d8179bddd2285784098db027a5e",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834194165100",
+      "beforeVersion": "22219",
+      "afterVersion": "22220",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "b04ddc9b93476776e9d921176964f8011bdc12275c65f121d46c66278702f042",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-419-0-189.properties",
+      "sha256": "cfc1e3cc015206f5fe9debadee8bf7c6ef7086b43a466de8d086e3c482372d70",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834196360600",
+      "beforeVersion": "22220",
+      "afterVersion": "22221",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "b04ddc9b93476776e9d921176964f8011bdc12275c65f121d46c66278702f042",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-420-0-189.properties",
+      "sha256": "c0f2cade530b15459dcd6fbcc462a86853ede2cb0dbbcb243ff85af61a99dfd9",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834203093500",
+      "beforeVersion": "22221",
+      "afterVersion": "22222",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "1ee1ea705b0f9645e55dc878e1d93038a8983135ed82bf0a047a2ecee94258c0",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-421-0-189.properties",
+      "sha256": "757ba63b8aec212f42052cd65e9c3d699ba2adaff23df85b930e97984564fd0c",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834205281100",
+      "beforeVersion": "22222",
+      "afterVersion": "22223",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "1ee1ea705b0f9645e55dc878e1d93038a8983135ed82bf0a047a2ecee94258c0",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-422-0-189.properties",
+      "sha256": "084c2850653dee8de69415d7d81799f6e8760a434f6e83e490c63132c4c00494",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834211644400",
+      "beforeVersion": "22223",
+      "afterVersion": "22224",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "1ce864bd2915541a039cc8c64ef62cd11b2d3a032493d977daed17da66e85403",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-423-0-189.properties",
+      "sha256": "f43b01f5681843951f749265deefbe7e375641d8b3177fcfd8fb896a15f3ac46",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834213842500",
+      "beforeVersion": "22224",
+      "afterVersion": "22225",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "1ce864bd2915541a039cc8c64ef62cd11b2d3a032493d977daed17da66e85403",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-424-0-189.properties",
+      "sha256": "902904e61cc67c95df532c441d3ac221981ae34b1dc4482f2155fab1a9ec0b23",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834221415200",
+      "beforeVersion": "22225",
+      "afterVersion": "22226",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d86c8adbf944ba9cced79b4d54fecd3ebd87d4fe8564d7378fcee4c11580233c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-425-0-189.properties",
+      "sha256": "33b59a4cdb9fd9f2483697b774634a290294603ce0f716f7af0272311e871c87",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834223665100",
+      "beforeVersion": "22226",
+      "afterVersion": "22227",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d86c8adbf944ba9cced79b4d54fecd3ebd87d4fe8564d7378fcee4c11580233c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-426-0-189.properties",
+      "sha256": "25efe199ae5dc240a70563926b2734d43c86b1be22bb13205e6cdce9ced99a00",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834229992600",
+      "beforeVersion": "22227",
+      "afterVersion": "22228",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "e613b1f5b4bc43ecdf323faddd7dd4fae5008a1c4446376368eef34bf657e3e5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-427-0-189.properties",
+      "sha256": "02f6df489709b888fdef8e47f2d353e748027bc35c54cd37b2e56d279255da4f",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834232160800",
+      "beforeVersion": "22228",
+      "afterVersion": "22229",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "e613b1f5b4bc43ecdf323faddd7dd4fae5008a1c4446376368eef34bf657e3e5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-428-0-189.properties",
+      "sha256": "6cfde0a08ae5478deda10a92b312933038d5838e6f834fc97ab9e23a543bfc10",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834238256800",
+      "beforeVersion": "22229",
+      "afterVersion": "22230",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "f66b8e6a72e380a9f8946ebdc429ea1881ca75edadf0d96cff92f53d4146dfcc",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-429-0-189.properties",
+      "sha256": "8fac4ca6b0515ad6ab1bdd34fa8ad53df400807de4f09ee2aba0fe577f816bdc",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834240234900",
+      "beforeVersion": "22230",
+      "afterVersion": "22231",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "f66b8e6a72e380a9f8946ebdc429ea1881ca75edadf0d96cff92f53d4146dfcc",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-430-0-189.properties",
+      "sha256": "b91c89ac8fc00e4bfd60b3f5053826782c441df51b801b2c9158e8b966b95386",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834245884200",
+      "beforeVersion": "22231",
+      "afterVersion": "22232",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "0dc598cc8f913cc22e018ec44e4d6aa64982da552c66f94cf21ff897409734c0",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-431-0-189.properties",
+      "sha256": "9ea2ee223fac2f75428ca8d8b0e0811eaa770ef09bce34135fcc71085538578b",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834247808100",
+      "beforeVersion": "22232",
+      "afterVersion": "22233",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "0dc598cc8f913cc22e018ec44e4d6aa64982da552c66f94cf21ff897409734c0",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\b855f82b1d1f50fd38bb30a554e43485d9a2a1a3c0bf13c9e888fd81dfd8c0e5\\commit039-432-0-189.properties",
+      "sha256": "c5ec4b9762e0a142b26f101dda699bd41faf41ddeb13216963229e56e2a0a88d",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834254183400",
+      "beforeVersion": "22233",
+      "afterVersion": "22234",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "77f938182acfbfc1e815d974b7a290b916d85c7428539dbf7c624d616a1bc73c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\d65f8c97e7dfe65d8d31cb89795f41d3f447a7769068abbf40569c389628c70a\\commit039-433-0-189.properties",
+      "sha256": "add4d2f4d227c8826cc0524f0efce745256269f306560fa4d4070c463b676d7d",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834256258500",
+      "beforeVersion": "22234",
+      "afterVersion": "22235",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "77f938182acfbfc1e815d974b7a290b916d85c7428539dbf7c624d616a1bc73c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\d65f8c97e7dfe65d8d31cb89795f41d3f447a7769068abbf40569c389628c70a\\commit039-434-0-189.properties",
+      "sha256": "9ed0c5ea95fad853cc51c0f23d59d1a1907ff818f98460c54bcfea7efc828f51",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834268246700",
+      "beforeVersion": "22235",
+      "afterVersion": "22236",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "11ce9b34680696b71312468a99955904e3c0faaa58a3bf71e308df5905b74897",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\d65f8c97e7dfe65d8d31cb89795f41d3f447a7769068abbf40569c389628c70a\\commit039-435-0-189.properties",
+      "sha256": "86710cf38abd437408a81076419ddb3a4c6111a68416fc43c3521e64664fef2c",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834270312800",
+      "beforeVersion": "22236",
+      "afterVersion": "22237",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "11ce9b34680696b71312468a99955904e3c0faaa58a3bf71e308df5905b74897",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\d65f8c97e7dfe65d8d31cb89795f41d3f447a7769068abbf40569c389628c70a\\commit039-436-0-189.properties",
+      "sha256": "591d30d89c66a97bf162b7fde54cac26e4f4a57eaaeaca6457fe40d5dbb31173",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834275960700",
+      "beforeVersion": "22237",
+      "afterVersion": "22238",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "8a470d66d86bf35745a19a14dc7d5fc3bc2a89c9cd7179503e8d6ec74f1cd1c6",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\d65f8c97e7dfe65d8d31cb89795f41d3f447a7769068abbf40569c389628c70a\\commit039-437-0-189.properties",
+      "sha256": "59e9601342fcbb2b2a3ae4ea2031f6ff2b627fdde3adeee97b33b4b7400c9bb7",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834277969600",
+      "beforeVersion": "22238",
+      "afterVersion": "22239",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "8a470d66d86bf35745a19a14dc7d5fc3bc2a89c9cd7179503e8d6ec74f1cd1c6",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\d65f8c97e7dfe65d8d31cb89795f41d3f447a7769068abbf40569c389628c70a\\commit039-438-0-189.properties",
+      "sha256": "d6f3f23a9de00fb5043f1d0f9e25abf08a4389c4491a6c8e8fa24114b8005c46",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662834283925800",
+      "beforeVersion": "22239",
+      "afterVersion": "22240",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "950b4aeaed7b318e6db958db3eaf76786206d339665144edc12848204bdd4512",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\d65f8c97e7dfe65d8d31cb89795f41d3f447a7769068abbf40569c389628c70a\\commit039-439-0-189.properties",
+      "sha256": "25936e49cf402b097da30c85d5dc175a33bfb2c52e337e3f33c1cd83596b52e1",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662834286469600",
+      "beforeVersion": "22240",
+      "afterVersion": "22241",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "950b4aeaed7b318e6db958db3eaf76786206d339665144edc12848204bdd4512",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-696-0-189.properties",
+      "sha256": "e767438054af57dd3df36a036cd03baa8ec8b8948ff3d5cb56f2578497fb6132",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866476683700",
+      "beforeVersion": "22241",
+      "afterVersion": "22242",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "fef4e74307fa074e2bf54ef73302c6f23519af3cc64e48ee036b428f60e2762e",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-697-0-189.properties",
+      "sha256": "6b69fd6cc5ad6682664a69dd3b1467c3663eb84dcdb20683f66c8df64bd37e5a",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866478643500",
+      "beforeVersion": "22242",
+      "afterVersion": "22243",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "fef4e74307fa074e2bf54ef73302c6f23519af3cc64e48ee036b428f60e2762e",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-698-0-189.properties",
+      "sha256": "e35a152d555f81cf6d62df383882d7cda43f4edd343fc49acf124b6c1aabf61b",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866484267800",
+      "beforeVersion": "22243",
+      "afterVersion": "22244",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "b2a7d48b73740dba8708dcdd223604a7c1429fb377ebb332fef2b9a800086a64",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-699-0-189.properties",
+      "sha256": "15f2060246065bf9bf96d3d48e3611c981e93abab37dbf7c384da0275e386729",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866486491700",
+      "beforeVersion": "22244",
+      "afterVersion": "22245",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "b2a7d48b73740dba8708dcdd223604a7c1429fb377ebb332fef2b9a800086a64",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-700-0-189.properties",
+      "sha256": "f449d3452a6a839823ea3cf8602998393aeae15b9712a4ffca2e8f78517e859d",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866493826800",
+      "beforeVersion": "22245",
+      "afterVersion": "22246",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "63559d9a23baa16c3da522ef632f6e3d199612e11e8937f8be6cf357b1251a3c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-701-0-189.properties",
+      "sha256": "d13b9a6b7fba0b3b058a1da0f672c4080670c898e078ddf5a0c18511bcfb4a7c",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866495992000",
+      "beforeVersion": "22246",
+      "afterVersion": "22247",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "63559d9a23baa16c3da522ef632f6e3d199612e11e8937f8be6cf357b1251a3c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-702-0-189.properties",
+      "sha256": "2f9d31066ca012c69c122406c5f4689dc3e165b08425b71c43405ba1c50a25de",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866502444400",
+      "beforeVersion": "22247",
+      "afterVersion": "22248",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "17f448552cc92ff7ccc732ab0ed99979394dfe3eff9a34e12b0ce6ed58612847",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-703-0-189.properties",
+      "sha256": "d36b6325213a88c53b5736a873bea308aee37bb9f5a3253d7cf1923010ee883d",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866504579600",
+      "beforeVersion": "22248",
+      "afterVersion": "22249",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "17f448552cc92ff7ccc732ab0ed99979394dfe3eff9a34e12b0ce6ed58612847",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-704-0-189.properties",
+      "sha256": "d93b3ba57bdd1ec2e76473d0f85672c26679cc59fab27fa406c738d6d8548813",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866511896900",
+      "beforeVersion": "22249",
+      "afterVersion": "22250",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7916f2523ffbefcf7a8786f7252a5418497cdaf3e7cc94e1dfe63c6e8ad9892c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-705-0-189.properties",
+      "sha256": "fb614628cbf03276dc88f5a59578813560a4da2b3fb1984bddd8722ef0381b8a",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866514058900",
+      "beforeVersion": "22250",
+      "afterVersion": "22251",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7916f2523ffbefcf7a8786f7252a5418497cdaf3e7cc94e1dfe63c6e8ad9892c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-706-0-189.properties",
+      "sha256": "345ef3b748f76ba293ee6bec245a6d61fb7f3fcf445d16bc7a6207b178673b47",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866519251500",
+      "beforeVersion": "22251",
+      "afterVersion": "22252",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "c12b39e90eb2bf8f6811fa5ed5a64aabe40d3a63c422f4fabdee9cc16358192a",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-707-0-189.properties",
+      "sha256": "da338a7f2cd0923682a1c526d804a11bd3ce52289bc62f7ad8f78bd495aafa86",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866520875700",
+      "beforeVersion": "22252",
+      "afterVersion": "22253",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "c12b39e90eb2bf8f6811fa5ed5a64aabe40d3a63c422f4fabdee9cc16358192a",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-708-0-189.properties",
+      "sha256": "c2ce436d20ddf5cac48dc5f8f9aa054fcc10035b2f9f8dd4f4b90f0b88e84275",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866525266000",
+      "beforeVersion": "22253",
+      "afterVersion": "22254",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "1806f4029d810ecb100c49a8891c12c9cb7c6077b2b0fc5c6ceefc20adce2da7",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-709-0-189.properties",
+      "sha256": "0b5fef471e21d834427e059490a122c26291f842463f58a365c4a1df7e42f0da",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866527056600",
+      "beforeVersion": "22254",
+      "afterVersion": "22255",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "1806f4029d810ecb100c49a8891c12c9cb7c6077b2b0fc5c6ceefc20adce2da7",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-710-0-189.properties",
+      "sha256": "873f6f1ed04ff872eeaa9c884d6bf19232f08ef5a90a5094f4771e2a2ee18497",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866532292000",
+      "beforeVersion": "22255",
+      "afterVersion": "22256",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "4ab3c2ab8ddb344b4e06cb00e1defd5baa28927b6c44e02c6686d723667ead5e",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-711-0-189.properties",
+      "sha256": "0ed1e8dade9683c2e1c27baf17ad63cd5c986da9e004ceafd124f8aaf661f1f5",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866534126400",
+      "beforeVersion": "22256",
+      "afterVersion": "22257",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "4ab3c2ab8ddb344b4e06cb00e1defd5baa28927b6c44e02c6686d723667ead5e",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-712-0-189.properties",
+      "sha256": "fbdc510f1ee775134399be6d379fa005f6197eca599f8a9f8c00dfe935e9c9a4",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866538551800",
+      "beforeVersion": "22257",
+      "afterVersion": "22258",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "b5b450c325b477c2c87a87018b120558e97a382ca1b5c1faad975160b33f6e3c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-713-0-189.properties",
+      "sha256": "7ef5b4aa884f4b3019ffcd287da33d36514001724936213aa2c7913b93abad83",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866540337600",
+      "beforeVersion": "22258",
+      "afterVersion": "22259",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "b5b450c325b477c2c87a87018b120558e97a382ca1b5c1faad975160b33f6e3c",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-714-0-189.properties",
+      "sha256": "63afd29ab7ccc395045f7afd7cbd93441e9ba92900d645df8caea740a2853f87",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866546190000",
+      "beforeVersion": "22259",
+      "afterVersion": "22260",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "eade3dcf1eba1cf37550a3da39cd6ea80bc446ce0838267c8b38bf353c4cb552",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-715-0-189.properties",
+      "sha256": "b704df750aba107b871b63fce34fff0a4f39d4939cac388b2f17ae308f280bda",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866547834500",
+      "beforeVersion": "22260",
+      "afterVersion": "22261",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "eade3dcf1eba1cf37550a3da39cd6ea80bc446ce0838267c8b38bf353c4cb552",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-716-0-189.properties",
+      "sha256": "b230c5c324abe9bfcf6b8397e184051c1bf77f77a7759e4c2597331f4dfea9eb",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866554689000",
+      "beforeVersion": "22261",
+      "afterVersion": "22262",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "03b5afa9404663b4fa9c85db9bab06c761a6ef1ae27dab2fcaa56e50c9bc7bf5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\ddc3cc7e0345dc5bcd823ccc9da8c06ac1e62813c215652d604ec0d0f7ecfadc\\commit039-717-0-189.properties",
+      "sha256": "01a456965b4d8bb4039c5b73ffac66f83076f6a45405fa9d6b5d5070ad7203ad",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866556805900",
+      "beforeVersion": "22262",
+      "afterVersion": "22263",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "03b5afa9404663b4fa9c85db9bab06c761a6ef1ae27dab2fcaa56e50c9bc7bf5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-718-0-189.properties",
+      "sha256": "9040f334cf38b9bcec2e92951374693475f21fb8c3609be9a186b843e0fd0a61",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866563751700",
+      "beforeVersion": "22263",
+      "afterVersion": "22264",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "ad3ec3eb612f7cd454e673cf95b666d93f1485f33cb276b05b5e25a2bbdc8eb8",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-719-0-189.properties",
+      "sha256": "9bb0275c098734766c38f0329d271d3a17f157d9f7380082f51a74a34bd28dc9",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866566480100",
+      "beforeVersion": "22264",
+      "afterVersion": "22265",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "ad3ec3eb612f7cd454e673cf95b666d93f1485f33cb276b05b5e25a2bbdc8eb8",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-720-0-189.properties",
+      "sha256": "0c0ecb6c95c406ad0a45fe1ebcc6390646355fec1481be1665fcf15348b64ebe",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866580086100",
+      "beforeVersion": "22265",
+      "afterVersion": "22266",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "9ac35ae588b7413f282d8c96c1344fcb55a160df4baafeb8e654a5e7a9dc6781",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-721-0-189.properties",
+      "sha256": "44c2e5f5e1e919971f5fe55d62ac493721a9bd040b0350279b7971908bfac326",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866582138300",
+      "beforeVersion": "22266",
+      "afterVersion": "22267",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "9ac35ae588b7413f282d8c96c1344fcb55a160df4baafeb8e654a5e7a9dc6781",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-722-0-189.properties",
+      "sha256": "6d3c3550659b62c8c52b898ec897b9be192f5211cf4b2b453d7e953676a716f2",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866588352200",
+      "beforeVersion": "22267",
+      "afterVersion": "22268",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "35fb35dedcbf99282a049a1e4ef969115e823349cbdd25a97bed4a88a33c1e23",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-723-0-189.properties",
+      "sha256": "0a5ef64769e10f532edb1785c1681613ff9977003ff130f5ea0b438a4ea47f4d",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866590278300",
+      "beforeVersion": "22268",
+      "afterVersion": "22269",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "35fb35dedcbf99282a049a1e4ef969115e823349cbdd25a97bed4a88a33c1e23",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-724-0-189.properties",
+      "sha256": "40bd6f82616f829d5d379b3c9bf36fb06dc02adad79e6fa3e542f5c57e945f11",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866595673300",
+      "beforeVersion": "22269",
+      "afterVersion": "22270",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d52d9de431f420651d8df8fad11786345eb890ab2882140caa87f59ba44f9741",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-725-0-189.properties",
+      "sha256": "516cbff4adbadb2a16b1ddab1659e9912a2fe40cb8e6e4ad30a07440e8df3471",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866597618400",
+      "beforeVersion": "22270",
+      "afterVersion": "22271",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "d52d9de431f420651d8df8fad11786345eb890ab2882140caa87f59ba44f9741",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-726-0-189.properties",
+      "sha256": "1c7e7d571925f6b038c3c9e8cd4d06ffb1b827e9b01c2b5c6111d3798617ffd8",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662866604187500",
+      "beforeVersion": "22271",
+      "afterVersion": "22272",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "df6246dd91c76c79d4bf8122e228d35d5463f72cb64f7c126f05ce3246b01f74",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\190a0ec2e2e8f9ec1879642208a64973fd1d38c082c56497b8b09d8164eb16cd\\commit039-727-0-189.properties",
+      "sha256": "928b15764da6bce596974a2048c817e564979a68473e7fb4bb5748c02f68c640",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662866606199600",
+      "beforeVersion": "22272",
+      "afterVersion": "22273",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "df6246dd91c76c79d4bf8122e228d35d5463f72cb64f7c126f05ce3246b01f74",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-984-0-189.properties",
+      "sha256": "dfa9d5d78d9c4d48ad4dac07184190f85a008d764e32be477af4722c161176dc",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899016816000",
+      "beforeVersion": "22273",
+      "afterVersion": "22274",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "09c17d49aaba9ad1c7f7b4e0c7022d057615b53f3885469c191d8a0707865742",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-985-0-189.properties",
+      "sha256": "2731e86718dbc9c8f05700a244e7faefdacaadb2c3b4a9a53eb5fb0bb6dd7df3",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899019082800",
+      "beforeVersion": "22274",
+      "afterVersion": "22275",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "09c17d49aaba9ad1c7f7b4e0c7022d057615b53f3885469c191d8a0707865742",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-986-0-189.properties",
+      "sha256": "ec4802994f1b9b49f17fe38b39eebb508b2029bb1d7af72cdff97068ec9b2bb1",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899024769900",
+      "beforeVersion": "22275",
+      "afterVersion": "22276",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "4f888976670b639d8e6fcef7dc93b99769df4979e868225ca6db48c11c88e1d5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-987-0-189.properties",
+      "sha256": "598ef8a0ec06e912ec4ab74fd7afe52aa4fd41e9520c3aca5903111911354e94",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899026674200",
+      "beforeVersion": "22276",
+      "afterVersion": "22277",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "4f888976670b639d8e6fcef7dc93b99769df4979e868225ca6db48c11c88e1d5",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-988-0-189.properties",
+      "sha256": "4d61c574769ed770bb1bc24119ac37348b8de7f3596eb6b280ed73fd4afede43",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899033323600",
+      "beforeVersion": "22277",
+      "afterVersion": "22278",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7fdcd379ba69ebfdf2a09710e83aa83d481b335f25a255a98138ad4c71e85c4f",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-989-0-189.properties",
+      "sha256": "0e022d8df0c9a26ff3067d308e29b0ff5833d0ead1e0b69ea819348c1ab39be5",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899035196300",
+      "beforeVersion": "22278",
+      "afterVersion": "22279",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7fdcd379ba69ebfdf2a09710e83aa83d481b335f25a255a98138ad4c71e85c4f",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-990-0-189.properties",
+      "sha256": "f1868e884b288ffc08373b19809dedfc824c0acbc8f4331d3402031e07fc05d8",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899041096000",
+      "beforeVersion": "22279",
+      "afterVersion": "22280",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "dddff315e4ae7304ad7b6e6332f3aea7b8ccbc2a8d23c7a8c092f37820b01f2b",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-991-0-189.properties",
+      "sha256": "8157c82877bce23c85ec7c374c0272cbc5f24c7ce41d0ea1f527f8c3de90207c",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899043203100",
+      "beforeVersion": "22280",
+      "afterVersion": "22281",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "dddff315e4ae7304ad7b6e6332f3aea7b8ccbc2a8d23c7a8c092f37820b01f2b",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-992-0-189.properties",
+      "sha256": "2d02fb2c0584effe45595a0f186c9a19a831b29e6b59c5cbb778eb5270e9139c",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899049491800",
+      "beforeVersion": "22281",
+      "afterVersion": "22282",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "5f80369b79028d87e26c2af190d9efc6b10e29ecd9c6a03df34c425c9dd656bf",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-993-0-189.properties",
+      "sha256": "f2591cff2c68dfe9f9d4c28ea25f9e2a11d01cdb4e495a85b5c55368a3686aa5",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899051919800",
+      "beforeVersion": "22282",
+      "afterVersion": "22283",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "5f80369b79028d87e26c2af190d9efc6b10e29ecd9c6a03df34c425c9dd656bf",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-994-0-189.properties",
+      "sha256": "76feae4f423d0aaad001b5c81dffd9d5926f84cf619bf8e76ac5d7c3eac72d06",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899057990900",
+      "beforeVersion": "22283",
+      "afterVersion": "22284",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "dace483559b10cc271cb55c727726c9a7c2a147d6313588062f9d7de4f1c773a",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-995-0-189.properties",
+      "sha256": "8ae01c9a15ccb776fc28ec7bfcf7a300f9b23d7f94ce174f9236fad12a5a49f4",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899060106000",
+      "beforeVersion": "22284",
+      "afterVersion": "22285",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "dace483559b10cc271cb55c727726c9a7c2a147d6313588062f9d7de4f1c773a",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-996-0-189.properties",
+      "sha256": "92d2b59c8c8007a6e0027e06d0af59b91d726ec0db1678da44bb40901cd7be7f",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899066418400",
+      "beforeVersion": "22285",
+      "afterVersion": "22286",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "1291d572db81962debe0bd8272495420ac8fe06b1d9fe30957786f8cfa1c65e8",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-997-0-189.properties",
+      "sha256": "d2961e198713a03890994264bcef76213dfefcfc6b3c9230ddb181f5cb714b83",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899068558000",
+      "beforeVersion": "22286",
+      "afterVersion": "22287",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "1291d572db81962debe0bd8272495420ac8fe06b1d9fe30957786f8cfa1c65e8",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-998-0-189.properties",
+      "sha256": "bf2a05af7cbcb7f72a81cd6232e829bb1efffea17a6bf93699edfc73876fb93d",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899075122300",
+      "beforeVersion": "22287",
+      "afterVersion": "22288",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "682e161b13022a0b417268867b19de53e35eceb50aa75990eacdf76f73517717",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-999-0-189.properties",
+      "sha256": "11484e3ccf941e4f93f311af5c8a94d631c25f58b64a126d22ff8c3e8e061d9f",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899077420500",
+      "beforeVersion": "22288",
+      "afterVersion": "22289",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "682e161b13022a0b417268867b19de53e35eceb50aa75990eacdf76f73517717",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-1000-0-189.properties",
+      "sha256": "ea18068d74a4ed0317cf42ece946eeb1686cbcf916ed1cf49e2d5dd929c7dd7b",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899084501600",
+      "beforeVersion": "22289",
+      "afterVersion": "22290",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "a63ad1c81712bcc353ea5bef4292a0a39849c3e20287d3b4fec223a4bcea0b00",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-1001-0-189.properties",
+      "sha256": "aabade5da00d0d4f6667a8970f7654e4b2730fbc7e75693b2104b57e93abac38",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899086674300",
+      "beforeVersion": "22290",
+      "afterVersion": "22291",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "a63ad1c81712bcc353ea5bef4292a0a39849c3e20287d3b4fec223a4bcea0b00",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-1002-0-189.properties",
+      "sha256": "635cef8dd9bcd6e03127dd0141fdbbd46774d3b9a1418a0702087841e5793108",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899093401200",
+      "beforeVersion": "22291",
+      "afterVersion": "22292",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "6df416693c212633d758b200149fc7af83ec7b86f36f6ccf7513ce563374f6e9",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-1003-0-189.properties",
+      "sha256": "ee88f251e3c0808f63ec77b2537785f1ed2da1c47a71c1d8f81edc40fcc28db9",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899095608100",
+      "beforeVersion": "22292",
+      "afterVersion": "22293",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "6df416693c212633d758b200149fc7af83ec7b86f36f6ccf7513ce563374f6e9",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-1004-0-189.properties",
+      "sha256": "eae97338300104db531324766a21ec5a6b20f32d0101ed1a192d167bcda747d3",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899102112200",
+      "beforeVersion": "22293",
+      "afterVersion": "22294",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7b9b530d82f8b3a4533cb8a6a2818a4305644c7d40e3c4698491395b4b932620",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-1005-0-189.properties",
+      "sha256": "86e5cbe4c8fa654b919db35cfff17391ccc0216d38f7f070d404402cb56e8b3c",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899104039400",
+      "beforeVersion": "22294",
+      "afterVersion": "22295",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "7b9b530d82f8b3a4533cb8a6a2818a4305644c7d40e3c4698491395b4b932620",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\7530a52ff5f8e3df6b5c46cfbc7cfe53c85238bed87bb70e08e76355f31d8e98\\commit039-1006-0-189.properties",
+      "sha256": "16694d48364033102edf4ffb40fb1afc9106ccd35c87155773fa5a5095d8faac",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899116650400",
+      "beforeVersion": "22295",
+      "afterVersion": "22296",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "df0f1a8a4a4ca790817588996ae343cf8c43711467e9ce70da14856418da2722",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\fa69068fa9461dbc47ab89ddfeccd22fed173c068650f55007cd4587cf3281e3\\commit039-1007-0-189.properties",
+      "sha256": "36970399919b90ec717632bb13bf10e9f1a637b9c0e842f2ddefd3e64b93ed7d",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899118915400",
+      "beforeVersion": "22296",
+      "afterVersion": "22297",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "df0f1a8a4a4ca790817588996ae343cf8c43711467e9ce70da14856418da2722",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\fa69068fa9461dbc47ab89ddfeccd22fed173c068650f55007cd4587cf3281e3\\commit039-1008-0-189.properties",
+      "sha256": "873d2f966b2164da13ca752de5f3fd94564ff9b8786bec28089fff88a3f736e6",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899125190700",
+      "beforeVersion": "22297",
+      "afterVersion": "22298",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "04990c18c7809ae259ee18dc06674e868865d84411fae246d7e20a29684a8ace",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\fa69068fa9461dbc47ab89ddfeccd22fed173c068650f55007cd4587cf3281e3\\commit039-1009-0-189.properties",
+      "sha256": "c8ac319e34d193d8f61a4c7fce4a3b1df1496a150333002f0d8f148ba4547f37",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899127283100",
+      "beforeVersion": "22298",
+      "afterVersion": "22299",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "04990c18c7809ae259ee18dc06674e868865d84411fae246d7e20a29684a8ace",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\fa69068fa9461dbc47ab89ddfeccd22fed173c068650f55007cd4587cf3281e3\\commit039-1010-0-189.properties",
+      "sha256": "648efbaa5357fb1bd1c35a0c8b1435cb1615ca068684e86254e7db87ead03569",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899133390700",
+      "beforeVersion": "22299",
+      "afterVersion": "22300",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "72316a97785dad593a0ce6fd7851bf12e48167e6833475c0be1452b7916c2a31",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\fa69068fa9461dbc47ab89ddfeccd22fed173c068650f55007cd4587cf3281e3\\commit039-1011-0-189.properties",
+      "sha256": "48aec101b82e7ae23c3bb8b92671e1344c3c689b7c2239bc5d49b91d850a4993",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899135347700",
+      "beforeVersion": "22300",
+      "afterVersion": "22301",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "72316a97785dad593a0ce6fd7851bf12e48167e6833475c0be1452b7916c2a31",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\fa69068fa9461dbc47ab89ddfeccd22fed173c068650f55007cd4587cf3281e3\\commit039-1012-0-189.properties",
+      "sha256": "3564221ea15e8b7d87470ce9ab668cb45faae8b73bc8680cb7bf67e724a3e261",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899141089000",
+      "beforeVersion": "22301",
+      "afterVersion": "22302",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "9599fa90848e2409b23e3d9f7bcd63efe8abe7c3edce165dffd7e8b5370ee340",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\fa69068fa9461dbc47ab89ddfeccd22fed173c068650f55007cd4587cf3281e3\\commit039-1013-0-189.properties",
+      "sha256": "984d1165c8e58973a7300057f6e5982e4db11cef1d73dc9f00632afb51c6d192",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899142974100",
+      "beforeVersion": "22302",
+      "afterVersion": "22303",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "9599fa90848e2409b23e3d9f7bcd63efe8abe7c3edce165dffd7e8b5370ee340",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\fa69068fa9461dbc47ab89ddfeccd22fed173c068650f55007cd4587cf3281e3\\commit039-1014-0-189.properties",
+      "sha256": "f581db79e033caf7a61e14f841fec7dd7c7c0056e66c9c51ac8b518708968874",
+      "producer": "execute",
+      "component": "background.state",
+      "commitNanos": "662899149134400",
+      "beforeVersion": "22303",
+      "afterVersion": "22304",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "a6a4dec520a4bdc10b1d14a27f81f4d9049d7b1a8128c480a924ebd1f787b5e3",
+          "0",
+          "0"
+        ]
+      }
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\decoded043\\fa69068fa9461dbc47ab89ddfeccd22fed173c068650f55007cd4587cf3281e3\\commit039-1015-0-189.properties",
+      "sha256": "59036605b128258f2b6edf53b894e8ee9827c4c32cb5541799e555c121bf670b",
+      "producer": "reconcileVerifyPending",
+      "component": "background.state",
+      "commitNanos": "662899151297900",
+      "beforeVersion": "22304",
+      "afterVersion": "22305",
+      "decoded": {
+        "after": [
+          "STATE",
+          "189",
+          "24720",
+          "2247",
+          "a6a4dec520a4bdc10b1d14a27f81f4d9049d7b1a8128c480a924ebd1f787b5e3",
+          "0",
+          "0"
+        ]
+      }
+    }
+  ],
+  "inputRejected": "189 DEAD; not in natural living World cohort; no substitute",
+  "currentReadyCandidatesWithin15MinuteDebt": 0,
+  "minimumReadyDebtMinutes": 3864,
+  "noSQLWrites": true,
+  "command": [
+    "C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.4.101-hotspot\\bin\\java.exe",
+    "-cp",
+    "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract043a\\runtime\\libs\\GameServer.jar;C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract043a\\runtime\\libs\\*",
+    "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\Decode-LifeReceipts043.java",
+    "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\BACKGROUND189043_V2-input.txt"
+  ],
+  "priorV1": "Wrong COMMIT039 filter yielded0; retained diagnostic, not credited"
+}

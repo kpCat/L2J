@@ -1,0 +1,168 @@
+{
+  "contract": "ALL_CLOSED_OWN043_NORMAL_EPISODES",
+  "finalEpisode": "D1",
+  "runs": [
+    {
+      "label": "A1",
+      "nativeBirths": 41,
+      "commitRecords": 3037,
+      "FULL_SAVE": true,
+      "GLOBAL_DRAIN": true,
+      "NATIVE_BOUNDARY_INTERVAL": true,
+      "FINAL_STOPPED_CUT": true,
+      "allBirthsTerminal": true,
+      "pass": true,
+      "closedRunEnd": {
+        "run_id": "34884-639275307488730000-9a378d0e8984b3673b41538a9f5f9c9823507317-dcd1a6bb-fc90-40c1-a703-307a41f5f92b",
+        "seq": 3233,
+        "dropped": 0,
+        "native_births": 41,
+        "exporter_drained": true,
+        "kind": "RUN_END",
+        "failure": ""
+      },
+      "proof": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\A1_CONSERVATION043.json",
+        "sha256": "61e0eee9ca7c9e31cff908f92d8220b00cfbeba4882f3b950ccd902f19ec64f4",
+        "bytes": 1338945
+      },
+      "ledger": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-720887a1acf04e3ab67e7bdcb43efe59\\lifetimes.jsonl",
+        "sha256": "2394757bc8b4dff2267d7d52b6c8232bda48f9c6121f009cb0d4b8c3534c1470",
+        "bytes": 1840229
+      },
+      "startup": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-720887a1acf04e3ab67e7bdcb43efe59",
+      "scene": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\LIFE_A1_043"
+    },
+    {
+      "label": "A2",
+      "nativeBirths": 26,
+      "commitRecords": 2376,
+      "FULL_SAVE": true,
+      "GLOBAL_DRAIN": true,
+      "NATIVE_BOUNDARY_INTERVAL": true,
+      "FINAL_STOPPED_CUT": true,
+      "allBirthsTerminal": true,
+      "pass": true,
+      "closedRunEnd": {
+        "run_id": "32536-639275313670390000-9a378d0e8984b3673b41538a9f5f9c9823507317-af6479aa-4ab9-4fe8-92fd-de550164d7b6",
+        "seq": 2533,
+        "dropped": 0,
+        "failure": "",
+        "kind": "RUN_END",
+        "exporter_drained": true,
+        "native_births": 26
+      },
+      "proof": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\A2_CONSERVATION043.json",
+        "sha256": "05e3bd2562e36a2e7ed5fa9382cccc246772ad47a03ad6c3ddbd3b0b2c19a613",
+        "bytes": 1037281
+      },
+      "ledger": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-6c974a75380a490db65bd500dcfd565a\\lifetimes.jsonl",
+        "sha256": "adf54797b78f5eed188e3b8f83bced947269e44923fa9365847b7850404a6bc5",
+        "bytes": 1433112
+      },
+      "startup": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-6c974a75380a490db65bd500dcfd565a",
+      "scene": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\LIFE_A2_043"
+    },
+    {
+      "label": "B1",
+      "nativeBirths": 147,
+      "commitRecords": 11404,
+      "FULL_SAVE": true,
+      "GLOBAL_DRAIN": true,
+      "NATIVE_BOUNDARY_INTERVAL": true,
+      "FINAL_STOPPED_CUT": true,
+      "allBirthsTerminal": true,
+      "pass": true,
+      "closedRunEnd": {
+        "run_id": "36492-639275324497020000-9a378d0e8984b3673b41538a9f5f9c9823507317-b4f4983e-59f8-4fe8-9f4c-59826e187e39",
+        "seq": 12061,
+        "dropped": 0,
+        "failure": "",
+        "kind": "RUN_END",
+        "exporter_drained": true,
+        "native_births": 147
+      },
+      "proof": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\B1_CONSERVATION043.json",
+        "sha256": "2d04f30519befeb157650203b78207576f68cc2479ab270953a1660ca77c856f",
+        "bytes": 4763645
+      },
+      "ledger": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-dbd808c6f8ac4cc4a7a8fa9691f40ff2\\lifetimes.jsonl",
+        "sha256": "7680109fae3b8f62c2ef51a2c67b4ee49aca0a0076e8c23aaa1e69e84db388df",
+        "bytes": 6861155
+      },
+      "startup": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-dbd808c6f8ac4cc4a7a8fa9691f40ff2",
+      "scene": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\LIFE_B1_043"
+    },
+    {
+      "label": "C1",
+      "nativeBirths": 1027,
+      "commitRecords": 110870,
+      "FULL_SAVE": true,
+      "GLOBAL_DRAIN": true,
+      "NATIVE_BOUNDARY_INTERVAL": true,
+      "FINAL_STOPPED_CUT": true,
+      "allBirthsTerminal": true,
+      "pass": true,
+      "closedRunEnd": {
+        "run_id": "24040-639275333882670000-9a378d0e8984b3673b41538a9f5f9c9823507317-e28bd226-a79c-4bbb-8433-c8fdc482bef8",
+        "seq": 115466,
+        "failure": "",
+        "kind": "RUN_END",
+        "exporter_drained": true,
+        "native_births": 1027,
+        "dropped": 0
+      },
+      "proof": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\C1_CONSERVATION043.json",
+        "sha256": "def32dbffc330bfcfad5b98296eba496a0cb2d9a8c3e67d742868cb4915cfc61",
+        "bytes": 44084348
+      },
+      "ledger": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-819469c554c14b87a097a1cf9c482585\\lifetimes.jsonl",
+        "sha256": "640f362bf85d9567e464611c14ed83bb12b24b1bdad6ee0fe313b72d29fe86c7",
+        "bytes": 65959409
+      },
+      "startup": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-819469c554c14b87a097a1cf9c482585",
+      "scene": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\LIFE_C1_043"
+    },
+    {
+      "label": "D1",
+      "nativeBirths": 982,
+      "commitRecords": 80260,
+      "FULL_SAVE": true,
+      "GLOBAL_DRAIN": true,
+      "NATIVE_BOUNDARY_INTERVAL": true,
+      "FINAL_STOPPED_CUT": true,
+      "allBirthsTerminal": true,
+      "pass": true,
+      "closedRunEnd": {
+        "run_id": "17052-639275343514630000-9a378d0e8984b3673b41538a9f5f9c9823507317-d564306e-1847-49bf-82e3-798cde52d6b5",
+        "seq": 84325,
+        "dropped": 0,
+        "native_births": 982,
+        "exporter_drained": true,
+        "kind": "RUN_END",
+        "failure": ""
+      },
+      "proof": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops043\\D1_CONSERVATION043.json",
+        "sha256": "4a6ab64e588acddf84738bdbea0d1c5a1d9a8779d60385a7e7adf8e7722bf759",
+        "bytes": 33196358
+      },
+      "ledger": {
+        "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-f87580015f704f93a1c3595e839190b4\\lifetimes.jsonl",
+        "sha256": "18c155204468f215f62b13e2834c2357efe2dd092e1fb02a26041dbfd040977b",
+        "bytes": 48222683
+      },
+      "startup": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\STARTUP032a-f87580015f704f93a1c3595e839190b4",
+      "scene": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SOFT-HANDOFF-043\\evidence\\LIFE_D1_043"
+    }
+  ],
+  "historicalM1G3Transfer": false,
+  "pass": true
+}

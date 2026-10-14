@@ -1,0 +1,98 @@
+[
+  {
+    "name": "Control032.ps1",
+    "sha256": "08891e72b8121f3a757d6c955d134ace67f55005fb64e4962a592152640be941"
+  },
+  {
+    "name": "Observe032.ps1",
+    "sha256": "809208dacf258be65d628a5dd652cb4e32868c8730de9ce4c8348fc4ab659072"
+  },
+  {
+    "name": "Contract032Observer.java",
+    "sha256": "111b01288be257dede6309e4a22b84de2df0920ae71ddc83ae5e7828631f5542"
+  },
+  {
+    "name": "Read-SharedJson032.ps1",
+    "sha256": "bf4c09ffbdf53f2bb0f560bfab78d0e18e25ae0b63f1cb56352e7d67d70e6cb2"
+  },
+  {
+    "name": "ReadDryRoute032.java",
+    "sha256": "1f366c120f4213efb1a0c01ec920793e5ba1a3a449c27da8dea8074fff0425b6"
+  },
+  {
+    "name": "ReadDryPath043.java",
+    "sha256": "2d31fab3514681471c139e1f34471f38715d5ac7c7dd500f8a30d38f72527a8f"
+  },
+  {
+    "name": "Select-Primary043.ps1",
+    "sha256": "1c5b85653265a8d8eb4d1f70d4b1ed76e503435e72c6e4dbd9bb628b321dc3c7"
+  },
+  {
+    "name": "All-Birth-Cut043.ps1",
+    "sha256": "5b41268e2745c6186d6ae2fd2f4777181a7f6333e60a0090279b05d383dcf73c"
+  },
+  {
+    "name": "SplitSql039.py",
+    "sha256": "59f6152fcaa525ca6b4116cbda065d83a097a6041d98f0383047f02a1cf520d2"
+  },
+  {
+    "name": "Prepare032.ps1",
+    "sha256": "9e1240b19571d438c5f9c6c0feea60b207866f28bb298dddd22b9f5a089ed1d6"
+  },
+  {
+    "name": "Invoke-Git043.ps1",
+    "sha256": "ac0a7d7e1ef9c22fb6e672865676c71e12672745d28b742bcf04cf1b1e279fe2"
+  },
+  {
+    "name": "Build-StockShutdown043.ps1",
+    "sha256": "9ad609fd3f3837d2981bd31fc48b848f3ef36db5b5afb71361e4d0dd2673fa15"
+  },
+  {
+    "name": "Stop-ExactOwnedGracefully.ps1",
+    "sha256": "3821a8a38328f68d39d1095cdf1cd0baff21ab3a12440ca31971bbe25b16018c"
+  },
+  {
+    "name": "RequestShutdown.java",
+    "sha256": "f6d4d7cebe8a96940a734ca04c5161f34417707cc1feacba91d6c9409a00b473"
+  },
+  {
+    "name": "RuntimeShutdownAgent.java",
+    "sha256": "03cd3f858a424b76dd20d3d721b13c6402c5100ab53dffee3562c716634e99c7"
+  },
+  {
+    "name": "validation/commit_chain039.py",
+    "sha256": "d333cc27b7e6c571b689a0a20296b474c201f2e36b7d4a2a61dd76a7451d1ead"
+  },
+  {
+    "name": "validation/complete_chain043.py",
+    "sha256": "683c5439ad6d79904b9ebbfcf2cd68214a813c7cf2149d274f17541a4a807b82"
+  },
+  {
+    "name": "validation/DecodeStateReceipt043.java",
+    "sha256": "8629fd24f961068ad187624250eb86a7b4d4b5287bf134ce5f3c4e9e7320056c"
+  },
+  {
+    "name": "validation/raw_archive043.py",
+    "sha256": "17dc5485773056dda30cb27980b8f6414146d2bbc23ba10ddac6f1d1bb58c4fa"
+  },
+  {
+    "name": "validation/test_commit_chain039.py",
+    "sha256": "c6792de1a41a33e62c17f7b088c1fb0f0623ac43e4646b004bde80e4672370a1"
+  },
+  {
+    "name": "validation/test_complete_chain043.py",
+    "sha256": "5918e782142a7e48e96581156652b3abef203371ddb21187c32d14e49cbad821"
+  },
+  {
+    "name": "validation/VerifyNativeCommit039.java",
+    "sha256": "7f0094344904644375c73b802ec29e3323fe5d0c107c06ee79eb5844907a15d6"
+  },
+  {
+    "name": "validation/VerifyStoppedCut039.java",
+    "sha256": "a99a97da6fe0facabf22c22dd2ad5179ef8d7e728138bb2c4f5ef6307d2225bd"
+  },
+  {
+    "name": "validation/verify_commit_run039.py",
+    "sha256": "8d863a751ee0037976f52e59d6226f0c5c600b2f158d1622195b9b594491b48f"
+  }
+]

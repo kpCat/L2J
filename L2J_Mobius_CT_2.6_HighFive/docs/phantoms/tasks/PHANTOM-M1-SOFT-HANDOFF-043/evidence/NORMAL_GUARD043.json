@@ -1,0 +1,8 @@
+﻿{
+    "configPreserved":  true,
+    "pass":  true,
+    "case":  "WrongSource",
+    "expectedFailure":  "Owned source/DB mismatch.",
+    "beforeRuntimeStart":  true,
+    "utc":  "2026-10-13T23:16:44.0196780Z"
+}

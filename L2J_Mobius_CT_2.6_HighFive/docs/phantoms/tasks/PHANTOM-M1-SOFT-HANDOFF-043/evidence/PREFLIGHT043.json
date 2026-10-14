@@ -1,0 +1,36 @@
+﻿{
+    "head":  "9a378d0e8984b3673b41538a9f5f9c9823507317",
+    "newNamespaceAbsent":  true,
+    "protectedIncarnationsExact":  true,
+    "utc":  "2026-10-13T23:08:20.5573881Z",
+    "remote":  "9a378d0e8984b3673b41538a9f5f9c9823507317",
+    "pins":  [
+                 {
+                     "sha256":  "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+                     "path":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\dist\\libs\\GameServer.jar"
+                 },
+                 {
+                     "sha256":  "15C153D30FE7F85719B1698059F4E28C9C7FA325CAA420A02DE7AC19CFF35112",
+                     "path":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-LIVING-CONTINUITY-028\\proposals\\continuity028.py"
+                 },
+                 {
+                     "sha256":  "8B85B1AC34A5A3DBFD42E274DACA0D42798FCDA40688B102786493237141A2D6",
+                     "path":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\contract036b\\play-snapshot.sql"
+                 }
+             ],
+    "newPortsFree":  [
+                         7795,
+                         2125,
+                         9035
+                     ],
+    "protected040a":  [
+                          {
+                              "ticks":  "639274376704922975",
+                              "pid":  18688
+                          },
+                          {
+                              "ticks":  "639274376723876308",
+                              "pid":  30312
+                          }
+                      ]
+}

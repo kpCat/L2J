@@ -1,0 +1,26 @@
+﻿{
+    "B2RawPreserved":  true,
+    "immutableSourceFiles":  304,
+    "immutableSourcePreserved":  true,
+    "protectedIncarnationsExact":  true,
+    "utc":  "2026-10-14T00:46:02.2938254Z",
+    "protectedRuntime":  "d41f9ba822d51f3e95487a6d94b55bd85d7e62df4522ecfb7abc64f1e575429d",
+    "namespace":  {
+                      "runtime":  "cf531fc5f315037a77c73b5f3f183ddced5f869a7bc7562479a09be30ca831fb",
+                      "jarSha256":  "5C4AE8BFFF0568AD2FD204F6C3BE79268D03C55ED95862C5B24619AD3719E98C",
+                      "database":  "l2jmobiush5_phantom_test_043a"
+                  },
+    "protected040a":  [
+                          {
+                              "pid":  18688,
+                              "ticks":  "639274376704922975",
+                              "role":  "LoginServer"
+                          },
+                          {
+                              "pid":  30312,
+                              "ticks":  "639274376723876308",
+                              "role":  "GameServer"
+                          }
+                      ],
+    "ownJvmCount":  0
+}

@@ -1,0 +1,9 @@
+﻿LIFE_PRIMARY043_INPUT_REQUIRED: whole cohort retained.
+At C:\Users\ZBook\.codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\ops043\Select-Prima
+ry043.ps1:12 char:27
++ ... ount -ne 1){throw 'LIFE_PRIMARY043_INPUT_REQUIRED: whole cohort retai ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (LIFE_PRIMARY043...ohort retained.:String) [], RuntimeException
+    + FullyQualifiedErrorId : LIFE_PRIMARY043_INPUT_REQUIRED: whole cohort retained.
+ 
+
