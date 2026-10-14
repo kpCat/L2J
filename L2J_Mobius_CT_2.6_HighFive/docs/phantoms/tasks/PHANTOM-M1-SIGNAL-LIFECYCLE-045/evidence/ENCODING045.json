@@ -1,14 +1,13 @@
 {
   "mojibakeMarkers": "PASS",
   "escapedCyrillic": "PASS",
-  "files": 67,
+  "files": 68,
   "technicalExemption": "Literal scanner marker definitions only; no user-facing exemptions",
   "javaTestEqualsNativeCandidate": true,
   "changed": [
     "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/CHECKPOINT045.md",
-    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/SourceGate045.py",
-    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/proposals/ops045/Control032.ps1",
-    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/proposals/ops045/Observe032.ps1",
-    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/proposals/ops045/SignalSnapshot045.java"
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/GATES045.tsv",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/GIT_COMMANDS045.md",
+    "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/RESULT045.md"
   ]
 }

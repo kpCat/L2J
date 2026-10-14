@@ -79,3 +79,8 @@ MAIN8 и original evaluator unchanged. Only one product owner и три TEST pat
 достигнуты; compile/parse evidence не превращается в G4 PASS.
 Compact review CRC/member SHA/две отдельные Cyrillic checks PASS перед publication.
 TASK045=BLOCKED_NATIVE_INPUT; M1 OPEN, READY_FOR_M2=false, USER_ACCEPTANCE REQUIRED.
+
+Complete scoped result publication1c137b5841ebefc6d3eb07775d18a0f2c490bead
+ordinary/non-force PASS; actual HEAD=remote/tracked clean receipt создан после push.
+Теперь A6 DELIVERY PASS по actual evidence; A3/A4/M1 не повышены.
+Final archive/report update — audit-only; own DB/raw/JAR и core sources не меняются.

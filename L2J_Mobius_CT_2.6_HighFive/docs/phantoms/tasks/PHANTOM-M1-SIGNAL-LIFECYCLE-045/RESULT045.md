@@ -98,6 +98,13 @@ tests/helpers сохранены exact-path ordinary commits/non-force push. П�
 Финальная publication SHA/local=remote/clean фиксируется после push отдельным
 local receipt; самоссылка на будущий commit не используется.
 
+Первый полный scoped result publication PASS:
+1c137b5841ebefc6d3eb07775d18a0f2c490bead=remote, tracked clean.
+Actual commit/push exit0 и exact earlier review ZIP pin сохранены в
+evidence/PUBLICATION1_RECEIPT045.json. Последующее обновление только audit/receipt
+имеет отдельный ordinary commit/push; его post-push receipt local, без самоссылки.
+Ни delivery PASS, ни review ZIP не превращают A3/A4 или M1 acceptance в PASS.
+
 TASK045-review.zip содержит только allowlisted sources/reports/compact pins,
 без DB/raw/JAR/secrets. CRC и SHA каждого member: evidence/ZIP_QA045.json.
 Self-review выполнен без субагентов по прямому указанию пользователя;

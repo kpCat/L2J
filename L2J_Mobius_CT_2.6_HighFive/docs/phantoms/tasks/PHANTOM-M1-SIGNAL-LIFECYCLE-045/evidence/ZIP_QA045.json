@@ -1,7 +1,7 @@
 {
   "archive": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-SIGNAL-LIFECYCLE-045\\TASK045-review.zip",
-  "bytes": 233832,
-  "sha256": "f91c04667f4ed6106b123b1699df292bb12abd4bca4b82921cae9d0445df0596",
+  "bytes": 235070,
+  "sha256": "a07d15a7779aa283259c84f94479f434f41c2e5db11ab6d0d8b196a25e60539e",
   "CRC": "PASS",
   "allMemberSHA": "PASS",
   "noDatabaseRawJarSecrets": true,
@@ -163,8 +163,8 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/CHECKPOINT045.md",
-      "bytes": 6439,
-      "sha256": "de3b96c54d10e056f77933148b328d53d477834895af911c7df751c0c182577a"
+      "bytes": 6793,
+      "sha256": "042996cd23ae5fccc762b5fdbdd6746db25866fd17dd94dc85e6b1f5f5e1055e"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/proposals/ops045/Invoke-Git045.ps1",
@@ -203,13 +203,13 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/RESULT045.md",
-      "bytes": 8814,
-      "sha256": "ffc5ea15581d5c8a1bbd8f0707738c0831bcf491e93f08c4cfb56a481c51c595"
+      "bytes": 9337,
+      "sha256": "7df91b81218377c5df59a8debf73184c46ead21fe2fc5aaeba1206032eedf170"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/GATES045.tsv",
-      "bytes": 2495,
-      "sha256": "165a9d796cdd748de976405d35d2890aab846ed1aadf045bd4adf8424aa57191"
+      "bytes": 2519,
+      "sha256": "e444c670edc1a0b55b3b1769e5411cd500e9438229e3955ca6f9c1a37525716b"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/REVIEW045.md",
@@ -218,8 +218,8 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/GIT_COMMANDS045.md",
-      "bytes": 4271,
-      "sha256": "73c5fcc9f9214a67a0b3848b9bd4c1e5fba682e243d983cd34e557720cbee547"
+      "bytes": 4632,
+      "sha256": "f52b848ff1b59bdec9e45185fd6244723d6f49a7bae2daf955ea39d5ce7e414a"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/PRECONDITIONS045.md",
@@ -342,9 +342,14 @@
       "sha256": "bddee663daeae783a10c396ff8d9c3252a1038ac54341d55cc20c95550444542"
     },
     {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/PUBLICATION1_RECEIPT045.json",
+      "bytes": 666,
+      "sha256": "90cc444624587c5950b478b8bb0727525082bc31d681e7d7924b11c220d827a1"
+    },
+    {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/ENCODING045.json",
-      "bytes": 810,
-      "sha256": "67306b3935edbd5cec0649f2d85eb3526d942ede147c2dab117dfe3a64107cc4"
+      "bytes": 647,
+      "sha256": "ce0625cc54ed7dac4e02830526e9e4ef21a9842e880bb2c9fecc38266cb260d3"
     }
   ]
 }

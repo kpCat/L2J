@@ -65,6 +65,7 @@ L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/p
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/proposals/ops045/validation/test_complete_chain045.py
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/proposals/ops045/validation/VerifyNativeCommit039.java
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/proposals/ops045/validation/VerifyStoppedCut039.java
+L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/PUBLICATION1_RECEIPT045.json
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/ENCODING045.json
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/evidence/ZIP_QA045.json
 L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-SIGNAL-LIFECYCLE-045/ALLOWLIST045.txt

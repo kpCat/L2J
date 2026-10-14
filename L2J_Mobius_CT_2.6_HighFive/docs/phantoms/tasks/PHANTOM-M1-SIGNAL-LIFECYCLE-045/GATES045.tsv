@@ -7,7 +7,7 @@ A4_G4	NOT_VERIFIED	No away/BG/return; actual productive committed same-profile s
 A5_REGRESSION	PASS	Current FC19 jar-first93/93; acceptance11/11; soft3/3; scheduler30/30; population3+3/topology5+20; strict validator26; REGRESSIONS_FINAL045.json; extra24 FAIL separate
 A5_CONSERVATION	PASS	54 births terminal/485owning commits/62native witnesses/46stopped canonical profiles; FULL_SAVE/GLOBAL_DRAIN true; only045 scope
 A5_EXTRA_NATIVE24	FAIL	Additional wrong route19/24: P07 replacement publication not observed; four Q03-Q12 queued tests refused base TEST DB guard on045a; not retried/softened
-A6_DELIVERY	PENDING_FINAL_PUBLICATION	Source2c318/helper0a074 published ordinary; exact final ZIP/member SHA/CRC and final normal publication receipt required
+A6_DELIVERY	PASS	Complete scoped publication1c137b5841ebefc6d3eb07775d18a0f2c490bead=remote/tracked clean; compact ZIP CRC/memberSHA PASS; own JVM0; final audit-only receipt separate
 TASK045	BLOCKED_NATIVE_INPUT	A3 not passed; not PASS_SCOPED
 G1_ACTION	NOT_VERIFIED	Useful native farm subset does not close full M1 action set
 G2_HISTORICAL	PASS	A5/C24 original5c4ae8bf JAR only

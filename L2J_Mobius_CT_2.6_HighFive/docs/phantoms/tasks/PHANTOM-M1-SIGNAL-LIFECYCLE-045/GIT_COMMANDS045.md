@@ -47,6 +47,12 @@ Publication:
 7. Final git add -- <exact final ALLOWLIST045.txt, только remaining task/helper/result paths>
 8. Final ordinary git commit и тот же normal git push; argv/exit/HEAD/remote/clean — local publication receipt.
 
+Фактический first full result subject:
+phantom(task-045): record verified signal fix and blocked native input,
+commit1c137b5841ebefc6d3eb07775d18a0f2c490bead. Final audit-only subject:
+phantom(task-045): finalize delivery receipts and compact review.
+Оба используют exact ALLOWLIST045 add, тот же normal push; no history mutation.
+
 Первый add отказал на PowerShell array concatenation; staging не изменилось.
 Следующий staged diff-check отказал на context whitespace нового patch-file;
 patch пересоздан --unified=0, exact add повторён. Отказы сохранены в отчёте.

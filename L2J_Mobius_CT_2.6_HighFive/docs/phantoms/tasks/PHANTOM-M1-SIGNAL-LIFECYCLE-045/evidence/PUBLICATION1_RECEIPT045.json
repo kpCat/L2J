@@ -1,0 +1,16 @@
+{
+  "commitExit": 0,
+  "trackedClean": true,
+  "utc": "2026-10-14T14:20:28.2056761Z",
+  "ref": "refs/heads/experiment/m1-candidate007-observe008",
+  "remote": "1c137b5841ebefc6d3eb07775d18a0f2c490bead",
+  "archiveBytes": 233832,
+  "head": "1c137b5841ebefc6d3eb07775d18a0f2c490bead",
+  "archiveSha256": "f91c04667f4ed6106b123b1699df292bb12abd4bca4b82921cae9d0445df0596",
+  "scope": "First complete045 scoped publication; not native/M1 acceptance",
+  "argv": [
+    "git commit -m phantom(task-045): record verified signal fix and blocked native input",
+    "git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008"
+  ],
+  "pushExit": 0
+}
