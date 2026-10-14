@@ -325,10 +325,7 @@ try{
         $farmIds044=@($farmInputs044 | Where-Object {$_.farmAllowed -ceq 'true' -and $_.calendarOnline -ceq 'true' -and $_.nextBoundary -and [DateTimeOffset]::Parse($_.nextBoundary) -gt [DateTimeOffset]::UtcNow.AddSeconds(480)} | ForEach-Object {$_.profileId})
         $farmInputs044 | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $OutputRoot 'premeasurement-farm-inputs044.json') -Encoding utf8
         $eligibleLife044=@($suitable | Where-Object {$_.profileId -cin $eligibleIds044 -and $_.profileId -cin $farmIds044})
-        if($LifeCurrentReady044){
-            $currentIds044=@($farmInputs044 | Where-Object {$_.readinessComplete -ceq 'true' -and [long]$_.committedCursorMinute -eq [long]$_.requestedHorizonMinute} | ForEach-Object {$_.profileId})
-            $eligibleLife044=@($eligibleLife044 | Where-Object {$_.profileId -cin $currentIds044})
-        }
+        $eligibleLife044=@(Select-CurrentLifeInputs044 -Suitable $eligibleLife044 -FarmInputs $farmInputs044 -RequireCurrent:($LifeCurrentReady044 -and !$DiagnosticOnly044))
         if($LifeProductive044){
             $productiveIds044=@($farmInputs044 | Where-Object {$_.productive540044 -ceq 'true'} | ForEach-Object {$_.profileId})
             $eligibleLife044=@($eligibleLife044 | Where-Object {$_.profileId -cin $productiveIds044})
@@ -377,6 +374,10 @@ try{
         if($SingleLifePrimary044){
             $lifeBefore044=@($first.actors | Where-Object {$_.profileId -ceq $primary[0].profileId})[0]
             $first | ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'life-native-before.json') -Encoding utf8
+            if($DiagnosticOnly044){
+                if([long]$lifeBefore044.nativeFarmCycleSequence -lt 1 -or [long]$lifeBefore044.nativeRewardSequence -lt 1 -or [long]$lifeBefore044.nativeDamageSequence -lt 1){throw 'SOURCE_DIAGNOSTIC_REQUIRES_EXISTING_NATIVE_EARNED_WORK'}
+                $first | ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'source-existing-native-earned044.json') -Encoding utf8
+            }else{
             $earnedWait044=[Diagnostics.Stopwatch]::StartNew()
             do {
                 $earnedFrame044=ReadFrame032
@@ -390,6 +391,7 @@ try{
                 Start-Sleep -Seconds 1
             }while($true)
             $earnedFrame044 | ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'life-native-earned.json') -Encoding utf8
+            }
             $boundaryWait044=[Diagnostics.Stopwatch]::StartNew()
             $otherHumans044=@(Import-Csv (Join-Path $OutputRoot 'enrollment-census/world-identities.tsv') -Delimiter "`t" | Where-Object {$_.headless -ceq 'false' -and $_.objectId -cne '268492939'})
             if($otherHumans044.Count){throw 'LIFE044_FOREIGN_NATIVE_OBSERVER: no departure allowed.'}

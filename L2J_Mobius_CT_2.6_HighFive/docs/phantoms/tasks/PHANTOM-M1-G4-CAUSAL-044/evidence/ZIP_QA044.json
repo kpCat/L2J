@@ -1,6 +1,6 @@
 {
   "contract": "TASK044_COMPACT_REVIEW",
-  "memberCount": 64,
+  "memberCount": 66,
   "members": [
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/GOAL.md",
@@ -59,8 +59,8 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/RESULT044.md",
-      "bytes": 6201,
-      "sha256": "50d96df2cc54811d81c48e4bb0611603c522a2b81c2a1a2742a80d8899d5b95e"
+      "bytes": 6729,
+      "sha256": "24a97314240f4d85aff6e11e9d92c3fbd97e4f6ecf74d60eec38c93898b30da3"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/GATES044.tsv",
@@ -69,13 +69,13 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/REVIEW044.md",
-      "bytes": 5357,
-      "sha256": "cbf62849e4574ee6ae3caf1fecc0e80d3ab3331423e989eb65fe80ae0295d561"
+      "bytes": 6595,
+      "sha256": "7efe70d7f360e3a0bccb082e0955ed9087129b41ee809264a3664acc8cf77353"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/CHECKPOINT044.md",
-      "bytes": 5153,
-      "sha256": "fb4322a3d1bd61d18b09fe9589775e24c0aa46d27f08d7821e6712319e5912e6"
+      "bytes": 6128,
+      "sha256": "2e13f18f68492a36569739802489c1829462e169b305383882a8cac804b902f3"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/GIT_COMMANDS044.md",
@@ -149,8 +149,8 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/Package044.py",
-      "bytes": 6729,
-      "sha256": "d46b900124fc242385cde83b79174378fa72f031b10382ffb39469968afcb143"
+      "bytes": 6792,
+      "sha256": "b4216facafe5a04591601deca580eba6aec9c1def3471c51f107c24aecb65ba1"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/Publish044.ps1",
@@ -204,8 +204,8 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Observe032.ps1",
-      "bytes": 55858,
-      "sha256": "0e6aa7395adae7df05b5a7beae8b5f80eb57ebd4b2088df4405478b7c96e42b1"
+      "bytes": 56143,
+      "sha256": "e425148ead555486fd81ae2be245cb5890ed4cceeca2a618e931ce1a20429051"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Contract032Observer.java",
@@ -229,8 +229,8 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Select-Primary044.ps1",
-      "bytes": 1957,
-      "sha256": "5d9526de5fd3e7c7736e561a227a811273efbbd44a76acd925e293c6634be232"
+      "bytes": 2447,
+      "sha256": "7e91fdbd0eebddecd9350bf67af08e3d9da1a82fe5d6e5cf122e58b27e79fad2"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/All-Birth-Cut044.ps1",
@@ -264,8 +264,18 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/SignalSnapshot044.java",
-      "bytes": 3170,
-      "sha256": "ec0ada350ee923ebe527924100cc9da16b86db9fd371e7723a766c05e3865913"
+      "bytes": 3187,
+      "sha256": "9a7982cdfbd0561f22586b40ea8052adc9c01392cf82cb133d74ba9f84d7e239"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Invoke-SignalSnapshot044.ps1",
+      "bytes": 2213,
+      "sha256": "754073447b734dea1f1d4aa04e9faeaa8653d7a747f0ef27325c84e2c3a60c54"
+    },
+    {
+      "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Test-SourceSelection044.ps1",
+      "bytes": 1084,
+      "sha256": "353a02de1c046485f8f49841df24840835d8ccfd8c92a3295a6e8256098570e9"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/validation/commit_chain039.py",
@@ -309,8 +319,8 @@
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/HELPER_SOURCE_PINS044.json",
-      "bytes": 9224,
-      "sha256": "5d537e98cc1f428e090995f1ef34a233977b564224838c2fb97f95937d297f5d"
+      "bytes": 10031,
+      "sha256": "928873059cddcea59287362764b04130ac8ed5814df4dbccd6670b59237150e2"
     },
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/PUBLICATION1_RECEIPT044.json",
@@ -320,13 +330,13 @@
     {
       "name": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/evidence/ENCODING044.json",
       "bytes": 1506,
-      "sha256": "b246d06d067f400158170babe56b73e0e85c4c2380542b1cf43ffe5bf2c101dd"
+      "sha256": "72f4a0aa52f1466f6b1dad648946d869fa1144ceb5caafb2d01c59a2cfaa6b87"
     }
   ],
   "crcAll": "PASS",
   "allMemberSha256": "PASS",
   "sourceBytesEqual": "PASS",
   "duplicateTraversal": "PASS",
-  "zipSha256": "8332e17947f1ff4ec21354537d8dae19519249fe57d586ceb6b8bad2cced50bc",
-  "zipBytes": 168461
+  "zipSha256": "578f029346d5074fc6a21139cb1d3cb823192896a1d00cb27f474b7af4047394",
+  "zipBytes": 172247
 }

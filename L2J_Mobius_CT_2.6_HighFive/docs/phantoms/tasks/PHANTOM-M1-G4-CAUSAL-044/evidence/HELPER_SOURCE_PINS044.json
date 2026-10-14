@@ -13,8 +13,8 @@
   },
   {
     "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Observe032.ps1",
-    "privateSourceSha256": "a6b1d55bb69d7368047f93d5452164582f0ae6f9a3b4dc5295bb4357389bd48b",
-    "publishedSha256": "0e6aa7395adae7df05b5a7beae8b5f80eb57ebd4b2088df4405478b7c96e42b1",
+    "privateSourceSha256": "cb7116b3b331bfa88ca6d27b8614817faab0e69d63f2c0a8de44bb89939f4768",
+    "publishedSha256": "e425148ead555486fd81ae2be245cb5890ed4cceeca2a618e931ce1a20429051",
     "normalization": "trailing-empty-lines-only; no semantic changes"
   },
   {
@@ -43,8 +43,8 @@
   },
   {
     "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Select-Primary044.ps1",
-    "privateSourceSha256": "e1f1ad5f062b94d4119f29c705fc69fdf5e17b7ec2a2dab58f450a561cc2008b",
-    "publishedSha256": "5d9526de5fd3e7c7736e561a227a811273efbbd44a76acd925e293c6634be232",
+    "privateSourceSha256": "b5ad5696931d30807f781ad0e8b27bfa78356ced785f878cd545907aaf343ab4",
+    "publishedSha256": "7e91fdbd0eebddecd9350bf67af08e3d9da1a82fe5d6e5cf122e58b27e79fad2",
     "normalization": "trailing-empty-lines-only; no semantic changes"
   },
   {
@@ -85,8 +85,20 @@
   },
   {
     "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/SignalSnapshot044.java",
-    "privateSourceSha256": "ec0ada350ee923ebe527924100cc9da16b86db9fd371e7723a766c05e3865913",
-    "publishedSha256": "ec0ada350ee923ebe527924100cc9da16b86db9fd371e7723a766c05e3865913",
+    "privateSourceSha256": "9a7982cdfbd0561f22586b40ea8052adc9c01392cf82cb133d74ba9f84d7e239",
+    "publishedSha256": "9a7982cdfbd0561f22586b40ea8052adc9c01392cf82cb133d74ba9f84d7e239",
+    "normalization": "trailing-empty-lines-only; no semantic changes"
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Invoke-SignalSnapshot044.ps1",
+    "privateSourceSha256": "754073447b734dea1f1d4aa04e9faeaa8653d7a747f0ef27325c84e2c3a60c54",
+    "publishedSha256": "754073447b734dea1f1d4aa04e9faeaa8653d7a747f0ef27325c84e2c3a60c54",
+    "normalization": "trailing-empty-lines-only; no semantic changes"
+  },
+  {
+    "path": "L2J_Mobius_CT_2.6_HighFive/docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044/proposals/ops044/Test-SourceSelection044.ps1",
+    "privateSourceSha256": "353a02de1c046485f8f49841df24840835d8ccfd8c92a3295a6e8256098570e9",
+    "publishedSha256": "353a02de1c046485f8f49841df24840835d8ccfd8c92a3295a6e8256098570e9",
     "normalization": "trailing-empty-lines-only; no semantic changes"
   },
   {

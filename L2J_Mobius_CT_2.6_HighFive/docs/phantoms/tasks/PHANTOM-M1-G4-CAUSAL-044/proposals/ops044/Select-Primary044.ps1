@@ -6,6 +6,13 @@ function Select-Primary044 {
  if($casters044.Count -eq 0 -or $melee044.Count -eq 0){throw 'PRIMARY_NATIVE_MELEE_CASTER_PRECONDITION: whole cohort retained.'}
  return @($melee044[0],$casters044[0])
 }
+function Select-CurrentLifeInputs044 {
+ param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Suitable,
+       [Parameter(Mandatory)][object[]]$FarmInputs,[bool]$RequireCurrent=$true)
+ if(-not $RequireCurrent){return $Suitable}
+ $current=@($FarmInputs | Where-Object {$_.readinessComplete -ceq 'true' -and [long]$_.committedCursorMinute -eq [long]$_.requestedHorizonMinute} | ForEach-Object {$_.profileId})
+ return @($Suitable | Where-Object {$_.profileId -cin $current})
+}
 function Select-LifePrimary044 {
  param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Suitable,[switch]$CurrentReadyOrdinary)
  $life044=@($Suitable | Where-Object {$_.dead -ceq 'false' -and [int]$_.npcId -gt 0 -and $_.inventorySlots -and [int]$_.inventorySlots -lt 200 -and ($CurrentReadyOrdinary -or [double]$_.liveResourceCost -gt 0)} | Sort-Object {[long]$_.profileId} | Select-Object -First 1)

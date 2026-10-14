@@ -81,3 +81,9 @@ escaped Cyrillic в изменённых файлах проверены — о�
 actual accepted key/sequence/TTL после settled-away. До этого новый gameplay
 patch/full G4 нельзя обосновать. M1 G1/G3/G4/G5/G6/G7/G8/R1/O_REAL/ручная
 приёмка не закрыты; historical failures сохраняются.
+
+Continuation: diagnostic preflight исправлен offline на actual68. Source-only
+selection допускает уже earned native identity без current BG cursor, full G4
+сохраняет исходную readiness проверку. Focused RED→GREEN/negative и Java/WinPS
+operator compile/parse PASS. Нового boot/attach не было: one-trace limit исчерпан,
+расширение scope запрошено и ожидает ответа. A1/G4 не повышены; product/JAR прежние.

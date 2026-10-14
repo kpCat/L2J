@@ -27,7 +27,7 @@ public final class SignalSnapshot044
         final var materialization = admission.materialization();
         final var object = materialization == null ? null : World.getInstance().findObject(materialization.characterObjectId());
         final Player player = object instanceof Player value ? value : null;
-        final var text = new StringBuilder("scope=PASSIVE_AFTER_SYNTHETIC_STOPPED_NOT_ORIGINAL_AWAY\nprofileId=" + profile + "\nsampleNanos=" + System.nanoTime() + "\n");
+        final var text = new StringBuilder("scope=PASSIVE_ONE_PROFILE_READ\nnativeReadConsistency=NONATOMIC_VOLATILE\nprofileId=" + profile + "\nsampleNanos=" + System.nanoTime() + "\n");
         text.append("sources=").append(scheduler.signalSources(profile)).append("\nadmission=").append(admission).append('\n');
         if (player != null) { text.append("hp=").append(player.getCurrentHp()).append("\ndead=").append(player.isDead()).append("\nmoving=").append(player.isMoving()).append("\nattacking=").append(player.isAttackingNow()).append("\ncasting=").append(player.isCastingNow()).append("\n"); }
         Files.writeString(output, text);

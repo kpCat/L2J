@@ -71,3 +71,19 @@ mojibake-маркеры в изменённых файлах проверены 
 escaped Cyrillic в изменённых файлах проверены — отдельная проверка в том же файле.
 
 M1 OPEN, READY_FOR_M2=false, USER_ACCEPTANCE REQUIRED. Следующий scope не начат.
+
+## Continuation: offline diagnostic preflight repair
+
+Current-readiness selection выделена в existing selector helper: source-only
+её не требует, full G4 сохраняет прежний cursor equality. Actual immutable68
+earned9 cycles/damage34/reward10: missing helper RED → source selection GREEN
+и full-G4 non-current negative GREEN. Source-only требует уже earned native work,
+затем прежнюю safe boundary; новый positive cycle нужен только полному G4.
+Hard holds/epoch/120 и gameplay не менялись; нового native исполнения не было.
+
+Bounded Invoke-SignalSnapshot044 использует existing Get-LocalPlayRuntimeId и
+exact live-role guard вместо отсутствующего manifest.runtimeId. Java compile и
+WinPS parse PASS offline; attach не выполнялся. Header neutral
+PASSIVE_ONE_PROFILE_READ/NONATOMIC_VOLATILE не объявляет away/G4 proof.
+Расширение ровно на один дополнительный source-only trace запрошено у пользователя
+по PLAN044 §2; до ответа boot/attach не разрешены. A1/G4 остаются NOT_VERIFIED.

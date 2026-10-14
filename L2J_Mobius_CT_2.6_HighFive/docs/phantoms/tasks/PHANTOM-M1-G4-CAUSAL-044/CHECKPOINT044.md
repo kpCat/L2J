@@ -67,3 +67,17 @@ First publication actual PASS:7d98a63515b7bcc84a15ad5fda599a5874181560=remote,
 tracked clean. Public compact receipt сохранён; final report/ZIP update отдельно.
 Original false remote-advanced guard refusal был WinPS scalar error до writes;
 remote BASE был повторно подтверждён, исправление не меняло history/remote policy.
+
+## Continuation audit — pending scope decision
+
+Authoritative HEAD=d84eacf55afc3d6811ba93caeb7a2068978c5a86, tracked/cached clean
+и own JVM0 повторно подтверждены. Единственный native boot/diagnostic used;
+A1/G4 missing и PLAN044 §2 one-trace limit блокируют новый native capture.
+Запрос расширения ровно на один source-only trace задан пользователю; ответа
+нет, новый boot/attach/full G4 не выполнялся.
+
+Actual68 input earned9/damage34/reward10 при non-current BG cursor. Offline
+helper RED→GREEN/full-G4 readiness negative отделили source capture от BG gate.
+Safe boundary/hard holds не изменены. Marker lookup исправлен через existing
+Get-LocalPlayRuntimeId; Java compile/WinPS parse PASS offline. Source/JAR прежние.
+Подготовка capture не считается owner proof или native GREEN.

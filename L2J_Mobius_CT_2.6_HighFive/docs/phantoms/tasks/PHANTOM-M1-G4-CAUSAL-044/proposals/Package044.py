@@ -17,7 +17,7 @@ ROOT_FILES = ['GOAL.md', 'TASK.md', 'CONTEXT.md', 'DESIGN.md', 'PLAN.md', 'ACCEP
 PROPOSALS = ['Bootstrap044.ps1', 'Invoke-Git044.ps1', 'TraceRaw043.py', 'FinalizeEvidence044.py', 'Package044.py', 'Publish044.ps1']
 INDICES = ['OFFLINE044.json', 'REGRESSIONS044.json', 'CONSERVATION044.json', 'PRESERVATION044.json', 'HELPER_GIT_COMMANDS044.json', 'CURRENT93_044-matrix.tsv', 'DIAGNOSTIC_INPUT044.json']
 HELPERS = ['Prepare032.ps1', 'Control032.ps1', 'Observe032.ps1', 'Contract032Observer.java', 'Read-SharedJson032.ps1', 'ReadDryRoute032.java', 'ReadDryPath044.java',
-           'Select-Primary044.ps1', 'All-Birth-Cut044.ps1', 'Build-StockShutdown044.ps1', 'Stop-ExactOwnedGracefully.ps1', 'RuntimeShutdownAgent044.java', 'RequestShutdown.java', 'SplitSql039.py', 'SignalSnapshot044.java']
+           'Select-Primary044.ps1', 'All-Birth-Cut044.ps1', 'Build-StockShutdown044.ps1', 'Stop-ExactOwnedGracefully.ps1', 'RuntimeShutdownAgent044.java', 'RequestShutdown.java', 'SplitSql039.py', 'SignalSnapshot044.java', 'Invoke-SignalSnapshot044.ps1', 'Test-SourceSelection044.ps1']
 VALIDATORS = ['commit_chain039.py', 'complete_chain044.py', 'raw_archive044.py', 'verify_commit_run039.py', 'test_commit_chain039.py', 'test_complete_chain044.py', 'VerifyNativeCommit039.java', 'VerifyStoppedCut039.java']
 SOURCE = ['java/org/l2jmobius/gameserver/phantoms/PhantomScheduler.java', 'test/java/org/l2jmobius/tests/phantoms/PhantomActivitySchedulerSuite.java', 'test/java/org/l2jmobius/tests/phantoms/PhantomHeadlessPlayerTestEnvironment.java']
 
