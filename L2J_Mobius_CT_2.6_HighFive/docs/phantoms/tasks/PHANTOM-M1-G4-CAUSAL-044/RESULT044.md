@@ -87,3 +87,30 @@ selection допускает уже earned native identity без current BG cur
 сохраняет исходную readiness проверку. Focused RED→GREEN/negative и Java/WinPS
 operator compile/parse PASS. Нового boot/attach не было: one-trace limit исчерпан,
 расширение scope запрошено и ожидает ответа. A1/G4 не повышены; product/JAR прежние.
+
+## Итог разрешённого дополнительного trace
+
+Два прямых ответа пользователя разрешили один additional source-only trace и
+новое окно до30мин. Approval/input receipts отдельные immutable044; исходные
+DIAGNOSTIC_INPUT044/failure не изменены. Start044a12:22:38 UTC, Game36500/Login30912;
+оба штатно stopped, own JVM0, protected040a18688/30312 неизменны.
+
+Snapshot PASS:55 one-profile кадров73, только законный human.local/NEARBY_PERCEPTIBLE,
+TTL10000, seq135→186 с actual expiry. Ни одного ACTIVE source; historical1189
+owner UNKNOWN. Native result INPUT_FAIL_SAFE_BOUNDARY_BEFORE_MOVE: quiet не появился
+в45с, первая quiet запись +51.4393965с; actor replacement/MOVE/away не выполнялись.
+Таким образом source API live проверен, causal RED и полный G4 не получены.
+Source/gameplay/JAR прежние; новый product fix без RED не внесён.
+
+Дополнительный run strict conservation PASS:40 lifetimes terminal/4182 owning commits,
+48 native witnesses/25 stopped canonical profiles; FULL_SAVE/GLOBAL_DRAIN true,
+dropped0/failure empty/pendingOwnedStores0/onlineCharacters0. Первый strict FAIL
+сохранён, campaign A5_CONSERVATION NOT_VERIFIED.304 original036 files, pinned043
+и MAIN input bytes повторно проверены unchanged. G2_CURRENT NOT_VERIFIED;
+historical A5/C24 PASS сохранены. Матрица GATES044.tsv содержит отдельные строки
+live snapshot/дополнительного drain, не повышая historical owner/G4/M1 gates.
+
+Текущий результат PARTIAL_VERIFIED: M1 OPEN, READY_FOR_M2=false, manual REQUIRED.
+Дополнительные native попытки и М2 не начаты. Компактные exact receipts содержат
+пины raw; raw/DB/JAR не опубликованы. Новый обычный commit/push закрывает только
+разрешённый trace и task044 artifacts; post-push SHA/clean в отдельном local receipt.

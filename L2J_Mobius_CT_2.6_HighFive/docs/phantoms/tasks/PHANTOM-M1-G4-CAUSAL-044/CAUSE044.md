@@ -58,3 +58,34 @@ RUN_END dropped0. Это не FULL_SAVE/GLOBAL_DRAIN PASS полного run.
 background.native_context не объявлены реальным владельцем D1 без ключа.
 
 Input paths/SHA и compact phase facts: evidence/OFFLINE044.json.
+
+## Разрешённый дополнительный source-only trace
+
+Пользователь явно разрешил ещё один source-only trace и отдельное окно до30мин,
+12:21–12:51 UTC14.10.2026. Исходный one-trace limit расширен только этим ответом;
+полный G4 в новом окне запрещён. Первый failure/DB/raw сохранены. Новый ordinary
+boot выполнен на прежнем044a/source80/JAR E502, без reset/reimport/heal.
+
+Prospective profile73/object268485461/epoch708784394245000, native earned
+14cycles/14rewards/37damage при selection; первый one-profile frame уже15/15/38.
+Actual one-profile getter дал55 кадров. Единственный
+ключ human.local, NEARBY_PERCEPTIBLE, TTL10000мс, sequence135→186; первая expiry
+708924189968400 при sample708915100643700, последняя expiry708976590030600 при
+sample708971408971400. Все snapshot remaining положительные, expiredAtRead=false.
+Existing PhantomHumanLocalityControl владеет human.local и обновляет его раз в1с
+для действительного prewarm: observer оставался у origin, MOVE не выполнялся.
+Это законный актуальный locality source; ACTIVE source в этих кадрах отсутствует.
+
+В пределах45с quiet boundary для закреплённого73 не появился. Runner сохранил
+LIFE044_SAFE_BOUNDARY_INPUT_ABSENT, остановил Synthetic и штатно завершил own JVM.
+Первая quiet запись в сохранённых кадрах находится через51.4393965с от первого
+кадра, уже после окончания input wait; она не даёт права переиграть departure.
+AWAY_ARRIVED/away frames0. Новый trace не воспроизвёл состояние historical1189;
+его actual owner key/seq/expiry по-прежнему UNKNOWN. Causal gameplay RED не получен,
+gameplay patch/full G4 не выполнялись; новых попыток нет.
+
+Новый run conservation отдельно PASS:40 lifetimes terminal,4182 owning commits,
+48/48 native witnesses,25/25 stopped canonical profiles; FULL_SAVE/GLOBAL_DRAIN/
+NATIVE_BOUNDARY_INTERVAL/FINAL_STOPPED_CUT true, RUN_END failure empty/dropped0.
+Исходный conservation044 strict FAIL не переписывается и не переносится в PASS.
+Exact источники/пины: evidence/ADDITIONAL_SOURCE_RESULT044.json и ADDITIONAL_FINAL044.json.

@@ -13,9 +13,9 @@ REPO = MODULE.parent
 OPS = MODULE / '.phantom-local/ops044'
 ROOT_FILES = ['GOAL.md', 'TASK.md', 'CONTEXT.md', 'DESIGN.md', 'PLAN.md', 'ACCEPTANCE.md', 'SOURCE_MAP.tsv', 'SIGNAL_PATH.md', 'HANDOFF.md', 'PACKAGE_SHA256.txt',
               'CAUSE044.md', 'RESULT044.md', 'GATES044.tsv', 'REVIEW044.md', 'CHECKPOINT044.md', 'GIT_COMMANDS044.md', 'PRECONDITIONS044.md', 'SOURCE_DIFF044.patch',
-              'Verify044.ps1', 'Run-Diagnostic044.ps1', 'Run-Dry044.ps1', 'Run-Life044.ps1', 'Check-LifeBoundary044.ps1', 'Verify-Life044.py', 'Decode-LifeReceipts044.java']
-PROPOSALS = ['Bootstrap044.ps1', 'Invoke-Git044.ps1', 'TraceRaw043.py', 'FinalizeEvidence044.py', 'Package044.py', 'Publish044.ps1']
-INDICES = ['OFFLINE044.json', 'REGRESSIONS044.json', 'CONSERVATION044.json', 'PRESERVATION044.json', 'HELPER_GIT_COMMANDS044.json', 'CURRENT93_044-matrix.tsv', 'DIAGNOSTIC_INPUT044.json']
+              'Verify044.ps1', 'Run-Diagnostic044.ps1', 'Run-SourceDiagnostic044a.ps1', 'PRECONDITIONS_SOURCE044a.md', 'Run-Dry044.ps1', 'Run-Life044.ps1', 'Check-LifeBoundary044.ps1', 'Verify-Life044.py', 'Decode-LifeReceipts044.java']
+PROPOSALS = ['Bootstrap044.ps1', 'Invoke-Git044.ps1', 'TraceRaw043.py', 'TraceAdditional044.py', 'FinalizeAdditional044.py', 'FinalizeEvidence044.py', 'Package044.py', 'Publish044.ps1']
+INDICES = ['OFFLINE044.json', 'REGRESSIONS044.json', 'CONSERVATION044.json', 'PRESERVATION044.json', 'HELPER_GIT_COMMANDS044.json', 'CURRENT93_044-matrix.tsv', 'DIAGNOSTIC_INPUT044.json', 'ADDITIONAL_TRACE_AUTH044.json', 'DIAGNOSTIC_ADDITIONAL_INPUT044.json', 'ADDITIONAL_SOURCE_RESULT044.json', 'ADDITIONAL_FINAL044.json', 'ADDITIONAL_RUNTIME_FINAL044.json']
 HELPERS = ['Prepare032.ps1', 'Control032.ps1', 'Observe032.ps1', 'Contract032Observer.java', 'Read-SharedJson032.ps1', 'ReadDryRoute032.java', 'ReadDryPath044.java',
            'Select-Primary044.ps1', 'All-Birth-Cut044.ps1', 'Build-StockShutdown044.ps1', 'Stop-ExactOwnedGracefully.ps1', 'RuntimeShutdownAgent044.java', 'RequestShutdown.java', 'SplitSql039.py', 'SignalSnapshot044.java', 'Invoke-SignalSnapshot044.ps1', 'Test-SourceSelection044.ps1']
 VALIDATORS = ['commit_chain039.py', 'complete_chain044.py', 'raw_archive044.py', 'verify_commit_run039.py', 'test_commit_chain039.py', 'test_complete_chain044.py', 'VerifyNativeCommit039.java', 'VerifyStoppedCut039.java']

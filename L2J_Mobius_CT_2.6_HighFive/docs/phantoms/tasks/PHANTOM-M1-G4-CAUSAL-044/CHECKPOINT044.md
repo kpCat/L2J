@@ -81,3 +81,23 @@ helper RED→GREEN/full-G4 readiness negative отделили source capture о
 Safe boundary/hard holds не изменены. Marker lookup исправлен через existing
 Get-LocalPlayRuntimeId; Java compile/WinPS parse PASS offline. Source/JAR прежние.
 Подготовка capture не считается owner proof или native GREEN.
+
+## Последний checkpoint — additional source-only завершён
+
+Пользователь разрешил ровно один extra trace и до30мин нового wall-clock окна.
+Trace использовал existing044a без reset/reimport: source80/JAR E502. Additional
+input receipt immutable; новые boot/attach попытки не разрешены этим ответом.
+Live snapshot55frames для73 PASS, только human.local/NEARBY_PERCEPTIBLE/TTL10000,
+seq135→186 с actual sample/expiry. Исторический1189 owner остаётся UNKNOWN.
+Quiet boundary45с INPUT_FAIL до MOVE; away frames0, G4 не запускался.
+Новое causal gameplay RED отсутствует, product code/JAR не менялись.
+
+Stock Game36500/Login30912 stopped; own JVM0, protected040a18688/30312 те же.
+New strict conservation PASS40lifetimes/4182commits/48native/25stopped, pending0/
+online0, dropped0/failure empty. Original run strict FAIL сохранён.304 original036
+files/043 pinned raw/MAIN inputs unchanged. Full matrix GATES044.tsv; G2 historical
+PASS, current NOT_VERIFIED. M1 OPEN/manual REQUIRED, М2 не начат.
+
+Bounded new result indices: ADDITIONAL_SOURCE_RESULT044.json/ADDITIONAL_FINAL044.json.
+Reports/verified compact ZIP публикуются ordinary exact-path commit/non-force push;
+после публикации authoritative SHA и tracked clean фиксируются local receipt.

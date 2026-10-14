@@ -1,0 +1,31 @@
+﻿{
+    "sourceSha":  "80e7bdd346c24faf2153dcf04f5d0adf7a7e06ae",
+    "fullG4":  false,
+    "allowedAdditionalDiagnosticCount":  1,
+    "selection":  "lowest living ordinary profile with existing native cycle/reward/damage; no current ecology requirement",
+    "utc":  "2026-10-14T12:22:34.9526685Z",
+    "contract":  "ONE_ADDITIONAL_SOURCE_ONLY044",
+    "authorizationSha256":  "378247FC22B5462F88A5BD7953A58BCB98200FAB246AD4F404525B299B194496",
+    "pins":  [
+                 {
+                     "sha256":  "E19B4BB401E211D8D0B8BDDC617636EEACBD0BC777D03722E4AF06ADD7828376",
+                     "path":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops044\\Contract032Observer.java"
+                 },
+                 {
+                     "sha256":  "CB7116B3B331BFA88CA6D27B8614817FAAB0E69D63F2C0A8DE44BB89939F4768",
+                     "path":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops044\\Observe032.ps1"
+                 },
+                 {
+                     "sha256":  "E7CD49377BAB7F94E75D05515BBE7B98609E08C2AE3F03AA6B8F0DB95350B134",
+                     "path":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops044\\Control032.ps1"
+                 },
+                 {
+                     "sha256":  "932C092490E795A9156444116297A8731DBF1174A84E2EE84EF727EFE489C34E",
+                     "path":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops044\\Stop-ExactOwnedGracefully.ps1"
+                 },
+                 {
+                     "sha256":  "B5AD5696931D30807F781AD0E8B27BFA78356CED785F878CD545907AAF343AB4",
+                     "path":  "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops044\\Select-Primary044.ps1"
+                 }
+             ]
+}

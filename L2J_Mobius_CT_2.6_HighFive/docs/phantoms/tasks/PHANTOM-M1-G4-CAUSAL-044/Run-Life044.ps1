@@ -5,7 +5,13 @@ $module044=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $ops044=Join-Path $module044 '.phantom-local/ops044'
 $output044=Join-Path $PSScriptRoot "evidence/$Label"
 if(Test-Path $output044){throw 'Immutable LIFE output exists.'}
-if([DateTime]::UtcNow -ge [DateTime]::Parse('2026-10-14T03:59:13Z').ToUniversalTime()){throw 'Publication reserve; no new episode.'}
+$deadline044=[DateTime]::Parse('2026-10-14T03:59:13Z').ToUniversalTime()
+if($Label -ceq 'DIAG_A2_SOURCE044' -and $Episode -ceq 'a' -and $env:PHANTOM_TASK044_DIAGNOSTIC -ceq 'true'){
+    $approval044=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'evidence/ADDITIONAL_TRACE_AUTH044.json') -Raw | ConvertFrom-Json
+    if($approval044.contract -cne 'ONE_ADDITIONAL_SOURCE_ONLY044' -or $approval044.fullG4 -ne $false -or $approval044.deadlineUtc -cne '2026-10-14T12:51:00Z'){throw 'Exact additional trace authorization required.'}
+    $deadline044=[DateTime]::Parse('2026-10-14T12:36:00Z').ToUniversalTime()
+}
+if([DateTime]::UtcNow -ge $deadline044){throw 'Publication reserve; no new episode.'}
 $frozen044=Join-Path $PSScriptRoot "evidence/$Label-PROSPECTIVE.json"
 if(Test-Path $frozen044){throw 'Frozen preconditions already exist.'}
 $precondition044=if($PreconditionsFile){[IO.Path]::GetFullPath($PreconditionsFile)}else{Join-Path $PSScriptRoot 'PRECONDITIONS044.md'}

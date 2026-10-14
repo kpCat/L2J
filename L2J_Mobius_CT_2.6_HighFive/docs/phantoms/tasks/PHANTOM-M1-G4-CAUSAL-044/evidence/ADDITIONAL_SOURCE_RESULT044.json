@@ -1,0 +1,1587 @@
+{
+  "contract": "ADDITIONAL_SOURCE_ONLY044_RESULT",
+  "fullG4": false,
+  "retrospectiveD1Owner": "UNKNOWN; new profile cannot attribute historical1189",
+  "nativeReads": "NONATOMIC_VOLATILE; source list internally monitor-locked",
+  "frameCount": 55,
+  "awayFrameCount": 0,
+  "sources": [
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "135",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708924189968400",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "135",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708915100643700",
+        "expiresAtNanos": "708924189968400",
+        "remainingTtlMillis": "9089",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "135",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708915100643700",
+        "expiresAtNanos": "708924189968400",
+        "remainingTtlMillis": "9089",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "136",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708925288628900",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "136",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708916174403200",
+        "expiresAtNanos": "708925288628900",
+        "remainingTtlMillis": "9114",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "136",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708916174403200",
+        "expiresAtNanos": "708925288628900",
+        "remainingTtlMillis": "9114",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "137",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708926288384600",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "137",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708917210846300",
+        "expiresAtNanos": "708926288384600",
+        "remainingTtlMillis": "9077",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "137",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708917210846300",
+        "expiresAtNanos": "708926288384600",
+        "remainingTtlMillis": "9077",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "138",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708927288628300",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "138",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708918250067500",
+        "expiresAtNanos": "708927288628300",
+        "remainingTtlMillis": "9038",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "138",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708918250067500",
+        "expiresAtNanos": "708927288628300",
+        "remainingTtlMillis": "9038",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "139",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708928289507900",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "139",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708919279955400",
+        "expiresAtNanos": "708928289507900",
+        "remainingTtlMillis": "9009",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "139",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708919279955400",
+        "expiresAtNanos": "708928289507900",
+        "remainingTtlMillis": "9009",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "140",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708929290159500",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "140",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708920307483400",
+        "expiresAtNanos": "708929290159500",
+        "remainingTtlMillis": "8982",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "140",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708920307483400",
+        "expiresAtNanos": "708929290159500",
+        "remainingTtlMillis": "8982",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "141",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708930390154100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "141",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708921344139600",
+        "expiresAtNanos": "708930390154100",
+        "remainingTtlMillis": "9046",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "141",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708921344139600",
+        "expiresAtNanos": "708930390154100",
+        "remainingTtlMillis": "9046",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "142",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708931488231800",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "142",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708922372162900",
+        "expiresAtNanos": "708931488231800",
+        "remainingTtlMillis": "9116",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "142",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708922372162900",
+        "expiresAtNanos": "708931488231800",
+        "remainingTtlMillis": "9116",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "143",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708932488338200",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "143",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708923401570600",
+        "expiresAtNanos": "708932488338200",
+        "remainingTtlMillis": "9086",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "143",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708923401570600",
+        "expiresAtNanos": "708932488338200",
+        "remainingTtlMillis": "9086",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "144",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708933490137900",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "144",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708924440823900",
+        "expiresAtNanos": "708933490137900",
+        "remainingTtlMillis": "9049",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "144",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708924440823900",
+        "expiresAtNanos": "708933490137900",
+        "remainingTtlMillis": "9049",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "145",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708934589577100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "145",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708925448335500",
+        "expiresAtNanos": "708934589577100",
+        "remainingTtlMillis": "9141",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "145",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708925448335500",
+        "expiresAtNanos": "708934589577100",
+        "remainingTtlMillis": "9141",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "146",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708935589113300",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "146",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708926456208900",
+        "expiresAtNanos": "708935589113300",
+        "remainingTtlMillis": "9132",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "146",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708926456208900",
+        "expiresAtNanos": "708935589113300",
+        "remainingTtlMillis": "9132",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "147",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708936589555400",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "147",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708927458960100",
+        "expiresAtNanos": "708936589555400",
+        "remainingTtlMillis": "9130",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "147",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708927458960100",
+        "expiresAtNanos": "708936589555400",
+        "remainingTtlMillis": "9130",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "148",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708937588976200",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "148",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708928481681100",
+        "expiresAtNanos": "708937588976200",
+        "remainingTtlMillis": "9107",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "148",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708928481681100",
+        "expiresAtNanos": "708937588976200",
+        "remainingTtlMillis": "9107",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "149",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708938589056400",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "149",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708929543929200",
+        "expiresAtNanos": "708938589056400",
+        "remainingTtlMillis": "9045",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "149",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708929543929200",
+        "expiresAtNanos": "708938589056400",
+        "remainingTtlMillis": "9045",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "150",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708939589334100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "150",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708930572002400",
+        "expiresAtNanos": "708939589334100",
+        "remainingTtlMillis": "9017",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "150",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708930572002400",
+        "expiresAtNanos": "708939589334100",
+        "remainingTtlMillis": "9017",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "151",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708940589061700",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "151",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708931601250700",
+        "expiresAtNanos": "708940589061700",
+        "remainingTtlMillis": "8987",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "151",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708931601250700",
+        "expiresAtNanos": "708940589061700",
+        "remainingTtlMillis": "8987",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "152",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708941688368400",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "152",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708932628743000",
+        "expiresAtNanos": "708941688368400",
+        "remainingTtlMillis": "9059",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "152",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708932628743000",
+        "expiresAtNanos": "708941688368400",
+        "remainingTtlMillis": "9059",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "153",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708942688329900",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "153",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708933655755300",
+        "expiresAtNanos": "708942688329900",
+        "remainingTtlMillis": "9032",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "153",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708933655755300",
+        "expiresAtNanos": "708942688329900",
+        "remainingTtlMillis": "9032",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "154",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708943689496600",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "154",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708934684490900",
+        "expiresAtNanos": "708943689496600",
+        "remainingTtlMillis": "9005",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "154",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708934684490900",
+        "expiresAtNanos": "708943689496600",
+        "remainingTtlMillis": "9005",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "156",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708945689587100",
+      "frames": 2,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "156",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708935712971500",
+        "expiresAtNanos": "708945689587100",
+        "remainingTtlMillis": "9976",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "156",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708936741952900",
+        "expiresAtNanos": "708945689587100",
+        "remainingTtlMillis": "8947",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "157",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708946789487600",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "157",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708937767206000",
+        "expiresAtNanos": "708946789487600",
+        "remainingTtlMillis": "9022",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "157",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708937767206000",
+        "expiresAtNanos": "708946789487600",
+        "remainingTtlMillis": "9022",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "158",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708947888596800",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "158",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708938796330900",
+        "expiresAtNanos": "708947888596800",
+        "remainingTtlMillis": "9092",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "158",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708938796330900",
+        "expiresAtNanos": "708947888596800",
+        "remainingTtlMillis": "9092",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "159",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708948889024200",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "159",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708939831507800",
+        "expiresAtNanos": "708948889024200",
+        "remainingTtlMillis": "9057",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "159",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708939831507800",
+        "expiresAtNanos": "708948889024200",
+        "remainingTtlMillis": "9057",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "160",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708949889028300",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "160",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708940855437400",
+        "expiresAtNanos": "708949889028300",
+        "remainingTtlMillis": "9033",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "160",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708940855437400",
+        "expiresAtNanos": "708949889028300",
+        "remainingTtlMillis": "9033",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "161",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708950888778200",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "161",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708941883752600",
+        "expiresAtNanos": "708950888778200",
+        "remainingTtlMillis": "9005",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "161",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708941883752600",
+        "expiresAtNanos": "708950888778200",
+        "remainingTtlMillis": "9005",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "162",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708951989936500",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "162",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708942884377200",
+        "expiresAtNanos": "708951989936500",
+        "remainingTtlMillis": "9105",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "162",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708942884377200",
+        "expiresAtNanos": "708951989936500",
+        "remainingTtlMillis": "9105",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "163",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708953088872100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "163",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708943923697500",
+        "expiresAtNanos": "708953088872100",
+        "remainingTtlMillis": "9165",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "163",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708943923697500",
+        "expiresAtNanos": "708953088872100",
+        "remainingTtlMillis": "9165",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "164",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708954089618200",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "164",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708944927234700",
+        "expiresAtNanos": "708954089618200",
+        "remainingTtlMillis": "9162",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "164",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708944927234700",
+        "expiresAtNanos": "708954089618200",
+        "remainingTtlMillis": "9162",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "165",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708955088880900",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "165",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708945929162100",
+        "expiresAtNanos": "708955088880900",
+        "remainingTtlMillis": "9159",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "165",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708945929162100",
+        "expiresAtNanos": "708955088880900",
+        "remainingTtlMillis": "9159",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "166",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708956188576100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "166",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708946953182000",
+        "expiresAtNanos": "708956188576100",
+        "remainingTtlMillis": "9235",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "166",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708946953182000",
+        "expiresAtNanos": "708956188576100",
+        "remainingTtlMillis": "9235",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "167",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708957190150100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "167",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708947991347600",
+        "expiresAtNanos": "708957190150100",
+        "remainingTtlMillis": "9198",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "167",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708947991347600",
+        "expiresAtNanos": "708957190150100",
+        "remainingTtlMillis": "9198",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "168",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708958289110700",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "168",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708949023191500",
+        "expiresAtNanos": "708958289110700",
+        "remainingTtlMillis": "9265",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "168",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708949023191500",
+        "expiresAtNanos": "708958289110700",
+        "remainingTtlMillis": "9265",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "169",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708959289099300",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "169",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708950051546500",
+        "expiresAtNanos": "708959289099300",
+        "remainingTtlMillis": "9237",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "169",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708950051546500",
+        "expiresAtNanos": "708959289099300",
+        "remainingTtlMillis": "9237",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "170",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708960288820100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "170",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708951081191800",
+        "expiresAtNanos": "708960288820100",
+        "remainingTtlMillis": "9207",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "170",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708951081191800",
+        "expiresAtNanos": "708960288820100",
+        "remainingTtlMillis": "9207",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "171",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708961289097200",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "171",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708952112928000",
+        "expiresAtNanos": "708961289097200",
+        "remainingTtlMillis": "9176",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "171",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708952112928000",
+        "expiresAtNanos": "708961289097200",
+        "remainingTtlMillis": "9176",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "172",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708962289334700",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "172",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708953139850900",
+        "expiresAtNanos": "708962289334700",
+        "remainingTtlMillis": "9149",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "172",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708953139850900",
+        "expiresAtNanos": "708962289334700",
+        "remainingTtlMillis": "9149",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "173",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708963289354700",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "173",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708954168407400",
+        "expiresAtNanos": "708963289354700",
+        "remainingTtlMillis": "9120",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "173",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708954168407400",
+        "expiresAtNanos": "708963289354700",
+        "remainingTtlMillis": "9120",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "174",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708964290202400",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "174",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708955199775100",
+        "expiresAtNanos": "708964290202400",
+        "remainingTtlMillis": "9090",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "174",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708955199775100",
+        "expiresAtNanos": "708964290202400",
+        "remainingTtlMillis": "9090",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "175",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708965389272300",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "175",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708956229851900",
+        "expiresAtNanos": "708965389272300",
+        "remainingTtlMillis": "9159",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "175",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708956229851900",
+        "expiresAtNanos": "708965389272300",
+        "remainingTtlMillis": "9159",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "176",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708966489407200",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "176",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708957259576900",
+        "expiresAtNanos": "708966489407200",
+        "remainingTtlMillis": "9229",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "176",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708957259576900",
+        "expiresAtNanos": "708966489407200",
+        "remainingTtlMillis": "9229",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "177",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708967490445100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "177",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708958269994900",
+        "expiresAtNanos": "708967490445100",
+        "remainingTtlMillis": "9220",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "177",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708958269994900",
+        "expiresAtNanos": "708967490445100",
+        "remainingTtlMillis": "9220",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "178",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708968590092900",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "178",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708959278718700",
+        "expiresAtNanos": "708968590092900",
+        "remainingTtlMillis": "9311",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "178",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708959278718700",
+        "expiresAtNanos": "708968590092900",
+        "remainingTtlMillis": "9311",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "179",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708969589137600",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "179",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708960288467600",
+        "expiresAtNanos": "708969589137600",
+        "remainingTtlMillis": "9300",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "179",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708960288467600",
+        "expiresAtNanos": "708969589137600",
+        "remainingTtlMillis": "9300",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "180",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708970589207100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "180",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708961290769000",
+        "expiresAtNanos": "708970589207100",
+        "remainingTtlMillis": "9298",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "180",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708961290769000",
+        "expiresAtNanos": "708970589207100",
+        "remainingTtlMillis": "9298",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "181",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708971589645200",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "181",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708962371986000",
+        "expiresAtNanos": "708971589645200",
+        "remainingTtlMillis": "9217",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "181",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708962371986000",
+        "expiresAtNanos": "708971589645200",
+        "remainingTtlMillis": "9217",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "182",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708972589411800",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "182",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708963469251500",
+        "expiresAtNanos": "708972589411800",
+        "remainingTtlMillis": "9120",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "182",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708963469251500",
+        "expiresAtNanos": "708972589411800",
+        "remainingTtlMillis": "9120",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "183",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708973588862100",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "183",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708964492906100",
+        "expiresAtNanos": "708973588862100",
+        "remainingTtlMillis": "9095",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "183",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708964492906100",
+        "expiresAtNanos": "708973588862100",
+        "remainingTtlMillis": "9095",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "184",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708974589308700",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "184",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708965515241200",
+        "expiresAtNanos": "708974589308700",
+        "remainingTtlMillis": "9074",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "184",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708965515241200",
+        "expiresAtNanos": "708974589308700",
+        "remainingTtlMillis": "9074",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "185",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708975589418200",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "185",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708966537705000",
+        "expiresAtNanos": "708975589418200",
+        "remainingTtlMillis": "9051",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "185",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708966537705000",
+        "expiresAtNanos": "708975589418200",
+        "remainingTtlMillis": "9051",
+        "expiredAtRead": "false"
+      }
+    },
+    {
+      "profileId": "73",
+      "sourceKey": "human.local",
+      "sequence": "186",
+      "requiredState": "NEARBY_PERCEPTIBLE",
+      "originalTtlMillis": "10000",
+      "expiresAtNanos": "708976590030600",
+      "frames": 1,
+      "awayFrames": 0,
+      "first": {
+        "sourceKey": "human.local",
+        "sequence": "186",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708971408971400",
+        "expiresAtNanos": "708976590030600",
+        "remainingTtlMillis": "5181",
+        "expiredAtRead": "false"
+      },
+      "last": {
+        "sourceKey": "human.local",
+        "sequence": "186",
+        "requiredState": "NEARBY_PERCEPTIBLE",
+        "originalTtlMillis": "10000",
+        "sampleNanos": "708971408971400",
+        "expiresAtNanos": "708976590030600",
+        "remainingTtlMillis": "5181",
+        "expiredAtRead": "false"
+      }
+    }
+  ],
+  "phaseNames": [],
+  "endpoints": {
+    "all": [
+      {
+        "sampleNanos": 708915097909600,
+        "profileId": "73",
+        "away": false,
+        "sources": "[SignalSourceSnapshot[sourceKey=human.local, sequence=135, requiredState=NEARBY_PERCEPTIBLE, originalTtlMillis=10000, sampleNanos=708915100643700, expiresAtNanos=708924189968400, remainingTtlMillis=9089, expiredAtRead=false]]",
+        "operatorAdmission": "Optional[OperatorAdmissionProfile[admission=AdmissionProfileSnapshot[profileId=73, populationState=READY, desiredState=ACTIVE, effectiveState=SLEEPING, eligible=false, admitted=false, reason=ecology_fenced, pendingRebalance=false, nextBoundary=2026-10-14T13:11:00Z, calendarOnline=true], scheduler=PhantomActivitySnapshot[profileId=73, effectiveState=NEARBY_PERCEPTIBLE, requestedState=NEARBY_PERCEPTIBLE, transitionStatus=STABLE, activeSignalSources=1, enqueued=false, due=true, processing=false, boundaryInFlight=false, boundaryGeneration=0, activityGeneration=3, nextDueNanos=708915138129700, tickSequence=395, lastResult=WORK_DELIVERED, lastTransitionNanos=708786687313000, lastTransitionReason=], materialization=MaterializationSnapshot[profileId=73, characterObjectId=268485461, state=ACTIVE, playerRetained=true, identityLeaseRetained=true, outboundAttached=true, actionAdmissionOpen=true, admittedActionCount=1, worldPresent=true, materializedAtNanos=708784394245000, dematerializedAtNanos=0, cleanupPhase=NONE, cleanupFailurePhase=NONE, cleanupFailureClass=, cleanupFailureMessage=, cleanupFailureSequence=0, cleanupFailureAdmittedActionCount=0, cleanupFailureCause=, firstCleanupIncident=null, latestCleanupIncident=null], lastMaterializationFailure=null, busyReason=action, readiness=DueSnapshot[profileId=73, requestedHorizonMinute=29866345, committedCursorMinute=29846100, initialCatchupComplete=true, requestPending=true, queued=false, running=false, revision=6, complete=false, reason=ecology.preparation_capacity], humanLocality=true, nativeVisible=true, retentionPins=[NATIVE_VISIBLE, ACTIVE_ACTION, RECENT_HUMAN]]]",
+        "worldPresent": "true",
+        "dead": "false",
+        "outstanding": "1",
+        "observerPrewarm": "true",
+        "observerNativeVisible": "true"
+      },
+      {
+        "sampleNanos": 708976543429500,
+        "profileId": "73",
+        "away": false,
+        "sources": "[]",
+        "operatorAdmission": "Optional.empty",
+        "worldPresent": "false",
+        "dead": "false",
+        "outstanding": null,
+        "observerPrewarm": "false",
+        "observerNativeVisible": "false"
+      }
+    ],
+    "away": []
+  },
+  "pins": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A2_SOURCE044\\full-native\\full-cohort-samples.jsonl",
+      "bytes": 915934,
+      "sha256": "f8f203cd3a6a022b4dccd8cd7af1ec4003a4ab49c425d78acf092d0286857e2b"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A2_SOURCE044\\primary.json",
+      "bytes": 9291,
+      "sha256": "f25ece55ce3c5a20025836a932086942a7e924b2fdf976ece424ad7467ca4449"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A2_SOURCE044\\episode-failure.txt",
+      "bytes": 626,
+      "sha256": "fc4ac8fad29b7a747c0783331f3b8a687381801700bd7987bbf3113890b86ee3"
+    }
+  ]
+}

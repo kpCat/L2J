@@ -1,0 +1,83 @@
+{
+  "contract": "APPROVED_ADDITIONAL_SOURCE_ONLY044_CLOSEOUT",
+  "nativeOutcome": "INPUT_FAIL_SAFE_BOUNDARY_BEFORE_MOVE",
+  "fullG4": false,
+  "sourceView": "PASS; 55 one-profile frames; no ACTIVE source",
+  "historical1189Owner": "UNKNOWN",
+  "awayFrames": 0,
+  "profileId": "73",
+  "objectId": "268485461",
+  "epoch": "708784394245000",
+  "existingEarned": {
+    "nativeFarmCycleSequence": "15",
+    "nativeRewardSequence": "15",
+    "nativeDamageSequence": "38"
+  },
+  "firstQuietSampleNanos": 708966537306100,
+  "firstQuietSecondsFromFirstFrame": 51.4393965,
+  "conservation": {
+    "nativeBirths": 40,
+    "commitRecords": 4182,
+    "allBirthsTerminal": true,
+    "GLOBAL_DRAIN": true,
+    "NATIVE_BOUNDARY_INTERVAL": true,
+    "FINAL_STOPPED_CUT": true,
+    "FULL_SAVE": true,
+    "pass": true,
+    "failures": [],
+    "nativeVerifierExit": 0,
+    "stoppedVerifierExit": 0,
+    "nativeWitnesses": 48,
+    "nativePassing": 48,
+    "stoppedProfiles": 25
+  },
+  "campaignConservation": "NOT_VERIFIED; original RUN_END failure retained",
+  "preservation": {
+    "original036Files": 304,
+    "original036Unchanged": true,
+    "raw043PinnedUnchanged": true,
+    "mainInputPacketUnchanged": true
+  },
+  "pins": [
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\.phantom-local\\ops044\\DIAG_A2_CONSERVATION044.json",
+      "bytes": 1725625,
+      "sha256": "2f31868185239bf0a113b723182cfa216bbc0e236b28ad736000f283e010337f"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A2_SOURCE044\\full-native\\full-cohort-samples.jsonl",
+      "bytes": 915934,
+      "sha256": "f8f203cd3a6a022b4dccd8cd7af1ec4003a4ab49c425d78acf092d0286857e2b"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\ADDITIONAL_TRACE_AUTH044.json",
+      "bytes": 506,
+      "sha256": "378247fc22b5462f88a5bd7953a58bcb98200fab246ad4f404525b299b194496"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAGNOSTIC_ADDITIONAL_INPUT044.json",
+      "bytes": 2042,
+      "sha256": "22a0480efa09261bb798745c91ab3819a8a74bfe8f76af48f5829a87aed7c342"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A2_SOURCE044\\episode-failure.txt",
+      "bytes": 626,
+      "sha256": "fc4ac8fad29b7a747c0783331f3b8a687381801700bd7987bbf3113890b86ee3"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A2_SOURCE044\\final-synthetic-state.json",
+      "bytes": 512,
+      "sha256": "37023d911df2b0c363052d6bd09ab567482b3a257fcd5b98ec796e9f55aea449"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A2_SOURCE044-FALLBACK-STOP\\typed-stop-done.properties",
+      "bytes": 1905,
+      "sha256": "533853308f151064e0963a5791af42c00b990fda876be646b3f56ba22252cdf0"
+    },
+    {
+      "path": "C:\\Users\\ZBook\\.codex\\worktrees\\phantom-dev\\L2J_Mobius\\L2J_Mobius_CT_2.6_HighFive\\docs\\phantoms\\tasks\\PHANTOM-M1-G4-CAUSAL-044\\evidence\\DIAG_A2_SOURCE044-STOPPED_SQL\\counts.tsv",
+      "bytes": 84,
+      "sha256": "84f47abcd842995658f9413f4867c46eeeb972d8a8fe8d5893bdf0abf3cbb99f"
+    }
+  ]
+}

@@ -46,3 +46,21 @@ status/rev-parse/ls-remote/diff guard; `add -- <each exact listed path>`;
 ordinary commit; `push origin HEAD:refs/heads/experiment/m1-candidate007-observe008`;
 post-push HEAD/remote/tracked-clean. Actual argv/exit/source/report commit SHA
 сохранены в publication receipts; эта строка сама не утверждает push PASS.
+
+Additional continuation использовал разрешённые bounded read-only команды:
+`git status --short` (однократно включая inherited untracked inventory),
+`git status --short --untracked-files=no`, `git rev-parse HEAD`,
+`git diff --stat -- docs/phantoms/tasks/PHANTOM-M1-G4-CAUSAL-044` из module cwd.
+Final read-only scope verification из OWN также использует `git diff --name-only`
+и `git diff -- L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/test`;
+последняя команда подтвердила отсутствие uncommitted source/test изменений.
+Обычный Publish044 далее выполняет exact argv из обновлённого ALLOWLIST044.txt:
+`git diff --cached --name-only`, `git ls-remote origin refs/heads/experiment/m1-candidate007-observe008`,
+`git status --short --untracked-files=no`, `git add -- <each literal allowlist path>`,
+`git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check -- <each path except literal source patch>`,
+`git diff --cached -- <each literal allowlist path>`,
+`git commit -m "phantom(task-044): record approved source-only trace and exact outcome"`,
+`git rev-parse HEAD`, `git push origin HEAD:refs/heads/experiment/m1-candidate007-observe008`,
+последующие `ls-remote` и `status --short --untracked-files=no`.
+Literal expanded argv/exit/output сохраняются в private PUBLICATION4_ADDITIONAL.json;
+ровно эти commits/push разрешены /goal и не меняют ветки/историю force операциями.

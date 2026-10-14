@@ -1,18 +1,20 @@
 gate	status	evidence_or_limit
 A0_SAFE	PASS	BASE=initial remote; own044a once imported; protected040a/old artifacts unchanged; own JVM0; no crash/force/network/heal
-A1_SIGNAL_OWNER	NOT_VERIFIED	D1 raw gap; diagnostic INPUT_FAIL before MOVE/one-profile attach; same-boot passive identity rejection before read
+A1_SIGNAL_OWNER	NOT_VERIFIED	Historical1189 raw gap; approved additional73 trace INPUT_FAIL safe boundary45s before MOVE; no ACTIVE source reproduced
+A1_LIVE_SNAPSHOT	PASS	55 one-profile frames73; human.local/NEARBY_PERCEPTIBLE/TTL10000/seq135..186/actual sample+expiry; no retrospective1189 attribution
 A2_BACKGROUND_TIMING	PASS	C1 77.229855s/77samples SLEEPING/ecology_fenced/nextDue0; ordinary first BG cadence300000..900000ms; separate catch-up not committed in window
 A3_PRODUCT_FIX	NOT_APPLICABLE	No causal gameplay RED; only read-only diagnostic API and exact TEST/tooling namespace changes
-A4_G4_NATIVE	NOT_VERIFIED	No full positive G4; max one diagnostic consumed; no new lottery/actor replacement
+A4_G4_NATIVE	NOT_VERIFIED	No full G4; original+one explicitly approved source-only diagnostic consumed; no away frames/no actor replacement
 A5_REGRESSIONS	PASS	Exact E5029F38 jar-first93/93; lifecycle11/11; soft3/3; scheduler28/28; validator negatives26/26
 A5_CONSERVATION	NOT_VERIFIED	75 births terminal/35702 owning commits/82 native PASS/44 stopped full PASS; strict outer FAIL: original RUN_END STOP_MONITOR_TIMEOUT
-A6_DELIVERY	PASS	Actual ordinary publication7d98a63515b7bcc84a15ad5fda599a5874181560=remote/tracked clean; verified compact ZIP; own JVM0; final receipt update separate
+A5_ADDITIONAL_CONSERVATION	PASS	40 lifetimes terminal/4182commits/48 native PASS/25 stopped full PASS; FULL_SAVE/GLOBAL_DRAIN true; dropped0/failure empty/pending0/online0
+A6_DELIVERY	PASS	Previous ordinary publication83a494dc573854556c55a9badbb106ab7adcc8f9=remote/clean; additional report publication exact receipt separate; verified ZIP/own JVM0
 G1_ACTION	NOT_VERIFIED	Original complete M1 native action set not closed by044
 G2_HISTORICAL	PASS	A5 8/8/382.3743138s; C24 8/8/381.6816272s on original5c4ae8bf JAR
 G2_CURRENT	NOT_VERIFIED	New exact E5029F38 JAR; two current groups not rerun
 G3_SAVE	NOT_VERIFIED	Own044 strict outer proof FAIL; original wider historical gates remain open
-G4_LIFE	OPEN	Signal owner unresolved; full real native-background-native chain not obtained
-G5_RESTART	NOT_VERIFIED	No new restarts044
+G4_LIFE	OPEN	Historical ACTIVE owner unresolved; additional live getter successful but safe input failed before away; full committed background/useful native return absent
+G5_RESTART	NOT_VERIFIED	Additional ordinary boot preserved existing044a DB; full restart acceptance not performed
 G6_CRASH	FAIL_HISTORICAL	Previous041 failures preserved; crash72/73 not executed044
 G7_REGRESS	NOT_VERIFIED	Current test subset PASS; complete M1 self-review/remaining gameplay gates still open
 G8_DELIVERY	NOT_VERIFIED	Scoped044 delivery distinct from full ordinary M1 final integration/operator/client delivery

@@ -87,3 +87,24 @@ WinPS parse PASS offline; attach не выполнялся. Header neutral
 PASSIVE_ONE_PROFILE_READ/NONATOMIC_VOLATILE не объявляет away/G4 proof.
 Расширение ровно на один дополнительный source-only trace запрошено у пользователя
 по PLAN044 §2; до ответа boot/attach не разрешены. A1/G4 остаются NOT_VERIFIED.
+
+## Review дополнительного разрешённого trace
+
+Ответы пользователя разрешили ровно один additional source-only trace и новое
+окно до30мин. Новый wrapper сохраняет immutable второй input receipt; deadline
+exception действует только для DIAG_A2_SOURCE044/episodea/diagnostic=true, не G4.
+Остальные исходные условия/timers/hard holds сохранены. WinPS parse и existing
+source-selection focused positive/full-G4 negative PASS; JAR E502 не менялся.
+
+One-profile live getter PASS55frames:73/human.local/NEARBY_PERCEPTIBLE/TTL10000,
+actual seq135→186 и expiry. Реальный owner PhantomHumanLocalityControl подтверждён
+по коду; он соответствует observer prewarm в кадрах. ACTIVE source не воспроизведён.
+45с safe input FAIL до MOVE; first quiet+51.4393965с, замены акторов/повторной сцены нет.
+Historic1189 owner и полный G4 NOT_VERIFIED; causal gameplay RED отсутствует.
+
+Новый all-birth strict PASS40lifetimes/4182commits/48native/25stopped подтверждён
+existing validator и stopped consistent SQL с pending0/online0. Stock stop DONE/
+COMPLETE/retained0/proofFailure empty; own JVM0. Старый run strict FAIL сохранён.
+304 original036 files/043 pinned raw/MAIN input bytes unchanged. Product исходники
+не менялись в continuation; bounded exception остаётся одним task044 family.
+M1 OPEN, G2_CURRENT NOT_VERIFIED, manual REQUIRED, М2 не начат.

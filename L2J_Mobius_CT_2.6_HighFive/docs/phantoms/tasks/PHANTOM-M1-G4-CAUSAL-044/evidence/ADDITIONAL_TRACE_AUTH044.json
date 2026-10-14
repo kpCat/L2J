@@ -1,0 +1,13 @@
+{
+  "contract": "ONE_ADDITIONAL_SOURCE_ONLY044",
+  "humanReply": "Разрешить один дополнительный source-only trace",
+  "timeReply": "Разрешить до 30 минут",
+  "startUtc": "2026-10-14T12:21:00Z",
+  "deadlineUtc": "2026-10-14T12:51:00Z",
+  "newStartCutoffUtc": "2026-10-14T12:36:00Z",
+  "additionalNativeTraces": 1,
+  "fullG4": false,
+  "gameplayChangeBeforeCausalRed": false,
+  "runtime": "contract044a",
+  "sourceSha": "80e7bdd346c24faf2153dcf04f5d0adf7a7e06ae"
+}

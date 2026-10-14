@@ -1,0 +1,21 @@
+{
+  "ownJVMs": 0,
+  "normalStopProof": "DIAG_A2_SOURCE044-FALLBACK-STOP/typed-stop-done.properties",
+  "allJavaPids": [
+    18688,
+    30312
+  ],
+  "gameJarSha256": "E5029F38D0C3CD3A338FDA420FD8A31A35AA1D7D3BC519A7B5A73A40EBC88D47",
+  "sourceSha": "80e7bdd346c24faf2153dcf04f5d0adf7a7e06ae",
+  "utc": "2026-10-14T12:32:22.0155006Z",
+  "protected040a": [
+    {
+      "startTimeUtcTicks": 639274376704922975,
+      "pid": 18688
+    },
+    {
+      "startTimeUtcTicks": 639274376723876308,
+      "pid": 30312
+    }
+  ]
+}
