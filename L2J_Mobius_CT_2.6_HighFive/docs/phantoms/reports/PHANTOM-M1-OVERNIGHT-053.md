@@ -11,6 +11,7 @@ TASK052 закончена со своим PARTIAL/G4=NOT_VERIFIED, штатны
 RED текущего runner: `T/ops/evidence/RED_LANE053.log`, exit1, exact root rejected до DatabaseFactory. GREEN: current JAR-first **95/95**,18 routes, exit0 (`CURRENT053-matrix.tsv`), исходные94 + regression052; lifecycle acceptance **11/11**, exit0 (`ACCEPTANCE053.log`). Ant compile-tests PASS,2 прежних runFinalization warnings.
 Все проверки на Game JAR `P/build052/dist/libs/GameServer.jar`, SHA256=`c7ff546c47f2b00177fc149d53e741b2f40cac4c66165d1039612e15dc91009f`, classpath JAR-first без development bin. Семь negatives **7/7** до DB: mixed owner, wrong manifest/config/CWD/owner/schema/export; `T/ops/GUARDS053.json`. Temporary053 input bytes восстановлены.
 Observer memory fixtures **3/3**: autonomous без heartbeat, REAL-affinity/stale disconnect, instance; Pilot security fixtures **15/15**. Это server fixtures, не actual REAL login или клиентская приёмка. Логи `T/ops/OBSERVER053.log`, `PILOT053.log`.
+P07: исходный ownership route8/9, RED `Replacement Session was not published before native registration resumed`; focused causal RED0/1 сохранил исходную assertion. Сняты actual `commandGate=true`, second `{alive=false,started=false,failure=null}`: fixture ожидал запрещённую текущим shared gate параллельную регистрацию. Исправлен только `PhantomBackgroundSuite.testNativeSessionOverlap` по соседнему p06/reflection fixture pattern: busy competing start обязан отказаться и сохранить Session; затем original exception завершает rollback, законный новый start публикует replacement, exact private rollback старой Session доставляется после него и обязан сохранить новую Session и обе native registrations. GREEN focused P07 **1/1** на том же c7ff JAR; production gate/policy не менялись. `T/ops/evidence/P07_{OWNERSHIP,CAUSE,GREEN}053*`;8 соседних ownership negatives уже PASS на неизменённой семантике. Full95/11 повторно не запускались из-за одного test-only изменения. Нового crash/fault Game run нет; это прежняя bounded fixture exception на053a.
 SKILL_POLICY: существующий `PhantomEngagementPlanner.offensiveSkill` получает текущий `Player.getKnownSkill`, проверяет active/passive/MP/cooldown/items/conditions; новые профессии/AI/экономика и фиктивное изучение навыков не добавлялись.
 
 Prospective05303:16:54UTC: прежний stable target **10129/object268485600**, initialComplete=true, pending=false, READY/FULL-PNC/FARM eligible, cursor29867202/horizon29867236, debt34, ACTIVE до06:03UTC, EXP59042/SP7104, x45195/41189/-3504. `T/PROSPECTIVE053.tsv` содержит deterministic max8 и16 exclusions; LIFE target не заменяется после исхода. Старта runtime с новым JAR в этом checkpoint ещё нет.
@@ -22,7 +23,7 @@ Prospective05303:16:54UTC: прежний stable target **10129/object268485600*
 | G3/G4 | NOT_VERIFIED на новом JAR; strict052900/900 относится к исходному runtime, не перенесён. |
 | G5_CURRENT | Historical050 сохранён; applicability/current scoped restart ещё не подтверждены. |
 | G6 | OPEN: existing041x72/73 manifest JAR5c4ae8bfff0568ad2fd204f6c3be79268d03c55ed95862c5b24619ad3719e98c/source92400bebb9126ec4364ac57b05f8c453fe42690d не равен текущему. Новых crash/fault/kill/аварийных JVM нет. |
-| G7/P07 | PARTIAL:95+11+observer3+Pilot15 PASS; P07 ещё отдельно не проверен. |
+| G7/P07 | Declared current regression95+11 PASS; observer3/Pilot15 PASS; P07 corrected deterministic fixture1/1 PASS,8 соседних ownership negatives PASS. |
 | G8/R1 | NOT_VERIFIED; новый clean tracked package/operator smoke ещё не выполнен. |
 | O_SERVER | Fixtures3/3+Pilot15/15 PASS; autonomy >525s actual process ещё не доказана053. |
 | O_REAL/REAL_FINAL/USER_ACCEPTANCE | WAITING_USER; М1 не закрывается, М2–М7 не запускаются. |
@@ -31,3 +32,5 @@ Prospective05303:16:54UTC: прежний stable target **10129/object268485600*
 
 mojibake-маркеры в изменённых файлах проверены.
 escaped Cyrillic в изменённых файлах проверены.
+
+Для P07 дополнительно: `G diff --check -- B`, `G diff -- B`, `G add -- B R`, `G diff --cached -- B R`, `G diff --cached --check`, `G diff --cached --name-only`, `G commit -m "phantom(task-053): align stale rollback fixture with command gate"`, тот же non-force push и HEAD/remote/clean checks; B=`L2J_Mobius_CT_2.6_HighFive/test/java/org/l2jmobius/tests/phantoms/PhantomBackgroundSuite.java`. Product tree parity проверена `G diff --name-only 123176c56d0043c2a871682364d8d7788c31d38f f5556e0baa4e82c2164ffe01378ef883f10de9a9 -- L2J_Mobius_CT_2.6_HighFive/java L2J_Mobius_CT_2.6_HighFive/dist` (пусто).

@@ -482,7 +482,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private void registerNativeLifecycle(PhantomTestRegistry registry, String focus)
 	{
-		if (!Set.of("all", "ownership", "errors", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "timers", "producer", "queued", "p06", "teardown", "round3", "loot", "faults", "closure", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "codec", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "native-phase", "native-summon-phase").contains(focus)) { throw new IllegalArgumentException("Unknown native M1 test focus: " + focus); }
+		if (!Set.of("all", "ownership", "errors", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "timers", "producer", "queued", "p06", "p07", "teardown", "round3", "loot", "faults", "closure", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "codec", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "native-phase", "native-summon-phase").contains(focus)) { throw new IllegalArgumentException("Unknown native M1 test focus: " + focus); }
 		if (focus.equals("native-context-contract"))
 		{
 			registry.add("Q14-native-context-unknown-exact-binding-contract", _ -> org.l2jmobius.gameserver.phantoms.PhantomM1NativeContextChecks.unknownAndExactBinding());
@@ -650,6 +650,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		}
 		if (Set.of("all", "teardown", "round3").contains(focus)) { registry.add("Q15-native-logout-reward-before-final-store", this::testNativeLogoutOrdering); if (focus.equals("teardown")) { return; } }
 		if (focus.equals("p06")) { registry.add("P06-ordinary-offline-DELETE-keeps-new-registration", this::testNativeOfflineReplacement); return; }
+		if (focus.equals("p07")) { registry.add("P07-stale-visible-start-rollback-keeps-current-session", this::testNativeSessionOverlap); return; }
 		if (focus.equals("loot"))
 		{
 			for (String kind : List.of("pickup20", "pickup150", "autoloot", "protected", "concurrent", "capacity", "weight", "watchdog", "excluded")) { registry.add("L-T06-actual-native-" + kind, context -> testNativeLoot(context, kind)); }
@@ -711,7 +712,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			registry.add("Q05-native-completion-timeout-retains-ownership", context -> testNativeRewardCompletion(context, false, true));
 		}
 		if (focus.equals("errors") || focus.equals("store")) { return; }
-		registry.add("P07-stale-visible-start-rollback-keeps-current-session", _ -> testNativeSessionOverlap());
+		registry.add("P07-stale-visible-start-rollback-keeps-current-session", this::testNativeSessionOverlap);
 		registry.add("P06-ordinary-offline-DELETE-keeps-new-registration", this::testNativeOfflineReplacement);
 		registry.add("P08-partial-visible-pair-is-unhealthy-and-repaired", _ -> testNativePartialPair());
 		for (Class<?> manager : List.of(AutoPlayTaskManager.class, AutoUseTaskManager.class))
@@ -2533,7 +2534,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 	}
 
 	@SuppressWarnings("unchecked")
-	private void testNativeSessionOverlap() throws Exception
+	private void testNativeSessionOverlap(PhantomTestContext context) throws Exception
 	{
 		try (var runtime = createRuntimeFixture(_environment.primary().objectId()))
 		{
@@ -2595,15 +2596,26 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 				final var sessions = (Map<Long, ?>) sessionsField.get(visible);
 				final Object firstSession = sessions.get(runtime.profileId());
 				AutoPlayTaskManager.getInstance().stopAutoPlay(player);
+				context.record("P07.commandGateBeforeSecond", visible.snapshotContinuation(runtime.profileId()).scalarMap().get("liveCommandGate"));
+				PhantomAssertions.assertEquals("true", visible.snapshotContinuation(runtime.profileId()).scalarMap().get("liveCommandGate"), "In-flight native registration must retain its command gate.");
 				second.start();
-				final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
-				while ((sessions.get(runtime.profileId()) == firstSession) && (System.nanoTime() < deadline)) { Thread.onSpinWait(); }
-				PhantomAssertions.assertTrue((sessions.get(runtime.profileId()) != null) && (sessions.get(runtime.profileId()) != firstSession), "Replacement Session was not published before native registration resumed.");
+				second.join(1000);
+				context.record("P07.secondDuringRegistration", Map.of("alive", second.isAlive(), "started", secondStarted.get(), "failure", String.valueOf(secondFailure.get())));
+				PhantomAssertions.assertFalse(second.isAlive() || secondStarted.get(), "Competing start must return without replacing an in-flight native registration.");
+				PhantomAssertions.assertTrue(secondFailure.get() == null && sessions.get(runtime.profileId()) == firstSession, "Busy command gate changed the current Session or failed the competing caller.");
 				releaseFirst.countDown(); first.join(5000); second.join(5000);
 				PhantomAssertions.assertFalse(first.isAlive() || second.isAlive(), "Native session overlap deadlocked.");
 				PhantomAssertions.assertTrue(firstFailure.get() instanceof InjectedFailure, "First native start did not propagate its injected failure.");
-				PhantomAssertions.assertTrue(secondFailure.get() == null && secondStarted.get(), "Replacement native start failed.");
+				PhantomAssertions.assertTrue(visible.start(runtime.profileId(), runtime.goal()), "Replacement native start failed after the original gate was released.");
+				final Object replacement = sessions.get(runtime.profileId());
+				PhantomAssertions.assertTrue(replacement != null && replacement != firstSession, "A new Session was not published after registration rollback.");
+				// Deliver the exact stale rollback after publication, independent of command serialization.
+				final var staleRollback = PhantomVisibleAutoPlay.class.getDeclaredMethod("stop", long.class, firstSession.getClass());
+				staleRollback.setAccessible(true);
+				staleRollback.invoke(visible, runtime.profileId(), firstSession);
+				PhantomAssertions.assertTrue(sessions.get(runtime.profileId()) == replacement, "Stale rollback replaced the current Session.");
 				PhantomAssertions.assertTrue(visible.running(runtime.profileId(), runtime.goal()), "Stale start rollback deleted the replacement Session or pair.");
+				context.record("P07.exactStaleRollbackPreservedReplacement", true);
 			}
 			finally
 			{
