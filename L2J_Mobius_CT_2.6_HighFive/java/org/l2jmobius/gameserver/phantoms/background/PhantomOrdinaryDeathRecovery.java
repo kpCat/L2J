@@ -29,7 +29,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializedPlayer.ActionLease;
 
-/** Bounds the ordinary solo corpse window from the native death event, independently of decision scheduling. */
+/** Bounds the ordinary solo corpse window from its native death event or first loaded-corpse observation. */
 public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 {
 	private static final long CORPSE_WINDOW_NANOS = 45_000_000_000L;
@@ -109,6 +109,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			return;
 		}
 		final long now = _clock.getAsLong();
+		observeLoadedCorpses(now);
 		for (var entry : _deaths.entrySet())
 		{
 			try
@@ -118,6 +119,30 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			catch (RuntimeException exception)
 			{
 				// Keep the native death timestamp and retry on the next bounded pulse.
+			}
+		}
+	}
+
+	private void observeLoadedCorpses(long now)
+	{
+		for (var snapshot : _materialization.list())
+		{
+			if (!snapshot.worldPresent() || _deaths.containsKey(snapshot.profileId())) { continue; }
+			try (ActionLease action = _materialization.tryAcquireAction(snapshot.profileId()).orElse(null))
+			{
+				if (action == null) { continue; }
+				final Player player = action.player();
+				if (!player.isDead() || !player.hasHeadlessOutboundSession() || (player.getParty() != null)
+					|| (player.getObjectId() != snapshot.characterObjectId())) { continue; }
+				final NativeDeath observation = NativeDeath.capture(player);
+				if ((observation == null) || (observation.epoch != snapshot.materializedAtNanos())
+					|| !observation.matches(player) || !observation.owner.nativeObservationHealthy()) { continue; }
+				// Loading a saved corpse emits no death event. Start at observation, without backdating or replacing a native timer.
+				_deaths.putIfAbsent(snapshot.profileId(), new Death(player.getObjectId(), now, new AtomicBoolean(), new AtomicBoolean(), observation, new AtomicLong(), new AtomicReference<>()));
+			}
+			catch (RuntimeException exception)
+			{
+				// A concurrent lifecycle transition can be observed again on the next bounded pulse.
 			}
 		}
 	}

@@ -3826,6 +3826,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		registry.add("05-normal-resurrection-cancels-town-return", _ -> testNormalResurrectionCancelsTownReturn());
 		registry.add("06-native-death-timer-and-resurrection-cancellation", _ -> testNativeDeathTimer());
 		registry.add("07-retired-autosave-cannot-overwrite-next-epoch", this::testRetiredAutoSaveEpoch);
+		registry.add("08-loaded-native-corpse-obeys-recovery-window", _ -> testLoadedNativeCorpseTimer());
 	}
 
 	private void registerRealLogin(PhantomTestRegistry registry)
@@ -6280,7 +6281,7 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			}
 			PhantomAssertions.assertEquals(1, deferredRecovery.size(), "Native town return did not enqueue one durable reconciliation.");
 			PhantomAssertions.assertEquals(PhantomBackgroundService.DirectiveKind.RECOVER, runtime.background().directive(runtime.profileId(), runtime.goal(), PhantomActivityState.ACTIVE).kind(), "Pending native town recovery was classified as ordinary farming before reconciliation.");
-			deferredRecovery.remove(0).run();
+			awaitOrdinaryRecovery(observer, deferredRecovery);
 			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
 			{
 				PhantomAssertions.assertFalse(action.player().isDead(), "Native death event did not recover at 45 seconds.");
@@ -6303,6 +6304,57 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		{
 			runtime.close();
 		}
+	}
+
+	private void testLoadedNativeCorpseTimer() throws Exception
+	{
+		final RuntimeFixture runtime = createRuntimeFixture(_environment.primary().objectId());
+		final java.util.concurrent.atomic.AtomicLong clock = new java.util.concurrent.atomic.AtomicLong(1_000_000_000L);
+		final List<Runnable> deferredRecovery = new java.util.concurrent.CopyOnWriteArrayList<>();
+		try (var observer = new org.l2jmobius.gameserver.phantoms.background.PhantomOrdinaryDeathRecovery(runtime.materialization(), new PhantomGoalStateStore(_repository), runtime.background(), clock::get, deferredRecovery::add))
+		{
+			final PhantomBackgroundState dead = makeDead(runtime);
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, runtime.materialization().materialize(runtime.profileId()).status(), "Saved corpse did not materialize.");
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertTrue(action.player().isDead(), "Fixture must load the persisted corpse without a new native death event.");
+			}
+			PhantomAssertions.assertTrue(observer.install(), "Loaded corpse recovery did not install.");
+			observer.pulse();
+			clock.addAndGet(44_000_000_000L);
+			observer.pulse();
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertTrue(action.player().isDead(), "Saved corpse recovered before the ordinary 45-second window.");
+			}
+			clock.addAndGet(1_000_000_000L);
+			observer.pulse();
+			try (var action = runtime.materialization().tryAcquireAction(runtime.profileId()).orElseThrow())
+			{
+				PhantomAssertions.assertFalse(action.player().isDead(), "Saved corpse without a new death event remained dead after the ordinary recovery window.");
+			}
+			PhantomAssertions.assertEquals(1, deferredRecovery.size(), "Loaded corpse did not enqueue one owning reconciliation.");
+			awaitOrdinaryRecovery(observer, deferredRecovery);
+			final PhantomBackgroundState recovered = runtime.transaction().load(runtime.profileId()).state();
+			PhantomAssertions.assertEquals(dead.progress().experience(), recovered.progress().experience(), "Loaded corpse recovery fabricated EXP.");
+			PhantomAssertions.assertTrue(recovered.vitals().currentHp() > 0, "Loaded corpse recovery was not committed.");
+		}
+		finally
+		{
+			runtime.close();
+		}
+	}
+
+	private static void awaitOrdinaryRecovery(org.l2jmobius.gameserver.phantoms.background.PhantomOrdinaryDeathRecovery observer, List<Runnable> deferredRecovery) throws Exception
+	{
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+		while (!observer.drained() && (System.nanoTime() < deadline))
+		{
+			if (!deferredRecovery.isEmpty()) { deferredRecovery.remove(0).run(); }
+			else { Thread.sleep(10); }
+		}
+		PhantomAssertions.assertTrue(observer.drained(), "Ordinary recovery did not drain its accepted reconciliation.");
+		PhantomAssertions.assertEquals("", observer.snapshot().firstFailure(), "Ordinary recovery reconciliation failed.");
 	}
 
 	private void testDeathRecovery() throws Exception
