@@ -95,6 +95,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if ("return11352-056".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("H056-actual-native-return-from-observed-11352-position", this::return11352_056); return; }
 		if ("load-regen055".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("H055-constructor-regeneration-obeys-native-checkpoint", this::constructorRegeneration055);
@@ -500,6 +501,42 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 		};
 	}
 
+	private void return11352_056(PhantomTestContext context) throws Exception
+	{
+		try (var f = new Fixture(true, false, 0, PhantomBackgroundTransaction.FaultInjector.none(), false, "population.farming.elf.20534", 20534))
+		{
+			f.handoff();
+			final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final var spec = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(goal);
+			PhantomAssertions.assertEquals("population.farming.elf.20534", spec.anchorId(), "INVALID_SETUP: exact observed farm anchor.");
+			final Player player = World.getInstance().getPlayer(f.objectId);
+			try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.stopMove(null); player.setXYZ(44296, 44478, -3704); }
+			PhantomAssertions.assertFalse(player.isSitting() || player.isMovementDisabled() || player.isInCombat(), "INVALID_SETUP: ordinary native movement must be available.");
+			final var navigation = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend(), worker -> { org.l2jmobius.commons.threads.ThreadPool.execute(worker); return true; }, System::nanoTime, new org.l2jmobius.gameserver.phantoms.PhantomMetrics());
+			PhantomAssertions.assertTrue(navigation.start(), "Original navigation starts.");
+			final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(f.materialization, f.background, _production.authority().travelQuery(_production.topology()), navigation, f.historical::permitsDecision, signals(), (_id, failure) -> context.record("H056.failure", failure.toString()), System::nanoTime);
+			try
+			{
+				final long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(45);
+				org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalResult last = null;
+				String reason = "";
+				while (System.nanoTime() < deadline)
+				{
+					last = travel.observeArrival(f.id, goal);
+					if (!reason.equals(last.reason())) { reason = last.reason(); context.record("H056.reason." + reason, "xyz=" + player.getX() + "," + player.getY() + "," + player.getZ()); }
+					if (last.kind() == org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.ARRIVED || last.kind() == org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.TERMINAL) { break; }
+					Thread.sleep(100);
+				}
+				context.record("H056.final", "result=" + last + ";xyz=" + player.getX() + "," + player.getY() + "," + player.getZ() + ";sitting=" + player.isSitting() + ";movementDisabled=" + player.isMovementDisabled() + ";navigation=" + navigation.snapshot());
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalKind.ARRIVED, last.kind(), "Actual native return from the observed position must finish through the stock navigation route.");
+				PhantomAssertions.assertTrue(Math.hypot((long) player.getX() - 44296, (long) player.getY() - 44478) > navigation.policy().minimumProgress(), "Return must include actual native walking from the observed point.");
+				PhantomAssertions.assertEquals(goal, f.goals.load(f.id).orElseThrow().goal(), "Native return preserves durable goal/revision.");
+				PhantomAssertions.assertEquals(f.loadedEpoch, player.getNativeWorkOwner().epoch(), "Native return preserves the original owner epoch.");
+			}
+			finally { travel.beforeMaterialize(f.id, f.objectId); navigation.beginStop(); PhantomAssertions.assertTrue(navigation.finishStop(), "Navigation drained."); }
+		}
+	}
+
 	final class Fixture implements AutoCloseable
 	{
 		final long from = Instant.parse("2026-01-05T20:29:00Z").toEpochMilli() / 60000;
@@ -538,6 +575,11 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 		}
 
 		Fixture(boolean visibleFarm, boolean deadStale, int nativeZOffset, PhantomBackgroundTransaction.FaultInjector faultInjector, boolean secondary) throws Exception
+		{
+			this(visibleFarm, deadStale, nativeZOffset, faultInjector, secondary, null, 0);
+		}
+
+		Fixture(boolean visibleFarm, boolean deadStale, int nativeZOffset, PhantomBackgroundTransaction.FaultInjector faultInjector, boolean secondary, String initialAnchor, int initialNpc) throws Exception
 		{
 			objectId = secondary ? _environment.observer().objectId() : _environment.primary().objectId();
 			transactions = new PhantomBackgroundTransaction(org.l2jmobius.commons.database.DatabaseFactory::getConnection, PhantomBackgroundTransaction.ObjectIdAllocator.production(), faultInjector);
@@ -580,14 +622,16 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 			boolean setupCleaned = false;
 			try
 			{
-				final var anchor = _production.topology().findAnchor("population.farming.human-fighter.20545").orElseThrow();
+				final var anchor = _production.topology().findAnchor(initialAnchor == null ? "population.farming.human-fighter.20545" : initialAnchor).orElseThrow();
 				setup.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z() + nativeZOffset);
 				final var plan = visibleFarm ? planner.planInitial(id, setup, 1, 0) : planner.idleInitial(id, setup, 1, 0);
 				PhantomAssertions.assertTrue(plan.ready(), "Canonical fixture plan.");
-				goals.insert(id, plan.goal());
+				final var g = plan.goal();
+				final var initialGoal = initialAnchor == null ? g : new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(g.goalId(), g.goalType(), g.status(), g.subject(), new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("npc", Integer.toString(initialNpc)), g.requiredAmount(), g.currentAmount(), g.acquisitionMethod(), java.util.List.of(new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("background.farm", initialNpc + "@" + initialAnchor)), new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("topology.anchor", initialAnchor), g.purposeKey(), g.priority(), g.riskBudget(), g.expenseBudget(), g.deadlineEpochMillis(), g.constraints(), g.reasonKey(), g.revision(), g.payloadText());
+				goals.insert(id, initialGoal);
 				if (deadStale) { setup.doDie(null); }
 				setup.storeMe();
-				final var capture = _production.authority().captureOwnedNative(id, setup, plan.goal(), null);
+				final var capture = _production.authority().captureOwnedNative(id, setup, initialGoal, null);
 				PhantomBackgroundState state = capture.state();
 				if (deadStale)
 				{
@@ -603,7 +647,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 					}
 					state = new PhantomBackgroundState(PhantomBackgroundState.State.MATERIALIZED, state.identity(), state.progress(), vitals, state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), hashes);
 				}
-				final var captured = transactions.captureBaseline(state, plan.goal());
+				final var captured = transactions.captureBaseline(state, initialGoal);
 				PhantomAssertions.assertEquals(PhantomBackgroundTransaction.Status.SUCCESS, captured.status(), "Native canonical fixture capture.");
 				baseline = captured.state();
 			}
