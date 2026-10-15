@@ -798,7 +798,8 @@ public final class PhantomPopulationEcologyService
 			{
 				final Entry entry = pair.getValue();
 				if (entry._participating && _periodicDueMode) { if (now > entry._requestedMinute) { entry._requestedMinute = now; entry._readinessRevision++; } }
-				if (entry._participating && (entry._stored != null)) { entry._liveOwner = false; }
+				// Batch demand refresh observes the actual owner and preserves its later release edge.
+				if (!_batchAdmission && entry._participating && (entry._stored != null)) { entry._liveOwner = false; }
 				queueLocked(pair.getKey());
 			}
 		}

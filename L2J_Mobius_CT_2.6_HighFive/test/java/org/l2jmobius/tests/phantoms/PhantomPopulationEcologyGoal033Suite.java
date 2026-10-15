@@ -83,6 +83,11 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (System.getProperty("phantom.m1.native.focus", "").equals("releasedMinute052"))
+		{
+			registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
+			return;
+		}
 		if (_handoffOnly)
 		{
 			registry.add("12-background-due-reconciles-elapsed-cursor-once", this::testBackgroundDueReconciliation);
@@ -112,11 +117,64 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("17-restored-inventory-readiness-starts-bounded-target-creation", this::testRestoredInventoryReadinessStartsCreation);
 		registry.add("18-native-context-releases-only-materialization-gate", this::testNativeMaterializationReadiness);
 		registry.add("19-live-capacity-release-catchup-reopens-current-admission", this::testLiveCapacityReleaseAdmission);
+		registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
 		for (int control = 1; control <= 12; control++)
 		{
 			final int selected = control;
 			registry.add("O%02d-orphan-ownership-contract".formatted(control), context -> testOrphanOwnership(context, selected));
 		}
+	}
+
+	private void testNativeReleaseAcrossMinute(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:30:00Z");
+		final int count = _ecology.limits().maximumProfilesPerPulse() + 16;
+		final long from = minute(now) - 120;
+		final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash());
+		final var store = new EcologyMemoryStore(null);
+		final var history = new HistoricalMemoryPort();
+		for (long id = 1; id <= count; id++)
+		{
+			final var ready = population.seedReady(id, Math.toIntExact(id));
+			final var pending = history.begin(id, from, from + 100, id).snapshot();
+			store.insert(id, new PhantomPopulationEcologyState(_ecology.hash(), Preset.LIVING, 1, id, from, from, from, from,
+				Pace.OUTLIER, 10_000, _ecology.limits().productiveBlockMinutes(), Personality.BALANCED,
+				Map.of(1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0), ready.state().scheduleTemplate(), Disposition.MANAGED,
+				minute(now) + 10_000, 0, pending.state().requestId(), from + 100, 0, 0, ""));
+		}
+		final AtomicBoolean live = new AtomicBoolean(true);
+		final var clock = new PhantomPopulationTestDoubles.MutableClock(now);
+		final var ecology = new PhantomPopulationEcologyService(_ecology, _population, store, history,
+			id -> id == count && live.get(), id -> "", clock, ZoneOffset.UTC, Preset.LIVING, 0, 10,
+			worker -> { worker.run(); return true; });
+		ecology.enablePeriodicDueMode();
+		final var manager = new PhantomPopulationManager(population, _population, null, new PhantomPopulationTestDoubles.Ownership(),
+			clock, ZoneOffset.UTC, count, 0, count, 4, 1, 64);
+		manager.installEcology(ecology);
+		PhantomAssertions.assertTrue(manager.start(), "Minute-release fixture did not start.");
+		try
+		{
+			ecology.holdStartupPopulationPlan();
+			loadMetadata(ecology, count);
+			ecology.startupPopulationPlanApplied();
+			ecology.updateMaterializationDemand(List.of(new PhantomPopulationEcologyService.DemandFact(count, 1, true, 1, 1)), 1);
+			ecology.onPopulationPulse();
+			final long held = history.status(count).orElseThrow().state().cursorEpochMinute();
+			ecology.updateMaterializationDemand(List.of(), 1);
+			clock.set(now.plusSeconds(60)); // Deterministic clock only; the native owner is still alive.
+			ecology.onPopulationPulse();
+			PhantomAssertions.assertEquals(held, history.status(count).orElseThrow().state().cursorEpochMinute(), "Minute refresh advanced a live owner.");
+			live.set(false);
+			ecology.updateMaterializationDemand(List.of(), 1);
+			PhantomAssertions.assertEquals(1, ecology.progressSnapshot(count).urgentQueued(), "Minute refresh lost native release priority behind ordinary backlog.");
+			final long ordinary = java.util.stream.LongStream.range(1, count).map(id -> history.status(id).orElseThrow().state().cursorEpochMinute()).sum();
+			ecology.onPopulationPulse();
+			PhantomAssertions.assertTrue(history.status(count).orElseThrow().state().cursorEpochMinute() > held, "Released owner did not progress in its priority batch.");
+			PhantomAssertions.assertTrue(java.util.stream.LongStream.range(1, count).map(id -> history.status(id).orElseThrow().state().cursorEpochMinute()).sum() > ordinary, "Release priority starved ordinary work.");
+			PhantomAssertions.assertTrue(ecology.snapshot().maximumPulseProfiles() <= _ecology.limits().maximumProfilesPerPulse()
+				&& ecology.snapshot().maximumPulseIntervals() <= _ecology.limits().maximumIntervalsPerPulse(), "Release priority changed shared budgets.");
+		}
+		finally { ecology.beginStop(); stop(manager); }
 	}
 
 	private void testOrphanOwnership(PhantomTestContext context, int control)
