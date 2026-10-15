@@ -294,11 +294,11 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 			deleteStaleTestProfile(_environment.primary().objectId());
 			deleteStaleTestProfile(_environment.observer().objectId());
 			context.record("background.database", PhantomTestDatabaseGuard.TARGET_DATABASE);
-			if ((_mode == Mode.AUTHORITATIVE_SHOTS) || ((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "complete", "producer-closeout", "store", "cast", "async", "checkpoint", "drain", "q266", "producer", "queued", "round3", "loot", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "native-phase", "native-summon-phase").contains(System.getProperty("phantom.m1.native.focus", "all"))))
+			if ((_mode == Mode.AUTHORITATIVE_SHOTS) || ((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "complete", "producer-closeout", "store", "cast", "async", "checkpoint", "drain", "q266", "producer", "queued", "round3", "loot", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "dead-mp056", "native-phase", "native-summon-phase").contains(System.getProperty("phantom.m1.native.focus", "all"))))
 			{
 				ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			}
-			if (((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "complete", "producer-closeout", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "producer", "queued", "round3", "loot", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "native-phase", "native-summon-phase").contains(System.getProperty("phantom.m1.native.focus", "all"))) || (_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
+			if (((_mode == Mode.NATIVE_LIFECYCLE) && Set.of("all", "complete", "producer-closeout", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "producer", "queued", "round3", "loot", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "dead-mp056", "native-phase", "native-summon-phase").contains(System.getProperty("phantom.m1.native.focus", "all"))) || (_mode == Mode.SERVER_INTEGRATION) || (_mode == Mode.AUTHORITATIVE_SHOTS) || (_mode == Mode.PRODUCTION_AUDIT) || (_mode == Mode.RECOVERY_TELEPORT) || (_mode == Mode.POSITION_CANONICALIZATION) || (_mode == Mode.PRODUCTION_LOOT_UNBLOCK) || (_mode == Mode.ACQUISITION_PARITY) || ((_mode == Mode.ACQUISITION_ATOMIC_RESTART) && "recipe-inventory".equals(System.getProperty("phantom.acquisition.focus", ""))))
 			{
 				try
 				{
@@ -482,7 +482,9 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 
 	private void registerNativeLifecycle(PhantomTestRegistry registry, String focus)
 	{
-		if (!Set.of("all", "ownership", "errors", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "timers", "producer", "queued", "p06", "p07", "teardown", "round3", "loot", "faults", "closure", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "codec", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "native-phase", "native-summon-phase").contains(focus)) { throw new IllegalArgumentException("Unknown native M1 test focus: " + focus); }
+		if (focus.equals("dead-mp056")) { registry.add("Q056-native-dead-level-loss-preserves-canonical-MP", this::testNativeDeadMp056); return; }
+		if (focus.equals("all")) { registry.add("Q056-native-dead-level-loss-preserves-canonical-MP", this::testNativeDeadMp056); }
+		if (!Set.of("all", "ownership", "errors", "store", "cast", "travel", "geometry", "async", "checkpoint", "drain", "q266", "timers", "producer", "queued", "p06", "p07", "teardown", "round3", "loot", "faults", "closure", "review", "watchdog", "movement", "secondary", "dynamic", "teleport", "buff-reload", "extension", "party-loot", "raw", "delayed", "race", "ai-delay", "ai-cast", "codec", "delayed-watchdog", "watchdog-race", "publisher", "pool-restore", "process-crash", "load-observer", "native-context-contract", "dead-mp056", "native-phase", "native-summon-phase").contains(focus)) { throw new IllegalArgumentException("Unknown native M1 test focus: " + focus); }
 		if (focus.equals("native-context-contract"))
 		{
 			registry.add("Q14-native-context-unknown-exact-binding-contract", _ -> org.l2jmobius.gameserver.phantoms.PhantomM1NativeContextChecks.unknownAndExactBinding());
@@ -6247,6 +6249,51 @@ public final class PhantomBackgroundSuite implements PhantomTestSuite
 		finally
 		{
 			runtime.close();
+		}
+	}
+
+	private void testNativeDeadMp056(PhantomTestContext context) throws Exception
+	{
+		try (var fixture = openNativeProductionFixture(context, false, new PhantomBackgroundTransaction()))
+		{
+			final Player player = fixture.player();
+			boolean released = false;
+			try
+			{
+				try (var action = fixture.materialization.tryAcquireAction(fixture.id()).orElseThrow())
+				{
+					player.getStat().setLevel((byte) 9); player.setExp(ExperienceData.getInstance().getExpForLevel(9));
+					player.setCurrentMp(player.getMaxMp()); player.getStatus().stopHpMpRegeneration();
+					PhantomAssertions.assertTrue(player.doDie(null), "Native death must precede the lower maximum.");
+					player.getStat().setLevel((byte) 8); player.setExp(ExperienceData.getInstance().getExpForLevel(8));
+				}
+				final double rawMp = player.getCurrentMp();
+				final int maximumMp = player.getMaxMp();
+				context.record("Q056.deadMP", "raw=" + rawMp + ";maximum=" + maximumMp + ";dead=" + player.isDead());
+				PhantomAssertions.assertTrue(player.isDead() && (rawMp > maximumMp), "Fixture must retain actual dead MP above the lower native maximum.");
+				final var captured = org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(player,
+					() -> _production.authority().captureOwnedNative(fixture.id(), player, fixture.seed.goal(), fixture.transaction.load(fixture.id()).state()));
+				PhantomAssertions.assertEquals((double) maximumMp, captured.state().vitals().currentMp(), "Dead MP must follow the existing max-bounded native-store representation.");
+				PhantomAssertions.assertEquals(rawMp, player.getCurrentMp(), "Capture must not heal or mutate the native corpse.");
+				PhantomAssertions.assertTrue(_production.authority().matchesRuntime(player, captured.state()), "The legal corpse must match its canonical native representation.");
+				final var result = fixture.materialization.dematerialize(fixture.id());
+				released = result.status() == PhantomMaterializationService.ResultStatus.SUCCESS;
+				PhantomAssertions.assertTrue(released, "Dead level loss must not retain native ownership: " + result);
+				final var saved = fixture.transaction.reconcileVerifyPending(fixture.id(), player.getObjectId());
+				PhantomAssertions.assertEquals(Status.SUCCESS, saved.status(), "Dead native FULL store must remain canonical.");
+				PhantomAssertions.assertEquals((double) maximumMp, saved.state().vitals().currentMp(), "SQL/owned receipt MP must agree with the lower maximum.");
+			}
+			finally
+			{
+				if (!released)
+				{
+					org.l2jmobius.gameserver.model.actor.PlayerNativeWork.checkpoint(player, () ->
+					{
+						player.getStat().setLevel((byte) 9); player.setExp(ExperienceData.getInstance().getExpForLevel(9)); player.getMaxMp();
+						return null;
+					});
+				}
+			}
 		}
 	}
 

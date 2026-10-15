@@ -210,7 +210,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 			? tracking(player, previous.inventory().mutableItemIds()) : currentTracking;
 		final Identity identity = new Identity(profileId, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
 		final Progress progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
-		final Vitals vitals = new Vitals(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp());
+		final Vitals vitals = new Vitals(player.getCurrentHp(), player.getMaxHp(), canonicalNativeMp(player), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp());
 		final Position position = new Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchor.id());
 		final CombatFacts combat = combatFacts(player, capability);
 		final Loadout loadout = new Loadout(capability.skillId(), capability.skillLevel(), capability.summonNpcId(), capability.mpConsume(), spec.shotItemId(), spec.shotsPerEncounter(), spec.summonResourceItemId(), spec.summonResourcesPerEncounter());
@@ -248,7 +248,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final Capability capability = capability(player, null);
 		final Identity identity = new Identity(profileId, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
 		final Progress progress = new Progress(player.getLevel(), player.getExp(), player.getSp(), player.getExpBeforeDeath());
-		final Vitals vitals = new Vitals(player.getCurrentHp(), player.getMaxHp(), player.getCurrentMp(), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp());
+		final Vitals vitals = new Vitals(player.getCurrentHp(), player.getMaxHp(), canonicalNativeMp(player), player.getMaxMp(), player.getCurrentCp(), player.getMaxCp());
 		final Position position = new Position(player.getInstanceId(), player.getX(), player.getY(), player.getZ(), player.getHeading(), anchor.id());
 		final CombatFacts combat = combatFacts(player, capability);
 		final Loadout loadout = new Loadout(capability.skillId(), capability.skillLevel(), 0, capability.mpConsume(), 0, 0, 0, 0);
@@ -292,6 +292,13 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		return new PlanningSnapshot(player.getLevel(), player.getActiveClass(), anchor.id(), 0, 0, 0, 0, 0);
 	}
 
+	/** Stock death/level loss can retain MP above the new maximum; use the native-store bound. */
+	private static double canonicalNativeMp(Player player)
+	{
+		final double current = player.getCurrentMp();
+		return player.isDead() && Double.isFinite(current) ? Math.min(current, player.getMaxMp()) : current;
+	}
+
 	@Override
 	public boolean matchesRuntime(Player player, PhantomBackgroundState state)
 	{
@@ -299,7 +306,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		{
 			return false;
 		}
-		return (player.getLevel() == state.progress().level()) && (player.getExp() == state.progress().experience()) && (player.getSp() == state.progress().skillPoints()) && (player.getExpBeforeDeath() == state.progress().experienceBeforeDeath()) && close(player.getCurrentHp(), state.vitals().currentHp()) && close(player.getMaxHp(), state.vitals().maximumHp()) && close(player.getCurrentMp(), state.vitals().currentMp()) && close(player.getMaxMp(), state.vitals().maximumMp()) && close(player.getCurrentCp(), state.vitals().currentCp()) && close(player.getMaxCp(), state.vitals().maximumCp()) && (player.getInstanceId() == state.position().instanceId()) && (player.getX() == state.position().x()) && (player.getY() == state.position().y()) && (player.getZ() == state.position().z()) && (player.getHeading() == state.position().heading());
+		return (player.getLevel() == state.progress().level()) && (player.getExp() == state.progress().experience()) && (player.getSp() == state.progress().skillPoints()) && (player.getExpBeforeDeath() == state.progress().experienceBeforeDeath()) && close(player.getCurrentHp(), state.vitals().currentHp()) && close(player.getMaxHp(), state.vitals().maximumHp()) && close(canonicalNativeMp(player), state.vitals().currentMp()) && close(player.getMaxMp(), state.vitals().maximumMp()) && close(player.getCurrentCp(), state.vitals().currentCp()) && close(player.getMaxCp(), state.vitals().maximumCp()) && (player.getInstanceId() == state.position().instanceId()) && (player.getX() == state.position().x()) && (player.getY() == state.position().y()) && (player.getZ() == state.position().z()) && (player.getHeading() == state.position().heading());
 	}
 
 	@Override
