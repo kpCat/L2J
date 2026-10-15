@@ -1019,23 +1019,9 @@ public class Player extends Playable
 	{
 		super(objectId, template);
 		setInstanceType(InstanceType.Player);
-		initCharStatusUpdateValues();
-		initPcStatusUpdateValues();
-		
-		for (int i = 0; i < _htmlActionCaches.length; ++i)
-		{
-			_htmlActionCaches[i] = new LinkedList<>();
-		}
-		
 		_accountName = accountName;
 		app.setOwner(this);
 		_appearance = app;
-		
-		// Create an AI
-		getAI();
-		
-		// Create a Radar object
-		_radar = new Radar(this);
 		if (beforePublication != null)
 		{
 			beforePublication.accept(this);
@@ -1045,7 +1031,19 @@ public class Player extends Playable
 			if ((_nativeLoadTicket == null) || !_nativeLoadTicket.tryStart()) { throw new IllegalStateException("NATIVE_LOAD_ADMISSION_REJECTED"); }
 			_nativeLoadContext = PlayerNativeWork.enter(_nativeLoadTicket);
 		}
-		try { startVitalityTask(); }
+		try
+		{
+			// Max-vital getters can publish regeneration; bind the native lifetime before those first reads.
+			initCharStatusUpdateValues();
+			initPcStatusUpdateValues();
+			for (int i = 0; i < _htmlActionCaches.length; ++i)
+			{
+				_htmlActionCaches[i] = new LinkedList<>();
+			}
+			getAI();
+			_radar = new Radar(this);
+			startVitalityTask();
+		}
 		catch (RuntimeException | Error failure) { finishNativeLoad(failure); throw failure; }
 	}
 

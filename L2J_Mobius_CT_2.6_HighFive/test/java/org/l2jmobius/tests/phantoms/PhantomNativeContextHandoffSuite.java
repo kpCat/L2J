@@ -95,12 +95,18 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if ("load-regen055".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("H055-constructor-regeneration-obeys-native-checkpoint", this::constructorRegeneration055);
+			return;
+		}
 		if ("travel031".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("H16-blocked-attested-travel-retains-history-and-hands-off", this::blockedTravel031); return; }
 		if ("lifecycle027".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("S01-accepted-native-materialization-before-system-drain", this::composedStop027);
 			return;
 		}
+		registry.add("H055-constructor-regeneration-obeys-native-checkpoint", this::constructorRegeneration055);
 		registry.add("H01-normal-incomplete-remains-fenced", _ ->
 		{
 			try (var f = new Fixture())
@@ -404,6 +410,36 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 				release.countDown(); finished.await(5, java.util.concurrent.TimeUnit.SECONDS);
 				if (org.l2jmobius.gameserver.phantoms.PhantomSystem.hasConfiguredInstance()) { org.l2jmobius.gameserver.phantoms.PhantomSystem.shutdownIfStarted(); }
 			}
+		}
+	}
+
+	private void constructorRegeneration055(PhantomTestContext context) throws Exception
+	{
+		final Player setup = Player.load(_environment.primary().objectId());
+		try
+		{
+			setup.setCurrentMp(setup.getMaxMp() / 2.0);
+			setup.storeMe();
+		}
+		finally { _environment.cleanupLoadedPlayer(setup); }
+		try (var f = new Fixture())
+		{
+			f.handoff();
+			final Player player = f.loadedPlayer;
+			final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) player.getNativeWorkOwner();
+			final long interval = org.l2jmobius.gameserver.model.stats.Formulas.getRegeneratePeriod(player) + 250L;
+			scope.checkpoint(() ->
+			{
+				final double before = player.getCurrentMp();
+				try { Thread.sleep(interval); }
+				catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new IllegalStateException(failure); }
+				context.record("H055.sealed", "epoch=" + scope.epoch() + ";beforeMp=" + before + ";afterMp=" + player.getCurrentMp() + ";sealed=" + scope.sealed());
+				PhantomAssertions.assertEquals(before, player.getCurrentMp(), "Constructor regeneration cannot mutate MP while the exact native owner is sealed.");
+				return null;
+			});
+			final double resumed = player.getCurrentMp();
+			Thread.sleep(interval);
+			PhantomAssertions.assertTrue(player.getCurrentMp() > resumed, "The same stock regeneration resumes after the native checkpoint reopens.");
 		}
 	}
 
