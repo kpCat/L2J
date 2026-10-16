@@ -3923,7 +3923,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final String authority = HexFormat.of().withUpperCase().formatHex(MessageDigest.getInstance("SHA-256").digest(("TASK058:raid-tactics:" + boss.getObjectId() + ':' + _player.getObjectId() + ':' + mage.getObjectId()).getBytes(StandardCharsets.UTF_8)));
 		final double hp = boss.getCurrentHp(); final double mp = mage.getCurrentMp(); final double tankMp = _player.getCurrentMp();
 		final double healerMp = healer.getCurrentMp();
-		context.record("raid058.input", "TACTICS_ONLY; stock manager boss=" + boss.getId() + "/" + boss.getObjectId() + "; level=" + boss.getLevel() + "; HP=" + hp + "; XYZ=" + boss.getX() + ',' + boss.getY() + ',' + boss.getZ() + "; TEST human=" + human.getObjectId() + "; tank=" + _player.getObjectId() + "; mage=" + mage.getObjectId() + "; healer=" + healer.getObjectId() + "; learned28:" + aggroLevel + "/1339:101/native1335; level80/all class-tree skills<=80 fixture; stock S gear; tankHP=" + _player.getCurrentHp() + "/pDef=" + _player.getPDef(boss) + "; 25s max; no boss reset, rescue or reward claim");
+		final Skill currentHeal = healer.getKnownSkill(1217);
+		PhantomAssertions.assertTrue(currentHeal != null && currentHeal.getLevel() >= 33, "Declared full class-tree raid healer lacks current Greater Heal.");
+		context.record("raid058.input", "TACTICS_ONLY; stock manager boss=" + boss.getId() + "/" + boss.getObjectId() + "; level=" + boss.getLevel() + "; HP=" + hp + "; XYZ=" + boss.getX() + ',' + boss.getY() + ',' + boss.getZ() + "; TEST human=" + human.getObjectId() + "; tank=" + _player.getObjectId() + "; mage=" + mage.getObjectId() + "; healer=" + healer.getObjectId() + "; learned28:" + aggroLevel + "/1339:101/current1217:" + currentHeal.getLevel() + "; level80/all class-tree skills<=80 fixture; stock S gear; tankHP=" + _player.getCurrentHp() + "/pDef=" + _player.getPDef(boss) + "; 25s max; no boss reset, rescue or reward claim");
 		boolean spaced = false; boolean aggroCast = false; boolean magicCast = false; boolean healed = false; long heldSince = 0; long held = 0; long mageDamage = 0; long healSequence = 0; double previousHp = _player.getCurrentHp();
 		ExternalActionLease healing = null;
 		try
@@ -3945,7 +3947,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					final var heal = tactics.plan(roster.getFirst(), roster, snapshots).stream().filter(directive -> (directive.actor().profileId() == healerProfile.profileId()) && (directive.kind() == DirectiveKind.HEAL_MEMBER)).findFirst();
 					if (heal.isPresent()) { healing = tactics.dispatch(heal.orElseThrow(), "raid058.heal." + ++healSequence, deadline, () -> false).orElse(null); }
 				}
-				healed |= (_player.getCurrentHp() > previousHp + 100) && (healer.getLastSkillCast() != null) && (healer.getLastSkillCast().getId() == 1335);
+				healed |= (_player.getCurrentHp() > previousHp + 100) && (healer.getLastSkillCast() != null) && (healer.getLastSkillCast().getId() == currentHeal.getId()) && (healer.getLastSkillCast().getLevel() == currentHeal.getLevel());
 				previousHp = _player.getCurrentHp();
 				spaced |= mage.isMoving() && mage.hasAI() && (mage.getAI().getIntention() == Intention.MOVE_TO);
 				aggroCast |= (_player.getLastSkillCast() != null) && (_player.getLastSkillCast().getId() == 28);
@@ -3961,7 +3963,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				if (spaced && aggroCast && magicCast && healed && (mageDamage > 0) && (held >= TimeUnit.SECONDS.toNanos(3)) && (boss.getCurrentHp() + 10 < hp) && (mage.getCurrentMp() + 1 < mp)) { break; }
 				Thread.sleep(25);
 			}
-			context.record("raid058.result", "bossHP=" + hp + "->" + boss.getCurrentHp() + "; mageMP=" + mp + "->" + mage.getCurrentMp() + "; tankMP=" + tankMp + "->" + _player.getCurrentMp() + "; healerMP=" + healerMp + "->" + healer.getCurrentMp() + "; actualHeal=" + healed + "; spaced=" + spaced + "; aggroCast=" + aggroCast + "; enhancedMagic=" + magicCast + "; mageActualDamage=" + mageDamage + "; heldMs=" + TimeUnit.NANOSECONDS.toMillis(held) + "; alive=" + !_player.isDead() + '/' + !mage.isDead() + '/' + !healer.isDead() + '/' + !human.isDead() + "; encounter/reward/regroup NOT_CLOSED");
+			context.record("raid058.result", "bossHP=" + hp + "->" + boss.getCurrentHp() + "; mageMP=" + mp + "->" + mage.getCurrentMp() + "; tankMP=" + tankMp + "->" + _player.getCurrentMp() + "; healerMP=" + healerMp + "->" + healer.getCurrentMp() + "; actualHeal=" + healed + "; healerCasting=" + healer.isCastingNow() + "; healerIntention=" + healer.getAI().getIntention() + "; healerLastSkill=" + (healer.getLastSkillCast() == null ? "none" : healer.getLastSkillCast().getId() + ":" + healer.getLastSkillCast().getLevel()) + "; spaced=" + spaced + "; aggroCast=" + aggroCast + "; enhancedMagic=" + magicCast + "; mageActualDamage=" + mageDamage + "; heldMs=" + TimeUnit.NANOSECONDS.toMillis(held) + "; alive=" + !_player.isDead() + '/' + !mage.isDead() + '/' + !healer.isDead() + '/' + !human.isDead() + "; encounter/reward/regroup NOT_CLOSED");
 			PhantomAssertions.assertTrue(spaced && aggroCast && magicCast && healed && (healer.getCurrentMp() + 1 < healerMp) && (mageDamage > 0) && (held >= TimeUnit.SECONDS.toNanos(3)) && (boss.getCurrentHp() + 10 < hp) && (mage.getCurrentMp() + 1 < mp), "Declared stock raid tactics did not complete actual spacing/aggro/damage/cost.");
 			PhantomAssertions.assertTrue(!_player.isDead() && !mage.isDead() && !healer.isDead() && !human.isDead(), "A declared raid tactics participant died.");
 		}
