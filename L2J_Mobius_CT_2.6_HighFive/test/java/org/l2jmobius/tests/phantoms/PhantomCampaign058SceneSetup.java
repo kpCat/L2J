@@ -56,11 +56,12 @@ public final class PhantomCampaign058SceneSetup
 
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 1) || !List.of("prepare", "continue-empty").contains(args[0]) || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a prepare or empty-only continuation required."); }
+		if ((args.length != 1) || !List.of("prepare", "continue-empty", "manual-human80").contains(args[0]) || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a preparation required."); }
 		final Path lane = PhantomCampaign058PersistentLane.LANE;
 		final Path runtime = PhantomCampaign058PersistentLane.RUNTIME;
 		PhantomCampaign058PersistentLane.validateFiles(PhantomCampaign058PersistentLane.MODULE, Path.of(System.getProperty("phantom.test.config", "")), true);
 		PhantomAssertions.assertEquals(runtime.resolve("libs/GameServer.jar").toRealPath(), Path.of(Player.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "Scene must use the actual current ordinary GameServer.jar.");
+		if (args[0].equals("manual-human80")) { prepareManualHuman80(lane); return; }
 		PhantomAssertions.assertFalse(Files.exists(lane.resolve("scene-setup.complete")), "Persistent TEST scene has already been prepared.");
 		if (args[0].equals("prepare")) { Files.createFile(lane.resolve("scene-setup.started")); }
 		else { PhantomAssertions.assertTrue(Files.isRegularFile(lane.resolve("scene-setup.started")), "Empty-only continuation has no previous setup boundary."); }
@@ -147,6 +148,40 @@ public final class PhantomCampaign058SceneSetup
 			Files.write(lane.resolve("scene-characters058.tsv"), result, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 			Files.writeString(lane.resolve("scene-setup.complete"), "population=32; preparedPhantoms=6; human=TestAdmin; nativeLevel1Birth=32; roles80=FIXTURE_NOT_CAREER", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 			System.out.println("TASK058_SCENE_PREPARED population=32; TEST roles=6; human=TestAdmin; receipt=" + lane.resolve("scene-characters058.tsv"));
+		}
+		finally { ThreadPool.shutdown(); DatabaseFactory.close(); }
+	}
+
+	/** One new declared manual-QA fixture boundary, preserving the original account and character identity. */
+	private static void prepareManualHuman80(Path lane) throws Exception
+	{
+		PhantomAssertions.assertTrue(Files.isRegularFile(lane.resolve("scene-setup.complete")), "The original scene must already exist.");
+		PhantomAssertions.assertFalse(Files.exists(lane.resolve("release-export.started")), "The frozen release export must not be changed.");
+		Files.createFile(lane.resolve("manual-human80.started"));
+		try
+		{
+			PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(new PhantomTestContext(58005836, PhantomCampaign058PersistentLane.MODULE, lane.resolve("reports/manual-human80")));
+			try (var connection = DatabaseFactory.getConnection(); var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT charId,account_name,char_name,classid,level,accesslevel,online FROM characters WHERE charId=268435465"))
+			{
+				PhantomAssertions.assertTrue(rows.next() && (rows.getInt(1) == 268435465) && "localplayer".equals(rows.getString(2)) && "TestAdmin".equals(rows.getString(3)) && (rows.getInt(4) == 10) && (rows.getInt(5) == 10) && (rows.getInt(6) == 0) && (rows.getInt(7) == 0) && !rows.next(), "Exact stopped original TEST human differs.");
+			}
+			PhantomAssertions.assertTrue(PhantomProfileRepository.open().findByCharacterObjectId(268435465).isEmpty(), "Human fixture must not own a Phantom profile.");
+			final var policy = PhantomProgressionPolicy.productionDefaults();
+			final var knowledge = PhantomGameKnowledgeService.inertForTesting("0".repeat(64));
+			PhantomAssertions.assertTrue(knowledge.start(), "Fixture knowledge did not start.");
+			final PhantomProgressionCatalog progression;
+			try { progression = new PhantomProgressionCatalogBuilder().build(new L2jProgressionBackend(null, Path.of("."), knowledge::query).load(policy), policy); }
+			finally { knowledge.beginStop(); PhantomAssertions.assertTrue(knowledge.finishStop(), "Fixture knowledge did not drain."); }
+			try (var suppression = PlayerAutoSaveTaskManager.suppressPopulationLoad(268435465))
+			{
+				final Player body = Player.load(268435465);
+				PhantomAssertions.assertTrue(body != null && !body.isGM() && body.getName().equals("TestAdmin"), "Manual TEST identity changed.");
+				prepareBody(body, new Role("TestAdmin", 10, 94, 80, 6579, ROBE), progression, 0);
+				body.stopAllTasks(); body.storeMe();
+				Files.writeString(lane.resolve("manual-human80.complete"), "FIXTURE_NOT_CAREER; native stored; account/password/objectId unchanged\n" + row("TEST_HUMAN_MANUAL", 0, body), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+				body.deleteMe();
+			}
+			System.out.println("TASK058_MANUAL_HUMAN80_PREPARED exact TestAdmin268435465/class94/80; FIXTURE_NOT_CAREER");
 		}
 		finally { ThreadPool.shutdown(); DatabaseFactory.close(); }
 	}
