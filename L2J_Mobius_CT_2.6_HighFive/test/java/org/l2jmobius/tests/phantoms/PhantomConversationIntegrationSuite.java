@@ -48,6 +48,9 @@ import org.l2jmobius.gameserver.model.chat.PlayerChatIngress;
 import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.network.GameClient;
 import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityOverloadLevel;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
+import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationContextPort;
@@ -64,6 +67,7 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionPort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationGoalRuntimePort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.Authorization;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationActionProposal;
@@ -78,17 +82,26 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore.StoredState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
+import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyDecision;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
+import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
@@ -122,6 +135,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		MANAGED_INGRESS,
 		OUTBOUND_CHAT,
 		COMPANION_REQUEST_058,
+		COMPANION_COMPOSITION_058,
 		CHAT_INTEGRATION,
 		LIFECYCLE_PERFORMANCE
 	}
@@ -167,6 +181,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			case MANAGED_INGRESS -> "conversation-managed-ingress";
 			case OUTBOUND_CHAT -> "conversation-outbound-chat";
 			case COMPANION_REQUEST_058 -> "companion-request058";
+			case COMPANION_COMPOSITION_058 -> "companion-composition058";
 			case CHAT_INTEGRATION -> "conversation-chat-integration";
 			case LIFECYCLE_PERFORMANCE -> "conversation-lifecycle-performance";
 		};
@@ -175,7 +190,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
+		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_COMPOSITION_058 ? 58005803L : _mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
 		_profiles = PhantomProfileRepository.open();
@@ -274,10 +289,123 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			companionRequest058(registry);
 		}
+		else if (_mode == Mode.COMPANION_COMPOSITION_058)
+		{
+			companionComposition058(registry);
+		}
 		else
 		{
 			lifecyclePerformance(registry);
 		}
+	}
+
+	private void companionComposition058(PhantomTestRegistry registry)
+	{
+		registry.add("01-delivered-request-reply-native-invitation-and-test-accept", context ->
+		{
+			_observer.getStat().setLevel((byte) 20);
+			_speaker.getStat().setLevel((byte) 20);
+			_speaker.spawnMe(_observer.getX(), _observer.getY(), _observer.getZ());
+			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
+			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
+			final PhantomGameKnowledgeService knowledge = PhantomGameKnowledgeService.inertForTesting(_topology.snapshot().canonicalHash());
+			PhantomAssertions.assertTrue(knowledge.start(), "Companion unused-query authority did not start.");
+			final PhantomProgressionService progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), knowledge::query), PhantomProgressionPolicy.productionDefaults());
+			progression.start();
+			final L2jPhantomPartyBackend backend = new L2jPhantomPartyBackend(_profiles, _materialization, progression);
+			final PhantomPartyRoleCatalog roles = PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml"));
+			final PhantomPartyCoordinator party = new PhantomPartyCoordinator(new PhantomPartyStore(_profiles), goals, backend, roles, new PhantomPartyRouteCoordinator((PhantomNavigationService) null, null), new PhantomPartyTactics(null, backend), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 32);
+			PhantomAssertions.assertTrue(party.start(), "Native companion party owner did not start.");
+			final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
+			final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
+			final PhantomPartyDecision decision = new PhantomPartyDecision(party);
+			decision.registerCandidates(candidates);
+			decision.registerHandlers(handlers);
+			candidates.seal();
+			handlers.seal();
+			final PhantomDecisionEngine engine = new PhantomDecisionEngine(goals, candidates, handlers, new PhantomMetrics(), 1);
+			engine.start();
+			PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(_observerProfile.profileId()), "Native companion decision profile did not attach.");
+			final PhantomConversationExecutionCatalog catalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v2.xml"));
+			final PhantomConversationExecutionStore executionStore = new PhantomConversationExecutionStore(_profiles, catalog);
+			final L2jPhantomConversationExecutionPort port = new L2jPhantomConversationExecutionPort(catalog, knowledge, _topology, party, _materialization, ChatObservationService.getInstance());
+			final PhantomConversationExecutionService execution = new PhantomConversationExecutionService(catalog, executionStore, goals, port, PhantomConversationGoalRuntimePort.decisionEngine(engine));
+			PhantomAssertions.assertTrue(execution.start(), "Native companion execution owner did not start.");
+			stopConversation();
+			_store = new PhantomConversationStore(_profiles, executionStore);
+			startConversation(event -> { }, execution::publish);
+			Throwable scenarioFailure = null;
+			try (NetworkBackedClient counterpart = NetworkBackedClient.attach(_speaker))
+			{
+				final long generatedBefore = ChatObservationService.getInstance().snapshot().generatedDeliveries();
+				final var dispatched = PlayerChatIngress.dispatchClient(_speaker, ChatType.WHISPER, _observer.getName(), "го кач?");
+				PhantomAssertions.assertTrue(dispatched.dispatched() && (dispatched.observedDeliveries() > 0), "Native companion addressed request was not delivered.");
+				for (int pulse = 1; (pulse <= 256) && (PartyInvitationService.getInstance().observe(_speaker).isEmpty() || (execution.snapshot().sent() == 0)); pulse++)
+				{
+					_conversation.onPulse();
+					execution.onPulse();
+					engine.accept(new PhantomActivityWorkItem(_observerProfile.profileId(), PhantomActivityState.ACTIVE, 1, pulse, System.nanoTime(), PhantomActivityOverloadLevel.NORMAL));
+					party.onPulse();
+					Thread.sleep(10);
+				}
+				final var pending = PartyInvitationService.getInstance().observe(_speaker).orElseThrow(() -> new AssertionError("No native invitation: execution=" + execution.snapshot() + "; engine=" + engine.find(_observerProfile.profileId()) + "; party=" + party.snapshot()));
+				PhantomAssertions.assertEquals(_observer.getObjectId(), pending.requesterObjectId(), "Invitation requester differs from addressed Phantom.");
+				PhantomAssertions.assertTrue(pending.managedRequester() && !pending.managedInvitee(), "Composition substituted an all-Phantom party.");
+				final var executionState = executionStore.load(_observerProfile.profileId()).orElseThrow().state();
+				PhantomAssertions.assertTrue(executionState.entries().stream().anyMatch(entry -> entry.outboundState() == OutboundState.SENT) || executionState.receipts().stream().anyMatch(receipt -> receipt.outboundState() == OutboundState.SENT), "Companion reply has no actual native SENT receipt.");
+				PhantomAssertions.assertTrue(ChatObservationService.getInstance().snapshot().generatedDeliveries() > generatedBefore, "Companion reply did not reach a concrete recipient.");
+				PhantomAssertions.assertFalse(_speaker.isInParty(), "Real TEST partner was auto-accepted before its response.");
+				PhantomAssertions.assertEquals(PartyInvitationService.RespondOutcome.ACCEPTED, PartyInvitationService.getInstance().respond(_speaker, PartyInvitationService.Response.ACCEPT, pending.identity()).outcome(), "Explicit TEST acceptance did not create native membership.");
+				for (int pulse = 0; (pulse < 128) && !party.committed(_observerProfile.profileId()); pulse++)
+				{
+					party.onPulse();
+					execution.onPulse();
+					Thread.sleep(10);
+				}
+				PhantomAssertions.assertTrue(_speaker.isInParty() && _speaker.getParty().containsPlayer(_observer), "Canonical Party does not contain the TEST partner and Phantom.");
+				PhantomAssertions.assertTrue(party.committed(_observerProfile.profileId()), "Native membership did not reach durable party owner commit.");
+				final var reloaded = new PhantomPartyStore(_profiles).load(_observerProfile.profileId()).orElseThrow();
+				PhantomAssertions.assertEquals(1, reloaded.state().phantomMembers().size(), "Persisted Phantom roster differs from native membership.");
+				PhantomAssertions.assertEquals(1, reloaded.state().realMembers().size(), "Persisted TEST partner roster differs from native membership.");
+			}
+			catch (Exception | AssertionError failure)
+			{
+				scenarioFailure = failure;
+				throw failure;
+			}
+			finally
+			{
+				PartyInvitationService.getInstance().observe(_speaker).ifPresent(pending -> PartyInvitationService.getInstance().cancel(pending.identity()));
+				PartyInvitationService.getInstance().leave(_speaker);
+				for (int pulse = 0; pulse < 4; pulse++)
+				{
+					party.onPulse();
+				}
+				stopConversation();
+				execution.beginStop();
+				final boolean executionStopped = execution.finishStop();
+				engine.beginStop();
+				final boolean engineStopped = engine.finishStop();
+				party.beginStop();
+				final boolean partyStopped = party.finishStop();
+				progression.beginStop();
+				final boolean progressionStopped = progression.finishStop();
+				knowledge.beginStop();
+				knowledge.finishStop();
+				if (!executionStopped || !engineStopped || !partyStopped || !progressionStopped)
+				{
+					final AssertionError cleanup = new AssertionError("Companion cleanup did not drain: execution=" + executionStopped + "; engine=" + engineStopped + "; party=" + party.snapshot() + "; progression=" + progressionStopped);
+					if (scenarioFailure != null)
+					{
+						scenarioFailure.addSuppressed(cleanup);
+					}
+					else
+					{
+						throw cleanup;
+					}
+				}
+			}
+		});
 	}
 
 	private void companionRequest058(PhantomTestRegistry registry)
@@ -1043,6 +1171,11 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 
 	private void startConversation(Consumer<PhaseEvent> action)
 	{
+		startConversation(action, plan -> { });
+	}
+
+	private void startConversation(Consumer<PhaseEvent> action, Consumer<ConversationResponsePlan> publication)
+	{
 		final PhaseObserver observer = (phase, dispatchId, indexMonitorHeld) ->
 		{
 			final PhaseEvent event = new PhaseEvent(phase, dispatchId, indexMonitorHeld);
@@ -1053,6 +1186,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			_stateExistedBeforePublish = _profiles.findComponent(plan.ownerProfileId(), "conversation.state").isPresent();
 			_plans.add(plan);
+			publication.accept(plan);
 		}, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), observer);
 		PhantomAssertions.assertTrue(_conversation.start(), "Conversation service did not start.");
 	}

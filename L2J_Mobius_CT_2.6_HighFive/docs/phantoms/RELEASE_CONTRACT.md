@@ -47,6 +47,7 @@ Production paths относительны java/org/l2jmobius/gameserver; Phantom
 |Личные skills/cross-class/crystallization/SevenSigns/effects/party support|qol/PersonalCharacterQoLService|QoLPersonalSkills/Crystallization/SevenSignsAccess/EffectDuration/PartySupport suites; прежние личные gates сохраняются|Custom/PersonalCharacterQoL.ini; AllowedAccounts; полный data/HTML/skills|
 |Premium/shop, quest relief/noblesse/progression|qol/PersonalPremiumQoLService, PersonalProgressionQoLService|QoLShop/LevelGap/EconomyProgressionClosure suites|PersonalPremiumQoL.ini, PersonalProgressionQoL.ini; полный datapack; rates не подменяются|
 |Conversation/social/party/economy assets|Существующие Phantom semantic/social/affiliation/market owners|Existing targeted regression затронутой функции|Весь tracked dist/game/data/configs; не выключать молча и не объявлять будущий milestone принятым|
+|058 companion request и invitation composition (часть М2)|PhantomConversationService/ExecutionService, PartyDecision/Coordinator, native PartyInvitationService|companion-request058; companion-composition058; semantic/context/codec и native conversation regression|Tracked RU semantic/conversation data; обычный dist; full follow/support/lifecycle и OWNER_QA пока открыты|
 
 ## Clean build и самостоятельная поставка
 

@@ -7,7 +7,7 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 
 | Этап | Реализация | Серверная проверка | Владелец |
 |---|---|---|---|
-| М2 | PARTIAL: адресный companion request→durable exact-target invitation proposal | Native request2/2, Party baseline10/10; полного S2 пока нет | QA_PENDING |
+| М2 | PARTIAL: доставленные request/reply, native invite/TEST accept, durable mixed party | Request2/2, invitation composition1/1, Party baseline10/10; полного S2 пока нет | QA_PENDING |
 | М3 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М4 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М5 | NOT_STARTED | NOT_STARTED | QA_PENDING |
@@ -28,5 +28,8 @@ Self-review: exact058t identity/manifest/CWD/catalog проверяются до
 RED: доставленное обращение не имело executable proposal. Далее выявлены закрытый parser intent-set и codec dictionary. Добавлен ровно один intent; compact dictionary только дополнен в конце, прежние индексы/schema1 сохранены. Existing coverage counts обновлены на шесть явно добавленных примеров.
 GREEN: companion-request0582/2; semantic corpus3/3, intents3/3, context3/3, pack3/3; conversation catalog/codec2/2 и understanding2/2. XML DOCTYPE error — ожидаемый negative control, suites exit0.
 Self-review: точный speaker/typed TARGET_PLAYER slot и прежний election/cooldown; generated social recursion не расширена; no autoaccept за человека. Девять связанных code/data/test paths — bounded scope по TASK058§7; общий framework не добавлен.
-Готового058 candidate пока нет; следующая зависимость — proposal→доставленный ответ→canonical invitation/acceptance, затем actual companion play/support/lifecycle.
-Git-команды разрешены прямым TASK058: exact status/rev-parse/log/diff/check, exact add/commit и normal non-force push. Первый опубликованный commit `754e83259631a823fd658b3cbdccd92ba52c42a1`, remote equality подтверждена. Следующий шаг готовится к публикации.
+Готового058 candidate пока нет; далее нужны обычный FARM takeover, обратное приглашение, actual companion play/support/lifecycle.
+Native invitation composition1/1 использует реальные stores/backend, зарегистрированный PartyDecision и DecisionEngine, durable goal sync, native chat SENT, explicit TEST accept, native Party и persisted roster: Phantom1/TEST real-kind1. Не является actual owner client login; не проверяет follow/support.
+Неправильный setup без progression owner сохранён INVALID_INPUT; исправлен штатным L2jProgressionBackend. Test cleanup теперь сохраняет первичную ошибку и обрабатывает свои terminal callbacks. Await ждёт все объявленные факты без изменения часов/правил. Native composition и affected request2/2 завершились с exit0/штатным закрытием JVM/pool.
+Следующие разрывы выявлены по исходникам: supersession обычной ACTIVE FARM цели отклоняется; прямое human→Phantom приглашение без заранее созданной JOIN цели остаётся pending. Проверить причинно и исправить перед полным М2.
+Git разрешён TASK058: exact status/rev-parse/log/diff/check, exact add/commit, normal non-force push. Опубликованы `754e83259631a823fd658b3cbdccd92ba52c42a1` и `488953dd26cd7fa7bf326a3c793a432d85cb14bb`; remote equality подтверждена. Invitation composition coverage готовится к публикации.
