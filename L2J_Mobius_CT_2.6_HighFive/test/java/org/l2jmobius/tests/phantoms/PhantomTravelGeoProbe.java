@@ -21,9 +21,9 @@ public final class PhantomTravelGeoProbe
 {
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 2) && ((args.length != 3) || !"--heights".equals(args[2])))
+		if ((args.length != 2) && ((args.length != 3) || (!"--heights".equals(args[2]) && !"--waypoints".equals(args[2]))))
 		{
-			throw new IllegalArgumentException("Usage: candidate-tsv proof-tsv [--heights]");
+			throw new IllegalArgumentException("Usage: candidate-tsv proof-tsv [--heights|--waypoints]");
 		}
 		ServerConfig.DATAPACK_ROOT = new File(".").getCanonicalFile();
 		GeoEngineConfig.load();
@@ -33,7 +33,7 @@ public final class PhantomTravelGeoProbe
 			throw new IllegalStateException("PathFinding=2 required");
 		}
 		final GeoEngine geo = GeoEngine.getInstance();
-		if (args.length == 3)
+		if ((args.length == 3) && "--heights".equals(args[2]))
 		{
 			final List<String> points = Files.readAllLines(Path.of(args[0]), StandardCharsets.UTF_8);
 			if (!points.getFirst().equals("point_id\tx\ty\tseed_z"))
@@ -97,6 +97,8 @@ public final class PhantomTravelGeoProbe
 		}
 		final List<String> output = new ArrayList<>();
 		final List<String> runtimeOutput = new ArrayList<>();
+		final List<String> waypointOutput = new ArrayList<>();
+		waypointOutput.add("connector_id\twaypoint\tx\ty\tz\tinstance");
 		runtimeOutput.add("connector_id\truntime_status\truntime_waypoints\tmaximum_waypoints\tmaximum_local_straight\tmaximum_route_distance");
 		output.add("connector_id\tvalidation_status\tpath_length\tpath_segments\trequired_buffer\tmax_pathfind_buffer\tdoor_intersections\tfence_intersections\tdoor_ids\tfence_names\tcollision_proof");
 		for (int i = 1; i < lines.size(); i++)
@@ -111,12 +113,24 @@ public final class PhantomTravelGeoProbe
 			collision.resetIntersections();
 			final PhantomGeoValidationRules.RouteProof result = PhantomGeoValidationRules.route(from, to, probe, maximumBuffer);
 			final var runtime = PhantomGeoValidationRules.runtimeRoute(from, to, probe);
+			if (args.length == 3)
+			{
+				for (int waypoint = 0; waypoint < runtime.waypoints().size(); waypoint++)
+				{
+					final var point = runtime.waypoints().get(waypoint);
+					waypointOutput.add(String.join("\t", row[0], Integer.toString(waypoint), Integer.toString(point.x()), Integer.toString(point.y()), Integer.toString(point.z()), Integer.toString(point.instanceId())));
+				}
+			}
 			runtimeOutput.add(String.join("\t", row[0], runtime.status().name(), Integer.toString(runtime.waypoints().size()), "64", "12000", "100000"));
 			final String collisionProof = collision.doorIntersections() > 0 ? "STATIC_DOOR_INTERSECTION_UNRESOLVED" : collision.fenceIntersections() > 0 ? "STATIC_FENCE_INTERSECTION_UNRESOLVED" : "STATIC_XML_CLEAR";
 			output.add(String.join("\t", row[0], "STATIC_XML_CLEAR".equals(collisionProof) ? result.reason() : collisionProof, "STATIC_XML_CLEAR".equals(collisionProof) ? Long.toString(result.length()) : "0", "STATIC_XML_CLEAR".equals(collisionProof) ? Integer.toString(result.segments()) : "0", Integer.toString(PhantomGeoValidationRules.requiredBuffer(from, to)), Integer.toString(maximumBuffer), Integer.toString(collision.doorIntersections()), Integer.toString(collision.fenceIntersections()), collision.doorIds().toString(), collision.fenceNames().toString(), collisionProof));
 		}
 		Files.writeString(Path.of(args[1]), String.join("\n", output) + "\n", StandardCharsets.UTF_8);
 		Files.writeString(Path.of(args[1] + ".runtime.tsv"), String.join("\n", runtimeOutput) + "\n", StandardCharsets.UTF_8);
+		if (args.length == 3)
+		{
+			Files.writeString(Path.of(args[1] + ".waypoints.tsv"), String.join("\n", waypointOutput) + "\n", StandardCharsets.UTF_8);
+		}
 		System.out.println("TRAVEL_GEO_PROBE candidates=" + (lines.size() - 1) + " proven=" + output.stream().filter(s -> s.contains("VALID_DIRECT") || s.contains("VALID_PATH")).count() + " PathFindBuffers=" + GeoEngineConfig.PATHFIND_BUFFERS + " max=" + maximumBuffer);
 	}
 }
