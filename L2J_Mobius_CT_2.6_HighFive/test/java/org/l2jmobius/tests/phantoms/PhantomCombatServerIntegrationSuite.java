@@ -1213,14 +1213,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(tankTarget, tank.getTarget(), "Rejected aggression changed the tank target.");
 		}
 		// Explicit preparatory boundary after the walk and before this independent combat episode.
-		tank.setCurrentHp(tank.getMaxHp() * 0.45);
+		tank.setCurrentHp(tank.getMaxHp() * 0.75);
 		final double preparedHp = tank.getCurrentHp();
 		final double initialHealerMp = healer.getCurrentMp();
 		final Monster target = new Monster(NpcData.getInstance().getTemplate(18008));
 		target.setCurrentHp(target.getMaxHp());
 		target.setCurrentMp(target.getMaxMp());
 		_worldFixtures.add(target);
-		context.record("companion058.aggro.input", "DECLARED TEST combat boundary; tank=" + tank.getObjectId() + "; hp45percent=" + preparedHp + "; healer=" + healer.getObjectId() + "; skill=" + aggression.getId() + ':' + aggression.getLevel() + "; nativeMpCost=" + (aggression.getMpInitialConsume() + aggression.getMpConsume()) + "; stockNpc18008/70/fullHP=" + target.getMaxHp() + "; object=" + target.getObjectId() + "; xyz=-71480,258616,-3104; human native ATTACK establishes threat, then party pulse; deadline35s; no hate/HP/MP/reward writes inside measurement");
+		context.record("companion058.aggro.input", "DECLARED TEST combat boundary; tank=" + tank.getObjectId() + "; hp75percent=" + preparedHp + "; healer=" + healer.getObjectId() + "; skill=" + aggression.getId() + ':' + aggression.getLevel() + "; nativeMpCost=" + (aggression.getMpInitialConsume() + aggression.getMpConsume()) + "; stockNpc18008/70/fullHP=" + target.getMaxHp() + "; object=" + target.getObjectId() + "; xyz=-71480,258616,-3104; human native ATTACK establishes threat, then party pulse; deadline35s; first heal must begin above55percent under actual NPC pressure; no hate/HP/MP/reward writes inside measurement");
 		target.spawnMe(-71480, 258616, -3104);
 		human.setTarget(target);
 		human.getAI().setIntention(Intention.ATTACK, target);
@@ -1233,6 +1233,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		boolean castObserved = false;
 		boolean reuseObserved = false;
 		boolean healObserved = false;
+		double firstHealHpPercent = Double.NaN;
+		boolean firstHealNpcPressure = false;
 		long heldSince = 0;
 		long maximumHeld = 0;
 		long maximumTankHate = initialTankHate;
@@ -1242,6 +1244,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		while (!target.isDead() && (System.nanoTime() < deadline))
 		{
 			party.onPulse();
+			if (Double.isNaN(firstHealHpPercent) && healer.isCastingNow() && (healer.getLastSkillCast() != null) && (healer.getLastSkillCast().getId() == 1335))
+			{
+				firstHealHpPercent = 100 * tank.getCurrentHp() / tank.getMaxHp();
+				firstHealNpcPressure = target.hasAI() && (target.getAI().getIntention() == Intention.ATTACK) && (target.getAI().getAttackTarget() == tank);
+			}
 			castObserved |= (tank.getLastSkillCast() != null) && (tank.getLastSkillCast().getId() == aggression.getId()) && (tank.getLastSkillCast().getLevel() == aggression.getLevel());
 			reuseObserved |= tank.isSkillDisabled(aggression);
 			maximumTankHate = Math.max(maximumTankHate, target.getHating(tank));
@@ -1274,6 +1281,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			Thread.sleep(20);
 		}
 		context.record("companion058.aggro.result", "nativeCast=" + castObserved + "; nativeReuse=" + reuseObserved + "; tankHate=" + initialTankHate + "->" + maximumTankHate + "; heldNanos=" + maximumHeld + "; actualHeal=" + healObserved + "; healerMp=" + initialHealerMp + "->" + minimumHealerMp + "; tankHp=" + preparedHp + "->" + tank.getCurrentHp() + "; deadNpc=" + target.isDead() + "; nativePartyExp=" + initialExp + "->" + actors.stream().mapToLong(Player::getExp).sum());
+		context.record("companion058.aggro.earlyHeal", "firstCastHpPercent=" + firstHealHpPercent + "; actualNpcPressure=" + firstHealNpcPressure);
+		PhantomAssertions.assertTrue(firstHealNpcPressure && (firstHealHpPercent > 55), "Threatened native party member did not start healing before the old55percent boundary.");
 		PhantomAssertions.assertTrue(castObserved && reuseObserved, "Tank never used its current learned native NPC aggression skill/reuse.");
 		PhantomAssertions.assertTrue((maximumTankHate > initialTankHate) && (maximumHeld >= TimeUnit.SECONDS.toNanos(2)), "Tank did not actually recover and hold native NPC aggression.");
 		PhantomAssertions.assertTrue(healObserved && (minimumHealerMp < initialHealerMp), "Party healer produced no actual heal/cost during the live NPC fight.");

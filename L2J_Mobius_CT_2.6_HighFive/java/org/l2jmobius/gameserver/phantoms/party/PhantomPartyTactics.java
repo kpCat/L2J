@@ -83,9 +83,11 @@ public final class PhantomPartyTactics
 				}
 				else
 				{
-					if (targetSnapshot.hpPercent() <= 55)
+					final boolean pressured = !targetSnapshot.attackerObjectIds().isEmpty();
+					final int healThreshold = pressured ? 75 : 55;
+					if (targetSnapshot.hpPercent() <= healThreshold)
 					{
-						addSupport(candidates, DirectiveKind.HEAL_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.heal", "member.hp.low", 8000 + (55 - targetSnapshot.hpPercent()));
+						addSupport(candidates, DirectiveKind.HEAL_MEMBER, actorSnapshot, targetSnapshot, exactCapabilities, "combat.heal", "member.hp.low", (pressured ? 9000 : 8000) + (healThreshold - targetSnapshot.hpPercent()));
 					}
 					if (targetSnapshot.mpPercent() <= 35)
 					{

@@ -7,13 +7,15 @@
 | М2 | Адресная речь/доставленный ответ, canonical party, native follow/assist/support/res/partychat, текущие навыки | Проверка реальным клиентом/владельцем |
 | М3 PARTIAL | Речь и scoped joint/personal memory после save/restart, delivered recall/изоляция | Полный набор команд/отказов; «стой здесь» unsupported |
 | М4 PARTIAL | Actual damage facts, усиленный ответ, bounded native ranged walking, mixed-party defense/leave, NO_PVP guards | Полный risk/retreat/clan/war/servitor/death/save flow |
-| М5 PARTIAL | Native individual raid tactics/current skills/агро/spacing/damage | Полная победа/reward/regroup/recovery; прошлый tactics episode с tank death сохранён |
+| М5 PARTIAL | Stock tactics subset: current heal/MP cost, агро/spacing/damage, все4 живы | Полная победа/reward/regroup/recovery; прежние tank-death FAIL сохранены |
 | М6 PARTIAL | Stock Kamaloka/Rift entry/guards/identity/fee/combat | Kamaloka без victory/reuse/natural closing; Rift human death/no EXP; полный цикл/автовход |
 | М7 PARTIAL | Earned20/EXP/SP, штатный gear upgrade/save/paid skill1→2/current rank/effect/reload | Профессии20/40/76, subclass/noblesse quests, автономный town-to-field travel |
 
 Все этапы OWNER_QA_PENDING. TEST loopback не называется входом владельца, сохранённые SQL XYZ не доказывают live presence. Высокие уровни, gear и enhanced skills подготовленных TEST ролей — входные fixtures, не заработанная карьера.
 
 Cardinal учитывает изученный Greater Heal, включая текущий enhanced rank; Balance Life сохранён. Навыки/MP/расходники и законность цели проверяются штатно. Нет product GM-выдач, бесконечных ресурсов или искусственных наград.
+
+Текущая NPC-атака читается по локальному живому Monster/instance/native AI ATTACK и его цели; список ограничен32 ID. При такой угрозе heal планируется до75% HP и выше protect, без неё сохраняется55%. Native75%-эпизод подтвердил начало cast, фактический heal/MP cost и stock kill. Выживание в рейде этим не гарантируется; М5 остаётся PARTIAL.
 
 Durable paid learning требует сохранённого SP baseline; непосредственное обучение до save/autosave может вернуть DURABLE_SP_STATE_CONFLICT. Peace/NoPvP и stock instance/reuse ограничения сохраняются. Отдельная полевая fixture в М7 проверяла эффект навыка, а не самостоятельное путешествие из города.
 

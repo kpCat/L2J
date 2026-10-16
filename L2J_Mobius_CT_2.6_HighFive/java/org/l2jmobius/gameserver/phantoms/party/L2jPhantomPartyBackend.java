@@ -14,10 +14,12 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
 import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.instance.Monster;
 import org.l2jmobius.gameserver.model.groups.CommandChannel;
 import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService;
 import org.l2jmobius.gameserver.model.groups.Party;
@@ -448,7 +450,7 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 	private MemberSnapshot snapshot(MemberRef member, Player player)
 	{
 		final WorldObject target = player.getTarget();
-		final List<Integer> attackers = player.getAttackByList().stream().filter(Creature::isMonster).map(Creature::getObjectId).distinct().sorted().limit(32).toList();
+		final List<Integer> attackers = World.getInstance().getVisibleObjects(player, Monster.class, npc -> !npc.isDead() && (npc.getInstanceId() == player.getInstanceId()) && npc.hasAI() && (npc.getAI().getIntention() == Intention.ATTACK) && (npc.getAI().getAttackTarget() == player)).stream().map(Creature::getObjectId).distinct().sorted().limit(32).toList();
 		final List<MemberCapability> capabilities = member.kind() == MemberKind.PHANTOM ? phantomCapabilities(member.profileId(), 0) : realCapabilities(player, 0);
 		final String progressionHash = _progression.findCatalog().map(catalog -> catalog.combinedHash()).orElse("0".repeat(64));
 		return new MemberSnapshot(member, player.getActiveClass(), player.getInstanceId(), player.getX(), player.getY(), player.getZ(), percent(player.getCurrentHp(), player.getMaxHp()), percent(player.getCurrentMp(), player.getMaxMp()), percent(player.getCurrentCp(), player.getMaxCp()), player.isDead(), player.isCastingNow(), player.isAttackingNow(), player.isMoving(), target == null ? 0 : target.getObjectId(), attackers, capabilities, progressionHash);

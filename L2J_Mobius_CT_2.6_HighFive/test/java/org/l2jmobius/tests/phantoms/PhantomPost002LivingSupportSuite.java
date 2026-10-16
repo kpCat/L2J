@@ -125,6 +125,32 @@ public final class PhantomPost002LivingSupportSuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(raid.contains("combat.song") && raid.contains("combat.dance") && raid.contains("_tactics.plan"), "Raid runtime did not reuse bounded party support authority.");
 			PhantomAssertions.assertFalse(combat.contains("addSkillEffect") || effects.contains("addSkillEffect"), "Support introduced direct effect injection.");
 		});
+		registry.add("06-threatened-member-heal-starts-before-critical-hp-and-protect", context ->
+		{
+			final MemberRef actor = MemberRef.phantom(1, 101);
+			final MemberRef human = MemberRef.real(202);
+			final FakeBackend backend = new FakeBackend();
+			backend.capabilities.put(202, List.of(capability("combat.heal", 1001)));
+			for (int hp : List.of(75, 55))
+			{
+				final var directives = new PhantomPartyTactics(null, backend, policy(context)).plan(actor, List.of(actor, human), Map.of(actor, snapshot(actor, 100, 100, false), human, snapshot(human, hp, 100, false, List.of(303))));
+				PhantomAssertions.assertEquals(DirectiveKind.HEAL_MEMBER, directives.getFirst().kind(), "Actual NPC pressure delayed heal behind protect at HP=" + hp);
+			}
+		});
+		registry.add("07-early-heal-requires-pressure-health-and-ready-current-skill", context ->
+		{
+			final MemberRef actor = MemberRef.phantom(1, 101);
+			final MemberRef human = MemberRef.real(202);
+			final FakeBackend backend = new FakeBackend();
+			backend.capabilities.put(202, List.of(capability("combat.heal", 1001)));
+			final PhantomPartyTactics tactics = new PhantomPartyTactics(null, backend, policy(context));
+			for (MemberSnapshot target : List.of(snapshot(human, 75, 100, false), snapshot(human, 76, 100, false, List.of(303))))
+			{
+				PhantomAssertions.assertFalse(tactics.plan(actor, List.of(actor, human), Map.of(actor, snapshot(actor, 100, 100, false), human, target)).stream().anyMatch(value -> value.kind() == DirectiveKind.HEAL_MEMBER), "Early heal ignored its actual pressure/health boundary.");
+			}
+			backend.capabilities.put(202, List.of(new MemberCapability("combat.heal", "heal", 100, 1001, 1, "SINGLE_TARGET", true, true, false, "not.ready", 100, "post002.fixture")));
+			PhantomAssertions.assertFalse(tactics.plan(actor, List.of(actor, human), Map.of(actor, snapshot(actor, 100, 100, false), human, snapshot(human, 75, 100, false, List.of(303)))).stream().anyMatch(value -> value.kind() == DirectiveKind.HEAL_MEMBER), "Early heal bypassed current native readiness.");
+		});
 	}
 
 	private static void conversation(PhantomTestRegistry registry)
@@ -192,7 +218,12 @@ public final class PhantomPost002LivingSupportSuite implements PhantomTestSuite
 
 	private static MemberSnapshot snapshot(MemberRef ref, int hp, int mp, boolean dead)
 	{
-		return new MemberSnapshot(ref, 1, 0, 0, 0, 0, hp, mp, 100, dead, false, false, false, 0, List.of(), List.of(), ZERO);
+		return snapshot(ref, hp, mp, dead, List.of());
+	}
+
+	private static MemberSnapshot snapshot(MemberRef ref, int hp, int mp, boolean dead, List<Integer> attackers)
+	{
+		return new MemberSnapshot(ref, 1, 0, 0, 0, 0, hp, mp, 100, dead, false, false, false, 0, attackers, List.of(), ZERO);
 	}
 
 	private static final class FakeBackend implements PhantomPartyBackend
