@@ -20,6 +20,7 @@ import org.l2jmobius.gameserver.model.chat.ChatObservationService;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService.DispatchHandle;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InvitationIdentity;
 import org.l2jmobius.gameserver.network.enums.ChatType;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.Argument;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionEntry;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.InvitationBinding;
@@ -193,6 +194,19 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		if ((previousGoal == null) || (previousGoal.status() != PhantomGoalStatus.ACTIVE))
 		{
 			return false;
+		}
+		if (entry.proposalKey().equals("party.invite") && previousGoal.goalType().equals(PhantomBackgroundGoalSpec.GOAL_TYPE))
+		{
+			try
+			{
+				// Existing goal CAS/runtime synchronization revokes new roots, preserving native work epochs.
+				PhantomBackgroundGoalSpec.parse(previousGoal);
+				return true;
+			}
+			catch (IllegalArgumentException exception)
+			{
+				return false;
+			}
 		}
 		final var claim = _party.claim(profileId).orElse(null);
 		if (claim == null)

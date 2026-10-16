@@ -1,5 +1,7 @@
 # Phantom World: текущий статус
 
+Актуальная поправка владельца от 16.10.2026: М1 остаётся OPEN и принят как база разработки с отложенными G4/G6/полной личной приёмкой; М2–М7 разрешены утверждённым [AUTHORITY058](tasks/PHANTOM-M2-M7-CAMPAIGN-058/AUTHORITY.md). Точные статусы и границы — в [RELEASE_CONTRACT](RELEASE_CONTRACT.md), текущая кампания — в [RESULT058](reports/PHANTOM-M2-M7-CAMPAIGN-058.md). Сохранённый ниже срез сентября не является приёмкой игровых milestones М2–М7.
+
 Дата сверки: 2026-09-12. Source of truth для accepted release slice — `test/resources/phantoms/release/goal030-release-coverage.tsv`; для финального declared scope — `test/resources/phantoms/release/goal039-full-vision-coverage.tsv`, `docs/phantoms/reports/039-final-full-vision-release-gate.md` и `docs/phantoms/PHANTOM_FEATURE_COMPLETE_FREEZE.md`. Goal034, Goal035, Goal036, Goal037 и Goal038 имеют статус `SUCCESS`; Goal039 — `ACCEPT`. Статусы полного vision основаны на production code/data/tests и guarded evidence. Финальный статус: `FEATURE_COMPLETE_FOR_DECLARED_SCOPE`.
 
 | Capability/domain | Implementation status | Release evidence | Known limitation | Next action |

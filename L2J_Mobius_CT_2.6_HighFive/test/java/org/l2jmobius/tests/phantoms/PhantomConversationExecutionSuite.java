@@ -124,7 +124,14 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		{
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
-		PhantomTestDatabaseBootstrap.initialize(context.moduleRoot(), Path.of(config));
+		if (PhantomCampaign058DatabaseLane.enabled())
+		{
+			PhantomCampaign058DatabaseLane.initialize(context.moduleRoot(), Path.of(config));
+		}
+		else
+		{
+			PhantomTestDatabaseBootstrap.initialize(context.moduleRoot(), Path.of(config));
+		}
 		_repository = PhantomProfileRepository.open();
 		_goals = new PhantomGoalStateStore(_repository);
 	}

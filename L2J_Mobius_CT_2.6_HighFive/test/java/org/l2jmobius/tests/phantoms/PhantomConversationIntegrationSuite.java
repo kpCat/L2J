@@ -51,6 +51,7 @@ import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityOverloadLevel;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityWorkItem;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
 import org.l2jmobius.gameserver.phantoms.conversation.L2jPhantomConversationContextPort;
@@ -87,6 +88,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
@@ -136,6 +138,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		OUTBOUND_CHAT,
 		COMPANION_REQUEST_058,
 		COMPANION_COMPOSITION_058,
+		COMPANION_FARM_TAKEOVER_058,
 		CHAT_INTEGRATION,
 		LIFECYCLE_PERFORMANCE
 	}
@@ -182,6 +185,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			case OUTBOUND_CHAT -> "conversation-outbound-chat";
 			case COMPANION_REQUEST_058 -> "companion-request058";
 			case COMPANION_COMPOSITION_058 -> "companion-composition058";
+			case COMPANION_FARM_TAKEOVER_058 -> "companion-farm-takeover058";
 			case CHAT_INTEGRATION -> "conversation-chat-integration";
 			case LIFECYCLE_PERFORMANCE -> "conversation-lifecycle-performance";
 		};
@@ -190,7 +194,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_COMPOSITION_058 ? 58005803L : _mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
+		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_FARM_TAKEOVER_058 ? 58005804L : _mode == Mode.COMPANION_COMPOSITION_058 ? 58005803L : _mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
 		_profiles = PhantomProfileRepository.open();
@@ -289,7 +293,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			companionRequest058(registry);
 		}
-		else if (_mode == Mode.COMPANION_COMPOSITION_058)
+		else if ((_mode == Mode.COMPANION_COMPOSITION_058) || (_mode == Mode.COMPANION_FARM_TAKEOVER_058))
 		{
 			companionComposition058(registry);
 		}
@@ -308,6 +312,23 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			_speaker.spawnMe(_observer.getX(), _observer.getY(), _observer.getZ());
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
+			final PhantomGoal previousFarm;
+			if (_mode == Mode.COMPANION_FARM_TAKEOVER_058)
+			{
+				// A persisted ordinary-goal precondition; actual combat/earned work is a separate gate.
+				final var anchor = _topology.findAnchor("population.farming.elf.20534").orElseThrow();
+				previousFarm = new PhantomGoal(58005804L, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE,
+					new PhantomDomainRef("profile", Long.toString(_observerProfile.profileId())), new PhantomDomainRef("npc", "20534"), 1, 0, null,
+					List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20534@" + anchor.id())),
+					new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm", 1, 0, 0, 0, Map.of(), "fixture058.takeover", 1);
+				PhantomAssertions.assertEquals(20534, PhantomBackgroundGoalSpec.parse(previousFarm).npcId(), "Ordinary FARM precondition does not match its source.");
+				goals.insert(_observerProfile.profileId(), previousFarm);
+				context.record("companion.previousFarm", previousFarm.goalId() + ":" + previousFarm.revision());
+			}
+			else
+			{
+				previousFarm = null;
+			}
 			final PhantomGameKnowledgeService knowledge = PhantomGameKnowledgeService.inertForTesting(_topology.snapshot().canonicalHash());
 			PhantomAssertions.assertTrue(knowledge.start(), "Companion unused-query authority did not start.");
 			final PhantomProgressionService progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), knowledge::query), PhantomProgressionPolicy.productionDefaults());
@@ -364,6 +385,14 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 				}
 				PhantomAssertions.assertTrue(_speaker.isInParty() && _speaker.getParty().containsPlayer(_observer), "Canonical Party does not contain the TEST partner and Phantom.");
 				PhantomAssertions.assertTrue(party.committed(_observerProfile.profileId()), "Native membership did not reach durable party owner commit.");
+				if (previousFarm != null)
+				{
+					final PhantomGoal replacement = goals.load(_observerProfile.profileId()).orElseThrow().goal();
+					PhantomAssertions.assertTrue((replacement.goalId() != previousFarm.goalId()) && (replacement.revision() > previousFarm.revision()), "Companion takeover did not preserve monotonic goal ownership.");
+					PhantomAssertions.assertEquals(PhantomPartyCoordinator.LEAD_GOAL, replacement.goalType(), "Ordinary FARM still owns the committed companion.");
+					PhantomAssertions.assertTrue(party.blocksBackground(_observerProfile.profileId()), "Committed companion still admits new ordinary FARM roots.");
+					PhantomAssertions.assertFalse(port.allowsGoalSupersession(_observerProfile.profileId(), ExecutionEntry.prepared(_plans.getFirst()), replacement), "A committed party goal was treated as replaceable ordinary FARM.");
+				}
 				final var reloaded = new PhantomPartyStore(_profiles).load(_observerProfile.profileId()).orElseThrow();
 				PhantomAssertions.assertEquals(1, reloaded.state().phantomMembers().size(), "Persisted Phantom roster differs from native membership.");
 				PhantomAssertions.assertEquals(1, reloaded.state().realMembers().size(), "Persisted TEST partner roster differs from native membership.");
