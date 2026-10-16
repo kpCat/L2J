@@ -29,6 +29,10 @@ public record PhantomTestResult(String name, boolean passed, long elapsedNanos, 
 
 	public static PhantomTestResult failed(String name, long elapsedNanos, Throwable throwable)
 	{
+		if (throwable.getCause() != null)
+		{
+			throwable.printStackTrace(System.err);
+		}
 		return new PhantomTestResult(name, false, elapsedNanos, throwable.getClass().getName(), PhantomTestLauncher.sanitize(throwable.getMessage()));
 	}
 }

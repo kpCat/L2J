@@ -390,6 +390,13 @@ public final class PhantomVisibleFarmTravel implements PhantomMaterializationLif
 			clearRoute(profileId, journey);
 			return true;
 		}
+		if (player.isSitting() && !player.isTeleporting() && !player.isInCombat() && !player.isCastingNow() && player.getMoveSpeed() > 0)
+		{
+			if (!currentJourney(profileId, journey)) { remove(profileId, journey); return false; }
+			player.standUp();
+			journey.reason = "travel.native_stand_pending";
+			return false;
+		}
 		if (player.isTeleporting() || player.isInCombat() || player.isCastingNow() || player.isMovementDisabled() || player.getMoveSpeed() <= 0)
 		{
 			journey.reason = "travel.native_action_busy";

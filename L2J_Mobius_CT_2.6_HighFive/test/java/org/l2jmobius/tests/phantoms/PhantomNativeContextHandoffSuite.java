@@ -95,6 +95,7 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if ("rest-travel057".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("H057-cancelled-native-rest-replans-into-stock-travel", this::interruptedRestReturn057); return; }
 		if ("return11352-056".equals(System.getProperty("phantom.m1.native.focus"))) { registry.add("H056-actual-native-return-from-observed-11352-position", this::return11352_056); return; }
 		if ("load-regen055".equals(System.getProperty("phantom.m1.native.focus")))
 		{
@@ -501,7 +502,79 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 		};
 	}
 
+	private void interruptedRestReturn057(PhantomTestContext context) throws Exception
+	{
+		// Reuse040's owned pre-World caster/stock-skill setup; no live acceptance character is changed.
+		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("UPDATE characters SET classid=25,base_class=25,race=1,level=7,exp=?,online=0 WHERE charId=?"))
+		{
+			statement.setLong(1, org.l2jmobius.gameserver.data.xml.ExperienceData.getInstance().getExpForLevel(7)); statement.setInt(2, _environment.primary().objectId());
+			PhantomAssertions.assertEquals(1, statement.executeUpdate(), "Exact owned TEST caster before World load.");
+		}
+		final var setup = Player.load(_environment.primary().objectId());
+		try
+		{
+			final var learn = org.l2jmobius.gameserver.data.xml.SkillTreeData.getInstance().getCompleteClassSkillTree(setup.getPlayerClass()).values().stream().filter(entry -> entry.getSkillId() == 1177 && entry.getSkillLevel() == 1 && entry.getGetLevel() <= setup.getLevel()).findFirst().orElseThrow();
+			setup.addSkill(org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel()), true); setup.storeMe();
+		}
+		finally { _environment.cleanupLoadedPlayer(setup); }
+		return11352_056(context, true);
+	}
+
+	private void interruptedRest057(Fixture f, Player player, org.l2jmobius.gameserver.phantoms.decision.PhantomGoal goal, PhantomTestContext context) throws Exception
+	{
+		// This isolated TEST JVM owns these fixtures; deplete only its exact selected NPC before the episode.
+		final int npcId = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.parse(goal).npcId();
+		final var targets = World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.Creature.class, org.l2jmobius.gameserver.config.custom.AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream()
+			.filter(creature -> creature.isMonster() && creature.asNpc().getId() == npcId).limit(17).toList();
+		PhantomAssertions.assertTrue(targets.size() <= 16, "Bounded exact TEST target depletion.");
+		context.record("H057.testTargets", targets.stream().map(creature -> creature.getObjectId() + ":" + creature.asNpc().getId() + "@" + creature.getX() + ":" + creature.getY() + ":" + creature.getZ()).toList());
+		for (var target : targets) { target.deleteMe(); }
+		try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.setTarget(null); }
+		final var engine = PhantomVisibleIntentRecoverySuite.engine(f);
+		final var adapter = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay(f.materialization, () -> engine, f.historical::permitsDecision, System::nanoTime);
+		try
+		{
+			PhantomAssertions.assertTrue(adapter.start(f.id, goal), "Current native caster controller.");
+			final long noTargetDeadline = System.nanoTime() + 40_000_000_000L;
+			boolean replan = false;
+			while (!(replan = adapter.noTargetExpired(f.id, goal)) && System.nanoTime() < noTargetDeadline) { Thread.sleep(100); }
+			context.record("H057.noTargetReplan", adapter.snapshotContinuation(f.id).scalarMap());
+			PhantomAssertions.assertTrue(replan, "INPUT: actual bounded no-target path requested replan without changing the game clock.");
+			final var sessions = adapter.getClass().getDeclaredField("_sessions"); sessions.setAccessible(true);
+			final Object session = ((java.util.Map<?, ?>) sessions.get(adapter)).get(f.id);
+			final var gateField = session.getClass().getDeclaredField("_commandGate"); gateField.setAccessible(true);
+			final var gate = (java.util.concurrent.atomic.AtomicBoolean) gateField.get(session);
+			final long gateDeadline = System.nanoTime() + 2_000_000_000L;
+			boolean acquired = false;
+			while (!(acquired = gate.compareAndSet(false, true)) && System.nanoTime() < gateDeadline) { Thread.sleep(20); }
+			PhantomAssertions.assertTrue(acquired, "Existing command gate controlled before rest/replan.");
+			try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow())
+			{
+				player.setTarget(null); player.sitDown();
+				final var pause = adapter.getClass().getDeclaredMethod("resourcePause", session.getClass(), Player.class); pause.setAccessible(true);
+				final long pauseDeadline = System.nanoTime() + 1_000_000_000L;
+				while (!Boolean.parseBoolean(adapter.snapshotContinuation(f.id).scalarMap().get("liveResourceRecovery")) && System.nanoTime() < pauseDeadline) { pause.invoke(adapter, session, player); Thread.sleep(20); }
+				context.record("H057.beforeReplan", adapter.snapshotContinuation(f.id).scalarMap());
+				PhantomAssertions.assertEquals("true", adapter.snapshotContinuation(f.id).scalarMap().get("liveResourceRecovery"), "Actual native resource recovery before revocation.");
+				PhantomAssertions.assertTrue(player.isSitting() && !player.isCastingNow() && !player.isInCombat(), "Actual unthreatened stock rest, without a target.");
+				adapter.stop(f.id);
+			}
+			finally { gate.set(false); }
+			final var current = session.getClass().getDeclaredField("_current"); current.setAccessible(true);
+			PhantomAssertions.assertFalse(((java.util.concurrent.atomic.AtomicBoolean) current.get(session)).get(), "Replan revoked the old native controller.");
+			context.record("H057.afterReplanTuple", adapter.snapshotContinuation(f.id).scalarMap());
+			context.record("H057.afterReplan", "goal=" + goal + ";epoch=" + player.getNativeWorkOwner().epoch() + ";gate=" + gate.get() + ";sitting=" + player.isSitting() + ";movementDisabled=" + player.isMovementDisabled() + ";hp=" + player.getCurrentHp() + ";mp=" + player.getCurrentMp());
+			PhantomAssertions.assertTrue(player.isSitting(), "INPUT: controller cancellation retained the actual stock rest.");
+		}
+		finally { adapter.stop(f.id); }
+	}
+
 	private void return11352_056(PhantomTestContext context) throws Exception
+	{
+		return11352_056(context, false);
+	}
+
+	private void return11352_056(PhantomTestContext context, boolean interruptedRest) throws Exception
 	{
 		try (var f = new Fixture(true, false, 0, PhantomBackgroundTransaction.FaultInjector.none(), false, "population.farming.elf.20534", 20534))
 		{
@@ -512,11 +585,17 @@ public final class PhantomNativeContextHandoffSuite implements PhantomTestSuite
 			final Player player = World.getInstance().getPlayer(f.objectId);
 			try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow()) { player.stopMove(null); player.setXYZ(44296, 44478, -3704); }
 			PhantomAssertions.assertFalse(player.isSitting() || player.isMovementDisabled() || player.isInCombat(), "INVALID_SETUP: ordinary native movement must be available.");
+			if (interruptedRest) { interruptedRest057(f, player, goal, context); }
 			final var navigation = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend(), worker -> { org.l2jmobius.commons.threads.ThreadPool.execute(worker); return true; }, System::nanoTime, new org.l2jmobius.gameserver.phantoms.PhantomMetrics());
 			PhantomAssertions.assertTrue(navigation.start(), "Original navigation starts.");
 			final var travel = new org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel(f.materialization, f.background, _production.authority().travelQuery(_production.topology()), navigation, f.historical::permitsDecision, signals(), (_id, failure) -> context.record("H056.failure", failure.toString()), System::nanoTime);
 			try
 			{
+				if (interruptedRest)
+				{
+					travel.observeArrival(f.id, goal.withStatus(goal.status()));
+					PhantomAssertions.assertTrue(player.isSitting() && !player.isMoving() && player.getX() == 44296 && player.getY() == 44478, "Stale goal cannot stand or move the retained native owner.");
+				}
 				final long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(45);
 				org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel.ArrivalResult last = null;
 				String reason = "";
