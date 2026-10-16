@@ -501,6 +501,18 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		return createFixture("PhT058" + slot + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE);
 	}
 
+	/** Exact058t invitation-capacity fixture only; the companion limit remains two. */
+	public PhantomHeadlessPlayerFixture createCampaign058InvitationMember(PhantomTestContext context, int slot) throws Exception
+	{
+		if ((context.seed() != 58005827L) || (slot < 1) || (slot > 8) || (_primary == null) || !_accountName.equals("phantom_t004_" + context.seed()) || _additional058FixtureSlots.contains(100 + slot))
+		{
+			throw new IllegalArgumentException("Exact058 invitation fixture identity/capacity required.");
+		}
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		_additional058FixtureSlots.add(100 + slot);
+		return createFixture("PhT058I" + slot + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE);
+	}
+
 	public void cleanupLoadedPlayer(Player player)
 	{
 		if (player == null)

@@ -542,6 +542,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			registry.add("01-current-enchanted-offense-and-class-context", this::testLearnedOffense058);
 			registry.add("02-current-enchanted-recharge-native-effect", context -> testCompanionNativeRole058(context, "combat.recharge"));
 			registry.add("03-current-bow-gear-revalidates-without-cached-capability", this::testRangedGear058);
+			registry.add("04-canonical-subclass-switch-and-native-reload-refresh-skills", this::testSubclassSkills058);
 			return;
 		}
 		if (_mode == Mode.COMPANION_NPC_AGGRO_058)
@@ -583,7 +584,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.POST002_SUPPORT)
 		{
-			registry.add("01-human-party-native-buff-effect-and-guards", _ -> testPost002NativeSupport());
+			registry.add("01-human-party-native-buff-effect-and-guards", this::testPost002NativeSupport);
 			return;
 		}
 		if (_mode == Mode.QOL009_SERVITOR)
@@ -649,7 +650,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		registry.add("20-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
 	}
 
-	private static void assertCampaign058Jar(PhantomTestContext context) throws Exception
+	static void assertCampaign058Jar(PhantomTestContext context) throws Exception
 	{
 		final Path supplied = Path.of(System.getProperty("phantom.contract058.semantic.jar", PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toString())).toRealPath();
 		final List<Path> allowed = List.of(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/native-current058/dist/libs/GameServer.jar"), Path.of("D:/PhantomWorld/M2-M7-058-candidate/libs/GameServer.jar"));
@@ -1457,13 +1458,20 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 	}
 
-	private void testPost002NativeSupport() throws Exception
+	private void testPost002NativeSupport(PhantomTestContext context) throws Exception
 	{
 		resetActor(true);
+		final var creation = PlayerTemplateData.getInstance().getTemplate(0).getCreationPoint();
+		_player.decayMe();
+		_player.setXYZInvisible(creation.getX(), creation.getY(), creation.getZ());
+		_player.spawnMe();
+		_player.revalidateZone(true);
 		final Player human = ensureObserver();
+		human.revalidateZone(true);
 		human.setCurrentHp(human.getMaxHp());
 		human.setCurrentMp(human.getMaxMp());
 		final CapabilityRule rule = _progression.capabilityRules("combat.buff").stream()
+			.filter(candidate -> (candidate.actionSkill().skillId() == 349) && (candidate.actionSkill().skillLevel() == 1)) // Same verified stock Sword Muse input as companion-real-support058.
 			.filter(candidate -> candidate.requiredEquipmentFamilies().isEmpty() && candidate.requiredItems().isEmpty())
 			.filter(candidate -> candidate.classIds().size() == 1)
 			.filter(candidate -> SkillData.getInstance().getSkill(candidate.actionSkill().skillId(), candidate.actionSkill().skillLevel()) != null)
@@ -1471,8 +1479,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			.orElseThrow(() -> new AssertionError("Canonical High Five progression exposes no usable combat.buff rule."));
 		final int classId = rule.classIds().getFirst();
 		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), rule.actionSkill().skillLevel());
+		// Canonical XP/base/current class must agree before the native class-refresh callback.
+		_player.getStat().setExp(_player.getStat().getExpForLevel(85));
+		_player.setBaseClass(classId);
 		_player.setPlayerClass(classId);
 		_player.getStat().setLevel((byte) 85);
+		human.getStat().setExp(human.getStat().getExpForLevel(85));
+		human.getStat().setLevel((byte) 85);
 		_player.addSkill(skill, false);
 		_player.enableSkill(skill);
 		_player.setCurrentMp(_player.getMaxMp());
@@ -1490,27 +1503,45 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final PhantomPartySupportAction action = new PhantomPartySupportAction("combat.buff", rule.variantKey(), rule.targetScope().name(), human.getObjectId(), new SelectedSkill(skill.getId(), skill.getLevel()), PhantomPartySupportAction.Audience.PARTY, 45);
 		try
 		{
+			final double firstMpBefore = _player.getCurrentMp();
 			PhantomAssertions.assertEquals(PhantomConversationExecutionPort.ResultStatus.COMPLETED, executePost002ConversationSupport(human, rule), "Same-party conversation support did not issue a native cast.");
-			await(() -> human.getEffectList().getBuffInfoBySkillId(skill.getId()) != null, "Same-party conversation support did not produce a native effect on the human requester.");
+			try { await(() -> human.getEffectList().getBuffInfoBySkillId(skill.getId()) != null, "Same-party conversation support did not produce a native effect on the human requester."); }
+			finally { context.record("support058.initial", "stockSkill=" + skill.getId() + ":" + skill.getLevel() + "; class=" + _player.getActiveClass() + "; level=" + _player.getLevel() + "; mp=" + firstMpBefore + "->" + _player.getCurrentMp() + "; nativeCast=" + _player.isCastingNow() + "; intention=" + _player.getAI().getIntention() + "; targetEffect=" + (human.getEffectList().getBuffInfoBySkillId(skill.getId()) != null) + "; geoLOS=" + GeoEngine.getInstance().canSeeTarget(_player.getX(), _player.getY(), _player.getZ(), 0, human.getX(), human.getY(), human.getZ(), 0)); }
 			PhantomAssertions.assertEquals(PhantomSupportEffectAuthority.Status.HEALTHY, PhantomSupportEffectAuthority.status(human, skill, 45), "Fresh native buff was not observed as healthy.");
 			PhantomAssertions.assertEquals(ActionOutcome.ALREADY_OWNED, castPost002Support(action, "healthy"), "Healthy native effect did not suppress rebuff spam.");
 
 			final BuffInfo effect = human.getEffectList().getBuffInfoBySkillId(skill.getId());
-			effect.setAbnormalTime(1);
-			_player.abortCast();
+			await(() -> !_player.isCastingNow() && !_player.isSkillDisabled(skill), "Positive native support cast/reuse did not finish normally.");
+			// setAbnormalTime is TOTAL duration, so retain elapsed ticks and declare thirty seconds remaining.
+			effect.setAbnormalTime(effect.getAbnormalTime() - effect.getTime() + 30);
 			_player.getAI().setIntention(Intention.IDLE);
-			_player.enableSkill(skill);
 			PhantomAssertions.assertEquals(PhantomSupportEffectAuthority.Status.NEAR_EXPIRY, PhantomSupportEffectAuthority.status(human, skill, 45), "Native remaining-time threshold did not expose near-expiry.");
+			final double recastMpBefore = _player.getCurrentMp();
+			final long recastItemsBefore = supportItemId > 0 ? _player.getInventory().getInventoryItemCount(supportItemId, -1) : 0;
 			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, castPost002Support(action, "near-expiry"), "Near-expiry native buff was not admitted for rebuff.");
 
-			_player.abortCast();
+			try { await(() -> !_player.isCastingNow() && (PhantomSupportEffectAuthority.status(human, skill, 45) == PhantomSupportEffectAuthority.Status.HEALTHY), "Near-expiry native recast did not finish with an actual renewed effect."); }
+			finally
+			{
+				final BuffInfo actual = human.getEffectList().getBuffInfoBySkillId(skill.getId());
+				context.record("support058.recast", "skill=" + skill.getId() + ":" + skill.getLevel() + "; mp=" + recastMpBefore + "->" + _player.getCurrentMp() + "; items=" + recastItemsBefore + "->" + (supportItemId > 0 ? _player.getInventory().getInventoryItemCount(supportItemId, -1) : 0) + "; casting=" + _player.isCastingNow() + "; disabled=" + _player.isSkillDisabled(skill) + "; reuseMillis=" + _player.getSkillRemainingReuseTime(skill.getReuseHashCode()) + "; intention=" + _player.getAI().getIntention() + "; effectTotal=" + (actual == null ? -1 : actual.getAbnormalTime()) + "; effectRemaining=" + (actual == null ? -1 : actual.getTime()) + "; hp=" + human.getCurrentHp());
+			}
+			await(() -> !_player.isSkillDisabled(skill), "Native recast reuse did not finish before independent negative controls.");
 			_player.getAI().setIntention(Intention.IDLE);
 			human.getEffectList().stopSkillEffects(SkillFinishType.REMOVED, skill.getId());
-			_player.enableSkill(skill);
 			_player.setCurrentMp(0);
 			PhantomAssertions.assertEquals(ActionOutcome.UNAVAILABLE, castPost002Support(action, "no-mp"), "Native zero-MP guard was bypassed.");
 
 			_player.setCurrentMp(_player.getMaxMp());
+			// Independent invalid-target fixture boundaries; no successful measurement is being rescued.
+			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, castPost002Support(new PhantomPartySupportAction(action.capabilityKey(), action.variantKey(), action.targetScope(), Integer.MAX_VALUE, action.skill(), action.audience(), action.rebuffRemainingSeconds()), "wrong-target"), "Unknown exact native target was admitted.");
+			human.setDead(true);
+			try { PhantomAssertions.assertEquals(ActionOutcome.REJECTED, castPost002Support(action, "dead-target"), "Ordinary buff was cast on a dead target."); }
+			finally { human.setDead(false); }
+			final int wrongInstance = InstanceManager.getInstance().createDynamicInstance(0).getId();
+			human.setInstanceId(wrongInstance);
+			try { PhantomAssertions.assertEquals(ActionOutcome.REJECTED, castPost002Support(action, "foreign-instance"), "Native support crossed an instance boundary."); }
+			finally { human.setInstanceId(0); InstanceManager.getInstance().destroyInstance(wrongInstance); }
 			final int targetX = human.getX();
 			final int targetY = human.getY();
 			final int targetZ = human.getZ();
@@ -3245,6 +3276,40 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(resolver.resolve(lease.actorSnapshot(), PhantomCombatMode.RANGED_PHYSICAL, lease, 4).isPresent(), "Re-equipping the same owned bow did not restore readiness.");
 			context.record("spacing058.gear", "native bow7575 equipped→unequipped→same item equipped; same lease/resolver; no item grant/action during transition");
 		}
+	}
+
+	private void testSubclassSkills058(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true);
+		prepareCompanionCombat058(_player, 94, 6579, 1339, 6383, 6384, 6385, 6386);
+		_player.addSkill(SkillData.getInstance().getSkill(1339, 101), true);
+		_player.storeMe();
+		// Declared native subclass fixture input; this does not claim the subclass quest or natural career.
+		PhantomAssertions.assertTrue(_player.addSubClass(9, 1), "Canonical TEST subclass preparation failed.");
+		final var resolver = PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query);
+		try
+		{
+			_player.setActiveClass(1);
+			PhantomAssertions.assertEquals(1, _player.getClassIndex(), "Canonical subclass switch did not occur.");
+			PhantomAssertions.assertEquals(9, _player.getActiveClass(), "Native subclass active class differs.");
+			PhantomAssertions.assertEquals(null, _player.getKnownSkill(1339), "Former base-class skill leaked into native subclass.");
+			try (var lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				PhantomAssertions.assertTrue(resolver.resolve(lease.actorSnapshot(), PhantomCombatMode.RANGED_MAGIC, lease, 4).isEmpty(), "Resolver retained base magic on the native subclass.");
+			}
+		}
+		finally { _player.setActiveClass(0); }
+		PhantomAssertions.assertEquals(94, _player.getActiveClass(), "Native base class did not restore.");
+		PhantomAssertions.assertEquals(101, _player.getKnownSkill(1339).getLevel(), "Enhanced base skill did not restore after subclass.");
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(_profile.profileId()).status(), "Native skill save/dematerialization failed.");
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Native skill rematerialization failed.");
+		_player = World.getInstance().getPlayer(_environment.primary().objectId());
+		try (var lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertTrue(resolver.resolve(lease.actorSnapshot(), PhantomCombatMode.RANGED_MAGIC, lease, 4).orElseThrow().selectedSkills().contains(new SelectedSkill(1339, 101)), "Persisted native reload lost current learned rank or retained a stale loadout.");
+		}
+		context.record("skills058.subclass", "native addSubClass9/index1 TEST precondition -> setActiveClass1:base1339 absent/magic unavailable -> setActiveClass0:94/1339:101 restored -> native dematerialize/materialize:current101 capability ready; same resolver; subclass quest NOT claimed");
 	}
 
 	private void testLearnedOffense058(PhantomTestContext context) throws Exception

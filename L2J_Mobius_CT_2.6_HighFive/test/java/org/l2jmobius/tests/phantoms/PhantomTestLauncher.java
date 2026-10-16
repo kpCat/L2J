@@ -336,6 +336,7 @@ public final class PhantomTestLauncher
 			case "companion-ranged-spacing058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_RANGED_SPACING_058);
 			case "companion-full-composition058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_FULL_COMPOSITION_058);
 			case "companion-farm-resume058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_FARM_RESUME_058);
+			case "companion-invitation-controls058" -> new PhantomCompanionInvitationControls058Suite();
 			case "pvp-combat-server-integration" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.PVP);
 			case "qol-summoner-servitor-combat" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QOL009_SERVITOR);
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();

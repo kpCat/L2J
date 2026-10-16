@@ -185,7 +185,7 @@ public final class PhantomPartyServerIntegrationSuite implements PhantomTestSuit
 		}
 	}
 
-	private static void expireRequester(Player requester) throws Exception
+	static void expireRequester(Player requester) throws Exception
 	{
 		final Field expiry = Player.class.getDeclaredField("_requestExpireTime");
 		expiry.setAccessible(true);

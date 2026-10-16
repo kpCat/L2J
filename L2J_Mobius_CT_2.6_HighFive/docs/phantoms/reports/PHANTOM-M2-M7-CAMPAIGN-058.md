@@ -7,12 +7,14 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 
 | Этап | Реализация | Серверная проверка | Владелец |
 |---|---|---|---|
-| М2 | PARTIAL: request/reply, invitations/support,3 followers, assist/агро/ranged spacing/current rank | Полная native composition/current JAR, normal sameDB preservation, earned FARM↔party, active-cast handoff и elected native PARTY reply; последние negative/subclass controls ещё открыты | QA_PENDING |
+| М2 | Реализован для объявленных stock-ролей; финальная интеграция | Native composition/поддержка/негативы/skills/subclass проверены; normal smoke/restart обновлённого semantic JAR ещё требуется | QA_PENDING |
 | М3 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М4 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М5 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М6 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М7 | NOT_STARTED | NOT_STARTED | QA_PENDING |
+
+Native M2 controls: invitation2/2 на10 собственных actors — canonical refuse/expiry/stale/replay/foreign caller и реальная полная party9 без10-го. Learned skills4/4: native subclass9 убирает base1339, возврат94 и normal materialize reload восстанавливают rank101. Stock Sword Muse349: MP1800→1740, effect; natural recast MP1740→1662.46, effect120s; missing MP/reuse/range/wrong/dead/instance отказаны, cleanup без warning. Старый generic1356 helper: level/XP несогласованность, затем недоказанный recast/один drain incident после тестового abort сохранены; универсальная готовность всех buffs не объявляется. Только fixture setup/cleanup адаптированы, product guards/timeouts неизменны.
 
 17:58 UTC: ordinary058a Start/Status/normalStop и sameDB restart/Stop прошли, процессы отсутствуют. Отдельный заранее объявленный preservation episode: exact immutable identities33/profiles32, TEST state7/skills378/items68 hashes совпали. Первый all-population equality FAIL сохранён: остальная популяция получила XP/уровни и три stock item rows1865 у разных owners; запретить естественную жизнь ради равенства нельзя. SQL не называется World proof. Synthetic START отклонён guard; установлен несовместимый private Pilot ACL, но ОС отклонила штатную Set-Acl с SeSecurityPrivilege (PS7/WinPS5). Ветка остановлена без повышения привилегий/ослабления guard; непроверенный proposed builder patch исключён. Пакетирование и native packet-neutral tests продолжаются независимо; М1/G4/G6 статусы прежние.
 
