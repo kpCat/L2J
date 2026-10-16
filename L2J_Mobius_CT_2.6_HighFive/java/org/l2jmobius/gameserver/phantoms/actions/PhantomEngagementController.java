@@ -84,6 +84,12 @@ public final class PhantomEngagementController
 			stopOwnedMove(player);clearRoute();_positions=opportunity.positions();_positionIndex=0;
 			_token=token=new Token(profileId,player.getObjectId(),token.epoch(),goal.goalId(),goal.revision(),++_sequence,opportunity.target(),opportunity.targetPosition(),opportunity.skillId(),opportunity.range());
 		}
+		// READY has no approach points. Native movement can change LOS without changing the
+		// target or capability; use the newly inspected points within the same bounded attempt.
+		else if(_positions.isEmpty()&&!opportunity.positions().isEmpty())
+		{
+			_positions=opportunity.positions();_positionIndex=0;
+		}
 		if(opportunity.kind()==PhantomEngagementPlanner.Kind.READY)
 		{
 			stopOwnedMove(player);clearRoute();return publish(Outcome.NATIVE,TargetDirective.Mode.USE_EXACT_TARGET,"action.ready_native");

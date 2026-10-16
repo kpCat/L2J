@@ -26,6 +26,10 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 	@Override public void afterAll(PhantomTestContext context) throws Exception { _intent.afterAll(context); }
 	@Override public void register(PhantomTestRegistry registry)
 	{
+		if ("readyApproach057".equals(System.getProperty("phantom.m1.native.focus")))
+		{
+			registry.add("S057-ready-token-refreshes-native-approach", this::casterObstructed); return;
+		}
 		if ("caster040".equals(System.getProperty("phantom.m1.native.focus")))
 		{
 			registry.add("S040-native-caster-detour-five-stock-cycles", this::casterObstructed); return;
@@ -226,7 +230,47 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 		}
 		finally { environment.cleanupLoadedPlayer(setup); }
 		org.l2jmobius.gameserver.scripting.ScriptEngine.getInstance().executeScript(org.l2jmobius.gameserver.scripting.ScriptEngine.MASTER_HANDLER_FILE);
+		if ("readyApproach057".equals(System.getProperty("phantom.m1.native.focus"))) { readyApproach(context); return; }
 		obstructed(context, new PhantomNavigationPoint(-88984, 250008, -3568, 0), "S040");
+	}
+	private void readyApproach(PhantomTestContext context) throws Exception
+	{
+		try (var f = _intent.handoff.new Fixture(true))
+		{
+			f.handoff(); final var player = f.loadedPlayer; final var goal = f.goals.load(f.id).orElseThrow().goal();
+			final int npcId = PhantomBackgroundGoalSpec.parse(goal).npcId();
+			player.getAutoUseSettings().getAutoSkills().add(1177);
+			final var planner = new org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner();
+			final var navigation = new PhantomNavigationService(new PhantomMetrics()); navigation.start();
+			final var controller = new org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementController(navigation, () -> true);
+			final var target = new Monster(NpcData.getInstance().getTemplate(npcId));
+			final var spawn = new Spawn(target.getTemplate()); spawn.setXYZ(-87984, 250908, -3656); target.setSpawn(spawn);
+			try (var action = f.materialization.tryAcquireAction(f.id).orElseThrow())
+			{
+				PlayerNativeWork.run(player, "TEST_READY057_INITIAL_GEOMETRY", () -> player.setXYZ(-88399, 250472, -3572));
+				target.disableCoreAI(true); target.setImmobilized(true); target.spawnMe(spawn.getX(), spawn.getY(), spawn.getZ());
+				final var ready = planner.inspect(player, target, npcId); context.record("S057.ready", ready);
+				PhantomAssertions.assertTrue(ready.kind() == org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.Kind.READY && ready.skillId() == 1177, "INPUT: actual caster READY at the observed native stand-point.");
+				player.setTarget(target);
+				controller.advance(f.id, player, goal, npcId, _ -> 0, System.nanoTime());
+				PhantomAssertions.assertEquals("action.ready_native", controller.snapshot().get("actionReason"), "Same native owner acquired a READY token.");
+				final var token = controller.snapshot();
+				PhantomAssertions.assertTrue(GeoEngine.getInstance().canMoveToTarget(player.getX(), player.getY(), player.getZ(), -88378, 250490, -3576, 0), "INPUT: actual stock movement edge is legal.");
+				PlayerNativeWork.run(player, "TEST_READY057_NATIVE_WALK", () -> player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.MOVE_TO, new org.l2jmobius.gameserver.model.Location(-88378, 250490, -3576)));
+				final long deadline = System.nanoTime() + 3_000_000_000L;
+				var approach = planner.inspect(player, target, npcId);
+				while (System.nanoTime() < deadline && (approach.kind() != org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.Kind.NEED_APPROACH || approach.positions().isEmpty() || approach.nativeDirect())) { Thread.sleep(5); approach = planner.inspect(player, target, npcId); }
+				context.record("S057.approach", approach); context.record("S057.nativePosition", PhantomNativeTravelActions.point(player));
+				PhantomAssertions.assertTrue(approach.kind() == org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner.Kind.NEED_APPROACH && approach.skillId() == ready.skillId() && !approach.positions().isEmpty() && !approach.nativeDirect(), "INPUT: same target/capability needs actual fresh native stand-points during lawful stock movement.");
+				controller.advance(f.id, player, goal, npcId, _ -> 0, System.nanoTime()); context.record("S057.actual", controller.snapshot());
+				PhantomAssertions.assertFalse("action.positions_exhausted".equals(controller.snapshot().get("actionReason")), "RED: READY's empty cached positions must not exclude a target with fresh legal stand-points.");
+				PhantomAssertions.assertEquals(token.get("actionStartedNanos"), controller.snapshot().get("actionStartedNanos"), "Refreshing geometry cannot renew the attempt deadline.");
+				PhantomAssertions.assertEquals(token.get("actionSequence"), controller.snapshot().get("actionSequence"), "Same target/capability keeps its original token.");
+				PhantomAssertions.assertEquals(f.loadedEpoch, player.getNativeWorkOwner().epoch(), "Same native incarnation.");
+				PhantomAssertions.assertEquals(goal, f.goals.load(f.id).orElseThrow().goal(), "Native opportunity refresh does not rewrite the goal.");
+			}
+			finally { controller.stopMovement(player, f.loadedEpoch); controller.revoke(); target.deleteMe(); navigation.beginStop(); PhantomAssertions.assertTrue(navigation.finishStop(), "Focused native navigation drains."); }
+		}
 	}
 	private void obstructed(PhantomTestContext context, PhantomNavigationPoint origin, String evidence) throws Exception
 	{
@@ -300,7 +344,9 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 					}
 					if(nativeSample.killSequence()>observedKills){observedKills=nativeSample.killSequence();context.record(evidence+".nativeCycle."+observedKills,nativeSample);}
 					final var fields=autoPlay.snapshotContinuation(f.id).scalarMap();final String state=fields.getOrDefault("actionReason","");
-					if(!state.equals(previous)&&transitions<32){context.record(evidence+".transition."+(++transitions),fields+";pose="+PhantomNativeTravelActions.point(player)+";moving="+player.isMoving()+";destination="+player.getXdestination()+","+player.getYdestination()+","+player.getZdestination()+";intention="+player.getAI().getIntention()+";disabled="+player.isMovementDisabled()+";speed="+player.getStat().getMoveSpeed()+";tick="+org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager.getInstance().getGameTicks()+";targetHP="+target.getCurrentHp());previous=state;}
+					if(!state.equals(previous)&&transitions<32){context.record(evidence+".transition."+(++transitions),fields+";pose="+PhantomNativeTravelActions.point(player)+";moving="+player.isMoving()+";destination="+player.getXdestination()+","+player.getYdestination()+","+player.getZdestination()+";intention="+player.getAI().getIntention()+";disabled="+player.isMovementDisabled()+";speed="+player.getStat().getMoveSpeed()+";tick="+org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager.getInstance().getGameTicks()+";targetHP="+target.getCurrentHp());
+						if(caster){context.record(evidence+".capability."+transitions,"mp="+player.getCurrentMp()+";castDisabled="+player.isSkillDisabled(player.getKnownSkill(1177))+";target="+target.getObjectId()+";opportunity="+new org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementPlanner().inspect(player,target,PhantomBackgroundGoalSpec.parse(goal).npcId())+";native="+nativeSample+";castHits="+castHits.size());}
+						previous=state;}
 					if(cycles&&target.isDead()&&!accountedDeath)
 					{
 						accountedDeath=true;
@@ -315,6 +361,8 @@ public final class PhantomActionLoop038Suite implements PhantomTestSuite
 					Thread.sleep(100);
 				}
 				context.record(evidence+".actual",autoPlay.snapshotContinuation(f.id).scalarMap());context.record(evidence+".finalPosition",PhantomNativeTravelActions.point(player));
+				context.record(evidence+".nativeFinal",player.getNativeWorkOwner().evidence().snapshot());
+				if(caster){context.record(evidence+".castHits",castHits.size());}
 				PhantomAssertions.assertTrue(player.getNativeWorkOwner().evidence().snapshot().damageSequence()>damage,"RED: a domain-valid target with independently proven native detour must reach actual stock damage.");
 				if(cycles)
 				{
