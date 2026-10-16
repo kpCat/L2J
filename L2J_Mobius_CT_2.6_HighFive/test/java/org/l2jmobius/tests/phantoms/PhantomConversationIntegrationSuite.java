@@ -550,6 +550,9 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 				PhantomAssertions.assertEquals("party.invite", plan.proposal().proposalKey(), "Companion request chose a different action.");
 				PhantomAssertions.assertEquals(new PhantomDomainRef("character.object", Integer.toString(_speaker.getObjectId())), plan.proposal().target(), "Companion request did not retain the exact speaker.");
 				PhantomAssertions.assertTrue(_stateExistedBeforePublish, "Companion proposal bypassed durable conversation state.");
+				PlayerChatIngress.dispatchClient(_speaker, ChatType.WHISPER, _observer.getName(), "го кач?");
+				driveUntilIdle(128);
+				PhantomAssertions.assertEquals(1, _plans.size(), "Cooldown published another outbound plan instead of remaining silent.");
 			}
 		});
 		registry.add("02-unaddressed-local-request-does-not-recruit-recipients", context ->

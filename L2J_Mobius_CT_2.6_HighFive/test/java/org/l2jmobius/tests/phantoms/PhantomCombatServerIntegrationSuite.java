@@ -335,12 +335,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		if (_mode == Mode.COMPANION_FARM_RESUME_058)
 		{
 			PhantomAssertions.assertEquals(58005825L, context.seed(), "Companion farm resume used the wrong seed.");
-			PhantomAssertions.assertEquals(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toRealPath(), Path.of(Player.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "Farm058 requires the actual ordinary current JAR.");
+			assertCampaign058Jar(context);
 		}
 		else if (_mode == Mode.COMPANION_FULL_COMPOSITION_058)
 		{
 			PhantomAssertions.assertEquals(58005824L, context.seed(), "Full companion composition used the wrong seed.");
-			PhantomAssertions.assertEquals(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toRealPath(), Path.of(Player.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "Full058 composition requires the actual ordinary current JAR.");
+			assertCampaign058Jar(context);
 		}
 		else if (_mode == Mode.COMPANION_RANGED_SPACING_058)
 		{
@@ -649,6 +649,19 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		registry.add("20-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
 	}
 
+	private static void assertCampaign058Jar(PhantomTestContext context) throws Exception
+	{
+		final Path supplied = Path.of(System.getProperty("phantom.contract058.semantic.jar", PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toString())).toRealPath();
+		final List<Path> allowed = List.of(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/native-current058/dist/libs/GameServer.jar"), Path.of("D:/PhantomWorld/M2-M7-058-candidate/libs/GameServer.jar"));
+		PhantomAssertions.assertTrue(allowed.contains(supplied), "TASK058 ordinary semantic JAR path is outside its exact allowlist.");
+		for (Class<?> type : List.of(Player.class, PhantomCombatService.class, PhantomPartyCoordinator.class, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService.class))
+		{
+			PhantomAssertions.assertEquals(supplied, Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "TASK058 composition mixes private product classes or different JARs: " + type.getName());
+		}
+		context.record("semanticJar.path", supplied.toString());
+		context.record("semanticJar.sha256", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(supplied))));
+	}
+
 	private void testCompanionFarmResume058(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
@@ -862,7 +875,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			if (_mode == Mode.COMPANION_FULL_COMPOSITION_058)
 			{
-				context.record("companion058.composition.input", "TEST seed58005824; actual ordinary GameServer.jar; speech/native consent; 3 roles; obstacle walk; 2 full stock Karik18008; native reward; partychat; no grants during measurement");
+				context.record("companion058.composition.input", "TEST seed58005824; actual ordinary GameServer.jar; speech/native consent; 3 roles; obstacle walk; 2 full stock Karik18008; native reward; 2 canonical leader transfers during an actual second-target native action; elected truthful party-role reply/repeat negative; no grants during measurement");
 				composition = new PhantomCompanionComposition058(_repository, _materialization, _topology, _knowledge, social, party, human);
 				composition.invite(context, human, actors.getFirst(), profileIds.getFirst(), party);
 			}
@@ -1195,6 +1208,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final double[] firstRangedActionDistance = { Double.NaN, Double.NaN };
 		final double[] maximumRangedDistance = { 0, 0 };
 		boolean nativeMageCast = false;
+		boolean activeHandoff058 = false;
 		context.record("companion058.assist.input", "stockNpc=" + fact.npcId() + "; level=" + fact.level() + "; stockExp=" + fact.exp() + "; objects=" + targets.stream().map(Monster::getObjectId).toList() + "; fullHP=" + targets.stream().map(Monster::getMaxHp).toList() + "; xyz=" + point + "; two consecutive targets;45s each; no stats/rates/reward/actor refill inside measurement");
 		for (Monster target : targets)
 		{
@@ -1214,6 +1228,22 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			while (!target.isDead() && (System.nanoTime() < deadline))
 			{
 				party.onPulse();
+				if ((_mode == Mode.COMPANION_FULL_COMPOSITION_058) && !activeHandoff058 && (target == targets.getLast()) && (actors.getFirst().isAttackingNow() || mage.isCastingNow()))
+				{
+					final long generation = party.claim(profileIds.getFirst()).orElseThrow().state().groupGeneration();
+					context.record("companion058.handoff.active", "nativeAttack=" + actors.getFirst().isAttackingNow() + "; nativeCast=" + mage.isCastingNow() + "; oldGeneration=" + generation);
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationService.MembershipOutcome.COMPLETED, org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().transferLeader(human, actors.getFirst()), "Active native leader handoff failed.");
+					for (int pulse = 0; pulse < 8; pulse++) { party.onPulse(); }
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationService.MembershipOutcome.NOT_LEADER, org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().transferLeader(human, actors.getFirst()), "Former human leader retained control.");
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationService.MembershipOutcome.COMPLETED, org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().transferLeader(actors.getFirst(), human), "Active native leader return failed.");
+					for (int pulse = 0; pulse < 8; pulse++) { party.onPulse(); }
+					for (long profileId : profileIds)
+					{
+						final var claim = party.claim(profileId).orElseThrow().state();
+						PhantomAssertions.assertTrue((claim.groupGeneration() > generation) && (claim.leader().characterObjectId() == human.getObjectId()), "Active handoff retained stale per-member authority.");
+					}
+					activeHandoff058 = true;
+				}
 				for (int index = 0; index < actors.size(); index++)
 				{
 					final Player actor = actors.get(index);
@@ -1255,7 +1285,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		human.setTarget(null);
 		context.record("companion058.assist.roles", "damage=" + java.util.Arrays.toString(damage) + "; mageMp=" + initialMageMp + "->" + mage.getCurrentMp() + "; arrows=" + initialArrows + "->" + archer.getInventory().getInventoryItemCount(1345, -1) + "; nativeMageCast=" + nativeMageCast);
 		context.record("companion058.assist.sessions", _combat.metrics().sessionsAccepted());
-		PhantomAssertions.assertTrue(_combat.metrics().sessionsAccepted() <= 6, "Lower-priority directives restarted the same actor/target combat session.");
+		final int maximumSessions = _mode == Mode.COMPANION_FULL_COMPOSITION_058 ? 12 : 6; // Two declared generation changes may each replace three actor sessions.
+		PhantomAssertions.assertTrue(_combat.metrics().sessionsAccepted() <= maximumSessions, "Lower-priority directives restarted the same actor/target combat session.");
+		if (_mode == Mode.COMPANION_FULL_COMPOSITION_058) { PhantomAssertions.assertTrue(activeHandoff058, "Declared active-action leader handoff never occurred."); }
 		PhantomAssertions.assertTrue(nativeMageCast, "Party mage never performed a native offensive cast with MP cost.");
 		PhantomAssertions.assertTrue(archer.getInventory().getInventoryItemCount(1345, -1) < initialArrows, "Party archer never consumed a native arrow.");
 		PhantomAssertions.assertTrue(java.util.Arrays.stream(damage).allMatch(amount -> amount > 0), "One companion role produced no actual native damage.");

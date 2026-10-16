@@ -104,14 +104,24 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 
 	void partyChat(PhantomTestContext context, Player human) throws Exception
 	{
-		final var ingress = PlayerChatIngress.dispatchClient(human, ChatType.PARTY, "", "идём вместе");
+		final long sentBefore = _execution.snapshot().sent();
+		final long queriesBefore = _execution.snapshot().queries();
+		final long generatedBefore = ChatObservationService.getInstance().snapshot().generatedDeliveries();
+		final var ingress = PlayerChatIngress.dispatchClient(human, ChatType.PARTY, "", "нужен танк");
 		PhantomAssertions.assertTrue(ingress.dispatched() && (ingress.observedDeliveries() >= 3), "Full058 native partychat did not reach companions.");
-		for (int pulse = 0; pulse < 8; pulse++)
+		for (int pulse = 0; (pulse < 256) && (_execution.snapshot().sent() == sentBefore); pulse++)
 		{
 			_conversation.onPulse();
 			_execution.onPulse();
+			Thread.sleep(10);
 		}
-		context.record("companion058.partychat", "native delivery to current party recipients=" + ingress.observedDeliveries() + "; execution=" + _execution.snapshot());
+		PhantomAssertions.assertEquals(sentBefore + 1, _execution.snapshot().sent(), "Partychat did not produce exactly one elected delivered native reply.");
+		PhantomAssertions.assertEquals(queriesBefore + 1, _execution.snapshot().queries(), "Partychat reply did not query current canonical party facts.");
+		PhantomAssertions.assertTrue(ChatObservationService.getInstance().snapshot().generatedDeliveries() > generatedBefore, "Partychat reply had no concrete recipient.");
+		PlayerChatIngress.dispatchClient(human, ChatType.PARTY, "", "нужен танк");
+		for (int pulse = 0; pulse < 32; pulse++) { _conversation.onPulse(); _execution.onPulse(); Thread.sleep(10); }
+		PhantomAssertions.assertEquals(sentBefore + 1, _execution.snapshot().sent(), "Immediate partychat repeat or generated reply caused chatter recursion.");
+		context.record("companion058.partychat", "native delivery to current party recipients=" + ingress.observedDeliveries() + "; one elected actual-role/vacancy reply delivered; immediate repeat bounded; execution=" + _execution.snapshot());
 	}
 
 	@Override

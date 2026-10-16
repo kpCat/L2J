@@ -1311,11 +1311,9 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 
 	private Planned noResponse(long profileId, BatchWork batch, ContextSnapshot context, ConversationSession previous, long nowMinute, String act)
 	{
-		final String semanticHash = PhantomConversationModel.sha256("no-semantic|" + batch._observationHash + '|' + act);
-		final String text = _catalog.template(act, "neutral", selector(profileId, batch._observationHash, act, "neutral"));
-		final ConversationResponsePlan response = new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.speaker()), semanticHash, act, "neutral", text, null, previous.cooldownUntilMinute(), List.of(new ConversationEvidence("conversation.cooldown", Long.toString(previous.cooldownUntilMinute()))));
 		final ConversationSession session = new ConversationSession(previous.channel(), previous.counterpart(), nowMinute, previous.cooldownUntilMinute(), previous.previousIntent(), previous.previousSlots(), previous.pending(), PhantomConversationModel.sha256(act), PhantomConversationModel.sha256("neutral"), previous.lastProposalHash());
-		return new Planned(profileId, session, response, batch._observationHash, nowMinute);
+		// Retain the durable pause/observation without turning a suppressed reply into player-facing chatter.
+		return new Planned(profileId, session, null, batch._observationHash, nowMinute);
 	}
 
 	private ConversationState mutate(ConversationState base, Planned planned)
