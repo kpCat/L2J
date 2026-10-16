@@ -47,6 +47,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredPartyState;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.DirectiveKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
@@ -1594,7 +1595,42 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			examined += dispatchTactics(party, remainingBudget - examined);
 		}
+		if (examined < remainingBudget)
+		{
+			examined += advanceRealFollow(party, remainingBudget - examined);
+		}
 		return Math.min(remainingBudget, examined);
+	}
+
+	private int advanceRealFollow(PartySnapshot party, int remainingBudget)
+	{
+		if (party.leader().kind() != MemberKind.REAL)
+		{
+			return 0;
+		}
+		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(party.members());
+		final MemberSnapshot leader = snapshots.get(party.leader());
+		int examined = 0;
+		for (MemberRef member : party.members())
+		{
+			if ((member.kind() != MemberKind.PHANTOM) || (remainingBudget - examined < 3))
+			{
+				continue;
+			}
+			final StoredPartyState claim = _claims.get(member.profileId());
+			if ((claim == null) || !committedClaim(claim) || !claim.state().leader().equals(party.leader()))
+			{
+				continue;
+			}
+			final String groupId = claim.state().groupId();
+			final long generation = claim.state().groupGeneration();
+			examined += _routes.follow(groupId, generation, snapshots.get(member), leader, _topologyHash.get(), Math.max(0, _clock.getAsLong()), remainingBudget - examined, () ->
+			{
+				final StoredPartyState current = _claims.get(member.profileId());
+				return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(groupId) || (current.state().groupGeneration() != generation) || !current.state().leader().equals(party.leader()) || !current.state().phantomMembers().contains(member);
+			});
+		}
+		return examined;
 	}
 
 	private void releaseLostMixedGroup(GroupRuntime runtime, List<StoredPartyState> groupClaims)
@@ -1798,6 +1834,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				continue;
 			}
 			final String key = tacticalScope(claim.state()) + directive.kind().name().toLowerCase(java.util.Locale.ROOT) + '.' + directive.actor().profileId();
+			if (Set.of(DirectiveKind.HEAL_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER, DirectiveKind.PROTECT_MEMBER).contains(directive.kind()))
+			{
+				_routes.cancelFollow(claim.state().groupId(), claim.state().groupGeneration(), directive.actor().profileId());
+			}
 			_tactics.dispatch(directive, key, deadline(), () -> _state != State.RUNNING).ifPresent(lease ->
 			{
 				_tacticalActions.put(directive.actor().profileId(), lease);
@@ -2330,7 +2370,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				return false;
 			}
 		}
-		_routes.cancel(before.groupId());
+		_routes.cancel(before.groupId(), before.groupGeneration());
 		ensureGroup(before.groupId());
 		return true;
 	}

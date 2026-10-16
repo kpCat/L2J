@@ -40,18 +40,28 @@ public final class PhantomPartyRouteCoordinator
 	private static final int MAX_TERMINAL_RECEIPTS = 4096;
 	private final PhantomNavigationService _navigation;
 	private final PhantomCombatService _combat;
+	private final PhantomPartyFollowPolicy _followPolicy;
 	private final Object _stateLock = new Object();
 	private final Map<String, PendingRoute> _pending = new HashMap<>();
 	private final Map<String, String> _routeByGroup = new HashMap<>();
 	private final Map<String, Long> _routeDeadlines = new HashMap<>();
+	private final Map<String, Long> _routeGenerations = new HashMap<>();
+	private final Map<String, FollowState> _followStates = new HashMap<>();
 	private final LinkedHashMap<String, RouteAttempt> _terminalByGroup = new LinkedHashMap<>();
 	private final Map<Long, MovementLease> _movement = new HashMap<>();
 	private final Set<Long> _movementReservations = new HashSet<>();
+	private long _followSequence;
 
 	public PhantomPartyRouteCoordinator(PhantomNavigationService navigation, PhantomCombatService combat)
 	{
+		this(navigation, combat, PhantomPartyFollowPolicy.defaults());
+	}
+
+	public PhantomPartyRouteCoordinator(PhantomNavigationService navigation, PhantomCombatService combat, PhantomPartyFollowPolicy followPolicy)
+	{
 		_navigation = navigation;
 		_combat = combat;
+		_followPolicy = java.util.Objects.requireNonNull(followPolicy);
 	}
 
 	public RouteActivity observe(String groupId, RouteManifest persisted, List<MemberRef> roster)
@@ -129,7 +139,7 @@ public final class PhantomPartyRouteCoordinator
 			final RouteAttempt result = completed(routeId, generation, destinationRef, submission.immediateResult(), topologyHash);
 			if (result.status() == AttemptStatus.READY)
 			{
-				rememberRoute(groupId, routeId, deadline);
+				rememberRoute(groupId, routeId, deadline, generation);
 			}
 			return result;
 		}
@@ -167,6 +177,7 @@ public final class PhantomPartyRouteCoordinator
 			{
 				_routeByGroup.put(groupId, pending._routeId);
 				_routeDeadlines.put(groupId, pending._deadline);
+				_routeGenerations.put(groupId, pending._generation);
 			}
 			else
 			{
@@ -282,16 +293,267 @@ public final class PhantomPartyRouteCoordinator
 		return new AdvanceResult(route.withProgress(waypointIndex, separated ? RouteStatus.REGROUPING : RouteStatus.MOVING), examined);
 	}
 
+	/** One follower owns its own path; neither the human nor another follower visits its old waypoints. */
+	public int follow(String groupId, long generation, MemberSnapshot actor, MemberSnapshot leader, String topologyHash, long logicalNow, int operationBudget, PhantomCancellationToken token)
+	{
+		if (!_followPolicy.enabled() || (_navigation == null) || (_combat == null) || (operationBudget < 3) || (actor == null) || (leader == null) || (actor.ref().kind() != MemberKind.PHANTOM) || (leader.ref().kind() != MemberKind.REAL))
+		{
+			return 0;
+		}
+		final String memberKey = followMemberKey(groupId, generation, actor.ref().profileId());
+		if (token.isCancelled() || actor.dead() || (actor.instanceId() != leader.instanceId()))
+		{
+			cancelFollow(groupId, generation, actor.ref().profileId());
+			return 1;
+		}
+		final PhantomNavigationPoint origin = new PhantomNavigationPoint(actor.x(), actor.y(), actor.z(), actor.instanceId());
+		final PhantomNavigationPoint destination = new PhantomNavigationPoint(leader.x(), leader.y(), leader.z(), leader.instanceId());
+		final double separation = origin.distanceTo(destination);
+		FollowState follow;
+		synchronized (_stateLock)
+		{
+			follow = _followStates.get(memberKey);
+		}
+		if (follow != null)
+		{
+			final boolean changed = !follow.leader().equals(leader.ref()) || !follow.topologyHash().equals(topologyHash) || (follow.destination().instanceId() != destination.instanceId()) || (follow.destination().distanceTo(destination) >= _followPolicy.replanDistance()) || (follow.settled() && (separation > _followPolicy.startDistance())) || (follow.blocked() && (follow.origin().distanceTo(origin) >= _followPolicy.waypointRadius()));
+			if (changed)
+			{
+				if (!replaceFollow(memberKey, follow, null))
+				{
+					return 1;
+				}
+				cancelOwnedRoute(follow.routeKey(), generation);
+				follow = null;
+			}
+		}
+		if (separation > _followPolicy.maximumDistance())
+		{
+			cancelFollow(groupId, generation, actor.ref().profileId());
+			return 1;
+		}
+		if (actor.casting() || actor.attacking())
+		{
+			if ((follow != null) && (follow.route() != null))
+			{
+				releaseCompletedMovement(follow.route().routeId(), List.of(actor.ref()), Map.of(actor.ref(), actor), logicalNow);
+			}
+			return 1;
+		}
+		if (follow == null)
+		{
+			if (separation <= _followPolicy.startDistance())
+			{
+				return 1;
+			}
+			final long timeout = java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(_followPolicy.routeTimeoutMillis());
+			final long deadline = logicalNow > Long.MAX_VALUE - timeout ? Long.MAX_VALUE : logicalNow + timeout;
+			synchronized (_stateLock)
+			{
+				if (_followStates.containsKey(memberKey) || (_followStates.size() >= MAX_TERMINAL_RECEIPTS))
+				{
+					return 1;
+				}
+				_followSequence = Math.incrementExact(_followSequence);
+				final String routeKey = memberKey + '.' + PhantomPartyModel.sha256(destination + "|" + topologyHash + '|' + _followSequence);
+				follow = new FollowState(groupId, generation, actor.ref().profileId(), leader.ref(), origin, destination, topologyHash, routeKey, deadline, 0, null, false, false, false);
+				_followStates.put(memberKey, follow);
+			}
+		}
+		if (follow.settled() || follow.blocked())
+		{
+			return 1;
+		}
+		final String routeKey = follow.routeKey();
+		final PhantomCancellationToken owned = () -> token.isCancelled() || !ownsFollow(memberKey, routeKey);
+		if (logicalNow >= follow.deadline())
+		{
+			replaceFollow(memberKey, follow, follow.terminal(origin, false));
+			cancelOwnedRoute(routeKey, generation);
+			return 1;
+		}
+		if (logicalNow < follow.retryAt())
+		{
+			return 1;
+		}
+		if (follow.route() == null)
+		{
+			final RouteAttempt attempt;
+			if (!follow.requested())
+			{
+				final FollowState requested = follow.requestedState();
+				if (!replaceFollow(memberKey, follow, requested))
+				{
+					return 1;
+				}
+				follow = requested;
+				attempt = request(routeKey, generation, actor, new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("character.object", Integer.toString(leader.ref().characterObjectId())), destination, topologyHash, logicalNow, follow.deadline());
+			}
+			else
+			{
+				attempt = poll(routeKey);
+			}
+			if (attempt.status() == AttemptStatus.PENDING)
+			{
+				return 2;
+			}
+			if (attempt.status() != AttemptStatus.READY)
+			{
+				// Capacity and cooldown are ordinary waits; a geometric failure needs changed evidence.
+				final boolean transientWait = (attempt.navigationStatus() != null) && Set.of(PhantomNavigationResult.Status.PROFILE_BUSY, PhantomNavigationResult.Status.QUEUE_BACKPRESSURE, PhantomNavigationResult.Status.COOLDOWN).contains(attempt.navigationStatus());
+				final long retryAt = Math.min(follow.deadline(), logicalNow > Long.MAX_VALUE - 1_000_000_000L ? Long.MAX_VALUE : logicalNow + 1_000_000_000L);
+				replaceFollow(memberKey, follow, transientWait ? follow.retry(retryAt) : follow.terminal(origin, false));
+				cancelOwnedRoute(routeKey, generation);
+				return 2;
+			}
+			final FollowState ready = follow.withRoute(attempt.route());
+			if (!replaceFollow(memberKey, follow, ready))
+			{
+				cancelOwnedRoute(routeKey, generation);
+				return 2;
+			}
+			follow = ready;
+		}
+		final RouteManifest route = follow.route();
+		releaseCompletedMovement(route.routeId(), List.of(actor.ref()), Map.of(actor.ref(), actor), logicalNow);
+		int waypoint = route.currentWaypoint();
+		while ((waypoint + 1 < route.waypoints().size()) && (origin.distanceTo(route.waypoints().get(waypoint)) <= _followPolicy.waypointRadius()))
+		{
+			waypoint++;
+		}
+		if ((waypoint + 1 == route.waypoints().size()) && (separation <= _followPolicy.stopDistance()))
+		{
+			replaceFollow(memberKey, follow, follow.terminal(origin, true));
+			cancelOwnedRoute(routeKey, generation);
+			return 2;
+		}
+		if (waypoint != route.currentWaypoint())
+		{
+			final FollowState advanced = follow.withRoute(route.withProgress(waypoint, RouteStatus.MOVING));
+			if (!replaceFollow(memberKey, follow, advanced))
+			{
+				return 1;
+			}
+			follow = advanced;
+		}
+		if (actor.moving() || !reserveMovement(actor.ref().profileId()))
+		{
+			return 2;
+		}
+		final PhantomNavigationPoint target = route.waypoints().get(waypoint);
+		final String operationKey = "party.follow." + route.routeId().substring(0, 20) + '.' + generation + '.' + waypoint;
+		final ExternalActionLease lease = _combat.acquireExternalAction(new ExternalActionRequest(actor.ref().profileId(), ExternalActionKind.PARTY_ROUTE, operationKey, follow.deadline(), owned)).lease();
+		if (lease == null)
+		{
+			releaseMovementReservation(actor.ref().profileId());
+			return 3;
+		}
+		final ActionOutcome outcome = lease.moveTo(target.x(), target.y(), target.z(), target.instanceId());
+		if (((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED)) && rememberMovement(actor.ref().profileId(), route.routeId(), lease))
+		{
+			return 3;
+		}
+		releaseMovementReservation(actor.ref().profileId());
+		lease.close();
+		return 3;
+	}
+
+	private boolean ownsFollow(String memberKey, String routeKey)
+	{
+		synchronized (_stateLock)
+		{
+			final FollowState current = _followStates.get(memberKey);
+			return (current != null) && current.routeKey().equals(routeKey) && !current.settled() && !current.blocked();
+		}
+	}
+
+	private boolean replaceFollow(String memberKey, FollowState expected, FollowState replacement)
+	{
+		synchronized (_stateLock)
+		{
+			if (_followStates.get(memberKey) != expected)
+			{
+				return false;
+			}
+			if (replacement == null)
+			{
+				_followStates.remove(memberKey);
+			}
+			else
+			{
+				_followStates.put(memberKey, replacement);
+			}
+			return true;
+		}
+	}
+
 	public void cancel(String groupId)
+	{
+		cancel(groupId, 0);
+	}
+
+	/** A stale membership generation may release only its own navigation and movement. */
+	public void cancel(String groupId, long expectedGeneration)
+	{
+		final Set<String> routes = new HashSet<>();
+		routes.add(groupId);
+		final String prefix = groupId + ".follow." + (expectedGeneration == 0 ? "" : expectedGeneration + ".");
+		synchronized (_stateLock)
+		{
+			_followStates.entrySet().removeIf(entry ->
+			{
+				final FollowState follow = entry.getValue();
+				if ((follow.parentGroupId().equals(groupId) || follow.routeKey().equals(groupId)) && ((expectedGeneration == 0) || (follow.groupGeneration() == expectedGeneration)))
+				{
+					routes.add(follow.routeKey());
+					return true;
+				}
+				return false;
+			});
+			_pending.keySet().stream().filter(key -> key.startsWith(prefix)).forEach(routes::add);
+			_routeByGroup.keySet().stream().filter(key -> key.startsWith(prefix)).forEach(routes::add);
+		}
+		routes.forEach(key -> cancelOwnedRoute(key, expectedGeneration));
+	}
+
+	public void cancelFollow(String groupId, long generation, long profileId)
+	{
+		final String memberKey = followMemberKey(groupId, generation, profileId);
+		final FollowState follow;
+		synchronized (_stateLock)
+		{
+			follow = _followStates.remove(memberKey);
+		}
+		if (follow != null)
+		{
+			cancelOwnedRoute(follow.routeKey(), generation);
+		}
+	}
+
+	private void cancelOwnedRoute(String groupId, long expectedGeneration)
 	{
 		final PendingRoute pending;
 		final List<ExternalActionLease> movement;
 		synchronized (_stateLock)
 		{
-			pending = _pending.remove(groupId);
-			final String routeId = _routeByGroup.remove(groupId);
-			_routeDeadlines.remove(groupId);
-			_terminalByGroup.remove(groupId);
+			final PendingRoute currentPending = _pending.get(groupId);
+			pending = (currentPending != null) && ((expectedGeneration == 0) || (currentPending._generation == expectedGeneration)) ? _pending.remove(groupId) : null;
+			final String routeId;
+			if ((expectedGeneration == 0) || (_routeGenerations.getOrDefault(groupId, 0L) == expectedGeneration))
+			{
+				routeId = _routeByGroup.remove(groupId);
+				_routeDeadlines.remove(groupId);
+				_routeGenerations.remove(groupId);
+			}
+			else
+			{
+				routeId = null;
+			}
+			final RouteAttempt terminal = _terminalByGroup.get(groupId);
+			if ((terminal != null) && ((expectedGeneration == 0) || (terminal.generation() == expectedGeneration)))
+			{
+				_terminalByGroup.remove(groupId);
+			}
 			movement = _movement.entrySet().stream().filter(entry -> (routeId != null) && routeId.equals(entry.getValue()._routeId)).map(Map.Entry::getValue).map(value -> value._lease).toList();
 			_movement.entrySet().removeIf(entry -> (routeId != null) && routeId.equals(entry.getValue()._routeId));
 		}
@@ -317,6 +579,7 @@ public final class PhantomPartyRouteCoordinator
 			final Set<String> owned = new HashSet<>(_pending.keySet());
 			owned.addAll(_routeByGroup.keySet());
 			owned.addAll(_terminalByGroup.keySet());
+			_followStates.values().forEach(follow -> owned.add(follow.parentGroupId()));
 			groups = List.copyOf(owned);
 		}
 		for (String groupId : groups)
@@ -401,12 +664,13 @@ public final class PhantomPartyRouteCoordinator
 		}
 	}
 
-	private void rememberRoute(String groupId, String routeId, long deadline)
+	private void rememberRoute(String groupId, String routeId, long deadline, long generation)
 	{
 		synchronized (_stateLock)
 		{
 			_routeByGroup.put(groupId, routeId);
 			_routeDeadlines.put(groupId, deadline);
+			_routeGenerations.put(groupId, generation);
 		}
 	}
 
@@ -540,6 +804,34 @@ public final class PhantomPartyRouteCoordinator
 			{
 				throw new IllegalArgumentException("Invalid bounded route advance result.");
 			}
+		}
+	}
+
+	private static String followMemberKey(String groupId, long generation, long profileId)
+	{
+		return groupId + ".follow." + generation + '.' + profileId;
+	}
+
+	private record FollowState(String parentGroupId, long groupGeneration, long profileId, MemberRef leader, PhantomNavigationPoint origin, PhantomNavigationPoint destination, String topologyHash, String routeKey, long deadline, long retryAt, RouteManifest route, boolean requested, boolean settled, boolean blocked)
+	{
+		private FollowState requestedState()
+		{
+			return new FollowState(parentGroupId, groupGeneration, profileId, leader, origin, destination, topologyHash, routeKey, deadline, retryAt, route, true, false, false);
+		}
+
+		private FollowState withRoute(RouteManifest next)
+		{
+			return new FollowState(parentGroupId, groupGeneration, profileId, leader, origin, destination, topologyHash, routeKey, deadline, retryAt, next, true, false, false);
+		}
+
+		private FollowState terminal(PhantomNavigationPoint current, boolean arrived)
+		{
+			return new FollowState(parentGroupId, groupGeneration, profileId, leader, current, destination, topologyHash, routeKey, deadline, retryAt, route, true, arrived, !arrived);
+		}
+
+		private FollowState retry(long nextEligible)
+		{
+			return new FollowState(parentGroupId, groupGeneration, profileId, leader, origin, destination, topologyHash, routeKey, deadline, nextEligible, null, false, false, false);
 		}
 	}
 

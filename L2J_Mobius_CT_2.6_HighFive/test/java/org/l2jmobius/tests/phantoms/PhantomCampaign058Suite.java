@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFollowPolicy;
 
 public final class PhantomCampaign058Suite implements PhantomTestSuite
 {
@@ -75,6 +76,21 @@ public final class PhantomCampaign058Suite implements PhantomTestSuite
 			reject(() -> PhantomCampaign058GeoSuite.validateInput(runtime, geo, List.of("17_25.l2j", "17_25.l2j"), 1));
 			reject(() -> PhantomCampaign058GeoSuite.validateInput(runtime, geo, List.of("17_25.l2j", "17_24.l2j", "18_25.l2j", "18_24.l2j", "19_25.l2j"), 1));
 			reject(() -> PhantomCampaign058GeoSuite.validateInput(runtime, geo, List.of("17_25.l2j"), 64L * 1024 * 1024 + 1));
+		});
+		registry.add("07-follow-policy-is-explicit-and-bounded", context ->
+		{
+			PhantomAssertions.assertEquals(PhantomPartyFollowPolicy.defaults(), PhantomPartyFollowPolicy.load(context.moduleRoot().resolve("dist/game/data/phantoms/party/high-five-party-follow-v1.xml")), "Tracked follow policy changed unexpectedly.");
+			reject(() -> new PhantomPartyFollowPolicy(true, 250, 250, 64, 16, 6000, 30000));
+			reject(() -> new PhantomPartyFollowPolicy(true, 350, 250, 64, 0, 6000, 30000));
+			reject(() -> new PhantomPartyFollowPolicy(true, 350, 250, 64, 16, 6000, 1));
+			final String xml = Files.readString(context.moduleRoot().resolve("dist/game/data/phantoms/party/high-five-party-follow-v1.xml"));
+			Files.createDirectories(context.reportsDirectory());
+			final Path invalid = context.reportsDirectory().resolve("invalid-follow-policy.xml");
+			for (String mutation : List.of(xml.replace("enabled=\"true\"", "enabled=\"yes\""), xml.replace("version=\"1\"", "version=\"2\""), xml.replace("waypointRadius=\"64\"", "waypointRadius=\"16\"")))
+			{
+				Files.writeString(invalid, mutation);
+				reject(() -> PhantomPartyFollowPolicy.load(invalid));
+			}
 		});
 	}
 

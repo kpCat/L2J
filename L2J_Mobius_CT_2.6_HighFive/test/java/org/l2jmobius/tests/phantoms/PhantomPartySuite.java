@@ -475,6 +475,13 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(RouteStatus.REGROUPING, result.route().status(), "Missing canonical member did not force REGROUPING.");
 			PhantomAssertions.assertEquals(route.currentWaypoint(), result.route().currentWaypoint(), "Missing canonical member advanced a waypoint.");
 			PhantomAssertions.assertFalse(result.route().status() == RouteStatus.ARRIVED, "Missing canonical member allowed ARRIVED.");
+			routes.cancel(groupId, 2);
+			PhantomAssertions.assertTrue(routes.observe(groupId, route, List.of(leader)).routeOwned(), "A foreign generation cancelled the current route.");
+			routes.cancel(groupId, 1);
+			final var replacement = routes.request(groupId, 2, leaderSnapshot, new PhantomDomainRef("location", "new-owner"), new PhantomNavigationPoint(200, 100, 0, 0), ZERO, now, now + 1_000_000_000L);
+			PhantomAssertions.assertEquals(PhantomPartyRouteCoordinator.AttemptStatus.READY, replacement.status(), "Replacement generation did not acquire a route.");
+			routes.cancel(groupId, 1);
+			PhantomAssertions.assertTrue(routes.observe(groupId, replacement.route(), List.of(leader)).routeOwned(), "Stale cleanup cancelled the replacement generation.");
 			routes.beginStop();
 			navigation.beginStop();
 			PhantomAssertions.assertTrue(navigation.finishStop(), "Route navigation fixture did not drain.");

@@ -140,6 +140,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFollowPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyParticipationPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -557,7 +558,7 @@ public final class PhantomSystem
 					productionGoals,
 					partyBackend,
 					partyRoleCatalog,
-					new PhantomPartyRouteCoordinator(_navigationService, _combatService),
+					new PhantomPartyRouteCoordinator(_navigationService, _combatService, PhantomPartyFollowPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-follow-v1.xml").toPath())),
 					new PhantomPartyTactics(_combatService, partyBackend, partySupportPolicy),
 					() -> _topologyService.query().snapshot().canonicalHash(),
 					System::nanoTime,

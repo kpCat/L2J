@@ -167,6 +167,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFollowPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
@@ -212,6 +213,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		POST002_SUPPORT,
 		COMPANION_REAL_SUPPORT_058,
 		COMPANION_ROLE_MATRIX_058,
+		COMPANION_FOLLOW_058,
 		QOL009_SERVITOR
 	}
 
@@ -294,6 +296,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case POST002_SUPPORT -> "post002-native-support";
 			case COMPANION_REAL_SUPPORT_058 -> "companion-real-support058";
 			case COMPANION_ROLE_MATRIX_058 -> "companion-role-matrix058";
+			case COMPANION_FOLLOW_058 -> "companion-follow058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -306,7 +309,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_ROLE_MATRIX_058)
+		if (_mode == Mode.COMPANION_FOLLOW_058)
+		{
+			PhantomAssertions.assertEquals(58005812L, context.seed(), "Companion native follow used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.COMPANION_ROLE_MATRIX_058)
 		{
 			PhantomAssertions.assertEquals(58005807L, context.seed(), "Companion role matrix used the wrong deterministic seed.");
 		}
@@ -455,6 +462,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_FOLLOW_058)
+		{
+			registry.add("01-real-led-native-follow-around-stock-geometry", this::testCompanionFollow058);
+			return;
+		}
 		if (_mode == Mode.COMPANION_ROLE_MATRIX_058)
 		{
 			registry.add("01-real-led-heal-hp-and-native-cost", context -> testCompanionNativeRole058(context, "combat.heal"));
@@ -533,6 +545,118 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		registry.add("18-production-combat-has-no-packet-route", _ -> testNoPacketRoute());
 		registry.add("19-canonical-player-cp-snapshot", _ -> testCanonicalCpSnapshot());
 		registry.add("20-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
+	}
+
+	private void testCompanionFollow058(PhantomTestContext context) throws Exception
+	{
+		// Declared placement before measurement. Only the Phantom's subsequent movement is claimed.
+		final int fromX = -71350;
+		final int fromY = 258050;
+		final int targetY = 258750;
+		final int z = -3104;
+		PhantomAssertions.assertFalse(GeoEngine.getInstance().canMoveToTarget(fromX, fromY, z, fromX, targetY, z, 0), "Follow input lacks the previously measured stock obstacle.");
+		_player.decayMe();
+		_player.setXYZInvisible(fromX, fromY, z);
+		_player.spawnMe();
+		_player.revalidateZone(true);
+		_player.getStat().setExp(_player.getStat().getExpForLevel(30));
+		_player.getStat().setLevel((byte) 30);
+		_player.setCurrentHp(_player.getMaxHp());
+		final Player human = ensureObserver();
+		human.setXYZInvisible(fromX + 30, fromY, z);
+		PhantomAssertions.assertTrue(!_player.isGM() && !human.isGM(), "Native follow requires ordinary TEST actors.");
+		final PhantomMetrics navigationMetrics = new PhantomMetrics();
+		final PhantomNavigationService navigation = new PhantomNavigationService(navigationMetrics);
+		PhantomAssertions.assertTrue(navigation.start(), "Native companion navigation did not start.");
+		final PhantomProgressionService progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
+		final PhantomSocialCatalog socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
+		final PhantomSocialService social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(_repository, socialCatalog), context.seed(), 16);
+		progression.start();
+		PhantomAssertions.assertTrue(social.start(), "Native follow social authority did not start.");
+		final L2jPhantomPartyBackend backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
+		final PhantomPartyRouteCoordinator routes = new PhantomPartyRouteCoordinator(navigation, _combat, PhantomPartyFollowPolicy.load(Path.of("data/phantoms/party/high-five-party-follow-v1.xml")));
+		final PhantomPartyCoordinator party = new PhantomPartyCoordinator(new PhantomPartyStore(_repository), new PhantomGoalStateStore(_repository), backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), routes, new PhantomPartyTactics(_combat, backend), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 32);
+		PhantomAssertions.assertTrue(party.start(), "Native follow party owner did not start.");
+		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
+		Throwable scenarioFailure = null;
+		try
+		{
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, _player, PartyDistributionType.FINDERS_KEEPERS.getId()).delivered(), "Native follow invitation was not delivered.");
+			for (int pulse = 0; (pulse < 32) && !party.committed(_profile.profileId()); pulse++)
+			{
+				party.onPulse();
+			}
+			PhantomAssertions.assertTrue(party.committed(_profile.profileId()), "Native follow input never became a committed mixed Party.");
+			human.decayMe();
+			human.setXYZInvisible(fromX, targetY, z);
+			human.spawnMe();
+			human.revalidateZone(true);
+			context.record("companion058.follow.input", "TEST leader placed before movement episode; managed=" + _player.getObjectId() + "; human=" + human.getObjectId() + "; from=" + fromX + ',' + fromY + ',' + z + "; to=" + fromX + ',' + targetY + ',' + z + "; known VALID_PATH821/7segments; deadline20s; maxSampleStep128");
+			int previousX = _player.getX();
+			int previousY = _player.getY();
+			int previousZ = _player.getZ();
+			double maximumStep = 0;
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+			while ((System.nanoTime() < deadline) && ((Math.hypot(_player.getX() - human.getX(), _player.getY() - human.getY()) > 350) || _player.isMoving()))
+			{
+				party.onPulse();
+				maximumStep = Math.max(maximumStep, Math.sqrt(Math.pow(_player.getX() - previousX, 2) + Math.pow(_player.getY() - previousY, 2) + Math.pow(_player.getZ() - previousZ, 2)));
+				previousX = _player.getX();
+				previousY = _player.getY();
+				previousZ = _player.getZ();
+				Thread.sleep(20);
+			}
+			final double remaining = Math.hypot(_player.getX() - human.getX(), _player.getY() - human.getY());
+			context.record("companion058.follow.result", "xyz=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; remaining=" + remaining + "; maximumStep=" + maximumStep + "; navigation=" + navigationMetrics.snapshot().navigation());
+			PhantomAssertions.assertTrue(_player.isInParty() && (_player.getParty() == human.getParty()) && party.committed(_profile.profileId()), "Follow lost its native mixed-party membership.");
+			PhantomAssertions.assertTrue(remaining <= 350, "Real-led companion did not reach its leader: " + remaining + "; routes=" + routes.snapshot());
+			PhantomAssertions.assertTrue(Math.hypot(_player.getX() - fromX, _player.getY() - fromY) >= 300, "Follow has no actual World displacement.");
+			PhantomAssertions.assertTrue(maximumStep <= 128, "Follow snapped instead of using native movement: " + maximumStep);
+			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().pathSucceeded() > 0, "Follow did not use a computed native path around the obstacle.");
+		}
+		catch (Exception | AssertionError failure)
+		{
+			scenarioFailure = failure;
+			throw failure;
+		}
+		finally
+		{
+			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
+			for (int pulse = 0; pulse < 8; pulse++)
+			{
+				party.onPulse();
+			}
+			party.beginStop();
+			final boolean partyStopped = party.finishStop();
+			navigation.beginStop();
+			boolean navigationStopped = navigation.snapshot().state() == PhantomNavigationService.ServiceState.STOPPED;
+			final long stopDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			while (!navigationStopped && (System.nanoTime() < stopDeadline))
+			{
+				navigation.finishStop();
+				navigationStopped = navigation.snapshot().state() == PhantomNavigationService.ServiceState.STOPPED;
+				if (!navigationStopped)
+				{
+					Thread.sleep(10);
+				}
+			}
+			progression.beginStop();
+			final boolean progressionStopped = progression.finishStop();
+			social.beginStop();
+			final boolean socialStopped = social.finishStop();
+			if (!partyStopped || !navigationStopped || !progressionStopped || !socialStopped)
+			{
+				final AssertionError cleanup = new AssertionError("Follow owners did not drain: party=" + partyStopped + ':' + party.snapshot() + "; navigation=" + navigationStopped + ':' + navigation.snapshot() + "; progression=" + progressionStopped + "; social=" + socialStopped);
+				if (scenarioFailure != null)
+				{
+					scenarioFailure.addSuppressed(cleanup);
+				}
+				else
+				{
+					throw cleanup;
+				}
+			}
+		}
 	}
 
 	private void testCompanionRealSupport058(PhantomTestContext context) throws Exception
