@@ -7,7 +7,7 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 | Этап | Реализация | Сервер | Владелец |
 |---|---|---|---|
 | М2 | Реализован для объявленных stock-ролей | **SERVER_VERIFIED**: native composition, role matrix, lifecycle/negative/skills controls, ordinary current JAR smoke и sameDB restart | QA_PENDING |
-| М3 | PARTIAL | Native canonical join → scoped social event и доставленный personal reply; normal restart/recall ещё проверяются | QA_PENDING |
+| М3 | PARTIAL | Native scoped joint-event/personality/personal memory после ordinary sameDB restart, delivered recall, isolation и callback idempotency проверены; полный command/refusal набор открыт | QA_PENDING |
 | М4 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М5 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М6 | NOT_STARTED | NOT_STARTED | QA_PENDING |
@@ -15,7 +15,7 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 
 М2 SERVER_VERIFIED относится к перечисленным native server сценариям. TEST loopback GameClient/packet-neutral actors не называются входом владельца или actual UI приёмкой. Native World измерения отделены от сохранённых SQL XYZ. Объявленные высокие level/class/gear/skills — FIXTURE_PRECONDITION, не естественная карьера М7.
 
-М3: исправлена запись `party.member.joined` для обычного real-led invitation без предварительной managed JOIN; старый SOLO operation не используется заново. Process-local native sequence дополнен JVM identity только в social receipts/новом persisted JOIN operation, поэтому новое событие после restart отличается, а точный callback retry остаётся идемпотентным. RED native memory отсутствовала → GREEN joint event + доставленный ответ «старый рок», `conversation.personal`205 байт на058a Scout11/character268436865 ↔ TestAdmin268435465. Текущий ordinary Ant Game SHA3B2B3C0A; affected native Party10/10, pure invitation6/state6/lifecycle11, current RU corpus3/3, v3 content3/3, humanized behavior6/6. Первая отсутствующая policy — INVALID_INPUT; следующие RED и исходные receipts сохранены. Отдельная normal-restart/recall фаза ещё не пройдена, М3 целиком не объявлен.
+М3: исправлена запись `party.member.joined` для обычного real-led invitation без предварительной managed JOIN; старый SOLO operation не используется заново. Process-local native sequence дополнен JVM identity только в social receipts/новом persisted JOIN operation. Native RED → GREEN joint event + доставленный «старый рок», `conversation.personal`205 байт на058a Scout11/character268436865 ↔ TestAdmin268435465. Ordinary Game37s boot/свой LoginID1/Status RUNNING/normal save+Stop → новая native JVM: «Ты говорил мне про старый рок», тот же joint-event/personality, другой counterpart без утечки, queries без записи, новое вступление с новым ID и точный callback retry без повторной записи. Game SHA3B2B3C0A; affected native Party10/10 и full М2 composition1/1; pure invitation6/state6/lifecycle11, RU248 corpus3/3, v3 content3/3, humanized behavior6/6. Первый helper без policy — INVALID_INPUT; последующие RED и исходные receipts сохранены. Guard отклонил первый ordinary Start из-за двух пропущенных manifest hash-полей; поля синхронизированы, guard неизменён, успешный второй запуск сохранён отдельно. «Стой здесь» остаётся unsupported corpus negative; весь набор команд/нативных текстовых отказов S3 ещё не закрыт. М4 разрешён только на отдельно проверенных М2 Party/identity и durable social предпосылках; М3 целиком не объявлен.
 
 | Контракт М2 | Полученные факты |
 |---|---|

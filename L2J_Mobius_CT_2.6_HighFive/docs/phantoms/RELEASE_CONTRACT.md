@@ -2,7 +2,7 @@
 
 TASK058, 16.10.2026: М2 SERVER_VERIFIED в объявленном native server scope, OWNER_QA_PENDING. Current semantic JAR37DEF прошёл ordinary Start/Status/normalStop/sameDB restart/Stop с сохранёнными identities/TEST abilities. Применяется переход к М3 по AUTHORITY058; М1/G4/G6 остаются открытыми/отложенными. Полный перечень и границы — [RESULT058](reports/PHANTOM-M2-M7-CAMPAIGN-058.md).
 
-М3 TASK058 в работе: ordinary real-led JOIN теперь сохраняет подтверждённое совместное событие с character object ID; social receipt различает новые JVM invitations и точный callback retry. Native RED/GREEN и affected Party10/10 получены; restart/recall ещё требуется. Полезные owners/helpers сохранены, это не принятие всего М3.
+М3 TASK058 PARTIAL: ordinary real-led JOIN сохраняет подтверждённое совместное событие с character object ID; social receipt различает новые JVM invitations и точный callback retry. Native RED/GREEN, affected Party10/10/full М2 composition1/1 и ordinary sameDB restart → native delivered recall/изоляция/новый join/идемпотентный retry проверены. Полезные owners/helpers сохранены; весь command/refusal набор М3 ещё открыт. Независимый М4 использует проверенные М2 Party/identity и social-state boundaries, не неподтверждённые команды М3.
 
 ## Актуальная поправка владельца TASK058 от 16.10.2026
 
