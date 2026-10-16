@@ -7,12 +7,14 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 
 | Этап | Реализация | Серверная проверка | Владелец |
 |---|---|---|---|
-| М2 | PARTIAL: request/reply, invitations/support,3 followers, assist/агро/ranged spacing/current rank | Полная speech→SENT→TEST ACCEPT→native leader/walk→2kills/EXP→partychat composition на ordinary JAR; FARM interruption/resume и save-restart ещё открыты | QA_PENDING |
+| М2 | PARTIAL: request/reply, invitations/support,3 followers, assist/агро/ranged spacing/current rank | Полная native composition на ordinary JAR и normal sameDB preservation; earned FARM interruption/resume ещё открыт | QA_PENDING |
 | М3 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М4 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М5 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М6 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М7 | NOT_STARTED | NOT_STARTED | QA_PENDING |
+
+17:58 UTC: ordinary058a Start/Status/normalStop и sameDB restart/Stop прошли, процессы отсутствуют. Отдельный заранее объявленный preservation episode: exact immutable identities33/profiles32, TEST state7/skills378/items68 hashes совпали. Первый all-population equality FAIL сохранён: остальная популяция получила XP/уровни и три stock item rows1865 у разных owners; запретить естественную жизнь ради равенства нельзя. SQL не называется World proof. Synthetic START отклонён guard; установлен несовместимый private Pilot ACL, но ОС отклонила штатную Set-Acl с SeSecurityPrivilege (PS7/WinPS5). Ветка остановлена без повышения привилегий/ослабления guard; непроверенный proposed builder patch исключён. Пакетирование и native packet-neutral tests продолжаются независимо; М1/G4/G6 статусы прежние.
 
 Ordinary cumulative package собран из66547bc: Game `C2C1070369D82F30F7DB5037D5D348844E39A62CB2957E1084509154C6DB17D6`, Login `F678E454A3F0F3123125A3417FEA0FB713258B1FC6002CC8A8F677CF8F8232ED`,203 независимых geo; Ant jar/compile-tests PASS. Через этот Game JAR подготовлены32 native level1 births и TEST-сцена seed58005823: TestAdmin10/access0 и T058Scout1, T058Tank/Mage/Heal/Buff/Mana80 с согласованными current class/skills/stock gear. Подготовленные сохранённые позиции `-71350,258050..258170,-3104`, ещё не live World proof. Первый setup остановился до actor writes на отсутствующей query; исправлен существующим inert knowledge pattern, продолжение проверило пустые таблицы и тот же frozen plan. Ordinary Start/composition/save-restart ещё требуются.
 
