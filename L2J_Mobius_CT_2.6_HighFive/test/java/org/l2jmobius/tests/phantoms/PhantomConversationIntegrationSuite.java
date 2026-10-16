@@ -141,6 +141,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		COMPANION_COMPOSITION_058,
 		COMPANION_FARM_TAKEOVER_058,
 		COMPANION_REAL_INVITATION_058,
+		COMPANION_MIXED_LIFECYCLE_058,
 		CHAT_INTEGRATION,
 		LIFECYCLE_PERFORMANCE
 	}
@@ -189,6 +190,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			case COMPANION_COMPOSITION_058 -> "companion-composition058";
 			case COMPANION_FARM_TAKEOVER_058 -> "companion-farm-takeover058";
 			case COMPANION_REAL_INVITATION_058 -> "companion-real-invitation058";
+			case COMPANION_MIXED_LIFECYCLE_058 -> "companion-mixed-lifecycle058";
 			case CHAT_INTEGRATION -> "conversation-chat-integration";
 			case LIFECYCLE_PERFORMANCE -> "conversation-lifecycle-performance";
 		};
@@ -197,7 +199,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_REAL_INVITATION_058 ? 58005805L : _mode == Mode.COMPANION_FARM_TAKEOVER_058 ? 58005804L : _mode == Mode.COMPANION_COMPOSITION_058 ? 58005803L : _mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
+		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_MIXED_LIFECYCLE_058 ? 58005808L : _mode == Mode.COMPANION_REAL_INVITATION_058 ? 58005805L : _mode == Mode.COMPANION_FARM_TAKEOVER_058 ? 58005804L : _mode == Mode.COMPANION_COMPOSITION_058 ? 58005803L : _mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
 		_profiles = PhantomProfileRepository.open();
@@ -296,7 +298,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			companionRequest058(registry);
 		}
-		else if ((_mode == Mode.COMPANION_COMPOSITION_058) || (_mode == Mode.COMPANION_FARM_TAKEOVER_058) || (_mode == Mode.COMPANION_REAL_INVITATION_058))
+		else if ((_mode == Mode.COMPANION_COMPOSITION_058) || (_mode == Mode.COMPANION_FARM_TAKEOVER_058) || (_mode == Mode.COMPANION_REAL_INVITATION_058) || (_mode == Mode.COMPANION_MIXED_LIFECYCLE_058))
 		{
 			companionComposition058(registry);
 		}
@@ -317,7 +319,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
 			final PhantomGoal previousFarm;
-			if ((_mode == Mode.COMPANION_FARM_TAKEOVER_058) || realInvitation)
+			if ((_mode == Mode.COMPANION_FARM_TAKEOVER_058) || realInvitation || (_mode == Mode.COMPANION_MIXED_LIFECYCLE_058))
 			{
 				// A persisted ordinary-goal precondition; actual combat/earned work is a separate gate.
 				final var anchor = _topology.findAnchor("population.farming.elf.20534").orElseThrow();
@@ -429,6 +431,27 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 				final var reloaded = new PhantomPartyStore(_profiles).load(_observerProfile.profileId()).orElseThrow();
 				PhantomAssertions.assertEquals(1, reloaded.state().phantomMembers().size(), "Persisted Phantom roster differs from native membership.");
 				PhantomAssertions.assertEquals(1, reloaded.state().realMembers().size(), "Persisted TEST partner roster differs from native membership.");
+				if ((_mode == Mode.COMPANION_MIXED_LIFECYCLE_058) || realInvitation)
+				{
+					final PhantomGoal partyGoal = goals.load(_observerProfile.profileId()).orElseThrow().goal();
+					PartyInvitationService.getInstance().leave(_speaker);
+					for (int pulse = 0; (pulse < 32) && party.blocksBackground(_observerProfile.profileId()); pulse++)
+					{
+						party.onPulse();
+					}
+					PhantomAssertions.assertFalse(party.blocksBackground(_observerProfile.profileId()), "Real partner leave retained the Phantom-led mixed-party claim.");
+					final PhantomGoal released = goals.load(_observerProfile.profileId()).orElseThrow().goal();
+					if (realInvitation)
+					{
+						PhantomAssertions.assertEquals(previousFarm, released, "Real-party release overwrote the personal FARM goal.");
+					}
+					else
+					{
+						PhantomAssertions.assertEquals(PhantomGoalStatus.ABANDONED, released.status(), "Lost mixed membership retained an active party goal.");
+						PhantomAssertions.assertEquals(partyGoal.goalId(), released.goalId(), "Membership release replaced a different goal.");
+						PhantomAssertions.assertTrue(released.revision() > partyGoal.revision(), "Membership release did not advance goal ownership.");
+					}
+				}
 			}
 			catch (Exception | AssertionError failure)
 			{

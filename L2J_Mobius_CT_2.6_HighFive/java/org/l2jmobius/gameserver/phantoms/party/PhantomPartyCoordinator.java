@@ -1516,6 +1516,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final Optional<PartySnapshot> observed = _backend.observe(leader);
 		if (observed.isEmpty())
 		{
+			if (groupClaims.stream().anyMatch(claim -> !claim.state().realMembers().isEmpty()))
+			{
+				releaseLostMixedGroup(runtime, groupClaims);
+				return examined;
+			}
 			final MemberRef expectedLeader = leader;
 			final MemberRef missing = expected.stream().filter(member -> !member.equals(expectedLeader)).filter(member -> _backend.materialize(member.profileId())).findFirst().orElse(null);
 			if (missing != null)
@@ -1551,8 +1556,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final PartySnapshot party = groupClaims.stream().map(claim -> _backend.currentMember(claim.profileId()).flatMap(_backend::observe)).flatMap(Optional::stream).findFirst().orElse(null);
 		if (party == null)
 		{
-			groupClaims.forEach(claim -> moveToSolo(claim, "party.real.membership_lost"));
-			removeGroup(runtime.groupId());
+			releaseLostMixedGroup(runtime, groupClaims);
 			return examined;
 		}
 		final PartyState before = groupClaims.getFirst().state();
@@ -1579,6 +1583,41 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			examined += dispatchTactics(party, remainingBudget - examined);
 		}
 		return Math.min(remainingBudget, examined);
+	}
+
+	private void releaseLostMixedGroup(GroupRuntime runtime, List<StoredPartyState> groupClaims)
+	{
+		for (StoredPartyState claim : groupClaims)
+		{
+			final StoredPartyState latest = _claims.get(claim.profileId());
+			if ((latest == null) || !latest.state().groupId().equals(claim.state().groupId()) || (latest.state().groupGeneration() != claim.state().groupGeneration()))
+			{
+				continue;
+			}
+			final PartyOperation operation = latest.state().operation();
+			final StoredGoal current = _goals.load(claim.profileId()).orElse(null);
+			if ((operation != null) && (current != null) && (current.goal().goalId() == operation.leaderGoalId()) && (current.goal().status() == PhantomGoalStatus.ACTIVE) && Set.of(FORM_GOAL, JOIN_GOAL, LEAD_GOAL, MEMBER_GOAL).contains(current.goal().goalType()))
+			{
+				try
+				{
+					_goals.replace(claim.profileId(), current.rowVersion(), current.goal().withStatus(PhantomGoalStatus.ABANDONED));
+				}
+				catch (RuntimeException exception)
+				{
+					_metrics.conflict();
+				}
+			}
+			final ExternalActionLease tactical = _tacticalActions.get(claim.profileId());
+			if ((tactical != null) && tactical.operationKey().startsWith(tacticalScope(claim.state())) && _tacticalActions.remove(claim.profileId(), tactical))
+			{
+				tactical.close();
+			}
+			moveToSolo(latest, "party.real.membership_lost");
+		}
+		if (claims(runtime.groupId()).isEmpty())
+		{
+			removeGroup(runtime.groupId());
+		}
 	}
 
 	private int advanceRoute(String groupId, PartySnapshot party, int remainingBudget)
@@ -1741,7 +1780,12 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				continue;
 			}
-			final String key = "party.tactic." + directive.kind().name().toLowerCase(java.util.Locale.ROOT) + '.' + directive.actor().profileId();
+			final StoredPartyState claim = _claims.get(directive.actor().profileId());
+			if ((claim == null) || !committedClaim(claim) || !claim.state().leader().equals(party.leader()) || !claim.state().phantomMembers().contains(directive.actor()))
+			{
+				continue;
+			}
+			final String key = tacticalScope(claim.state()) + directive.kind().name().toLowerCase(java.util.Locale.ROOT) + '.' + directive.actor().profileId();
 			_tactics.dispatch(directive, key, deadline(), () -> _state != State.RUNNING).ifPresent(lease ->
 			{
 				_tacticalActions.put(directive.actor().profileId(), lease);
@@ -1749,6 +1793,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			});
 		}
 		return examined;
+	}
+
+	private static String tacticalScope(PartyState state)
+	{
+		return "party.tactic." + PhantomPartyModel.sha256(state.groupId() + '|' + state.groupGeneration()) + '.';
 	}
 
 	/** Exact learned native support candidates for a bounded external request. */
