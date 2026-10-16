@@ -121,7 +121,7 @@ public final class L2jGameKnowledgeBackend implements PhantomGameKnowledgeBacken
 		final ArrayList<NpcFact> result = new ArrayList<>(templates.size());
 		for (NpcTemplate template : templates)
 		{
-			final NpcKind kind = template.isType("GrandBoss") ? NpcKind.GRAND_BOSS : template.isType("RaidBoss") ? NpcKind.RAID_BOSS : template.isType("Monster") ? NpcKind.MONSTER : NpcKind.OTHER_ATTACKABLE;
+			final NpcKind kind = template.isType("GrandBoss") ? NpcKind.GRAND_BOSS : template.isType("RaidBoss") ? NpcKind.RAID_BOSS : (template.isType("Monster") || template.isType("RiftInvader")) ? NpcKind.MONSTER : NpcKind.OTHER_ATTACKABLE;
 			result.add(new NpcFact(template.getId(), Byte.toUnsignedInt(template.getLevel()), kind, template.isAttackable(), template.isTargetable(), template.canBeSown(), template.getExp(), template.getSP(), PhantomGameKnowledgeAuthority.SERVER_LOADER_FACT));
 		}
 		return List.copyOf(result);

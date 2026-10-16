@@ -8,6 +8,8 @@ TASK058, 16.10.2026: М2 SERVER_VERIFIED в объявленном native server
 
 М6 TASK058 PARTIAL: stock Kamaloka57 entry/guards/600s native combat, все4 живы, без victory/reward/reuse; native Rift entry/fee/room/identity, combat classification открыт. FestivalManager normal shutdown больше не игнорирует interrupt во всех8 wait; actual native signup→обычный shutdown1/1, affected common7/7/PvP4/4. Полный instance/Rift milestone не объявлен; исходные FAIL/invalid inputs сохранены.
 
+Rift TASK058: confirmed stock RiftInvader наследует Monster; knowledge copying adapter теперь сохраняет MONSTER. Native RED→actual room4/21668 MONSTER/common combat/HP2863→0; native knowledge parity22/22. Human death/no EXP оставляют весь сценарий FAIL/PARTIAL, полного timed Rift/автовхода/награды claim нет.
+
 ## Актуальная поправка владельца TASK058 от 16.10.2026
 
 М4 TASK058 PARTIAL: native actual Player damage facts (32 ID/30s, no timer/SQL), current PvP rank и canonical NO_PVP guard сохранены в Player/PlayerStatus/Combat/Party owners. Native3/3 проверили enhanced retaliation и mixed-party defense/evidence revoke; affected М2 support3/3 и common boundary7/7. Один исторический normal teardown FAIL остаётся открытым риском; полного PvP/retreat/clans milestone claim нет. Exact orphan repair action ограничен одним failed058t fixture327 с отсутствующим персонажем, не cumulative/release.

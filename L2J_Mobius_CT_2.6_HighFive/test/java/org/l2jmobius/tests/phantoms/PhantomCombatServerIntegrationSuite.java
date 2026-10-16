@@ -3647,9 +3647,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(party.isInDimensionalRift(), "Native guarded Rift entry failed.");
 			final var rift = party.getDimensionalRift(); final var room = manager.getRoom(rift.getType(), rift.getCurrentRoom());
 			PhantomAssertions.assertTrue(actors.stream().allMatch(actor -> (actor.getInstanceId() == 0) && room.checkIfInZone(actor.getX(), actor.getY(), actor.getZ()) && (actor.getInventory().getInventoryItemCount(7079, -1) == 1)), "Native Rift room/fee/identity mismatch.");
-			PhantomAssertions.assertTrue(waitFor(() -> room.getSpawns().stream().anyMatch(spawn -> spawn.getLastSpawn() instanceof Monster), 20_000), "Native Rift spawn delay produced no stock room monsters.");
+			PhantomAssertions.assertTrue(waitFor(() -> room.getSpawns().stream().anyMatch(spawn -> spawn.getLastSpawn() instanceof Monster monster && !monster.isRaid()), 20_000), "Native Rift spawn delay produced no non-raid stock room monsters; room=" + rift.getCurrentRoom());
+			context.record("instance058.rift.roomSpawns", "room=" + rift.getCurrentRoom() + "; spawns=" + room.getSpawns().stream().map(spawn -> spawn.getLastSpawn() == null ? "pending" : spawn.getLastSpawn().getId() + ":" + spawn.getLastSpawn().getClass().getSimpleName() + ":raid=" + spawn.getLastSpawn().isRaid()).toList());
 			final Monster target = room.getSpawns().stream().map(Spawn::getLastSpawn).filter(value -> value instanceof Monster monster && !monster.isRaid()).map(value -> (Monster) value).sorted(Comparator.comparingInt(Monster::getId)).findFirst().orElseThrow();
-			context.record("instance058.rift.target", "stock=" + target.getId() + "; nativeType=" + target.getClass().getSimpleName() + "; knowledge=" + _query.findNpc(target.getId()).orElseThrow().kind());
+			context.record("instance058.rift.target", "stock=" + target.getId() + "; nativeType=" + target.getClass().getSimpleName() + "; knowledge=" + _query.findNpc(target.getId()));
 			PhantomAssertions.assertEquals(NpcKind.MONSTER, _query.findNpc(target.getId()).orElseThrow().kind(), "Native RiftInvader was not classified as its actual Monster base.");
 			final long exp = _player.getExp(); final double hp = target.getCurrentHp();
 			PhantomAssertions.assertTrue(_combat.startContentSession(new PhantomCombatRequest(_profile.profileId(), target.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, false, 90_000, () -> false), "instance058.rift.combat").accepted(), "Native Rift common combat refused its same-room stock target.");
