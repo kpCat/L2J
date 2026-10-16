@@ -332,6 +332,7 @@ public final class PhantomTestLauncher
 			case "companion-departure058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_DEPARTURE_058);
 			case "companion-assist058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_ASSIST_058);
 			case "companion-npc-aggro058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_NPC_AGGRO_058);
+			case "learned-skills058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.LEARNED_SKILLS_058);
 			case "pvp-combat-server-integration" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.PVP);
 			case "qol-summoner-servitor-combat" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QOL009_SERVITOR);
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();

@@ -21,6 +21,7 @@ public final class PhantomCombatSession
 	final Set<Integer> _rememberedLootIds = new HashSet<>();
 	PhantomCombatActorLease _actorLease;
 	PhantomCombatLoadout _loadout;
+	boolean _contentBasicMelee;
 	PhantomCombatPhase _phase = PhantomCombatPhase.RESERVED;
 	PhantomCombatResult _result = PhantomCombatResult.ACTIVE;
 	long _lastPulseLogicalNanos;

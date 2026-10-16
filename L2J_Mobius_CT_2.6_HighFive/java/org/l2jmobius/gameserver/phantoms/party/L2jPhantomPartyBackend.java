@@ -464,12 +464,12 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 		for (CapabilityRule rule : _progression.findCatalog().map(catalog -> catalog.capabilities(player.getActiveClass())).orElse(List.of()))
 		{
 			final Skill skill = player.getKnownSkill(rule.actionSkill().skillId());
-			final boolean learned = (skill != null) && (skill.getLevel() == rule.actionSkill().skillLevel());
+			final boolean learned = (skill != null) && (skill.getLevel() >= rule.actionSkill().skillLevel());
 			final WorldObject targetObject = targetObjectId > 0 ? World.getInstance().findObject(targetObjectId) : null;
 			final boolean targetReady = !rule.targetRequired() || (learned && (targetObject instanceof Player target) && targetCompatible(player, target, rule.targetScope().name()) && skill.checkCondition(player, target, false));
 			final boolean ready = learned && !player.isDead() && !player.isCastingNow() && targetReady && !player.isSkillDisabled(skill) && player.checkDoCastConditions(skill);
 			final String reason = !learned ? "skill.missing" : !targetReady ? (targetObjectId > 0 ? "target.invalid" : "target.required") : ready ? "ready" : "skill.unavailable";
-			result.add(new MemberCapability(rule.capabilityKey(), rule.variantKey(), rule.rank(), rule.actionSkill().skillId(), rule.actionSkill().skillLevel(), rule.targetScope().name(), true, learned, ready, reason, Math.max(1, percent(player.getCurrentMp(), player.getMaxMp()) * 10), "progression.catalog+real.current_player"));
+			result.add(new MemberCapability(rule.capabilityKey(), rule.variantKey(), rule.rank(), rule.actionSkill().skillId(), learned ? skill.getLevel() : rule.actionSkill().skillLevel(), rule.targetScope().name(), true, learned, ready, reason, Math.max(1, percent(player.getCurrentMp(), player.getMaxMp()) * 10), "progression.catalog+real.current_player"));
 		}
 		return result;
 	}

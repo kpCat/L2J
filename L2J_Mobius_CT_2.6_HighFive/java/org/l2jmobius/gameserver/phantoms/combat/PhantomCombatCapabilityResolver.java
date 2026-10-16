@@ -96,7 +96,7 @@ public final class PhantomCombatCapabilityResolver
 
 		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(actor.classId()));
 		capabilities.sort(CAPABILITY_ORDER);
-		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsSkill(skill, mode)).limit(maximumSkills).toList();
+		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease)).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsSkill(skill, mode)).limit(maximumSkills).toList();
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
 		if (matching.isEmpty() || ((mode == PhantomCombatMode.RANGED_MAGIC) && selected.isEmpty()))
 		{
@@ -104,6 +104,13 @@ public final class PhantomCombatCapabilityResolver
 		}
 		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElseThrow();
 		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, mode != PhantomCombatMode.RANGED_MAGIC));
+	}
+
+	private static SelectedSkill currentLearnedSkill(SelectedSkill evidence, PhantomCombatActorLease lease)
+	{
+		final int currentLevel = lease.knownSkillLevel(evidence.skillId());
+		// Catalog evidence is a minimum. Exact native supportsSkill still rejects missing/lower skills.
+		return currentLevel >= evidence.skillLevel() ? new SelectedSkill(evidence.skillId(), currentLevel) : evidence;
 	}
 
 	public Optional<PhantomCombatLoadout> resolvePvp(ActorSnapshot actor, PhantomCombatMode mode, PhantomCombatActorLease lease, int maximumSkills)
@@ -117,7 +124,7 @@ public final class PhantomCombatCapabilityResolver
 		}
 		final List<CapabilityEvidence> capabilities = new ArrayList<>(_source.capabilities(actor.classId()));
 		capabilities.sort(CAPABILITY_ORDER);
-		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsPvpSkill(skill, mode)).limit(maximumSkills).toList();
+		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease)).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsPvpSkill(skill, mode)).limit(maximumSkills).toList();
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
 		if (matching.isEmpty() || ((mode == PhantomCombatMode.RANGED_MAGIC) && selected.isEmpty()))
 		{

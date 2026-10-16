@@ -219,6 +219,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		COMPANION_DEPARTURE_058,
 		COMPANION_ASSIST_058,
 		COMPANION_NPC_AGGRO_058,
+		LEARNED_SKILLS_058,
 		QOL009_SERVITOR
 	}
 
@@ -307,6 +308,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case COMPANION_DEPARTURE_058 -> "companion-departure058";
 			case COMPANION_ASSIST_058 -> "companion-assist058";
 			case COMPANION_NPC_AGGRO_058 -> "companion-npc-aggro058";
+			case LEARNED_SKILLS_058 -> "learned-skills058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -319,7 +321,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_NPC_AGGRO_058)
+		if (_mode == Mode.LEARNED_SKILLS_058)
+		{
+			PhantomAssertions.assertEquals(58005818L, context.seed(), "Learned skills used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.COMPANION_NPC_AGGRO_058)
 		{
 			PhantomAssertions.assertEquals(58005817L, context.seed(), "Companion NPC aggro used the wrong deterministic seed.");
 		}
@@ -489,6 +495,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.LEARNED_SKILLS_058)
+		{
+			registry.add("01-current-enchanted-offense-and-class-context", this::testLearnedOffense058);
+			registry.add("02-current-enchanted-recharge-native-effect", context -> testCompanionNativeRole058(context, "combat.recharge"));
+			return;
+		}
 		if (_mode == Mode.COMPANION_NPC_AGGRO_058)
 		{
 			registry.add("01-tank-native-npc-aggro-and-live-party-heal", this::testCompanionFollow058);
@@ -1077,7 +1089,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final Skill skill = SkillData.getInstance().getSkill(candidate.actionSkill().skillId(), candidate.actionSkill().skillLevel());
 				return (skill != null) && (skill.getItemConsumeId() <= 0) && (skill.getMpConsume() > 0);
 			}).findFirst().orElseThrow();
-		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), rule.actionSkill().skillLevel());
+		final int preparedRank = _mode == Mode.LEARNED_SKILLS_058 ? 101 : rule.actionSkill().skillLevel();
+		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), preparedRank);
+		PhantomAssertions.assertTrue(skill != null && skill.getLevel() == preparedRank, "Declared stock support rank is unavailable.");
 		// Explicit TEST preparation before the episode; no natural career or product grant claim.
 		_player.getStat().setExp(_player.getStat().getExpForLevel(85));
 		_player.getStat().setLevel((byte) 85);
@@ -2939,6 +2953,39 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY, terminal.result(), "Canonical target death did not produce victory.");
 		await(() -> _player.getTarget() == null, "Victory cleanup retained the exact dead combat target.");
 		consumeTerminal();
+	}
+
+	private void testLearnedOffense058(PhantomTestContext context) throws Exception
+	{
+		resetActor(true);
+		prepareCompanionCombat058(_player, 94, 6579, 1339, 6383, 6384, 6385, 6386);
+		final Skill enhanced = SkillData.getInstance().getSkill(1339, 101);
+		PhantomAssertions.assertTrue(enhanced != null && enhanced.getLevel() == 101, "Declared stock enhanced offense is absent.");
+		_player.addSkill(enhanced, true); // Declared TEST learned-rank input before this episode.
+		final var resolver = PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query);
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			final var loadout = resolver.resolve(lease.actorSnapshot(), PhantomCombatMode.RANGED_MAGIC, lease, 4);
+			context.record("skills058.offense.input", "TEST class94/80; stock1339:101; staff6579/robeS; catalog evidence remains1339:1; actor=" + _player.getObjectId());
+			PhantomAssertions.assertTrue(loadout.isPresent() && loadout.get().selectedSkills().contains(new SelectedSkill(1339, 101)), "Current learned enhanced rank was lost behind old catalog evidence: " + loadout);
+			PhantomAssertions.assertFalse(lease.supportsSkill(new SelectedSkill(1339, 1), PhantomCombatMode.RANGED_MAGIC), "Stale rank was accepted as the current learned skill.");
+		}
+		final Monster target = spawnNormalMonster(targetMaximumHp());
+		final double hpBefore = target.getCurrentHp();
+		final double mpBefore = _player.getCurrentMp();
+		PhantomAssertions.assertTrue(_combat.startSession(request(target, PhantomCombatMode.RANGED_MAGIC, false, false)).accepted(), "Enhanced native offense was not admitted.");
+		await(() -> (target.getCurrentHp() < hpBefore) && (_player.getCurrentMp() < mpBefore), "Enhanced native cast produced no damage/cost.");
+		final Skill actual = _player.getLastSkillCast();
+		PhantomAssertions.assertTrue(actual != null && actual.getId() == 1339 && actual.getLevel() == 101, "Native action did not use the actual enhanced rank.");
+		context.record("skills058.offense.result", "nativeSkill=" + actual.getId() + ':' + actual.getLevel() + "; hp=" + hpBefore + "->" + target.getCurrentHp() + "; mp=" + mpBefore + "->" + _player.getCurrentMp());
+		_combat.cancel(_profile.profileId());
+		consumeTerminal();
+		// Separate declared context boundary, after the previous episode has ended.
+		_player.setPlayerClass(92);
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertTrue(resolver.resolve(lease.actorSnapshot(), PhantomCombatMode.RANGED_MAGIC, lease, 4).isEmpty(), "Resolver reused a former class capability.");
+		}
 	}
 
 	private void testCanonicalCast() throws Exception

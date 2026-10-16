@@ -488,6 +488,7 @@ public final class PhantomCombatService
 			{
 				reserved._actorLease = lease;
 				reserved._loadout = resolvedLoadout;
+				reserved._contentBasicMelee = contentBasicMelee;
 				reserved._phase = PhantomCombatPhase.ENGAGING;
 				final long evictions = reserved._threatTable.evictions();
 				reserved._threatTable.observe(request.targetObjectId(), PhantomCombatThreatTable.EXPLICIT_TARGET_BASE_THREAT, now, true);
@@ -1562,6 +1563,20 @@ public final class PhantomCombatService
 	{
 		if (actor.casting() || actor.attacking())
 		{
+			return;
+		}
+		final Optional<PhantomCombatLoadout> current = _capabilityResolver.resolve(actor, session._request.mode(), session._actorLease, _policy.maximumSelectedSkills());
+		if (current.isPresent())
+		{
+			session._loadout = current.orElseThrow();
+		}
+		else if (session._contentBasicMelee && (session._request.mode() == PhantomCombatMode.MELEE_PHYSICAL))
+		{
+			session._loadout = new PhantomCombatLoadout(session._request.mode(), session._request.mode().capabilityKey(), 1, List.of(), true);
+		}
+		else
+		{
+			finish(session, PhantomCombatResult.UNSUPPORTED_LOADOUT);
 			return;
 		}
 		final Optional<SelectedSkill> aggression = session._actorLease.npcAggroSkill(session._request.targetObjectId());

@@ -1191,7 +1191,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.REJECTED;
 			}
 			final PhantomProgressionCatalog catalog = _progressionCatalog.get();
-			final CapabilityRule rule = catalog == null ? null : catalog.capabilities(_player.getActiveClass()).stream().filter(candidate -> candidate.capabilityKey().equals(action.capabilityKey()) && candidate.variantKey().equals(action.variantKey()) && candidate.targetScope().name().equals(action.targetScope()) && (candidate.actionSkill().skillId() == action.skill().skillId()) && (candidate.actionSkill().skillLevel() == action.skill().skillLevel())).findFirst().orElse(null);
+			final CapabilityRule rule = catalog == null ? null : catalog.capabilities(_player.getActiveClass()).stream().filter(candidate -> candidate.capabilityKey().equals(action.capabilityKey()) && candidate.variantKey().equals(action.variantKey()) && candidate.targetScope().name().equals(action.targetScope()) && (candidate.actionSkill().skillId() == action.skill().skillId()) && (candidate.actionSkill().skillLevel() <= action.skill().skillLevel())).findFirst().orElse(null);
 			if (rule == null)
 			{
 				return ActionOutcome.REJECTED;

@@ -33,14 +33,15 @@ public final class PhantomProgressionCapabilityEvaluator
 		{
 			final boolean intrinsic = true;
 			final boolean learned = actor.knows(rule.actionSkill());
-			final ReadinessReason reason = readiness(catalog, actor, lease, rule, learned, targetObjectId);
-			result.add(new CapabilityEvaluation(rule.capabilityKey(), rule.variantKey(), rule.rank(), rule.actionSkill(), rule.targetScope(), intrinsic, learned, reason == ReadinessReason.READY, reason, rule.evidenceSkills()));
+			final SkillRef action = learned ? new SkillRef(rule.actionSkill().skillId(), actor.learnedSkills().get(rule.actionSkill().skillId())) : rule.actionSkill();
+			final ReadinessReason reason = readiness(catalog, actor, lease, rule, action, learned, targetObjectId);
+			result.add(new CapabilityEvaluation(rule.capabilityKey(), rule.variantKey(), rule.rank(), action, rule.targetScope(), intrinsic, learned, reason == ReadinessReason.READY, reason, rule.evidenceSkills()));
 		}
 		result.sort(Comparator.comparing(CapabilityEvaluation::stableKey));
 		return List.copyOf(result);
 	}
 
-	private static ReadinessReason readiness(PhantomProgressionCatalog catalog, ActorProgressionSnapshot actor, ActorLease lease, CapabilityRule rule, boolean learned, Integer targetObjectId)
+	private static ReadinessReason readiness(PhantomProgressionCatalog catalog, ActorProgressionSnapshot actor, ActorLease lease, CapabilityRule rule, SkillRef action, boolean learned, Integer targetObjectId)
 	{
 		if (actor.dead())
 		{
@@ -66,14 +67,14 @@ public final class PhantomProgressionCapabilityEvaluator
 		{
 			return ReadinessReason.WEAPON_OR_EQUIPMENT_MISMATCH;
 		}
-		for (RequiredItem item : requiredItems(catalog, rule))
+		for (RequiredItem item : requiredItems(catalog, rule, action))
 		{
 			if (actor.resourceItemCounts().getOrDefault(item.itemId(), 0L) < item.count())
 			{
 				return ReadinessReason.REQUIRED_ITEM_MISSING;
 			}
 		}
-		final var skill = catalog.skill(rule.actionSkill());
+		final var skill = catalog.skill(action);
 		if ((skill != null) && (actor.charges() < skill.chargeConsumeCount()))
 		{
 			return ReadinessReason.INSUFFICIENT_CHARGES_OR_SOULS;
@@ -86,7 +87,7 @@ public final class PhantomProgressionCapabilityEvaluator
 		{
 			return ReadinessReason.SUMMON_REQUIRED;
 		}
-		final SkillReadinessProbe probe = lease.canonicalSkillReadiness(rule.actionSkill(), targetObjectId);
+		final SkillReadinessProbe probe = lease.canonicalSkillReadiness(action, targetObjectId);
 		if (!probe.dynamicConditionSatisfied())
 		{
 			return ReadinessReason.DYNAMIC_CONDITION_FAILED;
@@ -102,14 +103,14 @@ public final class PhantomProgressionCapabilityEvaluator
 		return ReadinessReason.READY;
 	}
 
-	private static List<RequiredItem> requiredItems(PhantomProgressionCatalog catalog, CapabilityRule rule)
+	private static List<RequiredItem> requiredItems(PhantomProgressionCatalog catalog, CapabilityRule rule, SkillRef action)
 	{
 		final Map<Integer, Long> merged = new HashMap<>();
 		for (RequiredItem item : rule.requiredItems())
 		{
 			merged.merge(item.itemId(), item.count(), Math::max);
 		}
-		final var skill = catalog.skill(rule.actionSkill());
+		final var skill = catalog.skill(action);
 		if ((skill != null) && (skill.itemConsumeId() > 0) && (skill.itemConsumeCount() > 0))
 		{
 			merged.merge(skill.itemConsumeId(), (long) skill.itemConsumeCount(), Math::max);

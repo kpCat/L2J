@@ -146,6 +146,27 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(1, fixture.lease.attackCount, "Combat did not continue ordinary offense when aggression was no longer needed.");
 				fixture.stop();
 			});
+			registry.add("06-current-learned-rank-refreshes-only-after-native-action", _ ->
+			{
+				final Fixture fixture = fixture(1);
+				fixture.capabilities = capabilities(PhantomCombatMode.RANGED_MAGIC, List.of(new SelectedSkill(301, 1)));
+				fixture.lease.supportedSkills.add(301);
+				fixture.lease.learnedRanks.put(301, 101);
+				PhantomAssertions.assertTrue(fixture.start(1, PhantomCombatMode.RANGED_MAGIC).accepted(), "Current enhanced skill was not resolved.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(new SelectedSkill(301, 101), fixture.lease.lastCast, "Catalog rank replaced the current learned rank.");
+				fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 50, 100, false, false, false, true, false, 100, "CAST", 301, 101);
+				fixture.lease.learnedRanks.put(301, 102);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.castCount, "Learned refresh interrupted the existing native cast.");
+				fixture.lease.actor = actor(100, false);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(new SelectedSkill(301, 102), fixture.lease.lastCast, "Idle action retained the obsolete session rank.");
+				fixture.lease.learnedRanks.put(301, 0);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(2, fixture.lease.castCount, "Unavailable skill was still issued.");
+				fixture.stop();
+			});
 			return;
 		}
 		registry.add("01-mode-code-mapping", _ -> testModeMapping());
@@ -1001,6 +1022,8 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private ActorSnapshot actor = actor(100, false);
 		private TargetSnapshot target = target(false, true);
 		private final Set<Integer> supportedSkills = new HashSet<>();
+		private final Map<Integer, Integer> learnedRanks = new HashMap<>();
+		private SelectedSkill lastCast;
 		private List<ThreatObservation> attackers = List.of();
 		private List<LootCandidate> loot = List.of();
 		private LootObservation lootObservation = LootObservation.PENDING;
@@ -1067,7 +1090,13 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		@Override
 		public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode)
 		{
-			return supportedSkills.contains(skill.skillId());
+			return supportedSkills.contains(skill.skillId()) && (!learnedRanks.containsKey(skill.skillId()) || (learnedRanks.get(skill.skillId()) == skill.skillLevel()));
+		}
+
+		@Override
+		public int knownSkillLevel(int skillId)
+		{
+			return learnedRanks.getOrDefault(skillId, 0);
 		}
 
 		@Override
@@ -1105,6 +1134,7 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		public ActionOutcome cast(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
 		{
 			castCount++;
+			lastCast = skill;
 			return castOutcome;
 		}
 

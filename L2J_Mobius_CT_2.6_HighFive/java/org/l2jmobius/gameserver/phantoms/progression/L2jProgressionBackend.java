@@ -762,14 +762,14 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 		public SkillReadinessProbe canonicalSkillReadiness(SkillRef reference, Integer targetObjectId)
 		{
 			requireOpen();
-			final Skill skill = SkillData.getInstance().getSkill(reference.skillId(), reference.skillLevel());
-			if (skill == null)
+			final Skill skill = _player.getKnownSkill(reference.skillId());
+			if ((skill == null) || (skill.getLevel() != reference.skillLevel()))
 			{
 				return new SkillReadinessProbe(false, false, false);
 			}
 			final WorldObject target = targetObjectId == null ? _player : World.getInstance().findObject(targetObjectId);
-			final boolean condition = (target != null) && skill.checkCondition(_player, target, false);
-			final boolean resources = (_player.getCurrentMp() >= (skill.getMpConsume() + skill.getMpInitialConsume())) && (_player.getCurrentHp() > skill.getHpConsume());
+			final boolean condition = (target != null) && skill.checkCondition(_player, target, false) && (_player.getCharges() >= skill.getChargeConsumeCount()) && ((skill.getItemConsumeCount() <= 0) || (_player.getInventory().getInventoryItemCount(skill.getItemConsumeId(), -1) >= skill.getItemConsumeCount()));
+			final boolean resources = (_player.getCurrentMp() >= Math.max(skill.getMpConsume() + skill.getMpInitialConsume(), _player.getStat().getMpConsume(skill) + _player.getStat().getMpInitialConsume(skill))) && (_player.getCurrentHp() > skill.getHpConsume());
 			return new SkillReadinessProbe(condition, resources, !_player.isSkillDisabled(skill));
 		}
 

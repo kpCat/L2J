@@ -14,6 +14,8 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 | М6 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М7 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 
+SKILLS resolver: native RED0/2→GREEN2/2 на реально загруженных1339:101 и1013:101. Каталог задаёт минимальное основание capability; actual learned rank передаётся в native CAST/support readiness, проверяются его условия/стоимость/reuse. Normal combat обновляет loadout между действиями, не обрывая текущий cast/attack; focused6/6, capability-runtime40/40. Fire Vortex нанёс урон со списанием MP; Recharge восстановил MP с расходом у recharger; смена active class заново ограничила набор. Gear/subclass/save-restart ещё не проверены.
+
 NPC-агро: собственный CombatService использует фактически изученный single-target AGGRESSION и штатный CAST только против обычного Monster; чужую цель вне своей party не перетягивает. Native RED после корректного ranged human input: hate0, tank не кастует, NPC жив; GREEN1/1:28:49, native reuse, hate0→13754, удержание26s, healer MP3684→3570.70, HP2421.9→3906.47, full Karik погиб, EXP9227898492→9227904702. Aggression MPcost=0, проверен reuse. HP45% — объявленная fixture-подготовка до боя; внутри боя hate/HP/MP/reward не менялись. Focused safety/owner5/5; более ранний неактивный human input сохранён INVALID_INPUT. Raid-агро и все варианты танков не заявлены.
 
 Подготовка: утверждённый пакет отсутствовал в OWN и найден в MAIN; шесть SHA256 совпали, семь файлов точно скопированы в OWN. MAIN только читался.
