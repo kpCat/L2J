@@ -11,6 +11,7 @@ public final class RequestShutdown
 		{
 			throw new IllegalArgumentException("Exact owned PID/runtime/role/root/database/agent required.");
 		}
+		RuntimeCampaign058Guard.validate(Path.of(args[3]), args[4]);
 		final VirtualMachine vm = VirtualMachine.attach(args[0]);
 		try
 		{

@@ -1,4 +1,5 @@
 import java.sql.DriverManager;
+import java.nio.file.Path;
 
 import org.l2jmobius.commons.config.DatabaseConfig;
 
@@ -7,10 +8,11 @@ public final class RuntimeDatabaseCheck
 {
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 3) || !args[0].matches("l2jmobiush5_phantom_(?:test_041final|release_[A-Za-z0-9_]{1,24})"))
+		if ((args.length != 3) || !args[0].matches("l2jmobiush5_phantom_(?:test_041final|test_058a|release_[A-Za-z0-9_]{1,24})"))
 		{
 			throw new IllegalArgumentException("Explicit release schema and two configuration paths required.");
 		}
+		RuntimeCampaign058Guard.validate(Path.of(args[1]).toAbsolutePath().getParent().getParent().getParent(), args[0]);
 		for (int i = 1; i < 3; i++)
 		{
 			DatabaseConfig.load(args[i]);

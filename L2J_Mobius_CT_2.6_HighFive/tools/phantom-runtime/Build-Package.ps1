@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory)][string]$JavaHome,
     [Parameter(Mandatory)][string]$Ant,
     [Parameter(Mandatory)][string]$GeoDataRoot,
-    [Parameter(Mandatory)][ValidatePattern('^l2jmobiush5_phantom_(test_041final|release_[A-Za-z0-9_]{1,24})$')][string]$DatabaseName,
+    [Parameter(Mandatory)][ValidatePattern('^l2jmobiush5_phantom_(test_041final|test_058a|release_[A-Za-z0-9_]{1,24})$')][string]$DatabaseName,
     [Parameter(Mandatory)][string]$DatabaseConfigRoot,
     [Parameter(Mandatory)][string]$RegistrationFile,
     [ValidateRange(1024,65535)][int]$GamePort=7792,
@@ -14,7 +14,10 @@ param(
     [ValidateLength(1,4096)]
     [ValidatePattern('^[A-Za-z0-9_-]{1,45}(?:[ \t]*[,;][ \t]*[A-Za-z0-9_-]{1,45}){0,255}$')][string]$Account='localplayer',
     [ValidatePattern('^[A-Za-z0-9_-]{1,35}$')][string]$ObserverCharacter='TestAdmin',
-    [Parameter(Mandatory)][ValidateRange(1,2147483647)][int]$ObserverObjectId
+    [Parameter(Mandatory)][ValidateRange(1,2147483647)][int]$ObserverObjectId,
+    [ValidateSet('M1Accepted','Campaign058')][string]$Profile='M1Accepted',
+    [string]$OwnershipManifest='',
+    [switch]$ValidateOnly
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
@@ -24,6 +27,14 @@ $moduleName=Split-Path $moduleRoot -Leaf
 if (!(Test-Path -LiteralPath (Join-Path $JavaHome 'release')) -or [IO.File]::ReadAllText((Join-Path $JavaHome 'release')) -notmatch '(?m)^JAVA_VERSION="25(?:\.|\")') {throw 'Требуется JDK25.'}
 $output=[IO.Path]::GetFullPath($OutputRoot)
 $stage=[IO.Path]::GetFullPath($StageRoot)
+if ($Profile -ceq 'Campaign058') {
+    if ($moduleRoot -ine 'D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive' -or !$OwnershipManifest) {throw 'TASK058: нужны точные OWN и owner manifest.'}
+    . (Join-Path $PSScriptRoot 'Campaign058Ownership.ps1')
+    $campaignOwner=Read-Campaign058Owner $OwnershipManifest
+    Assert-Campaign058Binding $output $DatabaseName $campaignOwner
+    if (!$stage.StartsWith((Join-Path $moduleRoot '.phantom-local/contract058a/build')+'\',[StringComparison]::OrdinalIgnoreCase)) {throw 'TASK058: staging вне собственного build root запрещён.'}
+    if ([string]$GamePort -cne $campaignOwner.gamePort -or [string]$ClientLoginPort -cne $campaignOwner.clientLoginPort -or [string]$ControlPort -cne $campaignOwner.controlPort) {throw 'TASK058: порты builder отличаются от owner manifest.'}
+} elseif ($DatabaseName -in @('l2jmobiush5_phantom_test_058a','l2jmobiush5_phantom_release_058a')) {throw 'TASK058: для новой среды требуется точный Campaign058 profile.'}
 if ((Test-Path -LiteralPath $output) -or (Test-Path -LiteralPath $stage)) { throw 'Нужны два новых пустых пути; overwrite запрещён.' }
 if ($output.StartsWith($stage+'\',[StringComparison]::OrdinalIgnoreCase) -or $stage.StartsWith($output+'\',[StringComparison]::OrdinalIgnoreCase) -or $output -ieq $stage) { throw 'Stage/output должны быть независимы.' }
 if (@(@($GamePort,$ClientLoginPort,$ControlPort) | Select-Object -Unique).Count -ne 3) { throw 'Порты должны различаться.' }
@@ -45,6 +56,7 @@ function Read-Ini([string]$Path,[string]$Key) {
     $match=[regex]::Match([IO.File]::ReadAllText($Path),'(?m)^[ \t]*'+[regex]::Escape($Key)+'[ \t]*=[ \t]*([^\r\n]*)\r?$')
     if (!$match.Success) {throw "Ключ отсутствует:$Key"}; return $match.Groups[1].Value.Trim()
 }
+if ($ValidateOnly) {Write-Output "PACKAGE_PREFLIGHT_ONLY profile=$Profile schema=$DatabaseName; DB_WRITES=0; PROCESS_ACTIONS=0"; return}
 Push-Location $repositoryRoot
 try {
     $commit=(& git rev-parse HEAD).Trim(); if ($LASTEXITCODE -ne 0 -or $commit -notmatch '^[0-9a-f]{40}$') {throw 'Git commit отсутствует.'}
@@ -71,18 +83,18 @@ try {
 New-Item -ItemType Directory -Path $output | Out-Null
 Copy-Item -Path (Join-Path $cleanModule 'dist/*') -Destination $output -Recurse
 $tools=Join-Path $output 'tools'; New-Item -ItemType Directory -Path $tools | Out-Null
-foreach ($name in @('Runtime.ps1','Verify-M1.ps1','RequestShutdown.java','RuntimeShutdownAgent.java','RuntimeDatabaseCheck.java','runtime.local.ini.template')) {
+foreach ($name in @('Runtime.ps1','Verify-M1.ps1','RequestShutdown.java','RuntimeShutdownAgent.java','RuntimeDatabaseCheck.java','RuntimeCampaign058Guard.java','Campaign058Ownership.ps1','runtime.local.ini.template')) {
     Copy-Item -LiteralPath (Join-Path $cleanModule "tools/phantom-runtime/$name") -Destination $tools
 }
 foreach ($name in @('LocalPlay-Ownership.ps1','LocalPlay-Pilot.ps1','LocalPlay-AtomicRename.cs')) {
     Copy-Item -LiteralPath (Join-Path $cleanModule "tools/phantom-local-play/$name") -Destination $tools
 }
 $classes=Join-Path $tools 'classes'; New-Item -ItemType Directory -Path $classes | Out-Null
-& (Join-Path $JavaHome 'bin/javac.exe') -encoding UTF-8 --add-modules jdk.attach -cp (Join-Path $output 'libs/*') -d $classes (Join-Path $tools 'RequestShutdown.java') (Join-Path $tools 'RuntimeShutdownAgent.java') (Join-Path $tools 'RuntimeDatabaseCheck.java')
+& (Join-Path $JavaHome 'bin/javac.exe') -encoding UTF-8 --add-modules jdk.attach -cp (Join-Path $output 'libs/*') -d $classes (Join-Path $tools 'RequestShutdown.java') (Join-Path $tools 'RuntimeShutdownAgent.java') (Join-Path $tools 'RuntimeDatabaseCheck.java') (Join-Path $tools 'RuntimeCampaign058Guard.java')
 if ($LASTEXITCODE -ne 0) {throw 'Operator tooling compilation failed.'}
 $agentManifest=Join-Path $tools 'shutdown.mf'
 [IO.File]::WriteAllText($agentManifest,"Manifest-Version: 1.0`nAgent-Class: RuntimeShutdownAgent`n`n",[Text.Encoding]::ASCII)
-& (Join-Path $JavaHome 'bin/jar.exe') cfm (Join-Path $tools 'runtime-shutdown.jar') $agentManifest -C $classes RuntimeShutdownAgent.class
+& (Join-Path $JavaHome 'bin/jar.exe') cfm (Join-Path $tools 'runtime-shutdown.jar') $agentManifest -C $classes RuntimeShutdownAgent.class -C $classes RuntimeCampaign058Guard.class
 if ($LASTEXITCODE -ne 0) {throw 'Operator shutdown package failed.'}
 $geo=@(Get-ChildItem -LiteralPath $GeoDataRoot -File -Filter '*.l2j')
 if ($geo.Count -eq 0) {throw 'Нужны явно указанные существующие лицензированные .l2j геоданные.'}
@@ -111,6 +123,13 @@ $patches=@{
     'game/config/Custom/PersonalProgressionQoL.ini'=@{EnablePersonalQuestOverLevelRelief='True';EnableServerWideAutoNoblesse='True'}
     'game/config/Custom/LocalPlayPilot.ini'=@{EnableLocalPlayPilot='True';EnableLocalPlayPilotAutoAttach='True';LocalPlayPilotAutoAttachCharacters=$ObserverCharacter;EnableLocalPlaySyntheticHuman='False';LocalPlaySyntheticCharacterObjectId=[string]$ObserverObjectId;LocalPlaySyntheticCharacterName=$ObserverCharacter}
 }
+if ($Profile -ceq 'Campaign058') {
+    $patches['game/config/Custom/PhantomPlayers.ini']['MaxMaterializedPhantoms']='16'
+    $patches['game/config/Custom/PhantomPlayers.ini']['PhantomPopulationTarget']='32'
+    $patches['game/config/Rates.ini']=@{RateXp='1';RateSp='1';RatePartyXp='1';RatePartySp='1'}
+    $patches['game/config/Custom/LocalPlayPilot.ini']['LocalPlayPilotAutoAttachCharacters']='TestAdmin,kpCat'
+    Copy-Item -LiteralPath $OwnershipManifest -Destination (Join-Path $output 'ownership058.properties')
+}
 foreach ($file in $patches.Keys) {foreach ($key in $patches[$file].Keys) {Set-Ini (Join-Path $output $file) $key $patches[$file][$key]}}
 Copy-Item -LiteralPath (Join-Path $tools 'runtime.local.ini.template') -Destination (Join-Path $output 'runtime.local.ini')
 Set-Ini (Join-Path $output 'runtime.local.ini') 'JavaHome' $JavaHome
@@ -122,6 +141,22 @@ $configurationHashes=@(foreach ($role in @('game','login')) {Get-ChildItem -Lite
 $operatorHashes=@(Get-ChildItem -LiteralPath $tools -File | Sort-Object Name | ForEach-Object {[ordered]@{path='tools/'+$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
 [ordered]@{format=1;codeCommit=$commit;trackedInputSha256=(Get-FileHash $archive).Hash;gameJarSha256=$gameHash;loginJarSha256=$loginHash;shutdownJarSha256=(Get-FileHash (Join-Path $tools 'runtime-shutdown.jar')).Hash;registrationSha256=(Get-FileHash $RegistrationFile).Hash;initialConfiguration=$configurationHashes;operatorInputs=$operatorHashes;externalGeodata=$geoHashes;createdUtc=[DateTime]::UtcNow.ToString('o');toolchain='Java25 / Ant / Windows PowerShell5.1';m1Status='OPEN';personalAcceptance='REQUIRED'} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $output 'BUILD_INFO.json') -Encoding UTF8
 [ordered]@{format=1;updatedUtc=[DateTime]::UtcNow.ToString('o');codeCommit=$commit;gameJarSha256=$gameHash;taskResult='IN_PROGRESS';m1='OPEN';readyForM2=$false;serverGates='PENDING';personalAcceptance='REQUIRED'} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'ACCEPTANCE_STATUS.json') -Encoding UTF8
+if ($Profile -ceq 'Campaign058') {
+    $acceptancePath=Join-Path $output 'ACCEPTANCE_STATUS.json'
+    $campaignAcceptance=Get-Content -LiteralPath $acceptancePath -Raw | ConvertFrom-Json
+    $campaignAcceptance.personalAcceptance='DEFERRED_BY_OWNER'
+    $campaignAcceptance | Add-Member -NotePropertyName forwardWorkM2M7 -NotePropertyValue 'AUTHORIZED'
+    $campaignAcceptance | Add-Member -NotePropertyName g4 -NotePropertyValue 'DEFERRED_BY_OWNER_NOT_PROVEN'
+    $campaignAcceptance | Add-Member -NotePropertyName g6 -NotePropertyValue 'BLOCKED_PLATFORM_DEFERRED'
+    $campaignAcceptance | ConvertTo-Json | Set-Content -LiteralPath $acceptancePath -Encoding UTF8
+    $buildPath=Join-Path $output 'BUILD_INFO.json'
+    $campaignBuild=Get-Content -LiteralPath $buildPath -Raw | ConvertFrom-Json
+    $campaignBuild.personalAcceptance='DEFERRED_BY_OWNER'
+    $campaignBuild | Add-Member -NotePropertyName profile -NotePropertyValue $Profile
+    $campaignBuild | Add-Member -NotePropertyName campaignRole -NotePropertyValue $campaignOwner.role
+    $campaignBuild | Add-Member -NotePropertyName ownershipSha256 -NotePropertyValue (Get-FileHash -LiteralPath $OwnershipManifest).Hash
+    $campaignBuild | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $buildPath -Encoding UTF8
+}
 # Use the existing private ACL routine; no permissive observer mailbox or shared mutable links.
 . (Join-Path $tools 'LocalPlay-Pilot.ps1')
 foreach ($directory in @('playtest-pilot','playtest-pilot/inbox','playtest-pilot/processing','playtest-pilot/results','playtest-pilot/journal')) {Protect-PilotDirectory (Join-Path $output $directory)}

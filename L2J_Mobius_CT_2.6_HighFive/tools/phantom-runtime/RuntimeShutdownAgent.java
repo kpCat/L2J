@@ -18,13 +18,14 @@ public final class RuntimeShutdownAgent
 			throw new IllegalArgumentException("Owned runtime identity mismatch.");
 		}
 		final Path root = Path.of(fields[2]).toRealPath();
+		RuntimeCampaign058Guard.validate(root, fields[3]);
 		final boolean game = "GameServer".equals(fields[1]);
 		if (!game && !"LoginServer".equals(fields[1]))
 		{
 			throw new IllegalArgumentException("Unknown role.");
 		}
 		final Path actual = (game ? ServerConfig.DATAPACK_ROOT : LoginConfig.DATAPACK_ROOT).toPath().toRealPath();
-		if (!root.resolve(game ? "game" : "login").toRealPath().equals(actual) || !fields[3].matches("l2jmobiush5_phantom_(?:test_041final|release_[A-Za-z0-9_]{1,24})")
+		if (!root.resolve(game ? "game" : "login").toRealPath().equals(actual) || !fields[3].matches("l2jmobiush5_phantom_(?:test_041final|test_058a|release_[A-Za-z0-9_]{1,24})")
 			|| !DatabaseConfig.DATABASE_URL.matches("jdbc:(?:mysql|mariadb)://(?:127\\.0\\.0\\.1|localhost):[0-9]+/" + fields[3] + "(?:\\?.*)?"))
 		{
 			throw new IllegalStateException("Datapack/database mismatch; shutdown not requested.");
