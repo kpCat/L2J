@@ -162,7 +162,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
 		final Path expectedWorkingDirectory = context.moduleRoot().resolve("dist/game").normalize();
-		if (!PhantomContracts024DatabaseLane.enabled() && !PhantomContracts025DatabaseLane.enabled() && !owned026Enabled())
+		if (!PhantomCampaign058DatabaseLane.enabled() && !PhantomContracts024DatabaseLane.enabled() && !PhantomContracts025DatabaseLane.enabled() && !owned026Enabled())
 		{
 			PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
 		}
@@ -177,7 +177,12 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
 		final BootstrapResult bootstrap;
-		if (owned026Enabled())
+		if (PhantomCampaign058DatabaseLane.enabled())
+		{
+			PhantomCampaign058DatabaseLane.initialize(context.moduleRoot(), Path.of(configProperty));
+			bootstrap = null;
+		}
+		else if (owned026Enabled())
 		{
 			initializeOwned026(context.moduleRoot(), Path.of(configProperty));
 			bootstrap = null;
@@ -278,7 +283,11 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		{
 			context.record("headless.database", "l2jmobiush5_phantom_test_053a");
 		}
-		context.record("headless.schemaAggregateSha256", ((PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled() || owned026Enabled())
+		if (PhantomCampaign058DatabaseLane.enabled())
+		{
+			context.record("headless.database", PhantomCampaign058DatabaseLane.DATABASE);
+		}
+		context.record("headless.schemaAggregateSha256", ((PhantomCampaign058DatabaseLane.enabled() || PhantomContracts024DatabaseLane.enabled() || PhantomContracts025DatabaseLane.enabled() || owned026Enabled())
 			? PhantomTestSchemaManifest.current(context.moduleRoot()) : bootstrap.schemaSnapshot()).aggregateSha256());
 		context.record("headless.initializedSingletonCount", INITIALIZED_SINGLETONS.size());
 		context.record("headless.initializedSingletons", String.join(",", INITIALIZED_SINGLETONS));

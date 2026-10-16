@@ -1,5 +1,18 @@
 # Cumulative High Five delivery contract
 
+## Актуальная поправка владельца TASK058 от 16.10.2026
+
+Утверждённый [AUTHORITY058](tasks/PHANTOM-M2-M7-CAMPAIGN-058/AUTHORITY.md) заменяет прежний запрет перехода к М2–М7 до всех gates М1. Исторические OPEN/FAIL и результаты 041–057 сохраняются. Новые этапы различают SERVER_VERIFIED и OWNER_ACCEPTED; OWNER_QA_PENDING не блокирует следующую серверную разработку. Поправка не снимает защиту M1-057-candidate, других сред и ограничения платформы.
+
+```text
+M1_TECHNICAL_STATUS=OPEN
+M1_DEVELOPMENT_BASE=ACCEPTED_WITH_DEFERRED_GATES
+G4=DEFERRED_BY_OWNER_NOT_PROVEN
+G6=BLOCKED_PLATFORM_DEFERRED
+FULL_OWNER_ACCEPTANCE=DEFERRED_BY_OWNER
+FORWARD_WORK_M2_M7=AUTHORIZED
+```
+
 Этот контракт обязателен для каждой следующей задачи М1–М7. Принятые функции, конфиги, данные и полезные QoL сохраняются в обычной поставке. Private ops, cached JAR, debugger и forensic agent не могут быть единственным носителем игровой функции.
 
 041 проверяет М1 и delivery. М1 остаётся OPEN до всех серверных gates и личного принятия. М2–М7 автоматически не запускаются. Классы будущего этапа не означают принятый результат. Zariche — DEFERRED_BY_USER, без расследования041.
