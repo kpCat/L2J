@@ -11,7 +11,8 @@ param(
     [ValidateRange(1024,65535)][int]$GamePort=7792,
     [ValidateRange(1024,65535)][int]$ClientLoginPort=2122,
     [ValidateRange(1024,65535)][int]$ControlPort=9032,
-    [ValidatePattern('^[a-z0-9_-]{1,45}$')][string]$Account='localplayer',
+    [ValidateLength(1,4096)]
+    [ValidatePattern('^[A-Za-z0-9_-]{1,45}(?:[ \t]*[,;][ \t]*[A-Za-z0-9_-]{1,45}){0,255}$')][string]$Account='localplayer',
     [ValidatePattern('^[A-Za-z0-9_-]{1,35}$')][string]$ObserverCharacter='TestAdmin',
     [Parameter(Mandatory)][ValidateRange(1,2147483647)][int]$ObserverObjectId
 )
