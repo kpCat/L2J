@@ -90,6 +90,21 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		registry.add("02-required-tank-alive-ignores-ready-now", _ -> tankViability());
 		registry.add("03-real-required-provider-counts-without-control", _ -> realProvider());
 		registry.add("04-stable-phantom-support-reservation-excludes-offense", _ -> supportReservation());
+		registry.add("05-tank-only-member-enters-exact-raid-combat", _ ->
+		{
+			final RuntimeFixture fixture = new RuntimeFixture(false);
+			try
+			{
+				final List<MemberRef> roster = phantoms(1, 2);
+				final Map<MemberRef, MemberSnapshot> snapshots = snapshots(roster);
+				snapshots.put(roster.getFirst(), member(roster.getFirst(), false, 100, List.of(capability("combat.tank", true)), List.of()));
+				final var profile = openProfile(List.of(requirement("combat.tank")));
+				final var target = new PhantomRaidTargetEvidence(ContentKind.RAID, NpcKind.RAID_BOSS, 7001, profile.npcId(), 0, false);
+				PhantomAssertions.assertEquals(RuntimeStatus.INTERMEDIATE, fixture.runtime.advanceEngagement(new EngagementContext(AUTHORITY, profile, target, 1000, 10_000, () -> false), force(List.of(roster), snapshots)).status(), "Tank-only native raid member had no controllable combat.");
+				PhantomAssertions.assertTrue(fixture.lease(1).raidTargetReads > 0, "Tank-only member never entered exact raid admission.");
+			}
+			finally { fixture.stop(); }
+		});
 	}
 
 	private static void partyLocalSnapshots()

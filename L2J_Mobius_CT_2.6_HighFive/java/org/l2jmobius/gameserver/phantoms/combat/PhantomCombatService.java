@@ -325,7 +325,7 @@ public final class PhantomCombatService
 	public StartResult startRaidSession(PhantomRaidCombatRequest request)
 	{
 		Objects.requireNonNull(request, "request");
-		return startSession(request.leaseRequest(), "", null, request, null, false);
+		return startSession(request.leaseRequest(), "", null, request, null, true);
 	}
 
 	public StartResult startSiegeSession(PhantomSiegeCombatRequest request)
@@ -1451,10 +1451,48 @@ public final class PhantomCombatService
 		{
 			return;
 		}
+		final Optional<PhantomCombatLoadout> current = _capabilityResolver.resolve(actor, session._request.mode(), session._actorLease, _policy.maximumSelectedSkills());
+		if (current.isPresent())
+		{
+			session._loadout = current.orElseThrow();
+		}
+		else if (session._contentBasicMelee && (session._request.mode() == PhantomCombatMode.MELEE_PHYSICAL))
+		{
+			session._loadout = new PhantomCombatLoadout(session._request.mode(), session._request.mode().capabilityKey(), 1, List.of(), true);
+		}
+		else
+		{
+			finish(session, PhantomCombatResult.UNSUPPORTED_LOADOUT);
+			return;
+		}
+		final Optional<SelectedSkill> aggression = session._actorLease.npcAggroSkill(session._request.targetObjectId());
+		if (aggression.isPresent())
+		{
+			final ActionOutcome outcome = session._actorLease.castNpcAggro(session._request.targetObjectId(), aggression.orElseThrow());
+			if (outcome == ActionOutcome.ISSUED)
+			{
+				session._ownedAction = session._ownedAction.withSelectedSkill(aggression.orElseThrow());
+				_metrics.castIssued();
+				return;
+			}
+			if (outcome == ActionOutcome.ALREADY_OWNED)
+			{
+				return;
+			}
+		}
 		SelectedSkill selected = null;
 		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
 		{
 			selected = session._loadout.selectedSkills().get(session._nextSkill++ % session._loadout.selectedSkills().size());
+		}
+		if (session._request.mode() != PhantomCombatMode.MELEE_PHYSICAL)
+		{
+			final SelectedSkill spacingSkill = selected != null ? selected : session._loadout.selectedSkills().stream().findFirst().orElse(null);
+			final ActionOutcome spacing = session._actorLease.maintainRangedSpacing(session._request.targetObjectId(), spacingSkill, session._request.mode());
+			if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED))
+			{
+				return;
+			}
 		}
 		if ((selected == null) && !session._loadout.normalAttackFallback())
 		{

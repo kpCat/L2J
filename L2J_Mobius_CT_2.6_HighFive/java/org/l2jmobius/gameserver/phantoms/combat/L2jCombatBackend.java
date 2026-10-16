@@ -553,7 +553,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
 			final ActorSnapshot actor = actorSnapshot();
-			if (actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !targetSnapshot(target).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
+			if (actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !validNpcTacticTarget(target, actor))
 			{
 				return Optional.empty();
 			}
@@ -644,7 +644,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			final ActorSnapshot actor = actorSnapshot();
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
-			if ((mode == PhantomCombatMode.MELEE_PHYSICAL) || actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !targetSnapshot(target).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
+			if ((mode == PhantomCombatMode.MELEE_PHYSICAL) || actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !validNpcTacticTarget(target, actor))
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
@@ -712,6 +712,17 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			_spacingAttempts++;
 			_player.getAI().setIntention(Intention.MOVE_TO, destination);
 			return ActionOutcome.ISSUED;
+		}
+
+		private boolean validNpcTacticTarget(Monster target, ActorSnapshot actor)
+		{
+			if (!target.isRaid())
+			{
+				return targetSnapshot(target).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE);
+			}
+			// Session admission owns exact encounter authority. Tactics retain the same live NPC restrictions.
+			final RaidTargetSnapshot raid = raidTargetSnapshot(target);
+			return (raid != null) && raid.canonicalRaidMonster() && raid.targetable() && raid.attackable() && !raid.invulnerable() && !raid.dead() && !raid.alikeDead() && !raid.peaceRestricted() && raid.surroundingRegion() && (raid.instanceId() == actor.instanceId()) && (raid.distance() <= MAXIMUM_ACQUISITION_DISTANCE);
 		}
 
 		private boolean ownsSpacingDestination()

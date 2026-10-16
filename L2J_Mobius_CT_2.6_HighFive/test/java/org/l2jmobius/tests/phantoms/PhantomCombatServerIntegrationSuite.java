@@ -52,6 +52,7 @@ import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
 import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.managers.ItemManager;
+import org.l2jmobius.gameserver.managers.RaidBossSpawnManager;
 import org.l2jmobius.gameserver.managers.ScriptManager;
 import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.Location;
@@ -67,6 +68,8 @@ import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.DirectiveKind;
 import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.model.zone.type.NoPvPZone;
 import org.l2jmobius.gameserver.model.zone.type.PeaceZone;
@@ -137,6 +140,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomPartySupportAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomPvpCombatRequest;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomRaidCombatRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.CancelStatus;
@@ -223,6 +227,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		QUEST,
 		PVP,
 		PVP_CURRENT_058,
+		RAID_TACTICS_058,
 		POST002_SUPPORT,
 		COMPANION_REAL_SUPPORT_058,
 		COMPANION_ROLE_MATRIX_058,
@@ -330,6 +335,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case PVP_CURRENT_058 -> "pvp-current-native058";
+			case RAID_TACTICS_058 -> "raid-tactics-native058";
 			case ACQUISITION -> "acquisition-active-spoil";
 			case MANOR -> "acquisition-manor-active";
 			case QUEST -> "acquisition-quest-active";
@@ -340,6 +346,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
+		if (_mode == Mode.RAID_TACTICS_058)
+		{
+			PhantomAssertions.assertEquals(58005830L, context.seed(), "Native raid tactics used the wrong058 seed.");
+			assertCampaign058Jar(context);
+		}
 		if (_mode == Mode.PVP_CURRENT_058)
 		{
 			PhantomAssertions.assertEquals(58005829L, context.seed(), "Current native PvP used the wrong058 seed.");
@@ -461,7 +472,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode) ? 3 : 1;
+			final int actorCapacity = Set.of(Mode.RAID_TACTICS_058, Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode) ? 3 : 1;
 			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
@@ -482,7 +493,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 
 			_backend = new L2jCombatBackend(_materialization, () -> _query, () -> _progression);
-			_combat = new PhantomCombatService(_backend, PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query), PhantomCombatPolicy.productionDefaults(actorCapacity));
+			_combat = new PhantomCombatService(_backend, _mode == Mode.RAID_TACTICS_058 ? PhantomCombatCapabilityResolver.fromProgression(() -> _progression) : PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query), PhantomCombatPolicy.productionDefaults(actorCapacity));
 			_combat.start();
 			if ((_mode == Mode.MANOR) || (_mode == Mode.QUEST))
 			{
@@ -533,6 +544,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.RAID_TACTICS_058)
+		{
+			registry.add("01-stock-live-raid-current-magic-tank-aggro-and-spacing", this::testRaidTactics058);
+			return;
+		}
 		if (_mode == Mode.COMPANION_FARM_RESUME_058)
 		{
 			registry.add("01-earned-native-farm-to-party-and-same-goal-resume", this::testCompanionFarmResume058);
@@ -3434,6 +3450,111 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		finally
 		{
 			_player.getAI().setIntention(Intention.IDLE);
+		}
+	}
+
+	private void testRaidTactics058(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		// Pre-enrollment selection is deterministic. This is a tactics episode, not a completed encounter.
+		final GeoEngine geo = GeoEngine.getInstance();
+		final RaidBoss boss = RaidBossSpawnManager.getInstance().getBosses().values().stream()
+			.filter(candidate -> candidate.isSpawned() && !candidate.isDead() && !candidate.isInvul() && (candidate.getLevel() >= 72) && (candidate.getLevel() <= 80) && (candidate.getInstanceId() == 0) && (candidate.getCurrentHp() >= candidate.getMaxHp() * .99))
+			.filter(candidate -> _query.findNpc(candidate.getId()).filter(fact -> fact.kind() == NpcKind.RAID_BOSS).isPresent())
+			.filter(candidate -> geo.hasGeo(candidate.getX(), candidate.getY()) && geo.canMoveToTarget(candidate.getX(), candidate.getY(), candidate.getZ(), candidate.getX() + 100, candidate.getY(), candidate.getZ(), 0))
+			.sorted(Comparator.comparingInt(RaidBoss::getLevel).thenComparingInt(RaidBoss::getId)).findFirst().orElseThrow(() -> new AssertionError("INVALID_INPUT: no live stock72..80 raid with declared geo approach."));
+		final var fixture = _environment.createCampaign058Companion(context, 1);
+		final PhantomProfile mageProfile = _repository.create(fixture.objectId());
+		_additionalProfiles058.add(mageProfile);
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(mageProfile.profileId()).status(), "Raid TEST mage did not materialize.");
+		final Player mage = World.getInstance().getPlayer(fixture.objectId());
+		final var healerFixture = _environment.createCampaign058Companion(context, 2);
+		final PhantomProfile healerProfile = _repository.create(healerFixture.objectId());
+		_additionalProfiles058.add(healerProfile);
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(healerProfile.profileId()).status(), "Raid TEST healer did not materialize.");
+		final Player healer = World.getInstance().getPlayer(healerFixture.objectId());
+		final Player human = ensureObserver();
+		prepareCompanionCombat058(_player, 90, 2500, 368, 6373, 6374, 6375, 6376, 6377, 6378);
+		final int aggroLevel = _progression.classSkillLearns(90).stream().filter(learn -> (learn.skillId() == 28) && (learn.minimumCharacterLevel() <= 80)).mapToInt(learn -> learn.skillLevel()).max().orElseThrow();
+		_player.addSkill(SkillData.getInstance().getSkill(28, aggroLevel), true);
+		prepareCompanionCombat058(mage, 94, 6579, 1339, 6383, 6384, 6385, 6386);
+		prepareCompanionCombat058(healer, 97, 6579, 1335, 6383, 6384, 6385, 6386);
+		for (Player actor : List.of(_player, mage, healer))
+		{
+			for (var learn : _progression.classSkillLearns(actor.getActiveClass()).stream().filter(learn -> learn.minimumCharacterLevel() <= 80).sorted(Comparator.comparingInt(learn -> learn.skillLevel())).toList())
+			{
+				final Skill skill = SkillData.getInstance().getSkill(learn.skillId(), learn.skillLevel());
+				if ((skill != null) && (actor.getSkillLevel(learn.skillId()) < learn.skillLevel())) { actor.addSkill(skill, true); }
+			}
+			actor.setCurrentHp(actor.getMaxHp()); actor.setCurrentMp(actor.getMaxMp()); actor.setCurrentCp(actor.getMaxCp());
+		}
+		mage.addSkill(SkillData.getInstance().getSkill(1339, 101), true);
+		prepareCompanionCombat058(human, 5, 0, 0, 6373, 6374, 6375, 6376, 6378);
+		int offset = 100;
+		for (Player actor : List.of(_player, mage, healer, human))
+		{
+			actor.decayMe(); actor.setXYZInvisible(boss.getX() + offset, boss.getY(), geo.getHeight(boss.getX() + offset, boss.getY(), boss.getZ())); actor.spawnMe(); actor.revalidateZone(true); actor.setRunning(); actor.standUp();
+			offset += 40;
+		}
+		// Canonical native membership; no new invitation-policy claim in this focused raid test.
+		final Party party = new Party(human, PartyDistributionType.FINDERS_KEEPERS);
+		human.setParty(party); _player.joinParty(party); mage.joinParty(party); healer.joinParty(party);
+		final PhantomProgressionService progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
+		progression.start();
+		final L2jPhantomPartyBackend partyBackend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
+		final PhantomPartyTactics tactics = new PhantomPartyTactics(_combat, partyBackend);
+		final List<MemberRef> roster = List.of(MemberRef.real(human.getObjectId()), MemberRef.phantom(_profile.profileId(), _player.getObjectId()), MemberRef.phantom(mageProfile.profileId(), mage.getObjectId()), MemberRef.phantom(healerProfile.profileId(), healer.getObjectId()));
+		final String authority = HexFormat.of().withUpperCase().formatHex(MessageDigest.getInstance("SHA-256").digest(("TASK058:raid-tactics:" + boss.getObjectId() + ':' + _player.getObjectId() + ':' + mage.getObjectId()).getBytes(StandardCharsets.UTF_8)));
+		final double hp = boss.getCurrentHp(); final double mp = mage.getCurrentMp(); final double tankMp = _player.getCurrentMp();
+		final double healerMp = healer.getCurrentMp();
+		context.record("raid058.input", "TACTICS_ONLY; stock manager boss=" + boss.getId() + "/" + boss.getObjectId() + "; level=" + boss.getLevel() + "; HP=" + hp + "; XYZ=" + boss.getX() + ',' + boss.getY() + ',' + boss.getZ() + "; TEST human=" + human.getObjectId() + "; tank=" + _player.getObjectId() + "; mage=" + mage.getObjectId() + "; healer=" + healer.getObjectId() + "; learned28:" + aggroLevel + "/1339:101/native1335; level80/all class-tree skills<=80 fixture; stock S gear; tankHP=" + _player.getCurrentHp() + "/pDef=" + _player.getPDef(boss) + "; 25s max; no boss reset, rescue or reward claim");
+		boolean spaced = false; boolean aggroCast = false; boolean magicCast = false; boolean healed = false; long heldSince = 0; long held = 0; long mageDamage = 0; long healSequence = 0; double previousHp = _player.getCurrentHp();
+		ExternalActionLease healing = null;
+		try
+		{
+			PhantomAssertions.assertTrue(!human.isGM() && !_player.isGM() && !mage.isGM(), "Raid TEST actor is GM.");
+			for (var input : List.of(Map.entry(_profile.profileId(), PhantomCombatMode.MELEE_PHYSICAL), Map.entry(mageProfile.profileId(), PhantomCombatMode.RANGED_MAGIC)))
+			{
+				final var request = new PhantomRaidCombatRequest(input.getKey(), boss.getObjectId(), boss.getId(), 0, org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind.RAID, NpcKind.RAID_BOSS, authority, input.getValue(), false, false, 80, 30_000, () -> false);
+				PhantomAssertions.assertEquals(StartStatus.ACCEPTED, _combat.startRaidSession(request).status(), "Live exact stock raid tactics admission failed for " + input + '.');
+			}
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(25);
+			while ((System.nanoTime() < deadline) && !_player.isDead() && !mage.isDead() && !boss.isDead())
+			{
+				if ((healing != null) && !healer.isCastingNow() && !healer.isAttackingNow()) { healing.complete(); healing = null; }
+				if (healing == null)
+				{
+					final Map<MemberRef, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot> snapshots = new java.util.LinkedHashMap<>();
+					for (MemberRef member : roster) { snapshots.put(member, partyBackend.memberSnapshot(member).orElseThrow()); }
+					final var heal = tactics.plan(roster.getFirst(), roster, snapshots).stream().filter(directive -> (directive.actor().profileId() == healerProfile.profileId()) && (directive.kind() == DirectiveKind.HEAL_MEMBER)).findFirst();
+					if (heal.isPresent()) { healing = tactics.dispatch(heal.orElseThrow(), "raid058.heal." + ++healSequence, deadline, () -> false).orElse(null); }
+				}
+				healed |= (_player.getCurrentHp() > previousHp + 100) && (healer.getLastSkillCast() != null) && (healer.getLastSkillCast().getId() == 1335);
+				previousHp = _player.getCurrentHp();
+				spaced |= mage.isMoving() && mage.hasAI() && (mage.getAI().getIntention() == Intention.MOVE_TO);
+				aggroCast |= (_player.getLastSkillCast() != null) && (_player.getLastSkillCast().getId() == 28);
+				magicCast |= (mage.getLastSkillCast() != null) && (mage.getLastSkillCast().getId() == 1339) && (mage.getLastSkillCast().getLevel() == 101);
+				final var contribution = boss.getAggroList().get(mage);
+				mageDamage = Math.max(mageDamage, contribution == null ? 0 : contribution.getDamage());
+				if ((boss.getMostHated() == _player) && (boss.getTarget() == _player))
+				{
+					if (heldSince == 0) { heldSince = System.nanoTime(); }
+					held = Math.max(held, System.nanoTime() - heldSince);
+				}
+				else { heldSince = 0; }
+				if (spaced && aggroCast && magicCast && healed && (mageDamage > 0) && (held >= TimeUnit.SECONDS.toNanos(3)) && (boss.getCurrentHp() + 10 < hp) && (mage.getCurrentMp() + 1 < mp)) { break; }
+				Thread.sleep(25);
+			}
+			context.record("raid058.result", "bossHP=" + hp + "->" + boss.getCurrentHp() + "; mageMP=" + mp + "->" + mage.getCurrentMp() + "; tankMP=" + tankMp + "->" + _player.getCurrentMp() + "; healerMP=" + healerMp + "->" + healer.getCurrentMp() + "; actualHeal=" + healed + "; spaced=" + spaced + "; aggroCast=" + aggroCast + "; enhancedMagic=" + magicCast + "; mageActualDamage=" + mageDamage + "; heldMs=" + TimeUnit.NANOSECONDS.toMillis(held) + "; alive=" + !_player.isDead() + '/' + !mage.isDead() + '/' + !healer.isDead() + '/' + !human.isDead() + "; encounter/reward/regroup NOT_CLOSED");
+			PhantomAssertions.assertTrue(spaced && aggroCast && magicCast && healed && (healer.getCurrentMp() + 1 < healerMp) && (mageDamage > 0) && (held >= TimeUnit.SECONDS.toNanos(3)) && (boss.getCurrentHp() + 10 < hp) && (mage.getCurrentMp() + 1 < mp), "Declared stock raid tactics did not complete actual spacing/aggro/damage/cost.");
+			PhantomAssertions.assertTrue(!_player.isDead() && !mage.isDead() && !healer.isDead() && !human.isDead(), "A declared raid tactics participant died.");
+		}
+		finally
+		{
+			if (healing != null) { healing.close(); }
+			_combat.cancel(_profile.profileId()); _combat.cancel(mageProfile.profileId()); consumeTerminal();
+			if (human.isInParty()) { PartyInvitationService.getInstance().leave(human); }
+			progression.beginStop(); progression.finishStop();
 		}
 	}
 

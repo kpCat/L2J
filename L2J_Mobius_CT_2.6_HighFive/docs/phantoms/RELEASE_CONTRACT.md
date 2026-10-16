@@ -4,6 +4,8 @@ TASK058, 16.10.2026: М2 SERVER_VERIFIED в объявленном native server
 
 М3 TASK058 PARTIAL: ordinary real-led JOIN сохраняет подтверждённое совместное событие с character object ID; social receipt различает новые JVM invitations и точный callback retry. Native RED/GREEN, affected Party10/10/full М2 composition1/1 и ordinary sameDB restart → native delivered recall/изоляция/новый join/идемпотентный retry проверены. Полезные owners/helpers сохранены; весь command/refusal набор М3 ещё открыт. Независимый М4 использует проверенные М2 Party/identity и social-state boundaries, не неподтверждённые команды М3.
 
+М5 TASK058 PARTIAL: raid current-rank refresh, native tank-only melee admission, NPC Aggression и ranged spacing интегрированы в существующий common combat. Focused8/8+runtime5/5+safety4/4; stock RaidBoss25199 native episode имеет actual mage damage/MP и tank агро10.1s, но tank death/незавершённый heal — FAIL. Победа/stock reward/regroup/recovery остаются открытыми, полного raid milestone claim нет. История не заменяется одним PASS helper с прежним слабым критерием.
+
 ## Актуальная поправка владельца TASK058 от 16.10.2026
 
 М4 TASK058 PARTIAL: native actual Player damage facts (32 ID/30s, no timer/SQL), current PvP rank и canonical NO_PVP guard сохранены в Player/PlayerStatus/Combat/Party owners. Native3/3 проверили enhanced retaliation и mixed-party defense/evidence revoke; affected М2 support3/3 и common boundary7/7. Один исторический normal teardown FAIL остаётся открытым риском; полного PvP/retreat/clans milestone claim нет. Exact orphan repair action ограничен одним failed058t fixture327 с отсутствующим персонажем, не cumulative/release.

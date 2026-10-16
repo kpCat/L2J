@@ -59,6 +59,71 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		registry.add("02-wrong-live-authority-rejected", _ -> wrongLiveAuthorityRejected());
 		registry.add("03-replaced-dead-identity-target-lost", _ -> replacedDeadIdentityLost());
 		registry.add("04-collector-only-native-loot-phase", _ -> collectorOnlyLootPhase());
+		registry.add("05-current-raid-rank-refreshes-after-native-action", _ ->
+		{
+			final Fixture fixture = new Fixture(PhantomCombatMode.RANGED_MAGIC);
+			try
+			{
+				fixture.lease.learnedRank = 101;
+				PhantomAssertions.assertTrue(fixture.service.startRaidSession(fixture.request(1, false, 48)).accepted(), "Current raid magic input did not start.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(new SelectedSkill(123, 101), fixture.lease.lastRaidSkill, "Raid initial learned rank changed.");
+				fixture.lease.busy = true; fixture.lease.learnedRank = 102;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.raidCasts, "Raid refresh interrupted native cast.");
+				fixture.lease.busy = false; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(new SelectedSkill(123, 102), fixture.lease.lastRaidSkill, "Raid retained obsolete learned rank.");
+				fixture.lease.learnedRank = 0; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(2, fixture.lease.raidCasts, "Raid used a removed class skill.");
+			}
+			finally { fixture.stop(); }
+		});
+		registry.add("06-raid-npc-aggro-precedes-ordinary-offense", _ ->
+		{
+			final Fixture fixture = new Fixture();
+			try
+			{
+				fixture.lease.aggroReady = true;
+				PhantomAssertions.assertTrue(fixture.service.startRaidSession(fixture.request(1, false, 48)).accepted(), "Raid tank input did not start.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.aggroCasts, "Raid skipped current legal NPC aggression.");
+				PhantomAssertions.assertEquals(0, fixture.lease.raidAttacks, "Raid offense displaced legal tank aggression.");
+				fixture.lease.aggroReady = false; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.raidAttacks, "Raid tank did not resume offense after aggro settled.");
+			}
+			finally { fixture.stop(); }
+		});
+		registry.add("07-raid-spacing-defers-offense-without-cast-interruption", _ ->
+		{
+			final Fixture fixture = new Fixture(PhantomCombatMode.RANGED_MAGIC);
+			try
+			{
+				fixture.lease.spacing = ActionOutcome.ISSUED;
+				PhantomAssertions.assertTrue(fixture.service.startRaidSession(fixture.request(1, false, 48)).accepted(), "Raid spacing input did not start.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.spacingCalls, "Raid did not use common spacing owner.");
+				PhantomAssertions.assertEquals(0, fixture.lease.raidCasts, "Raid canceled its spacing by casting.");
+				fixture.lease.busy = true; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.spacingCalls, "Raid interrupted existing native action for movement.");
+				fixture.lease.busy = false; fixture.lease.spacing = ActionOutcome.UNAVAILABLE; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.raidCasts, "Raid failed to cast after spacing completed.");
+			}
+			finally { fixture.stop(); }
+		});
+		registry.add("08-tank-only-capability-keeps-native-raid-melee", _ ->
+		{
+			final Fixture fixture = new Fixture(PhantomCombatMode.MELEE_PHYSICAL, true);
+			try
+			{
+				fixture.lease.aggroReady = true;
+				PhantomAssertions.assertTrue(fixture.service.startRaidSession(fixture.request(1, false, 48)).accepted(), "Tank-only native raid melee was rejected.");
+				fixture.dispatcher.runNext();
+				fixture.lease.aggroReady = false; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.aggroCasts, "Tank-only raid skipped native aggression.");
+				PhantomAssertions.assertEquals(1, fixture.lease.raidAttacks, "Tank-only raid lost ordinary melee after aggression settled.");
+			}
+			finally { fixture.stop(); }
+		});
 	}
 
 	private static void exactLiveDeathVictory()
@@ -166,17 +231,29 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		private final ManualDispatcher dispatcher = new ManualDispatcher();
 		private final FakeLease lease = new FakeLease();
 		private final PhantomCombatService service;
+		private final PhantomCombatMode mode;
 
 		private Fixture()
 		{
-			final PhantomCombatCapabilityResolver resolver = new PhantomCombatCapabilityResolver(_ -> List.of(new CapabilityEvidence(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), 900, List.of())));
+			this(PhantomCombatMode.MELEE_PHYSICAL);
+		}
+
+		private Fixture(PhantomCombatMode mode)
+		{
+			this(mode, false);
+		}
+
+		private Fixture(PhantomCombatMode mode, boolean tankOnly)
+		{
+			this.mode = mode;
+			final PhantomCombatCapabilityResolver resolver = new PhantomCombatCapabilityResolver(_ -> List.of(new CapabilityEvidence(tankOnly ? "combat.tank" : mode.capabilityKey(), 900, mode.magic() ? List.of(new SelectedSkill(123, 1)) : List.of())));
 			service = new PhantomCombatService(_ -> lease, resolver, PhantomCombatPolicy.productionDefaults(8), new PhantomCombatMetrics(), clock::get, dispatcher);
 			service.start();
 		}
 
 		private PhantomRaidCombatRequest request(long profileId, boolean loot, int maximumLevel)
 		{
-			return new PhantomRaidCombatRequest(profileId, 7001, 29001, 0, ContentKind.EPIC, NpcKind.GRAND_BOSS, AUTHORITY, PhantomCombatMode.MELEE_PHYSICAL, true, loot, maximumLevel, 30_000, () -> false);
+			return new PhantomRaidCombatRequest(profileId, 7001, 29001, 0, ContentKind.EPIC, NpcKind.GRAND_BOSS, AUTHORITY, mode, true, loot, maximumLevel, 30_000, () -> false);
 		}
 
 		private void stop()
@@ -258,11 +335,19 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		private RaidTargetSnapshot target = target(7001, 29001, 0, NpcKind.GRAND_BOSS, false);
 		private int level = 48;
 		private int raidAttacks;
+		private int learnedRank = 1;
+		private boolean busy;
+		private boolean aggroReady;
+		private int aggroCasts;
+		private int raidCasts;
+		private int spacingCalls;
+		private ActionOutcome spacing = ActionOutcome.UNAVAILABLE;
+		private SelectedSkill lastRaidSkill;
 
 		@Override
 		public ActorSnapshot actorSnapshot()
 		{
-			return new ActorSnapshot(9001, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
+			return new ActorSnapshot(9001, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, busy, false, 0, busy ? "CAST" : "IDLE", busy ? 123 : 0, busy ? learnedRank : 0);
 		}
 
 		@Override
@@ -286,8 +371,14 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		@Override
 		public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode)
 		{
-			return false;
+			return (skill.skillId() == 123) && (learnedRank > 0) && (skill.skillLevel() == learnedRank);
 		}
+
+		@Override public int knownSkillLevel(int skillId) { return skillId == 123 ? learnedRank : 0; }
+		@Override public Optional<SelectedSkill> npcAggroSkill(int targetObjectId) { return aggroReady ? Optional.of(new SelectedSkill(28, 3)) : Optional.empty(); }
+		@Override public ActionOutcome castNpcAggro(int targetObjectId, SelectedSkill skill) { aggroCasts++; return ActionOutcome.ISSUED; }
+		@Override public ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode) { spacingCalls++; return spacing; }
+		@Override public ActionOutcome castRaid(int targetObjectId, SelectedSkill skill, PhantomRaidCombatRequest request) { raidCasts++; lastRaidSkill = skill; return ActionOutcome.ISSUED; }
 
 		@Override
 		public List<ThreatObservation> observedAttackers(int limit)

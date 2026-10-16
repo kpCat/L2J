@@ -562,7 +562,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 
 	private static PhantomCombatMode supportedMode(MemberSnapshot member)
 	{
-		return List.of(PhantomCombatMode.RANGED_MAGIC, PhantomCombatMode.RANGED_PHYSICAL, PhantomCombatMode.MELEE_PHYSICAL).stream().filter(mode -> usableCapability(member, mode.capabilityKey(), 1).isPresent()).findFirst().orElse(null);
+		return List.of(PhantomCombatMode.RANGED_MAGIC, PhantomCombatMode.RANGED_PHYSICAL, PhantomCombatMode.MELEE_PHYSICAL).stream().filter(mode -> usableCapability(member, mode.capabilityKey(), 1).isPresent()).findFirst().orElseGet(() -> usableCapability(member, "combat.tank", 1).isPresent() ? PhantomCombatMode.MELEE_PHYSICAL : null);
 	}
 
 	private static boolean supportDirective(DirectiveKind kind)

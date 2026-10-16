@@ -339,6 +339,7 @@ public final class PhantomTestLauncher
 			case "companion-invitation-controls058" -> new PhantomCompanionInvitationControls058Suite();
 			case "pvp-combat-server-integration" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.PVP);
 			case "pvp-current-native058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.PVP_CURRENT_058);
+			case "raid-tactics-native058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.RAID_TACTICS_058);
 			case "qol-summoner-servitor-combat" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QOL009_SERVITOR);
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();
 			case "progression-parity" -> new PhantomProgressionParitySuite();
