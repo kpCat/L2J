@@ -1778,9 +1778,10 @@ public class SevenSignsFestival
 				{
 					wait(FESTIVAL_SIGNUP_TIME);
 				}
-				catch (Exception e)
+				catch (InterruptedException e)
 				{
-					// Ignore.
+					Thread.currentThread().interrupt();
+					return;
 				}
 				
 				// Clear past participants, they can no longer register their score if not done so already.
@@ -1813,9 +1814,10 @@ public class SevenSignsFestival
 								}
 							}
 						}
-						catch (Exception e)
+						catch (InterruptedException e)
 						{
-							// Ignore.
+							Thread.currentThread().interrupt();
+							return;
 						}
 					}
 					else
@@ -1853,9 +1855,10 @@ public class SevenSignsFestival
 				{
 					wait(FeatureConfig.ALT_FESTIVAL_FIRST_SPAWN);
 				}
-				catch (Exception e)
+				catch (InterruptedException e)
 				{
-					// Ignore.
+					Thread.currentThread().interrupt();
+					return;
 				}
 				
 				elapsedTime = FeatureConfig.ALT_FESTIVAL_FIRST_SPAWN;
@@ -1876,9 +1879,10 @@ public class SevenSignsFestival
 				{
 					wait(FeatureConfig.ALT_FESTIVAL_FIRST_SWARM - FeatureConfig.ALT_FESTIVAL_FIRST_SPAWN);
 				}
-				catch (Exception e)
+				catch (InterruptedException e)
 				{
-					// Ignore.
+					Thread.currentThread().interrupt();
+					return;
 				}
 				
 				elapsedTime += FeatureConfig.ALT_FESTIVAL_FIRST_SWARM - FeatureConfig.ALT_FESTIVAL_FIRST_SPAWN;
@@ -1892,9 +1896,10 @@ public class SevenSignsFestival
 				{
 					wait(FeatureConfig.ALT_FESTIVAL_SECOND_SPAWN - FeatureConfig.ALT_FESTIVAL_FIRST_SWARM);
 				}
-				catch (Exception e)
+				catch (InterruptedException e)
 				{
-					// Ignore.
+					Thread.currentThread().interrupt();
+					return;
 				}
 				
 				// Spawn an extra set of monsters (archers) on the free platforms with
@@ -1921,9 +1926,10 @@ public class SevenSignsFestival
 				{
 					wait(FeatureConfig.ALT_FESTIVAL_SECOND_SWARM - FeatureConfig.ALT_FESTIVAL_SECOND_SPAWN);
 				}
-				catch (Exception e)
+				catch (InterruptedException e)
 				{
-					// Ignore.
+					Thread.currentThread().interrupt();
+					return;
 				}
 				
 				for (DarknessFestival festivalInst : _festivalInstances.values())
@@ -1938,9 +1944,10 @@ public class SevenSignsFestival
 				{
 					wait(FeatureConfig.ALT_FESTIVAL_CHEST_SPAWN - FeatureConfig.ALT_FESTIVAL_SECOND_SWARM);
 				}
-				catch (Exception e)
+				catch (InterruptedException e)
 				{
-					// Ignore.
+					Thread.currentThread().interrupt();
+					return;
 				}
 				
 				// Spawn the festival chests, which enable the team to gain greater rewards
@@ -1958,9 +1965,10 @@ public class SevenSignsFestival
 				{
 					wait(FeatureConfig.ALT_FESTIVAL_LENGTH - elapsedTime);
 				}
-				catch (Exception e)
+				catch (InterruptedException e)
 				{
-					// Ignore.
+					Thread.currentThread().interrupt();
+					return;
 				}
 				
 				// Participants can no longer opt to increase the challenge, as the festival will soon close.

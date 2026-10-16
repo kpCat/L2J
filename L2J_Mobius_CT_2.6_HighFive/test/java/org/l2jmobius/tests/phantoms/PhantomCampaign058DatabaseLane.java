@@ -97,7 +97,7 @@ public final class PhantomCampaign058DatabaseLane
 	/** Reuses the strict stock SQL inventory runner; creates only an absent058t schema, never users or resets. */
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 1) || !(args[0].equals("guard") || args[0].equals("bootstrap") || args[0].equals("repair-known-m4-fixture")))
+		if ((args.length != 1) || !(args[0].equals("guard") || args[0].equals("bootstrap") || args[0].equals("repair-known-m4-fixture") || args[0].equals("repair-known-m6-fixture")))
 		{
 			throw new IllegalArgumentException("Expected guard, bootstrap or exact known M4 fixture repair.");
 		}
@@ -106,6 +106,41 @@ public final class PhantomCampaign058DatabaseLane
 		final Path manifest = lane.resolve("test/owned.properties");
 		final Properties settings = validateFiles(MODULE, config, manifest);
 		final var schema = PhantomTestSchemaManifest.current(MODULE);
+		if (args[0].equals("repair-known-m6-fixture"))
+		{
+			final String report = Files.readString(lane.resolve("reports/m6-kamaloka-stock-native1/instances-native058.txt"), StandardCharsets.UTF_8);
+			if (!report.contains("measurement.combatIntegration.profileId=347") || !report.contains("[268435465, 268481637, 268481639, 268435467]") || !report.contains("FAIL instances-native058.after-all")) { throw new IllegalStateException("Exact failed M6 fixture receipt absent."); }
+			initialize(MODULE, config);
+			try
+			{
+				final var profiles = org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.open();
+				final var ids = java.util.List.of(268435465, 268481637, 268481639, 268435467);
+				final var ownedProfiles = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.profile.PhantomProfile>();
+				for (int index = 0; index < 3; index++)
+				{
+					final var profile = profiles.findByCharacterObjectId(ids.get(index)).orElseThrow();
+					PhantomAssertions.assertEquals(347L + index, profile.profileId(), "Exact failed M6 fixture profile changed."); ownedProfiles.add(profile);
+				}
+				try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT charId,account_name FROM characters WHERE charId IN (268435465,268481637,268481639,268435467) OR account_name=?"))
+				{
+					query.setString(1, "phantom_t004_58005831");
+					try (var rows = query.executeQuery())
+					{
+						while (rows.next()) { PhantomAssertions.assertTrue(ids.contains(rows.getInt(1)) && "phantom_t004_58005831".equals(rows.getString(2)), "Failed M6 fixture character/account changed; repair refused."); }
+					}
+				}
+				Files.createFile(lane.resolve("repair-known-m6-fixture.started"));
+				for (var profile : ownedProfiles) { profiles.delete(profile.profileId(), profile.rowVersion()); }
+				for (int id : ids) { org.l2jmobius.gameserver.network.GameClient.deleteCharByObjId(id); }
+				try (var connection = DatabaseFactory.getConnection(); var delete = connection.prepareStatement("DELETE FROM accounts WHERE login=?"))
+				{ delete.setString(1, "phantom_t004_58005831"); delete.executeUpdate(); }
+				for (var profile : ownedProfiles) { PhantomAssertions.assertTrue(profiles.find(profile.profileId()).isEmpty(), "Exact failed M6 profile cleanup incomplete."); }
+				Files.writeString(lane.resolve("repair-known-m6-fixture.complete"), "Only failed058t seed58005831/profile347..349/exact four receipt character IDs/native GameClient fixture cleanup; history retained", StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
+				System.out.println("TASK058 exact failed mutable M6 fixture cleaned: profiles347..349/four receipt IDs/one owned account; no reset or other lane.");
+			}
+			finally { DatabaseFactory.close(); }
+			return;
+		}
 		if (args[0].equals("repair-known-m4-fixture"))
 		{
 			// One known failed mutable058t episode, never a generic orphan sweep or persistent058a operation.

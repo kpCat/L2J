@@ -51,6 +51,8 @@ import org.l2jmobius.gameserver.config.GeoEngineConfig;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
 import org.l2jmobius.gameserver.managers.InstanceManager;
+import org.l2jmobius.gameserver.managers.DimensionalRiftManager;
+import org.l2jmobius.gameserver.handler.BypassHandler;
 import org.l2jmobius.gameserver.managers.ItemManager;
 import org.l2jmobius.gameserver.managers.RaidBossSpawnManager;
 import org.l2jmobius.gameserver.managers.ScriptManager;
@@ -58,6 +60,7 @@ import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Summon;
 import org.l2jmobius.gameserver.model.chat.ChatObservationService;
 import org.l2jmobius.gameserver.model.actor.instance.GrandBoss;
@@ -228,6 +231,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PVP,
 		PVP_CURRENT_058,
 		RAID_TACTICS_058,
+		INSTANCES_058,
+		RIFT_NATIVE_058,
+		NATURAL_STOP_058,
 		POST002_SUPPORT,
 		COMPANION_REAL_SUPPORT_058,
 		COMPANION_ROLE_MATRIX_058,
@@ -336,6 +342,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case PVP -> "pvp-combat-server-integration";
 			case PVP_CURRENT_058 -> "pvp-current-native058";
 			case RAID_TACTICS_058 -> "raid-tactics-native058";
+			case INSTANCES_058 -> "instances-native058";
+			case RIFT_NATIVE_058 -> "rift-native058";
+			case NATURAL_STOP_058 -> "natural-infrastructure-stop058";
 			case ACQUISITION -> "acquisition-active-spoil";
 			case MANOR -> "acquisition-manor-active";
 			case QUEST -> "acquisition-quest-active";
@@ -346,6 +355,21 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
+		if (_mode == Mode.NATURAL_STOP_058)
+		{
+			PhantomAssertions.assertEquals(58005835L, context.seed(), "Natural infrastructure stop used the wrong058 seed.");
+			assertCampaign058Jar(context);
+		}
+		if (_mode == Mode.RIFT_NATIVE_058)
+		{
+			PhantomAssertions.assertEquals(58005832L, context.seed(), "Native Rift used the wrong058 seed.");
+			assertCampaign058Jar(context);
+		}
+		if (_mode == Mode.INSTANCES_058)
+		{
+			PhantomAssertions.assertEquals(58005831L, context.seed(), "Native instances used the wrong058 seed.");
+			assertCampaign058Jar(context);
+		}
 		if (_mode == Mode.RAID_TACTICS_058)
 		{
 			PhantomAssertions.assertEquals(58005830L, context.seed(), "Native raid tactics used the wrong058 seed.");
@@ -426,7 +450,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		_environment.initialize(context);
 		try
 		{
-			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
+			if (_mode == Mode.INSTANCES_058) { PhantomSupportedContentScriptBootstrap.loadGoal036Owners(context); }
+			else { ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE); }
 			MapRegionData.getInstance();
 			SpawnData.getInstance();
 			DoorData.getInstance();
@@ -472,7 +497,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			final int actorCapacity = Set.of(Mode.RAID_TACTICS_058, Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode) ? 3 : 1;
+			final int actorCapacity = Set.of(Mode.INSTANCES_058, Mode.RAID_TACTICS_058, Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode) ? 3 : 1;
 			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
@@ -544,6 +569,31 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.NATURAL_STOP_058)
+		{
+			registry.add("01-native-festival-waits-before-ordinary-infrastructure-stop", context ->
+			{
+				org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival.getInstance();
+				final List<String> lines = Files.readAllLines(_moduleRoot.resolve("java/org/l2jmobius/gameserver/model/sevensigns/SevenSignsFestival.java"));
+				final int exactWaitLine = java.util.stream.IntStream.range(0, lines.size()).filter(index -> lines.get(index).contains("wait(FESTIVAL_SIGNUP_TIME);")).findFirst().orElseThrow() + 1;
+				final long budget = org.l2jmobius.gameserver.config.FeatureConfig.ALT_FESTIVAL_MANAGER_START + 30_000;
+				PhantomAssertions.assertTrue((budget > 0) && (budget <= 300_000), "Native Festival initial delay exceeds the declared bounded episode.");
+				System.out.println("NATIVE058 natural signup wait: sourceLine=" + exactWaitLine + "; budgetMs=" + budget + "; signupMs=" + org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival.FESTIVAL_SIGNUP_TIME);
+				PhantomAssertions.assertTrue(waitFor(() -> Thread.getAllStackTraces().entrySet().stream().anyMatch(entry -> entry.getKey().isAlive() && (entry.getKey().getState() == Thread.State.TIMED_WAITING) && java.util.Arrays.stream(entry.getValue()).anyMatch(frame -> frame.getClassName().equals("org.l2jmobius.gameserver.model.sevensigns.SevenSignsFestival$FestivalManager") && (frame.getLineNumber() == exactWaitLine))), budget), "Native Festival worker did not reach its unchanged signup wait.");
+				context.record("normalStop058.input", "natural native FestivalManager signup TIMED_WAITING observed at exact source line" + exactWaitLine + "; unchanged timers/no participants/no injected interruption; ordinary environment teardown must leave no infrastructure threads");
+			});
+			return;
+		}
+		if (_mode == Mode.RIFT_NATIVE_058)
+		{
+			registry.add("01-mixed-native-rift-fee-room-combat-and-last-human-leave", this::testRift058);
+			return;
+		}
+		if (_mode == Mode.INSTANCES_058)
+		{
+			registry.add("01-mixed-stock-kamaloka-entry-combat-reuse-natural-closing", this::testKamaloka058);
+			return;
+		}
 		if (_mode == Mode.RAID_TACTICS_058)
 		{
 			registry.add("01-stock-live-raid-current-magic-tank-aggro-and-spacing", this::testRaidTactics058);
@@ -3453,6 +3503,176 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 	}
 
+	private void prepareInstanceActor058(Player actor, int classId, int level)
+	{
+		PhantomAssertions.assertTrue(!actor.isDead() && (actor.getInstanceId() == 0), "New instance fixture boundary requires a living ordinary-world actor.");
+		actor.setBaseClass(classId); actor.setPlayerClass(classId);
+		actor.getStat().setExp(actor.getStat().getExpForLevel(level)); actor.getStat().setLevel((byte) level);
+		for (var learn : _progression.classSkillLearns(classId).stream().filter(learn -> learn.minimumCharacterLevel() <= level).sorted(Comparator.comparingInt(learn -> learn.skillLevel())).toList())
+		{
+			final Skill skill = SkillData.getInstance().getSkill(learn.skillId(), learn.skillLevel());
+			if ((skill != null) && (actor.getSkillLevel(learn.skillId()) < learn.skillLevel())) { actor.addSkill(skill, true); }
+		}
+		actor.addSkill(SkillData.getInstance().getSkill(239, 1), true);
+		for (int itemId : new int[] {129, 352, 2378})
+		{
+			final Item item = actor.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, this);
+			PhantomAssertions.assertTrue(item != null, "Declared D-grade fixture item missing."); actor.getInventory().equipItem(item);
+		}
+		actor.getInventory().addItem(ItemProcessType.REWARD, 1463, 3000, null, this);
+		actor.refreshExpertisePenalty(); actor.refreshOverloaded(); actor.setInvul(false); actor.setOnlineStatus(true, false); actor.setRunning(); actor.standUp();
+		actor.setCurrentHp(actor.getMaxHp()); actor.setCurrentMp(actor.getMaxMp()); actor.setCurrentCp(actor.getMaxCp());
+	}
+
+	private static void placeInstanceInput058(Player actor, int x, int y, int z)
+	{
+		actor.decayMe(); actor.setXYZInvisible(x, y, z); actor.spawnMe(); actor.revalidateZone(true);
+	}
+
+	private static void acknowledgeInstance058(List<Player> actors)
+	{
+		for (Player actor : actors) { if (actor.isTeleporting()) { actor.onTeleported(); } actor.revalidateZone(true); }
+	}
+
+	private void testKamaloka058(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final List<Player> actors = new ArrayList<>(List.of(_player));
+		final List<Long> profiles = new ArrayList<>(List.of(_profile.profileId()));
+		for (int slot = 1; slot <= 2; slot++)
+		{
+			final var fixture = _environment.createCampaign058Companion(context, slot);
+			final var profile = _repository.create(fixture.objectId()); _additionalProfiles058.add(profile);
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(profile.profileId()).status(), "Native instance companion did not materialize.");
+			actors.add(World.getInstance().getPlayer(fixture.objectId())); profiles.add(profile.profileId());
+		}
+		final Player human = ensureObserver(); actors.add(human);
+		for (Player actor : actors) { prepareInstanceActor058(actor, actor == human ? 11 : actor == _player ? 4 : 1, 28); }
+		final var captain = _query.snapshot().spawnFactsByNpc().getOrDefault(30332, List.of()).stream().filter(point -> point.pointKind() == SpawnPointKind.EXACT).findFirst().orElseThrow();
+		int offset = 0; for (Player actor : actors) { placeInstanceInput058(actor, captain.x() + offset, captain.y(), captain.z()); offset += 20; }
+		final Party party = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(party);
+		for (Player actor : actors.subList(1, actors.size())) { actor.joinParty(party); }
+		final var catalog = org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.load(Path.of("data/phantoms/quests/high-five-supported-content-v1.xml"), Path.of("."));
+		final var backend = new org.l2jmobius.gameserver.phantoms.questinstance.L2jPhantomQuestInstanceBackend(_materialization, catalog, () -> _query);
+		final var content = catalog.content("instance.kamaloka-57").orElseThrow(); final var enter = content.step("enter").orElseThrow();
+		context.record("instance058.kamaloka.input", "TEST mixed canonical Party=" + actors.stream().map(Player::getObjectId).toList() + "; classes4/1/1/11 level28; native class-tree<=28/D sword129/body352/2378/1463x3000 each; primary Phantom leader; human-like Cleric uses native1011 when HP<=70; full stock18554; fight<=600s in native sessions<=120s, native closing<=320s; no rescue/HP edit/clock change");
+		int instanceId = 0;
+		try
+		{
+			final var stale = backend.invoke(_profile.profileId(), content, enter, "0".repeat(64));
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBackend.ActionStatus.STALE, stale.status(), "Stale native entry fingerprint mutated membership.");
+			final var wrongLeader = backend.invoke(profiles.get(1), content, enter, backend.observe(profiles.get(1), content).fingerprint());
+			PhantomAssertions.assertTrue(actors.stream().allMatch(actor -> actor.getInstanceId() == 0), "Non-leader entered native Kamaloka.");
+			context.record("instance058.kamaloka.negative", "stale=" + stale.status() + "; nonLeader=" + wrongLeader.status() + "; all instance0");
+			final var entered = backend.invoke(_profile.profileId(), content, enter, backend.observe(_profile.profileId(), content).fingerprint());
+			instanceId = _player.getInstanceId(); final int exactInstance = instanceId;
+			PhantomAssertions.assertTrue(instanceId > 0 && actors.stream().allMatch(actor -> actor.getInstanceId() == exactInstance), "Native Kamaloka did not admit the complete mixed Party: " + entered);
+			acknowledgeInstance058(actors);
+			final var instance = InstanceManager.getInstance().getInstance(instanceId);
+			PhantomAssertions.assertTrue(instance != null && actors.stream().allMatch(actor -> instance.containsPlayer(actor.getObjectId())), "Native instance lost exact Player identities.");
+			final Monster boss = (Monster) instance.getNpcs().stream().filter(npc -> npc.getId() == 18554).findFirst().orElseThrow();
+			final double hp = boss.getCurrentHp(); final long exp = actors.stream().mapToLong(Player::getExp).sum();
+			final long shots = actors.stream().mapToLong(actor -> actor.getInventory().getInventoryItemCount(1463, -1)).sum();
+			PhantomAssertions.assertTrue(hp >= boss.getMaxHp() * .99, "Kamaloka input boss was not full stock HP.");
+			for (int index = 0; index < profiles.size(); index++) { PhantomAssertions.assertTrue(_combat.startContentSession(new PhantomCombatRequest(profiles.get(index), boss.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, false, PhantomCombatPolicy.MAXIMUM_TIMEOUT_MILLIS, () -> false), "instance058.kamaloka." + profiles.get(index)).accepted(), "Kamaloka common combat admission failed."); }
+			final Skill heal = human.getKnownSkill(1011); PhantomAssertions.assertTrue(heal != null, "Declared native TEST Cleric has no learned heal.");
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(600);
+			while (!boss.isDead() && (System.nanoTime() < deadline) && actors.stream().noneMatch(Player::isDead))
+			{
+				for (long profile : profiles)
+				{
+					final var session = _combat.find(profile).orElseThrow();
+					if (session.result().terminal())
+					{
+						PhantomAssertions.assertEquals(PhantomCombatResult.TIMEOUT, session.result(), "Native Kamaloka combat stopped for a reason other than its regular bounded session duration.");
+						if (_combat.consumeTerminal(profile).isEmpty()) { continue; }
+						final var continuation = _combat.startContentSession(new PhantomCombatRequest(profile, boss.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, false, PhantomCombatPolicy.MAXIMUM_TIMEOUT_MILLIS, () -> false), "instance058.kamaloka." + profile);
+						PhantomAssertions.assertTrue(continuation.accepted(), "Regular bounded Kamaloka combat continuation failed: " + continuation.status());
+					}
+				}
+				if (!human.isCastingNow() && !human.isAttackingNow())
+				{
+					final Player injured = actors.stream().filter(actor -> actor.getCurrentHp() < actor.getMaxHp() * .70).min(Comparator.comparingDouble(actor -> actor.getCurrentHp() / actor.getMaxHp())).orElse(null);
+					if (injured != null) { human.setTarget(injured); human.useMagic(heal, false, false); }
+				}
+				Thread.sleep(100);
+			}
+			context.record("instance058.kamaloka.fight", "instance=" + instanceId + "; bossHP=" + hp + "->" + boss.getCurrentHp() + "; alive=" + actors.stream().map(actor -> !actor.isDead()).toList() + "; MP=" + human.getCurrentMp() + "; damage=" + actors.subList(0, 3).stream().map(actor -> boss.getAggroList().get(actor) == null ? 0 : boss.getAggroList().get(actor).getDamage()).toList());
+			PhantomAssertions.assertTrue(boss.isDead() && actors.stream().noneMatch(Player::isDead), "Full stock Kamaloka fight did not succeed with the declared mixed roster.");
+			PhantomAssertions.assertTrue(waitFor(() -> actors.stream().allMatch(actor -> InstanceManager.getInstance().getInstanceTime(actor.getObjectId(), 57) > System.currentTimeMillis()), 10_000), "Native Kamaloka did not assign reuse to every exact mixed member.");
+			PhantomAssertions.assertTrue(actors.stream().mapToLong(Player::getExp).sum() > exp, "Native Kamaloka stock reward missing.");
+			PhantomAssertions.assertTrue(actors.stream().mapToLong(actor -> actor.getInventory().getInventoryItemCount(1463, -1)).sum() < shots, "Native D shots were not consumed.");
+			context.record("instance058.kamaloka.kill", "native death/reuse/reward; exp=" + exp + "->" + actors.stream().mapToLong(Player::getExp).sum() + "; naturalClosingRemainingMs=" + (instance.getInstanceEndTime() - System.currentTimeMillis()));
+			PhantomAssertions.assertTrue(waitFor(() -> actors.stream().allMatch(actor -> actor.getInstanceId() == 0), 320_000), "Native Kamaloka closing did not return every mixed member.");
+			acknowledgeInstance058(actors);
+			for (Player actor : actors) { actor.storeMe(); }
+			backend.invoke(_profile.profileId(), content, enter, backend.observe(_profile.profileId(), content).fingerprint());
+			PhantomAssertions.assertTrue(actors.stream().allMatch(actor -> actor.getInstanceId() == 0), "Native cooldown retry opened another Kamaloka.");
+			context.record("instance058.kamaloka.result", "natural closing complete; all identities/Party preserved; native saved; cooldown retry no new instance; death/logout/reboot remain untested");
+		}
+		finally
+		{
+			final var unfinished = InstanceManager.getInstance().getInstance(instanceId);
+			context.record("instance058.kamaloka.endState", "boss=" + (unfinished == null ? "closed" : unfinished.getNpcs().stream().filter(npc -> npc.getId() == 18554).map(npc -> npc.getCurrentHp() + "/" + npc.getMaxHp()).toList()) + "; actors=" + actors.stream().map(actor -> actor.getObjectId() + ":hp=" + actor.getCurrentHp() + ":mp=" + actor.getCurrentMp() + ":exp=" + actor.getExp()).toList() + "; sessions=" + profiles.stream().map(_combat::find).toList());
+			for (long profile : profiles) { _combat.cancel(profile); }
+			consumeTerminal();
+			for (Player actor : actors) { if (actor.isInParty()) { PartyInvitationService.getInstance().leave(actor); } }
+			if ((instanceId > 0) && (InstanceManager.getInstance().getInstance(instanceId) != null)) { InstanceManager.getInstance().destroyInstance(instanceId); acknowledgeInstance058(actors); context.record("instance058.kamaloka.cleanup", "owned native instance cleanup and native teleport acknowledgement after incomplete episode; not natural closing proof"); }
+		}
+	}
+
+	private void testRift058(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final Player human = ensureObserver(); final List<Player> actors = List.of(_player, human);
+		prepareInstanceActor058(_player, 1, 43); prepareInstanceActor058(human, 11, 43);
+		final var manager = DimensionalRiftManager.getInstance(); final var entry = manager.entryReadiness((byte) 1);
+		PhantomAssertions.assertTrue(entry.supported() && entry.entryCapacityAvailable() && entry.minimumPartySize() <= 2, "INVALID_INPUT: current native Rift1 entry is unavailable for the declared pair.");
+		for (Player actor : actors) { placeInstanceInput058(actor, entry.destinationX(), entry.destinationY(), entry.destinationZ()); }
+		final Party party = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(party); human.joinParty(party);
+		final Npc npc = World.getInstance().getVisibleObjects(_player, Npc.class).stream().filter(value -> (value.getId() == 31488) && manager.checkIfInPeaceZone(value.getX(), value.getY(), value.getZ())).min(Comparator.comparingDouble(value -> _player.calculateDistance3D(value))).orElseThrow(() -> new AssertionError("INVALID_INPUT: no native Rift Recruit in waiting room."));
+		for (Player actor : actors) { placeInstanceInput058(actor, npc.getX() + 20, npc.getY(), npc.getZ()); }
+		PhantomAssertions.assertTrue(npc.canInteract(_player) && manager.checkIfInPeaceZone(_player.getX(), _player.getY(), _player.getZ()), "INVALID_INPUT: native Rift Recruit approach is illegal.");
+		final var handler = BypassHandler.getInstance().getHandler("enterrift"); PhantomAssertions.assertTrue(handler != null, "Native Rift bypass handler absent.");
+		context.record("instance058.rift.input", "TEST pair=" + actors.stream().map(Player::getObjectId).toList() + "; native Rift1/minParty=" + entry.minimumPartySize() + "; class1/11 level43/native class-tree/D gear; normal room instance0; stock fees7079; one native room kill<=90s then canonical leave; no clock/rate changes");
+		try
+		{
+			handler.onCommand("enterrift 1", human, npc);
+			PhantomAssertions.assertFalse(party.isInDimensionalRift(), "Non-leader entered Rift.");
+			handler.onCommand("enterrift 1", _player, npc);
+			PhantomAssertions.assertFalse(party.isInDimensionalRift(), "Missing fragments entered Rift.");
+			// Preparation for the separate positive entry, before enrollment; not post-outcome rescue.
+			for (Player actor : actors) { actor.getInventory().addItem(ItemProcessType.REWARD, 7079, entry.entryItemCount() + 1, null, this); }
+			handler.onCommand("enterrift 1", _player, npc); acknowledgeInstance058(actors);
+			PhantomAssertions.assertTrue(party.isInDimensionalRift(), "Native guarded Rift entry failed.");
+			final var rift = party.getDimensionalRift(); final var room = manager.getRoom(rift.getType(), rift.getCurrentRoom());
+			PhantomAssertions.assertTrue(actors.stream().allMatch(actor -> (actor.getInstanceId() == 0) && room.checkIfInZone(actor.getX(), actor.getY(), actor.getZ()) && (actor.getInventory().getInventoryItemCount(7079, -1) == 1)), "Native Rift room/fee/identity mismatch.");
+			PhantomAssertions.assertTrue(waitFor(() -> room.getSpawns().stream().anyMatch(spawn -> spawn.getLastSpawn() instanceof Monster), 20_000), "Native Rift spawn delay produced no stock room monsters.");
+			final Monster target = room.getSpawns().stream().map(Spawn::getLastSpawn).filter(value -> value instanceof Monster monster && !monster.isRaid()).map(value -> (Monster) value).sorted(Comparator.comparingInt(Monster::getId)).findFirst().orElseThrow();
+			context.record("instance058.rift.target", "stock=" + target.getId() + "; nativeType=" + target.getClass().getSimpleName() + "; knowledge=" + _query.findNpc(target.getId()).orElseThrow().kind());
+			PhantomAssertions.assertEquals(NpcKind.MONSTER, _query.findNpc(target.getId()).orElseThrow().kind(), "Native RiftInvader was not classified as its actual Monster base.");
+			final long exp = _player.getExp(); final double hp = target.getCurrentHp();
+			PhantomAssertions.assertTrue(_combat.startContentSession(new PhantomCombatRequest(_profile.profileId(), target.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, false, 90_000, () -> false), "instance058.rift.combat").accepted(), "Native Rift common combat refused its same-room stock target.");
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(90); final Skill heal = human.getKnownSkill(1011);
+			while (!target.isDead() && !_player.isDead() && (System.nanoTime() < deadline))
+			{
+				if ((_player.getCurrentHp() < _player.getMaxHp() * .70) && !human.isCastingNow()) { human.setTarget(_player); human.useMagic(heal, false, false); }
+				Thread.sleep(100);
+			}
+			context.record("instance058.rift.fight", "type=" + rift.getType() + "; room=" + rift.getCurrentRoom() + "; stock=" + target.getId() + "; hp=" + hp + "->" + target.getCurrentHp() + "; exp=" + exp + "->" + _player.getExp() + "; alive=" + !_player.isDead() + '/' + !human.isDead());
+			PhantomAssertions.assertTrue(target.isDead() && (_player.getExp() > exp) && !_player.isDead() && !human.isDead(), "Declared native Rift room combat/reward failed.");
+			_combat.cancel(_profile.profileId()); consumeTerminal();
+			PartyInvitationService.getInstance().leave(human); acknowledgeInstance058(actors);
+			PhantomAssertions.assertTrue(!party.isInDimensionalRift() && actors.stream().allMatch(actor -> manager.checkIfInPeaceZone(actor.getX(), actor.getY(), actor.getZ())) && !room.isPartyInside(), "Last human leave did not release native Rift room/return every exact actor.");
+			context.record("instance058.rift.result", "native room instance0 (not instanced dungeon); exact fee debit; stock kill/reward; last-human leave→native return/room released; auto-readiness-to-entry and full timed/death/logout cycle remain open");
+		}
+		finally
+		{
+			_combat.cancel(_profile.profileId()); consumeTerminal();
+			for (Player actor : actors) { if (actor.isInParty()) { PartyInvitationService.getInstance().leave(actor); } }
+		}
+	}
+
 	private void testRaidTactics058(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
@@ -4424,7 +4644,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			if (_materialization != null)
 			{
 				final var stopped = _materialization.shutdown();
-				if ((stopped.state() != PhantomMaterializationService.ServiceState.STOPPED) && (_mode == Mode.PVP_CURRENT_058))
+				if ((stopped.state() != PhantomMaterializationService.ServiceState.STOPPED) && Set.of(Mode.PVP_CURRENT_058, Mode.INSTANCES_058, Mode.RIFT_NATIVE_058).contains(_mode))
 				{
 					System.err.println("NATIVE058_CLEANUP_FACTS online=" + _player.isOnline() + "; client=" + (_player.getClient() == null ? "null" : _player.getClient().getClass().getName()) + "; worldPlayer=" + World.getInstance().getPlayer(_player.getObjectId()) + "; worldObject=" + World.getInstance().findObject(_player.getObjectId()) + "; autoSave=" + org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(_player.getObjectId()) + "; futures=" + PhantomHeadlessPlayerTestEnvironment.liveFutureFields(_player));
 				}

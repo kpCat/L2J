@@ -10,8 +10,10 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 | М3 | PARTIAL | Native scoped joint-event/personality/personal memory после ordinary sameDB restart, delivered recall, isolation и callback idempotency проверены; полный command/refusal набор открыт | QA_PENDING |
 | М4 | PARTIAL | Actual incoming damage → native enhanced retaliation; mixed-party defense/leave, NO_PVP/same-party guards и bounded facts проверены; полный PvP lifecycle/retreat/clans открыт | QA_PENDING |
 | М5 | PARTIAL | Raid current-rank/tank-only admission/агро/spacing исправлены; stock native tactics дал actual damage/агро, но танк погиб и heal не завершён; encounter FAIL | QA_PENDING |
-| М6 | NOT_STARTED | NOT_STARTED | QA_PENDING |
+| М6 | PARTIAL | Kamaloka57: native entry/refusals/600s боя, все4 живы, boss HP163178→107430; победа/reuse/reward не закрыты. Rift entry/fee/room/identity есть, common combat блокирован классификацией. Normal Festival shutdown исправлен | QA_PENDING |
 | М7 | NOT_STARTED | NOT_STARTED | QA_PENDING |
+
+М6: Kamaloka57 stock episode без изменения boss/наград дал entry/stale/nonleader guards, фактический бой600s и4 живых участников, но не victory; FAIL сохранён. Rift1 native handler подтвердил missing-fee/nonleader negatives, canonical fee, room/identity; RiftInvader ошибочно OTHER_ATTACKABLE, дальнейший combat пока открыт. Первый Kamaloka helper имел неверный timeout и teardown teleport ACK; одноразовая exact cleanup347–349/4chars выполнена только в058t по failed receipt, отдельно от cumulative/release. Последующий normal shutdown обнаружил FestivalManager, игнорировавший interrupt и уходивший в следующее ожидание. Все8 штатных wait теперь восстанавливают interrupt и возвращают worker. Actual native signup wait→обычный ThreadPool shutdown:1/1 без infrastructure leak; common7/7/PvP4/4 affected. Два предварительных неверных test-phase inputs сохранены, таймеры/расписание не менялись, аварийных испытаний не было.
 
 М2 SERVER_VERIFIED относится к перечисленным native server сценариям. TEST loopback GameClient/packet-neutral actors не называются входом владельца или actual UI приёмкой. Native World измерения отделены от сохранённых SQL XYZ. Объявленные высокие level/class/gear/skills — FIXTURE_PRECONDITION, не естественная карьера М7.
 
