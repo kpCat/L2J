@@ -276,15 +276,15 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 		});
 		registry.add("02-required-resurrection-must-be-ready-now", _ ->
 		{
-			_authority.epic = observation(ContentKind.EPIC, 101, true, "test", true, true, false, 0L);
+			_authority.raid = availableRaid();
 			_party.observation = force(member(actor(), capability("combat.tank", 1000)), member(MemberRef.real(200), capability("combat.heal", 1000)), member(MemberRef.real(300), capability("combat.resurrection", 1000, false)));
-			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, _service.assess(actor(), "epic.synthetic").status(), "Unavailable resurrection capability became epic-ready.");
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, _service.assess(actor(), "raid.resurrection").status(), "Unavailable resurrection capability became raid-ready.");
 		});
 		registry.add("03-ready-now-capabilities-satisfy-normally", _ ->
 		{
-			_authority.epic = observation(ContentKind.EPIC, 101, true, "test", true, true, false, 0L);
+			_authority.raid = availableRaid();
 			_party.observation = readyForce(true, true, true);
-			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_READY, _service.assess(actor(), "epic.synthetic").status(), "Currently ready required capabilities did not satisfy epic readiness.");
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_READY, _service.assess(actor(), "raid.resurrection").status(), "Currently ready required capabilities did not satisfy raid readiness.");
 		});
 		registry.add("04-rank-and-count-still-gate", _ ->
 		{
@@ -362,12 +362,23 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 		return new MemberCapability(key, "test", rank, 500, 1, "SELF", true, true, readyNow, readyNow ? "ready" : "not.ready", rank, "test.fixture");
 	}
 
-	private static String curatedXml()
+	private String curatedXml()
 	{
 		final StringBuilder result = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<knowledge schemaVersion=\"1\" datasetId=\"raid-readiness\" datasetVersion=\"1\">\n");
 		for (String capability : PhantomGameKnowledgeBuilder.REQUIRED_CAPABILITIES.stream().sorted().toList())
 		{
 			result.append("\t<classCapability classId=\"1\" capabilityKey=\"").append(capability).append("\" rank=\"1000\">\n\t\t<skill id=\"500\" level=\"1\" />\n\t\t<source path=\"data/source.xml\" />\n\t</classCapability>\n");
+		}
+		if (_mode == Mode.CURRENT_CAPABILITY_READINESS)
+		{
+			result.append("""
+					<contentRequirement contentId="raid.resurrection" contentKind="RAID" npcId="100" recommendedMinParty="3" recommendedMaxParty="9">
+						<requirement capabilityKey="combat.tank" minimumCount="1" minimumRank="850" required="true" />
+						<requirement capabilityKey="combat.heal" minimumCount="1" minimumRank="900" required="true" />
+						<requirement capabilityKey="combat.resurrection" minimumCount="1" minimumRank="900" required="true" />
+						<source path="data/source.xml" />
+					</contentRequirement>
+					""");
 		}
 		result.append("""
 				<contentRequirement contentId="rift.synthetic" contentKind="RIFT" recommendedMinParty="1" recommendedMaxParty="9">
