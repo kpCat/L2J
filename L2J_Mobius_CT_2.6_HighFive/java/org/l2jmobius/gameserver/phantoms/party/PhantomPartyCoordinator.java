@@ -1531,6 +1531,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return examined;
 		}
 		final PartySnapshot party = observed.get();
+		if (groupClaims.stream().anyMatch(claim -> !claim.state().realMembers().isEmpty()) && party.members().stream().noneMatch(member -> member.kind() == MemberKind.REAL))
+		{
+			releaseDepartedMixedGroup(runtime, groupClaims, party);
+			return examined;
+		}
 		if (!party.leader().equals(leader))
 		{
 			final PartyState before = groupClaims.getFirst().state();
@@ -1575,6 +1580,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final PartyState before = groupClaims.getFirst().state();
 		final List<MemberRef> phantoms = party.members().stream().filter(member -> member.kind() == MemberKind.PHANTOM).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
 		final List<MemberRef> reals = party.members().stream().filter(member -> member.kind() == MemberKind.REAL).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
+		if (!before.realMembers().isEmpty() && reals.isEmpty())
+		{
+			releaseDepartedMixedGroup(runtime, groupClaims, party);
+			return examined;
+		}
 		if (!before.leader().equals(party.leader()) || !before.phantomMembers().equals(phantoms) || !before.realMembers().equals(reals))
 		{
 			final PartyOperation previous = before.operation();
@@ -1631,6 +1641,35 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			});
 		}
 		return examined;
+	}
+
+	/** A normal human logout may leave a native all-Phantom party behind. Release only its old companions. */
+	private void releaseDepartedMixedGroup(GroupRuntime runtime, List<StoredPartyState> groupClaims, PartySnapshot departed)
+	{
+		for (StoredPartyState claim : groupClaims)
+		{
+			final StoredPartyState latest = _claims.get(claim.profileId());
+			if ((latest == null) || !latest.state().groupId().equals(claim.state().groupId()) || (latest.state().groupGeneration() != claim.state().groupGeneration()))
+			{
+				continue;
+			}
+			final MemberRef member = _backend.currentMember(claim.profileId()).orElse(null);
+			final PartySnapshot current = member == null ? null : _backend.observe(member).orElse(null);
+			if (current == null)
+			{
+				continue;
+			}
+			if (current.members().stream().anyMatch(value -> (value.kind() == MemberKind.REAL) || !departed.members().contains(value)))
+			{
+				return;
+			}
+			final MembershipOutcome outcome = _backend.leave(member);
+			if ((outcome != MembershipOutcome.COMPLETED) && (outcome != MembershipOutcome.NOT_IN_PARTY))
+			{
+				return;
+			}
+		}
+		releaseLostMixedGroup(runtime, groupClaims);
 	}
 
 	private void releaseLostMixedGroup(GroupRuntime runtime, List<StoredPartyState> groupClaims)

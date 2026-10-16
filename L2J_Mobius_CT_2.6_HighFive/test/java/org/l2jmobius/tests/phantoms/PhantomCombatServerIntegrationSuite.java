@@ -215,6 +215,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		COMPANION_ROLE_MATRIX_058,
 		COMPANION_FOLLOW_058,
 		COMPANION_MOVING_FOLLOW_058,
+		COMPANION_DEPARTURE_058,
 		QOL009_SERVITOR
 	}
 
@@ -300,6 +301,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case COMPANION_ROLE_MATRIX_058 -> "companion-role-matrix058";
 			case COMPANION_FOLLOW_058 -> "companion-follow058";
 			case COMPANION_MOVING_FOLLOW_058 -> "companion-moving-follow058";
+			case COMPANION_DEPARTURE_058 -> "companion-departure058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -312,7 +314,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_MOVING_FOLLOW_058)
+		if (_mode == Mode.COMPANION_DEPARTURE_058)
+		{
+			PhantomAssertions.assertEquals(58005814L, context.seed(), "Companion departure used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.COMPANION_MOVING_FOLLOW_058)
 		{
 			PhantomAssertions.assertEquals(58005813L, context.seed(), "Moving companion follow used the wrong deterministic seed.");
 		}
@@ -398,7 +404,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			final int actorCapacity = _mode == Mode.COMPANION_MOVING_FOLLOW_058 ? 3 : 1;
+			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058).contains(_mode) ? 3 : 1;
 			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
@@ -470,6 +476,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_DEPARTURE_058)
+		{
+			registry.add("01-last-human-leave-logout-and-same-character-rejoin", this::testCompanionFollow058);
+			return;
+		}
 		if (_mode == Mode.COMPANION_MOVING_FOLLOW_058)
 		{
 			registry.add("01-three-companions-follow-native-walking-human", this::testCompanionFollow058);
@@ -562,7 +573,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testCompanionFollow058(PhantomTestContext context) throws Exception
 	{
-		final boolean movingLeader = _mode == Mode.COMPANION_MOVING_FOLLOW_058;
+		final boolean movingLeader = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058).contains(_mode);
 		// All placement is a declared precondition. During measurement only native movement is used.
 		final int fromX = -71350;
 		final int fromY = 258050;
@@ -692,6 +703,37 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			PhantomAssertions.assertTrue(maximumStep <= 128, "Follow snapped instead of using native movement: " + maximumStep);
 			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().pathSucceeded() > 0, "Follow did not use a computed native path around the obstacle.");
+			if (_mode == Mode.COMPANION_DEPARTURE_058)
+			{
+				org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
+				for (int pulse = 0; (pulse < 32) && profileIds.stream().anyMatch(party::blocksBackground); pulse++)
+				{
+					party.onPulse();
+				}
+				context.record("companion058.departure", "humanParty=" + human.isInParty() + "; actorParties=" + actors.stream().map(Player::isInParty).toList() + "; pins=" + profileIds.stream().map(party::blocksBackground).toList() + "; routes=" + routes.snapshot());
+				PhantomAssertions.assertFalse(profileIds.stream().anyMatch(party::blocksBackground), "Last human leave retained mixed companion pins.");
+				PhantomAssertions.assertFalse(actors.stream().anyMatch(Player::isInParty), "Departed companion group retained a native party after release.");
+				PhantomAssertions.assertEquals(0, routes.snapshot().movementClaims(), "Last human leave retained owned follow movement.");
+				joinCompanions058(human, actors, profileIds, party);
+				final int humanObjectId = human.getObjectId();
+				human.storeMe();
+				human.deleteMe(); // Ordinary native logout, not a crash or a forced process termination.
+				_observer = null;
+				for (int pulse = 0; (pulse < 32) && profileIds.stream().anyMatch(party::blocksBackground); pulse++)
+				{
+					party.onPulse();
+				}
+				context.record("companion058.logout", "humanWorld=" + (World.getInstance().getPlayer(humanObjectId) != null) + "; actorParties=" + actors.stream().map(Player::isInParty).toList() + "; pins=" + profileIds.stream().map(party::blocksBackground).toList() + "; routes=" + routes.snapshot());
+				PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(humanObjectId), "Native TEST logout did not remove the exact World identity.");
+				PhantomAssertions.assertFalse(profileIds.stream().anyMatch(party::blocksBackground), "Last human logout retained mixed companion pins.");
+				PhantomAssertions.assertFalse(actors.stream().anyMatch(Player::isInParty), "Last human logout retained an abandoned companion native party.");
+				_observer = Player.load(humanObjectId);
+				PhantomAssertions.assertTrue(_observer != null && !_observer.isGM(), "Same TEST character could not reload after ordinary logout.");
+				_observer.spawnMe();
+				_observer.revalidateZone(true);
+				joinCompanions058(_observer, actors, profileIds, party);
+				context.record("companion058.rejoin", "sameHuman=" + _observer.getObjectId() + "; members=" + _observer.getParty().getMembers().stream().map(Player::getObjectId).sorted().toList() + "; pins=" + profileIds.stream().map(party::blocksBackground).toList());
+			}
 		}
 		catch (Exception | AssertionError failure)
 		{
@@ -735,6 +777,20 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					throw cleanup;
 				}
 			}
+		}
+	}
+
+	private static void joinCompanions058(Player human, List<Player> actors, List<Long> profileIds, PhantomPartyCoordinator party)
+	{
+		for (int index = 0; index < actors.size(); index++)
+		{
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, actors.get(index), PartyDistributionType.FINDERS_KEEPERS.getId()).delivered(), "Native rejoin invitation was not delivered.");
+			final long profileId = profileIds.get(index);
+			for (int pulse = 0; (pulse < 32) && !party.committed(profileId); pulse++)
+			{
+				party.onPulse();
+			}
+			PhantomAssertions.assertTrue(party.committed(profileId) && (actors.get(index).getParty() == human.getParty()), "Native companion did not rejoin its exact human.");
 		}
 	}
 
