@@ -53,6 +53,7 @@ import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
 import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.managers.ItemManager;
 import org.l2jmobius.gameserver.managers.ScriptManager;
+import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
@@ -65,6 +66,11 @@ import org.l2jmobius.gameserver.model.actor.instance.Servitor;
 import org.l2jmobius.gameserver.model.actor.templates.NpcTemplate;
 import org.l2jmobius.gameserver.model.groups.Party;
 import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
+import org.l2jmobius.gameserver.model.zone.ZoneId;
+import org.l2jmobius.gameserver.model.zone.type.NoPvPZone;
+import org.l2jmobius.gameserver.model.zone.type.PeaceZone;
+import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.enums.ShotType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
@@ -216,6 +222,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		MANOR,
 		QUEST,
 		PVP,
+		PVP_CURRENT_058,
 		POST002_SUPPORT,
 		COMPANION_REAL_SUPPORT_058,
 		COMPANION_ROLE_MATRIX_058,
@@ -322,6 +329,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case COMPANION_FARM_RESUME_058 -> "companion-farm-resume058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
+			case PVP_CURRENT_058 -> "pvp-current-native058";
 			case ACQUISITION -> "acquisition-active-spoil";
 			case MANOR -> "acquisition-manor-active";
 			case QUEST -> "acquisition-quest-active";
@@ -332,7 +340,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_FARM_RESUME_058)
+		if (_mode == Mode.PVP_CURRENT_058)
+		{
+			PhantomAssertions.assertEquals(58005829L, context.seed(), "Current native PvP used the wrong058 seed.");
+			assertCampaign058Jar(context);
+		}
+		else if (_mode == Mode.COMPANION_FARM_RESUME_058)
 		{
 			PhantomAssertions.assertEquals(58005825L, context.seed(), "Companion farm resume used the wrong seed.");
 			assertCampaign058Jar(context);
@@ -597,6 +610,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			registry.add("06-pet-babypet-stale-dead-and-instance-exclusion", this::testQol009Exclusions);
 			registry.add("07-pvp-owner-and-linked-servitor-policy", _ -> testQol009PvpPolicy());
 			registry.add("08-live-linked-servitor-owner-context-and-cleanup", _ -> testQol009LivePvpAndCleanup());
+			return;
+		}
+		if (_mode == Mode.PVP_CURRENT_058)
+		{
+			registry.add("01-native-no-pvp-zone-refuses-enemy-ownership", this::testNoPvpZone058);
+			registry.add("02-current-enhanced-native-retaliation-and-party-negative", this::testCurrentPvp058);
+			registry.add("03-native-real-party-defense-and-stale-membership", this::testPartyDefense058);
 			return;
 		}
 		if (_mode == Mode.PVP)
@@ -3035,6 +3055,163 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		return new PvpLinkedServitorSnapshot(901, 900, instanceId, 80, hpBand, 100, trueServitor, true, false, dead, dead, false, true, true, false, sameParty, false, incompatibleContext, attackable, directThreat, highImpact);
 	}
 
+	private void testNoPvpZone058(PhantomTestContext context) throws Exception
+	{
+		resetActor(true);
+		final Player target = ensureObserver();
+		int offset = 0;
+		for (Player actor : List.of(_player, target)) { actor.decayMe(); actor.setXYZInvisible(-71432 + offset, 258512, -3104); actor.spawnMe(); actor.revalidateZone(true); offset += 30; }
+		PhantomAssertions.assertTrue(_player.isInsideZone(ZoneId.NO_PVP) && !_player.isInsideZone(ZoneId.PEACE) && target.isInsidePeaceZone(_player), "Declared stock fighter_start_peace_1 negative input is not native NO_PVP-only.");
+		try
+		{
+			PhantomAssertions.assertEquals(StartStatus.REJECTED_TARGET, _combat.startPvpSession(pvpRequest(target, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK, PhantomCombatMode.MELEE_PHYSICAL, false)).status(), "NO_PVP-only native restriction acquired enemy combat ownership.");
+		}
+		finally { _combat.cancel(_profile.profileId()); consumeTerminal(); }
+		context.record("pvp058.noPvp", "actual stock fighter_start_peace_1; NO_PVP=true/PEACE=false; canonical isInsidePeaceZone=true; enemy ownership rejected; no zone/config mutation");
+	}
+
+	private void testCurrentPvp058(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true);
+		final Player opponent = ensureObserver();
+		prepareCompanionCombat058(_player, 94, 6579, 1339, 6383, 6384, 6385, 6386);
+		_player.addSkill(SkillData.getInstance().getSkill(1339, 101), true);
+		prepareCompanionCombat058(opponent, 5, 2500, 0, 6373, 6374, 6375, 6376, 6378);
+		// Ordered candidates outside the stock starting protection polygons; choose before enrollment by actual native geo/zone authority.
+		Location input = null;
+		final List<Location> inputs = new ArrayList<>(List.of(new Location(-71432, 254000, -3104), new Location(-76000, 254000, -3104), new Location(-78000, 254000, -3104), new Location(-80000, 254000, -3104)));
+		for (int dx : new int[] { -6000, -4000, -2000, 0, 2000, 4000, 6000 }) { for (int dy : new int[] { -6000, -4000, -2000, 0, 2000, 4000, 6000 }) { inputs.add(new Location(145214 + dx, -1914 + dy, -4592)); } }
+		for (Location candidate : inputs)
+		{
+			final int x = candidate.getX(); final int y = candidate.getY(); final int z = GeoEngine.getInstance().getHeight(x, y, candidate.getZ());
+			final int targetZ = GeoEngine.getInstance().getHeight(x + 30, y, z);
+			if (!GeoEngine.getInstance().hasGeo(x, y) || (ZoneManager.getInstance().getZone(x, y, z, NoPvPZone.class) != null) || (ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) != null) || (ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) || !GeoEngine.getInstance().canMoveToTarget(x, y, z, x + 30, y, targetZ, 0)) { continue; }
+			final var region = World.getInstance().getRegion(x, y, z);
+			if (region == null) { continue; }
+			boolean occupied = false;
+			for (var nearby : region.getSurroundingRegions())
+			{
+				for (var object : nearby.getVisibleObjects())
+				{
+					if ((object instanceof Monster monster) && !monster.isDead() && (monster.getInstanceId() == 0) && (Math.abs((long) monster.getZ() - z) < 500) && (Math.hypot((long) monster.getX() - x, (long) monster.getY() - y) < 1800)) { occupied = true; break; }
+				}
+				if (occupied) { break; }
+			}
+			if (!occupied) { input = new Location(x, y, z); break; }
+		}
+		PhantomAssertions.assertTrue(input != null, "No declared native legal PvP input point; episode not enrolled.");
+		int inputOffset = 0;
+		for (Player actor : List.of(_player, opponent))
+		{
+			actor.setInvul(false); actor.decayMe(); actor.setXYZInvisible(input.getX() + inputOffset, input.getY(), input.getZ()); actor.spawnMe(); actor.revalidateZone(true); inputOffset += 30;
+			PhantomAssertions.assertTrue(!actor.isGM() && !actor.isInsideZone(ZoneId.PEACE), "Native PvP input is privileged or in peace.");
+		}
+		PhantomAssertions.assertTrue(!opponent.isInsidePeaceZone(_player) && !_player.isInsidePeaceZone(opponent), "Native full PvP zone restriction rejects the declared positive input.");
+		context.record("pvp058.inputPoint", input);
+		final boolean antiFeed = PvpConfig.ANTIFEED_ENABLE;
+		final double actorPool = _player.getCurrentHp() + _player.getCurrentCp();
+		final double opponentPool = opponent.getCurrentHp() + opponent.getCurrentCp();
+		final double mp = _player.getCurrentMp();
+		context.record("pvp058.input", "TEST only native Mage94/80 learned1339:101/Sstaff+robe versus Knight5/80/Aweapon+Sheavy; actual opponent attack precedes retaliation; no forceUse, grants, HP/MP refill or AntiFeed change during episode;30s combat +35s natural fact expiry bound; partial M4");
+		PhantomAssertions.assertTrue(GeoEngine.getInstance().canSeeTarget(opponent, _player), "Declared native PvP input has no LOS.");
+		opponent.setTarget(_player); // Same ordinary selection seam used by the existing canonical combat backend.
+		_player.onForcedAttack(opponent);
+		try { await(() -> (_player.getCurrentHp() + _player.getCurrentCp()) < actorPool, "Declared opponent did not actually damage the managed Mage."); }
+		catch (AssertionError error) { throw new AssertionError("Native attacker input: intention=" + opponent.getAI().getIntention() + "; attacking=" + opponent.isAttackingNow() + "; attackTarget=" + opponent.getAI().getAttackTarget() + "; selected=" + opponent.getTarget() + "; online=" + opponent.isOnline() + "; actorInvul=" + _player.isInvul() + "; actorPool=" + actorPool + "->" + (_player.getCurrentHp() + _player.getCurrentCp()), error); }
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertTrue(lease.observedPlayerAttackers(_player.getObjectId(), 16).stream().anyMatch(attacker -> attacker.targetObjectId() == opponent.getObjectId()), "Retaliation has no actual native Player attacker evidence.");
+			PhantomAssertions.assertEquals(101, lease.knownSkillLevel(1339), "Native enhanced rank differs from prepared input.");
+		}
+		final var observed = _combat.observePvp(_profile.profileId(), List.of(opponent.getObjectId()), 16, 16).orElseThrow();
+		PhantomAssertions.assertTrue(observed.targets().stream().anyMatch(value -> value.actualAttacker() && value.canonicalContextAllowed() && (value.target().objectId() == opponent.getObjectId())), "Current production PvP observation did not confirm the exact actual attacker.");
+		final String authority = org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.sha256("pvp.actual.attack", _player.getObjectId(), opponent.getObjectId(), _player.getInstanceId());
+		final var retaliation = new PhantomPvpCombatRequest(_profile.profileId(), opponent.getObjectId(), org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK, authority, PhantomCombatMode.RANGED_MAGIC, false, false, 1, 30_000, () -> false);
+		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, _combat.startPvpSession(retaliation).status(), "Native enhanced retaliation was rejected.");
+		final boolean[] observedEnhanced = { false };
+		await(() -> { if ((_player.getCurrentSkill() != null) && (_player.getCurrentSkill().getSkillId() == 1339) && (_player.getCurrentSkill().getSkillLevel() == 101)) { observedEnhanced[0] = true; } return observedEnhanced[0] && ((_player.getCurrentMp() + 1) < mp) && ((_player.getCurrentHp() > 0) && ((opponent.getCurrentHp() + opponent.getCurrentCp() + 10) < opponentPool)); }, "Actual native PvP enhanced cast produced no completed damage/cost.");
+		context.record("pvp058.actual", "native1339:101=true; opponentHP+CP=" + opponentPool + "->" + (opponent.getCurrentHp() + opponent.getCurrentCp()) + "; MP=" + mp + "->" + _player.getCurrentMp() + "; opponentFlag=" + opponent.getPvpFlag() + "; actorFlag=" + _player.getPvpFlag() + "; actualCause=true; AntiFeedUnchanged=" + (antiFeed == PvpConfig.ANTIFEED_ENABLE));
+		PhantomAssertions.assertTrue(opponent.recentPlayerAttackers(16).contains(_player.getObjectId()), "Ordinary PlayerStatus did not retain its actual incoming managed Player damage fact.");
+		_combat.cancel(_profile.profileId());
+		await(() -> _combat.find(_profile.profileId()).map(value -> value.result().terminal()).orElse(true), "Native PvP stop did not terminate.");
+		consumeTerminal();
+		opponent.abortAttack(); opponent.getAI().setIntention(Intention.IDLE); // Declared episode ended; quiesce owned TEST opponent.
+		PhantomAssertions.assertEquals(antiFeed, PvpConfig.ANTIFEED_ENABLE, "PvP helper changed AntiFeed rules.");
+		// Separate native Party fixture precondition, not invitation/positive combat evidence.
+		final var party = new org.l2jmobius.gameserver.model.groups.Party(_player, PartyDistributionType.FINDERS_KEEPERS);
+		_player.setParty(party); party.addPartyMember(opponent); opponent.setParty(party);
+		try
+		{
+			PhantomAssertions.assertEquals(StartStatus.REJECTED_TARGET, _combat.startPvpSession(pvpRequest(opponent, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK, PhantomCombatMode.RANGED_MAGIC, false)).status(), "Native same-party Player acquired enemy ownership.");
+		}
+		finally { PartyInvitationService.getInstance().leave(opponent); PartyInvitationService.getInstance().leave(_player); }
+		PhantomAssertions.assertTrue(waitFor(() -> _player.recentPlayerAttackers(32).isEmpty() && opponent.recentPlayerAttackers(32).isEmpty(), 35_000), "Actual Player attacker facts did not expire naturally within the declared35s bound.");
+		// Separate negative fixture boundary after the completed fight and natural TTL. No positive episode rescue.
+		opponent.setInvul(true);
+		final double protectedPool = opponent.getCurrentHp() + opponent.getCurrentCp();
+		try
+		{
+			opponent.reduceCurrentHp(100, _player, null);
+			PhantomAssertions.assertTrue((opponent.getCurrentHp() + opponent.getCurrentCp()) >= protectedPool, "Rejected native invulnerable damage reduced HP/CP.");
+			PhantomAssertions.assertTrue(opponent.recentPlayerAttackers(32).isEmpty(), "Rejected native damage fabricated an actual-attacker fact.");
+		}
+		finally { opponent.setInvul(false); }
+		PhantomAssertions.assertTrue(!_player.isDead() && !opponent.isDead(), "The declared isolated PvP episode lost a TEST participant; no rescue or silent exclusion is allowed.");
+		context.record("pvp058.damageFacts", "both native PlayerStatus directions observed; natural30sTTL expires; rejected invulnerable damage creates no fact; ID-only/cap32; no timer or World scan");
+	}
+
+	private void testPartyDefense058(PhantomTestContext context) throws Exception
+	{
+		final Player human = ensureObserver();
+		PhantomAssertions.assertTrue(!_player.isDead() && !human.isDead(), "Previous enrolled native actors are unavailable; no rescue is allowed.");
+		final var fixture = _environment.createCampaign058Companion(context, 1);
+		final Player enemy = Player.load(fixture.objectId());
+		PhantomAssertions.assertTrue(enemy != null, "Owned third TEST actor did not load.");
+		prepareCompanionCombat058(enemy, 5, 2500, 0, 6373, 6374, 6375, 6376, 6378);
+		enemy.setInvul(false); enemy.setXYZInvisible(_player.getX() + 30, _player.getY() + 30, _player.getZ()); enemy.spawnMe(); enemy.revalidateZone(true);
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
+		progression.start();
+		final var socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
+		final var social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(_repository, socialCatalog), context.seed(), 16);
+		PhantomAssertions.assertTrue(social.start(), "Party defense social service did not start.");
+		final var backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
+		final var party = new PhantomPartyCoordinator(new PhantomPartyStore(_repository), new PhantomGoalStateStore(_repository), backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(null, _combat), new PhantomPartyTactics(_combat, backend), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 32, social, () -> System.currentTimeMillis() / 60000L);
+		PhantomAssertions.assertTrue(party.start(), "Party defense coordinator did not start.");
+		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
+		try (var client = PhantomConversationIntegrationSuite.NetworkBackedClient.attach(human))
+		{
+			PhantomAssertions.assertTrue(PartyInvitationService.getInstance().invite(human, _player, PartyDistributionType.FINDERS_KEEPERS.getId()).delivered(), "Actual human-to-managed party invitation was not delivered.");
+			for (int pulse = 0; pulse < 64; pulse++) { party.onPulse(); Thread.sleep(10); }
+			PhantomAssertions.assertTrue(human.isInParty() && (human.getParty() == _player.getParty()) && party.committed(_profile.profileId()), "Native mixed party did not commit.");
+			PhantomAssertions.assertTrue(party.pvpProtection(_profile.profileId(), 4).isEmpty(), "Flags/visibility without actual damage created party aggression.");
+			PhantomAssertions.assertTrue(!human.isInsidePeaceZone(enemy) && GeoEngine.getInstance().canSeeTarget(enemy, human), "Third TEST actor has no legal native attack context.");
+			context.record("pvp058.partyInput", "native human leader=" + human.getObjectId() + "; managedMage=" + _player.getObjectId() + "; owned enemy=" + enemy.getObjectId() + "; actual hit before defense; same existing equipped actors/no refill; stock rules;30s bound; TEST loopback only, no client login claim");
+			final double humanPool = human.getCurrentHp() + human.getCurrentCp();
+			final double enemyPool = enemy.getCurrentHp() + enemy.getCurrentCp();
+			final double mp = _player.getCurrentMp();
+			enemy.setTarget(human); human.onForcedAttack(enemy);
+			await(() -> (human.getCurrentHp() + human.getCurrentCp()) < humanPool, "Owned enemy did not actually hit the native human leader.");
+			final var proof = party.pvpProtection(_profile.profileId(), 4).stream().filter(value -> (value.directive().targetObjectId() == enemy.getObjectId()) && (value.directive().targetMember().characterObjectId() == human.getObjectId())).findFirst().orElseThrow(() -> new AssertionError("Actual human damage did not create exact party-defense evidence."));
+			final var request = new PhantomPvpCombatRequest(_profile.profileId(), enemy.getObjectId(), org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.PARTY_DEFENSE, proof.authorityHash(), PhantomCombatMode.RANGED_MAGIC, false, false, 1, 30_000, () -> false);
+			PhantomAssertions.assertEquals(StartStatus.ACCEPTED, _combat.startPvpSession(request).status(), "Exact native party defense did not acquire common combat ownership.");
+			await(() -> ((_player.getCurrentMp() + 1) < mp) && ((enemy.getCurrentHp() + enemy.getCurrentCp() + 10) < enemyPool), "Native party defense did not complete actual damage/cost.");
+			_combat.cancel(_profile.profileId()); consumeTerminal(); enemy.abortAttack(); enemy.getAI().setIntention(Intention.IDLE);
+			PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().leave(human), "Native human leave failed.");
+			for (int pulse = 0; pulse < 32; pulse++) { party.onPulse(); Thread.sleep(10); }
+			PhantomAssertions.assertTrue(party.pvpProtection(_profile.profileId(), 4).isEmpty() && !_player.isInParty(), "Stale human membership retained party-defense authority.");
+			PhantomAssertions.assertTrue(!_player.isDead() && !human.isDead() && !enemy.isDead(), "Declared native party-defense episode lost a participant.");
+			context.record("pvp058.partyActual", "native PARTY_DEFENSE cause=" + proof.authorityHash() + "; generation=" + proof.partyGeneration() + "; enemyPool=" + enemyPool + "->" + (enemy.getCurrentHp() + enemy.getCurrentCp()) + "; MP=" + mp + "->" + _player.getCurrentMp() + "; after canonical human leave evidence empty; all three alive");
+		}
+		finally
+		{
+			_combat.cancel(_profile.profileId()); consumeTerminal(); enemy.abortAttack(); enemy.getAI().setIntention(Intention.IDLE);
+			if (human.isInParty()) { PartyInvitationService.getInstance().leave(human); }
+			party.beginStop(); party.finishStop(); social.beginStop(); social.finishStop(); progression.beginStop(); progression.finishStop();
+			_environment.cleanupLoadedPlayer(enemy);
+		}
+	}
+
 	private void testPvpPhysical() throws Exception
 	{
 		resetActor(true);
@@ -4125,7 +4302,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (_materialization != null)
 			{
-				PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, _materialization.shutdown().state(), "Materialization service did not stop.");
+				final var stopped = _materialization.shutdown();
+				if ((stopped.state() != PhantomMaterializationService.ServiceState.STOPPED) && (_mode == Mode.PVP_CURRENT_058))
+				{
+					System.err.println("NATIVE058_CLEANUP_FACTS online=" + _player.isOnline() + "; client=" + (_player.getClient() == null ? "null" : _player.getClient().getClass().getName()) + "; worldPlayer=" + World.getInstance().getPlayer(_player.getObjectId()) + "; worldObject=" + World.getInstance().findObject(_player.getObjectId()) + "; autoSave=" + org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(_player.getObjectId()) + "; futures=" + PhantomHeadlessPlayerTestEnvironment.liveFutureFields(_player));
+				}
+				PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, stopped.state(), "Materialization service did not stop.");
 			}
 			if ((_repository != null) && (_profile != null))
 			{

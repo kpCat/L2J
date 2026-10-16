@@ -98,6 +98,7 @@ public class PlayerStatus extends PlayableStatus
 		{
 			return;
 		}
+		final double poolBefore = getCurrentHp() + getCurrentCp();
 		
 		if (!isHPConsumption)
 		{
@@ -303,6 +304,10 @@ public class PlayerStatus extends PlayableStatus
 			setCurrentHp(amount);
 		}
 		
+		if (!isHPConsumption && (attacker instanceof Player source) && ((getCurrentHp() + getCurrentCp()) < poolBefore))
+		{
+			player.recordIncomingPlayerDamage(source.getObjectId());
+		}
 		if ((player.getCurrentHp() < 0.5) && !isHPConsumption)
 		{
 			player.abortAttack();

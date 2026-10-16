@@ -371,9 +371,10 @@ public final class L2jPhantomPartyBackend implements PhantomPartyBackend
 				{
 					continue;
 				}
-				for (Creature creature : protectedPlayer.getAttackByList())
+				for (int attackerObjectId : protectedPlayer.recentPlayerAttackers(limit))
 				{
-					if (!(creature instanceof Player attacker) || attacker.isDead() || attacker.isAlikeDead() || (attacker.getInstanceId() != helperPlayer.getInstanceId()) || (attacker.getParty() == party))
+					final Player attacker = World.getInstance().getPlayer(attackerObjectId);
+					if ((attacker == null) || attacker.isDead() || attacker.isAlikeDead() || (attacker.getInstanceId() != helperPlayer.getInstanceId()) || (attacker.getParty() == party))
 					{
 						continue;
 					}

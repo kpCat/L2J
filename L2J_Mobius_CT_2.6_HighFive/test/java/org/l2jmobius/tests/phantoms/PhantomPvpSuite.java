@@ -200,6 +200,26 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(0, fixture.lease.pvpAttacks, "Rejected target produced an action.");
 			}
 		});
+		registry.add("04-current-learned-rank-refreshes-between-pvp-actions", _ ->
+		{
+			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.RANGED_MAGIC, 100))
+			{
+				fixture.lease.learnedRank = 101;
+				PhantomAssertions.assertEquals(StartStatus.ACCEPTED, fixture.start(Source.ACTUAL_ATTACK, false).status(), "Learned PvP skill was unavailable.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(new SelectedSkill(123, 101), fixture.lease.lastPvpSkill, "PvP initial selection ignored current learned rank.");
+				fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, true, false, 100, "CAST", 123, 101);
+				fixture.lease.learnedRank = 102;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.pvpCasts, "Rank refresh interrupted an existing PvP cast.");
+				fixture.lease.actor = actor(100, 100);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(new SelectedSkill(123, 102), fixture.lease.lastPvpSkill, "Idle PvP action retained the obsolete rank.");
+				fixture.lease.learnedRank = 0;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(2, fixture.lease.pvpCasts, "PvP issued a skill removed by class change.");
+			}
+		});
 	}
 
 	private static void cp(PhantomTestRegistry registry)
@@ -381,7 +401,9 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 
 	private static final class FakeLease implements PhantomCombatActorLease
 	{
-		private final ActorSnapshot actor;
+		private ActorSnapshot actor;
+		private int learnedRank = 1;
+		private SelectedSkill lastPvpSkill;
 		private PvpTargetSnapshot pvpTarget = target(false, false, false);
 		private List<CpPotionSnapshot> potions = List.of();
 		private int legacyTargetReads;
@@ -425,7 +447,13 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		@Override
 		public boolean supportsPvpSkill(SelectedSkill skill, PhantomCombatMode mode)
 		{
-			return skill.skillId() == 123;
+			return (skill.skillId() == 123) && (skill.skillLevel() == learnedRank) && (learnedRank > 0);
+		}
+
+		@Override
+		public int knownSkillLevel(int skillId)
+		{
+			return skillId == 123 ? learnedRank : 0;
 		}
 
 		@Override
@@ -490,6 +518,7 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		public ActionOutcome castPvp(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode, boolean forceUse, String authorityHash)
 		{
 			pvpCasts++;
+			lastPvpSkill = skill;
 			lastForceUse = forceUse;
 			return HASH.equals(authorityHash) ? ActionOutcome.ISSUED : ActionOutcome.REJECTED;
 		}

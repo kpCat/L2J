@@ -210,7 +210,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final boolean olympiad = _player.isInOlympiadMode() || target.isInOlympiadMode();
 			final boolean duel = _player.isInDuel() || target.isInDuel();
 			final boolean siege = _player.isInSiege() || target.isInSiege() || _player.isInsideZone(ZoneId.SIEGE) || target.isInsideZone(ZoneId.SIEGE);
-			final boolean peace = _player.isInsideZone(ZoneId.PEACE) || target.isInsideZone(ZoneId.PEACE);
+			final boolean peace = target.isInsidePeaceZone(_player);
 			final boolean boatOrAirship = _player.isInBoat() || _player.isInAirShip() || target.isInBoat() || target.isInAirShip();
 			return new PvpTargetSnapshot(target.getObjectId(), target.getActiveClass(), target.getInstanceId(), target.getLevel(), band(target.getCurrentHp(), target.getMaxHp()), band(target.getCurrentHp() + target.getCurrentCp(), target.getMaxHp() + target.getMaxCp()), distance(_player, target), true, true, target.isTargetable(), target.isInvisible(), target.isDead(), target.isAlikeDead(), surrounding, peace, sameParty, target == _player, unmanagedEvent, olympiad, duel, siege, _player.isJailed() || target.isJailed(), _player.isFestivalParticipant() || target.isFestivalParticipant(), boatOrAirship, target.isAutoAttackable(_player), target.isInvul(), reachable(_player, target));
 		}
@@ -788,9 +788,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			final TreeMap<Integer, ThreatObservation> observations = new TreeMap<>();
 			final ActorSnapshot actor = actorSnapshot();
-			for (Creature creature : protectedPlayer.getAttackByList())
+			for (int attackerObjectId : protectedPlayer.recentPlayerAttackers(limit))
 			{
-				if (!(creature instanceof Player attacker))
+				final Player attacker = World.getInstance().getPlayer(attackerObjectId);
+				if (attacker == null)
 				{
 					continue;
 				}

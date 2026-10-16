@@ -624,6 +624,8 @@ public class Player extends Playable
 	
 	/** The PvP Flag state of the Player (0=White, 1=Purple) */
 	private byte _pvpFlag;
+	// Bounded native damage facts, distinct from NPC hate. No Player references or scheduled work.
+	private final Map<Integer, Long> _recentPlayerAttackers = new LinkedHashMap<>();
 	
 	/** The Fame of this Player */
 	private int _fame;
@@ -1928,6 +1930,30 @@ public class Player extends Playable
 	public byte getPvpFlag()
 	{
 		return _pvpFlag;
+	}
+
+	/** Called only after canonical PlayerStatus observes an actual HP/CP loss. */
+	public void recordIncomingPlayerDamage(int attackerObjectId)
+	{
+		if ((attackerObjectId <= 0) || (attackerObjectId == getObjectId())) { return; }
+		synchronized (_recentPlayerAttackers)
+		{
+			final long now = System.nanoTime();
+			_recentPlayerAttackers.entrySet().removeIf(entry -> (now - entry.getValue()) >= 30_000_000_000L);
+			_recentPlayerAttackers.remove(attackerObjectId);
+			_recentPlayerAttackers.put(attackerObjectId, now);
+			while (_recentPlayerAttackers.size() > 32) { _recentPlayerAttackers.remove(_recentPlayerAttackers.keySet().iterator().next()); }
+		}
+	}
+
+	public List<Integer> recentPlayerAttackers(int limit)
+	{
+		if ((limit < 1) || (limit > 32)) { return List.of(); }
+		synchronized (_recentPlayerAttackers)
+		{
+			final long now = System.nanoTime();
+			return _recentPlayerAttackers.entrySet().stream().filter(entry -> (now - entry.getValue()) < 30_000_000_000L).map(Map.Entry::getKey).sorted().limit(limit).toList();
+		}
 	}
 	
 	@Override

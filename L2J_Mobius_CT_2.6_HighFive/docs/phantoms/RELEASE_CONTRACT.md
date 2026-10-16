@@ -6,6 +6,8 @@ TASK058, 16.10.2026: М2 SERVER_VERIFIED в объявленном native server
 
 ## Актуальная поправка владельца TASK058 от 16.10.2026
 
+М4 TASK058 PARTIAL: native actual Player damage facts (32 ID/30s, no timer/SQL), current PvP rank и canonical NO_PVP guard сохранены в Player/PlayerStatus/Combat/Party owners. Native3/3 проверили enhanced retaliation и mixed-party defense/evidence revoke; affected М2 support3/3 и common boundary7/7. Один исторический normal teardown FAIL остаётся открытым риском; полного PvP/retreat/clans milestone claim нет. Exact orphan repair action ограничен одним failed058t fixture327 с отсутствующим персонажем, не cumulative/release.
+
 Утверждённый [AUTHORITY058](tasks/PHANTOM-M2-M7-CAMPAIGN-058/AUTHORITY.md) заменяет прежний запрет перехода к М2–М7 до всех gates М1. Исторические OPEN/FAIL и результаты 041–057 сохраняются. Новые этапы различают SERVER_VERIFIED и OWNER_ACCEPTED; OWNER_QA_PENDING не блокирует следующую серверную разработку. Поправка не снимает защиту M1-057-candidate, других сред и ограничения платформы.
 
 ```text

@@ -1518,6 +1518,13 @@ public final class PhantomCombatService
 		{
 			return;
 		}
+		final Optional<PhantomCombatLoadout> current = _capabilityResolver.resolvePvp(actor, session._request.mode(), session._actorLease, _policy.maximumSelectedSkills());
+		if (current.isEmpty())
+		{
+			finish(session, PhantomCombatResult.UNSUPPORTED_LOADOUT);
+			return;
+		}
+		session._loadout = current.orElseThrow();
 		final int ownerObjectId = session._request.targetObjectId();
 		final int tacticalTargetObjectId = session._actorLease.pvpTacticalTargetObjectId(ownerObjectId, _policy.maximumAcquisitionDistance());
 		SelectedSkill selected = null;

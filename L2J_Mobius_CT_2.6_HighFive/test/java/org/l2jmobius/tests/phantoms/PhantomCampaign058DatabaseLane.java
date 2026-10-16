@@ -97,15 +97,40 @@ public final class PhantomCampaign058DatabaseLane
 	/** Reuses the strict stock SQL inventory runner; creates only an absent058t schema, never users or resets. */
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 1) || !(args[0].equals("guard") || args[0].equals("bootstrap")))
+		if ((args.length != 1) || !(args[0].equals("guard") || args[0].equals("bootstrap") || args[0].equals("repair-known-m4-fixture")))
 		{
-			throw new IllegalArgumentException("Expected guard or bootstrap.");
+			throw new IllegalArgumentException("Expected guard, bootstrap or exact known M4 fixture repair.");
 		}
 		final Path lane = MODULE.resolve(".phantom-local/contract058t");
 		final Path config = lane.resolve("test/Database.test.ini");
 		final Path manifest = lane.resolve("test/owned.properties");
 		final Properties settings = validateFiles(MODULE, config, manifest);
 		final var schema = PhantomTestSchemaManifest.current(MODULE);
+		if (args[0].equals("repair-known-m4-fixture"))
+		{
+			// One known failed mutable058t episode, never a generic orphan sweep or persistent058a operation.
+			final String report = Files.readString(lane.resolve("reports/m4-native-party-defense-green8/pvp-current-native058.txt"), StandardCharsets.UTF_8);
+			if (!report.contains("measurement.combatIntegration.profileId=327") || !report.contains("measurement.combatIntegration.actorObjectId=268435465") || !report.contains("FAIL pvp-current-native058.after-all")) { throw new IllegalStateException("Exact failed fixture receipt is absent."); }
+			initialize(MODULE, config);
+			try
+			{
+				final var profiles = org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.open();
+				final var profile = profiles.find(327).orElseThrow(() -> new IllegalStateException("Known orphan is absent; no repair or reset performed."));
+				PhantomAssertions.assertEquals(268435465, profile.characterObjectId(), "Known fixture identity changed.");
+				try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT COUNT(*) FROM characters WHERE charId=?"))
+				{
+					query.setInt(1, 268435465);
+					try (var rows = query.executeQuery()) { PhantomAssertions.assertTrue(rows.next() && (rows.getLong(1) == 0), "Character still exists; fixture repair refuses deletion."); }
+				}
+				Files.createFile(lane.resolve("repair-known-m4-fixture.started"));
+				profiles.delete(profile.profileId(), profile.rowVersion());
+				PhantomAssertions.assertTrue(profiles.find(327).isEmpty(), "Exact orphan profile did not delete.");
+				Files.writeString(lane.resolve("repair-known-m4-fixture.complete"), "Exact owned058t failed fixture profile327/absentChar268435465; historical report retained; no reset", StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
+				System.out.println("TASK058 known mutable fixture repaired: exact profile327; absent character268435465; receipt preserved; no other rows requested.");
+			}
+			finally { DatabaseFactory.close(); }
+			return;
+		}
 		if (args[0].equals("guard"))
 		{
 			System.out.println("TASK058 fixture files accepted; no database connection or write.");
