@@ -97,15 +97,45 @@ public final class PhantomCampaign058DatabaseLane
 	/** Reuses the strict stock SQL inventory runner; creates only an absent058t schema, never users or resets. */
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 1) || !(args[0].equals("guard") || args[0].equals("bootstrap") || args[0].equals("repair-known-m4-fixture") || args[0].equals("repair-known-m6-fixture")))
+		if ((args.length != 1) || !(args[0].equals("guard") || args[0].equals("bootstrap") || args[0].equals("repair-known-m4-fixture") || args[0].equals("repair-known-m6-fixture") || args[0].equals("repair-known-m7-fixture") || args[0].equals("repair-known-m7-fixture2") || args[0].equals("repair-known-m7-fixture3") || args[0].equals("repair-normal-teleport-fixture")))
 		{
-			throw new IllegalArgumentException("Expected guard, bootstrap or exact known M4 fixture repair.");
+			throw new IllegalArgumentException("Expected guard, one-time bootstrap or an exact receipt-bound058t fixture repair.");
 		}
 		final Path lane = MODULE.resolve(".phantom-local/contract058t");
 		final Path config = lane.resolve("test/Database.test.ini");
 		final Path manifest = lane.resolve("test/owned.properties");
 		final Properties settings = validateFiles(MODULE, config, manifest);
 		final var schema = PhantomTestSchemaManifest.current(MODULE);
+		if (args[0].equals("repair-known-m7-fixture3") || args[0].equals("repair-normal-teleport-fixture"))
+		{
+			// AUTHORITY058 section3: only exact previously declared failed058t fixture rows; accounts stay intact.
+			final boolean teleport = args[0].equals("repair-normal-teleport-fixture");
+			final long profileId = teleport ? 367 : 366;
+			final int primary = teleport ? 268435469 : 268435465, observer = teleport ? 268435471 : 268435467;
+			final String suffix = teleport ? "05837" : "05833", account = teleport ? "phantom_t004_58005837" : "phantom_t004_58005833";
+			final String report = Files.readString(lane.resolve(teleport ? "reports/normal-pending-teleport-cleanup-red1/teleport-cleanup-native058.txt" : "reports/m7-earned-terminal-receipt-native3/earned-learning-native058.txt"), StandardCharsets.UTF_8);
+			PhantomAssertions.assertTrue(report.contains("measurement.combatIntegration.profileId=" + profileId) && report.contains("measurement.combatIntegration.actorObjectId=" + primary) && report.contains("measurement.headless.observerObjectId=" + observer) && report.contains(teleport ? "FAIL teleport-cleanup-native058.after-all" : "FAIL earned-learning-native058.after-all"), "Exact failed fixture receipt differs.");
+			initialize(MODULE, config);
+			try
+			{
+				final var profiles = org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.open();
+				final var profile = profiles.find(profileId).orElseThrow();
+				PhantomAssertions.assertEquals(primary, profile.characterObjectId(), "Exact failed fixture profile changed.");
+				try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT charId,account_name,char_name,online,accesslevel FROM characters WHERE charId IN (?,?) OR account_name=?"))
+				{
+					query.setInt(1, primary); query.setInt(2, observer); query.setString(3, account);
+					try (var rows = query.executeQuery()) { while (rows.next()) { final int id = rows.getInt(1); PhantomAssertions.assertTrue(java.util.Set.of(primary, observer).contains(id) && account.equals(rows.getString(2)) && (id == primary ? "PhT004A" + suffix : "PhT004B" + suffix).equals(rows.getString(3)) && (rows.getInt(4) == 0) && (rows.getInt(5) == 0), "Exact failed058t identity/account/offline state changed."); } }
+				}
+				Files.createFile(lane.resolve(args[0] + ".started"));
+				profiles.delete(profile.profileId(), profile.rowVersion());
+				for (int id : java.util.List.of(primary, observer)) { org.l2jmobius.gameserver.network.GameClient.deleteCharByObjId(id); }
+				PhantomAssertions.assertTrue(profiles.find(profileId).isEmpty(), "Exact fixture profile cleanup failed.");
+				Files.writeString(lane.resolve(args[0] + ".complete"), "Exact failed058t profile=" + profileId + "; native cleanup IDs=" + primary + ',' + observer + "; account retained; failed receipt retained; no reset", StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
+				System.out.println("TASK058 exact failed fixture cleaned: profile=" + profileId + "; two receipt IDs; account retained.");
+			}
+			finally { DatabaseFactory.close(); }
+			return;
+		}
 		if (args[0].equals("repair-known-m6-fixture"))
 		{
 			final String report = Files.readString(lane.resolve("reports/m6-kamaloka-stock-native1/instances-native058.txt"), StandardCharsets.UTF_8);
@@ -141,27 +171,43 @@ public final class PhantomCampaign058DatabaseLane
 			finally { DatabaseFactory.close(); }
 			return;
 		}
-		if (args[0].equals("repair-known-m4-fixture"))
+		if (args[0].equals("repair-known-m4-fixture") || args[0].equals("repair-known-m7-fixture") || args[0].equals("repair-known-m7-fixture2"))
 		{
 			// One known failed mutable058t episode, never a generic orphan sweep or persistent058a operation.
-			final String report = Files.readString(lane.resolve("reports/m4-native-party-defense-green8/pvp-current-native058.txt"), StandardCharsets.UTF_8);
-			if (!report.contains("measurement.combatIntegration.profileId=327") || !report.contains("measurement.combatIntegration.actorObjectId=268435465") || !report.contains("FAIL pvp-current-native058.after-all")) { throw new IllegalStateException("Exact failed fixture receipt is absent."); }
+			final boolean secondM7 = args[0].equals("repair-known-m7-fixture2");
+			final boolean m7 = secondM7 || args[0].equals("repair-known-m7-fixture");
+			final long exactProfile = secondM7 ? 365 : m7 ? 364 : 327;
+			final String marker = args[0];
+			final String report = Files.readString(lane.resolve(secondM7 ? "reports/m7-earned-stock-spawn-native2/earned-learning-native058.txt" : m7 ? "reports/m7-earned-learning-native1/earned-learning-native058.txt" : "reports/m4-native-party-defense-green8/pvp-current-native058.txt"), StandardCharsets.UTF_8);
+			if (!report.contains("measurement.combatIntegration.profileId=" + exactProfile) || !report.contains("measurement.combatIntegration.actorObjectId=268435465") || !report.contains(m7 ? "FAIL earned-learning-native058.after-all" : "FAIL pvp-current-native058.after-all")) { throw new IllegalStateException("Exact failed fixture receipt is absent."); }
 			initialize(MODULE, config);
 			try
 			{
 				final var profiles = org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository.open();
-				final var profile = profiles.find(327).orElseThrow(() -> new IllegalStateException("Known orphan is absent; no repair or reset performed."));
+				final var profile = profiles.find(exactProfile).orElseThrow(() -> new IllegalStateException("Known orphan is absent; no repair or reset performed."));
 				PhantomAssertions.assertEquals(268435465, profile.characterObjectId(), "Known fixture identity changed.");
-				try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT COUNT(*) FROM characters WHERE charId=?"))
+				if (m7)
+				{
+					// AUTHORITY058 section3 permits CRUD/cleanup of previously declared058t fixtures.
+					// Read-only audit: only PhT004A05833/PhT004B05833 belong to this exact generated account, both offline/access0.
+					PhantomAssertions.assertTrue(report.contains("measurement.headless.observerObjectId=268435467"), "Exact M7 observer receipt changed.");
+					try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT charId,account_name,char_name,online,accesslevel FROM characters WHERE charId IN (268435465,268435467) OR account_name=?"))
+					{
+						query.setString(1, "phantom_t004_58005833");
+						try (var rows = query.executeQuery()) { while (rows.next()) { final int id = rows.getInt(1); PhantomAssertions.assertTrue(java.util.Set.of(268435465, 268435467).contains(id) && "phantom_t004_58005833".equals(rows.getString(2)) && (id == 268435465 ? "PhT004A05833" : "PhT004B05833").equals(rows.getString(3)) && (rows.getInt(4) == 0) && (rows.getInt(5) == 0), "Exact M7 fixture identity/account/offline state changed."); } }
+					}
+				}
+				else try (var connection = DatabaseFactory.getConnection(); var query = connection.prepareStatement("SELECT COUNT(*) FROM characters WHERE charId=?"))
 				{
 					query.setInt(1, 268435465);
 					try (var rows = query.executeQuery()) { PhantomAssertions.assertTrue(rows.next() && (rows.getLong(1) == 0), "Character still exists; fixture repair refuses deletion."); }
 				}
-				Files.createFile(lane.resolve("repair-known-m4-fixture.started"));
+				Files.createFile(lane.resolve(marker + ".started"));
 				profiles.delete(profile.profileId(), profile.rowVersion());
-				PhantomAssertions.assertTrue(profiles.find(327).isEmpty(), "Exact orphan profile did not delete.");
-				Files.writeString(lane.resolve("repair-known-m4-fixture.complete"), "Exact owned058t failed fixture profile327/absentChar268435465; historical report retained; no reset", StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
-				System.out.println("TASK058 known mutable fixture repaired: exact profile327; absent character268435465; receipt preserved; no other rows requested.");
+				if (m7) { for (int id : java.util.List.of(268435465, 268435467)) { org.l2jmobius.gameserver.network.GameClient.deleteCharByObjId(id); } }
+				PhantomAssertions.assertTrue(profiles.find(exactProfile).isEmpty(), "Exact orphan profile did not delete.");
+				Files.writeString(lane.resolve(marker + ".complete"), "Exact owned058t failed fixture profile" + exactProfile + (m7 ? "; native cleanup PhT004A05833/PhT004B05833; generated account retained" : "/absentChar268435465") + "; historical report retained; no reset", StandardCharsets.UTF_8, java.nio.file.StandardOpenOption.CREATE_NEW);
+				System.out.println("TASK058 known mutable fixture repaired: exact profile" + exactProfile + "; receipt preserved; no other rows requested; generated account retained.");
 			}
 			finally { DatabaseFactory.close(); }
 			return;

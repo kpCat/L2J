@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <knowledge schemaVersion="1" datasetId="high-five-core" datasetVersion="1">
+	<classCapability classId="0" capabilityKey="combat.melee_damage" rank="100">
+		<skill id="3" level="1" />
+		<source path="data/stats/players/skillTrees/StartingClass/HumanFighter.xml" />
+	</classCapability>
 	<classCapability classId="88" capabilityKey="combat.melee_damage" rank="850">
 		<skill id="345" level="1" />
 		<source path="data/stats/players/skillTrees/3rdClass/Duelist.xml" />

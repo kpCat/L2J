@@ -220,6 +220,36 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(2, fixture.lease.pvpCasts, "PvP issued a skill removed by class change.");
 			}
 		});
+		registry.add("05-ranged-spacing-precedes-pvp-cast-and-preserves-busy-actions", _ ->
+		{
+			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.RANGED_MAGIC, 100))
+			{
+				fixture.lease.spacing = ActionOutcome.ISSUED;
+				PhantomAssertions.assertEquals(StartStatus.ACCEPTED, fixture.start(Source.ACTUAL_ATTACK, false).status(), "Ranged PvP input rejected.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.spacingCalls, "Ranged PvP did not consult common bounded spacing.");
+				PhantomAssertions.assertEquals(0, fixture.lease.pvpCasts, "PvP cast interrupted newly owned spacing.");
+				fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, true, false, 100, "CAST", 123, 1);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.spacingCalls, "Spacing interrupted an existing native cast.");
+				fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, false, true, 100, "MOVE_TO", 0, 0);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.spacingCalls, "PvP replaced an existing movement before it finished.");
+				fixture.lease.actor = actor(100, 100); fixture.lease.spacing = ActionOutcome.ALREADY_OWNED;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(0, fixture.lease.pvpCasts, "PvP cast interrupted continuing owned movement.");
+				fixture.lease.spacing = ActionOutcome.UNAVAILABLE;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.pvpCasts, "Ranged PvP did not resume its native cast after spacing.");
+			}
+			try (CombatFixture fixture = new CombatFixture(PhantomCombatMode.MELEE_PHYSICAL, 100))
+			{
+				fixture.lease.spacing = ActionOutcome.ISSUED;
+				fixture.start(Source.ACTUAL_ATTACK, false); fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(0, fixture.lease.spacingCalls, "Melee PvP acquired ranged movement.");
+				PhantomAssertions.assertEquals(1, fixture.lease.pvpAttacks, "Melee PvP path changed.");
+			}
+		});
 	}
 
 	private static void cp(PhantomTestRegistry registry)
@@ -413,6 +443,8 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		private int pvpCasts;
 		private int potionUses;
 		private boolean lastForceUse;
+		private ActionOutcome spacing = ActionOutcome.UNAVAILABLE;
+		private int spacingCalls;
 
 		private FakeLease(double cp)
 		{
@@ -454,6 +486,14 @@ public final class PhantomPvpSuite implements PhantomTestSuite
 		public int knownSkillLevel(int skillId)
 		{
 			return skillId == 123 ? learnedRank : 0;
+		}
+
+		@Override
+		public ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
+		{
+			PhantomAssertions.assertEquals(100, targetObjectId, "Spacing lost exact PvP owner identity.");
+			spacingCalls++;
+			return spacing;
 		}
 
 		@Override

@@ -51,6 +51,7 @@ import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.item.type.WeaponType;
 import org.l2jmobius.gameserver.model.zone.type.PeaceZone;
+import org.l2jmobius.gameserver.model.zone.type.NoPvPZone;
 import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
@@ -644,7 +645,13 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			final ActorSnapshot actor = actorSnapshot();
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
-			if ((mode == PhantomCombatMode.MELEE_PHYSICAL) || actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !validNpcTacticTarget(target, actor))
+			if ((mode == PhantomCombatMode.MELEE_PHYSICAL) || actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Creature target))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final boolean pvp = target instanceof Player;
+			final PvpTargetSnapshot playerTarget = pvp ? pvpTargetSnapshot(targetObjectId) : null;
+			if (pvp ? ((playerTarget == null) || !playerTarget.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE)) : !(target instanceof Monster monster && validNpcTacticTarget(monster, actor)))
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
@@ -663,7 +670,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.UNAVAILABLE;
 			}
 			final Skill skill = selected == null ? null : _player.getKnownSkill(selected.skillId());
-			if ((selected != null) && ((skill == null) || (skill.getLevel() != selected.skillLevel()) || !supportsSkill(selected, mode)))
+			if ((selected != null) && ((skill == null) || (skill.getLevel() != selected.skillLevel()) || !(pvp ? supportsPvpSkill(selected, mode) : supportsSkill(selected, mode))))
 			{
 				return ActionOutcome.UNAVAILABLE;
 			}
@@ -691,7 +698,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 					}
 					final int z = geo.getHeight(x, y, _player.getZ());
 					final double step = Math.hypot((long) x - _player.getX(), (long) y - _player.getY());
-					if ((step > 500) || (Math.abs((long) z - _player.getZ()) > 64) || (ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) || (ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) != null))
+					if ((step > 500) || (Math.abs((long) z - _player.getZ()) > 64) || (ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) || (ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) != null) || (pvp && (ZoneManager.getInstance().getZone(x, y, z, NoPvPZone.class) != null)))
 					{
 						continue;
 					}

@@ -378,6 +378,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 						}
 						cleanupPlayer.stopAllTasks();
 						cleanupPlayer.prepareNativeCleanup();
+						cleanupPlayer.setTeleporting(false);
 					}, deadlineNanos);
 				}
 				// A legitimate descendant may add a fresh effect; dispose each new native body once.

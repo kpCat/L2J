@@ -234,6 +234,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		INSTANCES_058,
 		RIFT_NATIVE_058,
 		NATURAL_STOP_058,
+		EARNED_LEARNING_058,
+		TELEPORT_CLEANUP_058,
 		POST002_SUPPORT,
 		COMPANION_REAL_SUPPORT_058,
 		COMPANION_ROLE_MATRIX_058,
@@ -345,6 +347,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case INSTANCES_058 -> "instances-native058";
 			case RIFT_NATIVE_058 -> "rift-native058";
 			case NATURAL_STOP_058 -> "natural-infrastructure-stop058";
+			case EARNED_LEARNING_058 -> "earned-learning-native058";
+			case TELEPORT_CLEANUP_058 -> "teleport-cleanup-native058";
 			case ACQUISITION -> "acquisition-active-spoil";
 			case MANOR -> "acquisition-manor-active";
 			case QUEST -> "acquisition-quest-active";
@@ -355,6 +359,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
+		if (_mode == Mode.TELEPORT_CLEANUP_058)
+		{
+			PhantomAssertions.assertEquals(58005837L, context.seed(), "Normal teleport cleanup used the wrong058 seed.");
+			assertCampaign058Jar(context);
+		}
+		if (_mode == Mode.EARNED_LEARNING_058)
+		{
+			PhantomAssertions.assertEquals(58005833L, context.seed(), "Earned learning used the wrong058 seed.");
+			assertCampaign058Jar(context);
+		}
 		if (_mode == Mode.NATURAL_STOP_058)
 		{
 			PhantomAssertions.assertEquals(58005835L, context.seed(), "Natural infrastructure stop used the wrong058 seed.");
@@ -569,6 +583,32 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.TELEPORT_CLEANUP_058)
+		{
+			registry.add("01-native-pending-teleport-normal-dematerialize", context ->
+			{
+				PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+				_player.setOnlineStatus(true, false);
+				_player.teleToLocation(new Location(-71350, 258050, -3104));
+				PhantomAssertions.assertTrue(_player.isTeleporting(), "Native TEST teleport did not enter its pending ACK state.");
+				context.record("teleportCleanup058.input", "ordinary native teleport awaiting normal client ACK; no injected failure/kill/crash; next operation is ordinary materialization dematerialize");
+				final var result = _materialization.dematerialize(_profile.profileId());
+				context.record("teleportCleanup058.facts", "result=" + result.status() + "; teleporting=" + _player.isTeleporting() + "; worldPlayerSame=" + (World.getInstance().getPlayer(_player.getObjectId()) == _player) + "; worldObjectSame=" + (World.getInstance().findObject(_player.getObjectId()) == _player) + "; spawned=" + _player.isSpawned());
+				PhantomAssertions.assertEquals(ResultStatus.SUCCESS, result.status(), "Normal dematerialize retained a Player awaiting teleport ACK.");
+				final Player ordinary = ensureObserver(); ordinary.setOnlineStatus(true, false);
+				ordinary.teleToLocation(new Location(-71350, 258070, -3104));
+				PhantomAssertions.assertTrue(ordinary.isTeleporting(), "Ordinary human control never entered native pending teleport.");
+				ordinary.deleteMe();
+				PhantomAssertions.assertTrue(!ordinary.isTeleporting() && World.getInstance().getPlayer(ordinary.getObjectId()) == null && World.getInstance().findObject(ordinary.getObjectId()) == null, "Ordinary human pending-teleport logout regressed.");
+				_observer = null;
+			});
+			return;
+		}
+		if (_mode == Mode.EARNED_LEARNING_058)
+		{
+			registry.add("01-earned-level-paid-skills-and-separate-field-effect-persistence", this::testEarnedLearning058);
+			return;
+		}
 		if (_mode == Mode.NATURAL_STOP_058)
 		{
 			registry.add("01-native-festival-waits-before-ordinary-infrastructure-stop", context ->
@@ -3136,6 +3176,17 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		context.record("pvp058.noPvp", "actual stock fighter_start_peace_1; NO_PVP=true/PEACE=false; canonical isInsidePeaceZone=true; enemy ownership rejected; no zone/config mutation");
 	}
 
+	private void preparePvpDefender058(Player actor)
+	{
+		prepareCompanionCombat058(actor, 5, 2500, 0, 6373, 6374, 6375, 6376, 6378, 920, 858, 858, 889, 889);
+		for (var learn : _progression.classSkillLearns(5).stream().filter(value -> value.minimumCharacterLevel() <= 80).sorted(Comparator.comparingInt(value -> value.skillLevel())).toList())
+		{
+			final Skill skill = SkillData.getInstance().getSkill(learn.skillId(), learn.skillLevel());
+			if ((skill != null) && (actor.getSkillLevel(learn.skillId()) < learn.skillLevel())) { actor.addSkill(skill, true); }
+		}
+		actor.setCurrentHp(actor.getMaxHp()); actor.setCurrentMp(actor.getMaxMp()); actor.setCurrentCp(actor.getMaxCp());
+	}
+
 	private void testCurrentPvp058(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
@@ -3143,7 +3194,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final Player opponent = ensureObserver();
 		prepareCompanionCombat058(_player, 94, 6579, 1339, 6383, 6384, 6385, 6386);
 		_player.addSkill(SkillData.getInstance().getSkill(1339, 101), true);
-		prepareCompanionCombat058(opponent, 5, 2500, 0, 6373, 6374, 6375, 6376, 6378);
+		preparePvpDefender058(opponent);
 		// Ordered candidates outside the stock starting protection polygons; choose before enrollment by actual native geo/zone authority.
 		Location input = null;
 		final List<Location> inputs = new ArrayList<>(List.of(new Location(-71432, 254000, -3104), new Location(-76000, 254000, -3104), new Location(-78000, 254000, -3104), new Location(-80000, 254000, -3104)));
@@ -3179,7 +3230,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final double actorPool = _player.getCurrentHp() + _player.getCurrentCp();
 		final double opponentPool = opponent.getCurrentHp() + opponent.getCurrentCp();
 		final double mp = _player.getCurrentMp();
-		context.record("pvp058.input", "TEST only native Mage94/80 learned1339:101/Sstaff+robe versus Knight5/80/Aweapon+Sheavy; actual opponent attack precedes retaliation; no forceUse, grants, HP/MP refill or AntiFeed change during episode;30s combat +35s natural fact expiry bound; partial M4");
+		context.record("pvp058.input", "TEST only native Mage94/80 learned1339:101/Sstaff+robe versus Knight5/80/Sweapon+Sheavy/full Tateossian920+858x2+889x2/native class-tree<=80; all declared before measurement; actual opponent attack precedes retaliation; no forceUse, grants, HP/MP refill or AntiFeed change during episode;30s combat +35s natural fact expiry bound; partial M4");
 		PhantomAssertions.assertTrue(GeoEngine.getInstance().canSeeTarget(opponent, _player), "Declared native PvP input has no LOS.");
 		opponent.setTarget(_player); // Same ordinary selection seam used by the existing canonical combat backend.
 		_player.onForcedAttack(opponent);
@@ -3196,7 +3247,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var retaliation = new PhantomPvpCombatRequest(_profile.profileId(), opponent.getObjectId(), org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK, authority, PhantomCombatMode.RANGED_MAGIC, false, false, 1, 30_000, () -> false);
 		PhantomAssertions.assertEquals(StartStatus.ACCEPTED, _combat.startPvpSession(retaliation).status(), "Native enhanced retaliation was rejected.");
 		final boolean[] observedEnhanced = { false };
-		await(() -> { if ((_player.getCurrentSkill() != null) && (_player.getCurrentSkill().getSkillId() == 1339) && (_player.getCurrentSkill().getSkillLevel() == 101)) { observedEnhanced[0] = true; } return observedEnhanced[0] && ((_player.getCurrentMp() + 1) < mp) && ((_player.getCurrentHp() > 0) && ((opponent.getCurrentHp() + opponent.getCurrentCp() + 10) < opponentPool)); }, "Actual native PvP enhanced cast produced no completed damage/cost.");
+		final boolean[] observedWalk = { false };
+		final int[] previous = { _player.getX(), _player.getY() }; final double[] maximumStep = { 0 }, maximumDistance = { _player.calculateDistance3D(opponent) };
+		PhantomAssertions.assertTrue(waitFor(() ->
+		{
+			if (_player.isMoving() && (_player.getAI().getIntention() == Intention.MOVE_TO)) { observedWalk[0] = true; }
+			maximumStep[0] = Math.max(maximumStep[0], Math.hypot((long) _player.getX() - previous[0], (long) _player.getY() - previous[1])); previous[0] = _player.getX(); previous[1] = _player.getY();
+			maximumDistance[0] = Math.max(maximumDistance[0], _player.calculateDistance3D(opponent));
+			if ((_player.getCurrentSkill() != null) && (_player.getCurrentSkill().getSkillId() == 1339) && (_player.getCurrentSkill().getSkillLevel() == 101)) { observedEnhanced[0] = true; }
+			return observedEnhanced[0] && ((_player.getCurrentMp() + 1) < mp) && ((_player.getCurrentHp() > 0) && ((opponent.getCurrentHp() + opponent.getCurrentCp() + 10) < opponentPool));
+		}, 35_000), "Actual native PvP enhanced cast produced no completed damage/cost after bounded spacing.");
+		context.record("pvp058.spacing", "native MOVE_TO=" + observedWalk[0] + "; maximumSampledStep=" + maximumStep[0] + "; maximumDistance=" + maximumDistance[0] + "; original30s session/four attempts<=5s each unchanged");
+		PhantomAssertions.assertTrue(observedWalk[0] && maximumStep[0] < 100, "Native ranged PvP did not walk before casting or teleported during spacing.");
 		context.record("pvp058.actual", "native1339:101=true; opponentHP+CP=" + opponentPool + "->" + (opponent.getCurrentHp() + opponent.getCurrentCp()) + "; MP=" + mp + "->" + _player.getCurrentMp() + "; opponentFlag=" + opponent.getPvpFlag() + "; actorFlag=" + _player.getPvpFlag() + "; actualCause=true; AntiFeedUnchanged=" + (antiFeed == PvpConfig.ANTIFEED_ENABLE));
 		PhantomAssertions.assertTrue(opponent.recentPlayerAttackers(16).contains(_player.getObjectId()), "Ordinary PlayerStatus did not retain its actual incoming managed Player damage fact.");
 		_combat.cancel(_profile.profileId());
@@ -3234,7 +3296,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var fixture = _environment.createCampaign058Companion(context, 1);
 		final Player enemy = Player.load(fixture.objectId());
 		PhantomAssertions.assertTrue(enemy != null, "Owned third TEST actor did not load.");
-		prepareCompanionCombat058(enemy, 5, 2500, 0, 6373, 6374, 6375, 6376, 6378);
+		preparePvpDefender058(enemy);
 		enemy.setInvul(false); enemy.setXYZInvisible(_player.getX() + 30, _player.getY() + 30, _player.getZ()); enemy.spawnMe(); enemy.revalidateZone(true);
 		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
 		progression.start();
@@ -3501,6 +3563,125 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			_player.getAI().setIntention(Intention.IDLE);
 		}
+	}
+
+	private void testEarnedLearning058(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		_player.setBaseClass(0); _player.setPlayerClass(0);
+		_player.getStat().setExp(_player.getStat().getExpForLevel(20) - 500); _player.getStat().setLevel((byte) 19); _player.setSp(0);
+		PhantomAssertions.assertTrue(_player.getKnownSkill(3) == null, "New Fighter already has the skill that must be paid for.");
+		for (int id : new int[] {68, 24, 31}) { final Item item = _player.getInventory().addItem(ItemProcessType.REWARD, id, 1, null, this); PhantomAssertions.assertTrue(item != null, "Declared no-grade fixture item missing."); _player.getInventory().equipItem(item); }
+		final List<Item> level20Equipment = new ArrayList<>();
+		for (int id : new int[] {129, 352, 2378}) { final Item item = _player.getInventory().addItem(ItemProcessType.REWARD, id, 1, null, this); PhantomAssertions.assertTrue(item != null, "Declared owned level20 equipment input missing."); level20Equipment.add(item); }
+		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setRunning(); _player.standUp(); _player.setInvul(false); _player.setOnlineStatus(true, false);
+		_player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp()); _player.setCurrentCp(_player.getMaxCp());
+		final int x = 143214, y = 2086, z = GeoEngine.getInstance().getHeight(x, y, -600);
+		PhantomAssertions.assertTrue(GeoEngine.getInstance().hasGeo(x, y) && Math.abs(z + 600) < 64 && GeoEngine.getInstance().canMoveToTarget(x, y, z, x + 40, y, z, 0) && (ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) == null), "Declared native learned-career input point is unavailable.");
+		placeInstanceInput058(_player, x, y, z);
+		PhantomAssertions.assertTrue(World.getInstance().getVisibleObjects(_player, Monster.class).stream().noneMatch(monster -> !monster.isDead() && (_player.calculateDistance3D(monster) < 1800)), "Declared career episode has an unrelated stock monster nearby.");
+		final long expBefore = _player.getExp();
+		context.record("career058.knowledge", _query.snapshot().combinedHash());
+		try (var lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertTrue(PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query).resolve(lease.actorSnapshot(), PhantomCombatMode.MELEE_PHYSICAL, lease, 4).orElseThrow().selectedSkills().isEmpty(), "Curated Fighter capability granted an unlearned offensive skill.");
+		}
+		context.record("career058.input", "FIXTURE level19/EXPfor20-500/SP0/Fighter0/no PowerStrike/no-grade68+24+31; already-owned D129+352+2378 stay inventory until natural20/native equip; native stock20035 fullHP; four ordinary common melee kills; no grants/reward/HP/MP/item creation inside measurement; xyz=" + x + ',' + y + ',' + z);
+		for (int kill = 0; kill < 4; kill++)
+		{
+			final Monster target = spawnCareerStock058();
+			final long before = _player.getExp(); final long sp = _player.getSp();
+			final var started = _combat.startContentSession(new PhantomCombatRequest(_profile.profileId(), target.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, false, false, 90_000, () -> false), "career058.earned." + kill);
+			PhantomAssertions.assertTrue(started.accepted(), "Native earned-XP combat rejected: " + started);
+			final boolean finished = waitFor(() -> target.isDead() || _player.isDead() || _combat.find(_profile.profileId()).map(value -> value.result().terminal() && !value.result().victory()).orElse(false), 90_000);
+			context.record("career058.fight" + kill, "stockHP=" + target.getCurrentHp() + '/' + target.getMaxHp() + "; actorHP=" + _player.getCurrentHp() + "; SP=" + _player.getSp() + "; session=" + _combat.find(_profile.profileId()));
+			PhantomAssertions.assertTrue(finished && target.isDead() && !_player.isDead(), "Full stock Skeleton fight failed without rescue.");
+			PhantomAssertions.assertTrue(waitFor(() -> _player.getExp() > before && _player.getSp() > sp, 5_000), "Stock kill did not earn native EXP/SP.");
+			final java.util.concurrent.atomic.AtomicBoolean consumed = new java.util.concurrent.atomic.AtomicBoolean();
+			PhantomAssertions.assertTrue(waitFor(() -> { if (!consumed.get() && _combat.consumeTerminal(_profile.profileId()).isPresent()) { consumed.set(true); } return consumed.get(); }, 10_000), "Victory cleanup did not release common ownership.");
+			context.record("career058.kill" + kill, "stock20035/HP=" + target.getMaxHp() + "; EXP=" + before + "->" + _player.getExp() + "; SP=" + sp + "->" + _player.getSp() + "; level=" + _player.getLevel());
+			System.out.println("NATIVE058 career kill=" + (kill + 1) + "; level=" + _player.getLevel() + "; earnedEXP=" + (_player.getExp() - expBefore) + "; SP=" + _player.getSp());
+			if (kill == 0)
+			{
+				PhantomAssertions.assertTrue(_player.getLevel() == 20 && _player.getSkillLevel(239) >= 1, "Natural20 did not learn native D expertise.");
+				PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat() && !_player.isAttackingNow() && !_player.isCastingNow(), 30_000), "Native combat did not end before earned-level equipment change.");
+				final var equipmentOwner = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); equipmentOwner.start();
+				try
+				{
+					for (Item item : level20Equipment) { final var equipped = equipmentOwner.equipOwnedItem(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipItemRequest(_profile.profileId(), item.getObjectId(), () -> false)); PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.SUCCESS, equipped.status(), "Native owned-item equip after natural20 failed."); }
+				}
+				finally { equipmentOwner.beginStop(); PhantomAssertions.assertTrue(equipmentOwner.finishStop(), "Native equipment owner did not drain."); }
+				context.record("career058.gear", "natural20/expertise1 -> existing owned D129+352+2378 native equipped; no grant/effect/HP rescue");
+			}
+		}
+		PhantomAssertions.assertTrue(_player.getLevel() >= 20 && _player.getExp() > expBefore && _player.getSp() >= 100, "Four stock kills did not earn the declared level/learning budget.");
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat() && !_player.isAttackingNow() && !_player.isCastingNow(), 30_000), "Native combat state did not end before trainer learning.");
+		// The existing durable learning transaction requires a saved SP baseline. Use ordinary lifecycle save/return,
+		// preserving all earned progress; never overwrite its conflict guard or fabricate SP in SQL/runtime.
+		final long earnedSp = _player.getSp(), earnedExp = _player.getExp(); final int earnedObjectId = _player.getObjectId();
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(_profile.profileId()).status(), "Earned progress checkpoint did not save.");
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Earned progress checkpoint did not return.");
+		_player = World.getInstance().getPlayer(earnedObjectId);
+		PhantomAssertions.assertTrue(_player != null && (_player.getSp() == earnedSp) && (_player.getExp() == earnedExp) && (_player.getLevel() == 20) && (_player.getActiveWeaponItem() != null) && (_player.getActiveWeaponItem().getId() == 129), "Native return changed earned level/EXP/SP/owned gear.");
+		context.record("career058.earnedCheckpoint", "ordinary native save/return before durable training; same ID=" + earnedObjectId + "; EXP=" + earnedExp + "; SP=" + earnedSp + "; level20/D129 retained; immediate unsaved SP learning remains conflict-protected");
+		final var template = NpcData.getInstance().getTemplates(value -> "Trainer".equals(value.getType()) && value.canTeach(_player.getLearningClass())).stream().min(Comparator.comparingInt(NpcTemplate::getId)).orElseThrow();
+		final var trainer = new org.l2jmobius.gameserver.model.actor.instance.Trainer(template); trainer.spawnMe(_player.getX() + 10, _player.getY(), _player.getZ()); _player.setLastFolkNPC(trainer);
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+		try
+		{
+			for (int rank = 1; rank <= 2; rank++)
+			{
+				final long sp = _player.getSp();
+				final var request = new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.LearnSkillRequest(_profile.profileId(), trainer.getObjectId(), org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.AcquireKind.CLASS, 3, rank, () -> false);
+				final var result = progression.learnClassSkill(request);
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.SUCCESS, result.status(), "Paid native learning failed: " + result);
+				PhantomAssertions.assertEquals(sp - 50, _player.getSp(), "Stock PowerStrike learning cost differs.");
+				PhantomAssertions.assertEquals(rank, _player.getSkillLevel(3), "Actual learned rank differs.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.IDEMPOTENT, progression.learnClassSkill(request).status(), "Learning retry charged twice.");
+				PhantomAssertions.assertEquals(sp - 50, _player.getSp(), "Idempotent retry consumed SP.");
+				context.record("career058.learn" + rank, "nativeTrainer=" + trainer.getId() + "; skill3:" + rank + "; SP=" + sp + "->" + _player.getSp() + "; exact retry idempotent");
+			}
+		}
+		finally { trainer.deleteMe(); progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Career progression owner did not drain."); }
+		// Separate, declared native-effect fixture after the completed earned/paid-learning episode.
+		// Normal return may put this actor inside a town; its Peace guard remains unchanged and was verified negative.
+		final long effectInputExp = _player.getExp(), effectInputSp = _player.getSp();
+		context.record("career058.fieldEffectInput", "SEPARATE TEST field input; beforeXYZ=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; prepared field=" + x + ',' + y + ',' + z + "; position only, no HP/MP/EXP/SP/skill/item mutation; autonomous town-to-field travel NOT claimed");
+		placeInstanceInput058(_player, x, y, z);
+		PhantomAssertions.assertTrue(!_player.isDead() && !_player.isInsideZone(ZoneId.PEACE) && (_player.getExp() == effectInputExp) && (_player.getSp() == effectInputSp) && (_player.getSkillLevel(3) == 2), "Separate effect input changed earned/paid progress or remains in Peace.");
+		final var resolver = PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query);
+		final Monster effectTarget = spawnCareerStock058(); final double hp = effectTarget.getCurrentHp(), mp = _player.getCurrentMp();
+		try (var lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			final var resolved = resolver.resolve(lease.actorSnapshot(), PhantomCombatMode.MELEE_PHYSICAL, lease, 4);
+			context.record("career058.currentLoadout", resolved);
+			PhantomAssertions.assertTrue(resolved.isPresent(), "Paid Fighter skill has no supported curated melee capability.");
+			final var loadout = resolved.orElseThrow();
+			PhantomAssertions.assertTrue(loadout.selectedSkills().contains(new SelectedSkill(3, 2)), "Resolver did not select the actual paid learned rank.");
+			context.record("career058.effectAdmission", "actor=" + lease.actorSnapshot() + "; target=" + lease.targetSnapshot(effectTarget.getObjectId()) + "; supports=" + lease.supportsSkill(new SelectedSkill(3, 2), PhantomCombatMode.MELEE_PHYSICAL) + "; actorXYZ=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; targetXYZ=" + effectTarget.getX() + ',' + effectTarget.getY() + ',' + effectTarget.getZ());
+			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.cast(effectTarget.getObjectId(), new SelectedSkill(3, 2), PhantomCombatMode.MELEE_PHYSICAL), "Current paid rank native cast rejected.");
+			PhantomAssertions.assertTrue(waitFor(() -> effectTarget.getCurrentHp() < hp && _player.getCurrentMp() < mp - 1, 10_000), "Paid current rank produced no actual native damage/cost.");
+		}
+		context.record("career058.effect", "skill3:2/native damage HP=" + hp + "->" + effectTarget.getCurrentHp() + "; MP=" + mp + "->" + _player.getCurrentMp());
+		_player.abortAttack(); _player.getAI().setIntention(Intention.IDLE); // Completed effect measurement; quiesce the owned TEST fixture.
+		effectTarget.deleteMe();
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isCastingNow(), 10_000), "Completed skill cast did not drain.");
+		final long savedSp = _player.getSp(), savedExp = _player.getExp(); final int objectId = _player.getObjectId();
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(_profile.profileId()).status(), "Earned native progress did not save.");
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Earned native progress did not reload.");
+		_player = World.getInstance().getPlayer(objectId);
+		PhantomAssertions.assertTrue(_player != null && (_player.getSkillLevel(3) == 2) && (_player.getSp() == savedSp) && (_player.getExp() == savedExp), "Native identity/earned EXP/SP/paid rank changed on reload.");
+		context.record("career058.persisted", "same object=" + objectId + "; skill3:2; EXP=" + savedExp + "; SP=" + savedSp + "; native save/reload; profession20/40/76, subclass quest and noblesse NOT covered");
+	}
+
+	private Monster spawnCareerStock058() throws ReflectiveOperationException
+	{
+		final Spawn spawn = new Spawn(NpcData.getInstance().getTemplate(20035));
+		spawn.setXYZ(_player.getX() + 40, _player.getY(), _player.getZ());
+		final Monster target = (Monster) spawn.doSpawn(false); spawn.stopRespawn();
+		PhantomAssertions.assertTrue(target != null, "Native stock career Spawn failed."); _worldFixtures.add(target);
+		PhantomAssertions.assertTrue(target.getCurrentHp() >= target.getMaxHp() * .99 && !target.isRaid(), "Career target is not a full stock normal Monster.");
+		return target;
 	}
 
 	private void prepareInstanceActor058(Player actor, int classId, int level)
@@ -4645,7 +4826,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			if (_materialization != null)
 			{
 				final var stopped = _materialization.shutdown();
-				if ((stopped.state() != PhantomMaterializationService.ServiceState.STOPPED) && Set.of(Mode.PVP_CURRENT_058, Mode.INSTANCES_058, Mode.RIFT_NATIVE_058).contains(_mode))
+				if ((stopped.state() != PhantomMaterializationService.ServiceState.STOPPED) && Set.of(Mode.PVP_CURRENT_058, Mode.INSTANCES_058, Mode.RIFT_NATIVE_058, Mode.EARNED_LEARNING_058, Mode.TELEPORT_CLEANUP_058).contains(_mode))
 				{
 					System.err.println("NATIVE058_CLEANUP_FACTS online=" + _player.isOnline() + "; client=" + (_player.getClient() == null ? "null" : _player.getClient().getClass().getName()) + "; worldPlayer=" + World.getInstance().getPlayer(_player.getObjectId()) + "; worldObject=" + World.getInstance().findObject(_player.getObjectId()) + "; autoSave=" + org.l2jmobius.gameserver.taskmanagers.PlayerAutoSaveTaskManager.getInstance().containsObjectId(_player.getObjectId()) + "; futures=" + PhantomHeadlessPlayerTestEnvironment.liveFutureFields(_player));
 				}

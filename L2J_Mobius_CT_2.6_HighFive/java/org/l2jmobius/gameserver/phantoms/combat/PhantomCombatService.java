@@ -1552,7 +1552,7 @@ public final class PhantomCombatService
 
 	private void issuePvpAction(PhantomCombatSession session, ActorSnapshot actor)
 	{
-		if (actor.casting() || actor.attacking())
+		if (actor.casting() || actor.attacking() || actor.moving())
 		{
 			return;
 		}
@@ -1569,6 +1569,12 @@ public final class PhantomCombatService
 		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
 		{
 			selected = session._loadout.selectedSkills().get(session._nextSkill++ % session._loadout.selectedSkills().size());
+		}
+		if (session._request.mode() != PhantomCombatMode.MELEE_PHYSICAL)
+		{
+			final SelectedSkill spacingSkill = selected == null ? session._loadout.selectedSkills().stream().findFirst().orElse(null) : selected;
+			final ActionOutcome spacing = session._actorLease.maintainRangedSpacing(ownerObjectId, spacingSkill, session._request.mode());
+			if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED)) { return; }
 		}
 		if ((selected == null) && !session._loadout.normalAttackFallback())
 		{

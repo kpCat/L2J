@@ -1,6 +1,6 @@
 # Cumulative High Five delivery contract
 
-TASK058, 16.10.2026: М2 SERVER_VERIFIED в объявленном native server scope, OWNER_QA_PENDING. Current semantic JAR37DEF прошёл ordinary Start/Status/normalStop/sameDB restart/Stop с сохранёнными identities/TEST abilities. Применяется переход к М3 по AUTHORITY058; М1/G4/G6 остаются открытыми/отложенными. Полный перечень и границы — [RESULT058](reports/PHANTOM-M2-M7-CAMPAIGN-058.md).
+TASK058, 16.10.2026: М2 SERVER_VERIFIED в объявленном native server scope, OWNER_QA_PENDING; М3–М7 PARTIAL с конкретными native результатами и открытыми границами. Продолжение разрешено AUTHORITY058; М1/G4/G6 остаются открытыми/отложенными. Финальная отдельная поставка ещё готовится. Полный актуальный перечень, JAR/provenance и история — [RESULT058](reports/PHANTOM-M2-M7-CAMPAIGN-058.md).
 
 М3 TASK058 PARTIAL: ordinary real-led JOIN сохраняет подтверждённое совместное событие с character object ID; social receipt различает новые JVM invitations и точный callback retry. Native RED/GREEN, affected Party10/10/full М2 composition1/1 и ordinary sameDB restart → native delivered recall/изоляция/новый join/идемпотентный retry проверены. Полезные owners/helpers сохранены; весь command/refusal набор М3 ещё открыт. Независимый М4 использует проверенные М2 Party/identity и social-state boundaries, не неподтверждённые команды М3.
 
@@ -9,6 +9,8 @@ TASK058, 16.10.2026: М2 SERVER_VERIFIED в объявленном native server
 М6 TASK058 PARTIAL: stock Kamaloka57 entry/guards/600s native combat, все4 живы, без victory/reward/reuse; native Rift entry/fee/room/identity, combat classification открыт. FestivalManager normal shutdown больше не игнорирует interrupt во всех8 wait; actual native signup→обычный shutdown1/1, affected common7/7/PvP4/4. Полный instance/Rift milestone не объявлен; исходные FAIL/invalid inputs сохранены.
 
 Rift TASK058: confirmed stock RiftInvader наследует Monster; knowledge copying adapter теперь сохраняет MONSTER. Native RED→actual room4/21668 MONSTER/common combat/HP2863→0; native knowledge parity22/22. Human death/no EXP оставляют весь сценарий FAIL/PARTIAL, полного timed Rift/автовхода/награды claim нет.
+
+TASK058 current common slice: native pending-teleport dematerialize RED→GREEN1/1 с ordinary human control; PvP bounded walking/current enhanced damage/mixed defense3/3, focused5/5/common7/7; Fighter0 earned20/gear/save/paid1→2/separate field effect/reload1/1, native knowledge22/22 и affected full М2 composition1/1. М7 PARTIAL: durable learning требует сохранённого SP; профессии/subclass/noblesse quests и автономный путь из города не заявлены. Все исходные FAIL остаются в evidence.
 
 ## Актуальная поправка владельца TASK058 от 16.10.2026
 
