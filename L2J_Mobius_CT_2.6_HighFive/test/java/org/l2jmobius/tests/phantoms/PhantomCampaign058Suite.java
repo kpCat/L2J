@@ -5,6 +5,7 @@ package org.l2jmobius.tests.phantoms;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
 
 import org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy;
@@ -62,6 +63,18 @@ public final class PhantomCampaign058Suite implements PhantomTestSuite
 			reject(() -> new PhantomRealPartyInvitationPolicy.Settings(true, 3001));
 			new PhantomRealPartyInvitationPolicy.Settings(false, -3000);
 			new PhantomRealPartyInvitationPolicy.Settings(true, 3000);
+		});
+		registry.add("06-native-geometry-root-and-resource-bounds", context ->
+		{
+			final Path runtime = PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058t/runtime/game");
+			final Path geo = runtime.resolve("data/geodata");
+			PhantomCampaign058GeoSuite.validateInput(runtime, geo, List.of("17_25.l2j"), 5434560);
+			reject(() -> PhantomCampaign058GeoSuite.validateInput(Path.of("C:/Users/ZBook/L2J_Mobius"), geo, List.of("17_25.l2j"), 1));
+			reject(() -> PhantomCampaign058GeoSuite.validateInput(runtime, runtime.resolve("foreign"), List.of("17_25.l2j"), 1));
+			reject(() -> PhantomCampaign058GeoSuite.validateInput(runtime, geo, List.of("../17_25.l2j"), 1));
+			reject(() -> PhantomCampaign058GeoSuite.validateInput(runtime, geo, List.of("17_25.l2j", "17_25.l2j"), 1));
+			reject(() -> PhantomCampaign058GeoSuite.validateInput(runtime, geo, List.of("17_25.l2j", "17_24.l2j", "18_25.l2j", "18_24.l2j", "19_25.l2j"), 1));
+			reject(() -> PhantomCampaign058GeoSuite.validateInput(runtime, geo, List.of("17_25.l2j"), 64L * 1024 * 1024 + 1));
 		});
 	}
 

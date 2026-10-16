@@ -53,6 +53,7 @@ Production paths относительны java/org/l2jmobius/gameserver; Phantom
 |058 heal/recharge/res role effects (часть М2)|Те же PartyCoordinator/Tactics и native support handlers; current learned ProgressionService|companion-role-matrix058: HP heal, MP recharge, native res request→TEST answer→stand-up, caster MP costs; buff affected|Existing canonical class/skill catalogs; tracked native helper; TEST role preparation не natural career и не проверка под атакой|
 |058 lost mixed membership release (часть М2)|PartyCoordinator existing claim/goal CAS/native tactical leases|companion-mixed-lifecycle058 RED/GREEN; real invitation personal-FARM negative; native support affected|Group/generation-scoped lease keys; own core party goal→ABANDONED; unrelated personal goal retained; multi-Phantom handoff/follow ещё открыты|
 |058 canonical leader handoff (часть М2)|PartyCoordinator observed leader→existing commitMembership→fresh claims; native PartyInvitationService|companion-leader-handoff058 RED/GREEN: 3 transfers, former-leader rejection, expel/pin/goal release; Party affected|Generation advances and old route cancelled; active cast/attack handoff и multi-Phantom follow ещё не доказаны|
+|058 native geometry fixture input (часть М2 проверки)|Existing native GeoEngine/config; exact058t headless environment|campaign058-native-geo1/1; ownership/config/geo bounds6/6; role matrix with actual geometry3/3|Read-only external region17_25 copied only to own fixture; product/bootstrap unchanged; movement/obstacle proof ещё открыт|
 
 ## Clean build и самостоятельная поставка
 

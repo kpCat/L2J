@@ -224,6 +224,7 @@ public final class PhantomTestLauncher
 			case "localplay-pilot-native" -> new LocalPlayPilotNativeSuite();
 			case "unit" -> new PhantomHarnessUnitSuite();
 			case "campaign058-ownership" -> new PhantomCampaign058Suite();
+			case "campaign058-native-geo" -> new PhantomCampaign058GeoSuite();
 			case "negative" -> new PhantomNegativeControlSuite();
 			case "db" -> new PhantomTestDatabaseIntegrationSuite();
 			case "scenario" -> new PhantomScenarioSmokeSuite();
