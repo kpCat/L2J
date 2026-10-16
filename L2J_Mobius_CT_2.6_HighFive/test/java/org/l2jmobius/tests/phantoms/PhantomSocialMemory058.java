@@ -1,0 +1,184 @@
+/* Copyright (c) 2013 L2jMobius */
+package org.l2jmobius.tests.phantoms;
+
+import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
+
+import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.gameserver.data.xml.MapRegionData;
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.groups.PartyDistributionType;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationService;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PartyInvitation;
+import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.TerminalOutcome;
+import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
+import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.FactKind;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.Register;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.ProfanityMode;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.Variation;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomPersonalConversationStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
+import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
+import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
+import org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy;
+import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
+import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
+import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyLoader;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyMetrics;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPolicy;
+import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
+import org.l2jmobius.gameserver.scripting.ScriptEngine;
+
+/** Two fresh native JVMs around ordinary058a restart; no persistent actor deletion or recreation. */
+public final class PhantomSocialMemory058
+{
+	private static final long PROFILE = 11;
+	private static final int HUMAN = 268435465;
+	private static final int COMPANION = 268436865;
+	private PhantomSocialMemory058() { }
+
+	public static void main(String[] args) throws Exception
+	{
+		if ((args.length != 2) || !List.of("record", "recall").contains(args[0]) || !args[1].matches("[a-z0-9-]{1,30}") || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a record/recall and unique episode label required."); }
+		final boolean record = args[0].equals("record");
+		final Path lane = PhantomCampaign058PersistentLane.LANE;
+		PhantomCampaign058PersistentLane.validateFiles(PhantomCampaign058PersistentLane.MODULE, Path.of(System.getProperty("phantom.test.config", "")), true);
+		// Reuse the existing exact ordinary-JAR allowlist and four-owner provenance check; never overlay product classes.
+		for (int port : List.of(2138, 7838, 9138)) { try (var socket = new ServerSocket(port)) { PhantomAssertions.assertTrue(socket.isBound(), "Own058a must be stopped."); } }
+		final Path receipt = lane.resolve("m3-social-memory.record");
+		if (record) { PhantomAssertions.assertFalse(Files.exists(receipt), "M3 recorded episode cannot be replayed."); Files.createFile(lane.resolve("m3-social-memory-" + args[1] + ".started")); }
+		else { PhantomAssertions.assertTrue(Files.isRegularFile(receipt), "M3 original native episode is missing."); }
+		final var context = new PhantomTestContext(58005828, PhantomCampaign058PersistentLane.MODULE, lane.resolve("reports/m3-" + args[0]));
+		PhantomCombatServerIntegrationSuite.assertCampaign058Jar(context);
+		System.out.println("M3_INPUT phase=" + args[0] + "; episode=" + args[1] + "; profile=" + PROFILE + "; human=" + HUMAN + "; " + context.measurements());
+		PhantomMaterializationService materialization = null;
+		PhantomSocialService social = null;
+		PhantomPartyCoordinator party = null;
+		PhantomGameKnowledgeService knowledge = null;
+		Player human = null;
+		try
+		{
+			PhantomHeadlessPlayerTestEnvironment.initializeNativeInfrastructure(context);
+			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
+			MapRegionData.getInstance();
+			final var profiles = PhantomProfileRepository.open();
+			PhantomAssertions.assertEquals(COMPANION, profiles.find(PROFILE).orElseThrow().characterObjectId(), "Prepared Scout identity changed.");
+			final var metrics = new PhantomMetrics();
+			materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+			PhantomAssertions.assertTrue(materialization.start(), "M3 materialization start failed.");
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(PROFILE).status(), "Prepared Scout was not materialized.");
+			final Player companion = World.getInstance().getPlayer(COMPANION);
+			human = Player.load(HUMAN);
+			PhantomAssertions.assertTrue((human != null) && human.getName().equals("TestAdmin") && !human.isGM() && (companion != null), "Exact ordinary TEST actors missing.");
+			human.setOnlineStatus(true, false); human.spawnMe();
+			final var topologyBackend = new L2jTopologyValidationBackend();
+			final var topology = new PhantomTopologyQuery(new PhantomTopologyLoader(Path.of("data/phantoms/topology"), topologyBackend, PhantomTopologyPolicy.productionDefaults()).load(1), topologyBackend, new PhantomTopologyMetrics());
+			final var knowledgePolicy = PhantomGameKnowledgePolicy.productionDefaults();
+			knowledge = new PhantomGameKnowledgeService(new PhantomGameKnowledgeBuilder(new L2jGameKnowledgeBackend(), new PhantomStaticManorParser(Path.of("data/Seeds.xml"), knowledgePolicy), new PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), new L2jGameKnowledgeBackend(), knowledgePolicy), topology, knowledgePolicy));
+			PhantomAssertions.assertTrue(knowledge.start(), "M3 knowledge start failed.");
+			final var progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, Path.of("."), knowledge::query), PhantomProgressionPolicy.productionDefaults());
+			progression.start();
+			final var socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
+			social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(profiles, socialCatalog), 58005823, 32);
+			PhantomAssertions.assertTrue(social.start(), "M3 social start failed.");
+			final var personal = PhantomPersonalConversationStore.production(profiles);
+			final var humanized = new PhantomHumanizedConversationService(PhantomHumanizedCatalog.loadV3(Path.of("data/phantoms"), true), personal, social, new PhantomHumanizedConversationService.Settings(true, Register.CASUAL, ProfanityMode.CONTEXTUAL, Variation.HIGH, false));
+			final var backend = new L2jPhantomPartyBackend(profiles, materialization, progression);
+			party = new PhantomPartyCoordinator(new PhantomPartyStore(profiles), new PhantomGoalStateStore(profiles), backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(null, null), new PhantomPartyTactics(null, backend), () -> topology.snapshot().canonicalHash(), System::nanoTime, 32, social, () -> System.currentTimeMillis() / 60000L);
+			PhantomAssertions.assertTrue(party.start(), "M3 canonical coordinator start failed.");
+			party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
+			final SubjectRef subject = SubjectRef.character(HUMAN);
+			try (var composition = new PhantomCompanionComposition058(profiles, materialization, topology, knowledge, social, party, human, humanized))
+			{
+				if (record)
+				{
+					final var invited = PartyInvitationService.getInstance().invite(human, companion, PartyDistributionType.FINDERS_KEEPERS.getId());
+					for (int pulse = 0; (pulse < 128) && !human.isInParty(); pulse++) { party.onPulse(); Thread.sleep(10); }
+					PhantomAssertions.assertTrue(human.isInParty() && (human.getParty() == companion.getParty()), "M3 actual human/Phantom canonical join failed: " + invited);
+					for (int pulse = 0; pulse < 32; pulse++) { party.onPulse(); Thread.sleep(10); }
+					System.out.println("M3_CANONICAL_JOIN party=" + party.snapshot() + "; social=" + social.snapshot());
+					final var snapshot = social.snapshot(PROFILE, subject, 24, now()).value();
+					final var joined = snapshot.memories().stream().filter(memory -> memory.eventKey().equals("party.member.joined") && memory.subject().equals(subject)).findFirst().orElseThrow(() -> new AssertionError("Native joint event was not remembered for TestAdmin."));
+					final String reply = composition.socialMessage(human, companion, "я люблю старый рок");
+					PhantomAssertions.assertTrue(personal.load(PROFILE).isPresent(), "Delivered native statement did not persist bounded personal memory.");
+					PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().leave(human), "M3 ordinary party leave failed.");
+					party.onPulse();
+					Files.writeString(receipt, joined.eventId() + "\n" + snapshot.personality().seed() + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+					System.out.println("M3_NATIVE_RECORDED event=" + joined.eventId() + "; subject=character.object:" + HUMAN + "; response=" + reply + "; boundedComponentBytes=" + profiles.findComponent(PROFILE, PhantomPersonalConversationStore.COMPONENT_TYPE).orElseThrow().payload().length);
+				}
+				else
+				{
+					final var expected = Files.readAllLines(receipt, StandardCharsets.UTF_8);
+					final var component = profiles.findComponent(PROFILE, PhantomSocialModel.COMPONENT_TYPE).orElseThrow();
+					final var snapshot = social.snapshot(PROFILE, subject, 24, now()).value();
+					PhantomAssertions.assertTrue(snapshot.memories().stream().anyMatch(memory -> memory.eventId().equals(expected.get(0)) && memory.subject().equals(subject)), "Ordinary restart lost actual joint-event memory.");
+					PhantomAssertions.assertEquals(expected.get(1), Long.toString(snapshot.personality().seed()), "Personality changed across restart.");
+					PhantomAssertions.assertTrue(social.snapshot(PROFILE, SubjectRef.character(268436779), 24, now()).value().memories().stream().noneMatch(memory -> memory.eventId().equals(expected.get(0))), "Joint event leaked to a different character.");
+					PhantomAssertions.assertEquals(component.rowVersion(), profiles.findComponent(PROFILE, PhantomSocialModel.COMPONENT_TYPE).orElseThrow().rowVersion(), "Read-only memory queries wrote social state.");
+					final String reply = composition.socialMessage(human, companion, "что я люблю");
+					PhantomAssertions.assertTrue(reply.contains("старый рок"), "Native delivered restart reply did not recall the actual counterpart's structured fact: " + reply);
+					PhantomAssertions.assertTrue(PhantomPersonalConversationStore.recall(personal.load(PROFILE).orElseThrow().state(), "character.object:268436779", FactKind.LIKE, now()).isEmpty(), "Personal fact leaked to another character.");
+					System.out.println("M3_NATIVE_RECALLED event=" + expected.get(0) + "; subject=character.object:" + HUMAN + "; response=" + reply + "; readOnlyQueries=true; isolated=true; generatedRecursion=false");
+					final var beforeJoin = snapshot.memories().stream().map(memory -> memory.eventId()).toList();
+					final var invited = PartyInvitationService.getInstance().invite(human, companion, PartyDistributionType.FINDERS_KEEPERS.getId());
+					for (int pulse = 0; pulse < 64; pulse++) { party.onPulse(); Thread.sleep(10); }
+					PhantomAssertions.assertTrue(human.isInParty() && (human.getParty() == companion.getParty()), "M3 new lawful join after restart failed.");
+					final var newJoined = social.snapshot(PROFILE, subject, 24, now()).value().memories().stream().filter(memory -> memory.eventKey().equals("party.member.joined") && !beforeJoin.contains(memory.eventId())).findFirst().orElseThrow(() -> new AssertionError("New JVM invitation reused a historical joint-event receipt."));
+					final long writes = social.snapshot().durableWrites();
+					final var identity = invited.identity();
+					party.terminal(new PartyInvitation(identity, HUMAN, human.getName(), COMPANION, companion.getName(), PartyDistributionType.FINDERS_KEEPERS, HUMAN, Long.MAX_VALUE), java.util.OptionalLong.empty(), java.util.OptionalLong.of(PROFILE), TerminalOutcome.ACCEPTED, "");
+					for (int pulse = 0; pulse < 16; pulse++) { party.onPulse(); Thread.sleep(10); }
+					PhantomAssertions.assertEquals(writes, social.snapshot().durableWrites(), "Exact accepted callback retry duplicated persisted social effects.");
+					PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().leave(human), "M3 restarted normal party leave failed.");
+					party.onPulse();
+					System.out.println("M3_NEW_JVM_JOIN freshEvent=" + newJoined.eventId() + "; exactCallbackRetryWriteFree=true");
+					Files.writeString(lane.resolve("m3-social-memory.complete"), "Two native JVMs around ordinary sameDB restart; owner UI QA_PENDING", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+				}
+			}
+			progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "M3 progression did not stop.");
+		}
+		finally
+		{
+			if ((human != null) && human.isInParty()) { PartyInvitationService.getInstance().leave(human); }
+			if (party != null) { party.beginStop(); party.finishStop(); }
+			if (social != null) { social.beginStop(); social.finishStop(); }
+			if (knowledge != null) { knowledge.beginStop(); knowledge.finishStop(); }
+			if (materialization != null) { materialization.shutdown(); }
+			// Player.java:12195/12309: deleteMe is native World teardown + online=false, not SQL character deletion.
+			// This is the same storeMe/deleteMe lifecycle used by the already approved persistent scene helper.
+			if (human != null) { human.stopAllTasks(); human.storeMe(); human.deleteMe(); }
+			ThreadPool.shutdown(); DatabaseFactory.close();
+		}
+	}
+
+	private static long now() { return System.currentTimeMillis() / 60000L; }
+}

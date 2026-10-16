@@ -76,6 +76,8 @@ import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel.SubjectRef;
  */
 public final class PhantomPartyCoordinator implements PhantomSchedulerControlPort, PartyInvitationDelivery, PhantomPartyParticipationPort
 {
+	// Native invitation sequences are process-local. Distinguish new events after an ordinary JVM restart.
+	private static final String INVITATION_SESSION = java.util.UUID.randomUUID().toString();
 	public static final String FORM_GOAL = "party.form";
 	public static final String JOIN_GOAL = "party.join";
 	public static final String LEAD_GOAL = "party.lead";
@@ -1844,10 +1846,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final List<MemberRef> phantoms = party.members().stream().filter(value -> value.kind() == MemberKind.PHANTOM).toList();
 		final List<MemberRef> reals = party.members().stream().filter(value -> value.kind() == MemberKind.REAL).toList();
 		final StoredPartyState current = _claims.get(profileId);
-		final PartyOperation observed = current == null ? null : current.state().operation();
+		final PartyOperation observed = ((current == null) || (current.state().status() == StateStatus.SOLO) || !sameInvitation(current.state().operation(), identity)) ? null : current.state().operation();
 		final long goalId = observed == null ? (joinGoal == null ? identity.sequence() : joinGoal.goal().goalId()) : observed.leaderGoalId();
 		final long goalRevision = observed == null ? (joinGoal == null ? 0 : joinGoal.goal().revision()) : observed.leaderGoalRevision();
-		final String operationId = observed == null ? PhantomPartyModel.sha256(groupId + "|join|" + profileId) : observed.operationId();
+		final String operationId = observed == null ? PhantomPartyModel.sha256(INVITATION_SESSION + '|' + groupId + "|join|" + profileId) : observed.operationId();
 		final PartyOperation operation = new PartyOperation(operationId, OperationKind.JOIN, OperationPhase.COMMITTED, party.leader(), member, goalId, goalRevision, ZERO_HASH, identity.sequence(), deadline(), "");
 		final PartyState draft = state(groupId, 1, 1, StateStatus.MEMBER, party.leader(), phantoms, reals, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "real-led"), List.of(), List.of(), null, operation, progressionHash(member), "");
 		final PartyState committed = new PartyState(draft.groupId(), draft.groupGeneration(), draft.membershipRevision(), draft.status(), draft.leader(), draft.ownRoleKey(), draft.canonicalManifestHash(), draft.phantomMembers(), draft.realMembers(), draft.objectiveMode(), draft.objectiveRef(), draft.requirements(), draft.assignments(), null, operation, draft.progressionHash(), draft.topologyHash(), "");
@@ -1855,7 +1857,15 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			putClaim(save(profileId, current == null ? -1 : current.rowVersion(), committed));
 			transitionGoal(profileId, MEMBER_GOAL, operation);
-			emitJoined(phantoms, observed, operation);
+			if (observed == null)
+			{
+				// This native human invitation deliberately had no managed goal/prepared JOIN to preserve personal FARM.
+				emitSocial(profileId, "party.member.joined", subject(party.leader()), operation.operationId(), "membership");
+			}
+			else
+			{
+				emitJoined(phantoms, observed, operation);
+			}
 		}
 		catch (RuntimeException e)
 		{
@@ -2582,7 +2592,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				return;
 		}
 		final PartyInvitation invitation = terminal.invitation();
-		final String source = "invitation|" + invitation.identity().sequence() + '|' + invitation.identity().requesterObjectId() + '|' + invitation.identity().inviteeObjectId();
+		final String source = "invitation|" + INVITATION_SESSION + '|' + invitation.identity().sequence() + '|' + invitation.identity().requesterObjectId() + '|' + invitation.identity().inviteeObjectId();
 		if (terminal.managedRequester().isPresent())
 		{
 			emitSocial(terminal.managedRequester().getAsLong(), outbound, subject(terminal.managedInvitee(), invitation.identity().inviteeObjectId()), source, "outbound");

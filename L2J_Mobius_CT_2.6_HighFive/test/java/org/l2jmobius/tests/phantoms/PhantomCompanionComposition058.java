@@ -21,6 +21,9 @@ import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecuti
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationGoalRuntimePort;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService;
 import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationResponsePlan;
+import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDirectiveIngressPort;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
@@ -45,8 +48,14 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 	private final PhantomConversationService _conversation;
 	private final PhantomSemanticUnderstandingService _semantic;
 	private final PhantomConversationIntegrationSuite.NetworkBackedClient _client;
+	private ConversationResponsePlan _latestResponse;
 
 	PhantomCompanionComposition058(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomTopologyQuery topology, PhantomGameKnowledgeService knowledge, PhantomSocialService social, PhantomPartyCoordinator party, Player human) throws Exception
+	{
+		this(profiles, materialization, topology, knowledge, social, party, human, null);
+	}
+
+	PhantomCompanionComposition058(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomTopologyQuery topology, PhantomGameKnowledgeService knowledge, PhantomSocialService social, PhantomPartyCoordinator party, Player human, PhantomHumanizedConversationService humanized) throws Exception
 	{
 		final PhantomGoalStateStore goals = new PhantomGoalStateStore(profiles);
 		final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
@@ -65,9 +74,23 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 		_semantic = PhantomSemanticUnderstandingService.loaded(PhantomSemanticPack.load(Path.of("data/phantoms/semantic/high-five-ru-semantic-v1.xml"), Path.of("data/phantoms/semantic/high-five-ru-corpus-v1.tsv"), PhantomSemanticGrounding.fixed(PhantomConversationIntegrationSuite.HASHES, PhantomConversationIntegrationSuite.references())));
 		PhantomAssertions.assertTrue(_semantic.start(), "Full058 semantic did not start.");
 		final PhantomConversationCatalog catalog = PhantomConversationCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-v1.xml"), Path.of("data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"));
-		_conversation = new PhantomConversationService(catalog, new PhantomConversationStore(profiles, executionStore), new L2jPhantomConversationContextPort(materialization, topology), _semantic, social, _execution::publish, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance());
+		_conversation = new PhantomConversationService(catalog, new PhantomConversationStore(profiles, executionStore), new L2jPhantomConversationContextPort(materialization, topology), _semantic, social, plan -> { _latestResponse = plan; _execution.publish(plan); }, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), PhantomClanDirectiveIngressPort.noop(), humanized);
 		PhantomAssertions.assertTrue(_conversation.start(), "Full058 conversation did not start.");
 		_client = PhantomConversationIntegrationSuite.NetworkBackedClient.attach(human);
+	}
+
+	String socialMessage(Player human, Player companion, String text) throws Exception
+	{
+		final long before = _execution.snapshot().sent();
+		final long deliveries = ChatObservationService.getInstance().snapshot().generatedDeliveries();
+		PhantomAssertions.assertTrue(PlayerChatIngress.dispatchClient(human, ChatType.WHISPER, companion.getName(), text).observedDeliveries() > 0, "M3 addressed native input was not delivered.");
+		for (int pulse = 0; (pulse < 512) && (_execution.snapshot().sent() == before); pulse++) { _conversation.onPulse(); _execution.onPulse(); Thread.sleep(10); }
+		PhantomAssertions.assertEquals(before + 1, _execution.snapshot().sent(), "M3 response was not exactly one native SENT: " + _execution.snapshot());
+		PhantomAssertions.assertTrue(ChatObservationService.getInstance().snapshot().generatedDeliveries() > deliveries, "M3 generated response had no recipient.");
+		PhantomAssertions.assertTrue((_latestResponse != null) && _latestResponse.responseAct().equals("social.reply") && (_latestResponse.proposal() == null), "M3 social input acquired gameplay authority.");
+		for (int pulse = 0; pulse < 32; pulse++) { _conversation.onPulse(); _execution.onPulse(); Thread.sleep(10); }
+		PhantomAssertions.assertEquals(before + 1, _execution.snapshot().sent(), "M3 generated response recursed.");
+		return _latestResponse.renderedText();
 	}
 
 	void invite(PhantomTestContext context, Player human, Player companion, long profileId, PhantomPartyCoordinator party) throws Exception
