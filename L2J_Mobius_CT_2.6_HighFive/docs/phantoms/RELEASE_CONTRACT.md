@@ -1,5 +1,7 @@
 # Cumulative High Five delivery contract
 
+TASK058, 16.10.2026: М2 SERVER_VERIFIED в объявленном native server scope, OWNER_QA_PENDING. Current semantic JAR37DEF прошёл ordinary Start/Status/normalStop/sameDB restart/Stop с сохранёнными identities/TEST abilities. Применяется переход к М3 по AUTHORITY058; М1/G4/G6 остаются открытыми/отложенными. Полный перечень и границы — [RESULT058](reports/PHANTOM-M2-M7-CAMPAIGN-058.md).
+
 ## Актуальная поправка владельца TASK058 от 16.10.2026
 
 Утверждённый [AUTHORITY058](tasks/PHANTOM-M2-M7-CAMPAIGN-058/AUTHORITY.md) заменяет прежний запрет перехода к М2–М7 до всех gates М1. Исторические OPEN/FAIL и результаты 041–057 сохраняются. Новые этапы различают SERVER_VERIFIED и OWNER_ACCEPTED; OWNER_QA_PENDING не блокирует следующую серверную разработку. Поправка не снимает защиту M1-057-candidate, других сред и ограничения платформы.
