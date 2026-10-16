@@ -12,6 +12,8 @@ Rift TASK058: confirmed stock RiftInvader наследует Monster; knowledge 
 
 TASK058 current common slice: native pending-teleport dematerialize RED→GREEN1/1 с ordinary human control; PvP bounded walking/current enhanced damage/mixed defense3/3, focused5/5/common7/7; Fighter0 earned20/gear/save/paid1→2/separate field effect/reload1/1, native knowledge22/22 и affected full М2 composition1/1. М7 PARTIAL: durable learning требует сохранённого SP; профессии/subclass/noblesse quests и автономный путь из города не заявлены. Все исходные FAIL остаются в evidence.
 
+TASK058 support addition: существующий progression rule теперь учитывает изученный Cardinal Greater Heal1217, сохраняя Balance Life. Native current1217:101 actual effect/cost1/1 и affected role matrix3/3; stock source/learned/MP/target guards сохранены, product grant отсутствует. Полного raid claim нет.
+
 ## Актуальная поправка владельца TASK058 от 16.10.2026
 
 М4 TASK058 PARTIAL: native actual Player damage facts (32 ID/30s, no timer/SQL), current PvP rank и canonical NO_PVP guard сохранены в Player/PlayerStatus/Combat/Party owners. Native3/3 проверили enhanced retaliation и mixed-party defense/evidence revoke; affected М2 support3/3 и common boundary7/7. Один исторический normal teardown FAIL остаётся открытым риском; полного PvP/retreat/clans milestone claim нет. Exact orphan repair action ограничен одним failed058t fixture327 с отсутствующим персонажем, не cumulative/release.

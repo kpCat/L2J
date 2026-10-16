@@ -345,6 +345,7 @@ public final class PhantomTestLauncher
 			case "natural-infrastructure-stop058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.NATURAL_STOP_058);
 			case "earned-learning-native058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.EARNED_LEARNING_058);
 			case "teleport-cleanup-native058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.TELEPORT_CLEANUP_058);
+			case "companion-current-greater-heal058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_GREATER_HEAL_058);
 			case "qol-summoner-servitor-combat" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QOL009_SERVITOR);
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();
 			case "progression-parity" -> new PhantomProgressionParitySuite();

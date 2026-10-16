@@ -236,6 +236,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		NATURAL_STOP_058,
 		EARNED_LEARNING_058,
 		TELEPORT_CLEANUP_058,
+		COMPANION_GREATER_HEAL_058,
 		POST002_SUPPORT,
 		COMPANION_REAL_SUPPORT_058,
 		COMPANION_ROLE_MATRIX_058,
@@ -349,6 +350,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case NATURAL_STOP_058 -> "natural-infrastructure-stop058";
 			case EARNED_LEARNING_058 -> "earned-learning-native058";
 			case TELEPORT_CLEANUP_058 -> "teleport-cleanup-native058";
+			case COMPANION_GREATER_HEAL_058 -> "companion-current-greater-heal058";
 			case ACQUISITION -> "acquisition-active-spoil";
 			case MANOR -> "acquisition-manor-active";
 			case QUEST -> "acquisition-quest-active";
@@ -359,6 +361,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
+		if (_mode == Mode.COMPANION_GREATER_HEAL_058)
+		{
+			PhantomAssertions.assertEquals(58005839L, context.seed(), "Current Greater Heal used the wrong058 seed.");
+			assertCampaign058Jar(context);
+		}
 		if (_mode == Mode.TELEPORT_CLEANUP_058)
 		{
 			PhantomAssertions.assertEquals(58005837L, context.seed(), "Normal teleport cleanup used the wrong058 seed.");
@@ -583,6 +590,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_GREATER_HEAL_058)
+		{
+			registry.add("01-real-led-current-greater-heal-with-native-effect-and-cost", context -> testCompanionNativeRole058(context, "combat.heal"));
+			return;
+		}
 		if (_mode == Mode.TELEPORT_CLEANUP_058)
 		{
 			registry.add("01-native-pending-teleport-normal-dematerialize", context ->
@@ -1448,13 +1460,14 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		human.revalidateZone(true);
 		PhantomAssertions.assertTrue(!_player.isGM() && !human.isGM(), "Companion support requires ordinary TEST players.");
 		final CapabilityRule rule = _progression.capabilityRules(capabilityKey).stream()
+			.filter(candidate -> (_mode != Mode.COMPANION_GREATER_HEAL_058) || (candidate.classIds().contains(97) && (candidate.actionSkill().skillId() == 1217)))
 			.filter(candidate -> candidate.requiredEquipmentFamilies().isEmpty() && candidate.requiredItems().isEmpty() && (candidate.classIds().size() == 1))
 			.filter(candidate -> Set.of("SINGLE_TARGET", "PARTY", "ALLY").contains(candidate.targetScope().name()))
 			.filter(candidate -> {
 				final Skill skill = SkillData.getInstance().getSkill(candidate.actionSkill().skillId(), candidate.actionSkill().skillLevel());
 				return (skill != null) && (skill.getItemConsumeId() <= 0) && (skill.getMpConsume() > 0);
 			}).findFirst().orElseThrow();
-		final int preparedRank = _mode == Mode.LEARNED_SKILLS_058 ? 101 : rule.actionSkill().skillLevel();
+		final int preparedRank = Set.of(Mode.LEARNED_SKILLS_058, Mode.COMPANION_GREATER_HEAL_058).contains(_mode) ? 101 : rule.actionSkill().skillLevel();
 		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), preparedRank);
 		PhantomAssertions.assertTrue(skill != null && skill.getLevel() == preparedRank, "Declared stock support rank is unavailable.");
 		// Explicit TEST preparation before the episode; no natural career or product grant claim.
@@ -1463,6 +1476,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		_player.setBaseClass(rule.classIds().getFirst());
 		_player.setPlayerClass(rule.classIds().getFirst());
 		_player.addSkill(skill, false);
+		if (_mode == Mode.COMPANION_GREATER_HEAL_058) { _player.addSkill(SkillData.getInstance().getSkill(1335, 1), false); }
 		_player.enableSkill(skill);
 		_player.setCurrentHp(_player.getMaxHp());
 		// Leave regeneration headroom; a full-MP clamp can hide a cost at the sampling boundary.

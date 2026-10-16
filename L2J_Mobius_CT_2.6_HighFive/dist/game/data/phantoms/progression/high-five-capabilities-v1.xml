@@ -23,6 +23,8 @@
 	<capabilitySemantics capabilityKey="profession.craft" targetScope="SELF" />
 	<capabilitySemantics capabilityKey="logistics.summon_friend" targetScope="PARTY" />
 
+	<capabilityRule classId="97" capabilityKey="combat.heal" variantKey="cardinal-greater-heal" rank="1000" skillId="1217" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/Bishop.xml" />
+
 	<capabilityRule classId="89" capabilityKey="combat.aoe_damage" variantKey="dreadnought-shock-stomp" rank="850" skillId="361" skillLevel="1" source="data/stats/players/skillTrees/3rdClass/Dreadnought.xml" />
 	<capabilityRule classId="105" capabilityKey="combat.recharge" variantKey="eva-saint-recharge" rank="900" skillId="1013" skillLevel="32" source="data/stats/players/skillTrees/2ndClass/ElvenElder.xml" />
 	<capabilityRule classId="112" capabilityKey="combat.recharge" variantKey="shillien-saint-recharge" rank="900" skillId="1013" skillLevel="32" source="data/stats/players/skillTrees/2ndClass/ShillienElder.xml" />
