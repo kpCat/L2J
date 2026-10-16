@@ -121,6 +121,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	{
 		MANAGED_INGRESS,
 		OUTBOUND_CHAT,
+		COMPANION_REQUEST_058,
 		CHAT_INTEGRATION,
 		LIFECYCLE_PERFORMANCE
 	}
@@ -165,6 +166,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			case MANAGED_INGRESS -> "conversation-managed-ingress";
 			case OUTBOUND_CHAT -> "conversation-outbound-chat";
+			case COMPANION_REQUEST_058 -> "companion-request058";
 			case CHAT_INTEGRATION -> "conversation-chat-integration";
 			case LIFECYCLE_PERFORMANCE -> "conversation-lifecycle-performance";
 		};
@@ -173,7 +175,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals((_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
+		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
 		_profiles = PhantomProfileRepository.open();
@@ -268,10 +270,52 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			chatIntegration(registry);
 		}
+		else if (_mode == Mode.COMPANION_REQUEST_058)
+		{
+			companionRequest058(registry);
+		}
 		else
 		{
 			lifecyclePerformance(registry);
 		}
+	}
+
+	private void companionRequest058(PhantomTestRegistry registry)
+	{
+		registry.add("01-delivered-addressed-companion-request-targets-speaker", context ->
+		{
+			// Declared TEST preconditions; this network-backed fixture is not an owner client login.
+			_observer.getStat().setLevel((byte) 20);
+			_speaker.getStat().setLevel((byte) 20);
+			_speaker.spawnMe(_observer.getX(), _observer.getY(), _observer.getZ());
+			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
+			try (NetworkBackedClient counterpart = NetworkBackedClient.attach(_speaker))
+			{
+				PhantomAssertions.assertFalse(_speaker.isGM(), "Companion request fixture must use ordinary player rules.");
+				final PlayerChatIngress.Result result = PlayerChatIngress.dispatchClient(_speaker, ChatType.WHISPER, _observer.getName(), "го кач?");
+				PhantomAssertions.assertTrue(result.dispatched() && (result.observedDeliveries() > 0), "Ordinary whisper did not reach the materialized recipient.");
+				driveUntilPlans(1, 128);
+				PhantomAssertions.assertEquals(1, _plans.size(), "One addressed request must produce exactly one observer plan: " + _conversation.snapshot() + "; phases=" + _phaseEvents);
+				final ConversationResponsePlan plan = _plans.getFirst();
+				PhantomAssertions.assertTrue(plan.proposal() != null, "Delivered companion request produced no executable party proposal.");
+				PhantomAssertions.assertEquals("party.invite", plan.proposal().proposalKey(), "Companion request chose a different action.");
+				PhantomAssertions.assertEquals(new PhantomDomainRef("character.object", Integer.toString(_speaker.getObjectId())), plan.proposal().target(), "Companion request did not retain the exact speaker.");
+				PhantomAssertions.assertTrue(_stateExistedBeforePublish, "Companion proposal bypassed durable conversation state.");
+			}
+		});
+		registry.add("02-unaddressed-local-request-does-not-recruit-recipients", context ->
+		{
+			final int before = _plans.size();
+			final long ingressBefore = _conversation.snapshot().ingressAccepted();
+			try (NetworkBackedClient counterpart = NetworkBackedClient.attach(_speaker))
+			{
+				final PlayerChatIngress.Result result = PlayerChatIngress.dispatchClient(_speaker, ChatType.GENERAL, null, "го кач?");
+				PhantomAssertions.assertTrue(result.dispatched() && (result.observedDeliveries() > 0), "Local negative control did not reach nearby recipients.");
+				PhantomAssertions.assertTrue(_conversation.snapshot().ingressAccepted() >= ingressBefore + 2, "The local negative must include the managed recipient and dispatch-close boundary.");
+				driveUntilIdle(128);
+				PhantomAssertions.assertEquals(before, _plans.size(), "An unaddressed local request recruited a nearby Phantom.");
+			}
+		});
 	}
 
 	private void outboundChat(PhantomTestRegistry registry)

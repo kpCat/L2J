@@ -425,6 +425,7 @@ public final class PhantomTestLauncher
 			case "conversation-understanding" -> new PhantomConversationSuite(PhantomConversationSuite.Mode.UNDERSTANDING);
 			case "conversation-social-style" -> new PhantomConversationSuite(PhantomConversationSuite.Mode.SOCIAL_STYLE);
 			case "conversation-chat-integration" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.CHAT_INTEGRATION);
+			case "companion-request058" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.COMPANION_REQUEST_058);
 			case "conversation-lifecycle-performance" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "conversation-managed-ingress" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.MANAGED_INGRESS);
 			case "conversation-execution-catalog-codec" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.CATALOG_CODEC);

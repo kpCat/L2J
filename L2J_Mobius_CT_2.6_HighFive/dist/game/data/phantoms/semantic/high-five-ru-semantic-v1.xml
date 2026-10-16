@@ -160,6 +160,11 @@
 		<reason key="reject.mixed_script"/>
 	</reasons>
 	<intents>
+		<intent key="party.companion.request" baseScore="7400" requiredAll="-" requiredAny="-">
+			<pattern id="companion.farm" text="го кач"/>
+			<pattern id="companion.party" text="го группу"/>
+			<pattern id="companion.together" text="пойдем вместе"/>
+		</intent>
 		<intent key="party.invite" baseScore="7200" requiredAll="TARGET_PLAYER" requiredAny="-">
 			<pattern id="invite.target" text="пригласи {TARGET_PLAYER}"/>
 			<pattern id="invite.call" text="позови {TARGET_PLAYER}"/>

@@ -43,6 +43,7 @@
 		<act key="no_response.unsupported"><template style="neutral" text="Поддерживаемый ответ не определён."/></act>
 	</responseActs>
 	<proposalMappings>
+		<mapping intent="party.companion.request" proposal="party.invite" kind="action" ttlMinutes="5"/>
 		<mapping intent="party.invite" proposal="party.invite" kind="action" ttlMinutes="5"/>
 		<mapping intent="party.accept" proposal="party.accept" kind="action" ttlMinutes="5"/>
 		<mapping intent="party.refuse" proposal="party.refuse" kind="action" ttlMinutes="5"/>

@@ -1243,8 +1243,15 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 			else
 			{
 				act = understanding.selectedIntent().equals("party.accept") ? "ack.accepted" : understanding.selectedIntent().equals("party.refuse") ? "ack.refused" : mapping.query() ? "ack.query_proposed" : "ack.action_proposed";
-				final PhantomDomainRef target = understanding.slots().stream().filter(slot -> slot.type() == SlotType.TARGET_PLAYER).map(SlotValue::domainReference).findFirst().orElse(null);
-				proposal = new ConversationActionProposal(mapping.proposalKey(), new PhantomDomainRef("profile", Long.toString(profileId)), target, understanding.slots(), semanticHash, batch._observationHash, understanding.confidence(), nowMinute, nowMinute + mapping.ttlMinutes(), Authorization.CHECKPOINT_2_REQUIRED);
+				PhantomDomainRef target = understanding.slots().stream().filter(slot -> slot.type() == SlotType.TARGET_PLAYER).map(SlotValue::domainReference).findFirst().orElse(null);
+				List<SlotValue> proposalSlots = understanding.slots();
+				if (understanding.selectedIntent().equals("party.companion.request"))
+				{
+					// Election already selected one addressed recipient; consent targets only this speaker.
+					target = context.speaker();
+					proposalSlots = List.of(SlotValue.domain(SlotType.TARGET_PLAYER, target, -1, -1));
+				}
+				proposal = new ConversationActionProposal(mapping.proposalKey(), new PhantomDomainRef("profile", Long.toString(profileId)), target, proposalSlots, semanticHash, batch._observationHash, understanding.confidence(), nowMinute, nowMinute + mapping.ttlMinutes(), Authorization.CHECKPOINT_2_REQUIRED);
 			}
 		}
 		else if (understanding.status() == UnderstandingStatus.CLARIFICATION_REQUIRED)

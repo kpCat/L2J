@@ -7,7 +7,7 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 
 | Этап | Реализация | Серверная проверка | Владелец |
 |---|---|---|---|
-| М2 | Наличие старого wiring подтверждено; полный сценарий ещё не завершён | Native Party baseline10/10, полного S2 пока нет | QA_PENDING |
+| М2 | PARTIAL: адресный companion request→durable exact-target invitation proposal | Native request2/2, Party baseline10/10; полного S2 пока нет | QA_PENDING |
 | М3 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М4 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М5 | NOT_STARTED | NOT_STARTED | QA_PENDING |
@@ -24,5 +24,9 @@ Native Party проверил реальные invitation/expiry/terminal identi
 Self-review: exact058t identity/manifest/CWD/catalog проверяются до fixture writes; старые lanes не расширены. Product-код пока не менялся.
 Логи: `.phantom-local/logs/TASK058`; приватный checkpoint и матрица: `.phantom-local/contract058a`.
 Сборки test runner:17s и18s; targeted javac helper exit0. Два старых javac warnings System.runFinalization вне scope сохранены.
-Готового058 candidate пока нет; следующая зависимость — адресная речь→native delivery→canonical party composition.
-Git-команды разрешены прямым TASK058: exact status/rev-parse/log/diff/check, затем exact add/commit и normal non-force push. Публикация первого шага ожидается; итоговые SHA будут обновлены.
+М2 request: штатный ingress/actual delivery «го кач?»→один durable proposal к speaker; неадресный GENERAL получает managed delivery, но не recruiting. Corpus добавляет «го пати», «пойдём вместе» и три отрицания;248 cases,16 intents.
+RED: доставленное обращение не имело executable proposal. Далее выявлены закрытый parser intent-set и codec dictionary. Добавлен ровно один intent; compact dictionary только дополнен в конце, прежние индексы/schema1 сохранены. Existing coverage counts обновлены на шесть явно добавленных примеров.
+GREEN: companion-request0582/2; semantic corpus3/3, intents3/3, context3/3, pack3/3; conversation catalog/codec2/2 и understanding2/2. XML DOCTYPE error — ожидаемый negative control, suites exit0.
+Self-review: точный speaker/typed TARGET_PLAYER slot и прежний election/cooldown; generated social recursion не расширена; no autoaccept за человека. Девять связанных code/data/test paths — bounded scope по TASK058§7; общий framework не добавлен.
+Готового058 candidate пока нет; следующая зависимость — proposal→доставленный ответ→canonical invitation/acceptance, затем actual companion play/support/lifecycle.
+Git-команды разрешены прямым TASK058: exact status/rev-parse/log/diff/check, exact add/commit и normal non-force push. Первый опубликованный commit `754e83259631a823fd658b3cbdccd92ba52c42a1`, remote equality подтверждена. Следующий шаг готовится к публикации.

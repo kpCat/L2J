@@ -29,7 +29,7 @@ public final class PhantomConversationStateCodec
 	public static final int DECLARED_WORST_CASE_BYTES = 3456;
 	private static final int MAGIC = 0x434f4e56;
 	private static final int FORMAT = 1;
-	private static final List<String> INTENTS = List.of("party.invite", "party.accept", "party.refuse", "party.leave", "party.role.query", "party.travel", "party.support.request", "party.assist.request", "party.regroup.request", "entity.locate", "item.acquire.query", "item.source.query", "content.requirements.query", "unknown");
+	private static final List<String> INTENTS = List.of("party.invite", "party.accept", "party.refuse", "party.leave", "party.role.query", "party.travel", "party.support.request", "party.assist.request", "party.regroup.request", "entity.locate", "item.acquire.query", "item.source.query", "content.requirements.query", "unknown", "party.companion.request");
 	private static final List<String> NAMESPACES = List.of("profile", "character.object", "party.role", "capability", "item", "npc", "content", "topology.node", "location", "party");
 
 	public byte[] encode(ConversationState state)
