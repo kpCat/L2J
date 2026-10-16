@@ -104,6 +104,8 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCompetition
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundService;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction;
+import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
+import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
 import org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatActorLease;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
@@ -150,6 +152,9 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBuilder;
@@ -222,6 +227,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		LEARNED_SKILLS_058,
 		COMPANION_RANGED_SPACING_058,
 		COMPANION_FULL_COMPOSITION_058,
+		COMPANION_FARM_RESUME_058,
 		QOL009_SERVITOR
 	}
 
@@ -313,6 +319,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case LEARNED_SKILLS_058 -> "learned-skills058";
 			case COMPANION_RANGED_SPACING_058 -> "companion-ranged-spacing058";
 			case COMPANION_FULL_COMPOSITION_058 -> "companion-full-composition058";
+			case COMPANION_FARM_RESUME_058 -> "companion-farm-resume058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -325,7 +332,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_FULL_COMPOSITION_058)
+		if (_mode == Mode.COMPANION_FARM_RESUME_058)
+		{
+			PhantomAssertions.assertEquals(58005825L, context.seed(), "Companion farm resume used the wrong seed.");
+			PhantomAssertions.assertEquals(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toRealPath(), Path.of(Player.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "Farm058 requires the actual ordinary current JAR.");
+		}
+		else if (_mode == Mode.COMPANION_FULL_COMPOSITION_058)
 		{
 			PhantomAssertions.assertEquals(58005824L, context.seed(), "Full companion composition used the wrong seed.");
 			PhantomAssertions.assertEquals(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toRealPath(), Path.of(Player.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "Full058 composition requires the actual ordinary current JAR.");
@@ -508,6 +520,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_FARM_RESUME_058)
+		{
+			registry.add("01-earned-native-farm-to-party-and-same-goal-resume", this::testCompanionFarmResume058);
+			return;
+		}
 		if (_mode == Mode.COMPANION_FULL_COMPOSITION_058)
 		{
 			registry.add("01-addressed-speech-to-native-party-walk-assist-and-partychat", this::testCompanionFollow058);
@@ -630,6 +647,131 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		registry.add("18-production-combat-has-no-packet-route", _ -> testNoPacketRoute());
 		registry.add("19-canonical-player-cp-snapshot", _ -> testCanonicalCpSnapshot());
 		registry.add("20-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
+	}
+
+	private void testCompanionFarmResume058(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final SpawnFact source = _query.snapshot().npcById().values().stream()
+			.filter(npc -> (npc.kind() == NpcKind.MONSTER) && npc.attackable() && npc.targetable() && (npc.level() >= 70) && (npc.level() <= 72) && (npc.exp() > 0))
+			.sorted(Comparator.comparingInt(NpcFact::npcId))
+			.flatMap(npc -> _query.snapshot().spawnFactsByNpc().getOrDefault(npc.npcId(), List.of()).stream())
+			.filter(point -> (point.instanceId() == 0) && (point.topologyNodeId() != null) && !_topology.snapshot().anchorsByNode().getOrDefault(point.topologyNodeId(), List.of()).isEmpty())
+			.filter(point -> point.territoryGeometry() != null)
+			.map(point -> sourceCombatPoint(point.npcId(), point.topologyNodeId(), _topology.snapshot().anchorsByNode().get(point.topologyNodeId()).getFirst().id()))
+			.filter(point -> GeoEngine.getInstance().hasGeo(point.x(), point.y()) && (Math.abs(GeoEngine.getInstance().getHeight(point.x(), point.y(), point.z()) - point.z()) <= 100)
+				&& GeoEngine.getInstance().canMoveToTarget(point.x(), point.y(), point.z(), point.x() + 64, point.y(), point.z(), 0))
+			.findFirst().orElseThrow(() -> new AssertionError("No declared stock70..72 normal spawn with current topology/geometry."));
+		final var anchor = _topology.snapshot().anchorsByNode().get(source.topologyNodeId()).getFirst();
+		final int z = GeoEngine.getInstance().getHeight(source.x(), source.y(), source.z());
+		final Player human = ensureObserver();
+		for (Player actor : List.of(_player, human))
+		{
+			actor.decayMe();
+			actor.setXYZInvisible(source.x() + 64, source.y(), z);
+			actor.spawnMe();
+			actor.revalidateZone(true);
+		}
+		prepareCompanionCombat058(_player, 88, 6580, 345, 6373, 6374, 6375, 6376, 6378);
+		prepareCompanionCombat058(human, 5, 0, 0, 6373, 6374, 6375, 6376, 6378);
+		final List<Monster> targets = new ArrayList<>();
+		for (int index = 0; index < 4; index++)
+		{
+			final Monster monster = new Monster(NpcData.getInstance().getTemplate(source.npcId()));
+			targets.add(monster);
+			_worldFixtures.add(monster);
+		}
+		final PhantomGoalStateStore goals = new PhantomGoalStateStore(_repository);
+		final PhantomGoal farm = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(source.npcId())), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, source.npcId() + "@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture058.native_farm", 1);
+		goals.insert(_profile.profileId(), farm);
+		final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
+		final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
+		candidates.seal();
+		handlers.seal();
+		final PhantomDecisionEngine engine = new PhantomDecisionEngine(goals, candidates, handlers, new PhantomMetrics(), 1);
+		engine.start();
+		PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(_profile.profileId()), "Native FARM did not attach.");
+		final PhantomNavigationService navigation = new PhantomNavigationService(new PhantomMetrics());
+		navigation.start();
+		final PhantomProgressionService progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
+		progression.start();
+		final PhantomSocialCatalog socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
+		final PhantomSocialService social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(_repository, socialCatalog), context.seed(), 16);
+		social.start();
+		final L2jPhantomPartyBackend backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
+		final PhantomPartyCoordinator party = new PhantomPartyCoordinator(new PhantomPartyStore(_repository), goals, backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(navigation, _combat, PhantomPartyFollowPolicy.load(Path.of("data/phantoms/party/high-five-party-follow-v1.xml"))), new PhantomPartyTactics(_combat, backend), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 32);
+		party.start();
+		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
+		final PhantomVisibleAutoPlay autoPlay = new PhantomVisibleAutoPlay(_materialization, () -> engine, id -> !party.blocksBackground(id));
+		final long actorAdenaBefore = _player.getAdena();
+		final long humanAdenaBefore = human.getAdena();
+		context.record("farm058.input", "TEST sourceNpc=" + source.npcId() + "; actual stock source=" + source + "; anchor=" + anchor.id() + "; class88/80/Sgear/345:1;4 full stock targets; first earned native FARM kill, invite during next attack, native party assist, leave/same FARM resume;120s each; no actor/item/stat/reward mutation during episode");
+		try (var client = PhantomConversationIntegrationSuite.NetworkBackedClient.attach(human))
+		{
+			final long initialExp = _player.getExp();
+			targets.get(0).spawnMe(source.x() + 32, source.y(), z);
+			PhantomAssertions.assertTrue(autoPlay.start(_profile.profileId(), farm), "Native FARM owner did not start.");
+			awaitFarmKill058(targets.get(0), party, false, initialExp);
+			context.record("farm058.beforeParty", "npcDead=true; exp=" + initialExp + "->" + _player.getExp() + "; " + autoPlay.snapshotContinuation(_profile.profileId()).scalarMap());
+			targets.get(1).spawnMe(source.x() + 32, source.y(), z);
+			final long attackDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+			while (!_player.isAttackingNow() && (System.nanoTime() < attackDeadline)) { Thread.sleep(20); }
+			PhantomAssertions.assertTrue(_player.isAttackingNow(), "Declared takeover did not encounter an actual native attack.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, _player, PartyDistributionType.FINDERS_KEEPERS.getId()).delivered(), "Native incoming invitation was not delivered.");
+			for (int pulse = 0; (pulse < 64) && !party.committed(_profile.profileId()); pulse++) { party.onPulse(); Thread.sleep(20); }
+			PhantomAssertions.assertTrue(party.committed(_profile.profileId()) && party.blocksBackground(_profile.profileId()), "Active FARM prevented lawful native companion commitment.");
+			final long revokedDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			while (_player.isAutoPlaying() && (System.nanoTime() < revokedDeadline)) { party.onPulse(); Thread.sleep(20); }
+			PhantomAssertions.assertFalse(autoPlay.running(_profile.profileId(), farm) || _player.isAutoPlaying(), "Native FARM root still competes with committed party.");
+			PhantomAssertions.assertEquals(farm, goals.load(_profile.profileId()).orElseThrow().goal(), "Incoming companion membership replaced the personal FARM.");
+			human.setTarget(targets.get(1));
+			awaitFarmKill058(targets.get(1), party, true, _player.getExp());
+			targets.get(2).spawnMe(source.x() + 32, source.y(), z);
+			human.setTarget(targets.get(2));
+			awaitFarmKill058(targets.get(2), party, true, _player.getExp());
+			context.record("farm058.inParty", "actual native second-target assist/reward; exp=" + _player.getExp() + "; ordinary=" + autoPlay.snapshotContinuation(_profile.profileId()).scalarMap());
+			final var registrations = autoPlay.snapshotContinuation(_profile.profileId()).scalarMap();
+			PhantomAssertions.assertEquals("false", registrations.get("liveAutoPlayRegistered"), "Old FARM AutoPlay registration competed with native party.");
+			PhantomAssertions.assertEquals("false", registrations.get("liveAutoUseRegistered"), "Old FARM AutoUse registration competed with native party.");
+			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
+			for (int pulse = 0; (pulse < 64) && party.blocksBackground(_profile.profileId()); pulse++) { party.onPulse(); Thread.sleep(20); }
+			PhantomAssertions.assertFalse(party.blocksBackground(_profile.profileId()), "Leave retained the FARM fence.");
+			PhantomAssertions.assertEquals(farm, goals.load(_profile.profileId()).orElseThrow().goal(), "Leave changed the exact personal FARM.");
+			final long resumeExp = _player.getExp();
+			targets.get(3).spawnMe(source.x() + 32, source.y(), z);
+			PhantomAssertions.assertTrue(autoPlay.start(_profile.profileId(), farm), "Same personal FARM could not resume after leave.");
+			awaitFarmKill058(targets.get(3), party, false, resumeExp);
+			context.record("farm058.resumed", "sameGoal=" + farm.goalId() + ":" + farm.revision() + "; actual fourth stock kill/native EXP=" + resumeExp + "->" + _player.getExp() + "; " + autoPlay.snapshotContinuation(_profile.profileId()).scalarMap());
+		}
+		finally
+		{
+			autoPlay.stop(_profile.profileId());
+			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
+			for (int pulse = 0; pulse < 8; pulse++) { party.onPulse(); }
+			party.beginStop();
+			party.finishStop();
+			navigation.beginStop();
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			while (navigation.snapshot().state() != PhantomNavigationService.ServiceState.STOPPED && System.nanoTime() < deadline) { navigation.finishStop(); Thread.sleep(10); }
+			progression.beginStop(); progression.finishStop();
+			social.beginStop(); social.finishStop();
+			engine.beginStop(); engine.finishStop();
+			// Measurement has ended. Restore only the native TEST fixtures' conserved adena baseline.
+			destroyInventoryCount(_player, ADENA_ITEM_ID, _player.getAdena() - actorAdenaBefore);
+			destroyInventoryCount(human, ADENA_ITEM_ID, human.getAdena() - humanAdenaBefore);
+		}
+	}
+
+	private void awaitFarmKill058(Monster target, PhantomPartyCoordinator party, boolean companion, long expBefore) throws Exception
+	{
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(120);
+		while ((!target.isDead() || (_player.getExp() <= expBefore)) && (System.nanoTime() < deadline))
+		{
+			if (companion) { party.onPulse(); }
+			PhantomAssertions.assertFalse(_player.isDead(), "Declared FARM/party actor died.");
+			Thread.sleep(20);
+		}
+		PhantomAssertions.assertTrue(target.isDead() && (_player.getExp() > expBefore), "No actual native stock kill/reward: npc=" + target.getId() + "; hp=" + target.getCurrentHp() + "; exp=" + expBefore + "->" + _player.getExp() + "; xyz=" + _player.getLocation() + "; target=" + _player.getTarget() + "; autoPlay=" + _player.isAutoPlaying());
 	}
 
 	private void testCompanionFollow058(PhantomTestContext context) throws Exception

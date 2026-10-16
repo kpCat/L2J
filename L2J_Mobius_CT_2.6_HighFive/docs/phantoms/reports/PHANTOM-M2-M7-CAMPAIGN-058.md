@@ -7,7 +7,7 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 
 | Этап | Реализация | Серверная проверка | Владелец |
 |---|---|---|---|
-| М2 | PARTIAL: request/reply, invitations/support,3 followers, assist/агро/ranged spacing/current rank | Полная native composition на ordinary JAR и normal sameDB preservation; earned FARM interruption/resume ещё открыт | QA_PENDING |
+| М2 | PARTIAL: request/reply, invitations/support,3 followers, assist/агро/ranged spacing/current rank | Полная native composition/current JAR, normal sameDB preservation и earned FARM→party→same goal resume; active-cast handoff/contextual party reply ещё проверяются | QA_PENDING |
 | М3 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М4 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М5 | NOT_STARTED | NOT_STARTED | QA_PENDING |
