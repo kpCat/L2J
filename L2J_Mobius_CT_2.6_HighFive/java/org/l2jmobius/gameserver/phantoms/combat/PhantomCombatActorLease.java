@@ -6,6 +6,7 @@ package org.l2jmobius.gameserver.phantoms.combat;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.AcquisitionSkillKind;
@@ -181,6 +182,17 @@ public interface PhantomCombatActorLease extends AutoCloseable
 	}
 
 	boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode);
+
+	/** Current learned single-target NPC aggression only; this observation never writes hate. */
+	default Optional<SelectedSkill> npcAggroSkill(int targetObjectId)
+	{
+		return Optional.empty();
+	}
+
+	default ActionOutcome castNpcAggro(int targetObjectId, SelectedSkill skill)
+	{
+		return ActionOutcome.REJECTED;
+	}
 
 
 	default boolean supportsPvpSkill(SelectedSkill skill, PhantomCombatMode mode)

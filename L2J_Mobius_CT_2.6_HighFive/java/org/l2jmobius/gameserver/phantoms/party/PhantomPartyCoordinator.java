@@ -1888,7 +1888,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 			final String key = tacticalScope(claim.state()) + directive.kind().name().toLowerCase(java.util.Locale.ROOT) + '.' + directive.actor().profileId();
 			final boolean offense = Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind());
-			if (offense && ((_tactics.combatOwner() == null) || _tactics.combatOwner().observeNormalTarget(directive.actor().profileId(), directive.targetObjectId()).isEmpty()))
+			if (offense && ((_tactics.combatOwner() == null) || _tactics.combatMode(directive).isEmpty() || _tactics.combatOwner().observeNormalTarget(directive.actor().profileId(), directive.targetObjectId()).isEmpty()))
 			{
 				continue;
 			}
@@ -1945,7 +1945,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final StoredPartyState current = _claims.get(profileId);
 			return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || _backend.observe(directive.actor()).filter(party -> party.leader().equals(authority.leader()) && party.members().contains(directive.actor())).isEmpty();
 		};
-		final var started = combat.startSession(new PhantomCombatRequest(profileId, directive.targetObjectId(), mode.orElseThrow(), true, false, 60000, token));
+		final var started = combat.startContentSession(new PhantomCombatRequest(profileId, directive.targetObjectId(), mode.orElseThrow(), true, false, 60000, token), key);
 		if (started.accepted() && (started.session() != null))
 		{
 			final TacticalCombatClaim next = new TacticalCombatClaim(profileId, started.session().generation(), directive.targetObjectId(), key, token);

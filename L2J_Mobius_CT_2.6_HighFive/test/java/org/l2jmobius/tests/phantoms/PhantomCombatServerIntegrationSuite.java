@@ -218,6 +218,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		COMPANION_MOVING_FOLLOW_058,
 		COMPANION_DEPARTURE_058,
 		COMPANION_ASSIST_058,
+		COMPANION_NPC_AGGRO_058,
 		QOL009_SERVITOR
 	}
 
@@ -305,6 +306,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case COMPANION_MOVING_FOLLOW_058 -> "companion-moving-follow058";
 			case COMPANION_DEPARTURE_058 -> "companion-departure058";
 			case COMPANION_ASSIST_058 -> "companion-assist058";
+			case COMPANION_NPC_AGGRO_058 -> "companion-npc-aggro058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -317,7 +319,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_ASSIST_058)
+		if (_mode == Mode.COMPANION_NPC_AGGRO_058)
+		{
+			PhantomAssertions.assertEquals(58005817L, context.seed(), "Companion NPC aggro used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.COMPANION_ASSIST_058)
 		{
 			PhantomAssertions.assertEquals(58005815L, context.seed(), "Companion assist used the wrong deterministic seed.");
 		}
@@ -411,7 +417,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058).contains(_mode) ? 3 : 1;
+			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058).contains(_mode) ? 3 : 1;
 			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
@@ -483,6 +489,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_NPC_AGGRO_058)
+		{
+			registry.add("01-tank-native-npc-aggro-and-live-party-heal", this::testCompanionFollow058);
+			return;
+		}
 		if (_mode == Mode.COMPANION_ASSIST_058)
 		{
 			registry.add("01-three-roles-walk-and-assist-two-stock-reward-targets", this::testCompanionFollow058);
@@ -585,7 +596,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testCompanionFollow058(PhantomTestContext context) throws Exception
 	{
-		final boolean movingLeader = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058).contains(_mode);
+		final boolean movingLeader = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058).contains(_mode);
 		// All placement is a declared precondition. During measurement only native movement is used.
 		final int fromX = -71350;
 		final int fromY = 258050;
@@ -629,6 +640,20 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 		}
 		PhantomAssertions.assertTrue(!_player.isGM() && !human.isGM(), "Native follow requires ordinary TEST actors.");
+		if (_mode == Mode.COMPANION_NPC_AGGRO_058)
+		{
+			prepareCompanionCombat058(actors.get(0), 90, 2500, 368, 6373, 6374, 6375, 6376, 6377, 6378);
+			final int aggroLevel = _progression.classSkillLearns(90).stream().filter(learn -> (learn.skillId() == 28) && (learn.minimumCharacterLevel() <= 80)).mapToInt(learn -> learn.skillLevel()).max().orElseThrow();
+			actors.get(0).addSkill(SkillData.getInstance().getSkill(28, aggroLevel), true);
+			prepareCompanionCombat058(actors.get(1), 94, 6579, 1339, 6383, 6384, 6385, 6386);
+			prepareCompanionCombat058(actors.get(2), 97, 6579, 1335, 6383, 6384, 6385, 6386);
+			prepareCompanionCombat058(human, 5, 13, 0, 6373, 6374, 6375, 6376, 6378);
+			PhantomAssertions.assertTrue(human.getInventory().addItem(ItemProcessType.REWARD, 17, 100, null, this) != null, "TEST human native bow input lacks arrows.");
+			human.setOnlineStatus(true, false);
+			human.setRunning();
+			human.standUp();
+			context.record("companion058.aggro.preconditions", "TEST classes90/94/97 level80; actual learned28:" + aggroLevel + "; tank368:1/mage1339:1/healer1335:1; stock weapons2500/6579/6579 and ImperialCrusader/MajorArcana armor; human online/standing/running with native bow13+arrows17x100; no grants inside combat");
+		}
 		if (_mode == Mode.COMPANION_ASSIST_058)
 		{
 			prepareCompanionCombat058(actors.get(0), 88, 6580, 345, 6373, 6374, 6375, 6376, 6378);
@@ -729,6 +754,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			{
 				testCompanionAssistTargets058(context, human, actors, profileIds, party);
 			}
+			if (_mode == Mode.COMPANION_NPC_AGGRO_058)
+			{
+				testCompanionNpcAggro058(context, human, actors, profileIds, party);
+			}
 			if (_mode == Mode.COMPANION_DEPARTURE_058)
 			{
 				org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
@@ -818,6 +847,92 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			PhantomAssertions.assertTrue(party.committed(profileId) && (actors.get(index).getParty() == human.getParty()), "Native companion did not rejoin its exact human.");
 		}
+	}
+
+	private void testCompanionNpcAggro058(PhantomTestContext context, Player human, List<Player> actors, List<Long> profileIds, PhantomPartyCoordinator party) throws Exception
+	{
+		final Player tank = actors.get(0);
+		final Player healer = actors.get(2);
+		final Skill aggression = tank.getKnownSkill(28);
+		PhantomAssertions.assertTrue(aggression != null && (aggression.getLevel() > 1), "TEST tank lacks its actual learned higher Aggression rank.");
+		try (var negative = _backend.tryAcquireActor(profileIds.get(0)))
+		{
+			PhantomAssertions.assertTrue(negative != null, "NPC aggro negative control lacks its own actor lease.");
+			final var humanTarget = human.getTarget();
+			final var tankTarget = tank.getTarget();
+			PhantomAssertions.assertTrue(negative.npcAggroSkill(human.getObjectId()).isEmpty(), "NPC aggression selected a real player target.");
+			PhantomAssertions.assertEquals(ActionOutcome.REJECTED, negative.castNpcAggro(human.getObjectId(), new SelectedSkill(aggression.getId(), aggression.getLevel())), "NPC aggression forced a real player's target.");
+			PhantomAssertions.assertEquals(humanTarget, human.getTarget(), "Rejected aggression changed the human target.");
+			PhantomAssertions.assertEquals(tankTarget, tank.getTarget(), "Rejected aggression changed the tank target.");
+		}
+		// Explicit preparatory boundary after the walk and before this independent combat episode.
+		tank.setCurrentHp(tank.getMaxHp() * 0.45);
+		final double preparedHp = tank.getCurrentHp();
+		final double initialHealerMp = healer.getCurrentMp();
+		final Monster target = new Monster(NpcData.getInstance().getTemplate(18008));
+		target.setCurrentHp(target.getMaxHp());
+		target.setCurrentMp(target.getMaxMp());
+		_worldFixtures.add(target);
+		context.record("companion058.aggro.input", "DECLARED TEST combat boundary; tank=" + tank.getObjectId() + "; hp45percent=" + preparedHp + "; healer=" + healer.getObjectId() + "; skill=" + aggression.getId() + ':' + aggression.getLevel() + "; nativeMpCost=" + (aggression.getMpInitialConsume() + aggression.getMpConsume()) + "; stockNpc18008/70/fullHP=" + target.getMaxHp() + "; object=" + target.getObjectId() + "; xyz=-71480,258616,-3104; human native ATTACK establishes threat, then party pulse; deadline35s; no hate/HP/MP/reward writes inside measurement");
+		target.spawnMe(-71480, 258616, -3104);
+		human.setTarget(target);
+		human.getAI().setIntention(Intention.ATTACK, target);
+		final boolean humanThreat = waitFor(() -> target.getHating(human) > 0, 8000);
+		context.record("companion058.aggro.humanInput", "threat=" + humanThreat + "; online=" + human.isOnline() + "; spawned=" + human.isSpawned() + "; disabled=" + human.isAllSkillsDisabled() + "; sitting=" + human.isSitting() + "; moving=" + human.isMoving() + "; movementDisabled=" + human.isMovementDisabled() + "; attackDisabled=" + human.isAttackDisabled() + "; casting=" + human.isCastingNow() + "; intention=" + human.getAI().getIntention() + "; range=" + human.getPhysicalAttackRange() + "; distance=" + Math.hypot(human.getX() - target.getX(), human.getY() - target.getY()) + "; los=" + GeoEngine.getInstance().canSeeTarget(human, target) + "; npcHp=" + target.getCurrentHp() + "; arrows=" + human.getInventory().getInventoryItemCount(17, -1));
+		PhantomAssertions.assertTrue(humanThreat, "TEST human did not establish actual native attack threat.");
+		PhantomAssertions.assertEquals(human, target.getMostHated(), "Native initial threat does not belong to the declared TEST human.");
+		final long initialTankHate = target.getHating(tank);
+		final long initialExp = actors.stream().mapToLong(Player::getExp).sum();
+		boolean castObserved = false;
+		boolean reuseObserved = false;
+		boolean healObserved = false;
+		long heldSince = 0;
+		long maximumHeld = 0;
+		long maximumTankHate = initialTankHate;
+		double previousHp = tank.getCurrentHp();
+		double minimumHealerMp = initialHealerMp;
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(35);
+		while (!target.isDead() && (System.nanoTime() < deadline))
+		{
+			party.onPulse();
+			castObserved |= (tank.getLastSkillCast() != null) && (tank.getLastSkillCast().getId() == aggression.getId()) && (tank.getLastSkillCast().getLevel() == aggression.getLevel());
+			reuseObserved |= tank.isSkillDisabled(aggression);
+			maximumTankHate = Math.max(maximumTankHate, target.getHating(tank));
+			final boolean controls = (target.getMostHated() == tank) && ((target.getTarget() == tank) || (target.hasAI() && (target.getAI().getAttackTarget() == tank)));
+			if (controls)
+			{
+				if (heldSince == 0)
+				{
+					heldSince = System.nanoTime();
+				}
+				maximumHeld = Math.max(maximumHeld, System.nanoTime() - heldSince);
+			}
+			else
+			{
+				heldSince = 0;
+			}
+			minimumHealerMp = Math.min(minimumHealerMp, healer.getCurrentMp());
+			healObserved |= (tank.getCurrentHp() - previousHp > 100) && (healer.getLastSkillCast() != null) && (healer.getLastSkillCast().getId() == 1335);
+			previousHp = tank.getCurrentHp();
+			for (int index = 0; index < actors.size(); index++)
+			{
+				PhantomAssertions.assertTrue(actors.get(index).isInParty() && (actors.get(index).getParty() == human.getParty()) && party.committed(profileIds.get(index)), "NPC aggro episode lost a declared mixed member.");
+			}
+			Thread.sleep(20);
+		}
+		final long rewardDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		while (target.isDead() && (actors.stream().mapToLong(Player::getExp).sum() <= initialExp) && (System.nanoTime() < rewardDeadline))
+		{
+			party.onPulse();
+			Thread.sleep(20);
+		}
+		context.record("companion058.aggro.result", "nativeCast=" + castObserved + "; nativeReuse=" + reuseObserved + "; tankHate=" + initialTankHate + "->" + maximumTankHate + "; heldNanos=" + maximumHeld + "; actualHeal=" + healObserved + "; healerMp=" + initialHealerMp + "->" + minimumHealerMp + "; tankHp=" + preparedHp + "->" + tank.getCurrentHp() + "; deadNpc=" + target.isDead() + "; nativePartyExp=" + initialExp + "->" + actors.stream().mapToLong(Player::getExp).sum());
+		PhantomAssertions.assertTrue(castObserved && reuseObserved, "Tank never used its current learned native NPC aggression skill/reuse.");
+		PhantomAssertions.assertTrue((maximumTankHate > initialTankHate) && (maximumHeld >= TimeUnit.SECONDS.toNanos(2)), "Tank did not actually recover and hold native NPC aggression.");
+		PhantomAssertions.assertTrue(healObserved && (minimumHealerMp < initialHealerMp), "Party healer produced no actual heal/cost during the live NPC fight.");
+		PhantomAssertions.assertTrue(target.isDead() && (actors.stream().mapToLong(Player::getExp).sum() > initialExp), "Native aggro fight produced no actual stock kill/reward.");
+		PhantomAssertions.assertFalse(actors.stream().anyMatch(Player::isDead), "A declared companion died during the native NPC aggro episode.");
+		human.setTarget(null);
 	}
 
 	private void prepareCompanionCombat058(Player actor, int classId, int weaponId, int skillId, int... armorIds)

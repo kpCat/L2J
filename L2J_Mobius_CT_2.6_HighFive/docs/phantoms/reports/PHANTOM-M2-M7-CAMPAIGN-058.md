@@ -7,12 +7,14 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 
 | Этап | Реализация | Серверная проверка | Владелец |
 |---|---|---|---|
-| М2 | PARTIAL: request/reply, native invitations/support,3 followers и role-aware assist | Native3-role walk→2kills/earned EXP1/1; support3/3; tank/range/skills/full speech composition/current JAR/restart открыты | QA_PENDING |
+| М2 | PARTIAL: request/reply, native invitations/support,3 followers, role-aware assist и NPC-агро | Native3-role walk→2kills/earned EXP1/1; tank агро/live heal1/1; support3/3; range/skills/full speech composition/current JAR/restart открыты | QA_PENDING |
 | М3 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М4 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М5 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М6 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М7 | NOT_STARTED | NOT_STARTED | QA_PENDING |
+
+NPC-агро: собственный CombatService использует фактически изученный single-target AGGRESSION и штатный CAST только против обычного Monster; чужую цель вне своей party не перетягивает. Native RED после корректного ranged human input: hate0, tank не кастует, NPC жив; GREEN1/1:28:49, native reuse, hate0→13754, удержание26s, healer MP3684→3570.70, HP2421.9→3906.47, full Karik погиб, EXP9227898492→9227904702. Aggression MPcost=0, проверен reuse. HP45% — объявленная fixture-подготовка до боя; внутри боя hate/HP/MP/reward не менялись. Focused safety/owner5/5; более ранний неактивный human input сохранён INVALID_INPUT. Raid-агро и все варианты танков не заявлены.
 
 Подготовка: утверждённый пакет отсутствовал в OWN и найден в MAIN; шесть SHA256 совпали, семь файлов точно скопированы в OWN. MAIN только читался.
 Добавлен test-only exact058t lane: фиксированные OWN/runtime/schema/owner/role, pool4, запрет второго lane, schema fingerprint. Кumulative058a/release и старые schemas исключены.

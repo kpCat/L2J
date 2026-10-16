@@ -118,6 +118,34 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(1, fixture.lease.castCount, "Combat did not resume after the native action completed.");
 				fixture.stop();
 			});
+			registry.add("04-npc-aggression-rejects-wrong-effects-and-privileged-context", _ ->
+			{
+				final var ordinary = new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.Facts(true, false, false, true, true, true, false, false, false, false, false, false, false, false);
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supportsNpcAggro(ordinary, true), "Ordinary single-target aggression was rejected.");
+				PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supportsNpcAggro(ordinary, false), "Hate removal or unrelated effect was accepted as aggression.");
+				for (var unsafe : List.of(
+					new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.Facts(true, false, false, false, true, true, false, false, false, false, false, false, false, false),
+					new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.Facts(true, false, false, true, true, true, false, true, false, false, false, false, false, false),
+					new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.Facts(true, false, false, true, true, true, false, false, false, true, false, false, false, false),
+					new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.Facts(true, false, false, true, true, true, false, false, false, false, true, false, false, false),
+					new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.Facts(true, false, false, true, true, true, false, false, false, false, false, false, false, true)))
+				{
+					PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supportsNpcAggro(unsafe, true), "NPC aggression accepted an area/PvP/hero/GM/transformed action.");
+				}
+			});
+			registry.add("05-native-npc-aggression-precedes-offense-in-the-same-owner", _ ->
+			{
+				final Fixture fixture = fixture(1);
+				fixture.lease.aggression = new SelectedSkill(28, 49);
+				PhantomAssertions.assertTrue(fixture.start(1, PhantomCombatMode.MELEE_PHYSICAL).accepted(), "Aggression input did not start.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.aggressionCount, "Combat did not issue its learned native aggression first.");
+				PhantomAssertions.assertEquals(0, fixture.lease.attackCount + fixture.lease.castCount, "Combat issued offense alongside the aggression cast.");
+				fixture.lease.aggression = null;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.attackCount, "Combat did not continue ordinary offense when aggression was no longer needed.");
+				fixture.stop();
+			});
 			return;
 		}
 		registry.add("01-mode-code-mapping", _ -> testModeMapping());
@@ -987,6 +1015,25 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private int attackCount;
 		private int castCount;
 		private int closeCount;
+		private SelectedSkill aggression;
+		private int aggressionCount;
+
+		@Override
+		public java.util.Optional<SelectedSkill> npcAggroSkill(int targetObjectId)
+		{
+			return java.util.Optional.ofNullable(aggression);
+		}
+
+		@Override
+		public ActionOutcome castNpcAggro(int targetObjectId, SelectedSkill selected)
+		{
+			if (!selected.equals(aggression))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			aggressionCount++;
+			return ActionOutcome.ISSUED;
+		}
 
 		@Override
 		public ActorSnapshot actorSnapshot()

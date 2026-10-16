@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -537,6 +538,55 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final int loadedY = spawn == null ? 0 : loaded == null ? spawn.getY() : loaded.getY();
 			final boolean exactPoint = (spawn != null) && (territory == null) && (spawn.getLocationId() == 0) && ((loadedX != 0) || (loadedY != 0));
 			return new AcquisitionTargetSnapshot(target.objectId(), target.npcId(), target.instanceId(), target.distance(), target.dead(), target.alikeDead(), target.targetable(), target.attackable(), target.invulnerable(), target.normalMonster(), target.knowledgeMonster(), target.peaceRestricted(), target.surroundingRegion(), monster.isSpoiled(), monster.getSpoilerObjectId(), monster.isSweepActive(), monster.checkSpoilOwner(_player, false), monster.getLevel(), monster.getTemplate().canBeSown(), monster.isRaid(), monster instanceof Chest, monster.isSeeded(), monster.getSeederId(), seed == null ? 0 : seed.getSeedId(), monster.getOnKillDelay(), monster.getX(), monster.getY(), monster.getZ(), spawn != null, geometry != null, exactPoint, geometry == null ? "" : geometry.territoryName(), geometry == null ? "" : geometry.sourcePath(), geometry == null ? "" : geometry.hash());
+		}
+
+		@Override
+		public Optional<SelectedSkill> npcAggroSkill(int targetObjectId)
+		{
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			final ActorSnapshot actor = actorSnapshot();
+			if (actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !targetSnapshot(target).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
+			{
+				return Optional.empty();
+			}
+			final Creature victim = target.getMostHated();
+			if ((victim == _player) && ((target.getTarget() == _player) || (target.hasAI() && (target.getAI().getAttackTarget() == _player))))
+			{
+				return Optional.empty();
+			}
+			if ((victim != null) && (victim != _player) && ((victim.asPlayer() == null) || (_player.getParty() == null) || (victim.asPlayer().getParty() != _player.getParty())))
+			{
+				return Optional.empty();
+			}
+			return _player.getAllSkills().stream().filter(skill -> PhantomCombatSkillSafety.supportsNpcAggro(skill, _player.isTransformed()))
+				.filter(skill -> !_player.isSkillDisabled(skill) && (_player.getCurrentMp() >= Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), _player.getStat().getMpInitialConsume(skill) + _player.getStat().getMpConsume(skill))) && (_player.getCharges() >= skill.getChargeConsumeCount()) && ((skill.getItemConsumeCount() <= 0) || (_player.getInventory().getInventoryItemCount(skill.getItemConsumeId(), -1) >= skill.getItemConsumeCount())) && skill.checkCondition(_player, target, false))
+				.sorted(Comparator.comparingInt(Skill::getEffectPoint).thenComparing(Comparator.comparingInt(Skill::getLevel).reversed()).thenComparingInt(Skill::getId)).findFirst().map(skill -> new SelectedSkill(skill.getId(), skill.getLevel()));
+		}
+
+		@Override
+		public ActionOutcome castNpcAggro(int targetObjectId, SelectedSkill selected)
+		{
+			if ((selected == null) || _player.isCastingNow() || _player.isAttackingNow() || npcAggroSkill(targetObjectId).filter(selected::equals).isEmpty())
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final WorldObject target = World.getInstance().findObject(targetObjectId);
+			if (!(target instanceof Monster))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final Skill skill = _player.getKnownSkill(selected.skillId());
+			if ((skill == null) || (skill.getLevel() != selected.skillLevel()))
+			{
+				return ActionOutcome.REJECTED;
+			}
+			_player.setTarget(target);
+			if (!_player.checkDoCastConditions(skill))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			_player.getAI().setIntention(Intention.CAST, skill, target);
+			return ActionOutcome.ISSUED;
 		}
 
 		@Override

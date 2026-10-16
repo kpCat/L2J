@@ -1564,6 +1564,21 @@ public final class PhantomCombatService
 		{
 			return;
 		}
+		final Optional<SelectedSkill> aggression = session._actorLease.npcAggroSkill(session._request.targetObjectId());
+		if (aggression.isPresent())
+		{
+			final ActionOutcome outcome = session._actorLease.castNpcAggro(session._request.targetObjectId(), aggression.orElseThrow());
+			if (outcome == ActionOutcome.ISSUED)
+			{
+				session._ownedAction = session._ownedAction.withSelectedSkill(aggression.orElseThrow());
+				_metrics.castIssued();
+				return;
+			}
+			if (outcome == ActionOutcome.ALREADY_OWNED)
+			{
+				return;
+			}
+		}
 		SelectedSkill selected = null;
 		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
 		{
