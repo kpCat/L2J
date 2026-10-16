@@ -26,4 +26,17 @@ $release.schema='l2jmobiush5_phantom_release_058a'
 $release.runtimeRoot='D:\PhantomWorld\M2-M7-058-candidate'
 Assert-Campaign058Binding $release.runtimeRoot $release.schema $release
 $count++
+foreach ($variant in @('root','schema','role','owner','port')) {
+    $changed=$release.Clone(); $root=$release.runtimeRoot; $schema=$release.schema
+    switch ($variant) {
+        'root' {$root='D:\PhantomWorld\M1-057-candidate'}
+        'schema' {$schema='l2jmobiush5_phantom_test_058a'}
+        'role' {$changed.role='CUMULATIVE_INTEGRATION'}
+        'owner' {$changed.owner='TASK057'}
+        'port' {$changed.gamePort='7792'}
+    }
+    $rejected=$false
+    try {Assert-Campaign058Binding $root $schema $changed} catch {$rejected=$true}
+    if (!$rejected) {throw "TASK058 release ownership negative failed: $variant"}; $count++
+}
 Write-Output "TASK058_OWNERSHIP_PASS=$count; DB_WRITES=0; PROCESS_ACTIONS=0"
