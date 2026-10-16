@@ -1,0 +1,4 @@
+# Preserve the byte fingerprints of the verified task-scoped source snapshots.
+*.java -text
+*.ps1 -text
+*.py -text
