@@ -25,6 +25,7 @@ import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
 import org.l2jmobius.gameserver.handler.IItemHandler;
 import org.l2jmobius.gameserver.handler.ItemHandler;
 import org.l2jmobius.gameserver.managers.CastleManager;
+import org.l2jmobius.gameserver.managers.ZoneManager;
 import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.WorldObject;
@@ -48,6 +49,9 @@ import org.l2jmobius.gameserver.model.spawns.Spawn;
 import org.l2jmobius.gameserver.model.item.enums.ShotType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
+import org.l2jmobius.gameserver.model.item.type.WeaponType;
+import org.l2jmobius.gameserver.model.zone.type.PeaceZone;
+import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.holders.SkillUseHolder;
 import org.l2jmobius.gameserver.model.skill.holders.SkillHolder;
@@ -135,6 +139,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private long _nextServitorSkillAttemptNanos;
 		private int _controlledServitorObjectId;
 		private int _ownedSummonSkillId;
+		private Location _ownedSpacing;
+		private int _ownedSpacingTargetObjectId;
+		private long _spacingStartedNanos;
+		private int _spacingAttempts;
 
 		private L2jActorLease(ActionLease materializationLease, Supplier<PhantomGameKnowledgeQuery> knowledgeSupplier, Supplier<PhantomProgressionCatalog> progressionCatalog)
 		{
@@ -592,6 +600,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public boolean supportsSkill(SelectedSkill selected, PhantomCombatMode mode)
 		{
+			if ((mode == PhantomCombatMode.RANGED_PHYSICAL) && !supportsNormalAttack(mode))
+			{
+				return false;
+			}
 			final Skill skill = _player.getKnownSkill(selected.skillId());
 			if ((skill == null) || (skill.getLevel() != selected.skillLevel()))
 			{
@@ -603,12 +615,108 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public boolean supportsPvpSkill(SelectedSkill selected, PhantomCombatMode mode)
 		{
+			if ((mode == PhantomCombatMode.RANGED_PHYSICAL) && !supportsNormalAttack(mode))
+			{
+				return false;
+			}
 			final Skill skill = _player.getKnownSkill(selected.skillId());
 			if ((skill == null) || (skill.getLevel() != selected.skillLevel()))
 			{
 				return false;
 			}
 			return PhantomPvpSkillSafety.supports(skill, mode, _player.isTransformed());
+		}
+
+		@Override
+		public boolean supportsNormalAttack(PhantomCombatMode mode)
+		{
+			final Weapon weapon = _player.getActiveWeaponItem();
+			return switch (mode)
+			{
+				case MELEE_PHYSICAL -> true;
+				case RANGED_MAGIC -> false;
+				case RANGED_PHYSICAL -> (weapon != null) && ((weapon.getItemType() == WeaponType.BOW) || (weapon.getItemType() == WeaponType.CROSSBOW));
+			};
+		}
+
+		@Override
+		public ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill selected, PhantomCombatMode mode)
+		{
+			final ActorSnapshot actor = actorSnapshot();
+			final WorldObject object = World.getInstance().findObject(targetObjectId);
+			if ((mode == PhantomCombatMode.MELEE_PHYSICAL) || actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !targetSnapshot(target).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			if ((_ownedSpacing != null) && (_ownedSpacingTargetObjectId == targetObjectId) && ownsSpacingDestination())
+			{
+				if ((System.nanoTime() - _spacingStartedNanos) < 5_000_000_000L)
+				{
+					return ActionOutcome.ALREADY_OWNED;
+				}
+				_player.getAI().setIntention(Intention.IDLE);
+			}
+			_ownedSpacing = null;
+			_ownedSpacingTargetObjectId = 0;
+			if (actor.moving() || (_spacingAttempts >= 4) || (distance(_player, target) >= 200))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final Skill skill = selected == null ? null : _player.getKnownSkill(selected.skillId());
+			if ((selected != null) && ((skill == null) || (skill.getLevel() != selected.skillLevel()) || !supportsSkill(selected, mode)))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final int range = skill == null ? _player.getPhysicalAttackRange() : _player.getMagicalAttackRange(skill);
+			if ((range < 350) || ((mode == PhantomCombatMode.RANGED_PHYSICAL) && !supportsNormalAttack(mode)))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final GeoEngine geo = GeoEngine.getInstance();
+			if (!geo.hasGeo(_player.getX(), _player.getY()) || !geo.hasGeo(target.getX(), target.getY()))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			final List<Location> candidates = new ArrayList<>(16);
+			for (int radius : new int[] { 300, 250 })
+			{
+				for (int direction = 0; direction < 8; direction++)
+				{
+					final double angle = direction * Math.PI / 4;
+					final int x = target.getX() + (int) Math.round(radius * Math.cos(angle));
+					final int y = target.getY() + (int) Math.round(radius * Math.sin(angle));
+					if (!geo.hasGeo(x, y))
+					{
+						continue;
+					}
+					final int z = geo.getHeight(x, y, _player.getZ());
+					final double step = Math.hypot((long) x - _player.getX(), (long) y - _player.getY());
+					if ((step > 500) || (Math.abs((long) z - _player.getZ()) > 64) || (ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null) || (ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) != null))
+					{
+						continue;
+					}
+					if (geo.canMoveToTarget(_player.getX(), _player.getY(), _player.getZ(), x, y, z, actor.instanceId()) && geo.canSeeTarget(x, y, z, actor.instanceId(), target.getX(), target.getY(), target.getZ(), target.getInstanceId()))
+					{
+						candidates.add(new Location(x, y, z));
+					}
+				}
+			}
+			final Location destination = candidates.stream().min(Comparator.comparingDouble(point -> Math.hypot((long) point.getX() - _player.getX(), (long) point.getY() - _player.getY()))).orElse(null);
+			if (destination == null)
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			_ownedSpacing = destination;
+			_ownedSpacingTargetObjectId = targetObjectId;
+			_spacingStartedNanos = System.nanoTime();
+			_spacingAttempts++;
+			_player.getAI().setIntention(Intention.MOVE_TO, destination);
+			return ActionOutcome.ISSUED;
+		}
+
+		private boolean ownsSpacingDestination()
+		{
+			return (_ownedSpacing != null) && _player.isMoving() && _player.hasAI() && (_player.getAI().getIntention() == Intention.MOVE_TO) && (_player.getXdestination() == _ownedSpacing.getX()) && (_player.getYdestination() == _ownedSpacing.getY()) && (_player.getZdestination() == _ownedSpacing.getZ());
 		}
 
 		@Override
@@ -1454,6 +1562,15 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
+			if (_ownedSpacingTargetObjectId == action.combatTargetObjectId())
+			{
+				if (ownsSpacingDestination())
+				{
+					_player.getAI().setIntention(Intention.IDLE);
+				}
+				_ownedSpacing = null;
+				_ownedSpacingTargetObjectId = 0;
+			}
 			final SkillUseHolder currentPlayerSkill = _player.getCurrentSkill();
 			if ((_ownedSummonSkillId > 0) && (currentPlayerSkill != null) && (currentPlayerSkill.getSkillId() == _ownedSummonSkillId))
 			{

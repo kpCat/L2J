@@ -98,12 +98,13 @@ public final class PhantomCombatCapabilityResolver
 		capabilities.sort(CAPABILITY_ORDER);
 		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease)).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsSkill(skill, mode)).limit(maximumSkills).toList();
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
-		if (matching.isEmpty() || ((mode == PhantomCombatMode.RANGED_MAGIC) && selected.isEmpty()))
+		final boolean normalFallback = lease.supportsNormalAttack(mode);
+		if (matching.isEmpty() || (!normalFallback && selected.isEmpty()))
 		{
 			return Optional.empty();
 		}
 		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElseThrow();
-		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, mode != PhantomCombatMode.RANGED_MAGIC));
+		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback));
 	}
 
 	private static SelectedSkill currentLearnedSkill(SelectedSkill evidence, PhantomCombatActorLease lease)
@@ -126,11 +127,12 @@ public final class PhantomCombatCapabilityResolver
 		capabilities.sort(CAPABILITY_ORDER);
 		final List<SelectedSkill> selected = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).flatMap(capability -> capability.skills().stream()).map(skill -> currentLearnedSkill(skill, lease)).sorted(SKILL_ORDER).distinct().filter(skill -> lease.supportsPvpSkill(skill, mode)).limit(maximumSkills).toList();
 		final List<CapabilityEvidence> matching = capabilities.stream().filter(capability -> mode.capabilityKey().equals(capability.capabilityKey())).toList();
-		if (matching.isEmpty() || ((mode == PhantomCombatMode.RANGED_MAGIC) && selected.isEmpty()))
+		final boolean normalFallback = lease.supportsNormalAttack(mode);
+		if (matching.isEmpty() || (!normalFallback && selected.isEmpty()))
 		{
 			return Optional.empty();
 		}
 		final int rankMetadata = matching.stream().mapToInt(CapabilityEvidence::rank).max().orElseThrow();
-		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, mode != PhantomCombatMode.RANGED_MAGIC));
+		return Optional.of(new PhantomCombatLoadout(mode, mode.capabilityKey(), rankMetadata, selected, normalFallback));
 	}
 }

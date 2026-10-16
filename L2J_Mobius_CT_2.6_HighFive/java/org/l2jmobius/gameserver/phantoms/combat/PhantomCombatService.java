@@ -1599,6 +1599,15 @@ public final class PhantomCombatService
 		{
 			selected = session._loadout.selectedSkills().get(session._nextSkill++ % session._loadout.selectedSkills().size());
 		}
+		if (session._request.mode() != PhantomCombatMode.MELEE_PHYSICAL)
+		{
+			final SelectedSkill spacingSkill = selected != null ? selected : session._loadout.selectedSkills().stream().findFirst().orElse(null);
+			final ActionOutcome spacing = session._actorLease.maintainRangedSpacing(session._request.targetObjectId(), spacingSkill, session._request.mode());
+			if ((spacing == ActionOutcome.ISSUED) || (spacing == ActionOutcome.ALREADY_OWNED))
+			{
+				return;
+			}
+		}
 		if ((selected == null) && !session._loadout.normalAttackFallback())
 		{
 			return;

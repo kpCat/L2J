@@ -183,6 +183,17 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode);
 
+	default boolean supportsNormalAttack(PhantomCombatMode mode)
+	{
+		return mode != PhantomCombatMode.RANGED_MAGIC;
+	}
+
+	/** Uses this same actor owner for a bounded legal NPC spacing move, only between actions. */
+	default ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
+	{
+		return ActionOutcome.UNAVAILABLE;
+	}
+
 	/** Current learned single-target NPC aggression only; this observation never writes hate. */
 	default Optional<SelectedSkill> npcAggroSkill(int targetObjectId)
 	{

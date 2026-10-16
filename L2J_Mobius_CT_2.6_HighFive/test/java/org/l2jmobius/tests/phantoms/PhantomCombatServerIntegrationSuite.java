@@ -220,6 +220,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		COMPANION_ASSIST_058,
 		COMPANION_NPC_AGGRO_058,
 		LEARNED_SKILLS_058,
+		COMPANION_RANGED_SPACING_058,
 		QOL009_SERVITOR
 	}
 
@@ -309,6 +310,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case COMPANION_ASSIST_058 -> "companion-assist058";
 			case COMPANION_NPC_AGGRO_058 -> "companion-npc-aggro058";
 			case LEARNED_SKILLS_058 -> "learned-skills058";
+			case COMPANION_RANGED_SPACING_058 -> "companion-ranged-spacing058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -321,7 +323,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.LEARNED_SKILLS_058)
+		if (_mode == Mode.COMPANION_RANGED_SPACING_058)
+		{
+			PhantomAssertions.assertEquals(58005819L, context.seed(), "Ranged spacing used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.LEARNED_SKILLS_058)
 		{
 			PhantomAssertions.assertEquals(58005818L, context.seed(), "Learned skills used the wrong deterministic seed.");
 		}
@@ -423,7 +429,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058).contains(_mode) ? 3 : 1;
+			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058).contains(_mode) ? 3 : 1;
 			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
@@ -495,10 +501,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_RANGED_SPACING_058)
+		{
+			registry.add("01-ranged-native-spacing-damage-and-rewards", this::testCompanionFollow058);
+			registry.add("02-current-bow-gear-revalidates-without-cached-capability", this::testRangedGear058);
+			registry.add("03-native-spacing-cancel-preserves-foreign-movement", this::testSpacingOwnership058);
+			return;
+		}
 		if (_mode == Mode.LEARNED_SKILLS_058)
 		{
 			registry.add("01-current-enchanted-offense-and-class-context", this::testLearnedOffense058);
 			registry.add("02-current-enchanted-recharge-native-effect", context -> testCompanionNativeRole058(context, "combat.recharge"));
+			registry.add("03-current-bow-gear-revalidates-without-cached-capability", this::testRangedGear058);
 			return;
 		}
 		if (_mode == Mode.COMPANION_NPC_AGGRO_058)
@@ -608,7 +622,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testCompanionFollow058(PhantomTestContext context) throws Exception
 	{
-		final boolean movingLeader = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058).contains(_mode);
+		final boolean movingLeader = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058).contains(_mode);
 		// All placement is a declared precondition. During measurement only native movement is used.
 		final int fromX = -71350;
 		final int fromY = 258050;
@@ -666,7 +680,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			human.standUp();
 			context.record("companion058.aggro.preconditions", "TEST classes90/94/97 level80; actual learned28:" + aggroLevel + "; tank368:1/mage1339:1/healer1335:1; stock weapons2500/6579/6579 and ImperialCrusader/MajorArcana armor; human online/standing/running with native bow13+arrows17x100; no grants inside combat");
 		}
-		if (_mode == Mode.COMPANION_ASSIST_058)
+		if (Set.of(Mode.COMPANION_ASSIST_058, Mode.COMPANION_RANGED_SPACING_058).contains(_mode))
 		{
 			prepareCompanionCombat058(actors.get(0), 88, 6580, 345, 6373, 6374, 6375, 6376, 6378);
 			prepareCompanionCombat058(actors.get(1), 94, 6579, 1339, 6383, 6384, 6385, 6386);
@@ -762,7 +776,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(maximumStep <= 128, "Follow snapped instead of using native movement: " + maximumStep);
 			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().pathSucceeded() > 0, "Follow did not use a computed native path around the obstacle.");
 			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().submissionsAccepted() <= 120, "Friendly leader selection caused unbounded follow replanning.");
-			if (_mode == Mode.COMPANION_ASSIST_058)
+			if (Set.of(Mode.COMPANION_ASSIST_058, Mode.COMPANION_RANGED_SPACING_058).contains(_mode))
 			{
 				testCompanionAssistTargets058(context, human, actors, profileIds, party);
 			}
@@ -1009,12 +1023,19 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final double initialMageMp = mage.getCurrentMp();
 		final long initialArrows = archer.getInventory().getInventoryItemCount(1345, -1);
 		final long[] damage = new long[actors.size()];
+		final double[] firstRangedActionDistance = { Double.NaN, Double.NaN };
+		final double[] maximumRangedDistance = { 0, 0 };
 		boolean nativeMageCast = false;
 		context.record("companion058.assist.input", "stockNpc=" + fact.npcId() + "; level=" + fact.level() + "; stockExp=" + fact.exp() + "; objects=" + targets.stream().map(Monster::getObjectId).toList() + "; fullHP=" + targets.stream().map(Monster::getMaxHp).toList() + "; xyz=" + point + "; two consecutive targets;45s each; no stats/rates/reward/actor refill inside measurement");
 		for (Monster target : targets)
 		{
 			final long expBefore = actors.stream().mapToLong(Player::getExp).sum();
 			target.spawnMe(point.getX(), point.getY(), point.getZ());
+			if ((_mode == Mode.COMPANION_RANGED_SPACING_058) && (target == targets.getFirst()))
+			{
+				context.record("spacing058.input", "TEST existing3DPS/80/Sgear/nativefollow; firstNpc=" + target.getObjectId() + "; initialMage=" + mage.calculateDistance3D(target) + "; initialArcher=" + archer.calculateDistance3D(target) + "; expected first native ranged actions>=200 and actual retreat>=240; no movement/HP/MP/item writes during measurement");
+				PhantomAssertions.assertTrue(mage.calculateDistance3D(target) < 200 && archer.calculateDistance3D(target) < 200, "Declared close-range spacing input is invalid.");
+			}
 			human.setTarget(target);
 			for (int index = 0; index < actors.size(); index++)
 			{
@@ -1032,6 +1053,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					PhantomAssertions.assertTrue(actor.isInParty() && (actor.getParty() == human.getParty()) && party.committed(profileIds.get(index)), "Native assist lost its exact mixed member.");
 				}
 				nativeMageCast |= (mage.getLastSkillCast() != null) && (mage.getLastSkillCast().getId() == 1339) && (mage.getCurrentMp() < initialMageMp);
+				for (int rangedIndex = 0; rangedIndex < 2; rangedIndex++)
+				{
+					final Player ranged = actors.get(rangedIndex + 1);
+					final double distance = ranged.calculateDistance3D(target);
+					maximumRangedDistance[rangedIndex] = Math.max(maximumRangedDistance[rangedIndex], distance);
+					if (Double.isNaN(firstRangedActionDistance[rangedIndex]) && (ranged.isCastingNow() || ranged.isAttackingNow()))
+					{
+						firstRangedActionDistance[rangedIndex] = distance;
+					}
+				}
 				Thread.sleep(20);
 			}
 			for (int index = 0; index < actors.size(); index++)
@@ -1059,6 +1090,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(nativeMageCast, "Party mage never performed a native offensive cast with MP cost.");
 		PhantomAssertions.assertTrue(archer.getInventory().getInventoryItemCount(1345, -1) < initialArrows, "Party archer never consumed a native arrow.");
 		PhantomAssertions.assertTrue(java.util.Arrays.stream(damage).allMatch(amount -> amount > 0), "One companion role produced no actual native damage.");
+		if (_mode == Mode.COMPANION_RANGED_SPACING_058)
+		{
+			context.record("spacing058.result", "firstNativeActionDistance=" + java.util.Arrays.toString(firstRangedActionDistance) + "; maximumActualDistance=" + java.util.Arrays.toString(maximumRangedDistance));
+			PhantomAssertions.assertTrue(java.util.Arrays.stream(firstRangedActionDistance).allMatch(value -> value >= 200), "Mage/bow issued their first native action in unsafe close range.");
+			PhantomAssertions.assertTrue(java.util.Arrays.stream(maximumRangedDistance).allMatch(value -> value >= 240), "Mage/bow did not actually establish native spacing.");
+		}
 	}
 
 	private void testCompanionRealSupport058(PhantomTestContext context) throws Exception
@@ -2953,6 +2990,60 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertEquals(PhantomCombatResult.VICTORY, terminal.result(), "Canonical target death did not produce victory.");
 		await(() -> _player.getTarget() == null, "Victory cleanup retained the exact dead combat target.");
 		consumeTerminal();
+	}
+
+	private void testSpacingOwnership058(PhantomTestContext context) throws Exception
+	{
+		resetActor(true);
+		prepareCompanionCombat058(_player, 94, 6579, 1339, 6383, 6384, 6385, 6386);
+		_player.decayMe();
+		_player.setXYZInvisible(-71432, 258512, -3104);
+		_player.spawnMe();
+		_player.revalidateZone(true);
+		final Monster target = new Monster(NpcData.getInstance().getTemplate(18008));
+		_worldFixtures.add(target);
+		target.spawnMe(-71480, 258616, -3104);
+		context.record("spacing058.ownership.input", "TEST prepared mage94/80/1339:1 + stockNPC18008; no attack/reward; native own MOVE, stale cleanup, exact cleanup and foreign native MOVE preservation");
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.maintainRangedSpacing(target.getObjectId(), new SelectedSkill(1339, 1), PhantomCombatMode.RANGED_MAGIC), "Declared native spacing input did not move.");
+			PhantomAssertions.assertTrue(_player.isMoving(), "Owned spacing has no native movement.");
+			lease.cancelOwnedAction(new PhantomOwnedAction(1, target.getObjectId() + 1, null, 0));
+			PhantomAssertions.assertTrue(_player.isMoving(), "Stale different-target cleanup stopped owned spacing.");
+			lease.cancelOwnedAction(new PhantomOwnedAction(1, target.getObjectId(), null, 0));
+			PhantomAssertions.assertFalse(_player.isMoving(), "Exact owned spacing cleanup retained movement.");
+			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.maintainRangedSpacing(target.getObjectId(), new SelectedSkill(1339, 1), PhantomCombatMode.RANGED_MAGIC), "Second independent spacing input did not move.");
+			final Location foreign = new Location(-71480, 258376, -3104);
+			PhantomAssertions.assertTrue(GeoEngine.getInstance().canMoveToTarget(_player.getX(), _player.getY(), _player.getZ(), foreign.getX(), foreign.getY(), foreign.getZ(), 0), "Declared foreign native movement input is blocked.");
+			_player.getAI().setIntention(Intention.MOVE_TO, foreign);
+			PhantomAssertions.assertTrue(_player.isMoving() && (_player.getYdestination() == foreign.getY()), "Foreign TEST native MOVE did not replace the destination.");
+			lease.cancelOwnedAction(new PhantomOwnedAction(1, target.getObjectId(), null, 0));
+			PhantomAssertions.assertTrue(_player.isMoving() && (_player.getYdestination() == foreign.getY()), "Old spacing cleanup stopped foreign native movement.");
+			_player.getAI().setIntention(Intention.IDLE); // End the separate TEST movement, owned by this fixture.
+			context.record("spacing058.ownership.result", "differentTargetPreserved=true; exactOwnMoveStopped=true; foreignDestinationPreserved=true");
+		}
+		finally
+		{
+			_player.getAI().setIntention(Intention.IDLE);
+		}
+	}
+
+	private void testRangedGear058(PhantomTestContext context) throws Exception
+	{
+		resetActor(true);
+		prepareCompanionCombat058(_player, 92, 7575, 343, 6379, 6380, 6381, 6382);
+		final var resolver = PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query);
+		try (PhantomCombatActorLease lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+		{
+			PhantomAssertions.assertTrue(resolver.resolve(lease.actorSnapshot(), PhantomCombatMode.RANGED_PHYSICAL, lease, 4).isPresent(), "Declared equipped TEST bow has no loadout.");
+			final Item bow = _player.getInventory().unEquipItemInSlot(org.l2jmobius.gameserver.model.itemcontainer.Inventory.PAPERDOLL_RHAND);
+			PhantomAssertions.assertTrue(bow != null && bow.getId() == 7575, "TEST bow gear transition did not unequip its exact weapon.");
+			PhantomAssertions.assertFalse(lease.supportsNormalAttack(PhantomCombatMode.RANGED_PHYSICAL), "Unarmed body retained ranged normal attack readiness.");
+			PhantomAssertions.assertTrue(resolver.resolve(lease.actorSnapshot(), PhantomCombatMode.RANGED_PHYSICAL, lease, 4).isEmpty(), "Current bow removal retained a cached ranged loadout.");
+			_player.getInventory().equipItem(bow);
+			PhantomAssertions.assertTrue(resolver.resolve(lease.actorSnapshot(), PhantomCombatMode.RANGED_PHYSICAL, lease, 4).isPresent(), "Re-equipping the same owned bow did not restore readiness.");
+			context.record("spacing058.gear", "native bow7575 equipped→unequipped→same item equipped; same lease/resolver; no item grant/action during transition");
+		}
 	}
 
 	private void testLearnedOffense058(PhantomTestContext context) throws Exception

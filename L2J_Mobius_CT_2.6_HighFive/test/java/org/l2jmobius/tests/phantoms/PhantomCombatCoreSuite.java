@@ -167,6 +167,32 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 				PhantomAssertions.assertEquals(2, fixture.lease.castCount, "Unavailable skill was still issued.");
 				fixture.stop();
 			});
+			registry.add("07-owned-spacing-defers-offense-without-interrupting-native-action", _ ->
+			{
+				final Fixture fixture = fixture(1);
+				fixture.capabilities = capabilities(PhantomCombatMode.RANGED_MAGIC, List.of(new SelectedSkill(301, 1)));
+				fixture.lease.supportedSkills.add(301);
+				fixture.lease.spacingOutcome = ActionOutcome.ISSUED;
+				PhantomAssertions.assertTrue(fixture.start(1, PhantomCombatMode.RANGED_MAGIC).accepted(), "Spacing input did not start.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.spacingCount, "Owner did not request its legal ranged spacing.");
+				PhantomAssertions.assertEquals(0, fixture.lease.castCount, "A cast replaced the new owned spacing move.");
+				fixture.lease.spacingOutcome = ActionOutcome.ALREADY_OWNED;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(0, fixture.lease.castCount, "A cast replaced an unfinished owned spacing move.");
+				fixture.lease.spacingOutcome = ActionOutcome.UNAVAILABLE;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.castCount, "Offense did not resume when spacing was complete.");
+				fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 50, 100, false, false, false, true, false, 100, "CAST", 301, 1);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(3, fixture.lease.spacingCount, "Spacing interrupted a native cast.");
+				fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 0, 100, 50, 100, false, false, false, false, false, 100, "IDLE", 0, 0);
+				fixture.lease.spacingOutcome = ActionOutcome.ISSUED;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(4, fixture.lease.spacingCount, "Low MP blocked a legal defensive spacing move.");
+				PhantomAssertions.assertEquals(1, fixture.lease.castCount, "Low MP spacing issued an unavailable offensive cast.");
+				fixture.stop();
+			});
 			return;
 		}
 		registry.add("01-mode-code-mapping", _ -> testModeMapping());
@@ -1024,6 +1050,15 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private final Set<Integer> supportedSkills = new HashSet<>();
 		private final Map<Integer, Integer> learnedRanks = new HashMap<>();
 		private SelectedSkill lastCast;
+		private ActionOutcome spacingOutcome = ActionOutcome.UNAVAILABLE;
+		private int spacingCount;
+
+		@Override
+		public ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
+		{
+			spacingCount++;
+			return spacingOutcome;
+		}
 		private List<ThreatObservation> attackers = List.of();
 		private List<LootCandidate> loot = List.of();
 		private LootObservation lootObservation = LootObservation.PENDING;

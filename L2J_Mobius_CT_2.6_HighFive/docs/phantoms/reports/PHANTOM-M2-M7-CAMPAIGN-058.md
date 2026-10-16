@@ -7,12 +7,14 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 
 | Этап | Реализация | Серверная проверка | Владелец |
 |---|---|---|---|
-| М2 | PARTIAL: request/reply, native invitations/support,3 followers, role-aware assist и NPC-агро | Native3-role walk→2kills/earned EXP1/1; tank агро/live heal1/1; support3/3; range/skills/full speech composition/current JAR/restart открыты | QA_PENDING |
+| М2 | PARTIAL: request/reply, invitations/support,3 followers, assist/агро/ranged spacing/current rank | Native walk→2kills/EXP, tank/live heal, support matrix, enhanced skills и bow gear; full speech composition/current JAR/restart открыты | QA_PENDING |
 | М3 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М4 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М5 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М6 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М7 | NOT_STARTED | NOT_STARTED | QA_PENDING |
+
+Ranged spacing: native RED первые действия125.78/127.63, отхода нет; final GREEN250.32/250.32, два stock kill с EXP/damage/MP/arrows, все3 участника живы,6 sessions. Тот же combat owner делает bounded прямой MOVE_TO между действиями; начатые cast/attack сохраняет, low-MP cast не выдаёт. Native bow7575 equipped→unequipped→same item equipped обновляет readiness. Native3/3 включает exact cleanup, stale target и сохранение foreign MOVE; focused7/7, enhanced skills/current gear affected3/3. М2 целиком пока PARTIAL.
 
 SKILLS resolver: native RED0/2→GREEN2/2 на реально загруженных1339:101 и1013:101. Каталог задаёт минимальное основание capability; actual learned rank передаётся в native CAST/support readiness, проверяются его условия/стоимость/reuse. Normal combat обновляет loadout между действиями, не обрывая текущий cast/attack; focused6/6, capability-runtime40/40. Fire Vortex нанёс урон со списанием MP; Recharge восстановил MP с расходом у recharger; смена active class заново ограничила набор. Gear/subclass/save-restart ещё не проверены.
 
