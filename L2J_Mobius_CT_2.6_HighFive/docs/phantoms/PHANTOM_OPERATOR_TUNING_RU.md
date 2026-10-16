@@ -1,5 +1,7 @@
 # Phantom World: настройка оператором
 
+TASK058: `data/phantoms/party/high-five-real-party-invitation-v1.xml` управляет согласием свободного или обычно фармящего Phantom на штатное приглашение человека. `enabled` принимает только `true/false`; `minimumPreference` ограничен `-3000..3000` и сравнивается с текущим `party.invite.preference` SocialService. По умолчанию порог `0`: нейтральное отношение допускает согласие, отрицательное — отказ. Занятый другой активной целью или состоящий в группе Phantom не переключается. Недоступная социальная authority оставляет приглашение без согласия до штатного завершения. Изменение XML требует обычного restart; права, дистанция, состав и срок приглашения проверяются native service. Эта настройка сама по себе не подтверждает follow/support и не выдаёт навыков или наград.
+
 Этот документ описывает только ключи, которые реально читает `PhantomPlayersConfig`. Shipped-конфиг остаётся выключенным: `EnablePhantomSystem=False`, `PhantomPopulationTarget=0`, `PhantomPopulationActiveTarget=0`. Local-play preset находится в `docs/phantoms/examples/PhantomPlayers.local-play.ini`.
 
 ## Полный список текущих настроек

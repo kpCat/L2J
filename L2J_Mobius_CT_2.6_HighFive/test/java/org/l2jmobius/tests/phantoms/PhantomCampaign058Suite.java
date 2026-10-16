@@ -3,8 +3,11 @@
  */
 package org.l2jmobius.tests.phantoms;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+
+import org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy;
 
 public final class PhantomCampaign058Suite implements PhantomTestSuite
 {
@@ -39,6 +42,26 @@ public final class PhantomCampaign058Suite implements PhantomTestSuite
 			final Properties owner = owner();
 			owner.setProperty("owner", "TASK053_CONTRACT");
 			reject(() -> validate(PhantomCampaign058DatabaseLane.MODULE, owner, settings()));
+		});
+		registry.add("04-real-invitation-policy-strict-data-contract", context ->
+		{
+			final Path source = context.moduleRoot().resolve("dist/game/data/phantoms/party/high-five-real-party-invitation-v1.xml");
+			PhantomAssertions.assertEquals(new PhantomRealPartyInvitationPolicy.Settings(true, 0), PhantomRealPartyInvitationPolicy.loadSettings(source), "Tracked real invitation policy changed unexpectedly.");
+			final String xml = Files.readString(source);
+			Files.createDirectories(context.reportsDirectory());
+			final Path invalid = context.reportsDirectory().resolve("invalid-real-invitation-policy.xml");
+			for (String mutation : new String[] { xml.replace("minimumPreference=\"0\"", "minimumPreference=\"3001\""), xml.replace("enabled=\"true\"", "enabled=\"yes\""), xml.replace("version=\"1\"", "version=\"2\""), xml.replace(" />", "><unexpected /></realPartyInvitationPolicy>"), xml.replace("minimumPreference=", "unknown=") })
+			{
+				Files.writeString(invalid, mutation);
+				reject(() -> PhantomRealPartyInvitationPolicy.loadSettings(invalid));
+			}
+		});
+		registry.add("05-real-invitation-preference-hard-bounds", context ->
+		{
+			reject(() -> new PhantomRealPartyInvitationPolicy.Settings(true, -3001));
+			reject(() -> new PhantomRealPartyInvitationPolicy.Settings(true, 3001));
+			new PhantomRealPartyInvitationPolicy.Settings(false, -3000);
+			new PhantomRealPartyInvitationPolicy.Settings(true, 3000);
 		});
 	}
 

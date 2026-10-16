@@ -48,6 +48,7 @@ Production paths относительны java/org/l2jmobius/gameserver; Phantom
 |Premium/shop, quest relief/noblesse/progression|qol/PersonalPremiumQoLService, PersonalProgressionQoLService|QoLShop/LevelGap/EconomyProgressionClosure suites|PersonalPremiumQoL.ini, PersonalProgressionQoL.ini; полный datapack; rates не подменяются|
 |Conversation/social/party/economy assets|Существующие Phantom semantic/social/affiliation/market owners|Existing targeted regression затронутой функции|Весь tracked dist/game/data/configs; не выключать молча и не объявлять будущий milestone принятым|
 |058 companion request, invitation composition и ordinary FARM goal takeover (часть М2)|PhantomConversationService/ExecutionService, L2jPhantomConversationExecutionPort, PartyDecision/Coordinator, native PartyInvitationService|companion-request058; companion-composition058; companion-farm-takeover058; semantic/context/codec, native conversation и execution ownership regression|Tracked RU semantic/conversation data; обычный dist; full follow/support/lifecycle и OWNER_QA пока открыты|
+|058 real→Phantom invitation consent (часть М2)|PhantomRealPartyInvitationPolicy, PartyCoordinator, native PartyInvitationService|companion-real-invitation058; campaign058-ownership policy contracts; party-server-integration|high-five-real-party-invitation-v1.xml; PhantomSystem composition; real-led follow/support ещё не проверены|
 
 ## Clean build и самостоятельная поставка
 

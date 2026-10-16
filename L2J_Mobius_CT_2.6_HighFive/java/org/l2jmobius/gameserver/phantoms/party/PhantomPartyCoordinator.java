@@ -1321,27 +1321,24 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return;
 		}
 		final OptionalLong requesterProfile = _backend.managedProfileId(invitation.requesterObjectId());
-		if (requesterProfile.isEmpty())
+		final long requesterProfileId = requesterProfile.orElse(0);
+		final StoredGoal requesterGoal = requesterProfile.isPresent() ? _goals.load(requesterProfileId).orElse(null) : null;
+		if (requesterProfile.isPresent() && ((requesterGoal == null) || (requesterGoal.goal().status() != PhantomGoalStatus.ACTIVE)))
 		{
 			return;
 		}
-		final StoredGoal requesterGoal = _goals.load(requesterProfile.getAsLong()).orElse(null);
-		if ((requesterGoal == null) || (requesterGoal.goal().status() != PhantomGoalStatus.ACTIVE))
-		{
-			return;
-		}
-		final ManagedInvitationPolicy policy = _managedInvitationPolicies.get(requesterGoal.goal().goalType());
+		final ManagedInvitationPolicy policy = _managedInvitationPolicies.get(requesterProfile.isEmpty() ? PhantomRealPartyInvitationPolicy.POLICY_KEY : requesterGoal.goal().goalType());
 		if (policy == null)
 		{
 			return;
 		}
-		final StoredPartyState leaderClaim = _claims.get(requesterProfile.getAsLong());
+		final StoredPartyState leaderClaim = _claims.get(requesterProfileId);
 		final StoredPartyState inviteeClaim = _claims.get(managed.profileId());
 		final MemberSnapshot inviteeSnapshot = _backend.memberSnapshot(invitee).orElse(null);
 		final ManagedInvitationDecision decision;
 		try
 		{
-			decision = Objects.requireNonNullElse(policy.evaluate(new ManagedInvitationContext(invitation, requesterProfile.getAsLong(), managed.profileId(), leaderClaim == null ? null : leaderClaim.state(), inviteeClaim == null ? null : inviteeClaim.state(), storedGoal == null ? null : storedGoal.goal(), inviteeSnapshot)), ManagedInvitationDecision.DEFER);
+			decision = Objects.requireNonNullElse(policy.evaluate(new ManagedInvitationContext(invitation, requesterProfileId, managed.profileId(), leaderClaim == null ? null : leaderClaim.state(), inviteeClaim == null ? null : inviteeClaim.state(), storedGoal == null ? null : storedGoal.goal(), inviteeSnapshot)), ManagedInvitationDecision.DEFER);
 		}
 		catch (RuntimeException e)
 		{

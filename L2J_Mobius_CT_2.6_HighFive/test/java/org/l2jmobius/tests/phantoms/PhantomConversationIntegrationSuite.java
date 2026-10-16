@@ -101,6 +101,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleCatalog;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
+import org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy;
 import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
@@ -139,6 +140,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		COMPANION_REQUEST_058,
 		COMPANION_COMPOSITION_058,
 		COMPANION_FARM_TAKEOVER_058,
+		COMPANION_REAL_INVITATION_058,
 		CHAT_INTEGRATION,
 		LIFECYCLE_PERFORMANCE
 	}
@@ -186,6 +188,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			case COMPANION_REQUEST_058 -> "companion-request058";
 			case COMPANION_COMPOSITION_058 -> "companion-composition058";
 			case COMPANION_FARM_TAKEOVER_058 -> "companion-farm-takeover058";
+			case COMPANION_REAL_INVITATION_058 -> "companion-real-invitation058";
 			case CHAT_INTEGRATION -> "conversation-chat-integration";
 			case LIFECYCLE_PERFORMANCE -> "conversation-lifecycle-performance";
 		};
@@ -194,7 +197,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_FARM_TAKEOVER_058 ? 58005804L : _mode == Mode.COMPANION_COMPOSITION_058 ? 58005803L : _mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
+		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_REAL_INVITATION_058 ? 58005805L : _mode == Mode.COMPANION_FARM_TAKEOVER_058 ? 58005804L : _mode == Mode.COMPANION_COMPOSITION_058 ? 58005803L : _mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
 		_profiles = PhantomProfileRepository.open();
@@ -293,7 +296,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			companionRequest058(registry);
 		}
-		else if ((_mode == Mode.COMPANION_COMPOSITION_058) || (_mode == Mode.COMPANION_FARM_TAKEOVER_058))
+		else if ((_mode == Mode.COMPANION_COMPOSITION_058) || (_mode == Mode.COMPANION_FARM_TAKEOVER_058) || (_mode == Mode.COMPANION_REAL_INVITATION_058))
 		{
 			companionComposition058(registry);
 		}
@@ -305,19 +308,20 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 
 	private void companionComposition058(PhantomTestRegistry registry)
 	{
-		registry.add("01-delivered-request-reply-native-invitation-and-test-accept", context ->
+		registry.add(_mode == Mode.COMPANION_REAL_INVITATION_058 ? "01-real-invitation-policy-accepts-and-retains-personal-goal" : "01-delivered-request-reply-native-invitation-and-test-accept", context ->
 		{
+			final boolean realInvitation = _mode == Mode.COMPANION_REAL_INVITATION_058;
 			_observer.getStat().setLevel((byte) 20);
 			_speaker.getStat().setLevel((byte) 20);
 			_speaker.spawnMe(_observer.getX(), _observer.getY(), _observer.getZ());
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
 			final PhantomGoal previousFarm;
-			if (_mode == Mode.COMPANION_FARM_TAKEOVER_058)
+			if ((_mode == Mode.COMPANION_FARM_TAKEOVER_058) || realInvitation)
 			{
 				// A persisted ordinary-goal precondition; actual combat/earned work is a separate gate.
 				final var anchor = _topology.findAnchor("population.farming.elf.20534").orElseThrow();
-				previousFarm = new PhantomGoal(58005804L, PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE,
+				previousFarm = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE,
 					new PhantomDomainRef("profile", Long.toString(_observerProfile.profileId())), new PhantomDomainRef("npc", "20534"), 1, 0, null,
 					List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20534@" + anchor.id())),
 					new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm", 1, 0, 0, 0, Map.of(), "fixture058.takeover", 1);
@@ -358,25 +362,46 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			Throwable scenarioFailure = null;
 			try (NetworkBackedClient counterpart = NetworkBackedClient.attach(_speaker))
 			{
-				final long generatedBefore = ChatObservationService.getInstance().snapshot().generatedDeliveries();
-				final var dispatched = PlayerChatIngress.dispatchClient(_speaker, ChatType.WHISPER, _observer.getName(), "го кач?");
-				PhantomAssertions.assertTrue(dispatched.dispatched() && (dispatched.observedDeliveries() > 0), "Native companion addressed request was not delivered.");
-				for (int pulse = 1; (pulse <= 256) && (PartyInvitationService.getInstance().observe(_speaker).isEmpty() || (execution.snapshot().sent() == 0)); pulse++)
+				if (realInvitation)
 				{
-					_conversation.onPulse();
-					execution.onPulse();
-					engine.accept(new PhantomActivityWorkItem(_observerProfile.profileId(), PhantomActivityState.ACTIVE, 1, pulse, System.nanoTime(), PhantomActivityOverloadLevel.NORMAL));
-					party.onPulse();
-					Thread.sleep(10);
+					try (var restrictive = party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(new PhantomRealPartyInvitationPolicy.Settings(true, 3000), _social, () -> 1000L)))
+					{
+						final var refused = PartyInvitationService.getInstance().invite(_speaker, _observer, PartyDistributionType.FINDERS_KEEPERS.getId());
+						PhantomAssertions.assertTrue(refused.delivered(), "Preference refusal control never reached the managed recipient.");
+						for (int pulse = 0; (pulse < 32) && PartyInvitationService.getInstance().observe(_observer).isPresent(); pulse++)
+						{
+							party.onPulse();
+						}
+						PhantomAssertions.assertTrue(PartyInvitationService.getInstance().observe(_observer).isEmpty() && !_speaker.isInParty(), "Social preference refusal was not applied through the native invitation.");
+						PhantomAssertions.assertEquals(previousFarm, goals.load(_observerProfile.profileId()).orElseThrow().goal(), "Refused invitation changed the personal goal.");
+					}
+					party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), _social, () -> 1000L));
+					final var invitation = PartyInvitationService.getInstance().invite(_speaker, _observer, PartyDistributionType.FINDERS_KEEPERS.getId());
+					PhantomAssertions.assertEquals(PartyInvitationService.InviteOutcome.DELIVERED_MANAGED, invitation.outcome(), "Ordinary real invitation was not delivered to the managed recipient.");
+					PhantomAssertions.assertEquals(invitation.identity(), PartyInvitationService.getInstance().observe(_observer).orElseThrow().identity(), "Managed delivery changed the canonical invitation identity.");
 				}
-				final var pending = PartyInvitationService.getInstance().observe(_speaker).orElseThrow(() -> new AssertionError("No native invitation: execution=" + execution.snapshot() + "; engine=" + engine.find(_observerProfile.profileId()) + "; party=" + party.snapshot()));
-				PhantomAssertions.assertEquals(_observer.getObjectId(), pending.requesterObjectId(), "Invitation requester differs from addressed Phantom.");
-				PhantomAssertions.assertTrue(pending.managedRequester() && !pending.managedInvitee(), "Composition substituted an all-Phantom party.");
-				final var executionState = executionStore.load(_observerProfile.profileId()).orElseThrow().state();
-				PhantomAssertions.assertTrue(executionState.entries().stream().anyMatch(entry -> entry.outboundState() == OutboundState.SENT) || executionState.receipts().stream().anyMatch(receipt -> receipt.outboundState() == OutboundState.SENT), "Companion reply has no actual native SENT receipt.");
-				PhantomAssertions.assertTrue(ChatObservationService.getInstance().snapshot().generatedDeliveries() > generatedBefore, "Companion reply did not reach a concrete recipient.");
-				PhantomAssertions.assertFalse(_speaker.isInParty(), "Real TEST partner was auto-accepted before its response.");
-				PhantomAssertions.assertEquals(PartyInvitationService.RespondOutcome.ACCEPTED, PartyInvitationService.getInstance().respond(_speaker, PartyInvitationService.Response.ACCEPT, pending.identity()).outcome(), "Explicit TEST acceptance did not create native membership.");
+				else
+				{
+					final long generatedBefore = ChatObservationService.getInstance().snapshot().generatedDeliveries();
+					final var dispatched = PlayerChatIngress.dispatchClient(_speaker, ChatType.WHISPER, _observer.getName(), "го кач?");
+					PhantomAssertions.assertTrue(dispatched.dispatched() && (dispatched.observedDeliveries() > 0), "Native companion addressed request was not delivered.");
+					for (int pulse = 1; (pulse <= 256) && (PartyInvitationService.getInstance().observe(_speaker).isEmpty() || (execution.snapshot().sent() == 0)); pulse++)
+					{
+						_conversation.onPulse();
+						execution.onPulse();
+						engine.accept(new PhantomActivityWorkItem(_observerProfile.profileId(), PhantomActivityState.ACTIVE, 1, pulse, System.nanoTime(), PhantomActivityOverloadLevel.NORMAL));
+						party.onPulse();
+						Thread.sleep(10);
+					}
+					final var pending = PartyInvitationService.getInstance().observe(_speaker).orElseThrow(() -> new AssertionError("No native invitation: execution=" + execution.snapshot() + "; engine=" + engine.find(_observerProfile.profileId()) + "; party=" + party.snapshot()));
+					PhantomAssertions.assertEquals(_observer.getObjectId(), pending.requesterObjectId(), "Invitation requester differs from addressed Phantom.");
+					PhantomAssertions.assertTrue(pending.managedRequester() && !pending.managedInvitee(), "Composition substituted an all-Phantom party.");
+					final var executionState = executionStore.load(_observerProfile.profileId()).orElseThrow().state();
+					PhantomAssertions.assertTrue(executionState.entries().stream().anyMatch(entry -> entry.outboundState() == OutboundState.SENT) || executionState.receipts().stream().anyMatch(receipt -> receipt.outboundState() == OutboundState.SENT), "Companion reply has no actual native SENT receipt.");
+					PhantomAssertions.assertTrue(ChatObservationService.getInstance().snapshot().generatedDeliveries() > generatedBefore, "Companion reply did not reach a concrete recipient.");
+					PhantomAssertions.assertFalse(_speaker.isInParty(), "Real TEST partner was auto-accepted before its response.");
+					PhantomAssertions.assertEquals(PartyInvitationService.RespondOutcome.ACCEPTED, PartyInvitationService.getInstance().respond(_speaker, PartyInvitationService.Response.ACCEPT, pending.identity()).outcome(), "Explicit TEST acceptance did not create native membership.");
+				}
 				for (int pulse = 0; (pulse < 128) && !party.committed(_observerProfile.profileId()); pulse++)
 				{
 					party.onPulse();
@@ -388,10 +413,18 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 				if (previousFarm != null)
 				{
 					final PhantomGoal replacement = goals.load(_observerProfile.profileId()).orElseThrow().goal();
-					PhantomAssertions.assertTrue((replacement.goalId() != previousFarm.goalId()) && (replacement.revision() > previousFarm.revision()), "Companion takeover did not preserve monotonic goal ownership.");
-					PhantomAssertions.assertEquals(PhantomPartyCoordinator.LEAD_GOAL, replacement.goalType(), "Ordinary FARM still owns the committed companion.");
+					if (realInvitation)
+					{
+						PhantomAssertions.assertEquals(previousFarm, replacement, "Real-led membership overwrote the personal FARM goal.");
+						PhantomAssertions.assertEquals(_speaker.getObjectId(), _speaker.getParty().getLeaderObjectId(), "The managed member replaced the real party leader.");
+					}
+					else
+					{
+						PhantomAssertions.assertTrue((replacement.goalId() != previousFarm.goalId()) && (replacement.revision() > previousFarm.revision()), "Companion takeover did not preserve monotonic goal ownership.");
+						PhantomAssertions.assertEquals(PhantomPartyCoordinator.LEAD_GOAL, replacement.goalType(), "Ordinary FARM still owns the committed companion.");
+						PhantomAssertions.assertFalse(port.allowsGoalSupersession(_observerProfile.profileId(), ExecutionEntry.prepared(_plans.getFirst()), replacement), "A committed party goal was treated as replaceable ordinary FARM.");
+					}
 					PhantomAssertions.assertTrue(party.blocksBackground(_observerProfile.profileId()), "Committed companion still admits new ordinary FARM roots.");
-					PhantomAssertions.assertFalse(port.allowsGoalSupersession(_observerProfile.profileId(), ExecutionEntry.prepared(_plans.getFirst()), replacement), "A committed party goal was treated as replaceable ordinary FARM.");
 				}
 				final var reloaded = new PhantomPartyStore(_profiles).load(_observerProfile.profileId()).orElseThrow();
 				PhantomAssertions.assertEquals(1, reloaded.state().phantomMembers().size(), "Persisted Phantom roster differs from native membership.");
@@ -404,6 +437,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			}
 			finally
 			{
+				PartyInvitationService.getInstance().observe(_observer).ifPresent(pending -> PartyInvitationService.getInstance().cancel(pending.identity()));
 				PartyInvitationService.getInstance().observe(_speaker).ifPresent(pending -> PartyInvitationService.getInstance().cancel(pending.identity()));
 				PartyInvitationService.getInstance().leave(_speaker);
 				for (int pulse = 0; pulse < 4; pulse++)

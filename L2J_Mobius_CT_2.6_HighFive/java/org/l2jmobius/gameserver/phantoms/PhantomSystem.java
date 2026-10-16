@@ -139,6 +139,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy;
+import org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyParticipationPort;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind;
@@ -569,6 +570,8 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom party coordinator could not enter the running state.");
 				}
 				partyParticipation.install(_partyCoordinator);
+				_partyCoordinator.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY,
+					new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-real-party-invitation-v1.xml").toPath()), _socialService, () -> System.currentTimeMillis() / 60000L));
 				_populationManager.presence().installExternalBusySource("party", _partyCoordinator::blocksBackground);
 				_populationManager.presence().installExternalBusySource("store", _phantomStoreService::blocksDecision);
 				_populationManager.presence().installExternalBusySource("action", profileId -> _materializationService.find(profileId).map(materialization -> materialization.admittedActionCount() > 0).orElse(false));

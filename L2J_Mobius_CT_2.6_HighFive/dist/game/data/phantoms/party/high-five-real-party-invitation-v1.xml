@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Neutral or friendly real players may invite a free or ordinarily farming Phantom.
+     Native invitation legality and current ownership are still required. -->
+<realPartyInvitationPolicy id="high-five-real-party-invitation-v1" version="1" enabled="true" minimumPreference="0" />
