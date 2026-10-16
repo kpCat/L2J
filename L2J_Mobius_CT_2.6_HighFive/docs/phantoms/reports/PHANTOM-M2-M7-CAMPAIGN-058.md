@@ -7,7 +7,7 @@ OWN=`D:\Codex\worktrees\phantom-dev\L2J_Mobius`; BASE=`039d1dcb8b702285e4d0eaffb
 
 | Этап | Реализация | Серверная проверка | Владелец |
 |---|---|---|---|
-| М2 | PARTIAL: request/reply, invitations/support,3 followers, assist/агро/ranged spacing/current rank | Native walk→2kills/EXP, tank/live heal, support matrix, enhanced skills и bow gear; full speech composition/current JAR/restart открыты | QA_PENDING |
+| М2 | PARTIAL: request/reply, invitations/support,3 followers, assist/агро/ranged spacing/current rank | Полная speech→SENT→TEST ACCEPT→native leader/walk→2kills/EXP→partychat composition на ordinary JAR; FARM interruption/resume и save-restart ещё открыты | QA_PENDING |
 | М3 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М4 | NOT_STARTED | NOT_STARTED | QA_PENDING |
 | М5 | NOT_STARTED | NOT_STARTED | QA_PENDING |

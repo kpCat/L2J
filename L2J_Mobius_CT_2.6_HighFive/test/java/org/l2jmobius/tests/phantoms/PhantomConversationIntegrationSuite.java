@@ -153,7 +153,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 
 	private static final long SEED = 20002001L;
 	private static final long CHECKPOINT_2_SEED = 20002002L;
-	private static final Hashes HASHES = new Hashes("A".repeat(64), "B".repeat(64), "C".repeat(64));
+	static final Hashes HASHES = new Hashes("A".repeat(64), "B".repeat(64), "C".repeat(64));
 	private static final Method RUN_PULSE = method(PhantomConversationService.class, "runPulse", int.class);
 	private static final Method DISPATCH_FINAL = method(PlayerChatIngress.class, "dispatchFinalFiltered", IChatHandler.class, ChatType.class, Player.class, String.class, String.class, long.class, boolean.class);
 	private final Mode _mode;
@@ -1599,7 +1599,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		return new DispatchDescriptor(dispatchId, Origin.CLIENT_CHAT, 1, "Speaker", ChatType.WHISPER, "Observer", text, epochMillis);
 	}
 
-	private static final class NetworkBackedClient implements AutoCloseable
+	static final class NetworkBackedClient implements AutoCloseable
 	{
 		private final Player _player;
 		private final Connection<GameClient> _connection;
@@ -1614,7 +1614,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			_server = server;
 		}
 
-		private static NetworkBackedClient attach(Player player) throws Exception
+		static NetworkBackedClient attach(Player player) throws Exception
 		{
 			final AsynchronousServerSocketChannel server = AsynchronousServerSocketChannel.open().bind(new InetSocketAddress("127.0.0.1", 0));
 			final var accepted = server.accept();
@@ -1692,7 +1692,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		}
 	}
 
-	private static EnumMap<SlotType, Map<String, PhantomDomainRef>> references()
+	static EnumMap<SlotType, Map<String, PhantomDomainRef>> references()
 	{
 		final EnumMap<SlotType, Map<String, PhantomDomainRef>> result = new EnumMap<>(SlotType.class);
 		result.put(SlotType.ITEM, refs("item", "57"));

@@ -221,6 +221,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		COMPANION_NPC_AGGRO_058,
 		LEARNED_SKILLS_058,
 		COMPANION_RANGED_SPACING_058,
+		COMPANION_FULL_COMPOSITION_058,
 		QOL009_SERVITOR
 	}
 
@@ -311,6 +312,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case COMPANION_NPC_AGGRO_058 -> "companion-npc-aggro058";
 			case LEARNED_SKILLS_058 -> "learned-skills058";
 			case COMPANION_RANGED_SPACING_058 -> "companion-ranged-spacing058";
+			case COMPANION_FULL_COMPOSITION_058 -> "companion-full-composition058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -323,7 +325,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_RANGED_SPACING_058)
+		if (_mode == Mode.COMPANION_FULL_COMPOSITION_058)
+		{
+			PhantomAssertions.assertEquals(58005824L, context.seed(), "Full companion composition used the wrong seed.");
+			PhantomAssertions.assertEquals(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toRealPath(), Path.of(Player.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "Full058 composition requires the actual ordinary current JAR.");
+		}
+		else if (_mode == Mode.COMPANION_RANGED_SPACING_058)
 		{
 			PhantomAssertions.assertEquals(58005819L, context.seed(), "Ranged spacing used the wrong deterministic seed.");
 		}
@@ -429,7 +436,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058).contains(_mode) ? 3 : 1;
+			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode) ? 3 : 1;
 			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
@@ -501,6 +508,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_FULL_COMPOSITION_058)
+		{
+			registry.add("01-addressed-speech-to-native-party-walk-assist-and-partychat", this::testCompanionFollow058);
+			return;
+		}
 		if (_mode == Mode.COMPANION_RANGED_SPACING_058)
 		{
 			registry.add("01-ranged-native-spacing-damage-and-rewards", this::testCompanionFollow058);
@@ -622,7 +634,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testCompanionFollow058(PhantomTestContext context) throws Exception
 	{
-		final boolean movingLeader = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058).contains(_mode);
+		final boolean movingLeader = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode);
 		// All placement is a declared precondition. During measurement only native movement is used.
 		final int fromX = -71350;
 		final int fromY = 258050;
@@ -680,7 +692,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			human.standUp();
 			context.record("companion058.aggro.preconditions", "TEST classes90/94/97 level80; actual learned28:" + aggroLevel + "; tank368:1/mage1339:1/healer1335:1; stock weapons2500/6579/6579 and ImperialCrusader/MajorArcana armor; human online/standing/running with native bow13+arrows17x100; no grants inside combat");
 		}
-		if (Set.of(Mode.COMPANION_ASSIST_058, Mode.COMPANION_RANGED_SPACING_058).contains(_mode))
+		if (Set.of(Mode.COMPANION_ASSIST_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode))
 		{
 			prepareCompanionCombat058(actors.get(0), 88, 6580, 345, 6373, 6374, 6375, 6376, 6378);
 			prepareCompanionCombat058(actors.get(1), 94, 6579, 1339, 6383, 6384, 6385, 6386);
@@ -703,9 +715,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(party.start(), "Native follow party owner did not start.");
 		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
 		Throwable scenarioFailure = null;
+		PhantomCompanionComposition058 composition = null;
 		try
 		{
-			for (int actorIndex = 0; actorIndex < actors.size(); actorIndex++)
+			if (_mode == Mode.COMPANION_FULL_COMPOSITION_058)
+			{
+				context.record("companion058.composition.input", "TEST seed58005824; actual ordinary GameServer.jar; speech/native consent; 3 roles; obstacle walk; 2 full stock Karik18008; native reward; partychat; no grants during measurement");
+				composition = new PhantomCompanionComposition058(_repository, _materialization, _topology, _knowledge, social, party, human);
+				composition.invite(context, human, actors.getFirst(), profileIds.getFirst(), party);
+			}
+			for (int actorIndex = composition == null ? 0 : 1; actorIndex < actors.size(); actorIndex++)
 			{
 				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, actors.get(actorIndex), PartyDistributionType.FINDERS_KEEPERS.getId()).delivered(), "Native follow invitation was not delivered for actor" + actorIndex);
 				final long profileId = profileIds.get(actorIndex);
@@ -776,9 +795,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(maximumStep <= 128, "Follow snapped instead of using native movement: " + maximumStep);
 			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().pathSucceeded() > 0, "Follow did not use a computed native path around the obstacle.");
 			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().submissionsAccepted() <= 120, "Friendly leader selection caused unbounded follow replanning.");
-			if (Set.of(Mode.COMPANION_ASSIST_058, Mode.COMPANION_RANGED_SPACING_058).contains(_mode))
+			if (Set.of(Mode.COMPANION_ASSIST_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode))
 			{
 				testCompanionAssistTargets058(context, human, actors, profileIds, party);
+			}
+			if (composition != null)
+			{
+				composition.partyChat(context, human);
 			}
 			if (_mode == Mode.COMPANION_NPC_AGGRO_058)
 			{
@@ -823,6 +846,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		finally
 		{
+			if (composition != null)
+			{
+				composition.close();
+			}
 			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
 			for (int pulse = 0; pulse < 8; pulse++)
 			{
