@@ -1530,18 +1530,30 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return examined;
 		}
 		final PartySnapshot party = observed.get();
-		if (!party.leader().equals(leader) && (party.leader().kind() == MemberKind.PHANTOM))
+		if (!party.leader().equals(leader))
 		{
-			electLeader(groupClaims, party.leader());
+			final PartyState before = groupClaims.getFirst().state();
+			final PartyOperation previous = before.operation();
+			final PartyOperation recovery = operation(before, OperationKind.RECOVER, null, previous == null ? 1 : previous.leaderGoalId(), previous == null ? 0 : previous.leaderGoalRevision());
+			if (!commitMembership(before, party, recovery))
+			{
+				return examined;
+			}
 			leader = party.leader();
 		}
-		final MemberRef missing = expected.stream().filter(member -> !party.members().contains(member)).filter(member -> _backend.materialize(member.profileId())).findFirst().orElse(null);
+		final MemberRef missing = leader.kind() == MemberKind.PHANTOM ? expected.stream().filter(member -> !party.members().contains(member)).filter(member -> _backend.materialize(member.profileId())).findFirst().orElse(null) : null;
 		if (missing != null)
 		{
 			_backend.invite(leader, missing, party.distribution());
 			return examined;
 		}
-		commitObserved(groupClaims, party);
+		final List<StoredPartyState> current = claims(runtime.groupId());
+		if (current.isEmpty())
+		{
+			removeGroup(runtime.groupId());
+			return examined;
+		}
+		commitObserved(current, party);
 		examined += advanceRoute(runtime.groupId(), party, remainingBudget - examined);
 		if (examined < remainingBudget)
 		{

@@ -142,6 +142,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		COMPANION_FARM_TAKEOVER_058,
 		COMPANION_REAL_INVITATION_058,
 		COMPANION_MIXED_LIFECYCLE_058,
+		COMPANION_LEADER_HANDOFF_058,
 		CHAT_INTEGRATION,
 		LIFECYCLE_PERFORMANCE
 	}
@@ -191,6 +192,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			case COMPANION_FARM_TAKEOVER_058 -> "companion-farm-takeover058";
 			case COMPANION_REAL_INVITATION_058 -> "companion-real-invitation058";
 			case COMPANION_MIXED_LIFECYCLE_058 -> "companion-mixed-lifecycle058";
+			case COMPANION_LEADER_HANDOFF_058 -> "companion-leader-handoff058";
 			case CHAT_INTEGRATION -> "conversation-chat-integration";
 			case LIFECYCLE_PERFORMANCE -> "conversation-lifecycle-performance";
 		};
@@ -199,7 +201,18 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		PhantomAssertions.assertEquals(_mode == Mode.COMPANION_MIXED_LIFECYCLE_058 ? 58005808L : _mode == Mode.COMPANION_REAL_INVITATION_058 ? 58005805L : _mode == Mode.COMPANION_FARM_TAKEOVER_058 ? 58005804L : _mode == Mode.COMPANION_COMPOSITION_058 ? 58005803L : _mode == Mode.COMPANION_REQUEST_058 ? 58005802L : (_mode == Mode.MANAGED_INGRESS) || (_mode == Mode.OUTBOUND_CHAT) ? CHECKPOINT_2_SEED : SEED, context.seed(), "Conversation integration mode used the wrong seed.");
+		final long expectedSeed = switch (_mode)
+		{
+			case COMPANION_REQUEST_058 -> 58005802L;
+			case COMPANION_COMPOSITION_058 -> 58005803L;
+			case COMPANION_FARM_TAKEOVER_058 -> 58005804L;
+			case COMPANION_REAL_INVITATION_058 -> 58005805L;
+			case COMPANION_MIXED_LIFECYCLE_058 -> 58005808L;
+			case COMPANION_LEADER_HANDOFF_058 -> 58005809L;
+			case MANAGED_INGRESS, OUTBOUND_CHAT -> CHECKPOINT_2_SEED;
+			case CHAT_INTEGRATION, LIFECYCLE_PERFORMANCE -> SEED;
+		};
+		PhantomAssertions.assertEquals(expectedSeed, context.seed(), "Conversation integration mode used the wrong seed.");
 		_environment = new PhantomHeadlessPlayerTestEnvironment();
 		_environment.initialize(context);
 		_profiles = PhantomProfileRepository.open();
@@ -298,7 +311,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 		{
 			companionRequest058(registry);
 		}
-		else if ((_mode == Mode.COMPANION_COMPOSITION_058) || (_mode == Mode.COMPANION_FARM_TAKEOVER_058) || (_mode == Mode.COMPANION_REAL_INVITATION_058) || (_mode == Mode.COMPANION_MIXED_LIFECYCLE_058))
+		else if ((_mode == Mode.COMPANION_COMPOSITION_058) || (_mode == Mode.COMPANION_FARM_TAKEOVER_058) || (_mode == Mode.COMPANION_REAL_INVITATION_058) || (_mode == Mode.COMPANION_MIXED_LIFECYCLE_058) || (_mode == Mode.COMPANION_LEADER_HANDOFF_058))
 		{
 			companionComposition058(registry);
 		}
@@ -319,7 +332,7 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 			ScriptEngine.getInstance().executeScript(ScriptEngine.MASTER_HANDLER_FILE);
 			final PhantomGoalStateStore goals = new PhantomGoalStateStore(_profiles);
 			final PhantomGoal previousFarm;
-			if ((_mode == Mode.COMPANION_FARM_TAKEOVER_058) || realInvitation || (_mode == Mode.COMPANION_MIXED_LIFECYCLE_058))
+			if ((_mode == Mode.COMPANION_FARM_TAKEOVER_058) || realInvitation || (_mode == Mode.COMPANION_MIXED_LIFECYCLE_058) || (_mode == Mode.COMPANION_LEADER_HANDOFF_058))
 			{
 				// A persisted ordinary-goal precondition; actual combat/earned work is a separate gate.
 				final var anchor = _topology.findAnchor("population.farming.elf.20534").orElseThrow();
@@ -431,7 +444,29 @@ public final class PhantomConversationIntegrationSuite implements PhantomTestSui
 				final var reloaded = new PhantomPartyStore(_profiles).load(_observerProfile.profileId()).orElseThrow();
 				PhantomAssertions.assertEquals(1, reloaded.state().phantomMembers().size(), "Persisted Phantom roster differs from native membership.");
 				PhantomAssertions.assertEquals(1, reloaded.state().realMembers().size(), "Persisted TEST partner roster differs from native membership.");
-				if ((_mode == Mode.COMPANION_MIXED_LIFECYCLE_058) || realInvitation)
+				if (_mode == Mode.COMPANION_LEADER_HANDOFF_058)
+				{
+					context.record("companion058.handoff.input", "TEST native transfers=3; managed=" + _observer.getObjectId() + "; real=" + _speaker.getObjectId() + "; then native real expels managed");
+					long generation = reloaded.state().groupGeneration();
+					for (int handoff = 0; handoff < 3; handoff++)
+					{
+						final Player leader = (handoff % 2 == 0) ? _observer : _speaker;
+						final Player successor = (handoff % 2 == 0) ? _speaker : _observer;
+						PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().transferLeader(leader, successor), "Explicit TEST native leader transfer failed.");
+						PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.NOT_LEADER, PartyInvitationService.getInstance().transferLeader(leader, successor), "A former leader retained native control.");
+						for (int pulse = 0; pulse < 8; pulse++)
+						{
+							party.onPulse();
+						}
+						final PartyState transferred = party.claim(_observerProfile.profileId()).orElseThrow().state();
+						PhantomAssertions.assertEquals(successor.getObjectId(), transferred.leader().characterObjectId(), "Durable leader did not follow the native handoff.");
+						PhantomAssertions.assertTrue(transferred.groupGeneration() > generation, "Native leader handoff did not revoke the previous group generation.");
+						context.record("companion058.handoff." + handoff, generation + "->" + transferred.groupGeneration() + "; leader=" + successor.getObjectId());
+						generation = transferred.groupGeneration();
+					}
+					PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().expel(_speaker, _observer), "Explicit TEST native expel failed.");
+				}
+				if ((_mode == Mode.COMPANION_MIXED_LIFECYCLE_058) || realInvitation || (_mode == Mode.COMPANION_LEADER_HANDOFF_058))
 				{
 					final PhantomGoal partyGoal = goals.load(_observerProfile.profileId()).orElseThrow().goal();
 					PartyInvitationService.getInstance().leave(_speaker);

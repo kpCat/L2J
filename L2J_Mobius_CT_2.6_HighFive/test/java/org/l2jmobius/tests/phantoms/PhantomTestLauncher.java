@@ -432,6 +432,7 @@ public final class PhantomTestLauncher
 			case "companion-farm-takeover058" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.COMPANION_FARM_TAKEOVER_058);
 			case "companion-real-invitation058" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.COMPANION_REAL_INVITATION_058);
 			case "companion-mixed-lifecycle058" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.COMPANION_MIXED_LIFECYCLE_058);
+			case "companion-leader-handoff058" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.COMPANION_LEADER_HANDOFF_058);
 			case "conversation-lifecycle-performance" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.LIFECYCLE_PERFORMANCE);
 			case "conversation-managed-ingress" -> new PhantomConversationIntegrationSuite(PhantomConversationIntegrationSuite.Mode.MANAGED_INGRESS);
 			case "conversation-execution-catalog-codec" -> new PhantomConversationExecutionSuite(PhantomConversationExecutionSuite.Mode.CATALOG_CODEC);
