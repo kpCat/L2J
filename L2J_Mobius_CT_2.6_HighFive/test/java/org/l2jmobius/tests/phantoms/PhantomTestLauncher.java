@@ -324,6 +324,7 @@ public final class PhantomTestLauncher
 			case "combat-server-integration" -> new PhantomCombatServerIntegrationSuite();
 			case "post002-native-support" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.POST002_SUPPORT);
 			case "companion-real-support058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_REAL_SUPPORT_058);
+			case "companion-role-matrix058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_ROLE_MATRIX_058);
 			case "pvp-combat-server-integration" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.PVP);
 			case "qol-summoner-servitor-combat" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QOL009_SERVITOR);
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();

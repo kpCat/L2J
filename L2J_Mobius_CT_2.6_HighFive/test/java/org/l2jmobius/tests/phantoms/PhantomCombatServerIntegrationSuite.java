@@ -40,6 +40,7 @@ import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.data.xml.DoorData;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
+import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
 import org.l2jmobius.gameserver.data.SpawnTable;
@@ -210,6 +211,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PVP,
 		POST002_SUPPORT,
 		COMPANION_REAL_SUPPORT_058,
+		COMPANION_ROLE_MATRIX_058,
 		QOL009_SERVITOR
 	}
 
@@ -291,6 +293,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			case POST002_SUPPORT -> "post002-native-support";
 			case COMPANION_REAL_SUPPORT_058 -> "companion-real-support058";
+			case COMPANION_ROLE_MATRIX_058 -> "companion-role-matrix058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -303,7 +306,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_REAL_SUPPORT_058)
+		if (_mode == Mode.COMPANION_ROLE_MATRIX_058)
+		{
+			PhantomAssertions.assertEquals(58005807L, context.seed(), "Companion role matrix used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.COMPANION_REAL_SUPPORT_058)
 		{
 			PhantomAssertions.assertEquals(58005806L, context.seed(), "Companion native support used the wrong deterministic seed.");
 		}
@@ -448,6 +455,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_ROLE_MATRIX_058)
+		{
+			registry.add("01-real-led-heal-hp-and-native-cost", context -> testCompanionNativeRole058(context, "combat.heal"));
+			registry.add("02-real-led-recharge-mp-and-native-cost", context -> testCompanionNativeRole058(context, "combat.recharge"));
+			registry.add("03-real-led-resurrection-request-test-accept-and-stand-up", context -> testCompanionNativeRole058(context, "combat.resurrection"));
+			return;
+		}
 		if (_mode == Mode.COMPANION_REAL_SUPPORT_058)
 		{
 			registry.add("01-real-led-automatic-buff-effect-cost-and-leave", this::testCompanionRealSupport058);
@@ -523,13 +537,31 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testCompanionRealSupport058(PhantomTestContext context) throws Exception
 	{
+		testCompanionNativeRole058(context, "combat.buff");
+	}
+
+	private void testCompanionNativeRole058(PhantomTestContext context, String capabilityKey) throws Exception
+	{
+		final var creationPoint = PlayerTemplateData.getInstance().getTemplate(0).getCreationPoint();
+		_player.decayMe();
+		_player.setXYZInvisible(creationPoint.getX(), creationPoint.getY(), creationPoint.getZ());
+		_player.spawnMe();
+		_player.revalidateZone(true);
 		final Player human = ensureObserver();
+		if (human.isSpawned())
+		{
+			human.decayMe();
+		}
+		human.setXYZInvisible(_player.getX() + 30, _player.getY(), _player.getZ());
+		human.spawnMe();
+		human.revalidateZone(true);
 		PhantomAssertions.assertTrue(!_player.isGM() && !human.isGM(), "Companion support requires ordinary TEST players.");
-		final CapabilityRule rule = _progression.capabilityRules("combat.buff").stream()
+		final CapabilityRule rule = _progression.capabilityRules(capabilityKey).stream()
 			.filter(candidate -> candidate.requiredEquipmentFamilies().isEmpty() && candidate.requiredItems().isEmpty() && (candidate.classIds().size() == 1))
+			.filter(candidate -> Set.of("SINGLE_TARGET", "PARTY", "ALLY").contains(candidate.targetScope().name()))
 			.filter(candidate -> {
 				final Skill skill = SkillData.getInstance().getSkill(candidate.actionSkill().skillId(), candidate.actionSkill().skillLevel());
-				return (skill != null) && (skill.getItemConsumeId() <= 0);
+				return (skill != null) && (skill.getItemConsumeId() <= 0) && (skill.getMpConsume() > 0);
 			}).findFirst().orElseThrow();
 		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), rule.actionSkill().skillLevel());
 		// Explicit TEST preparation before the episode; no natural career or product grant claim.
@@ -542,38 +574,81 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		_player.setCurrentHp(_player.getMaxHp());
 		// Leave regeneration headroom; a full-MP clamp can hide a cost at the sampling boundary.
 		_player.setCurrentMp(_player.getMaxMp() / 2);
+		if (human.isDead())
+		{
+			human.doRevive();
+		}
+		human.getStat().setExp(human.getStat().getExpForLevel(30));
+		human.getStat().setLevel((byte) 30);
+		human.setBaseClass(11);
+		human.setPlayerClass(11); // Stock human Wizard, with no Recharge skill.
+		human.setInvul(false);
 		human.setCurrentHp(human.getMaxHp());
 		human.setCurrentMp(human.getMaxMp());
 		human.getEffectList().stopSkillEffects(SkillFinishType.REMOVED, skill.getId());
-		context.record("companion058.input", "FIXTURE_PRECONDITION profile=" + _profile.profileId() + "; actor=" + _player.getObjectId() + "; human=" + human.getObjectId() + "; class=" + _player.getPlayerClass().getId() + "; level=85; skill=" + skill.getId() + ':' + skill.getLevel() + "; deadline=20s");
+		if (capabilityKey.equals("combat.heal"))
+		{
+			human.setCurrentHp(human.getMaxHp() / 5);
+		}
+		else if (capabilityKey.equals("combat.recharge"))
+		{
+			human.setCurrentMp(human.getMaxMp() / 20);
+		}
+		else if (capabilityKey.equals("combat.resurrection"))
+		{
+			human.doDie(null); // Explicit owned corpse precondition, before measurement.
+			PhantomAssertions.assertTrue(human.isDead() && !human.isResurrectionBlocked(), "Resurrection corpse input is invalid.");
+		}
+		context.record("companion058.input." + capabilityKey, "FIXTURE_PRECONDITION profile=" + _profile.profileId() + "; actor=" + _player.getObjectId() + "; human=" + human.getObjectId() + "; class=" + _player.getPlayerClass().getId() + "; level=85; skill=" + skill.getId() + ':' + skill.getLevel() + "; humanClass=11; humanLevel=" + human.getLevel() + "; hp=" + human.getCurrentHp() + "; mp=" + human.getCurrentMp() + "; xyz=" + human.getX() + ',' + human.getY() + ',' + human.getZ() + "; deadline=20s");
 		final PhantomProgressionService progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
 		final PhantomSocialCatalog socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
 		final PhantomSocialService social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(_repository, socialCatalog), context.seed(), 16);
 		progression.start();
 		PhantomAssertions.assertTrue(social.start(), "Companion social authority did not start.");
 		final L2jPhantomPartyBackend backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
-		PhantomAssertions.assertEquals(85, _player.getLevel(), "Prepared companion level is inconsistent.");
-		PhantomAssertions.assertTrue(backend.capabilities(backend.currentMember(_profile.profileId()).orElseThrow(), human.getObjectId()).stream().anyMatch(capability -> (capability.actionSkillId() == skill.getId()) && (capability.actionSkillLevel() == skill.getLevel()) && capability.readyNow()), "Prepared companion has no current learned, legal buff capability.");
 		final PhantomPartyCoordinator party = new PhantomPartyCoordinator(new PhantomPartyStore(_repository), new PhantomGoalStateStore(_repository), backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(null, _combat), new PhantomPartyTactics(_combat, backend, PhantomPartySupportPolicy.load(Path.of("data/phantoms/party/high-five-party-support-v1.xml"))), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 32);
 		PhantomAssertions.assertTrue(party.start(), "Companion party owner did not start.");
 		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
 		Throwable scenarioFailure = null;
 		try
 		{
+			PhantomAssertions.assertEquals(85, _player.getLevel(), "Prepared companion level is inconsistent.");
+			final var readiness = progression.capabilities(_profile.profileId(), human.getObjectId()).stream().filter(capability -> capability.capabilityKey().equals(capabilityKey) && (capability.actionSkill().skillId() == skill.getId()) && (capability.actionSkill().skillLevel() == skill.getLevel())).toList();
+			context.record("companion058.readiness." + capabilityKey, readiness);
+			PhantomAssertions.assertTrue(readiness.stream().anyMatch(capability -> capability.readyNow()), "Prepared companion has no current learned, legal support capability: " + readiness);
 			final double initialMp = _player.getCurrentMp();
+			final double targetInitialHp = human.getCurrentHp();
+			final double targetInitialMp = human.getCurrentMp();
 			double minimumMp = initialMp;
+			boolean selectedCastSeen = false;
+			boolean resurrectionRequested = false;
+			boolean effectObserved = false;
 			final var invitation = org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, _player, PartyDistributionType.FINDERS_KEEPERS.getId());
 			PhantomAssertions.assertTrue(invitation.delivered(), "Real-led support invitation was not delivered: " + invitation);
 			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
-			while ((System.nanoTime() < deadline) && ((human.getEffectList().getBuffInfoBySkillId(skill.getId()) == null) || _player.isCastingNow()))
+			while ((System.nanoTime() < deadline) && (!effectObserved || _player.isCastingNow()))
 			{
 				party.onPulse();
+				final Skill casting = _player.getLastSkillCast();
+				selectedCastSeen |= (casting != null) && (casting.getId() == skill.getId()) && (casting.getLevel() == skill.getLevel());
+				if (capabilityKey.equals("combat.resurrection") && human.isReviveRequested())
+				{
+					resurrectionRequested = true;
+					human.reviveAnswer(1); // Explicit TEST response to a native request, never a real-user autoaccept.
+				}
+				effectObserved = switch (capabilityKey)
+				{
+					case "combat.heal" -> selectedCastSeen && !human.isDead() && (human.getCurrentHp() >= targetInitialHp + human.getMaxHp() / 4);
+					case "combat.recharge" -> selectedCastSeen && !human.isDead() && (human.getCurrentMp() >= targetInitialMp + Math.min(90, human.getMaxMp() / 4));
+					case "combat.resurrection" -> selectedCastSeen && resurrectionRequested && !human.isDead() && (human.getCurrentHp() > 0);
+					default -> PhantomSupportEffectAuthority.status(human, skill, 45) == PhantomSupportEffectAuthority.Status.HEALTHY;
+				};
 				minimumMp = Math.min(minimumMp, _player.getCurrentMp());
 				Thread.sleep(10);
 			}
 			PhantomAssertions.assertTrue(human.isInParty() && human.getParty().containsPlayer(_player) && party.committed(_profile.profileId()), "Support scenario did not retain canonical mixed membership.");
-			PhantomAssertions.assertEquals(PhantomSupportEffectAuthority.Status.HEALTHY, PhantomSupportEffectAuthority.status(human, skill, 45), "Real-led party owner did not produce the automatic native buff effect.");
-			context.record("companion058.support", "effect=" + skill.getId() + "; initialMp=" + initialMp + "; minimumMp=" + minimumMp);
+			context.record("companion058.support." + capabilityKey, "skill=" + skill.getId() + ':' + skill.getLevel() + "; selectedCast=" + selectedCastSeen + "; resurrectionRequested=" + resurrectionRequested + "; initialMp=" + initialMp + "; minimumMp=" + minimumMp + "; targetHp=" + targetInitialHp + "->" + human.getCurrentHp() + "; targetMp=" + targetInitialMp + "->" + human.getCurrentMp());
+			PhantomAssertions.assertTrue(effectObserved, "Real-led native support has no measured effect: " + capabilityKey + "; selectedCast=" + selectedCastSeen + "; resurrectionRequested=" + resurrectionRequested + "; hp=" + human.getCurrentHp() + "; mp=" + human.getCurrentMp());
 			PhantomAssertions.assertTrue(minimumMp < initialMp, "Automatic native support did not consume caster MP: initial=" + initialMp + "; minimum=" + minimumMp + "; final=" + _player.getCurrentMp() + "; maximum=" + _player.getMaxMp());
 			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
 			for (int pulse = 0; (pulse < 32) && party.blocksBackground(_profile.profileId()); pulse++)
