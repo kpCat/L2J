@@ -23,6 +23,40 @@ public final class PhantomCampaign058Suite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		registry.add("01-exact-mutable-fixture-is-accepted", context -> validate(PhantomCampaign058DatabaseLane.MODULE, owner(), settings()));
+		registry.add("10-only-exact-stock-registration-seed-is-recognized", context ->
+		{
+			PhantomAssertions.assertTrue(PhantomCampaign058PersistentLane.stockRegistration(2, "-2ad66b3f483c22be097019f55c8abdf0", ""), "Tracked stock registration seed was rejected.");
+			PhantomAssertions.assertFalse(PhantomCampaign058PersistentLane.stockRegistration(1, "-2ad66b3f483c22be097019f55c8abdf0", ""), "Another server identity was treated as stock.");
+			PhantomAssertions.assertFalse(PhantomCampaign058PersistentLane.stockRegistration(2, "changed", ""), "Changed stock hex identity was accepted.");
+			PhantomAssertions.assertFalse(PhantomCampaign058PersistentLane.stockRegistration(2, "-2ad66b3f483c22be097019f55c8abdf0", "foreign"), "Changed stock host was accepted.");
+		});
+		registry.add("08-persistent-infrastructure-is-exact-and-separate", context ->
+		{
+			validatePersistent(PhantomCampaign058PersistentLane.MODULE, persistentOwner(), persistentSettings(), false);
+			validatePersistent(PhantomCampaign058PersistentLane.MODULE, persistentOwner(), persistentSettings(), true);
+		});
+		registry.add("09-persistent-rejects-other-root-schema-role-and-fixture-authority", context ->
+		{
+			final String prior = System.getProperty("phantom.campaign058.persistent");
+			boolean fixtureRejected = false;
+			System.setProperty("phantom.campaign058.persistent", "true");
+			try { new PhantomHeadlessPlayerTestEnvironment().initialize(context); }
+			catch (IllegalArgumentException expected) { fixtureRejected = true; }
+			finally { if (prior == null) { System.clearProperty("phantom.campaign058.persistent"); } else { System.setProperty("phantom.campaign058.persistent", prior); } }
+			PhantomAssertions.assertTrue(fixtureRejected, "Persistent lane reached mutable fixture initialization.");
+			PhantomAssertions.assertFalse(org.l2jmobius.commons.database.DatabaseFactory.isInitialized(), "Persistent fixture rejection opened the database pool.");
+			reject(() -> validatePersistent(Path.of("C:/Users/ZBook/L2J_Mobius"), persistentOwner(), persistentSettings(), false));
+			for (String role : List.of("MUTABLE_FIXTURE", "RELEASE_CANDIDATE", ""))
+			{
+				final Properties owner = persistentOwner(); owner.setProperty("role", role);
+				reject(() -> validatePersistent(PhantomCampaign058PersistentLane.MODULE, owner, persistentSettings(), false));
+			}
+			for (String schema : List.of("l2jmobiush5_phantom_test_058t", "l2jmobiush5_phantom_release_057a", "l2jmobiush5_phantom_test_053a"))
+			{
+				final Properties settings = persistentSettings(); settings.setProperty("URL", "jdbc:mysql://127.0.0.1:3308/" + schema + "?useSSL=false");
+				reject(() -> validatePersistent(PhantomCampaign058PersistentLane.MODULE, persistentOwner(), settings, true));
+			}
+		});
 		registry.add("02-wrong-root-and-role-are-rejected", context ->
 		{
 			reject(() -> validate(Path.of("C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive"), owner(), settings()));
@@ -92,6 +126,29 @@ public final class PhantomCampaign058Suite implements PhantomTestSuite
 				reject(() -> PhantomPartyFollowPolicy.load(invalid));
 			}
 		});
+	}
+
+	private static Properties persistentOwner()
+	{
+		final Properties owner = new Properties();
+		owner.setProperty("version", "1"); owner.setProperty("owner", "TASK058_CAMPAIGN"); owner.setProperty("role", "CUMULATIVE_INTEGRATION");
+		owner.setProperty("schema", PhantomCampaign058PersistentLane.DATABASE); owner.setProperty("runtimeRoot", PhantomCampaign058PersistentLane.RUNTIME.toString());
+		owner.setProperty("clientLoginPort", "2138"); owner.setProperty("gamePort", "7838"); owner.setProperty("controlPort", "9138");
+		return owner;
+	}
+
+	private static Properties persistentSettings()
+	{
+		final Properties settings = new Properties();
+		settings.setProperty("URL", "jdbc:mysql://127.0.0.1:3308/" + PhantomCampaign058PersistentLane.DATABASE + "?useSSL=false");
+		settings.setProperty("MaximumDatabaseConnections", "8");
+		return settings;
+	}
+
+	private static void validatePersistent(Path module, Properties owner, Properties settings, boolean runtime)
+	{
+		final Path root = PhantomCampaign058PersistentLane.LANE.resolve(runtime ? "runtime" : "config-input");
+		PhantomCampaign058PersistentLane.validateIdentity(module, root.resolve("game/config/Database.ini"), root.resolve("ownership058.properties"), runtime ? root.resolve("game") : module, owner, settings, runtime);
 	}
 
 	private static Properties owner()

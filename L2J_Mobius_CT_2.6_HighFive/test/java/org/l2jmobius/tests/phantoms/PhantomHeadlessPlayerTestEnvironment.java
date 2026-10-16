@@ -163,11 +163,15 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	{
 		final Path workingDirectory = Path.of("").toAbsolutePath().normalize();
 		final Path expectedWorkingDirectory = context.moduleRoot().resolve("dist/game").normalize();
-		if (!PhantomCampaign058DatabaseLane.enabled() && !PhantomContracts024DatabaseLane.enabled() && !PhantomContracts025DatabaseLane.enabled() && !owned026Enabled())
+		if (!PhantomCampaign058PersistentLane.enabled() && !PhantomCampaign058DatabaseLane.enabled() && !PhantomContracts024DatabaseLane.enabled() && !PhantomContracts025DatabaseLane.enabled() && !owned026Enabled())
 		{
 			PhantomAssertions.assertEquals(expectedWorkingDirectory, workingDirectory, "Headless integration JVM must run from dist/game.");
 		}
 
+		if (PhantomCampaign058PersistentLane.enabled())
+		{
+			PhantomCampaign058PersistentLane.validateFiles(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config", "")), true);
+		}
 		ConfigLoader.init();
 		PhantomAssertions.assertTrue(minimumSevenSignsFestivalManagerStartMillis >= 0L, "Seven Signs Festival manager start override cannot be negative.");
 		FeatureConfig.ALT_FESTIVAL_MANAGER_START = Math.max(FeatureConfig.ALT_FESTIVAL_MANAGER_START, minimumSevenSignsFestivalManagerStartMillis);
@@ -178,7 +182,12 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			throw new PhantomTestConfigurationException("Explicit Phantom test database config path is missing.");
 		}
 		final BootstrapResult bootstrap;
-		if (PhantomCampaign058DatabaseLane.enabled())
+		if (PhantomCampaign058PersistentLane.enabled())
+		{
+			PhantomCampaign058PersistentLane.initialize(context.moduleRoot(), Path.of(configProperty));
+			bootstrap = null;
+		}
+		else if (PhantomCampaign058DatabaseLane.enabled())
 		{
 			PhantomCampaign058DatabaseLane.initialize(context.moduleRoot(), Path.of(configProperty));
 			bootstrap = null;
@@ -245,6 +254,10 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	public void initialize(PhantomTestContext context, long minimumSevenSignsFestivalManagerStartMillis) throws Exception
 	{
+		if (PhantomCampaign058PersistentLane.enabled())
+		{
+			throw new IllegalArgumentException("Persistent058a forbids mutable fixture initialization/cleanup; use infrastructure only.");
+		}
 		final BootstrapResult bootstrap = initializeNativeInfrastructure(context, minimumSevenSignsFestivalManagerStartMillis);
 		_accountName = "phantom_t004_" + context.seed();
 		cleanupOwnedFixtures();
