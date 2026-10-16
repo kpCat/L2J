@@ -214,6 +214,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		COMPANION_REAL_SUPPORT_058,
 		COMPANION_ROLE_MATRIX_058,
 		COMPANION_FOLLOW_058,
+		COMPANION_MOVING_FOLLOW_058,
 		QOL009_SERVITOR
 	}
 
@@ -246,6 +247,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private final List<Monster> _worldFixtures = new ArrayList<>();
 	private PhantomProfileRepository _repository;
 	private PhantomProfile _profile;
+	private final List<PhantomProfile> _additionalProfiles058 = new ArrayList<>();
 	private PhantomMaterializationService _materialization;
 	private PhantomGameKnowledgeService _knowledge;
 	private PhantomGameKnowledgeQuery _query;
@@ -297,6 +299,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case COMPANION_REAL_SUPPORT_058 -> "companion-real-support058";
 			case COMPANION_ROLE_MATRIX_058 -> "companion-role-matrix058";
 			case COMPANION_FOLLOW_058 -> "companion-follow058";
+			case COMPANION_MOVING_FOLLOW_058 -> "companion-moving-follow058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -309,7 +312,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_FOLLOW_058)
+		if (_mode == Mode.COMPANION_MOVING_FOLLOW_058)
+		{
+			PhantomAssertions.assertEquals(58005813L, context.seed(), "Moving companion follow used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.COMPANION_FOLLOW_058)
 		{
 			PhantomAssertions.assertEquals(58005812L, context.seed(), "Companion native follow used the wrong deterministic seed.");
 		}
@@ -391,7 +398,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1);
+			final int actorCapacity = _mode == Mode.COMPANION_MOVING_FOLLOW_058 ? 3 : 1;
+			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
 			_player = World.getInstance().getPlayer(_environment.primary().objectId());
@@ -411,7 +419,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 
 			_backend = new L2jCombatBackend(_materialization, () -> _query, () -> _progression);
-			_combat = new PhantomCombatService(_backend, PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query), PhantomCombatPolicy.productionDefaults(1));
+			_combat = new PhantomCombatService(_backend, PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query), PhantomCombatPolicy.productionDefaults(actorCapacity));
 			_combat.start();
 			if ((_mode == Mode.MANOR) || (_mode == Mode.QUEST))
 			{
@@ -462,6 +470,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_MOVING_FOLLOW_058)
+		{
+			registry.add("01-three-companions-follow-native-walking-human", this::testCompanionFollow058);
+			return;
+		}
 		if (_mode == Mode.COMPANION_FOLLOW_058)
 		{
 			registry.add("01-real-led-native-follow-around-stock-geometry", this::testCompanionFollow058);
@@ -549,7 +562,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testCompanionFollow058(PhantomTestContext context) throws Exception
 	{
-		// Declared placement before measurement. Only the Phantom's subsequent movement is claimed.
+		final boolean movingLeader = _mode == Mode.COMPANION_MOVING_FOLLOW_058;
+		// All placement is a declared precondition. During measurement only native movement is used.
 		final int fromX = -71350;
 		final int fromY = 258050;
 		final int targetY = 258750;
@@ -563,7 +577,34 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		_player.getStat().setLevel((byte) 30);
 		_player.setCurrentHp(_player.getMaxHp());
 		final Player human = ensureObserver();
-		human.setXYZInvisible(fromX + 30, fromY, z);
+		human.decayMe();
+		human.setXYZInvisible(movingLeader ? fromX : fromX + 30, fromY, z);
+		human.spawnMe();
+		human.revalidateZone(true);
+		PhantomAssertions.assertTrue(human.isSpawned() && !human.isMovementDisabled() && (human.getStat().getMoveSpeed() > 0), "Native human movement precondition is invalid.");
+		final List<Player> actors = new ArrayList<>(List.of(_player));
+		final List<Long> profileIds = new ArrayList<>(List.of(_profile.profileId()));
+		if (movingLeader)
+		{
+			for (int slot = 1; slot <= 2; slot++)
+			{
+				final PhantomHeadlessPlayerFixture fixture = _environment.createCampaign058Companion(context, slot);
+				final PhantomProfile profile = _repository.create(fixture.objectId());
+				_additionalProfiles058.add(profile);
+				PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(profile.profileId()).status(), "Additional058 companion did not materialize.");
+				final Player actor = World.getInstance().getPlayer(fixture.objectId());
+				PhantomAssertions.assertTrue(actor != null && !actor.isGM(), "Additional058 actor is absent or GM.");
+				actor.decayMe();
+				actor.setXYZInvisible(fromX, fromY, z);
+				actor.spawnMe();
+				actor.revalidateZone(true);
+				actor.getStat().setExp(actor.getStat().getExpForLevel(30));
+				actor.getStat().setLevel((byte) 30);
+				actor.setCurrentHp(actor.getMaxHp());
+				actors.add(actor);
+				profileIds.add(profile.profileId());
+			}
+		}
 		PhantomAssertions.assertTrue(!_player.isGM() && !human.isGM(), "Native follow requires ordinary TEST actors.");
 		final PhantomMetrics navigationMetrics = new PhantomMetrics();
 		final PhantomNavigationService navigation = new PhantomNavigationService(navigationMetrics);
@@ -581,36 +622,74 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		Throwable scenarioFailure = null;
 		try
 		{
-			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, _player, PartyDistributionType.FINDERS_KEEPERS.getId()).delivered(), "Native follow invitation was not delivered.");
-			for (int pulse = 0; (pulse < 32) && !party.committed(_profile.profileId()); pulse++)
+			for (int actorIndex = 0; actorIndex < actors.size(); actorIndex++)
 			{
-				party.onPulse();
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, actors.get(actorIndex), PartyDistributionType.FINDERS_KEEPERS.getId()).delivered(), "Native follow invitation was not delivered for actor" + actorIndex);
+				final long profileId = profileIds.get(actorIndex);
+				for (int pulse = 0; (pulse < 32) && !party.committed(profileId); pulse++)
+				{
+					party.onPulse();
+				}
+				PhantomAssertions.assertTrue(party.committed(profileId), "Native follow input never became a committed mixed Party for" + profileId);
 			}
-			PhantomAssertions.assertTrue(party.committed(_profile.profileId()), "Native follow input never became a committed mixed Party.");
-			human.decayMe();
-			human.setXYZInvisible(fromX, targetY, z);
-			human.spawnMe();
-			human.revalidateZone(true);
-			context.record("companion058.follow.input", "TEST leader placed before movement episode; managed=" + _player.getObjectId() + "; human=" + human.getObjectId() + "; from=" + fromX + ',' + fromY + ',' + z + "; to=" + fromX + ',' + targetY + ',' + z + "; known VALID_PATH821/7segments; deadline20s; maxSampleStep128");
-			int previousX = _player.getX();
-			int previousY = _player.getY();
-			int previousZ = _player.getZ();
-			double maximumStep = 0;
-			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
-			while ((System.nanoTime() < deadline) && ((Math.hypot(_player.getX() - human.getX(), _player.getY() - human.getY()) > 350) || _player.isMoving()))
+			final var humanPath = movingLeader ? PathFinding.getInstance().findPath(human.getX(), human.getY(), human.getZ(), fromX, targetY, z, 0, true) : null;
+			if (movingLeader)
 			{
+				PhantomAssertions.assertTrue((humanPath != null) && !humanPath.isEmpty(), "Declared native human walking path is unavailable.");
+			}
+			else
+			{
+				human.decayMe();
+				human.setXYZInvisible(fromX, targetY, z);
+				human.spawnMe();
+				human.revalidateZone(true);
+			}
+			context.record("companion058.follow.input", "TEST preconditions; movingHuman=" + movingLeader + "; managed=" + actors.stream().map(Player::getObjectId).toList() + "; profiles=" + profileIds + "; human=" + human.getObjectId() + "; from=" + fromX + ',' + fromY + ',' + z + "; to=" + fromX + ',' + targetY + ',' + z + "; native path around stock obstacle; deadline30s; maxSampleStep128");
+			final int[][] previous = actors.stream().map(actor -> new int[] {actor.getX(), actor.getY(), actor.getZ()}).toArray(int[][]::new);
+			double maximumStep = 0;
+			int humanWaypoint = 0;
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+			while ((System.nanoTime() < deadline) && ((movingLeader && ((humanWaypoint < humanPath.size()) || human.isMoving())) || actors.stream().anyMatch(actor -> (Math.hypot(actor.getX() - human.getX(), actor.getY() - human.getY()) > 350) || actor.isMoving())))
+			{
+				if (movingLeader && (humanWaypoint < humanPath.size()))
+				{
+					var waypoint = humanPath.get(humanWaypoint);
+					if (Math.hypot(human.getX() - waypoint.getX(), human.getY() - waypoint.getY()) <= 64)
+					{
+						humanWaypoint++;
+						if (humanWaypoint < humanPath.size())
+						{
+							waypoint = humanPath.get(humanWaypoint);
+							human.moveToLocation(waypoint.getX(), waypoint.getY(), waypoint.getZ(), 0);
+						}
+					}
+					else if (!human.isMoving())
+					{
+						human.moveToLocation(waypoint.getX(), waypoint.getY(), waypoint.getZ(), 0);
+					}
+				}
 				party.onPulse();
-				maximumStep = Math.max(maximumStep, Math.sqrt(Math.pow(_player.getX() - previousX, 2) + Math.pow(_player.getY() - previousY, 2) + Math.pow(_player.getZ() - previousZ, 2)));
-				previousX = _player.getX();
-				previousY = _player.getY();
-				previousZ = _player.getZ();
+				for (int index = 0; index < actors.size(); index++)
+				{
+					final Player actor = actors.get(index);
+					maximumStep = Math.max(maximumStep, Math.sqrt(Math.pow(actor.getX() - previous[index][0], 2) + Math.pow(actor.getY() - previous[index][1], 2) + Math.pow(actor.getZ() - previous[index][2], 2)));
+					previous[index] = new int[] {actor.getX(), actor.getY(), actor.getZ()};
+					PhantomAssertions.assertTrue(actor.isInParty() && (actor.getParty() == human.getParty()) && party.committed(profileIds.get(index)), "Follow lost a native mixed member during movement.");
+				}
 				Thread.sleep(20);
 			}
-			final double remaining = Math.hypot(_player.getX() - human.getX(), _player.getY() - human.getY());
-			context.record("companion058.follow.result", "xyz=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; remaining=" + remaining + "; maximumStep=" + maximumStep + "; navigation=" + navigationMetrics.snapshot().navigation());
-			PhantomAssertions.assertTrue(_player.isInParty() && (_player.getParty() == human.getParty()) && party.committed(_profile.profileId()), "Follow lost its native mixed-party membership.");
-			PhantomAssertions.assertTrue(remaining <= 350, "Real-led companion did not reach its leader: " + remaining + "; routes=" + routes.snapshot());
-			PhantomAssertions.assertTrue(Math.hypot(_player.getX() - fromX, _player.getY() - fromY) >= 300, "Follow has no actual World displacement.");
+			context.record("companion058.follow.human", "actual=" + human.getX() + ',' + human.getY() + ',' + human.getZ() + "; visited=" + humanWaypoint + '/' + (humanPath == null ? 0 : humanPath.size()) + "; spawned=" + human.isSpawned());
+			for (Player actor : actors)
+			{
+				final double remaining = Math.hypot(actor.getX() - human.getX(), actor.getY() - human.getY());
+				context.record("companion058.follow.result." + actor.getObjectId(), "xyz=" + actor.getX() + ',' + actor.getY() + ',' + actor.getZ() + "; remaining=" + remaining + "; maximumStep=" + maximumStep + "; navigation=" + navigationMetrics.snapshot().navigation());
+				PhantomAssertions.assertTrue(remaining <= 350, "Real-led companion did not reach its leader: " + remaining + "; routes=" + routes.snapshot());
+				PhantomAssertions.assertTrue(Math.hypot(actor.getX() - fromX, actor.getY() - fromY) >= 300, "Follow has no actual World displacement.");
+			}
+			if (movingLeader)
+			{
+				PhantomAssertions.assertTrue((humanWaypoint == humanPath.size()) && (Math.hypot(human.getX() - fromX, human.getY() - fromY) >= 600), "TEST human did not actually walk the declared route.");
+			}
 			PhantomAssertions.assertTrue(maximumStep <= 128, "Follow snapped instead of using native movement: " + maximumStep);
 			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().pathSucceeded() > 0, "Follow did not use a computed native path around the obstacle.");
 		}
@@ -3336,6 +3415,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			if ((_repository != null) && (_profile != null))
 			{
 				_repository.find(_profile.profileId()).ifPresent(profile -> _repository.delete(profile.profileId(), profile.rowVersion()));
+				for (PhantomProfile additional : _additionalProfiles058)
+				{
+					_repository.find(additional.profileId()).ifPresent(profile -> _repository.delete(profile.profileId(), profile.rowVersion()));
+				}
+				_additionalProfiles058.clear();
 			}
 			if (_knowledge != null)
 			{

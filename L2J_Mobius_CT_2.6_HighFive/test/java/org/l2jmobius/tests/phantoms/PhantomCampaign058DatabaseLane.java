@@ -80,6 +80,20 @@ public final class PhantomCampaign058DatabaseLane
 		}
 	}
 
+	/** Recheck existing fixture authority without reinitializing or provisioning the database. */
+	static void assertActiveFixture(PhantomTestContext context) throws Exception
+	{
+		if (!enabled() || !DatabaseFactory.isInitialized())
+		{
+			throw new IllegalArgumentException("An initialized exact058t fixture is required.");
+		}
+		validateFiles(context.moduleRoot(), Path.of(System.getProperty("phantom.test.config")), Path.of(System.getProperty("phantom.contract058.manifest")));
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			PhantomAssertions.assertEquals(DATABASE, connection.getCatalog(), "Additional058 fixture connected catalog differs.");
+		}
+	}
+
 	/** Reuses the strict stock SQL inventory runner; creates only an absent058t schema, never users or resets. */
 	public static void main(String[] args) throws Exception
 	{

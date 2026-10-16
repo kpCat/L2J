@@ -145,6 +145,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	private PhantomHeadlessPlayerFixture _observer;
 	private String _accountName;
 	private final Set<Integer> _ownedObjectIds = new HashSet<>();
+	private final Set<Integer> _additional058FixtureSlots = new HashSet<>();
 	private Set<Long> _environmentThreadIds = Set.of();
 
 	public void initialize(PhantomTestContext context) throws Exception
@@ -473,6 +474,18 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	public PhantomHeadlessPlayerFixture observer()
 	{
 		return _observer;
+	}
+
+	/** At most two extra companions, under the same strictly owned058t account and cleanup. */
+	public PhantomHeadlessPlayerFixture createCampaign058Companion(PhantomTestContext context, int slot) throws Exception
+	{
+		if ((slot < 1) || (slot > 2) || (_primary == null) || !_accountName.equals("phantom_t004_" + context.seed()) || _additional058FixtureSlots.contains(slot))
+		{
+			throw new IllegalArgumentException("Additional058 companion slot or account is invalid.");
+		}
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		_additional058FixtureSlots.add(slot);
+		return createFixture("PhT058" + slot + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE);
 	}
 
 	public void cleanupLoadedPlayer(Player player)
