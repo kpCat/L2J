@@ -171,6 +171,7 @@ import org.l2jmobius.gameserver.phantoms.party.PhantomPartyRouteCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyStore;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyTactics;
+import org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy;
 import org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ResultStatus;
@@ -208,6 +209,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		QUEST,
 		PVP,
 		POST002_SUPPORT,
+		COMPANION_REAL_SUPPORT_058,
 		QOL009_SERVITOR
 	}
 
@@ -288,6 +290,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		return switch (_mode)
 		{
 			case POST002_SUPPORT -> "post002-native-support";
+			case COMPANION_REAL_SUPPORT_058 -> "companion-real-support058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -300,7 +303,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.QOL009_SERVITOR)
+		if (_mode == Mode.COMPANION_REAL_SUPPORT_058)
+		{
+			PhantomAssertions.assertEquals(58005806L, context.seed(), "Companion native support used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.QOL009_SERVITOR)
 		{
 			PhantomAssertions.assertEquals(QOL009_SEED, context.seed(), "L2-QOL-009 used the wrong deterministic seed.");
 		}
@@ -405,7 +412,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				PhantomAssertions.assertTrue(_acquisition.start(), "Full acquisition integration service did not start.");
 			}
 
-			context.record("combatIntegration.database", PhantomTestDatabaseGuard.TARGET_DATABASE);
+			context.record("combatIntegration.database", System.getProperty("phantom.contract058.manifest") == null ? PhantomTestDatabaseGuard.TARGET_DATABASE : PhantomCampaign058DatabaseLane.DATABASE);
 			context.record("combatIntegration.profileId", _profile.profileId());
 			context.record("combatIntegration.actorObjectId", _player.getObjectId());
 			context.record("combatIntegration.normalNpcId", _combatPoint.npcId());
@@ -441,6 +448,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_REAL_SUPPORT_058)
+		{
+			registry.add("01-real-led-automatic-buff-effect-cost-and-leave", this::testCompanionRealSupport058);
+			return;
+		}
 		if (_mode == Mode.POST002_SUPPORT)
 		{
 			registry.add("01-human-party-native-buff-effect-and-guards", _ -> testPost002NativeSupport());
@@ -507,6 +519,101 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		registry.add("18-production-combat-has-no-packet-route", _ -> testNoPacketRoute());
 		registry.add("19-canonical-player-cp-snapshot", _ -> testCanonicalCpSnapshot());
 		registry.add("20-dematerialization-waits-for-combat-lease", _ -> testDematerializationDrain());
+	}
+
+	private void testCompanionRealSupport058(PhantomTestContext context) throws Exception
+	{
+		final Player human = ensureObserver();
+		PhantomAssertions.assertTrue(!_player.isGM() && !human.isGM(), "Companion support requires ordinary TEST players.");
+		final CapabilityRule rule = _progression.capabilityRules("combat.buff").stream()
+			.filter(candidate -> candidate.requiredEquipmentFamilies().isEmpty() && candidate.requiredItems().isEmpty() && (candidate.classIds().size() == 1))
+			.filter(candidate -> {
+				final Skill skill = SkillData.getInstance().getSkill(candidate.actionSkill().skillId(), candidate.actionSkill().skillLevel());
+				return (skill != null) && (skill.getItemConsumeId() <= 0);
+			}).findFirst().orElseThrow();
+		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), rule.actionSkill().skillLevel());
+		// Explicit TEST preparation before the episode; no natural career or product grant claim.
+		_player.getStat().setExp(_player.getStat().getExpForLevel(85));
+		_player.getStat().setLevel((byte) 85);
+		_player.setBaseClass(rule.classIds().getFirst());
+		_player.setPlayerClass(rule.classIds().getFirst());
+		_player.addSkill(skill, false);
+		_player.enableSkill(skill);
+		_player.setCurrentHp(_player.getMaxHp());
+		// Leave regeneration headroom; a full-MP clamp can hide a cost at the sampling boundary.
+		_player.setCurrentMp(_player.getMaxMp() / 2);
+		human.setCurrentHp(human.getMaxHp());
+		human.setCurrentMp(human.getMaxMp());
+		human.getEffectList().stopSkillEffects(SkillFinishType.REMOVED, skill.getId());
+		context.record("companion058.input", "FIXTURE_PRECONDITION profile=" + _profile.profileId() + "; actor=" + _player.getObjectId() + "; human=" + human.getObjectId() + "; class=" + _player.getPlayerClass().getId() + "; level=85; skill=" + skill.getId() + ':' + skill.getLevel() + "; deadline=20s");
+		final PhantomProgressionService progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
+		final PhantomSocialCatalog socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
+		final PhantomSocialService social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(_repository, socialCatalog), context.seed(), 16);
+		progression.start();
+		PhantomAssertions.assertTrue(social.start(), "Companion social authority did not start.");
+		final L2jPhantomPartyBackend backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
+		PhantomAssertions.assertEquals(85, _player.getLevel(), "Prepared companion level is inconsistent.");
+		PhantomAssertions.assertTrue(backend.capabilities(backend.currentMember(_profile.profileId()).orElseThrow(), human.getObjectId()).stream().anyMatch(capability -> (capability.actionSkillId() == skill.getId()) && (capability.actionSkillLevel() == skill.getLevel()) && capability.readyNow()), "Prepared companion has no current learned, legal buff capability.");
+		final PhantomPartyCoordinator party = new PhantomPartyCoordinator(new PhantomPartyStore(_repository), new PhantomGoalStateStore(_repository), backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(null, _combat), new PhantomPartyTactics(_combat, backend, PhantomPartySupportPolicy.load(Path.of("data/phantoms/party/high-five-party-support-v1.xml"))), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 32);
+		PhantomAssertions.assertTrue(party.start(), "Companion party owner did not start.");
+		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
+		Throwable scenarioFailure = null;
+		try
+		{
+			final double initialMp = _player.getCurrentMp();
+			double minimumMp = initialMp;
+			final var invitation = org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, _player, PartyDistributionType.FINDERS_KEEPERS.getId());
+			PhantomAssertions.assertTrue(invitation.delivered(), "Real-led support invitation was not delivered: " + invitation);
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+			while ((System.nanoTime() < deadline) && ((human.getEffectList().getBuffInfoBySkillId(skill.getId()) == null) || _player.isCastingNow()))
+			{
+				party.onPulse();
+				minimumMp = Math.min(minimumMp, _player.getCurrentMp());
+				Thread.sleep(10);
+			}
+			PhantomAssertions.assertTrue(human.isInParty() && human.getParty().containsPlayer(_player) && party.committed(_profile.profileId()), "Support scenario did not retain canonical mixed membership.");
+			PhantomAssertions.assertEquals(PhantomSupportEffectAuthority.Status.HEALTHY, PhantomSupportEffectAuthority.status(human, skill, 45), "Real-led party owner did not produce the automatic native buff effect.");
+			context.record("companion058.support", "effect=" + skill.getId() + "; initialMp=" + initialMp + "; minimumMp=" + minimumMp);
+			PhantomAssertions.assertTrue(minimumMp < initialMp, "Automatic native support did not consume caster MP: initial=" + initialMp + "; minimum=" + minimumMp + "; final=" + _player.getCurrentMp() + "; maximum=" + _player.getMaxMp());
+			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
+			for (int pulse = 0; (pulse < 32) && party.blocksBackground(_profile.profileId()); pulse++)
+			{
+				party.onPulse();
+			}
+			PhantomAssertions.assertFalse(party.blocksBackground(_profile.profileId()), "Native leave retained a stale real-party pin.");
+		}
+		catch (Exception | AssertionError failure)
+		{
+			scenarioFailure = failure;
+			throw failure;
+		}
+		finally
+		{
+			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().observe(_player).ifPresent(pending -> org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().cancel(pending.identity()));
+			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
+			for (int pulse = 0; pulse < 4; pulse++)
+			{
+				party.onPulse();
+			}
+			party.beginStop();
+			final boolean partyStopped = party.finishStop();
+			progression.beginStop();
+			final boolean progressionStopped = progression.finishStop();
+			social.beginStop();
+			final boolean socialStopped = social.finishStop();
+			if (!partyStopped || !progressionStopped || !socialStopped)
+			{
+				final AssertionError cleanup = new AssertionError("Companion owners did not drain: party=" + party.snapshot() + "; progression=" + progressionStopped + "; social=" + socialStopped);
+				if (scenarioFailure != null)
+				{
+					scenarioFailure.addSuppressed(cleanup);
+				}
+				else
+				{
+					throw cleanup;
+				}
+			}
+		}
 	}
 
 	private void testPost002NativeSupport() throws Exception

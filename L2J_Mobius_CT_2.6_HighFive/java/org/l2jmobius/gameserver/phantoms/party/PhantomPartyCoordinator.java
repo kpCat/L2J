@@ -1497,7 +1497,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		MemberRef leader = groupClaims.getFirst().state().leader();
 		if (leader.kind() != MemberKind.PHANTOM)
 		{
-			return examined;
+			return reconcileRealLed(runtime, groupClaims, remainingBudget);
 		}
 		final List<MemberRef> expected = groupClaims.stream().flatMap(claim -> claim.state().phantomMembers().stream()).distinct().sorted(Comparator.comparing(MemberRef::stableKey)).toList();
 		if (!_backend.materialize(leader.profileId()))
@@ -1538,6 +1538,42 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		}
 		commitObserved(groupClaims, party);
 		examined += advanceRoute(runtime.groupId(), party, remainingBudget - examined);
+		if (examined < remainingBudget)
+		{
+			examined += dispatchTactics(party, remainingBudget - examined);
+		}
+		return Math.min(remainingBudget, examined);
+	}
+
+	private int reconcileRealLed(GroupRuntime runtime, List<StoredPartyState> groupClaims, int remainingBudget)
+	{
+		int examined = 1 + groupClaims.size();
+		final PartySnapshot party = groupClaims.stream().map(claim -> _backend.currentMember(claim.profileId()).flatMap(_backend::observe)).flatMap(Optional::stream).findFirst().orElse(null);
+		if (party == null)
+		{
+			groupClaims.forEach(claim -> moveToSolo(claim, "party.real.membership_lost"));
+			removeGroup(runtime.groupId());
+			return examined;
+		}
+		final PartyState before = groupClaims.getFirst().state();
+		final List<MemberRef> phantoms = party.members().stream().filter(member -> member.kind() == MemberKind.PHANTOM).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
+		final List<MemberRef> reals = party.members().stream().filter(member -> member.kind() == MemberKind.REAL).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
+		if (!before.leader().equals(party.leader()) || !before.phantomMembers().equals(phantoms) || !before.realMembers().equals(reals))
+		{
+			final PartyOperation previous = before.operation();
+			final PartyOperation recovery = operation(before, OperationKind.RECOVER, null, previous == null ? 1 : previous.leaderGoalId(), previous == null ? 0 : previous.leaderGoalRevision());
+			if (!commitMembership(before, party, recovery))
+			{
+				return examined;
+			}
+		}
+		final List<StoredPartyState> current = claims(runtime.groupId());
+		if (current.isEmpty())
+		{
+			removeGroup(runtime.groupId());
+			return examined;
+		}
+		commitObserved(current, party);
 		if (examined < remainingBudget)
 		{
 			examined += dispatchTactics(party, remainingBudget - examined);
@@ -1615,7 +1651,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			ensureCommittedGoals(existing);
 			return;
 		}
-		final PartyState draft = state(authority.groupId(), authority.groupGeneration(), authority.membershipRevision() + 1, StateStatus.LEADER, party.leader(), phantoms, reals, authority.objectiveMode(), authority.objectiveRef(), authority.requirements(), roles.assignments(), authority.route(), authority.operation(), progressionEvidence(snapshots), "");
+		final PartyState draft = state(authority.groupId(), authority.groupGeneration(), authority.membershipRevision() + 1, party.leader().kind() == MemberKind.PHANTOM ? StateStatus.LEADER : StateStatus.MEMBER, party.leader(), phantoms, reals, authority.objectiveMode(), authority.objectiveRef(), authority.requirements(), roles.assignments(), authority.route(), authority.operation(), progressionEvidence(snapshots), "");
 		final String manifest = draft.canonicalManifestHash();
 		for (MemberRef member : phantoms)
 		{
