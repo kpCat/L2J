@@ -320,6 +320,7 @@ public final class PhantomTestLauncher
 			case "knowledge-content" -> new PhantomGameKnowledgeContentSuite();
 			case "knowledge-performance" -> new PhantomGameKnowledgePerformanceSuite();
 			case "combat-core" -> new PhantomCombatCoreSuite();
+			case "combat-target-preflight058" -> new PhantomCombatCoreSuite(true);
 			case "combat-ownership" -> new PhantomCombatOwnershipSuite();
 			case "combat-action-ownership" -> new PhantomCombatActionOwnershipSuite();
 			case "combat-server-integration" -> new PhantomCombatServerIntegrationSuite();
@@ -329,6 +330,7 @@ public final class PhantomTestLauncher
 			case "companion-follow058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_FOLLOW_058);
 			case "companion-moving-follow058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_MOVING_FOLLOW_058);
 			case "companion-departure058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_DEPARTURE_058);
+			case "companion-assist058" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.COMPANION_ASSIST_058);
 			case "pvp-combat-server-integration" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.PVP);
 			case "qol-summoner-servitor-combat" -> new PhantomCombatServerIntegrationSuite(PhantomCombatServerIntegrationSuite.Mode.QOL009_SERVITOR);
 			case "combat-performance" -> new PhantomCombatPerformanceSuite();

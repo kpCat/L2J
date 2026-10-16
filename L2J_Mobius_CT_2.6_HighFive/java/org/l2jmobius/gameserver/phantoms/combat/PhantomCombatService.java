@@ -687,6 +687,68 @@ public final class PhantomCombatService
 		}
 	}
 
+	/** Read-only native legality before a party yields its own route to an offensive intent. */
+	public Optional<TargetSnapshot> observeNormalTarget(long profileId, int targetObjectId)
+	{
+		if ((profileId <= 0) || (targetObjectId <= 0))
+		{
+			return Optional.empty();
+		}
+		synchronized (_monitor)
+		{
+			if (_state != ServiceState.RUNNING)
+			{
+				return Optional.empty();
+			}
+			_startOperations++;
+		}
+		PhantomCombatActorLease lease = null;
+		boolean counted = false;
+		try
+		{
+			lease = _backend.tryAcquireActor(profileId);
+			if (lease == null)
+			{
+				return Optional.empty();
+			}
+			synchronized (_monitor)
+			{
+				_actorLeases++;
+			}
+			counted = true;
+			_metrics.leaseAcquired();
+			final ActorSnapshot actor = lease.actorSnapshot();
+			final TargetSnapshot target = lease.targetSnapshot(targetObjectId);
+			return (actor != null) && !actor.dead() && !actor.alikeDead() && (target != null) && target.validFor(actor, _policy.maximumAcquisitionDistance()) ? Optional.of(target) : Optional.empty();
+		}
+		catch (RuntimeException exception)
+		{
+			return Optional.empty();
+		}
+		finally
+		{
+			try
+			{
+				if (lease != null)
+				{
+					lease.close();
+				}
+			}
+			finally
+			{
+				if (counted)
+				{
+					synchronized (_monitor)
+					{
+						_actorLeases--;
+					}
+					_metrics.leaseReleased();
+				}
+				finishStartOperation();
+			}
+		}
+	}
+
 	public boolean hasClaim(long profileId)
 	{
 		synchronized (_monitor)
@@ -1311,6 +1373,10 @@ public final class PhantomCombatService
 
 	private void issueSiegeAction(PhantomCombatSession session, ActorSnapshot actor)
 	{
+		if (actor.casting() || actor.attacking())
+		{
+			return;
+		}
 		SelectedSkill selected = null;
 		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
 		{
@@ -1380,6 +1446,10 @@ public final class PhantomCombatService
 
 	private void issueRaidAction(PhantomCombatSession session, ActorSnapshot actor)
 	{
+		if (actor.casting() || actor.attacking())
+		{
+			return;
+		}
 		SelectedSkill selected = null;
 		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
 		{
@@ -1443,6 +1513,10 @@ public final class PhantomCombatService
 
 	private void issuePvpAction(PhantomCombatSession session, ActorSnapshot actor)
 	{
+		if (actor.casting() || actor.attacking())
+		{
+			return;
+		}
 		final int ownerObjectId = session._request.targetObjectId();
 		final int tacticalTargetObjectId = session._actorLease.pvpTacticalTargetObjectId(ownerObjectId, _policy.maximumAcquisitionDistance());
 		SelectedSkill selected = null;
@@ -1486,6 +1560,10 @@ public final class PhantomCombatService
 
 	private void issueAction(PhantomCombatSession session, ActorSnapshot actor)
 	{
+		if (actor.casting() || actor.attacking())
+		{
+			return;
+		}
 		SelectedSkill selected = null;
 		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
 		{

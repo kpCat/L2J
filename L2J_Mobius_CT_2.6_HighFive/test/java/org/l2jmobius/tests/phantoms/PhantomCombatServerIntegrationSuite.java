@@ -53,6 +53,7 @@ import org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding;
 import org.l2jmobius.gameserver.managers.InstanceManager;
 import org.l2jmobius.gameserver.managers.ItemManager;
 import org.l2jmobius.gameserver.managers.ScriptManager;
+import org.l2jmobius.gameserver.model.Location;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.Summon;
@@ -216,6 +217,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		COMPANION_FOLLOW_058,
 		COMPANION_MOVING_FOLLOW_058,
 		COMPANION_DEPARTURE_058,
+		COMPANION_ASSIST_058,
 		QOL009_SERVITOR
 	}
 
@@ -302,6 +304,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			case COMPANION_FOLLOW_058 -> "companion-follow058";
 			case COMPANION_MOVING_FOLLOW_058 -> "companion-moving-follow058";
 			case COMPANION_DEPARTURE_058 -> "companion-departure058";
+			case COMPANION_ASSIST_058 -> "companion-assist058";
 			case QOL009_SERVITOR -> "qol-summoner-servitor-combat";
 			case PVP -> "pvp-combat-server-integration";
 			case ACQUISITION -> "acquisition-active-spoil";
@@ -314,7 +317,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void beforeAll(PhantomTestContext context) throws Exception
 	{
-		if (_mode == Mode.COMPANION_DEPARTURE_058)
+		if (_mode == Mode.COMPANION_ASSIST_058)
+		{
+			PhantomAssertions.assertEquals(58005815L, context.seed(), "Companion assist used the wrong deterministic seed.");
+		}
+		else if (_mode == Mode.COMPANION_DEPARTURE_058)
 		{
 			PhantomAssertions.assertEquals(58005814L, context.seed(), "Companion departure used the wrong deterministic seed.");
 		}
@@ -404,7 +411,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058).contains(_mode) ? 3 : 1;
+			final int actorCapacity = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058).contains(_mode) ? 3 : 1;
 			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
@@ -476,6 +483,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_mode == Mode.COMPANION_ASSIST_058)
+		{
+			registry.add("01-three-roles-walk-and-assist-two-stock-reward-targets", this::testCompanionFollow058);
+			return;
+		}
 		if (_mode == Mode.COMPANION_DEPARTURE_058)
 		{
 			registry.add("01-last-human-leave-logout-and-same-character-rejoin", this::testCompanionFollow058);
@@ -573,7 +585,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testCompanionFollow058(PhantomTestContext context) throws Exception
 	{
-		final boolean movingLeader = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058).contains(_mode);
+		final boolean movingLeader = Set.of(Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058).contains(_mode);
 		// All placement is a declared precondition. During measurement only native movement is used.
 		final int fromX = -71350;
 		final int fromY = 258050;
@@ -617,6 +629,15 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 		}
 		PhantomAssertions.assertTrue(!_player.isGM() && !human.isGM(), "Native follow requires ordinary TEST actors.");
+		if (_mode == Mode.COMPANION_ASSIST_058)
+		{
+			prepareCompanionCombat058(actors.get(0), 88, 6580, 345, 6373, 6374, 6375, 6376, 6378);
+			prepareCompanionCombat058(actors.get(1), 94, 6579, 1339, 6383, 6384, 6385, 6386);
+			prepareCompanionCombat058(actors.get(2), 92, 7575, 343, 6379, 6380, 6381, 6382);
+			prepareCompanionCombat058(human, 5, 0, 0, 6373, 6374, 6375, 6376, 6378);
+			PhantomAssertions.assertTrue(actors.get(2).getInventory().addItem(ItemProcessType.REWARD, 1345, 200, null, this) != null, "TEST archer arrows unavailable.");
+			context.record("companion058.assist.preconditions", "TEST only; classes88/94/92; level80/XP/base/current class; learned345:1/1339:1/343:1+expertise239:6; stockS weapons6580/6579/7575; ImperialCrusader/MajorArcana/Draconic armor; arrows1345x200; humanKnight5/80+ImperialCrusader; no grants during measurement");
+		}
 		final PhantomMetrics navigationMetrics = new PhantomMetrics();
 		final PhantomNavigationService navigation = new PhantomNavigationService(navigationMetrics);
 		PhantomAssertions.assertTrue(navigation.start(), "Native companion navigation did not start.");
@@ -703,6 +724,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			PhantomAssertions.assertTrue(maximumStep <= 128, "Follow snapped instead of using native movement: " + maximumStep);
 			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().pathSucceeded() > 0, "Follow did not use a computed native path around the obstacle.");
+			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().submissionsAccepted() <= 120, "Friendly leader selection caused unbounded follow replanning.");
+			if (_mode == Mode.COMPANION_ASSIST_058)
+			{
+				testCompanionAssistTargets058(context, human, actors, profileIds, party);
+			}
 			if (_mode == Mode.COMPANION_DEPARTURE_058)
 			{
 				org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
@@ -792,6 +818,120 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			PhantomAssertions.assertTrue(party.committed(profileId) && (actors.get(index).getParty() == human.getParty()), "Native companion did not rejoin its exact human.");
 		}
+	}
+
+	private void prepareCompanionCombat058(Player actor, int classId, int weaponId, int skillId, int... armorIds)
+	{
+		actor.getStat().setExp(actor.getStat().getExpForLevel(80));
+		actor.setBaseClass(classId);
+		actor.setPlayerClass(classId);
+		actor.getStat().setLevel((byte) 80);
+		actor.addSkill(SkillData.getInstance().getSkill(239, 6), true);
+		if (skillId > 0)
+		{
+			PhantomAssertions.assertTrue(_progression.classSkillLearns(classId).stream().anyMatch(learn -> (learn.skillId() == skillId) && (learn.skillLevel() == 1) && (learn.minimumCharacterLevel() <= 80)), "TEST offensive skill is not in the current class tree.");
+			actor.addSkill(SkillData.getInstance().getSkill(skillId, 1), true);
+		}
+		if (weaponId > 0)
+		{
+			final Item weapon = actor.getInventory().addItem(ItemProcessType.REWARD, weaponId, 1, null, this);
+			PhantomAssertions.assertTrue(weapon != null, "TEST stock weapon is unavailable.");
+			actor.getInventory().equipItem(weapon);
+		}
+		for (int itemId : armorIds)
+		{
+			final Item armor = actor.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, this);
+			PhantomAssertions.assertTrue(armor != null, "Declared TEST stock armor is unavailable.");
+			actor.getInventory().equipItem(armor);
+		}
+		actor.refreshExpertisePenalty();
+		actor.refreshOverloaded();
+		actor.setCurrentHp(actor.getMaxHp());
+		actor.setCurrentMp(actor.getMaxMp());
+		actor.setCurrentCp(actor.getMaxCp());
+	}
+
+	private void testCompanionAssistTargets058(PhantomTestContext context, Player human, List<Player> actors, List<Long> profileIds, PhantomPartyCoordinator party) throws Exception
+	{
+		final NpcFact fact = _query.snapshot().npcById().values().stream().filter(npc -> (npc.kind() == NpcKind.MONSTER) && npc.attackable() && npc.targetable() && (npc.level() >= 70) && (npc.level() <= 72) && (npc.exp() > 0)).sorted(Comparator.comparingInt(NpcFact::npcId)).findFirst().orElseThrow(() -> new AssertionError("No stock70..72 reward monster for companion input."));
+		final List<Monster> targets = new ArrayList<>();
+		for (int index = 0; index < 2; index++)
+		{
+			final Monster target = new Monster(NpcData.getInstance().getTemplate(fact.npcId()));
+			target.setCurrentHp(target.getMaxHp());
+			target.setCurrentMp(target.getMaxMp());
+			targets.add(target);
+			_worldFixtures.add(target);
+		}
+		Location point = null;
+		// First candidate is the verified native route's last corner (-71480,258616), not an assumed open field.
+		for (int[] offset : new int[][] {{-128, -128}, {0, 300}, {-200, 300}, {-300, 0}, {300, 0}, {0, -300}, {-300, -200}})
+		{
+			final int x = human.getX() + offset[0];
+			final int y = human.getY() + offset[1];
+			final int height = GeoEngine.getInstance().getHeight(x, y, human.getZ());
+			if (GeoEngine.getInstance().hasGeo(x, y) && actors.stream().allMatch(actor -> (Math.hypot(actor.getX() - x, actor.getY() - y) >= 80) && GeoEngine.getInstance().canSeeTarget(actor.getX(), actor.getY(), actor.getZ(), 0, x, y, height, 0) && GeoEngine.getInstance().canMoveToTarget(actor.getX(), actor.getY(), actor.getZ(), x, y, height, 0)))
+			{
+				point = new Location(x, y, height);
+				break;
+			}
+		}
+		PhantomAssertions.assertTrue(point != null, "Declared companion combat point lacks native LOS/path.");
+		final Player mage = actors.get(1);
+		final Player archer = actors.get(2);
+		final double initialMageMp = mage.getCurrentMp();
+		final long initialArrows = archer.getInventory().getInventoryItemCount(1345, -1);
+		final long[] damage = new long[actors.size()];
+		boolean nativeMageCast = false;
+		context.record("companion058.assist.input", "stockNpc=" + fact.npcId() + "; level=" + fact.level() + "; stockExp=" + fact.exp() + "; objects=" + targets.stream().map(Monster::getObjectId).toList() + "; fullHP=" + targets.stream().map(Monster::getMaxHp).toList() + "; xyz=" + point + "; two consecutive targets;45s each; no stats/rates/reward/actor refill inside measurement");
+		for (Monster target : targets)
+		{
+			final long expBefore = actors.stream().mapToLong(Player::getExp).sum();
+			target.spawnMe(point.getX(), point.getY(), point.getZ());
+			human.setTarget(target);
+			for (int index = 0; index < actors.size(); index++)
+			{
+				context.record("companion058.assist.readiness." + target.getObjectId() + '.' + profileIds.get(index), party.supportCapabilities(profileIds.get(index), target.getObjectId()).stream().filter(capability -> Set.of("combat.melee_damage", "combat.ranged_magic_damage", "combat.ranged_physical_damage").contains(capability.capabilityKey())).limit(4).toList());
+			}
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(45);
+			while (!target.isDead() && (System.nanoTime() < deadline))
+			{
+				party.onPulse();
+				for (int index = 0; index < actors.size(); index++)
+				{
+					final Player actor = actors.get(index);
+					final var aggro = target.getAggroList().get(actor);
+					damage[index] = Math.max(damage[index], aggro == null ? 0 : aggro.getDamage());
+					PhantomAssertions.assertTrue(actor.isInParty() && (actor.getParty() == human.getParty()) && party.committed(profileIds.get(index)), "Native assist lost its exact mixed member.");
+				}
+				nativeMageCast |= (mage.getLastSkillCast() != null) && (mage.getLastSkillCast().getId() == 1339) && (mage.getCurrentMp() < initialMageMp);
+				Thread.sleep(20);
+			}
+			for (int index = 0; index < actors.size(); index++)
+			{
+				final var contribution = target.getAggroList().get(actors.get(index));
+				damage[index] = Math.max(damage[index], contribution == null ? 0 : contribution.getDamage());
+			}
+			// Dead is published before the native reward boundary has necessarily settled.
+			final long rewardDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+			while (target.isDead() && (actors.stream().mapToLong(Player::getExp).sum() <= expBefore) && (System.nanoTime() < rewardDeadline))
+			{
+				party.onPulse();
+				Thread.sleep(20);
+			}
+			final long expAfter = actors.stream().mapToLong(Player::getExp).sum();
+			context.record("companion058.assist.target." + target.getObjectId(), "dead=" + target.isDead() + "; hp=" + target.getCurrentHp() + "; partyExp=" + expBefore + "->" + expAfter + "; mageCast=" + nativeMageCast + "; damage=" + java.util.Arrays.toString(damage) + "; roles=" + actors.stream().map(actor -> actor.getPlayerClass().getId() + ":hp=" + actor.getCurrentHp() + ":mp=" + actor.getCurrentMp() + ":cast=" + (actor.getLastSkillCast() == null ? 0 : actor.getLastSkillCast().getId())).toList() + "; combat=" + profileIds.stream().map(_combat::find).toList());
+			PhantomAssertions.assertTrue(target.isDead(), "Native companions did not kill the selected stock target.");
+			PhantomAssertions.assertFalse(actors.stream().anyMatch(Player::isDead), "A declared companion died during the native assist episode.");
+			PhantomAssertions.assertTrue(expAfter > expBefore, "Native party kill produced no actual earned EXP.");
+		}
+		human.setTarget(null);
+		context.record("companion058.assist.roles", "damage=" + java.util.Arrays.toString(damage) + "; mageMp=" + initialMageMp + "->" + mage.getCurrentMp() + "; arrows=" + initialArrows + "->" + archer.getInventory().getInventoryItemCount(1345, -1) + "; nativeMageCast=" + nativeMageCast);
+		context.record("companion058.assist.sessions", _combat.metrics().sessionsAccepted());
+		PhantomAssertions.assertTrue(_combat.metrics().sessionsAccepted() <= 6, "Lower-priority directives restarted the same actor/target combat session.");
+		PhantomAssertions.assertTrue(nativeMageCast, "Party mage never performed a native offensive cast with MP cost.");
+		PhantomAssertions.assertTrue(archer.getInventory().getInventoryItemCount(1345, -1) < initialArrows, "Party archer never consumed a native arrow.");
+		PhantomAssertions.assertTrue(java.util.Arrays.stream(damage).allMatch(amount -> amount > 0), "One companion role produced no actual native damage.");
 	}
 
 	private void testCompanionRealSupport058(PhantomTestContext context) throws Exception

@@ -47,15 +47,79 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomRespawnRequest;
 
 public final class PhantomCombatCoreSuite implements PhantomTestSuite
 {
+	private final boolean _normalTargetPreflightOnly;
+
+	public PhantomCombatCoreSuite()
+	{
+		this(false);
+	}
+
+	public PhantomCombatCoreSuite(boolean normalTargetPreflightOnly)
+	{
+		_normalTargetPreflightOnly = normalTargetPreflightOnly;
+	}
+
 	@Override
 	public String id()
 	{
-		return "combat-core";
+		return _normalTargetPreflightOnly ? "combat-target-preflight058" : "combat-core";
 	}
 
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (_normalTargetPreflightOnly)
+		{
+			registry.add("01-read-only-preflight-preserves-existing-action-owner", _ ->
+			{
+				final Fixture fixture = fixture(1);
+				final var action = fixture.service.acquireExternalAction(new PhantomCombatService.ExternalActionRequest(1, PhantomCombatService.ExternalActionKind.PARTY_ROUTE, "party.preflight058.existing", 1_000_000_000L, () -> false)).lease();
+				PhantomAssertions.assertTrue(action != null, "Preflight input lacks its existing external owner.");
+				PhantomAssertions.assertTrue(fixture.service.observeNormalTarget(1, 100).isPresent(), "Read-only preflight rejected a valid normal target.");
+				PhantomAssertions.assertTrue(fixture.service.find(1).isEmpty(), "Read-only preflight started a combat session.");
+				PhantomAssertions.assertEquals(1, fixture.service.snapshot().externalActions(), "Read-only preflight released the existing external owner.");
+				PhantomAssertions.assertEquals(1, fixture.service.snapshot().actorLeases(), "Read-only preflight leaked or released an actor lease.");
+				PhantomAssertions.assertEquals(0, fixture.lease.attackCount + fixture.lease.castCount, "Read-only preflight issued a native action.");
+				action.complete();
+				fixture.stop();
+				PhantomAssertions.assertEquals(0, fixture.service.snapshot().actorLeases(), "Normal stop retained preflight ownership.");
+			});
+			registry.add("02-illegal-dead-missing-targets-and-stopped-owner-are-inert", _ ->
+			{
+				final Fixture fixture = fixture(1);
+				fixture.lease.target = target(false, false);
+				PhantomAssertions.assertTrue(fixture.service.observeNormalTarget(1, 100).isEmpty(), "Invalid normal target passed preflight.");
+				fixture.lease.target = target(true, true);
+				PhantomAssertions.assertTrue(fixture.service.observeNormalTarget(1, 100).isEmpty(), "Dead target passed preflight.");
+				fixture.lease.target = target(false, true);
+				fixture.lease.actor = actor(0, true);
+				PhantomAssertions.assertTrue(fixture.service.observeNormalTarget(1, 100).isEmpty(), "Dead actor passed preflight.");
+				PhantomAssertions.assertTrue(fixture.service.observeNormalTarget(2, 100).isEmpty(), "Missing actor passed preflight.");
+				PhantomAssertions.assertEquals(3, fixture.lease.closeCount, "Rejected preflights leaked read-only leases.");
+				fixture.stop();
+				final int acquisitions = fixture.backend.acquireCount;
+				PhantomAssertions.assertTrue(fixture.service.observeNormalTarget(1, 100).isEmpty(), "Stopped owner admitted a preflight.");
+				PhantomAssertions.assertEquals(acquisitions, fixture.backend.acquireCount, "Stopped preflight crossed native admission.");
+			});
+			registry.add("03-native-cast-and-attack-finish-before-another-issued-action", _ ->
+			{
+				final Fixture fixture = fixture(1);
+				fixture.capabilities = capabilities(PhantomCombatMode.RANGED_MAGIC, List.of(new SelectedSkill(301, 1)));
+				fixture.lease.supportedSkills.add(301);
+				PhantomAssertions.assertTrue(fixture.start(1, PhantomCombatMode.RANGED_MAGIC).accepted(), "Native-action input did not start.");
+				fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 50, 100, false, false, true, false, false, 100, "CAST", 301, 1);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(0, fixture.lease.castCount, "Combat reissued an action during a native cast.");
+				fixture.lease.actor = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 50, 100, false, false, false, true, false, 100, "ATTACK", 0, 0);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(0, fixture.lease.castCount, "Combat replaced a native attack windup.");
+				fixture.lease.actor = actor(100, false);
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.castCount, "Combat did not resume after the native action completed.");
+				fixture.stop();
+			});
+			return;
+		}
 		registry.add("01-mode-code-mapping", _ -> testModeMapping());
 		registry.add("02-mode-code-rejection", _ -> testModeRejection());
 		registry.add("03-request-bounds", _ -> testRequestBounds());

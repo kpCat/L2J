@@ -12,6 +12,7 @@ import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomPartySupportAction;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
@@ -132,6 +133,22 @@ public final class PhantomPartyTactics
 			}
 		}
 		return List.copyOf(result);
+	}
+
+	/** The same owner already used for support and routes; no second combat executor. */
+	PhantomCombatService combatOwner()
+	{
+		return _combat;
+	}
+
+	Optional<PhantomCombatMode> combatMode(TacticalDirective directive)
+	{
+		if ((_backend == null) || !Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind()))
+		{
+			return Optional.empty();
+		}
+		final List<MemberCapability> capabilities = _backend.capabilities(directive.actor(), directive.targetObjectId());
+		return List.of(PhantomCombatMode.RANGED_MAGIC, PhantomCombatMode.RANGED_PHYSICAL, PhantomCombatMode.MELEE_PHYSICAL).stream().filter(mode -> capabilities.stream().anyMatch(capability -> capability.capabilityKey().equals(mode.capabilityKey()) && capability.intrinsic() && capability.learned() && (capability.rank() > 0))).findFirst();
 	}
 
 	public List<TacticalDirective> planPvpProtection(MemberRef helper, int limit)

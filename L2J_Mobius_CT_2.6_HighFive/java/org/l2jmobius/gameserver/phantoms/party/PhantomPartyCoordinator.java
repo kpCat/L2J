@@ -38,6 +38,8 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationService.InviteResult
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.MembershipOutcome;
 import org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ExternalActionLease;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
@@ -235,6 +237,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private final Map<Long, StoredPartyState> _claims = new ConcurrentHashMap<>();
 	private final Map<String, GroupRuntime> _groups = new ConcurrentHashMap<>();
 	private final Map<Long, ExternalActionLease> _tacticalActions = new ConcurrentHashMap<>();
+	private final Map<Long, TacticalCombatClaim> _tacticalCombat = new ConcurrentHashMap<>();
 	private final Object _indexLock = new Object();
 	private final Object _lifecycleLock = new Object();
 	private final Map<String, NavigableMap<Long, StoredPartyState>> _claimsByGroup = new HashMap<>();
@@ -1132,6 +1135,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		_routes.beginStop();
 		_tacticalActions.values().forEach(ExternalActionLease::close);
 		_tacticalActions.clear();
+		_tacticalCombat.values().forEach(this::cancelTacticalCombat);
 		_tacticalReleases.clear();
 	}
 
@@ -1146,9 +1150,13 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		{
 			beginStop();
 		}
+		for (TacticalCombatClaim claim : List.copyOf(_tacticalCombat.values()))
+		{
+			releaseTacticalCombat(claim);
+		}
 		final PhantomPartyRouteCoordinator.Snapshot route = _routes.snapshot();
 		final DeliveryRegistration registration = _deliveryRegistration;
-		if ((_operationClaims.get() != 0) || (_persistenceClaims.get() != 0) || !_terminalEvents.isEmpty() || !_inbound.isEmpty() || !_tacticalReleases.isEmpty() || !_tacticalActions.isEmpty() || ((registration != null) && (registration.pendingInvitations() != 0)) || (route.navigationClaims() != 0) || (route.movementClaims() != 0))
+		if ((_operationClaims.get() != 0) || (_persistenceClaims.get() != 0) || !_terminalEvents.isEmpty() || !_inbound.isEmpty() || !_tacticalReleases.isEmpty() || !_tacticalActions.isEmpty() || !_tacticalCombat.isEmpty() || ((registration != null) && (registration.pendingInvitations() != 0)) || (route.navigationClaims() != 0) || (route.movementClaims() != 0))
 		{
 			return false;
 		}
@@ -1166,7 +1174,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	public Snapshot snapshot()
 	{
 		final PhantomPartyRouteCoordinator.Snapshot route = _routes.snapshot();
-		return new Snapshot(_state, _claims.size(), _groups.size(), _terminalEvents.size(), _inbound.size(), _operationClaims.get(), _persistenceClaims.get(), route.navigationClaims(), route.movementClaims(), _tacticalActions.size(), _operationBudget, _lastPulseExamined, _maximumPulseExamined, _socialEventsRecorded.get(), _socialEventFailures.get(), _metrics.snapshot());
+		return new Snapshot(_state, _claims.size(), _groups.size(), _terminalEvents.size(), _inbound.size(), _operationClaims.get(), _persistenceClaims.get(), route.navigationClaims(), route.movementClaims(), _tacticalActions.size() + _tacticalCombat.size(), _operationBudget, _lastPulseExamined, _maximumPulseExamined, _socialEventsRecorded.get(), _socialEventFailures.get(), _metrics.snapshot());
 	}
 
 	public Optional<StoredPartyState> claim(long profileId)
@@ -1699,6 +1707,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				tactical.close();
 			}
+			final TacticalCombatClaim combat = _tacticalCombat.get(claim.profileId());
+			if ((combat != null) && combat.operationKey().startsWith(tacticalScope(claim.state())))
+			{
+				cancelTacticalCombat(combat);
+			}
 			moveToSolo(latest, "party.real.membership_lost");
 		}
 		if (claims(runtime.groupId()).isEmpty())
@@ -1855,6 +1868,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(party.members());
 		final List<TacticalDirective> directives = _tactics.plan(party.leader(), party.members(), snapshots);
 		final Set<Long> occupied = Set.copyOf(_tacticalActions.keySet());
+		final Set<Long> decided = new HashSet<>();
 		int examined = 0;
 		for (TacticalDirective directive : directives)
 		{
@@ -1863,7 +1877,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				break;
 			}
 			examined++;
-			if (occupied.contains(directive.actor().profileId()) || _tacticalActions.containsKey(directive.actor().profileId()))
+			if (occupied.contains(directive.actor().profileId()) || _tacticalActions.containsKey(directive.actor().profileId()) || decided.contains(directive.actor().profileId()))
 			{
 				continue;
 			}
@@ -1873,6 +1887,37 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				continue;
 			}
 			final String key = tacticalScope(claim.state()) + directive.kind().name().toLowerCase(java.util.Locale.ROOT) + '.' + directive.actor().profileId();
+			final boolean offense = Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind());
+			if (offense && ((_tactics.combatOwner() == null) || _tactics.combatOwner().observeNormalTarget(directive.actor().profileId(), directive.targetObjectId()).isEmpty()))
+			{
+				continue;
+			}
+			decided.add(directive.actor().profileId());
+			final TacticalCombatClaim active = _tacticalCombat.get(directive.actor().profileId());
+			final MemberSnapshot actor = snapshots.get(directive.actor());
+			if (active != null)
+			{
+				// Retarget only after the current native cast/attack; movement never breaks it.
+				if ((!offense || (active.targetObjectId() != directive.targetObjectId())) && (actor != null) && !actor.casting() && !actor.attacking())
+				{
+					cancelTacticalCombat(active);
+				}
+				continue;
+			}
+			if (offense)
+			{
+				if ((actor == null) || actor.casting() || actor.attacking())
+				{
+					continue;
+				}
+				_routes.cancelFollow(claim.state().groupId(), claim.state().groupGeneration(), directive.actor().profileId());
+				if (_backend.memberSnapshot(directive.actor()).map(MemberSnapshot::moving).orElse(true))
+				{
+					continue;
+				}
+				dispatchTacticalCombat(directive, key, claim.state());
+				continue;
+			}
 			if (Set.of(DirectiveKind.HEAL_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER, DirectiveKind.PROTECT_MEMBER).contains(directive.kind()))
 			{
 				_routes.cancelFollow(claim.state().groupId(), claim.state().groupGeneration(), directive.actor().profileId());
@@ -1884,6 +1929,56 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			});
 		}
 		return examined;
+	}
+
+	private void dispatchTacticalCombat(TacticalDirective directive, String key, PartyState authority)
+	{
+		final PhantomCombatService combat = _tactics.combatOwner();
+		final var mode = _tactics.combatMode(directive);
+		if ((combat == null) || mode.isEmpty())
+		{
+			return;
+		}
+		final long profileId = directive.actor().profileId();
+		final PhantomCancellationToken token = () ->
+		{
+			final StoredPartyState current = _claims.get(profileId);
+			return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || _backend.observe(directive.actor()).filter(party -> party.leader().equals(authority.leader()) && party.members().contains(directive.actor())).isEmpty();
+		};
+		final var started = combat.startSession(new PhantomCombatRequest(profileId, directive.targetObjectId(), mode.orElseThrow(), true, false, 60000, token));
+		if (started.accepted() && (started.session() != null))
+		{
+			final TacticalCombatClaim next = new TacticalCombatClaim(profileId, started.session().generation(), directive.targetObjectId(), key, token);
+			if (_tacticalCombat.putIfAbsent(profileId, next) != null)
+			{
+				cancelTacticalCombat(next);
+			}
+			_tacticalReleases.offer(profileId);
+		}
+	}
+
+	private boolean releaseTacticalCombat(TacticalCombatClaim claim)
+	{
+		final PhantomCombatService combat = _tactics.combatOwner();
+		if ((combat == null) || !combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.token()) || combat.consumeTerminal(claim.profileId()).isPresent())
+		{
+			_tacticalCombat.remove(claim.profileId(), claim);
+			return true;
+		}
+		return false;
+	}
+
+	private void cancelTacticalCombat(TacticalCombatClaim claim)
+	{
+		final PhantomCombatService combat = _tactics.combatOwner();
+		if ((combat != null) && combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.token()))
+		{
+			combat.cancel(claim.profileId());
+		}
+		if (!releaseTacticalCombat(claim) && (_state == State.RUNNING))
+		{
+			_tacticalReleases.offer(claim.profileId());
+		}
 	}
 
 	private static String tacticalScope(PartyState state)
@@ -1903,6 +1998,15 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 
 	private void releaseTacticalAction(long profileId)
 	{
+		final TacticalCombatClaim combat = _tacticalCombat.get(profileId);
+		if (combat != null)
+		{
+			if (!releaseTacticalCombat(combat))
+			{
+				_tacticalReleases.offer(profileId);
+			}
+			return;
+		}
 		final ExternalActionLease lease = _tacticalActions.get(profileId);
 		if (lease == null)
 		{
@@ -2773,6 +2877,10 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 	private static boolean committedClaim(StoredPartyState claim)
 	{
 		return (claim != null) && Set.of(StateStatus.LEADER, StateStatus.MEMBER, StateStatus.RECOVERING).contains(claim.state().status());
+	}
+
+	private record TacticalCombatClaim(long profileId, long generation, int targetObjectId, String operationKey, PhantomCancellationToken token)
+	{
 	}
 
 	public record Snapshot(State state, int partyClaims, int groups, int terminalEvents, int inboundInvites, int operationClaims, int persistenceClaims, int navigationClaims, int routeActions, int tacticalActions, int operationBudget, int lastPulseExamined, int maximumPulseExamined, long socialEventsRecorded, long socialEventFailures, PhantomPartyMetrics.Snapshot metrics)
