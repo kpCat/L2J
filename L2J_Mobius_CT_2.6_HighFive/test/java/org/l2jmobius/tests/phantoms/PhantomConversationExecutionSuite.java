@@ -246,7 +246,7 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 		{
 			final Path directory = context.moduleRoot().resolve("dist/game/data/phantoms/conversation");
 			final PhantomConversationExecutionCatalog legacy = PhantomConversationExecutionCatalog.load(directory.resolve("high-five-ru-conversation-execution-v2.xml"));
-			final PhantomConversationExecutionCatalog current = PhantomConversationExecutionCatalog.load(directory.resolve("high-five-ru-conversation-execution-v3.xml"));
+			final PhantomConversationExecutionCatalog current = PhantomConversationExecutionCatalog.load(directory.resolve("high-five-ru-conversation-execution-v4.xml"));
 			final ExecutionEntry entry = ExecutionEntry.prepared(plan(1, 59005901, "party.invite", new PhantomDomainRef("character.object", "123"), List.of(SlotValue.domain(SlotType.TARGET_PLAYER, new PhantomDomainRef("character.object", "123"), -1, -1))));
 			final ExecutionReceipt receipt = new ExecutionReceipt("C".repeat(64), "D".repeat(64), OutboundState.SENT, ActionState.COMPLETED, 100, "support.issued");
 			final ExecutionState oldState = new ExecutionState(legacy.hash(), 100, List.of(entry), List.of(receipt));
@@ -271,6 +271,11 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(current.hash(), firstUpgrade.catalogHash(), "Known v1 authority was not upgraded.");
 			PhantomAssertions.assertEquals(firstState.entries(), firstUpgrade.entries(), "v1 action identity changed.");
 			PhantomAssertions.assertEquals(firstState.receipts(), firstUpgrade.receipts(), "v1 terminal receipt changed.");
+			final PhantomConversationExecutionCatalog commands = PhantomConversationExecutionCatalog.load(directory.resolve("high-five-ru-conversation-execution-v3.xml"));
+			final ExecutionReceipt commandReceipt = new ExecutionReceipt("1".repeat(64), "2".repeat(64), OutboundState.SENT, ActionState.COMPLETED, 100, "command.pending");
+			final ExecutionState commandState = new ExecutionState(commands.hash(), 100, List.of(entry), List.of(commandReceipt));
+			final ExecutionState commandUpgrade = codec.decode(new PhantomConversationExecutionCodec(commands).encode(commandState));
+			PhantomAssertions.assertEquals(commandState.receipts(), commandUpgrade.receipts(), "v3 command receipt changed through the support wording upgrade.");
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.encode(oldState), "A current dictionary encoded a different authority hash.");
 		});
 	}

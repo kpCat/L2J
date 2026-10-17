@@ -255,7 +255,7 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		final Player target = resolve(entry.target());
 		final var materialized = _materialization.find(profileId).orElse(null);
 		final Player actor = materialized == null ? null : World.getInstance().getPlayer(materialized.characterObjectId());
-		if ((actor == null) || (target == null) || target.isDead() || target.isAlikeDead() || (actor.getInstanceId() != target.getInstanceId()))
+		if ((actor == null) || (target == null) || actor.isAlikeDead() || (actor.getInstanceId() != target.getInstanceId()))
 		{
 			return ResultStatus.STALE;
 		}
@@ -265,10 +265,12 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 			return ResultStatus.REJECTED;
 		}
 		final String capabilityKey = entry.arguments().stream().filter(argument -> argument.key().equals("capability")).map(Argument::value).filter(value -> value.startsWith("capability:")).map(value -> value.substring("capability:".length())).findFirst().orElse("");
-		if (!Set.of("combat.buff", "combat.song", "combat.dance").contains(capabilityKey))
+		if (!Set.of("combat.buff", "combat.song", "combat.dance", "combat.heal", "combat.recharge", "combat.resurrection").contains(capabilityKey))
 		{
 			return ResultStatus.REJECTED;
 		}
+		if ((capabilityKey.equals("combat.resurrection") != target.isDead()) || (!capabilityKey.equals("combat.resurrection") && target.isAlikeDead())) { return ResultStatus.REJECTED; }
+		if (actor.isCastingNow() || actor.isAttackingNow()) { return ResultStatus.STALE; }
 		final List<MemberCapability> matching = _party.supportCapabilities(profileId, target.getObjectId()).stream().filter(capability -> capability.capabilityKey().equals(capabilityKey) && capability.learned() && capability.intrinsic() && (capability.actionSkillId() > 0) && (capability.actionSkillLevel() > 0)).sorted(java.util.Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).toList();
 		final MemberCapability capability = matching.stream().filter(MemberCapability::readyNow).findFirst().orElse(null);
 		if (capability == null)

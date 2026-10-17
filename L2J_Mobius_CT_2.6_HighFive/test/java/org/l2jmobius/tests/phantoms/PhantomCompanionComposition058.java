@@ -62,6 +62,11 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 
 	PhantomCompanionComposition058(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomTopologyQuery topology, PhantomGameKnowledgeService knowledge, PhantomSocialService social, PhantomPartyCoordinator party, Player human, PhantomHumanizedConversationService humanized) throws Exception
 	{
+		this(profiles, materialization, topology, knowledge, social, party, human, humanized, null);
+	}
+
+	PhantomCompanionComposition058(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomTopologyQuery topology, PhantomGameKnowledgeService knowledge, PhantomSocialService social, PhantomPartyCoordinator party, Player human, PhantomHumanizedConversationService humanized, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService combat) throws Exception
+	{
 		final PhantomGoalStateStore goals = new PhantomGoalStateStore(profiles);
 		final PhantomCandidateRegistry candidates = new PhantomCandidateRegistry();
 		final PhantomStepHandlerRegistry handlers = new PhantomStepHandlerRegistry();
@@ -72,14 +77,14 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 		handlers.seal();
 		_engine = new PhantomDecisionEngine(goals, candidates, handlers, new PhantomMetrics(), 1);
 		_engine.start();
-		final PhantomConversationExecutionCatalog executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v3.xml"));
+		final PhantomConversationExecutionCatalog executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v4.xml"));
 		final PhantomConversationExecutionStore executionStore = new PhantomConversationExecutionStore(profiles, executionCatalog);
 		_executionStore = executionStore;
-		_execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, topology, party, materialization, ChatObservationService.getInstance()), PhantomConversationGoalRuntimePort.decisionEngine(_engine));
+		_execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, topology, party, materialization, ChatObservationService.getInstance(), org.l2jmobius.gameserver.phantoms.rift.PhantomRiftConversationFacts.NONE, org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConversationFacts.NONE, combat, social, org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy.load(Path.of("data/phantoms/party/high-five-party-support-v1.xml"))), PhantomConversationGoalRuntimePort.decisionEngine(_engine));
 		PhantomAssertions.assertTrue(_execution.start(), "Full058 execution did not start.");
-		_semantic = PhantomSemanticUnderstandingService.loaded(PhantomSemanticPack.load(Path.of("data/phantoms/semantic/high-five-ru-semantic-v2.xml"), Path.of("data/phantoms/semantic/high-five-ru-corpus-v2.tsv"), PhantomSemanticGrounding.fixed(PhantomConversationIntegrationSuite.HASHES, PhantomConversationIntegrationSuite.references())));
+		_semantic = PhantomSemanticUnderstandingService.loaded(PhantomSemanticPack.load(Path.of("data/phantoms/semantic/high-five-ru-semantic-v3.xml"), Path.of("data/phantoms/semantic/high-five-ru-corpus-v3.tsv"), PhantomSemanticGrounding.fixed(PhantomConversationIntegrationSuite.HASHES, PhantomConversationIntegrationSuite.references())));
 		PhantomAssertions.assertTrue(_semantic.start(), "Full058 semantic did not start.");
-		final PhantomConversationCatalog catalog = PhantomConversationCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-v2.xml"), Path.of("data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"));
+		final PhantomConversationCatalog catalog = PhantomConversationCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-v3.xml"), Path.of("data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"));
 		final L2jPhantomConversationContextPort nativeContext = new L2jPhantomConversationContextPort(materialization, topology);
 		final PhantomConversationService.ContextPort contextPort = new PhantomConversationService.ContextPort()
 		{
@@ -126,6 +131,20 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 		for (int pulse = 0; pulse < 32; pulse++) { _conversation.onPulse(); _execution.onPulse(); Thread.sleep(10); }
 		PhantomAssertions.assertEquals(before + 1, _execution.snapshot().sent(), "M3 generated response recursed.");
 		return _latestResponse.renderedText();
+	}
+
+	String supportMessage059(PhantomTestContext context, Player human, Player companion, String text) throws Exception
+	{
+		final long before = _execution.snapshot().sent();
+		_latestResponse = null;
+		PhantomAssertions.assertTrue(PlayerChatIngress.dispatchClient(human, ChatType.WHISPER, companion.getName(), text).observedDeliveries() > 0, "Support059 addressed input had no native recipient.");
+		// No party tactical pulses: only the requested conversation path can start this cast.
+		for (int pulse = 0; (pulse < 512) && (_execution.snapshot().sent() == before); pulse++) { _conversation.onPulse(); _execution.onPulse(); Thread.sleep(10); }
+		PhantomAssertions.assertEquals(before + 1, _execution.snapshot().sent(), "Support059 response was not native SENT: " + _execution.snapshot());
+		PhantomAssertions.assertTrue(_latestResponse != null, "Support059 has no originating response plan.");
+		final var receipt = _executionStore.load(_latestResponse.ownerProfileId()).stream().flatMap(stored -> stored.state().receipts().stream()).filter(value -> value.observationHash().equals(_latestResponse.observationHash())).findFirst().orElseThrow();
+		context.record("support059.reply." + text, "SENT reason=" + receipt.reasonKey() + "; proposal=" + _latestResponse.proposal());
+		return receipt.reasonKey();
 	}
 
 	void invite(PhantomTestContext context, Player human, Player companion, long profileId, PhantomPartyCoordinator party) throws Exception

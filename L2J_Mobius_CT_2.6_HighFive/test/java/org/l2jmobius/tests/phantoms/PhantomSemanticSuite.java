@@ -380,17 +380,17 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 		registry.add("04-versioned-companion-command-corpus-keeps-all-safety-boundaries", context ->
 		{
 			final Path data = context.moduleRoot().resolve("dist/game/data/phantoms/semantic");
-			final PhantomSemanticPack pack = PhantomSemanticPack.load(data.resolve("high-five-ru-semantic-v2.xml"), data.resolve("high-five-ru-corpus-v2.tsv"), authority());
+			final PhantomSemanticPack pack = PhantomSemanticPack.load(data.resolve("high-five-ru-semantic-v3.xml"), data.resolve("high-five-ru-corpus-v3.tsv"), authority());
 			final CorpusRun run = runCorpus(pack, pack.corpus());
-			PhantomAssertions.assertEquals(2, pack.version(), "Command semantic version changed.");
+			PhantomAssertions.assertEquals(3, pack.version(), "Current command/support semantic version changed.");
 			PhantomAssertions.assertEquals(20, pack.intents().size(), "Versioned command intent contract is incomplete.");
 			PhantomAssertions.assertTrue(run.positiveIntentAccuracyBasisPoints() >= 9600 && run.slotPrecisionBasisPoints() >= 9900, "Versioned corpus accuracy regressed.");
 			PhantomAssertions.assertEquals(10000, run.safetyBasisPoints(), "Versioned command safety failed: " + run.safetyFailures());
 			final List<CorpusCase> reverse = new ArrayList<>(pack.corpus());
 			Collections.reverse(reverse);
 			PhantomAssertions.assertEquals(run.canonicalResults(), runCorpus(pack, reverse).canonicalResults(), "Command corpus order changed canonical results.");
-			context.record("semantic.v2.packHash", pack.packHash());
-			context.record("semantic.v2.corpusCases", pack.corpus().size());
+			context.record("semantic.v3.packHash", pack.packHash());
+			context.record("semantic.v3.corpusCases", pack.corpus().size());
 		});
 		registry.add("01-corpus-thresholds-accuracy-safety-and-slots", context ->
 		{
@@ -611,7 +611,7 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 		result.put(SlotType.CONTENT, refs("content", "rift.high-five-core", "raid.25001", "epic.29001"));
 		result.put(SlotType.TOPOLOGY_NODE, refs("topology.node", "giran.city", "giran.region", "giran.shop.30081", "ssq.necropolis.past"));
 		result.put(SlotType.LOCATION, refs("topology.node", "giran.city", "giran.shop.30081"));
-		result.put(SlotType.CAPABILITY, refs("capability", "combat.heal", "combat.buff", "combat.tank", "combat.resurrection", "combat.crowd_control", "combat.melee_damage"));
+		result.put(SlotType.CAPABILITY, refs("capability", "combat.heal", "combat.buff", "combat.tank", "combat.resurrection", "combat.recharge", "combat.crowd_control", "combat.melee_damage"));
 		result.put(SlotType.PARTY_ROLE, refs("party.role", "frontline.guardian", "support.healer", "support.recharge", "support.enhancement", "damage.melee", "damage.ranged"));
 		return result;
 	}

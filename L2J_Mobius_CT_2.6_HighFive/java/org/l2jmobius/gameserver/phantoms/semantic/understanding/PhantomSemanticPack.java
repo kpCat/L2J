@@ -299,7 +299,7 @@ public final class PhantomSemanticPack
 			factory.setExpandEntityReferences(false);
 			final Element root = factory.newDocumentBuilder().parse(new ByteArrayInputStream(xmlBytes)).getDocumentElement();
 			requireElement(root, "semanticPack", List.of("id", "locale", "version"));
-			final int version = "1".equals(root.getAttribute("version")) ? 1 : "2".equals(root.getAttribute("version")) ? 2 : 0;
+			final int version = "1".equals(root.getAttribute("version")) ? 1 : "2".equals(root.getAttribute("version")) ? 2 : "3".equals(root.getAttribute("version")) ? 3 : 0;
 			if ((version == 0) || !("high-five-ru-semantic-v" + version).equals(root.getAttribute("id")) || !"ru".equals(root.getAttribute("locale")))
 			{
 				throw new IllegalArgumentException("Unknown semantic pack identity, locale or version.");
@@ -328,7 +328,7 @@ public final class PhantomSemanticPack
 			}
 			final byte[] corpusBytes = readBounded(corpusPath, MAX_CORPUS_BYTES, "Semantic corpus");
 			final List<CorpusCase> corpus = parseCorpus(decodeUtf8Strict(corpusBytes, "Semantic corpus"), parsedIntents.intents(), reasons);
-			if ((version == 2) && !parsedIntents.intents().keySet().containsAll(COMPANION_COMMAND_INTENTS)) { throw new IllegalArgumentException("Semantic v2 requires the complete companion command contract."); }
+			if ((version >= 2) && !parsedIntents.intents().keySet().containsAll(COMPANION_COMMAND_INTENTS)) { throw new IllegalArgumentException("Semantic v2+ requires the complete companion command contract."); }
 			return new PhantomSemanticPack(root.getAttribute("id"), version, limits, normalization, typoPolicy, fillers, lexicalAliases, slots, parsedIntents.intents(), parsedIntents.patterns(), entities, contexts, reasons, corpus, before, sha256(xmlBytes), sha256(corpusBytes));
 		}
 		catch (RuntimeException exception)

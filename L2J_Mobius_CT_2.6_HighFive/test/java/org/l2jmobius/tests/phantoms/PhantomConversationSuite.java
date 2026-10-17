@@ -75,15 +75,21 @@ public final class PhantomConversationSuite implements PhantomTestSuite
 		registry.add("04-known-language-upgrade-preserves-scoped-state-and-rejects-foreign-authority", context ->
 		{
 			final Path data = context.moduleRoot().resolve("dist/game/data/phantoms");
-			final PhantomConversationCatalog currentCatalog = PhantomConversationCatalog.load(data.resolve("conversation/high-five-ru-conversation-v2.xml"), corpus(context));
+			final PhantomConversationCatalog currentCatalog = PhantomConversationCatalog.load(data.resolve("conversation/high-five-ru-conversation-v3.xml"), corpus(context));
 			final PhantomSemanticPack oldPack = PhantomSemanticPack.load(data.resolve("semantic/high-five-ru-semantic-v1.xml"), data.resolve("semantic/high-five-ru-corpus-v1.tsv"), PhantomSemanticGrounding.fixed(HASHES, references()));
-			final PhantomSemanticPack currentPack = PhantomSemanticPack.load(data.resolve("semantic/high-five-ru-semantic-v2.xml"), data.resolve("semantic/high-five-ru-corpus-v2.tsv"), PhantomSemanticGrounding.fixed(HASHES, references()));
+			final PhantomSemanticPack currentPack = PhantomSemanticPack.load(data.resolve("semantic/high-five-ru-semantic-v3.xml"), data.resolve("semantic/high-five-ru-corpus-v3.tsv"), PhantomSemanticGrounding.fixed(HASHES, references()));
 			final String world = "A".repeat(64);
 			final var pending = new org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.PendingClarification("item.acquire.query", List.of(), Set.of(SlotType.ITEM), 1005, oldPack.packHash(), oldPack.corpusHash(), world, world, world);
 			final ConversationSession session = new ConversationSession(ChatType.WHISPER, new PhantomDomainRef("character.object", "100"), 1000, 1001, "item.acquire.query", List.of(), pending, world, world, world);
 			final ConversationState legacy = new ConversationState(catalog(context).hash(), oldPack.packHash(), oldPack.corpusHash(), world, world, world, world, 1000, List.of(session), List.of(world));
 			final ConversationState current = new ConversationState(currentCatalog.hash(), currentPack.packHash(), currentPack.corpusHash(), world, world, world, world, 1002, List.of(), List.of());
 			final ConversationState upgraded = currentCatalog.upgradeLanguageState(legacy, current).orElseThrow();
+			final PhantomConversationCatalog previousCatalog = PhantomConversationCatalog.load(data.resolve("conversation/high-five-ru-conversation-v2.xml"), corpus(context));
+			final PhantomSemanticPack previousPack = PhantomSemanticPack.load(data.resolve("semantic/high-five-ru-semantic-v2.xml"), data.resolve("semantic/high-five-ru-corpus-v2.tsv"), PhantomSemanticGrounding.fixed(HASHES, references()));
+			final ConversationState previous = new ConversationState(previousCatalog.hash(), previousPack.packHash(), previousPack.corpusHash(), world, world, world, world, 1000, List.of(session), List.of(world));
+			PhantomAssertions.assertEquals(upgraded, currentCatalog.upgradeLanguageState(previous, current).orElseThrow(), "Immediate predecessor lost its scoped language state.");
+			final ConversationState mixed = new ConversationState(previousCatalog.hash(), oldPack.packHash(), oldPack.corpusHash(), world, world, world, world, 1000, List.of(session), List.of(world));
+			PhantomAssertions.assertTrue(currentCatalog.upgradeLanguageState(mixed, current).isEmpty(), "Mixed catalog and semantic generations were upgraded.");
 			PhantomAssertions.assertEquals(current.catalogHash(), upgraded.catalogHash(), "Language catalog was not upgraded.");
 			PhantomAssertions.assertEquals(current.packHash(), upgraded.packHash(), "Semantic pack was not upgraded.");
 			PhantomAssertions.assertEquals(legacy.recentObservationHashes(), upgraded.recentObservationHashes(), "Upgrade lost replay receipts.");
@@ -221,7 +227,7 @@ public final class PhantomConversationSuite implements PhantomTestSuite
 		result.put(SlotType.CONTENT, refs("content", "rift.high-five-core", "raid.25001", "epic.29001"));
 		result.put(SlotType.TOPOLOGY_NODE, refs("topology.node", "giran.city", "giran.region", "giran.shop.30081", "ssq.necropolis.past"));
 		result.put(SlotType.LOCATION, refs("topology.node", "giran.city", "giran.shop.30081"));
-		result.put(SlotType.CAPABILITY, refs("capability", "combat.heal", "combat.buff", "combat.tank", "combat.resurrection", "combat.crowd_control", "combat.melee_damage"));
+		result.put(SlotType.CAPABILITY, refs("capability", "combat.heal", "combat.buff", "combat.tank", "combat.resurrection", "combat.recharge", "combat.crowd_control", "combat.melee_damage"));
 		result.put(SlotType.PARTY_ROLE, refs("party.role", "frontline.guardian", "support.healer", "support.recharge", "support.enhancement", "damage.melee", "damage.ranged"));
 		return result;
 	}

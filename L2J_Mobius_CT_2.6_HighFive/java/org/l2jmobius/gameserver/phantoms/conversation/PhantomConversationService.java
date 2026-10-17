@@ -933,7 +933,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 				final SemanticRead read = (SemanticRead) result.value();
 				work._understanding = read.understanding();
 				work._pending = read.pending();
-				if ((work._previousSession != null) && (work._nowMinute < work._previousSession.cooldownUntilMinute()) && !companionCommand(work._understanding))
+				if ((work._previousSession != null) && (work._nowMinute < work._previousSession.cooldownUntilMinute()) && !functionalRequest(work._understanding))
 				{
 					work._planned = noResponse(work._electedProfile, work, work._snapshot, work._previousSession, work._nowMinute, "no_response.cooldown");
 					work._phase = BatchPhase.PERSISTING;
@@ -1258,6 +1258,10 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 					target = context.speaker();
 					proposalSlots = List.of(SlotValue.domain(SlotType.TARGET_PLAYER, target, -1, -1));
 				}
+				else if (understanding.selectedIntent().equals("party.support.request") && (target == null))
+				{
+					target = context.speaker();
+				}
 				proposal = new ConversationActionProposal(mapping.proposalKey(), new PhantomDomainRef("profile", Long.toString(profileId)), target, proposalSlots, semanticHash, batch._observationHash, understanding.confidence(), nowMinute, nowMinute + mapping.ttlMinutes(), Authorization.CHECKPOINT_2_REQUIRED);
 			}
 		}
@@ -1275,7 +1279,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 			act = "no_response.unsupported";
 		}
 		final String style = social.style();
-		final boolean suppressed = (proposal != null) && !companionCommand(understanding) && !act.equals("ack.query_proposed") && act.startsWith("ack.") && social.suppressAcknowledgement();
+		final boolean suppressed = (proposal != null) && !functionalRequest(understanding) && !act.equals("ack.query_proposed") && act.startsWith("ack.") && social.suppressAcknowledgement();
 		final String text = _catalog.template(act, style, selector(profileId, batch._observationHash, act, style));
 		final long cooldown = nowMinute + _catalog.channel(batch._descriptor.channel()).cooldownMinutes();
 		final List<ConversationEvidence> evidence = understanding.evidence().stream().limit(_catalog.limits().evidence()).map(item -> new ConversationEvidence(item.key(), item.authorityKey())).toList();
@@ -1290,6 +1294,11 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		if (understanding.status() != UnderstandingStatus.ACCEPTED) { return false; }
 		final ProposalMapping mapping = _catalog.mapping(understanding.selectedIntent());
 		return (mapping != null) && Set.of("party.hold", "party.follow", "party.hold.all", "party.follow.all").contains(mapping.proposalKey());
+	}
+
+	private boolean functionalRequest(UnderstandingResult understanding)
+	{
+		return companionCommand(understanding) || ((understanding.status() == UnderstandingStatus.ACCEPTED) && understanding.selectedIntent().equals("party.support.request"));
 	}
 
 	private Planned humanizedPlan(long profileId, BatchWork batch, ContextSnapshot context, ConversationSession previous, Decision decision, long nowMinute)

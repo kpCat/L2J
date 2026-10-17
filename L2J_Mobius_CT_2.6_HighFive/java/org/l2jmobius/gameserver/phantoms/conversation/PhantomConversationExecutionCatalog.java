@@ -178,7 +178,7 @@ public final class PhantomConversationExecutionCatalog
 			factory.setExpandEntityReferences(false);
 			final Element root = factory.newDocumentBuilder().parse(new ByteArrayInputStream(bytes)).getDocumentElement();
 			require(root, "conversationExecutionPolicy", Set.of("id", "version"));
-			final int version = root.getAttribute("version").equals("1") ? 1 : root.getAttribute("version").equals("2") ? 2 : root.getAttribute("version").equals("3") ? 3 : 0;
+			final int version = root.getAttribute("version").equals("1") ? 1 : root.getAttribute("version").equals("2") ? 2 : root.getAttribute("version").equals("3") ? 3 : root.getAttribute("version").equals("4") ? 4 : 0;
 			if ((version == 0) || !root.getAttribute("id").equals("high-five-ru-conversation-execution-v" + version))
 			{
 				throw new IllegalArgumentException("Conversation execution policy identity is invalid.");
@@ -189,7 +189,7 @@ public final class PhantomConversationExecutionCatalog
 				throw new IllegalArgumentException("Conversation execution policy sections are not exact.");
 			}
 			final Limits limits = limits(sections.get(0));
-			final boolean commands = version == 3;
+			final boolean commands = version >= 3;
 			final Map<String, ExpectedProposal> expectedProposals = version == 1 ? REQUIRED_PROPOSALS_V1 : commands ? withCommands(REQUIRED_PROPOSALS_V2) : REQUIRED_PROPOSALS_V2;
 			final Map<String, ProposalPolicy> proposals = proposals(sections.get(1), expectedProposals);
 			final List<String> acts = symbols(sections.get(2), "responseActs", "act");
@@ -211,7 +211,7 @@ public final class PhantomConversationExecutionCatalog
 				throw new IllegalArgumentException("Conversation execution result policy is incomplete.");
 			}
 			final PhantomConversationExecutionCatalog previous = version > 1 ? load(path.resolveSibling("high-five-ru-conversation-execution-v" + (version - 1) + ".xml")) : null;
-			if (commands)
+			if (version == 3)
 			{
 				final Map<String, ProposalPolicy> baseProposals = new LinkedHashMap<>(proposals);
 				COMMAND_KEYS.forEach(baseProposals::remove);
@@ -221,6 +221,14 @@ public final class PhantomConversationExecutionCatalog
 				{
 					throw new IllegalArgumentException("Command policy must preserve the complete v2 execution contract.");
 				}
+			}
+			if (version == 4)
+			{
+				final Map<String, Map<String, String>> retained = new LinkedHashMap<>(results);
+				final Map<String, Map<String, String>> previousRetained = new LinkedHashMap<>(previous._templates);
+				V2_SUPPORT_REASONS.forEach(retained::remove);
+				V2_SUPPORT_REASONS.forEach(previousRetained::remove);
+				if (!limits.equals(previous._limits) || !proposals.equals(previous._proposals) || !acts.equals(previous._responseActs) || !styles.equals(previous._styles) || !factLabels.equals(previous._factLabels) || !retained.equals(previousRetained)) { throw new IllegalArgumentException("Support wording upgrade must retain the complete previous execution contract."); }
 			}
 			return new PhantomConversationExecutionCatalog(hash(bytes), limits, proposals, acts, styles, factLabels, results, previous, PhantomConversationModel.lineEndingHashes(new String(bytes, StandardCharsets.UTF_8)));
 		}

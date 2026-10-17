@@ -1548,11 +1548,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
 		Throwable scenarioFailure = null;
 		final boolean busyHold059 = Boolean.getBoolean("phantom.test.busyHold059") && capabilityKey.equals("combat.heal");
+		final boolean supportRequests059 = Boolean.getBoolean("phantom.test.supportRequests059");
 		PhantomCompanionComposition058 commands059 = null;
 		final java.util.concurrent.atomic.AtomicInteger nativeCasts059 = new java.util.concurrent.atomic.AtomicInteger();
 		final var castListener059 = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(_player, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_SKILL_USE, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureSkillUse event) -> { if ((event.getCaster() == _player) && (event.getSkill().getId() == skill.getId()) && (event.getSkill().getLevel() == skill.getLevel())) { nativeCasts059.incrementAndGet(); } }, this);
 		try
 		{
+			if (supportRequests059)
+			{
+				commands059 = new PhantomCompanionComposition058(_repository, _materialization, _topology, _knowledge, social, party, human, null, _combat);
+				_player.addListener(castListener059);
+				context.record("support059.input", "Existing TEST native role fixture; request via WHISPER, conversation/execution only; no automatic tactical pulses during effect measurement; capability=" + capabilityKey);
+			}
 			if (busyHold059)
 			{
 				commands059 = new PhantomCompanionComposition058(_repository, _materialization, _topology, _knowledge, social, party, human);
@@ -1573,10 +1580,22 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			boolean holdSent059 = false;
 			final var invitation = org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, _player, PartyDistributionType.FINDERS_KEEPERS.getId());
 			PhantomAssertions.assertTrue(invitation.delivered(), "Real-led support invitation was not delivered: " + invitation);
+			if (supportRequests059)
+			{
+				final var pending059 = org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().observe(_player).orElseThrow();
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationService.RespondOutcome.ACCEPTED, org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().respond(_player, org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response.ACCEPT, pending059.identity()).outcome(), "Support059 explicit TEST consent failed.");
+				final String request059 = switch (capabilityKey) { case "combat.heal" -> "дай лечение"; case "combat.recharge" -> "дай ману"; case "combat.resurrection" -> "дай воскрешение"; default -> "дай баф"; };
+				PhantomAssertions.assertEquals("support.issued", commands059.supportMessage059(context, human, _player, request059), "Native support request did not report admitted cast.");
+				if (_player.isCastingNow())
+				{
+					PhantomAssertions.assertEquals("support.unavailable", commands059.supportMessage059(context, human, _player, request059), "Busy support repeat did not deliver an honest unavailable reply.");
+					context.record("support059.busy." + capabilityKey, "repeat while native casting delivered unavailable; no abort or extra cast");
+				}
+			}
 			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
 			while ((System.nanoTime() < deadline) && (!effectObserved || _player.isCastingNow()))
 			{
-				party.onPulse();
+				if (!supportRequests059) { party.onPulse(); }
 				if (busyHold059 && !holdSent059 && _player.isCastingNow())
 				{
 					context.record("command059.busy.before", "casting=true; targetHP=" + human.getCurrentHp() + "; casterMP=" + _player.getCurrentMp() + "; nativeCasts=" + nativeCasts059.get());
@@ -1601,10 +1620,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				minimumMp = Math.min(minimumMp, _player.getCurrentMp());
 				Thread.sleep(10);
 			}
-			PhantomAssertions.assertTrue(human.isInParty() && human.getParty().containsPlayer(_player) && party.committed(_profile.profileId()), "Support scenario did not retain canonical mixed membership.");
+			PhantomAssertions.assertTrue(human.isInParty() && human.getParty().containsPlayer(_player) && (supportRequests059 || party.committed(_profile.profileId())), "Support scenario did not retain canonical mixed membership.");
 			context.record("companion058.support." + capabilityKey, "skill=" + skill.getId() + ':' + skill.getLevel() + "; selectedCast=" + selectedCastSeen + "; resurrectionRequested=" + resurrectionRequested + "; initialMp=" + initialMp + "; minimumMp=" + minimumMp + "; targetHp=" + targetInitialHp + "->" + human.getCurrentHp() + "; targetMp=" + targetInitialMp + "->" + human.getCurrentMp());
 			PhantomAssertions.assertTrue(effectObserved, "Real-led native support has no measured effect: " + capabilityKey + "; selectedCast=" + selectedCastSeen + "; resurrectionRequested=" + resurrectionRequested + "; hp=" + human.getCurrentHp() + "; mp=" + human.getCurrentMp());
 			PhantomAssertions.assertTrue(minimumMp < initialMp, "Automatic native support did not consume caster MP: initial=" + initialMp + "; minimum=" + minimumMp + "; final=" + _player.getCurrentMp() + "; maximum=" + _player.getMaxMp());
+			if (supportRequests059)
+			{
+				PhantomAssertions.assertEquals(1, nativeCasts059.get(), "Support059 duplicated a requested native cast.");
+				PhantomAssertions.assertEquals("support.refused", commands059.supportMessage059(context, human, _player, "дай контроль"), "Unsupported request did not deliver a truthful refusal.");
+				PhantomAssertions.assertEquals(1, nativeCasts059.get(), "Refused support request started another cast.");
+			}
 			if (busyHold059)
 			{
 				for (int pulse = 0; pulse < 16; pulse++) { party.onPulse(); Thread.sleep(10); }
@@ -1630,7 +1655,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		finally
 		{
-			if (busyHold059) { _player.removeListener(castListener059); }
+			if (busyHold059 || supportRequests059) { _player.removeListener(castListener059); }
 			if (commands059 != null) { commands059.close(); }
 			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().observe(_player).ifPresent(pending -> org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().cancel(pending.identity()));
 			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
