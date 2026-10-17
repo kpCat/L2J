@@ -45,6 +45,7 @@ public final class PhantomSemanticPack
 	public static final int MAX_CORPUS_BYTES = 256 * 1024;
 	private static final Set<String> REQUIRED_INTENTS = Set.of("party.companion.request", "party.invite", "party.accept", "party.refuse", "party.leave", "party.role.query", "party.travel", "party.support.request", "party.assist.request", "party.regroup.request", "entity.locate", "item.acquire.query", "item.source.query", "content.requirements.query", "farming.conflict.query", "unknown");
 	private static final Set<String> REQUIRED_REASONS = Set.of("accept.matched", "clarify.intent", "clarify.target_player", "clarify.entity", "clarify.party_role", "clarify.location", "clarify.quantity", "clarify.complexity", "reject.unsupported", "reject.too_long", "reject.mixed_script");
+	private static final Set<String> COMPANION_COMMAND_INTENTS = Set.of("party.hold.request", "party.follow.request", "party.hold.all.request", "party.follow.all.request");
 
 	public enum ContextResolver
 	{
@@ -298,7 +299,8 @@ public final class PhantomSemanticPack
 			factory.setExpandEntityReferences(false);
 			final Element root = factory.newDocumentBuilder().parse(new ByteArrayInputStream(xmlBytes)).getDocumentElement();
 			requireElement(root, "semanticPack", List.of("id", "locale", "version"));
-			if (!"high-five-ru-semantic-v1".equals(root.getAttribute("id")) || !"ru".equals(root.getAttribute("locale")) || !"1".equals(root.getAttribute("version")))
+			final int version = "1".equals(root.getAttribute("version")) ? 1 : "2".equals(root.getAttribute("version")) ? 2 : 0;
+			if ((version == 0) || !("high-five-ru-semantic-v" + version).equals(root.getAttribute("id")) || !"ru".equals(root.getAttribute("locale")))
 			{
 				throw new IllegalArgumentException("Unknown semantic pack identity, locale or version.");
 			}
@@ -326,7 +328,8 @@ public final class PhantomSemanticPack
 			}
 			final byte[] corpusBytes = readBounded(corpusPath, MAX_CORPUS_BYTES, "Semantic corpus");
 			final List<CorpusCase> corpus = parseCorpus(decodeUtf8Strict(corpusBytes, "Semantic corpus"), parsedIntents.intents(), reasons);
-			return new PhantomSemanticPack(root.getAttribute("id"), 1, limits, normalization, typoPolicy, fillers, lexicalAliases, slots, parsedIntents.intents(), parsedIntents.patterns(), entities, contexts, reasons, corpus, before, sha256(xmlBytes), sha256(corpusBytes));
+			if ((version == 2) && !parsedIntents.intents().keySet().containsAll(COMPANION_COMMAND_INTENTS)) { throw new IllegalArgumentException("Semantic v2 requires the complete companion command contract."); }
+			return new PhantomSemanticPack(root.getAttribute("id"), version, limits, normalization, typoPolicy, fillers, lexicalAliases, slots, parsedIntents.intents(), parsedIntents.patterns(), entities, contexts, reasons, corpus, before, sha256(xmlBytes), sha256(corpusBytes));
 		}
 		catch (RuntimeException exception)
 		{
@@ -551,7 +554,9 @@ public final class PhantomSemanticPack
 				throw new IllegalArgumentException("Semantic intent is duplicated or has invalid pattern ownership.");
 			}
 		}
-		if (!intents.keySet().equals(REQUIRED_INTENTS) || (patterns.size() > limits.maxPatterns()))
+		final Set<String> extended = new HashSet<>(REQUIRED_INTENTS);
+		extended.addAll(COMPANION_COMMAND_INTENTS);
+		if ((!intents.keySet().equals(REQUIRED_INTENTS) && !intents.keySet().equals(extended)) || (patterns.size() > limits.maxPatterns()))
 		{
 			throw new IllegalArgumentException("Semantic intent/pattern catalog is incomplete or exceeds bounds.");
 		}

@@ -50,6 +50,9 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore.StoredGoal;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.PartySnapshot;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyPersistencePort.StoredPartyState;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.DirectiveKind;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionCommand;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
@@ -98,6 +101,130 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		RUNNING,
 		STOPPING,
 		STOPPED
+	}
+
+	public enum CompanionCommandOutcome
+	{
+		HOLDING,
+		FOLLOWING,
+		PENDING,
+		REJECTED,
+		STALE
+	}
+
+	/** Admit one current leader's intent without replacing a companion's party goal. */
+	public CompanionCommandOutcome commandCompanion(long profileId, MemberRef speaker, long expectedGeneration, CompanionMode requested, String requestId)
+	{
+		final OperationClaim control = beginOperation();
+		if (control == null)
+		{
+			return CompanionCommandOutcome.STALE;
+		}
+		try (control)
+		{
+			final StoredPartyState claim = _claims.get(profileId);
+			final MemberRef actor = _backend.currentMember(profileId).orElse(null);
+			final PartySnapshot nativeParty = actor == null ? null : _backend.observe(actor).orElse(null);
+			final MemberSnapshot actorState = actor == null ? null : _backend.memberSnapshot(actor).orElse(null);
+			final MemberSnapshot speakerState = speaker == null ? null : _backend.memberSnapshot(speaker).orElse(null);
+			if (!committedClaim(claim) || (actor == null) || (actorState == null) || (speakerState == null) || actorState.dead() || speakerState.dead() || actor.equals(speaker) || (actorState.instanceId() != speakerState.instanceId()) || (nativeParty == null) || !nativeParty.leader().equals(speaker) || !nativeParty.members().contains(actor) || !claim.state().leader().equals(speaker) || (claim.state().groupGeneration() != expectedGeneration) || !claim.state().phantomMembers().contains(actor) || !Set.of(CompanionMode.HOLD, CompanionMode.FOLLOW).contains(requested))
+			{
+				return CompanionCommandOutcome.REJECTED;
+			}
+			final CompanionCommand previous = claim.state().command();
+			if ((previous != null) && previous.actor().equals(actor) && previous.speaker().equals(speaker) && (previous.groupGeneration() == expectedGeneration) && ((requested == CompanionMode.FOLLOW) == (previous.mode() == CompanionMode.FOLLOW)))
+			{
+				advanceCompanionCommand(claim);
+				return companionOutcome(profileId);
+			}
+			final CompanionCommand command = new CompanionCommand(requested == CompanionMode.FOLLOW ? CompanionMode.FOLLOW : CompanionMode.PENDING_HOLD, actor, speaker, Math.addExact(claim.rowVersion(), 1), expectedGeneration, new PhantomNavigationPoint(actorState.x(), actorState.y(), actorState.z(), actorState.instanceId()), _routes.holdRadius(), requestId);
+			final StoredPartyState saved = save(profileId, claim.rowVersion(), claim.state().withCommand(command));
+			putClaim(saved);
+			if (requested == CompanionMode.FOLLOW)
+			{
+				_routes.cancelFollow(claim.state().groupId(), expectedGeneration, profileId);
+			}
+			else
+			{
+				advanceCompanionCommand(saved);
+			}
+			return companionOutcome(profileId);
+		}
+		catch (IllegalArgumentException exception)
+		{
+			return CompanionCommandOutcome.REJECTED;
+		}
+		catch (RuntimeException exception)
+		{
+			_metrics.conflict();
+			return CompanionCommandOutcome.STALE;
+		}
+	}
+
+	private CompanionCommandOutcome companionOutcome(long profileId)
+	{
+		final StoredPartyState claim = _claims.get(profileId);
+		final CompanionCommand command = claim == null ? null : claim.state().command();
+		if (command == null) { return CompanionCommandOutcome.STALE; }
+		if (command.mode() == CompanionMode.FOLLOW) { return CompanionCommandOutcome.FOLLOWING; }
+		final MemberSnapshot actor = _backend.memberSnapshot(command.actor()).orElse(null);
+		return (command.mode() == CompanionMode.HOLD) && (actor != null) && !actor.moving() && !actor.casting() && !actor.attacking() && (command.anchor().distanceTo(new PhantomNavigationPoint(actor.x(), actor.y(), actor.z(), actor.instanceId())) <= command.radius()) ? CompanionCommandOutcome.HOLDING : CompanionCommandOutcome.PENDING;
+	}
+
+	private boolean holdsMovement(long profileId)
+	{
+		final StoredPartyState claim = _claims.get(profileId);
+		return (claim != null) && (claim.state().command() != null) && (claim.state().command().mode() != CompanionMode.FOLLOW);
+	}
+
+	/** Support requests share the current party owner's movement restriction. */
+	public boolean holdsPosition(long profileId)
+	{
+		return holdsMovement(profileId);
+	}
+
+	private boolean commandStopsCombat(long profileId)
+	{
+		if (!holdsMovement(profileId)) { return false; }
+		return _backend.currentMember(profileId).flatMap(_backend::memberSnapshot).map(actor -> !actor.casting() && !actor.attacking()).orElse(true);
+	}
+
+	private void advanceCompanionCommand(StoredPartyState claim)
+	{
+		final CompanionCommand command = claim.state().command();
+		if (command == null) { return; }
+		final MemberRef current = _backend.currentMember(claim.profileId()).orElse(null);
+		final MemberSnapshot actor = current == null ? null : _backend.memberSnapshot(current).orElse(null);
+		final MemberSnapshot speaker = _backend.memberSnapshot(command.speaker()).orElse(null);
+		final PartySnapshot party = current == null ? null : _backend.observe(current).orElse(null);
+		if (!command.actor().equals(current) || (actor == null) || actor.dead() || (speaker == null) || speaker.dead() || (actor.instanceId() != command.anchor().instanceId()) || (actor.instanceId() != speaker.instanceId()) || (party == null) || !party.leader().equals(command.speaker()) || !party.members().contains(command.actor()))
+		{
+			try { putClaim(save(claim.profileId(), claim.rowVersion(), claim.state().withCommand(null))); }
+			catch (RuntimeException exception) { _metrics.conflict(); }
+			return;
+		}
+		if ((command.mode() != CompanionMode.PENDING_HOLD) || actor.casting() || actor.attacking()) { return; }
+		_routes.cancelMemberMovement(claim.state().groupId(), claim.state().groupGeneration(), claim.profileId());
+		final TacticalCombatClaim combat = _tacticalCombat.get(claim.profileId());
+		if ((combat != null) && combat.operationKey().startsWith(tacticalScope(claim.state()))) { cancelTacticalCombat(combat); }
+		final MemberSnapshot settled = _backend.memberSnapshot(current).orElse(null);
+		if ((settled == null) || settled.moving() || settled.casting() || settled.attacking()) { return; }
+		final CompanionCommand held = new CompanionCommand(CompanionMode.HOLD, command.actor(), command.speaker(), command.version(), command.groupGeneration(), new PhantomNavigationPoint(settled.x(), settled.y(), settled.z(), settled.instanceId()), command.radius(), command.requestId());
+		try { putClaim(save(claim.profileId(), claim.rowVersion(), claim.state().withCommand(held))); }
+		catch (RuntimeException exception) { _metrics.conflict(); }
+	}
+
+	private int advanceCompanionCommands(PartySnapshot party, int budget)
+	{
+		int examined = 0;
+		for (MemberRef member : party.members())
+		{
+			if (examined >= budget) { break; }
+			if (member.kind() != MemberKind.PHANTOM) { continue; }
+			final StoredPartyState claim = _claims.get(member.profileId());
+			if ((claim != null) && (claim.state().command() != null)) { advanceCompanionCommand(claim); examined++; }
+		}
+		return examined;
 	}
 
 	public enum CommandOutcome
@@ -1570,6 +1697,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return examined;
 		}
 		commitObserved(current, party);
+		examined += advanceCompanionCommands(party, remainingBudget - examined);
 		examined += advanceRoute(runtime.groupId(), party, remainingBudget - examined);
 		if (examined < remainingBudget)
 		{
@@ -1611,6 +1739,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			return examined;
 		}
 		commitObserved(current, party);
+		examined += advanceCompanionCommands(party, remainingBudget - examined);
 		if (examined < remainingBudget)
 		{
 			examined += dispatchTactics(party, remainingBudget - examined);
@@ -1638,7 +1767,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 				continue;
 			}
 			final StoredPartyState claim = _claims.get(member.profileId());
-			if ((claim == null) || !committedClaim(claim) || !claim.state().leader().equals(party.leader()))
+			if ((claim == null) || !committedClaim(claim) || !claim.state().leader().equals(party.leader()) || holdsMovement(member.profileId()))
 			{
 				continue;
 			}
@@ -1741,7 +1870,8 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			persistRoute(groupId, route);
 		}
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(party.members());
-		final PhantomPartyRouteCoordinator.AdvanceResult result = _routes.advance(groupId, route, party.leader(), party.members(), snapshots, Math.max(1, remainingBudget), Math.max(0, _clock.getAsLong()), _topologyHash.get(), () -> _state != State.RUNNING);
+		final boolean paused = party.members().stream().anyMatch(member -> (member.kind() == MemberKind.PHANTOM) && holdsMovement(member.profileId()));
+		final PhantomPartyRouteCoordinator.AdvanceResult result = _routes.advance(groupId, route, party.leader(), party.members(), snapshots, Math.max(1, remainingBudget), Math.max(0, _clock.getAsLong()), _topologyHash.get(), () -> _state != State.RUNNING, paused);
 		final RouteManifest advanced = result.route();
 		if (!advanced.equals(route))
 		{
@@ -1760,7 +1890,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final long goalRevision = base == null ? 0 : base.leaderGoalRevision();
 			final PartyOperation operation = new PartyOperation(PhantomPartyModel.stableOperationId(state.groupId(), state.groupGeneration(), state.membershipRevision(), OperationKind.ROUTE, state.leader(), null, goalId, goalRevision, state.leaderManifestHash()), OperationKind.ROUTE, OperationPhase.COMMITTED, state.leader(), null, goalId, goalRevision, state.leaderManifestHash(), 0, deadline(), "");
 			final PartyState draft = new PartyState(state.groupId(), state.groupGeneration(), state.membershipRevision(), state.status(), state.leader(), state.ownRoleKey(), ZERO_HASH, state.phantomMembers(), state.realMembers(), state.objectiveMode(), route.destination(), state.requirements(), state.assignments(), route, operation, state.progressionHash(), state.topologyHash(), "");
-			final PartyState next = new PartyState(draft.groupId(), draft.groupGeneration(), draft.membershipRevision(), draft.status(), draft.leader(), draft.ownRoleKey(), draft.canonicalManifestHash(), draft.phantomMembers(), draft.realMembers(), draft.objectiveMode(), draft.objectiveRef(), draft.requirements(), draft.assignments(), draft.route(), draft.operation(), draft.progressionHash(), draft.topologyHash(), draft.lastFailureKey());
+			final PartyState next = new PartyState(draft.groupId(), draft.groupGeneration(), draft.membershipRevision(), draft.status(), draft.leader(), draft.ownRoleKey(), draft.canonicalManifestHash(), draft.phantomMembers(), draft.realMembers(), draft.objectiveMode(), draft.objectiveRef(), draft.requirements(), draft.assignments(), draft.route(), draft.operation(), draft.progressionHash(), draft.topologyHash(), draft.lastFailureKey(), state.command());
 			try
 			{
 				putClaim(save(claim.profileId(), claim.rowVersion(), next));
@@ -1792,14 +1922,20 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			ensureCommittedGoals(existing);
 			return;
 		}
-		final PartyState draft = state(authority.groupId(), authority.groupGeneration(), authority.membershipRevision() + 1, party.leader().kind() == MemberKind.PHANTOM ? StateStatus.LEADER : StateStatus.MEMBER, party.leader(), phantoms, reals, authority.objectiveMode(), authority.objectiveRef(), authority.requirements(), roles.assignments(), authority.route(), authority.operation(), progressionEvidence(snapshots), "");
+		final boolean membershipChanged = !authority.leader().equals(party.leader()) || !authority.phantomMembers().equals(phantoms) || !authority.realMembers().equals(reals);
+		final long generation = Math.addExact(authority.groupGeneration(), membershipChanged ? 1 : 0);
+		final PartyState draft = state(authority.groupId(), generation, authority.membershipRevision() + 1, party.leader().kind() == MemberKind.PHANTOM ? StateStatus.LEADER : StateStatus.MEMBER, party.leader(), phantoms, reals, authority.objectiveMode(), authority.objectiveRef(), authority.requirements(), roles.assignments(), authority.route(), authority.operation(), progressionEvidence(snapshots), "");
 		final String manifest = draft.canonicalManifestHash();
 		for (MemberRef member : phantoms)
 		{
 			final StoredPartyState current = _claims.get(member.profileId());
 			final String ownRole = roles.assignments().stream().filter(assignment -> assignment.member().equals(member)).map(RoleAssignment::roleKey).findFirst().orElse("");
-			final PartyOperation operation = authority.operation() == null ? null : authority.operation().withPhase(OperationPhase.COMMITTED, authority.operation().invitationSequence(), "");
-			final PartyState next = new PartyState(authority.groupId(), authority.groupGeneration(), draft.membershipRevision(), member.equals(party.leader()) ? StateStatus.LEADER : StateStatus.MEMBER, party.leader(), ownRole, manifest, phantoms, reals, authority.objectiveMode(), authority.objectiveRef(), authority.requirements(), roles.assignments(), authority.route(), operation, draft.progressionHash(), draft.topologyHash(), "");
+			// Real-led companions may each own a different speech-created JOIN goal.
+			final PartyOperation ownOperation = committedClaim(current) && (party.leader().kind() == MemberKind.REAL) && current.state().leader().equals(party.leader()) ? current.state().operation() : null;
+			final PartyOperation sourceOperation = ownOperation == null ? authority.operation() : ownOperation;
+			final PartyOperation operation = sourceOperation == null ? null : sourceOperation.withPhase(OperationPhase.COMMITTED, sourceOperation.invitationSequence(), "");
+			final boolean sameAuthority = (current != null) && current.state().groupId().equals(authority.groupId()) && (current.state().groupGeneration() == generation) && current.state().leader().equals(party.leader());
+			final PartyState next = new PartyState(authority.groupId(), generation, draft.membershipRevision(), member.equals(party.leader()) ? StateStatus.LEADER : StateStatus.MEMBER, party.leader(), ownRole, manifest, phantoms, reals, authority.objectiveMode(), authority.objectiveRef(), authority.requirements(), roles.assignments(), authority.route(), operation, draft.progressionHash(), draft.topologyHash(), "", !membershipChanged && sameAuthority ? current.state().command() : null);
 			try
 			{
 				final StoredPartyState saved = save(member.profileId(), current == null ? -1 : current.rowVersion(), next);
@@ -1851,7 +1987,9 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final long goalRevision = observed == null ? (joinGoal == null ? 0 : joinGoal.goal().revision()) : observed.leaderGoalRevision();
 		final String operationId = observed == null ? PhantomPartyModel.sha256(INVITATION_SESSION + '|' + groupId + "|join|" + profileId) : observed.operationId();
 		final PartyOperation operation = new PartyOperation(operationId, OperationKind.JOIN, OperationPhase.COMMITTED, party.leader(), member, goalId, goalRevision, ZERO_HASH, identity.sequence(), deadline(), "");
-		final PartyState draft = state(groupId, 1, 1, StateStatus.MEMBER, party.leader(), phantoms, reals, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "real-led"), List.of(), List.of(), null, operation, progressionHash(member), "");
+		// A new human invitation must not reuse an expelled member's former authority epoch.
+		final long generation = Math.addExact(phantoms.stream().map(value -> _claims.get(value.profileId())).filter(Objects::nonNull).mapToLong(value -> value.state().groupGeneration()).max().orElse(0), 1);
+		final PartyState draft = state(groupId, generation, generation, StateStatus.MEMBER, party.leader(), phantoms, reals, ObjectiveMode.GENERAL_PVE, new PhantomDomainRef("party", "real-led"), List.of(), List.of(), null, operation, progressionHash(member), "");
 		final PartyState committed = new PartyState(draft.groupId(), draft.groupGeneration(), draft.membershipRevision(), draft.status(), draft.leader(), draft.ownRoleKey(), draft.canonicalManifestHash(), draft.phantomMembers(), draft.realMembers(), draft.objectiveMode(), draft.objectiveRef(), draft.requirements(), draft.assignments(), null, operation, draft.progressionHash(), draft.topologyHash(), "");
 		try
 		{
@@ -1896,6 +2034,11 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				continue;
 			}
+			final CompanionCommand command = claim.state().command();
+			if ((command != null) && (command.mode() != CompanionMode.FOLLOW) && ((command.mode() == CompanionMode.PENDING_HOLD) || !Set.of(DirectiveKind.HEAL_MEMBER, DirectiveKind.RECHARGE_MEMBER, DirectiveKind.RESURRECT_MEMBER, DirectiveKind.PARTY_SUPPORT).contains(directive.kind())))
+			{
+				continue;
+			}
 			final String key = tacticalScope(claim.state()) + directive.kind().name().toLowerCase(java.util.Locale.ROOT) + '.' + directive.actor().profileId();
 			final boolean offense = Set.of(DirectiveKind.ASSIST_TARGET, DirectiveKind.PROTECT_MEMBER).contains(directive.kind());
 			if (offense && ((_tactics.combatOwner() == null) || _tactics.combatMode(directive).isEmpty() || _tactics.combatOwner().observeNormalTarget(directive.actor().profileId(), directive.targetObjectId()).isEmpty()))
@@ -1932,7 +2075,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			{
 				_routes.cancelFollow(claim.state().groupId(), claim.state().groupGeneration(), directive.actor().profileId());
 			}
-			_tactics.dispatch(directive, key, deadline(), () -> _state != State.RUNNING).ifPresent(lease ->
+			_tactics.dispatch(directive, key, deadline(), () -> _state != State.RUNNING, holdsMovement(directive.actor().profileId())).ifPresent(lease ->
 			{
 				_tacticalActions.put(directive.actor().profileId(), lease);
 				_tacticalReleases.offer(directive.actor().profileId());
@@ -1953,7 +2096,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 		final PhantomCancellationToken token = () ->
 		{
 			final StoredPartyState current = _claims.get(profileId);
-			return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || _backend.observe(directive.actor()).filter(party -> party.leader().equals(authority.leader()) && party.members().contains(directive.actor())).isEmpty();
+			return (_state != State.RUNNING) || (current == null) || !current.state().groupId().equals(authority.groupId()) || (current.state().groupGeneration() != authority.groupGeneration()) || !current.state().leader().equals(authority.leader()) || commandStopsCombat(profileId) || _backend.observe(directive.actor()).filter(party -> party.leader().equals(authority.leader()) && party.members().contains(directive.actor())).isEmpty();
 		};
 		final var started = combat.startContentSession(new PhantomCombatRequest(profileId, directive.targetObjectId(), mode.orElseThrow(), true, false, 60000, token), key);
 		if (started.accepted() && (started.session() != null))
@@ -2053,7 +2196,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			final PartyState solo = state(PhantomPartyModel.sha256("party.solo|" + stored.profileId() + '|' + (state.groupGeneration() + 1)), state.groupGeneration() + 1, state.membershipRevision() + 1, StateStatus.SOLO, self, List.of(self), List.of(), state.objectiveMode(), state.objectiveRef(), List.of(), List.of(), null, null, state.progressionHash(), "restart.uncommitted_operation_aborted");
 			return save(stored.profileId(), stored.rowVersion(), solo);
 		}
-		final PartyState recovered = state(state.groupId(), state.groupGeneration(), state.membershipRevision(), StateStatus.RECOVERING, state.leader(), state.phantomMembers(), List.of(), state.objectiveMode(), state.objectiveRef(), state.requirements(), state.assignments(), state.route(), state.operation(), state.progressionHash(), "");
+		final PartyState recovered = state(state.groupId(), state.groupGeneration(), state.membershipRevision(), StateStatus.RECOVERING, state.leader(), state.phantomMembers(), List.of(), state.objectiveMode(), state.objectiveRef(), state.requirements(), state.assignments(), state.route(), state.operation(), state.progressionHash(), state.command() == null ? "" : "restart.command_authority_invalidated");
 		return save(stored.profileId(), stored.rowVersion(), recovered);
 	}
 
@@ -2495,7 +2638,7 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			removeGroup(before.groupId());
 			return true;
 		}
-		final long generation = observed.leader().equals(before.leader()) ? before.groupGeneration() : before.groupGeneration() + 1;
+		final long generation = observed.leader().equals(before.leader()) && sameRoster(roster(before), observed.members()) ? before.groupGeneration() : Math.addExact(before.groupGeneration(), 1);
 		final List<MemberRef> phantoms = observed.members().stream().filter(member -> member.kind() == MemberKind.PHANTOM).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
 		final List<MemberRef> reals = observed.members().stream().filter(member -> member.kind() == MemberKind.REAL).sorted(Comparator.comparing(MemberRef::stableKey)).toList();
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(observed.members());
@@ -2512,7 +2655,9 @@ public final class PhantomPartyCoordinator implements PhantomSchedulerControlPor
 			}
 			final StateStatus status = member.equals(observed.leader()) ? StateStatus.LEADER : StateStatus.MEMBER;
 			final String ownRole = roles.assignments().stream().filter(assignment -> assignment.member().equals(member)).map(RoleAssignment::roleKey).findFirst().orElse("");
-			final PartyState next = new PartyState(before.groupId(), generation, authority.membershipRevision(), status, observed.leader(), ownRole, manifest, phantoms, reals, before.objectiveMode(), before.objectiveRef(), before.requirements(), roles.assignments(), null, committed, authority.progressionHash(), authority.topologyHash(), "");
+			final PartyOperation own = current.state().operation();
+			final PartyOperation memberOperation = (committed.kind() == OperationKind.RECOVER) && committedClaim(current) && (own != null) ? new PartyOperation(committed.operationId(), committed.kind(), committed.phase(), committed.leader(), committed.member(), own.leaderGoalId(), own.leaderGoalRevision(), committed.manifestHash(), committed.invitationSequence(), committed.deadlineLogicalNanos(), committed.failureKey()) : committed;
+			final PartyState next = new PartyState(before.groupId(), generation, authority.membershipRevision(), status, observed.leader(), ownRole, manifest, phantoms, reals, before.objectiveMode(), before.objectiveRef(), before.requirements(), roles.assignments(), null, memberOperation, authority.progressionHash(), authority.topologyHash(), "");
 			try
 			{
 				putClaim(save(member.profileId(), current.rowVersion(), next));

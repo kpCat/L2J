@@ -39,6 +39,7 @@ public final class PhantomConversationExecutionCatalog
 		GOAL,
 		PARTY_RESPONSE,
 		SUPPORT,
+		PARTY_COMMAND,
 		DEFERRED
 	}
 
@@ -93,6 +94,15 @@ public final class PhantomConversationExecutionCatalog
 	private static final Set<ChatType> EXECUTION_CHANNELS = Set.of(ChatType.GENERAL, ChatType.WHISPER, ChatType.PARTY, ChatType.TRADE);
 	private static final Map<String, ExpectedProposal> REQUIRED_PROPOSALS_V1 = requiredProposals(Kind.DEFERRED, Set.of(), Set.of());
 	private static final Map<String, ExpectedProposal> REQUIRED_PROPOSALS_V2 = requiredProposals(Kind.SUPPORT, Set.of("capability"), Set.of("character.object", "profile"));
+	private static final Set<String> COMMAND_KEYS = Set.of("party.hold", "party.follow", "party.hold.all", "party.follow.all");
+	private static final Set<String> COMMAND_REASONS = Set.of("command.holding", "command.following", "command.pending", "command.partial", "command.rejected", "command.stale");
+
+	private static Map<String, ExpectedProposal> withCommands(Map<String, ExpectedProposal> base)
+	{
+		final Map<String, ExpectedProposal> result = new LinkedHashMap<>(base);
+		COMMAND_KEYS.forEach(key -> result.put(key, new ExpectedProposal(Kind.PARTY_COMMAND, null, Set.of(), Set.of())));
+		return Map.copyOf(result);
+	}
 	private static Map<String, ExpectedProposal> requiredProposals(Kind supportKind, Set<String> supportSlots, Set<String> supportTargets)
 	{
 		return Map.ofEntries( //
@@ -124,8 +134,10 @@ public final class PhantomConversationExecutionCatalog
 	private final List<String> _reasons;
 	private final Map<String, String> _factLabels;
 	private final Map<String, Map<String, String>> _templates;
+	private final PhantomConversationExecutionCatalog _previous;
+	private final Set<String> _hashAliases;
 
-	private PhantomConversationExecutionCatalog(String hash, Limits limits, Map<String, ProposalPolicy> proposals, List<String> responseActs, List<String> styles, Map<String, String> factLabels, Map<String, Map<String, String>> templates)
+	private PhantomConversationExecutionCatalog(String hash, Limits limits, Map<String, ProposalPolicy> proposals, List<String> responseActs, List<String> styles, Map<String, String> factLabels, Map<String, Map<String, String>> templates, PhantomConversationExecutionCatalog previous, Set<String> hashAliases)
 	{
 		_hash = hash;
 		_limits = limits;
@@ -135,6 +147,15 @@ public final class PhantomConversationExecutionCatalog
 		_factLabels = Map.copyOf(factLabels);
 		_templates = Map.copyOf(templates);
 		_reasons = templates.keySet().stream().sorted().toList();
+		_previous = previous;
+		_hashAliases = Set.copyOf(hashAliases);
+	}
+
+	PhantomConversationExecutionCatalog decodingCatalog(String catalogHash)
+	{
+		if (_hashAliases.contains(catalogHash)) { return this; }
+		if (_previous != null) { return _previous.decodingCatalog(catalogHash); }
+		throw new IllegalArgumentException("conversation.execution catalog authority is unknown.");
 	}
 
 	public static PhantomConversationExecutionCatalog load(Path path)
@@ -157,7 +178,7 @@ public final class PhantomConversationExecutionCatalog
 			factory.setExpandEntityReferences(false);
 			final Element root = factory.newDocumentBuilder().parse(new ByteArrayInputStream(bytes)).getDocumentElement();
 			require(root, "conversationExecutionPolicy", Set.of("id", "version"));
-			final int version = root.getAttribute("version").equals("1") ? 1 : root.getAttribute("version").equals("2") ? 2 : 0;
+			final int version = root.getAttribute("version").equals("1") ? 1 : root.getAttribute("version").equals("2") ? 2 : root.getAttribute("version").equals("3") ? 3 : 0;
 			if ((version == 0) || !root.getAttribute("id").equals("high-five-ru-conversation-execution-v" + version))
 			{
 				throw new IllegalArgumentException("Conversation execution policy identity is invalid.");
@@ -168,7 +189,9 @@ public final class PhantomConversationExecutionCatalog
 				throw new IllegalArgumentException("Conversation execution policy sections are not exact.");
 			}
 			final Limits limits = limits(sections.get(0));
-			final Map<String, ProposalPolicy> proposals = proposals(sections.get(1), version == 1 ? REQUIRED_PROPOSALS_V1 : REQUIRED_PROPOSALS_V2);
+			final boolean commands = version == 3;
+			final Map<String, ExpectedProposal> expectedProposals = version == 1 ? REQUIRED_PROPOSALS_V1 : commands ? withCommands(REQUIRED_PROPOSALS_V2) : REQUIRED_PROPOSALS_V2;
+			final Map<String, ProposalPolicy> proposals = proposals(sections.get(1), expectedProposals);
 			final List<String> acts = symbols(sections.get(2), "responseActs", "act");
 			if (!Set.copyOf(acts).equals(REQUIRED_RESPONSE_ACTS))
 			{
@@ -181,12 +204,25 @@ public final class PhantomConversationExecutionCatalog
 			}
 			final Map<String, String> factLabels = factLabels(sections.get(4));
 			final Map<String, Map<String, String>> results = results(sections.get(5), styles);
-			final Set<String> requiredReasons = version == 1 ? REQUIRED_REASONS : java.util.stream.Stream.concat(REQUIRED_REASONS.stream(), V2_SUPPORT_REASONS.stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+			final Set<String> baseReasons = version == 1 ? REQUIRED_REASONS : java.util.stream.Stream.concat(REQUIRED_REASONS.stream(), V2_SUPPORT_REASONS.stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+			final Set<String> requiredReasons = commands ? java.util.stream.Stream.concat(baseReasons.stream(), COMMAND_REASONS.stream()).collect(java.util.stream.Collectors.toUnmodifiableSet()) : baseReasons;
 			if (!results.keySet().equals(requiredReasons))
 			{
 				throw new IllegalArgumentException("Conversation execution result policy is incomplete.");
 			}
-			return new PhantomConversationExecutionCatalog(hash(bytes), limits, proposals, acts, styles, factLabels, results);
+			final PhantomConversationExecutionCatalog previous = version > 1 ? load(path.resolveSibling("high-five-ru-conversation-execution-v" + (version - 1) + ".xml")) : null;
+			if (commands)
+			{
+				final Map<String, ProposalPolicy> baseProposals = new LinkedHashMap<>(proposals);
+				COMMAND_KEYS.forEach(baseProposals::remove);
+				final Map<String, Map<String, String>> baseResults = new LinkedHashMap<>(results);
+				COMMAND_REASONS.forEach(baseResults::remove);
+				if (!limits.equals(previous._limits) || !baseProposals.equals(previous._proposals) || !acts.equals(previous._responseActs) || !styles.equals(previous._styles) || !factLabels.equals(previous._factLabels) || !baseResults.equals(previous._templates))
+				{
+					throw new IllegalArgumentException("Command policy must preserve the complete v2 execution contract.");
+				}
+			}
+			return new PhantomConversationExecutionCatalog(hash(bytes), limits, proposals, acts, styles, factLabels, results, previous, PhantomConversationModel.lineEndingHashes(new String(bytes, StandardCharsets.UTF_8)));
 		}
 		catch (RuntimeException exception)
 		{

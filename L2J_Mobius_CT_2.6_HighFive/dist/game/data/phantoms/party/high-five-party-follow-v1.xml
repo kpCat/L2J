@@ -1,3 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Native paths only. Waypoint precision is separate from the final companion distance. -->
-<partyFollowPolicy id="high-five-party-follow-v1" version="1" enabled="true" startDistance="350" stopDistance="250" replanDistance="64" waypointRadius="64" maximumDistance="6000" routeTimeoutMillis="30000" />
+<!-- HOLD radius bounds voluntary companion movement; it never roots or teleports a Player. -->
+<partyFollowPolicy id="high-five-party-follow-v1" version="1" enabled="true" startDistance="350" stopDistance="250" replanDistance="64" waypointRadius="64" maximumDistance="6000" routeTimeoutMillis="30000" holdRadius="128" />

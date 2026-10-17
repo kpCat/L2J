@@ -17,6 +17,21 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 /** Narrow external boundary; conversation owns policy, not gameplay mutations. */
 public interface PhantomConversationExecutionPort
 {
+	public enum CommandResult
+	{
+		HOLDING,
+		FOLLOWING,
+		PENDING,
+		PARTIAL,
+		REJECTED,
+		STALE
+	}
+
+	default CommandResult executeCommand(long profileId, ExecutionEntry entry)
+	{
+		return CommandResult.REJECTED;
+	}
+
 	public enum ResultStatus
 	{
 		COMPLETED,

@@ -1360,6 +1360,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.ALREADY_OWNED;
 			}
 			final int castRange = Math.max(0, skill.getCastRange());
+			if (action.stationary() && (_player.isMoving() || _player.isCastingNow() || _player.isAttackingNow() || (!self && (distance(_player, target) > Math.max(0, Math.min(castRange, _player.getMagicalAttackRange(skill)))))))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
 			if ((target != _player) && (distance(_player, target) > Math.max(200, castRange + 100)))
 			{
 				return ActionOutcome.UNAVAILABLE;
@@ -1374,6 +1378,10 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.ALREADY_OWNED;
 			}
 			_player.setTarget(target);
+			if (action.stationary())
+			{
+				return _player.useMagic(skill, false, true) ? ActionOutcome.ISSUED : ActionOutcome.UNAVAILABLE;
+			}
 			_player.getAI().setIntention(Intention.CAST, skill, target);
 			return ActionOutcome.ISSUED;
 		}

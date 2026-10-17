@@ -189,6 +189,11 @@ public final class PhantomPartyRouteCoordinator
 
 	public AdvanceResult advance(String groupId, RouteManifest route, MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, int operationBudget, long logicalNow, String currentTopologyHash, PhantomCancellationToken token)
 	{
+		return advance(groupId, route, leader, roster, snapshots, operationBudget, logicalNow, currentTopologyHash, token, false);
+	}
+
+	public AdvanceResult advance(String groupId, RouteManifest route, MemberRef leader, List<MemberRef> roster, Map<MemberRef, MemberSnapshot> snapshots, int operationBudget, long logicalNow, String currentTopologyHash, PhantomCancellationToken token, boolean movementPaused)
+	{
 		final long deadline;
 		synchronized (_stateLock)
 		{
@@ -211,7 +216,7 @@ public final class PhantomPartyRouteCoordinator
 		}
 		boolean separated = false;
 		boolean allAtWaypoint = true;
-		boolean movementBlocked = false;
+		boolean movementBlocked = movementPaused;
 		int examined = 1;
 		final PhantomNavigationPoint waypoint = route.waypoints().get(route.currentWaypoint());
 		for (MemberRef member : roster)
@@ -527,6 +532,27 @@ public final class PhantomPartyRouteCoordinator
 		if (follow != null)
 		{
 			cancelOwnedRoute(follow.routeKey(), generation);
+		}
+	}
+
+	public int holdRadius()
+	{
+		return _followPolicy.holdRadius();
+	}
+
+	/** A member may release only movement leased by this exact group route. */
+	public void cancelMemberMovement(String groupId, long generation, long profileId)
+	{
+		cancelFollow(groupId, generation, profileId);
+		final MovementLease movement;
+		synchronized (_stateLock)
+		{
+			final MovementLease current = _movement.get(profileId);
+			movement = (current != null) && (_routeGenerations.getOrDefault(groupId, 0L) == generation) && current._routeId.equals(_routeByGroup.get(groupId)) ? _movement.remove(profileId) : null;
+		}
+		if (movement != null)
+		{
+			movement._lease.close();
 		}
 	}
 

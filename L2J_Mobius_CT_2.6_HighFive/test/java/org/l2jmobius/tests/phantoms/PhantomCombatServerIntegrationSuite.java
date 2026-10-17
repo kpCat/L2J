@@ -791,14 +791,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	static void assertCampaign058Jar(PhantomTestContext context) throws Exception
 	{
 		final Path supplied = Path.of(System.getProperty("phantom.contract058.semantic.jar", PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toString())).toRealPath();
-		final List<Path> allowed = List.of(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/native-current058/dist/libs/GameServer.jar"), Path.of("D:/PhantomWorld/M2-M7-058-candidate/libs/GameServer.jar"));
-		PhantomAssertions.assertTrue(allowed.contains(supplied), "TASK058 ordinary semantic JAR path is outside its exact allowlist.");
+		PhantomAssertions.assertTrue(campaign058JarAllowed(supplied), "TASK058 ordinary semantic JAR path is outside its exact allowlist.");
 		for (Class<?> type : List.of(Player.class, PhantomCombatService.class, PhantomPartyCoordinator.class, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService.class))
 		{
 			PhantomAssertions.assertEquals(supplied, Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "TASK058 composition mixes private product classes or different JARs: " + type.getName());
 		}
 		context.record("semanticJar.path", supplied.toString());
 		context.record("semanticJar.sha256", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(supplied))));
+	}
+
+	static boolean campaign058JarAllowed(Path supplied)
+	{
+		return List.of(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/native-current058/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/GameServer.jar"), Path.of("D:/PhantomWorld/M2-M7-058-candidate/libs/GameServer.jar")).contains(supplied);
 	}
 
 	private void testCompanionFarmResume058(PhantomTestContext context) throws Exception
@@ -1089,6 +1093,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(maximumStep <= 128, "Follow snapped instead of using native movement: " + maximumStep);
 			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().pathSucceeded() > 0, "Follow did not use a computed native path around the obstacle.");
 			PhantomAssertions.assertTrue(navigationMetrics.snapshot().navigation().submissionsAccepted() <= 120, "Friendly leader selection caused unbounded follow replanning.");
+			if ((composition != null) && Boolean.getBoolean("phantom.test.commands059"))
+			{
+				composition.holdAndResume059(context, human, actors, party, fromX, fromY, z);
+			}
 			if (Set.of(Mode.COMPANION_ASSIST_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode))
 			{
 				testCompanionAssistTargets058(context, human, actors, profileIds, party);
@@ -1096,13 +1104,19 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			if (composition != null)
 			{
 				composition.partyChat(context, human);
+				if (Boolean.getBoolean("phantom.test.commandAuthority059"))
+				{
+					composition.authority059(context, human, actors, profileIds, party, fromX, fromY, z);
+					composition.lifecycle059(context, human, actors, profileIds, party);
+				}
 			}
 			if (_mode == Mode.COMPANION_NPC_AGGRO_058)
 			{
 				testCompanionNpcAggro058(context, human, actors, profileIds, party);
 			}
-			if (_mode == Mode.COMPANION_DEPARTURE_058)
+			if ((_mode == Mode.COMPANION_DEPARTURE_058) || ((composition != null) && Boolean.getBoolean("phantom.test.commandAuthority059")))
 			{
+				if (composition != null) { PhantomAssertions.assertTrue(composition.command059(context, human, actors.getFirst(), org.l2jmobius.gameserver.network.enums.ChatType.PARTY, "всем стоять", party), "Pre-leave HOLD was not delivered."); }
 				org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
 				for (int pulse = 0; (pulse < 32) && profileIds.stream().anyMatch(party::blocksBackground); pulse++)
 				{
@@ -1112,7 +1126,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				PhantomAssertions.assertFalse(profileIds.stream().anyMatch(party::blocksBackground), "Last human leave retained mixed companion pins.");
 				PhantomAssertions.assertFalse(actors.stream().anyMatch(Player::isInParty), "Departed companion group retained a native party after release.");
 				PhantomAssertions.assertEquals(0, routes.snapshot().movementClaims(), "Last human leave retained owned follow movement.");
+				if (composition != null) { PhantomAssertions.assertTrue(profileIds.stream().allMatch(profile -> party.claim(profile).orElseThrow().state().command() == null), "Last human leave retained commands."); }
 				joinCompanions058(human, actors, profileIds, party);
+				if (composition != null) { PhantomAssertions.assertTrue(composition.command059(context, human, actors.getFirst(), org.l2jmobius.gameserver.network.enums.ChatType.PARTY, "всем стоять", party), "Pre-logout HOLD was not delivered."); }
 				final int humanObjectId = human.getObjectId();
 				human.storeMe();
 				human.deleteMe(); // Ordinary native logout, not a crash or a forced process termination.
@@ -1125,11 +1141,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				PhantomAssertions.assertEquals(null, World.getInstance().getPlayer(humanObjectId), "Native TEST logout did not remove the exact World identity.");
 				PhantomAssertions.assertFalse(profileIds.stream().anyMatch(party::blocksBackground), "Last human logout retained mixed companion pins.");
 				PhantomAssertions.assertFalse(actors.stream().anyMatch(Player::isInParty), "Last human logout retained an abandoned companion native party.");
+				if (composition != null) { PhantomAssertions.assertTrue(profileIds.stream().allMatch(profile -> party.claim(profile).orElseThrow().state().command() == null), "Native logout retained commands."); }
 				_observer = Player.load(humanObjectId);
 				PhantomAssertions.assertTrue(_observer != null && !_observer.isGM(), "Same TEST character could not reload after ordinary logout.");
 				_observer.spawnMe();
 				_observer.revalidateZone(true);
 				joinCompanions058(_observer, actors, profileIds, party);
+				if (composition != null) { PhantomAssertions.assertTrue(profileIds.stream().allMatch(profile -> party.claim(profile).orElseThrow().state().command() == null), "Same-character reconnect revived old commands."); }
 				context.record("companion058.rejoin", "sameHuman=" + _observer.getObjectId() + "; members=" + _observer.getParty().getMembers().stream().map(Player::getObjectId).sorted().toList() + "; pins=" + profileIds.stream().map(party::blocksBackground).toList());
 			}
 		}
@@ -1192,7 +1210,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			{
 				party.onPulse();
 			}
-			PhantomAssertions.assertTrue(party.committed(profileId) && (actors.get(index).getParty() == human.getParty()), "Native companion did not rejoin its exact human.");
+			if (!party.committed(profileId) || (actors.get(index).getParty() != human.getParty()))
+			{
+				throw new AssertionError("Native companion did not rejoin its exact human: profile=" + profileId + "; claim=" + party.claim(profileId) + "; pending=" + party.pendingInvitation(profileId) + "; party=" + party.snapshot() + "; goal=" + new PhantomGoalStateStore(PhantomProfileRepository.open()).load(profileId) + "; dead=" + actors.get(index).isDead() + "; distance=" + actors.get(index).calculateDistance3D(human));
+			}
 		}
 	}
 
@@ -1526,8 +1547,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(party.start(), "Companion party owner did not start.");
 		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
 		Throwable scenarioFailure = null;
+		final boolean busyHold059 = Boolean.getBoolean("phantom.test.busyHold059") && capabilityKey.equals("combat.heal");
+		PhantomCompanionComposition058 commands059 = null;
+		final java.util.concurrent.atomic.AtomicInteger nativeCasts059 = new java.util.concurrent.atomic.AtomicInteger();
+		final var castListener059 = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(_player, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_SKILL_USE, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureSkillUse event) -> { if ((event.getCaster() == _player) && (event.getSkill().getId() == skill.getId()) && (event.getSkill().getLevel() == skill.getLevel())) { nativeCasts059.incrementAndGet(); } }, this);
 		try
 		{
+			if (busyHold059)
+			{
+				commands059 = new PhantomCompanionComposition058(_repository, _materialization, _topology, _knowledge, social, party, human);
+				_player.addListener(castListener059);
+				context.record("command059.busy.input", "TEST predeclared close-range healer; issue addressed HOLD only after native cast flag; no HP/MP/item writes during measurement; expect one native cast/effect/cost then HOLD and RESUME");
+			}
 			PhantomAssertions.assertEquals(85, _player.getLevel(), "Prepared companion level is inconsistent.");
 			final var readiness = progression.capabilities(_profile.profileId(), human.getObjectId()).stream().filter(capability -> capability.capabilityKey().equals(capabilityKey) && (capability.actionSkill().skillId() == skill.getId()) && (capability.actionSkill().skillLevel() == skill.getLevel())).toList();
 			context.record("companion058.readiness." + capabilityKey, readiness);
@@ -1539,12 +1570,20 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			boolean selectedCastSeen = false;
 			boolean resurrectionRequested = false;
 			boolean effectObserved = false;
+			boolean holdSent059 = false;
 			final var invitation = org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().invite(human, _player, PartyDistributionType.FINDERS_KEEPERS.getId());
 			PhantomAssertions.assertTrue(invitation.delivered(), "Real-led support invitation was not delivered: " + invitation);
 			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
 			while ((System.nanoTime() < deadline) && (!effectObserved || _player.isCastingNow()))
 			{
 				party.onPulse();
+				if (busyHold059 && !holdSent059 && _player.isCastingNow())
+				{
+					context.record("command059.busy.before", "casting=true; targetHP=" + human.getCurrentHp() + "; casterMP=" + _player.getCurrentMp() + "; nativeCasts=" + nativeCasts059.get());
+					PhantomAssertions.assertTrue(commands059.command059(context, human, _player, "стой здесь", party), "Busy HOLD did not deliver a truthful response.");
+					commands059.assertCommandReason059("command.pending");
+					holdSent059 = true;
+				}
 				final Skill casting = _player.getLastSkillCast();
 				selectedCastSeen |= (casting != null) && (casting.getId() == skill.getId()) && (casting.getLevel() == skill.getLevel());
 				if (capabilityKey.equals("combat.resurrection") && human.isReviveRequested())
@@ -1566,6 +1605,17 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			context.record("companion058.support." + capabilityKey, "skill=" + skill.getId() + ':' + skill.getLevel() + "; selectedCast=" + selectedCastSeen + "; resurrectionRequested=" + resurrectionRequested + "; initialMp=" + initialMp + "; minimumMp=" + minimumMp + "; targetHp=" + targetInitialHp + "->" + human.getCurrentHp() + "; targetMp=" + targetInitialMp + "->" + human.getCurrentMp());
 			PhantomAssertions.assertTrue(effectObserved, "Real-led native support has no measured effect: " + capabilityKey + "; selectedCast=" + selectedCastSeen + "; resurrectionRequested=" + resurrectionRequested + "; hp=" + human.getCurrentHp() + "; mp=" + human.getCurrentMp());
 			PhantomAssertions.assertTrue(minimumMp < initialMp, "Automatic native support did not consume caster MP: initial=" + initialMp + "; minimum=" + minimumMp + "; final=" + _player.getCurrentMp() + "; maximum=" + _player.getMaxMp());
+			if (busyHold059)
+			{
+				for (int pulse = 0; pulse < 16; pulse++) { party.onPulse(); Thread.sleep(10); }
+				PhantomAssertions.assertTrue(holdSent059, "Busy HOLD input never observed an actual native cast.");
+				PhantomAssertions.assertEquals(1, nativeCasts059.get(), "Busy HOLD duplicated or lost the native cast.");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD, party.claim(_profile.profileId()).orElseThrow().state().command().mode(), "Busy HOLD never reached its safe native boundary.");
+				testHeldSupport059(context, human, party, skill, nativeCasts059);
+				PhantomAssertions.assertTrue(commands059.command059(context, human, _player, "за мной", party), "Post-cast RESUME was not delivered.");
+				commands059.assertCommandReason059("command.following");
+				context.record("command059.busy.result", "nativeCasts=" + nativeCasts059.get() + "; actualEffect=true; actualMpCost=true; postCastHold=true; resume=true");
+			}
 			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
 			for (int pulse = 0; (pulse < 32) && party.blocksBackground(_profile.profileId()); pulse++)
 			{
@@ -1580,6 +1630,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		finally
 		{
+			if (busyHold059) { _player.removeListener(castListener059); }
+			if (commands059 != null) { commands059.close(); }
 			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().observe(_player).ifPresent(pending -> org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().cancel(pending.identity()));
 			org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().leave(human);
 			for (int pulse = 0; pulse < 4; pulse++)
@@ -1605,6 +1657,54 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				}
 			}
 		}
+	}
+
+	private void testHeldSupport059(PhantomTestContext context, Player human, PhantomPartyCoordinator party, Skill skill, java.util.concurrent.atomic.AtomicInteger nativeCasts) throws Exception
+	{
+		final var anchor = party.claim(_profile.profileId()).orElseThrow().state().command().anchor();
+		final int range = skill.getCastRange();
+		PhantomAssertions.assertTrue(range > 200, "Held support needs a declared ranged native skill.");
+		// Independent negative episode: only these TEST preconditions precede measurement.
+		human.decayMe();
+		human.setXYZInvisible(anchor.x() + range + 75, anchor.y(), anchor.z());
+		human.spawnMe();
+		human.revalidateZone(true);
+		human.getEffectList().stopSkillEffects(SkillFinishType.REMOVED, skill.getId()); // Prior episode's legitimate HoT must not masquerade as a new cast.
+		human.setCurrentHp(human.getMaxHp() / 5);
+		final int castsBefore = nativeCasts.get();
+		final double beforeHp = human.getCurrentHp();
+		final double beforeMp = _player.getCurrentMp();
+		context.record("command059.support.input", "INDEPENDENT TEST preconditions: held healer anchor=" + anchor + "; skill=" + skill.getId() + ':' + skill.getLevel() + "; castRange=" + range + "; targetDistance=" + _player.calculateDistance3D(human) + "; targetHP=" + beforeHp + "; casterMP=" + beforeMp + "; no further fixture mutations; far5s then native approach");
+		final long farDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		double displacement = 0;
+		boolean moving = false;
+		while (System.nanoTime() < farDeadline)
+		{
+			party.onPulse();
+			moving |= _player.isMoving();
+			displacement = Math.max(displacement, Math.hypot(_player.getX() - anchor.x(), _player.getY() - anchor.y()));
+			Thread.sleep(10);
+		}
+		context.record("command059.support.far", "moving=" + moving + "; displacement=" + displacement + "; targetHP=" + human.getCurrentHp() + "; casterMP=" + _player.getCurrentMp());
+		PhantomAssertions.assertTrue(!moving && displacement <= 5, "HOLD support chased an out-of-range target: moving=" + moving + "; displacement=" + displacement);
+		PhantomAssertions.assertEquals(castsBefore, nativeCasts.get(), "Out-of-range HOLD support started a native cast.");
+		PhantomAssertions.assertTrue(human.getCurrentHp() < beforeHp + human.getMaxHp() / 4, "Out-of-range HOLD support produced an unexpected heal.");
+		human.setRunning();
+		human.getAI().setIntention(Intention.MOVE_TO, new Location(anchor.x() + 30, anchor.y(), anchor.z()));
+		final long nearDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+		boolean healed = false;
+		double minimumMp = _player.getCurrentMp();
+		while (System.nanoTime() < nearDeadline)
+		{
+			party.onPulse();
+			minimumMp = Math.min(minimumMp, _player.getCurrentMp());
+			displacement = Math.max(displacement, Math.hypot(_player.getX() - anchor.x(), _player.getY() - anchor.y()));
+			healed |= human.getCurrentHp() >= beforeHp + human.getMaxHp() / 4;
+			if (healed && !human.isMoving() && !_player.isCastingNow()) { break; }
+			Thread.sleep(10);
+		}
+		PhantomAssertions.assertTrue(healed && minimumMp < beforeMp && displacement <= 5, "Held healer did not cast from its anchor after native target approach: healed=" + healed + "; displacement=" + displacement + "; MP=" + beforeMp + "->" + minimumMp);
+		context.record("command059.support.near", "actualHeal=" + healed + "; nativeTargetWalk=true; displacement=" + displacement + "; MP=" + beforeMp + "->" + minimumMp);
 	}
 
 	private void testPost002NativeSupport(PhantomTestContext context) throws Exception

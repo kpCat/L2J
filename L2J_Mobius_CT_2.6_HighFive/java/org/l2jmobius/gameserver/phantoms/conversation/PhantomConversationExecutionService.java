@@ -543,6 +543,16 @@ public final class PhantomConversationExecutionService implements PhantomSchedul
 				save(stored, next);
 				yield 1;
 			}
+			case PARTY_COMMAND ->
+			{
+				if (!spend(Phase.PARTY_RESPONSE, stored.profileId())) { yield 1; }
+				final var result = _port.executeCommand(stored.profileId(), entry);
+				final String reason = "command." + result.name().toLowerCase(java.util.Locale.ROOT);
+				final boolean accepted = Set.of(PhantomConversationExecutionPort.CommandResult.HOLDING, PhantomConversationExecutionPort.CommandResult.FOLLOWING, PhantomConversationExecutionPort.CommandResult.PENDING, PhantomConversationExecutionPort.CommandResult.PARTIAL).contains(result);
+				// Completion here is durable admission; pending text never claims a completed native action.
+				save(stored, entry.withResult(_catalog.render(reason, entry.style(), null), reason).withAction(accepted ? ActionState.COMPLETED : ActionState.REJECTED, 0, 0, reason, now()));
+				yield 1;
+			}
 			case GOAL ->
 			{
 				if (!spend(Phase.GOAL_SUBMIT, stored.profileId()))

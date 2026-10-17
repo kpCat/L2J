@@ -14,6 +14,8 @@ import java.util.List;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.DirectiveKind;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionCommand;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberKind;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.ObjectiveMode;
@@ -34,7 +36,8 @@ import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileComponent;
  */
 public final class PhantomPartyStateCodec
 {
-	private static final int MAGIC = 0x50545931; // PTY1
+	private static final int LEGACY_MAGIC = 0x50545931; // PTY1
+	private static final int MAGIC = 0x50545932; // PTY2
 
 	public byte[] encode(PartyState state)
 	{
@@ -81,6 +84,22 @@ public final class PhantomPartyStateCodec
 				string(output, state.progressionHash());
 				string(output, state.topologyHash());
 				string(output, state.lastFailureKey());
+				output.writeBoolean(state.command() != null);
+				if (state.command() != null)
+				{
+					final CompanionCommand command = state.command();
+					value(output, command.mode());
+					member(output, command.actor());
+					member(output, command.speaker());
+					output.writeLong(command.version());
+					output.writeLong(command.groupGeneration());
+					output.writeInt(command.anchor().x());
+					output.writeInt(command.anchor().y());
+					output.writeInt(command.anchor().z());
+					output.writeInt(command.anchor().instanceId());
+					output.writeInt(command.radius());
+					string(output, command.requestId());
+				}
 			}
 			final byte[] result = bytes.toByteArray();
 			if (result.length > PhantomProfileComponent.MAX_PAYLOAD_BYTES)
@@ -107,7 +126,8 @@ public final class PhantomPartyStateCodec
 		}
 		try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload)))
 		{
-			if (input.readInt() != MAGIC)
+			final int magic = input.readInt();
+			if ((magic != MAGIC) && (magic != LEGACY_MAGIC))
 			{
 				throw new IllegalArgumentException("Unknown party state payload.");
 			}
@@ -134,7 +154,9 @@ public final class PhantomPartyStateCodec
 			}
 			final RouteManifest route = input.readBoolean() ? route(input) : null;
 			final PartyOperation operation = input.readBoolean() ? operation(input) : null;
-			final PartyState state = new PartyState(groupId, groupGeneration, membershipRevision, status, leader, ownRoleKey, leaderManifestHash, phantomMembers, realMembers, objective, objectiveRef, requirements, assignments, route, operation, string(input, 64), string(input, 64), string(input, 64));
+			final PartyState base = new PartyState(groupId, groupGeneration, membershipRevision, status, leader, ownRoleKey, leaderManifestHash, phantomMembers, realMembers, objective, objectiveRef, requirements, assignments, route, operation, string(input, 64), string(input, 64), string(input, 64));
+			final CompanionCommand command = (magic == MAGIC) && input.readBoolean() ? new CompanionCommand(value(input, CompanionMode.class), member(input), member(input), input.readLong(), input.readLong(), new PhantomNavigationPoint(input.readInt(), input.readInt(), input.readInt(), input.readInt()), input.readInt(), string(input, 64)) : null;
+			final PartyState state = base.withCommand(command);
 			if (input.available() != 0)
 			{
 				throw new IllegalArgumentException("Party state payload has trailing data.");

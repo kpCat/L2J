@@ -248,6 +248,13 @@ public final class PhantomConversationModel
 		return sha256(canonicalEncoding);
 	}
 
+	/** Git archives and Windows checkouts may differ only in their line endings. */
+	public static Set<String> lineEndingHashes(String value)
+	{
+		final String lf = value.replace("\r\n", "\n");
+		return Set.copyOf(List.of(sha256(value), sha256(lf), sha256(lf.replace("\n", "\r\n"))));
+	}
+
 	public static String sha256(String value)
 	{
 		try

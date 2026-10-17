@@ -115,11 +115,11 @@ public final class PhantomRealPartyInvitationPolicy implements ManagedInvitation
 
 	private static boolean ordinaryGoal(PhantomGoal goal)
 	{
-		if (goal == null)
+		if ((goal == null) || (goal.status() != PhantomGoalStatus.ACTIVE))
 		{
 			return true;
 		}
-		if ((goal.status() != PhantomGoalStatus.ACTIVE) || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()))
+		if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(goal.goalType()))
 		{
 			return false;
 		}

@@ -42,6 +42,9 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartySupportPolicy;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberCapability;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode;
+import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PendingResponse;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.PendingResponseOutcome;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.StateStatus;
@@ -279,7 +282,7 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 			return ResultStatus.STALE;
 		}
 		final var lease = acquired.lease();
-		final ActionOutcome outcome = lease.castSupport(new PhantomPartySupportAction(capability.capabilityKey(), capability.variantKey(), capability.targetScope(), target.getObjectId(), new SelectedSkill(capability.actionSkillId(), capability.actionSkillLevel()), sameParty ? PhantomPartySupportAction.Audience.PARTY : PhantomPartySupportAction.Audience.EXACT_REQUESTER, _supportPolicy.rebuffRemainingSeconds()));
+		final ActionOutcome outcome = lease.castSupport(new PhantomPartySupportAction(capability.capabilityKey(), capability.variantKey(), capability.targetScope(), target.getObjectId(), new SelectedSkill(capability.actionSkillId(), capability.actionSkillLevel()), sameParty ? PhantomPartySupportAction.Audience.PARTY : PhantomPartySupportAction.Audience.EXACT_REQUESTER, _supportPolicy.rebuffRemainingSeconds(), _party.holdsPosition(profileId)));
 		if ((outcome == ActionOutcome.ISSUED) || (outcome == ActionOutcome.ALREADY_OWNED))
 		{
 			lease.complete();
@@ -287,6 +290,44 @@ public final class L2jPhantomConversationExecutionPort implements PhantomConvers
 		}
 		lease.close();
 		return outcome == ActionOutcome.UNAVAILABLE ? ResultStatus.STALE : ResultStatus.NOT_FOUND;
+	}
+
+	@Override
+	public CommandResult executeCommand(long profileId, ExecutionEntry entry)
+	{
+		if (!Set.of("party.hold", "party.follow", "party.hold.all", "party.follow.all").contains(entry.proposalKey()) || (entry.target() != null))
+		{
+			return CommandResult.REJECTED;
+		}
+		final boolean all = entry.proposalKey().endsWith(".all");
+		if (all && (entry.channel() != ChatType.PARTY)) { return CommandResult.REJECTED; }
+		final Player speaker = resolve(entry.counterpart());
+		final var materialized = _materialization.find(profileId).orElse(null);
+		final Player actor = materialized == null ? null : World.getInstance().getPlayer(materialized.characterObjectId());
+		if ((speaker == null) || (actor == null) || (actor.getParty() == null) || (actor.getParty() != speaker.getParty()) || (actor.getParty().getLeader() != speaker) || (actor.getInstanceId() != speaker.getInstanceId()))
+		{
+			return CommandResult.REJECTED;
+		}
+		final var managedSpeaker = _party.managedIdentity(speaker.getObjectId());
+		final MemberRef authority = managedSpeaker.isPresent() ? MemberRef.phantom(managedSpeaker.getAsLong(), speaker.getObjectId()) : MemberRef.real(speaker.getObjectId());
+		final List<Long> recipients = all ? actor.getParty().getMembers().stream().map(player -> _party.managedIdentity(player.getObjectId())).filter(java.util.OptionalLong::isPresent).map(java.util.OptionalLong::getAsLong).limit(9).toList() : List.of(profileId);
+		int accepted = 0;
+		boolean pending = false;
+		final CompanionMode mode = entry.proposalKey().startsWith("party.hold") ? CompanionMode.HOLD : CompanionMode.FOLLOW;
+		for (long recipient : recipients)
+		{
+			final var claim = _party.claim(recipient).orElse(null);
+			if (claim == null) { continue; }
+			final var result = _party.commandCompanion(recipient, authority, claim.state().groupGeneration(), mode, PhantomPartyModel.sha256(entry.planId()));
+			if (Set.of(PhantomPartyCoordinator.CompanionCommandOutcome.HOLDING, PhantomPartyCoordinator.CompanionCommandOutcome.FOLLOWING, PhantomPartyCoordinator.CompanionCommandOutcome.PENDING).contains(result))
+			{
+				accepted++;
+				pending |= result == PhantomPartyCoordinator.CompanionCommandOutcome.PENDING;
+			}
+		}
+		if (accepted == 0) { return CommandResult.REJECTED; }
+		if (accepted != recipients.size()) { return CommandResult.PARTIAL; }
+		return pending ? CommandResult.PENDING : mode == CompanionMode.HOLD ? CommandResult.HOLDING : CommandResult.FOLLOWING;
 	}
 
 	private boolean friendlyExternal(long profileId, org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef counterpart)

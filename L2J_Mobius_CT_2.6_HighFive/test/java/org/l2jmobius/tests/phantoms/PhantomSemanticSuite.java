@@ -377,6 +377,21 @@ public final class PhantomSemanticSuite implements PhantomTestSuite
 
 	private void corpusTests(PhantomTestRegistry registry)
 	{
+		registry.add("04-versioned-companion-command-corpus-keeps-all-safety-boundaries", context ->
+		{
+			final Path data = context.moduleRoot().resolve("dist/game/data/phantoms/semantic");
+			final PhantomSemanticPack pack = PhantomSemanticPack.load(data.resolve("high-five-ru-semantic-v2.xml"), data.resolve("high-five-ru-corpus-v2.tsv"), authority());
+			final CorpusRun run = runCorpus(pack, pack.corpus());
+			PhantomAssertions.assertEquals(2, pack.version(), "Command semantic version changed.");
+			PhantomAssertions.assertEquals(20, pack.intents().size(), "Versioned command intent contract is incomplete.");
+			PhantomAssertions.assertTrue(run.positiveIntentAccuracyBasisPoints() >= 9600 && run.slotPrecisionBasisPoints() >= 9900, "Versioned corpus accuracy regressed.");
+			PhantomAssertions.assertEquals(10000, run.safetyBasisPoints(), "Versioned command safety failed: " + run.safetyFailures());
+			final List<CorpusCase> reverse = new ArrayList<>(pack.corpus());
+			Collections.reverse(reverse);
+			PhantomAssertions.assertEquals(run.canonicalResults(), runCorpus(pack, reverse).canonicalResults(), "Command corpus order changed canonical results.");
+			context.record("semantic.v2.packHash", pack.packHash());
+			context.record("semantic.v2.corpusCases", pack.corpus().size());
+		});
 		registry.add("01-corpus-thresholds-accuracy-safety-and-slots", context ->
 		{
 			final PhantomSemanticPack pack = pack(context);

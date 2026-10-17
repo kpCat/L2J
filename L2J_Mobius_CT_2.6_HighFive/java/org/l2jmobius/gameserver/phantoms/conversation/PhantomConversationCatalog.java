@@ -18,12 +18,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.l2jmobius.gameserver.network.enums.ChatType;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationSession;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationState;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -120,8 +123,22 @@ public final class PhantomConversationCatalog
 	private final Map<String, StyleBand> _styles;
 	private final Map<String, ResponseAct> _acts;
 	private final Map<String, ProposalMapping> _mappings;
+	private final AuthorityUpgrade _upgrade;
+	private final Set<String> _hashAliases;
 
-	private PhantomConversationCatalog(String id, int version, String hash, String corpusHash, int corpusCases, Limits limits, Map<ChatType, ChannelPolicy> channels, Map<String, StyleBand> styles, Map<String, ResponseAct> acts, Map<String, ProposalMapping> mappings)
+	private record AuthorityUpgrade(Set<String> sourceCatalog, Set<String> sourcePack, Set<String> sourceCorpus, Set<String> targetPack, Set<String> targetCorpus)
+	{
+		private AuthorityUpgrade
+		{
+			for (Set<String> values : List.of(sourceCatalog, sourcePack, sourceCorpus, targetPack, targetCorpus))
+			{
+				if (values.isEmpty()) { throw new IllegalArgumentException("Language upgrade authority is empty."); }
+				values.forEach(value -> PhantomConversationModel.requireHash(value, "Language upgrade authority"));
+			}
+		}
+	}
+
+	private PhantomConversationCatalog(String id, int version, String hash, String corpusHash, int corpusCases, Limits limits, Map<ChatType, ChannelPolicy> channels, Map<String, StyleBand> styles, Map<String, ResponseAct> acts, Map<String, ProposalMapping> mappings, AuthorityUpgrade upgrade, Set<String> hashAliases)
 	{
 		_id = PhantomConversationModel.requireKey(id, "Conversation catalog id");
 		_version = version;
@@ -133,6 +150,19 @@ public final class PhantomConversationCatalog
 		_styles = Map.copyOf(styles);
 		_acts = Map.copyOf(acts);
 		_mappings = Map.copyOf(mappings);
+		_upgrade = upgrade;
+		_hashAliases = Set.copyOf(hashAliases);
+	}
+
+	/** Upgrade only the declared language pair; gameplay and social authorities must still match. */
+	public Optional<ConversationState> upgradeLanguageState(ConversationState stored, ConversationState current)
+	{
+		if ((_upgrade == null) || !_hash.equals(current.catalogHash()) || !_upgrade.targetPack().contains(current.packHash()) || !_upgrade.targetCorpus().contains(current.corpusHash()) || !stored.knowledgeHash().equals(current.knowledgeHash()) || !stored.topologyHash().equals(current.topologyHash()) || !stored.roleHash().equals(current.roleHash()) || !stored.socialHash().equals(current.socialHash())) { return Optional.empty(); }
+		final boolean previous = _upgrade.sourceCatalog().contains(stored.catalogHash()) && _upgrade.sourcePack().contains(stored.packHash()) && _upgrade.sourceCorpus().contains(stored.corpusHash());
+		final boolean sameVersion = _hashAliases.contains(stored.catalogHash()) && _upgrade.targetPack().contains(stored.packHash()) && _upgrade.targetCorpus().contains(stored.corpusHash());
+		if (!previous && !sameVersion) { return Optional.empty(); }
+		final List<ConversationSession> sessions = stored.sessions().stream().map(session -> new ConversationSession(session.channel(), session.counterpart(), session.lastObservedMinute(), session.cooldownUntilMinute(), session.previousIntent(), session.previousSlots(), null, session.lastResponseActHash(), session.lastStyleHash(), session.lastProposalHash())).toList();
+		return Optional.of(new ConversationState(_hash, current.packHash(), current.corpusHash(), current.knowledgeHash(), current.topologyHash(), current.roleHash(), current.socialHash(), Math.max(stored.logicalMinute(), current.logicalMinute()), sessions, stored.recentObservationHashes()));
 	}
 
 	public static PhantomConversationCatalog load(Path xmlPath, Path corpusPath)
@@ -157,8 +187,10 @@ public final class PhantomConversationCatalog
 			factory.setExpandEntityReferences(false);
 			final Element root = factory.newDocumentBuilder().parse(new ByteArrayInputStream(xml)).getDocumentElement();
 			requireElement(root, "conversationCatalog", Set.of("id", "version"));
+			final int version = strictInt(root.getAttribute("version"), 1, 2);
 			final List<Element> sections = children(root);
-			if ((sections.size() != 6) || !List.of("limits", "channels", "styles", "responseActs", "proposalMappings", "election").equals(sections.stream().map(Element::getTagName).toList()))
+			final List<String> expected = version == 1 ? List.of("limits", "channels", "styles", "responseActs", "proposalMappings", "election") : List.of("limits", "channels", "styles", "responseActs", "proposalMappings", "election", "authorityUpgrade");
+			if (!expected.equals(sections.stream().map(Element::getTagName).toList()))
 			{
 				throw new IllegalArgumentException("Conversation catalog sections are not exact.");
 			}
@@ -173,7 +205,19 @@ public final class PhantomConversationCatalog
 				throw new IllegalArgumentException("Conversation election policies are not recognized.");
 			}
 			final int corpusCases = validateCorpus(corpusText);
-			return new PhantomConversationCatalog(root.getAttribute("id"), strictInt(root.getAttribute("version"), 1, 65535), hash(xml), hash(corpus), corpusCases, limits, channels, styles, acts, mappings);
+			AuthorityUpgrade upgrade = null;
+			if (version == 2)
+			{
+				final Element source = sections.get(6);
+				requireElement(source, "authorityUpgrade", Set.of("sourceCatalog", "sourcePack", "sourceCorpus", "targetPack", "targetCorpus"));
+				final PhantomConversationCatalog previous = load(xmlPath.resolveSibling("high-five-ru-conversation-v1.xml"), corpusPath);
+				final Map<String, ProposalMapping> previousMappings = new HashMap<>(mappings);
+				Set.of("party.hold.request", "party.follow.request", "party.hold.all.request", "party.follow.all.request").forEach(previousMappings::remove);
+				if (!previous._hashAliases.contains(PhantomConversationModel.requireHash(source.getAttribute("sourceCatalog"), "Previous catalog authority")) || !limits.equals(previous._limits) || !channels.equals(previous._channels) || !styles.equals(previous._styles) || !acts.equals(previous._acts) || !previousMappings.equals(previous._mappings)) { throw new IllegalArgumentException("Language upgrade must preserve the complete previous conversation policy."); }
+				final Path semantic = xmlPath.getParent().resolve("../semantic").normalize();
+				upgrade = new AuthorityUpgrade(previous._hashAliases, upgradeHashes(source, "sourcePack", semantic.resolve("high-five-ru-semantic-v1.xml")), upgradeHashes(source, "sourceCorpus", semantic.resolve("high-five-ru-corpus-v1.tsv")), upgradeHashes(source, "targetPack", semantic.resolve("high-five-ru-semantic-v2.xml")), upgradeHashes(source, "targetCorpus", semantic.resolve("high-five-ru-corpus-v2.tsv")));
+			}
+			return new PhantomConversationCatalog(root.getAttribute("id"), version, hash(xml), hash(corpus), corpusCases, limits, channels, styles, acts, mappings, upgrade, PhantomConversationModel.lineEndingHashes(strictUtf8(xml)));
 		}
 		catch (IllegalArgumentException exception)
 		{
@@ -183,6 +227,15 @@ public final class PhantomConversationCatalog
 		{
 			throw new IllegalArgumentException("Could not load conversation data.", exception);
 		}
+	}
+
+	private static Set<String> upgradeHashes(Element source, String attribute, Path path) throws Exception
+	{
+		final byte[] bytes = Files.readAllBytes(path);
+		if ((bytes.length < 1) || (bytes.length > MAX_BYTES)) { throw new IllegalArgumentException("Language authority file exceeds its bound."); }
+		final Set<String> hashes = PhantomConversationModel.lineEndingHashes(strictUtf8(bytes));
+		if (!hashes.contains(PhantomConversationModel.requireHash(source.getAttribute(attribute), "Language authority"))) { throw new IllegalArgumentException("Language upgrade fingerprints differ from the exact versioned data."); }
+		return hashes;
 	}
 
 	public String id()

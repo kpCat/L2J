@@ -2,3 +2,8 @@
 dist/game/data/phantoms/population/high-five-population-v1.xml text eol=lf
 dist/game/data/phantoms/population/high-five-population-v2.xml text eol=lf
 dist/game/data/phantoms/population/high-five-ecology-v1.xml text eol=lf
+# Versioned language authority bytes must also survive clean commit archives.
+dist/game/data/phantoms/conversation/high-five-ru-conversation-v2.xml text eol=lf
+dist/game/data/phantoms/conversation/high-five-ru-conversation-execution-v3.xml text eol=lf
+dist/game/data/phantoms/semantic/high-five-ru-semantic-v2.xml text eol=lf
+dist/game/data/phantoms/semantic/high-five-ru-corpus-v2.tsv text eol=lf

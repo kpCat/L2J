@@ -17,10 +17,19 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Element;
 
 /** Immutable bounds for native companion paths; ordinary group travel keeps its own policy. */
-public record PhantomPartyFollowPolicy(boolean enabled, int startDistance, int stopDistance, int replanDistance, int waypointRadius, int maximumDistance, int routeTimeoutMillis)
+public record PhantomPartyFollowPolicy(boolean enabled, int startDistance, int stopDistance, int replanDistance, int waypointRadius, int maximumDistance, int routeTimeoutMillis, int holdRadius)
 {
+	public PhantomPartyFollowPolicy(boolean enabled, int startDistance, int stopDistance, int replanDistance, int waypointRadius, int maximumDistance, int routeTimeoutMillis)
+	{
+		this(enabled, startDistance, stopDistance, replanDistance, waypointRadius, maximumDistance, routeTimeoutMillis, 128);
+	}
+
 	public PhantomPartyFollowPolicy
 	{
+		if ((holdRadius < 64) || (holdRadius > 256))
+		{
+			throw new IllegalArgumentException("Companion hold radius is outside hard bounds.");
+		}
 		if ((stopDistance < 128) || (stopDistance > 1000) || (startDistance < stopDistance + 32) || (startDistance > 2000) || (replanDistance < 32) || (replanDistance > 1000) || (waypointRadius < 64) || (waypointRadius > 128) || (maximumDistance < startDistance) || (maximumDistance > 12000) || (routeTimeoutMillis < 5000) || (routeTimeoutMillis > 120000))
 		{
 			throw new IllegalArgumentException("Companion follow policy is outside hard bounds.");
@@ -51,8 +60,9 @@ public record PhantomPartyFollowPolicy(boolean enabled, int startDistance, int s
 			factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);
 			final Element root = factory.newDocumentBuilder().parse(new ByteArrayInputStream(bytes)).getDocumentElement();
-			final Set<String> attributes = Set.of("id", "version", "enabled", "startDistance", "stopDistance", "replanDistance", "waypointRadius", "maximumDistance", "routeTimeoutMillis");
-			if (!root.getTagName().equals("partyFollowPolicy") || !root.getAttribute("id").equals("high-five-party-follow-v1") || !root.getAttribute("version").equals("1") || (root.getAttributes().getLength() != attributes.size()) || java.util.stream.IntStream.range(0, root.getAttributes().getLength()).anyMatch(index -> !attributes.contains(root.getAttributes().item(index).getNodeName())) || java.util.stream.IntStream.range(0, root.getChildNodes().getLength()).anyMatch(index -> root.getChildNodes().item(index) instanceof Element) || !root.getTextContent().isBlank())
+			final Set<String> attributes = Set.of("id", "version", "enabled", "startDistance", "stopDistance", "replanDistance", "waypointRadius", "maximumDistance", "routeTimeoutMillis", "holdRadius");
+			final int expectedAttributes = root.hasAttribute("holdRadius") ? attributes.size() : attributes.size() - 1;
+			if (!root.getTagName().equals("partyFollowPolicy") || !root.getAttribute("id").equals("high-five-party-follow-v1") || !root.getAttribute("version").equals("1") || (root.getAttributes().getLength() != expectedAttributes) || java.util.stream.IntStream.range(0, root.getAttributes().getLength()).anyMatch(index -> !attributes.contains(root.getAttributes().item(index).getNodeName())) || java.util.stream.IntStream.range(0, root.getChildNodes().getLength()).anyMatch(index -> root.getChildNodes().item(index) instanceof Element) || !root.getTextContent().isBlank())
 			{
 				throw new IllegalArgumentException("Companion follow policy identity or shape is invalid.");
 			}
@@ -61,7 +71,7 @@ public record PhantomPartyFollowPolicy(boolean enabled, int startDistance, int s
 			{
 				throw new IllegalArgumentException("Companion follow enabled value is invalid.");
 			}
-			return new PhantomPartyFollowPolicy(Boolean.parseBoolean(enabled), integer(root, "startDistance"), integer(root, "stopDistance"), integer(root, "replanDistance"), integer(root, "waypointRadius"), integer(root, "maximumDistance"), integer(root, "routeTimeoutMillis"));
+			return new PhantomPartyFollowPolicy(Boolean.parseBoolean(enabled), integer(root, "startDistance"), integer(root, "stopDistance"), integer(root, "replanDistance"), integer(root, "waypointRadius"), integer(root, "maximumDistance"), integer(root, "routeTimeoutMillis"), root.hasAttribute("holdRadius") ? integer(root, "holdRadius") : 128);
 		}
 		catch (IllegalArgumentException exception)
 		{

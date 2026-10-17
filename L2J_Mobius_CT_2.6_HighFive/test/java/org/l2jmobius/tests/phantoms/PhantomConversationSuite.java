@@ -72,6 +72,36 @@ public final class PhantomConversationSuite implements PhantomTestSuite
 
 	private static void catalogCodec(PhantomTestRegistry registry)
 	{
+		registry.add("04-known-language-upgrade-preserves-scoped-state-and-rejects-foreign-authority", context ->
+		{
+			final Path data = context.moduleRoot().resolve("dist/game/data/phantoms");
+			final PhantomConversationCatalog currentCatalog = PhantomConversationCatalog.load(data.resolve("conversation/high-five-ru-conversation-v2.xml"), corpus(context));
+			final PhantomSemanticPack oldPack = PhantomSemanticPack.load(data.resolve("semantic/high-five-ru-semantic-v1.xml"), data.resolve("semantic/high-five-ru-corpus-v1.tsv"), PhantomSemanticGrounding.fixed(HASHES, references()));
+			final PhantomSemanticPack currentPack = PhantomSemanticPack.load(data.resolve("semantic/high-five-ru-semantic-v2.xml"), data.resolve("semantic/high-five-ru-corpus-v2.tsv"), PhantomSemanticGrounding.fixed(HASHES, references()));
+			final String world = "A".repeat(64);
+			final var pending = new org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.PendingClarification("item.acquire.query", List.of(), Set.of(SlotType.ITEM), 1005, oldPack.packHash(), oldPack.corpusHash(), world, world, world);
+			final ConversationSession session = new ConversationSession(ChatType.WHISPER, new PhantomDomainRef("character.object", "100"), 1000, 1001, "item.acquire.query", List.of(), pending, world, world, world);
+			final ConversationState legacy = new ConversationState(catalog(context).hash(), oldPack.packHash(), oldPack.corpusHash(), world, world, world, world, 1000, List.of(session), List.of(world));
+			final ConversationState current = new ConversationState(currentCatalog.hash(), currentPack.packHash(), currentPack.corpusHash(), world, world, world, world, 1002, List.of(), List.of());
+			final ConversationState upgraded = currentCatalog.upgradeLanguageState(legacy, current).orElseThrow();
+			PhantomAssertions.assertEquals(current.catalogHash(), upgraded.catalogHash(), "Language catalog was not upgraded.");
+			PhantomAssertions.assertEquals(current.packHash(), upgraded.packHash(), "Semantic pack was not upgraded.");
+			PhantomAssertions.assertEquals(legacy.recentObservationHashes(), upgraded.recentObservationHashes(), "Upgrade lost replay receipts.");
+			PhantomAssertions.assertEquals(session.counterpart(), upgraded.sessions().getFirst().counterpart(), "Upgrade changed memory scope.");
+			PhantomAssertions.assertEquals(session.cooldownUntilMinute(), upgraded.sessions().getFirst().cooldownUntilMinute(), "Upgrade removed chatter limits.");
+			PhantomAssertions.assertEquals(null, upgraded.sessions().getFirst().pending(), "Upgrade retained stale pending semantic authority.");
+			final String archiveCatalog = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.sha256(Files.readString(xml(context)).replace("\r\n", "\n"));
+			final String archivePack = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.sha256(Files.readString(data.resolve("semantic/high-five-ru-semantic-v1.xml")).replace("\r\n", "\n"));
+			final String archiveCorpus = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.sha256(Files.readString(data.resolve("semantic/high-five-ru-corpus-v1.tsv")).replace("\r\n", "\n"));
+			final ConversationState archived = new ConversationState(archiveCatalog, archivePack, archiveCorpus, world, world, world, world, 1000, List.of(session), List.of(world));
+			PhantomAssertions.assertEquals(upgraded, currentCatalog.upgradeLanguageState(archived, current).orElseThrow(), "Committed-LF predecessor did not preserve the same scoped state.");
+			final ConversationState foreign = new ConversationState(world, oldPack.packHash(), oldPack.corpusHash(), world, world, world, world, 1000, List.of(session), List.of(world));
+			PhantomAssertions.assertTrue(currentCatalog.upgradeLanguageState(foreign, current).isEmpty(), "Unknown previous catalog was upgraded.");
+			final ConversationState otherWorld = new ConversationState(current.catalogHash(), current.packHash(), current.corpusHash(), world, "B".repeat(64), world, world, 1002, List.of(), List.of());
+			PhantomAssertions.assertTrue(currentCatalog.upgradeLanguageState(legacy, otherWorld).isEmpty(), "Language upgrade bypassed a different gameplay authority.");
+			final PhantomConversationStateCodec codec = new PhantomConversationStateCodec();
+			PhantomAssertions.assertEquals(upgraded, codec.decode(codec.encode(upgraded)), "Upgraded language state was not durable and repeat-safe.");
+		});
 		registry.add("01-strict-catalog-corpus-and-required-hard-limits", context ->
 		{
 			final PhantomConversationCatalog catalog = catalog(context);
@@ -109,6 +139,17 @@ public final class PhantomConversationSuite implements PhantomTestSuite
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.decode(java.util.Arrays.copyOf(encoded, encoded.length + 1)), "Trailing conversation.state byte was accepted.");
 			context.record("conversation.state.sampleBytes", encoded.length);
 			context.record("conversation.state.declaredWorstCaseBytes", PhantomConversationStateCodec.DECLARED_WORST_CASE_BYTES);
+		});
+		registry.add("03-companion-command-intents-survive-durable-codec", context ->
+		{
+			final String hash = "A".repeat(64);
+			for (String intent : List.of("party.hold.request", "party.follow.request", "party.hold.all.request", "party.follow.all.request"))
+			{
+				final ConversationSession session = new ConversationSession(ChatType.WHISPER, new PhantomDomainRef("character.object", "100"), 1000, 1001, intent, List.of(), null, hash, hash, hash);
+				final ConversationState state = new ConversationState(hash, hash, hash, hash, hash, hash, hash, 1000, List.of(session), List.of());
+				final PhantomConversationStateCodec codec = new PhantomConversationStateCodec();
+				PhantomAssertions.assertEquals(intent, codec.decode(codec.encode(state)).sessions().getFirst().previousIntent(), "Durable conversation dropped a recognized command intent.");
+			}
 		});
 	}
 

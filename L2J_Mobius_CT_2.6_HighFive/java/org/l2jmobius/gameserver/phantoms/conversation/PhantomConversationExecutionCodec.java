@@ -45,6 +45,10 @@ public final class PhantomConversationExecutionCodec
 
 	public byte[] encode(ExecutionState state)
 	{
+		if (!_catalog.hash().equals(state.catalogHash()))
+		{
+			throw new IllegalArgumentException("Execution dictionary and state authority differ.");
+		}
 		try
 		{
 			final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -96,6 +100,7 @@ public final class PhantomConversationExecutionCodec
 				throw new IllegalArgumentException("Unknown conversation.execution version.");
 			}
 			final String catalogHash = readHash(input);
+			final PhantomConversationExecutionCatalog symbols = _catalog.decodingCatalog(catalogHash);
 			final long logicalMinute = input.readLong();
 			final int entryCount = input.readUnsignedByte();
 			final int receiptCount = input.readUnsignedByte();
@@ -106,18 +111,18 @@ public final class PhantomConversationExecutionCodec
 			final List<ExecutionEntry> entries = new ArrayList<>(entryCount);
 			for (int index = 0; index < entryCount; index++)
 			{
-				entries.add(readEntry(input, magic == MAGIC));
+				entries.add(readEntry(input, magic == MAGIC, symbols));
 			}
 			final List<ExecutionReceipt> receipts = new ArrayList<>(receiptCount);
 			for (int index = 0; index < receiptCount; index++)
 			{
-				receipts.add(readReceipt(input));
+				receipts.add(readReceipt(input, symbols));
 			}
 			if (input.available() != 0)
 			{
 				throw new IllegalArgumentException("conversation.execution has trailing bytes.");
 			}
-			return new ExecutionState(catalogHash, logicalMinute, entries, receipts);
+			return new ExecutionState(_catalog.hash(), logicalMinute, entries, receipts);
 		}
 		catch (RuntimeException exception)
 		{
@@ -175,7 +180,7 @@ public final class PhantomConversationExecutionCodec
 		output.writeLong(entry.terminalMinute());
 	}
 
-	private ExecutionEntry readEntry(DataInputStream input, boolean hasInvitationBinding) throws Exception
+	private ExecutionEntry readEntry(DataInputStream input, boolean hasInvitationBinding, PhantomConversationExecutionCatalog symbols) throws Exception
 	{
 		final String planId = readHash(input);
 		final String observationHash = readHash(input);
@@ -185,9 +190,9 @@ public final class PhantomConversationExecutionCodec
 			throw new IllegalArgumentException("Unknown execution chat channel.");
 		}
 		final PhantomDomainRef counterpart = readReference(input);
-		final String responseAct = _catalog.responseAct(input.readUnsignedByte());
-		final String style = _catalog.style(input.readUnsignedByte());
-		final String proposal = _catalog.proposal(input.readUnsignedByte());
+		final String responseAct = symbols.responseAct(input.readUnsignedByte());
+		final String style = symbols.style(input.readUnsignedByte());
+		final String proposal = symbols.proposal(input.readUnsignedByte());
 		final String text = readString(input, PhantomConversationExecutionModel.MAX_TEXT_BYTES, true);
 		final PhantomDomainRef target = input.readBoolean() ? readReference(input) : null;
 		final int argumentCount = input.readUnsignedByte();
@@ -214,7 +219,7 @@ public final class PhantomConversationExecutionCodec
 		{
 			binding = null;
 		}
-		return new ExecutionEntry(planId, observationHash, ChatType.values()[channelId], counterpart, responseAct, style, text, proposal, target, arguments, binding, input.readLong(), input.readLong(), enumValue(OutboundState.values(), input.readUnsignedByte(), "outbound"), enumValue(ActionState.values(), input.readUnsignedByte(), "action"), input.readLong(), input.readLong(), _catalog.reason(input.readUnsignedByte()), input.readUnsignedByte(), input.readUnsignedByte(), input.readLong());
+		return new ExecutionEntry(planId, observationHash, ChatType.values()[channelId], counterpart, responseAct, style, text, proposal, target, arguments, binding, input.readLong(), input.readLong(), enumValue(OutboundState.values(), input.readUnsignedByte(), "outbound"), enumValue(ActionState.values(), input.readUnsignedByte(), "action"), input.readLong(), input.readLong(), symbols.reason(input.readUnsignedByte()), input.readUnsignedByte(), input.readUnsignedByte(), input.readLong());
 	}
 
 	private void writeReceipt(DataOutputStream output, ExecutionReceipt receipt) throws Exception
@@ -227,9 +232,9 @@ public final class PhantomConversationExecutionCodec
 		output.writeByte(_catalog.reasonId(receipt.reasonKey()));
 	}
 
-	private ExecutionReceipt readReceipt(DataInputStream input) throws Exception
+	private ExecutionReceipt readReceipt(DataInputStream input, PhantomConversationExecutionCatalog symbols) throws Exception
 	{
-		return new ExecutionReceipt(readHash(input), readHash(input), enumValue(OutboundState.values(), input.readUnsignedByte(), "outbound"), enumValue(ActionState.values(), input.readUnsignedByte(), "action"), input.readLong(), _catalog.reason(input.readUnsignedByte()));
+		return new ExecutionReceipt(readHash(input), readHash(input), enumValue(OutboundState.values(), input.readUnsignedByte(), "outbound"), enumValue(ActionState.values(), input.readUnsignedByte(), "action"), input.readLong(), symbols.reason(input.readUnsignedByte()));
 	}
 
 	private static void writeReference(DataOutputStream output, PhantomDomainRef reference) throws Exception

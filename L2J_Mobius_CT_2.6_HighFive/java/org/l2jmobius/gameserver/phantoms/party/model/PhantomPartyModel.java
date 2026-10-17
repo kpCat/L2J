@@ -23,7 +23,7 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 public final class PhantomPartyModel
 {
 	public static final String COMPONENT_TYPE = "party.state";
-	public static final int SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
 	public static final int MAX_ROSTER = 9;
 	public static final int MAX_REQUIREMENTS = 12;
 	public static final int MAX_ASSIGNMENTS = 12;
@@ -301,8 +301,36 @@ public final class PhantomPartyModel
 		}
 	}
 
-	public record PartyState(String groupId, long groupGeneration, long membershipRevision, StateStatus status, MemberRef leader, String ownRoleKey, String leaderManifestHash, List<MemberRef> phantomMembers, List<MemberRef> realMembers, ObjectiveMode objectiveMode, PhantomDomainRef objectiveRef, List<RoleRequirement> requirements, List<RoleAssignment> assignments, RouteManifest route, PartyOperation operation, String progressionHash, String topologyHash, String lastFailureKey)
+	public enum CompanionMode
 	{
+		FOLLOW,
+		PENDING_HOLD,
+		HOLD
+	}
+
+	public record CompanionCommand(CompanionMode mode, MemberRef actor, MemberRef speaker, long version, long groupGeneration, PhantomNavigationPoint anchor, int radius, String requestId)
+	{
+		public CompanionCommand
+		{
+			Objects.requireNonNull(mode);
+			Objects.requireNonNull(actor);
+			Objects.requireNonNull(speaker);
+			Objects.requireNonNull(anchor);
+			requestId = requireHash(requestId, "Companion request ID");
+			if ((actor.kind() != MemberKind.PHANTOM) || (actor.characterObjectId() <= 0) || (speaker.characterObjectId() <= 0) || actor.equals(speaker) || (version < 1) || (groupGeneration < 1) || (radius < 64) || (radius > 256))
+			{
+				throw new IllegalArgumentException("Companion command identity or bounds are invalid.");
+			}
+		}
+	}
+
+	public record PartyState(String groupId, long groupGeneration, long membershipRevision, StateStatus status, MemberRef leader, String ownRoleKey, String leaderManifestHash, List<MemberRef> phantomMembers, List<MemberRef> realMembers, ObjectiveMode objectiveMode, PhantomDomainRef objectiveRef, List<RoleRequirement> requirements, List<RoleAssignment> assignments, RouteManifest route, PartyOperation operation, String progressionHash, String topologyHash, String lastFailureKey, CompanionCommand command)
+	{
+		public PartyState(String groupId, long groupGeneration, long membershipRevision, StateStatus status, MemberRef leader, String ownRoleKey, String leaderManifestHash, List<MemberRef> phantomMembers, List<MemberRef> realMembers, ObjectiveMode objectiveMode, PhantomDomainRef objectiveRef, List<RoleRequirement> requirements, List<RoleAssignment> assignments, RouteManifest route, PartyOperation operation, String progressionHash, String topologyHash, String lastFailureKey)
+		{
+			this(groupId, groupGeneration, membershipRevision, status, leader, ownRoleKey, leaderManifestHash, phantomMembers, realMembers, objectiveMode, objectiveRef, requirements, assignments, route, operation, progressionHash, topologyHash, lastFailureKey, null);
+		}
+
 		public PartyState
 		{
 			groupId = requireHash(groupId, "Party group ID");
@@ -327,6 +355,10 @@ public final class PhantomPartyModel
 			progressionHash = requireHash(progressionHash, "Party progression hash");
 			topologyHash = requireTopologyHash(topologyHash, "Party topology hash");
 			lastFailureKey = lastFailureKey == null || lastFailureKey.isEmpty() ? "" : requireKey(lastFailureKey, "Party failure key");
+			if ((command != null) && ((command.groupGeneration() != groupGeneration) || !command.speaker().equals(leader) || !phantomMembers.contains(command.actor()) || !Set.of(StateStatus.LEADER, StateStatus.MEMBER, StateStatus.RECOVERING).contains(status)))
+			{
+				throw new IllegalArgumentException("Companion command does not belong to this party authority.");
+			}
 			if ((status == StateStatus.LEADER) && (leader.kind() != MemberKind.PHANTOM))
 			{
 				throw new IllegalArgumentException("A Phantom leader claim requires a Phantom leader.");
@@ -350,7 +382,13 @@ public final class PhantomPartyModel
 
 		public PartyState withOperation(StateStatus replacementStatus, PartyOperation replacementOperation, String failureKey)
 		{
-			return new PartyState(groupId, groupGeneration, membershipRevision, replacementStatus, leader, ownRoleKey, leaderManifestHash, phantomMembers, realMembers, objectiveMode, objectiveRef, requirements, assignments, route, replacementOperation, progressionHash, topologyHash, failureKey);
+			return new PartyState(groupId, groupGeneration, membershipRevision, replacementStatus, leader, ownRoleKey, leaderManifestHash, phantomMembers, realMembers, objectiveMode, objectiveRef, requirements, assignments, route, replacementOperation, progressionHash, topologyHash, failureKey, Set.of(StateStatus.LEADER, StateStatus.MEMBER, StateStatus.RECOVERING).contains(replacementStatus) ? command : null);
+		}
+
+		/** Per-member intent is not part of the shared roster manifest hash. */
+		public PartyState withCommand(CompanionCommand replacement)
+		{
+			return new PartyState(groupId, groupGeneration, membershipRevision, status, leader, ownRoleKey, leaderManifestHash, phantomMembers, realMembers, objectiveMode, objectiveRef, requirements, assignments, route, operation, progressionHash, topologyHash, lastFailureKey, replacement);
 		}
 
 		public PartyState committed(StateStatus replacementStatus, List<MemberRef> replacementPhantoms, List<MemberRef> replacementReals, List<RoleAssignment> replacementAssignments, String replacementManifestHash)

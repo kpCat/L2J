@@ -8,7 +8,7 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSki
 /**
  * Exact catalog-backed party support action carried across combat ownership.
  */
-public record PhantomPartySupportAction(String capabilityKey, String variantKey, String targetScope, int targetObjectId, SelectedSkill skill, Audience audience, int rebuffRemainingSeconds)
+public record PhantomPartySupportAction(String capabilityKey, String variantKey, String targetScope, int targetObjectId, SelectedSkill skill, Audience audience, int rebuffRemainingSeconds, boolean stationary)
 {
 	public enum Audience
 	{
@@ -27,5 +27,10 @@ public record PhantomPartySupportAction(String capabilityKey, String variantKey,
 	public PhantomPartySupportAction(String capabilityKey, String variantKey, String targetScope, int targetObjectId, SelectedSkill skill)
 	{
 		this(capabilityKey, variantKey, targetScope, targetObjectId, skill, Audience.PARTY, 0);
+	}
+
+	public PhantomPartySupportAction(String capabilityKey, String variantKey, String targetScope, int targetObjectId, SelectedSkill skill, Audience audience, int rebuffRemainingSeconds)
+	{
+		this(capabilityKey, variantKey, targetScope, targetObjectId, skill, audience, rebuffRemainingSeconds, false);
 	}
 }

@@ -45,10 +45,15 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 {
 	private final PhantomDecisionEngine _engine;
 	private final PhantomConversationExecutionService _execution;
+	private final PhantomConversationExecutionStore _executionStore;
 	private final PhantomConversationService _conversation;
 	private final PhantomSemanticUnderstandingService _semantic;
 	private final PhantomConversationIntegrationSuite.NetworkBackedClient _client;
 	private ConversationResponsePlan _latestResponse;
+	private boolean _recordCommand;
+	private final java.util.List<String> _commandPhases = new java.util.ArrayList<>();
+	private String _contextDiagnostic = "none";
+	private org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.ExecutionReceipt _lastCommandReceipt;
 
 	PhantomCompanionComposition058(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomTopologyQuery topology, PhantomGameKnowledgeService knowledge, PhantomSocialService social, PhantomPartyCoordinator party, Player human) throws Exception
 	{
@@ -67,14 +72,44 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 		handlers.seal();
 		_engine = new PhantomDecisionEngine(goals, candidates, handlers, new PhantomMetrics(), 1);
 		_engine.start();
-		final PhantomConversationExecutionCatalog executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v2.xml"));
+		final PhantomConversationExecutionCatalog executionCatalog = PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v3.xml"));
 		final PhantomConversationExecutionStore executionStore = new PhantomConversationExecutionStore(profiles, executionCatalog);
+		_executionStore = executionStore;
 		_execution = new PhantomConversationExecutionService(executionCatalog, executionStore, goals, new L2jPhantomConversationExecutionPort(executionCatalog, knowledge, topology, party, materialization, ChatObservationService.getInstance()), PhantomConversationGoalRuntimePort.decisionEngine(_engine));
 		PhantomAssertions.assertTrue(_execution.start(), "Full058 execution did not start.");
-		_semantic = PhantomSemanticUnderstandingService.loaded(PhantomSemanticPack.load(Path.of("data/phantoms/semantic/high-five-ru-semantic-v1.xml"), Path.of("data/phantoms/semantic/high-five-ru-corpus-v1.tsv"), PhantomSemanticGrounding.fixed(PhantomConversationIntegrationSuite.HASHES, PhantomConversationIntegrationSuite.references())));
+		_semantic = PhantomSemanticUnderstandingService.loaded(PhantomSemanticPack.load(Path.of("data/phantoms/semantic/high-five-ru-semantic-v2.xml"), Path.of("data/phantoms/semantic/high-five-ru-corpus-v2.tsv"), PhantomSemanticGrounding.fixed(PhantomConversationIntegrationSuite.HASHES, PhantomConversationIntegrationSuite.references())));
 		PhantomAssertions.assertTrue(_semantic.start(), "Full058 semantic did not start.");
-		final PhantomConversationCatalog catalog = PhantomConversationCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-v1.xml"), Path.of("data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"));
-		_conversation = new PhantomConversationService(catalog, new PhantomConversationStore(profiles, executionStore), new L2jPhantomConversationContextPort(materialization, topology), _semantic, social, plan -> { _latestResponse = plan; _execution.publish(plan); }, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), PhantomClanDirectiveIngressPort.noop(), humanized);
+		final PhantomConversationCatalog catalog = PhantomConversationCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-v2.xml"), Path.of("data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"));
+		final L2jPhantomConversationContextPort nativeContext = new L2jPhantomConversationContextPort(materialization, topology);
+		final PhantomConversationService.ContextPort contextPort = new PhantomConversationService.ContextPort()
+		{
+			@Override
+			public java.util.OptionalLong profileIdForObject(int objectId) { return nativeContext.profileIdForObject(objectId); }
+			@Override
+			public java.util.Optional<PhantomConversationService.ContextSnapshot> snapshot(long profileId, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.DeliveredObservation observation, String previous, java.util.List<org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.SlotValue> slots)
+			{
+				try
+				{
+					final var result = nativeContext.snapshot(profileId, observation, previous, slots);
+					if (_recordCommand) { _contextDiagnostic = "profile=" + profileId + "; present=" + result.isPresent() + "; materialization=" + materialization.find(profileId); }
+					return result;
+				}
+				catch (RuntimeException failure)
+				{
+					_contextDiagnostic = failure + "; trace=" + java.util.Arrays.stream(failure.getStackTrace()).limit(5).toList();
+					throw failure;
+				}
+			}
+		};
+		final PhantomConversationService.PhaseObserver phases = new PhantomConversationService.PhaseObserver()
+		{
+			@Override
+			public void beforeOperation(PhantomConversationService.BatchPhase phase, long dispatchId, boolean held)
+			{
+				if (_recordCommand && (_commandPhases.size() < 64)) { _commandPhases.add(dispatchId + ":" + phase); }
+			}
+		};
+		_conversation = humanized == null ? new PhantomConversationService(catalog, new PhantomConversationStore(profiles, executionStore), contextPort, _semantic, social, plan -> { _latestResponse = plan; _execution.publish(plan); }, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), phases) : new PhantomConversationService(catalog, new PhantomConversationStore(profiles, executionStore), contextPort, _semantic, social, plan -> { _latestResponse = plan; _execution.publish(plan); }, PhantomIdentityLeaseRegistry.getInstance(), ChatObservationService.getInstance(), PhantomClanDirectiveIngressPort.noop(), humanized);
 		PhantomAssertions.assertTrue(_conversation.start(), "Full058 conversation did not start.");
 		_client = PhantomConversationIntegrationSuite.NetworkBackedClient.attach(human);
 	}
@@ -145,6 +180,206 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 		for (int pulse = 0; pulse < 32; pulse++) { _conversation.onPulse(); _execution.onPulse(); Thread.sleep(10); }
 		PhantomAssertions.assertEquals(sentBefore + 1, _execution.snapshot().sent(), "Immediate partychat repeat or generated reply caused chatter recursion.");
 		context.record("companion058.partychat", "native delivery to current party recipients=" + ingress.observedDeliveries() + "; one elected actual-role/vacancy reply delivered; immediate repeat bounded; execution=" + _execution.snapshot());
+	}
+
+	boolean command059(PhantomTestContext context, Player human, Player companion, String text, PhantomPartyCoordinator party) throws Exception
+	{
+		return command059(context, human, companion, ChatType.WHISPER, text, party);
+	}
+
+	boolean command059(PhantomTestContext context, Player human, Player companion, ChatType channel, String text, PhantomPartyCoordinator party) throws Exception
+	{
+		final long before = _execution.snapshot().sent();
+		_latestResponse = null;
+		_lastCommandReceipt = null;
+		_recordCommand = true;
+		_commandPhases.clear();
+		_contextDiagnostic = "none";
+		PhantomAssertions.assertTrue(PlayerChatIngress.dispatchClient(human, channel, channel == ChatType.WHISPER ? companion.getName() : "", text).observedDeliveries() > 0, "Command059 ingress had no exact recipient.");
+		for (int pulse = 0; (pulse < 512) && (_execution.snapshot().sent() == before); pulse++)
+		{
+			_conversation.onPulse();
+			_execution.onPulse();
+			party.onPulse();
+			Thread.sleep(10);
+		}
+		context.record("command059.reply." + text, _latestResponse == null ? "none" : _latestResponse.toString());
+		context.record("command059.owner." + text, "conversation=" + _conversation.snapshot() + "; execution=" + _execution.snapshot());
+		context.record("command059.context." + text, _contextDiagnostic);
+		context.record("command059.phases." + text, _commandPhases.toString());
+		_recordCommand = false;
+		if (_latestResponse != null)
+		{
+			for (int pulse = 0; (pulse < 32) && (_lastCommandReceipt == null); pulse++)
+			{
+				_execution.onPulse();
+				_lastCommandReceipt = _executionStore.load(_latestResponse.ownerProfileId()).stream().flatMap(stored -> stored.state().receipts().stream()).filter(receipt -> receipt.observationHash().equals(_latestResponse.observationHash())).findFirst().orElse(null);
+			}
+		}
+		context.record("command059.receipt." + text, String.valueOf(_lastCommandReceipt));
+		return _execution.snapshot().sent() == before + 1;
+	}
+
+	void assertCommandReason059(String reason)
+	{
+		PhantomAssertions.assertTrue((_lastCommandReceipt != null) && (_lastCommandReceipt.outboundState() == org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.OutboundState.SENT), "Command059 has no exact durable native SENT receipt.");
+		PhantomAssertions.assertEquals(reason, _lastCommandReceipt.reasonKey(), "Command059 delivered a false action result.");
+	}
+
+	void holdAndResume059(PhantomTestContext context, Player human, java.util.List<Player> actors, PhantomPartyCoordinator party, int destinationX, int destinationY, int destinationZ) throws Exception
+	{
+		final Player companion = actors.getFirst();
+		final int sceneX = human.getX(), sceneY = human.getY(), sceneZ = human.getZ();
+		final int anchorX = companion.getX(), anchorY = companion.getY(), anchorZ = companion.getZ();
+		final var path = org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding.getInstance().findPath(human.getX(), human.getY(), human.getZ(), destinationX, destinationY, destinationZ, 0, true);
+		PhantomAssertions.assertTrue((path != null) && !path.isEmpty(), "Command059 declared native reverse obstacle route unavailable.");
+		context.record("command059.input", "TEST same058t seed58005824; directed first of3; HOLD radius128; observe20s; native reverse obstacle route; no TP/root/resource grants; actor=" + companion.getObjectId() + "; leader=" + human.getObjectId() + "; anchor=" + anchorX + ',' + anchorY + ',' + anchorZ);
+		final boolean holdDelivered = command059(context, human, companion, "стой здесь", party);
+		PhantomAssertions.assertTrue(holdDelivered, "Command059 admission failed: " + _contextDiagnostic + "; phases=" + _commandPhases);
+		int waypoint = 0;
+		double maximumDisplacement = 0;
+		final long holdDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(20);
+		while (System.nanoTime() < holdDeadline)
+		{
+			if (waypoint < path.size())
+			{
+				var point = path.get(waypoint);
+				if (Math.hypot(human.getX() - point.getX(), human.getY() - point.getY()) <= 64) { waypoint++; }
+				if ((waypoint < path.size()) && !human.isMoving()) { point = path.get(waypoint); human.moveToLocation(point.getX(), point.getY(), point.getZ(), 0); }
+			}
+			party.onPulse();
+			maximumDisplacement = Math.max(maximumDisplacement, Math.sqrt(Math.pow(companion.getX() - anchorX, 2) + Math.pow(companion.getY() - anchorY, 2) + Math.pow(companion.getZ() - anchorZ, 2)));
+			Thread.sleep(20);
+		}
+		context.record("command059.hold", "maximumDisplacement=" + maximumDisplacement + "; leader=" + human.getX() + ',' + human.getY() + ',' + human.getZ() + "; actor=" + companion.getX() + ',' + companion.getY() + ',' + companion.getZ() + "; path=" + waypoint + '/' + path.size());
+		PhantomAssertions.assertTrue((waypoint == path.size()) && (Math.hypot(human.getX() - anchorX, human.getY() - anchorY) >= 500), "Command059 leader did not actually depart.");
+		PhantomAssertions.assertTrue(maximumDisplacement <= 128, "Directed HOLD did not control native companion movement: " + maximumDisplacement);
+		PhantomAssertions.assertTrue(holdDelivered, "HOLD response had no native recipient.");
+		PhantomAssertions.assertTrue(actors.subList(1, actors.size()).stream().allMatch(actor -> Math.hypot(actor.getX() - human.getX(), actor.getY() - human.getY()) <= 350), "Directed HOLD incorrectly stopped other companions.");
+		PhantomAssertions.assertTrue(command059(context, human, companion, "за мной", party), "RESUME response had no native recipient.");
+		final long resumeDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+		while ((System.nanoTime() < resumeDeadline) && (companion.isMoving() || Math.hypot(companion.getX() - human.getX(), companion.getY() - human.getY()) > 350)) { party.onPulse(); Thread.sleep(20); }
+		context.record("command059.resume", "actor=" + companion.getX() + ',' + companion.getY() + ',' + companion.getZ() + "; leaderDistance=" + Math.hypot(companion.getX() - human.getX(), companion.getY() - human.getY()));
+		PhantomAssertions.assertTrue(Math.hypot(companion.getX() - human.getX(), companion.getY() - human.getY()) <= 350, "RESUME did not restore native obstacle-follow.");
+		// Return by ordinary walking to the already verified field before the unchanged stock kill scene.
+		walkAndRegroup059(context, human, actors, party, sceneX, sceneY, sceneZ);
+	}
+
+	private void walkAndRegroup059(PhantomTestContext context, Player human, java.util.List<Player> actors, PhantomPartyCoordinator party, int sceneX, int sceneY, int sceneZ) throws Exception
+	{
+		final var returnPath = org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding.getInstance().findPath(human.getX(), human.getY(), human.getZ(), sceneX, sceneY, sceneZ, 0, true);
+		PhantomAssertions.assertTrue((returnPath != null) && !returnPath.isEmpty(), "Command059 native field return path unavailable.");
+		int returnWaypoint = 0;
+		final long returnDeadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(30);
+		while ((System.nanoTime() < returnDeadline) && ((returnWaypoint < returnPath.size()) || human.isMoving() || actors.stream().anyMatch(actor -> actor.isMoving() || (Math.hypot(actor.getX() - human.getX(), actor.getY() - human.getY()) > 350))))
+		{
+			if (returnWaypoint < returnPath.size())
+			{
+				var point = returnPath.get(returnWaypoint);
+				if (Math.hypot(human.getX() - point.getX(), human.getY() - point.getY()) <= 64) { returnWaypoint++; }
+				if ((returnWaypoint < returnPath.size()) && !human.isMoving()) { point = returnPath.get(returnWaypoint); human.moveToLocation(point.getX(), point.getY(), point.getZ(), 0); }
+			}
+			party.onPulse();
+			Thread.sleep(20);
+		}
+		context.record("command059.fieldReturn", "nativeWaypoints=" + returnWaypoint + '/' + returnPath.size() + "; human=" + human.getX() + ',' + human.getY() + ',' + human.getZ());
+		PhantomAssertions.assertTrue((returnWaypoint == returnPath.size()) && actors.stream().allMatch(actor -> Math.hypot(actor.getX() - human.getX(), actor.getY() - human.getY()) <= 350), "Command059 native field return did not regroup companions.");
+	}
+
+	void authority059(PhantomTestContext context, Player human, java.util.List<Player> actors, java.util.List<Long> profiles, PhantomPartyCoordinator party, int destinationX, int destinationY, int destinationZ) throws Exception
+	{
+		final Player addressed = actors.get(1);
+		final long addressedProfile = profiles.get(1);
+		PhantomAssertions.assertTrue(command059(context, human, addressed, ChatType.PARTY, addressed.getName() + ", стой здесь", party), "Directed PARTY command was not delivered.");
+		awaitHolding059(context, party, java.util.List.of(addressedProfile));
+		PhantomAssertions.assertEquals(addressedProfile, _latestResponse.ownerProfileId(), "Directed PARTY election selected another companion.");
+		final var held = party.claim(addressedProfile).orElseThrow().state().command();
+		PhantomAssertions.assertTrue(held != null && held.mode() == org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD, "Directed PARTY HOLD was not applied.");
+		PhantomAssertions.assertFalse(profiles.stream().filter(profile -> profile != addressedProfile).anyMatch(profile -> party.claim(profile).orElseThrow().state().command() != null && party.claim(profile).orElseThrow().state().command().mode() != org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.FOLLOW), "Directed PARTY command affected another companion.");
+		party.commandCompanion(addressedProfile, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.real(human.getObjectId()), held.groupGeneration(), org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD, held.requestId());
+		PhantomAssertions.assertEquals(held, party.claim(addressedProfile).orElseThrow().state().command(), "An exact repeated command changed its version or anchor.");
+		command059(context, human, addressed, "не иди за мной", party);
+		PhantomAssertions.assertEquals(held, party.claim(addressedProfile).orElseThrow().state().command(), "Negation resumed a held companion.");
+		command059(context, human, addressed, ChatType.PARTY, actors.getFirst().getName() + ", за мной, " + addressed.getName(), party);
+		PhantomAssertions.assertEquals(held, party.claim(addressedProfile).orElseThrow().state().command(), "Ambiguous PARTY address changed a held companion.");
+		PhantomAssertions.assertTrue(command059(context, human, actors.getFirst(), ChatType.PARTY, "всем стоять", party), "Explicit ALL HOLD was not delivered.");
+		awaitHolding059(context, party, profiles);
+		final int sceneX = human.getX(), sceneY = human.getY(), sceneZ = human.getZ();
+		final int[][] anchors = actors.stream().map(actor -> new int[] {actor.getX(), actor.getY(), actor.getZ()}).toArray(int[][]::new);
+		for (long profile : profiles) { PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD, party.claim(profile).orElseThrow().state().command().mode(), "ALL command omitted a current native companion."); }
+		final var path = org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding.getInstance().findPath(human.getX(), human.getY(), human.getZ(), destinationX, destinationY, destinationZ, 0, true);
+		PhantomAssertions.assertTrue(path != null && !path.isEmpty(), "ALL command native walking input unavailable.");
+		int waypoint = 0;
+		final long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(15);
+		while ((System.nanoTime() < deadline) && ((waypoint < path.size()) || human.isMoving()))
+		{
+			if (waypoint < path.size())
+			{
+				var point = path.get(waypoint);
+				if (Math.hypot(human.getX() - point.getX(), human.getY() - point.getY()) <= 64) { waypoint++; }
+				if ((waypoint < path.size()) && !human.isMoving()) { point = path.get(waypoint); human.moveToLocation(point.getX(), point.getY(), point.getZ(), 0); }
+			}
+			party.onPulse();
+			for (int index = 0; index < actors.size(); index++) { final Player actor = actors.get(index); PhantomAssertions.assertTrue(Math.sqrt(Math.pow(actor.getX() - anchors[index][0], 2) + Math.pow(actor.getY() - anchors[index][1], 2) + Math.pow(actor.getZ() - anchors[index][2], 2)) <= 128, "ALL HOLD allowed native pursuit."); }
+			Thread.sleep(20);
+		}
+		PhantomAssertions.assertTrue(waypoint == path.size() && Math.hypot(human.getX() - sceneX, human.getY() - sceneY) >= 500, "ALL HOLD leader did not actually depart.");
+		PhantomAssertions.assertTrue(command059(context, human, actors.getFirst(), ChatType.PARTY, "всем за мной", party), "ALL RESUME was not delivered.");
+		assertCommandReason059("command.following");
+		for (long profile : profiles) { PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.FOLLOW, party.claim(profile).orElseThrow().state().command().mode(), "ALL RESUME omitted a current native companion."); }
+		walkAndRegroup059(context, human, actors, party, sceneX, sceneY, sceneZ);
+		PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().transferLeader(human, actors.getLast()), "Native leader-change input failed.");
+		party.onPulse();
+		PhantomAssertions.assertTrue(command059(context, human, actors.getFirst(), "подожди", party), "Former leader did not receive a refusal.");
+		assertCommandReason059("command.rejected");
+		PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().transferLeader(actors.getLast(), human), "Native leadership restore failed.");
+		party.onPulse();
+		PhantomAssertions.assertEquals(PhantomPartyCoordinator.CompanionCommandOutcome.REJECTED, party.commandCompanion(addressedProfile, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.real(human.getObjectId()), held.groupGeneration(), org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD, held.requestId()), "Old generation revived a command after native leader changes.");
+		PhantomAssertions.assertTrue(profiles.stream().allMatch(profile -> party.claim(profile).orElseThrow().state().command() == null), "Leader changes retained a former command.");
+		context.record("command059.authority", "directed PARTY recipient; exact retry stable; negation/ambiguous no action; explicit ALL native HOLD/walk/RESUME; one elected SENT each; former-leader delivered refusal; stale generation rejected; native authority restored; current roster=" + human.getParty().getMembers().stream().map(Player::getObjectId).toList());
+	}
+
+	private void awaitHolding059(PhantomTestContext context, PhantomPartyCoordinator party, java.util.List<Long> profiles) throws Exception
+	{
+		PhantomAssertions.assertTrue(_lastCommandReceipt != null && java.util.Set.of("command.holding", "command.pending").contains(_lastCommandReceipt.reasonKey()), "HOLD admission did not deliver a truthful holding/pending result.");
+		final String reason = _lastCommandReceipt.reasonKey();
+		final long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+		while (System.nanoTime() < deadline)
+		{
+			party.onPulse();
+			if (profiles.stream().allMatch(profile -> party.claim(profile).orElseThrow().state().command() != null && party.claim(profile).orElseThrow().state().command().mode() == org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD))
+			{
+				context.record("command059.safe-hold." + profiles.getFirst(), "SENT reason=" + reason + "; all actual owners reached HOLD after native action boundary; profiles=" + profiles);
+				return;
+			}
+			Thread.sleep(10);
+		}
+		throw new AssertionError("Accepted HOLD did not reach its native safe boundary within10s.");
+	}
+
+	void lifecycle059(PhantomTestContext context, Player human, java.util.List<Player> actors, java.util.List<Long> profiles, PhantomPartyCoordinator party) throws Exception
+	{
+		final Player actor = actors.getLast();
+		final long profile = profiles.getLast();
+		PhantomAssertions.assertTrue(command059(context, human, actor, "стой здесь", party), "Pre-expel HOLD was not delivered.");
+		final var old = party.claim(profile).orElseThrow().state().command();
+		PhantomAssertions.assertTrue(old != null, "Pre-expel command was not durable.");
+		PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().expel(human, actor), "Native exact companion expel failed.");
+		for (int pulse = 0; pulse < 32; pulse++) { party.onPulse(); Thread.sleep(10); }
+		PhantomAssertions.assertTrue(party.claim(profile).orElseThrow().state().command() == null && !party.blocksBackground(profile), "Native expel retained command authority or party pin.");
+		PhantomAssertions.assertTrue(PartyInvitationService.getInstance().invite(human, actor, org.l2jmobius.gameserver.model.groups.PartyDistributionType.FINDERS_KEEPERS.getId()).delivered(), "Exact companion rejoin invitation failed.");
+		for (int pulse = 0; (pulse < 128) && !party.committed(profile); pulse++) { party.onPulse(); Thread.sleep(10); }
+		PhantomAssertions.assertTrue(party.committed(profile) && actor.getParty() == human.getParty() && party.claim(profile).orElseThrow().state().command() == null, "Rejoin revived an old HOLD or lost membership.");
+		PhantomAssertions.assertEquals(PhantomPartyCoordinator.CompanionCommandOutcome.REJECTED, party.commandCompanion(profile, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.real(human.getObjectId()), old.groupGeneration(), org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD, old.requestId()), "Expelled generation regained authority after rejoin.");
+		PhantomAssertions.assertTrue(command059(context, human, actor, "подожди", party), "Pre-death HOLD was not delivered.");
+		context.record("command059.lifecycle.input", "INDEPENDENT native lifecycle episode after both full kills: exact expel/rejoin; then owned TEST actor native death; no active encounter or rewards altered");
+		PhantomAssertions.assertTrue(actor.doDie(null), "Declared native TEST death failed.");
+		for (int pulse = 0; pulse < 32; pulse++) { party.onPulse(); Thread.sleep(10); }
+		PhantomAssertions.assertTrue(actor.isDead() && party.claim(profile).orElseThrow().state().command() == null, "Native death retained a command.");
+		actor.doRevive();
+		for (int pulse = 0; pulse < 16; pulse++) { party.onPulse(); Thread.sleep(10); }
+		PhantomAssertions.assertTrue(!actor.isDead() && party.claim(profile).orElseThrow().state().command() == null, "Native revival restored stale authority.");
+		context.record("command059.lifecycle.result", "exact expel/rejoin invalidates generation; native death/revival clears command; old command cannot revive; leave/logout checks follow");
 	}
 
 	@Override

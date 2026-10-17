@@ -402,6 +402,21 @@ public final class PhantomHeadlessPlayerTestEnvironment
 
 	private void insertOwnedAccount() throws Exception
 	{
+		if (PhantomCampaign058DatabaseLane.enabled())
+		{
+			try (Connection connection = DatabaseFactory.getConnection(); PreparedStatement query = connection.prepareStatement("SELECT password,accessLevel FROM accounts WHERE login=?"))
+			{
+				query.setString(1, _accountName);
+				try (ResultSet row = query.executeQuery())
+				{
+					if (row.next())
+					{
+						PhantomAssertions.assertTrue((row.getString(1) == null) && (row.getInt(2) == 0), "Retained058t account differs from its ordinary TEST input.");
+						return;
+					}
+				}
+			}
+		}
 		try (Connection connection = DatabaseFactory.getConnection();
 			PreparedStatement statement = connection.prepareStatement("INSERT INTO accounts (login, password, accessLevel, lastServer) VALUES (?, NULL, 0, 1)"))
 		{
@@ -757,6 +772,8 @@ public final class PhantomHeadlessPlayerTestEnvironment
 			GameClient.deleteCharByObjId(objectId);
 		}
 
+		// AUTHORITY059 preserves058t accounts; only owned character rows are reusable fixtures.
+		if (PhantomCampaign058DatabaseLane.enabled()) { return; }
 		try (Connection connection = DatabaseFactory.getConnection();
 			PreparedStatement statement = connection.prepareStatement("DELETE FROM accounts WHERE login=?"))
 		{
@@ -769,7 +786,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	{
 		try (Connection connection = DatabaseFactory.getConnection())
 		{
-			PhantomAssertions.assertEquals(0L, count(connection, "SELECT COUNT(*) FROM accounts WHERE login=?", _accountName), "Owned account residue remains.");
+			PhantomAssertions.assertEquals(PhantomCampaign058DatabaseLane.enabled() ? 1L : 0L, count(connection, "SELECT COUNT(*) FROM accounts WHERE login=?", _accountName), "Owned account retention/cleanup contract differs.");
 			PhantomAssertions.assertEquals(0L, count(connection, "SELECT COUNT(*) FROM characters WHERE account_name=?", _accountName), "Owned character residue remains.");
 			for (int objectId : _ownedObjectIds)
 			{

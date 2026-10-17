@@ -54,10 +54,15 @@ public final class PhantomPartyStore implements PhantomPartyPersistencePort
 
 	private StoredPartyState decode(PhantomProfileComponent component)
 	{
-		if (component.componentSchemaVersion() != PhantomPartyModel.SCHEMA_VERSION)
+		if ((component.componentSchemaVersion() != 1) && (component.componentSchemaVersion() != PhantomPartyModel.SCHEMA_VERSION))
 		{
 			throw new IllegalArgumentException("Unknown party.state schema version.");
 		}
-		return new StoredPartyState(component.profileId(), component.rowVersion(), _codec.decode(component.payload()));
+		final var state = _codec.decode(component.payload());
+		if ((state.command() != null) && (state.command().actor().profileId() != component.profileId()))
+		{
+			throw new IllegalArgumentException("Companion command belongs to another profile.");
+		}
+		return new StoredPartyState(component.profileId(), component.rowVersion(), state);
 	}
 }

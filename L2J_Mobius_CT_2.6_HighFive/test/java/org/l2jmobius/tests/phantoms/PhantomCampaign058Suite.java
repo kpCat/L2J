@@ -23,6 +23,14 @@ public final class PhantomCampaign058Suite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		registry.add("01-exact-mutable-fixture-is-accepted", context -> validate(PhantomCampaign058DatabaseLane.MODULE, owner(), settings()));
+		registry.add("11-continuation059-ordinary-jar-is-exact", context ->
+		{
+			PhantomAssertions.assertTrue(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/GameServer.jar")), "Exact059 ordinary build rejected.");
+			for (Path foreign : List.of(Path.of("C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve("dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract059a/runtime/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/Foreign.jar")))
+			{
+				PhantomAssertions.assertFalse(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(foreign), "Foreign ordinary JAR was accepted: " + foreign);
+			}
+		});
 		registry.add("10-only-exact-stock-registration-seed-is-recognized", context ->
 		{
 			PhantomAssertions.assertTrue(PhantomCampaign058PersistentLane.stockRegistration(2, "-2ad66b3f483c22be097019f55c8abdf0", ""), "Tracked stock registration seed was rejected.");

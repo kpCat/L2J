@@ -68,16 +68,19 @@ public final class PhantomSocialMemory058
 
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 2) || !List.of("record", "recall").contains(args[0]) || !args[1].matches("[a-z0-9-]{1,30}") || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a record/recall and unique episode label required."); }
+		if ((args.length != 2) || !List.of("record", "recall", "recall-legacy").contains(args[0]) || !args[1].matches("[a-z0-9-]{1,30}") || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a record/recall and unique episode label required."); }
 		final boolean record = args[0].equals("record");
 		final Path lane = PhantomCampaign058PersistentLane.LANE;
+		final boolean continuation = Boolean.getBoolean("phantom.test.continuation059");
+		if (args[0].equals("recall-legacy") && !continuation) { throw new IllegalArgumentException("Legacy recall requires explicit continuation evidence scope."); }
+		final Path evidence = continuation ? lane.resolve("task059/m3-memory-" + args[1]) : lane;
 		PhantomCampaign058PersistentLane.validateFiles(PhantomCampaign058PersistentLane.MODULE, Path.of(System.getProperty("phantom.test.config", "")), true);
 		// Reuse the existing exact ordinary-JAR allowlist and four-owner provenance check; never overlay product classes.
 		for (int port : List.of(2138, 7838, 9138)) { try (var socket = new ServerSocket(port)) { PhantomAssertions.assertTrue(socket.isBound(), "Own058a must be stopped."); } }
-		final Path receipt = lane.resolve("m3-social-memory.record");
-		if (record) { PhantomAssertions.assertFalse(Files.exists(receipt), "M3 recorded episode cannot be replayed."); Files.createFile(lane.resolve("m3-social-memory-" + args[1] + ".started")); }
+		final Path receipt = (args[0].equals("recall-legacy") ? lane : evidence).resolve("m3-social-memory.record");
+		if (record) { PhantomAssertions.assertFalse(Files.exists(receipt), "M3 recorded episode cannot be replayed."); Files.createDirectories(evidence); Files.createFile(evidence.resolve("m3-social-memory-" + args[1] + ".started")); }
 		else { PhantomAssertions.assertTrue(Files.isRegularFile(receipt), "M3 original native episode is missing."); }
-		final var context = new PhantomTestContext(58005828, PhantomCampaign058PersistentLane.MODULE, lane.resolve("reports/m3-" + args[0]));
+		final var context = new PhantomTestContext(58005828, PhantomCampaign058PersistentLane.MODULE, evidence.resolve("reports/m3-" + args[0]));
 		PhantomCombatServerIntegrationSuite.assertCampaign058Jar(context);
 		System.out.println("M3_INPUT phase=" + args[0] + "; episode=" + args[1] + "; profile=" + PROFILE + "; human=" + HUMAN + "; " + context.measurements());
 		PhantomMaterializationService materialization = null;
@@ -161,7 +164,8 @@ public final class PhantomSocialMemory058
 					PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().leave(human), "M3 restarted normal party leave failed.");
 					party.onPulse();
 					System.out.println("M3_NEW_JVM_JOIN freshEvent=" + newJoined.eventId() + "; exactCallbackRetryWriteFree=true");
-					Files.writeString(lane.resolve("m3-social-memory.complete"), "Two native JVMs around ordinary sameDB restart; owner UI QA_PENDING", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+					Files.createDirectories(evidence);
+					Files.writeString(evidence.resolve("m3-social-memory.complete"), "Two native JVMs around ordinary sameDB restart; owner UI QA_PENDING", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 				}
 			}
 			progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "M3 progression did not stop.");

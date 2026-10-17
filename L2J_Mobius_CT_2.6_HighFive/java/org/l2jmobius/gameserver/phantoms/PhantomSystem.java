@@ -532,8 +532,8 @@ public final class PhantomSystem
 				_backgroundService.installPresencePolicy(_populationManager.presence()::permitsOrdinaryFarm);
 				final File partyRoleCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/party/high-five-party-roles-v1.xml");
 				final PhantomPartyRoleCatalog partyRoleCatalog = PhantomPartyRoleCatalog.load(partyRoleCatalogFile.toPath());
-				final File semanticPackFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/semantic/high-five-ru-semantic-v1.xml");
-				final File semanticCorpusFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/semantic/high-five-ru-corpus-v1.tsv");
+				final File semanticPackFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/semantic/high-five-ru-semantic-v2.xml");
+				final File semanticCorpusFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/semantic/high-five-ru-corpus-v2.tsv");
 				_semanticUnderstandingService = PhantomSemanticUnderstandingService.production(semanticPackFile.toPath(), semanticCorpusFile.toPath(), PhantomSemanticGrounding.production(_gameKnowledgeService.query(), _topologyService.query(), partyRoleCatalog));
 				if (!_semanticUnderstandingService.start())
 				{
@@ -682,10 +682,10 @@ public final class PhantomSystem
 				_partyCoordinator.installManagedInvitationPolicy(PhantomRiftService.GOAL_TYPE, riftService::evaluateManagedInvitation);
 				final PhantomRiftDecision riftDecision = new PhantomRiftDecision(riftService);
 
-				final File conversationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-v1.xml");
+				final File conversationCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-v2.xml");
 				final File conversationCorpusFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv");
 				final PhantomConversationCatalog conversationCatalog = PhantomConversationCatalog.load(conversationCatalogFile.toPath(), conversationCorpusFile.toPath());
-				final File conversationExecutionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-execution-v2.xml");
+				final File conversationExecutionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/conversation/high-five-ru-conversation-execution-v3.xml");
 				final PhantomConversationExecutionCatalog conversationExecutionCatalog = PhantomConversationExecutionCatalog.load(conversationExecutionCatalogFile.toPath());
 				final PhantomConversationExecutionStore conversationExecutionStore = new PhantomConversationExecutionStore(productionProfiles, conversationExecutionCatalog);
 				final PhantomConversationPlanSink.Bridge conversationExecutionSignal = PhantomConversationPlanSink.bridge();

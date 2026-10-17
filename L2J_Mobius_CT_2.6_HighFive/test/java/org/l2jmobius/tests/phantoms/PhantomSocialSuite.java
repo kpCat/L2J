@@ -398,6 +398,30 @@ public final class PhantomSocialSuite implements PhantomTestSuite
 
 	private static void modifiers(PhantomTestRegistry registry)
 	{
+		registry.add("05-terminal-party-goal-allows-new-invitation-with-active-owner-protected", context ->
+		{
+			final MemoryStore store = new MemoryStore();
+			store.addProfile(1);
+			final PhantomSocialService social = service(catalog(context), store, 16);
+			try
+			{
+				social.ensurePersonality(1);
+				final var policy = new org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy(new org.l2jmobius.gameserver.phantoms.party.PhantomRealPartyInvitationPolicy.Settings(true, -3000), social, () -> 1000L);
+				final var member = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef.phantom(1, 101);
+				final var actor = new org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot(member, 0, 0, 0, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), "0".repeat(64));
+				final var invitation = new org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PartyInvitation(new org.l2jmobius.gameserver.model.groups.PartyInvitationService.InvitationIdentity(59005901, 500, 101), 500, "Real", 101, "Companion", org.l2jmobius.gameserver.model.groups.PartyDistributionType.FINDERS_KEEPERS, 500, Long.MAX_VALUE);
+				final int writes = store.writes();
+				for (var status : List.of(org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE, org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ABANDONED))
+				{
+					final var goal = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoal(59005901, "party.member", status, null, null, 0, 0, null, List.of(), null, "test", 1, 0, 0, Long.MAX_VALUE, java.util.Map.of(), "test", 0);
+					final var input = new org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ManagedInvitationContext(invitation, 0, 1, null, null, goal, actor);
+					final var expected = status == org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE ? org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ManagedInvitationDecision.REFUSE : org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator.ManagedInvitationDecision.ACCEPT;
+					PhantomAssertions.assertEquals(expected, policy.evaluate(input), "Terminal party goal blocked a fresh invitation or active ownership was bypassed.");
+				}
+				PhantomAssertions.assertEquals(writes, store.writes(), "Invitation preference query changed social state.");
+			}
+			finally { social.beginStop(); PhantomAssertions.assertTrue(social.finishStop(), "Invitation social fixture did not drain."); }
+		});
 		registry.add("01-all-six-modifiers-are-generic-explainable-and-pure", context ->
 		{
 			final PhantomSocialCatalog catalog = catalog(context);

@@ -330,6 +330,32 @@ public final class PhantomPartySuite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(source.contains("goal.revision() != operation.leaderGoalRevision()"), "Leader goal transition does not reject a stale revision.");
 			PhantomAssertions.assertTrue(source.contains("goalTargets(goal, operation.leader().characterObjectId())"), "Member goal transition does not retain exact inviter consent.");
 		});
+		registry.add("07-legacy-v1-payload-remains-readable", context ->
+		{
+			final byte[] legacy = java.util.Base64.getDecoder().decode(Files.readString(context.moduleRoot().resolve("test/resources/phantoms/party-state-v1.base64")).trim());
+			PhantomAssertions.assertEquals(stateFixture(), new PhantomPartyStateCodec().decode(legacy), "Captured pre059 durable party payload no longer decodes.");
+		});
+		registry.add("08-command-payload-preserves-exact-authority", context ->
+		{
+			final PartyState base = stateFixture();
+			for (var mode : org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.values())
+			{
+				final var command = new org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionCommand(mode, MemberRef.phantom(2, 102), base.leader(), 7, base.groupGeneration(), new PhantomNavigationPoint(10, 20, -30, 0), 128, "A".repeat(64));
+				final PartyState held = base.withCommand(command);
+				final byte[] encoded = new PhantomPartyStateCodec().encode(held);
+				PhantomAssertions.assertTrue(encoded.length <= 4096, "Companion state exceeds durable envelope.");
+				PhantomAssertions.assertEquals(held, new PhantomPartyStateCodec().decode(encoded), "Command identity/anchor/mode was lost during durable roundtrip.");
+				PhantomAssertions.assertEquals(base.canonicalManifestHash(), held.canonicalManifestHash(), "Per-member command changed the shared roster manifest.");
+			}
+		});
+		registry.add("09-command-rejects-foreign-leader-and-stale-generation", context ->
+		{
+			final PartyState base = stateFixture();
+			final var mode = org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD;
+			final var point = new PhantomNavigationPoint(10, 20, -30, 0);
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> base.withCommand(new org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionCommand(mode, MemberRef.phantom(2, 102), MemberRef.real(999), 7, base.groupGeneration(), point, 128, "A".repeat(64))), "Foreign speaker acquired durable authority.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> base.withCommand(new org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionCommand(mode, MemberRef.phantom(2, 102), base.leader(), 7, base.groupGeneration() + 1, point, 128, "A".repeat(64))), "Stale generation acquired durable authority.");
+		});
 	}
 
 	private static void roles(PhantomTestRegistry registry)
@@ -490,6 +516,29 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static void routeClosure(PhantomTestRegistry registry)
 	{
+		registry.add("06-held-member-remains-in-shared-route-arrival-denominator", context ->
+		{
+			try (RouteClosureFixture fixture = new RouteClosureFixture(context, true))
+			{
+				final MemberRef member = fixture._backend.add(2, 102);
+				final List<MemberRef> roster = List.of(fixture.leader(), member);
+				fixture._backend.party(new PhantomPartyBackend.PartySnapshot(fixture.leader(), roster, PartyDistributionType.FINDERS_KEEPERS));
+				fixture._backend.snapshot(member, new MemberSnapshot(member, 0, 0, 2000, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO));
+				final var bound = fixture.coordinator().bindContentGoal(new ContentBindingRequest(fixture.leader().profileId(), RouteClosureFixture.GOAL_ID, 0, PhantomRiftService.GOAL_TYPE, ObjectiveMode.AREA_PVE, fixture.objective(), List.of(), fixture.leader(), roster, PartyDistributionType.FINDERS_KEEPERS, PhantomPartyModel.sha256("route.held.roster")));
+				PhantomAssertions.assertTrue(bound.bound(), "Held-member shared route binding failed.");
+				final long generation = fixture.coordinator().claim(member.profileId()).orElseThrow().state().groupGeneration();
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.CompanionCommandOutcome.HOLDING, fixture.coordinator().commandCompanion(member.profileId(), fixture.leader(), generation, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD, PhantomPartyModel.sha256("route.held.request")), "Exact leader HOLD was not admitted.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.RouteOutcome.READY, fixture.request(fixture.routeDestination()).outcome(), "Held-member route was not ready.");
+				fixture.snapshot(100, 0, 0, false);
+				fixture.pulse(2);
+				PhantomAssertions.assertTrue(fixture.state().route() != null && fixture.state().route().status() != RouteStatus.ARRIVED, "A held companion was omitted from shared route arrival.");
+				PhantomAssertions.assertEquals(0, fixture.routeSnapshot().movementClaims(), "Paused shared route acquired new movement.");
+				PhantomAssertions.assertEquals(PhantomPartyCoordinator.CompanionCommandOutcome.FOLLOWING, fixture.coordinator().commandCompanion(member.profileId(), fixture.leader(), generation, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.FOLLOW, PhantomPartyModel.sha256("route.resume.request")), "Shared route RESUME was not admitted.");
+				fixture._backend.snapshot(member, new MemberSnapshot(member, 0, 0, 100, 0, 0, 100, 100, 100, false, false, false, false, 0, List.of(), List.of(), ZERO));
+				fixture.pulse(2);
+				PhantomAssertions.assertEquals(RouteStatus.ARRIVED, fixture.state().route().status(), "Full roster arrival failed after RESUME.");
+			}
+		});
 		registry.add("01-planner-pending-binding-preserves-ownership-and-submits-once", context ->
 		{
 			try (RouteClosureFixture fixture = new RouteClosureFixture(context, false))
@@ -711,6 +760,38 @@ public final class PhantomPartySuite implements PhantomTestSuite
 
 	private static void lifecycle(PhantomTestRegistry registry)
 	{
+		registry.add("12-real-roster-reconcile-retains-each-members-owned-goal-binding", context ->
+		{
+			final MemoryPartyStore states = new MemoryPartyStore();
+			final MemoryGoalStore goals = new MemoryGoalStore();
+			final MemoryPartyBackend backend = new MemoryPartyBackend();
+			final MemberRef first = backend.add(1, 101), second = backend.add(2, 102), human = MemberRef.real(201);
+			goals.put(1, goal(59005911, PhantomPartyCoordinator.JOIN_GOAL, new PhantomDomainRef("character.object", "201"), 0));
+			goals.put(2, goal(59005912, PhantomPartyCoordinator.JOIN_GOAL, new PhantomDomainRef("character.object", "201"), 0));
+			final PhantomPartyCoordinator coordinator = coordinator(context, states, goals, backend, 64);
+			PhantomAssertions.assertTrue(coordinator.start(), "Per-member real-party lifecycle did not start.");
+			try
+			{
+				backend.party(new PhantomPartyBackend.PartySnapshot(human, List.of(human, first), PartyDistributionType.FINDERS_KEEPERS));
+				coordinator.terminal(invitation(new InvitationIdentity(59005911, 201, 101), first), OptionalLong.empty(), OptionalLong.of(1), TerminalOutcome.ACCEPTED, "");
+				for (int pulse = 0; pulse < 4; pulse++) { coordinator.onPulse(); }
+				final long generation = coordinator.claim(1).orElseThrow().state().groupGeneration();
+				backend.party(new PhantomPartyBackend.PartySnapshot(human, List.of(human, first, second), PartyDistributionType.FINDERS_KEEPERS));
+				coordinator.terminal(invitation(new InvitationIdentity(59005912, 201, 102), second), OptionalLong.empty(), OptionalLong.of(2), TerminalOutcome.ACCEPTED, "");
+				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				PhantomAssertions.assertTrue(coordinator.claim(1).orElseThrow().state().groupGeneration() > generation, "A later native roster reused an old authority epoch.");
+				for (long profile : List.of(1L, 2L))
+				{
+					final var owned = goals.load(profile).orElseThrow().goal();
+					final var claim = coordinator.claim(profile).orElseThrow().state();
+					PhantomAssertions.assertEquals(owned.goalId(), claim.operation().leaderGoalId(), "Roster reconciliation replaced a member's goal binding: profile=" + profile + "; claim=" + claim + "; goal=" + owned);
+				}
+				PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, backend.leave(human), "Canonical TEST human leave failed.");
+				for (int pulse = 0; pulse < 8; pulse++) { coordinator.onPulse(); }
+				for (long profile : List.of(1L, 2L)) { PhantomAssertions.assertEquals(PhantomGoalStatus.ABANDONED, goals.load(profile).orElseThrow().goal().status(), "Human leave orphaned a member's active party goal: " + profile + "; claim=" + coordinator.claim(profile) + "; goal=" + goals.load(profile)); }
+			}
+			finally { coordinator.beginStop(); PhantomAssertions.assertTrue(coordinator.finishStop(), "Per-member real-party lifecycle did not drain."); }
+		});
 		registry.add("01-composite-is-bounded-and-isolates-failure", _ ->
 		{
 			final AtomicInteger first = new AtomicInteger();

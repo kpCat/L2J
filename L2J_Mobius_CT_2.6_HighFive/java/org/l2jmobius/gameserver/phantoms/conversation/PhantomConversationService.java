@@ -862,12 +862,17 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 			}
 			case LOADING_STATE ->
 			{
-				final StoredState loaded = (StoredState) result.value();
+				StoredState loaded = (StoredState) result.value();
 				if ((loaded != null) && !matchesAuthority(loaded.state()))
 				{
-					work._persistenceStatus = PersistenceStatus.AUTHORITY_STALE;
-					completeLocked(work, TerminalKind.AUTHORITY_STALE);
-					return;
+					final ConversationState upgraded = _catalog.upgradeLanguageState(loaded.state(), newState(work._nowMinute)).orElse(null);
+					if (upgraded == null)
+					{
+						work._persistenceStatus = PersistenceStatus.AUTHORITY_STALE;
+						completeLocked(work, TerminalKind.AUTHORITY_STALE);
+						return;
+					}
+					loaded = new StoredState(loaded.profileId(), loaded.rowVersion(), upgraded);
 				}
 				if ((loaded != null) && loaded.state().recentObservationHashes().contains(work._observationHash))
 				{
@@ -902,7 +907,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 					return;
 				}
 				final ContextSnapshot snapshot = context.get();
-				if ((work._descriptor.channel() == ChatType.PARTY) && !work._leaderRedirected && (snapshot.partyLeaderProfileId() > 0) && work._resolved.containsKey(snapshot.partyLeaderProfileId()) && (snapshot.partyLeaderProfileId() != work._electedProfile))
+				if ((work._descriptor.channel() == ChatType.PARTY) && (exactAddress(work._descriptor.text(), work._resolved) == null) && !work._leaderRedirected && (snapshot.partyLeaderProfileId() > 0) && work._resolved.containsKey(snapshot.partyLeaderProfileId()) && (snapshot.partyLeaderProfileId() != work._electedProfile))
 				{
 					work._leaderRedirected = true;
 					work._electedProfile = snapshot.partyLeaderProfileId();
@@ -920,22 +925,20 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 				work._snapshot = snapshot;
 				work._previousSession = findSession(work._baseState, work._descriptor.channel(), snapshot.counterpart());
 				work._semanticContext = withPrevious(snapshot.input(), work._previousSession);
-				if ((work._previousSession != null) && (work._nowMinute < work._previousSession.cooldownUntilMinute()))
-				{
-					work._planned = noResponse(work._electedProfile, work, snapshot, work._previousSession, work._nowMinute, "no_response.cooldown");
-					work._phase = BatchPhase.PERSISTING;
-				}
-				else
-				{
-					work._phase = BatchPhase.UNDERSTANDING;
-				}
+				// Understand first: a bounded leader command must not wait for conversational chatter cooldown.
+				work._phase = BatchPhase.UNDERSTANDING;
 			}
 			case UNDERSTANDING ->
 			{
 				final SemanticRead read = (SemanticRead) result.value();
 				work._understanding = read.understanding();
 				work._pending = read.pending();
-				if (read.needsFragment())
+				if ((work._previousSession != null) && (work._nowMinute < work._previousSession.cooldownUntilMinute()) && !companionCommand(work._understanding))
+				{
+					work._planned = noResponse(work._electedProfile, work, work._snapshot, work._previousSession, work._nowMinute, "no_response.cooldown");
+					work._phase = BatchPhase.PERSISTING;
+				}
+				else if (read.needsFragment())
 				{
 					work._semanticStep = 1;
 				}
@@ -1163,7 +1166,11 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		return switch (descriptor.channel())
 		{
 			case WHISPER -> exactWhisperTarget(descriptor, observers);
-			case PARTY -> new Election(observers.firstKey(), descriptor.text());
+			case PARTY ->
+			{
+				final Election addressed = exactAddress(descriptor.text(), observers);
+				yield addressed == null ? new Election(observers.firstKey(), descriptor.text()) : addressed;
+			}
 			case GENERAL, TRADE -> exactAddress(descriptor.text(), observers);
 			default -> null;
 		};
@@ -1268,7 +1275,7 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 			act = "no_response.unsupported";
 		}
 		final String style = social.style();
-		final boolean suppressed = (proposal != null) && !act.equals("ack.query_proposed") && act.startsWith("ack.") && social.suppressAcknowledgement();
+		final boolean suppressed = (proposal != null) && !companionCommand(understanding) && !act.equals("ack.query_proposed") && act.startsWith("ack.") && social.suppressAcknowledgement();
 		final String text = _catalog.template(act, style, selector(profileId, batch._observationHash, act, style));
 		final long cooldown = nowMinute + _catalog.channel(batch._descriptor.channel()).cooldownMinutes();
 		final List<ConversationEvidence> evidence = understanding.evidence().stream().limit(_catalog.limits().evidence()).map(item -> new ConversationEvidence(item.key(), item.authorityKey())).toList();
@@ -1276,6 +1283,13 @@ public final class PhantomConversationService implements DeliveryObserver, Phant
 		final ConversationResponsePlan response = new ConversationResponsePlan(profileId, batch._dispatchId, batch._observationHash, batch._descriptor.channel(), new ConversationSubject(context.speaker()), semanticHash, act, style, text, proposal, deliveryPolicy, cooldown, evidence);
 		final ConversationSession session = new ConversationSession(batch._descriptor.channel(), context.counterpart(), nowMinute, cooldown, understanding.status() == UnderstandingStatus.ACCEPTED ? understanding.selectedIntent() : previous == null ? null : previous.previousIntent(), understanding.status() == UnderstandingStatus.ACCEPTED ? understanding.slots() : previous == null ? List.of() : previous.previousSlots(), pending, PhantomConversationModel.sha256(act), PhantomConversationModel.sha256(style), proposal == null ? "" : PhantomConversationModel.sha256(proposal.proposalKey() + '|' + semanticHash));
 		return new Planned(profileId, session, response, batch._observationHash, nowMinute);
+	}
+
+	private boolean companionCommand(UnderstandingResult understanding)
+	{
+		if (understanding.status() != UnderstandingStatus.ACCEPTED) { return false; }
+		final ProposalMapping mapping = _catalog.mapping(understanding.selectedIntent());
+		return (mapping != null) && Set.of("party.hold", "party.follow", "party.hold.all", "party.follow.all").contains(mapping.proposalKey());
 	}
 
 	private Planned humanizedPlan(long profileId, BatchWork batch, ContextSnapshot context, ConversationSession previous, Decision decision, long nowMinute)

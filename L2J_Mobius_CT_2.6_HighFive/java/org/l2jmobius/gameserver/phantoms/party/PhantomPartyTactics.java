@@ -174,6 +174,11 @@ public final class PhantomPartyTactics
 
 	public Optional<ExternalActionLease> dispatch(TacticalDirective directive, String operationKey, long deadlineLogicalNanos, PhantomCancellationToken token)
 	{
+		return dispatch(directive, operationKey, deadlineLogicalNanos, token, false);
+	}
+
+	public Optional<ExternalActionLease> dispatch(TacticalDirective directive, String operationKey, long deadlineLogicalNanos, PhantomCancellationToken token, boolean stationary)
+	{
 		if ((directive.actor().kind() != MemberKind.PHANTOM) || (directive.kind() == DirectiveKind.PROTECT_MEMBER_PVP))
 		{
 			return Optional.empty();
@@ -193,7 +198,7 @@ public final class PhantomPartyTactics
 		final ActionOutcome outcome;
 		if (support)
 		{
-			outcome = lease.castSupport(new PhantomPartySupportAction(directive.capabilityKey(), directive.variantKey(), directive.targetScope(), directive.targetObjectId(), new SelectedSkill(directive.actionSkillId(), directive.actionSkillLevel()), PhantomPartySupportAction.Audience.PARTY, _policy.rebuffRemainingSeconds()));
+			outcome = lease.castSupport(new PhantomPartySupportAction(directive.capabilityKey(), directive.variantKey(), directive.targetScope(), directive.targetObjectId(), new SelectedSkill(directive.actionSkillId(), directive.actionSkillLevel()), PhantomPartySupportAction.Audience.PARTY, _policy.rebuffRemainingSeconds(), stationary));
 		}
 		else
 		{

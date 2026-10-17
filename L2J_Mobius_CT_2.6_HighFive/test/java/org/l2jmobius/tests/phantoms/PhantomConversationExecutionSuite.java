@@ -242,6 +242,37 @@ public final class PhantomConversationExecutionSuite implements PhantomTestSuite
 			}
 			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new QueryResult(ResultStatus.COMPLETED, oversized), "A ninth structured fact was accepted.");
 		});
+		registry.add("05-legacy-execution-upgrades-without-changing-actions-or-receipts", context ->
+		{
+			final Path directory = context.moduleRoot().resolve("dist/game/data/phantoms/conversation");
+			final PhantomConversationExecutionCatalog legacy = PhantomConversationExecutionCatalog.load(directory.resolve("high-five-ru-conversation-execution-v2.xml"));
+			final PhantomConversationExecutionCatalog current = PhantomConversationExecutionCatalog.load(directory.resolve("high-five-ru-conversation-execution-v3.xml"));
+			final ExecutionEntry entry = ExecutionEntry.prepared(plan(1, 59005901, "party.invite", new PhantomDomainRef("character.object", "123"), List.of(SlotValue.domain(SlotType.TARGET_PLAYER, new PhantomDomainRef("character.object", "123"), -1, -1))));
+			final ExecutionReceipt receipt = new ExecutionReceipt("C".repeat(64), "D".repeat(64), OutboundState.SENT, ActionState.COMPLETED, 100, "support.issued");
+			final ExecutionState oldState = new ExecutionState(legacy.hash(), 100, List.of(entry), List.of(receipt));
+			final byte[] oldBytes = new PhantomConversationExecutionCodec(legacy).encode(oldState);
+			final PhantomConversationExecutionCodec codec = new PhantomConversationExecutionCodec(current);
+			final ExecutionState upgraded = codec.decode(oldBytes);
+			PhantomAssertions.assertEquals(current.hash(), upgraded.catalogHash(), "Known v2 authority was not upgraded to the current policy.");
+			PhantomAssertions.assertEquals(List.of(entry), upgraded.entries(), "v2 proposal or action fields changed through numeric ID drift.");
+			PhantomAssertions.assertEquals(List.of(receipt), upgraded.receipts(), "v2 delivery/replay receipt or reason changed.");
+			PhantomAssertions.assertEquals(upgraded, codec.decode(codec.encode(upgraded)), "Execution policy upgrade is not repeat-safe.");
+			final byte[] archived = oldBytes.clone();
+			final String archiveHash = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.sha256(Files.readString(directory.resolve("high-five-ru-conversation-execution-v2.xml")).replace("\r\n", "\n"));
+			System.arraycopy(java.util.HexFormat.of().parseHex(archiveHash), 0, archived, 6, 32);
+			PhantomAssertions.assertEquals(upgraded, codec.decode(archived), "Known committed-LF predecessor was rejected or changed numeric symbols.");
+			final byte[] unknown = oldBytes.clone();
+			unknown[6] ^= 1;
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.decode(unknown), "An unknown policy hash was accepted as v2.");
+			final PhantomConversationExecutionCatalog first = PhantomConversationExecutionCatalog.load(directory.resolve("high-five-ru-conversation-execution-v1.xml"));
+			final ExecutionReceipt firstReceipt = new ExecutionReceipt("E".repeat(64), "F".repeat(64), OutboundState.SENT, ActionState.DEFERRED, 100, "action.deferred");
+			final ExecutionState firstState = new ExecutionState(first.hash(), 100, List.of(entry), List.of(firstReceipt));
+			final ExecutionState firstUpgrade = codec.decode(new PhantomConversationExecutionCodec(first).encode(firstState));
+			PhantomAssertions.assertEquals(current.hash(), firstUpgrade.catalogHash(), "Known v1 authority was not upgraded.");
+			PhantomAssertions.assertEquals(firstState.entries(), firstUpgrade.entries(), "v1 action identity changed.");
+			PhantomAssertions.assertEquals(firstState.receipts(), firstUpgrade.receipts(), "v1 terminal receipt changed.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> codec.encode(oldState), "A current dictionary encoded a different authority hash.");
+		});
 	}
 
 	private void handoff(PhantomTestRegistry registry)
