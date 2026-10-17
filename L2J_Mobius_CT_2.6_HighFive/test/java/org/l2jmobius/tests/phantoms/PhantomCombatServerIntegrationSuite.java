@@ -723,6 +723,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.COMPANION_REAL_SUPPORT_058)
 		{
+			if (Boolean.getBoolean("phantom.test.cardinalBuff059")) { registry.add("04-native-cardinal-current-avatar-party-hp-and-mp-cost", context -> testCompanionNativeRole058(context, "combat.buff", 97)); return; }
 			if (Boolean.getBoolean("phantom.test.supportKinds059")) { registry.add("02-native-heal-label-cannot-cast-prophecy-buff", this::testNativeSupportKind059); registry.add("03-eva-current-learned-heal-addressed-effect-and-cost", context -> testCompanionNativeRole058(context, "combat.heal", 105)); return; }
 			registry.add("01-real-led-automatic-buff-effect-cost-and-leave", this::testCompanionRealSupport058);
 			return;
@@ -1659,7 +1660,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final Skill skill = SkillData.getInstance().getSkill(candidate.actionSkill().skillId(), candidate.actionSkill().skillLevel());
 				return (skill != null) && (skill.getItemConsumeId() <= 0) && (skill.getMpConsume() > 0);
 			}).findFirst().orElseThrow();
-		final int preparedRank = preferredClass == 105 && capabilityKey.equals("combat.heal") ? 33 : Set.of(Mode.LEARNED_SKILLS_058, Mode.COMPANION_GREATER_HEAL_058).contains(_mode) ? 101 : rule.actionSkill().skillLevel();
+		final int preparedRank = preferredClass == 97 && capabilityKey.equals("combat.buff") ? 6 : preferredClass == 105 && capabilityKey.equals("combat.heal") ? 33 : Set.of(Mode.LEARNED_SKILLS_058, Mode.COMPANION_GREATER_HEAL_058).contains(_mode) ? 101 : rule.actionSkill().skillLevel();
 		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), preparedRank);
 		PhantomAssertions.assertTrue(skill != null && skill.getLevel() == preparedRank, "Declared stock support rank is unavailable.");
 		// Explicit TEST preparation before the episode; no natural career or product grant claim.
@@ -1734,6 +1735,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(readiness.stream().anyMatch(capability -> capability.readyNow()), "Prepared companion has no current learned, legal support capability: " + readiness);
 			final double initialMp = _player.getCurrentMp();
 			final double targetInitialHp = human.getCurrentHp();
+			final double targetInitialMaxHp059 = human.getMaxHp();
 			final double targetInitialMp = human.getCurrentMp();
 			double minimumMp = initialMp;
 			boolean selectedCastSeen = false;
@@ -1786,6 +1788,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			context.record("companion058.support." + capabilityKey, "skill=" + skill.getId() + ':' + skill.getLevel() + "; selectedCast=" + selectedCastSeen + "; resurrectionRequested=" + resurrectionRequested + "; initialMp=" + initialMp + "; minimumMp=" + minimumMp + "; targetHp=" + targetInitialHp + "->" + human.getCurrentHp() + "; targetMp=" + targetInitialMp + "->" + human.getCurrentMp());
 			PhantomAssertions.assertTrue(effectObserved, "Real-led native support has no measured effect: " + capabilityKey + "; selectedCast=" + selectedCastSeen + "; resurrectionRequested=" + resurrectionRequested + "; hp=" + human.getCurrentHp() + "; mp=" + human.getCurrentMp());
 			PhantomAssertions.assertTrue(minimumMp < initialMp, "Automatic native support did not consume caster MP: initial=" + initialMp + "; minimum=" + minimumMp + "; final=" + _player.getCurrentMp() + "; maximum=" + _player.getMaxMp());
+			if (Boolean.getBoolean("phantom.test.cardinalBuff059")) { PhantomAssertions.assertTrue(skill.getId() == 1311 && skill.getLevel() == 6 && human.getMaxHp() > targetInitialMaxHp059 * 1.34, "Current native Avatar rank did not increase party MaxHP by35percent."); context.record("raid059.avatarEffect", "actual current1311:6; native party MaxHP="+targetInitialMaxHp059+"->"+human.getMaxHp()+"; MP="+initialMp+"->"+minimumMp+"; normal mixed-party invitation/coordinator, no direct effect/HP write inside measurement"); }
 			if (supportRequests059)
 			{
 				PhantomAssertions.assertEquals(1, nativeCasts059.get(), "Support059 duplicated a requested native cast.");

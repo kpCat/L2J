@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate)
+param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -18,6 +18,7 @@ if ($Authority) { $args059+='-Dphantom.test.commandAuthority059=true' }
 if ($BusyHold) { $args059+='-Dphantom.test.busyHold059=true' }
 if ($SupportRequests) { $args059+='-Dphantom.test.supportRequests059=true' }
 if ($SupportKinds) { if ($Mode -cne 'companion-real-support058' -or $Seed -ne 58005806) { throw 'Exact support-kind native058 mode/seed required' }; $args059+='-Dphantom.test.supportKinds059=true' }
+if ($CardinalBuff) { if ($Mode -cne 'companion-real-support058' -or $Seed -ne 58005806) { throw 'Exact Cardinal buff058 mode/seed required' }; $args059+='-Dphantom.test.cardinalBuff059=true' }
 if ($SocialContexts) { $args059+='-Dphantom.test.socialContexts059=true' }
 if ($PvpFlow) { $args059+='-Dphantom.test.pvpFlow059=true' }
 if ($PvpFlowOnly) { $args059+='-Dphantom.test.pvpFlow059=true'; $args059+='-Dphantom.test.pvpFlowOnly059=true' }
@@ -31,7 +32,11 @@ if ($KamalokaFlow) { if($Mode -cne 'instances-native058' -or $Seed -ne 58005831)
 if ($RiftFlow) { if($Mode -cne 'rift-native058' -or $Seed -ne 58005832){throw 'Exact Rift058 mode/seed required'}; $args059+='-Dphantom.test.riftFlow059=true' }
 if ($LearningJourney) { if($Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833){throw 'Exact earned-learning058 mode/seed required'}; $args059+='-Dphantom.test.learningJourney059=true' }
 Write-Output ('TEST059 '+$Label+'; mode='+$Mode+'; seed='+$Seed+'; GameSHA='+(Get-FileHash -LiteralPath $jar059).Hash)
-& 'C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot\bin\java.exe' @args059 -cp $classpath059 org.l2jmobius.tests.phantoms.PhantomTestLauncher $Mode $Seed *> $log059
-$exit059=$LASTEXITCODE
+$nativePreference059=$ErrorActionPreference
+try {
+    $ErrorActionPreference='Continue'
+    & 'C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot\bin\java.exe' @args059 -cp $classpath059 org.l2jmobius.tests.phantoms.PhantomTestLauncher $Mode $Seed *> $log059
+    $exit059=$LASTEXITCODE
+} finally {$ErrorActionPreference=$nativePreference059}
 Get-Content -LiteralPath $log059 -Tail 22
 exit $exit059
