@@ -19,6 +19,11 @@ import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.PartyInvita
 import org.l2jmobius.gameserver.model.groups.PartyInvitationDelivery.TerminalOutcome;
 import org.l2jmobius.gameserver.phantoms.PhantomDiagnosticTrace;
 import org.l2jmobius.gameserver.phantoms.PhantomMetrics;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationCatalog;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.ConversationState;
+import org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStore;
+import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticGrounding;
+import org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticPack;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.FactKind;
 import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog.Register;
@@ -68,8 +73,10 @@ public final class PhantomSocialMemory058
 
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 2) || !List.of("record", "recall", "recall-legacy").contains(args[0]) || !args[1].matches("[a-z0-9-]{1,30}") || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a record/recall and unique episode label required."); }
+		if ((args.length != 2) || !List.of("prepare059", "record", "recall", "recall-legacy").contains(args[0]) || !args[1].matches("[a-z0-9-]{1,30}") || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a record/recall and unique episode label required."); }
 		final boolean record = args[0].equals("record");
+		final boolean prepare059 = args[0].equals("prepare059");
+		final boolean production059 = Boolean.getBoolean("phantom.test.productionGrounding059");
 		final Path lane = PhantomCampaign058PersistentLane.LANE;
 		final boolean continuation = Boolean.getBoolean("phantom.test.continuation059");
 		if (args[0].equals("recall-legacy") && !continuation) { throw new IllegalArgumentException("Legacy recall requires explicit continuation evidence scope."); }
@@ -79,7 +86,8 @@ public final class PhantomSocialMemory058
 		for (int port : List.of(2138, 7838, 9138)) { try (var socket = new ServerSocket(port)) { PhantomAssertions.assertTrue(socket.isBound(), "Own058a must be stopped."); } }
 		final Path receipt = (args[0].equals("recall-legacy") ? lane : evidence).resolve("m3-social-memory.record");
 		if (record) { PhantomAssertions.assertFalse(Files.exists(receipt), "M3 recorded episode cannot be replayed."); Files.createDirectories(evidence); Files.createFile(evidence.resolve("m3-social-memory-" + args[1] + ".started")); }
-		else { PhantomAssertions.assertTrue(Files.isRegularFile(receipt), "M3 original native episode is missing."); }
+		else if (!prepare059) { PhantomAssertions.assertTrue(Files.isRegularFile(receipt), "M3 original native episode is missing."); }
+		if (prepare059) { PhantomAssertions.assertTrue(continuation && production059, "Exact TEST context preparation requires production grounding and059 evidence."); }
 		final var context = new PhantomTestContext(58005828, PhantomCampaign058PersistentLane.MODULE, evidence.resolve("reports/m3-" + args[0]));
 		PhantomCombatServerIntegrationSuite.assertCampaign058Jar(context);
 		System.out.println("M3_INPUT phase=" + args[0] + "; episode=" + args[1] + "; profile=" + PROFILE + "; human=" + HUMAN + "; " + context.measurements());
@@ -115,6 +123,18 @@ public final class PhantomSocialMemory058
 			PhantomAssertions.assertTrue(social.start(), "M3 social start failed.");
 			final var personal = PhantomPersonalConversationStore.production(profiles);
 			final var humanized = new PhantomHumanizedConversationService(PhantomHumanizedCatalog.loadV3(Path.of("data/phantoms"), true), personal, social, new PhantomHumanizedConversationService.Settings(true, Register.CASUAL, ProfanityMode.CONTEXTUAL, Variation.HIGH, false));
+			if (prepare059)
+			{
+				prepareProductionContext059(profiles, knowledge, topology, socialCatalog, evidence);
+				progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Prepared progression did not stop.");
+				return;
+			}
+			if (production059 && !record)
+			{
+				final var recovered = new PhantomPartyStore(profiles).load(PROFILE).orElseThrow().state();
+				PhantomAssertions.assertTrue(recovered.command() == null && !human.isInParty() && !companion.isInParty(), "Ordinary game restart retained an old HOLD or fabricated the previous native party.");
+				System.out.println("M3_ORDINARY_RESTART_NO_STALE_HOLD status=" + recovered.status() + "; noNativeParty=true");
+			}
 			final var backend = new L2jPhantomPartyBackend(profiles, materialization, progression);
 			party = new PhantomPartyCoordinator(new PhantomPartyStore(profiles), new PhantomGoalStateStore(profiles), backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(null, null), new PhantomPartyTactics(null, backend), () -> topology.snapshot().canonicalHash(), System::nanoTime, 32, social, () -> System.currentTimeMillis() / 60000L);
 			PhantomAssertions.assertTrue(party.start(), "M3 canonical coordinator start failed.");
@@ -124,17 +144,31 @@ public final class PhantomSocialMemory058
 			{
 				if (record)
 				{
+					final var beforeJoin059 = social.snapshot(PROFILE, subject, 24, now()).value().memories().stream().map(memory -> memory.eventId()).toList();
 					final var invited = PartyInvitationService.getInstance().invite(human, companion, PartyDistributionType.FINDERS_KEEPERS.getId());
 					for (int pulse = 0; (pulse < 128) && !human.isInParty(); pulse++) { party.onPulse(); Thread.sleep(10); }
 					PhantomAssertions.assertTrue(human.isInParty() && (human.getParty() == companion.getParty()), "M3 actual human/Phantom canonical join failed: " + invited);
 					for (int pulse = 0; pulse < 32; pulse++) { party.onPulse(); Thread.sleep(10); }
 					System.out.println("M3_CANONICAL_JOIN party=" + party.snapshot() + "; social=" + social.snapshot());
 					final var snapshot = social.snapshot(PROFILE, subject, 24, now()).value();
-					final var joined = snapshot.memories().stream().filter(memory -> memory.eventKey().equals("party.member.joined") && memory.subject().equals(subject)).findFirst().orElseThrow(() -> new AssertionError("Native joint event was not remembered for TestAdmin."));
+					final var joined = snapshot.memories().stream().filter(memory -> memory.eventKey().equals("party.member.joined") && memory.subject().equals(subject) && !beforeJoin059.contains(memory.eventId())).findFirst().orElseThrow(() -> new AssertionError("Fresh native joint event was not remembered for TestAdmin."));
 					final String reply = composition.socialMessage(human, companion, "я люблю старый рок");
 					PhantomAssertions.assertTrue(personal.load(PROFILE).isPresent(), "Delivered native statement did not persist bounded personal memory.");
-					PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().leave(human), "M3 ordinary party leave failed.");
-					party.onPulse();
+					if (production059)
+					{
+						PhantomAssertions.assertTrue(composition.command059(context, human, companion, "стой здесь", party), "M3 production-grounded HOLD was not delivered.");
+						composition.assertCommandReason059("command.holding");
+						final var held059 = new PhantomPartyStore(profiles).load(PROFILE).orElseThrow().state().command();
+						PhantomAssertions.assertTrue(held059 != null && held059.mode() == org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.CompanionMode.HOLD, "M3 HOLD was not durable before normal owner stop.");
+						Files.writeString(evidence.resolve("hold-before-normal-stop.base64"), java.util.Base64.getEncoder().encodeToString(profiles.findComponent(PROFILE, org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.COMPONENT_TYPE).orElseThrow().payload()), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+						party.beginStop(); PhantomAssertions.assertTrue(party.finishStop(), "M3 normal party owner stop did not drain.");
+						System.out.println("M3_NATIVE_HOLD_SAVED command=" + held059 + "; normalOwnerStop=true; next ordinary game boot must invalidate missing native party");
+					}
+					else
+					{
+						PhantomAssertions.assertEquals(PartyInvitationService.MembershipOutcome.COMPLETED, PartyInvitationService.getInstance().leave(human), "M3 ordinary party leave failed.");
+						party.onPulse();
+					}
 					Files.writeString(receipt, joined.eventId() + "\n" + snapshot.personality().seed() + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 					System.out.println("M3_NATIVE_RECORDED event=" + joined.eventId() + "; subject=character.object:" + HUMAN + "; response=" + reply + "; boundedComponentBytes=" + profiles.findComponent(PROFILE, PhantomPersonalConversationStore.COMPONENT_TYPE).orElseThrow().payload().length);
 				}
@@ -185,4 +219,32 @@ public final class PhantomSocialMemory058
 	}
 
 	private static long now() { return System.currentTimeMillis() / 60000L; }
+
+	/** Explicit TEST setup migration, before a new episode; never a product authority bypass. */
+	private static void prepareProductionContext059(PhantomProfileRepository profiles, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomSocialCatalog socialCatalog, Path evidence) throws Exception
+	{
+		Files.createDirectories(evidence);
+		final Path marker = evidence.resolve("production-context.prepare059");
+		PhantomAssertions.assertFalse(Files.exists(marker), "Exact TEST context preparation cannot be replayed.");
+		final var roles = PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml"));
+		final var grounding = PhantomSemanticGrounding.production(knowledge.query(), topology, roles);
+		PhantomAssertions.assertTrue(grounding.resolve(org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.SlotType.CAPABILITY, "combat.recharge").isPresent() && grounding.resolve(org.l2jmobius.gameserver.phantoms.semantic.understanding.PhantomSemanticModel.SlotType.CAPABILITY, "combat.unknown059").isEmpty(), "Production grounding omitted a catalog capability or admitted an unknown key.");
+		final var pack = PhantomSemanticPack.load(Path.of("data/phantoms/semantic/high-five-ru-semantic-v3.xml"), Path.of("data/phantoms/semantic/high-five-ru-corpus-v3.tsv"), grounding);
+		final var catalog = PhantomConversationCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-v3.xml"), Path.of("data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"));
+		final var store = new PhantomConversationStore(profiles);
+		final var before = store.load(PROFILE).orElseThrow();
+		final var old = before.state();
+		final var fixed = PhantomConversationIntegrationSuite.HASHES;
+		PhantomAssertions.assertTrue(old.knowledgeHash().equals(fixed.knowledgeHash()) && old.topologyHash().equals(fixed.topologyHash()) && old.roleHash().equals(fixed.partyRoleHash()) && old.socialHash().equals(socialCatalog.hash()), "Only the exact historical TEST grounding may be prepared; unknown authority refused.");
+		final var languageTarget = new ConversationState(catalog.hash(), pack.packHash(), pack.corpusHash(), old.knowledgeHash(), old.topologyHash(), old.roleHash(), old.socialHash(), old.logicalMinute(), List.of(), List.of());
+		final var language = catalog.upgradeLanguageState(old, languageTarget).orElseThrow();
+		final var hashes = grounding.hashes();
+		final var target = new ConversationState(catalog.hash(), pack.packHash(), pack.corpusHash(), hashes.knowledgeHash(), hashes.topologyHash(), hashes.partyRoleHash(), old.socialHash(), language.logicalMinute(), language.sessions(), language.recentObservationHashes());
+		final var component = profiles.findComponent(PROFILE, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.COMPONENT_TYPE).orElseThrow();
+		PhantomAssertions.assertEquals(before.rowVersion(), component.rowVersion(), "TEST context changed before preimage.");
+		Files.writeString(evidence.resolve("conversation-context-preimage.base64"), java.util.Base64.getEncoder().encodeToString(component.payload()), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+		final var saved = store.save(PROFILE, before.rowVersion(), target);
+		Files.writeString(marker, "profile=" + PROFILE + "; oldRow=" + before.rowVersion() + "; newRow=" + saved.rowVersion() + "; exact fixed TEST grounding -> current production grounding; personal/joint memory, skills, items, SP untouched", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+		System.out.println("M3_TEST_CONTEXT_PREPARED profile=" + PROFILE + "; oldRow=" + before.rowVersion() + "; newRow=" + saved.rowVersion() + "; productionHashes=" + hashes);
+	}
 }

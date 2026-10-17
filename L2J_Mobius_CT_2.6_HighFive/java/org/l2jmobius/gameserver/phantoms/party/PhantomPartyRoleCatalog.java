@@ -57,6 +57,11 @@ public final class PhantomPartyRoleCatalog
 		return _roles.containsKey(roleKey);
 	}
 
+	public boolean containsCapability(String capabilityKey)
+	{
+		return _roles.values().stream().anyMatch(role -> role.capabilityWeights().containsKey(capabilityKey));
+	}
+
 	public String hash()
 	{
 		return _hash;

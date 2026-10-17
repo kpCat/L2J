@@ -123,7 +123,7 @@ public final class PhantomSemanticGrounding
 				case NPC -> positiveInteger(key).filter(id -> _knowledge.findNpc(id).isPresent()).map(id -> new PhantomDomainRef("npc", Integer.toString(id)));
 				case CONTENT -> _knowledge.content(key).map(_ -> new PhantomDomainRef("content", key));
 				case TOPOLOGY_NODE, LOCATION -> _topology.findNode(key).map(_ -> new PhantomDomainRef("topology.node", key));
-				case CAPABILITY -> _knowledge.snapshot().classesByCapability().containsKey(key) ? Optional.of(new PhantomDomainRef("capability", key)) : Optional.empty();
+				case CAPABILITY -> (_knowledge.snapshot().classesByCapability().containsKey(key) || _partyRoles.containsCapability(key)) ? Optional.of(new PhantomDomainRef("capability", key)) : Optional.empty();
 				case PARTY_ROLE -> _partyRoles.contains(key) ? Optional.of(new PhantomDomainRef("party.role", key)) : Optional.empty();
 				default -> Optional.empty();
 			};
