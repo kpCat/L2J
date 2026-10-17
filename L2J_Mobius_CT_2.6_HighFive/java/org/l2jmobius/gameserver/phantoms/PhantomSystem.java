@@ -181,6 +181,7 @@ import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyStor
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationManager;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationStore;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney;
 import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
@@ -247,6 +248,7 @@ public final class PhantomSystem
 	private PhantomGameKnowledgeService _gameKnowledgeService;
 	private PhantomSemanticUnderstandingService _semanticUnderstandingService;
 	private PhantomProgressionService _progressionService;
+	private L2jPhantomLearningJourney _learningJourney;
 	private PhantomCombatService _combatService;
 	private PhantomCommerceService _commerceService;
 	private PhantomCommerceReceiptStore _commerceReceiptStore;
@@ -665,6 +667,8 @@ public final class PhantomSystem
 					throw new IllegalStateException("Phantom quest and instance service could not enter the running state.");
 				}
 				final PhantomQuestInstanceDecision questInstanceDecision = new PhantomQuestInstanceDecision(_questInstanceService);
+				_learningJourney = new L2jPhantomLearningJourney(productionGoals, _materializationService, _progressionService, _navigationService, _gameKnowledgeService::query, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
+				if (!_learningJourney.start()) { throw new IllegalStateException("Phantom learning journey could not enter the running state."); }
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
 				_farmingService = new PhantomFarmingService(farmingPolicy, new PhantomFarmingStore(productionProfiles), _acquisitionService, _topologyService, _partyCoordinator, _socialService, _settings.maxScheduledPhantomProfiles());
 				if (!_farmingService.start())
@@ -748,6 +752,7 @@ public final class PhantomSystem
 				raidDecision.registerCandidates(candidateRegistry);
 				siegeDecision.registerCandidates(candidateRegistry);
 				questInstanceDecision.registerCandidates(candidateRegistry);
+				_learningJourney.registerCandidates(candidateRegistry);
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
@@ -765,6 +770,7 @@ public final class PhantomSystem
 				raidDecision.registerHandlers(handlerRegistry);
 				siegeDecision.registerHandlers(handlerRegistry);
 				questInstanceDecision.registerHandlers(handlerRegistry);
+				_learningJourney.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, profileId -> _historicalBackgroundService.permitsDecision(profileId) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
 				_decisionEngine.start();
@@ -816,6 +822,7 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
+			if (_learningJourney != null) { _learningJourney.beginStop(); }
 			if (_questInstanceService != null)
 			{
 				_questInstanceService.beginStop();
@@ -932,7 +939,7 @@ public final class PhantomSystem
 				socialStopped = _socialService.finishStop();
 			}
 			final boolean acquisitionStopped = partyStopped && socialStopped && ((_acquisitionService == null) || _acquisitionService.finishStop());
-			final boolean questInstanceStopped = acquisitionStopped && ((_questInstanceService == null) || _questInstanceService.finishStop());
+			final boolean questInstanceStopped = acquisitionStopped && learningJourneyStopped() && ((_questInstanceService == null) || _questInstanceService.finishStop());
 			final boolean siegeStopped = questInstanceStopped && ((_siegeService == null) || _siegeService.finishStop());
 			final boolean combatStopped = siegeStopped && ((_combatService == null) || _combatService.finishStop());
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
@@ -1043,6 +1050,7 @@ public final class PhantomSystem
 				if (_populationManager != null) { _populationManager.beginStop(); }
 				if (_acquisitionService != null) { _acquisitionService.beginStop(); }
 				if (_questInstanceService != null) { _questInstanceService.beginStop(); }
+				if (_learningJourney != null) { _learningJourney.beginStop(); }
 				if (_siegeService != null) { _siegeService.beginStop(); }
 				if (_combatService != null) { _combatService.beginStop(); }
 				if (_progressionService != null) { _progressionService.beginStop(); }
@@ -1072,6 +1080,7 @@ public final class PhantomSystem
 				}
 				if ((_acquisitionService != null) && !_acquisitionService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "acquisition"); }
 				if ((_questInstanceService != null) && !_questInstanceService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "quest_instance"); }
+				if (!learningJourneyStopped()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "learning_journey"); }
 				if ((_siegeService != null) && !_siegeService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "siege"); }
 				if ((_combatService != null) && !_combatService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "combat:" + _combatService.snapshot()); }
 				if ((_commerceService != null) && !_commerceService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "commerce"); }
@@ -1272,6 +1281,7 @@ public final class PhantomSystem
 			{
 				_acquisitionService.beginStop();
 			}
+			if (_learningJourney != null) { _learningJourney.beginStop(); }
 			if (_questInstanceService != null)
 			{
 				_questInstanceService.beginStop();
@@ -1326,7 +1336,7 @@ public final class PhantomSystem
 				_state = State.FAILED;
 				return false;
 			}
-			if ((_questInstanceService != null) && !_questInstanceService.finishStop())
+			if (((_questInstanceService != null) && !_questInstanceService.finishStop()) || !learningJourneyStopped())
 			{
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
@@ -1433,6 +1443,7 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
+			if (_learningJourney != null) { _learningJourney.beginStop(); }
 			if (_questInstanceService != null)
 			{
 				_questInstanceService.beginStop();
@@ -1567,7 +1578,7 @@ public final class PhantomSystem
 				_metrics.recordShutdownFailure();
 				return false;
 			}
-			if ((_questInstanceService != null) && (_questInstanceService.snapshot().state() != PhantomQuestInstanceService.State.STOPPED) && !_questInstanceService.finishStop())
+			if (((_questInstanceService != null) && (_questInstanceService.snapshot().state() != PhantomQuestInstanceService.State.STOPPED) && !_questInstanceService.finishStop()) || !learningJourneyStopped())
 			{
 				_metrics.recordShutdownFailure();
 				return false;
@@ -1721,6 +1732,11 @@ public final class PhantomSystem
 	public synchronized PhantomQuestInstanceService questInstanceService()
 	{
 		return _questInstanceService;
+	}
+
+	private boolean learningJourneyStopped()
+	{
+		return (_learningJourney == null) || _learningJourney.finishStop();
 	}
 
 	public synchronized PhantomRaidAssemblyService raidAssembly()

@@ -185,6 +185,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeService;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomStaticManorParser;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.party.L2jPhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyCoordinator;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyFollowPolicy;
@@ -624,7 +625,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
-			registry.add("01-earned-level-paid-skills-and-separate-field-effect-persistence", this::testEarnedLearning058);
+			registry.add(Boolean.getBoolean("phantom.test.learningJourney059") ? "02-earned-field-trainer-paid-learning-native-return-and-effect" : "01-earned-level-paid-skills-and-separate-field-effect-persistence", this::testEarnedLearning058);
 			return;
 		}
 		if (_mode == Mode.NATURAL_STOP_058)
@@ -818,7 +819,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		final Path supplied = Path.of(System.getProperty("phantom.contract058.semantic.jar", PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar").toString())).toRealPath();
 		PhantomAssertions.assertTrue(campaign058JarAllowed(supplied), "TASK058 ordinary semantic JAR path is outside its exact allowlist.");
-		for (Class<?> type : List.of(Player.class, PhantomCombatService.class, PhantomPartyCoordinator.class, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService.class))
+		for (Class<?> type : List.of(Player.class, PhantomCombatService.class, PhantomPartyCoordinator.class, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationService.class, org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.class))
 		{
 			PhantomAssertions.assertEquals(supplied, Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "TASK058 composition mixes private product classes or different JARs: " + type.getName());
 		}
@@ -828,7 +829,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	static boolean campaign058JarAllowed(Path supplied)
 	{
-		return List.of(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/native-current058/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/GameServer.jar"), Path.of("D:/PhantomWorld/M2-M7-058-candidate/libs/GameServer.jar")).contains(supplied);
+		return List.of(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/native-current058/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release059/compiled/dist/libs/GameServer.jar"), Path.of("D:/PhantomWorld/M2-M7-058-candidate/libs/GameServer.jar")).contains(supplied);
 	}
 
 	private void testCompanionFarmResume058(PhantomTestContext context) throws Exception
@@ -4133,6 +4134,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private void testEarnedLearning058(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final boolean journey059 = Boolean.getBoolean("phantom.test.learningJourney059");
 		_player.setBaseClass(0); _player.setPlayerClass(0);
 		_player.getStat().setExp(_player.getStat().getExpForLevel(20) - 500); _player.getStat().setLevel((byte) 19); _player.setSp(0);
 		PhantomAssertions.assertTrue(_player.getKnownSkill(3) == null, "New Fighter already has the skill that must be paid for.");
@@ -4141,8 +4143,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		for (int id : new int[] {129, 352, 2378}) { final Item item = _player.getInventory().addItem(ItemProcessType.REWARD, id, 1, null, this); PhantomAssertions.assertTrue(item != null, "Declared owned level20 equipment input missing."); level20Equipment.add(item); }
 		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setRunning(); _player.standUp(); _player.setInvul(false); _player.setOnlineStatus(true, false);
 		_player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp()); _player.setCurrentCp(_player.getMaxCp());
-		final int x = 143214, y = 2086, z = GeoEngine.getInstance().getHeight(x, y, -600);
-		PhantomAssertions.assertTrue(GeoEngine.getInstance().hasGeo(x, y) && Math.abs(z + 600) < 64 && GeoEngine.getInstance().canMoveToTarget(x, y, z, x + 40, y, z, 0) && (ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) == null), "Declared native learned-career input point is unavailable.");
+		final var field059 = journey059 ? prepareLearningField059(context) : new PhantomNavigationPoint(143214, 2086, GeoEngine.getInstance().getHeight(143214, 2086, -600), 0);
+		final int x = field059.x(), y = field059.y(), z = field059.z();
+		PhantomAssertions.assertTrue(GeoEngine.getInstance().hasGeo(x, y) && (journey059 || Math.abs(z + 600) < 64) && GeoEngine.getInstance().canMoveToTarget(x, y, z, x + 40, y, z, 0) && (ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) == null), "Declared native learned-career input point is unavailable.");
 		placeInstanceInput058(_player, x, y, z);
 		PhantomAssertions.assertTrue(World.getInstance().getVisibleObjects(_player, Monster.class).stream().noneMatch(monster -> !monster.isDead() && (_player.calculateDistance3D(monster) < 1800)), "Declared career episode has an unrelated stock monster nearby.");
 		final long expBefore = _player.getExp();
@@ -4194,30 +4197,34 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				PhantomAssertions.assertTrue(!rows.next() && durableSp < earnedSp, "INVALID_INPUT: the declared immediate-learning episode has no unsaved earned SP.");
 			}
 		}
-		final var template = NpcData.getInstance().getTemplates(value -> "Trainer".equals(value.getType()) && value.canTeach(_player.getLearningClass())).stream().min(Comparator.comparingInt(NpcTemplate::getId)).orElseThrow();
-		final var trainer = new org.l2jmobius.gameserver.model.actor.instance.Trainer(template); trainer.spawnMe(_player.getX() + 10, _player.getY(), _player.getZ()); _player.setLastFolkNPC(trainer);
-		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
-		try
+		if (journey059) { runLearningJourney059(context, field059); }
+		else
 		{
-			for (int rank = 1; rank <= 2; rank++)
+			final var template = NpcData.getInstance().getTemplates(value -> "Trainer".equals(value.getType()) && value.canTeach(_player.getLearningClass())).stream().min(Comparator.comparingInt(NpcTemplate::getId)).orElseThrow();
+			final var trainer = new org.l2jmobius.gameserver.model.actor.instance.Trainer(template); trainer.spawnMe(_player.getX() + 10, _player.getY(), _player.getZ()); _player.setLastFolkNPC(trainer);
+			final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+			try
 			{
-				final long sp = _player.getSp();
-				final var request = new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.LearnSkillRequest(_profile.profileId(), trainer.getObjectId(), org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.AcquireKind.CLASS, 3, rank, () -> false);
-				final var result = progression.learnClassSkill(request);
-				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.SUCCESS, result.status(), "Paid native learning failed: " + result);
-				PhantomAssertions.assertEquals(sp - 50, _player.getSp(), "Stock PowerStrike learning cost differs.");
-				PhantomAssertions.assertEquals(rank, _player.getSkillLevel(3), "Actual learned rank differs.");
-				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.IDEMPOTENT, progression.learnClassSkill(request).status(), "Learning retry charged twice.");
-				PhantomAssertions.assertEquals(sp - 50, _player.getSp(), "Idempotent retry consumed SP.");
-				context.record("career058.learn" + rank, "nativeTrainer=" + trainer.getId() + "; skill3:" + rank + "; SP=" + sp + "->" + _player.getSp() + "; exact retry idempotent");
+				for (int rank = 1; rank <= 2; rank++)
+				{
+					final long sp = _player.getSp();
+					final var request = new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.LearnSkillRequest(_profile.profileId(), trainer.getObjectId(), org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.AcquireKind.CLASS, 3, rank, () -> false);
+					final var result = progression.learnClassSkill(request);
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.SUCCESS, result.status(), "Paid native learning failed: " + result);
+					PhantomAssertions.assertEquals(sp - 50, _player.getSp(), "Stock PowerStrike learning cost differs.");
+					PhantomAssertions.assertEquals(rank, _player.getSkillLevel(3), "Actual learned rank differs.");
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.IDEMPOTENT, progression.learnClassSkill(request).status(), "Learning retry charged twice.");
+					PhantomAssertions.assertEquals(sp - 50, _player.getSp(), "Idempotent retry consumed SP.");
+					context.record("career058.learn" + rank, "nativeTrainer=" + trainer.getId() + "; skill3:" + rank + "; SP=" + sp + "->" + _player.getSp() + "; exact retry idempotent");
+				}
 			}
+			finally { trainer.deleteMe(); progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Career progression owner did not drain."); }
 		}
-		finally { trainer.deleteMe(); progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Career progression owner did not drain."); }
 		// Separate, declared native-effect fixture after the completed earned/paid-learning episode.
 		// Normal return may put this actor inside a town; its Peace guard remains unchanged and was verified negative.
 		final long effectInputExp = _player.getExp(), effectInputSp = _player.getSp();
-		context.record("career058.fieldEffectInput", "SEPARATE TEST field input; beforeXYZ=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; prepared field=" + x + ',' + y + ',' + z + "; position only, no HP/MP/EXP/SP/skill/item mutation; autonomous town-to-field travel NOT claimed");
-		placeInstanceInput058(_player, x, y, z);
+		context.record("career058.fieldEffectInput", journey059 ? "SAME measured journey after product native walk return; no fixture positioning since first earned kill; actualXYZ=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() : "SEPARATE TEST field input; beforeXYZ=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; prepared field=" + x + ',' + y + ',' + z + "; position only, no HP/MP/EXP/SP/skill/item mutation; autonomous town-to-field travel NOT claimed");
+		if (!journey059) { placeInstanceInput058(_player, x, y, z); }
 		PhantomAssertions.assertTrue(!_player.isDead() && !_player.isInsideZone(ZoneId.PEACE) && (_player.getExp() == effectInputExp) && (_player.getSp() == effectInputSp) && (_player.getSkillLevel(3) == 2), "Separate effect input changed earned/paid progress or remains in Peace.");
 		final var resolver = PhantomCombatCapabilityResolver.fromGameKnowledge(() -> _query);
 		final Monster effectTarget = spawnCareerStock058(); final double hp = effectTarget.getCurrentHp(), mp = _player.getCurrentMp();
@@ -4242,6 +4249,95 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		_player = World.getInstance().getPlayer(objectId);
 		PhantomAssertions.assertTrue(_player != null && (_player.getSkillLevel(3) == 2) && (_player.getSp() == savedSp) && (_player.getExp() == savedExp), "Native identity/earned EXP/SP/paid rank changed on reload.");
 		context.record("career058.persisted", "same object=" + objectId + "; skill3:2; EXP=" + savedExp + "; SP=" + savedSp + "; native save/reload; profession20/40/76, subclass quest and noblesse NOT covered");
+	}
+
+	private PhantomNavigationPoint prepareLearningField059(PhantomTestContext context)
+	{
+		final var geo = GeoEngine.getInstance();
+		final var origin = PlayerTemplateData.getInstance().getTemplate(0).getCreationPoint();
+		final var trainers = _query.snapshot().spawnFactsByNpc().entrySet().stream().filter(entry -> { final var npc = NpcData.getInstance().getTemplate(entry.getKey()); return npc != null && "Trainer".equals(npc.getType()) && npc.canTeach(_player.getLearningClass()); }).flatMap(entry -> entry.getValue().stream()).filter(spawn -> spawn.pointKind() == SpawnPointKind.EXACT && spawn.instanceId() == 0).sorted(Comparator.comparingDouble((SpawnFact spawn) -> Math.hypot(spawn.x() - origin.getX(), spawn.y() - origin.getY())).thenComparingInt(SpawnFact::npcId)).limit(8).toList();
+		int candidates = 0, noGeo = 0, peace = 0, water = 0, corridor = 0, mobs = 0;
+		for (var trainer : trainers)
+		{
+			for (int radius : new int[] {1200,2400,3600,4800,6000})
+			{
+				for (int direction = 0; direction < 8; direction++)
+				{
+					candidates++;
+					final double angle = direction * Math.PI / 4; final int x = trainer.x() + (int) Math.round(radius * Math.cos(angle)), y = trainer.y() + (int) Math.round(radius * Math.sin(angle)), z = geo.getHeight(x, y, trainer.z());
+					if (!geo.hasGeo(x,y)) { noGeo++; continue; }
+					if (ZoneManager.getInstance().getZone(x,y,z,PeaceZone.class) != null) { peace++; continue; }
+					boolean dry = true;
+					for (int dx : new int[] {-320,0,320}) { for (int dy : new int[] {-320,0,320}) { final int surface = geo.getHeight(x+dx,y+dy,z); if (ZoneManager.getInstance().getZone(x+dx,y+dy,surface,WaterZone.class) != null) { dry = false; } } }
+					if (!dry) { water++; continue; }
+					if (!geo.canMoveToTarget(x,y,z,x+40,y,z,0)) { corridor++; continue; }
+					placeInstanceInput058(_player, x, y, z);
+					if (_player.isInsideZone(ZoneId.WATER)) { water++; continue; }
+					if (World.getInstance().getVisibleObjects(_player, Monster.class).stream().anyMatch(monster -> !monster.isDead() && _player.calculateDistance3D(monster) < 1800)) { mobs++; continue; }
+					PhantomAssertions.assertTrue(!_player.isInCombat() && !_player.isDead() && _player.getCurrentHp() >= _player.getMaxHp() * .95, "INVALID_INPUT: native interference during premeasurement field preparation.");
+					context.record("career059.declaredField", "PREMEASUREMENT TEST input only; finite candidates=" + candidates + "/320; stock Trainer=" + trainer.npcId() + '@' + trainer.x() + ',' + trainer.y() + ',' + trainer.z() + "; outsidePeace field=" + x + ',' + y + ',' + z + "; native local Geo corridor; no unrelated Monster1800; actual outbound/return path proof belongs to product Navigation; no fixture position writes after first earned kill");
+					return new PhantomNavigationPoint(x,y,z,0);
+				}
+			}
+		}
+		context.record("career059.fieldInputRejected","trainers="+trainers.stream().map(value->value.npcId()+"@"+value.x()+','+value.y()+','+value.z()).toList()+"; candidates="+candidates+"; noGeo="+noGeo+"; peace="+peace+"; water="+water+"; corridor="+corridor+"; mobs="+mobs);
+		throw new AssertionError("BLOCKED_NATIVE_FIELD_INPUT: no bounded teachable Trainer/field corridor without unrelated stock mobs.");
+	}
+
+	private void runLearningJourney059(PhantomTestContext context, PhantomNavigationPoint field) throws Exception
+	{
+		context.record("career059.nativeRouteInput", "actor="+_player.getX()+','+_player.getY()+','+_player.getZ()+"; field="+field+"; water="+_player.isInsideZone(ZoneId.WATER)+"; sourceTrainers="+_query.snapshot().spawnFactsByNpc().entrySet().stream().filter(entry->{final var npc=NpcData.getInstance().getTemplate(entry.getKey());return npc!=null&&"Trainer".equals(npc.getType())&&npc.canTeach(_player.getLearningClass());}).flatMap(entry->entry.getValue().stream()).filter(value->value.pointKind()==SpawnPointKind.EXACT&&value.instanceId()==0).sorted(Comparator.comparingDouble((SpawnFact value)->_player.calculateDistance3D(value.x(),value.y(),value.z()))).limit(3).toList()+"; visibleTrainers="+World.getInstance().getVisibleObjects(_player,Npc.class).stream().filter(npc->"Trainer".equals(npc.getTemplate().getType())&&npc.getTemplate().canTeach(_player.getLearningClass())).sorted(Comparator.comparingDouble((Npc npc)->_player.calculateDistance3D(npc))).limit(3).map(npc->npc.getId()+"@"+npc.getX()+','+npc.getY()+','+npc.getZ()).toList());
+		final var goals = new PhantomGoalStateStore(_repository);
+		final var goal = new PhantomGoal(58005833059L, "skill.learn", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("skill", "3:2"), 1, 0, null, List.of(), null, "learning.explicit", 500, 0, 0, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(8), Map.of("class.id",0L,"class.index",0L,"field.x",(long)field.x(),"field.y",(long)field.y(),"field.z",(long)field.z(),"field.instance",0L), "task059.earned_learning", 0);
+		goals.insert(_profile.profileId(), goal);
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+		final var navigation = new PhantomNavigationService(new PhantomMetrics()); PhantomAssertions.assertTrue(navigation.start(), "Learning journey Navigation did not start.");
+		var journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals,_materialization,progression,navigation,()->_query,profile->true);
+		PhantomAssertions.assertTrue(journey.start(), "Learning journey did not start.");
+		final long initialSp = _player.getSp(); boolean reconstructed = false; double walked = 0, maximumFieldDistance = 0; int lastX = _player.getX(), lastY = _player.getY(), lastZ = _player.getZ(), reportedRank = 0; long nextReport = 0;
+		try
+		{
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.CANCELLED, journey.advance(_profile.profileId(),goal,()->true,System.nanoTime()).type(), "Cancelled journey issued native work.");
+			final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal();
+			final var candidate = candidates.snapshot().getFirst();
+			PhantomAssertions.assertTrue(candidate.supportedGoalTypes().contains("skill.learn"), "Actual registered candidate lost explicit learning intent.");
+			final var plan = candidate.planFactory().create(new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(),goal,org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(),PhantomActivityState.ACTIVE,System.nanoTime(),1));
+			var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
+			final long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(5);
+			org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult result = null;
+			while (System.nanoTime() < deadline)
+			{
+				PhantomAssertions.assertTrue(!_player.isDead() && !_player.isTeleporting(), "Measured native learning journey died or teleported.");
+				final long now = System.nanoTime();
+				result = handlers.snapshot().get("learning.journey").execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(),goal,plan,plan.steps().getFirst(),PhantomActivityState.ACTIVE,now,1,()->false));
+				walked += Math.sqrt(Math.pow(_player.getX()-lastX,2)+Math.pow(_player.getY()-lastY,2)+Math.pow(_player.getZ()-lastZ,2)); lastX=_player.getX();lastY=_player.getY();lastZ=_player.getZ(); maximumFieldDistance=Math.max(maximumFieldDistance,_player.calculateDistance3D(field.x(),field.y(),field.z()));
+				if (now >= nextReport || reportedRank != _player.getSkillLevel(3)) { reportedRank = _player.getSkillLevel(3); System.out.println("LEARN059_PROGRESS phase="+result+"; xyz="+lastX+','+lastY+','+lastZ+"; rank="+reportedRank+"; SP="+_player.getSp()+"; walked="+walked);System.out.flush();nextReport=now+TimeUnit.SECONDS.toNanos(10); }
+				if (result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.FAIL_GOAL) { context.record("career059.terminalNativeFacts", "xyz="+lastX+','+lastY+','+lastZ+"; moving="+_player.isMoving()+"; sitting="+_player.isSitting()+"; water="+_player.isInsideZone(ZoneId.WATER)+"; trainerFacts="+World.getInstance().getVisibleObjects(_player,Npc.class).stream().filter(npc->"Trainer".equals(npc.getTemplate().getType())&&npc.getTemplate().canTeach(_player.getLearningClass())).sorted(Comparator.comparingDouble((Npc npc)->_player.calculateDistance3D(npc))).limit(3).map(npc->npc.getId()+"@"+npc.getX()+','+npc.getY()+','+npc.getZ()+"/distance="+_player.calculateDistance3D(npc)+"/interact="+npc.canInteract(_player)).toList()); }
+				PhantomAssertions.assertTrue(result.type() != org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.FAIL_GOAL && result.type() != org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.CANCELLED, "Registered learning owner rejected the declared native journey: "+result);
+				if (!reconstructed && _player.getSkillLevel(3) == 1)
+				{
+					PhantomAssertions.assertEquals(initialSp-50,_player.getSp(),"First paid rank spent incorrect SP.");
+					journey.beginStop();PhantomAssertions.assertTrue(journey.finishStop(),"Learning adapter did not drain after first committed rank.");
+					journey=new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals,_materialization,progression,navigation,()->_query,profile->true);PhantomAssertions.assertTrue(journey.start(),"Reconstructed learning adapter did not start.");
+					handlers=new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry();journey.registerHandlers(handlers);handlers.seal();reconstructed=true;
+					context.record("career059.adapterResume","same durable explicit goal/native paid rank1; adapter reconstructed without Player save/reload/position or SP writes; next rank must charge once");
+				}
+				if (result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL) { break; }
+				Thread.sleep(100);
+			}
+			PhantomAssertions.assertTrue(result != null && result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL && reconstructed && walked > 500 && maximumFieldDistance > 300 && _player.getSkillLevel(3)==2 && !_player.isInsideZone(ZoneId.PEACE) && _player.calculateDistance3D(field.x(),field.y(),field.z()) <= navigation.arrivalRadius(), "Full native field/trainer/return journey did not complete its declared bounds.");
+			PhantomAssertions.assertEquals(initialSp-100,_player.getSp(),"Native two-rank journey cost differs or reconstruction charged twice.");
+			for(int repeat=0;repeat<3;repeat++){PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL,journey.advance(_profile.profileId(),goal,()->false,System.nanoTime()).type(),"Terminal journey retry did not preserve native learned truth.");}
+			PhantomAssertions.assertEquals(initialSp-100,_player.getSp(),"Terminal journey replay consumed SP.");
+			PhantomAssertions.assertTrue(waitFor(()->!_player.isMoving(),10_000),"Native return movement did not settle.");
+			context.record("career059.journeyResult","actual registered candidate/handler; native walk distance="+walked+"; max field separation="+maximumFieldDistance+"; current rank3:2; native SP="+initialSp+"->"+_player.getSp()+"; adapter reconstruction/terminal retry no extra charge; returned outsidePeace; no manual positioning inside measured episode; generic auto-career goal generation/professions/Noblesse not covered");
+		}
+		finally
+		{
+			journey.beginStop();PhantomAssertions.assertTrue(journey.finishStop(),"Learning journey did not drain.");
+			progression.beginStop();PhantomAssertions.assertTrue(progression.finishStop(),"Learning progression did not drain.");
+			navigation.beginStop();final long stop=System.nanoTime()+TimeUnit.SECONDS.toNanos(20);while(!navigation.finishStop()&&System.nanoTime()<stop){Thread.sleep(20);}PhantomAssertions.assertEquals(PhantomNavigationService.ServiceState.STOPPED,navigation.snapshot().state(),"Learning Navigation did not drain.");
+		}
 	}
 
 	private Monster spawnCareerStock058() throws ReflectiveOperationException

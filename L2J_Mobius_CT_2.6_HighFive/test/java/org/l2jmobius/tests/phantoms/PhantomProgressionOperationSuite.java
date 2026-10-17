@@ -3,7 +3,13 @@
  */
 package org.l2jmobius.tests.phantoms;
 
+import java.util.List;
 import java.util.Map;
+
+import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney;
 
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.AcquireKind;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipItemRequest;
@@ -26,7 +32,7 @@ public final class PhantomProgressionOperationSuite implements PhantomTestSuite
 	@Override
 	public void beforeAll(PhantomTestContext context)
 	{
-		context.record("progressionOperations.cases", CASES);
+		context.record("progressionOperations.cases", CASES + 1);
 	}
 
 	@Override
@@ -37,6 +43,26 @@ public final class PhantomProgressionOperationSuite implements PhantomTestSuite
 			final int test = i;
 			registry.add(String.format("%02d-operation-contract", i + 1), _ -> assertCase(test));
 		}
+		registry.add("37-learning-journey-requires-exact-class-field-and-skill-intent", _ ->
+		{
+			final Map<String, Long> valid = Map.of("class.id", 0L, "class.index", 0L, "field.x", 100L, "field.y", 200L, "field.z", -300L, "field.instance", 0L);
+			PhantomAssertions.assertTrue(L2jPhantomLearningJourney.request(learningGoal("skill.learn", "skill", "3:2", valid)).isPresent(), "Exact class-bound learning journey was rejected.");
+			for (String changed : List.of("class.index", "field.instance", "field.z"))
+			{
+				final Map<String, Long> invalid = new java.util.HashMap<>(valid); invalid.put(changed, changed.equals("class.index") ? 4L : changed.equals("field.instance") ? 1L : Long.MAX_VALUE);
+				PhantomAssertions.assertTrue(L2jPhantomLearningJourney.request(learningGoal("skill.learn", "skill", "3:2", invalid)).isEmpty(), "Unsafe journey input accepted: " + changed);
+			}
+			final Map<String, Long> missing = new java.util.HashMap<>(valid); missing.remove("class.id");
+			PhantomAssertions.assertTrue(L2jPhantomLearningJourney.request(learningGoal("skill.learn", "skill", "3:2", missing)).isEmpty(), "Unbound class journey accepted.");
+			PhantomAssertions.assertTrue(L2jPhantomLearningJourney.request(learningGoal("quest.play", "skill", "3:2", valid)).isEmpty(), "Foreign goal entered learning journey.");
+			PhantomAssertions.assertTrue(L2jPhantomLearningJourney.request(learningGoal("skill.learn", "world.object", "3:2", valid)).isEmpty(), "Trainer identity replaced the explicit skill target.");
+			PhantomAssertions.assertTrue(L2jPhantomLearningJourney.request(learningGoal("skill.learn", "skill", "3:0", valid)).isEmpty(), "Invalid rank accepted.");
+		});
+	}
+
+	private static PhantomGoal learningGoal(String type, String namespace, String key, Map<String, Long> constraints)
+	{
+		return new PhantomGoal(5901, type, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "1"), new PhantomDomainRef(namespace, key), 1, 0, null, List.of(), null, "learning.explicit", 500, 0, 0, System.currentTimeMillis() + 600_000, constraints, "learning.explicit", 0);
 	}
 
 	private void assertCase(int test)

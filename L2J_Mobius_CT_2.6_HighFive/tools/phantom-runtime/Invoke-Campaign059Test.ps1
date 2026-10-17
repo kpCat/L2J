@@ -1,11 +1,11 @@
-param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow)
+param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
 if ($Mode -cnotmatch '^[a-z0-9-]+$' -or $Label -cnotmatch '^[a-z0-9-]+$' -or $Seed -le 0) { throw 'Invalid exact test arguments' }
 if ((Get-Location).Path -ine (Join-Path $hf059 '.phantom-local/contract058t/runtime/game')) { throw 'Exact058t native cwd required' }
 if (Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object CommandLine -Match 'contract058[at]|task059|M[12].*05[78]-candidate') { throw 'Another058/059/protected JVM active; sequential only' }
-$build059=Join-Path $hf059 '.phantom-local/contract058a/task059/build'
+$build059=Join-Path $hf059 $(if($CleanCandidate){'.phantom-local/contract058a/build/release059/compiled'}else{'.phantom-local/contract058a/task059/build'})
 $jar059=Join-Path $build059 'dist/libs/GameServer.jar'
 $report059=Join-Path $hf059 ('.phantom-local/contract058t/reports/task059/'+$Label)
 $log059=Join-Path $hf059 ('.phantom-local/contract058a/task059/'+$Label+'.log')
@@ -29,6 +29,7 @@ if ($RaidMinionGuard) { $args059+='-Dphantom.test.raidMinionGuard059=true' }
 if ($RaidTriggerGuard) { $args059+='-Dphantom.test.raidTriggerGuard059=true' }
 if ($KamalokaFlow) { if($Mode -cne 'instances-native058' -or $Seed -ne 58005831){throw 'Exact Kamaloka058 mode/seed required'}; $args059+='-Dphantom.test.kamalokaFlow059=true' }
 if ($RiftFlow) { if($Mode -cne 'rift-native058' -or $Seed -ne 58005832){throw 'Exact Rift058 mode/seed required'}; $args059+='-Dphantom.test.riftFlow059=true' }
+if ($LearningJourney) { if($Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833){throw 'Exact earned-learning058 mode/seed required'}; $args059+='-Dphantom.test.learningJourney059=true' }
 Write-Output ('TEST059 '+$Label+'; mode='+$Mode+'; seed='+$Seed+'; GameSHA='+(Get-FileHash -LiteralPath $jar059).Hash)
 & 'C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot\bin\java.exe' @args059 -cp $classpath059 org.l2jmobius.tests.phantoms.PhantomTestLauncher $Mode $Seed *> $log059
 $exit059=$LASTEXITCODE
