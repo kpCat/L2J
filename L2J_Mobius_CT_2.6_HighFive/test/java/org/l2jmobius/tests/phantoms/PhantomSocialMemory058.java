@@ -73,9 +73,9 @@ public final class PhantomSocialMemory058
 
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 2) || !List.of("prepare059", "record", "recall", "recall-legacy").contains(args[0]) || !args[1].matches("[a-z0-9-]{1,30}") || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a record/recall and unique episode label required."); }
+		if ((args.length != 2) || !List.of("prepare059", "prepare-raid059", "record", "recall", "recall-legacy").contains(args[0]) || !args[1].matches("[a-z0-9-]{1,30}") || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a record/recall and unique episode label required."); }
 		final boolean record = args[0].equals("record");
-		final boolean prepare059 = args[0].equals("prepare059");
+		final boolean prepare059 = args[0].equals("prepare059") || args[0].equals("prepare-raid059");
 		final boolean production059 = Boolean.getBoolean("phantom.test.productionGrounding059");
 		final Path lane = PhantomCampaign058PersistentLane.LANE;
 		final boolean continuation = Boolean.getBoolean("phantom.test.continuation059");
@@ -125,7 +125,8 @@ public final class PhantomSocialMemory058
 			final var humanized = new PhantomHumanizedConversationService(PhantomHumanizedCatalog.loadV3(Path.of("data/phantoms"), true), personal, social, new PhantomHumanizedConversationService.Settings(true, Register.CASUAL, ProfanityMode.CONTEXTUAL, Variation.HIGH, false));
 			if (prepare059)
 			{
-				prepareProductionContext059(profiles, knowledge, topology, socialCatalog, evidence);
+				if (args[0].equals("prepare-raid059")) { prepareRaidKnowledgeContext059(profiles, knowledge, topology, socialCatalog, evidence); }
+				else { prepareProductionContext059(profiles, knowledge, topology, socialCatalog, evidence); }
 				progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Prepared progression did not stop.");
 				return;
 			}
@@ -219,6 +220,64 @@ public final class PhantomSocialMemory058
 	}
 
 	private static long now() { return System.currentTimeMillis() / 60000L; }
+
+	/** Exact additive catalog generation migration for stopped cumulative058a; unknown old authority is refused. */
+	private static void prepareRaidKnowledgeContext059(PhantomProfileRepository profiles, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomSocialCatalog socialCatalog, Path evidence) throws Exception
+	{
+		Files.createDirectories(evidence);
+		final Path marker = evidence.resolve("production-context.prepare-raid059");
+		PhantomAssertions.assertFalse(Files.exists(marker), "Known catalog generation migration cannot be replayed.");
+		final Path curated = Path.of("data/phantoms/knowledge");
+		try (var files = Files.list(curated))
+		{
+			PhantomAssertions.assertEquals(java.util.Set.of("high-five-core-v1.xml", "high-five-supported-raids-v1.xml"), files.filter(Files::isRegularFile).map(path -> path.getFileName().toString()).collect(java.util.stream.Collectors.toSet()), "Unexpected curated source set; exact migration refused.");
+		}
+		final byte[] core = Files.readAllBytes(curated.resolve("high-five-core-v1.xml"));
+		PhantomAssertions.assertEquals("CE11D37497D9B7FD4410A4A405F21BBF0A61A9D9C51D81E2D50A356ACE499915", java.util.HexFormat.of().withUpperCase().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(core)), "Historical core source differs; no blind knowledge rewrite.");
+		final byte[] previousCore = Files.readAllBytes(PhantomCampaign058PersistentLane.LANE.resolve("task059/preimages/6D11AA8CD9F468EEDF5A9A192CE30359A7D3F82361629D24277F4EE9E33C8CB3/.phantom-local/contract058a/runtime/game/data/phantoms/knowledge/high-five-core-v1.xml"));
+		PhantomAssertions.assertEquals("6D11AA8CD9F468EEDF5A9A192CE30359A7D3F82361629D24277F4EE9E33C8CB3", java.util.HexFormat.of().withUpperCase().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(previousCore)), "Exact prior runtime core preimage differs.");
+		final Path prior = evidence.resolve("prior-curated-knowledge"); Files.createDirectory(prior);
+		Files.write(prior.resolve("high-five-core-v1.xml"), previousCore, StandardOpenOption.CREATE_NEW);
+		final var policy = PhantomGameKnowledgePolicy.productionDefaults();
+		final var previousKnowledge = new PhantomGameKnowledgeBuilder(new L2jGameKnowledgeBackend(), new PhantomStaticManorParser(Path.of("data/Seeds.xml"), policy), new PhantomCuratedKnowledgeParser(prior, new L2jGameKnowledgeBackend(), policy), topology, policy).build();
+		final String previousHash = previousKnowledge.combinedHash().toUpperCase(java.util.Locale.ROOT);
+		PhantomAssertions.assertEquals("4CB63B307250E3DE3DA97935368C0D0574642AA3420BDA3969752949724D3027", previousHash, "Native reconstruction of the exact prior knowledge generation failed.");
+		final var roles = PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml"));
+		final var grounding = PhantomSemanticGrounding.production(knowledge.query(), topology, roles);
+		final var hashes = grounding.hashes();
+		final var pack = PhantomSemanticPack.load(Path.of("data/phantoms/semantic/high-five-ru-semantic-v3.xml"), Path.of("data/phantoms/semantic/high-five-ru-corpus-v3.tsv"), grounding);
+		final var catalog = PhantomConversationCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-v3.xml"), Path.of("data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"));
+		final var store = new PhantomConversationStore(profiles);
+		final var inventory = profiles.listManagedAfter(org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.COMPONENT_TYPE, 0, 256);
+		PhantomAssertions.assertTrue(inventory.size() < 256, "Conversation inventory exceeds this exact migration bound.");
+		for (var item : inventory)
+		{
+			final var state = store.load(item.profile().profileId()).orElseThrow().state();
+			System.out.println("M3_CONTEXT_INVENTORY profile=" + item.profile().profileId() + "; knowledge=" + state.knowledgeHash() + "; mutationAllowed=" + (item.profile().profileId() == PROFILE));
+		}
+		final var before = store.load(PROFILE).orElseThrow(); final var old = before.state();
+		final var executionCatalog = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v4.xml"));
+		new org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore(profiles, executionCatalog).load(PROFILE).ifPresent(value ->
+		{
+			System.out.println("M3_EXECUTION_INVENTORY catalog=" + value.state().catalogHash() + "; entries=" + value.state().entries().size() + "; receipts=" + value.state().receipts().size());
+			PhantomAssertions.assertTrue(value.state().entries().stream().allMatch(entry -> entry.terminal()), "Pending execution must reach its existing native lifecycle boundary before knowledge migration.");
+		});
+		PhantomAssertions.assertTrue(old.knowledgeHash().equals(previousHash) && old.topologyHash().equals(hashes.topologyHash()) && old.roleHash().equals(hashes.partyRoleHash()) && old.socialHash().equals(socialCatalog.hash()) && !old.knowledgeHash().equals(hashes.knowledgeHash()), "Only the reconstructed prior world generation may be migrated.");
+		final var languageTarget = new ConversationState(catalog.hash(), pack.packHash(), pack.corpusHash(), old.knowledgeHash(), old.topologyHash(), old.roleHash(), old.socialHash(), old.logicalMinute(), List.of(), List.of());
+		final var language = catalog.upgradeLanguageState(old, languageTarget).orElseThrow();
+		final var target = new ConversationState(catalog.hash(), pack.packHash(), pack.corpusHash(), hashes.knowledgeHash(), hashes.topologyHash(), hashes.partyRoleHash(), old.socialHash(), language.logicalMinute(), language.sessions(), language.recentObservationHashes());
+		final var protectedComponents = new java.util.LinkedHashMap<String,byte[]>();
+		for (String type : List.of(PhantomSocialModel.COMPONENT_TYPE, PhantomPersonalConversationStore.COMPONENT_TYPE, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionModel.COMPONENT_TYPE)) { profiles.findComponent(PROFILE, type).ifPresent(value -> protectedComponents.put(type, value.payload())); }
+		final var component = profiles.findComponent(PROFILE, org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationModel.COMPONENT_TYPE).orElseThrow();
+		PhantomAssertions.assertEquals(before.rowVersion(), component.rowVersion(), "Conversation changed before migration preimage.");
+		Files.writeString(evidence.resolve("conversation-context-preimage.base64"), java.util.Base64.getEncoder().encodeToString(component.payload()), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+		final var saved = store.save(PROFILE, before.rowVersion(), target);
+		for (var entry : protectedComponents.entrySet()) { PhantomAssertions.assertTrue(java.util.Arrays.equals(entry.getValue(), profiles.findComponent(PROFILE, entry.getKey()).orElseThrow().payload()), "Migration changed memory or execution receipts: " + entry.getKey()); }
+		PhantomAssertions.assertEquals(old.recentObservationHashes(), saved.state().recentObservationHashes(), "Migration lost inbound replay protection.");
+		PhantomAssertions.assertEquals(old.sessions().size(), saved.state().sessions().size(), "Migration lost counterpart sessions.");
+		Files.writeString(marker, "profile=" + PROFILE + "; oldRow=" + before.rowVersion() + "; newRow=" + saved.rowVersion() + "; reconstructedOldKnowledge=" + previousKnowledge.combinedHash() + "; current=" + hashes + "; memory/execution unchanged; replay/cooldowns retained; pending cleared", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+		System.out.println("M3_KNOWN_GENERATION_MIGRATED " + Files.readString(marker));
+	}
 
 	/** Explicit TEST setup migration, before a new episode; never a product authority bypass. */
 	private static void prepareProductionContext059(PhantomProfileRepository profiles, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomSocialCatalog socialCatalog, Path evidence) throws Exception

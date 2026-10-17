@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][ValidateSet('prepare059','record','recall','recall-legacy')][string]$Phase,[Parameter(Mandatory=$true)][ValidatePattern('^[a-z0-9-]{1,30}$')][string]$Episode,[Parameter(Mandatory=$true)][ValidatePattern('^[a-z0-9-]{1,60}$')][string]$Label,[switch]$ProductionGrounding)
+param([Parameter(Mandatory=$true)][ValidateSet('prepare059','prepare-raid059','record','recall','recall-legacy')][string]$Phase,[Parameter(Mandatory=$true)][ValidatePattern('^[a-z0-9-]{1,30}$')][string]$Episode,[Parameter(Mandatory=$true)][ValidatePattern('^[a-z0-9-]{1,60}$')][string]$Label,[switch]$ProductionGrounding)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
