@@ -88,6 +88,7 @@ try {
 } finally {$env:PATH=$savedPath}
 New-Item -ItemType Directory -Path $output | Out-Null
 Copy-Item -Path (Join-Path $cleanModule 'dist/*') -Destination $output -Recurse
+if ($Profile -ceq 'Campaign059') {Copy-Item -LiteralPath (Join-Path $cleanModule 'dist/START_HERE_059_RU.md') -Destination (Join-Path $output 'START_HERE_RU.md') -Force}
 $tools=Join-Path $output 'tools'; New-Item -ItemType Directory -Path $tools | Out-Null
 foreach ($name in @('Runtime.ps1','Verify-M1.ps1','RequestShutdown.java','RuntimeShutdownAgent.java','RuntimeDatabaseCheck.java','RuntimeCampaign058Guard.java','Campaign058Ownership.ps1','runtime.local.ini.template')) {
     Copy-Item -LiteralPath (Join-Path $cleanModule "tools/phantom-runtime/$name") -Destination $tools
@@ -147,7 +148,7 @@ $loginHash=(Get-FileHash (Join-Path $output 'libs/LoginServer.jar')).Hash
 $configurationHashes=@(foreach ($role in @('game','login')) {Get-ChildItem -LiteralPath (Join-Path $output "$role/config") -Recurse -File | Sort-Object FullName | ForEach-Object {[ordered]@{path=$_.FullName.Substring($output.Length+1).Replace('\','/');sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}}})
 $operatorHashes=@(Get-ChildItem -LiteralPath $tools -File | Sort-Object Name | ForEach-Object {[ordered]@{path='tools/'+$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
 if ($Profile -ceq 'Campaign059') {
-    foreach($name059 in @('LocalPlay-Ownership.ps1','LocalPlay-Pilot.ps1','LocalPlay-AtomicRename.cs','Invoke-LocalPlayPilot.ps1','Stop-LocalPlayPilot.ps1','START.cmd','STATUS.cmd','STOP.cmd')) {$operatorHashes += [ordered]@{path=$name059;sha256=(Get-FileHash -LiteralPath (Join-Path $output $name059)).Hash}}
+    foreach($name059 in @('LocalPlay-Ownership.ps1','LocalPlay-Pilot.ps1','LocalPlay-AtomicRename.cs','Invoke-LocalPlayPilot.ps1','Stop-LocalPlayPilot.ps1','START.cmd','STATUS.cmd','STOP.cmd','START_HERE_RU.md')) {$operatorHashes += [ordered]@{path=$name059;sha256=(Get-FileHash -LiteralPath (Join-Path $output $name059)).Hash}}
 }
 [ordered]@{format=1;codeCommit=$commit;trackedInputSha256=(Get-FileHash $archive).Hash;gameJarSha256=$gameHash;loginJarSha256=$loginHash;shutdownJarSha256=(Get-FileHash (Join-Path $tools 'runtime-shutdown.jar')).Hash;registrationSha256=(Get-FileHash $RegistrationFile).Hash;initialConfiguration=$configurationHashes;operatorInputs=$operatorHashes;externalGeodata=$geoHashes;createdUtc=[DateTime]::UtcNow.ToString('o');toolchain='Java25 / Ant / Windows PowerShell5.1';m1Status='OPEN';personalAcceptance='REQUIRED'} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $output 'BUILD_INFO.json') -Encoding UTF8
 [ordered]@{format=1;updatedUtc=[DateTime]::UtcNow.ToString('o');codeCommit=$commit;gameJarSha256=$gameHash;taskResult='IN_PROGRESS';m1='OPEN';readyForM2=$false;serverGates='PENDING';personalAcceptance='REQUIRED'} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'ACCEPTANCE_STATUS.json') -Encoding UTF8
