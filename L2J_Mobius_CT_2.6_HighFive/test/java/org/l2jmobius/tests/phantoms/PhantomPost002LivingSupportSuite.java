@@ -151,6 +151,31 @@ public final class PhantomPost002LivingSupportSuite implements PhantomTestSuite
 			backend.capabilities.put(202, List.of(new MemberCapability("combat.heal", "heal", 100, 1001, 1, "SINGLE_TARGET", true, true, false, "not.ready", 100, "post002.fixture")));
 			PhantomAssertions.assertFalse(tactics.plan(actor, List.of(actor, human), Map.of(actor, snapshot(actor, 100, 100, false), human, snapshot(human, 75, 100, false, List.of(303)))).stream().anyMatch(value -> value.kind() == DirectiveKind.HEAL_MEMBER), "Early heal bypassed current native readiness.");
 		});
+		registry.add("08-critical-member-outranks-less-urgent-target-with-current-high-rank", context ->
+		{
+			final MemberRef actor = MemberRef.phantom(1, 101);
+			final MemberRef tank = MemberRef.phantom(2, 102);
+			final MemberRef human = MemberRef.real(202);
+			final FakeBackend backend = new FakeBackend();
+			final MemberCapability heal = new MemberCapability("combat.heal", "current-heal", 1000, 1217, 33, "SINGLE_TARGET", true, true, true, "ready", 10000, "post002.fixture");
+			backend.capabilities.put(102, List.of(heal));
+			backend.capabilities.put(202, List.of(heal, new MemberCapability("combat.buff", "high-rank-buff", 1000, 1068, 3, "PARTY", true, true, true, "ready", 10000, "post002.fixture")));
+			final var directives = new PhantomPartyTactics(null, backend, policy(context)).plan(actor, List.of(actor, tank, human), Map.of(actor, snapshot(actor, 100, 100, false), tank, snapshot(tank, 65, 100, false, List.of(303)), human, snapshot(human, 20, 100, false, List.of(304))));
+			PhantomAssertions.assertEquals(human, directives.getFirst().targetMember(), "High-rank capability saturation replaced critical HP urgency with object-ID order.");
+			PhantomAssertions.assertEquals(DirectiveKind.HEAL_MEMBER, directives.getFirst().kind(), "Urgent healing lost its support priority.");
+		});
+		registry.add("09-healthy-first-buff-does-not-starve-another-ready-effect", context ->
+		{
+			final MemberRef actor = MemberRef.phantom(1, 101);
+			final MemberRef human = MemberRef.real(202);
+			final FakeBackend backend = new FakeBackend();
+			backend.capabilities.put(202, List.of(new MemberCapability("combat.buff", "first", 1000, 1068, 3, "PARTY", true, true, true, "ready", 10000, "post002.fixture"), new MemberCapability("combat.buff", "second", 900, 1040, 3, "PARTY", true, true, true, "ready", 9000, "post002.fixture")));
+			backend.effectStatuses.put(1068, Status.HEALTHY);
+			final var directives = new PhantomPartyTactics(null, backend, policy(context)).plan(actor, List.of(actor, human), Map.of(actor, snapshot(actor, 100, 100, false), human, snapshot(human, 100, 100, false)));
+			PhantomAssertions.assertTrue(directives.stream().anyMatch(value -> value.kind() == DirectiveKind.PARTY_SUPPORT && value.actionSkillId() == 1040), "Healthy first buff hid a different missing native effect.");
+			PhantomAssertions.assertFalse(directives.stream().anyMatch(value -> value.actionSkillId() == 1068), "Healthy first buff was redundantly admitted.");
+			PhantomAssertions.assertTrue(directives.stream().filter(value -> value.kind() == DirectiveKind.PARTY_SUPPORT).count() <= 2, "Variant coverage bypassed maintenance bounds.");
+		});
 	}
 
 	private static void conversation(PhantomTestRegistry registry)
@@ -229,6 +254,7 @@ public final class PhantomPost002LivingSupportSuite implements PhantomTestSuite
 	private static final class FakeBackend implements PhantomPartyBackend
 	{
 		private final Map<Integer, List<MemberCapability>> capabilities = new HashMap<>();
+		private final Map<Integer, Status> effectStatuses = new HashMap<>();
 		private Status effectStatus = Status.MISSING;
 
 		@Override public OptionalLong managedProfileId(int characterObjectId) { return OptionalLong.empty(); }
@@ -241,7 +267,7 @@ public final class PhantomPost002LivingSupportSuite implements PhantomTestSuite
 		@Override public Optional<PartySnapshot> observe(MemberRef member) { return Optional.empty(); }
 		@Override public Optional<MemberSnapshot> memberSnapshot(MemberRef member) { return Optional.empty(); }
 		@Override public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId) { return capabilities.getOrDefault(exactTargetObjectId, List.of()); }
-		@Override public Status supportEffectStatus(MemberRef actor, int exactTargetObjectId, MemberCapability capability, int rebuffRemainingSeconds) { return effectStatus; }
+		@Override public Status supportEffectStatus(MemberRef actor, int exactTargetObjectId, MemberCapability capability, int rebuffRemainingSeconds) { return effectStatuses.getOrDefault(capability.actionSkillId(), effectStatus); }
 		@Override public boolean materialize(long profileId) { return false; }
 	}
 }

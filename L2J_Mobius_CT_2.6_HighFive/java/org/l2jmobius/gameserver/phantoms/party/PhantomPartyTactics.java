@@ -217,7 +217,8 @@ public final class PhantomPartyTactics
 		final MemberCapability capability = capabilities.stream().filter(value -> value.capabilityKey().equals(capabilityKey) && value.readyNow() && scopeAllows(value.targetScope(), actor.ref().equals(target.ref())) && (value.actionSkillId() > 0) && (value.actionSkillLevel() > 0)).sorted(Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).findFirst().orElse(null);
 		if (capability != null)
 		{
-			output.add(new TacticalDirective(kind, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.targetScope(), capability.actionSkillId(), capability.actionSkillLevel(), reason, Math.min(10000, priority + capability.contextualScore())));
+			// Capability score chooses the current skill, while member urgency chooses its target.
+			output.add(new TacticalDirective(kind, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.targetScope(), capability.actionSkillId(), capability.actionSkillLevel(), reason, priority));
 		}
 	}
 
@@ -225,18 +226,16 @@ public final class PhantomPartyTactics
 	{
 		for (String key : List.of("combat.buff", "combat.song", "combat.dance"))
 		{
-			final MemberCapability capability = capabilities.stream().filter(value -> value.capabilityKey().equals(key) && value.readyNow() && scopeAllows(value.targetScope(), actor.ref().equals(target.ref())) && (value.actionSkillId() > 0) && (value.actionSkillLevel() > 0)).sorted(Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).findFirst().orElse(null);
-			if (capability == null)
+			for (MemberCapability capability : capabilities.stream().filter(value -> value.capabilityKey().equals(key) && value.readyNow() && scopeAllows(value.targetScope(), actor.ref().equals(target.ref())) && (value.actionSkillId() > 0) && (value.actionSkillLevel() > 0)).sorted(Comparator.comparingInt(MemberCapability::contextualScore).reversed().thenComparing(MemberCapability::identity)).toList())
 			{
-				continue;
+				final Status status = _backend.supportEffectStatus(actor.ref(), target.ref().characterObjectId(), capability, _policy.rebuffRemainingSeconds());
+				if (status == Status.HEALTHY)
+				{
+					continue;
+				}
+				final String reason = status == Status.NEAR_EXPIRY ? "support.effect.expiring" : "support.effect.missing";
+				output.add(new TacticalDirective(DirectiveKind.PARTY_SUPPORT, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.targetScope(), capability.actionSkillId(), capability.actionSkillLevel(), reason + (combat ? ".combat" : ".idle"), combat ? _policy.combatPriority() : _policy.idlePriority()));
 			}
-			final Status status = _backend.supportEffectStatus(actor.ref(), target.ref().characterObjectId(), capability, _policy.rebuffRemainingSeconds());
-			if (status == Status.HEALTHY)
-			{
-				continue;
-			}
-			final String reason = status == Status.NEAR_EXPIRY ? "support.effect.expiring" : "support.effect.missing";
-			output.add(new TacticalDirective(DirectiveKind.PARTY_SUPPORT, actor.ref(), target.ref(), target.ref().characterObjectId(), capability.capabilityKey(), capability.variantKey(), capability.targetScope(), capability.actionSkillId(), capability.actionSkillLevel(), reason + (combat ? ".combat" : ".idle"), Math.min(10000, (combat ? _policy.combatPriority() : _policy.idlePriority()) + capability.contextualScore())));
 		}
 	}
 

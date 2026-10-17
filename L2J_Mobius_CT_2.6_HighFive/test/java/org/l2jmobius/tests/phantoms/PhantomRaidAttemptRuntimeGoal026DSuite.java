@@ -90,6 +90,7 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		registry.add("02-required-tank-alive-ignores-ready-now", _ -> tankViability());
 		registry.add("03-real-required-provider-counts-without-control", _ -> realProvider());
 		registry.add("04-stable-phantom-support-reservation-excludes-offense", _ -> supportReservation());
+		registry.add("08-reserved-support-retains-current-heal-and-resurrection", _ -> reservedSupportCoverage());
 		registry.add("05-tank-only-member-enters-exact-raid-combat", _ ->
 		{
 			final RuntimeFixture fixture = new RuntimeFixture(false);
@@ -152,6 +153,42 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 			}
 			finally { fixture.stop(); }
 		});
+	}
+
+	private static void reservedSupportCoverage()
+	{
+		final RuntimeFixture fixture = new RuntimeFixture(true);
+		try
+		{
+			final var roster = phantoms(1, 4);
+			final var snapshots = snapshots(roster);
+			final var heal = capability("combat.heal", true);
+			final var recharge = capability("combat.recharge", true);
+			final var resurrection = capability("combat.resurrection", true);
+			final var offense = capability(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), true);
+			snapshots.put(roster.get(0), member(roster.get(0), false, 100, List.of(heal, resurrection), List.of()));
+			snapshots.put(roster.get(1), member(roster.get(1), false, 100, List.of(heal, recharge), List.of()));
+			snapshots.put(roster.get(2), member(roster.get(2), false, 20, List.of(offense), List.of()));
+			snapshots.put(roster.get(3), member(roster.get(3), false, 100, List.of(heal, offense), List.of()));
+			fixture.party.suppliedTarget = roster.get(2).characterObjectId();
+			fixture.party.suppliedCapabilities.put(roster.get(0), List.of(heal));
+			fixture.party.suppliedCapabilities.put(roster.get(1), List.of(heal));
+			fixture.party.suppliedCapabilities.put(roster.get(3), List.of(heal));
+			final var profile = openProfile(List.of(requirement("combat.heal"), requirement("combat.recharge")));
+			final var target = new PhantomRaidTargetEvidence(ContentKind.RAID, NpcKind.RAID_BOSS, 7001, profile.npcId(), 0, false);
+			final var context = new EngagementContext(AUTHORITY, profile, target, 1000, 10_000, () -> false);
+			fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+			PhantomAssertions.assertEquals(1, fixture.lease(2).supportCasts, "Reserved recharger could not use its separately ready native heal.");
+			PhantomAssertions.assertEquals(0, fixture.lease(4).supportCasts, "Unreserved offensive actor was commandeered as backup support.");
+			PhantomAssertions.assertTrue(fixture.lease(4).raidTargetReads > 0, "Unreserved actor lost its offensive role.");
+			snapshots.put(roster.get(2), member(roster.get(2), true, 0, List.of(offense), List.of()));
+			fixture.party.suppliedCapabilities.put(roster.get(0), List.of(resurrection));
+			fixture.party.suppliedCapabilities.put(roster.get(1), List.of());
+			fixture.party.suppliedCapabilities.put(roster.get(3), List.of());
+			fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+			PhantomAssertions.assertEquals(2, fixture.lease(1).supportCasts, "Reserved healer could not request its separately ready native resurrection.");
+		}
+		finally { fixture.stop(); }
 	}
 
 	private static void partyLocalSnapshots()

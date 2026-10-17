@@ -443,7 +443,8 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 	private static boolean assignedSupport(RuntimeAttempt state, TacticalDirective directive)
 	{
 		if (state._providers.getOrDefault(directive.capabilityKey(), Set.of()).contains(directive.actor().profileId())) { return true; }
-		return MAINTENANCE_CAPABILITIES.contains(directive.capabilityKey()) && MAINTENANCE_CAPABILITIES.stream().anyMatch(key -> state._providers.getOrDefault(key, Set.of()).contains(directive.actor().profileId()));
+		// Reservation excludes offense; each alternate support action is still revalidated by native tactics.
+		return SUPPORT_CAPABILITIES.contains(directive.capabilityKey()) && SUPPORT_CAPABILITIES.stream().anyMatch(key -> state._providers.getOrDefault(key, Set.of()).contains(directive.actor().profileId()));
 	}
 
 	private RuntimeStatus advanceMechanicCombat(RuntimeAttempt state, MechanicContext context, org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force, List<Integer> attackers)
