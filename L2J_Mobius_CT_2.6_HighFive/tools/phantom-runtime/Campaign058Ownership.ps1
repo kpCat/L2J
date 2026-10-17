@@ -2,6 +2,7 @@
 
 function Assert-Campaign058Binding {
     param([string]$RuntimeRoot,[string]$DatabaseName,[System.Collections.IDictionary]$Owner)
+    if ($DatabaseName -ceq 'l2jmobiush5_phantom_release_059a' -or $Owner['owner'] -ceq 'TASK059_CAMPAIGN') { Assert-Campaign059Binding $RuntimeRoot $DatabaseName $Owner; return }
     $expected = switch ([string]$Owner['role']) {
         'CUMULATIVE_INTEGRATION' { @('D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive\.phantom-local\contract058a\runtime','l2jmobiush5_phantom_test_058a') }
         'RELEASE_CANDIDATE' { @('D:\PhantomWorld\M2-M7-058-candidate','l2jmobiush5_phantom_release_058a') }
@@ -19,6 +20,21 @@ function Assert-Campaign058Binding {
         if (!$part) { continue }
         $current = Join-Path $current $part
         if ((Test-Path -LiteralPath $current) -and ((Get-Item -LiteralPath $current -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'TASK058: alias в runtime path запрещён.' }
+    }
+}
+
+function Assert-Campaign059Binding {
+    param([string]$RuntimeRoot,[string]$DatabaseName,[System.Collections.IDictionary]$Owner)
+    $expected059='D:\PhantomWorld\M3-M7-059-candidate'
+    $schema059='l2jmobiush5_phantom_release_059a'
+    $actual059=[IO.Path]::GetFullPath($RuntimeRoot).TrimEnd('\')
+    $login059=switch ([string]$Owner['layout']) { 'LOGIN2106' {'2106'} 'LOGIN2139' {'2139'} default {throw 'TASK059: неизвестный exact layout.'} }
+    if ($Owner['version'] -cne '1' -or $Owner['owner'] -cne 'TASK059_CAMPAIGN' -or $Owner['role'] -cne 'RELEASE_CANDIDATE' -or $DatabaseName -cne $schema059 -or $Owner['schema'] -cne $schema059 -or $actual059 -ine $expected059 -or [IO.Path]::GetFullPath([string]$Owner['runtimeRoot']).TrimEnd('\') -ine $expected059) {throw 'TASK059: root/schema/owner/role не совпадают с exact binding.'}
+    foreach ($pair059 in @(@('clientLoginPort',$login059),@('gamePort','7839'),@('controlPort','9139'))) {if([string]$Owner[$pair059[0]] -cne $pair059[1]){throw 'TASK059: порты не совпадают с записанным layout.'}}
+    $current059=[IO.Path]::GetPathRoot($actual059)
+    foreach ($part059 in $actual059.Substring($current059.Length).Split('\')) {
+        if(!$part059){continue}; $current059=Join-Path $current059 $part059
+        if((Test-Path -LiteralPath $current059) -and ((Get-Item -LiteralPath $current059 -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'TASK059: alias в runtime path запрещён.'}
     }
 }
 

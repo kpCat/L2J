@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([switch]$ValidateOnly,[switch]$ReadOnlyPreflight)
+param([switch]$ValidateOnly,[switch]$ReadOnlyPreflight,[ValidateSet('Campaign058','Campaign059')][string]$Profile='Campaign058')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Campaign058Ownership.ps1')
@@ -8,13 +8,16 @@ $expected='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
 if ($module -ine $expected) {throw 'TASK058 export requires exact OWN.'}
 $lane=Join-Path $module '.phantom-local/contract058a'
 $source=Join-Path $lane 'runtime'
-$releaseInput=Join-Path $lane 'release-input'
-$target='D:\PhantomWorld\M2-M7-058-candidate'
+$releaseInput=Join-Path $lane $(if($Profile -ceq 'Campaign059'){'task059/release-input059'}else{'release-input'})
+$target=if($Profile -ceq 'Campaign059'){'D:\PhantomWorld\M3-M7-059-candidate'}else{'D:\PhantomWorld\M2-M7-058-candidate'}
 $sourceDb='l2jmobiush5_phantom_test_058a'
-$targetDb='l2jmobiush5_phantom_release_058a'
+$targetDb=if($Profile -ceq 'Campaign059'){'l2jmobiush5_phantom_release_059a'}else{'l2jmobiush5_phantom_release_058a'}
+$exportLane=if($Profile -ceq 'Campaign059'){Join-Path $lane 'task059'}else{$lane}
+$exportName=if($Profile -ceq 'Campaign059'){'release059-export'}else{'release-export'}
+$importName=if($Profile -ceq 'Campaign059'){'release059-import'}else{'release-import'}
 $sourceOwner=Read-Campaign058Owner (Join-Path $source 'ownership058.properties')
 Assert-Campaign058Binding $source $sourceDb $sourceOwner
-$releaseOwner=Read-Campaign058Owner (Join-Path $releaseInput 'ownership058.properties')
+$releaseOwner=Read-Campaign058Owner (Join-Path $releaseInput $(if($Profile -ceq 'Campaign059'){'ownership059.properties'}else{'ownership058.properties'}))
 Assert-Campaign058Binding $target $targetDb $releaseOwner
 if ($sourceOwner.schemaAggregateSha256 -cne $releaseOwner.schemaAggregateSha256 -or $sourceOwner.schemaAggregateSha256 -cne ([IO.File]::ReadAllText((Join-Path $lane 'bootstrap.complete')).Trim())) {throw 'Owned schema bootstrap fingerprint differs.'}
 function Read-Setting([string]$Path,[string]$Key) {
@@ -38,11 +41,11 @@ $targetConfig=Join-Path $releaseInput 'game/config/Database.ini'
 foreach ($key in @('Login','Password')) {
     if ((Read-Setting $sourceConfig $key) -cne (Read-Setting $targetConfig $key)) {throw 'Release credentials differ from the approved private source.'}
 }
-if ((Test-Path -LiteralPath $target) -or (Test-Path -LiteralPath (Join-Path $lane 'release-export.started')) -or (Test-Path -LiteralPath (Join-Path $lane 'release-export.complete'))) {throw 'Release path or one-use export receipt already exists; no replay/reset.'}
+if ((Test-Path -LiteralPath $target) -or (Test-Path -LiteralPath (Join-Path $exportLane ($exportName+'.started'))) -or (Test-Path -LiteralPath (Join-Path $exportLane ($exportName+'.complete')))) {throw 'Release path or one-use export receipt already exists; no replay/reset.'}
 $client='C:\Program Files\MariaDB 11.4\bin\mariadb.exe'
 $dump='C:\Program Files\MariaDB 11.4\bin\mariadb-dump.exe'
 foreach ($tool in @($client,$dump)) {if (!(Test-Path -LiteralPath $tool -PathType Leaf)) {throw 'Installed native MariaDB11.4 tools required.'}}
-if ($ValidateOnly) {Write-Output 'TASK058_EXPORT_PREFLIGHT_PASS; DB_WRITES=0; PROCESS_ACTIONS=0'; return}
+if ($ValidateOnly) {Write-Output ($Profile+'_EXPORT_PREFLIGHT_PASS; DB_WRITES=0; PROCESS_ACTIONS=0'); return}
 $statusRaw=& (Join-Path $source 'tools/Runtime.ps1') -Action Status -RuntimeRoot $source
 if (!$?) {throw 'Own source status failed.'}
 $status=($statusRaw -join "`n") | ConvertFrom-Json
@@ -64,17 +67,18 @@ try {
     if ($ReadOnlyPreflight) {
         $sample=@(Query 'CHECKSUM TABLE `l2jmobiush5_phantom_test_058a`.`characters` EXTENDED')
         if ($sample.Count -ne 1 -or ($sample[0] -split "`t")[-1] -ceq 'NULL') {throw 'Native read-only checksum support unavailable.'}
-        Write-Output 'TASK058_NATIVE_EXPORT_PREFLIGHT_PASS; sourceStopped=true; targetAbsent=true; tables=124; nativeChecksum=available; DB_WRITES=0'
+        Write-Output ($Profile+'_NATIVE_EXPORT_PREFLIGHT_PASS; sourceStopped=true; targetAbsent=true; tables=124; nativeChecksum=available; DB_WRITES=0')
         return
     }
-    $sql=Join-Path $lane 'release-export.sql'
+    $sql=Join-Path $exportLane ($exportName+'.sql')
     if (Test-Path -LiteralPath $sql) {throw 'Own stopped export already exists.'}
-    [IO.File]::WriteAllText((Join-Path $lane 'release-export.started'),[DateTime]::UtcNow.ToString('o'),[Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $exportLane ($exportName+'.started')),[DateTime]::UtcNow.ToString('o'),[Text.UTF8Encoding]::new($false))
     & $dump @connectionArgs --single-transaction --quick --skip-lock-tables --skip-add-locks --skip-add-drop-table --skip-comments --routines --events --triggers --hex-blob "--result-file=$sql" $sourceDb
     if ($LASTEXITCODE -ne 0) {throw 'Native stopped export failed; receipt retained.'}
     if ([IO.File]::ReadAllText($sql) -match '(?im)^\s*(?:USE\s|CREATE\s+DATABASE\s|DROP\s)') {throw 'Export contains forbidden database switch/drop; target not created.'}
-    $null=Query 'CREATE DATABASE `l2jmobiush5_phantom_release_058a` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
-    $process=Start-Process -FilePath $client -ArgumentList ($connectionArgs + @("--database=$targetDb",'--binary-mode')) -WindowStyle Hidden -RedirectStandardInput $sql -RedirectStandardOutput (Join-Path $lane 'release-import.stdout.log') -RedirectStandardError (Join-Path $lane 'release-import.stderr.log') -PassThru -Wait
+    $createSql=if($Profile -ceq 'Campaign059'){'CREATE DATABASE `l2jmobiush5_phantom_release_059a` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'}else{'CREATE DATABASE `l2jmobiush5_phantom_release_058a` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'}
+    $null=Query $createSql
+    $process=Start-Process -FilePath $client -ArgumentList ($connectionArgs + @("--database=$targetDb",'--binary-mode')) -WindowStyle Hidden -RedirectStandardInput $sql -RedirectStandardOutput (Join-Path $exportLane ($importName+'.stdout.log')) -RedirectStandardError (Join-Path $exportLane ($importName+'.stderr.log')) -PassThru -Wait
     if ($process.ExitCode -ne 0) {throw 'Native import failed; no reset/reimport fallback.'}
     $proof=[Collections.Generic.List[string]]::new()
     foreach ($table in $tables) {
@@ -88,8 +92,8 @@ try {
     if (@(Query "SELECT TABLE_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA='$targetDb' AND REFERENCED_TABLE_SCHEMA IS NOT NULL AND REFERENCED_TABLE_SCHEMA<>'$targetDb'").Count) {throw 'Release foreign key refers outside its exact schema.'}
     $proof.Add('dumpSha256='+(Get-FileHash -LiteralPath $sql -Algorithm SHA256).Hash)
     $proof.Add('sourceStopped=true; nativeSingleTransaction=true; tables=124; engines/counters/collations=equal; foreignKeys=releaseOnly; old057Untouched=true')
-    [IO.File]::WriteAllLines((Join-Path $lane 'release-export.complete'),$proof,[Text.UTF8Encoding]::new($false))
-    Write-Output 'TASK058_RELEASE_DB_CREATED_AND_VERIFIED tables=124; consistent stopped native export; all table checksums equal; no source writes/reset/users/grants.'
+    [IO.File]::WriteAllLines((Join-Path $exportLane ($exportName+'.complete')),$proof,[Text.UTF8Encoding]::new($false))
+    Write-Output ($Profile+'_RELEASE_DB_CREATED_AND_VERIFIED tables=124; consistent stopped native export; all table checksums equal; no source writes/reset/users/grants.')
 } finally {
     $env:MYSQL_PWD=$savedMysqlPassword
     $lock.Dispose()

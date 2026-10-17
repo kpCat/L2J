@@ -40,3 +40,28 @@ foreach ($variant in @('root','schema','role','owner','port')) {
     if (!$rejected) {throw "TASK058 release ownership negative failed: $variant"}; $count++
 }
 Write-Output "TASK058_OWNERSHIP_PASS=$count; DB_WRITES=0; PROCESS_ACTIONS=0"
+
+$count059=0
+foreach ($login059 in @('2106','2139')) {
+    $release059=@{version='1';owner='TASK059_CAMPAIGN';role='RELEASE_CANDIDATE';schema='l2jmobiush5_phantom_release_059a';runtimeRoot='D:\PhantomWorld\M3-M7-059-candidate';layout=('LOGIN'+$login059);clientLoginPort=$login059;gamePort='7839';controlPort='9139'}
+    Assert-Campaign058Binding $release059.runtimeRoot $release059.schema $release059
+    $count059++
+    foreach ($variant059 in @('root','schema','role','owner','layout','login','game','control')) {
+        $changed059=$release059.Clone(); $root059=$release059.runtimeRoot; $schema059=$release059.schema
+        switch ($variant059) {
+            'root' {$root059='D:\PhantomWorld\M2-M7-058-candidate'}
+            'schema' {$schema059='l2jmobiush5_phantom_release_058a'}
+            'role' {$changed059.role='CUMULATIVE_INTEGRATION'}
+            'owner' {$changed059.owner='TASK058_CAMPAIGN'}
+            'layout' {$changed059.layout='LOGIN2138'}
+            'login' {$changed059.clientLoginPort=$(if($login059 -ceq '2106'){'2139'}else{'2106'})}
+            'game' {$changed059.gamePort='7838'}
+            'control' {$changed059.controlPort='9138'}
+        }
+        $rejected059=$false
+        try {Assert-Campaign058Binding $root059 $schema059 $changed059} catch {$rejected059=$true}
+        if(!$rejected059){throw "TASK059 exact layout negative failed: $variant059/$login059"}
+        $count059++
+    }
+}
+Write-Output "TASK059_OWNERSHIP_PASS=$count059; DB_WRITES=0; PROCESS_ACTIONS=0"

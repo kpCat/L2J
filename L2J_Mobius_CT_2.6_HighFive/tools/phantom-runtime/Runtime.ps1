@@ -27,9 +27,9 @@ $manifest = Get-Content -LiteralPath (Join-Path $runtime 'local-play.json') -Raw
 $build = Get-Content -LiteralPath (Join-Path $runtime 'BUILD_INFO.json') -Raw | ConvertFrom-Json
 $database = Read-Ini $settings 'DatabaseName'
 if ($database -notmatch '^l2jmobiush5_phantom_(test_041final|test_058a|release_[A-Za-z0-9_]{1,24})$' -or $manifest.databaseName -cne $database -or $manifest.databaseConfig -cne 'USER_CONFIRMED_EXISTING') { throw 'Схема runtime не подтверждена; действие запрещено.' }
-if ($database -in @('l2jmobiush5_phantom_test_058a','l2jmobiush5_phantom_release_058a')) {
+if ($database -in @('l2jmobiush5_phantom_test_058a','l2jmobiush5_phantom_release_058a','l2jmobiush5_phantom_release_059a')) {
     . (Join-Path $PSScriptRoot 'Campaign058Ownership.ps1')
-    $campaignOwner=Read-Campaign058Owner (Join-Path $runtime 'ownership058.properties')
+    $campaignOwner=Read-Campaign058Owner (Join-Path $runtime $(if($database -ceq 'l2jmobiush5_phantom_release_059a'){'ownership059.properties'}else{'ownership058.properties'}))
     Assert-Campaign058Binding $runtime $database $campaignOwner
 }
 foreach ($role in @('game','login')) {
@@ -46,6 +46,17 @@ $allPorts = @($ports.GameServer + $ports.LoginServer)
 if (@($allPorts | Select-Object -Unique).Count -ne 3 -or @($allPorts | Where-Object {$_ -lt 1024 -or $_ -gt 65535}).Count) { throw 'Нужны три различных допустимых порта.' }
 if ([int](Read-Ini (Join-Path $runtime 'game/config/Server.ini') 'LoginPort') -ne $ports.LoginServer[1]) { throw 'Login/Game control ports не совпадают.' }
 if ($database -in @('l2jmobiush5_phantom_test_058a','l2jmobiush5_phantom_release_058a') -and ($ports.GameServer[0] -ne 7838 -or $ports.LoginServer[0] -ne 2138 -or $ports.LoginServer[1] -ne 9138)) {throw 'TASK058: actual runtime ports отличаются от binding.'}
+if ($database -ceq 'l2jmobiush5_phantom_release_059a') {
+    if ($ports.GameServer[0] -ne 7839 -or $ports.LoginServer[0] -ne [int]$campaignOwner.clientLoginPort -or $ports.LoginServer[1] -ne 9139) {throw 'TASK059: actual runtime ports отличаются от записанного layout.'}
+    foreach ($input059 in @($manifest,$build)) {
+        if ($input059.layout -cne $campaignOwner.layout -or [int]$input059.clientLoginPort -ne $ports.LoginServer[0] -or [int]$input059.gamePort -ne 7839 -or [int]$input059.controlPort -ne 9139) {throw 'TASK059: manifest/BUILD_INFO layout mismatch.'}
+    }
+    if ($Action -ceq 'Start' -and $campaignOwner.layout -ceq 'LOGIN2106') {
+        $protectedIds059=@((Get-LocalPlayRuntimeId 'D:\PhantomWorld\M1-057-candidate'),(Get-LocalPlayRuntimeId 'D:\PhantomWorld\M2-M7-058-candidate'))
+        $protected059=@(Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object { $_.CommandLine -and ($_.CommandLine.IndexOf('D:\PhantomWorld\M1-057-candidate',[StringComparison]::OrdinalIgnoreCase) -ge 0 -or $_.CommandLine.IndexOf('D:\PhantomWorld\M2-M7-058-candidate',[StringComparison]::OrdinalIgnoreCase) -ge 0 -or $_.CommandLine.Contains('phantom.localplay.runtime='+$protectedIds059[0]) -or $_.CommandLine.Contains('phantom.localplay.runtime='+$protectedIds059[1])) })
+        if ($protected059.Count) {throw 'TASK059: Login2106 требует остановленных защищённых057/058; их процессы не изменяются.'}
+    }
+}
 $runtimeId = Get-LocalPlayRuntimeId $runtime
 function Role-State([string]$Role) { return Get-LocalPlayRoleState $runtime $Role "$Role.jar" $ports[$Role] }
 function Assert-Jars {

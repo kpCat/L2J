@@ -20,7 +20,7 @@ public final class RuntimeDatabaseCheck
 		{
 			throw new IllegalArgumentException("Explicit release schema and two configuration paths required.");
 		}
-		if ((args.length == 4) && (!Set.of("l2jmobiush5_phantom_test_058a", "l2jmobiush5_phantom_release_058a").contains(args[0]) || !args[3].matches("[a-z0-9-]{1,40}"))) { throw new IllegalArgumentException("Snapshot requires an exact058 schema and bounded label."); }
+		if ((args.length == 4) && (!Set.of("l2jmobiush5_phantom_test_058a", "l2jmobiush5_phantom_release_058a", "l2jmobiush5_phantom_release_059a").contains(args[0]) || !args[3].matches("[a-z0-9-]{1,40}"))) { throw new IllegalArgumentException("Snapshot requires an exact campaign schema and bounded label."); }
 		RuntimeCampaign058Guard.validate(Path.of(args[1]).toAbsolutePath().getParent().getParent().getParent(), args[0]);
 		for (int i = 1; i < 3; i++)
 		{
