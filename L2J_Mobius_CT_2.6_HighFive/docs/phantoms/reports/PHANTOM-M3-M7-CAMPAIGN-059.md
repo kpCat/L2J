@@ -2,7 +2,7 @@
 
 Итог: **PARTIAL**, отдельная cumulative поставка059; М3 и immediate-SP завершены в проверенном server scope. Полные М4–М7 не объявлены PASS. М1 — принятая база разработки, technical OPEN, G4/G6 и полная личная приёмка отложены владельцем. М8–М10 не начинались; субагентов не было.
 
-Время: первое действие17.10.2026 11:41:44Z; deadline18.10 01:41:44Z; часы после compaction не сбрасывались. Финальная серверная сверка17.10 23:28:54Z. Полнота определяется исходными S3–S7 и ACCEPTANCE059, а не количеством зелёных suites. Новый product cycle не начат: полный owner/native/clean build/regression/delivery уже не помещается в безопасную часть бюджета до финального резерва.
+Время: первое действие17.10.2026 11:41:44Z; deadline18.10 01:41:44Z; часы после compaction не сбрасывались. Ordinary Status17.10 23:28:54Z; конечные artifact/quiescence receipts приведены в private evidence. Измеренное окно clean archive21:57:26Z→final receipt23:45:32Z составило108мин06с, включая проверки; консервативный резерв108мин06с начинается23:53:38Z. Полнота определяется исходными S3–S7 и ACCEPTANCE059, а не количеством зелёных suites. Новый product cycle с обязательной проверкой и повторной поставкой в оставшийся бюджет не помещается.
 
 ## Поставка и provenance
 
@@ -36,7 +36,7 @@ SP: штатный earned credit сериализован с learning/autosave/c
 
 М7 explicit `skill.learn` использует существующие Decision/Navigation/Progression и native Trainer, без второго AI pulse/SQL owner. В измерении пройдено около9.36к native WALK field→trainer→field, эффект446→327HP и расходMP184→175, terminal retry без второго расхода. Это явный goal, не доказательство самостоятельной многолетней карьеры.
 
-М5 поддерживаемый boss25199: native stock HP912634, minions3×64111+95688, общий знаменатель1200655. Законная9-членная заранее подготовленная группа; oversize/overload inputs сохранены INVALID отдельно. Cardinal Avatar1311:6 даёт native +35%MaxHP с обычной MP ценой. Последний полный бой всё равно ABORTED после смертей; гипотеза о воде не доказана. HP/rates/drop/окно/состав начатой сцены не менялись ради PASS.
+М5 поддерживаемый boss25199: native stock HP912634, minions3×64111+95688, общий знаменатель1200655. Законная9-членная заранее подготовленная группа; oversize/overload inputs сохранены INVALID отдельно. Cardinal Avatar1311:6 даёт native +35%MaxHP с обычной MP ценой. Последний полный бой всё равно ABORTED после смертей; гипотеза о воде не доказана. Дополнительное чтение current owners/raw сузило следующий вопрос: tank-collector сохраняет boss claim, остальные offense actors фокусируют атакующего миньона; aggro вызывается для цели своей сессии и допускает только single-target skill. Stock Aura of Hate18 имеет targetType=AURA и текущим safety path не допускается. Raw подтверждает смерти от25200/25201, но причинная достаточность нового threat-планирования для победы не доказана; новый бой/правка safety не выполнялись. HP/rates/drop/окно/состав начатой сцены не менялись ради PASS.
 
 М6 Kamaloka: native18554/163178HP, legal6/level28, смерть/reward pipeline/EXP/reuse/terminal retry без extraEXP/natural5min closing/выход всех6/отказ reentry. Current Rift control: legal4/level30, native7079 fee, room3/stock21665 HP3662→0 и EXP всем4, native exit human/managed и release room; прежний21668 control сохранён отдельно. Исправлен текущий `DimensionalRift.partyMemberExited`, без нового instance abstraction; автоматический вход Phantom остаётся отдельной открытой границей.
 
