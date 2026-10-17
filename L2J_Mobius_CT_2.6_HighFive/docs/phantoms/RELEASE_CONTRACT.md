@@ -1,5 +1,18 @@
 # Cumulative High Five delivery contract
 
+TASK059, 18.10.2026: текущая authority — [AUTHORITY059](tasks/PHANTOM-M3-M7-CAMPAIGN-059/AUTHORITY.md), результаты — [RESULT059](reports/PHANTOM-M3-M7-CAMPAIGN-059.md). Исторические041–058 ниже сохраняются. М1 остаётся принятой базой разработки с открытым technical status и отложенными G4/G6/полной личной приёмкой; новых PASS этих gates нет.
+
+| Этап059 | Server coverage | Личная приёмка |
+|---|---|---|
+| М2 | SERVER_VERIFIED в058 scope: current selected110/110 и native affected | OWNER_QA_PENDING |
+| М3 | SERVER_VERIFIED: native HOLD/RESUME, адресная authority, truthful support, finite RU corpus, память и lifecycle | OWNER_QA_PENDING |
+| М4 | PARTIAL: native PvP/PK/clan guards; полный retreat/regroup блокируется неподтверждённым Giran route | OWNER_QA_PENDING |
+| М5 | PARTIAL: readiness, support/minions/claims, current Avatar; полный stock25199 остаётся FAIL/ABORTED | OWNER_QA_PENDING |
+| М6 | PARTIAL: полный Kamaloka с natural closing; Rift native combat/fee/leave fix; auto-entry/timed/death/logout не закрыты | OWNER_QA_PENDING |
+| М7 | PARTIAL: immediate-SP/CAS/races и explicit paid WALK journey проверены; auto-career/20–40–76/subclass/Noblesse открыты | OWNER_QA_PENDING |
+
+Retention059: существующие party/conversation owners и PTY2 сохраняют native authority; `PhantomClassSkillLearningTransaction` сохраняет earned-SP fence и точные расходы; `L2jPhantomLearningJourney` использует существующие Decision/Navigation/Progression без второго AI pulse; `DimensionalRift.partyMemberExited` сохраняет native exit удаляемого участника. Полные FAIL и scope ограничений перечислены в RESULT059. Отдельная поставка059 не заменяет защищённые057/058; runtime ZIP при частичной М7 не создаётся.
+
 TASK058, 16.10.2026: М2 SERVER_VERIFIED в объявленном native server scope, OWNER_QA_PENDING; М3–М7 PARTIAL с конкретными native результатами и открытыми границами. Продолжение разрешено AUTHORITY058; М1/G4/G6 остаются открытыми/отложенными. Финальная отдельная поставка ещё готовится. Полный актуальный перечень, JAR/provenance и история — [RESULT058](reports/PHANTOM-M2-M7-CAMPAIGN-058.md).
 
 М3 TASK058 PARTIAL: ordinary real-led JOIN сохраняет подтверждённое совместное событие с character object ID; social receipt различает новые JVM invitations и точный callback retry. Native RED/GREEN, affected Party10/10/full М2 composition1/1 и ordinary sameDB restart → native delivered recall/изоляция/новый join/идемпотентный retry проверены. Полезные owners/helpers сохранены; весь command/refusal набор М3 ещё открыт. Независимый М4 использует проверенные М2 Party/identity и social-state boundaries, не неподтверждённые команды М3.

@@ -1,5 +1,19 @@
 # Roadmap: M1 не заменяет M2–M7
 
+Актуальная поправка TASK059: [RESULT059](../../reports/PHANTOM-M3-M7-CAMPAIGN-059.md). Ниже сохраняется исходная roadmap038; она не заменяет текущую authority059 и фактические coverage.
+
+| Этап | Текущий server status059 | Непроверенное/открытое |
+|---|---|---|
+| М1 | OPEN; DEVELOPMENT_BASE_ACCEPTED | G4/G6/полная личная приёмка отложены владельцем |
+| М2 | SERVER_VERIFIED в058 scope; current selected110/110 и native affected | OWNER_QA_PENDING |
+| М3 | SERVER_VERIFIED в заявленном C3/S3 scope | OWNER_QA_PENDING; нет заявления о клиентской ручной приёмке |
+| М4 | PARTIAL | Полный native retreat/regroup и остальной исходный S4 |
+| М5 | PARTIAL | Stock25199 full victory/reward/regroup; сохранены реальные FAIL |
+| М6 | PARTIAL | Rift product auto-entry/consent, timed/death/logout coverage |
+| М7 | PARTIAL | Автоматическая карьера, реальные20/40/76, subclass/Noblesse; explicit paid WALK и immediate-SP — завершённые subsets |
+
+М8–М10 в TASK059 не начинались. Новая059 поставка самостоятельна; защищённые057/058 сохраняются. Неполный milestone не переименовывается в PASS по результату selected regression.
+
 Цель038 — только общая локальная исполнительная связь. Ниже product milestones,
 а не новые списки задач на100 файлов и не утверждение реализации по названию класса.
 
