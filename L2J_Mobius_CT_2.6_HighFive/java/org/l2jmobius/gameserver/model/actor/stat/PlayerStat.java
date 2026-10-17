@@ -20,6 +20,8 @@
  */
 package org.l2jmobius.gameserver.model.actor.stat;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.l2jmobius.gameserver.config.GeneralConfig;
@@ -54,6 +56,9 @@ import org.l2jmobius.gameserver.qol.PersonalProgressionQoLService;
 
 public class PlayerStat extends PlayableStat
 {
+	/** Transient witnesses are rebuilt only by native load or successful durable writes. Guarded by Player. */
+	private record SkillPointWitness(long durable, long credited) { }
+	private final Map<Integer, SkillPointWitness> _skillPointWitnesses = new HashMap<>();
 	private int _oldMaxHp; // stats watch
 	private int _oldMaxMp; // stats watch
 	private int _oldMaxCp; // stats watch
@@ -119,6 +124,11 @@ public class PlayerStat extends PlayableStat
 	}
 	
 	public boolean addExpAndSp(double addToExpValue, double addToSpValue, boolean useBonuses)
+	{
+		synchronized (getActiveChar()) { return addExpAndSpLocked(addToExpValue, addToSpValue, useBonuses); }
+	}
+
+	private boolean addExpAndSpLocked(double addToExpValue, double addToSpValue, boolean useBonuses)
 	{
 		final Player player = getActiveChar();
 		
@@ -232,6 +242,11 @@ public class PlayerStat extends PlayableStat
 	}
 	
 	public boolean removeExpAndSp(long addToExp, long addToSp, boolean sendMessage)
+	{
+		synchronized (getActiveChar()) { return removeExpAndSpLocked(addToExp, addToSp, sendMessage); }
+	}
+
+	private boolean removeExpAndSpLocked(long addToExp, long addToSp, boolean sendMessage)
 	{
 		final int level = getLevel();
 		if (!super.removeExpAndSp(addToExp, addToSp))
@@ -359,17 +374,56 @@ public class PlayerStat extends PlayableStat
 	@Override
 	public boolean addSp(long value)
 	{
-		if (!super.addSp(value))
-		{
-			return false;
-		}
-		
 		final Player player = getActiveChar();
-		final StatusUpdate su = new StatusUpdate(player);
-		su.addAttribute(StatusUpdate.SP, (int) getSp());
-		player.sendPacket(su);
-		
-		return true;
+		synchronized (player)
+		{
+			final int index = player.getClassIndex();
+			final long before = getSp();
+			final SkillPointWitness witness = _skillPointWitnesses.get(index);
+			if (!super.addSp(value)) { return false; }
+			final long after = getSp();
+			if ((witness != null) && (before >= witness.durable()) && ((before - witness.durable()) == witness.credited()) && (after >= before))
+			{
+				_skillPointWitnesses.put(index, new SkillPointWitness(witness.durable(), after - witness.durable()));
+			}
+			final StatusUpdate su = new StatusUpdate(player);
+			su.addAttribute(StatusUpdate.SP, (int) after);
+			player.sendPacket(su);
+			return true;
+		}
+	}
+
+	@Override
+	public boolean removeSp(long value)
+	{
+		synchronized (getActiveChar()) { return super.removeSp(value); }
+	}
+
+	/** Only an exact known baseline plus observed native credits may bridge an unsaved SP difference. */
+	public boolean matchesNativeSkillPointCredit(long durableSp)
+	{
+		final Player player = getActiveChar();
+		synchronized (player)
+		{
+			final SkillPointWitness witness = _skillPointWitnesses.get(player.getClassIndex());
+			final long current = getSp();
+			return (witness != null) && (witness.durable() == durableSp) && (witness.credited() > 0) && (current >= durableSp) && ((current - durableSp) == witness.credited());
+		}
+	}
+
+	/** Called after an actual SQL load/write, never to make an unknown database difference look earned. */
+	public void acknowledgeStoredSkillPoints(int classIndex, long durableSp)
+	{
+		final Player player = getActiveChar();
+		synchronized (player)
+		{
+			_skillPointWitnesses.keySet().removeIf(index -> (index != 0) && !player.getSubClasses().containsKey(index));
+			final SubClassHolder subclass = classIndex == 0 ? null : player.getSubClasses().get(classIndex);
+			final boolean exists = (classIndex == 0) || (subclass != null);
+			final long runtime = classIndex == 0 ? getBaseSp() : subclass == null ? -1 : subclass.getSp();
+			if (exists && (durableSp >= 0) && (runtime == durableSp)) { _skillPointWitnesses.put(classIndex, new SkillPointWitness(durableSp, 0)); }
+			else { _skillPointWitnesses.remove(classIndex); }
+		}
 	}
 	
 	@Override
@@ -620,13 +674,13 @@ public class PlayerStat extends PlayableStat
 	public void setSp(long value)
 	{
 		final Player player = getActiveChar();
-		if (player.isSubClassActive())
+		synchronized (player)
 		{
-			player.getSubClasses().get(player.getClassIndex()).setSp(value);
-		}
-		else
-		{
-			super.setSp(value);
+			final int index = player.getClassIndex();
+			final long before = getSp();
+			if (player.isSubClassActive()) { player.getSubClasses().get(index).setSp(value); }
+			else { super.setSp(value); }
+			if (value != before) { _skillPointWitnesses.remove(index); }
 		}
 	}
 	

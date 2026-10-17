@@ -829,7 +829,7 @@ public final class L2jProgressionBackend implements PhantomProgressionBackend
 				{
 					return OperationResult.rejected(OperationStatus.CANCELLED);
 				}
-				if (_player.isAlikeDead() || _player.isTransformed() || _player.isMounted() || _player.isInCombat() || _player.isCastingNow() || _player.isCastingSimultaneouslyNow())
+				if (_player.isChangingClass() || _player.isAlikeDead() || _player.isTransformed() || _player.isMounted() || _player.isInCombat() || _player.isCastingNow() || _player.isCastingSimultaneouslyNow())
 				{
 					return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED);
 				}

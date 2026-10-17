@@ -144,6 +144,98 @@ public final class PhantomProgressionDurabilitySuite implements PhantomTestSuite
 		registry.add("13-success-only-event-count", _ -> PhantomAssertions.assertTrue(_eventCountExact, "Skill-learn event count or postcondition ordering changed."));
 		registry.add("14-operation-and-lease-counts-drain", _ -> PhantomAssertions.assertTrue(_noLeaks, "Durability suite leaked an operation or actor lease."));
 		registry.add("15-bounded-durability-runtime", _ -> PhantomAssertions.assertTrue(_elapsedMillis <= 120_000, "Durability operation matrix exceeded 120 seconds."));
+		registry.add("16-native-credits-reconcile-once-and-unknown-sp-still-conflicts", this::exerciseImmediateCredit059);
+		registry.add("17-credited-learning-concurrent-gain-and-autosave-retain-every-point", this::exerciseCreditRace059);
+		registry.add("18-class-switch-keeps-committed-cost-on-the-original-index", this::exerciseClassRace059);
+	}
+
+	private void exerciseImmediateCredit059(PhantomTestContext context) throws Exception
+	{
+		final SkillLearn learn = nextLearn(true);
+		final Skill skill = SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel());
+		final int previous = _player.getSkillLevel(skill.getId());
+		final int cost = learn.getCalculatedLevelUpSp(_player.getPlayerClass(), _player.getLearningClass());
+		_player.setSp(cost + 1600L); _player.storeMe();
+		final long baseline = readSp(0);
+		PhantomAssertions.assertTrue(_player.getStat().addSp(31), "Declared native credit was not admitted.");
+		final long credited = _player.getSp();
+		PhantomAssertions.assertEquals(baseline + 31, credited, "Native credit did not retain its exact delta.");
+		executeUpdate("UPDATE characters SET sp = ? WHERE charId = ?", baseline + 1, _player.getObjectId());
+		PhantomAssertions.assertEquals(OperationStatus.DURABLE_SP_STATE_CONFLICT, new PhantomClassSkillLearningTransaction().execute(_player, skill, null, previous, cost, null, null).status(), "Unknown durable divergence was accepted as native earned SP.");
+		executeUpdate("UPDATE characters SET sp = ? WHERE charId = ?", baseline, _player.getObjectId());
+		final var rollback = new PhantomClassSkillLearningTransaction(point -> { if (point == FaultPoint.BEFORE_COMMIT) { throw new InjectedFailure(point); } });
+		PhantomAssertions.assertEquals(OperationStatus.BACKEND_FAILURE, rollback.execute(_player, skill, null, previous, cost, null, null).status(), "Credited learning did not reach the guarded rollback boundary.");
+		PhantomAssertions.assertTrue(_player.getSp() == credited && readSp(0) == baseline && _player.getSkillLevel(skill.getId()) == previous, "Rollback lost credited SP or granted a skill.");
+		final var transaction = new PhantomClassSkillLearningTransaction();
+		PhantomAssertions.assertEquals(OperationStatus.SUCCESS, transaction.execute(_player, skill, null, previous, cost, null, null).status(), "Unsaved native credit did not learn normally.");
+		final long expected = credited - cost;
+		PhantomAssertions.assertTrue(_player.getSp() == expected && readSp(0) == expected && readSkillLevel(skill.getId(), 0) == skill.getLevel(), "Credit and learning cost did not commit atomically.");
+		PhantomAssertions.assertEquals(OperationStatus.IDEMPOTENT, transaction.execute(_player, skill, null, skill.getLevel(), 0, null, null).status(), "Immediate learning retry was not idempotent.");
+		reload();
+		PhantomAssertions.assertTrue(_player.getSp() == expected && _player.getSkillLevel(skill.getId()) == skill.getLevel(), "Normal reload lost the paid skill or credited SP.");
+		context.record("sp059.credit", "native31; unknown durable+1 refused; injected rollback retains credit; one cost=" + cost + "; exact retry/reload; finalSP=" + expected);
+	}
+
+	private void exerciseCreditRace059(PhantomTestContext context) throws Exception
+	{
+		final Player actor = _player;
+		final SkillLearn learn = nextLearn(true);
+		final Skill skill = SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel());
+		final int previous = actor.getSkillLevel(skill.getId());
+		final int cost = learn.getCalculatedLevelUpSp(actor.getPlayerClass(), actor.getLearningClass());
+		actor.setSp(cost + 1700L); actor.storeMe();
+		final long baseline = actor.getSp();
+		PhantomAssertions.assertTrue(actor.getStat().addSp(47), "Race credit was not admitted.");
+		final var entered = new CountDownLatch(1);
+		final var release = new CountDownLatch(1);
+		final var transaction = new PhantomClassSkillLearningTransaction(point -> { if (point == FaultPoint.BEFORE_COMMIT) { entered.countDown(); awaitLatch(release, "Credited race was not released."); } });
+		final var learning = CompletableFuture.supplyAsync(() -> transaction.execute(actor, skill, null, previous, cost, null, null));
+		CompletableFuture<Void> gain = null, save = null;
+		try
+		{
+			PhantomAssertions.assertTrue(entered.await(10, TimeUnit.SECONDS), "Credited race did not reach the commit boundary.");
+			gain = CompletableFuture.runAsync(() -> { PhantomAssertions.assertTrue(actor.getStat().addSp(13), "Concurrent native gain was rejected."); });
+			save = CompletableFuture.runAsync(actor::storeMe);
+		}
+		finally { release.countDown(); }
+		PhantomAssertions.assertEquals(OperationStatus.SUCCESS, learning.get(15, TimeUnit.SECONDS).status(), "Concurrent credited learning did not commit.");
+		gain.get(15, TimeUnit.SECONDS); save.get(15, TimeUnit.SECONDS);
+		// Ordinary post-race persistence is a result check, never a prerequisite to the purchase.
+		actor.storeMe();
+		final long expected = baseline + 47 + 13 - cost;
+		PhantomAssertions.assertTrue(actor.getSp() == expected && readSp(0) == expected && actor.getSkillLevel(skill.getId()) == skill.getLevel(), "Gain/autosave overwrote a committed cost or a native credit.");
+		reload();
+		PhantomAssertions.assertEquals(expected, _player.getSp(), "Credited race did not survive normal reload.");
+		context.record("sp059.race", "native47 before learn +native13 concurrent with ordinary autosave; one cost=" + cost + "; final/reloadedSP=" + expected);
+	}
+
+	private void exerciseClassRace059(PhantomTestContext context) throws Exception
+	{
+		final Player actor = _player;
+		PhantomAssertions.assertTrue(actor.getClassIndex() == 0 && actor.getSubClasses().containsKey(SUBCLASS_INDEX), "Class race requires the existing main/subclass fixture.");
+		final SkillLearn learn = nextLearn(true);
+		final Skill skill = SkillData.getInstance().getSkill(learn.getSkillId(), learn.getSkillLevel());
+		final int previous = actor.getSkillLevel(skill.getId());
+		final int cost = learn.getCalculatedLevelUpSp(actor.getPlayerClass(), actor.getLearningClass());
+		actor.setSp(cost + 1800L); actor.storeMe();
+		final long expected = actor.getSp() - cost, subclassSp = readSp(SUBCLASS_INDEX);
+		final var entered = new CountDownLatch(1);
+		final var release = new CountDownLatch(1);
+		final var transaction = new PhantomClassSkillLearningTransaction(point -> { if (point == FaultPoint.BEFORE_COMMIT) { entered.countDown(); awaitLatch(release, "Class race was not released."); } });
+		final var learning = CompletableFuture.supplyAsync(() -> transaction.execute(actor, skill, null, previous, cost, null, null));
+		CompletableFuture<Void> change = null;
+		try
+		{
+			PhantomAssertions.assertTrue(entered.await(10, TimeUnit.SECONDS), "Class race did not reach the commit boundary.");
+			change = CompletableFuture.runAsync(() -> actor.setActiveClass(SUBCLASS_INDEX));
+		}
+		finally { release.countDown(); }
+		PhantomAssertions.assertEquals(OperationStatus.SUCCESS, learning.get(15, TimeUnit.SECONDS).status(), "Old-class learning did not commit before the class switch.");
+		change.get(15, TimeUnit.SECONDS);
+		PhantomAssertions.assertTrue(actor.getClassIndex() == SUBCLASS_INDEX && actor.getSp() == subclassSp && readSp(SUBCLASS_INDEX) == subclassSp && readSp(0) == expected, "Class switch moved the paid cost to the wrong SP row.");
+		actor.setActiveClass(0);
+		PhantomAssertions.assertTrue(actor.getSp() == expected && actor.getSkillLevel(skill.getId()) == skill.getLevel(), "Return to main class lost the committed result.");
+		context.record("sp059.classRace", "native main->sub->main concurrent with committed old-class cost=" + cost + "; mainSP=" + expected + "; subclassSP unchanged=" + subclassSp);
 	}
 
 	@Override

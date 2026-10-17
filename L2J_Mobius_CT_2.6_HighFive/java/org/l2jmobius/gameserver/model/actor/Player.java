@@ -595,7 +595,7 @@ public class Player extends Playable
 	private Object _nativeTeleportPublication;
 	private PlayerNativeTimer _nativeTeleportTimer;
 	
-	private boolean _subclassLock = false;
+	private volatile boolean _subclassLock = false;
 	protected int _baseClass;
 	protected int _activeClass;
 	protected int _classIndex = 0;
@@ -2592,12 +2592,10 @@ public class Player extends Playable
 	 */
 	public void setPlayerClass(int id)
 	{
-		if (_subclassLock)
+		if (!tryBeginClassChange())
 		{
 			return;
 		}
-		
-		_subclassLock = true;
 		
 		try
 		{
@@ -2678,7 +2676,7 @@ public class Player extends Playable
 		}
 		finally
 		{
-			_subclassLock = false;
+			finishClassChange();
 			
 			ThreadPool.schedule(() ->
 			{
@@ -2691,6 +2689,18 @@ public class Player extends Playable
 	public boolean isChangingClass()
 	{
 		return _subclassLock;
+	}
+
+	private synchronized boolean tryBeginClassChange()
+	{
+		if (_subclassLock) { return false; }
+		_subclassLock = true;
+		return true;
+	}
+
+	private synchronized void finishClassChange()
+	{
+		_subclassLock = false;
 	}
 	
 	/**
@@ -7479,6 +7489,7 @@ public class Player extends Playable
 						player.setExpBeforeDeath(rset.getLong("expBeforeDeath"));
 						stat.setLevel(rset.getByte("level"));
 						stat.setSp(rset.getLong("sp"));
+						stat.acknowledgeStoredSkillPoints(0, rset.getLong("sp"));
 						
 						player.setWantsPeace(rset.getInt("wantspeace"));
 						
@@ -7785,6 +7796,7 @@ public class Player extends Playable
 					
 					// Enforce the correct indexing of _subClasses against their class indexes.
 					player.getSubClasses().put(subClass.getClassIndex(), subClass);
+					player.getStat().acknowledgeStoredSkillPoints(subClass.getClassIndex(), subClass.getSp());
 				}
 			}
 		}
@@ -8145,7 +8157,7 @@ public class Player extends Playable
 			ps.setInt(50, factionId);
 			ps.setInt(51, _pcCafePoints);
 			ps.setInt(52, getObjectId());
-			ps.execute();
+			if (ps.executeUpdate() == 1) { getStat().acknowledgeStoredSkillPoints(0, sp); }
 		}
 		catch (Exception e)
 		{
@@ -8162,22 +8174,33 @@ public class Player extends Playable
 		}
 		
 		// TODO(Zoey76): Refactor this to use batch.
+		final List<Map.Entry<Integer, Long>> storedSkillPoints = new ArrayList<>();
 		try (Connection con = DatabaseFactory.getConnection();
 			PreparedStatement ps = con.prepareStatement(UPDATE_CHAR_SUBCLASS))
 		{
 			for (SubClassHolder subClass : getSubClasses().values())
 			{
 				final boolean ownedActive = (snapshot != null) && (snapshot.classIndex() == subClass.getClassIndex());
+				final long storedSp = ownedActive ? snapshot.skillPoints() : subClass.getSp();
 				ps.setLong(1, ownedActive ? snapshot.experience() : subClass.getExp());
-				ps.setLong(2, ownedActive ? snapshot.skillPoints() : subClass.getSp());
+				ps.setLong(2, storedSp);
 				ps.setInt(3, ownedActive ? snapshot.level() : subClass.getLevel());
 				ps.setInt(4, subClass.getId());
 				ps.setInt(5, getObjectId());
 				ps.setInt(6, subClass.getClassIndex());
 				ps.addBatch();
+				storedSkillPoints.add(Map.entry(subClass.getClassIndex(), storedSp));
 			}
 			
-			ps.executeBatch();
+			final int[] updates = ps.executeBatch();
+			for (int index = 0; index < Math.min(updates.length, storedSkillPoints.size()); index++)
+			{
+				if ((updates[index] == 1) || (updates[index] == java.sql.Statement.SUCCESS_NO_INFO))
+				{
+					final var stored = storedSkillPoints.get(index);
+					getStat().acknowledgeStoredSkillPoints(stored.getKey(), stored.getValue());
+				}
+			}
 		}
 		catch (Exception e)
 		{
@@ -10951,12 +10974,10 @@ public class Player extends Playable
 	 */
 	public boolean addSubClass(int classId, int classIndex)
 	{
-		if (_subclassLock)
+		if (!tryBeginClassChange())
 		{
 			return false;
 		}
-		
-		_subclassLock = true;
 		
 		try
 		{
@@ -10996,6 +11017,7 @@ public class Player extends Playable
 			
 			// Commit after database INSERT incase exception is thrown.
 			getSubClasses().put(newClass.getClassIndex(), newClass);
+			getStat().acknowledgeStoredSkillPoints(newClass.getClassIndex(), newClass.getSp());
 			
 			final PlayerClass subTemplate = PlayerClass.getPlayerClass(classId);
 			final Map<Integer, SkillLearn> skillTree = SkillTreeData.getInstance().getCompleteClassSkillTree(subTemplate);
@@ -11020,7 +11042,7 @@ public class Player extends Playable
 		}
 		finally
 		{
-			_subclassLock = false;
+			finishClassChange();
 		}
 	}
 	
@@ -11156,12 +11178,10 @@ public class Player extends Playable
 	 */
 	public void setActiveClass(int classIndex)
 	{
-		if (_subclassLock)
+		if (!tryBeginClassChange())
 		{
 			return;
 		}
-		
-		_subclassLock = true;
 		
 		try
 		{
@@ -11205,25 +11225,24 @@ public class Player extends Playable
 				_summon.unSummon(this);
 			}
 			
-			if (classIndex == 0)
+			synchronized (this)
 			{
-				setClassTemplate(_baseClass);
-			}
-			else
-			{
-				try
+				if (classIndex == 0)
 				{
-					setClassTemplate(getSubClasses().get(classIndex).getId());
+					setClassTemplate(_baseClass);
 				}
-				catch (Exception e)
+				else
 				{
-					LOGGER.log(Level.WARNING, "Could not switch " + getName() + "'s sub class to class index " + classIndex + ": " + e.getMessage(), e);
-					return;
+					try { setClassTemplate(getSubClasses().get(classIndex).getId()); }
+					catch (Exception e)
+					{
+						LOGGER.log(Level.WARNING, "Could not switch " + getName() + "'s sub class to class index " + classIndex + ": " + e.getMessage(), e);
+						return;
+					}
 				}
+				_classIndex = classIndex;
+				setLearningClass(getPlayerClass());
 			}
-			
-			_classIndex = classIndex;
-			setLearningClass(getPlayerClass());
 			
 			if (isInParty())
 			{
@@ -11312,7 +11331,7 @@ public class Player extends Playable
 		}
 		finally
 		{
-			_subclassLock = false;
+			finishClassChange();
 		}
 	}
 	

@@ -3857,14 +3857,19 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		PhantomAssertions.assertTrue(_player.getLevel() >= 20 && _player.getExp() > expBefore && _player.getSp() >= 100, "Four stock kills did not earn the declared level/learning budget.");
 		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat() && !_player.isAttackingNow() && !_player.isCastingNow(), 30_000), "Native combat state did not end before trainer learning.");
-		// The existing durable learning transaction requires a saved SP baseline. Use ordinary lifecycle save/return,
-		// preserving all earned progress; never overwrite its conflict guard or fabricate SP in SQL/runtime.
+		// Immediate learning must consume genuinely earned, not yet manually saved SP.
 		final long earnedSp = _player.getSp(), earnedExp = _player.getExp(); final int earnedObjectId = _player.getObjectId();
-		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(_profile.profileId()).status(), "Earned progress checkpoint did not save.");
-		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Earned progress checkpoint did not return.");
-		_player = World.getInstance().getPlayer(earnedObjectId);
-		PhantomAssertions.assertTrue(_player != null && (_player.getSp() == earnedSp) && (_player.getExp() == earnedExp) && (_player.getLevel() == 20) && (_player.getActiveWeaponItem() != null) && (_player.getActiveWeaponItem().getId() == 129), "Native return changed earned level/EXP/SP/owned gear.");
-		context.record("career058.earnedCheckpoint", "ordinary native save/return before durable training; same ID=" + earnedObjectId + "; EXP=" + earnedExp + "; SP=" + earnedSp + "; level20/D129 retained; immediate unsaved SP learning remains conflict-protected");
+		try (var connection = org.l2jmobius.commons.database.DatabaseFactory.getConnection(); var statement = connection.prepareStatement("SELECT sp FROM characters WHERE charId = ?"))
+		{
+			statement.setInt(1, earnedObjectId);
+			try (var rows = statement.executeQuery())
+			{
+				PhantomAssertions.assertTrue(rows.next(), "Immediate SP fixture row is missing.");
+				final long durableSp = rows.getLong(1);
+				context.record("career059.immediateInput", "same native actor=" + earnedObjectId + "; EXP=" + earnedExp + "; runtimeSP=" + earnedSp + "; durableSP=" + durableSp + "; class=" + _player.getActiveClass() + "; index=" + _player.getClassIndex() + "; no manual save/reload before learning");
+				PhantomAssertions.assertTrue(!rows.next() && durableSp < earnedSp, "INVALID_INPUT: the declared immediate-learning episode has no unsaved earned SP.");
+			}
+		}
 		final var template = NpcData.getInstance().getTemplates(value -> "Trainer".equals(value.getType()) && value.canTeach(_player.getLearningClass())).stream().min(Comparator.comparingInt(NpcTemplate::getId)).orElseThrow();
 		final var trainer = new org.l2jmobius.gameserver.model.actor.instance.Trainer(template); trainer.spawnMe(_player.getX() + 10, _player.getY(), _player.getZ()); _player.setLastFolkNPC(trainer);
 		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();

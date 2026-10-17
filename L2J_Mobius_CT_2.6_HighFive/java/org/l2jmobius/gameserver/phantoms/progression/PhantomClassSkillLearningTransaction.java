@@ -63,6 +63,7 @@ public final class PhantomClassSkillLearningTransaction
 		{
 			synchronized (player)
 			{
+				if (player.isChangingClass()) { return OperationResult.rejected(OperationStatus.ACTOR_STATE_REJECTED); }
 				if (exactItem == null)
 				{
 					return executeLocked(player, skill, trainer, previousSkillLevel, spCost, null, null);
@@ -90,7 +91,7 @@ public final class PhantomClassSkillLearningTransaction
 			connection.setAutoCommit(false);
 			try
 			{
-				baseline = lockAndValidate(connection, identity);
+				baseline = lockAndValidate(connection, identity, player);
 				if (identity.previousSkillLevel() >= identity.targetSkillLevel())
 				{
 					connection.rollback();
@@ -98,7 +99,7 @@ public final class PhantomClassSkillLearningTransaction
 				}
 
 				mutateItem(connection, identity);
-				mutateSp(connection, identity);
+				mutateSp(connection, identity, baseline.sp());
 				mutateSkill(connection, identity);
 				_faultInjector.inject(FaultPoint.BEFORE_COMMIT);
 				connection.commit();
@@ -146,6 +147,7 @@ public final class PhantomClassSkillLearningTransaction
 			{
 				return OperationResult.rejected(OperationStatus.DURABLE_COMMIT_RUNTIME_RECONCILIATION_FAILED);
 			}
+			player.getStat().acknowledgeStoredSkillPoints(identity.classIndex(), expectedSp);
 		}
 		catch (Throwable failure)
 		{
@@ -155,10 +157,10 @@ public final class PhantomClassSkillLearningTransaction
 		return new OperationResult(OperationStatus.SUCCESS, identity.spBefore(), expectedSp, itemCountsBefore, itemCounts(player, requiredItem), skill.getLevel(), false);
 	}
 
-	private DurableState lockAndValidate(Connection connection, Identity identity) throws SQLException
+	private DurableState lockAndValidate(Connection connection, Identity identity, Player player) throws SQLException
 	{
 		final SpRow spRow = lockSp(connection, identity);
-		if (spRow.sp() != identity.spBefore())
+		if ((spRow.sp() != identity.spBefore()) && !player.getStat().matchesNativeSkillPointCredit(spRow.sp()))
 		{
 			throw new StateConflict(OperationStatus.DURABLE_SP_STATE_CONFLICT);
 		}
@@ -318,11 +320,11 @@ public final class PhantomClassSkillLearningTransaction
 		_faultInjector.inject(FaultPoint.AFTER_ITEM_SQL);
 	}
 
-	private void mutateSp(Connection connection, Identity identity) throws SQLException
+	private void mutateSp(Connection connection, Identity identity, long durableSpBefore) throws SQLException
 	{
 		_faultInjector.inject(FaultPoint.BEFORE_SP_SQL);
 		final long expectedSp = identity.spBefore() - identity.spCost();
-		if (identity.spCost() > 0)
+		if ((identity.spCost() > 0) || (identity.spBefore() != durableSpBefore))
 		{
 			if (identity.classIndex() == 0)
 			{
@@ -330,7 +332,7 @@ public final class PhantomClassSkillLearningTransaction
 				{
 					statement.setLong(1, expectedSp);
 					statement.setInt(2, identity.characterObjectId());
-					statement.setLong(3, identity.spBefore());
+					statement.setLong(3, durableSpBefore);
 					requireOne(statement.executeUpdate(), OperationStatus.DURABLE_SP_STATE_CONFLICT);
 				}
 			}
@@ -342,7 +344,7 @@ public final class PhantomClassSkillLearningTransaction
 					statement.setInt(2, identity.characterObjectId());
 					statement.setInt(3, identity.classIndex());
 					statement.setInt(4, identity.activeClassId());
-					statement.setLong(5, identity.spBefore());
+					statement.setLong(5, durableSpBefore);
 					requireOne(statement.executeUpdate(), OperationStatus.DURABLE_SP_STATE_CONFLICT);
 				}
 			}
