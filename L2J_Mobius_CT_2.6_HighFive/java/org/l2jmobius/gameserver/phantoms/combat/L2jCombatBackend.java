@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 import org.l2jmobius.gameserver.config.PvpConfig;
 import org.l2jmobius.gameserver.config.RatesConfig;
 import org.l2jmobius.gameserver.config.GeoEngineConfig;
+import org.l2jmobius.gameserver.config.NpcConfig;
 
 import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
@@ -521,6 +522,16 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			final PhantomGameKnowledgeQuery knowledge = _knowledgeSupplier.get();
 			final var fact = knowledge == null ? null : knowledge.findNpc(monster.getId()).orElse(null);
+			final Monster master = monster.getLeader();
+			final boolean minion = monster.isRaidMinion() && master != null;
+			final var masterFact = !minion || knowledge == null ? null : knowledge.findNpc(master.getId()).orElse(null);
+			if (minion && fact != null && fact.kind() == NpcKind.MONSTER && masterFact != null && ((masterFact.kind() == NpcKind.RAID_BOSS && master instanceof RaidBoss) || (masterFact.kind() == NpcKind.GRAND_BOSS && master instanceof GrandBoss)))
+			{
+				final WorldRegion region = _player.getWorldRegion();
+				final boolean canonical = monster.isMortal() && monster.isSpawned() && master.isSpawned() && !master.isDead() && master.getInstanceId() == monster.getInstanceId() && master.hasMinions() && master.getMinionList().getSpawnedMinions().contains(monster);
+				final boolean restricted = _player.isOnEvent() || _player.isInOlympiadMode() || _player.isInDuel() || _player.isInSiege() || _player.isInsideZone(ZoneId.SIEGE) || _player.isInsideZone(ZoneId.PEACE) || monster.isInsideZone(ZoneId.PEACE);
+				return new RaidTargetSnapshot(monster.getObjectId(), monster.getId(), monster.getInstanceId(), monster.getCurrentHp(), monster.getMaxHp(), monster.isDead(), monster.isAlikeDead(), monster.isTargetable(), monster.isAttackable() && monster.isAutoAttackable(_player), monster.isInvul(), canonical, fact.kind(), distance(_player, monster), restricted, region != null && region.isSurroundingRegion(monster.getWorldRegion()), master.getObjectId(), master.getId(), NpcConfig.RAID_DISABLE_CURSE ? 1000 : monster.getLevel() + 8, masterFact.kind());
+			}
 			if ((fact == null) || ((fact.kind() != NpcKind.RAID_BOSS) && (fact.kind() != NpcKind.GRAND_BOSS)))
 			{
 				return null;
@@ -731,7 +742,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			// Session admission owns exact encounter authority. Tactics retain the same live NPC restrictions.
 			final RaidTargetSnapshot raid = raidTargetSnapshot(target);
-			return (raid != null) && raid.canonicalRaidMonster() && raid.targetable() && raid.attackable() && !raid.invulnerable() && !raid.dead() && !raid.alikeDead() && !raid.peaceRestricted() && raid.surroundingRegion() && (raid.instanceId() == actor.instanceId()) && (raid.distance() <= MAXIMUM_ACQUISITION_DISTANCE);
+			return (raid != null) && raid.minionParentObjectId() == 0 && raid.canonicalRaidMonster() && raid.targetable() && raid.attackable() && !raid.invulnerable() && !raid.dead() && !raid.alikeDead() && !raid.peaceRestricted() && raid.surroundingRegion() && (raid.instanceId() == actor.instanceId()) && (raid.distance() <= MAXIMUM_ACQUISITION_DISTANCE);
 		}
 
 		private boolean ownsSpacingDestination()
@@ -1068,7 +1079,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.REJECTED;
 			}
 			final RaidTargetSnapshot snapshot = raidTargetSnapshot(target);
-			if ((snapshot == null) || !snapshot.validFor(actorSnapshot(), request, MAXIMUM_ACQUISITION_DISTANCE))
+			if ((snapshot == null) || _player.getLevel() > snapshot.maximumActorLevel(request) || !snapshot.validFor(actorSnapshot(), request, MAXIMUM_ACQUISITION_DISTANCE))
 			{
 				return ActionOutcome.REJECTED;
 			}
@@ -1098,7 +1109,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.REJECTED;
 			}
 			final RaidTargetSnapshot snapshot = raidTargetSnapshot(target);
-			if ((snapshot == null) || !snapshot.validFor(actorSnapshot(), request, MAXIMUM_ACQUISITION_DISTANCE) || !supportsSkill(selected, request.mode()))
+			if ((snapshot == null) || _player.getLevel() > snapshot.maximumActorLevel(request) || !snapshot.validFor(actorSnapshot(), request, MAXIMUM_ACQUISITION_DISTANCE) || !supportsSkill(selected, request.mode()))
 			{
 				return ActionOutcome.REJECTED;
 			}

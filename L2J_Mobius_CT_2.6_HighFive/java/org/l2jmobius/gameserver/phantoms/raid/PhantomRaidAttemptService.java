@@ -383,7 +383,7 @@ public final class PhantomRaidAttemptService implements PhantomRaidDecision.Atte
 				final OptionalInt level = _party.currentLevel(member.ref());
 				if (level.isEmpty() || (level.getAsInt() < profile.minimumMemberLevel()) || (enforceMaximum && (level.getAsInt() > profile.maximumMemberLevelWhenCurseEnabled())))
 				{
-					return Preflight.failure(enforceMaximum && level.isPresent() && (level.getAsInt() > profile.maximumMemberLevelWhenCurseEnabled()) ? "raid.attempt.queen_curse_level" : "raid.attempt.member_level_rejected", false);
+					return Preflight.failure(enforceMaximum && level.isPresent() && (level.getAsInt() > profile.maximumMemberLevelWhenCurseEnabled()) && profile.contentId().equals(PhantomRaidEncounterCatalog.QUEEN_ANT) ? "raid.attempt.queen_curse_level" : "raid.attempt.member_level_rejected", false);
 				}
 			}
 		}

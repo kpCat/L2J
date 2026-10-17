@@ -32,7 +32,10 @@ public final class PhantomRaidEncounterCatalog
 		final var npc = content.npc();
 		if (requirement.contentKind() == ContentKind.RAID)
 		{
-			return Optional.of(PhantomRaidEncounterProfile.create(requirement.contentId(), ContentKind.RAID, npc.npcId(), NpcKind.RAID_BOSS, EntryKind.OPEN_WORLD, 0, 0, Math.max(1, npc.level()), requirement.recommendedMinParty(), requirement.recommendedMaxParty(), 1, 0, 0, requirement.requirements()));
+			final boolean sheshark = "raid.25199".equals(requirement.contentId());
+			if (sheshark && (npc.npcId() != 25199 || npc.level() != 72 || npc.kind() != NpcKind.RAID_BOSS)) { return Optional.empty(); }
+			// Stock25200/25201 minions are level71; native nearby support also receives the unchanged +8 raid curse.
+			return Optional.of(PhantomRaidEncounterProfile.create(requirement.contentId(), ContentKind.RAID, npc.npcId(), NpcKind.RAID_BOSS, EntryKind.OPEN_WORLD, 0, 0, Math.max(1, npc.level()), requirement.recommendedMinParty(), requirement.recommendedMaxParty(), 1, sheshark ? 79 : 0, 0, requirement.requirements()));
 		}
 		if (QUEEN_ANT.equals(requirement.contentId()) && (npc.npcId() == QUEEN_ANT_NPC_ID) && (npc.kind() == NpcKind.GRAND_BOSS) && (npc.level() == 40))
 		{

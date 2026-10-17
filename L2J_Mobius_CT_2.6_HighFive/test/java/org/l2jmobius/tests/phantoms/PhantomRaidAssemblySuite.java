@@ -381,6 +381,34 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 				PhantomAssertions.assertFalse(source.contains(forbidden), "CP4 crossed a forbidden source boundary: " + forbidden);
 			}
 		});
+		registry.add("06-live-staging-rejects-unreachable-ring-and-keeps-full-force", _ ->
+		{
+			final var geometry = new PhantomRaidAssemblyService.HeightResolver()
+			{
+				@Override public int resolve(int x, int y, int factualZ) { return factualZ; }
+				public boolean canApproach(PhantomNavigationPoint from, PhantomNavigationPoint centre) { return from.distanceTo(centre) <= 1000; }
+			};
+			try (Fixture fixture = readyFixture(_topology, LIVE_CONTENT, null, geometry))
+			{
+				PhantomAssertions.assertEquals(AssemblyStatus.GATHERING, fixture.service.advance(1, 10, 0).status(), "Bounded native staging fallback did not enter gathering.");
+				fixture.party.readyForceAtLiveSlots(false, 900);
+				PhantomAssertions.assertEquals(AssemblyStatus.FINAL_PREPARATION, fixture.service.advance(1, 10, 0).status(), "Unreachable outer ring was retained over proven900-radius staging.");
+				final var ready = fixture.service.advance(1, 10, 0);
+				PhantomAssertions.assertEquals(AssemblyStatus.READY_AT_STAGING, ready.status(), "Proven fallback staging did not become ready.");
+				PhantomAssertions.assertEquals(3, ready.readyReceipt().slots().size(), "Fallback silently dropped a native Party.");
+				PhantomAssertions.assertEquals(10900, ready.readyReceipt().slots().getFirst().point().x(), "Fallback did not preserve the first proven largest ring.");
+			}
+			final var blocked = new PhantomRaidAssemblyService.HeightResolver()
+			{
+				@Override public int resolve(int x, int y, int factualZ) { return factualZ; }
+				public boolean canApproach(PhantomNavigationPoint from, PhantomNavigationPoint centre) { return false; }
+			};
+			try (Fixture fixture = readyFixture(_topology, LIVE_CONTENT, null, blocked))
+			{
+				PhantomAssertions.assertEquals(AssemblyStatus.BLOCKED, fixture.service.advance(1, 10, 0).status(), "Unproven staging geometry fabricated readiness.");
+				PhantomAssertions.assertTrue(fixture.service.readyReceipt(1).isEmpty(), "Blocked staging retained a ready receipt.");
+			}
+		});
 	}
 
 	private void decision(PhantomTestRegistry registry)
@@ -521,7 +549,12 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 
 	private Fixture readyFixture(PhantomTopologyQuery topology, String content, PhantomDomainRef selectedAnchor)
 	{
-		final Fixture fixture = fixture(topology);
+		return readyFixture(topology, content, selectedAnchor, (x, y, factualZ) -> factualZ);
+	}
+
+	private Fixture readyFixture(PhantomTopologyQuery topology, String content, PhantomDomainRef selectedAnchor, PhantomRaidAssemblyService.HeightResolver height)
+	{
+		final Fixture fixture = fixture(topology, height);
 		fixture.party.profile(LEADER);
 		fixture.party.profile(CANDIDATE_ONE);
 		fixture.party.profile(CANDIDATE_TWO);
@@ -532,12 +565,17 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 
 	private Fixture fixture(PhantomTopologyQuery topology)
 	{
+		return fixture(topology, (x, y, factualZ) -> factualZ);
+	}
+
+	private Fixture fixture(PhantomTopologyQuery topology, PhantomRaidAssemblyService.HeightResolver height)
+	{
 		final MemoryGoalStore goals = new MemoryGoalStore();
 		final MemoryPartyBackend party = new MemoryPartyBackend();
 		final StubRaidAuthority authority = new StubRaidAuthority();
 		final PhantomRaidReadinessService readiness = new PhantomRaidReadinessService(_knowledge, party, authority);
 		final PhantomRaidRecruitmentService recruitment = new PhantomRaidRecruitmentService(readiness, party);
-		final PhantomRaidAssemblyService service = new PhantomRaidAssemblyService(goals, readiness, recruitment, party, authority, () -> topology, _routes, () -> NOW, () -> LOGICAL_NOW, (x, y, factualZ) -> factualZ);
+		final PhantomRaidAssemblyService service = new PhantomRaidAssemblyService(goals, readiness, recruitment, party, authority, () -> topology, _routes, () -> NOW, () -> LOGICAL_NOW, height);
 		return new Fixture(goals, party, authority, service);
 	}
 
@@ -796,11 +834,16 @@ public final class PhantomRaidAssemblySuite implements PhantomTestSuite
 
 		private void readyForceAtLiveSlots(boolean transientNotReady)
 		{
+			readyForceAtLiveSlots(transientNotReady, 1800);
+		}
+
+		private void readyForceAtLiveSlots(boolean transientNotReady, int radius)
+		{
 			final List<PartySnapshot> parties = List.of(party(LEADER, LEADER), party(CANDIDATE_ONE, CANDIDATE_ONE), party(CANDIDATE_TWO, CANDIDATE_TWO));
 			final List<MemberSnapshot> members = List.of(
-				member(LEADER, 11800, 20000, false, tank(true)),
-				member(CANDIDATE_ONE, 9100, 21559, false, heal(!transientNotReady)),
-				member(CANDIDATE_TWO, 9100, 18441, false));
+				member(LEADER, 10000 + radius, 20000, false, tank(true)),
+				member(CANDIDATE_ONE, 10000 - radius / 2, 20000 + (int) Math.round(Math.sqrt(3) * radius / 2), false, heal(!transientNotReady)),
+				member(CANDIDATE_TWO, 10000 - radius / 2, 20000 - (int) Math.round(Math.sqrt(3) * radius / 2), false));
 			forceAll(channel(LEADER, LEADER, parties, members));
 		}
 

@@ -528,6 +528,18 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		return createFixture("PhT058I" + slot + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE);
 	}
 
+	/** Exact existing058t raid059 episode only; ordinary companion and invitation limits are unchanged. */
+	public PhantomHeadlessPlayerFixture createCampaign059RaidCompanion(PhantomTestContext context, int slot) throws Exception
+	{
+		if ((context.seed() != 58005830L) || !Boolean.getBoolean("phantom.test.raidFlow059") || (slot < 1) || (slot > 7) || (_primary == null) || !_accountName.equals("phantom_t004_" + context.seed()) || _additional058FixtureSlots.contains(200 + slot))
+		{
+			throw new IllegalArgumentException("Exact059 raid fixture identity/capacity required.");
+		}
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		_additional058FixtureSlots.add(200 + slot);
+		return createFixture("PhT058R" + slot + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE);
+	}
+
 	public void cleanupLoadedPlayer(Player player)
 	{
 		if (player == null)

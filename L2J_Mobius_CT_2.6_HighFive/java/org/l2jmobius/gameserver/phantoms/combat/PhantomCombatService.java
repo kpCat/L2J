@@ -438,7 +438,7 @@ public final class PhantomCombatService
 						{
 							final RaidTargetSnapshot target = lease.raidTargetSnapshot(request.targetObjectId());
 							final int actorLevel = lease.raidActorLevel();
-							validTarget = (actorLevel > 0) && (actorLevel <= raidRequest.maximumActorLevel()) && (target != null) && target.validFor(actor, raidRequest, _policy.maximumAcquisitionDistance());
+							validTarget = (actorLevel > 0) && (target != null) && (actorLevel <= target.maximumActorLevel(raidRequest)) && target.validFor(actor, raidRequest, _policy.maximumAcquisitionDistance());
 						}
 						else if (pvpRequest != null)
 						{
@@ -1461,7 +1461,7 @@ public final class PhantomCombatService
 			}
 			return;
 		}
-		if ((session._actorLease.raidActorLevel() <= 0) || (session._actorLease.raidActorLevel() > session._raidRequest.maximumActorLevel()) || (target == null) || !target.validFor(actor, session._raidRequest, _policy.maximumAcquisitionDistance()))
+		if ((session._actorLease.raidActorLevel() <= 0) || (target == null) || (session._actorLease.raidActorLevel() > target.maximumActorLevel(session._raidRequest)) || !target.validFor(actor, session._raidRequest, _policy.maximumAcquisitionDistance()))
 		{
 			finish(session, PhantomCombatResult.TARGET_LOST);
 			return;

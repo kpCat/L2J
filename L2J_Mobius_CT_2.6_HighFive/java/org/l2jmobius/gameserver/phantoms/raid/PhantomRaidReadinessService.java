@@ -6,6 +6,7 @@ package org.l2jmobius.gameserver.phantoms.raid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.CapabilityRequirement;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind;
@@ -17,6 +18,7 @@ import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.Pag
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceObservation;
+import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot;
 import org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceStatus;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberRef;
 import org.l2jmobius.gameserver.phantoms.party.model.PhantomPartyModel.MemberSnapshot;
@@ -32,6 +34,7 @@ import org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.TargetAvailabilit
  */
 public final class PhantomRaidReadinessService implements PhantomRaidAttemptService.ReadinessPort
 {
+	private static final Set<String> TARGETED_SUPPORT = Set.of("combat.heal", "combat.recharge", "combat.resurrection", "combat.buff", "combat.song", "combat.dance");
 	private final PhantomGameKnowledgeQuery _knowledge;
 	private final PhantomPartyBackend _party;
 	private final PhantomRaidAuthority _authority;
@@ -126,7 +129,7 @@ public final class PhantomRaidReadinessService implements PhantomRaidAttemptServ
 		final List<CapabilityAssessment> capabilities = new ArrayList<>(requirement.requirements().size());
 		for (CapabilityRequirement capability : requirement.requirements())
 		{
-			final int satisfying = (int) force.snapshot().members().stream().filter(member -> satisfies(member, capability)).count();
+			final int satisfying = (int) force.snapshot().members().stream().filter(member -> satisfiesCurrent(member, capability, force.snapshot())).count();
 			capabilities.add(new CapabilityAssessment(capability, satisfying));
 		}
 		final boolean requiredMissing = capabilities.stream().anyMatch(capability -> capability.requirement().required() && !capability.satisfied());
@@ -135,7 +138,25 @@ public final class PhantomRaidReadinessService implements PhantomRaidAttemptServ
 
 	static boolean satisfies(MemberSnapshot member, CapabilityRequirement requirement)
 	{
-		return member.capabilities().stream().anyMatch(capability -> capability.capabilityKey().equals(requirement.capabilityKey()) && (capability.rank() >= requirement.minimumRank()) && capability.intrinsic() && capability.learned() && capability.readyNow());
+		return !member.dead() && member.capabilities().stream().anyMatch(capability -> capability.capabilityKey().equals(requirement.capabilityKey()) && (capability.rank() >= requirement.minimumRank()) && capability.intrinsic() && capability.learned() && capability.readyNow());
+	}
+
+	private boolean satisfiesCurrent(MemberSnapshot member, CapabilityRequirement requirement, CurrentForceSnapshot force)
+	{
+		if (satisfies(member, requirement)) { return true; }
+		if (member.dead() || !TARGETED_SUPPORT.contains(requirement.capabilityKey()) || member.capabilities().stream().noneMatch(capability -> capability.capabilityKey().equals(requirement.capabilityKey()) && capability.rank() >= requirement.minimumRank() && capability.intrinsic() && capability.learned() && capability.readinessReason().equals("target_required"))) { return false; }
+		// A structural snapshot has no spell target. Reprobe only exact native Party partners;
+		// the existing port still checks learned rank, target, resources, reuse and conditions.
+		for (var party : force.parties())
+		{
+			if (!party.members().contains(member.ref())) { continue; }
+			for (MemberSnapshot target : force.members())
+			{
+				if (!party.members().contains(target.ref()) || target.instanceId() != member.instanceId() || target.dead() != requirement.capabilityKey().equals("combat.resurrection")) { continue; }
+				if (_party.capabilities(member.ref(), target.ref().characterObjectId()).stream().anyMatch(capability -> capability.capabilityKey().equals(requirement.capabilityKey()) && capability.rank() >= requirement.minimumRank() && capability.intrinsic() && capability.learned() && capability.readyNow())) { return true; }
+			}
+		}
+		return false;
 	}
 
 	private static RaidReadiness result(String contentId, ContentSnapshot content, BossObservation target, TargetAvailability availability, CurrentForceObservation force, List<CapabilityAssessment> capabilities, ReadinessStatus status, String reason)

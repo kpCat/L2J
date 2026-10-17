@@ -309,6 +309,23 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_READY, readiness.status(), "Unavailable optional capability blocked otherwise ready raid group.");
 			PhantomAssertions.assertTrue(readiness.capabilities().stream().anyMatch(value -> !value.requirement().required() && !value.satisfied()), "Unavailable optional capability was not retained as unsatisfied evidence.");
 		});
+		registry.add("06-target-required-support-binds-only-current-party-target", _ ->
+		{
+			_authority.raid = availableRaid();
+			final MemberRef healer = MemberRef.real(200);
+			final MemberCapability unbound = new MemberCapability("combat.heal", "current", 1000, 500, 1, "SINGLE_TARGET", true, true, false, "target_required", 1000, "test.native_probe");
+			_party.observation = force(member(actor(), capability("combat.tank", 1000)), member(healer, unbound), member(MemberRef.real(300)));
+			_party.boundCapabilities = List.of();
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, _service.assess(actor(), "raid.synthetic").status(), "Missing legal target was treated as ready support.");
+			_party.boundCapabilities = List.of(new MemberCapability("combat.heal", "current", 1000, 500, 1, "SINGLE_TARGET", true, true, true, "ready", 1000, "test.native_probe"));
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_READY, _service.assess(actor(), "raid.synthetic").status(), "Ready native support bound to the exact current Party target was ignored.");
+			_party.observation = force(member(actor(), capability("combat.tank", 1000)), member(healer, true, unbound), member(MemberRef.real(300)));
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, _service.assess(actor(), "raid.synthetic").status(), "Target binding revived a dead provider.");
+			final MemberCapability noMp = new MemberCapability("combat.heal", "current", 1000, 500, 1, "SINGLE_TARGET", true, true, false, "insufficient_mp_or_hp", 1000, "test.native_probe");
+			_party.observation = force(member(actor(), capability("combat.tank", 1000)), member(healer, noMp), member(MemberRef.real(300)));
+			PhantomAssertions.assertEquals(ReadinessStatus.GROUP_INCAPABLE, _service.assess(actor(), "raid.synthetic").status(), "Target binding bypassed a native resource refusal.");
+			_party.boundCapabilities = List.of();
+		});
 	}
 
 	private static BossObservation availableRaid()
@@ -424,6 +441,7 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 	private static class StubPartyBackend implements PhantomPartyBackend
 	{
 		private CurrentForceObservation observation = CurrentForceObservation.unavailable("test.unavailable");
+		private List<MemberCapability> boundCapabilities = List.of();
 
 		@Override public OptionalLong managedProfileId(int characterObjectId) { return OptionalLong.empty(); }
 		@Override public Optional<MemberRef> currentMember(long profileId) { return Optional.empty(); }
@@ -435,7 +453,7 @@ public final class PhantomRaidReadinessSuite implements PhantomTestSuite
 		@Override public Optional<PartySnapshot> observe(MemberRef member) { return Optional.empty(); }
 		@Override public Optional<MemberSnapshot> memberSnapshot(MemberRef member) { return Optional.empty(); }
 		@Override public CurrentForceObservation currentForce(MemberRef actor) { return observation; }
-		@Override public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId) { return List.of(); }
+		@Override public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId) { return actor.equals(MemberRef.real(200)) && (exactTargetObjectId == 100) ? boundCapabilities : List.of(); }
 		@Override public boolean materialize(long profileId) { return false; }
 	}
 }

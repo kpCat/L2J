@@ -523,7 +523,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_repository = PhantomProfileRepository.open();
 			_profile = _repository.create(_environment.primary().objectId());
 			final PhantomMetrics metrics = new PhantomMetrics();
-			final int actorCapacity = Set.of(Mode.INSTANCES_058, Mode.RAID_TACTICS_058, Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode) ? 3 : 1;
+			final int actorCapacity = (_mode == Mode.RAID_TACTICS_058) && Boolean.getBoolean("phantom.test.raidFlow059") ? 8 : Set.of(Mode.INSTANCES_058, Mode.RAID_TACTICS_058, Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode) ? 3 : 1;
 			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
@@ -653,7 +653,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.RAID_TACTICS_058)
 		{
-			registry.add("01-stock-live-raid-current-magic-tank-aggro-and-spacing", this::testRaidTactics058);
+			if (Boolean.getBoolean("phantom.test.raidMinionGuard059")) { registry.add("05-native-minion-parent-authority-effect-and-cost", this::testRaidFull059); }
+			else if (Boolean.getBoolean("phantom.test.raidLevelGuard059")) { registry.add("04-native-minion-ceiling-refuses-before-combat", this::testRaidFull059); }
+			else if (Boolean.getBoolean("phantom.test.raidStagingOnly059")) { registry.add("03-native-staging-geometry-preflight", this::testRaidFull059); }
+			else if (Boolean.getBoolean("phantom.test.raidFlow059")) { registry.add("02-current-supported-raid-readiness-to-full-native-result", this::testRaidFull059); }
+			else { registry.add("01-stock-live-raid-current-magic-tank-aggro-and-spacing", this::testRaidTactics058); }
 			return;
 		}
 		if (_mode == Mode.COMPANION_FARM_RESUME_058)
@@ -1333,14 +1337,20 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void prepareCompanionCombat058(Player actor, int classId, int weaponId, int skillId, int... armorIds)
 	{
-		actor.getStat().setExp(actor.getStat().getExpForLevel(80));
+		prepareCompanionCombatAtLevel058(actor, classId, weaponId, skillId, 80, armorIds);
+	}
+
+	private void prepareCompanionCombatAtLevel058(Player actor, int classId, int weaponId, int skillId, int level, int... armorIds)
+	{
+		PhantomAssertions.assertTrue(level == 79 || level == 80, "Only the declared native campaign79/80 inputs are supported.");
+		actor.getStat().setExp(actor.getStat().getExpForLevel(level));
 		actor.setBaseClass(classId);
 		actor.setPlayerClass(classId);
-		actor.getStat().setLevel((byte) 80);
-		actor.addSkill(SkillData.getInstance().getSkill(239, 6), true);
+		actor.getStat().setLevel((byte) level);
+		actor.addSkill(SkillData.getInstance().getSkill(239, level >= 80 ? 6 : 5), true);
 		if (skillId > 0)
 		{
-			PhantomAssertions.assertTrue(_progression.classSkillLearns(classId).stream().anyMatch(learn -> (learn.skillId() == skillId) && (learn.skillLevel() == 1) && (learn.minimumCharacterLevel() <= 80)), "TEST offensive skill is not in the current class tree.");
+			PhantomAssertions.assertTrue(_progression.classSkillLearns(classId).stream().anyMatch(learn -> (learn.skillId() == skillId) && (learn.skillLevel() == 1) && (learn.minimumCharacterLevel() <= level)), "TEST offensive skill is not in the current class tree.");
 			actor.addSkill(SkillData.getInstance().getSkill(skillId, 1), true);
 		}
 		if (weaponId > 0)
@@ -4368,6 +4378,249 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			_combat.cancel(_profile.profileId()); consumeTerminal();
 			for (Player actor : actors) { if (actor.isInParty()) { PartyInvitationService.getInstance().leave(actor); } }
+		}
+	}
+
+	private void testRaidFull059(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final RaidBoss boss = RaidBossSpawnManager.getInstance().getBosses().get(25199);
+		PhantomAssertions.assertTrue((boss != null) && boss.isSpawned() && !boss.isDead() && !boss.isInvul() && (boss.getInstanceId() == 0) && (boss.getCurrentHp() >= boss.getMaxHp() * .99), "INVALID_INPUT: exact stock25199 is unavailable or not full HP.");
+		PhantomAssertions.assertTrue(waitFor(() -> boss.getMinionList().getSpawnedMinions().size() == 4, 15_000), "INVALID_INPUT: declared four stock raid minions did not spawn naturally.");
+		final var initialMinions = List.copyOf(boss.getMinionList().getSpawnedMinions());
+		PhantomAssertions.assertTrue(initialMinions.stream().allMatch(value -> !value.isDead() && value.getCurrentHp() >= value.getMaxHp() * .99) && initialMinions.stream().filter(value -> value.getId() == 25200).count() == 3 && initialMinions.stream().filter(value -> value.getId() == 25201).count() == 1, "INVALID_INPUT: full stock minion denominator differs from three25200/one25201.");
+		final var geo = GeoEngine.getInstance();
+		final int centreX = boss.getX(), centreY = boss.getY(), centreZ = geo.getHeight(boss.getX(), boss.getY(), boss.getZ());
+		final int nearZ = geo.getHeight(boss.getX() + 100, boss.getY(), boss.getZ());
+		Location stagingInput = null;
+		for (int radius : new int[] {1800,1200,900,600,300})
+		{
+		for (int direction = 0; direction < 8; direction++)
+		{
+			final double angle = Math.PI * direction / 4;
+			final int x = centreX + (int) Math.round(Math.cos(angle) * radius), y = centreY + (int) Math.round(Math.sin(angle) * radius), z = geo.getHeight(x, y, centreZ);
+			final boolean direct = geo.hasGeo(x, y) && geo.canMoveToTarget(x, y, z, centreX, centreY, centreZ, 0);
+			System.out.println("RAID059_STAGING radius=" + radius + "; direction=" + direction + "; xyz=" + x + ',' + y + ',' + z + "; boss=" + boss.getX() + ',' + boss.getY() + ',' + boss.getZ() + "; nearZ=" + nearZ + "; direct=" + direct + "; water=" + (ZoneManager.getInstance().getZone(x,y,z,WaterZone.class) != null));
+			if (direct && (stagingInput == null || Boolean.getBoolean("phantom.test.raidMinionGuard059"))) { stagingInput = new Location(x, y, z); }
+		}
+		}
+		PhantomAssertions.assertTrue(stagingInput != null, "BLOCKED_NATIVE_STAGING_INPUT: no bounded300..1800-radius approach reaches the unchanged stock raid by native movement.");
+		if (Boolean.getBoolean("phantom.test.raidStagingOnly059")) { context.record("raid059.provenStaging", stagingInput); return; }
+		final List<Player> actors = new ArrayList<>(List.of(_player));
+		final List<Long> profileIds = new ArrayList<>(List.of(_profile.profileId()));
+		for (int slot = 1; slot <= 7; slot++)
+		{
+			final var fixture = _environment.createCampaign059RaidCompanion(context, slot);
+			final var profile = _repository.create(fixture.objectId()); _additionalProfiles058.add(profile); profileIds.add(profile.profileId());
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(profile.profileId()).status(), "Raid059 actor did not materialize.");
+			actors.add(World.getInstance().getPlayer(fixture.objectId()));
+		}
+		final Player human = ensureObserver();
+		prepareCompanionCombatAtLevel058(_player, 90, 2500, 368, 79, 6373, 6374, 6375, 6376, 6377, 6378);
+		prepareCompanionCombatAtLevel058(actors.get(1), 88, 6580, 345, 79, 6373, 6374, 6375, 6376, 6378);
+		prepareCompanionCombatAtLevel058(actors.get(2), 92, 7575, 343, 79, 6379, 6380, 6381, 6382);
+		PhantomAssertions.assertTrue(actors.get(2).getInventory().addItem(ItemProcessType.REWARD, 1345, 2000, null, this) != null, "Raid059 S arrows are unavailable.");
+		prepareCompanionCombatAtLevel058(actors.get(3), 97, 6579, 1335, 79, 6383, 6384, 6385, 6386);
+		prepareCompanionCombatAtLevel058(actors.get(4), 105, 6579, 1013, 79, 6383, 6384, 6385, 6386);
+		prepareCompanionCombatAtLevel058(actors.get(5), 88, 6580, 345, 79, 6373, 6374, 6375, 6376, 6378);
+		prepareCompanionCombatAtLevel058(actors.get(6), 98, 6579, 0, 79, 6383, 6384, 6385, 6386);
+		prepareCompanionCombatAtLevel058(actors.get(7), 107, 6580, 0, 79, 6373, 6374, 6375, 6376, 6378);
+		prepareCompanionCombatAtLevel058(human, 88, 6580, 345, Boolean.getBoolean("phantom.test.raidLevelGuard059") ? 80 : 79, 6373, 6374, 6375, 6376, 6378);
+		final List<Player> roster = new ArrayList<>(actors); roster.add(human);
+		for (Player actor : roster)
+		{
+			for (int jewelId : new int[] {920,858,858,889,889}) { final Item jewel = actor.getInventory().addItem(ItemProcessType.REWARD, jewelId, 1, null, this); PhantomAssertions.assertTrue(jewel != null, "Declared stock Tateossian jewellery is unavailable."); actor.getInventory().equipItem(jewel); }
+			final int physicalShot = actor == _player ? 1466 : 1467, magicShot = actor == _player ? 3951 : 3952;
+			PhantomAssertions.assertTrue(actor.getInventory().addItem(ItemProcessType.REWARD, physicalShot, 3000, null, this) != null && actor.getInventory().addItem(ItemProcessType.REWARD, magicShot, 1000, null, this) != null, "Declared grade-matched raid shots are unavailable.");
+			PhantomAssertions.assertTrue(actor.getInventory().addItem(ItemProcessType.REWARD, 3031, 300, null, this) != null, "Declared native Spirit Ore is unavailable.");
+			actor.addAutoSoulShot(magicShot);
+			actor.addAutoSoulShot(actor == _player ? 1466 : 1467);
+			for (var learn : _progression.classSkillLearns(actor.getActiveClass()).stream().filter(value -> value.minimumCharacterLevel() <= actor.getLevel()).sorted(Comparator.comparingInt(value -> value.skillLevel())).toList())
+			{
+				final Skill skill = SkillData.getInstance().getSkill(learn.skillId(), learn.skillLevel());
+				if ((skill != null) && (actor.getSkillLevel(learn.skillId()) < learn.skillLevel())) { actor.addSkill(skill, true); }
+			}
+			actor.setInvul(false); actor.setCurrentHp(actor.getMaxHp()); actor.setCurrentMp(actor.getMaxMp()); actor.setCurrentCp(actor.getMaxCp());
+			if (actor == actors.get(3)) { actor.setCurrentMp(actor.getMaxMp() * .30); }
+			// Same native spawn cell is the existing companion-composition input pattern; no player collision is fabricated.
+			final int actorX = stagingInput.getX(), actorY = stagingInput.getY(), actorZ = stagingInput.getZ();
+			PhantomAssertions.assertTrue(geo.canMoveToTarget(actorX, actorY, actorZ, centreX, centreY, centreZ, 0), "INVALID_INPUT: one declared raid member lacks a native approach before enrollment.");
+			actor.decayMe(); actor.setXYZInvisible(actorX, actorY, actorZ); actor.spawnMe(); actor.revalidateZone(true); actor.setRunning(); actor.standUp();
+		}
+		for (Player actor : roster) { actor.refreshOverloaded(); context.record("raid059.nativeLoad." + actor.getObjectId(), "load=" + actor.getCurrentLoad() + "; max=" + actor.getMaxLoad() + "; penalty=" + actor.getWeightPenalty() + "; overloaded=" + actor.isOverloaded() + "; movementDisabled=" + actor.isMovementDisabled()); }
+		PhantomAssertions.assertTrue(roster.stream().noneMatch(value -> value.isOverloaded() || value.isMovementDisabled()), "INVALID_INPUT: declared raid inventory or native state prevents ordinary movement before enrollment.");
+		human.addAutoSoulShot(1467);
+		final Party nativeParty = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(nativeParty);
+		for (Player actor : roster.subList(1, roster.size())) { actor.joinParty(nativeParty); }
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+		try
+		{
+			final var backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
+			final var authority = new org.l2jmobius.gameserver.phantoms.raid.L2jPhantomRaidAuthority();
+			final var readiness = new org.l2jmobius.gameserver.phantoms.raid.PhantomRaidReadinessService(_query, backend, authority);
+			final var ready = readiness.assess(MemberRef.phantom(_profile.profileId(), _player.getObjectId()), "raid.25199");
+			context.record("raid059.preflight", "INDEPENDENT mobile full9/9 legal79 input (one human80 ONLY for guard case); stock boss=" + boss.getId() + "; fullHP=" + boss.getMaxHp() + "; minions=" + initialMinions.stream().map(value -> value.getId() + ":HP" + value.getCurrentHp() + '/' + value.getMaxHp()).toList() + "; minions25200/25201=71/native curse unchanged/max79; TEST roster=" + roster.stream().map(value -> value.getObjectId() + ":class" + value.getActiveClass() + ":level" + value.getLevel() + ":MDef" + value.getMDef(boss, null)).toList() + "; stock A/S gear +Tateossian jewellery/current class-tree skills<=actual level; one native grade SS3000+BSS1000 per member/S arrows2000/SpiritOre300/native autoSS+BSS; native load/movement guard before enrollment; human native assist tank target; readiness=" + ready.status() + '/' + ready.reason() + "; fixed45min encounter deadline; first90s combined boss+minion DPS/MP feasibility; no rescue/refill/HP edit/roster change during battle");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.raid.PhantomRaidModel.ReadinessStatus.GROUP_READY, ready.status(), "Current native raid readiness cannot admit the declared high-level encounter.");
+			context.record("raid059.recoveryInput", "Independent episode: healer starts with30% native MP before enrollment; TEST human assists tank and accepts only an actual native resurrection request; death keeps full9 denominator; final9 living regroup required; no direct revival/resource writes during measurement");
+			if (Boolean.getBoolean("phantom.test.raidMinionGuard059"))
+			{
+				final Monster child = initialMinions.stream().min(Comparator.comparingInt(Monster::getObjectId)).orElseThrow();
+				final var token = (org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken) () -> false;
+				final String authorityHash = "59".repeat(32);
+				final double childHp = child.getCurrentHp(), actorMp = _player.getCurrentMp();
+				final long shots = _player.getInventory().getInventoryItemCount(1466, -1);
+				final var foreign = new org.l2jmobius.gameserver.phantoms.combat.PhantomRaidCombatRequest(_profile.profileId(), child.getObjectId(), 0, child.getInstanceId(), org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind.RAID, NpcKind.MONSTER, authorityHash, PhantomCombatMode.MELEE_PHYSICAL, true, false, 79, 20_000, token, boss.getObjectId() + 1_000_000, boss.getId());
+				PhantomAssertions.assertEquals(PhantomCombatService.StartStatus.REJECTED_TARGET, _combat.startRaidSession(foreign).status(), "Foreign native boss object authorized a raid minion.");
+				final var ordinary = _combat.startSession(new PhantomCombatRequest(_profile.profileId(), child.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, false, 20_000, token));
+				PhantomAssertions.assertFalse(ordinary.accepted(), "Generic FARM acquired a stock raid minion.");
+				final var exact = new org.l2jmobius.gameserver.phantoms.combat.PhantomRaidCombatRequest(_profile.profileId(), child.getObjectId(), 0, child.getInstanceId(), org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.ContentKind.RAID, NpcKind.MONSTER, authorityHash, PhantomCombatMode.MELEE_PHYSICAL, true, false, 79, 20_000, token, boss.getObjectId(), boss.getId());
+				try
+				{
+					final var started = _combat.startRaidSession(exact);
+					PhantomAssertions.assertTrue(started.accepted(), "Exact live native parent rejected its own minion: " + started.status());
+					final boolean damaged = waitFor(() -> child.getCurrentHp() < childHp - 1 || _player.isDead(), 15_000);
+					context.record("raid059.nativeMinion", "parent=" + boss.getId() + '/' + boss.getObjectId() + "; child=" + child.getId() + '/' + child.getObjectId() + "; HP=" + childHp + "->" + child.getCurrentHp() + "; actorMP=" + actorMp + "->" + _player.getCurrentMp() + "; A-shots=" + shots + "->" + _player.getInventory().getInventoryItemCount(1466, -1) + "; ordinary=" + ordinary.status() + "; current=" + _combat.find(_profile.profileId()));
+					PhantomAssertions.assertTrue(damaged && child.getCurrentHp() < childHp - 1 && !_player.isDead() && (_player.getCurrentMp() < actorMp || _player.getInventory().getInventoryItemCount(1466, -1) < shots) && !boss.isDead(), "Exact native minion action lacks real damage/cost or fabricated boss death.");
+				}
+				finally { _combat.cancel(_profile.profileId()); consumeTerminal(); }
+				return;
+			}
+			final var navigation = new PhantomNavigationService(new PhantomMetrics()); navigation.start();
+			final var routes = new PhantomPartyRouteCoordinator(navigation, _combat);
+			final var goals = new PhantomGoalStateStore(_repository);
+			final long goalId = 58005830059L, deadline = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(45);
+			goals.insert(_profile.profileId(), new PhantomGoal(goalId, org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAssemblyService.PREPARE_GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("raid.content", "raid.25199"), 1, 0, null, List.of(), null, "raid.prepare", 500, 0, 0, deadline, Map.of(), "task059.native_full_raid", 0));
+			final var assembly = new org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAssemblyService(goals, readiness, new org.l2jmobius.gameserver.phantoms.raid.PhantomRaidRecruitmentService(readiness, backend), backend, authority, () -> _topology, routes, System::currentTimeMillis, System::nanoTime);
+			final var runtime = new org.l2jmobius.gameserver.phantoms.raid.L2jPhantomRaidAttemptRuntime(_combat, new PhantomPartyTactics(_combat, backend), routes, () -> _topology.snapshot().canonicalHash(), System::nanoTime);
+			final var attempts = new org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService(goals, assembly, readiness, backend, authority, new org.l2jmobius.gameserver.phantoms.raid.PhantomRaidEncounterCatalog(), org.l2jmobius.gameserver.phantoms.raid.PhantomRaidScriptRegistry.getInstance(), runtime, System::currentTimeMillis, System::nanoTime, () -> org.l2jmobius.gameserver.config.NpcConfig.RAID_DISABLE_CURSE);
+			final Map<Integer,String> lastDamage = new java.util.concurrent.ConcurrentHashMap<>();
+			final Set<Integer> observedDeaths = new java.util.LinkedHashSet<>();
+			final var deathCause = new java.util.concurrent.atomic.AtomicReference<String>("");
+			final Map<Player,List<org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener>> observations = new java.util.LinkedHashMap<>();
+			for (Player actor : roster)
+			{
+				final var damageListener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(actor, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_DAMAGE_RECEIVED, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageReceived event) ->
+				{
+					if (event.getTarget() == actor) { lastDamage.put(actor.getObjectId(), "source=" + (event.getAttacker() instanceof Npc npc ? npc.getId() + "/" + npc.getObjectId() : event.getAttacker() == null ? "none" : Integer.toString(event.getAttacker().getObjectId())) + "; skill=" + (event.getSkill() == null ? "physical" : event.getSkill().getId() + ":" + event.getSkill().getLevel()) + "; damage=" + event.getDamage()); }
+				}, this);
+				final var deathListener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(actor, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_DEATH, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDeath event) ->
+				{
+					if (event.getTarget() == actor) { deathCause.compareAndSet("", "target=" + actor.getObjectId() + "; source=" + (event.getAttacker() instanceof Npc npc ? npc.getId() + "/" + npc.getObjectId() : event.getAttacker() == null ? "none" : Integer.toString(event.getAttacker().getObjectId()))); }
+				}, this);
+				actor.addListener(damageListener); actor.addListener(deathListener); observations.put(actor, List.of(damageListener, deathListener));
+			}
+			context.record("raid059.bardCapabilities", backend.capabilities(MemberRef.phantom(profileIds.get(7), actors.get(7).getObjectId()), _player.getObjectId()).stream().filter(value -> Set.of("combat.buff","combat.dance").contains(value.capabilityKey())).map(value -> value.capabilityKey() + ':' + value.actionSkillId() + ':' + value.actionSkillLevel() + ':' + value.readinessReason()).toList());
+			try
+			{
+				var assembled = assembly.advance(_profile.profileId(), goalId, 0);
+				final long gatherDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60);
+				long nextGatherProgress = 0;
+				while ((assembled.readyReceipt() == null) && !assembled.status().terminal() && (System.nanoTime() < gatherDeadline))
+				{
+					if (human.getAI().getIntention() != Intention.FOLLOW) { human.getAI().setIntention(Intention.FOLLOW, _player); }
+					assembled = assembly.advance(_profile.profileId(), goalId, 0);
+					if (System.nanoTime() >= nextGatherProgress) { System.out.println("RAID059_GATHER status=" + assembled.status() + "; routes=" + routes.snapshot() + "; XYZ=" + roster.stream().map(value -> value.getObjectId() + ":" + value.getLocation()).toList()); nextGatherProgress = System.nanoTime() + TimeUnit.SECONDS.toNanos(15); }
+					Thread.sleep(25);
+				}
+				human.getAI().setIntention(Intention.IDLE);
+				context.record("raid059.assembly", assembled.status() + "/" + assembled.reasonKey() + "; native members=" + nativeParty.getMemberCount());
+				PhantomAssertions.assertTrue(assembled.readyReceipt() != null && nativeParty.getMemberCount() == 9, "Full9 native assembly did not produce an exact ready receipt.");
+				final double hpBefore = boss.getCurrentHp(); final long expBefore = roster.stream().mapToLong(Player::getExp).sum();
+				final long tankExpBefore = _player.getExp();
+				final double totalHpBefore = hpBefore + initialMinions.stream().mapToDouble(Monster::getCurrentHp).sum();
+				final long[] damage = new long[actors.size()]; final boolean[] spentMp = new boolean[actors.size()];
+				final double[] previousMp = actors.stream().mapToDouble(Player::getCurrentMp).toArray();
+				double previousTankHp = _player.getCurrentHp(), previousTankMax = _player.getMaxHp(), previousHealerMaxMp = actors.get(3).getMaxMp();
+				boolean healed = false, recharged = false, aggroCast = false, buffed = false, danced = false; long aggroSince = 0, heldAggro = 0, humanDamage = 0;
+				final long battleStart = System.nanoTime(); long nextProgress = battleStart; boolean feasibilityChecked = false;
+				var result = attempts.advance(_profile.profileId(), goalId, 0);
+				if (Boolean.getBoolean("phantom.test.raidLevelGuard059"))
+				{
+					PhantomAssertions.assertFalse(org.l2jmobius.gameserver.config.NpcConfig.RAID_DISABLE_CURSE, "Native curse guard input was disabled before the episode.");
+					context.record("raid059.levelGuard", "one native human80/mixed9; result=" + result.status() + '/' + result.reasonKey() + "; acceptedCombat=" + _combat.metrics().sessionsAccepted());
+					PhantomAssertions.assertTrue(result.status() == org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.AttemptStatus.ABORTED && result.reasonKey().equals("raid.attempt.member_level_rejected") && _combat.metrics().sessionsAccepted() == 0 && boss.getCurrentHp() == hpBefore && roster.stream().noneMatch(Player::isDead), "Above-minion-ceiling force reached native combat or used a false refusal."); return;
+				}
+				while (!result.status().terminal() && (System.currentTimeMillis() < deadline))
+				{
+					if (human.isReviveRequested()) { human.reviveAnswer(1); context.record("raid059.humanNativeResurrection", "Explicit TEST response to native healer request; same human identity/roster; no direct HP or MP write"); }
+					final Monster assistedTarget = _player.getTarget() instanceof Monster target && !target.isDead() && target.getInstanceId() == human.getInstanceId() ? target : boss;
+					if (!human.isDead() && !assistedTarget.isDead() && !human.isCastingNow())
+					{
+						if (human.getTarget() != assistedTarget) { human.abortAttack(); human.setTarget(assistedTarget); }
+						if (!human.isAttackingNow()) { human.getAI().setIntention(Intention.ATTACK, assistedTarget); }
+					}
+					result = attempts.advance(_profile.profileId(), goalId, 0);
+					final long now = System.nanoTime(); final double seconds = (now - battleStart) / 1_000_000_000.0;
+					final double previousHealerMp = previousMp[3];
+					for (int index = 0; index < actors.size(); index++)
+					{
+						final var actor = actors.get(index); final var contribution = boss.getAggroList().get(actor);
+						damage[index] = Math.max(damage[index], contribution == null ? 0 : contribution.getDamage()); spentMp[index] |= actor.getCurrentMp() + 1 < previousMp[index]; previousMp[index] = actor.getCurrentMp();
+					}
+					final var humanContribution = boss.getAggroList().get(human); humanDamage = Math.max(humanDamage, humanContribution == null ? 0 : humanContribution.getDamage());
+					aggroCast |= _player.getLastSkillCast() != null && _player.getLastSkillCast().getId() == 28;
+					if (boss.getMostHated() == _player && boss.getTarget() == _player) { if (aggroSince == 0) { aggroSince = now; } heldAggro = Math.max(heldAggro, now - aggroSince); } else { aggroSince = 0; }
+					healed |= spentMp[3] && _player.getMaxHp() == previousTankMax && _player.getCurrentHp() > previousTankHp + 100 && actors.get(3).getLastSkillCast() != null && Set.of(1217,1335).contains(actors.get(3).getLastSkillCast().getId());
+					recharged |= spentMp[4] && actors.get(3).getMaxMp() == previousHealerMaxMp && actors.get(3).getCurrentMp() > previousHealerMp + 50 && actors.get(4).getLastSkillCast() != null && actors.get(4).getLastSkillCast().getId() == 1013;
+					previousTankHp = _player.getCurrentHp(); previousTankMax = _player.getMaxHp(); previousHealerMaxMp = actors.get(3).getMaxMp();
+					final Skill buff = actors.get(6).getKnownSkill(1356);
+					buffed |= spentMp[6] && buff != null && org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.status(_player, buff, 0) == org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status.HEALTHY;
+					for (int danceId : new int[] {271,365}) { final Skill dance = actors.get(7).getKnownSkill(danceId); danced |= spentMp[7] && dance != null && org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.status(_player, dance, 0) == org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status.HEALTHY; }
+					final double netDps = (hpBefore - boss.getCurrentHp()) / Math.max(1, seconds);
+					final var liveMinions = boss.getMinionList().getSpawnedMinions().stream().filter(value -> !value.isDead()).toList();
+					final double totalHp = boss.getCurrentHp() + liveMinions.stream().mapToDouble(Monster::getCurrentHp).sum();
+					final double combinedDps = (totalHpBefore - totalHp) / Math.max(1, seconds);
+					if (now >= nextProgress)
+					{
+						System.out.println("RAID059_PROGRESS seconds=" + (int) seconds + "; status=" + result.status() + '/' + result.reasonKey() + "; bossHP=" + boss.getCurrentHp() + '/' + boss.getMaxHp() + "; netDPS=" + netDps + "; ETA=" + (netDps > 0 ? boss.getCurrentHp() / netDps : -1) + "; members=" + roster.stream().map(value -> value.getObjectId() + ":HP" + (int) value.getCurrentHp() + ":MP" + (int) value.getCurrentMp() + ":distance" + (int) value.calculateDistance3D(boss)).toList() + "; claims=" + profileIds.stream().map(id -> _combat.find(id).map(value -> id + ":" + value.phase() + '/' + value.result()).orElse(id + ":none")).toList());
+						System.out.println("RAID059_MINIONS remaining=" + liveMinions.stream().map(value -> value.getId() + ":" + value.getObjectId() + ":HP" + (int) value.getCurrentHp()).toList() + "; combinedHP=" + totalHp + '/' + totalHpBefore + "; combinedDPS=" + combinedDps + "; combinedETA=" + (combinedDps > 0 ? totalHp / combinedDps : -1));
+						System.out.flush(); nextProgress = now + TimeUnit.SECONDS.toNanos(30);
+					}
+					for (Player actor : roster)
+					{
+						if (actor.isDead() && observedDeaths.add(actor.getObjectId())) { context.record("raid059.deathCause." + actor.getObjectId(), deathCause.get() + "; lastNativeDamage=" + lastDamage + "; minions=" + liveMinions.stream().map(value -> value.getId() + ":HP" + (int) value.getCurrentHp()).toList() + "; exactClaims=" + profileIds.stream().map(id -> _combat.find(id).map(value -> id + ":" + value.targetObjectId() + ':' + value.result()).orElse(id + ":none")).toList()); }
+					}
+					if (!feasibilityChecked && seconds >= 90)
+					{
+						feasibilityChecked = true;
+						context.record("raid059.feasibility90", "bossNetDPS=" + netDps + "; combinedDPS=" + combinedDps + "; remainingBossAndMinionHP=" + totalHp + "; MP=" + roster.stream().map(value -> value.getObjectId() + ":" + value.getCurrentMp() + '/' + value.getMaxMp()).toList());
+						PhantomAssertions.assertTrue(combinedDps > 0 && (totalHp / combinedDps) < TimeUnit.MINUTES.toSeconds(40), "BLOCKED_NATIVE_CAPACITY: measured full9 boss+minion DPS/regen cannot finish within the predeclared45min bound.");
+					}
+					Thread.sleep(25);
+				}
+				context.record("raid059.terminal", result.status() + "/" + result.reasonKey() + "; dead=" + boss.isDead() + "; receipt=" + result.terminalReceipt() + "; groupEXP=" + expBefore + "->" + roster.stream().mapToLong(Player::getExp).sum());
+				context.record("raid059.nativeRoles", "healed=" + healed + "; recharge=" + recharged + "; buff=" + buffed + "; dance=" + danced + "; aggroCast=" + aggroCast + "; heldMs=" + TimeUnit.NANOSECONDS.toMillis(heldAggro) + "; damage=" + java.util.Arrays.toString(damage) + "; humanDamage=" + humanDamage + "; native MPcost=" + java.util.Arrays.toString(spentMp));
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptService.AttemptStatus.VICTORY, result.status(), "Declared native encounter did not reach stock victory/reward boundary.");
+				PhantomAssertions.assertTrue(boss.isDead() && result.terminalReceipt().actualTargetDeathObserved() && result.terminalReceipt().nativeLootComplete() && _player.getExp() > tankExpBefore, "Native death/stock reward/loot pipeline was not confirmed for the same living tank.");
+				PhantomAssertions.assertTrue(healed && aggroCast && heldAggro >= TimeUnit.SECONDS.toNanos(3) && damage[1] > 0 && damage[2] > 0 && damage[5] > 0 && humanDamage > 0, "Full encounter lacks actual native tank/physical roles/human contribution/healing effect and cost.");
+				PhantomAssertions.assertTrue(buffed && danced && recharged, "Declared native buffer/dancer/recharger did not produce actual support effects/cost.");
+				final long expAfter = roster.stream().mapToLong(Player::getExp).sum();
+				for (int repeat = 0; repeat < 5; repeat++) { PhantomAssertions.assertEquals(result.terminalReceipt(), attempts.advance(_profile.profileId(), goalId, 0).terminalReceipt(), "Terminal raid replay changed the native receipt."); }
+				PhantomAssertions.assertEquals(expAfter, roster.stream().mapToLong(Player::getExp).sum(), "Terminal callback replay awarded EXP twice.");
+				final var regroupContext = new org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptRuntime.RetreatContext(result.terminalReceipt().attemptAuthorityHash(), result.terminalReceipt().profile(), assembled.readyReceipt(), null, 0, System.nanoTime() + TimeUnit.SECONDS.toNanos(60), () -> false);
+				var regroup = runtime.advanceRetreat(regroupContext, backend.currentForce(MemberRef.phantom(_profile.profileId(), _player.getObjectId())).snapshot());
+				while (regroup.status() == org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptRuntime.RuntimeStatus.INTERMEDIATE && System.nanoTime() < regroupContext.logicalDeadlineNanos())
+				{
+					if (human.getAI().getIntention() != Intention.FOLLOW) { human.abortAttack(); human.getAI().setIntention(Intention.FOLLOW, _player); }
+					regroup = runtime.advanceRetreat(regroupContext, backend.currentForce(MemberRef.phantom(_profile.profileId(), _player.getObjectId())).snapshot()); Thread.sleep(25);
+				}
+				context.record("raid059.regroup", regroup.status() + "/" + regroup.reasonKey() + "; roster=" + nativeParty.getMemberCount() + "; XYZ=" + roster.stream().map(Player::getLocation).toList());
+				PhantomAssertions.assertTrue(regroup.status() == org.l2jmobius.gameserver.phantoms.raid.PhantomRaidAttemptRuntime.RuntimeStatus.COMPLETE && nativeParty.getMemberCount() == 9 && roster.stream().allMatch(value -> !value.isDead() && value.calculateDistance3D(_player) <= 350), "Post-victory native9/9 regroup did not complete through the existing owner.");
+				for (Player actor : roster) { actor.abortAttack(); actor.getAI().setIntention(Intention.IDLE); actor.storeMe(); }
+			}
+			finally
+			{
+				observations.forEach((actor, listeners) -> listeners.forEach(actor::removeListener));
+				attempts.beginStop(); assembly.beginStop(); runtime.beginStop(); routes.beginStop(); navigation.beginStop();
+				final long stopDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+				while (!navigation.finishStop() && (System.nanoTime() < stopDeadline)) { Thread.sleep(20); }
+				for (Player actor : roster) { actor.abortAttack(); actor.getAI().setIntention(Intention.IDLE); }
+			}
+		}
+		finally
+		{
+			if (_player.isInParty()) { PartyInvitationService.getInstance().leave(_player); }
+			progression.beginStop(); progression.finishStop();
 		}
 	}
 

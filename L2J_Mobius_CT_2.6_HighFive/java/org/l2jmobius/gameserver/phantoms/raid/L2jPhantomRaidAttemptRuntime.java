@@ -82,6 +82,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 			return new MechanicAdvance(RuntimeStatus.INVALID, null, "raid.mechanic.cancelled");
 		}
 		final RuntimeAttempt state = state(context.attemptAuthorityHash());
+		if (state._cancelled) { return new MechanicAdvance(RuntimeStatus.INVALID, null, "raid.mechanic.cancelled"); }
 		final RuntimeStatus providers = reserveProviders(state, context.profile(), force);
 		if (providers != RuntimeStatus.INTERMEDIATE)
 		{
@@ -152,6 +153,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 			return new EngagementAdvance(RuntimeStatus.INVALID, false, false, "raid.engagement.cancelled");
 		}
 		final RuntimeAttempt state = state(context.attemptAuthorityHash());
+		if (state._cancelled) { return new EngagementAdvance(RuntimeStatus.INVALID, false, false, "raid.engagement.cancelled"); }
 		state._targetObjectId = context.target().objectId();
 		state._targetNpcId = context.target().npcId();
 		state._targetInstanceId = context.target().instanceId();
@@ -208,11 +210,34 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 			return new EngagementAdvance(RuntimeStatus.TARGET_LOST, false, false, "raid.engagement.target_lost");
 		}
 
-		final List<MemberSnapshot> offense = offenseMembers(state, force);
+		final List<MemberSnapshot> offense = offenseMembers(state, force).stream().sorted(Comparator.comparingInt(L2jPhantomRaidAttemptRuntime::collectorOrder).thenComparing(member -> member.ref().stableKey())).toList();
 		if (offense.isEmpty())
 		{
 			final boolean wiped = force.members().stream().filter(member -> member.ref().kind() == MemberKind.PHANTOM).allMatch(MemberSnapshot::dead);
 			return new EngagementAdvance(wiped ? RuntimeStatus.WIPED : RuntimeStatus.NO_CONTROLLABLE_OFFENSE, false, false, wiped ? "raid.engagement.wiped" : "raid.engagement.no_controllable_offense");
+		}
+		final List<Integer> attackers = force.members().stream().filter(member -> !member.dead() && member.instanceId() == context.target().instanceId()).sorted(Comparator.comparingInt(MemberSnapshot::hpPercent).thenComparing(member -> member.ref().stableKey())).flatMap(member -> member.attackerObjectIds().stream()).filter(id -> id > 0 && id != context.target().objectId()).distinct().limit(MAXIMUM_MECHANIC_ATTACKERS).toList();
+		final boolean clearing = pollMechanicSessions(state, context.token());
+		if (!attackers.isEmpty() || clearing)
+		{
+			if (state._collectorProfileId == 0)
+			{
+				final MemberSnapshot keeper = offense.stream().filter(member -> !state._mechanicClaims.containsKey(member.ref().profileId()) && !_combat.hasClaim(member.ref().profileId())).findFirst().orElse(null);
+				if (keeper == null || !startRaidClaim(state, context, keeper, true).accepted()) { return new EngagementAdvance(RuntimeStatus.NO_CONTROLLABLE_OFFENSE, false, false, "raid.engagement.collector_unavailable"); }
+			}
+			for (RaidClaim claim : new ArrayList<>(state._raidClaims.values()))
+			{
+				if (claim.collector()) { continue; }
+				if (_combat.matchesRaidSession(claim.profileId(), claim.generation(), context.target().objectId(), context.target().npcId(), context.target().instanceId(), context.attemptAuthorityHash()))
+				{
+					_combat.cancel(claim.profileId());
+					if (_combat.matchesRaidSession(claim.profileId(), claim.generation(), context.target().objectId(), context.target().npcId(), context.target().instanceId(), context.attemptAuthorityHash())) { _combat.consumeTerminal(claim.profileId()); }
+				}
+				if (!_combat.hasClaim(claim.profileId())) { state._raidClaims.remove(claim.profileId()); }
+			}
+			if (state._raidClaims.values().stream().anyMatch(claim -> !claim.collector())) { return new EngagementAdvance(RuntimeStatus.INTERMEDIATE, false, false, "raid.engagement.defense_transition"); }
+			final RuntimeStatus pressure = advanceThreatCombat(state, context.token(), force, attackers, context);
+			return new EngagementAdvance(pressure, false, false, pressure == RuntimeStatus.INTERMEDIATE ? "raid.engagement.clearing_attackers" : "raid.engagement.no_controllable_defense");
 		}
 		boolean capacityLimited = false;
 		for (MemberSnapshot member : offense)
@@ -227,17 +252,8 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 				continue;
 			}
 			final boolean collector = state._collectorProfileId == 0;
-			final PhantomRaidCombatRequest request = new PhantomRaidCombatRequest(member.ref().profileId(), context.target().objectId(), context.target().npcId(), context.target().instanceId(), context.profile().contentKind(), context.profile().npcKind(), context.attemptAuthorityHash(), mode, true, collector, context.maximumActorLevel(), COMBAT_TIMEOUT_MILLIS, context.token());
-			final StartResult started = _combat.startRaidSession(request);
-			if (started.accepted() && (started.session() != null))
-			{
-				if (collector)
-				{
-					state._collectorProfileId = member.ref().profileId();
-				}
-				state._raidClaims.put(member.ref().profileId(), new RaidClaim(member.ref().profileId(), started.session().generation(), collector));
-			}
-			else if (started.status() == StartStatus.REJECTED_CAPACITY)
+			final StartResult started = startRaidClaim(state, context, member, collector);
+			if (started.status() == StartStatus.REJECTED_CAPACITY)
 			{
 				capacityLimited = true;
 			}
@@ -249,11 +265,28 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		return new EngagementAdvance(RuntimeStatus.INTERMEDIATE, false, false, "raid.engagement.fighting");
 	}
 
+	private StartResult startRaidClaim(RuntimeAttempt state, EngagementContext context, MemberSnapshot member, boolean collector)
+	{
+		final var request = new PhantomRaidCombatRequest(member.ref().profileId(), context.target().objectId(), context.target().npcId(), context.target().instanceId(), context.profile().contentKind(), context.profile().npcKind(), context.attemptAuthorityHash(), supportedMode(member), true, collector, context.maximumActorLevel(), COMBAT_TIMEOUT_MILLIS, context.token());
+		final StartResult started = _combat.startRaidSession(request);
+		if (started.accepted() && started.session() != null)
+		{
+			if (collector) { state._collectorProfileId = member.ref().profileId(); }
+			state._raidClaims.put(member.ref().profileId(), new RaidClaim(member.ref().profileId(), started.session().generation(), collector));
+		}
+		return started;
+	}
+
+	private static int collectorOrder(MemberSnapshot member)
+	{
+		return usableCapability(member, "combat.tank", 1).isPresent() ? 0 : supportedMode(member) == PhantomCombatMode.RANGED_PHYSICAL ? 2 : 1;
+	}
+
 	@Override
 	public synchronized RetreatAdvance advanceRetreat(RetreatContext context, org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force)
 	{
 		final RuntimeAttempt state = state(context.attemptAuthorityHash());
-		cancelActions(state);
+		if (!cancelActions(state)) { return new RetreatAdvance(RuntimeStatus.INTERMEDIATE, "raid.retreat.native_cleanup_pending"); }
 		final Map<MemberRef, MemberSnapshot> snapshots = snapshots(force);
 		boolean complete = true;
 		for (PartySnapshot party : force.parties())
@@ -301,11 +334,13 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 	@Override
 	public synchronized void cancel(String attemptAuthorityHash)
 	{
-		final RuntimeAttempt state = _attempts.remove(attemptAuthorityHash);
+		final RuntimeAttempt state = _attempts.get(attemptAuthorityHash);
 		if (state != null)
 		{
-			cancelActions(state);
+			state._cancelled = true;
+			final boolean clean = cancelActions(state);
 			cancelRoutes(state);
+			if (clean) { _attempts.remove(attemptAuthorityHash); }
 		}
 	}
 
@@ -318,10 +353,6 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 	@Override
 	public synchronized void beginStop()
 	{
-		if (_stopping)
-		{
-			return;
-		}
 		_stopping = true;
 		for (String authority : List.copyOf(_attempts.keySet()))
 		{
@@ -331,6 +362,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 
 	private RuntimeAttempt state(String authority)
 	{
+		for (var entry : new ArrayList<>(_attempts.entrySet())) { if (entry.getValue()._cancelled && cancelActions(entry.getValue())) { _attempts.remove(entry.getKey()); } }
 		RuntimeAttempt state = _attempts.get(authority);
 		if (state == null)
 		{
@@ -397,7 +429,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 			}
 			for (TacticalDirective directive : _tactics.plan(party.leader(), party.members(), partySnapshots))
 			{
-				if (!supportDirective(directive.kind()) || !state._providers.getOrDefault(directive.capabilityKey(), Set.of()).contains(directive.actor().profileId()) || state._supportLeases.containsKey(directive.actor().profileId()))
+				if (!supportDirective(directive.kind()) || !assignedSupport(state, directive) || state._supportLeases.containsKey(directive.actor().profileId()))
 				{
 					continue;
 				}
@@ -408,9 +440,21 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		return assignedMembers.size() == snapshots.size() ? RuntimeStatus.INTERMEDIATE : RuntimeStatus.INVALID;
 	}
 
+	private static boolean assignedSupport(RuntimeAttempt state, TacticalDirective directive)
+	{
+		if (state._providers.getOrDefault(directive.capabilityKey(), Set.of()).contains(directive.actor().profileId())) { return true; }
+		return MAINTENANCE_CAPABILITIES.contains(directive.capabilityKey()) && MAINTENANCE_CAPABILITIES.stream().anyMatch(key -> state._providers.getOrDefault(key, Set.of()).contains(directive.actor().profileId()));
+	}
+
 	private RuntimeStatus advanceMechanicCombat(RuntimeAttempt state, MechanicContext context, org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force, List<Integer> attackers)
 	{
-		final List<MemberSnapshot> offense = offenseMembers(state, force);
+		return advanceThreatCombat(state, context.token(), force, attackers, null);
+	}
+
+	private RuntimeStatus advanceThreatCombat(RuntimeAttempt state, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token, org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force, List<Integer> attackers, EngagementContext engagement)
+	{
+		final boolean focus = engagement != null;
+		final List<MemberSnapshot> offense = offenseMembers(state, force).stream().filter(member -> !state._raidClaims.containsKey(member.ref().profileId())).toList();
 		if (offense.isEmpty())
 		{
 			return RuntimeStatus.NO_CONTROLLABLE_OFFENSE;
@@ -419,7 +463,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		int attackerIndex = 0;
 		for (MemberSnapshot member : offense)
 		{
-			if (state._mechanicClaims.containsKey(member.ref().profileId()) || (attackerIndex >= attackers.size()))
+			if (state._mechanicClaims.containsKey(member.ref().profileId()) || attackers.isEmpty() || (!focus && attackerIndex >= attackers.size()))
 			{
 				continue;
 			}
@@ -428,11 +472,17 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 			{
 				continue;
 			}
-			final int targetObjectId = attackers.get(attackerIndex++);
-			final StartResult started = _combat.startSession(new PhantomCombatRequest(member.ref().profileId(), targetObjectId, mode, true, false, COMBAT_TIMEOUT_MILLIS, context.token()));
+			final int targetObjectId = attackers.get(focus ? 0 : attackerIndex++);
+			PhantomRaidCombatRequest minionRequest = focus ? new PhantomRaidCombatRequest(member.ref().profileId(), targetObjectId, 0, engagement.target().instanceId(), engagement.profile().contentKind(), org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind.MONSTER, engagement.attemptAuthorityHash(), mode, true, false, engagement.maximumActorLevel(), COMBAT_TIMEOUT_MILLIS, token, engagement.target().objectId(), engagement.target().npcId()) : null;
+			StartResult started = minionRequest == null ? null : _combat.startRaidSession(minionRequest);
+			if (started == null || started.status() == StartStatus.REJECTED_TARGET)
+			{
+				minionRequest = null;
+				started = _combat.startSession(new PhantomCombatRequest(member.ref().profileId(), targetObjectId, mode, true, false, COMBAT_TIMEOUT_MILLIS, token));
+			}
 			if (started.accepted() && (started.session() != null))
 			{
-				state._mechanicClaims.put(member.ref().profileId(), new MechanicClaim(member.ref().profileId(), started.session().generation(), targetObjectId, context.token()));
+				state._mechanicClaims.put(member.ref().profileId(), new MechanicClaim(member.ref().profileId(), started.session().generation(), targetObjectId, token, minionRequest));
 			}
 			else if (started.status() == StartStatus.REJECTED_CAPACITY)
 			{
@@ -446,7 +496,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 	{
 		for (MechanicClaim claim : new ArrayList<>(state._mechanicClaims.values()))
 		{
-			if (!_combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), token))
+			if (!claim.matches(_combat))
 			{
 				if (!_combat.hasClaim(claim.profileId()))
 				{
@@ -610,27 +660,30 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		state._mechanicRoute = new RouteProgress();
 	}
 
-	private void cancelActions(RuntimeAttempt state)
+	private boolean cancelActions(RuntimeAttempt state)
 	{
 		for (RaidClaim claim : new ArrayList<>(state._raidClaims.values()))
 		{
 			if (_combat.matchesRaidSession(claim.profileId(), claim.generation(), state._targetObjectId, state._targetNpcId, state._targetInstanceId, state._authorityHash))
 			{
 				_combat.cancel(claim.profileId());
+				if (_combat.matchesRaidSession(claim.profileId(), claim.generation(), state._targetObjectId, state._targetNpcId, state._targetInstanceId, state._authorityHash)) { _combat.consumeTerminal(claim.profileId()); }
 			}
+			if (!_combat.matchesRaidSession(claim.profileId(), claim.generation(), state._targetObjectId, state._targetNpcId, state._targetInstanceId, state._authorityHash)) { state._raidClaims.remove(claim.profileId()); }
 		}
 		for (MechanicClaim claim : new ArrayList<>(state._mechanicClaims.values()))
 		{
-			if (_combat.matchesOwnedSession(claim.profileId(), claim.generation(), claim.targetObjectId(), claim.token()))
+			if (claim.matches(_combat))
 			{
 				_combat.cancel(claim.profileId());
+				if (claim.matches(_combat)) { _combat.consumeTerminal(claim.profileId()); }
 			}
+			if (!claim.matches(_combat)) { state._mechanicClaims.remove(claim.profileId()); }
 		}
-		state._raidClaims.clear();
-		state._mechanicClaims.clear();
 		state._supportLeases.values().forEach(ExternalActionLease::close);
 		state._supportLeases.clear();
 		resetMechanicRoute(state);
+		return state._raidClaims.isEmpty() && state._mechanicClaims.isEmpty();
 	}
 
 	private void cancelRoutes(RuntimeAttempt state)
@@ -646,8 +699,12 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 	{
 	}
 
-	private record MechanicClaim(long profileId, long generation, int targetObjectId, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token)
+	private record MechanicClaim(long profileId, long generation, int targetObjectId, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token, PhantomRaidCombatRequest raidRequest)
 	{
+		private boolean matches(PhantomCombatService combat)
+		{
+			return raidRequest == null ? combat.matchesOwnedSession(profileId, generation, targetObjectId, token) : combat.matchesRaidSession(profileId, generation, targetObjectId, 0, raidRequest.targetInstanceId(), raidRequest.attemptAuthorityHash());
+		}
 	}
 
 	private static final class RouteProgress
@@ -678,5 +735,6 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		private int _targetInstanceId;
 		private boolean _actualDeathObserved;
 		private boolean _collectorTerminal;
+		private boolean _cancelled;
 	}
 }

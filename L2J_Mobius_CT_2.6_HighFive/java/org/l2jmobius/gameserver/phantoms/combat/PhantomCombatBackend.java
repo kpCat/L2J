@@ -88,11 +88,16 @@ public interface PhantomCombatBackend
 		}
 	}
 
-	record RaidTargetSnapshot(int objectId, int npcId, int instanceId, double currentHp, double maximumHp, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean canonicalRaidMonster, NpcKind knowledgeKind, double distance, boolean peaceRestricted, boolean surroundingRegion)
+	record RaidTargetSnapshot(int objectId, int npcId, int instanceId, double currentHp, double maximumHp, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean canonicalRaidMonster, NpcKind knowledgeKind, double distance, boolean peaceRestricted, boolean surroundingRegion, int minionParentObjectId, int minionParentNpcId, int minionMaximumActorLevel, NpcKind minionParentKind)
 	{
+		public RaidTargetSnapshot(int objectId, int npcId, int instanceId, double currentHp, double maximumHp, boolean dead, boolean alikeDead, boolean targetable, boolean attackable, boolean invulnerable, boolean canonicalRaidMonster, NpcKind knowledgeKind, double distance, boolean peaceRestricted, boolean surroundingRegion)
+		{
+			this(objectId, npcId, instanceId, currentHp, maximumHp, dead, alikeDead, targetable, attackable, invulnerable, canonicalRaidMonster, knowledgeKind, distance, peaceRestricted, surroundingRegion, 0, 0, 0, NpcKind.MONSTER);
+		}
+
 		public RaidTargetSnapshot
 		{
-			if ((objectId <= 0) || (npcId <= 0) || (instanceId < 0) || !finite(currentHp, maximumHp, distance) || (maximumHp <= 0) || (distance < 0) || (knowledgeKind == null))
+			if ((objectId <= 0) || (npcId <= 0) || (instanceId < 0) || !finite(currentHp, maximumHp, distance) || (maximumHp <= 0) || (distance < 0) || (knowledgeKind == null) || minionParentObjectId < 0 || minionParentNpcId < 0 || minionMaximumActorLevel < 0 || minionParentKind == null)
 			{
 				throw new IllegalArgumentException("Invalid exact raid combat target snapshot.");
 			}
@@ -105,8 +110,18 @@ public interface PhantomCombatBackend
 
 		public boolean matchesIdentity(PhantomRaidCombatRequest request)
 		{
+			if (request.minionParentObjectId() > 0)
+			{
+				final NpcKind parentKind = request.contentKind() == ContentKind.RAID ? NpcKind.RAID_BOSS : NpcKind.GRAND_BOSS;
+				return objectId == request.targetObjectId() && instanceId == request.targetInstanceId() && knowledgeKind == NpcKind.MONSTER && request.expectedNpcKind() == NpcKind.MONSTER && minionParentObjectId == request.minionParentObjectId() && minionParentNpcId == request.minionParentNpcId() && minionMaximumActorLevel > 0 && minionParentKind == parentKind;
+			}
 			final NpcKind requiredKind = request.contentKind() == ContentKind.RAID ? NpcKind.RAID_BOSS : request.contentKind() == ContentKind.EPIC ? NpcKind.GRAND_BOSS : null;
 			return (requiredKind != null) && (objectId == request.targetObjectId()) && (npcId == request.targetNpcId()) && (instanceId == request.targetInstanceId()) && (knowledgeKind == requiredKind) && (request.expectedNpcKind() == requiredKind);
+		}
+
+		public int maximumActorLevel(PhantomRaidCombatRequest request)
+		{
+			return request.minionParentObjectId() > 0 ? Math.min(request.maximumActorLevel(), minionMaximumActorLevel) : request.maximumActorLevel();
 		}
 	}
 

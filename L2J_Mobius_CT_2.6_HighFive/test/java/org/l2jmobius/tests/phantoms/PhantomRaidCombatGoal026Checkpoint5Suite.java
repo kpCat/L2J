@@ -39,6 +39,22 @@ public final class PhantomRaidCombatGoal026Checkpoint5Suite implements PhantomTe
 		registry.add("02-raid-identity-and-kind-rejected", _ -> testIdentityAndKindRejection());
 		registry.add("03-ordinary-normal-monster-safety-unchanged", _ -> testOrdinarySafety());
 		registry.add("04-death-only-victory-and-disappearance-loss", _ -> testTerminalEvidenceContract());
+		registry.add("05-minion-parent-instance-kind-and-curse-authority", _ ->
+		{
+			final var token = (org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken) () -> false;
+			final var request = new PhantomRaidCombatRequest(1, 8001, 0, 0, ContentKind.RAID, NpcKind.MONSTER, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, false, 1000, 60_000, token, 7001, 25199);
+			final var child = new RaidTargetSnapshot(8001, 25201, 0, 100, 100, false, false, true, true, false, true, NpcKind.MONSTER, 100, false, true, 7001, 25199, 79, NpcKind.RAID_BOSS);
+			PhantomAssertions.assertTrue(child.validFor(actor(0), request, 2000), "Exact stock child of the live declared boss was rejected.");
+			PhantomAssertions.assertEquals(79, child.maximumActorLevel(request), "Minion native curse ceiling was lost behind the higher boss ceiling.");
+			PhantomAssertions.assertFalse(child.validFor(actor(1), request, 2000), "Cross-instance minion was admitted.");
+			final var foreign = new PhantomRaidCombatRequest(1, 8001, 0, 0, ContentKind.RAID, NpcKind.MONSTER, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, false, 79, 60_000, token, 7002, 25199);
+			PhantomAssertions.assertFalse(child.validFor(actor(0), foreign, 2000), "A different boss object authorized this minion.");
+			final var wrongKind = new PhantomRaidCombatRequest(1, 8001, 0, 0, ContentKind.EPIC, NpcKind.MONSTER, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, false, 79, 60_000, token, 7001, 25199);
+			PhantomAssertions.assertFalse(child.validFor(actor(0), wrongKind, 2000), "RAID child was accepted as EPIC evidence.");
+			final var absentParent = new RaidTargetSnapshot(8001, 25201, 0, 100, 100, false, false, true, true, false, false, NpcKind.MONSTER, 100, false, true, 7001, 25199, 79, NpcKind.RAID_BOSS);
+			PhantomAssertions.assertFalse(absentParent.validFor(actor(0), request, 2000), "Dead/missing/noncanonical parent was accepted.");
+			PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new PhantomRaidCombatRequest(1, 8001, 0, 0, ContentKind.RAID, NpcKind.MONSTER, HASH, PhantomCombatMode.MELEE_PHYSICAL, true, true, 79, 60_000, token, 7001, 25199), "Minion requested boss collector/loot ownership.");
+		});
 	}
 
 	private static void testExactEpicAuthority()

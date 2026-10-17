@@ -18,6 +18,9 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
+import org.l2jmobius.gameserver.managers.ZoneManager;
+import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.zone.type.WaterZone;
 import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService.InvitationIdentity;
 import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService.InvitationSnapshot;
 import org.l2jmobius.gameserver.model.groups.CommandChannelInvitationService.Response;
@@ -85,7 +88,7 @@ public final class PhantomRaidAssemblyService implements PhantomRaidAttemptServi
 
 	public PhantomRaidAssemblyService(PhantomGoalStore goals, PhantomRaidReadinessService readiness, PhantomRaidRecruitmentService recruitment, PhantomPartyBackend party, PhantomRaidAuthority authority, Supplier<PhantomTopologyQuery> topology, PhantomPartyRouteCoordinator routes, LongSupplier wallClock, LongSupplier logicalClock)
 	{
-		this(goals, readiness, recruitment, party, authority, topology, routes, wallClock, logicalClock, (x, y, factualZ) -> GeoEngine.getInstance().hasGeo(x, y) ? GeoEngine.getInstance().getHeight(x, y, factualZ) : factualZ, new PhantomRaidEncounterCatalog(), PhantomRaidEntryNpcLocator.spawnTable());
+		this(goals, readiness, recruitment, party, authority, topology, routes, wallClock, logicalClock, nativeGeometry(), new PhantomRaidEncounterCatalog(), PhantomRaidEntryNpcLocator.spawnTable());
 	}
 
 	public PhantomRaidAssemblyService(PhantomGoalStore goals, PhantomRaidReadinessService readiness, PhantomRaidRecruitmentService recruitment, PhantomPartyBackend party, PhantomRaidAuthority authority, Supplier<PhantomTopologyQuery> topology, PhantomPartyRouteCoordinator routes, LongSupplier wallClock, LongSupplier logicalClock, HeightResolver height)
@@ -295,6 +298,7 @@ public final class PhantomRaidAssemblyService implements PhantomRaidAttemptServi
 			assembly._centre = centre;
 			assembly._topologyHash = _topology.get().snapshot().canonicalHash().toUpperCase(java.util.Locale.ROOT);
 			assembly._slots = slots(assembly._identity, readiness.force().snapshot().parties(), centre);
+			if (assembly._slots.size() != readiness.force().snapshot().parties().size()) { return block(assembly, "raid.assembly.staging.native_approach_unavailable"); }
 			assembly._routeProgress.clear();
 			assembly._status = AssemblyStatus.GATHERING;
 			assembly._reason = "raid.assembly.gathering";
@@ -644,18 +648,30 @@ public final class PhantomRaidAssemblyService implements PhantomRaidAttemptServi
 	private List<PartySlot> slots(AssemblyIdentity identity, List<PartySnapshot> parties, StagingCenter centre)
 	{
 		final List<PartySnapshot> ordered = parties.stream().sorted(Comparator.comparing(party -> party.leader().stableKey())).toList();
-		final int radius = centre.source() == StagingSource.LIVE_BOSS ? LIVE_STAND_OFF_RADIUS : ANCHOR_PARTY_RADIUS;
+		final boolean live = centre.source() == StagingSource.LIVE_BOSS;
+		final int[] radii = live ? new int[] {LIVE_STAND_OFF_RADIUS,1200,900,600,ANCHOR_PARTY_RADIUS} : new int[] {ANCHOR_PARTY_RADIUS};
 		final List<PartySlot> result = new ArrayList<>(ordered.size());
 		for (int index = 0; index < ordered.size(); index++)
 		{
-			final double angle = (Math.PI * 2 * index) / ordered.size();
-			final int x = centre.point().x() + (int) Math.round(Math.cos(angle) * radius);
-			final int y = centre.point().y() + (int) Math.round(Math.sin(angle) * radius);
-			final int z = _height.resolve(x, y, centre.point().z());
+			PhantomNavigationPoint slot = null;
+			for (int radius : radii)
+			{
+				for (int rotation = 0; rotation < (live ? 8 : 1); rotation++)
+				{
+					final double angle = (Math.PI * 2 * index) / ordered.size() + Math.PI * rotation / 4;
+					final int x = centre.point().x() + (int) Math.round(Math.cos(angle) * radius), y = centre.point().y() + (int) Math.round(Math.sin(angle) * radius);
+					if (x < World.WORLD_X_MIN || x > World.WORLD_X_MAX || y < World.WORLD_Y_MIN || y > World.WORLD_Y_MAX) { continue; }
+					final var candidate = new PhantomNavigationPoint(x, y, _height.resolve(x, y, centre.point().z()), centre.point().instanceId());
+					if (live && (!_height.canApproach(candidate, centre.point()) || result.stream().anyMatch(prior -> prior.point().distanceTo(candidate) < ARRIVAL_RADIUS * 2))) { continue; }
+					slot = candidate; break;
+				}
+				if (slot != null) { break; }
+			}
+			if (slot == null) { return List.of(); }
 			final MemberRef leader = ordered.get(index).leader();
 			final String groupId = PhantomPartyModel.sha256("raid.assembly.route|" + identity.stableKey() + "|" + leader.stableKey());
 			final PhantomDomainRef destination = new PhantomDomainRef("raid.staging", identity.goalId() + "." + leader.stableKey());
-			result.add(new PartySlot(leader, new PhantomNavigationPoint(x, y, z, centre.point().instanceId()), destination, groupId));
+			result.add(new PartySlot(leader, slot, destination, groupId));
 		}
 		return List.copyOf(result);
 	}
@@ -880,6 +896,20 @@ public final class PhantomRaidAssemblyService implements PhantomRaidAttemptServi
 	public interface HeightResolver
 	{
 		int resolve(int x, int y, int factualZ);
+		default boolean canApproach(PhantomNavigationPoint from, PhantomNavigationPoint centre) { return true; }
+	}
+
+	private static HeightResolver nativeGeometry()
+	{
+		return new HeightResolver()
+		{
+			@Override public int resolve(int x, int y, int factualZ) { return GeoEngine.getInstance().hasGeo(x, y) ? GeoEngine.getInstance().getHeight(x, y, factualZ) : factualZ; }
+			@Override public boolean canApproach(PhantomNavigationPoint from, PhantomNavigationPoint centre)
+			{
+				final var geo = GeoEngine.getInstance();
+				return geo.hasGeo(from.x(), from.y()) && geo.hasGeo(centre.x(), centre.y()) && ZoneManager.getInstance().getZone(from.x(), from.y(), from.z(), WaterZone.class) == null && geo.canMoveToTarget(from.x(), from.y(), from.z(), centre.x(), centre.y(), geo.getHeight(centre.x(), centre.y(), centre.z()), from.instanceId());
+			}
+		};
 	}
 
 	public record AssemblyIdentity(long leaderProfileId, long goalId, long goalRevision, String contentId)

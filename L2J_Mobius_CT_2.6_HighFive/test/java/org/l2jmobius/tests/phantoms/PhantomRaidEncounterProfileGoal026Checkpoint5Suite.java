@@ -48,6 +48,13 @@ public final class PhantomRaidEncounterProfileGoal026Checkpoint5Suite implements
 		registry.add("02-queen-ant-exact-profile", _ -> queenAnt());
 		registry.add("03-zaken83-exact-profile-and-registry", _ -> zaken83());
 		registry.add("04-entry-gated-staging-and-public-script-boundary", _ -> entryGatedBoundary());
+		registry.add("05-sheshark-includes-native-minion-curse-ceiling", _ ->
+		{
+			final var raid = _catalog.resolve(content("raid.25199", ContentKind.RAID, 25199, 72, NpcKind.RAID_BOSS, 5, 9, List.of(required("combat.tank", 1, 800), required("combat.heal", 1, 850)))).orElseThrow();
+			PhantomAssertions.assertEquals(79, raid.maximumMemberLevelWhenCurseEnabled(), "Native level71 minions plus unchanged8-level curse allowance were omitted.");
+			PhantomAssertions.assertEquals(5, raid.minimumMembers(), "Native minion ceiling changed the declared minimum roster.");
+			PhantomAssertions.assertTrue(_catalog.resolve(content("raid.25199", ContentKind.RAID, 25199, 73, NpcKind.RAID_BOSS, 5, 9, List.of(required("combat.tank", 1, 800)))).isEmpty(), "Unknown encounter-level evidence reused a fixed native ceiling.");
+		});
 	}
 
 	private void genericAndUnsupported()

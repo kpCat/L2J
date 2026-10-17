@@ -105,6 +105,53 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 			}
 			finally { fixture.stop(); }
 		});
+		registry.add("06-maintenance-alias-retains-reserved-native-provider", _ ->
+		{
+			final var fixture = new RuntimeFixture(true);
+			try
+			{
+				final var roster = phantoms(1, 3); final var snapshots = snapshots(roster);
+				final var buff = capability("combat.buff", true); final var dance = capability("combat.dance", true);
+				snapshots.put(roster.get(0), member(roster.get(0), false, 100, List.of(buff), List.of()));
+				snapshots.put(roster.get(1), member(roster.get(1), false, 100, List.of(buff,dance), List.of()));
+				snapshots.put(roster.get(2), member(roster.get(2), false, 100, List.of(capability(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(),true)), List.of()));
+				fixture.party.suppliedTarget = roster.get(2).characterObjectId();
+				fixture.party.suppliedCapabilities.put(roster.get(0), List.of(buff)); fixture.party.suppliedCapabilities.put(roster.get(1), List.of(buff,dance));
+				final var profile = openProfile(List.of()); final var target = new PhantomRaidTargetEvidence(ContentKind.RAID,NpcKind.RAID_BOSS,7001,profile.npcId(),0,false);
+				fixture.runtime.advanceEngagement(new EngagementContext(AUTHORITY,profile,target,1000,10_000,()->false),force(List.of(roster),snapshots));
+				PhantomAssertions.assertTrue(fixture.lease(1).supportCasts > 0, "Primary maintenance provider did not cast.");
+				PhantomAssertions.assertEquals(1, fixture.lease(2).supportCasts, "Dedup buff alias discarded the actor reserved for the identical dance skill or cast it twice.");
+				PhantomAssertions.assertEquals(0, fixture.lease(2).raidTargetReads, "Reserved maintenance actor entered boss offense.");
+			}
+			finally { fixture.stop(); }
+		});
+		registry.add("07-live-minion-pressure-keeps-boss-collector-and-focuses-native-add", _ ->
+		{
+			final var fixture = new RuntimeFixture(false);
+			try
+			{
+				final var roster = phantoms(1,4); final Map<MemberRef,MemberSnapshot> snapshots = new LinkedHashMap<>();
+				for (var ref : roster) { snapshots.put(ref,new MemberSnapshot(ref,88,0,0,0,0,100,100,100,false,false,false,false,0,List.of(),ref.profileId()==1?List.of(capability("combat.tank",true)):ref.profileId()<=3?List.of(capability(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(),true)):List.of(),"B".repeat(64))); }
+				final var profile=openProfile(List.of()); final var target=new PhantomRaidTargetEvidence(ContentKind.RAID,NpcKind.RAID_BOSS,7001,profile.npcId(),0,false);
+				final var context=new EngagementContext(AUTHORITY,profile,target,1000,10_000,()->false);
+				fixture.runtime.advanceEngagement(context,force(List.of(roster),snapshots));
+				snapshots.put(roster.get(3),new MemberSnapshot(roster.get(3),88,0,0,0,0,40,100,100,false,false,false,false,0,List.of(7001,8001),List.of(),"B".repeat(64)));
+				final var defended=fixture.runtime.advanceEngagement(context,force(List.of(roster),snapshots));
+				PhantomAssertions.assertEquals(RuntimeStatus.INTERMEDIATE, defended.status(), "Exact native raid minion defense was refused by generic-monster admission.");
+				PhantomAssertions.assertFalse(fixture.combat.matchesPvpSession(1,8001,AUTHORITY),"Native NPC defense entered PvP.");
+				PhantomAssertions.assertTrue(fixture.lease(2).monsterTargetReads>0 && fixture.lease(3).monsterTargetReads>0,"Available offense ignored actual native minion pressure.");
+				PhantomAssertions.assertEquals(8001,fixture.lease(2).lastMonsterTarget,"Boss ID leaked into minion combat.");
+				PhantomAssertions.assertEquals(8001,fixture.lease(3).lastMonsterTarget,"Available offense did not focus the same live threat.");
+				PhantomAssertions.assertTrue(fixture.combat.matchesRaidSession(1,fixture.combat.find(1).orElseThrow().generation(),7001,profile.npcId(),0,AUTHORITY),"Required tank abandoned the boss to a damage dealer during minion defense.");
+				PhantomAssertions.assertFalse(defended.actualTargetDeathObserved() || defended.nativeLootComplete(),"Minion combat fabricated boss death/loot.");
+				final var foreign = fixture.combat.startRaidSession(new PhantomRaidCombatRequest(4,7001,profile.npcId(),0,ContentKind.RAID,NpcKind.RAID_BOSS,"F".repeat(64),PhantomCombatMode.MELEE_PHYSICAL,true,false,1000,60_000,()->false));
+				PhantomAssertions.assertTrue(foreign.accepted(), "Foreign ownership negative input was not admitted.");
+				fixture.runtime.cancel(AUTHORITY);
+				PhantomAssertions.assertTrue(java.util.stream.LongStream.rangeClosed(1,3).noneMatch(fixture.combat::hasClaim), "Canceled exact boss/minion terminal claims still block native regroup.");
+				PhantomAssertions.assertTrue(fixture.combat.matchesRaidSession(4,foreign.session().generation(),7001,profile.npcId(),0,"F".repeat(64)), "Raid cleanup canceled or consumed a foreign generation/authority.");
+			}
+			finally { fixture.stop(); }
+		});
 	}
 
 	private static void partyLocalSnapshots()
@@ -305,6 +352,8 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 	{
 		private final Map<MemberRef, Set<Integer>> targetsByActor = new LinkedHashMap<>();
 		private final Set<MemberRef> queriedActors = new LinkedHashSet<>();
+		private final Map<MemberRef,List<MemberCapability>> suppliedCapabilities = new LinkedHashMap<>();
+		private int suppliedTarget;
 		@Override public OptionalLong managedProfileId(int characterObjectId) { return OptionalLong.empty(); }
 		@Override public Optional<MemberRef> currentMember(long profileId) { return Optional.empty(); }
 		@Override public CurrentForceObservation currentForce(MemberRef actor) { return CurrentForceObservation.unavailable("test.unused"); }
@@ -316,7 +365,7 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		@Override public MembershipOutcome transferLeader(MemberRef requester, MemberRef member) { throw new UnsupportedOperationException(); }
 		@Override public Optional<PartySnapshot> observe(MemberRef member) { return Optional.empty(); }
 		@Override public Optional<MemberSnapshot> memberSnapshot(MemberRef member) { return Optional.empty(); }
-		@Override public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId) { queriedActors.add(actor); targetsByActor.computeIfAbsent(actor, _ -> new LinkedHashSet<>()).add(exactTargetObjectId); return List.of(); }
+		@Override public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId) { queriedActors.add(actor); targetsByActor.computeIfAbsent(actor, _ -> new LinkedHashSet<>()).add(exactTargetObjectId); return suppliedTarget==exactTargetObjectId?suppliedCapabilities.getOrDefault(actor,List.of()):List.of(); }
 		@Override public boolean materialize(long profileId) { return false; }
 	}
 
@@ -355,10 +404,12 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		private final long profileId;
 		private int supportCasts;
 		private int raidTargetReads;
+		private int monsterTargetReads;
+		private int lastMonsterTarget;
 		private FakeLease(long profileId) { this.profileId = profileId; }
 		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(1000 + (int) profileId, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, false, false, 0, "IDLE", 0, 0); }
-		@Override public TargetSnapshot targetSnapshot(int targetObjectId) { return null; }
-		@Override public RaidTargetSnapshot raidTargetSnapshot(int targetObjectId) { raidTargetReads++; return new RaidTargetSnapshot(7001, 29020, 0, 100, 100, false, false, true, true, false, true, NpcKind.RAID_BOSS, 100, false, true); }
+		@Override public TargetSnapshot targetSnapshot(int targetObjectId) { monsterTargetReads++; lastMonsterTarget=targetObjectId; return targetObjectId==8001?new TargetSnapshot(8001,20001,0,100,100,false,false,true,true,false,false,true,100,false,true):null; }
+		@Override public RaidTargetSnapshot raidTargetSnapshot(int targetObjectId) { raidTargetReads++; if (targetObjectId==8001) { monsterTargetReads++; lastMonsterTarget=targetObjectId; return new RaidTargetSnapshot(8001,20001,0,100,100,false,false,true,true,false,true,NpcKind.MONSTER,100,false,true,7001,29020,80,NpcKind.RAID_BOSS); } return new RaidTargetSnapshot(7001, 29020, 0, 100, 100, false, false, true, true, false, true, NpcKind.RAID_BOSS, 100, false, true); }
 		@Override public int raidActorLevel() { return 80; }
 		@Override public boolean supportsSkill(SelectedSkill skill, PhantomCombatMode mode) { return false; }
 		@Override public List<ThreatObservation> observedAttackers(int limit) { return List.of(); }

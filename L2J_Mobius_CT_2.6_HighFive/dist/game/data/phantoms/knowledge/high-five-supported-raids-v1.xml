@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<knowledge schemaVersion="1" datasetId="high-five-core" datasetVersion="1">
+	<classCapability classId="105" capabilityKey="combat.recharge" rank="900">
+		<skill id="1013" level="32" />
+		<source path="data/stats/players/skillTrees/2ndClass/ElvenElder.xml" />
+	</classCapability>
+	<contentRequirement contentId="raid.25199" contentKind="RAID" npcId="25199" recommendedMinParty="5" recommendedMaxParty="9">
+		<requirement capabilityKey="combat.tank" minimumCount="1" minimumRank="800" required="true" />
+		<requirement capabilityKey="combat.heal" minimumCount="1" minimumRank="850" required="true" />
+		<requirement capabilityKey="combat.recharge" minimumCount="1" minimumRank="850" required="true" />
+		<requirement capabilityKey="combat.melee_damage" minimumCount="1" minimumRank="800" required="false" />
+		<source path="data/stats/npcs/25100-25199.xml" />
+		<source path="data/stats/npcs/25200-25299.xml" />
+	</contentRequirement>
+</knowledge>
