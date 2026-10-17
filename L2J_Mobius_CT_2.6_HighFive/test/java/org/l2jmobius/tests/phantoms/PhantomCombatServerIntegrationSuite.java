@@ -3678,7 +3678,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				if (!GeoEngine.getInstance().hasGeo(x, y) || forbidden) { System.out.println("PVP059 preflight=" + x + ',' + y + ',' + z + "; geo=" + GeoEngine.getInstance().hasGeo(x, y) + "; forbidden=" + forbidden); continue; }
 				if (!GeoEngine.getInstance().canMoveToTarget(x, y, z, x + 64, y, GeoEngine.getInstance().getHeight(x + 64, y, z), 0)) { continue; }
 				final var origin = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, z, 0);
-				final var landmarks = _topology.nearestAnchors(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(x,y,z,0), org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000);
+				final var respawns = _topology.nearestAnchors(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(x,y,z,0), org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, 1, 100_000);
+				final var landmarks = respawns.isEmpty() ? _topology.nearestAnchors(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(x,y,z,0), org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000) : respawns;
 				if (landmarks.isEmpty()) { continue; }
 				final var landmark = landmarks.getFirst().point();
 				final var safe = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(landmark.x(), landmark.y(), GeoEngine.getInstance().getHeight(landmark.x(), landmark.y(), landmark.z()), 0);
@@ -3728,7 +3729,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			composition.invite(context, human, _player, _profile.profileId(), party);
 			final var nativePoint = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(_player.getX(), _player.getY(), _player.getZ(), 0);
-			final var anchors = _topology.nearestAnchors(nativePoint, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000);
+			final var respawns = _topology.nearestAnchors(nativePoint, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, 1, 100_000);
+			final var anchors = respawns.isEmpty() ? _topology.nearestAnchors(nativePoint, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000) : respawns;
 			final var nativeOrigin = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(nativePoint.x(), nativePoint.y(), nativePoint.z(), 0);
 			final var preferred = anchors.isEmpty() ? nativeOrigin : new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(anchors.getFirst().point().x(), anchors.getFirst().point().y(), anchors.getFirst().point().z(), 0);
 			final var safe = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(preferred.x(), preferred.y(), GeoEngine.getInstance().getHeight(preferred.x(), preferred.y(), preferred.z()), 0);
