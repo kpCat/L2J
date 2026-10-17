@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<humanizedV3ConversationSegment id="v3.life.companion.greeting" version="3" category="life.greeting" mature="false">
+	<templates>
+		<template id="v3.companion.greeting.neutral.01" act="greet.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Привет. Как дела?" />
+		<template id="v3.companion.greeting.neutral.02" act="greet.reply" band="NEUTRAL" register="NEUTRAL" profanity="NONE" text="Привет. Что нового?" />
+		<template id="v3.companion.greeting.familiar.01" act="greet.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="О, привет! Как твои дела?" />
+		<template id="v3.companion.greeting.familiar.02" act="greet.reply" band="FAMILIAR" register="NEUTRAL" profanity="NONE" text="Привет, знакомый голос. Как играется?" />
+		<template id="v3.companion.greeting.trusted.01" act="greet.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="Привет! Рад тебя видеть. Как ты?" />
+		<template id="v3.companion.greeting.trusted.02" act="greet.reply" band="TRUSTED" register="NEUTRAL" profanity="NONE" text="О, ты здесь! Привет, как дела?" />
+		<template id="v3.companion.greeting.rival.01" act="greet.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Привет, соперник. Что скажешь?" />
+		<template id="v3.companion.greeting.rival.02" act="greet.reply" band="RIVAL" register="NEUTRAL" profanity="NONE" text="Ну привет. Опять соревнуемся?" />
+		<template id="v3.companion.greeting.tense.01" act="greet.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Привет. Давай спокойно, без споров." />
+		<template id="v3.companion.greeting.tense.02" act="greet.reply" band="TENSE" register="NEUTRAL" profanity="NONE" text="Привет. Я тебя слушаю." />
+		<template id="v3.companion.greeting.hostile.01" act="greet.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Вижу. Что тебе нужно?" />
+		<template id="v3.companion.greeting.hostile.02" act="greet.reply" band="HOSTILE" register="NEUTRAL" profanity="NONE" text="Поздоровался — услышал. Говори по делу." />
+	</templates>
+</humanizedV3ConversationSegment>

@@ -560,7 +560,8 @@ public final class PhantomHumanizedCatalog
 				}
 			}
 		}
-		final List<Template> eligible = indexed.stream().sorted(Comparator.comparing(Template::id)).toList();
+		final boolean exactBand = indexed.stream().anyMatch(template -> template.band() == band);
+		final List<Template> eligible = indexed.stream().filter(template -> !exactBand || template.band() == band).sorted(Comparator.comparing(Template::id)).toList();
 		if (eligible.isEmpty())
 		{
 			throw new IllegalArgumentException("No humanized template is eligible for act " + act + '.');

@@ -122,9 +122,14 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 
 	String socialMessage(Player human, Player companion, String text) throws Exception
 	{
+		return socialMessage059(human, companion, ChatType.WHISPER, text);
+	}
+
+	private String socialMessage059(Player human, Player companion, ChatType channel, String text) throws Exception
+	{
 		final long before = _execution.snapshot().sent();
 		final long deliveries = ChatObservationService.getInstance().snapshot().generatedDeliveries();
-		PhantomAssertions.assertTrue(PlayerChatIngress.dispatchClient(human, ChatType.WHISPER, companion.getName(), text).observedDeliveries() > 0, "M3 addressed native input was not delivered.");
+		PhantomAssertions.assertTrue(PlayerChatIngress.dispatchClient(human, channel, channel == ChatType.WHISPER ? companion.getName() : "", text).observedDeliveries() > 0, "M3 addressed native input was not delivered.");
 		for (int pulse = 0; (pulse < 512) && (_execution.snapshot().sent() == before); pulse++) { _conversation.onPulse(); _execution.onPulse(); Thread.sleep(10); }
 		PhantomAssertions.assertEquals(before + 1, _execution.snapshot().sent(), "M3 response was not exactly one native SENT: " + _execution.snapshot());
 		PhantomAssertions.assertTrue(ChatObservationService.getInstance().snapshot().generatedDeliveries() > deliveries, "M3 generated response had no recipient.");
@@ -132,6 +137,19 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 		for (int pulse = 0; pulse < 32; pulse++) { _conversation.onPulse(); _execution.onPulse(); Thread.sleep(10); }
 		PhantomAssertions.assertEquals(before + 1, _execution.snapshot().sent(), "M3 generated response recursed.");
 		return _latestResponse.renderedText();
+	}
+
+	String socialContext059(PhantomTestContext context, Player human, Player companion, ChatType channel, String expectedStyle) throws Exception
+	{
+		final String input = companion.getName() + ", привет";
+		final String text = socialMessage059(human, companion, channel, input);
+		PhantomAssertions.assertEquals(expectedStyle, _latestResponse.style(), "Native greeting ignored its prepared relationship context.");
+		context.record("social059.native." + expectedStyle, "channel=" + channel + "; actualSENT=true; style=" + _latestResponse.style() + "; text=" + text + "; evidence=" + _latestResponse.evidence());
+		final long sent = _execution.snapshot().sent();
+		PlayerChatIngress.dispatchClient(human, channel, "", input);
+		for (int pulse = 0; pulse < 64; pulse++) { _conversation.onPulse(); _execution.onPulse(); Thread.sleep(10); }
+		PhantomAssertions.assertEquals(sent, _execution.snapshot().sent(), "Immediate social repeat bypassed chatter bounds.");
+		return text;
 	}
 
 	String supportMessage059(PhantomTestContext context, Player human, Player companion, String text) throws Exception
@@ -359,7 +377,7 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 		context.record("command059.authority", "directed PARTY recipient; exact retry stable; negation/ambiguous no action; explicit ALL native HOLD/walk/RESUME; one elected SENT each; former-leader delivered refusal; stale generation rejected; native authority restored; current roster=" + human.getParty().getMembers().stream().map(Player::getObjectId).toList());
 	}
 
-	private void awaitHolding059(PhantomTestContext context, PhantomPartyCoordinator party, java.util.List<Long> profiles) throws Exception
+	void awaitHolding059(PhantomTestContext context, PhantomPartyCoordinator party, java.util.List<Long> profiles) throws Exception
 	{
 		PhantomAssertions.assertTrue(_lastCommandReceipt != null && java.util.Set.of("command.holding", "command.pending").contains(_lastCommandReceipt.reasonKey()), "HOLD admission did not deliver a truthful holding/pending result.");
 		final String reason = _lastCommandReceipt.reasonKey();

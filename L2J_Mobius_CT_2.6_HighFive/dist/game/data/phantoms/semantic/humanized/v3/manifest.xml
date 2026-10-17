@@ -274,6 +274,7 @@
 		<act key="social.reconcile.closure.reply" />
 	</acts>
 	<segments>
+		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/life/companion-greeting-v1.xml" />
 		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/leveling.xml" />
 		<segment kind="CONVERSATION" path="conversation/humanized/v3/segments/lineage/leveling.xml" />
 		<segment kind="SEMANTIC" path="semantic/humanized/v3/segments/lineage/farming.xml" />

@@ -209,6 +209,10 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 import org.l2jmobius.gameserver.phantoms.rift.PhantomRiftConversationFacts;
 import org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingConversationFacts;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog;
+import org.l2jmobius.gameserver.phantoms.social.PhantomSocialModel;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedCatalog;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomHumanizedConversationService;
+import org.l2jmobius.gameserver.phantoms.conversation.humanized.PhantomPersonalConversationStore;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialService;
 import org.l2jmobius.gameserver.phantoms.social.PhantomSocialStore;
 import org.l2jmobius.gameserver.phantoms.topology.L2jTopologyValidationBackend;
@@ -1107,6 +1111,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				if (Boolean.getBoolean("phantom.test.commandAuthority059"))
 				{
 					composition.authority059(context, human, actors, profileIds, party, fromX, fromY, z);
+					testHeldOffensiveTarget059(context, composition, human, actors, profileIds, party);
 					composition.lifecycle059(context, human, actors, profileIds, party);
 				}
 			}
@@ -1343,6 +1348,39 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		actor.setCurrentCp(actor.getMaxCp());
 	}
 
+	private void testHeldOffensiveTarget059(PhantomTestContext context, PhantomCompanionComposition058 composition, Player human, List<Player> actors, List<Long> profiles, PhantomPartyCoordinator party) throws Exception
+	{
+		final NpcFact fact = _query.snapshot().npcById().values().stream().filter(npc -> npc.kind() == NpcKind.MONSTER && npc.attackable() && npc.targetable() && npc.level() >= 70 && npc.level() <= 72 && NpcData.getInstance().getTemplate(npc.npcId()).getAggroRange() == 0).sorted(Comparator.comparingInt(NpcFact::npcId)).findFirst().orElseThrow(() -> new AssertionError("INVALID_INPUT: no stock non-aggressive70..72 HOLD target."));
+		Location point = null;
+		for (int[] offset : new int[][] {{900,0},{0,900},{-900,0},{0,-900},{700,700},{-700,700},{700,-700},{-700,-700}})
+		{
+			final int x = human.getX() + offset[0], y = human.getY() + offset[1];
+			final int z = GeoEngine.getInstance().getHeight(x, y, human.getZ());
+			if (GeoEngine.getInstance().hasGeo(x, y) && actors.stream().allMatch(actor -> Math.hypot(actor.getX() - x, actor.getY() - y) > 500 && GeoEngine.getInstance().canSeeTarget(actor.getX(), actor.getY(), actor.getZ(), 0, x, y, z, 0))) { point = new Location(x,y,z); break; }
+		}
+		PhantomAssertions.assertTrue(point != null, "INVALID_INPUT: no native LOS point for independent distant HOLD target.");
+		final Monster target = new Monster(NpcData.getInstance().getTemplate(fact.npcId()));
+		target.setCurrentHp(target.getMaxHp()); target.setCurrentMp(target.getMaxMp());
+		_worldFixtures.add(target); target.spawnMe(point.getX(), point.getY(), point.getZ());
+		context.record("command059.offense.input", "INDEPENDENT negative after two full kills; stock non-aggressive target=" + target.getId() + "; object=" + target.getObjectId() + "; fullHP=" + target.getMaxHp() + "; XYZ=" + point + "; all3 HOLD; native leader selects target farther than500;5s no pursuit/damage; no existing episode or resource modification");
+		PhantomAssertions.assertTrue(composition.command059(context, human, actors.getFirst(), org.l2jmobius.gameserver.network.enums.ChatType.PARTY, "всем стоять", party), "HOLD target negative had no delivered admission.");
+		composition.awaitHolding059(context, party, profiles);
+		final int[][] anchors = actors.stream().map(actor -> new int[] {actor.getX(),actor.getY(),actor.getZ()}).toArray(int[][]::new);
+		human.setTarget(target);
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		while (System.nanoTime() < deadline)
+		{
+			party.onPulse();
+			PhantomAssertions.assertEquals((double) target.getMaxHp(), target.getCurrentHp(), "HOLD started native offense against the leader's distant target.");
+			for (int index=0; index<actors.size(); index++) { final Player actor=actors.get(index); PhantomAssertions.assertTrue(!actor.isAttackingNow() && Math.hypot(actor.getX()-anchors[index][0],actor.getY()-anchors[index][1]) <=128, "HOLD pursued the selected enemy."); }
+			Thread.sleep(20);
+		}
+		human.setTarget(null);
+		PhantomAssertions.assertTrue(composition.command059(context, human, actors.getFirst(), org.l2jmobius.gameserver.network.enums.ChatType.PARTY, "всем за мной", party), "HOLD target negative RESUME was not delivered.");
+		composition.assertCommandReason059("command.following");
+		context.record("command059.offense.result", "all3 current native roles retained anchors; no pursuit/attack/damage for5s despite leader selection; full stock HP unchanged; lawful RESUME delivered");
+	}
+
 	private void testCompanionAssistTargets058(PhantomTestContext context, Player human, List<Player> actors, List<Long> profileIds, PhantomPartyCoordinator party) throws Exception
 	{
 		final NpcFact fact = _query.snapshot().npcById().values().stream().filter(npc -> (npc.kind() == NpcKind.MONSTER) && npc.attackable() && npc.targetable() && (npc.level() >= 70) && (npc.level() <= 72) && (npc.exp() > 0)).sorted(Comparator.comparingInt(NpcFact::npcId)).findFirst().orElseThrow(() -> new AssertionError("No stock70..72 reward monster for companion input."));
@@ -1471,6 +1509,61 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	private void testCompanionRealSupport058(PhantomTestContext context) throws Exception
 	{
 		testCompanionNativeRole058(context, "combat.buff");
+		if (Boolean.getBoolean("phantom.test.socialContexts059")) { testNativeSocialContexts059(context); }
+	}
+
+	private void testNativeSocialContexts059(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final Player human = ensureObserver();
+		final var subject = PhantomSocialModel.SubjectRef.character(human.getObjectId());
+		final var catalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
+		final var store = new PhantomSocialStore(_repository, catalog);
+		final long minute = System.currentTimeMillis() / 60000L;
+		final var initialize = new PhantomSocialService(catalog, store, context.seed(), 16);
+		PhantomAssertions.assertTrue(initialize.start() && initialize.snapshot(_profile.profileId(), subject, 1, minute).value() != null, "Social059 fixture initialization failed.");
+		initialize.beginStop(); PhantomAssertions.assertTrue(initialize.finishStop(), "Social059 fixture initializer did not stop.");
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults());
+		progression.start();
+		final List<String> replies = new ArrayList<>();
+		try
+		{
+			for (boolean friendly : List.of(true, false))
+			{
+				// Independent declared TEST context before speech measurement; no058a state is altered.
+				final var before = store.load(_profile.profileId()).orElseThrow();
+				final var values = new ArrayList<>(java.util.Collections.nCopies(PhantomSocialModel.DIMENSION_COUNT, 0));
+				for (var dimension : catalog.dimensions())
+				{
+					if (friendly && dimension.key().equals("trust")) { values.set(dimension.index(), 3000); }
+					if (friendly && dimension.key().equals("friendship")) { values.set(dimension.index(), 2000); }
+					if (!friendly && dimension.key().equals("anger")) { values.set(dimension.index(), 4000); }
+				}
+				final var relationships = new ArrayList<>(before.state().relationships());
+				relationships.removeIf(value -> value.subject().equals(subject));
+				relationships.add(new PhantomSocialModel.RelationshipRecord(subject, values, java.util.Collections.nCopies(PhantomSocialModel.AGREEMENT_COUNT, 0), minute, minute));
+				final var prepared = new PhantomSocialModel.SocialState(before.state().authorityHash(), before.state().personalitySeed(), Math.max(minute, before.state().logicalMinute()), before.state().traits(), relationships, before.state().memories());
+				store.save(_profile.profileId(), before.stateRowVersion(), before.receiptRowVersion(), prepared, before.receipts());
+				context.record("social059.fixture." + friendly, "FIXTURE_PRECONDITION exact058t; same personality seed=" + prepared.personalitySeed() + "; explicit relationship context=" + (friendly ? "TRUSTED" : "HOSTILE") + "; native greeting measurement starts next");
+				final var social = new PhantomSocialService(catalog, store, context.seed(), 16);
+				PhantomAssertions.assertTrue(social.start(), "Social059 context service did not start.");
+				final var backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
+				final var party = new PhantomPartyCoordinator(new PhantomPartyStore(_repository), new PhantomGoalStateStore(_repository), backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(null, null), new PhantomPartyTactics(null, backend), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 16);
+				PhantomAssertions.assertTrue(party.start(), "Social059 context party owner did not start.");
+				final var humanized = new PhantomHumanizedConversationService(PhantomHumanizedCatalog.loadV3(Path.of("data/phantoms"), true), PhantomPersonalConversationStore.production(_repository), social, new PhantomHumanizedConversationService.Settings(true, PhantomHumanizedCatalog.Register.CASUAL, PhantomHumanizedCatalog.ProfanityMode.NONE, PhantomHumanizedCatalog.Variation.LOW, false));
+				try (var composition = new PhantomCompanionComposition058(_repository, _materialization, _topology, _knowledge, social, party, human, humanized))
+				{
+					replies.add(composition.socialContext059(context, human, _player, friendly ? org.l2jmobius.gameserver.network.enums.ChatType.GENERAL : org.l2jmobius.gameserver.network.enums.ChatType.TRADE, friendly ? "warm" : "cold"));
+				}
+				finally
+				{
+					party.beginStop(); PhantomAssertions.assertTrue(party.finishStop(), "Social059 context party owner did not stop.");
+					social.beginStop(); PhantomAssertions.assertTrue(social.finishStop(), "Social059 context service did not stop.");
+				}
+			}
+			PhantomAssertions.assertTrue(replies.size() == 2 && !replies.getFirst().equals(replies.getLast()), "Two native relationship contexts did not produce distinct delivered greetings.");
+		}
+		finally { progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Social059 progression did not stop."); }
 	}
 
 	private void testCompanionNativeRole058(PhantomTestContext context, String capabilityKey) throws Exception
@@ -1584,7 +1677,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			{
 				final var pending059 = org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().observe(_player).orElseThrow();
 				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.groups.PartyInvitationService.RespondOutcome.ACCEPTED, org.l2jmobius.gameserver.model.groups.PartyInvitationService.getInstance().respond(_player, org.l2jmobius.gameserver.model.groups.PartyInvitationService.Response.ACCEPT, pending059.identity()).outcome(), "Support059 explicit TEST consent failed.");
-				final String request059 = switch (capabilityKey) { case "combat.heal" -> "дай лечение"; case "combat.recharge" -> "дай ману"; case "combat.resurrection" -> "дай воскрешение"; default -> "дай баф"; };
+				final String request059 = switch (capabilityKey) { case "combat.heal" -> "нжно лечение"; case "combat.recharge" -> "дай ману"; case "combat.resurrection" -> "дай воскрешение"; default -> "дай баф"; };
 				PhantomAssertions.assertEquals("support.issued", commands059.supportMessage059(context, human, _player, request059), "Native support request did not report admitted cast.");
 				if (_player.isCastingNow())
 				{

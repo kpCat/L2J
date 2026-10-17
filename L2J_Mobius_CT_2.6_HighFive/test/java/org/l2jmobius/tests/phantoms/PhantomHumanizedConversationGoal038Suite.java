@@ -261,6 +261,10 @@ public final class PhantomHumanizedConversationGoal038Suite implements PhantomTe
 	{
 		registry.add("01-persona-relationship-and-response-variation-are-stable", context ->
 		{
+			final var v3 = PhantomHumanizedCatalog.loadV3(context.moduleRoot().resolve("dist/game/data/phantoms"), false);
+			final var warm = v3.select("greet.reply", RelationshipBand.TRUSTED, Register.CASUAL, ProfanityMode.NONE, Variation.LOW, false, false, "Тихон", "", "", "", 0, Set.of());
+			final var cold = v3.select("greet.reply", RelationshipBand.HOSTILE, Register.CASUAL, ProfanityMode.NONE, Variation.LOW, false, false, "Тихон", "", "", "", 0, Set.of());
+			PhantomAssertions.assertTrue(!warm.text().equals(cold.text()) && warm.text().contains("Рад") && !cold.text().contains("Рад"), "Known relationship greeting fell back to the same generic welcome.");
 			final Fixture fixture = fixture(context);
 			try
 			{
@@ -394,6 +398,8 @@ public final class PhantomHumanizedConversationGoal038Suite implements PhantomTe
 				}
 			}
 			final byte[] encoded = PhantomPersonalConversationStore.encode(state);
+			final PersonalState upgraded = PhantomPersonalConversationStore.prepare(state, "a".repeat(64), 100);
+			PhantomAssertions.assertEquals(state.subjects().stream().flatMap(subject -> subject.facts().stream()).toList(), upgraded.subjects().stream().flatMap(subject -> subject.facts().stream()).toList(), "Catalog wording upgrade lost scoped personal facts.");
 			PhantomAssertions.assertTrue(encoded.length <= 4096, "conversation.personal exceeded the generic payload bound.");
 			PhantomAssertions.assertEquals(state, PhantomPersonalConversationStore.decode(encoded), "conversation.personal round-trip changed facts.");
 			final PersonalState expired = PhantomPersonalConversationStore.prepare(state, catalog.combinedHash(), 101);
