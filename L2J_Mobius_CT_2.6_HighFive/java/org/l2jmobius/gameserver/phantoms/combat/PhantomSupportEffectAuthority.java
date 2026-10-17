@@ -4,6 +4,7 @@
 package org.l2jmobius.gameserver.phantoms.combat;
 
 import org.l2jmobius.gameserver.model.actor.Player;
+import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.skill.BuffInfo;
 import org.l2jmobius.gameserver.model.skill.Skill;
 
@@ -19,6 +20,19 @@ public final class PhantomSupportEffectAuthority
 
 	private PhantomSupportEffectAuthority()
 	{
+	}
+
+	/** Descriptive class evidence never substitutes for the learned native action's actual effect. */
+	public static boolean supportsCapability(Skill skill, String capabilityKey)
+	{
+		if (skill == null || capabilityKey == null) { return false; }
+		return switch (capabilityKey)
+		{
+			case "combat.heal" -> skill.hasEffectType(EffectType.HEAL) || skill.hasEffectType(EffectType.REBALANCE_HP);
+			case "combat.recharge" -> skill.hasEffectType(EffectType.MANAHEAL_BY_LEVEL) || skill.hasEffectType(EffectType.MANAHEAL_PERCENT);
+			case "combat.resurrection" -> skill.hasEffectType(EffectType.RESURRECTION) || skill.hasEffectType(EffectType.RESURRECTION_SPECIAL);
+			default -> true;
+		};
 	}
 
 	public static Status status(Player target, Skill incoming, int rebuffRemainingSeconds)

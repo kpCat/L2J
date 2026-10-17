@@ -719,6 +719,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.COMPANION_REAL_SUPPORT_058)
 		{
+			if (Boolean.getBoolean("phantom.test.supportKinds059")) { registry.add("02-native-heal-label-cannot-cast-prophecy-buff", this::testNativeSupportKind059); registry.add("03-eva-current-learned-heal-addressed-effect-and-cost", context -> testCompanionNativeRole058(context, "combat.heal", 105)); return; }
 			registry.add("01-real-led-automatic-buff-effect-cost-and-leave", this::testCompanionRealSupport058);
 			return;
 		}
@@ -1590,7 +1591,46 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		finally { progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Social059 progression did not stop."); }
 	}
 
+	private void testNativeSupportKind059(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final Player human = ensureObserver();
+		final var creation = PlayerTemplateData.getInstance().getTemplate(0).getCreationPoint();
+		for (Player actor : List.of(_player, human)) { actor.decayMe(); actor.setXYZInvisible(creation.getX(), creation.getY(), creation.getZ()); actor.spawnMe(); actor.revalidateZone(true); }
+		prepareCompanionCombat058(_player, 105, 6579, 0);
+		final Skill prophecy = SkillData.getInstance().getSkill(1355, 1);
+		_player.addSkill(prophecy, false); _player.setCurrentMp(_player.getMaxMp() / 2);
+		PhantomAssertions.assertTrue(_player.getInventory().addItem(ItemProcessType.REWARD, prophecy.getItemConsumeId(), prophecy.getItemConsumeCount() * 2L, null, this) != null, "Declared native Prophecy reagent is unavailable.");
+		human.setInvul(false); human.setCurrentHp(human.getMaxHp() / 5); human.getEffectList().stopSkillEffects(SkillFinishType.REMOVED, prophecy.getId());
+		final Party nativeParty = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(nativeParty); human.joinParty(nativeParty);
+		final var rule = _progression.capabilityRules("combat.heal").stream().filter(value -> value.classIds().contains(105) && value.actionSkill().skillId() == 1355).findFirst().orElseThrow();
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+		final double beforeHp = human.getCurrentHp(), beforeMp = _player.getCurrentMp();
+		final long beforeOre = _player.getInventory().getInventoryItemCount(prophecy.getItemConsumeId(), -1);
+		final var evaluation = progression.capabilities(_profile.profileId(), human.getObjectId()).stream().filter(value -> value.capabilityKey().equals("combat.heal") && value.actionSkill().skillId() == 1355).findFirst().orElseThrow();
+		final var acquired = _combat.acquireExternalAction(new PhantomCombatService.ExternalActionRequest(_profile.profileId(), PhantomCombatService.ExternalActionKind.PARTY_SUPPORT, "task059.support.kind", System.nanoTime() + TimeUnit.SECONDS.toNanos(20), () -> false));
+		try
+		{
+			PhantomAssertions.assertTrue(acquired.lease() != null, "Native support-kind actor lease was not acquired.");
+			final var outcome = acquired.lease().castSupport(new PhantomPartySupportAction("combat.heal", rule.variantKey(), rule.targetScope().name(), human.getObjectId(), new SelectedSkill(1355, 1)));
+			if (outcome == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome.ISSUED) { waitFor(() -> PhantomSupportEffectAuthority.status(human, prophecy, 0) == PhantomSupportEffectAuthority.Status.HEALTHY && !_player.isCastingNow(), 10_000); }
+			context.record("support059.kind", "native class105 skill1355=ProphecyWater; declared heal readiness=" + evaluation.readyNow() + '/' + evaluation.reason() + "; cast=" + outcome + "; actualBuff=" + PhantomSupportEffectAuthority.status(human, prophecy, 0) + "; targetHP=" + beforeHp + "->" + human.getCurrentHp() + "; casterMP=" + beforeMp + "->" + _player.getCurrentMp() + "; ore=" + beforeOre + "->" + _player.getInventory().getInventoryItemCount(prophecy.getItemConsumeId(), -1));
+			PhantomAssertions.assertTrue(!evaluation.readyNow() && outcome == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatBackend.ActionOutcome.REJECTED, "Native heal label admitted a non-healing buff and its native costs.");
+		}
+		finally
+		{
+			if (acquired.lease() != null) { acquired.lease().close(); }
+			PartyInvitationService.getInstance().leave(human); if (_player.isInParty()) { PartyInvitationService.getInstance().leave(_player); }
+			progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Support-kind progression did not stop.");
+		}
+	}
+
 	private void testCompanionNativeRole058(PhantomTestContext context, String capabilityKey) throws Exception
+	{
+		testCompanionNativeRole058(context, capabilityKey, 0);
+	}
+
+	private void testCompanionNativeRole058(PhantomTestContext context, String capabilityKey, int preferredClass) throws Exception
 	{
 		final var creationPoint = PlayerTemplateData.getInstance().getTemplate(0).getCreationPoint();
 		_player.decayMe();
@@ -1607,6 +1647,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		human.revalidateZone(true);
 		PhantomAssertions.assertTrue(!_player.isGM() && !human.isGM(), "Companion support requires ordinary TEST players.");
 		final CapabilityRule rule = _progression.capabilityRules(capabilityKey).stream()
+			.filter(candidate -> preferredClass <= 0 || candidate.classIds().contains(preferredClass))
 			.filter(candidate -> (_mode != Mode.COMPANION_GREATER_HEAL_058) || (candidate.classIds().contains(97) && (candidate.actionSkill().skillId() == 1217)))
 			.filter(candidate -> candidate.requiredEquipmentFamilies().isEmpty() && candidate.requiredItems().isEmpty() && (candidate.classIds().size() == 1))
 			.filter(candidate -> Set.of("SINGLE_TARGET", "PARTY", "ALLY").contains(candidate.targetScope().name()))
@@ -1614,7 +1655,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final Skill skill = SkillData.getInstance().getSkill(candidate.actionSkill().skillId(), candidate.actionSkill().skillLevel());
 				return (skill != null) && (skill.getItemConsumeId() <= 0) && (skill.getMpConsume() > 0);
 			}).findFirst().orElseThrow();
-		final int preparedRank = Set.of(Mode.LEARNED_SKILLS_058, Mode.COMPANION_GREATER_HEAL_058).contains(_mode) ? 101 : rule.actionSkill().skillLevel();
+		final int preparedRank = preferredClass == 105 && capabilityKey.equals("combat.heal") ? 33 : Set.of(Mode.LEARNED_SKILLS_058, Mode.COMPANION_GREATER_HEAL_058).contains(_mode) ? 101 : rule.actionSkill().skillLevel();
 		final Skill skill = SkillData.getInstance().getSkill(rule.actionSkill().skillId(), preparedRank);
 		PhantomAssertions.assertTrue(skill != null && skill.getLevel() == preparedRank, "Declared stock support rank is unavailable.");
 		// Explicit TEST preparation before the episode; no natural career or product grant claim.
@@ -1665,7 +1706,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
 		Throwable scenarioFailure = null;
 		final boolean busyHold059 = Boolean.getBoolean("phantom.test.busyHold059") && capabilityKey.equals("combat.heal");
-		final boolean supportRequests059 = Boolean.getBoolean("phantom.test.supportRequests059");
+		final boolean supportRequests059 = Boolean.getBoolean("phantom.test.supportRequests059") || Boolean.getBoolean("phantom.test.supportKinds059");
 		PhantomCompanionComposition058 commands059 = null;
 		final java.util.concurrent.atomic.AtomicInteger nativeCasts059 = new java.util.concurrent.atomic.AtomicInteger();
 		final var castListener059 = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(_player, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_SKILL_USE, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureSkillUse event) -> { if ((event.getCaster() == _player) && (event.getSkill().getId() == skill.getId()) && (event.getSkill().getLevel() == skill.getLevel())) { nativeCasts059.incrementAndGet(); } }, this);

@@ -1355,7 +1355,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return ActionOutcome.REJECTED;
 			}
 			final Skill skill = _player.getKnownSkill(action.skill().skillId());
-			if ((skill == null) || (skill.getLevel() != action.skill().skillLevel()) || skill.isPassive() || skill.isToggle() || skill.isDebuff() || skill.hasNegativeEffect() || !PARTY_SUPPORT_TARGET_TYPES.contains(skill.getTargetType()))
+			if ((skill == null) || (skill.getLevel() != action.skill().skillLevel()) || skill.isPassive() || skill.isToggle() || skill.isDebuff() || skill.hasNegativeEffect() || !PARTY_SUPPORT_TARGET_TYPES.contains(skill.getTargetType()) || !PhantomSupportEffectAuthority.supportsCapability(skill, action.capabilityKey()))
 			{
 				return ActionOutcome.REJECTED;
 			}

@@ -59,6 +59,11 @@ public final class PhantomProgressionCapabilityEvaluator
 		{
 			return ReadinessReason.SKILL_NOT_LEARNED;
 		}
+		final var skill = catalog.skill(action);
+		if ((skill != null) && ((Set.of("combat.heal", "combat.recharge").contains(rule.capabilityKey()) && !skill.heal()) || (rule.capabilityKey().equals("combat.resurrection") && !skill.resurrection())))
+		{
+			return ReadinessReason.DYNAMIC_CONDITION_FAILED;
+		}
 		if (rule.targetRequired() && ((targetObjectId == null) || (targetObjectId <= 0)))
 		{
 			return ReadinessReason.TARGET_REQUIRED;
@@ -74,7 +79,6 @@ public final class PhantomProgressionCapabilityEvaluator
 				return ReadinessReason.REQUIRED_ITEM_MISSING;
 			}
 		}
-		final var skill = catalog.skill(action);
 		if ((skill != null) && (actor.charges() < skill.chargeConsumeCount()))
 		{
 			return ReadinessReason.INSUFFICIENT_CHARGES_OR_SOULS;

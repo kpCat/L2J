@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard)
+param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -16,6 +16,7 @@ if ($Commands -or $Authority) { $args059+='-Dphantom.test.commands059=true' }
 if ($Authority) { $args059+='-Dphantom.test.commandAuthority059=true' }
 if ($BusyHold) { $args059+='-Dphantom.test.busyHold059=true' }
 if ($SupportRequests) { $args059+='-Dphantom.test.supportRequests059=true' }
+if ($SupportKinds) { if ($Mode -cne 'companion-real-support058' -or $Seed -ne 58005806) { throw 'Exact support-kind native058 mode/seed required' }; $args059+='-Dphantom.test.supportKinds059=true' }
 if ($SocialContexts) { $args059+='-Dphantom.test.socialContexts059=true' }
 if ($PvpFlow) { $args059+='-Dphantom.test.pvpFlow059=true' }
 if ($PvpFlowOnly) { $args059+='-Dphantom.test.pvpFlow059=true'; $args059+='-Dphantom.test.pvpFlowOnly059=true' }
