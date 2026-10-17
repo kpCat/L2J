@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard)
+param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -27,6 +27,8 @@ if ($RaidStaging) { $args059+='-Dphantom.test.raidStagingOnly059=true' }
 if ($RaidLevelGuard) { $args059+='-Dphantom.test.raidLevelGuard059=true' }
 if ($RaidMinionGuard) { $args059+='-Dphantom.test.raidMinionGuard059=true' }
 if ($RaidTriggerGuard) { $args059+='-Dphantom.test.raidTriggerGuard059=true' }
+if ($KamalokaFlow) { if($Mode -cne 'instances-native058' -or $Seed -ne 58005831){throw 'Exact Kamaloka058 mode/seed required'}; $args059+='-Dphantom.test.kamalokaFlow059=true' }
+if ($RiftFlow) { if($Mode -cne 'rift-native058' -or $Seed -ne 58005832){throw 'Exact Rift058 mode/seed required'}; $args059+='-Dphantom.test.riftFlow059=true' }
 Write-Output ('TEST059 '+$Label+'; mode='+$Mode+'; seed='+$Seed+'; GameSHA='+(Get-FileHash -LiteralPath $jar059).Hash)
 & 'C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot\bin\java.exe' @args059 -cp $classpath059 org.l2jmobius.tests.phantoms.PhantomTestLauncher $Mode $Seed *> $log059
 $exit059=$LASTEXITCODE

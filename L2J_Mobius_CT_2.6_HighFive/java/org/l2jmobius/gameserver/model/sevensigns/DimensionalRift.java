@@ -235,6 +235,13 @@ public class DimensionalRift
 	
 	public void partyMemberExited(Player player)
 	{
+		// Party has already removed this member; the remaining-roster loop cannot return the leaver.
+		final DimensionalRiftRoom room = DimensionalRiftManager.getInstance().getRoom(_type, _choosenRoom);
+		if ((player.getInstanceId() == 0) && (room != null) && room.checkIfInZone(player.getX(), player.getY(), player.getZ()))
+		{
+			teleportToWaitingRoom(player);
+		}
+
 		if (_deadPlayers.contains(player))
 		{
 			_deadPlayers.remove(player);

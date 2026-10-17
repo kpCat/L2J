@@ -558,6 +558,15 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		return createFixture("PhT058R" + slot + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE);
 	}
 
+	/** Exact six-member Kamaloka059 fixture; ordinary companion limits remain unchanged. */
+	public PhantomHeadlessPlayerFixture createCampaign059InstanceCompanion(PhantomTestContext context, int slot) throws Exception
+	{
+		if (context.seed() != 58005831L || !Boolean.getBoolean("phantom.test.kamalokaFlow059") || slot < 1 || slot > 4 || _primary == null || !_accountName.equals("phantom_t004_" + context.seed()) || _additional058FixtureSlots.contains(300 + slot)) { throw new IllegalArgumentException("Exact059 Kamaloka fixture identity/capacity required."); }
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		_additional058FixtureSlots.add(300 + slot);
+		return createFixture("PhT058K" + slot + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE);
+	}
+
 	public void cleanupLoadedPlayer(Player player)
 	{
 		if (player == null)
