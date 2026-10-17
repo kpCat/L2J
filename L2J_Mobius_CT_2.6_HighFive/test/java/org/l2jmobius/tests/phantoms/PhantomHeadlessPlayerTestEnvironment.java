@@ -261,6 +261,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		final BootstrapResult bootstrap = initializeNativeInfrastructure(context, minimumSevenSignsFestivalManagerStartMillis);
 		_accountName = "phantom_t004_" + context.seed();
 		cleanupOwnedFixtures();
+		if (Boolean.getBoolean("phantom.test.freshIdentities059")) { reserveFreshFixtureIds059(context); }
 		insertOwnedAccount();
 		_primary = createFixture("PhT004A" + stableSuffix(context.seed()), PRIMARY_ITEM_BASELINE);
 		_observer = createFixture("PhT004B" + stableSuffix(context.seed()), OBSERVER_ITEM_BASELINE);
@@ -309,6 +310,23 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		context.record("headless.transitiveSingletons", String.join(",", TRANSITIVE_SINGLETONS));
 		context.record("headless.primaryObjectId", _primary.objectId());
 		context.record("headless.observerObjectId", _observer.objectId());
+	}
+
+	/** New fixtures must not reuse identities still referenced by retained failed fixture profiles. */
+	private static void reserveFreshFixtureIds059(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final int highWater;
+		try (Connection connection = DatabaseFactory.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT COALESCE(MAX(character_object_id),0) FROM phantom_profiles"); ResultSet rows = statement.executeQuery())
+		{
+			PhantomAssertions.assertTrue(rows.next(), "Fixture profile identity high-water query returned no row.");
+			highWater = rows.getInt(1);
+		}
+		if (highWater == 0) { return; }
+		int count = 0; int last = 0;
+		while (last <= highWater && count < 262144) { last = IdManager.getInstance().getNextId(); count++; }
+		PhantomAssertions.assertTrue(last > highWater, "Fresh TEST identity reservation exceeded its declared bound; retained profiles stay untouched.");
+		context.record("fixture059.newIdentityWindow", "stock IdManager allocations=" + count + "; last=" + last + "; retainedProfileHighWater=" + highWater + "; profile/database writes=0; no orphan deletion");
 	}
 
 	private static boolean owned026Enabled()

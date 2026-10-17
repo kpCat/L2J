@@ -653,7 +653,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.RAID_TACTICS_058)
 		{
-			if (Boolean.getBoolean("phantom.test.raidMinionGuard059")) { registry.add("05-native-minion-parent-authority-effect-and-cost", this::testRaidFull059); }
+			if (Boolean.getBoolean("phantom.test.raidTriggerGuard059")) { registry.add("06-native-trigger-expands-exact-earned-recipients-with-human-control", this::testRaidTrigger059); }
+			else if (Boolean.getBoolean("phantom.test.raidMinionGuard059")) { registry.add("05-native-minion-parent-authority-effect-and-cost", this::testRaidFull059); }
 			else if (Boolean.getBoolean("phantom.test.raidLevelGuard059")) { registry.add("04-native-minion-ceiling-refuses-before-combat", this::testRaidFull059); }
 			else if (Boolean.getBoolean("phantom.test.raidStagingOnly059")) { registry.add("03-native-staging-geometry-preflight", this::testRaidFull059); }
 			else if (Boolean.getBoolean("phantom.test.raidFlow059")) { registry.add("02-current-supported-raid-readiness-to-full-native-result", this::testRaidFull059); }
@@ -4422,6 +4423,40 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 	}
 
+	private void testRaidTrigger059(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final var fixture = _environment.createCampaign058Companion(context, 1);
+		final var profile = _repository.create(fixture.objectId()); _additionalProfiles058.add(profile);
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(profile.profileId()).status(), "Trigger recipient did not materialize.");
+		final Player receiver = World.getInstance().getPlayer(fixture.objectId());
+		final Player human = ensureObserver();
+		final Skill skill = SkillData.getInstance().getSkill(1068, 3);
+		for (Player caster : List.of(_player, human))
+		{
+			caster.setBaseClass(98); caster.setPlayerClass(98);
+			caster.getStat().setExp(caster.getStat().getExpForLevel(79)); caster.getStat().setLevel((byte) 79);
+			caster.addSkill(skill, true); caster.setInvul(false); caster.setOnlineStatus(true, false);
+			caster.setCurrentHp(caster.getMaxHp()); caster.setCurrentMp(caster.getMaxMp());
+		}
+		final var origin = PlayerTemplateData.getInstance().getTemplate(0).getCreationPoint();
+		for (Player actor : List.of(_player, receiver, human)) { placeInstanceInput058(actor, origin.getX() + 20, origin.getY(), origin.getZ()); }
+		final Party party = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(party); receiver.joinParty(party); human.joinParty(party);
+		context.record("raid059.trigger.input", "Independent native effect boundary: managed caster+new managed recipient, existing earned parent captures caster only; learned Might1068:3/native target semantics; ordinary-human reverse control; no direct effect/owner mutation");
+		try
+		{
+			PhantomAssertions.assertTrue(_player.isNativeWorkManaged() && receiver.isNativeWorkManaged() && !human.isNativeWorkManaged(), "Managed/ordinary trigger input identity differs.");
+			final var outcome = org.l2jmobius.gameserver.model.actor.PlayerNativeWork.runAtNativeWriteBoundary(_player, List.of(_player), "test059-trigger-origin", () -> _player.makeTriggerCast(skill, receiver));
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.actor.PlayerNativeWork.NativeBoundaryOutcome.EXECUTED, outcome, "Native trigger origin was not admitted.");
+			PhantomAssertions.assertTrue(waitFor(() -> PhantomSupportEffectAuthority.status(receiver, skill, 0) == PhantomSupportEffectAuthority.Status.HEALTHY, 3000), "Native trigger lost the newly resolved managed recipient inside earned work.");
+			PhantomAssertions.assertTrue(_player.getNativeWorkOwner().nativeObservationHealthy() && receiver.getNativeWorkOwner().nativeObservationHealthy(), "Valid synchronous trigger poisoned an owned lifetime.");
+			human.makeTriggerCast(skill, _player);
+			PhantomAssertions.assertTrue(waitFor(() -> PhantomSupportEffectAuthority.status(_player, skill, 0) == PhantomSupportEffectAuthority.Status.HEALTHY, 3000), "Ordinary-human native trigger control lost its effect.");
+			context.record("raid059.trigger.result", "managed native effect=HEALTHY; exact owners healthy; ordinary-human native effect=HEALTHY; captured-earned fence retained; no SP/reward transaction bypass");
+		}
+		finally { for (Player actor : List.of(human, receiver, _player)) { if (actor.isInParty()) { PartyInvitationService.getInstance().leave(actor); } } }
+	}
+
 	private void testRaidFull059(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
@@ -4569,11 +4604,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final double hpBefore = boss.getCurrentHp(); final long expBefore = roster.stream().mapToLong(Player::getExp).sum();
 				final long tankExpBefore = _player.getExp();
 				final double totalHpBefore = hpBefore + initialMinions.stream().mapToDouble(Monster::getCurrentHp).sum();
+				context.record("raid059.supportPreparation", "NEW independent episode: current native learned MajorHeal1401/Bishop, Might1068/Shield1040/Haste1086/Prophet and physical dances271/274/275/BladeDancer; existing support owner prepares<=120s before offense, incoming damage starts defense immediately; TEST human waits for first accepted combat; no direct effects/cost/HP/MP writes inside measurement");
 				final long[] damage = new long[actors.size()]; final boolean[] spentMp = new boolean[actors.size()];
 				final double[] previousMp = actors.stream().mapToDouble(Player::getCurrentMp).toArray();
 				double previousTankHp = _player.getCurrentHp(), previousTankMax = _player.getMaxHp(), previousHealerMaxMp = actors.get(3).getMaxMp();
 				boolean healed = false, recharged = false, aggroCast = false, buffed = false, danced = false; long aggroSince = 0, heldAggro = 0, humanDamage = 0;
-				final long battleStart = System.nanoTime(); long nextProgress = battleStart; boolean feasibilityChecked = false;
+				long battleStart = 0; long nextProgress = System.nanoTime(); boolean feasibilityChecked = false;
 				var result = attempts.advance(_profile.profileId(), goalId, 0);
 				if (Boolean.getBoolean("phantom.test.raidLevelGuard059"))
 				{
@@ -4585,13 +4621,15 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				{
 					if (human.isReviveRequested()) { human.reviveAnswer(1); context.record("raid059.humanNativeResurrection", "Explicit TEST response to native healer request; same human identity/roster; no direct HP or MP write"); }
 					final Monster assistedTarget = _player.getTarget() instanceof Monster target && !target.isDead() && target.getInstanceId() == human.getInstanceId() ? target : boss;
-					if (!human.isDead() && !assistedTarget.isDead() && !human.isCastingNow())
+					if (_combat.metrics().sessionsAccepted() > 0 && !human.isDead() && !assistedTarget.isDead() && !human.isCastingNow())
 					{
 						if (human.getTarget() != assistedTarget) { human.abortAttack(); human.setTarget(assistedTarget); }
 						if (!human.isAttackingNow()) { human.getAI().setIntention(Intention.ATTACK, assistedTarget); }
 					}
 					result = attempts.advance(_profile.profileId(), goalId, 0);
-					final long now = System.nanoTime(); final double seconds = (now - battleStart) / 1_000_000_000.0;
+					final long now = System.nanoTime();
+					if (battleStart == 0 && _combat.metrics().sessionsAccepted() > 0) { battleStart = now; context.record("raid059.combatClock", "first accepted native combat after bounded support preparation; whole episode45min deadline unchanged"); }
+					final double seconds = battleStart == 0 ? 0 : (now - battleStart) / 1_000_000_000.0;
 					final double previousHealerMp = previousMp[3];
 					for (int index = 0; index < actors.size(); index++)
 					{
@@ -4601,7 +4639,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					final var humanContribution = boss.getAggroList().get(human); humanDamage = Math.max(humanDamage, humanContribution == null ? 0 : humanContribution.getDamage());
 					aggroCast |= _player.getLastSkillCast() != null && _player.getLastSkillCast().getId() == 28;
 					if (boss.getMostHated() == _player && boss.getTarget() == _player) { if (aggroSince == 0) { aggroSince = now; } heldAggro = Math.max(heldAggro, now - aggroSince); } else { aggroSince = 0; }
-					healed |= spentMp[3] && _player.getMaxHp() == previousTankMax && _player.getCurrentHp() > previousTankHp + 100 && actors.get(3).getLastSkillCast() != null && Set.of(1217,1335).contains(actors.get(3).getLastSkillCast().getId());
+					healed |= spentMp[3] && _player.getMaxHp() == previousTankMax && _player.getCurrentHp() > previousTankHp + 100 && actors.get(3).getLastSkillCast() != null && Set.of(1217,1335,1401).contains(actors.get(3).getLastSkillCast().getId());
 					recharged |= spentMp[4] && actors.get(3).getMaxMp() == previousHealerMaxMp && actors.get(3).getCurrentMp() > previousHealerMp + 50 && actors.get(4).getLastSkillCast() != null && actors.get(4).getLastSkillCast().getId() == 1013;
 					previousTankHp = _player.getCurrentHp(); previousTankMax = _player.getMaxHp(); previousHealerMaxMp = actors.get(3).getMaxMp();
 					final Skill buff = actors.get(6).getKnownSkill(1356);
@@ -4743,7 +4781,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					final var heal = tactics.plan(roster.getFirst(), roster, snapshots).stream().filter(directive -> (directive.actor().profileId() == healerProfile.profileId()) && (directive.kind() == DirectiveKind.HEAL_MEMBER)).findFirst();
 					if (heal.isPresent()) { healing = tactics.dispatch(heal.orElseThrow(), "raid058.heal." + ++healSequence, deadline, () -> false).orElse(null); }
 				}
-				healed |= (_player.getCurrentHp() > previousHp + 100) && (healer.getLastSkillCast() != null) && (healer.getLastSkillCast().getId() == currentHeal.getId()) && (healer.getLastSkillCast().getLevel() == currentHeal.getLevel());
+					healed |= (_player.getCurrentHp() > previousHp + 100) && (healer.getLastSkillCast() != null) && PhantomSupportEffectAuthority.supportsCapability(healer.getLastSkillCast(), "combat.heal") && (healer.getSkillLevel(healer.getLastSkillCast().getId()) == healer.getLastSkillCast().getLevel());
 				previousHp = _player.getCurrentHp();
 				spaced |= mage.isMoving() && mage.hasAI() && (mage.getAI().getIntention() == Intention.MOVE_TO);
 				aggroCast |= (_player.getLastSkillCast() != null) && (_player.getLastSkillCast().getId() == 28);

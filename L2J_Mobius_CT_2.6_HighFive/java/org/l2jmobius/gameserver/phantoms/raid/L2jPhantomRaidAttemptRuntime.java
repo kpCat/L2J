@@ -54,6 +54,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 {
 	private static final int MAXIMUM_MECHANIC_ATTACKERS = 8;
 	private static final long COMBAT_TIMEOUT_MILLIS = 60_000;
+	private static final long SUPPORT_PREPARATION_NANOS = java.util.concurrent.TimeUnit.MINUTES.toNanos(2);
 	private static final Set<String> SUPPORT_CAPABILITIES = Set.of("combat.heal", "combat.resurrection", "combat.recharge", "combat.buff", "combat.song", "combat.dance");
 	private static final Set<String> MAINTENANCE_CAPABILITIES = Set.of("combat.buff", "combat.song", "combat.dance");
 
@@ -166,6 +167,18 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		if (support != RuntimeStatus.INTERMEDIATE)
 		{
 			return new EngagementAdvance(support, state._actualDeathObserved, nativeLootComplete(state), "raid.engagement.party_support_evidence_invalid");
+		}
+		if (!state._engagementStarted)
+		{
+			final long now = _logicalClock.getAsLong();
+			if (state._supportPreparationStarted == 0) { state._supportPreparationStarted = now; }
+			final boolean incoming = force.members().stream().anyMatch(member -> !member.attackerObjectIds().isEmpty());
+			if (!incoming && (state._maintenancePending || (state._preparingMaintenance && !state._supportLeases.isEmpty())))
+			{
+				final boolean expired = now - state._supportPreparationStarted >= SUPPORT_PREPARATION_NANOS;
+				return new EngagementAdvance(expired ? RuntimeStatus.PROVIDER_UNAVAILABLE : RuntimeStatus.INTERMEDIATE, false, false, expired ? "raid.engagement.support_preparation_expired" : "raid.engagement.preparing_support");
+			}
+			state._engagementStarted = true;
 		}
 		boolean targetLost = false;
 		for (RaidClaim claim : new ArrayList<>(state._raidClaims.values()))
@@ -409,6 +422,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 
 	private RuntimeStatus advanceSupport(RuntimeAttempt state, PhantomRaidEncounterProfile profile, org.l2jmobius.gameserver.phantoms.party.PhantomPartyBackend.CurrentForceSnapshot force, long deadline, org.l2jmobius.gameserver.phantoms.decision.PhantomCancellationToken token)
 	{
+		state._maintenancePending = false;
 		for (var entry : new ArrayList<>(state._supportLeases.entrySet()))
 		{
 			final var actor = entry.getValue().actorSnapshot();
@@ -429,10 +443,12 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 			}
 			for (TacticalDirective directive : _tactics.plan(party.leader(), party.members(), partySnapshots))
 			{
-				if (!supportDirective(directive.kind()) || !assignedSupport(state, directive) || state._supportLeases.containsKey(directive.actor().profileId()))
+				if (!supportDirective(directive.kind()) || !assignedSupport(state, directive))
 				{
 					continue;
 				}
+				if (directive.kind() == DirectiveKind.PARTY_SUPPORT) { state._maintenancePending = true; state._preparingMaintenance = true; }
+				if (state._supportLeases.containsKey(directive.actor().profileId())) { continue; }
 				final String operation = "raid.support." + directive.actor().profileId() + '.' + profile.contentId();
 				_tactics.dispatch(directive, operation, deadline, token).ifPresent(lease -> state._supportLeases.put(directive.actor().profileId(), lease));
 			}
@@ -728,6 +744,7 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		private String _authorityHash = "";
 		private long _scoutProfileId;
 		private long _collectorProfileId;
+		private long _supportPreparationStarted;
 		private int _instanceId;
 		private int _mechanicCandleObjectId;
 		private int _interactionRetries;
@@ -737,5 +754,8 @@ public final class L2jPhantomRaidAttemptRuntime implements PhantomRaidAttemptRun
 		private boolean _actualDeathObserved;
 		private boolean _collectorTerminal;
 		private boolean _cancelled;
+		private boolean _maintenancePending;
+		private boolean _preparingMaintenance;
+		private boolean _engagementStarted;
 	}
 }

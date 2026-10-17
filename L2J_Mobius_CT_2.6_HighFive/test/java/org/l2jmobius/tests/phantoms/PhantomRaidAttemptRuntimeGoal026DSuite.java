@@ -91,6 +91,48 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		registry.add("03-real-required-provider-counts-without-control", _ -> realProvider());
 		registry.add("04-stable-phantom-support-reservation-excludes-offense", _ -> supportReservation());
 		registry.add("08-reserved-support-retains-current-heal-and-resurrection", _ -> reservedSupportCoverage());
+		registry.add("09-precombat-support-completes-before-offense-and-is-bounded", _ ->
+		{
+			for (int phase = 0; phase < 3; phase++)
+			{
+				final boolean pressure = phase == 1;
+				final var fixture = new RuntimeFixture(true);
+				try
+				{
+					final var roster = phantoms(1, 3); final var snapshots = snapshots(roster);
+					final var buff = capability("combat.buff", true);
+					snapshots.put(roster.getFirst(), member(roster.getFirst(), false, 100, List.of(buff), List.of()));
+					snapshots.put(roster.get(1), member(roster.get(1), false, 100, List.of(capability(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), true)), List.of()));
+					snapshots.put(roster.get(2), member(roster.get(2), false, 100, List.of(capability(PhantomCombatMode.MELEE_PHYSICAL.capabilityKey(), true)), pressure ? List.of(7001) : List.of()));
+					fixture.party.suppliedTarget = roster.get(2).characterObjectId();
+					fixture.party.suppliedCapabilities.put(roster.getFirst(), List.of(buff));
+					final var profile = openProfile(List.of()); final var target = new PhantomRaidTargetEvidence(ContentKind.RAID, NpcKind.RAID_BOSS, 7001, profile.npcId(), 0, false);
+					final var context = new EngagementContext(AUTHORITY, profile, target, 1000, Long.MAX_VALUE, () -> false);
+					final var preparing = fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+					PhantomAssertions.assertTrue(fixture.lease(1).supportCasts > 0, "Precombat native support was not requested.");
+					if (pressure) { PhantomAssertions.assertTrue(fixture.lease(2).raidTargetReads > 0, "Existing attack pressure was ignored while waiting for buffs."); continue; }
+					PhantomAssertions.assertEquals("raid.engagement.preparing_support", preparing.reasonKey(), "Raid started offense before ready missing support completed.");
+					PhantomAssertions.assertEquals(0, fixture.lease(2).raidTargetReads, "Offense claimed the boss while precombat support was pending.");
+					if (phase == 2)
+					{
+						fixture.clock.set(java.util.concurrent.TimeUnit.MINUTES.toNanos(2) + 2);
+						PhantomAssertions.assertEquals(RuntimeStatus.PROVIDER_UNAVAILABLE, fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots)).status(), "Unfinished preparation exceeded its bounded native support window.");
+						PhantomAssertions.assertEquals(0, fixture.lease(2).raidTargetReads, "Expired preparation silently started offense.");
+						continue;
+					}
+					fixture.lease(1).casting = true;
+					fixture.party.suppliedCapabilities.put(roster.getFirst(), List.of());
+					PhantomAssertions.assertEquals("raid.engagement.preparing_support", fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots)).reasonKey(), "A busy native buff caster temporarily lost ready variants and prematurely released offense.");
+					PhantomAssertions.assertEquals(0, fixture.lease(2).raidTargetReads, "Pending owned maintenance cast lost its precombat boundary.");
+					fixture.lease(1).casting = false;
+					fixture.party.suppliedCapabilities.put(roster.getFirst(), List.of(buff));
+					fixture.party.effectsHealthy = true;
+					fixture.runtime.advanceEngagement(context, force(List.of(roster), snapshots));
+					PhantomAssertions.assertTrue(fixture.lease(2).raidTargetReads > 0, "Healthy native effects did not release offense.");
+				}
+				finally { fixture.stop(); }
+			}
+		});
 		registry.add("05-tank-only-member-enters-exact-raid-combat", _ ->
 		{
 			final RuntimeFixture fixture = new RuntimeFixture(false);
@@ -391,6 +433,7 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		private final Set<MemberRef> queriedActors = new LinkedHashSet<>();
 		private final Map<MemberRef,List<MemberCapability>> suppliedCapabilities = new LinkedHashMap<>();
 		private int suppliedTarget;
+		private boolean effectsHealthy;
 		@Override public OptionalLong managedProfileId(int characterObjectId) { return OptionalLong.empty(); }
 		@Override public Optional<MemberRef> currentMember(long profileId) { return Optional.empty(); }
 		@Override public CurrentForceObservation currentForce(MemberRef actor) { return CurrentForceObservation.unavailable("test.unused"); }
@@ -404,6 +447,7 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		@Override public Optional<MemberSnapshot> memberSnapshot(MemberRef member) { return Optional.empty(); }
 		@Override public List<MemberCapability> capabilities(MemberRef actor, int exactTargetObjectId) { queriedActors.add(actor); targetsByActor.computeIfAbsent(actor, _ -> new LinkedHashSet<>()).add(exactTargetObjectId); return suppliedTarget==exactTargetObjectId?suppliedCapabilities.getOrDefault(actor,List.of()):List.of(); }
 		@Override public boolean materialize(long profileId) { return false; }
+		@Override public org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status supportEffectStatus(MemberRef actor, int target, MemberCapability capability, int window) { return effectsHealthy ? org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status.HEALTHY : org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.Status.MISSING; }
 	}
 
 	private static final class FakeAdapter implements PhantomRaidScriptAdapter
@@ -443,8 +487,9 @@ public final class PhantomRaidAttemptRuntimeGoal026DSuite implements PhantomTest
 		private int raidTargetReads;
 		private int monsterTargetReads;
 		private int lastMonsterTarget;
+		private boolean casting;
 		private FakeLease(long profileId) { this.profileId = profileId; }
-		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(1000 + (int) profileId, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, false, false, 0, "IDLE", 0, 0); }
+		@Override public ActorSnapshot actorSnapshot() { return new ActorSnapshot(1000 + (int) profileId, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, casting, false, 0, "IDLE", 0, 0); }
 		@Override public TargetSnapshot targetSnapshot(int targetObjectId) { monsterTargetReads++; lastMonsterTarget=targetObjectId; return targetObjectId==8001?new TargetSnapshot(8001,20001,0,100,100,false,false,true,true,false,false,true,100,false,true):null; }
 		@Override public RaidTargetSnapshot raidTargetSnapshot(int targetObjectId) { raidTargetReads++; if (targetObjectId==8001) { monsterTargetReads++; lastMonsterTarget=targetObjectId; return new RaidTargetSnapshot(8001,20001,0,100,100,false,false,true,true,false,true,NpcKind.MONSTER,100,false,true,7001,29020,80,NpcKind.RAID_BOSS); } return new RaidTargetSnapshot(7001, 29020, 0, 100, 100, false, false, true, true, false, true, NpcKind.RAID_BOSS, 100, false, true); }
 		@Override public int raidActorLevel() { return 80; }

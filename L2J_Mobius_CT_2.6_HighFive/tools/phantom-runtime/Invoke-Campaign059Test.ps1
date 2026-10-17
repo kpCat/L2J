@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard)
+param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -12,6 +12,7 @@ $log059=Join-Path $hf059 ('.phantom-local/contract058a/task059/'+$Label+'.log')
 if ((Test-Path -LiteralPath $report059) -or (Test-Path -LiteralPath $log059)) { throw 'Evidence exists; no overwrite' }
 $classpath059="$jar059;$build059\phantom-test\bin;$build059\phantom-test\resources;$hf059\dist\libs\*"
 $args059=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Dstderr.encoding=UTF-8',"-Dphantom.module.root=$hf059","-Dphantom.contract058.semantic.jar=$jar059","-Dphantom.test.reports=$report059","-Dphantom.test.config=$hf059\.phantom-local\contract058t\test\Database.test.ini","-Dphantom.contract058.manifest=$hf059\.phantom-local\contract058t\test\owned.properties")
+$args059+='-Dphantom.test.freshIdentities059=true'
 if ($Commands -or $Authority) { $args059+='-Dphantom.test.commands059=true' }
 if ($Authority) { $args059+='-Dphantom.test.commandAuthority059=true' }
 if ($BusyHold) { $args059+='-Dphantom.test.busyHold059=true' }
@@ -21,10 +22,11 @@ if ($SocialContexts) { $args059+='-Dphantom.test.socialContexts059=true' }
 if ($PvpFlow) { $args059+='-Dphantom.test.pvpFlow059=true' }
 if ($PvpFlowOnly) { $args059+='-Dphantom.test.pvpFlow059=true'; $args059+='-Dphantom.test.pvpFlowOnly059=true' }
 if ($PvpGuardsOnly) { $args059+='-Dphantom.test.pvpGuardsOnly059=true' }
-if ($RaidFlow -or $RaidStaging -or $RaidLevelGuard -or $RaidMinionGuard) { if ($Mode -cne 'raid-tactics-native058' -or $Seed -ne 58005830) { throw 'Exact native raid058 mode/seed required' }; $args059+='-Dphantom.test.raidFlow059=true' }
+if ($RaidFlow -or $RaidStaging -or $RaidLevelGuard -or $RaidMinionGuard -or $RaidTriggerGuard) { if ($Mode -cne 'raid-tactics-native058' -or $Seed -ne 58005830) { throw 'Exact native raid058 mode/seed required' }; $args059+='-Dphantom.test.raidFlow059=true' }
 if ($RaidStaging) { $args059+='-Dphantom.test.raidStagingOnly059=true' }
 if ($RaidLevelGuard) { $args059+='-Dphantom.test.raidLevelGuard059=true' }
 if ($RaidMinionGuard) { $args059+='-Dphantom.test.raidMinionGuard059=true' }
+if ($RaidTriggerGuard) { $args059+='-Dphantom.test.raidTriggerGuard059=true' }
 Write-Output ('TEST059 '+$Label+'; mode='+$Mode+'; seed='+$Seed+'; GameSHA='+(Get-FileHash -LiteralPath $jar059).Hash)
 & 'C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot\bin\java.exe' @args059 -cp $classpath059 org.l2jmobius.tests.phantoms.PhantomTestLauncher $Mode $Seed *> $log059
 $exit059=$LASTEXITCODE

@@ -7050,7 +7050,9 @@ public abstract class Creature extends WorldObject
 				broadcastSkillPacket(new MagicSkillLaunched(this, skill.getDisplayId(), skill.getLevel(), targets), targets);
 				
 				// Launch the magic skill and calculate its effects
-				PlayerNativeWork.runCombat(this, targets, "cast-trigger-effects", () -> skill.activateSkill(this, targets));
+				final List<WorldObject> frozenTargets = List.copyOf(targets);
+				PlayerNativeWork.runAtNativeWriteBoundary(this, PlayerNativeWork.damageRecipients(this, frozenTargets), "cast-trigger-native-write", () ->
+					PlayerNativeWork.runCombat(this, frozenTargets, "cast-trigger-effects", () -> skill.activateSkill(this, frozenTargets)));
 			}
 		}
 		catch (Exception e)
