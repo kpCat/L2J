@@ -589,6 +589,32 @@ public final class PhantomCombatService
 		}
 	}
 
+	/** Read only the exact admitted PvP session through its existing lease; generic observations remain exclusive. */
+	public Optional<PvpObservation> observeOwnedPvp(long profileId, int targetObjectId, String authorityHash, int attackerLimit, int localRiskPlayerLimit)
+	{
+		if ((profileId <= 0) || (targetObjectId <= 0) || (authorityHash == null) || (attackerLimit < 1) || (attackerLimit > 32) || (localRiskPlayerLimit < 1) || (localRiskPlayerLimit > 32)) { return Optional.empty(); }
+		synchronized (_monitor)
+		{
+			final PhantomCombatSession session = _sessions.get(profileId);
+			if ((_state != ServiceState.RUNNING) || (session == null) || (session._pvpRequest == null) || session._result.terminal() || (session._actorLease == null) || (session._pvpRequest.targetObjectId() != targetObjectId) || !session._pvpRequest.authorityHash().equals(authorityHash)) { return Optional.empty(); }
+			try
+			{
+				final PhantomCombatActorLease lease = session._actorLease;
+				final ActorSnapshot actor = lease.actorSnapshot();
+				final PvpTargetSnapshot target = lease.pvpTargetSnapshot(targetObjectId);
+				if ((actor == null) || actor.dead() || actor.alikeDead() || (target == null)) { return Optional.empty(); }
+				final PvpConsequenceSnapshot consequences = lease.pvpConsequences(targetObjectId);
+				if (consequences == null) { return Optional.empty(); }
+				final var servitor = lease.pvpLinkedServitorSnapshot(targetObjectId);
+				final boolean actual = lease.observedPlayerAttackers(actor.objectId(), attackerLimit).stream().anyMatch(value -> value.targetObjectId() == targetObjectId);
+				final boolean selected = (actor.currentTargetObjectId() == targetObjectId) || ((servitor != null) && (actor.currentTargetObjectId() == servitor.objectId()));
+				final var observed = new PvpObservedTarget(target, consequences, lease.pvpLocalSupport(targetObjectId, localRiskPlayerLimit), servitor, target.validFor(actor, _policy.maximumAcquisitionDistance()), actual, selected);
+				return Optional.of(new PvpObservation(actor, lease.pvpLevel(), List.of(session._pvpRequest.mode()), List.of(observed)));
+			}
+			catch (RuntimeException failure) { return Optional.empty(); }
+		}
+	}
+
 	public Optional<PvpObservation> observePvp(long profileId, List<Integer> exactTargetObjectIds, int attackerLimit, int localRiskPlayerLimit)
 	{
 		if ((profileId <= 0) || (attackerLimit < 1) || (attackerLimit > 32) || (localRiskPlayerLimit < 1) || (localRiskPlayerLimit > 32) || (exactTargetObjectIds == null) || (exactTargetObjectIds.size() > 10) || exactTargetObjectIds.stream().anyMatch(id -> id == null || id <= 0) || !exactTargetObjectIds.equals(exactTargetObjectIds.stream().distinct().sorted().toList()))

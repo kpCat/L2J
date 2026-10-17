@@ -195,6 +195,21 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			final Encounter encounter = stored.encounter();
 			if (_combat.matchesPvpSession(profileId, encounter.counterpart().currentObjectId(), encounter.authorityHash()))
 			{
+				final Snapshot current = _context.observeOwned(encounter, now).orElse(null);
+				if ((current != null) && current.candidate().currentAt(now) && samePair(encounter.counterpart(), current.candidate().counterpart()) && (encounter.counterpart().currentObjectId() == current.candidate().counterpart().currentObjectId()))
+				{
+					final Outcome liveRisk = _policy.decide(current.candidate(), current.risk(), encounter, now);
+					if (liveRisk.decision() == Decision.RETREAT)
+					{
+						retreat(stored, now, liveRisk.reason());
+						return;
+					}
+					if (liveRisk.decision() == Decision.DISENGAGE)
+					{
+						disengage(stored, current, now, liveRisk.reason());
+						return;
+					}
+				}
 				final Optional<PhantomCombatSessionSnapshot> terminal = _combat.consumeTerminal(profileId);
 				if (terminal.isEmpty())
 				{
@@ -228,7 +243,7 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 			}
 			return;
 		}
-		if ((stored != null) && blocksActivePairCooldown(stored.encounter(), observed.candidate(), now))
+		if ((stored != null) && (blocksActivePairCooldown(stored.encounter(), observed.candidate(), now) || blocksFailedRetreatRetry(_policy, stored.encounter(), observed.candidate(), observed.risk(), now)))
 		{
 			return;
 		}
@@ -407,6 +422,10 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	private void retreat(StoredEncounter stored, long now, String reason)
 	{
 		cancelOwned(stored.encounter());
+		if (_combat.matchesPvpSession(stored.profileId(), stored.encounter().counterpart().currentObjectId(), stored.encounter().authorityHash()))
+		{
+			_combat.consumeTerminal(stored.profileId());
+		}
 		if (_combat.hasClaim(stored.profileId()))
 		{
 			return;
@@ -477,6 +496,11 @@ public final class PhantomPvpService implements PhantomSchedulerControlPort, Pha
 	static Encounter initial(Candidate candidate)
 	{
 		return new Encounter(candidate.profileId(), candidate.counterpart(), candidate.source(), candidate.authorityHash(), Stage.OBSERVE, "", "", 0, candidate.createdLogicalNanos(), candidate.expiresLogicalNanos(), 0, 0, "pvp.observed");
+	}
+
+	static boolean blocksFailedRetreatRetry(PhantomPvpPolicy policy, Encounter encounter, Candidate candidate, PhantomPvpModel.RiskSnapshot risk, long now)
+	{
+		return (encounter.cooldownUntilLogicalNanos() > now) && encounter.terminalReason().startsWith("pvp.retreat.") && samePair(encounter.counterpart(), candidate.counterpart()) && policy.decide(candidate, risk, initial(candidate), now).decision() == Decision.RETREAT;
 	}
 
 	static boolean blocksActivePairCooldown(Encounter encounter, Candidate candidate, long now)

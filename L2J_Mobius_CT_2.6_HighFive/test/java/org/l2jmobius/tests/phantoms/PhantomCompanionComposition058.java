@@ -120,6 +120,13 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 		_client = PhantomConversationIntegrationSuite.NetworkBackedClient.attach(human);
 	}
 
+	org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge pvpBridge059()
+	{
+		return new org.l2jmobius.gameserver.phantoms.conversation.PhantomPvpConversationBridge(_execution);
+	}
+
+	void pulsePvp059() { _execution.onPulse(); }
+
 	String socialMessage(Player human, Player companion, String text) throws Exception
 	{
 		return socialMessage059(human, companion, ChatType.WHISPER, text);
@@ -305,6 +312,11 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 
 	private void walkAndRegroup059(PhantomTestContext context, Player human, java.util.List<Player> actors, PhantomPartyCoordinator party, int sceneX, int sceneY, int sceneZ) throws Exception
 	{
+		walkAndRegroup059(context, human, actors, party, sceneX, sceneY, sceneZ, () -> { });
+	}
+
+	void walkAndRegroup059(PhantomTestContext context, Player human, java.util.List<Player> actors, PhantomPartyCoordinator party, int sceneX, int sceneY, int sceneZ, Runnable additionalPulse) throws Exception
+	{
 		final var returnPath = org.l2jmobius.gameserver.geoengine.pathfinding.PathFinding.getInstance().findPath(human.getX(), human.getY(), human.getZ(), sceneX, sceneY, sceneZ, 0, true);
 		PhantomAssertions.assertTrue((returnPath != null) && !returnPath.isEmpty(), "Command059 native field return path unavailable.");
 		int returnWaypoint = 0;
@@ -318,6 +330,7 @@ final class PhantomCompanionComposition058 implements AutoCloseable
 				if ((returnWaypoint < returnPath.size()) && !human.isMoving()) { point = returnPath.get(returnWaypoint); human.moveToLocation(point.getX(), point.getY(), point.getZ(), 0); }
 			}
 			party.onPulse();
+			additionalPulse.run();
 			Thread.sleep(20);
 		}
 		context.record("command059.fieldReturn", "nativeWaypoints=" + returnWaypoint + '/' + returnPath.size() + "; human=" + human.getX() + ',' + human.getY() + ',' + human.getZ());

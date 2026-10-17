@@ -77,6 +77,16 @@ public final class PhantomPvpContext
 
 	public Optional<Snapshot> observe(long profileId, long logicalNanos)
 	{
+		return observe(profileId, logicalNanos, null);
+	}
+
+	Optional<Snapshot> observeOwned(PhantomPvpModel.Encounter encounter, long logicalNanos)
+	{
+		return observe(encounter.profileId(), logicalNanos, encounter);
+	}
+
+	private Optional<Snapshot> observe(long profileId, long logicalNanos, PhantomPvpModel.Encounter owned)
+	{
 		if ((profileId <= 0) || (logicalNanos < 0))
 		{
 			return Optional.empty();
@@ -100,7 +110,9 @@ public final class PhantomPvpContext
 			}
 		}
 		final List<Integer> exactTargets = exact.keySet().stream().sorted().limit(10).toList();
-		final PvpObservation observation = _combat.observePvp(profileId, exactTargets, _policy.limits().observedAttackerLimit(), _policy.limits().localRiskPlayerLimit()).orElse(null);
+		final PvpObservation observation = (owned == null
+			? _combat.observePvp(profileId, exactTargets, _policy.limits().observedAttackerLimit(), _policy.limits().localRiskPlayerLimit())
+			: _combat.observeOwnedPvp(profileId, owned.counterpart().currentObjectId(), owned.authorityHash(), _policy.limits().observedAttackerLimit(), _policy.limits().localRiskPlayerLimit())).orElse(null);
 		if ((observation == null) || observation.supportedModes().isEmpty())
 		{
 			return Optional.empty();
@@ -133,7 +145,7 @@ public final class PhantomPvpContext
 		for (ObservedEvidence selected : candidates)
 		{
 			final Snapshot snapshot = snapshot(profileId, logicalNanos, observation, selected);
-			if ((snapshot != null) && snapshot.candidate().currentAt(logicalNanos))
+			if ((snapshot != null) && snapshot.candidate().currentAt(logicalNanos) && snapshot.risk().legal())
 			{
 				return Optional.of(snapshot);
 			}

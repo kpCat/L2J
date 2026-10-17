@@ -40,6 +40,7 @@ import org.l2jmobius.gameserver.ai.Intention;
 import org.l2jmobius.gameserver.data.xml.DoorData;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.data.xml.NpcData;
+import org.l2jmobius.gameserver.data.sql.ClanTable;
 import org.l2jmobius.gameserver.data.xml.PlayerTemplateData;
 import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SpawnData;
@@ -736,9 +737,22 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.PVP_CURRENT_058)
 		{
+			if (Boolean.getBoolean("phantom.test.pvpGuardsOnly059"))
+			{
+				registry.add("05-native-player-kills-flags-karma-and-ordinary-reload", this::testPvpConsequences059);
+				registry.add("06-native-clan-war-eligibility-and-instance-guards", this::testPvpAffiliations059);
+				return;
+			}
+			if (Boolean.getBoolean("phantom.test.pvpFlowOnly059")) { registry.add("04-native-defense-resource-retreat-regroup-and-durable-end", this::testPvpFlow059); return; }
 			registry.add("01-native-no-pvp-zone-refuses-enemy-ownership", this::testNoPvpZone058);
 			registry.add("02-current-enhanced-native-retaliation-and-party-negative", this::testCurrentPvp058);
 			registry.add("03-native-real-party-defense-and-stale-membership", this::testPartyDefense058);
+			if (Boolean.getBoolean("phantom.test.pvpFlow059"))
+			{
+				registry.add("04-native-defense-resource-retreat-regroup-and-durable-end", this::testPvpFlow059);
+				registry.add("05-native-player-kills-flags-karma-and-ordinary-reload", this::testPvpConsequences059);
+				registry.add("06-native-clan-war-eligibility-and-instance-guards", this::testPvpAffiliations059);
+			}
 			return;
 		}
 		if (_mode == Mode.PVP)
@@ -3579,6 +3593,262 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			party.beginStop(); party.finishStop(); social.beginStop(); social.finishStop(); progression.beginStop(); progression.finishStop();
 			_environment.cleanupLoadedPlayer(enemy);
 		}
+	}
+
+	private void testPvpFlow059(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final Player human = ensureObserver();
+		final var enemyFixture = _environment.createCampaign058Companion(context, 2);
+		final Player enemy = Player.load(enemyFixture.objectId());
+		PhantomAssertions.assertTrue(enemy != null, "Flow TEST attacker did not load.");
+		prepareCompanionCombat058(_player, 94, 6579, 1339, 6383, 6384, 6385, 6386);
+		_player.addSkill(SkillData.getInstance().getSkill(1339, 101), true);
+		preparePvpDefender058(human);
+		prepareCompanionCombat058(enemy, 92, 7575, 343, 6379, 6380, 6381, 6382);
+		PhantomAssertions.assertTrue(enemy.getInventory().addItem(ItemProcessType.REWARD, 1345, 200, null, this) != null, "Declared TEST archer has no native S arrows.");
+		_player.setRunning(); _player.standUp();
+		final var nativeNavigation = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+		Location flowInput = null;
+		// Retain the blocked full-flow contract. No runtime navigation changes are justified by an unproven route.
+		for (int[] input : new int[][] {{78900,150200}})
+		{
+			final int x = input[0], y = input[1];
+			{
+				final int z = GeoEngine.getInstance().getHeight(x, y, -3560);
+				final boolean forbidden = ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) != null || ZoneManager.getInstance().getZone(x, y, z, NoPvPZone.class) != null || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null;
+				if (!GeoEngine.getInstance().hasGeo(x, y) || forbidden) { System.out.println("PVP059 preflight=" + x + ',' + y + ',' + z + "; geo=" + GeoEngine.getInstance().hasGeo(x, y) + "; forbidden=" + forbidden); continue; }
+				if (!GeoEngine.getInstance().canMoveToTarget(x, y, z, x + 64, y, GeoEngine.getInstance().getHeight(x + 64, y, z), 0)) { continue; }
+				final var origin = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, z, 0);
+				final var landmarks = _topology.nearestAnchors(new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(x,y,z,0), org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000);
+				if (landmarks.isEmpty()) { continue; }
+				final var landmark = landmarks.getFirst().point();
+				final var safe = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(landmark.x(), landmark.y(), GeoEngine.getInstance().getHeight(landmark.x(), landmark.y(), landmark.z()), 0);
+				final long now = System.nanoTime();
+				final var plan = nativeNavigation.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(), origin, safe, now, now + TimeUnit.SECONDS.toNanos(1), 100_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), System::nanoTime);
+				double length = 0; var previous = origin;
+				for (var waypoint : plan.points()) { length += previous.distanceTo(waypoint); previous = waypoint; }
+				final double eta = length / _player.getStat().getMoveSpeed();
+				System.out.println("PVP059 preflight=" + origin + "; status=" + plan.status() + "; length=" + length + "; ETA=" + eta + "; safe=" + safe);
+				if (plan.status() == org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND && length >= 450 && eta < 25) { flowInput = new Location(x, y, z); break; }
+			}
+			if (flowInput != null) { break; }
+		}
+		PhantomAssertions.assertTrue(flowInput != null, "BLOCKED_NATIVE_ROUTE: declared Giran input has no proven protected native route within the unchanged30s window; full P4 remains PARTIAL.");
+		int flowOffset = 0;
+		for (Player actor : List.of(_player, human, enemy)) { actor.setInvul(false); actor.setRunning(); actor.standUp(); actor.decayMe(); actor.setXYZInvisible(flowInput.getX() + flowOffset, flowInput.getY(), flowInput.getZ()); actor.spawnMe(); actor.revalidateZone(true); flowOffset += 30; }
+		_player.setCurrentCp(0); _player.setCurrentHp(_player.getMaxHp() * .55);
+		PhantomAssertions.assertTrue(!human.isInsidePeaceZone(enemy) && !_player.isInsidePeaceZone(enemy) && GeoEngine.getInstance().canSeeTarget(enemy, human), "Flow native legal input is unavailable.");
+		final var topologyBackend = new L2jTopologyValidationBackend();
+		final var topology = org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyService.fromSnapshotForTesting(_topology.snapshot(), topologyBackend, PhantomTopologyPolicy.productionDefaults(), new org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort()
+		{
+			@Override public SignalDelivery submit(long profileId, org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal signal) { return SignalDelivery.ACCEPTED; }
+			@Override public SignalDelivery withdraw(long profileId, String sourceKey, long sequence) { return SignalDelivery.ACCEPTED; }
+		});
+		PhantomAssertions.assertTrue(topology.start(), "Flow topology did not start.");
+		topology.registerProfile(_profile.profileId());
+		final PhantomNavigationService navigation = new PhantomNavigationService(new PhantomMetrics()); navigation.start();
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+		final var socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
+		final var social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(_repository, socialCatalog), context.seed(), 16); social.start();
+		final var backend = new L2jPhantomPartyBackend(_repository, _materialization, progression);
+		final var party = new PhantomPartyCoordinator(new PhantomPartyStore(_repository), new PhantomGoalStateStore(_repository), backend, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")), new PhantomPartyRouteCoordinator(navigation, _combat), new PhantomPartyTactics(_combat, backend), () -> _topology.snapshot().canonicalHash(), System::nanoTime, 32, social, () -> System.currentTimeMillis() / 60000L);
+		party.start();
+		party.installManagedInvitationPolicy(PhantomRealPartyInvitationPolicy.POLICY_KEY, new PhantomRealPartyInvitationPolicy(PhantomRealPartyInvitationPolicy.loadSettings(Path.of("data/phantoms/party/high-five-real-party-invitation-v1.xml")), social, () -> System.currentTimeMillis() / 60000L));
+		final var farming = new org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingService(org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingPolicy.load(Path.of("data/phantoms/farming/high-five-farming-conflict-v1.xml")), new org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingStore(_repository), id -> Optional.empty(), topology, (first, second) -> false, new org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingService.SocialFacts()
+		{
+			@Override public org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingService.SocialEvidence evidence(long owner, long counterpart, long minute) { throw new AssertionError("No farming source belongs to this native party-defense scene."); }
+			@Override public boolean record(long owner, long counterpart, String eventKey, String eventId, String evidenceHash, long minute) { throw new AssertionError("No farming event belongs to this scene."); }
+		}, 16, () -> System.currentTimeMillis() / 60000L, org.l2jmobius.gameserver.phantoms.farming.PhantomFarmingService.FaultInjector.NONE);
+		farming.start();
+		final var policy = org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpPolicy.load(Path.of("data/phantoms/pvp/pvp-policy-v1.xml"));
+		final var pvpStore = new org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpStore(_repository);
+		final var pvpSocial = new org.l2jmobius.gameserver.phantoms.social.PhantomPvpSocialBridge(social);
+		org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpService pvp = null;
+		long positionSequence = 0;
+		try (var composition = new PhantomCompanionComposition058(_repository, _materialization, _topology, _knowledge, social, party, human, null, _combat))
+		{
+			composition.invite(context, human, _player, _profile.profileId(), party);
+			final var nativePoint = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(_player.getX(), _player.getY(), _player.getZ(), 0);
+			final var anchors = _topology.nearestAnchors(nativePoint, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000);
+			final var nativeOrigin = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(nativePoint.x(), nativePoint.y(), nativePoint.z(), 0);
+			final var preferred = anchors.isEmpty() ? nativeOrigin : new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(anchors.getFirst().point().x(), anchors.getFirst().point().y(), anchors.getFirst().point().z(), 0);
+			final var safe = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(preferred.x(), preferred.y(), GeoEngine.getInstance().getHeight(preferred.x(), preferred.y(), preferred.z()), 0);
+			final long planNow = System.nanoTime();
+			final var plan = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend().findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(), nativeOrigin, safe, planNow, planNow + TimeUnit.SECONDS.toNanos(1), 100_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults(), System::nanoTime);
+			double routeLength = 0; var previousPoint = nativeOrigin;
+			for (var waypoint : plan.points()) { routeLength += previousPoint.distanceTo(waypoint); previousPoint = waypoint; }
+			context.record("pvp059.routePreflight", "status=" + plan.status() + "; length=" + routeLength + "; nativeSpeed=" + _player.getStat().getMoveSpeed() + "; ETA=" + routeLength / _player.getStat().getMoveSpeed() + "; safe=" + safe + "; native policy window30s; no movement during plan");
+			PhantomAssertions.assertTrue(plan.status() == org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND && routeLength / _player.getStat().getMoveSpeed() < 27, "INVALID_INPUT: proven native retreat route does not fit the unchanged30s policy window.");
+			pvp = new org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpService(policy, pvpStore, new org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpContext(policy, _combat, party, farming, pvpSocial, _materialization), _combat, composition.pvpBridge059(), pvpSocial, new org.l2jmobius.gameserver.phantoms.navigation.PhantomPvpRetreatCoordinator(navigation, topology, _combat));
+			PhantomAssertions.assertTrue(pvp.start(), "Native flow PvP owner did not start.");
+			pvp.materializeSucceeded(_profile.profileId(), _player.getObjectId());
+			final boolean antiFeed = PvpConfig.ANTIFEED_ENABLE;
+			final double humanPool = human.getCurrentHp() + human.getCurrentCp(), enemyPool = enemy.getCurrentHp() + enemy.getCurrentCp(), mp = _player.getCurrentMp();
+			final double retreatHp = Math.max(_player.getMaxHp() * policy.limits().retreatHpPercent() / 100.0, (_player.getMaxHp() + _player.getMaxCp()) * policy.limits().retreatEffectivePoolPercent() / 100.0);
+			PhantomAssertions.assertTrue(_player.getCurrentHp() > retreatHp, "INVALID_INPUT: defender already below the declared native retreat threshold.");
+			context.record("pvp059.flowInput", "INDEPENDENT stock Giran input; Mage94/80/1339:101/Sgear HP55% CP0; human Knight5/80/full; enemy Archer92/80/S7575+343/Draconic armor/Sarrows1345x200/full; native party-defense first, enemy then targets mage until native HP/effective-pool threshold=" + retreatHp + ", voluntarily withdraws; no refill/TP/stat edit during measurement; native policy45s combat/30s retreat; actual input=" + nativeOrigin + "; planned safe=" + safe + "; source Game=" + System.getProperty("phantom.contract058.semantic.jar"));
+			enemy.setTarget(human); human.onForcedAttack(enemy);
+			await(() -> (human.getCurrentHp() + human.getCurrentCp()) < humanPool, "Flow enemy did not actually damage the protected human.");
+			final long engageDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+			while (((enemy.getCurrentHp() + enemy.getCurrentCp()) >= enemyPool - 10 || _player.getCurrentMp() >= mp - 1) && System.nanoTime() < engageDeadline)
+			{
+				topology.updateProfile(_profile.profileId(), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(_player.getX(), _player.getY(), _player.getZ(), 0), ++positionSequence);
+				pvp.onPulse(); composition.pulsePvp059(); Thread.sleep(20);
+			}
+			PhantomAssertions.assertTrue((enemy.getCurrentHp() + enemy.getCurrentCp()) < enemyPool - 10 && _player.getCurrentMp() < mp - 1, "Party-defense owner produced no completed native damage/cost: " + pvp.snapshot());
+			final var admitted = pvpStore.load(_profile.profileId()).orElseThrow().encounter();
+			PhantomAssertions.assertTrue(composition.pvpBridge059().receipt(_profile.profileId(), admitted.helpReceiptId()).map(value -> value.delivered()).orElse(false), "Party-defense HELP did not reach native SENT.");
+			PhantomAssertions.assertTrue(_combat.observePvp(_profile.profileId(), List.of(enemy.getObjectId()), 16, 16).isEmpty(), "Generic PvP observation weakened active-lease exclusivity.");
+			PhantomAssertions.assertTrue(_combat.observeOwnedPvp(_profile.profileId(), enemy.getObjectId(), "0".repeat(64), 16, 16).isEmpty(), "Wrong authority read an admitted native session.");
+			PhantomAssertions.assertTrue(_combat.observeOwnedPvp(_profile.profileId(), enemy.getObjectId(), admitted.authorityHash(), 16, 16).isPresent(), "Exact native owner cannot observe its current risk.");
+			enemy.setTarget(_player); _player.onForcedAttack(enemy);
+			final long resourceDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+			boolean riskWitness = false;
+			while (!_player.isDead() && pvp.snapshot().retreats() == 0 && System.nanoTime() < resourceDeadline)
+			{
+				topology.updateProfile(_profile.profileId(), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(_player.getX(), _player.getY(), _player.getZ(), 0), ++positionSequence);
+				riskWitness |= Math.round(_player.getCurrentHp() * 100 / _player.getMaxHp()) <= policy.limits().retreatHpPercent() || Math.round((_player.getCurrentHp() + _player.getCurrentCp()) * 100 / (_player.getMaxHp() + _player.getMaxCp())) <= policy.limits().retreatEffectivePoolPercent();
+				if (riskWitness) { break; }
+				pvp.onPulse(); composition.pulsePvp059(); Thread.sleep(20);
+			}
+			riskWitness |= Math.round(_player.getCurrentHp() * 100 / _player.getMaxHp()) <= policy.limits().retreatHpPercent() || Math.round((_player.getCurrentHp() + _player.getCurrentCp()) * 100 / (_player.getMaxHp() + _player.getMaxCp())) <= policy.limits().retreatEffectivePoolPercent();
+			PhantomAssertions.assertTrue(!_player.isDead() && riskWitness && _player.getCurrentHp() > _player.getMaxHp() * .15, "Declared resource transition did not enter the native rounded risk/combat15% interval; HP=" + _player.getCurrentHp() + '/' + _player.getMaxHp() + "; CP=" + _player.getCurrentCp());
+			enemy.getAI().setIntention(Intention.MOVE_TO, new Location(enemy.getX() - 600, enemy.getY(), enemy.getZ()));
+			final int retreatX = _player.getX(), retreatY = _player.getY();
+			final long retreatAdmission = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+			while (pvp.snapshot().retreats() == 0 && System.nanoTime() < retreatAdmission) { pvp.onPulse(); composition.pulsePvp059(); Thread.sleep(20); }
+			context.record("pvp059.retreatAdmission", "service=" + pvp.snapshot() + "; durable=" + pvpStore.load(_profile.profileId()) + "; topology=" + topology.findProfile(_profile.profileId()));
+			PhantomAssertions.assertEquals(1L, pvp.snapshot().retreats(), "Native resource retreat was missing or replayed: " + pvp.snapshot() + "; durable=" + pvpStore.load(_profile.profileId()));
+			final long retreatDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(32);
+			boolean nativeWalk = false;
+			int lastX = _player.getX(), lastY = _player.getY(); double maximumStep = 0;
+			while (pvpStore.load(_profile.profileId()).orElseThrow().encounter().stage() != org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Stage.COOLDOWN && System.nanoTime() < retreatDeadline)
+			{
+				nativeWalk |= _player.isMoving() && _player.getAI().getIntention() == Intention.MOVE_TO;
+				maximumStep = Math.max(maximumStep, Math.hypot(_player.getX() - lastX, _player.getY() - lastY)); lastX = _player.getX(); lastY = _player.getY();
+				topology.updateProfile(_profile.profileId(), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(_player.getX(), _player.getY(), _player.getZ(), 0), ++positionSequence);
+				pvp.onPulse(); composition.pulsePvp059(); Thread.sleep(20);
+			}
+			final var terminal = pvpStore.load(_profile.profileId()).orElseThrow().encounter();
+			context.record("pvp059.flowRetreat", "terminal=" + terminal + "; actual=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; displacement=" + Math.hypot(_player.getX() - retreatX, _player.getY() - retreatY) + "; HP=" + _player.getCurrentHp() + "; service=" + pvp.snapshot());
+			PhantomAssertions.assertTrue(terminal.terminalReason().equals("pvp.retreat.arrived") && Math.hypot(_player.getX() - retreatX, _player.getY() - retreatY) > 64 && nativeWalk && maximumStep < 100 && !_combat.hasClaim(_profile.profileId()) && !_player.isDead(), "Native retreat did not really walk/arrive/release ownership; walk=" + nativeWalk + "; maximumStep=" + maximumStep);
+			PhantomAssertions.assertTrue(_player.isInsideZone(ZoneId.PEACE) || _player.isInsideZone(ZoneId.NO_PVP), "Retreat arrival is not a factual native protected surface.");
+			human.getAI().setIntention(Intention.MOVE_TO, new Location(_player.getX(), _player.getY(), _player.getZ()));
+			PhantomAssertions.assertTrue(waitFor(() -> human.calculateDistance3D(_player) < 350, 35_000), "Native human did not walk to the completed retreat regroup.");
+			for (int pulse = 0; pulse < 32; pulse++) { party.onPulse(); pvp.onPulse(); composition.pulsePvp059(); Thread.sleep(20); }
+			PhantomAssertions.assertTrue(human.getParty() == _player.getParty() && party.committed(_profile.profileId()) && !_combat.hasClaim(_profile.profileId()) && PvpConfig.ANTIFEED_ENABLE == antiFeed, "Regroup revived stale enemy ownership or changed native rules.");
+			PhantomAssertions.assertTrue(enemy.getInventory().getInventoryItemCount(1345, -1) < 200, "Native ranged pressure did not debit its declared arrows.");
+			Location continuation = null;
+			for (int[] offset : new int[][] {{800,0},{0,800},{-800,0},{0,-800},{600,600},{-600,600},{600,-600},{-600,-600}})
+			{
+				final int x = human.getX() + offset[0], y = human.getY() + offset[1], z = GeoEngine.getInstance().getHeight(x, y, human.getZ());
+				if (Math.hypot(_player.getX() - x, _player.getY() - y) <= 500 || (ZoneManager.getInstance().getZone(x, y, z, PeaceZone.class) == null && ZoneManager.getInstance().getZone(x, y, z, NoPvPZone.class) == null) || !GeoEngine.getInstance().checkNearestNswe(GeoEngine.getGeoX(x), GeoEngine.getGeoY(y), z, org.l2jmobius.gameserver.geoengine.geodata.Cell.NSWE_ALL)) { continue; }
+				if (nativeNavigation.canWalkDirect(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(human.getX(), human.getY(), human.getZ(), 0), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x,y,z,0)) && nativeNavigation.canWalkDirect(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(_player.getX(), _player.getY(), _player.getZ(), 0), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x,y,z,0))) { continuation = new Location(x,y,z); break; }
+			}
+			PhantomAssertions.assertTrue(continuation != null, "No native safe walking continuation from the completed regroup.");
+			final int followX = _player.getX(), followY = _player.getY();
+			final long engagements = pvp.snapshot().engagements();
+			PhantomAssertions.assertTrue(composition.command059(context, human, _player, org.l2jmobius.gameserver.network.enums.ChatType.WHISPER, "иди за мной", party), "Post-conflict FOLLOW had no delivered reply.");
+			final var resumedPvp = pvp;
+			composition.walkAndRegroup059(context, human, List.of(_player), party, continuation.getX(), continuation.getY(), continuation.getZ(), () -> { resumedPvp.onPulse(); composition.pulsePvp059(); });
+			PhantomAssertions.assertTrue(Math.hypot(_player.getX() - followX, _player.getY() - followY) > 64 && pvp.snapshot().engagements() == engagements && !_player.isDead() && !human.isDead() && !enemy.isDead(), "Useful native follow did not resume or stale conflict replayed after regroup.");
+			context.record("pvp059.followContinuation", "same native Party; delivered FOLLOW; actual helper displacement=" + Math.hypot(_player.getX() - followX, _player.getY() - followY) + "; all3 alive; engagements=" + engagements + "; remaining native arrows=" + enemy.getInventory().getInventoryItemCount(1345, -1) + "; no resource reset");
+			_player.storeMe();
+			final var reloaded = new org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpStore(_repository).load(_profile.profileId()).orElseThrow().encounter();
+			PhantomAssertions.assertEquals(terminal, reloaded, "Ordinary save changed terminal conflict/cooldown identity.");
+			context.record("pvp059.flowResult", "actual defense effect+cost; native policy retreat/movement; voluntary enemy withdrawal; native human walking regroup; same Party; cooldown durable/reloaded; no actor rescue; owner UI unverified");
+		}
+		finally
+		{
+			if (pvp != null) { pvp.beginStop(); pvp.finishStop(); }
+			_combat.cancel(_profile.profileId()); consumeTerminal();
+			if (human.isInParty()) { PartyInvitationService.getInstance().leave(human); }
+			party.beginStop(); party.finishStop(); farming.beginStop(); farming.finishStop(); social.beginStop(); social.finishStop(); progression.beginStop(); progression.finishStop();
+			navigation.beginStop(); final long stopDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10); while (!navigation.finishStop() && System.nanoTime() < stopDeadline) { Thread.sleep(10); }
+			topology.beginStop(); topology.finishStop(); _environment.cleanupLoadedPlayer(enemy);
+		}
+	}
+
+	private void testPvpConsequences059(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final Player target = ensureObserver();
+		final boolean antiFeed = PvpConfig.ANTIFEED_ENABLE;
+		for (boolean flagged : new boolean[] { true, false })
+		{
+			// Two independent TEST episodes; revival/HP are declared input boundaries, never a rescue inside a fight.
+			if (target.isDead()) { target.doRevive(); }
+			prepareCompanionCombat058(_player, 94, 6579, 1339, 6383, 6384, 6385, 6386);
+			_player.addSkill(SkillData.getInstance().getSkill(1339, 101), true);
+			preparePvpDefender058(target);
+			int offset = 0;
+			for (Player actor : List.of(_player, target))
+			{
+				actor.getAI().setIntention(Intention.IDLE); actor.setInvul(false); actor.stopPvpRegTask(); actor.setPvpFlag(0); actor.setPvpFlagLasts(0);
+				actor.decayMe(); actor.setXYZInvisible(78900 + offset, 150200, -3560); actor.spawnMe(); actor.revalidateZone(true); offset += 30;
+			}
+			target.setKarma(0); target.setCurrentCp(0); target.setCurrentHp(100);
+			if (flagged) { target.setPvpFlag(1); target.setPvpFlagLasts(System.currentTimeMillis() + PvpConfig.PVP_PVP_TIME); }
+			PhantomAssertions.assertTrue(!_player.isInsidePeaceZone(target) && !target.isGM() && !_player.isGM() && !_player.isInParty() && !target.isInParty(), "Native consequence TEST input is illegal.");
+			final int pvpBefore = _player.getPvpKills(), pkBefore = _player.getPkKills(), karmaBefore = _player.getKarma();
+			final double mp = _player.getCurrentMp();
+			try (var client = PhantomConversationIntegrationSuite.NetworkBackedClient.attach(target))
+			{
+				final boolean countedPvp = flagged && org.l2jmobius.gameserver.managers.AntiFeedManager.getInstance().check(_player, target);
+				context.record("pvp059.consequenceInput." + flagged, "INDEPENDENT native Player control; same owned Mage94/80/1339:101 and Knight5/80/Sgear; victim HP100 CP0 fixture BEFORE enrollment; actual forced native useMagic until death; flagged=" + flagged + "; AntiFeed=" + antiFeed + "; native countedPvp=" + countedPvp + ";30s bound; no direct damage/doDie/config change");
+				final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+				while (!target.isDead() && System.nanoTime() < deadline)
+				{
+					if (!_player.isCastingNow() && !_player.isAttackingNow()) { _player.setTarget(target); _player.useMagic(_player.getKnownSkill(1339), true, false); }
+					Thread.sleep(20);
+				}
+				final boolean finished = waitFor(() -> target.isDead() && !_player.isCastingNow() && _player.getPvpFlag() != 0 && _player.getPkKills() == pkBefore + (flagged ? 0 : 1) && _player.getPvpKills() == pvpBefore + (countedPvp ? 1 : 0), 20_000);
+				context.record("pvp059.consequenceBoundary." + flagged, "dead=" + target.isDead() + "; targetHP=" + target.getCurrentHp() + "; casting=" + _player.isCastingNow() + "; MP=" + mp + "->" + _player.getCurrentMp() + "; flag=" + _player.getPvpFlag() + "; PvP=" + _player.getPvpKills() + "; PK=" + _player.getPkKills() + "; karma=" + _player.getKarma());
+				PhantomAssertions.assertTrue(finished && _player.getCurrentMp() < mp, "Native death/cost/flag callback did not finish: dead=" + target.isDead() + "; flag=" + _player.getPvpFlag() + "; MP=" + mp + "->" + _player.getCurrentMp());
+				PhantomAssertions.assertEquals(pvpBefore + (countedPvp ? 1 : 0), _player.getPvpKills(), "Native anti-feed-aware PvP counter changed incorrectly.");
+				PhantomAssertions.assertEquals(pkBefore + (flagged ? 0 : 1), _player.getPkKills(), "Native Player death was classified into the wrong PK counter.");
+				PhantomAssertions.assertTrue(flagged ? _player.getKarma() == karmaBefore : _player.getKarma() > karmaBefore, "Native karma does not match the declared victim flag.");
+				context.record("pvp059.consequenceActual." + flagged, "actual dead=true; native1339:101; MP=" + mp + "->" + _player.getCurrentMp() + "; PvP=" + pvpBefore + "->" + _player.getPvpKills() + "; PK=" + pkBefore + "->" + _player.getPkKills() + "; karma=" + karmaBefore + "->" + _player.getKarma());
+			}
+		}
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat() && !_player.isCastingNow(), 30_000), "Consequence actor did not quiesce naturally before save/reload.");
+		final int objectId = _player.getObjectId(), pvpKills = _player.getPvpKills(), pkKills = _player.getPkKills(), karma = _player.getKarma();
+		final long sp = _player.getSp();
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(_profile.profileId()).status(), "Consequence ordinary save did not finish.");
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Consequence ordinary reload did not finish.");
+		_player = World.getInstance().getPlayer(objectId);
+		PhantomAssertions.assertTrue(_player != null && _player.getPvpKills() == pvpKills && _player.getPkKills() == pkKills && _player.getKarma() == karma && _player.getSp() == sp && _player.getSkillLevel(1339) == 101 && _player.getActiveWeaponItem().getId() == 6579 && PvpConfig.ANTIFEED_ENABLE == antiFeed, "Normal reload lost/replayed native consequences, SP, rank or equipment.");
+		context.record("pvp059.consequenceReload", "sameID=" + objectId + "; PvP=" + pvpKills + "; PK=" + pkKills + "; karma=" + karma + "; exact SP/rank/Sweapon retained; AntiFeed unchanged; no callback/reward replay");
+	}
+
+	private void testPvpAffiliations059(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final Player member = ensureObserver();
+		if (member.isDead()) { member.doRevive(); }
+		PhantomAssertions.assertTrue(_player.getClanId() == 0 && member.getClanId() == 0 && !_player.isInParty() && !member.isInParty(), "Affiliation TEST actors already belong to another owner.");
+		final var clan = ClanTable.getInstance().createClan(_player, "P059" + context.seed());
+		PhantomAssertions.assertTrue(clan != null, "Owned TEST clan could not be created by native ClanTable.");
+		try
+		{
+			clan.addClanMember(member); // Declared TEST affiliation input; not a claim of invitation/consent UI.
+			final var refused = org.l2jmobius.gameserver.model.clan.ClanWarService.getInstance().declare(_player, "Task059NoClan");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.model.clan.ClanWarService.Reason.SOURCE_REQUIREMENTS, refused.reason(), "Native clan level/member war gate was bypassed.");
+			PhantomAssertions.assertTrue(clan.getWarList().isEmpty() && !_player.canAttackCreature(member), "Native TEST clan did not retain friendship/war eligibility boundaries.");
+			try { PhantomAssertions.assertEquals(StartStatus.REJECTED_TARGET, _combat.startPvpSession(pvpRequest(member, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK, PhantomCombatMode.RANGED_MAGIC, false)).status(), "Native same-clan friendship acquired enemy combat ownership."); }
+			finally { _combat.cancel(_profile.profileId()); consumeTerminal(); }
+			context.record("pvp059.clanGuards", "native ClanTable TEST clan=" + clan.getId() + "; exact same-clan target rejected; native war SOURCE_REQUIREMENTS; no war declared and no native rule changed; positive bilateral-war encounter not claimed");
+		}
+		finally { ClanTable.getInstance().destroyClan(clan.getId()); }
+		PhantomAssertions.assertTrue(_player.getClanId() == 0 && member.getClanId() == 0, "Owned native clan cleanup did not release exact actors.");
+		final int instance = InstanceManager.getInstance().createDynamicInstance(0).getId();
+		try
+		{
+			member.setInstanceId(instance);
+			PhantomAssertions.assertEquals(StartStatus.REJECTED_TARGET, _combat.startPvpSession(pvpRequest(member, org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Source.ACTUAL_ATTACK, PhantomCombatMode.RANGED_MAGIC, false)).status(), "Foreign native instance acquired enemy ownership.");
+		}
+		finally { member.setInstanceId(0); InstanceManager.getInstance().destroyInstance(instance); }
 	}
 
 	private void testPvpPhysical() throws Exception

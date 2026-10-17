@@ -204,6 +204,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return null;
 			}
+			final boolean affiliated = ((_player.getClanId() > 0) && (_player.getClanId() == target.getClanId())) || ((_player.getAllyId() > 0) && (_player.getAllyId() == target.getAllyId()));
+			if (affiliated && !_player.canAttackCreature(target)) { return null; }
 			final WorldRegion actorRegion = _player.getWorldRegion();
 			final boolean surrounding = (actorRegion != null) && actorRegion.isSurroundingRegion(target.getWorldRegion());
 			final boolean sameParty = (_player.getParty() != null) && (_player.getParty() == target.getParty());

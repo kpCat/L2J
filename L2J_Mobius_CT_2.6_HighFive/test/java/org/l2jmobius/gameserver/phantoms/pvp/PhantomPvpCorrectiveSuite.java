@@ -105,6 +105,20 @@ public final class PhantomPvpCorrectiveSuite implements PhantomTestSuite
 			PhantomAssertions.assertFalse(PhantomPvpService.blocksActivePairCooldown(coolingA, partyDefenseA, now), "Fresh same-pair PARTY_DEFENSE A was cooldown-gated.");
 			PhantomAssertions.assertEquals(Decision.HELP, policy.decide(partyDefenseA, risk(true), PhantomPvpService.initial(partyDefenseA), now).decision(), "Fresh same-pair PARTY_DEFENSE A was not immediately defensible.");
 		});
+		registry.add("04-failed-retreat-does-not-spin-while-risk-is-unchanged", context ->
+		{
+			final var policy = policy(context);
+			final long now = 20 * SECOND;
+			final Candidate attack = candidate(Source.ACTUAL_ATTACK, counterpart(100), HASH_A, now);
+			final Encounter previous = cooling(attack, now);
+			final Encounter failed = previous.withStage(Stage.COOLDOWN, "", "", 0, 0, previous.cooldownUntilLogicalNanos(), "pvp.retreat.route_failed");
+			final RiskSnapshot low = new RiskSnapshot(20, 20, 100, 4, 4, 10000, 0, 0, 0, false, false, false, true, true);
+			PhantomAssertions.assertTrue(PhantomPvpService.blocksFailedRetreatRetry(policy, failed, attack, low, now), "Unchanged low-resource threat replayed the same failed retreat.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksFailedRetreatRetry(policy, failed, attack, risk(true), now), "Recovered actor lost fresh reactive defense.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksFailedRetreatRetry(policy, failed, candidate(Source.ACTUAL_ATTACK, counterpart(200), HASH_B, now), low, now), "Failed retreat against A suppressed a different attacker B.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksFailedRetreatRetry(policy, failed, attack, low, failed.cooldownUntilLogicalNanos()), "Expired retreat cooldown remained active.");
+			PhantomAssertions.assertFalse(PhantomPvpService.blocksFailedRetreatRetry(policy, previous, attack, low, now), "Ordinary combat cooldown was misclassified as a failed retreat.");
+		});
 	}
 
 	private static PhantomPvpPolicy policy(PhantomTestContext context)
