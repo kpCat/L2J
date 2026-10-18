@@ -23,6 +23,7 @@
 	<capabilitySemantics capabilityKey="profession.craft" targetScope="SELF" />
 	<capabilitySemantics capabilityKey="logistics.summon_friend" targetScope="PARTY" />
 
+	<capabilityRule classId="94" capabilityKey="combat.ranged_magic_damage" variantKey="archmage-prominence" rank="850" skillId="1230" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/Sorcerer.xml" />
 	<capabilityRule classId="97" capabilityKey="combat.heal" variantKey="cardinal-greater-heal" rank="990" skillId="1217" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/Bishop.xml" />
 	<capabilityRule classId="97" capabilityKey="combat.heal" variantKey="cardinal-major-heal" rank="1000" skillId="1401" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/Bishop.xml" />
 	<capabilityRule classId="97" capabilityKey="combat.buff" variantKey="cardinal-body-of-avatar" rank="850" skillId="1311" skillLevel="1" source="data/stats/players/skillTrees/2ndClass/Bishop.xml" />
