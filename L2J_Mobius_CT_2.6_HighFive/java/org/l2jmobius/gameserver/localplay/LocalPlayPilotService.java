@@ -73,6 +73,8 @@ public final class LocalPlayPilotService
 	private PhantomTopologyPoint _autonomousPoint;
 	private volatile boolean _observerActive;
 	private long _nextObserverStatus;
+	private long _nextObserverPopulationStatus;
+	private final Properties _observerPopulationStatus = new Properties();
 
 	private LocalPlayPilotService()
 	{
@@ -698,6 +700,49 @@ public final class LocalPlayPilotService
 		status.setProperty("startTimeUtcTicks", Long.toString(_startTicks));
 		status.setProperty("actualNetworkSession", Boolean.toString(snapshot.mode() == LocalPlayM1Observation.FocusMode.REAL));
 		status.setProperty("updatedUtcMillis", Long.toString(System.currentTimeMillis()));
+		if (now >= _nextObserverPopulationStatus)
+		{
+			_nextObserverPopulationStatus = now + 30_000_000_000L;
+			final var population = org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorStatus();
+			_observerPopulationStatus.setProperty("populationSampleUtcMillis", Long.toString(System.currentTimeMillis()));
+			_observerPopulationStatus.setProperty("populationRuntimeState", String.valueOf(population.runtimeState()));
+			_observerPopulationStatus.setProperty("populationSchedulerState", population.schedulerState().name());
+			_observerPopulationStatus.setProperty("populationDecisionState", population.decisionState().name());
+			_observerPopulationStatus.setProperty("populationAdmission", population.admission().toString());
+			_observerPopulationStatus.setProperty("populationWorldMaterialized", Long.toString(population.worldMaterialized()));
+			_observerPopulationStatus.setProperty("populationActiveCurrent", Long.toString(population.activeCurrent()));
+			_observerPopulationStatus.setProperty("populationActivityStates", population.activityStateCounts().toString());
+			_observerPopulationStatus.setProperty("populationEcology", population.ecology().toString());
+		}
+		status.putAll(_observerPopulationStatus);
+		// Extend the existing read-only observer, without materializing or controlling an actor.
+		final var phantoms = World.getInstance().getPlayers().stream().limit(1024)
+			.filter(player -> player.isSpawned() && player.isOnline() && World.getInstance().getPlayer(player.getObjectId()) == player
+				&& PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) == OwnerKind.PHANTOM)
+			.sorted(Comparator.comparingInt(Player::getObjectId)).limit(17).toList();
+		status.setProperty("worldPhantomSampleLimit", "16");
+		status.setProperty("worldPhantomSampleCount", Integer.toString(Math.min(16, phantoms.size())));
+		status.setProperty("worldPhantomSampleTruncated", Boolean.toString(phantoms.size() > 16));
+		for (int index = 0; index < Math.min(16, phantoms.size()); index++)
+		{
+			final var player = phantoms.get(index);
+			final String prefix = "worldPhantom." + index + '.';
+			status.setProperty(prefix + "objectId", Integer.toString(player.getObjectId()));
+			status.setProperty(prefix + "name", player.getName());
+			status.setProperty(prefix + "classId", Integer.toString(player.getActiveClass()));
+			status.setProperty(prefix + "level", Integer.toString(player.getLevel()));
+			status.setProperty(prefix + "exp", Long.toString(player.getExp()));
+			status.setProperty(prefix + "sp", Long.toString(player.getSp()));
+			status.setProperty(prefix + "x", Integer.toString(player.getX()));
+			status.setProperty(prefix + "y", Integer.toString(player.getY()));
+			status.setProperty(prefix + "z", Integer.toString(player.getZ()));
+			status.setProperty(prefix + "instanceId", Integer.toString(player.getInstanceId()));
+			status.setProperty(prefix + "hp", Double.toString(player.getCurrentHp()));
+			status.setProperty(prefix + "mp", Double.toString(player.getCurrentMp()));
+			status.setProperty(prefix + "targetId", Integer.toString(player.getTargetId()));
+			status.setProperty(prefix + "moving", Boolean.toString(player.isMoving()));
+			status.setProperty(prefix + "dead", Boolean.toString(player.isDead()));
+		}
 		if (snapshot.point() != null)
 		{
 			status.setProperty("x", Integer.toString(snapshot.point().x())); status.setProperty("y", Integer.toString(snapshot.point().y()));
