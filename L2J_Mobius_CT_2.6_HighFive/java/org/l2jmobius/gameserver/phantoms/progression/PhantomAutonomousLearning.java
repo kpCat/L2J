@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.LongConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.LongPredicate;
 
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
@@ -49,13 +49,13 @@ final class PhantomAutonomousLearning
 	private final PhantomMaterializationService _materialization;
 	private final PhantomProgressionService _progression;
 	private final L2jPhantomLearningJourney _journey;
-	private final LongConsumer _pauseFarm;
+	private final BiPredicate<Long, Long> _pauseFarm;
 	private final LongPredicate _allowed;
 	private final PhantomAutonomousLearningPolicy _policy;
 	private final PhantomGoalStateCodec _codec = new PhantomGoalStateCodec();
 	private final Map<Long, Cached> _cache = new LinkedHashMap<>();
 
-	PhantomAutonomousLearning(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomProgressionService progression, L2jPhantomLearningJourney journey, LongConsumer pauseFarm, LongPredicate allowed, PhantomAutonomousLearningPolicy policy)
+	PhantomAutonomousLearning(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomProgressionService progression, L2jPhantomLearningJourney journey, BiPredicate<Long, Long> pauseFarm, LongPredicate allowed, PhantomAutonomousLearningPolicy policy)
 	{
 		_profiles = Objects.requireNonNull(profiles);
 		_materialization = materialization;
@@ -92,7 +92,8 @@ final class PhantomAutonomousLearning
 				if (cached.goal.status() == PhantomGoalStatus.ACTIVE && cached.goal.deadlineEpochMillis() > now) { return Optional.of(cached.goal); }
 				if (cached.goal.constraints().getOrDefault("retry.after", 0L) > now) { return Optional.empty(); }
 			}
-			if (player.isInCombat() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.isMoving() || player.isInsideZone(ZoneId.PEACE)) { return Optional.empty(); }
+			// A future need may be selected during farming; its executor still waits for native combat to settle.
+			if (player.isInsideZone(ZoneId.PEACE)) { return Optional.empty(); }
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getSp();
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return Optional.ofNullable(cached.offer); }
 			cached.facts = facts;
@@ -139,8 +140,13 @@ final class PhantomAutonomousLearning
 				store(context.profileId(), cached, intent);
 			}
 		}
-		_pauseFarm.accept(context.profileId());
-		final var result = _journey.advanceIntent(context.profileId(), context.goal(), intent, context.cancellationToken(), context.logicalNowNanos());
+		final PhantomStepResult result;
+		if (intent.deadlineEpochMillis() <= System.currentTimeMillis()) { result = PhantomStepResult.of(Type.FAIL_GOAL, "learning.native.deadline"); }
+		else
+		{
+			if (!_pauseFarm.test(context.profileId(), intent.deadlineEpochMillis())) { return PhantomStepResult.retry(250, "learning.native.finish_current_target"); }
+			result = _journey.advanceIntent(context.profileId(), context.goal(), intent, context.cancellationToken(), context.logicalNowNanos());
+		}
 		if (result.type() == Type.COMPLETE_GOAL || result.type() == Type.FAIL_GOAL)
 		{
 			final Map<String, Long> constraints = new LinkedHashMap<>(intent.constraints());

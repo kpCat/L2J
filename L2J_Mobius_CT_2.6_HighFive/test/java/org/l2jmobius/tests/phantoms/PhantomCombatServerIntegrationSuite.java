@@ -625,6 +625,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
+			if (Boolean.getBoolean("phantom.test.living060"))
+			{
+				final int classId = Boolean.getBoolean("phantom.test.livingMage060") ? 25 : Boolean.getBoolean("phantom.test.livingDwarf060") ? 53 : 0;
+				registry.add(classId == 25 ? "07-production-mystic-farm-learning-and-farm" : classId == 53 ? "08-production-dwarf-farm-learning-and-farm" : "06-production-fighter-farm-learning-and-farm", context ->
+					PhantomLiving060Scenario.run(context, _environment, _repository, _query, _topology, _progression, new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog(), classId));
+				return;
+			}
 			if (Boolean.getBoolean("phantom.test.autonomousLearning060"))
 			{
 				registry.add("03-autonomous-earned-learning-through-farm-decision", this::testAutonomousLearning060);
@@ -4165,8 +4172,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		progression.start();
 		final var navigation = new PhantomNavigationService(new PhantomMetrics());
 		PhantomAssertions.assertTrue(navigation.start(), "Autonomous learning navigation did not start.");
-		final var journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> allowed.get());
-		journey.enableAutonomous(_repository, profile -> {}, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults());
+		var journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> allowed.get());
+		journey.enableAutonomous(_repository, (profile, pauseDeadline) -> true, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults());
 		PhantomAssertions.assertTrue(journey.start(), "Autonomous learning journey did not start.");
 		try
 		{
@@ -4178,6 +4185,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root, org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
 			PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() == null, "Foreign owner/HOLD allowed a new learning root.");
 			allowed.set(true);
+			_player.getAI().clientStartAutoAttack();
+			PhantomAssertions.assertTrue(_player.isInCombat(), "Native combat stance control did not start.");
 			PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() != null, "Declared affordable native lesson was not proposed.");
 			final var stored = goals.load(_profile.profileId()).orElseThrow();
 			final var replacement = root.withStatus(PhantomGoalStatus.ACTIVE);
@@ -4191,8 +4200,26 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var outcome = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
 			final var intent = journey.automaticIntent(_profile.profileId()).orElseThrow();
 			context.record("career060.ownerGuardIntent", "outcome=" + outcome + "; intent=" + intent);
+			PhantomAssertions.assertEquals("learning.actor.busy", outcome.reasonKey(), "Selecting a future lesson must preserve the native combat execution guard.");
+			PhantomAssertions.assertFalse(_player.isMoving(), "Combat stance control started trainer travel.");
 			PhantomAssertions.assertEquals(replacement.revision(), intent.constraints().get("owner.revision").longValue(), "A cached offer from an old root revision created a stale learning intent.");
 			PhantomAssertions.assertEquals(100L, _player.getSp(), "Owner guard control spent SP before any trainer effect.");
+			journey.beginStop(); PhantomAssertions.assertTrue(journey.finishStop(), "Old learning owner did not drain before deadline reconstruction.");
+			final var component = _repository.findComponent(_profile.profileId(), "learning.intent").orElseThrow();
+			final var expired = new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), System.currentTimeMillis() - 1, intent.constraints(), intent.reasonKey(), intent.revision());
+			_repository.updateComponent(_profile.profileId(), "learning.intent", component.rowVersion(), 1, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(expired));
+			journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> allowed.get());
+			journey.enableAutonomous(_repository, (profile, pauseDeadline) -> false, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults());
+			PhantomAssertions.assertTrue(journey.start(), "Reconstructed expired-intent owner did not start.");
+			final var renewedCandidates = new PhantomCandidateRegistry(); journey.registerCandidates(renewedCandidates); renewedCandidates.seal();
+			final var renewedHandlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(renewedHandlers); renewedHandlers.seal();
+			final var renewedPlan = selector.select(renewedCandidates.snapshot(), currentPlanning).candidate().planFactory().create(currentPlanning);
+			final var renewedStep = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), replacement, renewedPlan, renewedPlan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
+			final var expiredResult = renewedHandlers.snapshot().get(renewedPlan.steps().getFirst().actionKey()).execute(renewedStep);
+			PhantomAssertions.assertEquals(PhantomGoalStatus.FAILED, journey.automaticIntent(_profile.profileId()).orElseThrow().status(), "Expired restored intent waited forever for its captured target.");
+			PhantomAssertions.assertEquals("learning.native.deadline", expiredResult.reasonKey(), "Expired intent did not retain its terminal cause.");
+			PhantomAssertions.assertTrue(selector.select(renewedCandidates.snapshot(), currentPlanning).candidate() == null, "Expired intent ignored its durable backoff.");
+			PhantomAssertions.assertEquals(100L, _player.getSp(), "Expired intent charged native SP.");
 		}
 		finally
 		{
@@ -4206,6 +4233,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(PhantomNavigationService.ServiceState.STOPPED, navigation.snapshot().state(), "Autonomous navigation did not drain.");
 			final var current = goals.load(_profile.profileId()).orElseThrow();
 			PhantomAssertions.assertTrue(current.goal().equals(root) || current.goal().equals(root.withStatus(PhantomGoalStatus.ACTIVE)), "Own060 guard root changed unexpectedly; cleanup refused.");
+			org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager.getInstance().removeAttackStanceTask(_player);
+			_player.getAI().clientStopAutoAttack();
 			final var intentComponent = _repository.findComponent(_profile.profileId(), "learning.intent").orElse(null);
 			if (intentComponent != null)
 			{
@@ -4478,7 +4507,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var navigation = new PhantomNavigationService(new PhantomMetrics());
 		PhantomAssertions.assertTrue(navigation.start(), "Autonomous native navigation did not start.");
 		var journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> true);
-		journey.enableAutonomous(_repository, profile -> {}, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults());
+		journey.enableAutonomous(_repository, (profile, pauseDeadline) -> true, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults());
 		PhantomAssertions.assertTrue(journey.start(), "Autonomous native journey did not start.");
 		var candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal();
 		var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
@@ -4520,7 +4549,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					_player = World.getInstance().getPlayer(objectId);
 					PhantomAssertions.assertTrue(_player != null && _player.getSkillLevel(3) == 1 && _player.getSp() == initialSp - 50, "Native save/reload changed the paid lesson.");
 					journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> true);
-					journey.enableAutonomous(_repository, profile -> {}, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults());
+					journey.enableAutonomous(_repository, (profile, pauseDeadline) -> true, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults());
 					PhantomAssertions.assertTrue(journey.start(), "Reconstructed autonomous journey did not start.");
 					PhantomAssertions.assertEquals(intent, journey.automaticIntent(_profile.profileId()).orElseThrow(), "Durable autonomous intent changed on reconstruction.");
 					candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal();

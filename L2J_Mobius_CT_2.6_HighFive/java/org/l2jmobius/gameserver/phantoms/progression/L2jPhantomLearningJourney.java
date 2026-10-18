@@ -12,8 +12,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiPredicate;
 import java.util.function.LongPredicate;
-import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.ai.Intention;
@@ -89,7 +89,7 @@ public final class L2jPhantomLearningJourney
 	}
 
 	/** Install the ordinary farm producer before start; explicit learning remains compatible. */
-	public void enableAutonomous(PhantomProfileRepository profiles, LongConsumer pauseFarm, PhantomAutonomousLearningPolicy policy)
+	public void enableAutonomous(PhantomProfileRepository profiles, BiPredicate<Long, Long> pauseFarm, PhantomAutonomousLearningPolicy policy)
 	{
 		synchronized (_monitor)
 		{
@@ -168,11 +168,12 @@ public final class L2jPhantomLearningJourney
 				if (travel == null)
 				{
 					if (player.isMoving()) { return retry("learning.foreign_movement"); }
-					final SpawnFact trainer = returning ? null : _trainers.stream().filter(spawn -> NpcData.getInstance().getTemplate(spawn.npcId()).canTeach(player.getLearningClass())).min(Comparator.comparingDouble((SpawnFact spawn) -> player.calculateDistance3D(spawn.x(), spawn.y(), spawn.z())).thenComparingInt(SpawnFact::npcId)).orElse(null);
+					final List<SpawnFact> trainerOptions = returning ? List.of() : _trainers.stream().filter(spawn -> NpcData.getInstance().getTemplate(spawn.npcId()).canTeach(player.getLearningClass())).sorted(Comparator.comparingDouble((SpawnFact spawn) -> player.calculateDistance3D(spawn.x(), spawn.y(), spawn.z())).thenComparingInt(SpawnFact::npcId)).distinct().limit(3).toList();
+					final SpawnFact trainer = trainerOptions.isEmpty() ? null : trainerOptions.getFirst();
 					if (!returning && trainer == null) { return fail("learning.trainer.unsupported"); }
 					final var destinations = returning ? List.of(request.field()) : approaches(player, trainer);
 					if (destinations.isEmpty()) { return fail("learning.trainer.no_approach"); }
-					travel = new Travel(player, goal.goalId(), goal.revision(), request, returning, trainer == null ? 0 : trainer.npcId(), destinations, 0, now + TimeUnit.MINUTES.toNanos(2), 0, List.of(), 0);
+					travel = new Travel(player, goal.goalId(), goal.revision(), request, returning, trainer == null ? 0 : trainer.npcId(), destinations, 0, now + TimeUnit.MINUTES.toNanos(2), 0, List.of(), 0, trainerOptions, 0);
 					if (!put(profileId, travel)) { return retry("learning.capacity"); }
 				}
 				if (!returning)
@@ -273,6 +274,15 @@ public final class L2jPhantomLearningJourney
 			_navigation.consume(result.requestId());
 			return put(profileId,travel.nextDestination()) ? retry("learning.trainer.replan") : PhantomStepResult.of(Type.CANCELLED,"learning.stopping");
 		}
+		if (!travel.returning() && Set.of(PhantomNavigationResult.Status.NO_PATH,PhantomNavigationResult.Status.ROUTE_OBSTRUCTED,PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED).contains(result.status()) && travel.trainerIndex()+1 < travel.trainerOptions().size())
+		{
+			final var alternative = approaches(travel.actor(), travel.trainerOptions().get(travel.trainerIndex()+1));
+			if (!alternative.isEmpty())
+			{
+				_navigation.consume(result.requestId());
+				return put(profileId, travel.nextTrainer(alternative)) ? retry("learning.trainer.alternative") : PhantomStepResult.of(Type.CANCELLED, "learning.stopping");
+			}
+		}
 		cleanup(profileId);
 		return fail("learning.route."+result.status().name().toLowerCase(java.util.Locale.ROOT));
 	}
@@ -322,12 +332,13 @@ public final class L2jPhantomLearningJourney
 		}
 	}
 
-	private record Travel(Player actor, long goalId, long goalRevision, Request request, boolean returning, int trainerNpcId, List<PhantomNavigationPoint> destinations, int destinationIndex, long deadlineNanos, long requestId, List<PhantomNavigationPoint> waypoints, int waypoint)
+	private record Travel(Player actor, long goalId, long goalRevision, Request request, boolean returning, int trainerNpcId, List<PhantomNavigationPoint> destinations, int destinationIndex, long deadlineNanos, long requestId, List<PhantomNavigationPoint> waypoints, int waypoint, List<SpawnFact> trainerOptions, int trainerIndex)
 	{
 		private PhantomNavigationPoint destination() { return destinations.get(destinationIndex); }
-		private Travel route(long id, List<PhantomNavigationPoint> points) { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex, deadlineNanos, id, List.copyOf(points), 0); }
-		private Travel next() { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex, deadlineNanos, requestId, waypoints, waypoint + 1); }
-		private Travel nextDestination() { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex+1, deadlineNanos, 0, List.of(), 0); }
+		private Travel route(long id, List<PhantomNavigationPoint> points) { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex, deadlineNanos, id, List.copyOf(points), 0, trainerOptions, trainerIndex); }
+		private Travel next() { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex, deadlineNanos, requestId, waypoints, waypoint + 1, trainerOptions, trainerIndex); }
+		private Travel nextDestination() { return new Travel(actor, goalId, goalRevision, request, returning, trainerNpcId, destinations, destinationIndex+1, deadlineNanos, 0, List.of(), 0, trainerOptions, trainerIndex); }
+		private Travel nextTrainer(List<PhantomNavigationPoint> alternatives) { return new Travel(actor, goalId, goalRevision, request, false, trainerOptions.get(trainerIndex+1).npcId(), alternatives, 0, deadlineNanos, 0, List.of(), 0, trainerOptions, trainerIndex+1); }
 	}
 
 	private enum State { NEW, RUNNING, STOPPING, STOPPED }

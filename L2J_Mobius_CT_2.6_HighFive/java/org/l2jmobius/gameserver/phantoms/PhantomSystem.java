@@ -668,7 +668,7 @@ public final class PhantomSystem
 				}
 				final PhantomQuestInstanceDecision questInstanceDecision = new PhantomQuestInstanceDecision(_questInstanceService);
 				_learningJourney = new L2jPhantomLearningJourney(productionGoals, _materializationService, _progressionService, _navigationService, _gameKnowledgeService::query, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
-				_learningJourney.enableAutonomous(productionProfiles, _visibleAutoPlay::stop, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
+				_learningJourney.enableAutonomous(productionProfiles, _visibleAutoPlay::yieldAfterCurrentTarget, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
 				if (!_learningJourney.start()) { throw new IllegalStateException("Phantom learning journey could not enter the running state."); }
 				_historicalBackgroundService.bindVisibleIntent(_learningJourney::ownsAutomaticIntent);
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());

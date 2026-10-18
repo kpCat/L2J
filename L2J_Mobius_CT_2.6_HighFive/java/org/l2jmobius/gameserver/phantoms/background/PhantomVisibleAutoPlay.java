@@ -173,6 +173,32 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		stopRegistrations(session);
 	}
 
+	/** A selected life need finishes the captured target, then blocks new native pulls. */
+	public boolean yieldAfterCurrentTarget(long profileId, long deadlineEpochMillis)
+	{
+		if (deadlineEpochMillis <= System.currentTimeMillis()) { return false; }
+		final Session session = _sessions.get(profileId);
+		if (session == null || !session._current.get()) { return true; }
+		if (!session._commandGate.compareAndSet(false, true)) { return false; }
+		try (var lease = ((Policy) session._policy).acquireOwned(session.player()))
+		{
+			if (lease == null) { return false; }
+			final Player player = session.player();
+			if (!session._yieldRequested || session._yieldDeadlineEpochMillis != deadlineEpochMillis)
+			{
+				final var target = player.getTarget();
+				session._yieldTarget = target instanceof Creature creature && selectableTarget(player, creature, ((Policy) session._policy)._npcId) ? creature : null;
+				session._yieldDeadlineEpochMillis = deadlineEpochMillis;
+				session._yieldRequested = true;
+			}
+			if (session._yieldTarget != null && !session._yieldTarget.isAlikeDead()) { return false; }
+			if (player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow()) { return false; }
+			stop(profileId, session);
+			return true;
+		}
+		finally { session._commandGate.set(false); }
+	}
+
 	private void forget(long profileId)
 	{
 		final Session session;
@@ -628,6 +654,11 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		{
 			final Session session = _sessions.get(_profileId);
 			if (player != _player || session == null || session._policy != this || !session._current.get()) { return new TargetDirective(TargetDirective.Mode.HOLD, null); }
+			if (session._yieldRequested && System.currentTimeMillis() < session._yieldDeadlineEpochMillis)
+			{
+				final Creature target = session._yieldTarget;
+				return target != null && !target.isAlikeDead() ? new TargetDirective(TargetDirective.Mode.USE_EXACT_TARGET, target) : new TargetDirective(TargetDirective.Mode.HOLD, null);
+			}
 			return session._engagement == null ? new TargetDirective(TargetDirective.Mode.STOCK, null) : session._engagement.directive(player);
 		}
 
@@ -731,6 +762,9 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private boolean _stallReported;
 		private final long _profileId;
 		private volatile boolean _recovering, _resourceExpired;
+		private volatile boolean _yieldRequested;
+		private volatile Creature _yieldTarget;
+		private volatile long _yieldDeadlineEpochMillis;
 		private volatile long _resourceSince, _resourceCheckDue;
 		private volatile double _resourceCost;
 		private volatile String _resourceReason = "resource.not_required";
