@@ -104,6 +104,10 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 	}
 	private PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomWalkCorridorPlanner.Edge> blockedEdges)
 	{
+		return findWalkCorridor(request, cancellation, policy, clock, paths, blockedEdges, new PhantomWalkCorridorPlanner.Budget());
+	}
+	private PhantomWalkCorridorPlanner.Result findWalkCorridor(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomNavigationBackend paths, java.util.Set<PhantomWalkCorridorPlanner.Edge> blockedEdges, PhantomWalkCorridorPlanner.Budget budget)
+	{
 		final var planner = new PhantomWalkCorridorPlanner(new PhantomWalkCorridorPlanner.Oracle()
 		{
 			@Override public PhantomNavigationPoint project(int x, int y, PhantomNavigationPoint surface)
@@ -120,11 +124,11 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 				return paths.findPath(new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance()), cancellation);
 			}
 		}, clock);
-		return planner.plan(request, cancellation, policy);
+		return planner.plan(request, cancellation, policy, budget);
 	}
 
 	public record TravelPlan(PhantomNavigationResult.Status status, PhantomTravelStrategy.Candidate candidate) { }
-	/** WALK overlay plus at most seven complete GK candidates with directly proven ingress/egress. */
+	/** WALK overlay plus at most seven complete GK candidates sharing bounded native corridor proofs. */
 	public TravelPlan planTravel(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, LongSupplier clock, PhantomTravelStrategy.Options options)
 	{
 		return planTravel(request, cancellation, policy, clock, options, this);
@@ -135,14 +139,16 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 		if (cancellation.changedSince(0)) { return new TravelPlan(PhantomNavigationResult.Status.CANCELLED, null); }
 		final long generation = cancellation.generation();
 		final List<PhantomTravelStrategy.Candidate> candidates = new ArrayList<>();
-		int nodes = 0, edges = 0;
+		final var budget = new PhantomWalkCorridorPlanner.Budget();
+		final var corridors = new java.util.HashMap<PhantomWalkCorridorPlanner.Edge, PhantomWalkCorridorPlanner.Result>();
+		final java.util.function.BiFunction<PhantomNavigationPoint, PhantomNavigationPoint, PhantomWalkCorridorPlanner.Result> walk = (from, to) -> corridors.computeIfAbsent(new PhantomWalkCorridorPlanner.Edge(from, to), edge ->
+			findWalkCorridor(new PhantomNavigationRequest(request.profileId(), from, to, request.submittedLogicalNanos(), request.deadlineLogicalNanos(), request.maximumRouteDistance()), cancellation, policy, clock, paths, options.blockedEdges(), budget));
 		PhantomNavigationResult.Status absent = PhantomNavigationResult.Status.NO_PATH;
 		if (request.origin().distanceTo(request.destination()) <= policy.maximumLocalStraightDistance())
 		{
-			final var walk = findWalkCorridor(request, cancellation, policy, clock, paths, options.blockedEdges());
-			nodes = walk.nodes(); edges = walk.edges();
-			if (walk.status() == PhantomWalkCorridorPlanner.Status.FOUND) { candidates.add(new PhantomTravelStrategy.Candidate("walk", List.of(walkStage(request.origin(), request.destination(), walk.points(), options.speed())))); }
-			else if (walk.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; }
+			final var corridor = walk.apply(request.origin(), request.destination());
+			if (corridor.status() == PhantomWalkCorridorPlanner.Status.FOUND) { candidates.add(new PhantomTravelStrategy.Candidate("walk", List.of(walkStage(request.origin(), request.destination(), corridor.points(), options.speed())))); }
+			else if (corridor.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; }
 		}
 		if (options.gatekeeperAllowed())
 		{
@@ -156,25 +162,28 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 			{
 				if (cancellation.changedSince(generation)) { return new TravelPlan(PhantomNavigationResult.Status.CANCELLED, null); }
 				if (clock.getAsLong() >= request.deadlineLogicalNanos()) { return new TravelPlan(PhantomNavigationResult.Status.DEADLINE_EXPIRED, null); }
-				if (nodes + 2 > 128 || edges + 3 > 512) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; break; }
-				nodes += 2; edges += 3;
+				if (!budget.reserve(2, 3)) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; break; }
 				final long fee = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.fee(leg, options.classIndex(), options.level(), options.epochMinute());
 				if (fee > options.adena() || !PhantomNativeTravelActions.available(leg)) { continue; }
 				final var source = new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), geo.getHeight(leg.sourceX(), leg.sourceY(), leg.sourceZ()), 0);
 				// Stock NORMAL teleport is synchronous; native Creature adds five to its factual geo landing Z.
 				final var landing = new PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), geo.getHeight(leg.destinationX(), leg.destinationY(), leg.destinationZ()) + 5, 0);
-				if (!canTravelWalk(options, landing, request.destination())) { continue; }
+				final var egress = walk.apply(landing, request.destination());
+				if (egress.status() != PhantomWalkCorridorPlanner.Status.FOUND) { if (egress.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; } continue; }
 				final var teleport = new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.GK, source, landing, List.of(), leg, 0, fee, 0);
-				final var egress = walkStage(landing, request.destination(), List.of(request.destination()), options.speed());
-				if (canTravelWalk(options, request.origin(), source) && candidates.size() < 8)
+				final var egressStage = walkStage(landing, request.destination(), egress.points(), options.speed());
+				if (request.origin().distanceTo(source) <= policy.maximumLocalStraightDistance() && candidates.size() < 8)
 				{
-					addCandidate(candidates, "gk." + leg.id(), List.of(walkStage(request.origin(), source, List.of(source), options.speed()), teleport, egress), request, policy);
+					final var ingress = walk.apply(request.origin(), source);
+					if (ingress.status() == PhantomWalkCorridorPlanner.Status.FOUND) { addCandidate(candidates, "gk." + leg.id(), List.of(walkStage(request.origin(), source, ingress.points(), options.speed()), teleport, egressStage), request, policy); }
+					else if (ingress.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; }
 				}
-				if (returning != null && candidates.size() < 8 && nodes + 1 <= 128 && edges + 4 <= 512 && canTravelWalk(options, returning, source))
+				if (returning != null && candidates.size() < 8 && budget.reserve(1, 4))
 				{
-					nodes++; edges += 4;
-					addCandidate(candidates, "return-gk." + leg.id(), List.of(walkStage(request.origin(), request.origin(), List.of(request.origin()), options.speed()),
-						new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.RETURN_GK, request.origin(), returning, List.of(), null, options.returnMillis(), 0, 0), walkStage(returning, source, List.of(source), options.speed()), teleport, egress), request, policy);
+					final var ingress = walk.apply(returning, source);
+					if (ingress.status() == PhantomWalkCorridorPlanner.Status.FOUND) { addCandidate(candidates, "return-gk." + leg.id(), List.of(walkStage(request.origin(), request.origin(), List.of(request.origin()), options.speed()),
+						new PhantomTravelStrategy.Stage(PhantomTravelStrategy.Mode.RETURN_GK, request.origin(), returning, List.of(), null, options.returnMillis(), 0, 0), walkStage(returning, source, ingress.points(), options.speed()), teleport, egressStage), request, policy); }
+					else if (ingress.status() == PhantomWalkCorridorPlanner.Status.SEARCH_LIMIT) { absent = PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED; }
 				}
 			}
 		}
@@ -189,11 +198,7 @@ public final class L2jNavigationBackend implements PhantomNavigationBackend
 	}
 	private static void addCandidate(List<PhantomTravelStrategy.Candidate> candidates, String id, List<PhantomTravelStrategy.Stage> stages, PhantomNavigationRequest request, PhantomNavigationPolicy policy)
 	{
-		if (stages.stream().filter(s -> s.mode() == PhantomTravelStrategy.Mode.WALK).mapToDouble(s -> PhantomTravelStrategy.distance(s.from(), s.points())).sum() <= Math.min(request.maximumRouteDistance(), policy.maximumRouteDistance())) { candidates.add(new PhantomTravelStrategy.Candidate(id, stages)); }
-	}
-	private boolean canTravelWalk(PhantomTravelStrategy.Options options, PhantomNavigationPoint from, PhantomNavigationPoint to)
-	{
-		return !options.blockedEdges().contains(new PhantomWalkCorridorPlanner.Edge(from,to)) && canWalkDirect(from,to);
+		if (stages.stream().mapToInt(s -> s.points().size()).sum() <= policy.maximumWaypoints() && stages.stream().filter(s -> s.mode() == PhantomTravelStrategy.Mode.WALK).mapToDouble(s -> PhantomTravelStrategy.distance(s.from(), s.points())).sum() <= Math.min(request.maximumRouteDistance(), policy.maximumRouteDistance())) { candidates.add(new PhantomTravelStrategy.Candidate(id, stages)); }
 	}
 
 	@Override

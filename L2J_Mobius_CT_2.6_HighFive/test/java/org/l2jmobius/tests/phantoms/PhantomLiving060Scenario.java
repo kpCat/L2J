@@ -77,12 +77,15 @@ final class PhantomLiving060Scenario
 		final boolean supply = Boolean.getBoolean("phantom.test.livingSupply060");
 		final boolean offlineStore = Boolean.getBoolean("phantom.test.livingOfflineStore060");
 		final boolean manufacture = Boolean.getBoolean("phantom.test.livingManufacture060");
+		final boolean gatekeeper = Boolean.getBoolean("phantom.test.livingGatekeeper060");
+		final boolean preparedD = manufacture || gatekeeper;
+		PhantomAssertions.assertTrue(!gatekeeper || supply && classId == 53 && !offlineStore && !manufacture, "Gatekeeper requires a separate prepared Dwarf supply scene.");
 		PhantomAssertions.assertTrue(!manufacture || supply && classId == 53 && !offlineStore, "Manufacture requires its separate prepared Dwarf12 supply scene with native D-grade penalties.");
 		PhantomAssertions.assertTrue(!offlineStore || supply && (classId == 0 || classId == 53), "Offline supply requires a declared Fighter or Dwarf supply scene.");
 		PhantomAssertions.assertTrue(!supply || !relocation, "Supply060 requires a separately declared scene.");
 		PhantomAssertions.assertTrue(!relocation || classId == 0, "Relocation060 requires its separately declared Fighter input.");
 		final boolean mage = classId == 10 || classId == 25, dwarf = classId == 53, orc = classId == 44;
-		final int shotItemId = manufacture ? 1463 : mage ? 2509 : 1835;
+		final int shotItemId = preparedD ? 1463 : mage ? 2509 : 1835;
 		final var fixture = environment.createCampaign058Companion(context, mage ? 2 : 1);
 		final var profile = profiles.create(fixture.objectId());
 		final long id = profile.profileId();
@@ -103,7 +106,7 @@ final class PhantomLiving060Scenario
 			setup.setBaseClass(classId); setup.setPlayerClass(classId);
 			setup.setLearningClass(setup.getPlayerClass());
 			PhantomAssertions.assertEquals(classId, setup.getLearningClass().getId(), "INVALID_INPUT: premeasurement learning class differs from the declared main class.");
-			setup.getStat().setExp(manufacture ? setup.getStat().getExpForLevel(threshold - 1) : setup.getStat().getExpForLevel(threshold) - 1); setup.getStat().setLevel((byte) (threshold - 1));
+			setup.getStat().setExp(preparedD ? setup.getStat().getExpForLevel(threshold - 1) : setup.getStat().getExpForLevel(threshold) - 1); setup.getStat().setLevel((byte) (threshold - 1));
 			setup.setSp(classId == 10 ? 239 : mage ? 259 : dwarf ? 309 : orc ? 59 : 49); setup.rewardSkills();
 			if (supply)
 			{
@@ -113,12 +116,13 @@ final class PhantomLiving060Scenario
 				if (manufacture) { setup.getInventory().addItem(ItemProcessType.REWARD, 1785, 9, null, PhantomLiving060Scenario.class); setup.getInventory().addItem(ItemProcessType.REWARD, 1458, 3, null, PhantomLiving060Scenario.class); }
 				context.record("life060.supplyInput", "PREMEASUREMENT finite16 native compatible charges item=" + shotItemId + ";10000 owned Adena; initial SP0" + (manufacture ? "; PREPARED stable level12/D gear with native expertise penalties/9SoulOre+3Dcrystals; no earned profession claim" : "") + "; all later stock/funds changes through native combat and paid operation");
 			}
-			for (int itemId : manufacture ? new int[] {129, 352, 2378} : mage ? new int[] {8, 24, 31} : new int[] {68, 24, 31})
+			for (int itemId : manufacture ? new int[] {129, 352, 2378} : gatekeeper ? new int[] {129, 24, 31} : mage ? new int[] {8, 24, 31} : new int[] {68, 24, 31})
 			{
 				final var item = setup.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, PhantomLiving060Scenario.class);
 				PhantomAssertions.assertTrue(item != null, "Living060 finite owned gear missing."); setup.getInventory().equipItem(item);
 			}
 			setup.setRunning(); setup.standUp(); setup.setInvul(false); setup.refreshExpertisePenalty(); setup.refreshOverloaded();
+			if (gatekeeper) { context.record("life060.gatekeeperInput", "PREMEASUREMENT Dwarf53/4/base4EXP/16D1463/10000Adena/Dweapon129 with native expertise penalty/NGarmor; regional farm chosen by production planner; two distinct native GK ARRIVED receipts plus return/new earned kill required; no next goal/TP/stock script"); }
 			final var origin = topology.findAnchor(classId == 10 ? "population.farming.human-mystic.20481" : mage ? "population.farming.elf.20534" : dwarf ? "population.farming.dwarf.20533" : orc ? "population.farming.orc.20535" : "population.farming.human-fighter.20545").orElseThrow();
 			setup.setXYZInvisible(origin.point().x(), origin.point().y(), GeoEngine.getInstance().getHeight(origin.point().x(), origin.point().y(), origin.point().z()));
 			initial = relocation ? PhantomRelocation060Input.selectLocal(context, setup, id, knowledge, topology, authority, planner, routes) : selectInput(context, setup, id, knowledge, topology, authority, planner, commerce);
@@ -132,7 +136,7 @@ final class PhantomLiving060Scenario
 			new PhantomBackgroundCatchupStore(profiles, goals).claim(id, new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.COMPLETE,
 					"living060-" + id, context.seed(), minute - 1, minute, minute, 1, 0, 1, initial.generation().knowledgeGeneration(), initial.generation().topologyGeneration(),
 					initial.goal().goalId(), initial.goal().revision(), initial.planIdentity(), 1, authority.hashes(), ""));
-			context.record("life060.input." + classId, "PREMEASUREMENT native actor=" + fixture.objectId() + "; profile=" + id + "; class=" + classId + (manufacture ? "; prepared level12/D gear, base12EXP/native expertise penalty; profession not earned" : "; near level=" + threshold + "; finite NG gear") + "; SP=" + setup.getSp() + "; initial root selected by historical planner=" + initial.goal() + "; current-history fixture cursor only, no historical reward; no subsequent test goal/resource/XYZ write");
+			context.record("life060.input." + classId, "PREMEASUREMENT native actor=" + fixture.objectId() + "; profile=" + id + "; class=" + classId + (preparedD ? "; prepared level=" + (threshold - 1) + "; D weapon/base level EXP/native expertise penalty; profession not earned" : "; near level=" + threshold + "; finite NG gear") + "; SP=" + setup.getSp() + "; initial root selected by historical planner=" + initial.goal() + "; current-history fixture cursor only, no historical reward; no subsequent test goal/resource/XYZ write");
 			prepared = true;
 		}
 		finally
@@ -213,6 +217,7 @@ final class PhantomLiving060Scenario
 			final var supplyProof = supply ? new PhantomSupply060Observation(profiles, id, player, baseline, shotItemId, offlineFixture, reservations) : null;
 			long tick = 0, nextReport = 0, completedAtCycle = -1;
 			long completedExp = -1, completedKills = -1, completedDamage = -1, completedEarnedExp = -1, completedEarnedSp = -1;
+			final var gatekeepers = new java.util.LinkedHashSet<String>();
 			PhantomGoal completed = null;
 			final long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(8);
 			while (System.nanoTime() < deadline)
@@ -222,6 +227,8 @@ final class PhantomLiving060Scenario
 				if (history.prepareVisibleDecision(id, engine)) { engine.accept(new PhantomActivityWorkItem(id, PhantomActivityState.ACTIVE, 1, ++tick, now, PhantomActivityOverloadLevel.NORMAL)); }
 				final var intent = journey.automaticIntent(id).orElse(null);
 				final var sample = sensor.snapshot();
+				final String transfer = gatekeeper ? supplies.gatekeeperEvidence(id) : "";
+				if (transfer.startsWith("supplies.native_gatekeeper_arrived;")) { gatekeepers.add(transfer); PhantomAssertions.assertTrue(gatekeepers.size() <= 4, "Gatekeeper journey repeated transfers beyond the declared bounded round trip."); }
 				if (relocationProof != null && relocationProof.advance(context, id, player, goals.load(id).orElseThrow().goal(), background, history, travel, sample, now)) { break; }
 				if (supplyProof != null && supplyProof.advance(context, player, sample, now)) { break; }
 				if (intent != null && intent.status() == PhantomGoalStatus.COMPLETED && completed == null)
@@ -239,6 +246,7 @@ final class PhantomLiving060Scenario
 				Thread.sleep(100);
 			}
 			final var sample = sensor.snapshot();
+			if (gatekeeper) { context.record("life060.gatekeepers", gatekeepers.toString()); PhantomAssertions.assertTrue(gatekeepers.size() >= 2, "Supply chain did not execute two distinct ordinary native GK transfers."); }
 			if (supply) { context.record("life060.supplyJourney", "intent=" + supplies.automaticIntent(id) + "; reason=" + supplies.reason(id) + "; GK=" + supplies.gatekeeperEvidence(id)); }
 			if (relocationProof != null) { relocationProof.verify(context, player, sample); }
 			else if (supplyProof != null) { supplyProof.verify(context, player, sample); supplyChainCompleted = true; }
@@ -312,12 +320,14 @@ final class PhantomLiving060Scenario
 	{
 		final boolean supplies = Boolean.getBoolean("phantom.test.livingSupply060");
 		final boolean manufacture = Boolean.getBoolean("phantom.test.livingManufacture060");
+		final boolean gatekeeper = Boolean.getBoolean("phantom.test.livingGatekeeper060");
+		final var gatekeeperNpcs = gatekeeper ? PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology).legs().stream().filter(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions::available).map(leg -> leg.teleporterNpcId()).collect(java.util.stream.Collectors.toSet()) : java.util.Set.<Integer>of();
 		final var declaredRegion = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(setup.getX(), setup.getY(), setup.getZ(), 0);
 		final var supplyNpcs = supplies ? commerce.buyOffers().stream().filter(offer -> offer.price() > 0 && !offer.limitedStock() && L2jPhantomSupplyJourney.compatible(setup, org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(offer.itemId()))).flatMap(offer -> offer.npcIds().stream()).collect(java.util.stream.Collectors.toSet()) : java.util.Set.<Integer>of();
 		final var trainers = knowledge.snapshot().spawnFactsByNpc().entrySet().stream().filter(entry ->
 		{
 			final var template = NpcData.getInstance().getTemplate(entry.getKey());
-			return template != null && (supplies ? "Merchant".equals(template.getType()) && (manufacture || supplyNpcs.contains(entry.getKey())) : "Trainer".equals(template.getType()) && template.canTeach(setup.getLearningClass()));
+			return template != null && (gatekeeper ? gatekeeperNpcs.contains(entry.getKey()) : supplies ? "Merchant".equals(template.getType()) && (manufacture || supplyNpcs.contains(entry.getKey())) : "Trainer".equals(template.getType()) && template.canTeach(setup.getLearningClass()));
 		}).flatMap(entry -> entry.getValue().stream()).filter(spawn -> spawn.instanceId() == 0 && spawn.pointKind() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnPointKind.EXACT)
 			.filter(spawn -> !manufacture || org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(spawn.x(), spawn.y(), spawn.z(), org.l2jmobius.gameserver.model.zone.type.PeaceZone.class) != null).toList();
 		PhantomAssertions.assertTrue(!trainers.isEmpty(), "INVALID_INPUT: no native compatible service NPC facts.");
@@ -395,8 +405,8 @@ final class PhantomLiving060Scenario
 					if (!"Canonical Player position does not identify exactly one topology anchor.".equals(rejectedPoint.getMessage())) { throw rejectedPoint; }
 					stages.merge("ambiguous_point", 1, Integer::sum); continue;
 				}
-				context.record("life060.routePreflight." + setup.getActiveClass(), "PREMEASUREMENT bounded32 farm candidates; local production planner=" + local.goal() + "; native service=" + (supplies ? "Merchant" : "Trainer") + trainer.npcId() + "; declared starting region=" + declaredRegion + "; outbound=" + outbound.status() + "; inbound=" + inbound.status() + "; prior rejected=" + rejected);
-				System.out.println("LIFE060 INPUT_ROUTE_GREEN class=" + setup.getActiveClass() + "; farm=" + local.spec() + "; service=" + (supplies ? "Merchant" : "Trainer") + trainer.npcId() + "; outbound/inbound native corridor FOUND");
+				context.record("life060.routePreflight." + setup.getActiveClass(), "PREMEASUREMENT bounded32 farm candidates; local production planner=" + local.goal() + "; native service=" + (gatekeeper ? "Gatekeeper" : supplies ? "Merchant" : "Trainer") + trainer.npcId() + "; declared starting region=" + declaredRegion + "; outbound=" + outbound.status() + "; inbound=" + inbound.status() + "; prior rejected=" + rejected);
+				System.out.println("LIFE060 INPUT_ROUTE_GREEN class=" + setup.getActiveClass() + "; farm=" + local.spec() + "; service=" + (gatekeeper ? "Gatekeeper" : supplies ? "Merchant" : "Trainer") + trainer.npcId() + "; outbound/inbound native corridor FOUND");
 				return local;
 			}
 		}

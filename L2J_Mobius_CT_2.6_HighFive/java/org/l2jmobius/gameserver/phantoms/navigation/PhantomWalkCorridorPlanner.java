@@ -25,10 +25,24 @@ public final class PhantomWalkCorridorPlanner
 	private static final int[][] DIRECTIONS = {{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1}};
 	private final Oracle _oracle;
 	private final LongSupplier _clock;
+	/** One request may share the unchanged search limits across several WALK legs. */
+	public static final class Budget
+	{
+		private int nodes, edges, queries, labels;
+		boolean reserve(int addedNodes, int addedEdges)
+		{
+			if (addedNodes < 0 || addedEdges < 0 || nodes + addedNodes > MAX_NODES || edges + addedEdges > MAX_EDGES) { return false; }
+			nodes += addedNodes; edges += addedEdges; return true;
+		}
+	}
 	public PhantomWalkCorridorPlanner(Oracle oracle, LongSupplier clock) { _oracle = oracle; _clock = clock; }
 	public Result plan(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy)
 	{
-		return new Search(request, cancellation, policy).run();
+		return plan(request, cancellation, policy, new Budget());
+	}
+	public Result plan(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, Budget budget)
+	{
+		return new Search(request, cancellation, policy, java.util.Objects.requireNonNull(budget)).run();
 	}
 	private final class Search
 	{
@@ -36,23 +50,26 @@ public final class PhantomWalkCorridorPlanner
 		private final PhantomNavigationCancellationToken cancellation;
 		private final long generation;
 		private final PhantomNavigationPolicy policy;
+		private final Budget budget;
 		private final Map<PhantomNavigationPoint, Label> best = new HashMap<>();
 		private final PriorityQueue<Label> open = new PriorityQueue<>((a,b) -> { int c = Double.compare(a.priority, b.priority); return c != 0 ? c : Long.compare(a.sequence, b.sequence); });
 		private int edges, queries, labels;
 		private boolean limited;
-		private Search(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy)
+		private Search(PhantomNavigationRequest request, PhantomNavigationCancellationToken cancellation, PhantomNavigationPolicy policy, Budget budget)
 		{
-			this.request = request; this.cancellation = cancellation; generation = cancellation.generation(); this.policy = policy;
+			this.request = request; this.cancellation = cancellation; generation = cancellation.generation(); this.policy = policy; this.budget = budget;
 		}
 		private Result run()
 		{
 			if (cancellation.changedSince(0)) { return result(Status.CANCELLED, List.of()); }
 			if (interrupted() != null) { return result(interrupted(), List.of()); }
 			if (request.origin().instanceId() != request.destination().instanceId()) { return result(Status.NO_ROUTE_WITHIN_BUDGET, List.of()); }
+			if (budget.nodes >= MAX_NODES || budget.labels >= MAX_LABELS) { return result(Status.SEARCH_LIMIT, List.of()); }
 			add(request.origin(), 0, null, List.of());
 			if (_oracle.direct(request.origin(), request.destination()))
 			{
-				edges++;
+				if (budget.edges >= MAX_EDGES || budget.labels >= MAX_LABELS || (!best.containsKey(request.destination()) && budget.nodes >= MAX_NODES)) { return result(Status.SEARCH_LIMIT, List.of()); }
+				edges++; budget.edges++;
 				add(request.destination(), request.origin().distanceTo(request.destination()), best.get(request.origin()), List.of(request.destination()));
 				final Status interrupted = interrupted();
 				return result(interrupted == null ? Status.FOUND : interrupted, interrupted == null ? List.of(request.destination()) : List.of());
@@ -76,15 +93,16 @@ public final class PhantomWalkCorridorPlanner
 				for (var candidate : candidates)
 				{
 					if (interrupted() != null) { return result(interrupted(), List.of()); }
-					if (++edges > MAX_EDGES) { return result(Status.SEARCH_LIMIT, List.of()); }
+					if (budget.edges >= MAX_EDGES) { return result(Status.SEARCH_LIMIT, List.of()); }
+					edges++; budget.edges++;
 					if (current.distance + current.point.distanceTo(candidate) > Math.min(request.maximumRouteDistance(), policy.maximumRouteDistance())) { limited = true; continue; }
-					if (!best.containsKey(candidate) && best.size() >= MAX_NODES) { limited = true; continue; }
+					if (!best.containsKey(candidate) && budget.nodes >= MAX_NODES) { limited = true; continue; }
 					List<PhantomNavigationPoint> corridor;
 					if (_oracle.direct(current.point, candidate)) { corridor = List.of(candidate); }
 					else
 					{
-						if (queries >= MAX_QUERIES) { limited = true; continue; }
-						queries++;
+						if (budget.queries >= MAX_QUERIES) { limited = true; continue; }
+						queries++; budget.queries++;
 						corridor = _oracle.path(current.point, candidate);
 						final var proof = PhantomNativeRouteContract.normalize(current.point, candidate, corridor, policy, request.maximumRouteDistance(), _oracle::direct, () ->
 						{
@@ -101,7 +119,7 @@ public final class PhantomWalkCorridorPlanner
 					final var old = best.get(candidate);
 					if ((old == null) || distance < old.distance)
 					{
-						if (labels >= MAX_LABELS) { return result(Status.SEARCH_LIMIT, List.of()); }
+						if (budget.labels >= MAX_LABELS) { return result(Status.SEARCH_LIMIT, List.of()); }
 						add(candidate, distance, current, corridor);
 					}
 				}
@@ -110,6 +128,8 @@ public final class PhantomWalkCorridorPlanner
 		}
 		private void add(PhantomNavigationPoint point, double distance, Label parent, List<PhantomNavigationPoint> corridor)
 		{
+			if (!best.containsKey(point)) { budget.nodes++; }
+			budget.labels++;
 			final var label = new Label(point, distance, distance + point.distanceTo(request.destination()), ++labels, parent, List.copyOf(corridor));
 			best.put(point, label); open.add(label);
 		}
