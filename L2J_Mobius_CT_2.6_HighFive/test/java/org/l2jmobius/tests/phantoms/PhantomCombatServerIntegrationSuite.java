@@ -637,7 +637,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				registry.add("12-paid-native-rank-covers-autoget-floor", context -> testPaidAutoGetFloor060(context, true));
 				registry.add("13-missing-or-unattainable-rank-does-not-cover-floor", context -> testPaidAutoGetFloor060(context, false));
 				registry.add("14-native-return-normalizes-captured-feet", this::testLearningReturnFloor060);
-				if (Boolean.getBoolean("phantom.test.retainedAutoGet061")) { registry.add("061-native-owned-capture-retains-earned-autoget-after-level-loss", this::testRetainedAutoGet061); }
+				if (Boolean.getBoolean("phantom.test.retainedAutoGet061")) { registry.add("061-native-owned-capture-retains-earned-autoget-after-level-loss", this::testRetainedAutoGet061); registry.add("061-native-gludin-town-is-canonical", this::testGludinTownRecovery061); }
 				return;
 			}
 			if (Boolean.getBoolean("phantom.test.supplyGuards060"))
@@ -4492,6 +4492,28 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_player.stopMove(null);
 			final var stored = goals.load(_profile.profileId()).orElseThrow(); PhantomAssertions.assertEquals(goal, stored.goal(), "Native return guard root drift; cleanup refused."); goals.delete(_profile.profileId(), stored.rowVersion());
 		}
+	}
+
+	private void testGludinTownRecovery061(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		prepareLearningField059(context);
+		final var commerce = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog();
+		final var routes = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), _topology);
+		final var authority = new org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority(() -> _query, () -> _topology, () -> _progression, () -> commerce, routes);
+		// Exact observed career field; a living TEST fixture, no death or recovery operation.
+		_player.setXYZInvisible(-46177, 210132, -5080);
+		final var town = org.l2jmobius.gameserver.data.xml.MapRegionData.getInstance().getTeleToLocation(_player, org.l2jmobius.gameserver.model.actor.enums.player.TeleportWhereType.TOWN);
+		PhantomAssertions.assertTrue(town != null, "Native Gludin town is absent.");
+		final var position = authority.canonicalRecoveryPosition(town.getX(), town.getY(), town.getZ(), town.getInstanceId(), _player.getHeading()).orElseThrow(() -> new AssertionError("Observed native Gludin town lacks canonical recovery anchor: " + town));
+		PhantomAssertions.assertEquals(911, org.l2jmobius.gameserver.data.xml.MapRegionData.getInstance().getMapRegionLocId(position.x(), position.y()), "Recovery crossed native Gludin region.");
+		PhantomAssertions.assertTrue(authority.canonicalRecoveryPosition(town.getX(), town.getY(), town.getZ(), 1, 0).isEmpty(), "Instance recovery escaped its boundary.");
+		_player.setXYZInvisible(position.x(), position.y(), position.z());
+		final var anchor = _topology.findAnchor("generated.farm.bfb0335de417bc81a7e9b231.anchor").orElseThrow();
+		final long id = _profile.profileId();
+		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(id)), new PhantomDomainRef("npc", "20120"), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20120@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture.town061", 0);
+		PhantomAssertions.assertEquals(position.committedAnchorId(), authority.capture(id, _player, root, null).position().committedAnchorId(), "Recovery anchor cannot be captured uniquely.");
+		context.record("townRecovery061", "Native town=" + town + "; canonical=" + position + "; living TEST only; no death/fault/ordinary grants");
 	}
 
 	private void testRetainedAutoGet061(PhantomTestContext context) throws Exception

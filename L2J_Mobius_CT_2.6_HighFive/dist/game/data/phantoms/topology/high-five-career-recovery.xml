@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology schemaVersion="1" datasetId="high-five-core" datasetVersion="4">
+	<!-- Native normal town respawn, not a new travel shortcut or farming location. -->
+	<node id="gludin.recovery" kind="CITY" instanceId="0" form="POINT_RADIUS" x="-83520" y="150560" z="-3000" radius="256" tags="town-recovery">
+		<source path="data/mapregion/gludin_town.xml" />
+	</node>
+	<anchor id="gludin.recovery.anchor" role="RESPAWN" nodeId="gludin.recovery" x="-83520" y="150560" z="-3000" instanceId="0" mapRegionLocId="911" tolerance="256" tags="town-recovery">
+		<source path="data/mapregion/gludin_town.xml" />
+	</anchor>
+</topology>
