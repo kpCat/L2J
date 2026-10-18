@@ -64,6 +64,13 @@ public final class PhantomOfflineSupply
 				{
 					final var recipe = RecipeData.getInstance().getRecipeList(listing.getRecipeId());
 					if (recipe == null || !recipe.isDwarvenRecipe() || recipe.getCount() <= 0 || recipe.getCount() > 600 || listing.getCost() <= 0 || listing.getCost() > budget || items.stream().noneMatch(item -> item.getId() == recipe.getItemId()) || !owner.hasRecipeList(recipe.getId()) || owner.getSkillLevel(CommonSkill.CREATE_DWARVEN.getId()) < recipe.getLevel()) { continue; }
+					long mp = 0, hp = 0;
+					for (var cost : recipe.getStatUse())
+					{
+						if (cost.getType() == org.l2jmobius.gameserver.data.enums.StatType.MP) { mp = Math.addExact(mp, cost.getValue()); }
+						if (cost.getType() == org.l2jmobius.gameserver.data.enums.StatType.HP) { hp = Math.addExact(hp, cost.getValue()); }
+					}
+					if (owner.isCrafting() || owner.getCurrentMp() < mp || owner.getCurrentHp() <= hp) { continue; }
 					if (listing.getCost() / (double) recipe.getCount() > maximumUnitPrice || !L2jPhantomSupplyJourney.mobilePurchase(buyer, org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(recipe.getItemId()), recipe.getCount())) { continue; }
 					final var ingredients = new java.util.TreeMap<Integer, Long>();
 					for (var ingredient : recipe.getRecipes()) { ingredients.merge(ingredient.getItemId(), (long) ingredient.getQuantity(), Math::addExact); }

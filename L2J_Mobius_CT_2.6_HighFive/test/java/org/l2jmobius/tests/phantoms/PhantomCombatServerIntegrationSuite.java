@@ -639,6 +639,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (Boolean.getBoolean("phantom.test.supplyGuards060"))
 			{
+				if (Boolean.getBoolean("phantom.test.supplyManufactureGuards060")) { registry.add("22-native-offline-manufacture-source-guards", this::testManufactureSupplyGuards060); return; }
 				if (Boolean.getBoolean("phantom.test.supplyReturnGuards060")) { registry.add("21-native-paid-supply-return-corridor", this::testSupplyReturn060); return; }
 				registry.add("16-supply-bound-child-model", PhantomSupply060Observation::bindingModels);
 				registry.add("17-supply-policy-bounds", PhantomSupply060Observation::policyModels);
@@ -4178,6 +4179,50 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		finally
 		{
 			_player.getAI().setIntention(Intention.IDLE);
+		}
+	}
+
+	private void testManufactureSupplyGuards060(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final long originalAdena = _player.getAdena();
+		_player.setBaseClass(0); _player.setPlayerClass(0); _player.setLearningClass(_player.getPlayerClass()); _player.getStat().setLevel((byte) 20); _player.getStat().setExp(_player.getStat().getExpForLevel(20)); _player.setSp(0); _player.rewardSkills();
+		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 129, 1, null, this); _player.getInventory().equipItem(weapon);
+		_player.getInventory().addItem(ItemProcessType.REWARD, 57, 10_000, null, this); _player.refreshExpertisePenalty(); _player.refreshOverloaded();
+		placeInstanceInput058(_player, 115832, -177335, GeoEngine.getInstance().getHeight(115832, -177335, -880));
+		final var shots = org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(1463);
+		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.compatible(_player, shots), "Declared D weapon/charges are incompatible.");
+		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", "20539"), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20539@generated.farm.ea72d768f3c8ec3d79c1a530.anchor")), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, "generated.farm.ea72d768f3c8ec3d79c1a530.anchor"), "farm.background", 500, 0, 0, 0, Map.of(), "fixture.manufacture.discovery", 1);
+		final var binding = new org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding(1, _player.getObjectId(), 0, _player.getClassIndex(), weapon.getObjectId(), org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player), 0);
+		final var policy = org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPolicy.load(Path.of("data/phantoms/economy/high-five-economy-v1.xml"));
+		final var reservations = new org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService(policy); reservations.start();
+		final var service = new org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService(policy, reservations, new org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOfferService(), _materialization, new PhantomGoalStateStore(_repository), _repository);
+		final var helper = new org.l2jmobius.gameserver.phantoms.commerce.PhantomOfflineSupply(service);
+		try (var fixture = PhantomOfflineSupply060Fixture.create(context, _environment, _player, _query, true))
+		{
+			final var maker = fixture.actor();
+			final java.util.function.LongFunction<java.util.Optional<PhantomGoal>> offer = reserve -> helper.offer(_player, root, binding, 0, List.of(shots), 116, reserve, System.currentTimeMillis() + 60_000, Long.MAX_VALUE, _ -> 0);
+			PhantomAssertions.assertTrue(_player.getInventory().getInventoryItemCount(1785, -1) == 0 && _player.getInventory().getInventoryItemCount(1458, -1) == 0 && offer.apply(500).isEmpty(), "Missing-material offline craft was selected.");
+			_player.getInventory().addItem(ItemProcessType.REWARD, 1785, 9, null, this); _player.getInventory().addItem(ItemProcessType.REWARD, 1458, 3, null, this);
+			PhantomAssertions.assertTrue(offer.apply(500).isPresent(), "BLOCKED_MANUFACTURE_INPUT: finite native recipe/skill/materials/MP/offer are not discoverable.");
+			final long adena = _player.getAdena(), makerAdena = maker.getAdena(), exp = _player.getExp(), sp = _player.getSp();
+			final double mp = maker.getCurrentMp(); maker.setCurrentMp(0);
+			try { PhantomAssertions.assertTrue(offer.apply(500).isEmpty(), "Zero-MP offline maker was selected."); }
+			finally { maker.setCurrentMp(mp); }
+			final var recipe = org.l2jmobius.gameserver.data.xml.RecipeData.getInstance().getRecipeList(20); maker.unregisterRecipeList(20);
+			try { PhantomAssertions.assertTrue(offer.apply(500).isEmpty(), "Missing-recipe offline maker was selected."); }
+			finally { maker.registerDwarvenRecipeList(recipe, true); }
+			final var published = maker.getManufactureItems().remove(20);
+			try { PhantomAssertions.assertTrue(offer.apply(500).isEmpty(), "Withdrawn offline manufacture listing was selected."); }
+			finally { maker.getManufactureItems().put(20, published); }
+			PhantomAssertions.assertTrue(offer.apply(_player.getAdena()).isEmpty(), "Offline craft spent the protected cash reserve.");
+			PhantomAssertions.assertTrue(_player.getAdena() == adena && maker.getAdena() == makerAdena && _player.getExp() == exp && _player.getSp() == sp && reservations.findAudit(_profile.profileId(), 16).isEmpty(), "Readiness guards executed a paid operation/reward.");
+			context.record("supply060.manufactureGuards", "SEPARATE source-readiness control; prepared Artisan56/20/172:2/native recipe20/clientNULL restored store; no materials, MP, recipe, published listing, cash reserve; no native payment/travel/full-life claim; native chance/data untouched");
+		}
+		finally
+		{
+			service.shutdown(System.currentTimeMillis()); reservations.shutdown(System.currentTimeMillis());
+			if (_player.getAdena() == originalAdena + 10_000) { _player.reduceAdena(ItemProcessType.DESTROY, 10_000, _player, false); }
 		}
 	}
 

@@ -27,15 +27,22 @@ final class PhantomOfflineSupply060Fixture implements AutoCloseable
 	private final boolean _realtime;
 	private final int _offlineCount;
 	private final long _sellerAdena, _sellerStock;
+	private final boolean _manufacture;
+	private final double _sellerMp;
 	private boolean _paid;
 
-	private PhantomOfflineSupply060Fixture(PhantomHeadlessPlayerTestEnvironment environment, int objectId, boolean realtime, int offlineCount, Player seller)
+	private PhantomOfflineSupply060Fixture(PhantomHeadlessPlayerTestEnvironment environment, int objectId, boolean realtime, int offlineCount, Player seller, boolean manufacture)
 	{
 		_environment = environment; _objectId = objectId; _realtime = realtime; _offlineCount = offlineCount;
 		_sellerAdena = seller.getAdena(); _sellerStock = seller.getInventory().getInventoryItemCount(1835, -1);
+		_manufacture = manufacture; _sellerMp = seller.getCurrentMp();
 	}
 
 	static PhantomOfflineSupply060Fixture create(PhantomTestContext context, PhantomHeadlessPlayerTestEnvironment environment, Player buyer, PhantomGameKnowledgeQuery knowledge) throws Exception
+	{
+		return create(context, environment, buyer, knowledge, false);
+	}
+	static PhantomOfflineSupply060Fixture create(PhantomTestContext context, PhantomHeadlessPlayerTestEnvironment environment, Player buyer, PhantomGameKnowledgeQuery knowledge, boolean manufacture) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		PhantomAssertions.assertEquals(0L, offlineRows("SELECT COUNT(*) FROM character_offline_trade"), "Offline fixture refuses pre-existing native traders.");
@@ -55,22 +62,39 @@ final class PhantomOfflineSupply060Fixture implements AutoCloseable
 		try
 		{
 			OfflineTradeConfig.STORE_OFFLINE_TRADE_IN_REALTIME = true;
-			setup.setBaseClass(53); setup.setPlayerClass(53); setup.setLearningClass(setup.getPlayerClass());
-			setup.getStat().setLevel((byte) 5); setup.getStat().setExp(setup.getStat().getExpForLevel(5));
+			final int makerClass = manufacture ? 56 : 53, makerLevel = manufacture ? 20 : 5;
+			setup.setBaseClass(makerClass); setup.setPlayerClass(makerClass); setup.setLearningClass(setup.getPlayerClass());
+			setup.getStat().setLevel((byte) makerLevel); setup.getStat().setExp(setup.getStat().getExpForLevel(makerLevel));
 			setup.setXYZInvisible(merchant.getX() + 64, merchant.getY(), GeoEngine.getInstance().getHeight(merchant.getX() + 64, merchant.getY(), merchant.getZ())); setup.revalidateZone(true);
 			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(setup.getX(), setup.getY(), setup.getZ(), org.l2jmobius.gameserver.model.zone.type.PeaceZone.class) != null, "Offline seller point must remain in a native peace zone.");
-			final var stock = setup.getInventory().addItem(ItemProcessType.REWARD, 1835, 300, null, PhantomOfflineSupply060Fixture.class);
-			PhantomAssertions.assertTrue(stock != null && setup.getSellList().addItem(stock.getObjectId(), 300, 6) != null, "Finite offline sell listing failed.");
-			setup.getSellList().setTitle("TEST060 finite shots"); setup.setPrivateStoreType(PrivateStoreType.SELL); setup.sitDown(); setup.setOfflineStartTime(System.currentTimeMillis());
+			int stockObjectId = 0;
+			if (manufacture)
+			{
+				final var recipe = org.l2jmobius.gameserver.data.xml.RecipeData.getInstance().getRecipeList(20);
+				final var skill = org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(172, 2);
+				PhantomAssertions.assertTrue(recipe != null && recipe.getLevel() == 2 && recipe.getItemId() == 1463 && recipe.getCount() == 468 && recipe.getSuccessRate() == 100 && skill != null, "Native D-shot recipe/Artisan skill differs from declared finite input.");
+				setup.rewardSkills(); setup.addSkill(skill, true); setup.registerDwarvenRecipeList(recipe, true);
+				setup.getManufactureItems().put(20, new org.l2jmobius.gameserver.model.item.recipe.ManufactureItem(20, 10));
+				setup.setStoreName("TEST060 finite D-shot craft"); setup.setPrivateStoreType(PrivateStoreType.MANUFACTURE);
+				setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(setup.getMaxCp());
+			}
+			else
+			{
+				final var stock = setup.getInventory().addItem(ItemProcessType.REWARD, 1835, 300, null, PhantomOfflineSupply060Fixture.class);
+				PhantomAssertions.assertTrue(stock != null && setup.getSellList().addItem(stock.getObjectId(), 300, 6) != null, "Finite offline sell listing failed.");
+				stockObjectId = stock.getObjectId(); setup.getSellList().setTitle("TEST060 finite shots"); setup.setPrivateStoreType(PrivateStoreType.SELL);
+			}
+			setup.sitDown(); setup.setOfflineStartTime(System.currentTimeMillis());
 			setup.storeMe(); OfflineTraderTable.getInstance().onTransaction(setup, false, true);
 			PhantomAssertions.assertEquals(1L, offlineRows("SELECT COUNT(*) FROM character_offline_trade WHERE charId=" + fixture.objectId()), "Native offline row was not saved.");
 			environment.cleanupLoadedPlayer(setup);
 			OfflineTraderTable.getInstance().restoreOfflineTraders();
 			final var restored = World.getInstance().getPlayer(fixture.objectId());
 			PhantomAssertions.assertTrue(restored != null && restored.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE), "Native restored seller is outside its peace zone.");
-			PhantomAssertions.assertTrue(PhantomOfflineSupply.offline(restored) && restored.getClient() == null && restored.getPrivateStoreType() == PrivateStoreType.SELL && restored.getSellList().getItems().stream().anyMatch(line -> line.getObjectId() == stock.getObjectId()), "Native offline restoration did not restore the exact published listing.");
-			context.record("life060.offlineInput", "PREMEASUREMENT one finite dwarf seller=" + restored.getObjectId() + "; native OfflineTraderTable save/deleteMe/restore; client=NULL/online/offlineStartTime=" + restored.getOfflineStartTime() + "; 300NG1835 @6 Adena; actual peace-zone counter=" + merchant.getId() + "; XYZ=" + restored.getX() + ',' + restored.getY() + ',' + restored.getZ() + "; no live socket logout claim; no later test listing/resource/XYZ writes");
-			return new PhantomOfflineSupply060Fixture(environment, fixture.objectId(), realtime, count, restored);
+			final int expectedStockObject = stockObjectId;
+			PhantomAssertions.assertTrue(PhantomOfflineSupply.offline(restored) && restored.getClient() == null && (manufacture ? restored.getPrivateStoreType() == PrivateStoreType.MANUFACTURE && restored.getManufactureItems().get(20) != null && restored.hasRecipeList(20) && restored.getSkillLevel(172) == 2 : restored.getPrivateStoreType() == PrivateStoreType.SELL && restored.getSellList().getItems().stream().anyMatch(line -> line.getObjectId() == expectedStockObject)), "Native offline restoration did not restore the exact published listing.");
+			context.record("life060.offlineInput", "PREMEASUREMENT one finite dwarf=" + restored.getObjectId() + "; native OfflineTraderTable save/deleteMe/restore; client=NULL/online/offlineStartTime=" + restored.getOfflineStartTime() + (manufacture ? "; PREPARED Artisan56/20/172:2/recipe20; one craft fee10/ingredients9ore+3Dcrystals/customer; nativeMP=" + restored.getCurrentMp() + "; nativechance100; not earned profession" : "; 300NG1835 @6 Adena") + "; actual peace-zone counter=" + merchant.getId() + "; XYZ=" + restored.getX() + ',' + restored.getY() + ',' + restored.getZ() + "; no live socket logout claim; no later test listing/resource/XYZ writes");
+			return new PhantomOfflineSupply060Fixture(environment, fixture.objectId(), realtime, count, restored, manufacture);
 		}
 		catch (Throwable failure)
 		{
@@ -81,6 +105,7 @@ final class PhantomOfflineSupply060Fixture implements AutoCloseable
 			throw failure;
 		}
 	}
+	Player actor() { return World.getInstance().getPlayer(_objectId); }
 
 	boolean observePaid(PhantomTestContext context, long profileId, Player buyer, PhantomGoal goal, PhantomEconomyReservationService reservations)
 	{
