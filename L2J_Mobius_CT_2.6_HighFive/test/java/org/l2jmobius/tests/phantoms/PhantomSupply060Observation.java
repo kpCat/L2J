@@ -112,6 +112,15 @@ final class PhantomSupply060Observation
 		_receipts = new PhantomCommerceReceiptStore(profiles);
 	}
 
+	void resumePaid(PhantomTestContext context, Player player, PhantomLiving060ResumeReceipt.Saved saved, PhantomCommerceReceipt receipt)
+	{
+		PhantomAssertions.assertTrue(_purchase == null && _offline == null && receipt != null && receipt.state() == PhantomCommerceReceipt.State.COMMITTED && receipt.profileId() == _profileId && receipt.operationKey().equals(saved.paymentKey()) && receipt.request().kind() == PhantomCommerceReceipt.OperationKind.BUY && receipt.request().itemId() == _itemId && receipt.request().amount() > 0
+				&& receipt.before().primaryCount() - receipt.expectedAfter().primaryCount() == receipt.request().amount() && receipt.expectedAfter().secondaryCount() - receipt.before().secondaryCount() == receipt.request().count()
+				&& player.getExp() == saved.exp() && player.getSp() == saved.sp() && player.getAdena() == receipt.expectedAfter().primaryCount() && player.getInventory().getInventoryItemCount(_itemId, -1) == receipt.expectedAfter().secondaryCount(), "Resume observer refuses a changed/non-conserved persisted payment.");
+		_purchase = receipt;
+		context.record("life060.resumePaymentObserved", "READ_ONLY persisted COMMITTED payment=" + receipt.operationKey() + "; earlier JVM proved earned farm; current phase still requires actual return and NEW kill/earned EXP/SP/consumption; no execute/new goal");
+	}
+
 	boolean advance(PhantomTestContext context, Player player, PlayerNativeEvidence.Snapshot sample, long now)
 	{
 		final var component = _profiles.findComponent(_profileId, "supply.intent").orElse(null);

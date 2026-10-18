@@ -639,6 +639,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (Boolean.getBoolean("phantom.test.supplyGuards060"))
 			{
+				if (Boolean.getBoolean("phantom.test.supplyResumeGuards060")) { registry.add("27-two-jvm-resume-receipt-authority", PhantomLiving060ResumeReceipt::models); return; }
 				if (Boolean.getBoolean("phantom.test.supplyGatekeeperGuards060"))
 				{
 					registry.add("25-native-gk-corridor-plan-and-resources", context -> PhantomGatekeeper060CorridorGuards.run(context, _topology));
@@ -659,7 +660,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			if (Boolean.getBoolean("phantom.test.living060"))
 			{
 				final int classId = Integer.getInteger("phantom.test.livingClass060", Boolean.getBoolean("phantom.test.livingMage060") ? 25 : Boolean.getBoolean("phantom.test.livingDwarf060") ? 53 : 0);
-				registry.add(Boolean.getBoolean("phantom.test.livingGatekeeper060") ? "24-production-farm-native-gatekeeper-supply-and-farm" : Boolean.getBoolean("phantom.test.livingManufacture060") ? "23-production-farm-offline-manufacture-and-farm" : Boolean.getBoolean("phantom.test.livingOfflineStore060") ? "20-production-farm-paid-offline-store-and-farm" : Boolean.getBoolean("phantom.test.livingSupply060") ? "15-production-farm-paid-npc-supply-and-farm" : Boolean.getBoolean("phantom.test.livingRelocate060") ? "11-production-earned-threshold-farm-relocation" : classId == 25 ? "07-production-mystic-farm-learning-and-farm" : classId == 53 ? "08-production-dwarf-farm-learning-and-farm" : classId == 10 ? "09-production-human-mystic-farm-learning-and-farm" : classId == 44 ? "10-production-orc-farm-learning-and-farm" : "06-production-fighter-farm-learning-and-farm", context ->
+				registry.add(Boolean.getBoolean("phantom.test.deathCpGuards060") ? "31-native-death-cp-owned-store-bound" : Boolean.getBoolean("phantom.test.livingResumeSave060") ? "28-paid-life-save-for-next-jvm" : Boolean.getBoolean("phantom.test.livingResumeContinue060") ? "29-loaded-paid-intent-return-and-new-earned-farm" : Boolean.getBoolean("phantom.test.livingGatekeeper060") ? "24-production-farm-native-gatekeeper-supply-and-farm" : Boolean.getBoolean("phantom.test.livingManufacture060") ? "23-production-farm-offline-manufacture-and-farm" : Boolean.getBoolean("phantom.test.livingOfflineStore060") ? "20-production-farm-paid-offline-store-and-farm" : Boolean.getBoolean("phantom.test.livingSupply060") ? "15-production-farm-paid-npc-supply-and-farm" : Boolean.getBoolean("phantom.test.livingRelocate060") ? "11-production-earned-threshold-farm-relocation" : classId == 25 ? "07-production-mystic-farm-learning-and-farm" : classId == 53 ? "08-production-dwarf-farm-learning-and-farm" : classId == 10 ? "09-production-human-mystic-farm-learning-and-farm" : classId == 44 ? "10-production-orc-farm-learning-and-farm" : "06-production-fighter-farm-learning-and-farm", context ->
 					PhantomLiving060Scenario.run(context, _environment, _repository, _query, _topology, _progression, new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load(), classId));
 				return;
 			}

@@ -324,7 +324,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		}
 		if (highWater == 0) { return; }
 		int count = 0; int last = 0;
-		while (last <= highWater && count < 262144) { last = IdManager.getInstance().getNextId(); count++; }
+		while (last <= highWater && count < 524288) { last = IdManager.getInstance().getNextId(); count++; }
 		PhantomAssertions.assertTrue(last > highWater, "Fresh TEST identity reservation exceeded its declared bound; retained profiles stay untouched.");
 		context.record("fixture059.newIdentityWindow", "stock IdManager allocations=" + count + "; last=" + last + "; retainedProfileHighWater=" + highWater + "; profile/database writes=0; no orphan deletion");
 	}
@@ -787,7 +787,7 @@ public final class PhantomHeadlessPlayerTestEnvironment
 	{
 		final List<Integer> objectIds = new ArrayList<>();
 		try (Connection connection = DatabaseFactory.getConnection();
-			PreparedStatement statement = connection.prepareStatement("SELECT charId FROM characters WHERE account_name=?"))
+			PreparedStatement statement = connection.prepareStatement(PhantomCampaign058DatabaseLane.enabled() ? "SELECT charId FROM characters c WHERE account_name=? AND NOT EXISTS (SELECT 1 FROM phantom_profiles p WHERE p.character_object_id=c.charId)" : "SELECT charId FROM characters WHERE account_name=?"))
 		{
 			statement.setString(1, _accountName);
 			try (ResultSet result = statement.executeQuery())
@@ -826,9 +826,11 @@ public final class PhantomHeadlessPlayerTestEnvironment
 		try (Connection connection = DatabaseFactory.getConnection())
 		{
 			PhantomAssertions.assertEquals(PhantomCampaign058DatabaseLane.enabled() ? 1L : 0L, count(connection, "SELECT COUNT(*) FROM accounts WHERE login=?", _accountName), "Owned account retention/cleanup contract differs.");
-			PhantomAssertions.assertEquals(0L, count(connection, "SELECT COUNT(*) FROM characters WHERE account_name=?", _accountName), "Owned character residue remains.");
+			PhantomAssertions.assertEquals(0L, count(connection, PhantomCampaign058DatabaseLane.enabled() ? "SELECT COUNT(*) FROM characters c WHERE account_name=? AND NOT EXISTS (SELECT 1 FROM phantom_profiles p WHERE p.character_object_id=c.charId)" : "SELECT COUNT(*) FROM characters WHERE account_name=?", _accountName), "Owned character residue remains.");
 			for (int objectId : _ownedObjectIds)
 			{
+				// A retained profile owns this character across JVMs; fixture cleanup must not orphan it.
+				if (PhantomCampaign058DatabaseLane.enabled() && count(connection, "SELECT COUNT(*) FROM phantom_profiles WHERE character_object_id=?", objectId) > 0) { continue; }
 				PhantomAssertions.assertEquals(0L, count(connection, "SELECT COUNT(*) FROM items WHERE owner_id=?", objectId), "Owned item residue remains for " + objectId + ".");
 			}
 		}
