@@ -42,14 +42,51 @@ import org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyQuery;
 /** Separate finite owner controls; no full life/career/accepted human-command claim. */
 final class PhantomSupply060OwnerGuards
 {
+	static void ammunitionPolicy(PhantomTestContext context, Player player, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology,
+			org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionCatalog progression, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog commerce) throws Exception
+	{
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+		while (player.isInCombat() && System.nanoTime() < deadline) { Thread.sleep(100); }
+		PhantomAssertions.assertTrue(player.getActiveWeaponItem() != null && player.getActiveWeaponItem().isRange() && !player.isInCombat(), "Ammunition policy control requires its native prepared bow after guard cleanup.");
+		final var authority = new org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority(() -> knowledge, () -> topology, () -> progression, () -> commerce);
+		final var capture = authority.captureNativeContext(player);
+		final boolean permitted = capture.policy().withPosition(true, true).permits(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundSimulationPolicy.Operation.FARM, org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority.configuredSimulationFingerprint());
+		context.record("supply060.ammunitionPolicy", "native captured Bow14; ordinaryRewards=" + capture.policy().ordinaryRewards() + "; unsupportedFacts=" + capture.policy().unsupportedFacts() + "; virtual farm permission=" + permitted + "; virtual resource vector has no ammunition consumption; actual native field position remains separately validated");
+		PhantomAssertions.assertFalse(permitted, "Unmodeled native bow ammunition may not earn virtual farm rewards without consuming arrows.");
+		PhantomAssertions.assertTrue((capture.policy().unsupportedFacts() & 256) != 0, "Native ammunition refusal lost its explicit scalar fact.");
+		final var identity = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Identity(1, player.getObjectId(), player.getClassIndex(), player.getActiveClass(), player.getRace().ordinal());
+		final var capsule = org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.completed(identity, capture, 0, new byte[] {1});
+		PhantomAssertions.assertEquals(capsule, org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.decode(capsule.encode()), "Known V2 ammunition policy did not roundtrip.");
+		final byte[] unknown = capsule.encode(); java.nio.ByteBuffer.wrap(unknown, unknown.length - 4, 4).putInt(512);
+		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.decode(unknown), "Unknown V2 policy flag was accepted.");
+		final var legacy = org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.completed(identity, 1, org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.Eligibility.SUPPORTED, 0, new byte[] {1});
+		PhantomAssertions.assertEquals(legacy, org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.decode(legacy.encode()), "Legacy V1 capsule parser regressed.");
+	}
 	static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
 			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, false);
+	}
+
+	static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final long baselineAdena = player.getAdena();
 		player.setBaseClass(0); player.setPlayerClass(0); player.setLearningClass(player.getPlayerClass()); player.getStat().setLevel((byte) 5); player.setSp(0);
-		final var weapon = player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, null, PhantomSupply060OwnerGuards.class);
+		final var weapon = player.getInventory().addItem(ItemProcessType.REWARD, ammunition ? 14 : 68, 1, null, PhantomSupply060OwnerGuards.class);
 		PhantomAssertions.assertTrue(weapon != null, "Finite owner-guard weapon unavailable."); player.getInventory().equipItem(weapon);
+		final int supplyItemId = ammunition ? 17 : 1835;
+		if (ammunition)
+		{
+			player.getInventory().addItem(ItemProcessType.REWARD, 1835, 600, null, PhantomSupply060OwnerGuards.class);
+			player.getInventory().addItem(ItemProcessType.REWARD, 17, 2, null, PhantomSupply060OwnerGuards.class);
+			final var itemData = org.l2jmobius.gameserver.data.xml.ItemData.getInstance();
+			PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.compatible(player, itemData.getTemplate(17)), "Native NG bow/wooden arrow supply contract is missing.");
+			PhantomAssertions.assertFalse(L2jPhantomSupplyJourney.compatible(player, itemData.getTemplate(1341)), "NG bow accepted D-grade arrows.");
+			PhantomAssertions.assertFalse(L2jPhantomSupplyJourney.compatible(player, itemData.getTemplate(9632)), "Bow accepted native crossbow bolts.");
+			PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.compatible(player, itemData.getTemplate(1835)), "Existing native NG shot compatibility regressed.");
+		}
 		player.getInventory().addItem(ItemProcessType.REWARD, 57, 10_000, null, PhantomSupply060OwnerGuards.class);
 		player.refreshExpertisePenalty(); player.refreshOverloaded(); player.setRunning(); player.standUp();
 		final var goals = new PhantomGoalStateStore(profiles);
@@ -59,6 +96,7 @@ final class PhantomSupply060OwnerGuards
 		goals.insert(profileId, root);
 		final var store = new PhantomSupplyIntentStore(profiles, goals);
 		final var catalog = new PhantomCommerceCatalogLoader(Path.of(".")).load();
+		if (ammunition) { PhantomAssertions.assertTrue(catalog.catalog().findSupply(17) != null && catalog.catalog().findSupply(17).kinds().stream().anyMatch(kind -> kind.name().equals("AMMUNITION")), "Native arrow source classification is missing."); }
 		final var receipts = new PhantomCommerceReceiptStore(profiles);
 		final var commerce = new PhantomCommerceService(catalog, receipts, store, new L2jCommerceBackend(materialization, catalog.catalog(), Clock.systemDefaultZone()));
 		final var navigation = new PhantomNavigationService(new PhantomMetrics());
@@ -67,9 +105,9 @@ final class PhantomSupply060OwnerGuards
 		final var allowed = new AtomicBoolean(false);
 		var journey = new L2jPhantomSupplyJourney(store, goals, materialization, commerce, receipts, navigation, () -> knowledge, routes, _ -> allowed.get(), (_, _) -> true, (_, _) -> false, policy);
 		PhantomAssertions.assertTrue(navigation.start() && commerce.start() && journey.start(), "Supply owner guards did not start.");
-		final long adena = player.getAdena(), stock = player.getInventory().getInventoryItemCount(1835, -1);
+		final long adena = player.getAdena(), stock = player.getInventory().getInventoryItemCount(supplyItemId, -1);
 		final int x = player.getX(), y = player.getY(), z = player.getZ();
-		context.record("supply060.ownerInput", "SEPARATE PREMEASUREMENT own finite NG68 and10000 Adena; class0/5/SP0; root=" + root + "; guard calls only, no full farm/command claim");
+		context.record("supply060.ownerInput", "SEPARATE PREMEASUREMENT own finite " + (ammunition ? "NG Bow14/arrows2/NGshots600" : "NG68") + " and10000 Adena; class0/5/SP0; root=" + root + "; guard calls only, no full farm/command claim");
 		try
 		{
 			PhantomAssertions.assertFalse(journey.needsOrOwns(profileId, root), "Foreign owner/HOLD port allowed a supply need.");
@@ -87,11 +125,12 @@ final class PhantomSupply060OwnerGuards
 			final var step = new PhantomStepContext(profileId, replacement, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
 			final var result = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
 			final var intent = journey.automaticIntent(profileId).orElseThrow();
+			PhantomAssertions.assertEquals(Integer.toString(supplyItemId), intent.target().key(), "Low native ammunition did not win independently of sufficient shot stock.");
 			PhantomAssertions.assertEquals("supplies.native.busy", result.reasonKey(), "Native combat allowed travel/payment.");
 			PhantomAssertions.assertEquals(replacement.revision(), PhantomSupplyIntentStore.Binding.parse(intent).rootRevision(), "Cached old revision created a stale supply intent.");
 			PhantomAssertions.assertTrue(store.load(profileId).isPresent(), "Exact active child was not visible to Commerce.");
 			PhantomAssertions.assertEquals(adena, player.getAdena(), "Combat guard charged Adena.");
-			PhantomAssertions.assertEquals(stock, player.getInventory().getInventoryItemCount(1835, -1), "Combat guard supplied free charges.");
+			PhantomAssertions.assertEquals(stock, player.getInventory().getInventoryItemCount(supplyItemId, -1), "Combat guard supplied free charges.");
 			PhantomAssertions.assertTrue(!player.isMoving() && player.getX() == x && player.getY() == y && player.getZ() == z && receipts.find(profileId).isEmpty(), "Guard created movement/payment receipt.");
 			journey.beginStop(); PhantomAssertions.assertTrue(journey.finishStop(), "First supply owner did not stop.");
 			final var component = profiles.findComponent(profileId, PhantomSupplyIntentStore.COMPONENT).orElseThrow();

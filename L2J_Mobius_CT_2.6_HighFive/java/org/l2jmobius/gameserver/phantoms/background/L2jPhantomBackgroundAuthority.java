@@ -1264,9 +1264,11 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final int consume = (int) player.getStat().calcStat(Stat.VITALITY_CONSUME_RATE, 1, player, null);
 		final boolean ordinaryPolicy = !PlayerConfig.ENABLE_VITALITY || ((consume == 1) && !player.getNevitSystem().isAdventBlessingActive());
         final boolean staticEffects = player.getEffectList().getEffects().stream().allMatch(info -> info.getSkill().isPassive());
+        // The scalar FARM model has no arrow/bolt debit; only native combat may consume this loadout.
+        final boolean nativeAmmunition = player.getActiveWeaponItem() != null && player.getActiveWeaponItem().isRange();
         final boolean rewards = !player.hasPremiumStatus() && !player.isInParty() && !player.hasSummon()
             && !player.getNevitSystem().isAdventBlessingActive() && player.getNevitHourglassMultiplier() == 1 && staticEffects
-            && !DynamicExpRateData.getInstance().isEnabled() && player.getStat().calcStat(Stat.EXPSP_RATE, 1, null, null) == 1;
+            && !DynamicExpRateData.getInstance().isEnabled() && player.getStat().calcStat(Stat.EXPSP_RATE, 1, null, null) == 1 && !nativeAmmunition;
         final var policy = new PhantomBackgroundSimulationPolicy(PhantomBackgroundSimulationPolicy.ALGORITHM_VERSION, player.getLevel(), points, points,
             rewards, false, player.getInstanceId() == 0, PlayerConfig.ENABLE_VITALITY, player.isLucky(), consume,
             RatesConfig.RATE_VITALITY_GAIN, RatesConfig.RATE_VITALITY_LOST,
@@ -1277,7 +1279,8 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
             (player.hasPremiumStatus() ? 1 : 0) | (player.isInParty() ? 2 : 0) | (player.hasSummon() ? 4 : 0)
             | (player.getNevitSystem().isAdventBlessingActive() || player.getNevitHourglassMultiplier() != 1 ? 8 : 0)
             | (!staticEffects ? 16 : 0) | (DynamicExpRateData.getInstance().isEnabled() ? 32 : 0)
-            | (player.getStat().calcStat(Stat.EXPSP_RATE, 1, null, null) != 1 ? 64 : 0));
+            | (player.getStat().calcStat(Stat.EXPSP_RATE, 1, null, null) != 1 ? 64 : 0)
+            | (nativeAmmunition ? PhantomBackgroundSimulationPolicy.NATIVE_AMMUNITION_REQUIRED : 0));
         return new PhantomNativeContext.Capture(points, (points == 1) && ordinaryPolicy && rewards
             ? PhantomNativeContext.Eligibility.SUPPORTED : PhantomNativeContext.Eligibility.VITALITY_REQUIRES_NATIVE, policy);
 	}

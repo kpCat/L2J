@@ -29,6 +29,7 @@ import org.l2jmobius.gameserver.model.actor.instance.Merchant;
 import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.ItemTemplate;
 import org.l2jmobius.gameserver.model.item.type.ActionType;
+import org.l2jmobius.gameserver.model.item.type.EtcItemType;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
@@ -144,9 +145,11 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 				if (Binding.parse(cached.goal).retryAfterEpochMillis() > now) { return Optional.empty(); }
 			}
 			if (_learningOwns.test(profileId, root) || player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem()) { return Optional.empty(); }
-			final int perHit = player.isMageClass() ? player.getActiveWeaponItem().getSpiritShotCount() : player.getActiveWeaponItem().getSoulShotCount();
+			final var ammunition = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.AMMUNITION)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
+			final boolean ammunitionNeeded = !ammunition.isEmpty() && ammunition.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < _policy.lowWaterHits();
+			final int perHit = ammunitionNeeded ? 1 : player.isMageClass() ? player.getActiveWeaponItem().getSpiritShotCount() : player.getActiveWeaponItem().getSoulShotCount();
 			if (perHit <= 0 || perHit > 100) { return Optional.empty(); }
-			final var items = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
+			final var items = ammunitionNeeded ? ammunition : _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
 			final long stock = items.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
 			if (stock >= (long) perHit * _policy.lowWaterHits()) { return Optional.empty(); }
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena();
@@ -181,7 +184,13 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	public static boolean compatible(Player player, ItemTemplate item)
 	{
-		return player != null && player.getActiveWeaponItem() != null && item instanceof EtcItem etc && item.isStackable() && item.getCrystalType() == player.getActiveWeaponItem().getCrystalTypePlus() && item.getDefaultAction() == (player.isMageClass() ? ActionType.SPIRITSHOT : ActionType.SOULSHOT) && ItemHandler.getInstance().getHandler(etc) != null;
+		if (player == null || player.getActiveWeaponItem() == null || !(item instanceof EtcItem etc) || !item.isStackable()) { return false; }
+		final var weapon = player.getActiveWeaponItem();
+		if (etc.getItemType() == EtcItemType.ARROW || etc.getItemType() == EtcItemType.BOLT)
+		{
+			return item.getCrystalTypePlus() == weapon.getCrystalTypePlus() && (weapon.isBow() && etc.getItemType() == EtcItemType.ARROW || weapon.isCrossBow() && etc.getItemType() == EtcItemType.BOLT);
+		}
+		return item.getCrystalType() == weapon.getCrystalTypePlus() && item.getDefaultAction() == (player.isMageClass() ? ActionType.SPIRITSHOT : ActionType.SOULSHOT) && ItemHandler.getInstance().getHandler(etc) != null;
 	}
 
 	private List<Choice> choices(Player player, List<ItemTemplate> items, long stock, int perHit)

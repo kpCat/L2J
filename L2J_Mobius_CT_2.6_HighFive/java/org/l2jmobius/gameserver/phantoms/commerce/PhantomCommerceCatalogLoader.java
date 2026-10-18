@@ -315,6 +315,10 @@ public final class PhantomCommerceCatalogLoader
 		{
 			result.add(SupplyKind.PET_FOOD);
 		}
+		if ("ARROW".equals(itemType) || "BOLT".equals(itemType))
+		{
+			result.add(SupplyKind.AMMUNITION);
+		}
 		if (handler.contains("Beast") || handler.contains("Summon") || "PET_COLLAR".equals(itemType))
 		{
 			result.add(SupplyKind.SUMMON_RESOURCE);

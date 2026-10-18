@@ -15,6 +15,7 @@ public record PhantomBackgroundSimulationPolicy(int algorithmVersion, int level,
     String rulesFingerprint, double runSpeed, long maximumBatchMillis, int unsupportedFacts)
 {
     public static final int ALGORITHM_VERSION = 2;
+    public static final int NATIVE_AMMUNITION_REQUIRED = 256;
     public enum Operation { FARM, TRAVEL, REST }
     public PhantomBackgroundSimulationPolicy
     {
@@ -23,7 +24,7 @@ public record PhantomBackgroundSimulationPolicy(int algorithmVersion, int level,
             || canonicalPoints < 1 || canonicalPoints > 20000 || !Float.isFinite(points)
             || points < 1 || points > 20000 || (int) points != canonicalPoints
             || !rulesFingerprint.matches("[0-9a-f]{64}") || !Double.isFinite(runSpeed) || runSpeed < 0 || runSpeed > 10000
-            || maximumBatchMillis < 1 || maximumBatchMillis > PhantomBackgroundModel.MAX_ELAPSED_MILLIS || unsupportedFacts < 0 || unsupportedFacts > 255)
+            || maximumBatchMillis < 1 || maximumBatchMillis > PhantomBackgroundModel.MAX_ELAPSED_MILLIS || unsupportedFacts < 0 || unsupportedFacts > (algorithmVersion >= 2 ? 511 : 255))
         { throw new IllegalArgumentException("Invalid ordinary policy binding."); }
         final double[] values = { gainRate, lostRate, level1Rate, level2Rate, level3Rate,
             level4Rate, bonusExpPercent, bonusSpPercent, maxExpBonus, maxSpBonus };
@@ -36,7 +37,7 @@ public record PhantomBackgroundSimulationPolicy(int algorithmVersion, int level,
     {
         return switch (operation)
         {
-            case FARM -> algorithmVersion == ALGORITHM_VERSION && ordinaryRewards && farmPosition && rulesFingerprint.equals(currentRules);
+            case FARM -> algorithmVersion == ALGORITHM_VERSION && ordinaryRewards && (unsupportedFacts & NATIVE_AMMUNITION_REQUIRED) == 0 && farmPosition && rulesFingerprint.equals(currentRules);
             case TRAVEL -> algorithmVersion == ALGORITHM_VERSION && travelPosition && runSpeed > 0;
             case REST -> false;
         };

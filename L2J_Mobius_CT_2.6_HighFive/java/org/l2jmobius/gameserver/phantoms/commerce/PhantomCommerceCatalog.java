@@ -316,6 +316,7 @@ public final class PhantomCommerceCatalog
 	public enum SupplyKind
 	{
 		SHOT,
+		AMMUNITION,
 		HP_RESTORE,
 		MP_RESTORE,
 		CP_RESTORE,

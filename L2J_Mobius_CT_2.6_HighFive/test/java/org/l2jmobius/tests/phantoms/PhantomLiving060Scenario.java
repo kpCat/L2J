@@ -78,17 +78,19 @@ final class PhantomLiving060Scenario
 		final boolean offlineStore = Boolean.getBoolean("phantom.test.livingOfflineStore060");
 		final boolean manufacture = Boolean.getBoolean("phantom.test.livingManufacture060");
 		final boolean gatekeeper = Boolean.getBoolean("phantom.test.livingGatekeeper060");
+		final boolean bow = Boolean.getBoolean("phantom.test.livingBow060");
 		final boolean resumeSave = Boolean.getBoolean("phantom.test.livingResumeSave060"), resumeContinue = Boolean.getBoolean("phantom.test.livingResumeContinue060");
 		PhantomAssertions.assertTrue(!(resumeSave && resumeContinue) && (!(resumeSave || resumeContinue) || supply && (classId == 0 || classId == 53) && !gatekeeper && !manufacture && !offlineStore && !relocation), "Resume requires two separate declared Fighter/Dwarf NPC supply JVM phases.");
 		final boolean deathCpGuard = Boolean.getBoolean("phantom.test.deathCpGuards060");
 		final boolean preparedD = manufacture || gatekeeper;
+		PhantomAssertions.assertTrue(!bow || supply && (classId == 0 || classId == 53) && !gatekeeper && !manufacture && !offlineStore && !resumeSave && !resumeContinue, "Bow requires its separate finite Fighter/Dwarf NPC ammunition scene.");
 		PhantomAssertions.assertTrue(!gatekeeper || supply && classId == 53 && !offlineStore && !manufacture, "Gatekeeper requires a separate prepared Dwarf supply scene.");
 		PhantomAssertions.assertTrue(!manufacture || supply && classId == 53 && !offlineStore, "Manufacture requires its separate prepared Dwarf12 supply scene with native D-grade penalties.");
 		PhantomAssertions.assertTrue(!offlineStore || supply && (classId == 0 || classId == 53), "Offline supply requires a declared Fighter or Dwarf supply scene.");
 		PhantomAssertions.assertTrue(!supply || !relocation, "Supply060 requires a separately declared scene.");
 		PhantomAssertions.assertTrue(!relocation || classId == 0, "Relocation060 requires its separately declared Fighter input.");
 		final boolean mage = classId == 10 || classId == 25, dwarf = classId == 53, orc = classId == 44;
-		final int shotItemId = preparedD ? 1463 : mage ? 2509 : 1835;
+		final int shotItemId = bow ? 17 : preparedD ? 1463 : mage ? 2509 : 1835;
 		if (resumeSave) { PhantomLiving060ResumeReceipt.requireAbsent(context); }
 		final var resumeState = resumeContinue ? PhantomLiving060ResumeReceipt.read(context, profiles) : null;
 		final var fixture = resumeState == null ? environment.createCampaign058Companion(context, mage ? 2 : 1) : resumeState.fixture();
@@ -118,12 +120,13 @@ final class PhantomLiving060Scenario
 				if (supply)
 				{
 					setup.setSp(0);
+					if (bow) { setup.getInventory().addItem(ItemProcessType.REWARD, 1835, 600, null, PhantomLiving060Scenario.class); context.record("life060.bowInput", "PREMEASUREMENT native NG Bow14/16woodenArrows17/600NGshots/10000Adena; low arrow need independent of sufficient shots; native equip/fire/MP/reuse untouched; bounded solo native preflight; actual finite full-HP fixture count recorded separately"); }
 					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, shotItemId, 16, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial charges unavailable.");
 					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, 57, 10_000, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial funds unavailable.");
 					if (manufacture) { setup.getInventory().addItem(ItemProcessType.REWARD, 1785, 9, null, PhantomLiving060Scenario.class); setup.getInventory().addItem(ItemProcessType.REWARD, 1458, 3, null, PhantomLiving060Scenario.class); }
 					context.record("life060.supplyInput", "PREMEASUREMENT finite16 native compatible charges item=" + shotItemId + ";10000 owned Adena; initial SP0" + (manufacture ? "; PREPARED stable level12/D gear with native expertise penalties/9SoulOre+3Dcrystals; no earned profession claim" : "") + "; all later stock/funds changes through native combat and paid operation");
 				}
-				for (int itemId : manufacture ? new int[] {129, 352, 2378} : gatekeeper ? new int[] {129, 24, 31} : mage ? new int[] {8, 24, 31} : new int[] {68, 24, 31})
+				for (int itemId : bow ? new int[] {14, 24, 31} : manufacture ? new int[] {129, 352, 2378} : gatekeeper ? new int[] {129, 24, 31} : mage ? new int[] {8, 24, 31} : new int[] {68, 24, 31})
 				{
 					final var item = setup.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, PhantomLiving060Scenario.class);
 					PhantomAssertions.assertTrue(item != null, "Living060 finite owned gear missing."); setup.getInventory().equipItem(item);
@@ -372,7 +375,8 @@ final class PhantomLiving060Scenario
 		final boolean supplies = Boolean.getBoolean("phantom.test.livingSupply060");
 		final boolean manufacture = Boolean.getBoolean("phantom.test.livingManufacture060");
 		final boolean gatekeeper = Boolean.getBoolean("phantom.test.livingGatekeeper060");
-		final boolean declaredSolo = manufacture || Boolean.getBoolean("phantom.test.livingResumeSave060");
+		final boolean bow = Boolean.getBoolean("phantom.test.livingBow060");
+		final boolean declaredSolo = manufacture || bow || Boolean.getBoolean("phantom.test.livingResumeSave060");
 		final var gatekeeperNpcs = gatekeeper ? PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology).legs().stream().filter(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions::available).map(leg -> leg.teleporterNpcId()).collect(java.util.stream.Collectors.toSet()) : java.util.Set.<Integer>of();
 		final var declaredRegion = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(setup.getX(), setup.getY(), setup.getZ(), 0);
 		final var supplyNpcs = supplies ? commerce.buyOffers().stream().filter(offer -> offer.price() > 0 && !offer.limitedStock() && L2jPhantomSupplyJourney.compatible(setup, org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(offer.itemId()))).flatMap(offer -> offer.npcIds().stream()).collect(java.util.stream.Collectors.toSet()) : java.util.Set.<Integer>of();
