@@ -4,10 +4,10 @@ Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
 if ($Mode -cnotmatch '^[a-z0-9-]+$' -or $Label -cnotmatch '^[a-z0-9-]+$' -or $Seed -le 0) { throw 'Invalid exact test arguments' }
 if ((Get-Location).Path -ine (Join-Path $hf059 '.phantom-local/contract058t/runtime/game')) { throw 'Exact058t native cwd required' }
-if ($Campaign061 -and ($Campaign060 -or $CleanCandidate -or !$CareerProducer -or $Mode -cne 'quest-instance-goal036' -or $Seed -ne 36003601)) {throw 'TASK061 producer requires its exact continuation mode/seed/build'}
+if ($Campaign061 -and ($Campaign060 -or $CleanCandidate -or !(($CareerProducer -and $Mode -ceq 'quest-instance-goal036' -and $Seed -eq 36003601) -or ($AutonomousLearning -and $AutonomousLearningGuards -and $Mode -ceq 'earned-learning-native058' -and $Seed -eq 58005833)))) {throw 'TASK061 requires an exact producer or learning continuation mode/seed/build'}
 if ($CareerProducer -and !$Campaign061) {throw 'Career061 input requires explicit TASK061 authority'}
 if ($Campaign061 -and (Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object CommandLine -Match 'World-Career-061-candidate|Living-060-candidate|M3-M7-059-candidate|task061')) {throw 'Own061 or protected059/060 JVM active; sequential only'}
-if ($AutonomousLearning -and (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)) {throw 'Autonomous learning requires exact060 continuation of native058 mode/seed'}
+if ($AutonomousLearning -and ((!$Campaign060 -and !$Campaign061) -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)) {throw 'Autonomous learning requires exact060/061 continuation of native058 mode/seed'}
 if ($AutonomousLearningGuards -and !$AutonomousLearning) {throw 'Learning guards require the exact060 autonomous learning input'}
 if ($Living -and (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833 -or $AutonomousLearning)) {throw 'Living composition requires exact060 native058 mode/seed and a separate scene'}
 if (($LivingMage -or $LivingDwarf -or $LivingClass -ne 0) -and !$Living) {throw 'Living mage requires the full living composition'}
@@ -36,6 +36,7 @@ $classpath059="$jar059;$testBuild059\phantom-test\bin;$testBuild059\phantom-test
 $args059=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Dstderr.encoding=UTF-8',"-Dphantom.module.root=$hf059","-Dphantom.contract058.semantic.jar=$jar059","-Dphantom.test.reports=$report059","-Dphantom.test.config=$hf059\.phantom-local\contract058t\test\Database.test.ini","-Dphantom.contract058.manifest=$hf059\.phantom-local\contract058t\test\owned.properties")
 $args059+='-Dphantom.test.freshIdentities059=true'
 if ($CareerProducer) {$args059+='-Dphantom.test.careerProducer061=true'}
+if ($Campaign061 -and $AutonomousLearning) {$args059+='-Dphantom.test.nearbyLife061=true'}
 if ($SupplyAmmunitionGuards) { if (!$Campaign060 -or !$SupplyGuards -or $Living -or $PetSupport -or $SupplyGatekeeperGuards -or $SupplyManufactureGuards -or $SupplyReturnGuards -or $SupplyResumeGuards) {throw 'Ammunition guards require separate exact060 SupplyGuards'}; $args059+='-Dphantom.test.supplyAmmunitionGuards060=true' }
 if ($LivingBow) { if (!$Campaign060 -or !$Living -or !$LivingSupply -or $LivingClass -notin @(0,53) -or $LivingMage -or $LivingResumeSave -or $LivingResumeContinue -or $LivingGatekeeper -or $LivingOfflineStore -or $LivingManufacture) {throw 'Bow requires separate declared Fighter/Dwarf NPC supply scene'}; $args059+='-Dphantom.test.livingBow060=true' }
 if ($AggroReadiness) { if (!$Campaign060 -or $Mode -cne 'companion-npc-aggro058' -or $Seed -ne 58005817 -or $Living -or $AreaAggro -or $PetSupport -or $SupplyGuards) {throw 'Aggro readiness requires separate exact060 native NPC scene'}; $args059+='-Dphantom.test.aggroReadiness060=true' }

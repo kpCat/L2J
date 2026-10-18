@@ -885,6 +885,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	static boolean campaign058JarAllowed(Path supplied)
 	{
+		if (PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task061/build/dist/libs/GameServer.jar").equals(supplied)) { return true; }
 		return List.of(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/native-current058/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release059/compiled/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task060/build/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release060/compiled/dist/libs/GameServer.jar"), Path.of("D:/PhantomWorld/M2-M7-058-candidate/libs/GameServer.jar")).contains(supplied);
 	}
 
@@ -4551,6 +4552,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_player.getAI().clientStartAutoAttack();
 			PhantomAssertions.assertTrue(_player.isInCombat(), "Native combat stance control did not start.");
 			PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() != null, "Declared affordable native lesson was not proposed.");
+			if (Boolean.getBoolean("phantom.test.nearbyLife061"))
+			{
+				final var nearby = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root, org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.NEARBY_PERCEPTIBLE, System.nanoTime(), 2);
+				PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), nearby).candidate() != null, "Ordinary materialized NEARBY farm cannot select its affordable native lesson.");
+				for (var state : List.of(PhantomActivityState.SLEEPING, PhantomActivityState.BACKGROUND))
+				{
+					final var absent = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root, org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), state, System.nanoTime(), 3);
+					PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), absent).candidate() == null, "Nonmaterialized state selected native trainer work.");
+				}
+			}
 			final var stored = goals.load(_profile.profileId()).orElseThrow();
 			final var replacement = root.withStatus(PhantomGoalStatus.ACTIVE);
 			goals.replace(_profile.profileId(), stored.rowVersion(), replacement);

@@ -69,7 +69,7 @@ final class PhantomAutonomousLearning
 
 	void registerCandidates(PhantomCandidateRegistry registry)
 	{
-		registry.register(new PhantomDecisionCandidate(CANDIDATE, Set.of(PhantomBackgroundGoalSpec.GOAL_TYPE), Set.of(PhantomActivityState.ACTIVE), List.of(), List.of(new PhantomWeightedConsideration("score.autonomous.learning", 1, context -> new PhantomConsideration.Evaluation(proposal(context.profileId(), context.goal()).isPresent() ? 1000 : 0, "learning.native.need"))), 1000, context ->
+		registry.register(new PhantomDecisionCandidate(CANDIDATE, Set.of(PhantomBackgroundGoalSpec.GOAL_TYPE), Set.of(PhantomActivityState.ACTIVE, PhantomActivityState.NEARBY_PERCEPTIBLE), List.of(), List.of(new PhantomWeightedConsideration("score.autonomous.learning", 1, context -> new PhantomConsideration.Evaluation(proposal(context.profileId(), context.goal()).isPresent() ? 1000 : 0, "learning.native.need"))), 1000, context ->
 		{
 			final var step = new PhantomPlanStep(0, ACTION, null, Map.of(), 60_000, 10, "learning.native.advance");
 			return new PhantomPlan(context.decisionSequence(), context.goal().goalId(), CANDIDATE, List.of(step), 60_000, context.logicalNowNanos());
