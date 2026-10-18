@@ -44,7 +44,21 @@ public class SummonItems extends ItemSkillsTemplate
 		}
 		
 		final Player player = playable.asPlayer();
-		if (!player.getClient().getFloodProtectors().canUsePetSummonItem() || (player.getBlockCheckerArena() != -1) || player.inObserverMode() || player.isAllSkillsDisabled() || player.isCastingNow())
+		final org.l2jmobius.gameserver.network.GameClient client = player.getClient();
+		if (client == null)
+		{
+			// The ordinary Phantom action owner supplies admission/retry bounds, without inventing a client.
+			if (!player.hasHeadlessOutboundSession() || org.l2jmobius.gameserver.model.World.getInstance().getPlayer(player.getObjectId()) != player
+				|| org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.getInstance().getOwnerKind(player.getObjectId()) != org.l2jmobius.gameserver.phantoms.player.PhantomIdentityLeaseRegistry.OwnerKind.PHANTOM)
+			{
+				return false;
+			}
+		}
+		else if (!client.getFloodProtectors().canUsePetSummonItem())
+		{
+			return false;
+		}
+		if ((player.getBlockCheckerArena() != -1) || player.inObserverMode() || player.isAllSkillsDisabled() || player.isCastingNow())
 		{
 			return false;
 		}

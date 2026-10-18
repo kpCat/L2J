@@ -138,6 +138,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private final Supplier<PhantomProgressionCatalog> _progressionCatalog;
 		private final AtomicBoolean _closed = new AtomicBoolean();
 		private long _nextResummonAttemptNanos;
+		private long _nextSupportPetScanNanos;
 		private long _nextServitorSkillAttemptNanos;
 		private int _controlledServitorObjectId;
 		private int _ownedSummonSkillId;
@@ -1422,7 +1423,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final Summon controlled = _player.getSummon();
 			if (controlled == null)
 			{
-				return tryNativeResummon();
+				return tryNativeSupportPet() || tryNativeResummon();
 			}
 			if (!(controlled instanceof Servitor servitor) || !liveOwnedServitor(servitor))
 			{
@@ -1461,6 +1462,38 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			if (servitor.canAttack(forceUse))
 			{
 				servitor.doSummonAttack(target);
+			}
+			return false;
+		}
+
+		/** Owned native BabyPet support stays in its existing native cast/follow/feed lifecycle. */
+		private boolean tryNativeSupportPet()
+		{
+			final long now = System.nanoTime();
+			if (now < _nextSupportPetScanNanos || now < _nextResummonAttemptNanos || _player.hasSummon() || _player.isInCombat() || _player.isAttackingNow() || _player.isCastingNow())
+			{
+				return false;
+			}
+			_nextSupportPetScanNanos = saturatingAdd(now, RESUMMON_ATTEMPT_NANOS);
+			final var inventory = _player.getInventory().getItems().stream().sorted(Comparator.comparingInt(Item::getObjectId)).limit(128).toList();
+			for (Item control : inventory)
+			{
+				final var data = org.l2jmobius.gameserver.data.xml.PetDataTable.getInstance().getPetDataByItemId(control.getId());
+				if (data == null || control.getEtcItem() == null || control.getOwnerId() != _player.getObjectId()) { continue; }
+				final var template = org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(data.getNpcId());
+				if (template == null || !template.isType("BabyPet")) { continue; }
+				final int level = Math.max(data.getMinLevel(), Math.min(data.getMaxLevel(), control.getEnchantLevel()));
+				final boolean support = data.getAvailableSkills().stream().anyMatch(learn ->
+				{
+					final int rank = data.getAvailableLevel(learn.getSkillId(), level);
+					final Skill skill = rank <= 0 ? null : org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getSkill(learn.getSkillId(), rank);
+					return skill != null && (skill.hasEffectType(org.l2jmobius.gameserver.model.effects.EffectType.HEAL) || skill.hasEffectType(org.l2jmobius.gameserver.model.effects.EffectType.MANAHEAL_BY_LEVEL));
+				});
+				if (!support) { continue; }
+				final IItemHandler handler = ItemHandler.getInstance().getHandler(control.getEtcItem());
+				if (handler == null || !"SummonItems".equals(handler.getClass().getSimpleName())) { continue; }
+				_nextResummonAttemptNanos = saturatingAdd(now, RESUMMON_ATTEMPT_NANOS);
+				return handler.onItemUse(_player, control, false);
 			}
 			return false;
 		}

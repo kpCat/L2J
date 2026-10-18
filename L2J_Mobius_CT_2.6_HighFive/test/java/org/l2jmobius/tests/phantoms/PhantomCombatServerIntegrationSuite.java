@@ -630,6 +630,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
+			if (Boolean.getBoolean("phantom.test.petSupport060")) { registry.add("30-native-owned-buffalo-heal-and-control-lifecycle", context -> { prepareLearningField059(context); PhantomPet060NativeSupport.directHeal(context, _player); }); registry.add("32-production-native-kookaburra-recharge-and-food", context -> { _player.setCurrentHp(_player.getMaxHp()); prepareLearningField059(context); PhantomPet060NativeSupport.automaticMana(context, _player, _backend, _profile.profileId()); }); return; }
 			if (Boolean.getBoolean("phantom.test.paidAutoGetGuards060"))
 			{
 				registry.add("12-paid-native-rank-covers-autoget-floor", context -> testPaidAutoGetFloor060(context, true));
@@ -6317,6 +6318,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				// setPlayerClass schedules a 100 ms refresh, then sendSkillList schedules a 300 ms future.
 				Thread.sleep(500);
 				PhantomAssertions.assertTrue(waitFor(() -> !PhantomHeadlessPlayerTestEnvironment.liveFutureFields(_player).contains("Player._skillListTask"), WAIT_MILLIS), "Test-owned class refresh did not drain before materialization shutdown.");
+				final var nativeScope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) _player.getNativeWorkOwner();
+				System.out.println("QOL009_ABORTED_NATIVE_CAST_DRAIN_BEFORE " + nativeScope.snapshot());
+				PhantomAssertions.assertTrue(waitFor(() -> nativeScope.outstanding() == 0, 30_000), "Test-aborted native summon callbacks did not retire at their original due time: " + nativeScope.snapshot());
+				System.out.println("QOL009_ABORTED_NATIVE_CAST_DRAIN_AFTER " + nativeScope.snapshot());
 			}
 			for (Monster fixture : List.copyOf(_worldFixtures))
 			{
