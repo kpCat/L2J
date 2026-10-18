@@ -75,7 +75,7 @@ final class PhantomLiving060Scenario
 		PhantomAssertions.assertTrue(java.util.Set.of(0, 10, 25, 44, 53).contains(classId), "Unsupported declared Living060 starter input.");
 		final boolean relocation = Boolean.getBoolean("phantom.test.livingRelocate060");
 		final boolean supply = Boolean.getBoolean("phantom.test.livingSupply060");
-		PhantomAssertions.assertTrue(!supply || !relocation && (classId == 0 || classId == 10), "Supply060 requires a separate declared Fighter or Human Mystic scene.");
+		PhantomAssertions.assertTrue(!supply || !relocation, "Supply060 requires a separately declared scene.");
 		PhantomAssertions.assertTrue(!relocation || classId == 0, "Relocation060 requires its separately declared Fighter input.");
 		final boolean mage = classId == 10 || classId == 25, dwarf = classId == 53, orc = classId == 44;
 		final var fixture = environment.createCampaign058Companion(context, mage ? 2 : 1);
@@ -115,7 +115,7 @@ final class PhantomLiving060Scenario
 			setup.setRunning(); setup.standUp(); setup.setInvul(false); setup.refreshExpertisePenalty(); setup.refreshOverloaded();
 			final var origin = topology.findAnchor(classId == 10 ? "population.farming.human-mystic.20481" : mage ? "population.farming.elf.20534" : dwarf ? "population.farming.dwarf.20533" : orc ? "population.farming.orc.20535" : "population.farming.human-fighter.20545").orElseThrow();
 			setup.setXYZInvisible(origin.point().x(), origin.point().y(), GeoEngine.getInstance().getHeight(origin.point().x(), origin.point().y(), origin.point().z()));
-			initial = relocation ? PhantomRelocation060Input.select(context, setup, id, knowledge, topology, authority, planner, routes) : selectInput(context, setup, id, knowledge, topology, authority, planner);
+			initial = relocation ? PhantomRelocation060Input.select(context, setup, id, knowledge, topology, authority, planner, routes) : selectInput(context, setup, id, knowledge, topology, authority, planner, commerce);
 			if (relocation) { threshold = setup.getLevel() + 1; }
 			setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(setup.getMaxCp());
 			goals.insert(id, initial.goal()); setup.storeMe();
@@ -167,6 +167,7 @@ final class PhantomLiving060Scenario
 		final List<Monster> monsters = new ArrayList<>();
 		Player player = null;
 		boolean earnedChainCompleted = false;
+		boolean supplyChainCompleted = false;
 		try
 		{
 			PhantomAssertions.assertTrue(background.start() && materialization.start() && navigation.start() && commerceService.start() && journey.start() && supplies.start(), "Living060 ordinary owners did not start.");
@@ -220,7 +221,7 @@ final class PhantomLiving060Scenario
 			final var sample = sensor.snapshot();
 			if (supply) { context.record("life060.supplyJourney", "intent=" + supplies.automaticIntent(id) + "; reason=" + supplies.reason(id) + "; GK=" + supplies.gatekeeperEvidence(id)); }
 			if (relocationProof != null) { relocationProof.verify(context, player, sample); }
-			else if (supplyProof != null) { supplyProof.verify(context, player, sample); }
+			else if (supplyProof != null) { supplyProof.verify(context, player, sample); supplyChainCompleted = true; }
 			else
 			{
 				context.record("life060.result." + classId, "EXP=" + startExp + "->" + player.getExp() + "; SP input=" + startSp + "; SP current=" + player.getSp() + "; cycles=" + (sample.farmCycleSequence() - baseline.farmCycleSequence()) + "; completed=" + completed + "; cyclesAfterReturn=" + (completedAtCycle < 0 ? 0 : sample.farmCycleSequence() - completedAtCycle) + "; newKills=" + (sample.killSequence() - completedKills) + "; newDamage=" + (sample.damageSequence() - completedDamage) + "; postReturnEXP=" + completedExp + "->" + player.getExp() + "; postReturnEarnedEXP=" + (sample.expGained() - completedEarnedExp) + "; postReturnEarnedSP=" + (sample.spGained() - completedEarnedSp) + "; actualXYZ=" + player.getX() + ',' + player.getY() + ',' + player.getZ() + "; current root=" + goals.load(id));
@@ -238,7 +239,26 @@ final class PhantomLiving060Scenario
 			for (var monster : monsters) { if (monster != null && monster.isSpawned()) { monster.deleteMe(); } }
 			navigation.beginStop(); while (navigation.snapshot().state() != PhantomNavigationService.ServiceState.STOPPED && !navigation.finishStop() && System.nanoTime() < drain) { Thread.sleep(20); }
 			progression.beginStop(); progression.finishStop();
+			final long expectedSupplyExp = player == null ? -1 : player.getExp(), expectedSupplySp = player == null ? -1 : player.getSp();
+			final long expectedSupplyAdena = player == null ? -1 : player.getAdena(), expectedSupplyStock = player == null ? -1 : player.getInventory().getInventoryItemCount(mage ? 2509 : 1835, -1);
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, materialization.shutdown().state(), "Living060 materialization cleanup retained native work.");
+			if (supplyChainCompleted)
+			{
+				final Player reloaded = Player.load(fixture.objectId());
+				PhantomAssertions.assertTrue(reloaded != null, "Supply060 saved native actor disappeared.");
+				try
+				{
+					PhantomAssertions.assertEquals(expectedSupplyExp, reloaded.getExp(), "Supply060 earned EXP changed on native save/reload.");
+					PhantomAssertions.assertEquals(expectedSupplySp, reloaded.getSp(), "Supply060 earned SP changed on native save/reload.");
+					PhantomAssertions.assertEquals(expectedSupplyAdena, reloaded.getAdena(), "Supply060 paid Adena changed on native save/reload.");
+					PhantomAssertions.assertEquals(expectedSupplyStock, reloaded.getInventory().getInventoryItemCount(mage ? 2509 : 1835, -1), "Supply060 purchased/consumed stock changed on native save/reload.");
+					final var restored = new PhantomSupplyIntentStore(profiles, goals);
+					PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, restored.intent(id).orElseThrow().goal().status(), "Supply060 terminal intent was lost.");
+					PhantomAssertions.assertTrue(restored.load(id).isEmpty(), "Supply060 completed intent reauthorized a payment.");
+					context.record("life060.supplySaved", "ordinary owned save/native Player.load; EXP=" + reloaded.getExp() + "; SP=" + reloaded.getSp() + "; Adena=" + reloaded.getAdena() + "; stock=" + expectedSupplyStock + "; terminal child retained/Commerce authorization empty; not whole-JVM resume");
+				}
+				finally { environment.cleanupLoadedPlayer(reloaded); }
+			}
 			if (earnedChainCompleted)
 			{
 				final var learned = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(profiles.findComponent(id, "learning.intent").orElseThrow().payload());
@@ -263,20 +283,24 @@ final class PhantomLiving060Scenario
 	}
 
 	/** Select another lawful scene BEFORE enrollment, only after proving the changed route cause. */
-	private static PhantomHistoricalBackgroundPlanner.Result selectInput(PhantomTestContext context, Player setup, long id, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, L2jPhantomBackgroundAuthority authority, PhantomHistoricalBackgroundPlanner planner)
+	private static PhantomHistoricalBackgroundPlanner.Result selectInput(PhantomTestContext context, Player setup, long id, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, L2jPhantomBackgroundAuthority authority, PhantomHistoricalBackgroundPlanner planner, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog commerce)
 	{
+		final boolean supplies = Boolean.getBoolean("phantom.test.livingSupply060");
+		final var declaredRegion = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(setup.getX(), setup.getY(), setup.getZ(), 0);
+		final var supplyNpcs = supplies ? commerce.buyOffers().stream().filter(offer -> offer.price() > 0 && !offer.limitedStock() && L2jPhantomSupplyJourney.compatible(setup, org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(offer.itemId()))).flatMap(offer -> offer.npcIds().stream()).collect(java.util.stream.Collectors.toSet()) : java.util.Set.<Integer>of();
 		final var trainers = knowledge.snapshot().spawnFactsByNpc().entrySet().stream().filter(entry ->
 		{
 			final var template = NpcData.getInstance().getTemplate(entry.getKey());
-			return template != null && "Trainer".equals(template.getType()) && template.canTeach(setup.getLearningClass());
+			return template != null && (supplies ? "Merchant".equals(template.getType()) && supplyNpcs.contains(entry.getKey()) : "Trainer".equals(template.getType()) && template.canTeach(setup.getLearningClass()));
 		}).flatMap(entry -> entry.getValue().stream()).filter(spawn -> spawn.instanceId() == 0 && spawn.pointKind() == org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnPointKind.EXACT).toList();
-		PhantomAssertions.assertTrue(!trainers.isEmpty(), "INVALID_INPUT: no native compatible Trainer facts.");
+		PhantomAssertions.assertTrue(!trainers.isEmpty(), "INVALID_INPUT: no native compatible service NPC facts.");
 		final var eligibleNodes = knowledge.snapshot().spawnAreasByNpc().entrySet().stream().filter(entry ->
 		{
 			final var npc = NpcData.getInstance().getTemplate(entry.getKey()); return npc != null && npc.getLevel() >= 1 && npc.getLevel() <= setup.getLevel() + 2;
 		}).flatMap(entry -> entry.getValue().stream()).map(area -> area.topologyNodeId()).collect(java.util.stream.Collectors.toSet());
 		final var geo = GeoEngine.getInstance();
 		final var anchors = topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(anchor -> anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0 && eligibleNodes.contains(anchor.nodeId()))
+				.filter(anchor -> !supplies || Math.hypot((long) anchor.point().x() - declaredRegion.x(), (long) anchor.point().y() - declaredRegion.y()) <= org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPolicy.productionDefaults().maximumLocalStraightDistance())
 				.filter(anchor -> geo.hasGeo(anchor.point().x(), anchor.point().y()) && org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(anchor.point().x(), anchor.point().y(), geo.getHeight(anchor.point().x(), anchor.point().y(), anchor.point().z()), org.l2jmobius.gameserver.model.zone.type.PeaceZone.class) == null
 						&& org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(anchor.point().x(), anchor.point().y(), geo.getHeight(anchor.point().x(), anchor.point().y(), anchor.point().z()), org.l2jmobius.gameserver.model.zone.type.WaterZone.class) == null)
 				.sorted(java.util.Comparator.comparingDouble((PhantomTopologyAnchor anchor) -> trainers.stream().mapToDouble(spawn -> Math.hypot(anchor.point().x() - spawn.x(), anchor.point().y() - spawn.y())).min().orElseThrow()).thenComparing(PhantomTopologyAnchor::id)).limit(32).toList();
@@ -290,10 +314,19 @@ final class PhantomLiving060Scenario
 			setup.setXYZInvisible(candidate.point().x(), candidate.point().y(), geo.getHeight(candidate.point().x(), candidate.point().y(), candidate.point().z()));
 			setup.revalidateZone(true);
 			if (setup.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) || setup.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.WATER)) { continue; }
-			final var seed = planner.planInitial(id, setup, context.seed() + setup.getActiveClass(), 0);
-			if (!seed.ready()) { stages.merge("seed." + seed.reasonKey(), 1, Integer::sum); continue; }
-			final var observed = authority.captureOwnedNative(id, setup, seed.goal(), null).state();
-			final var local = planner.replanVisibleLocal(id, observed, seed.goal(), context.seed(), 1, new PhantomTopologyPoint(setup.getX(), setup.getY(), setup.getZ(), 0), java.util.Set.of(), java.util.Set.of());
+			final PhantomHistoricalBackgroundPlanner.Result local;
+			try
+			{
+				final var seed = planner.planInitial(id, setup, context.seed() + setup.getActiveClass(), 0);
+				if (!seed.ready()) { stages.merge("seed." + seed.reasonKey(), 1, Integer::sum); continue; }
+				final var observed = authority.captureOwnedNative(id, setup, seed.goal(), null).state();
+				local = planner.replanVisibleLocal(id, observed, seed.goal(), context.seed(), 1, new PhantomTopologyPoint(setup.getX(), setup.getY(), setup.getZ(), 0), java.util.Set.of(), java.util.Set.of());
+			}
+			catch (IllegalArgumentException rejectedPoint)
+			{
+				if (!"Canonical Player position does not identify exactly one topology anchor.".equals(rejectedPoint.getMessage())) { throw rejectedPoint; }
+				stages.merge("ambiguous_seed", 1, Integer::sum); continue;
+			}
 			if (!local.ready()) { stages.merge("local." + local.reasonKey(), 1, Integer::sum); continue; }
 			for (var from : inputPoints(topology, local.spec().anchorId()))
 			{
@@ -312,13 +345,19 @@ final class PhantomLiving060Scenario
 				}
 				setup.setXYZInvisible(from.x(), from.y(), from.z()); setup.revalidateZone(true);
 				if (setup.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.WATER) || setup.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE)) { continue; }
-				context.record("life060.routePreflight." + setup.getActiveClass(), "PREMEASUREMENT bounded32 farm candidates; local production planner=" + local.goal() + "; nearest native Trainer=" + trainer.npcId() + "; outbound=" + outbound.status() + "; inbound=" + inbound.status() + "; prior rejected=" + rejected);
-				System.out.println("LIFE060 INPUT_ROUTE_GREEN class=" + setup.getActiveClass() + "; farm=" + local.spec() + "; Trainer=" + trainer.npcId() + "; outbound/inbound native corridor FOUND");
+				try { authority.captureOwnedNative(id, setup, local.goal(), null); }
+				catch (IllegalArgumentException rejectedPoint)
+				{
+					if (!"Canonical Player position does not identify exactly one topology anchor.".equals(rejectedPoint.getMessage())) { throw rejectedPoint; }
+					stages.merge("ambiguous_point", 1, Integer::sum); continue;
+				}
+				context.record("life060.routePreflight." + setup.getActiveClass(), "PREMEASUREMENT bounded32 farm candidates; local production planner=" + local.goal() + "; native service=" + (supplies ? "Merchant" : "Trainer") + trainer.npcId() + "; declared starting region=" + declaredRegion + "; outbound=" + outbound.status() + "; inbound=" + inbound.status() + "; prior rejected=" + rejected);
+				System.out.println("LIFE060 INPUT_ROUTE_GREEN class=" + setup.getActiveClass() + "; farm=" + local.spec() + "; service=" + (supplies ? "Merchant" : "Trainer") + trainer.npcId() + "; outbound/inbound native corridor FOUND");
 				return local;
 			}
 		}
 		context.record("life060.routePreflightRejected." + setup.getActiveClass(), "trainers=" + trainers.size() + "; eligibleNodes=" + eligibleNodes.size() + "; factual anchors=" + anchors.size() + "; stages=" + stages + "; native rejected=" + rejected);
-		throw new AssertionError("BLOCKED_NATIVE_ROUTE_INPUT: bounded32 factual farm points have no bidirectional native Trainer corridor; no full scene started.");
+		throw new AssertionError("BLOCKED_NATIVE_ROUTE_INPUT: bounded32 factual farm points have no bidirectional native service NPC corridor; no full scene started.");
 	}
 
 	static List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> inputPoints(PhantomTopologyQuery topology, String anchorId)

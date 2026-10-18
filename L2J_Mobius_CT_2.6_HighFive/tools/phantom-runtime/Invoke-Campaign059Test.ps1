@@ -37,7 +37,7 @@ if ($LivingRelocate) {
  $args059+='-Dphantom.test.livingRelocate060=true'
 }
 if ($LivingSupply) {
- if (!$Living -or $LivingRelocate -or $LivingMage -or $LivingDwarf -or $LivingClass -notin @(0,10)) {throw 'Supply requires separate declared Fighter or Human Mystic living input'}
+ if (!$Living -or $LivingRelocate) {throw 'Supply requires a separate declared living input'}
  $args059+='-Dphantom.test.livingSupply060=true'
 }
 if ($SupplyGuards) {

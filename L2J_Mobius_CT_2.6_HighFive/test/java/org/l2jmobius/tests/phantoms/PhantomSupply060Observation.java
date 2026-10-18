@@ -82,8 +82,9 @@ final class PhantomSupply060Observation
 	private final PhantomCommerceReceiptStore _receipts;
 	private final long _profileId, _startExp;
 	private final int _itemId;
+	private final long _lowWater;
 	private final PlayerNativeEvidence.Snapshot _baseline;
-	private long _earnedAt, _returnedExp, _returnedStock;
+	private long _earnedAt, _lowAt, _returnedExp, _returnedStock;
 	private PlayerNativeEvidence.Snapshot _returned;
 	private PhantomGoal _completed;
 	private PhantomCommerceReceipt _purchase;
@@ -92,6 +93,7 @@ final class PhantomSupply060Observation
 	PhantomSupply060Observation(PhantomProfileRepository profiles, long profileId, Player player, PlayerNativeEvidence.Snapshot baseline, int itemId)
 	{
 		_profiles = profiles; _profileId = profileId; _itemId = itemId; _baseline = baseline; _startExp = player.getExp();
+		_lowWater = (long) (player.isMageClass() ? player.getActiveWeaponItem().getSpiritShotCount() : player.getActiveWeaponItem().getSoulShotCount()) * org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy.load(java.nio.file.Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml")).lowWaterHits();
 		_receipts = new PhantomCommerceReceiptStore(profiles);
 	}
 
@@ -105,7 +107,8 @@ final class PhantomSupply060Observation
 			_earnedAt = now;
 			context.record("life060.supplyEarned", "actual farm consumed initial finite16 charges; item=" + _itemId + "; stock=" + stock + "; EXP=" + _startExp + "->" + player.getExp() + "; sample=" + sample);
 		}
-		PhantomAssertions.assertTrue(_earnedAt == 0 || intent != null || now - _earnedAt < TimeUnit.SECONDS.toNanos(45), "Native farm consumed compatible charges and earned EXP/SP but production created no supply intent.");
+		if (_earnedAt != 0 && stock < _lowWater && _lowAt == 0) { _lowAt = now; context.record("life060.supplyLowWater", "actual stock=" + stock + "; native weapon/policy low-water=" + _lowWater + "; first consumption alone is not a restock need"); }
+		PhantomAssertions.assertTrue(_lowAt == 0 || intent != null || now - _lowAt < TimeUnit.SECONDS.toNanos(45), "Native farm reached low stock=" + stock + " below" + _lowWater + " and earned EXP/SP but production created no supply intent.");
 		if (intent != null && intent.status() == PhantomGoalStatus.FAILED) { throw new AssertionError("Production supply intent failed: " + intent); }
 		final var receipt = _receipts.find(_profileId).map(PhantomCommerceReceiptStore.VersionedReceipt::receipt).orElse(null);
 		if (_purchase == null && receipt != null && receipt.state() == PhantomCommerceReceipt.State.COMMITTED)
