@@ -171,7 +171,9 @@ public final class L2jPhantomLearningJourney
 					final List<SpawnFact> trainerOptions = returning ? List.of() : _trainers.stream().filter(spawn -> NpcData.getInstance().getTemplate(spawn.npcId()).canTeach(player.getLearningClass())).sorted(Comparator.comparingDouble((SpawnFact spawn) -> player.calculateDistance3D(spawn.x(), spawn.y(), spawn.z())).thenComparingInt(SpawnFact::npcId)).distinct().limit(3).toList();
 					final SpawnFact trainer = trainerOptions.isEmpty() ? null : trainerOptions.getFirst();
 					if (!returning && trainer == null) { return fail("learning.trainer.unsupported"); }
-					final var destinations = returning ? List.of(request.field()) : approaches(player, trainer);
+					final var field = returning ? returnDestination(request.field()).orElse(null) : null;
+					if (returning && field == null) { return fail("learning.field.floor_unavailable"); }
+					final var destinations = returning ? List.of(field) : approaches(player, trainer);
 					if (destinations.isEmpty()) { return fail("learning.trainer.no_approach"); }
 					travel = new Travel(player, goal.goalId(), goal.revision(), request, returning, trainer == null ? 0 : trainer.npcId(), destinations, 0, now + TimeUnit.MINUTES.toNanos(2), 0, List.of(), 0, trainerOptions, 0);
 					if (!put(profileId, travel)) { return retry("learning.capacity"); }
@@ -238,6 +240,16 @@ public final class L2jPhantomLearningJourney
 	}
 
 	private boolean current(long profileId, PhantomGoal goal) { return _goals.load(profileId).map(stored -> stored.goal().equals(goal)).orElse(false); }
+
+	/** Native feet can be interpolated between geo heights; retain XY and the existing arrival tolerance. */
+	private Optional<PhantomNavigationPoint> returnDestination(PhantomNavigationPoint field)
+	{
+		final var geo = GeoEngine.getInstance();
+		if (!geo.hasGeo(field.x(), field.y())) { return Optional.empty(); }
+		final int z = geo.getHeight(field.x(), field.y(), field.z());
+		if (Math.abs((long) z - field.z()) > _navigation.arrivalRadius()) { return Optional.empty(); }
+		return Optional.of(new PhantomNavigationPoint(field.x(), field.y(), z, field.instanceId()));
+	}
 
 	/** NPC centers can be blocked; every alternative still needs the shared native route verdict. */
 	private static List<PhantomNavigationPoint> approaches(Player player, SpawnFact trainer)

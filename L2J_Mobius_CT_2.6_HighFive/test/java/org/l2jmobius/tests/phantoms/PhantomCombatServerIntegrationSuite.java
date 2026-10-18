@@ -625,10 +625,17 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
+			if (Boolean.getBoolean("phantom.test.paidAutoGetGuards060"))
+			{
+				registry.add("12-paid-native-rank-covers-autoget-floor", context -> testPaidAutoGetFloor060(context, true));
+				registry.add("13-missing-or-unattainable-rank-does-not-cover-floor", context -> testPaidAutoGetFloor060(context, false));
+				registry.add("14-native-return-normalizes-captured-feet", this::testLearningReturnFloor060);
+				return;
+			}
 			if (Boolean.getBoolean("phantom.test.living060"))
 			{
-				final int classId = Boolean.getBoolean("phantom.test.livingMage060") ? 25 : Boolean.getBoolean("phantom.test.livingDwarf060") ? 53 : 0;
-				registry.add(classId == 25 ? "07-production-mystic-farm-learning-and-farm" : classId == 53 ? "08-production-dwarf-farm-learning-and-farm" : "06-production-fighter-farm-learning-and-farm", context ->
+				final int classId = Integer.getInteger("phantom.test.livingClass060", Boolean.getBoolean("phantom.test.livingMage060") ? 25 : Boolean.getBoolean("phantom.test.livingDwarf060") ? 53 : 0);
+				registry.add(classId == 25 ? "07-production-mystic-farm-learning-and-farm" : classId == 53 ? "08-production-dwarf-farm-learning-and-farm" : classId == 10 ? "09-production-human-mystic-farm-learning-and-farm" : classId == 44 ? "10-production-orc-farm-learning-and-farm" : "06-production-fighter-farm-learning-and-farm", context ->
 					PhantomLiving060Scenario.run(context, _environment, _repository, _query, _topology, _progression, new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog(), classId));
 				return;
 			}
@@ -4154,6 +4161,92 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			_player.getAI().setIntention(Intention.IDLE);
 		}
+	}
+
+	private void testLearningReturnFloor060(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		prepareLearningField059(context);
+		_player.rewardSkills();
+		final var known = _player.getSkills().values().stream().filter(skill -> skill.getLevel() > 0).findFirst().orElseThrow();
+		final var geo = GeoEngine.getInstance();
+		final var from = new PhantomNavigationPoint(_player.getX(), _player.getY(), _player.getZ(), 0);
+		final var backend = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+		PhantomNavigationPoint grounded = null;
+		for (int[] offset : new int[][] {{256,0},{-256,0},{0,256},{0,-256}})
+		{
+			final int x = from.x() + offset[0], y = from.y() + offset[1];
+			if (!geo.hasGeo(x, y)) { continue; }
+			final var candidate = new PhantomNavigationPoint(x, y, geo.getHeight(x, y, from.z()), 0);
+			if (backend.canWalkDirect(from, candidate)) { grounded = candidate; break; }
+		}
+		PhantomAssertions.assertTrue(grounded != null, "INVALID_INPUT: no factual short dry native return corridor.");
+		final var feet = new PhantomNavigationPoint(grounded.x(), grounded.y(), grounded.z() - 1, 0);
+		PhantomAssertions.assertFalse(backend.canWalkDirect(from, feet), "Raw interpolated feet unexpectedly satisfy the exact native endpoint contract.");
+		final var goals = new PhantomGoalStateStore(_repository);
+		var goal = new PhantomGoal(context.seed(), "skill.learn", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("skill", known.getId() + ":" + known.getLevel()), 1, 0, null, List.of(), null, "learning.return.floor.control", 600, 0, 0, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(8), Map.of("class.id", (long) _player.getActiveClass(), "class.index", (long) _player.getClassIndex(), "field.x", (long) feet.x(), "field.y", (long) feet.y(), "field.z", (long) feet.z(), "field.instance", 0L), "fixture.native.return.floor", 1);
+		goals.insert(_profile.profileId(), goal);
+		final long sp = _player.getSp(), exp = _player.getExp();
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+		final var navigation = new PhantomNavigationService(new PhantomMetrics()); navigation.start();
+		final var journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> true); journey.start();
+		org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult result = null;
+		try
+		{
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+			do
+			{
+				result = journey.advance(_profile.profileId(), goal, () -> false, System.nanoTime());
+				if (result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL || result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.FAIL_GOAL) { break; }
+				Thread.sleep(50);
+			} while (System.nanoTime() < deadline);
+			context.record("career060.nativeReturnFloor", "captured feet=" + feet + "; proven ground=" + grounded + "; actual=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; result=" + result + "; already native-owned skill; no fee/reward or test XYZ inside measured WALK");
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL, result.type(), "Captured native feet could not return through the verified ground corridor: " + result);
+			PhantomAssertions.assertTrue(_player.calculateDistance3D(from.x(), from.y(), from.z()) > 50 && waitFor(() -> !_player.isMoving(), 5_000), "Return control did not finish ordinary native WALK.");
+			final var wrongFloor = new java.util.LinkedHashMap<>(goal.constraints()); wrongFloor.put("field.z", (long) World.WORLD_Z_MAX);
+			final var invalid = new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), goal.target(), goal.requiredAmount(), goal.currentAmount(), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), goal.deadlineEpochMillis(), wrongFloor, "fixture.native.return.wrong_floor", goal.revision() + 1);
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.request(invalid).isPresent(), "INVALID_INPUT: wrong-floor control exceeded the supported request bounds.");
+			goals.replace(_profile.profileId(), goals.load(_profile.profileId()).orElseThrow().rowVersion(), invalid); goal = invalid;
+			final var refused = journey.advance(_profile.profileId(), goal, () -> false, System.nanoTime());
+			PhantomAssertions.assertEquals("learning.field.floor_unavailable", refused.reasonKey(), "Far floor projection bypassed the existing native arrival tolerance.");
+			PhantomAssertions.assertFalse(_player.isMoving(), "Wrong-floor control issued native movement.");
+			PhantomAssertions.assertEquals(sp, _player.getSp(), "Return-only native control charged SP.");
+			PhantomAssertions.assertEquals(exp, _player.getExp(), "Return-only native control awarded EXP.");
+		}
+		finally
+		{
+			journey.beginStop(); journey.finishStop(); progression.beginStop(); progression.finishStop();
+			navigation.beginStop(); final long drain = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (!navigation.finishStop() && System.nanoTime() < drain) { Thread.sleep(20); }
+			_player.stopMove(null);
+			final var stored = goals.load(_profile.profileId()).orElseThrow(); PhantomAssertions.assertEquals(goal, stored.goal(), "Native return guard root drift; cleanup refused."); goals.delete(_profile.profileId(), stored.rowVersion());
+		}
+	}
+
+	private void testPaidAutoGetFloor060(PhantomTestContext context, boolean positive) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final var commerce = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog();
+		final var routes = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), _topology);
+		final var authority = new org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority(() -> _query, () -> _topology, () -> _progression, () -> commerce, routes);
+		final var base = PhantomBackgroundSuite.productionState(_topology.findAnchor("population.farming.human-mystic.20481").orElseThrow(), authority.hashes());
+		final var state = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState(base.state(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Identity(base.identity().profileId(), base.identity().characterObjectId(), 0, 10, 0), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progress(7, _player.getStat().getExpForLevel(7), 0, 0), base.vitals(), base.position(), base.combat(), base.loadout(), base.inventory(), List.of(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.AutoGetSkill(1177, 1)), base.clock(), base.receipt(), base.hashes());
+		final var check = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.class.getDeclaredMethod("skillsMatch", org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.class, Map.class);
+		check.setAccessible(true); // Existing deterministic contract, no private native action or DB mutation.
+		if (positive)
+		{
+			PhantomAssertions.assertEquals(true, check.invoke(null, state, Map.of(1177, 1)), "Native starter auto-get floor disappeared.");
+			PhantomAssertions.assertEquals(true, check.invoke(null, state, Map.of(1177, 2)), "Paid native1177:2 was rejected as a mismatch against auto-get1177:1.");
+		}
+		else
+		{
+			for (var skills : List.of(Map.<Integer, Integer>of(), Map.of(1177, 0), Map.of(1177, 4), Map.of(1177, 5000)))
+			{
+				PhantomAssertions.assertEquals(false, check.invoke(null, state, skills), "Missing/level-ineligible/nonexistent native rank covered auto-get floor: " + skills);
+			}
+			final var foreign = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState(state.state(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Identity(state.identity().profileId(), state.identity().characterObjectId(), 0, 0, 0), state.progress(), state.vitals(), state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
+			PhantomAssertions.assertEquals(false, check.invoke(null, foreign, Map.of(1177, 2)), "Foreign class tree authorized the higher paid rank.");
+		}
+		context.record("career060.autoGetFloor." + positive, "PURE validator against actual HumanMystic native skill tree/level7; no Player skill/SP/EXP or canonical writes; real paid retained failure is profile883/1177:2");
 	}
 
 	private void testAutonomousLearning060(PhantomTestContext context) throws Exception

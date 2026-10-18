@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf)
+param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -7,7 +7,7 @@ if ((Get-Location).Path -ine (Join-Path $hf059 '.phantom-local/contract058t/runt
 if ($AutonomousLearning -and (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)) {throw 'Autonomous learning requires exact060 continuation of native058 mode/seed'}
 if ($AutonomousLearningGuards -and !$AutonomousLearning) {throw 'Learning guards require the exact060 autonomous learning input'}
 if ($Living -and (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833 -or $AutonomousLearning)) {throw 'Living composition requires exact060 native058 mode/seed and a separate scene'}
-if (($LivingMage -or $LivingDwarf) -and !$Living) {throw 'Living mage requires the full living composition'}
+if (($LivingMage -or $LivingDwarf -or $LivingClass -ne 0) -and !$Living) {throw 'Living mage requires the full living composition'}
 if ($Campaign060 -and (Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object CommandLine -Match 'Living-060-candidate|M3-M7-059-candidate|task060')) {throw 'Own060 or protected059 JVM active; sequential only'}
 if ($PvpFlowOnly -and $CleanCandidate -and ($Mode -cne 'pvp-current-native058' -or $Seed -ne 58005829)) { throw 'Current PvP flow test classes require exact native mode/seed' }
 if (Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object CommandLine -Match 'contract058[at]|task059|M[12].*05[78]-candidate') { throw 'Another058/059/protected JVM active; sequential only' }
@@ -26,12 +26,20 @@ $testBuild059=if($CleanCandidate -and $PvpFlowOnly -and !$Campaign060){Join-Path
 $classpath059="$jar059;$testBuild059\phantom-test\bin;$testBuild059\phantom-test\resources;$hf059\dist\libs\*"
 $args059=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Dstderr.encoding=UTF-8',"-Dphantom.module.root=$hf059","-Dphantom.contract058.semantic.jar=$jar059","-Dphantom.test.reports=$report059","-Dphantom.test.config=$hf059\.phantom-local\contract058t\test\Database.test.ini","-Dphantom.contract058.manifest=$hf059\.phantom-local\contract058t\test\owned.properties")
 $args059+='-Dphantom.test.freshIdentities059=true'
+if ($PaidAutoGetGuards) {
+ if (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833 -or $Living -or $AutonomousLearning) {throw 'Paid auto-get contract requires exact separate060 mode/seed'}
+ $args059+='-Dphantom.test.paidAutoGetGuards060=true'
+}
 if ($AutonomousLearning) {$args059+='-Dphantom.test.autonomousLearning060=true'}
 if ($AutonomousLearningGuards) {$args059+='-Dphantom.test.autonomousLearningGuards060=true'}
 if ($Living) {$args059+='-Dphantom.test.living060=true'}
 if ($LivingMage) {$args059+='-Dphantom.test.livingMage060=true'}
 if ($LivingDwarf -and $LivingMage) {throw 'Separate declared class scenes required'}
 if ($LivingDwarf) {$args059+='-Dphantom.test.livingDwarf060=true'}
+if ($LivingClass -ne 0) {
+ if ($LivingMage -or $LivingDwarf -or $LivingClass -notin @(10,25,44,53)) {throw 'Separate supported declared Living class required'}
+ $args059+=('-Dphantom.test.livingClass060='+$LivingClass)
+}
 if ($Commands -or $Authority) { $args059+='-Dphantom.test.commands059=true' }
 if ($Authority) { $args059+='-Dphantom.test.commandAuthority059=true' }
 if ($BusyHold) { $args059+='-Dphantom.test.busyHold059=true' }

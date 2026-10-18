@@ -67,8 +67,8 @@ final class PhantomLiving060Scenario
 			PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog catalog, PhantomCommerceCatalog commerce, int classId) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
-		PhantomAssertions.assertTrue(classId == 0 || classId == 25 || classId == 53, "Unsupported declared Living060 starter input.");
-		final boolean mage = classId == 25, dwarf = classId == 53;
+		PhantomAssertions.assertTrue(java.util.Set.of(0, 10, 25, 44, 53).contains(classId), "Unsupported declared Living060 starter input.");
+		final boolean mage = classId == 10 || classId == 25, dwarf = classId == 53, orc = classId == 44;
 		final var fixture = environment.createCampaign058Companion(context, mage ? 2 : 1);
 		final var profile = profiles.create(fixture.objectId());
 		final long id = profile.profileId();
@@ -89,14 +89,14 @@ final class PhantomLiving060Scenario
 			setup.setLearningClass(setup.getPlayerClass());
 			PhantomAssertions.assertEquals(classId, setup.getLearningClass().getId(), "INVALID_INPUT: premeasurement learning class differs from the declared main class.");
 			setup.getStat().setExp(setup.getStat().getExpForLevel(threshold) - 1); setup.getStat().setLevel((byte) (threshold - 1));
-			setup.setSp(mage ? 259 : dwarf ? 309 : 49); setup.rewardSkills();
+			setup.setSp(classId == 10 ? 239 : mage ? 259 : dwarf ? 309 : orc ? 59 : 49); setup.rewardSkills();
 			for (int itemId : mage ? new int[] {8, 24, 31} : new int[] {68, 24, 31})
 			{
 				final var item = setup.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, PhantomLiving060Scenario.class);
 				PhantomAssertions.assertTrue(item != null, "Living060 finite owned gear missing."); setup.getInventory().equipItem(item);
 			}
 			setup.setRunning(); setup.standUp(); setup.setInvul(false); setup.refreshExpertisePenalty(); setup.refreshOverloaded();
-			final var origin = topology.findAnchor(mage ? "population.farming.elf.20534" : dwarf ? "population.farming.dwarf.20533" : "population.farming.human-fighter.20545").orElseThrow();
+			final var origin = topology.findAnchor(classId == 10 ? "population.farming.human-mystic.20481" : mage ? "population.farming.elf.20534" : dwarf ? "population.farming.dwarf.20533" : orc ? "population.farming.orc.20535" : "population.farming.human-fighter.20545").orElseThrow();
 			setup.setXYZInvisible(origin.point().x(), origin.point().y(), GeoEngine.getInstance().getHeight(origin.point().x(), origin.point().y(), origin.point().z()));
 			initial = selectInput(context, setup, id, knowledge, topology, authority, planner);
 			setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(setup.getMaxCp());
@@ -143,6 +143,7 @@ final class PhantomLiving060Scenario
 		final var engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1, null, history::permitsDecision); engineRef.set(engine);
 		final List<Monster> monsters = new ArrayList<>();
 		Player player = null;
+		boolean earnedChainCompleted = false;
 		try
 		{
 			PhantomAssertions.assertTrue(background.start() && materialization.start() && navigation.start() && journey.start(), "Living060 ordinary owners did not start.");
@@ -151,7 +152,7 @@ final class PhantomLiving060Scenario
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Living060 ordinary admission rejected.");
 			player = World.getInstance().getPlayer(fixture.objectId());
 			PhantomAssertions.assertTrue(player != null && !player.isDead() && !player.isImmobilized() && !player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE), "INVALID_INPUT: Living060 native mobility/zone.");
-			final int fixtureCount = mage || dwarf ? 1 : 8;
+			final int fixtureCount = classId == 0 ? 8 : 1;
 			context.record("life060.finitePack." + classId, "PREMEASUREMENT native full-HP NPC=" + initial.spec().npcId() + "; fixture slots=" + fixtureCount + "; actual clanHelpRange=" + NpcData.getInstance().getTemplate(initial.spec().npcId()).getClanHelpRange() + "; native clan/aggro/AI unchanged; no later test spawns/resources");
 			for (int index = 0; index < fixtureCount; index++)
 			{
@@ -191,6 +192,7 @@ final class PhantomLiving060Scenario
 			final var sample = sensor.snapshot();
 			context.record("life060.result." + classId, "EXP=" + startExp + "->" + player.getExp() + "; SP input=" + startSp + "; SP current=" + player.getSp() + "; cycles=" + (sample.farmCycleSequence() - baseline.farmCycleSequence()) + "; completed=" + completed + "; cyclesAfterReturn=" + (completedAtCycle < 0 ? 0 : sample.farmCycleSequence() - completedAtCycle) + "; newKills=" + (sample.killSequence() - completedKills) + "; newDamage=" + (sample.damageSequence() - completedDamage) + "; postReturnEXP=" + completedExp + "->" + player.getExp() + "; postReturnEarnedEXP=" + (sample.expGained() - completedEarnedExp) + "; postReturnEarnedSP=" + (sample.spGained() - completedEarnedSp) + "; actualXYZ=" + player.getX() + ',' + player.getY() + ',' + player.getZ() + "; current root=" + goals.load(id));
 			PhantomAssertions.assertTrue(completed != null && sample.killSequence() > completedKills && sample.damageSequence() > completedDamage && sample.expGained() > completedEarnedExp && sample.spGained() > completedEarnedSp && player.getLevel() >= threshold && player.getExp() > completedExp, "Living060 production AutoPlay -> earned threshold -> selected paid lesson -> WALK return -> NEW native kill/earned EXP/SP did not complete; old-cycle closure cannot prove it.");
+			earnedChainCompleted = true;
 		}
 		finally
 		{
@@ -201,6 +203,21 @@ final class PhantomLiving060Scenario
 			navigation.beginStop(); while (navigation.snapshot().state() != PhantomNavigationService.ServiceState.STOPPED && !navigation.finishStop() && System.nanoTime() < drain) { Thread.sleep(20); }
 			progression.beginStop(); progression.finishStop();
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, materialization.shutdown().state(), "Living060 materialization cleanup retained native work.");
+			if (earnedChainCompleted)
+			{
+				final var learned = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(profiles.findComponent(id, "learning.intent").orElseThrow().payload());
+				final int skillId = Integer.parseInt(learned.target().key().split(":")[0]);
+				final Player reloaded = Player.load(fixture.objectId());
+				PhantomAssertions.assertTrue(reloaded != null, "Living060 ordinary saved Player disappeared.");
+				try
+				{
+					PhantomAssertions.assertEquals(player.getExp(), reloaded.getExp(), "Living060 earned EXP changed on native save/reload.");
+					PhantomAssertions.assertEquals(player.getSp(), reloaded.getSp(), "Living060 earned/paid SP changed on native save/reload.");
+					PhantomAssertions.assertEquals(player.getSkillLevel(skillId), reloaded.getSkillLevel(skillId), "Living060 paid native rank was downgraded on save/reload.");
+					context.record("life060.saved." + classId, "ordinary owned save/cleanup -> native Player.load; EXP=" + reloaded.getExp() + "; SP=" + reloaded.getSp() + "; paid skill=" + skillId + ':' + reloaded.getSkillLevel(skillId) + "; no recreated goal/reward; not a whole JVM restart");
+				}
+				finally { environment.cleanupLoadedPlayer(reloaded); }
+			}
 			background.beginStop(); PhantomAssertions.assertTrue(background.finishStop(), "Living060 background owner retained work.");
 			final var owned = profiles.find(id).orElseThrow();
 			PhantomAssertions.assertEquals(fixture.objectId(), owned.characterObjectId(), "Living060 fresh profile ownership changed; cleanup refused.");

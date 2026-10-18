@@ -47,6 +47,7 @@ import java.util.function.LongPredicate;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.data.xml.ExperienceData;
 import org.l2jmobius.gameserver.data.xml.ItemData;
+import org.l2jmobius.gameserver.data.xml.SkillData;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.managers.IdManager;
 import org.l2jmobius.gameserver.model.actor.enums.creature.Race;
@@ -584,7 +585,7 @@ public final class PhantomBackgroundTransaction
 
 	private static boolean ownedSkillsMatch(PhantomBackgroundState state, Map<Integer, Integer> skills)
 	{
-		return state.autoGetSkills().stream().allMatch(skill -> Integer.valueOf(skill.skillLevel()).equals(skills.get(skill.skillId())));
+		return skillsMatch(state, skills);
 	}
 
 	private boolean ownedCanonicalFactsMatch(PhantomBackgroundState state, Canonical canonical, List<ItemRow> items)
@@ -874,9 +875,23 @@ public final class PhantomBackgroundTransaction
 
 	private static boolean skillsMatch(PhantomBackgroundState state, Map<Integer, Integer> skills)
 	{
-		for (AutoGetSkill skill : state.autoGetSkills())
+		return skillsCoverAutoGet(state.identity(), state.progress().level(), state.autoGetSkills(), skills);
+	}
+
+	/** Auto-get is a floor. A higher canonical rank must still belong to this native class/level. */
+	private static boolean skillsCoverAutoGet(Identity identity, int level, List<AutoGetSkill> floors, Map<Integer, Integer> skills)
+	{
+		for (AutoGetSkill skill : floors)
 		{
-			if (!Integer.valueOf(skill.skillLevel()).equals(skills.get(skill.skillId())))
+			final int actual = skills.getOrDefault(skill.skillId(), 0);
+			if (actual < skill.skillLevel()) { return false; }
+			if (actual == skill.skillLevel()) { continue; }
+			final PlayerClass playerClass = PlayerClass.getPlayerClass(identity.activeClassId());
+			if (playerClass == null || identity.raceOrdinal() >= Race.values().length) { return false; }
+			final Race race = Race.values()[identity.raceOrdinal()];
+			final boolean allowed = SkillTreeData.getInstance().getCompleteClassSkillTree(playerClass).values().stream().anyMatch(learn -> learn.getSkillId() == skill.skillId() && learn.getSkillLevel() == actual && learn.getGetLevel() <= level
+				&& (learn.isAutoGet() || learn.isLearnedByNpc() || learn.isLearnedByFS()) && (learn.getRaces().isEmpty() || learn.getRaces().contains(race)));
+			if (!allowed || SkillData.getInstance().getSkill(skill.skillId(), actual) == null)
 			{
 				return false;
 			}
@@ -2015,7 +2030,7 @@ public final class PhantomBackgroundTransaction
 					requireOne(statement.executeUpdate(), "auto-get skill insert");
 				}
 			}
-			else if (oldLevel != skill.skillLevel())
+			else if (oldLevel < skill.skillLevel())
 			{
 				try (PreparedStatement statement = prepare(connection, UPDATE_SKILL))
 				{
@@ -2059,13 +2074,7 @@ public final class PhantomBackgroundTransaction
 		{
 			throw new StateConflict(Status.PROGRESSION_CONFLICT);
 		}
-		for (AutoGetSkill skill : autoSkills)
-		{
-			if (!Integer.valueOf(skill.skillLevel()).equals(skills.get(skill.skillId())))
-			{
-				throw new StateConflict(Status.CANONICAL_MISMATCH);
-			}
-		}
+		if (!skillsCoverAutoGet(template.identity(), canonical.level(), autoSkills, skills)) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 		final State state = canonical.vitals().currentHp() == 0 ? State.DEAD : State.READY;
 		return new PhantomBackgroundState(state, template.identity(), progress, canonical.vitals(), position, template.combat(), template.loadout(), inventory, autoSkills, template.clock(), template.receipt(), template.hashes());
 	}
@@ -2119,14 +2128,7 @@ public final class PhantomBackgroundTransaction
 		{
 			return false;
 		}
-		for (AutoGetSkill skill : state.autoGetSkills())
-		{
-			if (!Integer.valueOf(skill.skillLevel()).equals(skills.get(skill.skillId())))
-			{
-				return false;
-			}
-		}
-		return true;
+		return skillsMatch(state, skills);
 	}
 
 	private static boolean runtimeProjectionMatches(PhantomBackgroundState runtime, PhantomBackgroundState durable)
