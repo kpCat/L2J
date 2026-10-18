@@ -73,13 +73,23 @@ final class PhantomCareer061PreviewSetup
 		run(true, true);
 	}
 
+	static void runCareer36() throws Exception
+	{
+		run(true, false, true);
+	}
+
 	private static void run(boolean career, boolean finishInput) throws Exception
 	{
-		final var roles = career ? List.of(new Role("T061Career", 0, 19, 68, 1835)) : ROLES;
-		final int retainedProfiles = career ? 34 : 32;
-		final String phase = career ? "career" : "preview";
-		final int addedAdena = career ? 50_000 : 10_000;
-		final int addedCharges = career ? 3000 : 300;
+		run(career, finishInput, false);
+	}
+
+	private static void run(boolean career, boolean finishInput, boolean career36) throws Exception
+	{
+		final var roles = career36 ? List.of(new Role("T061CareerD20", 0, 20, 2499, 1463)) : career ? List.of(new Role("T061Career", 0, 19, 68, 1835)) : ROLES;
+		final int retainedProfiles = career36 ? 35 : career ? 34 : 32;
+		final String phase = career36 ? "career36" : career ? "career" : "preview";
+		final int addedAdena = career36 ? 200_000 : career ? 50_000 : 10_000;
+		final int addedCharges = career36 ? 2000 : career ? 3000 : 300;
 		final Path output = PhantomCampaign058PersistentLane.LANE.resolve("task061");
 		final Path planPath = output.resolve(phase + (finishInput ? "-revised-input061.plan.tsv" : "-input061.plan.tsv"));
 		if (finishInput) { PhantomAssertions.assertTrue(Files.isRegularFile(output.resolve("career-input061.plan.tsv")), "Retained unfinished preparation is absent."); }
@@ -132,7 +142,7 @@ final class PhantomCareer061PreviewSetup
 			final var planner = new PhantomHistoricalBackgroundPlanner(query, topology, authority);
 			final var ecology = PhantomPopulationEcologyCatalog.load(Path.of("data/phantoms/population/high-five-ecology-v1.xml"), population,
 				org.l2jmobius.gameserver.phantoms.social.PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml")));
-			final var anchor = finishInput ? query.suitableTargets(new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery(17, 21, 19, null, null,
+			final var anchor = finishInput || career36 ? query.suitableTargets(new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.TargetQuery(17, 21, career36 ? 20 : 19, null, null,
 				Set.of(org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.NpcKind.MONSTER), true, true, null, null, null, org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.PageRequest.first(256))).values().stream()
 				.flatMap(target -> target.representativeAreas().stream()).filter(area -> area.instanceId() == 0 && area.totalConfiguredAmount() > 0 && area.topologyNodeId() != null)
 				.flatMap(area -> topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()).stream())
@@ -142,8 +152,13 @@ final class PhantomCareer061PreviewSetup
 				.min(java.util.Comparator.comparingDouble(value -> Math.hypot(value.point().x() + 81861, value.point().y() - 149197))).orElseThrow() : topology.findAnchor(ANCHOR).orElseThrow();
 			final var geo = GeoEngine.getInstance();
 			PhantomAssertions.assertTrue(geo.hasGeo(anchor.point().x(), anchor.point().y()), "Declared farm lacks native geometry.");
-			final List<String> plan = new ArrayList<>(List.of("PREMEASUREMENT_ONLY; NEW canonical profiles=" + roles.size() + "; retained=" + retainedProfiles + "; current join/cursor; evening calendar; no historical reward/reset; ACTIVE8/materialized16 unchanged; SyntheticOFF; native birth stock retained; finite added charges=" + addedCharges + "/Adena=" + addedAdena + "; " + (career ? "prepared Fighter19 near20 is not earned1-19; Q401 ABSENT/no1138-1145; native full quest/master; episode90minutes per durable intent" : "maximum active episode30minutes"), "profile\tordinal\tseed\tname\tclass\tlevel\tSP\tAdenaAdded\tchargesAdded\tanchor"));
+			final List<String> plan = new ArrayList<>(List.of("PREMEASUREMENT_ONLY; NEW canonical profiles=" + roles.size() + "; retained=" + retainedProfiles + "; current join/cursor; evening calendar; no historical reward/reset; ACTIVE8/materialized16 unchanged; SyntheticOFF; native birth stock retained; finite added charges=" + addedCharges + "/Adena=" + addedAdena + "; " + (career36 ? "prepared Fighter20 near21 is not earned1-20; Q401 ABSENT/no1138-1145; native full quest/master; episode90minutes per durable intent" : career ? "prepared Fighter19 near20 is not earned1-19; Q401 ABSENT/no1138-1145; native full quest/master; episode90minutes per durable intent" : "maximum active episode30minutes"), "profile\tordinal\tseed\tname\tclass\tlevel\tSP\tAdenaAdded\tchargesAdded\tanchor"));
 			for (int index = 0; index < roles.size(); index++) { final var role = roles.get(index); plan.add((nextProfile + index) + "\t" + (ordinal + index) + "\t" + seeds.get(index) + "\t" + role.name() + "\t" + role.classId() + "\t" + role.level() + "\t0\t" + addedAdena + "\t" + addedCharges + ":" + role.shots() + "\t" + anchor.id()); }
+			if (career36)
+			{
+				PhantomAssertions.assertEquals(36L, nextProfile, "Only the fourth and last new061 profile is authorized.");
+				plan.add("INDEPENDENT_FINAL_NEW_INPUT36: Fighter20 near21/SP0; native Elven Long Sword2499 and D armor352/380/2412/61/2428, no enchant/buffs/invulnerability; 200000 Adena +2000D/2000NG shots; Q401 ABSENT/no1138-1145; farm root only, producer chooses profession; old35 earned episode and all35 retained identities immutable; prepared1-20 is not earned progression.");
+			}
 			if (finishInput) { plan.add("PRE_ENROLLMENT_INPUT_REVISION: original nearest Gludin farm had no level19 target/route; retain failed receipt; reuse exact profile35/seed/EXP/SP/items without new grants; only declared initial field/baseline is completed before any ordinary episode."); }
 			Files.write(planPath, plan, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 			final var goals = new PhantomGoalStateStore(profiles);
@@ -169,8 +184,9 @@ final class PhantomCareer061PreviewSetup
 						{
 						body.getStat().setExp(body.getStat().getExpForLevel(role.classId() == 0 ? role.level() + 1 : role.level()) - (role.classId() == 0 ? 1 : 0)); body.getStat().setLevel((byte) role.level());
 						body.setLearningClass(body.getPlayerClass()); body.setSp(0); body.rewardSkills();
-						for (int itemId : new int[] {role.weapon(), 24, 31}) { body.getInventory().equipItem(body.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, PhantomCareer061PreviewSetup.class)); }
+						for (int itemId : career36 ? new int[] {role.weapon(), 352, 380, 2412, 61, 2428} : new int[] {role.weapon(), 24, 31}) { body.getInventory().equipItem(body.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, PhantomCareer061PreviewSetup.class)); }
 						body.getInventory().addItem(ItemProcessType.REWARD, role.shots(), addedCharges, null, PhantomCareer061PreviewSetup.class); body.getInventory().addItem(ItemProcessType.REWARD, 57, addedAdena, null, PhantomCareer061PreviewSetup.class);
+						if (career36) { body.getInventory().addItem(ItemProcessType.REWARD, 1835, addedCharges, null, PhantomCareer061PreviewSetup.class); }
 						}
 						else
 						{
@@ -219,7 +235,7 @@ final class PhantomCareer061PreviewSetup
 
 	static String retainedDigest(int retainedProfiles) throws Exception
 	{
-		PhantomAssertions.assertTrue(retainedProfiles == 32 || retainedProfiles == 34, "Digest scope must remain explicitly bounded.");
+		PhantomAssertions.assertTrue(retainedProfiles == 32 || retainedProfiles == 34 || retainedProfiles == 35, "Digest scope must remain explicitly bounded.");
 		final var digest = java.security.MessageDigest.getInstance("SHA-256");
 		final List<String> queries = List.of(
 			"SELECT c.* FROM characters c JOIN phantom_profiles p ON p.character_object_id=c.charId WHERE p.profile_id<=32 ORDER BY c.charId",
