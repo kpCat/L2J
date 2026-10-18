@@ -27,9 +27,9 @@ $manifest = Get-Content -LiteralPath (Join-Path $runtime 'local-play.json') -Raw
 $build = Get-Content -LiteralPath (Join-Path $runtime 'BUILD_INFO.json') -Raw | ConvertFrom-Json
 $database = Read-Ini $settings 'DatabaseName'
 if ($database -notmatch '^l2jmobiush5_phantom_(test_041final|test_058a|release_[A-Za-z0-9_]{1,24})$' -or $manifest.databaseName -cne $database -or $manifest.databaseConfig -cne 'USER_CONFIRMED_EXISTING') { throw 'Схема runtime не подтверждена; действие запрещено.' }
-if ($database -in @('l2jmobiush5_phantom_test_058a','l2jmobiush5_phantom_release_058a','l2jmobiush5_phantom_release_059a')) {
+if ($database -in @('l2jmobiush5_phantom_test_058a','l2jmobiush5_phantom_release_058a','l2jmobiush5_phantom_release_059a','l2jmobiush5_phantom_release_060a')) {
     . (Join-Path $PSScriptRoot 'Campaign058Ownership.ps1')
-    $campaignOwner=Read-Campaign058Owner (Join-Path $runtime $(if($database -ceq 'l2jmobiush5_phantom_release_059a'){'ownership059.properties'}else{'ownership058.properties'}))
+    $campaignOwner=Read-Campaign058Owner (Join-Path $runtime $(if($database -ceq 'l2jmobiush5_phantom_release_060a'){'ownership060.properties'}elseif($database -ceq 'l2jmobiush5_phantom_release_059a'){'ownership059.properties'}else{'ownership058.properties'}))
     Assert-Campaign058Binding $runtime $database $campaignOwner
 }
 foreach ($role in @('game','login')) {
@@ -55,6 +55,20 @@ if ($database -ceq 'l2jmobiush5_phantom_release_059a') {
         $protectedIds059=@((Get-LocalPlayRuntimeId 'D:\PhantomWorld\M1-057-candidate'),(Get-LocalPlayRuntimeId 'D:\PhantomWorld\M2-M7-058-candidate'))
         $protected059=@(Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object { $_.CommandLine -and ($_.CommandLine.IndexOf('D:\PhantomWorld\M1-057-candidate',[StringComparison]::OrdinalIgnoreCase) -ge 0 -or $_.CommandLine.IndexOf('D:\PhantomWorld\M2-M7-058-candidate',[StringComparison]::OrdinalIgnoreCase) -ge 0 -or $_.CommandLine.Contains('phantom.localplay.runtime='+$protectedIds059[0]) -or $_.CommandLine.Contains('phantom.localplay.runtime='+$protectedIds059[1])) })
         if ($protected059.Count) {throw 'TASK059: Login2106 требует остановленных защищённых057/058; их процессы не изменяются.'}
+    }
+}
+if ($database -ceq 'l2jmobiush5_phantom_release_060a') {
+    if ($ports.GameServer[0] -ne 7840 -or $ports.LoginServer[0] -ne [int]$campaignOwner.clientLoginPort -or $ports.LoginServer[1] -ne 9140) {throw 'TASK060: actual runtime ports отличаются от exact layout.'}
+    foreach ($input060 in @($manifest,$build)) {
+        if ($input060.layout -cne $campaignOwner.layout -or [int]$input060.clientLoginPort -ne $ports.LoginServer[0] -or [int]$input060.gamePort -ne 7840 -or [int]$input060.controlPort -ne 9140) {throw 'TASK060: manifest/BUILD_INFO layout mismatch.'}
+    }
+    if ($Action -ceq 'Start' -and $campaignOwner.layout -ceq 'LOGIN2106') {
+        $protectedRoots060=@('D:\PhantomWorld\M1-057-candidate','D:\PhantomWorld\M2-M7-058-candidate','D:\PhantomWorld\M3-M7-059-candidate')
+        $protectedJava060=@(Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'")
+        foreach ($protectedRoot060 in $protectedRoots060) {
+            $protectedId060=Get-LocalPlayRuntimeId $protectedRoot060
+            if (@($protectedJava060 | Where-Object { $_.CommandLine -and ($_.CommandLine.IndexOf($protectedRoot060,[StringComparison]::OrdinalIgnoreCase) -ge 0 -or $_.CommandLine.Contains('phantom.localplay.runtime='+$protectedId060)) }).Count) {throw 'TASK060: Login2106 требует остановленных защищённых057/058/059; их процессы не изменяются.'}
+        }
     }
 }
 $runtimeId = Get-LocalPlayRuntimeId $runtime

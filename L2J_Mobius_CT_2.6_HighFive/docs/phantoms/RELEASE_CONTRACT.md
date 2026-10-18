@@ -133,3 +133,9 @@ BUILD_INFO фиксирует source/tracked archive/JAR/helper/geo hashes. Loca
 5. Окончательный каталог/стандартные порты согласовать отдельно. Успех041/М7 не снимает защиту040a.
 
 Личный041 final gate REQUIRED до явного решения пользователя. M1=CLOSED/READY_FOR_M2=true до него запрещены; автоматический следующий task запрещён.
+
+## Адресная поставка TASK060
+
+Утверждённый пакет PHANTOM-LIVING-PROGRESSION-060 разрешает существующую058a, exact058t и новый `D:\PhantomWorld\Living-060-candidate`/`l2jmobiush5_phantom_release_060a`. Финальная БД — один consistent stopped export058a; повторный bootstrap/reset/reimport058a запрещён. Самостоятельные START/STATUS/штатный STOP, current regression и sameDB restart обязательны; итог STOPPED. Login2106 только при свободном endpoint и остановленных защищённых057/058/059, иначе2140; Game7840/control9140. Защищённые candidate/БД/процессы и клиент не меняются.
+
+Конкретное расширение scope: NPC shots, offline private buy/manufacture, штатные GK и собственные Pet/BabyPet как зависимости карьеры; без массовой торговой сети. Точное покрытие, классы, сценарии и не закрытые требования указываются в одном RESULT060 и матрице060. М1/G4/G6 остаются deferred; полная М7 не следует из selected PASS. По прямому решению владельца060 review ZIP не создаётся. Сохраняются preimages, реальные FAIL и quarantine; Git — exact-path содержательные commits и normal non-force push по AUTHORITY060§7.

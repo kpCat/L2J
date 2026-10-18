@@ -1,5 +1,5 @@
-[CmdletBinding()]
-param([ValidatePattern('^[a-z0-9-]{1,45}$')][string]$Label='final-current059',[switch]$ValidateOnly)
+﻿[CmdletBinding()]
+param([ValidatePattern('^[a-z0-9-]{1,45}$')][string]$Label='final-current059',[switch]$ValidateOnly,[switch]$Campaign060)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -13,19 +13,20 @@ foreach($row059 in $selection059){
  if([regex]::Matches($old059,'(?m)^PASS ([^ ]+) ').Count -ne [int]$row059.caseResults){throw 'Historical report case inventory differs'}
 }
 if($ValidateOnly){Write-Output 'CURRENT059_SELECTION_PREFLIGHT_PASS; suites=23; originalCaseIds=101; currentTestsNotRun=true';return}
-$output059=Join-Path $hf059 ('.phantom-local/contract058a/task059/'+$Label+'.tsv')
+$output059=Join-Path $hf059 ($(if($Campaign060){'.phantom-local/contract058a/task060/'}else{'.phantom-local/contract058a/task059/'})+$Label+'.tsv')
 if(Test-Path -LiteralPath $output059){throw 'Current evidence exists; no overwrite'}
 Set-Content -LiteralPath $output059 -Encoding UTF8 -Value "mode`tseed`ttotal`tpassed`tfailed`texit`tretainedBaselineCases`tproof"
 $runner059=Join-Path $PSScriptRoot 'Invoke-Campaign059Test.ps1'
 $cwd059=Join-Path $hf059 '.phantom-local/contract058t/runtime/game'
 $failures059=0
+$campaignArgs060=@(); if($Campaign060){$campaignArgs060+='-Campaign060'}
 Push-Location $cwd059
 try {
  foreach($row059 in $selection059){
   $caseLabel059=$Label+'-'+$row059.mode
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runner059 -Mode $row059.mode -Seed $row059.seed -Label $caseLabel059 -CleanCandidate
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runner059 -Mode $row059.mode -Seed $row059.seed -Label $caseLabel059 -CleanCandidate @campaignArgs060
   $exit059=$LASTEXITCODE
-  $directory059=Join-Path $hf059 ('.phantom-local/contract058t/reports/task059/'+$caseLabel059)
+  $directory059=Join-Path $hf059 ($(if($Campaign060){'.phantom-local/contract058t/reports/task060/'}else{'.phantom-local/contract058t/reports/task059/'})+$caseLabel059)
   $reports059=@(Get-ChildItem -LiteralPath $directory059 -File -Filter '*.txt')
   if($reports059.Count -ne 1){throw 'Expected one current launcher report'}
   $text059=[IO.File]::ReadAllText($reports059[0].FullName)
@@ -43,5 +44,5 @@ try {
   if($exit059 -ne 0 -or $counts059.failed -ne 0){$failures059++}
  }
 } finally {Pop-Location}
-Write-Output ('CURRENT059_REGRESSION suites='+$selection059.Count+'; baselineCases=101; failedSuites='+$failures059+'; proof='+$output059)
+Write-Output ($(if($Campaign060){'CURRENT060_REGRESSION suites='}else{'CURRENT059_REGRESSION suites='})+$selection059.Count+'; baselineCases=101; failedSuites='+$failures059+'; proof='+$output059)
 if($failures059){exit 1}

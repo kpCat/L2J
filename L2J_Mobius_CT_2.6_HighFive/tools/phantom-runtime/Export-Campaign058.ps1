@@ -1,5 +1,5 @@
-[CmdletBinding()]
-param([switch]$ValidateOnly,[switch]$ReadOnlyPreflight,[ValidateSet('Campaign058','Campaign059')][string]$Profile='Campaign058')
+﻿[CmdletBinding()]
+param([switch]$ValidateOnly,[switch]$ReadOnlyPreflight,[ValidateSet('Campaign058','Campaign059','Campaign060')][string]$Profile='Campaign058')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Campaign058Ownership.ps1')
@@ -8,16 +8,16 @@ $expected='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
 if ($module -ine $expected) {throw 'TASK058 export requires exact OWN.'}
 $lane=Join-Path $module '.phantom-local/contract058a'
 $source=Join-Path $lane 'runtime'
-$releaseInput=Join-Path $lane $(if($Profile -ceq 'Campaign059'){'task059/release-input059'}else{'release-input'})
-$target=if($Profile -ceq 'Campaign059'){'D:\PhantomWorld\M3-M7-059-candidate'}else{'D:\PhantomWorld\M2-M7-058-candidate'}
+$releaseInput=Join-Path $lane $(if($Profile -ceq 'Campaign060'){'task060/release-input060'}elseif($Profile -ceq 'Campaign059'){'task059/release-input059'}else{'release-input'})
+$target=if($Profile -ceq 'Campaign060'){'D:\PhantomWorld\Living-060-candidate'}elseif($Profile -ceq 'Campaign059'){'D:\PhantomWorld\M3-M7-059-candidate'}else{'D:\PhantomWorld\M2-M7-058-candidate'}
 $sourceDb='l2jmobiush5_phantom_test_058a'
-$targetDb=if($Profile -ceq 'Campaign059'){'l2jmobiush5_phantom_release_059a'}else{'l2jmobiush5_phantom_release_058a'}
-$exportLane=if($Profile -ceq 'Campaign059'){Join-Path $lane 'task059'}else{$lane}
-$exportName=if($Profile -ceq 'Campaign059'){'release059-export'}else{'release-export'}
-$importName=if($Profile -ceq 'Campaign059'){'release059-import'}else{'release-import'}
+$targetDb=if($Profile -ceq 'Campaign060'){'l2jmobiush5_phantom_release_060a'}elseif($Profile -ceq 'Campaign059'){'l2jmobiush5_phantom_release_059a'}else{'l2jmobiush5_phantom_release_058a'}
+$exportLane=if($Profile -ceq 'Campaign060'){Join-Path $lane 'task060'}elseif($Profile -ceq 'Campaign059'){Join-Path $lane 'task059'}else{$lane}
+$exportName=if($Profile -ceq 'Campaign060'){'release060-export'}elseif($Profile -ceq 'Campaign059'){'release059-export'}else{'release-export'}
+$importName=if($Profile -ceq 'Campaign060'){'release060-import'}elseif($Profile -ceq 'Campaign059'){'release059-import'}else{'release-import'}
 $sourceOwner=Read-Campaign058Owner (Join-Path $source 'ownership058.properties')
 Assert-Campaign058Binding $source $sourceDb $sourceOwner
-$releaseOwner=Read-Campaign058Owner (Join-Path $releaseInput $(if($Profile -ceq 'Campaign059'){'ownership059.properties'}else{'ownership058.properties'}))
+$releaseOwner=Read-Campaign058Owner (Join-Path $releaseInput $(if($Profile -ceq 'Campaign060'){'ownership060.properties'}elseif($Profile -ceq 'Campaign059'){'ownership059.properties'}else{'ownership058.properties'}))
 Assert-Campaign058Binding $target $targetDb $releaseOwner
 if ($sourceOwner.schemaAggregateSha256 -cne $releaseOwner.schemaAggregateSha256 -or $sourceOwner.schemaAggregateSha256 -cne ([IO.File]::ReadAllText((Join-Path $lane 'bootstrap.complete')).Trim())) {throw 'Owned schema bootstrap fingerprint differs.'}
 function Read-Setting([string]$Path,[string]$Key) {
@@ -76,7 +76,7 @@ try {
     & $dump @connectionArgs --single-transaction --quick --skip-lock-tables --skip-add-locks --skip-add-drop-table --skip-comments --routines --events --triggers --hex-blob "--result-file=$sql" $sourceDb
     if ($LASTEXITCODE -ne 0) {throw 'Native stopped export failed; receipt retained.'}
     if ([IO.File]::ReadAllText($sql) -match '(?im)^\s*(?:USE\s|CREATE\s+DATABASE\s|DROP\s)') {throw 'Export contains forbidden database switch/drop; target not created.'}
-    $createSql=if($Profile -ceq 'Campaign059'){'CREATE DATABASE `l2jmobiush5_phantom_release_059a` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'}else{'CREATE DATABASE `l2jmobiush5_phantom_release_058a` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'}
+    $createSql=if($Profile -ceq 'Campaign060'){'CREATE DATABASE `l2jmobiush5_phantom_release_060a` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'}elseif($Profile -ceq 'Campaign059'){'CREATE DATABASE `l2jmobiush5_phantom_release_059a` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'}else{'CREATE DATABASE `l2jmobiush5_phantom_release_058a` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'}
     $null=Query $createSql
     $process=Start-Process -FilePath $client -ArgumentList ($connectionArgs + @("--database=$targetDb",'--binary-mode')) -WindowStyle Hidden -RedirectStandardInput $sql -RedirectStandardOutput (Join-Path $exportLane ($importName+'.stdout.log')) -RedirectStandardError (Join-Path $exportLane ($importName+'.stderr.log')) -PassThru -Wait
     if ($process.ExitCode -ne 0) {throw 'Native import failed; no reset/reimport fallback.'}

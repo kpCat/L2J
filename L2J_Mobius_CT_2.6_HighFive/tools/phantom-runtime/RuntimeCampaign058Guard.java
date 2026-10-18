@@ -13,18 +13,22 @@ public final class RuntimeCampaign058Guard
 	static final String RELEASE059 = "l2jmobiush5_phantom_release_059a";
 	static final Path RELEASE059_ROOT = Path.of("D:/PhantomWorld/M3-M7-059-candidate");
 
+	static final String RELEASE060 = "l2jmobiush5_phantom_release_060a";
+	static final Path RELEASE060_ROOT = Path.of("D:/PhantomWorld/Living-060-candidate");
+
 	private RuntimeCampaign058Guard() { }
 
 	public static void validate(Path root, String schema) throws Exception
 	{
-		if (!CUMULATIVE.equals(schema) && !RELEASE.equals(schema) && !RELEASE059.equals(schema)) { return; }
+		if (!CUMULATIVE.equals(schema) && !RELEASE.equals(schema) && !RELEASE059.equals(schema) && !RELEASE060.equals(schema)) { return; }
 		final Properties owner = new Properties();
-		try (var reader = Files.newBufferedReader(root.resolve(RELEASE059.equals(schema) ? "ownership059.properties" : "ownership058.properties"), StandardCharsets.UTF_8)) { owner.load(reader); }
+		try (var reader = Files.newBufferedReader(root.resolve(RELEASE060.equals(schema) ? "ownership060.properties" : RELEASE059.equals(schema) ? "ownership059.properties" : "ownership058.properties"), StandardCharsets.UTF_8)) { owner.load(reader); }
 		validateIdentity(root.toRealPath(), schema, owner);
 	}
 
 	static void validateIdentity(Path root, String schema, Properties owner)
 	{
+		if (RELEASE060.equals(schema) || "TASK060_CAMPAIGN".equals(owner.getProperty("owner"))) { validate060(root, schema, owner); return; }
 		if (RELEASE059.equals(schema) || "TASK059_CAMPAIGN".equals(owner.getProperty("owner"))) { validate059(root, schema, owner); return; }
 		final boolean cumulative = CUMULATIVE.equals(schema);
 		final Path expected = cumulative ? CUMULATIVE_ROOT : RELEASE_ROOT;
@@ -41,6 +45,14 @@ public final class RuntimeCampaign058Guard
 		if (!RELEASE059.equals(schema) || !RELEASE059_ROOT.equals(root.toAbsolutePath().normalize()) || !"1".equals(owner.getProperty("version")) || !"TASK059_CAMPAIGN".equals(owner.getProperty("owner")) || !"RELEASE_CANDIDATE".equals(owner.getProperty("role")) || !schema.equals(owner.getProperty("schema")) || !RELEASE059_ROOT.equals(Path.of(owner.getProperty("runtimeRoot", "")).toAbsolutePath().normalize()) || !login.equals(owner.getProperty("clientLoginPort")) || !"7839".equals(owner.getProperty("gamePort")) || !"9139".equals(owner.getProperty("controlPort")))
 		{
 			throw new IllegalArgumentException("TASK059 runtime root/schema/owner/role/layout/ports mismatch.");
+		}
+	}
+	private static void validate060(Path root, String schema, Properties owner)
+	{
+		final String login = switch (owner.getProperty("layout", "")) { case "LOGIN2106" -> "2106"; case "LOGIN2140" -> "2140"; default -> throw new IllegalArgumentException("Unknown TASK060 exact layout."); };
+		if (!RELEASE060.equals(schema) || !RELEASE060_ROOT.equals(root.toAbsolutePath().normalize()) || !"1".equals(owner.getProperty("version")) || !"TASK060_CAMPAIGN".equals(owner.getProperty("owner")) || !"RELEASE_CANDIDATE".equals(owner.getProperty("role")) || !schema.equals(owner.getProperty("schema")) || !RELEASE060_ROOT.equals(Path.of(owner.getProperty("runtimeRoot", "")).toAbsolutePath().normalize()) || !login.equals(owner.getProperty("clientLoginPort")) || !"7840".equals(owner.getProperty("gamePort")) || !"9140".equals(owner.getProperty("controlPort")))
+		{
+			throw new IllegalArgumentException("TASK060 runtime root/schema/owner/role/layout/ports mismatch.");
 		}
 	}
 }
