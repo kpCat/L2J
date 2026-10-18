@@ -139,6 +139,17 @@ final class PhantomAutonomousCareer
 		}
 		if (!_pauseFarm.test(context.profileId(), intent.deadlineEpochMillis())) { return PhantomStepResult.retry(250, "career.native.finish_current_target"); }
 		final var result = _service.advanceIntent(context.profileId(), context.goal(), intent, context.effectiveState(), context.logicalNowNanos(), context.cancellationToken());
+		// Save an actually earned native class while its original child/root binding is still current.
+		// The existing owned boundary attests Q401; Player remains the sole class/base-class writer.
+		try (var lease = _materialization.tryAcquireAction(context.profileId()).orElse(null))
+		{
+			if (lease != null && lease.player().getActiveClass() == intent.constraints().getOrDefault("class.to", -1L)
+				&& lease.player().getBaseClass() == lease.player().getActiveClass() && lease.player().hasOwnedStoreBoundary())
+			{
+				try { lease.player().storeMe(); }
+				catch (RuntimeException failure) { return PhantomStepResult.retry(500, "career.native.store_pending"); }
+			}
+		}
 		if (result.status() == PhantomQuestInstanceService.Status.COMPLETE || result.status() == PhantomQuestInstanceService.Status.FAIL)
 		{
 			final boolean complete = result.status() == PhantomQuestInstanceService.Status.COMPLETE;

@@ -403,18 +403,21 @@ public final class PhantomBackgroundTransaction
 				final LockedComponent component = lockComponent(connection, profileId, PhantomBackgroundState.COMPONENT_TYPE);
 				if (lockComponent(connection, profileId, PhantomOwnedStoreIntent.COMPONENT_TYPE) != null) { throw new StateConflict(Status.STATE_CONFLICT); }
 				final var previous = component == null ? null : decodeState(component);
-				if ((previous != null) && (!previous.identity().equals(captured.identity()) || ((previous.state() != State.MATERIALIZED) && (previous.state() != State.READY) && (previous.state() != State.DEAD)))) { throw new StateConflict(Status.STATE_CONFLICT); }
+				final boolean classChange = previous != null && !previous.identity().equals(captured.identity());
+				if ((previous != null) && ((classChange && (!PhantomOwnedStoreIntent.nativeWarriorTransition(previous, captured) || nativeCapture == null)) || ((previous.state() != State.MATERIALIZED) && (previous.state() != State.READY) && (previous.state() != State.DEAD)))) { throw new StateConflict(Status.STATE_CONFLICT); }
+				final Identity beforeIdentity = classChange ? previous.identity() : captured.identity();
 				final var contextComponent = lockComponent(connection, profileId, PhantomNativeContext.COMPONENT_TYPE);
-				final var previousContext = boundContext(contextComponent, component, captured.identity());
+				final var previousContext = boundContext(contextComponent, component, beforeIdentity);
 				if ((previousContext != null) && (previousContext.phase() == PhantomNativeContext.Phase.PENDING)) { throw new StateConflict(Status.STATE_CONFLICT); }
-				final Canonical canonical = lockCanonical(connection, captured.identity());
+				final Canonical canonical = lockCanonical(connection, beforeIdentity);
 				if ((previousContext != null) && !previousContext.matchesAfter(canonical.vitalityPoints())) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 				final List<ItemRow> items = lockItems(connection, objectId);
+				if (classChange) { requireNativeWarriorOwner(connection, captured, goal, items); }
 				final Map<Integer, Integer> skills = lockSkills(connection, captured.identity());
-				if ((canonical.classId() != captured.identity().activeClassId()) || (canonical.raceOrdinal() != captured.identity().raceOrdinal()) || (captured.position().instanceId() != 0)) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
+				if ((canonical.classId() != beforeIdentity.activeClassId()) || (canonical.raceOrdinal() != captured.identity().raceOrdinal()) || (captured.position().instanceId() != 0)) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 				// BEFORE is an exact canonical witness, not an assertion that native skills have already caught up with the stored level.
 				final var beforeTemplate = previous == null ? captured : previous;
-				final var before = new PhantomBackgroundState(canonical.vitals().currentHp() == 0 ? State.DEAD : State.READY, captured.identity(), new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), canonical.vitals(), new Position(0, canonical.position().x(), canonical.position().y(), canonical.position().z(), canonical.position().heading(), beforeTemplate.position().committedAnchorId()), beforeTemplate.combat(), beforeTemplate.loadout(), inventoryFacts(items, beforeTemplate.inventory()), canonicalAutoGetSkills(captured.identity(), canonical.level()), beforeTemplate.clock(), beforeTemplate.receipt(), beforeTemplate.hashes());
+				final var before = new PhantomBackgroundState(canonical.vitals().currentHp() == 0 ? State.DEAD : State.READY, beforeIdentity, new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), canonical.vitals(), new Position(0, canonical.position().x(), canonical.position().y(), canonical.position().z(), canonical.position().heading(), beforeTemplate.position().committedAnchorId()), beforeTemplate.combat(), beforeTemplate.loadout(), inventoryFacts(items, beforeTemplate.inventory()), canonicalAutoGetSkills(beforeIdentity, canonical.level()), beforeTemplate.clock(), beforeTemplate.receipt(), beforeTemplate.hashes());
 				final var progress = captured.progress();
 				final var intendedCanonical = new Canonical(progress.level(), progress.experience(), progress.skillPoints(), progress.experienceBeforeDeath(), canonicalVitals(captured.vitals()), captured.position(), captured.identity().activeClassId(), captured.identity().raceOrdinal(), nativeCapture == null ? canonical.vitalityPoints() : nativeCapture.vitalityPoints());
 				final var after = capturedState(captured, intendedCanonical, items, skills, previous);
@@ -454,6 +457,34 @@ public final class PhantomBackgroundTransaction
 		finally { publishFirstItemWitness(itemWitness); }
 	}
 
+	private void requireNativeWarriorOwner(Connection connection, PhantomBackgroundState captured, PhantomGoal root, List<ItemRow> items) throws SQLException
+	{
+		final var component = lockComponent(connection, captured.identity().profileId(), "career.intent");
+		if (component == null || component.schemaVersion() != 1) { throw new StateConflict(Status.STATE_CONFLICT); }
+		final var child = _goalCodec.decode(component.payload());
+		if (root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
+			|| child.status() != PhantomGoalStatus.ACTIVE || !"class.transfer".equals(child.goalType()) || !"career.autonomous".equals(child.purposeKey())
+			|| child.goalId() != root.goalId() || !child.subject().equals(root.subject()) || child.target() == null
+			|| !"supported.content".equals(child.target().namespace()) || !"class.warrior-q401".equals(child.target().key()) || child.payloadText() == null || !child.payloadText().matches("[0-9a-f]{64}")
+			|| child.constraints().getOrDefault("owner.revision", -1L) != root.revision() || child.constraints().getOrDefault("owner.object", -1L) != captured.identity().characterObjectId()
+			|| child.constraints().getOrDefault("class.from", -1L) != 0 || child.constraints().getOrDefault("class.to", -1L) != 1 || child.constraints().getOrDefault("class.index", -1L) != 0
+			|| !"Completed".equals(lockQuestRows(connection, captured.identity().characterObjectId(), "Q00401_PathOfTheWarrior").get("<state>"))
+			|| items.stream().anyMatch(item -> item.itemId() == 1145 && item.count() > 0) || items.stream().filter(item -> item.itemId() == 8869).mapToLong(ItemRow::count).sum() < 15)
+		{
+			throw new StateConflict(Status.STATE_CONFLICT);
+		}
+	}
+
+	private Canonical lockOwnedCanonical(Connection connection, PhantomOwnedStoreIntent intent) throws SQLException
+	{
+		try { return lockCanonical(connection, intent.after().identity()); }
+		catch (StateConflict failure)
+		{
+			if (!PhantomOwnedStoreIntent.nativeWarriorTransition(intent.before(), intent.after())) { throw failure; }
+			return lockCanonical(connection, intent.before().identity());
+		}
+	}
+
 	public Result finalizeOwnedStore(long profileId, int objectId, long epoch)
 	{
 		boolean commitAttempted = false;
@@ -486,9 +517,10 @@ public final class PhantomBackgroundTransaction
 		final var scalar = lockComponent(connection, profileId, PhantomNativeContext.COMPONENT_TYPE);
 		final var context = boundContext(scalar, component, current.identity());
 		final boolean attested = (context != null) && (context.phase() == PhantomNativeContext.Phase.PENDING);
+		if (PhantomOwnedStoreIntent.nativeWarriorTransition(intent.before(), intent.after()) && !attested) { throw new StateConflict(Status.STATE_CONFLICT); }
 		if (attested && !context.matchesReceipt(intent.preparedRowVersion(), intent.materializedAtNanos(), receipt.payload())) { throw new StateConflict(Status.STATE_CONFLICT); }
 		if ((context != null) && !attested && (context.phase() != PhantomNativeContext.Phase.UNKNOWN)) { throw new StateConflict(Status.STATE_CONFLICT); }
-		final var canonical = lockCanonical(connection, current.identity());
+		final var canonical = lockOwnedCanonical(connection, intent);
 		final var items = lockItems(connection, objectId);
 		final var skills = lockSkills(connection, current.identity());
 		Canonical checkedCanonical = canonical;
@@ -501,6 +533,8 @@ public final class PhantomBackgroundTransaction
 			return new Result(Status.OWNED_STORE_CANONICAL_NEITHER, inconsistent);
 		}
 		if (!restart && !afterMatches) { return Result.rejected(Status.POST_COMMIT_VERIFICATION_FAILED); }
+		// Class identity is written only by native Player.storeMe, never replayed as a background mutation.
+		if (restart && !afterMatches && PhantomOwnedStoreIntent.nativeWarriorTransition(intent.before(), intent.after())) { throw new StateConflict(Status.INCONSISTENT); }
 		if (restart && !afterMatches && !durableMatches(intent.before(), canonical, items, skills))
 		{
 			// Native level-up may have stored its skills before the character base row. Only an exact attested intermediate can be replayed.
@@ -557,10 +591,11 @@ public final class PhantomBackgroundTransaction
 				if (receipt == null)
 				{
 					final var completed = expected.after().withState(expected.targetState());
-					final var canonical = lockCanonical(connection, identity); final var items = lockItems(connection, identity.characterObjectId()); final var skills = lockSkills(connection, identity);
-					final var completedContext = boundContext(lockComponent(connection, identity.profileId(), PhantomNativeContext.COMPONENT_TYPE), component, identity);
-					if ((completedContext != null) && ((completedContext.phase() == PhantomNativeContext.Phase.PENDING) || !completedContext.matchesAfter(canonical.vitalityPoints()))) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 					final boolean originalComponent = component == null ? expected.previousState().equals("ABSENT") && (expected.preparedRowVersion() == 0) : (component.rowVersion() == expected.preparedRowVersion() - 1) && expected.previousPayloadHash().equals(payloadDigest(component.payload())) && expected.previousState().equals(decodeState(component).state().name());
+					final var contextIdentity = originalComponent ? expected.before().identity() : identity;
+					final var canonical = lockOwnedCanonical(connection, expected); final var items = lockItems(connection, identity.characterObjectId()); final var skills = lockSkills(connection, identity);
+					final var completedContext = boundContext(lockComponent(connection, identity.profileId(), PhantomNativeContext.COMPONENT_TYPE), component, contextIdentity);
+					if ((completedContext != null) && ((completedContext.phase() == PhantomNativeContext.Phase.PENDING) || !completedContext.matchesAfter(canonical.vitalityPoints()))) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 					if (originalComponent && expected.skillsHash().equals(ownedSkillsHash(skills)) && ownedCanonicalFactsMatch(expected.before(), canonical, items)) { connection.rollback(); return new OwnedStorePreparation(Status.SUCCESS, null); }
 					if (component == null) { throw new StateConflict(Status.STATE_CONFLICT); }
 					if ((component.rowVersion() != Math.addExact(expected.preparedRowVersion(), 1)) || !Arrays.equals(component.payload(), _stateCodec.encode(completed)) || !expected.skillsHash().equals(ownedSkillsHash(skills)) || !durableMatches(completed, canonical, items, skills)) { throw new StateConflict(Status.STATE_CONFLICT); }

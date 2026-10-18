@@ -29,10 +29,19 @@ public record PhantomOwnedStoreIntent(long preparedRowVersion, long materialized
 	public PhantomOwnedStoreIntent
 	{
 		Objects.requireNonNull(before); Objects.requireNonNull(after); Objects.requireNonNull(previousPayloadHash); Objects.requireNonNull(previousState); Objects.requireNonNull(skillsHash);
-		if ((preparedRowVersion < 0) || !before.identity().equals(after.identity()) || !previousState.matches("ABSENT|MATERIALIZED|READY|DEAD") || !previousPayloadHash.matches("[0-9a-f]{64}|ABSENT") || !skillsHash.matches("[0-9a-f]{64}") || ((targetState != State.MATERIALIZED) && (targetState != State.READY) && (targetState != State.DEAD)) || ((targetState == State.DEAD) && (after.vitals().currentHp() != 0)) || ((targetState == State.READY) && (after.vitals().currentHp() == 0)))
+		if ((preparedRowVersion < 0) || (!before.identity().equals(after.identity()) && !nativeWarriorTransition(before, after)) || !previousState.matches("ABSENT|MATERIALIZED|READY|DEAD") || !previousPayloadHash.matches("[0-9a-f]{64}|ABSENT") || !skillsHash.matches("[0-9a-f]{64}") || ((targetState != State.MATERIALIZED) && (targetState != State.READY) && (targetState != State.DEAD)) || ((targetState == State.DEAD) && (after.vitals().currentHp() != 0)) || ((targetState == State.READY) && (after.vitals().currentHp() == 0)))
 		{
 			throw new IllegalArgumentException("OWNED_STORE_INTENT_INVALID");
 		}
+	}
+
+	/** Receipt shape only; prepare additionally attests the current career owner and native quest. */
+	public static boolean nativeWarriorTransition(PhantomBackgroundState before, PhantomBackgroundState after)
+	{
+		final var from = before.identity(); final var to = after.identity();
+		return from.profileId() == to.profileId() && from.characterObjectId() == to.characterObjectId()
+			&& from.classIndex() == 0 && to.classIndex() == 0 && from.raceOrdinal() == 0 && to.raceOrdinal() == 0
+			&& from.activeClassId() == 0 && to.activeClassId() == 1 && after.progress().level() >= 20;
 	}
 
 	public byte[] encode()

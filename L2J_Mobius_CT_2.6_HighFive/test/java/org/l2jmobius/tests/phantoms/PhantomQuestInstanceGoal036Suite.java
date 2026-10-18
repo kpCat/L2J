@@ -224,6 +224,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("13-native-career-two-minute-route-refusal061", this::careerSkeletonRoute061);
 			registry.add("14-native-career-existing-goal-travel-deadline061", this::careerGoalTravelDeadline061);
 			registry.add("15-native-career-child-combat-plan-lifetime061", this::careerCombatLifetime061);
+			registry.add("16-native-warrior-owned-store-boundary061", this::careerClassStore061);
 			return;
 		}
 		registry.add("01-strict-catalog-and-fail-closed-dispatch", this::strictCatalog);
@@ -514,6 +515,72 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			finally { _careerAllowed.set(true); }
 		}
 		context.record("career061.childCombatGuards", "ordinary plan replan survived to actual native reward; HOLD and replaced durable root each cancelled their own subsequent native session");
+	}
+
+	private void careerClassStore061(PhantomTestContext context) throws Exception
+	{
+		rematerialize(); // The independent native store fixture must not inherit the preceding combat's flags.
+		preparePlayer(0, 0, 20); ensureWeapon(129); _player.rewardSkills();
+		final var content = _catalog.content("class.warrior-q401").orElseThrow();
+		try (var production = PhantomBackgroundSuite.ProductionAuthorityFixture.start())
+		{
+			final var anchor = production.topology().findAnchor("generated.farm.bfb0335de417bc81a7e9b231.anchor").orElseThrow();
+			_player.decayMe(); _player.setXYZInvisible(anchor.point().x(), anchor.point().y(), anchor.point().z()); _player.spawnMe(); _player.revalidateZone(true);
+			// Declared secondary native protocol fixture only: never evidence for ordinary full Q401/B.
+			final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
+			quest.exitQuest(false, true);
+			_player.getInventory().addItem(ItemProcessType.REWARD, 1145, 1, _player, this);
+			spawnNpc(30373);
+			final long id = _profile.profileId();
+			final var root = new PhantomGoal(++_goalId, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(id)), new PhantomDomainRef("npc", "20120"), 1, 0, "background.farm", List.of(new PhantomDomainRef(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20120@" + anchor.id())), new PhantomDomainRef("topology.anchor", anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "career061.native_store_fixture", 1);
+			final var durableGoals = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore(_profiles);
+			durableGoals.insert(id, root);
+			final var child = new PhantomGoal(root.goalId(), "class.transfer", PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef("supported.content", content.id()), 1, 0, null, List.of(), root.selectedAnchor(), "career.autonomous", 700, 0, 0, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(90), Map.of("owner.object", (long) _player.getObjectId(), "owner.revision", root.revision(), "class.from", 0L, "class.to", 1L, "class.index", 0L), "career061.native_store_fixture", 1, content.contentHash());
+			final var oldChild = _profiles.findComponent(id, "career.intent").orElse(null);
+			final byte[] childBytes = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(child);
+			if (oldChild == null) { _profiles.insertComponent(id, "career.intent", 1, childBytes); }
+			else { _profiles.updateComponent(id, "career.intent", oldChild.rowVersion(), 1, childBytes); }
+			_player.getInventory().updateDatabase(); _player.storeMe();
+			final var transactions = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction();
+			final var before = production.authority().captureOwnedNative(id, _player, root, null);
+			final var baseline = transactions.captureBaseline(before.state(), root, before.context());
+			PhantomAssertions.assertTrue(baseline.successful(), "Native class-store fixture baseline failed: " + baseline.status());
+			final long sp = _player.getSp(), exp = _player.getExp(), coupons = itemCount(8869);
+			final var observed = _backend.observe(id, content);
+			final var changed = _backend.invoke(id, content, content.step("profession.warrior").orElseThrow(), observed.fingerprint());
+			PhantomAssertions.assertTrue(_player.getActiveClass() == 1 && _player.getBaseClass() == 1 && itemCount(1145) == 0 && itemCount(8869) == coupons + 15, "Native master did not execute the declared class-store fixture: " + changed);
+			_player.getInventory().updateDatabase();
+			final var after = production.authority().captureOwnedNative(id, _player, root, baseline.state());
+			final long epoch = _materialization.find(id).orElseThrow().materializedAtNanos();
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.Status.STATE_CONFLICT, transactions.prepareOwnedStore(after.state(), root, epoch, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.READY).status(), "An unattested class change was accepted.");
+			final var foreignConstraints = new java.util.LinkedHashMap<>(child.constraints());
+			foreignConstraints.put("owner.revision", root.revision() + 1);
+			final var foreignChild = new PhantomGoal(child.goalId(), child.goalType(), child.status(), child.subject(), child.target(), child.requiredAmount(), child.currentAmount(), child.acquisitionMethod(), child.validSources(), child.selectedAnchor(), child.purposeKey(), child.priority(), child.riskBudget(), child.expenseBudget(), child.deadlineEpochMillis(), foreignConstraints, child.reasonKey(), child.revision(), child.payloadText());
+			var childRow = _profiles.findComponent(id, "career.intent").orElseThrow();
+			_profiles.updateComponent(id, "career.intent", childRow.rowVersion(), 1, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(foreignChild));
+			final var rejected = transactions.prepareOwnedStore(after.state(), root, epoch, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.READY, after.context());
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.Status.STATE_CONFLICT, rejected.status(), "An unrelated career root authorized the class store.");
+			childRow = _profiles.findComponent(id, "career.intent").orElseThrow();
+			_profiles.updateComponent(id, "career.intent", childRow.rowVersion(), 1, childBytes);
+			final var prepared = transactions.prepareOwnedStore(after.state(), root, epoch, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.READY, after.context());
+			context.record("career061.classStorePrepare", "before=" + before.state().identity() + ";after=" + after.state().identity() + ";status=" + prepared.status());
+			PhantomAssertions.assertTrue(prepared.successful(), "Owned persistence rejected the actual native Fighter-to-Warrior class change: " + prepared.status());
+			final var decoded = org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.decode(prepared.intent().encode());
+			PhantomAssertions.assertTrue(decoded.before().identity().activeClassId() == 0 && decoded.after().identity().activeClassId() == 1, "Class transition receipt lost either native identity.");
+			for (var wrong : List.of(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Identity(id, _player.getObjectId(), 0, 2, 0), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Identity(id, _player.getObjectId(), 0, 1, 1), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Identity(id, _player.getObjectId(), 1, 1, 0)))
+			{
+				final var state = after.state();
+				final var unrelated = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState(state.state(), wrong, state.progress(), state.vitals(), state.position(), state.combat(), state.loadout(), state.inventory(), state.autoGetSkills(), state.clock(), state.receipt(), state.hashes());
+				PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> new org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent(decoded.preparedRowVersion(), decoded.materializedAtNanos(), decoded.targetState(), decoded.previousState(), decoded.previousPayloadHash(), decoded.skillsHash(), decoded.before(), unrelated), "Unrelated class/race/index accepted by receipt.");
+			}
+			_player.storeMe();
+			final var finalized = transactions.finalizeOwnedStore(id, _player.getObjectId(), epoch);
+			PhantomAssertions.assertTrue(finalized.successful() && finalized.state().identity().activeClassId() == 1, "Native Warrior store did not finalize: " + finalized.status());
+			PhantomAssertions.assertTrue(_player.getSp() == sp && _player.getExp() == exp && itemCount(8869) == coupons + 15, "Owned class store duplicated or changed native rewards/SP/EXP.");
+			rematerialize();
+			PhantomAssertions.assertTrue(_player.getActiveClass() == 1 && _player.getBaseClass() == 1 && _player.getSp() == sp && _player.getExp() == exp && itemCount(1145) == 0 && itemCount(8869) == coupons + 15, "SameDB native Warrior reload lost or duplicated earned state.");
+			context.record("career061.classStore", "secondary fixture nativeMaster->ownedprepare/nativeStore/finalize->sameDBreload; class1/base1;15coupons once; EXP/SP conserved; not ordinary B");
+		}
 	}
 
 	private void strictCatalog(PhantomTestContext context) throws Exception
