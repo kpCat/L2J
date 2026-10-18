@@ -95,7 +95,7 @@ final class PhantomLiving060Scenario
 		final var profile = resumeState == null ? profiles.create(fixture.objectId()) : profiles.find(resumeState.profileId()).orElseThrow();
 		final long id = profile.profileId();
 		context.record("life060.identity." + classId, (resumeState == null ? "fresh own060 native object=" : "SAVED own060 native object=") + fixture.objectId() + "; profile=" + id + "; no identity recreation on resume");
-		int threshold = manufacture || resumeSave || deathCpGuard ? 13 : mage ? 7 : 5;
+		int threshold = manufacture || deathCpGuard ? 13 : mage ? 7 : 5;
 		final var goals = new PhantomGoalStateStore(profiles);
 		final var commerce = commerceResult.catalog();
 		final var routes = PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
@@ -118,10 +118,10 @@ final class PhantomLiving060Scenario
 				if (supply)
 				{
 					setup.setSp(0);
-					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, shotItemId, resumeSave ? 8 : 16, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial charges unavailable.");
+					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, shotItemId, 16, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial charges unavailable.");
 					PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, 57, 10_000, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial funds unavailable.");
 					if (manufacture) { setup.getInventory().addItem(ItemProcessType.REWARD, 1785, 9, null, PhantomLiving060Scenario.class); setup.getInventory().addItem(ItemProcessType.REWARD, 1458, 3, null, PhantomLiving060Scenario.class); }
-					context.record("life060.supplyInput", "PREMEASUREMENT finite" + (resumeSave ? 8 : 16) + " native compatible charges item=" + shotItemId + ";10000 owned Adena; initial SP0" + (manufacture ? "; PREPARED stable level12/D gear with native expertise penalties/9SoulOre+3Dcrystals; no earned profession claim" : "") + "; all later stock/funds changes through native combat and paid operation");
+					context.record("life060.supplyInput", "PREMEASUREMENT finite16 native compatible charges item=" + shotItemId + ";10000 owned Adena; initial SP0" + (manufacture ? "; PREPARED stable level12/D gear with native expertise penalties/9SoulOre+3Dcrystals; no earned profession claim" : "") + "; all later stock/funds changes through native combat and paid operation");
 				}
 				for (int itemId : manufacture ? new int[] {129, 352, 2378} : gatekeeper ? new int[] {129, 24, 31} : mage ? new int[] {8, 24, 31} : new int[] {68, 24, 31})
 				{
@@ -130,7 +130,7 @@ final class PhantomLiving060Scenario
 				}
 				setup.setRunning(); setup.standUp(); setup.setInvul(false); setup.refreshExpertisePenalty(); setup.refreshOverloaded();
 				if (gatekeeper) { context.record("life060.gatekeeperInput", "PREMEASUREMENT Dwarf53/4/base4EXP/16D1463/10000Adena/Dweapon129 with native expertise penalty/NGarmor; regional farm chosen by production planner; two distinct native GK ARRIVED receipts plus return/new earned kill required; no next goal/TP/stock script"); }
-				final var origin = topology.findAnchor(resumeSave ? "population.farming.human-fighter.20545" : classId == 10 ? "population.farming.human-mystic.20481" : mage ? "population.farming.elf.20534" : dwarf ? "population.farming.dwarf.20533" : orc ? "population.farming.orc.20535" : "population.farming.human-fighter.20545").orElseThrow();
+				final var origin = topology.findAnchor(classId == 10 ? "population.farming.human-mystic.20481" : mage ? "population.farming.elf.20534" : dwarf ? "population.farming.dwarf.20533" : orc ? "population.farming.orc.20535" : "population.farming.human-fighter.20545").orElseThrow();
 				setup.setXYZInvisible(origin.point().x(), origin.point().y(), GeoEngine.getInstance().getHeight(origin.point().x(), origin.point().y(), origin.point().z()));
 				initial = relocation ? PhantomRelocation060Input.selectLocal(context, setup, id, knowledge, topology, authority, planner, routes) : selectInput(context, setup, id, knowledge, topology, authority, planner, commerce);
 				if (relocation) { threshold = setup.getLevel() + 1; }
@@ -143,7 +143,7 @@ final class PhantomLiving060Scenario
 				new PhantomBackgroundCatchupStore(profiles, goals).claim(id, new PhantomBackgroundCatchupState(PhantomBackgroundCatchupState.Status.COMPLETE,
 						"living060-" + id, context.seed(), minute - 1, minute, minute, 1, 0, 1, initial.generation().knowledgeGeneration(), initial.generation().topologyGeneration(),
 						initial.goal().goalId(), initial.goal().revision(), initial.planIdentity(), 1, authority.hashes(), ""));
-				context.record("life060.input." + classId, "PREMEASUREMENT native actor=" + fixture.objectId() + "; profile=" + id + "; class=" + classId + (preparedD ? "; prepared level=" + (threshold - 1) + "; D weapon/base level EXP/native expertise penalty; profession not earned" : "; near level=" + threshold + "; finite NG gear") + "; SP=" + setup.getSp() + (resumeSave ? "; DECLARED independent resume input: prepared stable12/NGgear/8NGcharges/TalkingIsland/one fixture; no earned1->12/career claim" : "") + "; initial root selected by historical planner=" + initial.goal() + "; current-history fixture cursor only, no historical reward; no subsequent test goal/resource/XYZ write");
+				context.record("life060.input." + classId, "PREMEASUREMENT native actor=" + fixture.objectId() + "; profile=" + id + "; class=" + classId + (preparedD ? "; prepared level=" + (threshold - 1) + "; D weapon/base level EXP/native expertise penalty; profession not earned" : "; near level=" + threshold + "; finite NG gear") + "; SP=" + setup.getSp() + (resumeSave ? "; DECLARED independent resume input: prepared stable4/NGgear/16NGcharges/class-native region/one fixture/max-level4 low-density preflight; no earned1->4/career claim" : "") + "; initial root selected by historical planner=" + initial.goal() + "; current-history fixture cursor only, no historical reward; no subsequent test goal/resource/XYZ write");
 				prepared = true;
 			}
 			finally
