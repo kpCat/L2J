@@ -217,7 +217,7 @@ final class PhantomCareer061PreviewSetup
 		return new PhantomGoalStateStore(profiles).load(profileId).isEmpty() && profiles.findComponent(profileId, PhantomPopulationEcologyState.COMPONENT_TYPE).isEmpty() && profiles.findComponent(profileId, PhantomBackgroundCatchupState.COMPONENT_TYPE).isEmpty();
 	}
 
-	private static String retainedDigest(int retainedProfiles) throws Exception
+	static String retainedDigest(int retainedProfiles) throws Exception
 	{
 		PhantomAssertions.assertTrue(retainedProfiles == 32 || retainedProfiles == 34, "Digest scope must remain explicitly bounded.");
 		final var digest = java.security.MessageDigest.getInstance("SHA-256");

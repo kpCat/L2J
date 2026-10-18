@@ -216,7 +216,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final Loadout loadout = new Loadout(capability.skillId(), capability.skillLevel(), capability.summonNpcId(), capability.mpConsume(), spec.shotItemId(), spec.shotsPerEncounter(), spec.summonResourceItemId(), spec.summonResourcesPerEncounter());
 		// Native occupancy excludes quest objects but includes equipped non-quest objects.
 		final InventoryFacts inventory = InventoryFacts.sorted(tracking.mutableItemIds(), tracking.objects(), "", player.getCurrentLoad(), player.getMaxLoad(), player.getInventory().getNonQuestSize(), player.getInventoryLimit());
-		final List<AutoGetSkill> autoSkills = autoGetSkills(identity, player.getLevel());
+		final List<AutoGetSkill> autoSkills = nativePersistence && previous != null && previous.identity().equals(identity) ? previous.retainAutoGetRanks(autoGetSkills(identity, player.getLevel())) : autoGetSkills(identity, player.getLevel());
 		final Clock clock = previous == null ? new Clock(INITIAL_RNG_SEED, 0, 0) : previous.clock();
 		final Receipt receipt = previous == null ? Receipt.empty() : previous.receipt();
 		return new PhantomBackgroundState(State.MATERIALIZED, identity, progress, vitals, position, combat, loadout, inventory, autoSkills, clock, receipt, hashes());
@@ -255,7 +255,7 @@ public final class L2jPhantomBackgroundAuthority implements PhantomBackgroundAut
 		final List<ItemObject> objects = player.getInventory().getItems().stream().filter(item -> ((item.getId() == targetItemId) && (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.INVENTORY)) || (item.getItemLocation() == org.l2jmobius.gameserver.model.item.enums.ItemLocation.PAPERDOLL)).sorted(Comparator.comparingInt(Item::getObjectId)).map(item -> new ItemObject(item.getObjectId(), item.getId(), item.getCount(), item.isStackable(), ItemLocation.valueOf(item.getItemLocation().name()))).toList();
 		// Acquisition capture must report the same stock non-quest occupancy as native store.
 		final InventoryFacts inventory = InventoryFacts.sorted(List.of(targetItemId), objects, "", player.getCurrentLoad(), player.getMaxLoad(), player.getInventory().getNonQuestSize(), player.getInventoryLimit());
-		final List<AutoGetSkill> autoSkills = autoGetSkills(identity, player.getLevel());
+		final List<AutoGetSkill> autoSkills = nativePersistence && previous != null && previous.identity().equals(identity) ? previous.retainAutoGetRanks(autoGetSkills(identity, player.getLevel())) : autoGetSkills(identity, player.getLevel());
 		final Clock clock = previous == null ? new Clock(INITIAL_RNG_SEED, 0, 0) : previous.clock();
 		final Receipt receipt = previous == null ? Receipt.empty() : previous.receipt();
 		return new PhantomBackgroundState(State.MATERIALIZED, identity, progress, vitals, position, combat, loadout, inventory, autoSkills, clock, receipt, hashes());

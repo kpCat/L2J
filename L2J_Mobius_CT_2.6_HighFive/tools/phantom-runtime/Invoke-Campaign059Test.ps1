@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
 if ($Mode -cnotmatch '^[a-z0-9-]+$' -or $Label -cnotmatch '^[a-z0-9-]+$' -or $Seed -le 0) { throw 'Invalid exact test arguments' }
 if ((Get-Location).Path -ine (Join-Path $hf059 '.phantom-local/contract058t/runtime/game')) { throw 'Exact058t native cwd required' }
-if ($Campaign061 -and ($Campaign060 -or $CleanCandidate -or !(($CareerProducer -and $Mode -ceq 'quest-instance-goal036' -and $Seed -eq 36003601) -or ($AutonomousLearning -and $AutonomousLearningGuards -and $Mode -ceq 'earned-learning-native058' -and $Seed -eq 58005833)))) {throw 'TASK061 requires an exact producer or learning continuation mode/seed/build'}
+if ($Campaign061 -and ($Campaign060 -or $CleanCandidate -or !(($CareerProducer -and $Mode -ceq 'quest-instance-goal036' -and $Seed -eq 36003601) -or (($AutonomousLearning -and $AutonomousLearningGuards -or $PaidAutoGetGuards) -and $Mode -ceq 'earned-learning-native058' -and $Seed -eq 58005833)))) {throw 'TASK061 requires an exact producer or learning continuation mode/seed/build'}
 if ($CareerProducer -and !$Campaign061) {throw 'Career061 input requires explicit TASK061 authority'}
 if ($Campaign061 -and (Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object CommandLine -Match 'World-Career-061-candidate|Living-060-candidate|M3-M7-059-candidate|task061')) {throw 'Own061 or protected059/060 JVM active; sequential only'}
 if ($AutonomousLearning -and ((!$Campaign060 -and !$Campaign061) -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)) {throw 'Autonomous learning requires exact060/061 continuation of native058 mode/seed'}
@@ -37,13 +37,14 @@ $args059=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Dstde
 $args059+='-Dphantom.test.freshIdentities059=true'
 if ($CareerProducer) {$args059+='-Dphantom.test.careerProducer061=true'}
 if ($Campaign061 -and $AutonomousLearning) {$args059+='-Dphantom.test.nearbyLife061=true'}
+if ($Campaign061 -and $PaidAutoGetGuards) {$args059+='-Dphantom.test.retainedAutoGet061=true'}
 if ($SupplyAmmunitionGuards) { if (!$Campaign060 -or !$SupplyGuards -or $Living -or $PetSupport -or $SupplyGatekeeperGuards -or $SupplyManufactureGuards -or $SupplyReturnGuards -or $SupplyResumeGuards) {throw 'Ammunition guards require separate exact060 SupplyGuards'}; $args059+='-Dphantom.test.supplyAmmunitionGuards060=true' }
 if ($LivingBow) { if (!$Campaign060 -or !$Living -or !$LivingSupply -or $LivingClass -notin @(0,53) -or $LivingMage -or $LivingResumeSave -or $LivingResumeContinue -or $LivingGatekeeper -or $LivingOfflineStore -or $LivingManufacture) {throw 'Bow requires separate declared Fighter/Dwarf NPC supply scene'}; $args059+='-Dphantom.test.livingBow060=true' }
 if ($AggroReadiness) { if (!$Campaign060 -or $Mode -cne 'companion-npc-aggro058' -or $Seed -ne 58005817 -or $Living -or $AreaAggro -or $PetSupport -or $SupplyGuards) {throw 'Aggro readiness requires separate exact060 native NPC scene'}; $args059+='-Dphantom.test.aggroReadiness060=true' }
 if ($AreaAggro) { if (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833 -or $Living -or $PetSupport -or $SupplyGuards -or $AutonomousLearning) {throw 'Area aggression requires separate exact060 native input'}; $args059+='-Dphantom.test.areaAggro060=true' }
 if ($PetSupport) { if (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833 -or $Living -or $AutonomousLearning -or $SupplyGuards) {throw 'Pet support requires separate exact060 native input'}; $args059+='-Dphantom.test.petSupport060=true' }
 if ($PaidAutoGetGuards) {
- if (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833 -or $Living -or $AutonomousLearning) {throw 'Paid auto-get contract requires exact separate060 mode/seed'}
+ if ((!$Campaign060 -and !$Campaign061) -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833 -or $Living -or $AutonomousLearning) {throw 'Paid auto-get contract requires exact separate060/061 mode/seed'}
  $args059+='-Dphantom.test.paidAutoGetGuards060=true'
 }
 if ($AutonomousLearning) {$args059+='-Dphantom.test.autonomousLearning060=true'}

@@ -56,7 +56,7 @@ public final class PhantomCampaign058SceneSetup
 
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 1) || !List.of("prepare", "continue-empty", "manual-human80", "continuation061-preview", "continuation061-career", "continuation061-career-finish-input").contains(args[0]) || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a preparation required."); }
+		if ((args.length != 1) || !List.of("prepare", "continue-empty", "manual-human80", "continuation061-preview", "continuation061-career", "continuation061-career-finish-input", "continuation061-career-reconcile-autoget35").contains(args[0]) || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a preparation required."); }
 		final Path lane = PhantomCampaign058PersistentLane.LANE;
 		final Path runtime = PhantomCampaign058PersistentLane.RUNTIME;
 		PhantomCampaign058PersistentLane.validateFiles(PhantomCampaign058PersistentLane.MODULE, Path.of(System.getProperty("phantom.test.config", "")), true);
@@ -64,6 +64,7 @@ public final class PhantomCampaign058SceneSetup
 		if (args[0].equals("continuation061-preview")) { PhantomCareer061PreviewSetup.run(); return; }
 		if (args[0].equals("continuation061-career")) { PhantomCareer061PreviewSetup.runCareer(); return; }
 		if (args[0].equals("continuation061-career-finish-input")) { PhantomCareer061PreviewSetup.finishCareerInput(); return; }
+		if (args[0].equals("continuation061-career-reconcile-autoget35")) { PhantomCareer061AutoGetReconcile.run(); return; }
 		if (args[0].equals("manual-human80")) { prepareManualHuman80(lane); return; }
 		PhantomAssertions.assertFalse(Files.exists(lane.resolve("scene-setup.complete")), "Persistent TEST scene has already been prepared.");
 		if (args[0].equals("prepare")) { Files.createFile(lane.resolve("scene-setup.started")); }

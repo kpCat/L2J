@@ -637,6 +637,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				registry.add("12-paid-native-rank-covers-autoget-floor", context -> testPaidAutoGetFloor060(context, true));
 				registry.add("13-missing-or-unattainable-rank-does-not-cover-floor", context -> testPaidAutoGetFloor060(context, false));
 				registry.add("14-native-return-normalizes-captured-feet", this::testLearningReturnFloor060);
+				if (Boolean.getBoolean("phantom.test.retainedAutoGet061")) { registry.add("061-native-owned-capture-retains-earned-autoget-after-level-loss", this::testRetainedAutoGet061); }
 				return;
 			}
 			if (Boolean.getBoolean("phantom.test.supplyGuards060"))
@@ -4491,6 +4492,41 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_player.stopMove(null);
 			final var stored = goals.load(_profile.profileId()).orElseThrow(); PhantomAssertions.assertEquals(goal, stored.goal(), "Native return guard root drift; cleanup refused."); goals.delete(_profile.profileId(), stored.rowVersion());
 		}
+	}
+
+	private void testRetainedAutoGet061(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		_player.setBaseClass(0); _player.setPlayerClass(0); _player.setLearningClass(_player.getPlayerClass());
+		_player.getStat().setExp(_player.getStat().getExpForLevel(20)); _player.getStat().setLevel((byte) 20); _player.setSp(92); _player.rewardSkills();
+		_player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp()); _player.setCurrentCp(_player.getMaxCp());
+		prepareLearningField059(context);
+		final var commerce = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog();
+		final var routes = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), _topology);
+		final var authority = new org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority(() -> _query, () -> _topology, () -> _progression, () -> commerce, routes);
+		final var anchor = _topology.findAnchor("generated.farm.bfb0335de417bc81a7e9b231.anchor").orElseThrow();
+		final long id = _profile.profileId();
+		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(id)), new PhantomDomainRef("npc", "20120"), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20120@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture.retained_auto061", 0);
+		final var before = authority.captureOwnedNative(id, _player, root, null).state();
+		PhantomAssertions.assertEquals(2, _player.getSkillLevel(1320), "Prepared native level20 lacks free1320:2.");
+		// Declared lower-level fixture input; no death, damage, fault injection or ordinary actor mutation.
+		_player.getStat().setExp(_player.getStat().getExpForLevel(19)); _player.getStat().setLevel((byte) 19); _player.removeSkill(239);
+		_player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp()); _player.setCurrentCp(_player.getMaxCp());
+		final var after = authority.captureOwnedNative(id, _player, root, before).state();
+		PhantomAssertions.assertTrue(after.autoGetSkills().contains(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.AutoGetSkill(1320, 2)), "Native owned capture lost the attested retained1320:2 after level20->19; current floor alone rejects its store.");
+		PhantomAssertions.assertFalse(after.autoGetSkills().stream().anyMatch(skill -> skill.skillId() == 239), "Removed Expertise was reintroduced by retained-auto capture.");
+		final var check = org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.class.getDeclaredMethod("skillsMatch", org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.class, Map.class);
+		check.setAccessible(true); // Same existing pure canonical validator contract as paid-floor060.
+		final var nativeSkills = Map.of(194, _player.getSkillLevel(194), 1320, _player.getSkillLevel(1320), 1322, _player.getSkillLevel(1322));
+		PhantomAssertions.assertEquals(true, check.invoke(null, after, nativeSkills), "Persisted retained floor still rejects the canonical native rank.");
+		final var unattested = authority.captureOwnedNative(id, _player, root, null).state();
+		PhantomAssertions.assertEquals(false, check.invoke(null, unattested, nativeSkills), "Unattested higher rank passed the current-level floor.");
+		PhantomAssertions.assertEquals(false, check.invoke(null, after, Map.of(194, 1, 1320, 3, 1322, 1)), "Rank above the retained witness passed the native level guard.");
+		final var restored = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().decode(new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().encode(after));
+		PhantomAssertions.assertEquals(after.autoGetSkills(), after.retainAutoGetRanks(authority.autoGetSkills(after.identity(), 19)), "Further background work downgraded its retained native floor.");
+		PhantomAssertions.assertEquals(after.autoGetSkills(), authority.captureOwnedNative(id, _player, root, restored).state().autoGetSkills(), "Restored native capture lost retained earned ranks.");
+		PhantomAssertions.assertEquals(92L, _player.getSp(), "Retained free skill capture changed SP.");
+		context.record("retainedAuto061", "native class0 level20->declared19; actual1320:2 retained/239removed; previous=" + before.autoGetSkills() + "; captured=" + after.autoGetSkills() + "; no death/fault/quest/reward/test-controller action");
 	}
 
 	private void testPaidAutoGetFloor060(PhantomTestContext context, boolean positive) throws Exception

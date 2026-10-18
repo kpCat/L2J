@@ -18,6 +18,7 @@ public final class PhantomCampaign058PersistenceSnapshot
 
 	public static void main(String[] args) throws Exception
 	{
+		if (args.length == 2 && args[0].equals("--decode061-components")) { decodeCareer061(Path.of(args[1])); return; }
 		if ((args.length != 1) || !args[0].matches("[a-z0-9-]{1,40}") || !PhantomCampaign058PersistentLane.enabled())
 		{
 			throw new IllegalArgumentException("Explicit persistent058a snapshot label required.");
@@ -86,5 +87,40 @@ public final class PhantomCampaign058PersistenceSnapshot
 		Files.writeString(directory.resolve(args[0] + ".tsv"), output, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 		System.out.print(output);
 		System.out.println("SNAPSHOT_READ_ONLY=true; WORLD_PRESENCE_NOT_CLAIMED; label=" + args[0]);
+	}
+
+	/** Offline decoder for the bounded SELECT receipt: no JDBC, Player, World or fixture startup. */
+	private static void decodeCareer061(Path input) throws Exception
+	{
+		final Path directory = PhantomCampaign058PersistentLane.LANE.resolve("task061").toRealPath();
+		if (Files.isSymbolicLink(input) || !input.toRealPath().getParent().equals(directory) || !input.getFileName().toString().matches("career061-components-[a-z0-9-]{1,30}\\.tsv") || Files.size(input) > 262_144) { throw new IllegalArgumentException("Exact bounded TASK061 saved-component receipt required."); }
+		final var lines = Files.readAllLines(input, StandardCharsets.UTF_8);
+		if (lines.size() < 2 || lines.size() > 25 || !lines.getFirst().replace("\uFEFF", "").equals("component_type\trow_version\tHEX(payload)")) { throw new IllegalArgumentException("Unknown saved-component receipt shape."); }
+		System.out.println("OFFLINE_DECODE_ONLY; JDBC=0; WORLD=0; WRITES=0; profile=35; input=" + input.getFileName());
+		for (String line : lines.subList(1, lines.size()))
+		{
+			final var columns = line.split("\t", -1);
+			if (columns.length != 3 || !columns[0].matches("[a-z][a-z0-9_.-]{0,63}") || Long.parseLong(columns[1]) < 0 || columns[2].length() > 8192) { throw new IllegalArgumentException("Invalid component receipt row."); }
+			final byte[] payload = HexFormat.of().parseHex(columns[2]);
+			System.out.println("COMPONENT=" + columns[0] + "; row=" + columns[1] + "; bytes=" + payload.length + "; sha=" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(payload)));
+			switch (columns[0])
+			{
+				case "background.state" -> printBackground061("BACKGROUND", new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundStateCodec().decode(payload));
+				case "background.owned-store" ->
+				{
+					final var intent = org.l2jmobius.gameserver.phantoms.background.PhantomOwnedStoreIntent.decode(payload);
+					System.out.println("OWNED_STORE target=" + intent.targetState() + "; preparedRow=" + intent.preparedRowVersion() + "; nativeEpoch=" + intent.materializedAtNanos() + "; previous=" + intent.previousState() + "; previousHash=" + intent.previousPayloadHash() + "; skillsHash=" + intent.skillsHash());
+					printBackground061("BEFORE", intent.before()); printBackground061("AFTER", intent.after());
+				}
+				case "background.catchup" -> System.out.println("CATCHUP=" + new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundCatchupStateCodec().decode(payload));
+				case "background.native-context" -> System.out.println("NATIVE_CONTEXT=" + org.l2jmobius.gameserver.phantoms.background.PhantomNativeContext.decode(payload));
+				default -> { }
+			}
+		}
+	}
+
+	private static void printBackground061(String label, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState state)
+	{
+		System.out.println(label + " state=" + state.state() + "; identity=" + state.identity() + "; progress=" + state.progress() + "; vitals=" + state.vitals() + "; position=" + state.position() + "; autoSkills=" + state.autoGetSkills() + "; inventory=" + state.inventory());
 	}
 }

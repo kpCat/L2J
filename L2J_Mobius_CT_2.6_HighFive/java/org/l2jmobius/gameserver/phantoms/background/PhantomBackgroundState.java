@@ -87,6 +87,12 @@ public record PhantomBackgroundState(State state, Identity identity, Progress pr
 		return new PhantomBackgroundState(nextState, identity, progress, vitals, position, combat, loadout, inventory, autoGetSkills, clock, receipt, hashes);
 	}
 
+	/** Retain earned ranks only for IDs still present in the new native floor (Expertise can disappear). */
+	public List<AutoGetSkill> retainAutoGetRanks(List<AutoGetSkill> nativeFloor)
+	{
+		return nativeFloor.stream().map(skill -> new AutoGetSkill(skill.skillId(), Math.max(skill.skillLevel(), autoGetSkills.stream().filter(previous -> previous.skillId() == skill.skillId()).mapToInt(AutoGetSkill::skillLevel).findFirst().orElse(0)))).toList();
+	}
+
 	public PhantomBackgroundState after(Progress nextProgress, Vitals nextVitals, Position nextPosition, InventoryFacts nextInventory, List<AutoGetSkill> nextAutoGetSkills, Clock nextClock, Receipt nextReceipt)
 	{
 		final State nextState = nextVitals.currentHp() == 0 ? State.DEAD : State.READY;

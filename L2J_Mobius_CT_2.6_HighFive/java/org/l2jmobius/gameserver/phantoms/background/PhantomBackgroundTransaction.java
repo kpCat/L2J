@@ -417,7 +417,7 @@ public final class PhantomBackgroundTransaction
 				final var before = new PhantomBackgroundState(canonical.vitals().currentHp() == 0 ? State.DEAD : State.READY, captured.identity(), new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath()), canonical.vitals(), new Position(0, canonical.position().x(), canonical.position().y(), canonical.position().z(), canonical.position().heading(), beforeTemplate.position().committedAnchorId()), beforeTemplate.combat(), beforeTemplate.loadout(), inventoryFacts(items, beforeTemplate.inventory()), canonicalAutoGetSkills(captured.identity(), canonical.level()), beforeTemplate.clock(), beforeTemplate.receipt(), beforeTemplate.hashes());
 				final var progress = captured.progress();
 				final var intendedCanonical = new Canonical(progress.level(), progress.experience(), progress.skillPoints(), progress.experienceBeforeDeath(), canonicalVitals(captured.vitals()), captured.position(), captured.identity().activeClassId(), captured.identity().raceOrdinal(), nativeCapture == null ? canonical.vitalityPoints() : nativeCapture.vitalityPoints());
-				final var after = capturedState(captured, intendedCanonical, items, skills);
+				final var after = capturedState(captured, intendedCanonical, items, skills, previous);
 				if (!captured.inventory().canonicalHash().isEmpty() && !captured.inventory().equals(after.inventory())) { throw ownedItemConflict(captured, after, previous, goal, epoch, target, items, component, goalComponent, contextComponent); }
 				final var intent = new PhantomOwnedStoreIntent(component == null ? 0 : Math.addExact(component.rowVersion(), 1), epoch, target, previous == null ? "ABSENT" : previous.state().name(), component == null ? "ABSENT" : payloadDigest(component.payload()), ownedSkillsHash(skills), before, after);
 				preparedIntent = intent;
@@ -651,7 +651,7 @@ public final class PhantomBackgroundTransaction
 				if ((nativeCapture != null) && (nativeCapture.vitalityPoints() != canonical.vitalityPoints()) && !normalization) { throw new StateConflict(Status.CANONICAL_MISMATCH); }
 				final List<ItemRow> items = lockItems(connection, materializedState.identity().characterObjectId());
 				final Map<Integer, Integer> skills = lockSkills(connection, materializedState.identity());
-				final PhantomBackgroundState captured = capturedState(materializedState, canonical, items, skills);
+				final PhantomBackgroundState captured = capturedState(materializedState, canonical, items, skills, component == null ? null : decodeState(component));
 				if (!runtimeProjectionMatches(materializedState, captured))
 				{
 					throw new StateConflict(Status.CANONICAL_MISMATCH);
@@ -1123,7 +1123,7 @@ public final class PhantomBackgroundTransaction
 				{
 					throw new StateConflict(Status.STATE_CONFLICT);
 				}
-				if ((levelForExperience(command.progress().experience()) != command.progress().level()) || !canonicalAutoGetSkills(expected.identity(), command.progress().level()).equals(command.autoGetSkills()))
+				if ((levelForExperience(command.progress().experience()) != command.progress().level()) || !expected.retainAutoGetRanks(canonicalAutoGetSkills(expected.identity(), command.progress().level())).equals(command.autoGetSkills()))
 				{
 					throw new StateConflict(Status.PROGRESSION_CONFLICT);
 				}
@@ -2064,12 +2064,13 @@ public final class PhantomBackgroundTransaction
 		}
 	}
 
-	private PhantomBackgroundState capturedState(PhantomBackgroundState template, Canonical canonical, List<ItemRow> rows, Map<Integer, Integer> skills)
+	private PhantomBackgroundState capturedState(PhantomBackgroundState template, Canonical canonical, List<ItemRow> rows, Map<Integer, Integer> skills, PhantomBackgroundState previous)
 	{
 		final Position position = new Position(0, canonical.position().x(), canonical.position().y(), canonical.position().z(), canonical.position().heading(), template.position().committedAnchorId());
 		final Progress progress = new Progress(canonical.level(), canonical.experience(), canonical.skillPoints(), canonical.experienceBeforeDeath());
 		final InventoryFacts inventory = inventoryFacts(rows, template.inventory());
-		final List<AutoGetSkill> autoSkills = canonicalAutoGetSkills(template.identity(), canonical.level());
+		final List<AutoGetSkill> floor = canonicalAutoGetSkills(template.identity(), canonical.level());
+		final List<AutoGetSkill> autoSkills = previous != null && previous.identity().equals(template.identity()) ? previous.retainAutoGetRanks(floor) : floor;
 		if (!autoSkills.equals(template.autoGetSkills()))
 		{
 			throw new StateConflict(Status.PROGRESSION_CONFLICT);

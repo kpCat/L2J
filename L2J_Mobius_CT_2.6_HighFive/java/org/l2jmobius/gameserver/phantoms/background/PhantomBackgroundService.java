@@ -493,7 +493,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 						default -> OperationResult.replan("model." + batch.reason().name().toLowerCase());
 					};
 				}
-				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(state.identity(), batch.progress().level());
+				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = state.retainAutoGetRanks(_authority.autoGetSkills(state.identity(), batch.progress().level()));
 				final Clock clock = new Clock(batch.nextRngState(), 0, 0);
 				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, batch.progress(), batch.vitals(), state.position(), clock, batch.inventoryDelta().itemDeltas(), autoSkills);
 				final OperationResult result = commit(claim, ordinaryCommand(claim, command, batch.policy()));
@@ -607,7 +607,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 					}
 					return batch.reason() == PhantomBackgroundModel.ResultReason.TIME_BUDGET ? retry("model.time_budget") : OperationResult.replan("model." + batch.reason().name().toLowerCase());
 				}
-				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(state.identity(), batch.progress().level());
+				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = state.retainAutoGetRanks(_authority.autoGetSkills(state.identity(), batch.progress().level()));
 				final Clock clock = new Clock(batch.nextRngState(), 0, 0);
 				final PhantomBackgroundTransaction.Command command = new PhantomBackgroundTransaction.Command(state, goal, key, batch.progress(), batch.vitals(), state.position(), clock, batch.inventoryDelta().itemDeltas(), autoSkills, List.of(), null, mutation);
 				return commit(claim, ordinaryCommand(claim, command, batch.policy())).withModel(batch.encounters(), batch.elapsedMillis(), batch.dead());
@@ -772,7 +772,7 @@ public final class PhantomBackgroundService implements PhantomMaterializationLif
 						default -> OperationResult.replan("model." + batch.reason().name().toLowerCase());
 					};
 				}
-				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = _authority.autoGetSkills(background.identity(), batch.progress().level());
+				final List<PhantomBackgroundState.AutoGetSkill> autoSkills = background.retainAutoGetRanks(_authority.autoGetSkills(background.identity(), batch.progress().level()));
 				final Clock clock = new Clock(batch.nextRngState(), 0, 0);
 				final List<Integer> mutableItems = java.util.stream.Stream.concat(input.target().drops().stream().filter(drop -> drop.disposition() == DropDisposition.ACQUIRE).map(drop -> drop.itemId()), java.util.stream.Stream.of(acquisitionState.targetItemId(), acquisitionState.methodBinding() instanceof ManorBinding manor ? manor.seedItemId() : acquisitionState.targetItemId())).distinct().sorted().toList();
 				final PhantomBackgroundTransaction.AcquisitionMutation acquisition = new PhantomBackgroundTransaction.AcquisitionMutation(acquisitionState, acquisitionRowVersion, goalRowVersion, receiptKind, logicalMinute, eligibilitySkills, expectedQuestRows);
