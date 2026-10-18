@@ -34,11 +34,13 @@ public final class PhantomQuestInstanceDecision
 
 	public void registerCandidates(PhantomCandidateRegistry registry)
 	{
+		_service.registerAutonomousCandidates(registry);
 		registry.register(new PhantomDecisionCandidate(PhantomQuestInstanceService.CANDIDATE_KEY, GOALS, STATES, List.of(), List.of(new PhantomWeightedConsideration("score.questinstance.play", 1, context -> new PhantomConsideration.Evaluation(1000, "questinstance.explicit"))), 1000, this::plan));
 	}
 
 	public void registerHandlers(PhantomStepHandlerRegistry registry)
 	{
+		_service.registerAutonomousHandlers(registry);
 		registry.register(PhantomQuestInstanceService.ACTION_KEY, context ->
 		{
 			final var result = _service.advance(context.profileId(), context.goal().goalId(), context.goal().revision(), context.effectiveState(), context.logicalNowNanos(), context.cancellationToken());

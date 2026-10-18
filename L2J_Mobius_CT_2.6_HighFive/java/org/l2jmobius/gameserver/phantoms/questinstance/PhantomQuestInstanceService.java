@@ -72,7 +72,37 @@ public final class PhantomQuestInstanceService
 	private final Map<Long, Travel> _travels = new HashMap<>();
 	private final Map<Long, CombatOperation> _combats = new HashMap<>();
 	private final Map<Long, Long> _signalSequences = new HashMap<>();
-	private State _state = State.NEW;
+	private volatile State _state = State.NEW;
+	private PhantomAutonomousCareer _automatic;
+
+	public void enableAutonomous(org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository profiles,
+		org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService materialization, java.util.function.BiPredicate<Long, Long> pauseFarm,
+		java.util.function.LongPredicate allowed, java.util.function.LongFunction<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype> preference, PhantomAutonomousCareerPolicy policy)
+	{
+		synchronized (_monitor)
+		{
+			if (_state != State.NEW || _automatic != null) { throw new IllegalStateException("Autonomous career must be installed once before start."); }
+			_automatic = new PhantomAutonomousCareer(profiles, materialization, this, _catalog, _progression, pauseFarm, allowed, preference, policy);
+		}
+	}
+
+	void registerAutonomousCandidates(org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry registry) { if (_automatic != null) { _automatic.registerCandidates(registry); } }
+	void registerAutonomousHandlers(org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry registry) { if (_automatic != null) { _automatic.registerHandlers(registry); } }
+	public boolean ownsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }
+	public boolean needsOrOwnsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.needsOrOwns(profileId, root); }
+	public Optional<PhantomGoal> autonomousIntent(long profileId) { return _automatic == null ? Optional.empty() : _automatic.intent(profileId); }
+	public Optional<Observation> autonomousObservation(long profileId)
+	{
+		final var intent = autonomousIntent(profileId).orElse(null);
+		final var content = intent == null || intent.target() == null ? null : _catalog.content(intent.target().key()).orElse(null);
+		return content == null || _state != State.RUNNING ? Optional.empty() : Optional.ofNullable(_backend.observe(profileId, content));
+	}
+	public void deferAutonomousWhen(java.util.function.BiPredicate<Long, PhantomGoal> predicate)
+	{
+		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career priority must be bound before start."); } _automatic.deferWhen(predicate); }
+	}
+
+	boolean hasOwnedWork(long profileId) { synchronized (_monitor) { return _travels.containsKey(profileId) || _combats.containsKey(profileId); } }
 
 	public PhantomQuestInstanceService(PhantomGoalStore goals, PhantomQuestInstanceCatalog catalog, PhantomAcquisitionQuestCatalog acquisitions, PhantomQuestInstanceBackend backend, PhantomCombatService combat, PhantomNavigationService navigation, PhantomProgressionService progression, PhantomRelevanceSignalPort signals)
 	{
@@ -102,6 +132,16 @@ public final class PhantomQuestInstanceService
 
 	public AdvanceResult advance(long profileId, long goalId, long goalRevision, PhantomActivityState activityState, long logicalNowNanos, PhantomCancellationToken token)
 	{
+		return advance(profileId, goalId, goalRevision, activityState, logicalNowNanos, token, null, null);
+	}
+
+	AdvanceResult advanceIntent(long profileId, PhantomGoal root, PhantomGoal intent, PhantomActivityState state, long now, PhantomCancellationToken token)
+	{
+		return advance(profileId, root.goalId(), root.revision(), state, now, token, root, intent);
+	}
+
+	private AdvanceResult advance(long profileId, long goalId, long goalRevision, PhantomActivityState activityState, long logicalNowNanos, PhantomCancellationToken token, PhantomGoal root, PhantomGoal intent)
+	{
 		Objects.requireNonNull(activityState, "activityState");
 		Objects.requireNonNull(token, "token");
 		if (!reserve(profileId))
@@ -114,7 +154,7 @@ public final class PhantomQuestInstanceService
 			{
 				return new AdvanceResult(Status.CANCELLED, "questinstance.cancelled");
 			}
-			final PhantomGoal goal = validGoal(profileId, goalId, goalRevision);
+			final PhantomGoal goal = intent == null ? validGoal(profileId, goalId, goalRevision) : validChild(profileId, root, intent);
 			if (goal == null)
 			{
 				cleanup(profileId);
@@ -141,6 +181,13 @@ public final class PhantomQuestInstanceService
 			{
 				publishActive(profileId, logicalNowNanos);
 				return retry("questinstance.actor.unavailable");
+			}
+			if (intent != null && (intent.constraints().getOrDefault("owner.object", -1L) != observation.playerObjectId()
+				|| intent.constraints().getOrDefault("class.index", -1L) != observation.classIndex()
+				|| !((intent.constraints().getOrDefault("class.from", -1L) == observation.classId() && observation.baseClassId() == observation.classId())
+					|| (intent.constraints().getOrDefault("class.to", -1L) == observation.classId() && observation.baseClassId() == observation.classId() && observation.quest().status() == QuestStatus.COMPLETED))))
+			{
+				cleanup(profileId); return fail("career.native.identity_changed");
 			}
 			final AdvanceResult combatSettlement = settleOwnedCombat(profileId, content);
 			if (combatSettlement != null)
@@ -582,6 +629,7 @@ public final class PhantomQuestInstanceService
 				return false;
 			}
 			_state = State.STOPPED;
+			if (_automatic != null) { _automatic.clear(); }
 			return true;
 		}
 	}
@@ -628,6 +676,16 @@ public final class PhantomQuestInstanceService
 			case CLASS_PATH -> CLASS_GOAL_TYPE.equals(goal.goalType());
 			case KAMALOKA, PAILAKA -> INSTANCE_GOAL_TYPE.equals(goal.goalType());
 		};
+	}
+
+	private PhantomGoal validChild(long profileId, PhantomGoal root, PhantomGoal intent)
+	{
+		final var current = _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		if (!Objects.equals(root, current) || root.status() != PhantomGoalStatus.ACTIVE || !org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
+			|| intent.status() != PhantomGoalStatus.ACTIVE || !"career.autonomous".equals(intent.purposeKey()) || intent.goalId() != root.goalId() || !intent.subject().equals(root.subject())
+			|| intent.constraints().getOrDefault("owner.revision", -1L) != root.revision() || intent.target() == null || !TARGET_NAMESPACE.equals(intent.target().namespace())) { return null; }
+		final var content = _catalog.content(intent.target().key()).orElse(null);
+		return content != null && content.kind() == Kind.CLASS_PATH && content.contentHash().equals(intent.payloadText()) ? intent : null;
 	}
 
 	private void publishActive(long profileId, long now)

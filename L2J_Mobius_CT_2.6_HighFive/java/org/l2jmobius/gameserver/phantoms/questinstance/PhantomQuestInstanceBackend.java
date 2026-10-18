@@ -48,13 +48,13 @@ public interface PhantomQuestInstanceBackend
 		}
 	}
 
-	record Observation(int playerObjectId, int level, String race, int classId, int baseClassId, boolean dead, boolean busy, QuestView quest, int x, int y, int z, int instanceId, int instanceTemplateId, long instanceReuseUntilMillis, int partySize, boolean partyLeader, boolean partyLevelEligible, int activeWeaponItemId, Map<Integer, Long> itemCounts, Map<Integer, Integer> itemObjectIds, String fingerprint)
+	record Observation(int playerObjectId, int level, String race, int classId, int baseClassId, int classIndex, boolean dead, boolean busy, QuestView quest, int x, int y, int z, int instanceId, int instanceTemplateId, long instanceReuseUntilMillis, int partySize, boolean partyLeader, boolean partyLevelEligible, int activeWeaponItemId, Map<Integer, Long> itemCounts, Map<Integer, Integer> itemObjectIds, String fingerprint)
 	{
 		public Observation
 		{
 			itemCounts = Map.copyOf(itemCounts);
 			itemObjectIds = Map.copyOf(itemObjectIds);
-			if ((playerObjectId <= 0) || (level < 1) || (race == null) || race.isBlank() || (classId < 0) || (baseClassId < 0) || (quest == null) || (instanceId < 0) || (instanceTemplateId < 0) || (instanceReuseUntilMillis < 0) || (partySize < 0) || (activeWeaponItemId < 0) || (fingerprint == null) || !fingerprint.matches("[0-9a-f]{64}"))
+			if ((playerObjectId <= 0) || (level < 1) || (race == null) || race.isBlank() || (classId < 0) || (baseClassId < 0) || (classIndex < 0) || (quest == null) || (instanceId < 0) || (instanceTemplateId < 0) || (instanceReuseUntilMillis < 0) || (partySize < 0) || (activeWeaponItemId < 0) || (fingerprint == null) || !fingerprint.matches("[0-9a-f]{64}"))
 			{
 				throw new IllegalArgumentException("Invalid supported content observation.");
 			}

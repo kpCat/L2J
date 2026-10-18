@@ -1688,6 +1688,18 @@ public final class PhantomPopulationManager implements PhantomSchedulerControlPo
 		}
 	}
 
+	/** The existing canonical birth assignment supplies career preference without hot-path database reads. */
+	public Optional<PhantomPopulationCatalog.CareerArchetype> careerArchetype(long profileId)
+	{
+		synchronized (_monitor)
+		{
+			final var entry = _entries.get(profileId);
+			if (entry == null || entry._snapshot.state().state() != State.READY) { return Optional.empty(); }
+			final var state = entry._snapshot.state();
+			return Optional.of(_catalog.chooseArchetype(state.deterministicSeed(), state.creationOrdinal()));
+		}
+	}
+
 	public Optional<AdmissionProfileSnapshot> admissionProfile(long profileId)
 	{
 		synchronized (_monitor)

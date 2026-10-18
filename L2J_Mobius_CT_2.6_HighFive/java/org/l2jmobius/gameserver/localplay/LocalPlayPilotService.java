@@ -719,7 +719,8 @@ public final class LocalPlayPilotService
 			{
 				final var cohort = org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorM1NaturalCohortProfileIds(snapshot.point());
 				_observerPopulationStatus.setProperty("populationLocalCohortCount", Integer.toString(cohort.size()));
-				final var selected = new java.util.LinkedHashSet<Long>(cohort.stream().limit(8).toList());
+				final var selected = new java.util.LinkedHashSet<Long>(LocalPlayPilotConfig.observerProfileIds());
+				cohort.stream().filter(profileId -> !selected.contains(profileId)).limit(8 - selected.size()).forEach(selected::add);
 				org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorNearestLocalityTarget(snapshot.point()).ifPresent(target -> selected.add(target.profileId()));
 				for (long profileId : selected)
 				{
@@ -727,6 +728,7 @@ public final class LocalPlayPilotService
 					_observerPopulationStatus.setProperty(prefix + "admission", org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorAdmissionProfile(profileId).toString());
 					_observerPopulationStatus.setProperty(prefix + "readiness", org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorReadinessProgress(profileId).toString());
 					_observerPopulationStatus.setProperty(prefix + "position", org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorLocalityTarget(profileId).toString());
+					_observerPopulationStatus.setProperty(prefix + "life", org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorLifeProgress(profileId).toString());
 				}
 			}
 		}

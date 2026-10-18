@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Explicit choices by canonical career preference; native quest/master requirements remain unchanged. -->
+<autonomousCareerPolicy id="high-five-autonomous-career-v1" version="1" enabled="true" retrySeconds="30" journeyMinutes="90" maximumProfiles="128">
+	<route content="class.warrior-q401" fromClass="0" toClass="1" archetype="DAMAGE" />
+</autonomousCareerPolicy>

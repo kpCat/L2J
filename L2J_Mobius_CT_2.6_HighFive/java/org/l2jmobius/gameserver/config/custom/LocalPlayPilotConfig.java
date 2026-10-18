@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.List;
 import java.util.Set;
 
 import org.l2jmobius.commons.util.ConfigReader;
@@ -18,6 +19,7 @@ public final class LocalPlayPilotConfig
 	private static volatile boolean _syntheticEnabled;
 	private static int _syntheticObjectId;
 	private static String _syntheticName = "";
+	private static volatile List<Long> _observerProfiles = List.of();
 
 	private LocalPlayPilotConfig()
 	{
@@ -28,6 +30,7 @@ public final class LocalPlayPilotConfig
 		_enabled = false;
 		loadAutoAttach("False", "");
 		_syntheticEnabled = false;
+		_observerProfiles = List.of();
 		final Path path = Path.of(CONFIG_FILE);
 		if (!Files.isRegularFile(path))
 		{
@@ -37,6 +40,17 @@ public final class LocalPlayPilotConfig
 		final String value = reader.getValue("EnableLocalPlayPilot");
 		_enabled = "True".equalsIgnoreCase(value);
 		loadAutoAttach(reader.getValue("EnableLocalPlayPilotAutoAttach"), reader.getValue("LocalPlayPilotAutoAttachCharacters"));
+		try
+		{
+			final String selected = reader.getValue("LocalPlayObserverProfileIds");
+			if (selected != null && !selected.isBlank())
+			{
+				final var ids = java.util.Arrays.stream(selected.strip().split("[,\\s]+")).map(Long::parseLong).toList();
+				if (ids.size() > 8 || ids.stream().anyMatch(id -> id <= 0) || ids.stream().distinct().count() != ids.size()) { throw new IllegalArgumentException("Invalid bounded observer selection."); }
+				_observerProfiles = List.copyOf(ids);
+			}
+		}
+		catch (RuntimeException exception) { _observerProfiles = List.of(); }
 		try
 		{
 			_syntheticObjectId = Integer.parseInt(reader.getValue("LocalPlaySyntheticCharacterObjectId"));
@@ -50,6 +64,9 @@ public final class LocalPlayPilotConfig
 	{
 		return _enabled;
 	}
+
+	/** Explicit read-only diagnostic addresses; never an admission or materialization request. */
+	public static List<Long> observerProfileIds() { return _observerProfiles; }
 
 	private static void loadAutoAttach(String enabled, String names)
 	{

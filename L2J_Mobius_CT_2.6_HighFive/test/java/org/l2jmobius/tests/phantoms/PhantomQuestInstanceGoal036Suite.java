@@ -117,6 +117,9 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	private PhantomAcquisitionQuestCatalog _acquisitions;
 	private PhantomQuestInstanceCatalog _catalog;
 	private L2jPhantomQuestInstanceBackend _backend;
+	private org.l2jmobius.gameserver.phantoms.questinstance.PhantomAutonomousCareerPolicy _careerPolicy;
+	private final java.util.concurrent.atomic.AtomicBoolean _careerAllowed = new java.util.concurrent.atomic.AtomicBoolean(true);
+	private final java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype> _careerPreference = new java.util.concurrent.atomic.AtomicReference<>(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype.DAMAGE);
 	private PhantomQuestInstanceService _service;
 	private Player _player;
 	private SpawnFact _normalWorldCombatPoint;
@@ -190,6 +193,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			_acquisitions = PhantomAcquisitionQuestCatalog.load(Path.of("data/phantoms/acquisition/high-five-quest-collection-v1.xml"), Path.of("data/scripts"));
 			_catalog = PhantomQuestInstanceCatalog.load(Path.of("data/phantoms/quests/high-five-supported-content-v1.xml"), Path.of("."));
 			_backend = new L2jPhantomQuestInstanceBackend(_materialization, _catalog, () -> _knowledge.query());
+			if (Boolean.getBoolean("phantom.test.careerProducer061")) { _careerPolicy = org.l2jmobius.gameserver.phantoms.questinstance.PhantomAutonomousCareerPolicy.load(context.moduleRoot().resolve("dist/game/data/phantoms/life/high-five-autonomous-career-v1.xml")); }
 			_service = createService();
 			preparePlayer(0, 0, 20);
 			ensureWeapon();
@@ -207,6 +211,11 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (Boolean.getBoolean("phantom.test.careerProducer061"))
+		{
+			registry.add("09-farm-decision-autonomous-career-intent061", this::autonomousCareer061);
+			return;
+		}
 		registry.add("01-strict-catalog-and-fail-closed-dispatch", this::strictCatalog);
 		registry.add("02-active-background-boundary-and-source-safety", this::activeBoundary);
 		registry.add("03-q102-native-lifecycle-restart-and-rewards", this::q102Lifecycle);
@@ -215,6 +224,59 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		registry.add("06-kamaloka-57-native-entry-combat-reuse", this::kamalokaLifecycle);
 		registry.add("07-pailaka-128-native-lifecycle-and-rewards", this::pailakaLifecycle);
 		registry.add("08-owned-lifecycle-and-native-authority", this::lifecycleAuthority);
+	}
+
+	private void autonomousCareer061(PhantomTestContext context) throws Exception
+	{
+		preparePlayer(0, 0, 19);
+		PhantomAssertions.assertTrue(_backend.observe(_profile.profileId(), _catalog.content("class.warrior-q401").orElseThrow()).quest().status() == org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBackend.QuestStatus.ABSENT && itemCount(1145) == 0 && _player.getClassIndex() == 0, "Career061 requires an unstarted native Fighter quest, no mark and main class.");
+		final PhantomGoal root = new PhantomGoal(++_goalId, "farm.background", PhantomGoalStatus.ACTIVE,
+			new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_normalWorldCombatPoint.npcId())),
+			1, 0, "background.farm", List.of(), null, "farm.background", 500, 0, 0, 0, Map.of(), "career061.initial_farm", 1);
+		_goals.store(_profile.profileId(), root);
+		final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry();
+		final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry();
+		final var decision = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision(_service);
+		decision.registerCandidates(candidates); candidates.seal();
+		decision.registerHandlers(handlers); handlers.seal();
+		final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root,
+			org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
+		final var selector = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector();
+		_careerAllowed.set(false);
+		PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() == null, "Career escaped external HOLD/party ownership.");
+		_careerAllowed.set(true); _careerPreference.set(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype.TANK);
+		PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() == null, "A Tank preference was forced to Warrior.");
+		_careerPreference.set(org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype.DAMAGE);
+		preparePlayer(0, 0, 17);
+		PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() == null, "Career accepted a native under-level Fighter.");
+		preparePlayer(18, 18, 19);
+		PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() == null, "Career forced another native race/class into Q401.");
+		preparePlayer(0, 0, 19);
+		final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning);
+		context.record("career061.producer", "native Fighter0/main/19; Q401 absent; no class goal supplied by fixture; selection=" + selected);
+		PhantomAssertions.assertTrue(selected.candidate() != null, "Eligible native farm Decision has no autonomous supported profession producer.");
+		final var plan = selected.candidate().planFactory().create(planning);
+		final var step = plan.steps().getFirst();
+		final var result = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(
+			_profile.profileId(), root, plan, step, PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, NOT_CANCELLED));
+		final var stored = _profiles.findComponent(_profile.profileId(), "career.intent").orElseThrow(() -> new AssertionError("Production did not persist its selected career child."));
+		final var intent = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(stored.payload());
+		PhantomAssertions.assertEquals("class.transfer", intent.goalType(), "Producer selected the wrong kind of intent.");
+		PhantomAssertions.assertEquals("class.warrior-q401", intent.target().key(), "Producer selected unsupported content.");
+		PhantomAssertions.assertEquals(root, _goals.load(_profile.profileId()).orElseThrow().goal(), "Career producer replaced the farm continuation.");
+		PhantomAssertions.assertTrue(intent.status() == PhantomGoalStatus.ACTIVE && _player.getActiveClass() == 0 && itemCount(1145) == 0,
+			"Producer bypassed native quest/transfer or rejected its bound farm child: " + result);
+		final long exp = _player.getExp(), sp = _player.getSp();
+		_careerAllowed.set(false);
+		PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() == null && _service.ownsAutonomousIntent(_profile.profileId(), root)
+			&& stored.equals(_profiles.findComponent(_profile.profileId(), "career.intent").orElseThrow()), "HOLD discarded or rewrote the durable career child.");
+		_careerAllowed.set(true);
+		final var replacement = new PhantomGoal(root.goalId(), root.goalType(), root.status(), root.subject(), root.target(), root.requiredAmount(), root.currentAmount(), root.acquisitionMethod(), root.validSources(), root.selectedAnchor(), root.purposeKey(), root.priority(), root.riskBudget(), root.expenseBudget(), root.deadlineEpochMillis(), root.constraints(), "career061.changed_root", root.revision() + 1);
+		_goals.store(_profile.profileId(), replacement);
+		final var stale = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, step, PhantomActivityState.ACTIVE, 1, 2, System.nanoTime(), 1, NOT_CANCELLED));
+		PhantomAssertions.assertTrue(stale.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.REPLAN && _goals.load(_profile.profileId()).orElseThrow().goal().equals(replacement)
+			&& _player.getActiveClass() == 0 && _player.getExp() == exp && _player.getSp() == sp && itemCount(1145) == 0, "Stale career callback changed native progress or the replacement root: " + stale);
+		context.record("career061.guards", "HOLD preserved child; Tank/wrong native class/race/level refused; changed-root callback rejected without class/mark/EXP/SP mutation; not full Q401 proof");
 	}
 
 	private void strictCatalog(PhantomTestContext context) throws Exception
@@ -493,6 +555,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	private PhantomQuestInstanceService createService()
 	{
 		final PhantomQuestInstanceService service = new PhantomQuestInstanceService(_goals, _catalog, _acquisitions, _backend, _combat, _navigation, _progression, _signals);
+		if (_careerPolicy != null) { service.enableAutonomous(_profiles, _materialization, (_, _) -> true, _ -> _careerAllowed.get(), _ -> _careerPreference.get(), _careerPolicy); }
 		PhantomAssertions.assertTrue(service.start(), "Goal036 service did not start.");
 		return service;
 	}

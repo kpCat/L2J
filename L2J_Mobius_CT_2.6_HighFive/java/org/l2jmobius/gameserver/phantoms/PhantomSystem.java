@@ -669,20 +669,22 @@ public final class PhantomSystem
 				final PhantomSiegeDecision siegeDecision = new PhantomSiegeDecision(_siegeService);
 				final PhantomQuestInstanceCatalog questInstanceCatalog = PhantomQuestInstanceCatalog.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/quests/high-five-supported-content-v1.xml").toPath(), ServerConfig.DATAPACK_ROOT.toPath());
 				_questInstanceService = new PhantomQuestInstanceService(productionGoals, questInstanceCatalog, questCollectionCatalog, new L2jPhantomQuestInstanceBackend(_materializationService, questInstanceCatalog, _gameKnowledgeService::query), _combatService, _navigationService, _progressionService, new PhantomSchedulerRelevanceSignalPort(_scheduler));
-				if (!_questInstanceService.start())
-				{
-					throw new IllegalStateException("Phantom quest and instance service could not enter the running state.");
-				}
 				final PhantomQuestInstanceDecision questInstanceDecision = new PhantomQuestInstanceDecision(_questInstanceService);
 				_learningJourney = new L2jPhantomLearningJourney(productionGoals, _materializationService, _progressionService, _navigationService, _gameKnowledgeService::query, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
 				_learningJourney.enableAutonomous(productionProfiles, _visibleAutoPlay::yieldAfterCurrentTarget, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
 				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), _visibleAutoPlay::yieldAfterCurrentTarget, _learningJourney::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService);
-				_learningJourney.deferAutomaticWhen(_supplyJourney::needsOrOwns);
+				_questInstanceService.enableAutonomous(productionProfiles, _materializationService, _visibleAutoPlay::yieldAfterCurrentTarget,
+					profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)),
+					profileId -> _populationManager.careerArchetype(profileId).orElse(null),
+					org.l2jmobius.gameserver.phantoms.questinstance.PhantomAutonomousCareerPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-career-v1.xml").toPath()));
+				_questInstanceService.deferAutonomousWhen(_supplyJourney::needsOrOwns);
+				_learningJourney.deferAutomaticWhen((profileId, root) -> _supplyJourney.needsOrOwns(profileId, root) || _questInstanceService.needsOrOwnsAutonomousIntent(profileId, root));
 				supplyLifecycleBridge.install(_supplyJourney);
+				if (!_questInstanceService.start()) { throw new IllegalStateException("Phantom quest and instance service could not enter the running state."); }
 				if (!_learningJourney.start()) { throw new IllegalStateException("Phantom learning journey could not enter the running state."); }
 				if (!_supplyJourney.start()) { throw new IllegalStateException("Phantom supply journey could not enter the running state."); }
-				_historicalBackgroundService.bindVisibleIntent((profileId, root) -> _learningJourney.ownsAutomaticIntent(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root));
+				_historicalBackgroundService.bindVisibleIntent((profileId, root) -> _questInstanceService.ownsAutonomousIntent(profileId, root) || _learningJourney.ownsAutomaticIntent(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root));
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
 				_farmingService = new PhantomFarmingService(farmingPolicy, new PhantomFarmingStore(productionProfiles), _acquisitionService, _topologyService, _partyCoordinator, _socialService, _settings.maxScheduledPhantomProfiles());
 				if (!_farmingService.start())
@@ -2266,6 +2268,24 @@ public final class PhantomSystem
 		{
 			result.put("signalDelivery", String.valueOf(configured._humanLocality.deliverySnapshot().get(profileId)));
 			result.put("localityOverflow", Boolean.toString(configured._humanLocality.physicalSnapshot().overflow()));
+		}
+		return Map.copyOf(result);
+	}
+
+	/** Bounded observer-only life facts from the same native and durable owners, without advancing them. */
+	public static synchronized Map<String, String> operatorLifeProgress(long profileId)
+	{
+		final PhantomSystem configured = _configuredInstance;
+		if (configured == null || configured._state != State.RUNNING) { return Map.of(); }
+		final Map<String, String> result = new java.util.LinkedHashMap<>();
+		operatorM1TargetSnapshot(profileId).ifPresent(snapshot -> result.put("native", snapshot.toString()));
+		if (configured._decisionEngine != null) { result.put("decision", configured._decisionEngine.find(profileId).toString()); }
+		if (configured._learningJourney != null) { result.put("learning", configured._learningJourney.automaticIntent(profileId).toString()); }
+		if (configured._supplyJourney != null) { result.put("supply", configured._supplyJourney.automaticIntent(profileId).toString()); }
+		if (configured._questInstanceService != null)
+		{
+			result.put("career", configured._questInstanceService.autonomousIntent(profileId).toString());
+			result.put("career.native", configured._questInstanceService.autonomousObservation(profileId).toString());
 		}
 		return Map.copyOf(result);
 	}

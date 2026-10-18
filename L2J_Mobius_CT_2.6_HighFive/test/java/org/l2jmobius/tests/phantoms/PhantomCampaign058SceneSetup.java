@@ -56,11 +56,12 @@ public final class PhantomCampaign058SceneSetup
 
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 1) || !List.of("prepare", "continue-empty", "manual-human80").contains(args[0]) || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a preparation required."); }
+		if ((args.length != 1) || !List.of("prepare", "continue-empty", "manual-human80", "continuation061-preview").contains(args[0]) || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a preparation required."); }
 		final Path lane = PhantomCampaign058PersistentLane.LANE;
 		final Path runtime = PhantomCampaign058PersistentLane.RUNTIME;
 		PhantomCampaign058PersistentLane.validateFiles(PhantomCampaign058PersistentLane.MODULE, Path.of(System.getProperty("phantom.test.config", "")), true);
 		PhantomAssertions.assertEquals(runtime.resolve("libs/GameServer.jar").toRealPath(), Path.of(Player.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toRealPath(), "Scene must use the actual current ordinary GameServer.jar.");
+		if (args[0].equals("continuation061-preview")) { PhantomCareer061PreviewSetup.run(); return; }
 		if (args[0].equals("manual-human80")) { prepareManualHuman80(lane); return; }
 		PhantomAssertions.assertFalse(Files.exists(lane.resolve("scene-setup.complete")), "Persistent TEST scene has already been prepared.");
 		if (args[0].equals("prepare")) { Files.createFile(lane.resolve("scene-setup.started")); }
@@ -228,7 +229,7 @@ public final class PhantomCampaign058SceneSetup
 	}
 
 	/** Same deterministic identity transform as native PhantomPopulationStore. */
-	private static long mix(long seed, long value)
+	static long mix(long seed, long value)
 	{
 		long mixed = seed ^ (value + 0x9E3779B97F4A7C15L); mixed = (mixed ^ (mixed >>> 30)) * 0xBF58476D1CE4E5B9L; mixed = (mixed ^ (mixed >>> 27)) * 0x94D049BB133111EBL; return mixed ^ (mixed >>> 31);
 	}
