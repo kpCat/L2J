@@ -5,6 +5,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+# A nested Windows PowerShell may inherit PowerShell 7 module paths from its caller.
+Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1') -ErrorAction Stop
 if (!$RuntimeRoot) {$RuntimeRoot=Join-Path $PSScriptRoot '..'}
 $runtime = [IO.Path]::GetFullPath($RuntimeRoot).TrimEnd('\')
 . (Join-Path $PSScriptRoot 'LocalPlay-Ownership.ps1')

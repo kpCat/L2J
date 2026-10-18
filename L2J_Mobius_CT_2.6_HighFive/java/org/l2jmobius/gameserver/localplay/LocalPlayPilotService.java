@@ -703,6 +703,7 @@ public final class LocalPlayPilotService
 		if (now >= _nextObserverPopulationStatus)
 		{
 			_nextObserverPopulationStatus = now + 30_000_000_000L;
+			_observerPopulationStatus.clear();
 			final var population = org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorStatus();
 			_observerPopulationStatus.setProperty("populationSampleUtcMillis", Long.toString(System.currentTimeMillis()));
 			_observerPopulationStatus.setProperty("populationRuntimeState", String.valueOf(population.runtimeState()));
@@ -713,6 +714,21 @@ public final class LocalPlayPilotService
 			_observerPopulationStatus.setProperty("populationActiveCurrent", Long.toString(population.activeCurrent()));
 			_observerPopulationStatus.setProperty("populationActivityStates", population.activityStateCounts().toString());
 			_observerPopulationStatus.setProperty("populationEcology", population.ecology().toString());
+			// Bounded passive readiness facts distinguish missing local inputs from admission failures.
+			if (snapshot.point() != null)
+			{
+				final var cohort = org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorM1NaturalCohortProfileIds(snapshot.point());
+				_observerPopulationStatus.setProperty("populationLocalCohortCount", Integer.toString(cohort.size()));
+				final var selected = new java.util.LinkedHashSet<Long>(cohort.stream().limit(8).toList());
+				org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorNearestLocalityTarget(snapshot.point()).ifPresent(target -> selected.add(target.profileId()));
+				for (long profileId : selected)
+				{
+					final String prefix = "populationProfile." + profileId + '.';
+					_observerPopulationStatus.setProperty(prefix + "admission", org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorAdmissionProfile(profileId).toString());
+					_observerPopulationStatus.setProperty(prefix + "readiness", org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorReadinessProgress(profileId).toString());
+					_observerPopulationStatus.setProperty(prefix + "position", org.l2jmobius.gameserver.phantoms.PhantomSystem.operatorLocalityTarget(profileId).toString());
+				}
+			}
 		}
 		status.putAll(_observerPopulationStatus);
 		// Extend the existing read-only observer, without materializing or controlling an actor.

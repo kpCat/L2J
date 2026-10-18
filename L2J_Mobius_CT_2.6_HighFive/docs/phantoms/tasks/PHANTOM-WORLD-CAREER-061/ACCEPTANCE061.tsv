@@ -1,0 +1,9 @@
+requirement	status	source_jar	input	actual_outcome	evidence
+W0-CAUSE	IN_PROGRESS	BASE / BDB027 + diagnostic E53CBC	Existing058a32 profiles; unchanged viewpoint	World0 independently confirmed; local cohort0; nearest ready14 nonlocal; positive input pending	.phantom-local/contract058a/task061/early-ordinary-02-status.json; observer061-ordinary-02-status.json
+W1-LIFE	NOT_PROVEN	CURRENT	No positive cohort enrolled	Ordinary appearance and complete reward-learning/supply-return chain pending	CHECKPOINT061.md
+W2-RESTART	NOT_PROVEN	CURRENT	Same058a retained	Stock stop/start happened; useful life continuation pending	CHECKPOINT061.md
+C20-PRODUCER	NOT_IMPLEMENTED	BASE	Supported Q401 route exists	Current Decision has explicit class goal only; autonomous producer read-first underway	SOURCE_MAP.md
+C20-QUEST	NOT_PROVEN	CURRENT	No career episode enrolled	Full native Q401/master/new skill/two farm cycles pending	CHECKPOINT061.md
+C20-RESUME	NOT_PROVEN	CURRENT	No career episode enrolled	Meaningful ordinary restart boundary pending	CHECKPOINT061.md
+KEEP	NOT_RUN	CURRENT	Frozen060111 IDs retained	Fresh affected/current regression pending; no IDs removed	ACCEPTANCE060.tsv
+DELIVERY	NOT_READY	CURRENT	Candidate061 absent; release061a absent	Clean committed package/CMD lifecycle/ordinary resume/finalSTOPPED/remote equality pending	CHECKPOINT061.md
