@@ -204,10 +204,13 @@ public final class PhantomQuestInstanceService
 			{
 				return retry("questinstance.actor.busy");
 			}
+			// The durable child owns native Combat across ordinary Decision replans/retry exhaustion.
+			final PhantomCancellationToken combatToken = intent == null ? token : () -> _state != State.RUNNING || _automatic == null
+				|| !_automatic.permitsOwnedCombat(profileId, root, intent) || validChild(profileId, root, intent) == null;
 			return switch (content.kind())
 			{
 				case QUEST -> "quest.102".equals(content.id()) ? q102(profileId, content, observation, logicalNowNanos, token) : q152(profileId, content, observation, logicalNowNanos, token);
-				case CLASS_PATH -> warrior(profileId, content, observation, logicalNowNanos, token,
+				case CLASS_PATH -> warrior(profileId, content, observation, logicalNowNanos, combatToken,
 					goal.deadlineEpochMillis() == 0 ? TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS) : Math.max(0, goal.deadlineEpochMillis() - System.currentTimeMillis()));
 				case KAMALOKA -> kamaloka(profileId, content, observation, logicalNowNanos, token);
 				case PAILAKA -> pailaka(profileId, content, observation, logicalNowNanos, token);

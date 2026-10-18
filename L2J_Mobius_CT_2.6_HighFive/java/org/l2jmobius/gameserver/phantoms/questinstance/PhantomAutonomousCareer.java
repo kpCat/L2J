@@ -170,6 +170,17 @@ final class PhantomAutonomousCareer
 		}
 	}
 
+	/** Native child work outlives a single Decision plan, but never its current owner or HOLD. */
+	boolean permitsOwnedCombat(long profileId, PhantomGoal root, PhantomGoal intent)
+	{
+		if (!_allowed.test(profileId) || intent.status() != PhantomGoalStatus.ACTIVE || intent.deadlineEpochMillis() <= System.currentTimeMillis()) { return false; }
+		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (lease == null || !bound(intent, root, lease.player())) { return false; }
+			synchronized (this) { final var current = _cache.get(profileId); return current != null && intent.equals(current.goal); }
+		}
+	}
+
 	private static boolean bound(PhantomGoal intent, PhantomGoal root, Player player)
 	{
 		return intent != null && "career.autonomous".equals(intent.purposeKey()) && intent.goalId() == root.goalId()

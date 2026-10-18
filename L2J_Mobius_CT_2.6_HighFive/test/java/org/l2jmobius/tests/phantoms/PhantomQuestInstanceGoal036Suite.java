@@ -223,6 +223,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("12-native-career-nearest-supported-spawn061", this::careerNearestSpawn061);
 			registry.add("13-native-career-two-minute-route-refusal061", this::careerSkeletonRoute061);
 			registry.add("14-native-career-existing-goal-travel-deadline061", this::careerGoalTravelDeadline061);
+			registry.add("15-native-career-child-combat-plan-lifetime061", this::careerCombatLifetime061);
 			return;
 		}
 		registry.add("01-strict-catalog-and-fail-closed-dispatch", this::strictCatalog);
@@ -456,6 +457,63 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			service.beginStop(); service.finishStop();
 			await(() -> _navigation.snapshot().activeRequests() == 0, "Cancelled TEST route did not drain before fixture cleanup.");
 		}
+	}
+
+	private void careerCombatLifetime061(PhantomTestContext context) throws Exception
+	{
+		preparePlayer(0, 0, 19); ensureWeapon(129); // Independent invulnerable TEST actor, not ordinary35 or full B.
+		final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
+		quest.startQuest(); quest.setCond(2, false);
+		final Monster target = spawnMonster(20035);
+		spawnMonster(20035); spawnMonster(20035); // Two declared native targets for HOLD/root cancellation controls.
+		final long beforeExp = _player.getExp();
+		final PhantomGoal root = new PhantomGoal(++_goalId, "farm.background", PhantomGoalStatus.ACTIVE,
+			new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_normalWorldCombatPoint.npcId())),
+			1, 0, "background.farm", List.of(), null, "farm.background", 500, 0, 0, 0, Map.of(), "career061.combat_lifetime", 1);
+		_goals.store(_profile.profileId(), root);
+		final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry();
+		final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry();
+		final var decision = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision(_service);
+		decision.registerCandidates(candidates); candidates.seal(); decision.registerHandlers(handlers); handlers.seal();
+		final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root,
+			org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
+		final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning);
+		PhantomAssertions.assertTrue(selected.candidate() != null, "Native career combat input has no production candidate.");
+		final var plan = selected.candidate().planFactory().create(planning);
+		final var step = plan.steps().getFirst();
+		final var planCurrent = new java.util.concurrent.atomic.AtomicBoolean(true);
+		final var result = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(
+			_profile.profileId(), root, plan, step, PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, () -> !planCurrent.get()));
+		// Same normal lifetime rule as DecisionEngine: REPLAN discards this plan and cancels its token.
+		if (result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.REPLAN) { planCurrent.set(false); }
+		context.record("career061.childCombatLifetime", "result=" + result + ";planCurrent=" + planCurrent.get() + ";combat=" + _combat.find(_profile.profileId()));
+		PhantomAssertions.assertEquals("questinstance.combat.started", result.reasonKey(), "Native child Combat did not actually start.");
+		await(target::isDead, "Production child Combat did not finish its real native target without test damage/pulses.");
+		await(() -> _player.getExp() > beforeExp, "Native child Combat has no actual earned reward.");
+		context.record("career061.childCombatReward", "npc20035 native dead; EXP=" + beforeExp + "->" + _player.getExp() + ";quest1140=" + itemCount(1140));
+		for (int guard = 0; guard < 2; guard++)
+		{
+			boolean started = false;
+			org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult last = null;
+			for (int attempt = 0; attempt < 40 && !started; attempt++)
+			{
+				final var nextPlan = selected.candidate().planFactory().create(planning);
+				final var current = new java.util.concurrent.atomic.AtomicBoolean(true);
+				final var advanced = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(
+					_profile.profileId(), root, nextPlan, nextPlan.steps().getFirst(), PhantomActivityState.ACTIVE, 1, attempt + 2, System.nanoTime(), 1, () -> !current.get()));
+				if (advanced.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.REPLAN) { current.set(false); }
+				started = "questinstance.combat.started".equals(advanced.reasonKey());
+				last = advanced;
+				if (!started) { Thread.sleep(500); } // Same ordinary retry cadence; await native settlement, never pulse Combat.
+			}
+			context.record("career061.childCombatGuardStart." + guard, last);
+			PhantomAssertions.assertTrue(started, "Negative child lifetime control did not start its own native Combat: " + last);
+			if (guard == 0) { _careerAllowed.set(false); }
+			else { _goals.store(_profile.profileId(), new PhantomGoal(root.goalId(), root.goalType(), root.status(), root.subject(), root.target(), root.requiredAmount(), root.currentAmount(), root.acquisitionMethod(), root.validSources(), root.selectedAnchor(), root.purposeKey(), root.priority(), root.riskBudget(), root.expenseBudget(), root.deadlineEpochMillis(), root.constraints(), "career061.replaced_root", root.revision() + 1)); }
+			try { await(() -> _combat.find(_profile.profileId()).map(value -> value.result() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult.CANCELLED).orElse(false), "HOLD/replaced root did not cancel its native child Combat."); }
+			finally { _careerAllowed.set(true); }
+		}
+		context.record("career061.childCombatGuards", "ordinary plan replan survived to actual native reward; HOLD and replaced durable root each cancelled their own subsequent native session");
 	}
 
 	private void strictCatalog(PhantomTestContext context) throws Exception
