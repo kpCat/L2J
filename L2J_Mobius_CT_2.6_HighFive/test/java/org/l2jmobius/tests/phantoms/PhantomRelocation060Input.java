@@ -39,6 +39,79 @@ final class PhantomRelocation060Input
 {
 	private PhantomRelocation060Input() { }
 
+	/** A prepared carried root was selected at its earlier level; only the next level is earned in-scene. */
+	static PhantomHistoricalBackgroundPlanner.Result selectLocal(PhantomTestContext context, Player player, long profileId,
+			PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, L2jPhantomBackgroundAuthority authority,
+			PhantomHistoricalBackgroundPlanner planner, PhantomNormalGatekeeperTravel travel)
+	{
+		final var candidates = new ArrayList<Source>();
+		knowledge.snapshot().spawnAreasByNpc().forEach((npcId, areas) ->
+		{
+			final var npc = NpcData.getInstance().getTemplate(npcId);
+			if (npc == null || npc.getLevel() < 1 || npc.getLevel() > 9) { return; }
+			for (var area : areas)
+			{
+				if (area.topologyNodeId() == null || area.instanceId() != 0) { continue; }
+				for (var anchor : topology.snapshot().anchorsByNode().getOrDefault(area.topologyNodeId(), List.of()))
+				{
+					if (anchor.role() == PhantomTopologyAnchorRole.FARMING && anchor.point().instanceId() == 0 && (anchor.npcId() == null || anchor.npcId().equals(npcId))) { candidates.add(new Source(anchor, npcId, npc.getLevel())); }
+				}
+			}
+		});
+		final var rejected = new TreeMap<String, Integer>();
+		final var backend = new L2jNavigationBackend(); final var policy = PhantomNavigationPolicy.productionDefaults();
+		for (var source : candidates.stream().distinct().sorted(Comparator.comparing((Source value) -> value.anchor().id()).thenComparingInt(Source::npcId)).limit(64).toList())
+		{
+			for (var from : PhantomLiving060Scenario.inputPoints(topology, source.anchor().id()))
+			{
+				try
+				{
+					prepareLevel(player, source.level(), player.getStat().getExpForLevel(source.level()));
+					player.setXYZInvisible(from.x(), from.y(), from.z()); player.revalidateZone(true);
+					final var seed = planner.planInitial(profileId, player, context.seed(), 0);
+					if (!seed.ready()) { rejected.merge("seed", 1, Integer::sum); continue; }
+					final var prior = authority.captureOwnedNative(profileId, player, seed.goal(), null).state();
+					final var live = new PhantomTopologyPoint(from.x(), from.y(), from.z(), 0);
+					final var initial = planner.replanVisibleLocal(profileId, prior, seed.goal(), context.seed(), 1, live, Set.of(), Set.of());
+					if (!initial.ready()) { rejected.merge("prior.local", 1, Integer::sum); continue; }
+					final var oldNpc = NpcData.getInstance().getTemplate(initial.spec().npcId());
+					if (oldNpc == null || oldNpc.getLevel() > 9) { rejected.merge("prior.npc", 1, Integer::sum); continue; }
+					final int oldLevel = oldNpc.getLevel() + 10;
+					prepareLevel(player, oldLevel, player.getStat().getExpForLevel(oldLevel + 1) - 1);
+					final var baseline = authority.captureOwnedNative(profileId, player, initial.goal(), null).state();
+					final var grown = new PhantomBackgroundState(baseline.state(), baseline.identity(), new PhantomBackgroundState.Progress(oldLevel + 1, player.getStat().getExpForLevel(oldLevel + 1), 0, baseline.progress().experienceBeforeDeath()), baseline.vitals(), baseline.position(), baseline.combat(), baseline.loadout(), baseline.inventory(), baseline.autoGetSkills(), baseline.clock(), baseline.receipt(), baseline.hashes());
+					if (!planner.remainsSuitable(baseline, initial.goal()) || planner.remainsSuitable(grown, initial.goal())) { rejected.merge("not_threshold", 1, Integer::sum); continue; }
+					final var next = planner.replanVisibleLocal(profileId, grown, initial.goal(), context.seed(), 2, live, Set.of(initial.spec().npcId() + "@" + initial.spec().anchorId()), Set.of());
+					if (!next.ready() || next.spec().anchorId().equals(initial.spec().anchorId())) { rejected.merge("no_distinct_local", 1, Integer::sum); continue; }
+					final var destination = topology.findAnchor(next.spec().anchorId()).orElseThrow().point(); final var geo = GeoEngine.getInstance();
+					if (live.distanceSquared2D(destination) <= 40_000 || !geo.hasGeo(destination.x(), destination.y())) { rejected.merge("not_relocation", 1, Integer::sum); continue; }
+					final var endpoint = new PhantomNavigationPoint(destination.x(), destination.y(), geo.getHeight(destination.x(), destination.y(), destination.z()), 0);
+					final long now = System.nanoTime();
+					final var route = backend.planTravel(new PhantomNavigationRequest(profileId, from, endpoint, now, now + policy.defaultRequestDeadlineNanos(), policy.maximumRouteDistance()), new PhantomNavigationCancellationToken(), policy, System::nanoTime,
+							new PhantomTravelStrategy.Options(travel.legs(), player.getMoveSpeed(), player.getAdena(), 0, player.getClassIndex(), oldLevel + 1, System.currentTimeMillis() / 60_000, false, "fixture.local_walk_only", null, 0, 110_000, Set.of()));
+					if (route.status() != PhantomNavigationResult.Status.PATH_FOUND) { rejected.merge("native." + route.status(), 1, Integer::sum); continue; }
+					player.rewardSkills();
+					context.record("life060.localRelocationInput", "PREMEASUREMENT carried root selected by production at prior level=" + source.level() + "; current prepared level=" + oldLevel + " near" + (oldLevel + 1) + "; old=" + initial.goal() + "; grown native-local preview=" + next.goal() + "; native path=" + route.candidate() + "; stages=" + rejected + "; preview not applied; only next level earned in-scene");
+					System.out.println("LIFE060 LOCAL_RELOCATION_INPUT_GREEN old=" + initial.spec() + "; next=" + next.spec());
+					return initial;
+				}
+				catch (IllegalArgumentException rejectedPoint)
+				{
+					if (!"Canonical Player position does not identify exactly one topology anchor.".equals(rejectedPoint.getMessage())) { throw rejectedPoint; }
+					rejected.merge("ambiguous_anchor", 1, Integer::sum);
+				}
+			}
+		}
+		context.record("life060.localRelocationInputRejected", "bounded64 carried-root sources; stages=" + rejected);
+		throw new AssertionError("BLOCKED_NATIVE_LOCAL_RELOCATION_INPUT: no distinct suitable native-local continuation; no scene enrolled.");
+	}
+
+	private static void prepareLevel(Player player, int level, long exp)
+	{
+		player.getStat().setLevel((byte) level); player.getStat().setExp(exp); player.setSp(0);
+		player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp()); player.setCurrentCp(player.getMaxCp());
+	}
+
 	static PhantomHistoricalBackgroundPlanner.Result select(PhantomTestContext context, Player player, long profileId,
 			PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, L2jPhantomBackgroundAuthority authority,
 			PhantomHistoricalBackgroundPlanner planner, PhantomNormalGatekeeperTravel travel)
@@ -128,6 +201,7 @@ final class PhantomRelocation060Input
 		private final PhantomGoal _initial;
 		private final PhantomTopologyPoint _origin;
 		private final int _threshold;
+		private final long _movementSquared;
 		private long _thresholdAt, _reportedRevision, _arrivalExp;
 		private PhantomGoal _arrived;
 		private PlayerNativeEvidence.Snapshot _arrival;
@@ -136,7 +210,14 @@ final class PhantomRelocation060Input
 
 		Observation(PhantomGoal initial, Player player, int threshold)
 		{
+			this(initial, player, threshold, 2000);
+		}
+
+		Observation(PhantomGoal initial, Player player, int threshold, int minimumMovement)
+		{
+			if (minimumMovement < 200 || minimumMovement > 12_000) { throw new IllegalArgumentException("Relocation proof movement bound is invalid."); }
 			_initial = initial; _threshold = threshold; _reportedRevision = initial.revision();
+			_movementSquared = (long) minimumMovement * minimumMovement;
 			_origin = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
 		}
 
@@ -154,12 +235,12 @@ final class PhantomRelocation060Input
 			PhantomAssertions.assertTrue(root.revision() - _initial.revision() <= 8, "Relocation churned more than eight root revisions.");
 			if (root.revision() <= _initial.revision() || root.selectedAnchor().equals(_initial.selectedAnchor()))
 			{
-				PhantomAssertions.assertTrue(_thresholdAt == 0 || now - _thresholdAt < TimeUnit.SECONDS.toNanos(45), "Earned threshold outgrew the old farm but production selected no distant root; reason=" + history.visibleRecoveryReason(profileId));
+				PhantomAssertions.assertTrue(_thresholdAt == 0 || now - _thresholdAt < TimeUnit.SECONDS.toNanos(45), "Earned threshold outgrew the old farm but production selected no distinct farm root; reason=" + history.visibleRecoveryReason(profileId));
 				return false;
 			}
 			final var state = background.acquisitionSnapshot(profileId).orElseThrow();
 			final var live = new PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId());
-			if (!state.position().committedAnchorId().equals(PhantomBackgroundGoalSpec.parse(root).anchorId()) || _origin.distanceSquared2D(live) <= 4_000_000L) { return false; }
+			if (!state.position().committedAnchorId().equals(PhantomBackgroundGoalSpec.parse(root).anchorId()) || _origin.distanceSquared2D(live) <= _movementSquared) { return false; }
 			if (_arrived == null || !_arrived.equals(root))
 			{
 				_arrived = root; _arrival = sample; _arrivalExp = player.getExp();

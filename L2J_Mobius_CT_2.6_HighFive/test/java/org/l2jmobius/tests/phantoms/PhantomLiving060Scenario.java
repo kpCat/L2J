@@ -115,7 +115,7 @@ final class PhantomLiving060Scenario
 			setup.setRunning(); setup.standUp(); setup.setInvul(false); setup.refreshExpertisePenalty(); setup.refreshOverloaded();
 			final var origin = topology.findAnchor(classId == 10 ? "population.farming.human-mystic.20481" : mage ? "population.farming.elf.20534" : dwarf ? "population.farming.dwarf.20533" : orc ? "population.farming.orc.20535" : "population.farming.human-fighter.20545").orElseThrow();
 			setup.setXYZInvisible(origin.point().x(), origin.point().y(), GeoEngine.getInstance().getHeight(origin.point().x(), origin.point().y(), origin.point().z()));
-			initial = relocation ? PhantomRelocation060Input.select(context, setup, id, knowledge, topology, authority, planner, routes) : selectInput(context, setup, id, knowledge, topology, authority, planner, commerce);
+			initial = relocation ? PhantomRelocation060Input.selectLocal(context, setup, id, knowledge, topology, authority, planner, routes) : selectInput(context, setup, id, knowledge, topology, authority, planner, commerce);
 			if (relocation) { threshold = setup.getLevel() + 1; }
 			setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(setup.getMaxCp());
 			goals.insert(id, initial.goal()); setup.storeMe();
@@ -189,7 +189,7 @@ final class PhantomLiving060Scenario
 			final long startExp = player.getExp(), startSp = player.getSp();
 			final var sensor = player.getNativeWorkOwner().evidence();
 			final var baseline = sensor.snapshot();
-			final var relocationProof = relocation ? new PhantomRelocation060Input.Observation(initial.goal(), player, threshold) : null;
+			final var relocationProof = relocation ? new PhantomRelocation060Input.Observation(initial.goal(), player, threshold, 200) : null;
 			final var supplyProof = supply ? new PhantomSupply060Observation(profiles, id, player, baseline, mage ? 2509 : 1835) : null;
 			long tick = 0, nextReport = 0, completedAtCycle = -1;
 			long completedExp = -1, completedKills = -1, completedDamage = -1, completedEarnedExp = -1, completedEarnedSp = -1;
