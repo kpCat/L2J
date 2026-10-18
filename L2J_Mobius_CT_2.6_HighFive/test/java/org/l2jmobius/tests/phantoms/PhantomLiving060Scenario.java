@@ -68,12 +68,14 @@ final class PhantomLiving060Scenario
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		PhantomAssertions.assertTrue(java.util.Set.of(0, 10, 25, 44, 53).contains(classId), "Unsupported declared Living060 starter input.");
+		final boolean relocation = Boolean.getBoolean("phantom.test.livingRelocate060");
+		PhantomAssertions.assertTrue(!relocation || classId == 0, "Relocation060 requires its separately declared Fighter input.");
 		final boolean mage = classId == 10 || classId == 25, dwarf = classId == 53, orc = classId == 44;
 		final var fixture = environment.createCampaign058Companion(context, mage ? 2 : 1);
 		final var profile = profiles.create(fixture.objectId());
 		final long id = profile.profileId();
 		context.record("life060.identity." + classId, "fresh own060 native object=" + fixture.objectId() + "; profile=" + id + "; before input selection");
-		final int threshold = mage ? 7 : 5;
+		int threshold = mage ? 7 : 5;
 		final var goals = new PhantomGoalStateStore(profiles);
 		final var routes = PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
 		final var authority = new L2jPhantomBackgroundAuthority(() -> knowledge, () -> topology, () -> catalog, () -> commerce, routes);
@@ -98,7 +100,8 @@ final class PhantomLiving060Scenario
 			setup.setRunning(); setup.standUp(); setup.setInvul(false); setup.refreshExpertisePenalty(); setup.refreshOverloaded();
 			final var origin = topology.findAnchor(classId == 10 ? "population.farming.human-mystic.20481" : mage ? "population.farming.elf.20534" : dwarf ? "population.farming.dwarf.20533" : orc ? "population.farming.orc.20535" : "population.farming.human-fighter.20545").orElseThrow();
 			setup.setXYZInvisible(origin.point().x(), origin.point().y(), GeoEngine.getInstance().getHeight(origin.point().x(), origin.point().y(), origin.point().z()));
-			initial = selectInput(context, setup, id, knowledge, topology, authority, planner);
+			initial = relocation ? PhantomRelocation060Input.select(context, setup, id, knowledge, topology, authority, planner, routes) : selectInput(context, setup, id, knowledge, topology, authority, planner);
+			if (relocation) { threshold = setup.getLevel() + 1; }
 			setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(setup.getMaxCp());
 			goals.insert(id, initial.goal()); setup.storeMe();
 			final var captured = authority.captureOwnedNative(id, setup, initial.goal(), null);
@@ -152,7 +155,7 @@ final class PhantomLiving060Scenario
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Living060 ordinary admission rejected.");
 			player = World.getInstance().getPlayer(fixture.objectId());
 			PhantomAssertions.assertTrue(player != null && !player.isDead() && !player.isImmobilized() && !player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE), "INVALID_INPUT: Living060 native mobility/zone.");
-			final int fixtureCount = classId == 0 ? 8 : 1;
+			final int fixtureCount = relocation || classId != 0 ? 1 : 8;
 			context.record("life060.finitePack." + classId, "PREMEASUREMENT native full-HP NPC=" + initial.spec().npcId() + "; fixture slots=" + fixtureCount + "; actual clanHelpRange=" + NpcData.getInstance().getTemplate(initial.spec().npcId()).getClanHelpRange() + "; native clan/aggro/AI unchanged; no later test spawns/resources");
 			for (int index = 0; index < fixtureCount; index++)
 			{
@@ -165,6 +168,7 @@ final class PhantomLiving060Scenario
 			final long startExp = player.getExp(), startSp = player.getSp();
 			final var sensor = player.getNativeWorkOwner().evidence();
 			final var baseline = sensor.snapshot();
+			final var relocationProof = relocation ? new PhantomRelocation060Input.Observation(initial.goal(), player, threshold) : null;
 			long tick = 0, nextReport = 0, completedAtCycle = -1;
 			long completedExp = -1, completedKills = -1, completedDamage = -1, completedEarnedExp = -1, completedEarnedSp = -1;
 			PhantomGoal completed = null;
@@ -176,6 +180,7 @@ final class PhantomLiving060Scenario
 				if (history.prepareVisibleDecision(id, engine)) { engine.accept(new PhantomActivityWorkItem(id, PhantomActivityState.ACTIVE, 1, ++tick, now, PhantomActivityOverloadLevel.NORMAL)); }
 				final var intent = journey.automaticIntent(id).orElse(null);
 				final var sample = sensor.snapshot();
+				if (relocationProof != null && relocationProof.advance(context, id, player, goals.load(id).orElseThrow().goal(), background, history, travel, sample, now)) { break; }
 				if (intent != null && intent.status() == PhantomGoalStatus.COMPLETED && completed == null)
 				{
 					completed = intent; completedAtCycle = sample.farmCycleSequence(); completedExp = player.getExp(); completedKills = sample.killSequence(); completedDamage = sample.damageSequence(); completedEarnedExp = sample.expGained(); completedEarnedSp = sample.spGained();
@@ -190,9 +195,13 @@ final class PhantomLiving060Scenario
 				Thread.sleep(100);
 			}
 			final var sample = sensor.snapshot();
-			context.record("life060.result." + classId, "EXP=" + startExp + "->" + player.getExp() + "; SP input=" + startSp + "; SP current=" + player.getSp() + "; cycles=" + (sample.farmCycleSequence() - baseline.farmCycleSequence()) + "; completed=" + completed + "; cyclesAfterReturn=" + (completedAtCycle < 0 ? 0 : sample.farmCycleSequence() - completedAtCycle) + "; newKills=" + (sample.killSequence() - completedKills) + "; newDamage=" + (sample.damageSequence() - completedDamage) + "; postReturnEXP=" + completedExp + "->" + player.getExp() + "; postReturnEarnedEXP=" + (sample.expGained() - completedEarnedExp) + "; postReturnEarnedSP=" + (sample.spGained() - completedEarnedSp) + "; actualXYZ=" + player.getX() + ',' + player.getY() + ',' + player.getZ() + "; current root=" + goals.load(id));
-			PhantomAssertions.assertTrue(completed != null && sample.killSequence() > completedKills && sample.damageSequence() > completedDamage && sample.expGained() > completedEarnedExp && sample.spGained() > completedEarnedSp && player.getLevel() >= threshold && player.getExp() > completedExp, "Living060 production AutoPlay -> earned threshold -> selected paid lesson -> WALK return -> NEW native kill/earned EXP/SP did not complete; old-cycle closure cannot prove it.");
-			earnedChainCompleted = true;
+			if (relocationProof != null) { relocationProof.verify(context, player, sample); }
+			else
+			{
+				context.record("life060.result." + classId, "EXP=" + startExp + "->" + player.getExp() + "; SP input=" + startSp + "; SP current=" + player.getSp() + "; cycles=" + (sample.farmCycleSequence() - baseline.farmCycleSequence()) + "; completed=" + completed + "; cyclesAfterReturn=" + (completedAtCycle < 0 ? 0 : sample.farmCycleSequence() - completedAtCycle) + "; newKills=" + (sample.killSequence() - completedKills) + "; newDamage=" + (sample.damageSequence() - completedDamage) + "; postReturnEXP=" + completedExp + "->" + player.getExp() + "; postReturnEarnedEXP=" + (sample.expGained() - completedEarnedExp) + "; postReturnEarnedSP=" + (sample.spGained() - completedEarnedSp) + "; actualXYZ=" + player.getX() + ',' + player.getY() + ',' + player.getZ() + "; current root=" + goals.load(id));
+				PhantomAssertions.assertTrue(completed != null && sample.killSequence() > completedKills && sample.damageSequence() > completedDamage && sample.expGained() > completedEarnedExp && sample.spGained() > completedEarnedSp && player.getLevel() >= threshold && player.getExp() > completedExp, "Living060 production AutoPlay -> earned threshold -> selected paid lesson -> WALK return -> NEW native kill/earned EXP/SP did not complete; old-cycle closure cannot prove it.");
+				earnedChainCompleted = true;
+			}
 		}
 		finally
 		{
@@ -285,7 +294,7 @@ final class PhantomLiving060Scenario
 		throw new AssertionError("BLOCKED_NATIVE_ROUTE_INPUT: bounded32 factual farm points have no bidirectional native Trainer corridor; no full scene started.");
 	}
 
-	private static List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> inputPoints(PhantomTopologyQuery topology, String anchorId)
+	static List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> inputPoints(PhantomTopologyQuery topology, String anchorId)
 	{
 		final var anchor = topology.findAnchor(anchorId).orElseThrow();
 		final var area = topology.findNode(anchor.nodeId()).orElseThrow().area();

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards)
+param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards,[switch]$LivingRelocate)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -32,6 +32,10 @@ if ($PaidAutoGetGuards) {
 }
 if ($AutonomousLearning) {$args059+='-Dphantom.test.autonomousLearning060=true'}
 if ($AutonomousLearningGuards) {$args059+='-Dphantom.test.autonomousLearningGuards060=true'}
+if ($LivingRelocate) {
+ if (!$Living -or $LivingMage -or $LivingDwarf -or $LivingClass -ne 0) {throw 'Relocation requires separate exact Fighter living input'}
+ $args059+='-Dphantom.test.livingRelocate060=true'
+}
 if ($Living) {$args059+='-Dphantom.test.living060=true'}
 if ($LivingMage) {$args059+='-Dphantom.test.livingMage060=true'}
 if ($LivingDwarf -and $LivingMage) {throw 'Separate declared class scenes required'}

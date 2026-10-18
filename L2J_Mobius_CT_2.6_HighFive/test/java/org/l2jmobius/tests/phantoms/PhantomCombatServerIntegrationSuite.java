@@ -635,7 +635,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			if (Boolean.getBoolean("phantom.test.living060"))
 			{
 				final int classId = Integer.getInteger("phantom.test.livingClass060", Boolean.getBoolean("phantom.test.livingMage060") ? 25 : Boolean.getBoolean("phantom.test.livingDwarf060") ? 53 : 0);
-				registry.add(classId == 25 ? "07-production-mystic-farm-learning-and-farm" : classId == 53 ? "08-production-dwarf-farm-learning-and-farm" : classId == 10 ? "09-production-human-mystic-farm-learning-and-farm" : classId == 44 ? "10-production-orc-farm-learning-and-farm" : "06-production-fighter-farm-learning-and-farm", context ->
+				registry.add(Boolean.getBoolean("phantom.test.livingRelocate060") ? "11-production-earned-threshold-farm-relocation" : classId == 25 ? "07-production-mystic-farm-learning-and-farm" : classId == 53 ? "08-production-dwarf-farm-learning-and-farm" : classId == 10 ? "09-production-human-mystic-farm-learning-and-farm" : classId == 44 ? "10-production-orc-farm-learning-and-farm" : "06-production-fighter-farm-learning-and-farm", context ->
 					PhantomLiving060Scenario.run(context, _environment, _repository, _query, _topology, _progression, new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog(), classId));
 				return;
 			}
