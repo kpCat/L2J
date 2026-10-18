@@ -89,6 +89,12 @@ public final class PhantomQuestInstanceService
 	void registerAutonomousCandidates(org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry registry) { if (_automatic != null) { _automatic.registerCandidates(registry); } }
 	void registerAutonomousHandlers(org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry registry) { if (_automatic != null) { _automatic.registerHandlers(registry); } }
 	public boolean ownsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }
+	/** Admission for the visible career Decision before a farm route can be resumed. */
+	public boolean permitsAutonomousVisibleDecision(long profileId, PhantomGoal root)
+	{
+		return _state == State.RUNNING && _automatic != null && _goals.load(profileId).map(stored -> stored.goal().equals(root)).orElse(false)
+			&& (_automatic.owns(profileId, root) || _automatic.needsOrOwns(profileId, root));
+	}
 	public boolean needsOrOwnsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.needsOrOwns(profileId, root); }
 	public Optional<PhantomGoal> autonomousIntent(long profileId) { return _automatic == null ? Optional.empty() : _automatic.intent(profileId); }
 	public Optional<Observation> autonomousObservation(long profileId)

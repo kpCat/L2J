@@ -255,6 +255,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning);
 		context.record("career061.producer", "native Fighter0/main/19; Q401 absent; no class goal supplied by fixture; selection=" + selected);
 		PhantomAssertions.assertTrue(selected.candidate() != null, "Eligible native farm Decision has no autonomous supported profession producer.");
+		PhantomAssertions.assertTrue(_service.permitsAutonomousVisibleDecision(_profile.profileId(), root), "Visible admission waits for an already-created career child before allowing its producer to run.");
 		final var plan = selected.candidate().planFactory().create(planning);
 		final var step = plan.steps().getFirst();
 		final var result = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(
@@ -270,9 +271,12 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		_careerAllowed.set(false);
 		PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() == null && _service.ownsAutonomousIntent(_profile.profileId(), root)
 			&& stored.equals(_profiles.findComponent(_profile.profileId(), "career.intent").orElseThrow()), "HOLD discarded or rewrote the durable career child.");
+		PhantomAssertions.assertTrue(_service.permitsAutonomousVisibleDecision(_profile.profileId(), root), "HOLD lost the already-owned native career boundary.");
 		_careerAllowed.set(true);
 		final var replacement = new PhantomGoal(root.goalId(), root.goalType(), root.status(), root.subject(), root.target(), root.requiredAmount(), root.currentAmount(), root.acquisitionMethod(), root.validSources(), root.selectedAnchor(), root.purposeKey(), root.priority(), root.riskBudget(), root.expenseBudget(), root.deadlineEpochMillis(), root.constraints(), "career061.changed_root", root.revision() + 1);
 		_goals.store(_profile.profileId(), replacement);
+		PhantomAssertions.assertFalse(_service.permitsAutonomousVisibleDecision(_profile.profileId(), root), "Visible career gate accepted a replaced farm root.");
+		PhantomAssertions.assertTrue(_service.permitsAutonomousVisibleDecision(_profile.profileId(), replacement), "A current revised farm root cannot reach a fresh eligible career Decision.");
 		final var stale = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, step, PhantomActivityState.ACTIVE, 1, 2, System.nanoTime(), 1, NOT_CANCELLED));
 		PhantomAssertions.assertTrue(stale.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.REPLAN && _goals.load(_profile.profileId()).orElseThrow().goal().equals(replacement)
 			&& _player.getActiveClass() == 0 && _player.getExp() == exp && _player.getSp() == sp && itemCount(1145) == 0, "Stale career callback changed native progress or the replacement root: " + stale);
