@@ -10,6 +10,8 @@ Native Buffalo действительно лечит владельца; Kookabu
 
 Возобновление платного supply intent через две JVM и ordinary candidate save/restart имеют отдельные evidence в RESULT060/ACCEPTANCE_STATUS. Положительный reload одного Player и сохранённые XYZ сами по себе эти факты не подтверждают. При current native отказе сохраняются причина и старый FAIL; ресурсы/HP/MP/цену/curse/instance guards ради PASS не меняют.
 
+Area aggression ограничена native AURA/GetAgro/TargetMe и2..16 обычными NPC без clan assistance, уже атакующими танка/current party. Actual idle/foreign/Player/raid/minion recipient отвергает весь список; frozen native cast не добавляет поздних получателей. Native18:37 реально удержал двух stock Wolf2с с MP/reuse; полный boss/add encounter, clan mobs и вся GROUP-THREAT матрица не закрыты. Single-target Hate сохранён.
+
 Профессии20/40/76, subclass/Noblesse и полные групповые М4–М7 остаются частичными по исходным контрактам. AutoNoblesse в личной QoL конфигурации — не earned Noblesse quest. Старый25199 FAIL сохранён. Отдельный успешный heal/minion/Камалока не означает полного рейда/Rift/М7. М1/G4/G6 deferred; пользовательский вход не подменяется synthetic observer.
 
 Партнёры T058Tank/Mage/Heal/Buff/Mana/Scout сохранены из058a. Их World appearance зависит от расписания, локальности и безопасной materialization; готовый class/DB position не гарантирует видимого присутствия. Последний ordinary runtime census указан в итоговом статусе. Поставка оставлена STOPPED; используйте штатные START/STATUS/STOP и ту же БД, без bootstrap/reset.
