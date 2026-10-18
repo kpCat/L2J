@@ -98,6 +98,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Cap
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.SummonActorFact;
 import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.NativeSide;
 import org.l2jmobius.gameserver.phantoms.siege.PhantomSiegeModel.TargetKind;
+import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 
 public final class L2jCombatBackend implements PhantomCombatBackend
 {
@@ -588,7 +589,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 
 		private List<WorldObject> npcAreaAggroTargets(Skill skill, Monster primary, ActorSnapshot actor)
 		{
-			if (!PhantomCombatSkillSafety.supportsNpcAreaAggro(skill, _player.isTransformed())) { return List.of(); }
+			// The frozen-list native cast must not bypass PlayerAI movement, bow-reuse or REST admission.
+			if (!PhantomCombatSkillSafety.supportsNpcAreaAggro(skill, _player.isTransformed()) || _player.isMoving() || (_player.getBowAttackEndTime() > GameTimeTaskManager.getInstance().getGameTicks()) || (skill.isMagic() && _player.hasAI() && (_player.getAI().getIntention() == Intention.REST))) { return List.of(); }
 			final List<WorldObject> recipients = skill.getTargetList(_player, false, primary);
 			if ((recipients == null) || (recipients.size() < 2) || (recipients.size() > 16) || !recipients.contains(primary)) { return List.of(); }
 			for (WorldObject recipient : recipients)

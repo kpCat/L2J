@@ -1359,7 +1359,21 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castNpcAggro(enemies.getFirst().getObjectId(), new SelectedSkill(18,37)), "Area aggression forced a foreign player's target.");
 					PhantomAssertions.assertTrue(foreign.getTarget() == humanTarget && _player.getCurrentMp() == mp && !_player.isSkillDisabled(aura), "Rejected foreign-recipient control changed target, MP or reuse.");
 				}
-				context.record("group060.area.negative", "actual native idle Monster and flagged foreign Player recipients each refused as a whole list; no MP/reuse/hate/forced-target effect");
+				_environment.cleanupLoadedPlayer(foreign); foreign = null;
+				final Location walk = java.util.Arrays.stream(new int[][] {{180,0},{-180,0},{0,180},{0,-180}}).map(offset -> new Location(field.x()+offset[0], field.y()+offset[1], GeoEngine.getInstance().getHeight(field.x()+offset[0],field.y()+offset[1],field.z()))).filter(point -> Math.abs(point.getZ()-field.z()) <= 8 && GeoEngine.getInstance().canMoveToTarget(field.x(),field.y(),field.z(),point.getX(),point.getY(),point.getZ(),0)).findFirst().orElseThrow(() -> new AssertionError("BLOCKED_INPUT: native walk frontend control lacks a direct legal corridor."));
+				try (var lease = _backend.tryAcquireActor(_profile.profileId()))
+				{
+					PhantomAssertions.assertTrue(lease != null && aura.getTargetList(_player, false, enemies.getFirst()).size() == 2, "Moving control lacks the same exact two native recipients.");
+					_player.getAI().setIntention(Intention.MOVE_TO, walk);
+					PhantomAssertions.assertTrue(waitFor(_player::isMoving, 1000), "BLOCKED_INPUT: declared native MOVE_TO never started.");
+					final double mp = _player.getCurrentMp();
+					context.record("group060.area.frontend", "nativeMoving=" + _player.isMoving() + "; currentBowReuseUntil=" + _player.getBowAttackEndTime() + "; nativeRecipients=" + aura.getTargetList(_player, false, enemies.getFirst()).size());
+					PhantomAssertions.assertTrue(lease.npcAggroSkill(enemies.getFirst().getObjectId()).isEmpty(), "Frozen area frontend selected a long cast while native movement was active.");
+					PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castNpcAggro(enemies.getFirst().getObjectId(), new SelectedSkill(18,37)), "Frozen area frontend bypassed native movement admission.");
+					PhantomAssertions.assertTrue(_player.getCurrentMp() == mp && !_player.isSkillDisabled(aura), "Rejected moving cast spent native MP or reuse.");
+				}
+				finally { _player.stopMove(null); }
+				context.record("group060.area.negative", "actual native idle Monster, flagged foreign Player, and active native movement each refused; no MP/reuse/hate/forced-target effect");
 				return;
 			}
 			final var nativeTargets = aura.getTargetList(_player, false, enemies.getFirst());
