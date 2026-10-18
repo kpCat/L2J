@@ -54,6 +54,7 @@ final class PhantomAutonomousLearning
 	private final PhantomAutonomousLearningPolicy _policy;
 	private final PhantomGoalStateCodec _codec = new PhantomGoalStateCodec();
 	private final Map<Long, Cached> _cache = new LinkedHashMap<>();
+	private BiPredicate<Long, PhantomGoal> _defer = (_, _) -> false;
 
 	PhantomAutonomousLearning(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomProgressionService progression, L2jPhantomLearningJourney journey, BiPredicate<Long, Long> pauseFarm, LongPredicate allowed, PhantomAutonomousLearningPolicy policy)
 	{
@@ -76,6 +77,7 @@ final class PhantomAutonomousLearning
 	}
 
 	void registerHandlers(PhantomStepHandlerRegistry registry) { registry.register(ACTION, this::advance); }
+	void deferWhen(BiPredicate<Long, PhantomGoal> predicate) { _defer = Objects.requireNonNull(predicate); }
 
 	private Optional<PhantomGoal> proposal(long profileId, PhantomGoal root)
 	{
@@ -93,6 +95,7 @@ final class PhantomAutonomousLearning
 				if (cached.goal.constraints().getOrDefault("retry.after", 0L) > now) { return Optional.empty(); }
 			}
 			// A future need may be selected during farming; its executor still waits for native combat to settle.
+			if (_defer.test(profileId, root)) { return Optional.empty(); }
 			if (player.isInsideZone(ZoneId.PEACE)) { return Optional.empty(); }
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getSp();
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return Optional.ofNullable(cached.offer); }

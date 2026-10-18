@@ -32,7 +32,12 @@ import org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundS
 import org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleAutoPlay;
 import org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmTravel;
-import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog;
+import org.l2jmobius.gameserver.phantoms.commerce.L2jCommerceBackend;
+import org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
@@ -64,7 +69,7 @@ final class PhantomLiving060Scenario
 	private PhantomLiving060Scenario() { }
 
 	static void run(PhantomTestContext context, PhantomHeadlessPlayerTestEnvironment environment, PhantomProfileRepository profiles,
-			PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog catalog, PhantomCommerceCatalog commerce, int classId) throws Exception
+			PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, PhantomProgressionCatalog catalog, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader.LoadResult commerceResult, int classId) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		PhantomAssertions.assertTrue(java.util.Set.of(0, 10, 25, 44, 53).contains(classId), "Unsupported declared Living060 starter input.");
@@ -79,6 +84,7 @@ final class PhantomLiving060Scenario
 		context.record("life060.identity." + classId, "fresh own060 native object=" + fixture.objectId() + "; profile=" + id + "; before input selection");
 		int threshold = mage ? 7 : 5;
 		final var goals = new PhantomGoalStateStore(profiles);
+		final var commerce = commerceResult.catalog();
 		final var routes = PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
 		final var authority = new L2jPhantomBackgroundAuthority(() -> knowledge, () -> topology, () -> catalog, () -> commerce, routes);
 		final var planner = new PhantomHistoricalBackgroundPlanner(knowledge, topology, authority);
@@ -138,6 +144,9 @@ final class PhantomLiving060Scenario
 		final var metrics = new PhantomMetrics();
 		final var lifecycle = new PhantomMaterializationLifecycleBridge();
 		final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1, _ -> {}, lifecycle, 5_000, 10_000);
+		final var commerceGoals = new PhantomSupplyIntentStore(profiles, goals);
+		final var receipts = new PhantomCommerceReceiptStore(profiles);
+		final var commerceService = new PhantomCommerceService(commerceResult, receipts, commerceGoals, new L2jCommerceBackend(materialization, commerce, java.time.Clock.systemDefaultZone()));
 		final var background = new PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, authority, new PhantomBackgroundCompetitionRegistry(), signals(), () -> materialization);
 		final var history = new PhantomHistoricalBackgroundService(profiles, goals, planner, background, materialization);
 		final var navigation = new PhantomNavigationService(metrics);
@@ -147,18 +156,20 @@ final class PhantomLiving060Scenario
 		final var progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, Path.of("."), () -> knowledge), PhantomProgressionPolicy.productionDefaults());
 		final var journey = new L2jPhantomLearningJourney(goals, materialization, progression, navigation, () -> knowledge, history::permitsDecision);
 		journey.enableAutonomous(profiles, autoPlay::yieldAfterCurrentTarget, PhantomAutonomousLearningPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-learning-v1.xml")));
-		history.bindVisibleIntent(journey::ownsAutomaticIntent);
-		lifecycle.install(PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(history, background), PhantomMaterializationLifecyclePort.chain(autoPlay, travel)));
+		final var supplies = new L2jPhantomSupplyJourney(commerceGoals, goals, materialization, commerceService, receipts, navigation, () -> knowledge, routes, history::permitsDecision, autoPlay::yieldAfterCurrentTarget, journey::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml")));
+		journey.deferAutomaticWhen(supplies::needsOrOwns);
+		history.bindVisibleIntent((profileId, root) -> journey.ownsAutomaticIntent(profileId, root) || supplies.ownsAutomaticIntent(profileId, root));
+		lifecycle.install(PhantomMaterializationLifecyclePort.chain(supplies, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(history, background), PhantomMaterializationLifecyclePort.chain(autoPlay, travel))));
 		final var binding = PhantomBackgroundDecision.bindVisibleLife(background, travel, autoPlay, history, engineRef::get);
-		final var candidates = new PhantomCandidateRegistry(); binding.registerCandidates(candidates); journey.registerCandidates(candidates); candidates.seal();
-		final var handlers = new PhantomStepHandlerRegistry(); binding.registerHandlers(handlers); journey.registerHandlers(handlers); handlers.seal();
+		final var candidates = new PhantomCandidateRegistry(); binding.registerCandidates(candidates); journey.registerCandidates(candidates); supplies.registerCandidates(candidates); candidates.seal();
+		final var handlers = new PhantomStepHandlerRegistry(); binding.registerHandlers(handlers); journey.registerHandlers(handlers); supplies.registerHandlers(handlers); handlers.seal();
 		final var engine = new PhantomDecisionEngine(goals, candidates, handlers, metrics, 1, null, history::permitsDecision); engineRef.set(engine);
 		final List<Monster> monsters = new ArrayList<>();
 		Player player = null;
 		boolean earnedChainCompleted = false;
 		try
 		{
-			PhantomAssertions.assertTrue(background.start() && materialization.start() && navigation.start() && journey.start(), "Living060 ordinary owners did not start.");
+			PhantomAssertions.assertTrue(background.start() && materialization.start() && navigation.start() && commerceService.start() && journey.start() && supplies.start(), "Living060 ordinary owners did not start.");
 			progression.start();
 			engine.start(); engine.attach(id);
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, materialization.materialize(id).status(), "Living060 ordinary admission rejected.");
@@ -201,11 +212,13 @@ final class PhantomLiving060Scenario
 				{
 					System.out.println("LIFE060_COMPOSED class=" + classId + "; xyz=" + player.getX() + ',' + player.getY() + ',' + player.getZ() + "; level=" + player.getLevel() + "; EXP=" + player.getExp() + "; SP=" + player.getSp() + "; cycles=" + (sample.farmCycleSequence() - baseline.farmCycleSequence()) + "; intent=" + intent + "; runtime=" + engine.find(id) + "; travel=" + travel.reason(id));
 					System.out.flush(); nextReport = now + TimeUnit.SECONDS.toNanos(20);
+					if (supply) { System.out.println("LIFE060_SUPPLY intent=" + supplies.automaticIntent(id) + "; reason=" + supplies.reason(id) + "; GK=" + supplies.gatekeeperEvidence(id)); }
 				}
 				if (intent != null && intent.status() == PhantomGoalStatus.FAILED) { throw new AssertionError("Living060 product intent failed: " + intent); }
 				Thread.sleep(100);
 			}
 			final var sample = sensor.snapshot();
+			if (supply) { context.record("life060.supplyJourney", "intent=" + supplies.automaticIntent(id) + "; reason=" + supplies.reason(id) + "; GK=" + supplies.gatekeeperEvidence(id)); }
 			if (relocationProof != null) { relocationProof.verify(context, player, sample); }
 			else if (supplyProof != null) { supplyProof.verify(context, player, sample); }
 			else
@@ -219,6 +232,8 @@ final class PhantomLiving060Scenario
 		{
 			engine.beginStop(); final long drain = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (engine.snapshot().state() != PhantomDecisionEngine.State.STOPPED && !engine.finishStop() && System.nanoTime() < drain) { Thread.sleep(20); }
 			autoPlay.stop(id); journey.beginStop(); journey.finishStop();
+			supplies.beginStop(); PhantomAssertions.assertTrue(supplies.finishStop(), "Living060 supply owner did not drain.");
+			commerceService.beginStop(); PhantomAssertions.assertTrue(commerceService.finishStop(), "Living060 commerce owner did not drain.");
 			if (player != null) { player.abortAttack(); player.abortCast(); player.stopMove(null); player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE); }
 			for (var monster : monsters) { if (monster != null && monster.isSpawned()) { monster.deleteMe(); } }
 			navigation.beginStop(); while (navigation.snapshot().state() != PhantomNavigationService.ServiceState.STOPPED && !navigation.finishStop() && System.nanoTime() < drain) { Thread.sleep(20); }

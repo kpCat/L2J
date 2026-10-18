@@ -70,10 +70,13 @@ import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService;
 import org.l2jmobius.gameserver.phantoms.combat.PhantomCombatStepHandlers;
 import org.l2jmobius.gameserver.phantoms.commerce.L2jCommerceBackend;
+import org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceDecision;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore;
 import org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService;
+import org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore;
 import org.l2jmobius.gameserver.phantoms.clan.L2jPhantomClanBackend;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDirectiveCatalog;
 import org.l2jmobius.gameserver.phantoms.clan.PhantomClanDirectiveService;
@@ -249,6 +252,7 @@ public final class PhantomSystem
 	private PhantomSemanticUnderstandingService _semanticUnderstandingService;
 	private PhantomProgressionService _progressionService;
 	private L2jPhantomLearningJourney _learningJourney;
+	private L2jPhantomSupplyJourney _supplyJourney;
 	private PhantomCombatService _combatService;
 	private PhantomCommerceService _commerceService;
 	private PhantomCommerceReceiptStore _commerceReceiptStore;
@@ -443,7 +447,8 @@ public final class PhantomSystem
 				PhantomMarketConfig.autonomousPolicy().ifPresent(policy -> _autonomousMarketProducer = new PhantomAutonomousMarketProducer(_materializationService, _scheduler, _phantomStoreService, productionGoals, acquisitionStore, _economyReservations, () -> _decisionEngine, policy));
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
 				_commerceReceiptStore = new PhantomCommerceReceiptStore(productionProfiles);
-				_commerceService = new PhantomCommerceService(commerceCatalog, _commerceReceiptStore, productionGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
+				final var commerceGoals = new PhantomSupplyIntentStore(productionProfiles, productionGoals);
+				_commerceService = new PhantomCommerceService(commerceCatalog, _commerceReceiptStore, commerceGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
 				_economicAuditView = new PhantomEconomicAuditView(_economyReservations, _commerceReceiptStore);
 				if (!_commerceService.start())
 				{
@@ -482,8 +487,10 @@ public final class PhantomSystem
 				_visibleAutoPlay = new PhantomVisibleAutoPlay(_materializationService, () -> _decisionEngine, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), profileId -> (_materializationRetention != null) && _materializationRetention.permitsNewActions(profileId), System::nanoTime);
 				_visibleFarmTravel = new PhantomVisibleFarmTravel(_materializationService, _backgroundService, backgroundAuthority.travelQuery(_topologyService.query()), _navigationService, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), new PhantomSchedulerRelevanceSignalPort(_scheduler), org.l2jmobius.gameserver.phantoms.background.PhantomVisibleFarmFailureBinding.bind(_historicalBackgroundService), System::nanoTime);
 				pvpLifecycleBridge = new PhantomMaterializationLifecycleBridge();
+				final var supplyLifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				final var productionComposition = PhantomMaterializationLifecyclePort.chain(_visibleFarmTravel, PhantomMaterializationLifecyclePort.chain(_visibleAutoPlay, PhantomMaterializationLifecyclePort.chain(positionPublisher, PhantomMaterializationLifecyclePort.chain(_historicalBackgroundService, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(new PhantomEconomyMaterializationLifecycle(_economyReservations, _economyOffers, Clock.systemUTC()), _backgroundService), pvpLifecycleBridge)))));
-				productionLifecycle.install(_loadObserverForTesting == null ? productionComposition : PhantomMaterializationLifecyclePort.chain(_loadObserverForTesting, productionComposition));
+				final var productionLifeComposition = PhantomMaterializationLifecyclePort.chain(supplyLifecycleBridge, productionComposition);
+				productionLifecycle.install(_loadObserverForTesting == null ? productionLifeComposition : PhantomMaterializationLifecyclePort.chain(_loadObserverForTesting, productionLifeComposition));
 				final File acquisitionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-acquisition-v1.xml");
 				final PhantomAcquisitionCatalog acquisitionCatalog = PhantomAcquisitionCatalog.load(acquisitionCatalogFile.toPath());
 				final File questCollectionCatalogFile = new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/acquisition/high-five-quest-collection-v1.xml");
@@ -669,8 +676,12 @@ public final class PhantomSystem
 				final PhantomQuestInstanceDecision questInstanceDecision = new PhantomQuestInstanceDecision(_questInstanceService);
 				_learningJourney = new L2jPhantomLearningJourney(productionGoals, _materializationService, _progressionService, _navigationService, _gameKnowledgeService::query, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
 				_learningJourney.enableAutonomous(productionProfiles, _visibleAutoPlay::yieldAfterCurrentTarget, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
+				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), _visibleAutoPlay::yieldAfterCurrentTarget, _learningJourney::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
+				_learningJourney.deferAutomaticWhen(_supplyJourney::needsOrOwns);
+				supplyLifecycleBridge.install(_supplyJourney);
 				if (!_learningJourney.start()) { throw new IllegalStateException("Phantom learning journey could not enter the running state."); }
-				_historicalBackgroundService.bindVisibleIntent(_learningJourney::ownsAutomaticIntent);
+				if (!_supplyJourney.start()) { throw new IllegalStateException("Phantom supply journey could not enter the running state."); }
+				_historicalBackgroundService.bindVisibleIntent((profileId, root) -> _learningJourney.ownsAutomaticIntent(profileId, root) || _supplyJourney.ownsAutomaticIntent(profileId, root));
 				final PhantomFarmingPolicy farmingPolicy = PhantomFarmingPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/farming/high-five-farming-conflict-v1.xml").toPath());
 				_farmingService = new PhantomFarmingService(farmingPolicy, new PhantomFarmingStore(productionProfiles), _acquisitionService, _topologyService, _partyCoordinator, _socialService, _settings.maxScheduledPhantomProfiles());
 				if (!_farmingService.start())
@@ -755,6 +766,7 @@ public final class PhantomSystem
 				siegeDecision.registerCandidates(candidateRegistry);
 				questInstanceDecision.registerCandidates(candidateRegistry);
 				_learningJourney.registerCandidates(candidateRegistry);
+				_supplyJourney.registerCandidates(candidateRegistry);
 				candidateRegistry.seal();
 				final PhantomStepHandlerRegistry handlerRegistry = new PhantomStepHandlerRegistry();
 				new PhantomProgressionStepHandlers(_progressionService).register(handlerRegistry);
@@ -773,6 +785,7 @@ public final class PhantomSystem
 				siegeDecision.registerHandlers(handlerRegistry);
 				questInstanceDecision.registerHandlers(handlerRegistry);
 				_learningJourney.registerHandlers(handlerRegistry);
+				_supplyJourney.registerHandlers(handlerRegistry);
 				handlerRegistry.seal();
 				_decisionEngine = new PhantomDecisionEngine(productionGoals, candidateRegistry, handlerRegistry, _metrics, _settings.maxScheduledPhantomProfiles(), _settings.diagnosticsEnabled() ? _selectedDecisionTrace : null, profileId -> _historicalBackgroundService.permitsDecision(profileId) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
 				_decisionEngine.start();
@@ -824,7 +837,7 @@ public final class PhantomSystem
 		}
 		catch (RuntimeException e)
 		{
-			if (_learningJourney != null) { _learningJourney.beginStop(); }
+			beginLifeJourneysStop();
 			if (_questInstanceService != null)
 			{
 				_questInstanceService.beginStop();
@@ -941,7 +954,7 @@ public final class PhantomSystem
 				socialStopped = _socialService.finishStop();
 			}
 			final boolean acquisitionStopped = partyStopped && socialStopped && ((_acquisitionService == null) || _acquisitionService.finishStop());
-			final boolean questInstanceStopped = acquisitionStopped && learningJourneyStopped() && ((_questInstanceService == null) || _questInstanceService.finishStop());
+			final boolean questInstanceStopped = acquisitionStopped && lifeJourneysStopped() && ((_questInstanceService == null) || _questInstanceService.finishStop());
 			final boolean siegeStopped = questInstanceStopped && ((_siegeService == null) || _siegeService.finishStop());
 			final boolean combatStopped = siegeStopped && ((_combatService == null) || _combatService.finishStop());
 			final boolean commerceStopped = (_commerceService == null) || _commerceService.finishStop();
@@ -1052,7 +1065,7 @@ public final class PhantomSystem
 				if (_populationManager != null) { _populationManager.beginStop(); }
 				if (_acquisitionService != null) { _acquisitionService.beginStop(); }
 				if (_questInstanceService != null) { _questInstanceService.beginStop(); }
-				if (_learningJourney != null) { _learningJourney.beginStop(); }
+				beginLifeJourneysStop();
 				if (_siegeService != null) { _siegeService.beginStop(); }
 				if (_combatService != null) { _combatService.beginStop(); }
 				if (_progressionService != null) { _progressionService.beginStop(); }
@@ -1082,7 +1095,7 @@ public final class PhantomSystem
 				}
 				if ((_acquisitionService != null) && !_acquisitionService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "acquisition"); }
 				if ((_questInstanceService != null) && !_questInstanceService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "quest_instance"); }
-				if (!learningJourneyStopped()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "learning_journey"); }
+				if (!lifeJourneysStopped()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "learning_journey"); }
 				if ((_siegeService != null) && !_siegeService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "siege"); }
 				if ((_combatService != null) && !_combatService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "combat:" + _combatService.snapshot()); }
 				if ((_commerceService != null) && !_commerceService.finishStop()) { return pendingStop(StopPhase.WAIT_ACCEPTED_CONTROL, "commerce"); }
@@ -1283,7 +1296,7 @@ public final class PhantomSystem
 			{
 				_acquisitionService.beginStop();
 			}
-			if (_learningJourney != null) { _learningJourney.beginStop(); }
+			beginLifeJourneysStop();
 			if (_questInstanceService != null)
 			{
 				_questInstanceService.beginStop();
@@ -1338,7 +1351,7 @@ public final class PhantomSystem
 				_state = State.FAILED;
 				return false;
 			}
-			if (((_questInstanceService != null) && !_questInstanceService.finishStop()) || !learningJourneyStopped())
+			if (((_questInstanceService != null) && !_questInstanceService.finishStop()) || !lifeJourneysStopped())
 			{
 				_metrics.recordShutdownFailure();
 				_state = State.FAILED;
@@ -1445,7 +1458,7 @@ public final class PhantomSystem
 		}
 		if (_state == State.FAILED)
 		{
-			if (_learningJourney != null) { _learningJourney.beginStop(); }
+			beginLifeJourneysStop();
 			if (_questInstanceService != null)
 			{
 				_questInstanceService.beginStop();
@@ -1580,7 +1593,7 @@ public final class PhantomSystem
 				_metrics.recordShutdownFailure();
 				return false;
 			}
-			if (((_questInstanceService != null) && (_questInstanceService.snapshot().state() != PhantomQuestInstanceService.State.STOPPED) && !_questInstanceService.finishStop()) || !learningJourneyStopped())
+			if (((_questInstanceService != null) && (_questInstanceService.snapshot().state() != PhantomQuestInstanceService.State.STOPPED) && !_questInstanceService.finishStop()) || !lifeJourneysStopped())
 			{
 				_metrics.recordShutdownFailure();
 				return false;
@@ -1736,9 +1749,17 @@ public final class PhantomSystem
 		return _questInstanceService;
 	}
 
-	private boolean learningJourneyStopped()
+	private void beginLifeJourneysStop()
 	{
-		return (_learningJourney == null) || _learningJourney.finishStop();
+		if (_learningJourney != null) { _learningJourney.beginStop(); }
+		if (_supplyJourney != null) { _supplyJourney.beginStop(); }
+	}
+
+	private boolean lifeJourneysStopped()
+	{
+		final boolean learning = (_learningJourney == null) || _learningJourney.finishStop();
+		final boolean supply = (_supplyJourney == null) || _supplyJourney.finishStop();
+		return learning && supply;
 	}
 
 	public synchronized PhantomRaidAssemblyService raidAssembly()

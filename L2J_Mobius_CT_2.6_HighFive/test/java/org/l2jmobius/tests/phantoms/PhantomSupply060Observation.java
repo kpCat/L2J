@@ -39,6 +39,40 @@ final class PhantomSupply060Observation
 		context.record("supply060.policy", "strict versioned XML; low3/target60 hits; reserve500; retry30s; journey8min; bounded128; no rewards/mutation");
 	}
 
+	static void nativeSources(PhantomTestContext context, org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery knowledge)
+	{
+		final var catalog = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(java.nio.file.Path.of(".")).load().catalog();
+		final var item = org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(1835);
+		final var supply = catalog.findSupply(1835);
+		context.record("supply060.nativeItem", "item=" + item.getId() + "; action=" + item.getDefaultAction() + "; grade=" + item.getCrystalType() + "; stackable=" + item.isStackable() + "; supply=" + supply);
+		int visible = 0, untaxed = 0;
+		for (var offer : catalog.findBuyOffers(1835, 0, 256).values())
+		{
+			for (var npcId : offer.npcIds())
+			{
+				for (var spawn : knowledge.snapshot().spawnFactsByNpc().getOrDefault(npcId, java.util.List.of()))
+				{
+					if (spawn.pointKind() != org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnPointKind.EXACT || spawn.instanceId() != 0) { continue; }
+					final var region = org.l2jmobius.gameserver.model.World.getInstance().getRegion(spawn.x(), spawn.y(), spawn.z());
+					if (region == null) { continue; }
+					for (var object : region.getVisibleObjects())
+					{
+						if (object instanceof org.l2jmobius.gameserver.model.actor.instance.Merchant npc && npc.getId() == npcId && npc.getInstanceId() == 0 && npc.isSpawned() && Math.hypot((long) npc.getX() - spawn.x(), (long) npc.getY() - spawn.y()) <= 200)
+						{
+							visible++;
+							PhantomAssertions.assertTrue(npc.getMpc() != null, "BLOCKED_NPC_SUPPLY_INPUT: stock Merchant has no native price authority; canonical bootstrap required before spawns.");
+							if (offer.price() > 0 && !offer.limitedStock() && npc.getMpc().getCastleTaxRate() == 0) { untaxed++; }
+							if (visible <= 8) { context.record("supply060.nativeMerchant." + visible, "offer=" + offer + "; source=" + spawn + "; actual object=" + npc.getObjectId() + "; baseTax=" + npc.getMpc().getBaseTaxRate() + "; castleTax=" + npc.getMpc().getCastleTaxRate()); }
+						}
+					}
+				}
+			}
+		}
+		context.record("supply060.nativeSources", "visible=" + visible + "; ordinary unlimited positive-price zero-castle-tax=" + untaxed);
+		PhantomAssertions.assertTrue(supply != null && supply.kinds().contains(org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalog.SupplyKind.SHOT), "Native compatible1835 is missing its authoritative SHOT supply classification.");
+		PhantomAssertions.assertTrue(untaxed > 0, "BLOCKED_NPC_SUPPLY_INPUT: no actual ordinary supported Merchant offer; no guard relaxed.");
+	}
+
 	private static PhantomGoal modelGoal(String type, String purpose, long revision, String payload)
 	{
 		return new PhantomGoal(1, type, PhantomGoalStatus.ACTIVE, new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", "1"), null, 1, 0, null, java.util.List.of(), null, purpose, 500, 0, 1000, System.currentTimeMillis() + 60_000, java.util.Map.of(), "test.binding", revision, payload);

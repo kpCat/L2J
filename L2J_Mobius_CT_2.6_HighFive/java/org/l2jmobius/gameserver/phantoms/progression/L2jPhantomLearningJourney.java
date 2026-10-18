@@ -99,6 +99,10 @@ public final class L2jPhantomLearningJourney
 	}
 
 	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }
+	public void deferAutomaticWhen(BiPredicate<Long, PhantomGoal> predicate)
+	{
+		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Life priority must be bound before start."); } _automatic.deferWhen(predicate); }
+	}
 	public Optional<PhantomGoal> automaticIntent(long profileId) { return _automatic == null ? Optional.empty() : _automatic.intent(profileId); }
 
 	public boolean start()
