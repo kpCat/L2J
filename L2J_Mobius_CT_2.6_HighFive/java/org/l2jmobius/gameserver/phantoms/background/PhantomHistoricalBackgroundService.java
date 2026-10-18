@@ -73,6 +73,13 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private final ConcurrentHashMap<Long, VisiblePublication> _visiblePublications = new ConcurrentHashMap<>();
 	private volatile PhantomVisibleFarmTravel _visibleTravel;
 	private volatile PhantomVisibleAutoPlay _visibleAutoPlay;
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _visibleIntent = (_, _) -> false;
+
+	/** A child intent retains the exact farm root while its existing native owners travel. */
+	public void bindVisibleIntent(java.util.function.BiPredicate<Long, PhantomGoal> intent)
+	{
+		_visibleIntent = Objects.requireNonNull(intent);
+	}
 
 	public PhantomHistoricalBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomHistoricalBackgroundPlanner planner, PhantomBackgroundService background, PhantomMaterializationService materialization)
 	{
@@ -1183,6 +1190,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					|| !Objects.equals(stored, _goals.load(profileId).orElse(null)) || !permitsDecision(profileId)) { return false; }
 			}
 			if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(stored.goal().goalType())) { return true; }
+			if (_visibleIntent.test(profileId, stored.goal())) { return true; }
 			final var lifetime = _materialization.find(profileId).orElse(null);
 			if (lifetime == null) { return false; }
 			final var failures = _visibleFailures.get(profileId);

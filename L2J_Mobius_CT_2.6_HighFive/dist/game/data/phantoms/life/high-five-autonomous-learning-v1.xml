@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Current native skills/SP choose one affordable lesson. No skills or currency are granted.
+     retrySeconds bounds re-evaluation after no offer or a completed lesson; failures back off four times.
+     journeyMinutes bounds the durable intent, minimumSpReserve leaves earned SP unspent,
+     maximumProfiles bounds the live cache; evicted intents remain in the existing profile database. -->
+<autonomousLearningPolicy id="high-five-autonomous-learning-v1" version="1" enabled="true" retrySeconds="30" journeyMinutes="8" minimumSpReserve="0" maximumProfiles="128" />

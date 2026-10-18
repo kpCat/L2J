@@ -1,5 +1,7 @@
 # Cumulative High Five delivery contract
 
+TASK060, 18.10.2026: текущая authority — [AUTHORITY060](tasks/PHANTOM-LIVING-PROGRESSION-060/AUTHORITY.md). Для связанной карьеры явно разрешены native WALK/Gatekeeper, NPC-снабжение, покупки в offline private stores, offline manufacture у гнома и собственные Pet/BabyPet. Эта адресная поправка заменяет прежний blanket запрет М8–М10 только для перечисленных зависимостей; полнота М8–М10 и масштабирование не объявляются. Защищённые057/058/059 и их release-состояние не меняются. Новые060 результаты требуют текущего server evidence; исторические таблицы ниже сохраняются.
+
 TASK059, 18.10.2026: текущая authority — [AUTHORITY059](tasks/PHANTOM-M3-M7-CAMPAIGN-059/AUTHORITY.md), результаты — [RESULT059](reports/PHANTOM-M3-M7-CAMPAIGN-059.md). Исторические041–058 ниже сохраняются. М1 остаётся принятой базой разработки с открытым technical status и отложенными G4/G6/полной личной приёмкой; новых PASS этих gates нет.
 
 | Этап059 | Server coverage | Личная приёмка |

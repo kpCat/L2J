@@ -23,12 +23,23 @@ public final class PhantomCampaign058Suite implements PhantomTestSuite
 	public void register(PhantomTestRegistry registry)
 	{
 		registry.add("01-exact-mutable-fixture-is-accepted", context -> validate(PhantomCampaign058DatabaseLane.MODULE, owner(), settings()));
+		registry.add("12-continuation060-ordinary-jar-is-exact", context ->
+		{
+			for (String path : List.of(".phantom-local/contract058a/task060/build/dist/libs/GameServer.jar", ".phantom-local/contract058a/build/release060/compiled/dist/libs/GameServer.jar"))
+			{
+				PhantomAssertions.assertTrue(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(PhantomCampaign058DatabaseLane.MODULE.resolve(path)), "Exact060 continuation JAR rejected: " + path);
+			}
+			for (String path : List.of(".phantom-local/contract060a/runtime/libs/GameServer.jar", ".phantom-local/contract058a/task060/build/dist/libs/Foreign.jar", ".phantom-local/contract058a/build/release061/compiled/dist/libs/GameServer.jar"))
+			{
+				PhantomAssertions.assertFalse(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(PhantomCampaign058DatabaseLane.MODULE.resolve(path)), "Foreign060 JAR accepted: " + path);
+			}
+		});
 		registry.add("11-continuation059-ordinary-jar-is-exact", context ->
 		{
 			PhantomAssertions.assertTrue(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/GameServer.jar")), "Exact059 ordinary build rejected.");
 			PhantomAssertions.assertTrue(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release059/compiled/dist/libs/GameServer.jar")), "Exact059 clean archive build rejected.");
 			PhantomAssertions.assertFalse(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release059/compiled/dist/libs/Foreign.jar")), "Foreign clean archive JAR accepted.");
-			PhantomAssertions.assertFalse(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release060/compiled/dist/libs/GameServer.jar")), "Foreign clean archive stage accepted.");
+			PhantomAssertions.assertFalse(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release061/compiled/dist/libs/GameServer.jar")), "Foreign clean archive stage accepted.");
 			for (Path foreign : List.of(Path.of("C:/Users/ZBook/L2J_Mobius/L2J_Mobius_CT_2.6_HighFive/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve("dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract059a/runtime/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/Foreign.jar")))
 			{
 				PhantomAssertions.assertFalse(PhantomCombatServerIntegrationSuite.campaign058JarAllowed(foreign), "Foreign ordinary JAR was accepted: " + foreign);

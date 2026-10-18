@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongPredicate;
+import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 
 import org.l2jmobius.gameserver.ai.Intention;
@@ -47,6 +48,7 @@ import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
+import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.AcquireKind;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.LearnSkillRequest;
 
@@ -74,6 +76,7 @@ public final class L2jPhantomLearningJourney
 	private List<SpawnFact> _trainers = List.of();
 	private String _knowledgeHash;
 	private volatile State _state = State.NEW;
+	private PhantomAutonomousLearning _automatic;
 
 	public L2jPhantomLearningJourney(PhantomGoalStore goals, PhantomMaterializationService materialization, PhantomProgressionService progression, PhantomNavigationService navigation, Supplier<PhantomGameKnowledgeQuery> knowledge, LongPredicate actionAllowed)
 	{
@@ -84,6 +87,19 @@ public final class L2jPhantomLearningJourney
 		_knowledge = java.util.Objects.requireNonNull(knowledge);
 		_actionAllowed = java.util.Objects.requireNonNull(actionAllowed);
 	}
+
+	/** Install the ordinary farm producer before start; explicit learning remains compatible. */
+	public void enableAutonomous(PhantomProfileRepository profiles, LongConsumer pauseFarm, PhantomAutonomousLearningPolicy policy)
+	{
+		synchronized (_monitor)
+		{
+			if (_state != State.NEW || _automatic != null) { throw new IllegalStateException("Autonomous learning must be installed once before start."); }
+			_automatic = new PhantomAutonomousLearning(profiles, _materialization, _progression, this, pauseFarm, _actionAllowed, policy);
+		}
+	}
+
+	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }
+	public Optional<PhantomGoal> automaticIntent(long profileId) { return _automatic == null ? Optional.empty() : _automatic.intent(profileId); }
 
 	public boolean start()
 	{
@@ -101,6 +117,7 @@ public final class L2jPhantomLearningJourney
 
 	public void registerCandidates(PhantomCandidateRegistry registry)
 	{
+		if (_automatic != null) { _automatic.registerCandidates(registry); }
 		registry.register(new PhantomDecisionCandidate(CANDIDATE, Set.of(GOAL_TYPE), Set.of(PhantomActivityState.ACTIVE), List.of(), List.of(new PhantomWeightedConsideration("score.learning.journey", 1, context -> new PhantomConsideration.Evaluation(request(context.goal()).isPresent() ? 1000 : 0, "learning.explicit"))), 1000, context ->
 		{
 			final var step = new PhantomPlanStep(0, ACTION, context.goal().target(), Map.of(), 60_000, 10, "learning.advance");
@@ -110,16 +127,22 @@ public final class L2jPhantomLearningJourney
 
 	public void registerHandlers(PhantomStepHandlerRegistry registry)
 	{
+		if (_automatic != null) { _automatic.registerHandlers(registry); }
 		registry.register(ACTION, context -> advance(context.profileId(), context.goal(), context.cancellationToken(), context.logicalNowNanos()));
 	}
 
 	public PhantomStepResult advance(long profileId, PhantomGoal goal, PhantomCancellationToken token, long now)
 	{
+		return advanceIntent(profileId, goal, goal, token, now);
+	}
+
+	PhantomStepResult advanceIntent(long profileId, PhantomGoal goal, PhantomGoal intent, PhantomCancellationToken token, long now)
+	{
 		if (profileId <= 0 || now < 0) { return fail("learning.request.invalid"); }
 		synchronized (_monitor) { if (_state != State.RUNNING || _active.size() >= LIMIT || !_active.add(profileId)) { return retry("learning.busy"); } }
 		try
 		{
-			final Request request = request(goal).orElse(null);
+			final Request request = request(intent).orElse(null);
 			if (token.isCancelled()) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled"); }
 			if (request == null || !current(profileId, goal)) { cleanup(profileId); return fail("learning.goal.stale"); }
 			if (!_actionAllowed.test(profileId)) { return retry("learning.owner.busy"); }
@@ -129,6 +152,7 @@ public final class L2jPhantomLearningJourney
 			try (var lease = acquired.orElseThrow())
 			{
 				final Player player = lease.player();
+				if (!intent.equals(goal) && (!"learning.autonomous".equals(intent.purposeKey()) || intent.goalId() != goal.goalId() || intent.constraints().getOrDefault("owner.revision", -1L) != goal.revision() || intent.constraints().getOrDefault("owner.object", -1L) != player.getObjectId())) { cleanup(profileId); return fail("learning.intent.owner_changed"); }
 				if (player.getActiveClass() != request.classId() || player.getClassIndex() != request.classIndex() || player.getLearningClass().getId() != request.classId() || player.getInstanceId() != 0) { cleanup(profileId); return fail("learning.class_or_instance.changed"); }
 				if (player.isAlikeDead()) { cleanup(profileId); return fail("learning.actor.dead"); }
 				if (player.isInParty() || player.isInCombat() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.isChangingClass() || player.isMounted() || player.isTransformed()) { return retry("learning.actor.busy"); }
@@ -158,11 +182,11 @@ public final class L2jPhantomLearningJourney
 					if (trainer != null)
 					{
 						cleanup(profileId);
-						if (cancelled(goal, request, player, token) || !current(profileId, goal) || !_actionAllowed.test(profileId)) { return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled"); }
+						if (cancelled(intent, request, player, token) || !current(profileId, goal) || !_actionAllowed.test(profileId)) { return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled"); }
 						if (player.getTarget() != trainer) { trainer.onAction(player, false); }
 						trainer.onAction(player);
 						final int nextRank = Math.min(request.skillLevel(), Math.max(1, player.getSkillLevel(request.skillId()) + 1));
-						final var result = _progression.learnClassSkill(new LearnSkillRequest(profileId, trainer.getObjectId(), AcquireKind.CLASS, request.skillId(), nextRank, () -> cancelled(goal, request, player, token)));
+						final var result = _progression.learnClassSkill(new LearnSkillRequest(profileId, trainer.getObjectId(), AcquireKind.CLASS, request.skillId(), nextRank, () -> cancelled(intent, request, player, token)));
 						return switch (result.status())
 						{
 							case SUCCESS, IDEMPOTENT -> retry("learning.skill.committed");
@@ -198,7 +222,7 @@ public final class L2jPhantomLearningJourney
 					if (travel.waypoint() + 1 >= travel.waypoints().size()) { cleanup(profileId); return retry("learning.navigation.arrived"); }
 					put(profileId, travel.next()); return retry("learning.navigation.waypoint");
 				}
-				if (cancelled(goal, request, player, token) || !current(profileId, goal) || !_actionAllowed.test(profileId)) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled"); }
+				if (cancelled(intent, request, player, token) || !current(profileId, goal) || !_actionAllowed.test(profileId)) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled"); }
 				if (!player.isMoving() && !player.isMovementDisabled()) { player.getAI().setIntention(Intention.MOVE_TO, new Location(waypoint.x(), waypoint.y(), waypoint.z())); }
 				return retry(returning ? "learning.field.moving" : "learning.trainer.moving");
 			}
@@ -263,6 +287,7 @@ public final class L2jPhantomLearningJourney
 		final List<Map.Entry<Long, Travel>> owned;
 		synchronized (_monitor) { if (_state == State.STOPPED) { return; } _state = State.STOPPING; owned = new ArrayList<>(_travels.entrySet()); _travels.clear(); }
 		for (var entry : owned) { if (entry.getValue().requestId() > 0) { _navigation.cancel(entry.getKey(), entry.getValue().requestId()); } }
+		if (_automatic != null) { _automatic.clear(); }
 	}
 
 	public boolean finishStop() { beginStop(); synchronized (_monitor) { if (!_active.isEmpty()) { return false; } _state = State.STOPPED; return true; } }
@@ -270,7 +295,7 @@ public final class L2jPhantomLearningJourney
 	/** Durable intent binds the exact class/index and a normal-world return anchor. */
 	public static Optional<Request> request(PhantomGoal goal)
 	{
-		if (goal == null || !GOAL_TYPE.equals(goal.goalType()) || goal.status() != PhantomGoalStatus.ACTIVE || goal.target() == null || !"skill".equals(goal.target().namespace()) || !goal.constraints().keySet().equals(CONSTRAINTS) || goal.deadlineEpochMillis() <= System.currentTimeMillis() || goal.deadlineEpochMillis() > System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(30)) { return Optional.empty(); }
+		if (goal == null || !GOAL_TYPE.equals(goal.goalType()) || goal.status() != PhantomGoalStatus.ACTIVE || goal.target() == null || !"skill".equals(goal.target().namespace()) || !validConstraints(goal) || goal.deadlineEpochMillis() <= System.currentTimeMillis() || goal.deadlineEpochMillis() > System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(30)) { return Optional.empty(); }
 		try
 		{
 			final String[] skill = goal.target().key().split(":", -1);
@@ -279,6 +304,14 @@ public final class L2jPhantomLearningJourney
 			return Optional.of(new Request(Math.toIntExact(values.get("class.id")), Math.toIntExact(values.get("class.index")), Integer.parseInt(skill[0]), Integer.parseInt(skill[1]), new PhantomNavigationPoint(Math.toIntExact(values.get("field.x")), Math.toIntExact(values.get("field.y")), Math.toIntExact(values.get("field.z")), Math.toIntExact(values.get("field.instance")))));
 		}
 		catch (IllegalArgumentException | ArithmeticException exception) { return Optional.empty(); }
+	}
+
+	private static boolean validConstraints(PhantomGoal goal)
+	{
+		if (goal.constraints().keySet().equals(CONSTRAINTS)) { return true; }
+		final var expected = new HashSet<>(CONSTRAINTS);
+		expected.addAll(Set.of("owner.revision", "owner.object", "retry.after"));
+		return "learning.autonomous".equals(goal.purposeKey()) && goal.constraints().keySet().equals(expected) && goal.constraints().get("owner.revision") >= 0 && goal.constraints().get("owner.object") > 0 && goal.constraints().get("retry.after") >= 0;
 	}
 
 	public record Request(int classId, int classIndex, int skillId, int skillLevel, PhantomNavigationPoint field)
