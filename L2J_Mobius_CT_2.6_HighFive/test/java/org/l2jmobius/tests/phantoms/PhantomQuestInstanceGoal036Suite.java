@@ -75,9 +75,13 @@ import org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 import org.l2jmobius.gameserver.phantoms.questinstance.L2jPhantomQuestInstanceBackend;
+import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBackend.ActionResult;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBackend.ActionStatus;
+import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBackend.Observation;
+import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBackend.Target;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Content;
+import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Step;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceService;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceService.AdvanceResult;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceService.Status;
@@ -217,6 +221,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("10-native-career-gludin-gludio-travel061", context -> careerTravel061(context, true));
 			registry.add("11-native-career-paid-gk-conservation061", context -> careerTravel061(context, false));
 			registry.add("12-native-career-nearest-supported-spawn061", this::careerNearestSpawn061);
+			registry.add("13-native-career-two-minute-route-refusal061", this::careerSkeletonRoute061);
+			registry.add("14-native-career-existing-goal-travel-deadline061", this::careerGoalTravelDeadline061);
 			return;
 		}
 		registry.add("01-strict-catalog-and-fail-closed-dispatch", this::strictCatalog);
@@ -372,6 +378,84 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		final var actual = _backend.locate(_profile.profileId(), content, step);
 		context.record("career061.nearestSpawn", "actual=" + actual + ";expected=" + expected);
 		PhantomAssertions.assertTrue(actual != null && actual.distance() <= _player.calculateDistance3D(expected.x(), expected.y(), expected.z()) + 1, "Q401 chose an arbitrary early spawn page instead of its nearest supported native source.");
+	}
+
+	private void careerSkeletonRoute061(PhantomTestContext context) throws Exception
+	{
+		preparePlayer(0, 0, 19);
+		_player.decayMe(); _player.setXYZInvisible(-12728, 122824, -3112); _player.spawnMe(); _player.revalidateZone(true); // Fixed independent TEST input matching the observed ordinary boundary.
+		final var content = _catalog.content("class.warrior-q401").orElseThrow();
+		final var step = content.step("collect.skeleton").orElseThrow();
+		final var factual = _backend.locate(_profile.profileId(), content, step);
+		final var destinations = _backend.approaches(_profile.profileId(), content, step, factual, 1000, _navigation.arrivalRadius());
+		final var options = _backend.travelOptions(_profile.profileId(), content, 120_000);
+		Thread.sleep(_navigation.policy().pathfindingCooldownMillis() + 50);
+		final long now = System.nanoTime();
+		final var from = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(_player.getX(), _player.getY(), _player.getZ(), 0);
+		final var submitted = _navigation.submitTravelPlan(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(), from, destinations.getFirst(), now, now + TimeUnit.SECONDS.toNanos(10), 100_000), options);
+		final var completed = new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult>();
+		await(() -> { _navigation.consume(submitted.requestId()).ifPresent(completed::set); return completed.get() != null; }, "Gludio-skeleton itinerary did not finish.");
+		context.record("career061.skeletonBoundary", "from=" + from + ";target=" + factual + ";result=" + completed.get());
+		context.record("career061.skeletonOptions", options);
+		context.record("career061.skeletonApproach", destinations);
+		final var itinerary = _navigation.consumeTravelPlan(submitted.requestId()).orElse(null);
+		context.record("career061.skeletonItinerary", itinerary);
+		if (itinerary == null)
+		{
+			final var leg = options.legs().stream().filter(value -> value.teleporterNpcId() == 30256 && value.destinationIndex() == 15).findFirst().orElseThrow();
+			final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+			final var landing = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(leg.destinationX(), leg.destinationY(), geo.getHeight(leg.destinationX(), leg.destinationY(), leg.destinationZ()) + 5, 0);
+			final long probeNow = System.nanoTime();
+			final var egress = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend().findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(), landing, destinations.getFirst(), probeNow, probeNow + TimeUnit.SECONDS.toNanos(10), 100_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), _navigation.policy(), System::nanoTime);
+			context.record("career061.skeletonSeparateDiagnosticEgress", egress);
+		}
+		PhantomAssertions.assertTrue(itinerary == null && completed.get().status() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult.Status.NO_PATH, "The declared two-minute physical budget accepted a longer native itinerary.");
+	}
+
+	private void careerGoalTravelDeadline061(PhantomTestContext context) throws Exception
+	{
+		preparePlayer(0, 0, 19);
+		_player.decayMe(); _player.setXYZInvisible(-12728, 122824, -3112); _player.spawnMe(); _player.revalidateZone(true);
+		// Independent finite TEST boundary only; ordinary35 quest/resources are never changed here.
+		final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
+		quest.startQuest(); quest.setCond(2, false);
+		installGoal("class.warrior-q401", PhantomQuestInstanceService.CLASS_GOAL_TYPE);
+		final var original = _goals.load(_profile.profileId()).orElseThrow().goal();
+		final long deadline = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(90);
+		final var goal = new PhantomGoal(original.goalId(), original.goalType(), original.status(), original.subject(), original.target(), original.requiredAmount(), original.currentAmount(), original.acquisitionMethod(), original.validSources(), original.selectedAnchor(), original.purposeKey(), original.priority(), original.riskBudget(), original.expenseBudget(), deadline, original.constraints(), original.reasonKey(), original.revision());
+		_goals.store(_profile.profileId(), goal);
+		final var supplied = new java.util.concurrent.atomic.AtomicLong(-1);
+		final var backend = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBackend()
+		{
+			public Observation observe(long id, Content content) { return _backend.observe(id, content); }
+			public Target locate(long id, Content content, Step step) { return _backend.locate(id, content, step); }
+			public ActionResult invoke(long id, Content content, Step step, String fingerprint) { return _backend.invoke(id, content, step, fingerprint); }
+			public ActionResult move(long id, Content content, Step step, Target target) { return _backend.move(id, content, step, target); }
+			public org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Options travelOptions(long id, Content content, long remaining) { supplied.set(remaining); return _backend.travelOptions(id, content, remaining); }
+			public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> approaches(long id, Content content, Step step, Target target, double distance, int radius) { return _backend.approaches(id, content, step, target, distance, radius); }
+		};
+		final var service = new PhantomQuestInstanceService(_goals, _catalog, _acquisitions, backend, _combat, _navigation, _progression, _signals);
+		service.start();
+		try
+		{
+			Thread.sleep(_navigation.policy().pathfindingCooldownMillis() + 50);
+			final var result = service.advance(_profile.profileId(), goal.goalId(), goal.revision(), PhantomActivityState.ACTIVE, System.nanoTime(), NOT_CANCELLED);
+			context.record("career061.goalTravelDeadline", "goalDeadline=" + deadline + ";suppliedRemaining=" + supplied.get() + ";result=" + result);
+			PhantomAssertions.assertTrue(supplied.get() > TimeUnit.MINUTES.toMillis(80) && supplied.get() <= deadline - System.currentTimeMillis() + 1000, "Career passed its planner timeout instead of the existing goal's physical travel budget.");
+			final var last = new java.util.concurrent.atomic.AtomicReference<>(result);
+			await(() ->
+			{
+				if ("questinstance.navigation.ready".equals(last.get().reasonKey())) { return true; }
+				last.set(service.advance(_profile.profileId(), goal.goalId(), goal.revision(), PhantomActivityState.ACTIVE, System.nanoTime(), NOT_CANCELLED));
+				return "questinstance.navigation.ready".equals(last.get().reasonKey());
+			}, "Existing career goal budget did not admit a complete native skeleton itinerary.");
+			context.record("career061.goalTravelPlan", last.get());
+		}
+		finally
+		{
+			service.beginStop(); service.finishStop();
+			await(() -> _navigation.snapshot().activeRequests() == 0, "Cancelled TEST route did not drain before fixture cleanup.");
+		}
 	}
 
 	private void strictCatalog(PhantomTestContext context) throws Exception

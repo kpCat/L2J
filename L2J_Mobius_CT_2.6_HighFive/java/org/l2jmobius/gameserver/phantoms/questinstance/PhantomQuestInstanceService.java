@@ -207,7 +207,8 @@ public final class PhantomQuestInstanceService
 			return switch (content.kind())
 			{
 				case QUEST -> "quest.102".equals(content.id()) ? q102(profileId, content, observation, logicalNowNanos, token) : q152(profileId, content, observation, logicalNowNanos, token);
-				case CLASS_PATH -> warrior(profileId, content, observation, logicalNowNanos, token);
+				case CLASS_PATH -> warrior(profileId, content, observation, logicalNowNanos, token,
+					goal.deadlineEpochMillis() == 0 ? TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS) : Math.max(0, goal.deadlineEpochMillis() - System.currentTimeMillis()));
 				case KAMALOKA -> kamaloka(profileId, content, observation, logicalNowNanos, token);
 				case PAILAKA -> pailaka(profileId, content, observation, logicalNowNanos, token);
 			};
@@ -297,7 +298,7 @@ public final class PhantomQuestInstanceService
 		};
 	}
 
-	private AdvanceResult warrior(long profileId, Content content, Observation observation, long now, PhantomCancellationToken token)
+	private AdvanceResult warrior(long profileId, Content content, Observation observation, long now, PhantomCancellationToken token, long remainingMillis)
 	{
 		if ((observation.classId() == 1) && (observation.baseClassId() == 1))
 		{
@@ -309,24 +310,24 @@ public final class PhantomQuestInstanceService
 		}
 		return switch (observation.quest().status())
 		{
-			case ABSENT -> interact(profileId, content, "prepare.auron", observation, now);
-			case CREATED -> content.eligible(observation.level(), observation.race(), observation.classId()) ? interact(profileId, content, "start.auron", observation, now) : fail("questinstance.q401.ineligible");
+			case ABSENT -> interact(profileId, content, "prepare.auron", observation, now, remainingMillis);
+			case CREATED -> content.eligible(observation.level(), observation.race(), observation.classId()) ? interact(profileId, content, "start.auron", observation, now, remainingMillis) : fail("questinstance.q401.ineligible");
 			case COMPLETED ->
 			{
 				if ((observation.level() < 20) || (observation.itemCount(1145) <= 0))
 				{
 					yield fail("questinstance.warrior.prerequisite");
 				}
-				yield interact(profileId, content, "profession.warrior", observation, now);
+				yield interact(profileId, content, "profession.warrior", observation, now, remainingMillis);
 			}
 			case STARTED -> switch (observation.quest().cond())
 			{
-				case 1 -> interact(profileId, content, "simplon.begin", observation, now);
-				case 2 -> combat(profileId, content, observation, "collect.skeleton", now, token);
-				case 3 -> interact(profileId, content, "simplon.handin", observation, now);
-				case 4 -> interact(profileId, content, "auron.sword", observation, now);
-				case 5 -> observation.activeWeaponItemId() == 1142 ? combat(profileId, content, observation, "collect.spider", now, token) : equip(profileId, content, observation, "equip.sword", token);
-				case 6 -> interact(profileId, content, "auron.complete", observation, now);
+				case 1 -> interact(profileId, content, "simplon.begin", observation, now, remainingMillis);
+				case 2 -> combat(profileId, content, observation, "collect.skeleton", now, token, remainingMillis);
+				case 3 -> interact(profileId, content, "simplon.handin", observation, now, remainingMillis);
+				case 4 -> interact(profileId, content, "auron.sword", observation, now, remainingMillis);
+				case 5 -> observation.activeWeaponItemId() == 1142 ? combat(profileId, content, observation, "collect.spider", now, token, remainingMillis) : equip(profileId, content, observation, "equip.sword", token);
+				case 6 -> interact(profileId, content, "auron.complete", observation, now, remainingMillis);
 				default -> fail("questinstance.q401.cond.unsupported");
 			};
 		};
@@ -407,8 +408,13 @@ public final class PhantomQuestInstanceService
 
 	private AdvanceResult interact(long profileId, Content content, String stepId, Observation observation, long now)
 	{
+		return interact(profileId, content, stepId, observation, now, TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS));
+	}
+
+	private AdvanceResult interact(long profileId, Content content, String stepId, Observation observation, long now, long remainingMillis)
+	{
 		final Step step = content.step(stepId).orElseThrow();
-		final AdvanceResult reach = reach(profileId, content, step, observation, now, INTERACTION_DISTANCE);
+		final AdvanceResult reach = reach(profileId, content, step, observation, now, INTERACTION_DISTANCE, remainingMillis);
 		if (reach != null)
 		{
 			return reach;
@@ -442,6 +448,11 @@ public final class PhantomQuestInstanceService
 	}
 
 	private AdvanceResult combat(long profileId, Content content, Observation observation, String stepId, long now, PhantomCancellationToken token)
+	{
+		return combat(profileId, content, observation, stepId, now, token, TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS));
+	}
+
+	private AdvanceResult combat(long profileId, Content content, Observation observation, String stepId, long now, PhantomCancellationToken token, long remainingMillis)
 	{
 		final Step step = content.step(stepId).orElseThrow();
 		final CombatOperation owned;
@@ -477,7 +488,7 @@ public final class PhantomQuestInstanceService
 		{
 			return retry("questinstance.combat.target_pending");
 		}
-		final AdvanceResult reach = reach(profileId, content, step, observation, now, COMBAT_DISTANCE);
+		final AdvanceResult reach = reach(profileId, content, step, observation, now, COMBAT_DISTANCE, remainingMillis);
 		if (reach != null)
 		{
 			return reach;
@@ -510,7 +521,7 @@ public final class PhantomQuestInstanceService
 	}
 
 	/** Returns null when the exact native target is ready for the requested operation. */
-	private AdvanceResult reach(long profileId, Content content, Step step, Observation observation, long now, double requiredDistance)
+	private AdvanceResult reach(long profileId, Content content, Step step, Observation observation, long now, double requiredDistance, long remainingMillis)
 	{
 		final Target target = _backend.locate(profileId, content, step);
 		if (target == null)
@@ -535,7 +546,7 @@ public final class PhantomQuestInstanceService
 		if (travel == null)
 		{
 			final PhantomNavigationPoint origin = new PhantomNavigationPoint(observation.x(), observation.y(), observation.z(), observation.instanceId());
-			final var options = _backend.travelOptions(profileId, content, TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS));
+			final var options = _backend.travelOptions(profileId, content, remainingMillis);
 			List<PhantomNavigationPoint> destinations = options == null ? List.of(new PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId()))
 				: _backend.approaches(profileId, content, step, target, requiredDistance, _navigation.arrivalRadius());
 			if (destinations.isEmpty() || destinations.size() > 17) { return retry("questinstance.navigation.no_approach"); }
@@ -569,7 +580,7 @@ public final class PhantomQuestInstanceService
 			final var origin = new PhantomNavigationPoint(observation.x(), observation.y(), observation.z(), observation.instanceId());
 			final long deadline = now > (Long.MAX_VALUE - NAVIGATION_DEADLINE_NANOS) ? Long.MAX_VALUE : now + NAVIGATION_DEADLINE_NANOS;
 			final var request = new PhantomNavigationRequest(profileId, origin, travel.destination(), Math.max(0, now), Math.max(now + 1, deadline), 100_000);
-			final var options = travel.mode() == TravelMode.ITINERARY ? _backend.travelOptions(profileId, content, TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS)) : null;
+			final var options = travel.mode() == TravelMode.ITINERARY ? _backend.travelOptions(profileId, content, remainingMillis) : null;
 			if (travel.mode() == TravelMode.ITINERARY && options == null) { return retry("questinstance.actor.unavailable"); }
 			final var submission = travel.mode() == TravelMode.ITINERARY ? _navigation.submitTravelPlan(request, options)
 				: travel.mode() == TravelMode.LEGACY_WALK ? _navigation.submit(request) : _navigation.submitWalkCorridor(request);
