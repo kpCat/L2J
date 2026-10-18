@@ -70,7 +70,11 @@ final class PhantomAutonomousCareer
 	void registerCandidates(PhantomCandidateRegistry registry)
 	{
 		registry.register(new PhantomDecisionCandidate(CANDIDATE, Set.of(PhantomBackgroundGoalSpec.GOAL_TYPE), Set.copyOf(java.util.EnumSet.allOf(PhantomActivityState.class)), List.of(),
-			List.of(new PhantomWeightedConsideration("score.autonomous.career", 1, context -> new PhantomConsideration.Evaluation(proposal(context.profileId(), context.goal()).isPresent() ? 1000 : 0, "career.native.need"))), 1000, context ->
+			List.of(new PhantomWeightedConsideration("score.autonomous.career", 1, context ->
+			{
+				final boolean needed = proposal(context.profileId(), context.goal()).isPresent();
+				return new PhantomConsideration.Evaluation(needed ? 1000 : 0, needed ? "career.native.need" : proposalReason(context.profileId()));
+			})), 1000, context ->
 		{
 			final var step = new PhantomPlanStep(0, ACTION, null, Map.of(), 60_000, 10, "career.native.advance");
 			return new PhantomPlan(context.decisionSequence(), context.goal().goalId(), CANDIDATE, List.of(step), 60_000, context.logicalNowNanos());
@@ -84,25 +88,28 @@ final class PhantomAutonomousCareer
 
 	private Optional<PhantomGoal> proposal(long profileId, PhantomGoal root)
 	{
-		if (!_policy.enabled() || !_allowed.test(profileId) || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return Optional.empty(); }
+		if (!_policy.enabled() || !_allowed.test(profileId) || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return unavailable(profileId, "career.policy_or_owner"); }
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
-			if (lease == null) { return Optional.empty(); }
+			if (lease == null) { return unavailable(profileId, "career.actor_pending"); }
 			final Player player = lease.player();
-			if (player.isAlikeDead() || player.isInParty() || player.isTeleporting() || player.hasPendingOwnedStore() || player.getInstanceId() != 0 || player.isChangingClass() || player.isTransformed() || player.isMounted() || player.getClassIndex() != 0) { return Optional.empty(); }
+			if (player.isAlikeDead() || player.isInParty() || player.isTeleporting() || player.hasPendingOwnedStore() || player.getInstanceId() != 0 || player.isChangingClass() || player.isTransformed() || player.isMounted() || player.getClassIndex() != 0)
+			{
+				return unavailable(profileId, "career.native_guard." + (player.isAlikeDead() ? "dead" : player.isInParty() ? "party" : player.isTeleporting() ? "teleport" : player.hasPendingOwnedStore() ? "store" : player.getInstanceId() != 0 ? "instance" : player.isChangingClass() ? "changing" : player.isTransformed() ? "transformed" : player.isMounted() ? "mounted" : "class_index"));
+			}
 			final var cached = cached(profileId);
 			final long now = System.currentTimeMillis();
 			// Finish an admitted native combat/leg before yielding to a critical supply child.
-			if (!_service.hasOwnedWork(profileId) && _defer.test(profileId, root)) { return Optional.empty(); }
+			if (!_service.hasOwnedWork(profileId) && _defer.test(profileId, root)) { return unavailable(profileId, "career.supply_priority"); }
 			if (bound(cached.goal, root, player))
 			{
 				if (cached.goal.status() == PhantomGoalStatus.ACTIVE && cached.goal.deadlineEpochMillis() > now) { return Optional.of(cached.goal); }
-				if (cached.goal.constraints().getOrDefault("retry.after", 0L) > now) { return Optional.empty(); }
+				if (cached.goal.constraints().getOrDefault("retry.after", 0L) > now) { return unavailable(profileId, "career.retry_after"); }
 			}
 			final var archetype = _preference.apply(profileId);
 			final var route = _policy.routes().stream().filter(value -> value.fromClass() == player.getActiveClass() && value.fromClass() == player.getBaseClass() && value.archetype() == archetype
 				&& _catalog.content(value.contentId()).orElseThrow().eligible(player.getLevel(), player.getRace().name(), player.getActiveClass())).findFirst().orElse(null);
-			if (route == null) { return Optional.empty(); }
+			if (route == null) { return unavailable(profileId, "career.route_absent"); }
 			final var content = _catalog.content(route.contentId()).orElseThrow();
 			final Map<String, Long> constraints = new LinkedHashMap<>();
 			constraints.put("owner.revision", root.revision()); constraints.put("owner.object", (long) player.getObjectId());
@@ -192,11 +199,22 @@ final class PhantomAutonomousCareer
 		catch (RuntimeException exception) { synchronized (this) { _cache.remove(profileId); } throw exception; }
 	}
 
+	private Optional<PhantomGoal> unavailable(long profileId, String reason)
+	{
+		synchronized (this) { final var cached = _cache.get(profileId); if (cached != null) { cached.proposalReason = reason; } }
+		return Optional.empty();
+	}
+	private synchronized String proposalReason(long profileId)
+	{
+		final var cached = _cache.get(profileId);
+		return cached == null ? "career.actor_or_owner_pending" : cached.proposalReason;
+	}
 	void clear() { synchronized (this) { _cache.clear(); } }
 	private static final class Cached
 	{
 		private volatile PhantomGoal goal;
 		private volatile long row;
+		private volatile String proposalReason = "career.unobserved";
 		private Cached(PhantomGoal goal, long row) { this.goal = goal; this.row = row; }
 	}
 }
