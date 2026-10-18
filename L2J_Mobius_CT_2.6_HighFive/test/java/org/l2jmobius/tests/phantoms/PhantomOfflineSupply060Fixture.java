@@ -52,8 +52,10 @@ final class PhantomOfflineSupply060Fixture implements AutoCloseable
 			.filter(spawn -> { final var template = org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(spawn.npcId()); return template != null && "Merchant".equals(template.getType()); })
 			.sorted(Comparator.comparingDouble(spawn -> Math.hypot((long) spawn.x() - buyer.getX(), (long) spawn.y() - buyer.getY()))).limit(16)
 			.map(spawn -> World.getInstance().getRegion(spawn.x(), spawn.y(), spawn.z()).getVisibleObjects().stream().filter(object -> object instanceof Merchant npc && npc.getId() == spawn.npcId()).map(object -> (Merchant) object).findFirst().orElse(null))
-			.filter(java.util.Objects::nonNull).filter(npc -> npc.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE)).findFirst().orElseThrow(() -> new AssertionError("BLOCKED_OFFLINE_INPUT: no native peace-zone Merchant counter near the selected field."));
-		PhantomAssertions.assertTrue(buyer.calculateDistance3D(merchant) < 6000, "Offline fixture counter exceeds declared local range.");
+			.filter(java.util.Objects::nonNull).filter(npc -> npc.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE))
+			.filter(npc -> !manufacture || counterPoint(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(buyer.getX(), buyer.getY(), buyer.getZ(), 0), npc.getX(), npc.getY(), npc.getZ()) != null).findFirst().orElseThrow(() -> new AssertionError("BLOCKED_OFFLINE_INPUT: no native peace-zone counter within offline discovery range."));
+		final var counter = manufacture ? counterPoint(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(buyer.getX(), buyer.getY(), buyer.getZ(), 0), merchant.getX(), merchant.getY(), merchant.getZ()) : new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(merchant.getX() + 64, merchant.getY(), GeoEngine.getInstance().getHeight(merchant.getX() + 64, merchant.getY(), merchant.getZ()), 0);
+		PhantomAssertions.assertTrue(counter != null && Math.sqrt(Math.pow((long) buyer.getX() - counter.x(), 2) + Math.pow((long) buyer.getY() - counter.y(), 2) + Math.pow((long) buyer.getZ() - counter.z(), 2)) < 6000, "Offline fixture counter exceeds declared local range.");
 		final var fixture = environment.createCampaign058Companion(context, 2);
 		final var setup = Player.load(fixture.objectId());
 		PhantomAssertions.assertTrue(setup != null, "Native offline seller load failed.");
@@ -65,7 +67,7 @@ final class PhantomOfflineSupply060Fixture implements AutoCloseable
 			final int makerClass = manufacture ? 56 : 53, makerLevel = manufacture ? 20 : 5;
 			setup.setBaseClass(makerClass); setup.setPlayerClass(makerClass); setup.setLearningClass(setup.getPlayerClass());
 			setup.getStat().setLevel((byte) makerLevel); setup.getStat().setExp(setup.getStat().getExpForLevel(makerLevel));
-			setup.setXYZInvisible(merchant.getX() + 64, merchant.getY(), GeoEngine.getInstance().getHeight(merchant.getX() + 64, merchant.getY(), merchant.getZ())); setup.revalidateZone(true);
+			setup.setXYZInvisible(counter.x(), counter.y(), counter.z()); setup.revalidateZone(true);
 			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.managers.ZoneManager.getInstance().getZone(setup.getX(), setup.getY(), setup.getZ(), org.l2jmobius.gameserver.model.zone.type.PeaceZone.class) != null, "Offline seller point must remain in a native peace zone.");
 			int stockObjectId = 0;
 			if (manufacture)
@@ -75,8 +77,9 @@ final class PhantomOfflineSupply060Fixture implements AutoCloseable
 				PhantomAssertions.assertTrue(recipe != null && recipe.getLevel() == 2 && recipe.getItemId() == 1463 && recipe.getCount() == 468 && recipe.getSuccessRate() == 100 && skill != null, "Native D-shot recipe/Artisan skill differs from declared finite input.");
 				setup.rewardSkills(); setup.addSkill(skill, true); setup.registerDwarvenRecipeList(recipe, true);
 				setup.getManufactureItems().put(20, new org.l2jmobius.gameserver.model.item.recipe.ManufactureItem(20, 10));
-				setup.setStoreName("TEST060 finite D-shot craft"); setup.setPrivateStoreType(PrivateStoreType.MANUFACTURE);
 				setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.setCurrentCp(setup.getMaxCp());
+				PhantomAssertions.assertTrue(setup.canOpenPrivateStore(), "Native manufacturer cannot open a private store: dead=" + setup.isAlikeDead() + "; noStore=" + setup.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.NO_STORE) + "; casting=" + setup.isCastingNow() + "; mounted=" + setup.isMounted() + "; olympiad=" + setup.isInOlympiadMode());
+				setup.setStoreName("TEST060 finite D-shot craft"); setup.setPrivateStoreType(PrivateStoreType.MANUFACTURE);
 			}
 			else
 			{
@@ -105,18 +108,52 @@ final class PhantomOfflineSupply060Fixture implements AutoCloseable
 			throw failure;
 		}
 	}
+	/** Bounded PREMEASUREMENT placement inside the actual town peace zone; no measured relocation. */
+	static org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint counterPoint(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint from, int merchantX, int merchantY, int merchantZ)
+	{
+		final var geo = GeoEngine.getInstance();
+		final var zones = org.l2jmobius.gameserver.managers.ZoneManager.getInstance();
+		final double distance = Math.hypot((long) from.x() - merchantX, (long) from.y() - merchantY);
+		org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint best = null;
+		for (int step = 0; step <= 32; step++)
+		{
+			final double fraction = (64 + 256.0 * step) / Math.max(1, distance);
+			final int x = merchantX + (int) Math.round((from.x() - merchantX) * fraction), y = merchantY + (int) Math.round((from.y() - merchantY) * fraction);
+			if (!geo.hasGeo(x, y)) { continue; }
+			final int z = geo.getHeight(x, y, merchantZ);
+			final var point = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, z, 0);
+			if (point.distanceTo(from) > 5800 || zones.getZone(x, y, z, org.l2jmobius.gameserver.model.zone.type.PeaceZone.class) == null
+					|| zones.getZone(x, y, z, org.l2jmobius.gameserver.model.zone.type.NoStoreZone.class) != null || zones.getZone(x, y, z, org.l2jmobius.gameserver.model.zone.type.WaterZone.class) != null) { continue; }
+			final var region = World.getInstance().getRegion(x, y, z);
+			if (region == null || java.util.Arrays.stream(region.getSurroundingRegions()).flatMap(value -> value.getVisibleObjects().stream())
+					.anyMatch(object -> object instanceof org.l2jmobius.gameserver.model.actor.Creature creature && creature.getInstanceId() == 0 && creature.getMinShopDistance() > 0
+							&& creature.calculateDistance3D(x, y, z) <= creature.getMinShopDistance() + creature.getTemplate().getCollisionRadius() + 64)) { continue; }
+			if (best == null || point.distanceTo(from) < best.distanceTo(from)) { best = point; }
+		}
+		return best;
+	}
+
 	Player actor() { return World.getInstance().getPlayer(_objectId); }
 
 	boolean observePaid(PhantomTestContext context, long profileId, Player buyer, PhantomGoal goal, PhantomEconomyReservationService reservations)
 	{
 		if (_paid) { return true; }
 		final var spec = PhantomOfflineSupply.spec(goal);
-		PhantomAssertions.assertTrue(spec instanceof PhantomSocialEconomyGoalSpec.StoreBuy && spec.counterpartyCharacterObjectId() == _objectId && spec.counterpartyProfileId() == 0, "Offline chain selected a different or non-offline supply channel.");
-		final var buy = (PhantomSocialEconomyGoalSpec.StoreBuy) spec;
+		PhantomAssertions.assertTrue((_manufacture ? spec instanceof PhantomSocialEconomyGoalSpec.Manufacture : spec instanceof PhantomSocialEconomyGoalSpec.StoreBuy) && spec.counterpartyCharacterObjectId() == _objectId && spec.counterpartyProfileId() == 0, "Offline chain selected a different or non-offline supply channel.");
 		final var audit = reservations.findAudit(profileId, 16).stream().filter(value -> value.state() == PhantomEconomyOperation.State.COMMITTED).findFirst().orElseThrow(() -> new AssertionError("Offline purchase has no COMMITTED native operation audit."));
 		final var operation = reservations.find(audit.operationId()).orElseThrow();
 		PhantomAssertions.assertTrue(operation.goalId() == goal.goalId() && operation.goalRevision() + 1 == goal.revision() && operation.state() == PhantomEconomyOperation.State.COMMITTED && audit.result() == PhantomEconomyOperation.Result.SUCCESS, "Offline operation identity/result drifted.");
 		final var seller = World.getInstance().getPlayer(_objectId);
+		if (_manufacture)
+		{
+			final var craft = (PhantomSocialEconomyGoalSpec.Manufacture) spec;
+			PhantomAssertions.assertTrue(craft.recipeListId() == 20 && craft.productItemId() == 1463 && craft.productCount() == 468 && craft.listingPrice() == 10 && operation.kind() == spec.operationKind(), "Native manufacture changed its recipe/product/fee.");
+			PhantomAssertions.assertTrue(seller != null && seller.getAdena() - _sellerAdena == 10 && buyer.getInventory().getInventoryItemCount(1463, -1) >= 468 && buyer.getInventory().getInventoryItemCount(1785, -1) == 0 && buyer.getInventory().getInventoryItemCount(1458, -1) == 0 && audit.itemsConsumed() == 12 && audit.itemsProduced() == 468, "Native craft did not conserve exact fee/material/product counts.");
+			PhantomAssertions.assertTrue(seller.getCurrentMp() < _sellerMp && reservations.findReservations(audit.operationId()).isEmpty(), "Native craft did not use finite maker MP or release reservations.");
+			context.record("life060.offlineCrafted", "native operation=" + operation + "; audit=" + audit + "; exact makerAdena=" + _sellerAdena + "->" + seller.getAdena() + "; makerMP=" + _sellerMp + "->" + seller.getCurrentMp() + "; native observer verified HP/MP event costs; recipe20 MP72/chance100 unchanged; ingredients9ore+3Dcrystals->468Dshots; buyer stock=" + buyer.getInventory().getInventoryItemCount(1463, -1));
+			_paid = true; return true;
+		}
+		final var buy = (PhantomSocialEconomyGoalSpec.StoreBuy) spec;
 		final long amount = buy.lines().stream().mapToLong(line -> Math.multiplyExact(line.count(), line.price())).sum(), quantity = buy.lines().stream().mapToLong(line -> line.count()).sum();
 		PhantomAssertions.assertTrue(seller != null && seller.getAdena() - _sellerAdena == amount && _sellerStock - seller.getInventory().getInventoryItemCount(1835, -1) == quantity && buyer.getInventory().getInventoryItemCount(1835, -1) >= quantity, "Offline native seller fee/stock or buyer product conservation failed.");
 		PhantomAssertions.assertTrue(reservations.findReservations(audit.operationId()).isEmpty(), "Committed offline purchase retained reservations.");
