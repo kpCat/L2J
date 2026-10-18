@@ -214,6 +214,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		if (Boolean.getBoolean("phantom.test.careerProducer061"))
 		{
 			registry.add("09-farm-decision-autonomous-career-intent061", this::autonomousCareer061);
+			registry.add("10-native-career-gludin-gludio-travel061", context -> careerTravel061(context, true));
+			registry.add("11-native-career-paid-gk-conservation061", context -> careerTravel061(context, false));
 			return;
 		}
 		registry.add("01-strict-catalog-and-fail-closed-dispatch", this::strictCatalog);
@@ -258,6 +260,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(_service.permitsAutonomousVisibleDecision(_profile.profileId(), root), "Visible admission waits for an already-created career child before allowing its producer to run.");
 		final var plan = selected.candidate().planFactory().create(planning);
 		final var step = plan.steps().getFirst();
+		final int signalsBeforeActiveAdvance = _signals.submits;
 		final var result = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(
 			_profile.profileId(), root, plan, step, PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, NOT_CANCELLED));
 		final var stored = _profiles.findComponent(_profile.profileId(), "career.intent").orElseThrow(() -> new AssertionError("Production did not persist its selected career child."));
@@ -281,6 +284,80 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(stale.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.REPLAN && _goals.load(_profile.profileId()).orElseThrow().goal().equals(replacement)
 			&& _player.getActiveClass() == 0 && _player.getExp() == exp && _player.getSp() == sp && itemCount(1145) == 0, "Stale career callback changed native progress or the replacement root: " + stale);
 		context.record("career061.guards", "HOLD preserved child; Tank/wrong native class/race/level refused; changed-root callback rejected without class/mark/EXP/SP mutation; not full Q401 proof");
+		PhantomAssertions.assertTrue(_signals.submits > signalsBeforeActiveAdvance, "An ongoing ACTIVE native career did not refresh its bounded relevance signal before travelling outside locality.");
+	}
+
+	private void careerTravel061(PhantomTestContext context, boolean proveCorridor) throws Exception
+	{
+		preparePlayer(0, 0, 45);
+		_player.addAdena(ItemProcessType.REWARD, 20_000, _player, false); // Finite new TEST travel input before measurement.
+		final var content = _catalog.content("class.warrior-q401").orElseThrow();
+		final var options = _backend.travelOptions(_profile.profileId(), content, 120_000);
+		PhantomAssertions.assertTrue(options != null && options.legs().stream().anyMatch(leg -> leg.teleporterNpcId() == 30320 && leg.destinationIndex() == 0)
+			&& options.legs().stream().anyMatch(leg -> leg.teleporterNpcId() == 30256 && leg.destinationIndex() == 8), "Native Q401 travel omits the required lawful Gludin/Gludio GK choices.");
+		context.record("career061.travel", options);
+		final var forward = options.legs().stream().filter(leg -> leg.teleporterNpcId() == 30320 && leg.destinationIndex() == 0).findFirst().orElseThrow();
+		final var returning = options.legs().stream().filter(leg -> leg.teleporterNpcId() == 30256 && leg.destinationIndex() == 8).findFirst().orElseThrow();
+		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.observeNativeLeg(30320, -1, forward.sourceX(), forward.sourceY(), forward.sourceZ()).isEmpty(), "Invalid native destination index was accepted.");
+		final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+		if (proveCorridor)
+		{
+			final var from = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(-81861, 149197, geo.getHeight(-81861, 149197, -3125), 0);
+			final var source = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(forward.sourceX(), forward.sourceY(), forward.sourceZ(), 0);
+			final var nativeNavigation = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+			final long walkNow = System.nanoTime();
+			final var walk = nativeNavigation.findWalkCorridor(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(), from, source, walkNow, walkNow + TimeUnit.SECONDS.toNanos(10), 100_000), new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationCancellationToken(), _navigation.policy(), System::nanoTime);
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.navigation.PhantomWalkCorridorPlanner.Status.FOUND, walk.status(), "Free native GK approach is not proved.");
+			context.record("career061.freeApproach", walk);
+			final var step = content.step("simplon.begin").orElseThrow();
+			final var factual = _backend.locate(_profile.profileId(), content, step);
+			final var destinations = _backend.approaches(_profile.profileId(), content, step, factual, 200, _navigation.arrivalRadius());
+			PhantomAssertions.assertTrue(!destinations.isEmpty() && destinations.size() <= 17, "Native legal Simplon approach is absent.");
+			context.record("career061.legalApproaches", destinations);
+			for (var to : destinations)
+			{
+				Thread.sleep(_navigation.policy().pathfindingCooldownMillis() + 50);
+				final long now = System.nanoTime();
+				final var submitted = _navigation.submitTravelPlan(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest(_profile.profileId(), source, to, now, now + TimeUnit.SECONDS.toNanos(10), 100_000), options);
+				final var completed = new java.util.concurrent.atomic.AtomicReference<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult>();
+				await(() -> { _navigation.consume(submitted.requestId()).ifPresent(completed::set); return completed.get() != null; }, "Native remaining itinerary did not finish.");
+				final var itinerary = _navigation.consumeTravelPlan(submitted.requestId()).orElse(null);
+				if (itinerary == null) { context.record("career061.declined." + to.x() + "." + to.y(), completed.get()); continue; }
+				PhantomAssertions.assertTrue(itinerary.stages().stream().anyMatch(stage -> stage.mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Mode.GK)
+					&& itinerary.stages().getFirst().from().equals(source) && itinerary.stages().getLast().to().equals(to), "Native remaining itinerary lost endpoints or its GK stage.");
+				context.record("career061.remainingItinerary", itinerary);
+				return;
+			}
+			throw new AssertionError("No complete remaining native GK itinerary reaches a legal Simplon approach.");
+		}
+		// Declared initial native TEST position. No repositioning/resources/quest changes between the measured two hops.
+		_player.decayMe(); _player.setXYZInvisible(forward.sourceX(), forward.sourceY(), geo.getHeight(forward.sourceX(), forward.sourceY(), forward.sourceZ())); _player.spawnMe(); _player.revalidateZone(true);
+		final var before = _backend.observe(_profile.profileId(), content);
+		final long adena = _player.getAdena(), exp = _player.getExp(), sp = _player.getSp();
+		final var stale = _backend.gatekeeper(_profile.profileId(), content, forward, "0".repeat(64));
+		PhantomAssertions.assertEquals(ActionStatus.STALE, stale.status(), "Stale native travel callback was dispatched.");
+		PhantomAssertions.assertEquals(adena, _player.getAdena(), "Stale callback charged native currency.");
+		final long forwardFee = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.fee(forward, _player.getClassIndex(), _player.getLevel(), System.currentTimeMillis() / 60_000);
+		final var first = _backend.gatekeeper(_profile.profileId(), content, forward, before.fingerprint());
+		PhantomAssertions.assertEquals(ActionStatus.ISSUED, first.status(), "Native forward career GK did not arrive: " + first + ";" + _backend.travelEvidence(_profile.profileId()));
+		context.record("career061.nativeForward", _backend.travelEvidence(_profile.profileId()));
+		PhantomAssertions.assertEquals(adena - forwardFee, _player.getAdena(), "Forward native fee mismatch.");
+		context.record("career061.afterForwardOwner", _materialization.find(_profile.profileId()) + ";sameWorldPlayer=" + (World.getInstance().getPlayer(_player.getObjectId()) == _player) + ";sameWorldObject=" + (World.getInstance().findObject(_player.getObjectId()) == _player));
+		await(() -> _backend.observe(_profile.profileId(), content) != null, "Native teleport did not reopen the actual action admission.");
+		final long duplicateAdena = _player.getAdena();
+		final var duplicatePosition = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player);
+		final var duplicate = _backend.gatekeeper(_profile.profileId(), content, forward, before.fingerprint());
+		PhantomAssertions.assertTrue(Set.of(ActionStatus.STALE, ActionStatus.UNAVAILABLE).contains(duplicate.status()) && duplicateAdena == _player.getAdena()
+			&& duplicatePosition.equals(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player)), "Duplicate old-source callback dispatched or charged twice: " + duplicate);
+		context.record("career061.duplicateRefusal", duplicate);
+		final var middle = _backend.observe(_profile.profileId(), content);
+		final long returnFee = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.fee(returning, _player.getClassIndex(), _player.getLevel(), System.currentTimeMillis() / 60_000);
+		final var second = _backend.gatekeeper(_profile.profileId(), content, returning, middle.fingerprint());
+		PhantomAssertions.assertEquals(ActionStatus.ISSUED, second.status(), "Native return career GK did not arrive: " + second + ";" + _backend.travelEvidence(_profile.profileId()));
+		context.record("career061.nativeReturn", _backend.travelEvidence(_profile.profileId()));
+		PhantomAssertions.assertTrue(forwardFee > 0 && returnFee > 0 && _player.getAdena() == adena - forwardFee - returnFee, "Native paid bidirectional fee conservation failed.");
+		final var after = _backend.observe(_profile.profileId(), content);
+		PhantomAssertions.assertTrue(exp == _player.getExp() && sp == _player.getSp() && before.quest().equals(after.quest()) && before.itemCounts().equals(after.itemCounts()) && _player.getActiveClass() == 0, "Native travel changed career rewards/quest/class.");
 	}
 
 	private void strictCatalog(PhantomTestContext context) throws Exception

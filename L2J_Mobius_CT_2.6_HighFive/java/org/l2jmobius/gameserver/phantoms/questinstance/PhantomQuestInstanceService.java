@@ -96,6 +96,7 @@ public final class PhantomQuestInstanceService
 			&& (_automatic.owns(profileId, root) || _automatic.needsOrOwns(profileId, root));
 	}
 	public boolean needsOrOwnsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.needsOrOwns(profileId, root); }
+	public String autonomousTravelEvidence(long profileId) { return _backend.travelEvidence(profileId); }
 	public Optional<PhantomGoal> autonomousIntent(long profileId) { return _automatic == null ? Optional.empty() : _automatic.intent(profileId); }
 	public Optional<Observation> autonomousObservation(long profileId)
 	{
@@ -177,15 +178,14 @@ public final class PhantomQuestInstanceService
 				cleanup(profileId);
 				return fail("questinstance.goal.expired");
 			}
+			publishActive(profileId, logicalNowNanos);
 			if (activityState != PhantomActivityState.ACTIVE)
 			{
-				publishActive(profileId, logicalNowNanos);
 				return retry("questinstance.active.required");
 			}
 			final Observation observation = _backend.observe(profileId, content);
 			if (observation == null)
 			{
-				publishActive(profileId, logicalNowNanos);
 				return retry("questinstance.actor.unavailable");
 			}
 			if (intent != null && (intent.constraints().getOrDefault("owner.object", -1L) != observation.playerObjectId()
@@ -535,35 +535,121 @@ public final class PhantomQuestInstanceService
 		if (travel == null)
 		{
 			final PhantomNavigationPoint origin = new PhantomNavigationPoint(observation.x(), observation.y(), observation.z(), observation.instanceId());
-			final PhantomNavigationPoint destination = new PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId());
-			final long deadline = now > (Long.MAX_VALUE - NAVIGATION_DEADLINE_NANOS) ? Long.MAX_VALUE : now + NAVIGATION_DEADLINE_NANOS;
-			final var submission = _navigation.submit(new PhantomNavigationRequest(profileId, origin, destination, Math.max(0, now), Math.max(now + 1, deadline), 100_000));
-			if (submission.status() == SubmissionStatus.REJECTED)
+			final var options = _backend.travelOptions(profileId, content, TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS));
+			List<PhantomNavigationPoint> destinations = options == null ? List.of(new PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId()))
+				: _backend.approaches(profileId, content, step, target, requiredDistance, _navigation.arrivalRadius());
+			if (destinations.isEmpty() || destinations.size() > 17) { return retry("questinstance.navigation.no_approach"); }
+			TravelMode mode = options == null ? TravelMode.LEGACY_WALK : TravelMode.ITINERARY;
+			if (options != null && origin.distanceTo(destinations.getFirst()) > _navigation.policy().maximumLocalStraightDistance())
 			{
-				return retry("questinstance.navigation.busy");
+				final var leg = nearbyGatekeeper(options, origin, target);
+				if (leg == null) { mode = TravelMode.PROVEN_WALK; }
+				else
+				{
+					final var source = new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0);
+					if (origin.distanceTo(source) > org.l2jmobius.gameserver.model.actor.Npc.INTERACTION_DISTANCE)
+					{
+						// A free native approach moves first; the remaining complete itinerary is proved before any fee.
+						mode = TravelMode.GATEKEEPER_APPROACH; destinations = List.of(source);
+					}
+				}
 			}
-			final List<PhantomNavigationPoint> immediate = (submission.status() == SubmissionStatus.COMPLETED) && (submission.immediateResult() != null) && (submission.immediateResult().route() != null) ? submission.immediateResult().route().waypoints() : List.of();
-			travel = new Travel(content.id(), step.id(), target, submission.requestId(), immediate, 0);
+			travel = new Travel(content.id(), step.id(), target, origin, 0, List.of(), 0, mode, null, 0, destinations, 0);
 			synchronized (_monitor)
 			{
 				if ((_travels.size() >= MAXIMUM_OPERATIONS) && !_travels.containsKey(profileId))
 				{
-					_navigation.cancel(profileId, submission.requestId());
 					return retry("questinstance.operation.capacity");
 				}
 				_travels.put(profileId, travel);
 			}
+		}
+		if (travel.requestId() == 0)
+		{
+			final var origin = new PhantomNavigationPoint(observation.x(), observation.y(), observation.z(), observation.instanceId());
+			final long deadline = now > (Long.MAX_VALUE - NAVIGATION_DEADLINE_NANOS) ? Long.MAX_VALUE : now + NAVIGATION_DEADLINE_NANOS;
+			final var request = new PhantomNavigationRequest(profileId, origin, travel.destination(), Math.max(0, now), Math.max(now + 1, deadline), 100_000);
+			final var options = travel.mode() == TravelMode.ITINERARY ? _backend.travelOptions(profileId, content, TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS)) : null;
+			if (travel.mode() == TravelMode.ITINERARY && options == null) { return retry("questinstance.actor.unavailable"); }
+			final var submission = travel.mode() == TravelMode.ITINERARY ? _navigation.submitTravelPlan(request, options)
+				: travel.mode() == TravelMode.LEGACY_WALK ? _navigation.submit(request) : _navigation.submitWalkCorridor(request);
+			if (submission.status() == SubmissionStatus.REJECTED) { return retry("questinstance.navigation.busy"); }
+			final List<PhantomNavigationPoint> immediate = travel.mode() == TravelMode.LEGACY_WALK && submission.status() == SubmissionStatus.COMPLETED && submission.immediateResult() != null && submission.immediateResult().route() != null ? submission.immediateResult().route().waypoints() : List.of();
+			travel = travel.withRequest(origin, submission.requestId(), immediate);
+			synchronized (_monitor) { _travels.put(profileId, travel); }
 			return retry("questinstance.navigation.requested");
 		}
-		if (travel.waypoints().isEmpty())
+		if (travel.mode() == TravelMode.ITINERARY && travel.plan() == null)
+		{
+			final var result = _navigation.consume(travel.requestId()).orElse(null);
+			if (result == null) { return retry("questinstance.navigation.pending"); }
+			if (Set.of(PhantomNavigationResult.Status.COOLDOWN, PhantomNavigationResult.Status.PROFILE_BUSY, PhantomNavigationResult.Status.QUEUE_BACKPRESSURE).contains(result.status()))
+			{
+				travel = travel.withRequest(travel.origin(), 0, List.of());
+				synchronized (_monitor) { _travels.put(profileId, travel); }
+				return retry("questinstance.navigation.transient");
+			}
+			final var plan = _navigation.consumeTravelPlan(travel.requestId()).orElse(null);
+			if (result.route() == null || result.route().mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA || plan == null)
+			{
+				if (travel.destinationIndex() + 1 < travel.destinations().size())
+				{
+					travel = travel.withDestination(travel.destinationIndex() + 1);
+					synchronized (_monitor) { _travels.put(profileId, travel); }
+					return retry("questinstance.navigation.approach_retry");
+				}
+				cancelTravel(profileId); return retry("questinstance.navigation.no_path");
+			}
+			if (!plan.stages().getFirst().from().equals(travel.origin()) || !plan.stages().getLast().to().equals(travel.destination()))
+			{
+				cancelTravel(profileId); return fail("questinstance.navigation.plan_identity");
+			}
+			travel = travel.withPlan(plan);
+			synchronized (_monitor) { _travels.put(profileId, travel); }
+			return progress("questinstance.navigation.ready");
+		}
+		if (travel.plan() != null)
+		{
+			final var stage = travel.plan().stages().get(travel.stage());
+			if (stage.mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Mode.GK)
+			{
+				final var moved = _backend.gatekeeper(profileId, content, stage.gatekeeper(), observation.fingerprint());
+				if (moved.status() == ActionStatus.ISSUED || moved.status() == ActionStatus.IDEMPOTENT)
+				{
+					final var after = moved.after();
+					if (after == null || after.instanceId() != stage.to().instanceId() || stage.to().distanceTo(new PhantomNavigationPoint(after.x(), after.y(), after.z(), after.instanceId())) > _navigation.arrivalRadius()) { cancelTravel(profileId); return fail("questinstance.gatekeeper.destination"); }
+					if (travel.stage() + 1 == travel.plan().stages().size()) { cancelTravel(profileId); return progress("questinstance.navigation.arrived"); }
+					travel = travel.withStage(travel.stage() + 1);
+					synchronized (_monitor) { _travels.put(profileId, travel); }
+					return progress("questinstance.gatekeeper.arrived");
+				}
+				if (moved.status() == ActionStatus.UNAVAILABLE) { return retry(moved.reasonKey()); }
+				if (moved.status() == ActionStatus.STALE) { cancelTravel(profileId); return progress(moved.reasonKey()); }
+				cancelTravel(profileId); return fail(moved.reasonKey());
+			}
+			if (stage.mode() != org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Mode.WALK) { cancelTravel(profileId); return fail("questinstance.navigation.unsupported_stage"); }
+		}
+		if (travel.mode() != TravelMode.ITINERARY && travel.waypoints().isEmpty())
 		{
 			final Optional<PhantomNavigationResult> result = _navigation.consume(travel.requestId());
 			if (result.isEmpty())
 			{
 				return retry("questinstance.navigation.pending");
 			}
-			if (result.orElseThrow().route() == null)
+			if (Set.of(PhantomNavigationResult.Status.COOLDOWN, PhantomNavigationResult.Status.PROFILE_BUSY, PhantomNavigationResult.Status.QUEUE_BACKPRESSURE).contains(result.orElseThrow().status()))
 			{
+				travel = travel.withRequest(travel.origin(), 0, List.of());
+				synchronized (_monitor) { _travels.put(profileId, travel); }
+				return retry("questinstance.navigation.transient");
+			}
+			if (result.orElseThrow().route() == null || travel.mode() != TravelMode.LEGACY_WALK && result.orElseThrow().route().mode() == org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRoute.Mode.DIRECT_UNVERIFIED_NO_GEODATA)
+			{
+				if (travel.destinationIndex() + 1 < travel.destinations().size())
+				{
+					travel = travel.withDestination(travel.destinationIndex() + 1);
+					synchronized (_monitor) { _travels.put(profileId, travel); }
+					return retry("questinstance.navigation.approach_retry");
+				}
 				cancelTravel(profileId);
 				return retry("questinstance.navigation.no_path");
 			}
@@ -574,17 +660,24 @@ public final class PhantomQuestInstanceService
 			}
 			return progress("questinstance.navigation.ready");
 		}
-		final PhantomNavigationPoint waypoint = travel.waypoints().get(travel.waypoint());
+		final List<PhantomNavigationPoint> points = travel.plan() == null ? travel.waypoints() : travel.plan().stages().get(travel.stage()).points();
+		final PhantomNavigationPoint waypoint = points.get(travel.waypoint());
 		final double dx = (double) waypoint.x() - observation.x();
 		final double dy = (double) waypoint.y() - observation.y();
 		final double dz = (double) waypoint.z() - observation.z();
 		if (Math.sqrt((dx * dx) + (dy * dy) + (dz * dz)) <= _navigation.arrivalRadius())
 		{
 			final int next = travel.waypoint() + 1;
-			if (next >= travel.waypoints().size())
+			if (next >= points.size())
 			{
+				if (travel.plan() != null && travel.stage() + 1 < travel.plan().stages().size())
+				{
+					travel = travel.withStage(travel.stage() + 1);
+					synchronized (_monitor) { _travels.put(profileId, travel); }
+					return progress("questinstance.navigation.stage");
+				}
 				cancelTravel(profileId);
-				return progress("questinstance.navigation.arrived");
+				return progress(travel.mode() == TravelMode.GATEKEEPER_APPROACH ? "questinstance.gatekeeper.approached" : "questinstance.navigation.arrived");
 			}
 			travel = travel.withWaypoint(next);
 			synchronized (_monitor)
@@ -601,6 +694,16 @@ public final class PhantomQuestInstanceService
 			case STALE -> progress(moved.reasonKey());
 			case REJECTED, FAILURE -> fail(moved.reasonKey());
 		};
+	}
+
+	private org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg nearbyGatekeeper(org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Options options, PhantomNavigationPoint origin, Target target)
+	{
+		if (!options.gatekeeperAllowed()) { return null; }
+		final int local = _navigation.policy().maximumLocalStraightDistance();
+		return options.legs().stream().filter(leg -> Math.hypot((long) leg.sourceX() - origin.x(), (long) leg.sourceY() - origin.y()) <= local
+			&& Math.hypot((long) leg.destinationX() - target.x(), (long) leg.destinationY() - target.y()) <= local
+			&& org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.fee(leg, options.classIndex(), options.level(), options.epochMinute()) <= options.adena())
+			.min(java.util.Comparator.comparingDouble((org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg leg) -> Math.hypot((long) leg.sourceX() - origin.x(), (long) leg.sourceY() - origin.y()) + Math.hypot((long) leg.destinationX() - target.x(), (long) leg.destinationY() - target.y())).thenComparing(org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg::id)).orElse(null);
 	}
 
 	public boolean beginStop()
@@ -636,6 +739,7 @@ public final class PhantomQuestInstanceService
 			}
 			_state = State.STOPPED;
 			if (_automatic != null) { _automatic.clear(); }
+			_backend.clearTravelEvidence();
 			return true;
 		}
 	}
@@ -733,7 +837,7 @@ public final class PhantomQuestInstanceService
 		{
 			travel = _travels.remove(profileId);
 		}
-		if (travel != null)
+		if (travel != null && travel.requestId() > 0)
 		{
 			_navigation.cancel(profileId, travel.requestId());
 			_navigation.consume(travel.requestId());
@@ -804,22 +908,29 @@ public final class PhantomQuestInstanceService
 	{
 	}
 
-	private record Travel(String contentId, String stepId, Target target, long requestId, List<PhantomNavigationPoint> waypoints, int waypoint)
+	private enum TravelMode { LEGACY_WALK, PROVEN_WALK, ITINERARY, GATEKEEPER_APPROACH }
+	private record Travel(String contentId, String stepId, Target target, PhantomNavigationPoint origin, long requestId, List<PhantomNavigationPoint> waypoints, int waypoint, TravelMode mode, org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Candidate plan, int stage, List<PhantomNavigationPoint> destinations, int destinationIndex)
 	{
 		private Travel
 		{
 			waypoints = List.copyOf(waypoints);
+			destinations = List.copyOf(destinations);
 		}
 
 		private Travel withWaypoints(List<PhantomNavigationPoint> replacement)
 		{
-			return new Travel(contentId, stepId, target, requestId, replacement, 0);
+			return new Travel(contentId, stepId, target, origin, requestId, replacement, 0, mode, plan, stage, destinations, destinationIndex);
 		}
 
 		private Travel withWaypoint(int replacement)
 		{
-			return new Travel(contentId, stepId, target, requestId, waypoints, replacement);
+			return new Travel(contentId, stepId, target, origin, requestId, waypoints, replacement, mode, plan, stage, destinations, destinationIndex);
 		}
+		private PhantomNavigationPoint destination() { return destinations.get(destinationIndex); }
+		private Travel withRequest(PhantomNavigationPoint from, long id, List<PhantomNavigationPoint> immediate) { return new Travel(contentId, stepId, target, from, id, immediate, 0, mode, null, 0, destinations, destinationIndex); }
+		private Travel withDestination(int index) { return new Travel(contentId, stepId, target, origin, 0, List.of(), 0, mode, null, 0, destinations, index); }
+		private Travel withPlan(org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Candidate replacement) { return new Travel(contentId, stepId, target, origin, requestId, List.of(), 0, mode, replacement, 0, destinations, destinationIndex); }
+		private Travel withStage(int replacement) { return new Travel(contentId, stepId, target, origin, requestId, List.of(), 0, mode, plan, replacement, destinations, destinationIndex); }
 	}
 
 	private record CombatOperation(String contentId, String stepId, int targetObjectId)

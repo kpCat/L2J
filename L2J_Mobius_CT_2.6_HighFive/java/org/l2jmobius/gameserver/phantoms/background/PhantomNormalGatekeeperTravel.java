@@ -187,6 +187,19 @@ public final class PhantomNormalGatekeeperTravel
 		return (location.getX() == leg.destinationX()) && (location.getY() == leg.destinationY()) && (location.getZ() == leg.destinationZ()) && (location.getFeeId() == leg.feeId()) && (location.getFeeCount() == leg.feeCount()) && nativeCastleIdsMatch(leg.destinationCastleIds(), location.getCastleId());
 	}
 
+	/** Live NORMAL choice for a foreground native itinerary; not registered as a certified BACKGROUND edge. */
+	public static java.util.Optional<Leg> observeNativeLeg(int npcId, int index, int sourceX, int sourceY, int sourceZ)
+	{
+		final TeleportHolder holder = TeleporterData.getInstance().getHolder(npcId, "NORMAL");
+		if (npcId <= 0 || index < 0 || holder == null || holder.getType() != TeleportType.NORMAL || index >= holder.getLocations().size()) { return java.util.Optional.empty(); }
+		final TeleportLocation location = holder.getLocation(index);
+		if ((location.getFeeId() != 0 && location.getFeeId() != 57) || location.getFeeCount() < 0 || location.getFeeCount() > 1_000_000_000L) { return java.util.Optional.empty(); }
+		// Empty corpus identities explicitly carry no D1 connector or topology provenance.
+		return java.util.Optional.of(new Leg("live.normal." + npcId + "." + index, "", "", "", "", "", npcId, "NORMAL", index,
+			location.getX(), location.getY(), location.getZ(), sourceX, sourceY, sourceZ, location.getFeeId(), location.getFeeCount(), 1000,
+			"data/teleporters/town/" + npcId + ".xml", location.getCastleId()));
+	}
+
 	public static List<Integer> parseDestinationCastleIds(String encoded)
 	{
 		if (encoded.isEmpty())

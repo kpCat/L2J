@@ -46,9 +46,11 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 	private static final int KAMALOKA_LEVEL = 23;
 	private static final int KAMALOKA_LEVEL_DIFFERENCE = 5;
 	private static final int KAMALOKA_MAX_PARTY = 6;
+	private static final Map<Integer, List<Integer>> CAREER_GATEKEEPERS = Map.of(30320, List.of(0, 7), 30256, List.of(8, 15));
 	private final PhantomMaterializationService _materialization;
 	private final PhantomQuestInstanceCatalog _catalog;
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledge;
+	private final Map<Long, String> _travelEvidence = new java.util.LinkedHashMap<>();
 
 	public L2jPhantomQuestInstanceBackend(PhantomMaterializationService materialization, PhantomQuestInstanceCatalog catalog, Supplier<PhantomGameKnowledgeQuery> knowledge)
 	{
@@ -76,6 +78,100 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 	}
 
 	@Override
+	public org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Options travelOptions(long profileId, Content content, long remainingMillis)
+	{
+		if (!current(content) || content.kind() != org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Kind.CLASS_PATH) { return null; }
+		try (ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (lease == null || _knowledge.get() == null) { return null; }
+			final var legs = new ArrayList<org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg>();
+			for (var entry : CAREER_GATEKEEPERS.entrySet())
+			{
+				final var source = _knowledge.get().spawnFacts(entry.getKey(), PageRequest.first(SPAWN_FACT_LIMIT)).values().stream()
+					.filter(fact -> fact.instanceId() == 0 && fact.amount() > 0).sorted(Comparator.comparing(SpawnFact::stableKey)).findFirst().orElse(null);
+				if (source == null) { continue; }
+				for (int index : entry.getValue())
+				{
+					org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.observeNativeLeg(entry.getKey(), index, source.x(), source.y(), org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().getHeight(source.x(), source.y(), source.z()))
+						.filter(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions::available).ifPresent(legs::add);
+				}
+			}
+			legs.sort(Comparator.comparing(org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg::id));
+			final var nativeOptions = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.snapshot(lease.player(), legs, remainingMillis);
+			return new org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Options(nativeOptions.legs(), nativeOptions.speed(), nativeOptions.adena(), 0,
+				nativeOptions.classIndex(), nativeOptions.level(), nativeOptions.epochMinute(), nativeOptions.gatekeeperAllowed(), "questinstance.no_return_scroll", null, 0, remainingMillis, nativeOptions.blockedEdges());
+		}
+	}
+
+	@Override
+	public ActionResult gatekeeper(long profileId, Content content, org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg leg, String expectedFingerprint)
+	{
+		if (!current(content) || content.kind() != org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Kind.CLASS_PATH || leg == null
+			|| !CAREER_GATEKEEPERS.getOrDefault(leg.teleporterNpcId(), List.of()).contains(leg.destinationIndex())) { return result(ActionStatus.REJECTED, null, "questinstance.gatekeeper.unsupported"); }
+		try (ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (lease == null) { return result(ActionStatus.UNAVAILABLE, null, "questinstance.actor.unavailable"); }
+			final Player player = lease.player();
+			final var before = observe(player, content);
+			if (!before.fingerprint().equals(expectedFingerprint)) { return result(ActionStatus.STALE, before, "questinstance.gatekeeper.stale"); }
+			if (player.hasPendingOwnedStore() || player.isChangingClass() || player.isTransformed() || player.isMounted()) { return result(ActionStatus.UNAVAILABLE, before, "questinstance.gatekeeper.busy"); }
+			final var owner = player.getNativeWorkOwner();
+			final long epoch = owner == null ? 0 : owner.epoch();
+			final var receipt = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.gatekeeper(player, leg);
+			synchronized (_travelEvidence)
+			{
+				if (_travelEvidence.size() >= 128 && !_travelEvidence.containsKey(profileId)) { _travelEvidence.remove(_travelEvidence.keySet().iterator().next()); }
+				_travelEvidence.put(profileId, "object=" + player.getObjectId() + ";epoch=" + epoch + ";npc=" + leg.teleporterNpcId() + ";index=" + leg.destinationIndex() + ";" + receipt);
+			}
+			final ActionStatus status = switch (receipt.status())
+			{
+				case ARRIVED -> ActionStatus.ISSUED;
+				case UNAVAILABLE, INSUFFICIENT_RESOURCES -> ActionStatus.UNAVAILABLE;
+				case NATIVE_REJECTED -> ActionStatus.REJECTED;
+				case PAID_WITHOUT_ARRIVAL -> ActionStatus.FAILURE;
+			};
+			return result(status, observe(player, content), "questinstance.gatekeeper." + receipt.status().name().toLowerCase(java.util.Locale.ROOT));
+		}
+	}
+
+	@Override public String travelEvidence(long profileId) { synchronized (_travelEvidence) { return _travelEvidence.getOrDefault(profileId, ""); } }
+	@Override public void clearTravelEvidence() { synchronized (_travelEvidence) { _travelEvidence.clear(); } }
+
+	@Override
+	public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> approaches(long profileId, Content content, Step step, Target target, double requiredDistance, int arrivalRadius)
+	{
+		if (!current(content)) { return List.of(); }
+		if (content.kind() != org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Kind.CLASS_PATH) { return PhantomQuestInstanceBackend.super.approaches(profileId, content, step, target, requiredDistance, arrivalRadius); }
+		final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+		if (step.operation() == Operation.COMBAT)
+		{
+			return geo.hasGeo(target.x(), target.y()) ? List.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(target.x(), target.y(), geo.getHeight(target.x(), target.y(), target.z()), target.instanceId())) : List.of();
+		}
+		final double margin = Math.min(Npc.INTERACTION_DISTANCE, requiredDistance) - arrivalRadius - 16;
+		if (margin < 0) { return List.of(); }
+		try (ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (lease == null) { return List.of(); }
+			final List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> points = new ArrayList<>();
+			for (int radius : new int[] {0, Math.min(64, (int) margin), Math.min(112, (int) margin)})
+			{
+				for (int direction = 0; direction < (radius == 0 ? 1 : 8); direction++)
+				{
+					final double angle = direction * Math.PI / 4;
+					final int x = target.x() + (int) Math.round(radius * Math.cos(angle)), y = target.y() + (int) Math.round(radius * Math.sin(angle));
+					if (!geo.hasGeo(x, y)) { continue; }
+					final int z = geo.getHeight(x, y, target.z());
+					if (Math.sqrt(Math.pow(x - target.x(), 2) + Math.pow(y - target.y(), 2) + Math.pow(z - target.z(), 2)) > margin) { continue; }
+					final var point = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, z, target.instanceId());
+					if (!points.contains(point)) { points.add(point); }
+				}
+			}
+			points.sort(Comparator.comparingDouble((org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint point) -> lease.player().calculateDistance3D(point.x(), point.y(), point.z())).thenComparingInt(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint::x).thenComparingInt(org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint::y));
+			return List.copyOf(points);
+		}
+	}
+
+	@Override
 	public Target locate(long profileId, Content content, Step step)
 	{
 		if (!current(content) || !content.step(step.id()).filter(step::equals).isPresent())
@@ -95,7 +191,7 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 				.min(Comparator.comparingDouble((Npc npc) -> player.calculateDistance3D(npc)).thenComparingInt(Npc::getObjectId)).orElse(null);
 			if (nearby != null)
 			{
-				return target(player, nearby);
+				return target(player, nearby, content);
 			}
 			if (player.getInstanceId() != 0)
 			{
@@ -265,7 +361,7 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 		return script;
 	}
 
-	private static Target target(Player player, Npc npc)
+	private static Target target(Player player, Npc npc, Content content)
 	{
 		return new Target(npc.getObjectId(), npc.getId(), npc.getX(), npc.getY(), npc.getZ(), npc.getInstanceId(), player.calculateDistance3D(npc), true);
 	}

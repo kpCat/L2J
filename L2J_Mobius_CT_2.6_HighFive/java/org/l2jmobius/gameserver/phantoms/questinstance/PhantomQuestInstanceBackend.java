@@ -19,6 +19,15 @@ public interface PhantomQuestInstanceBackend
 
 	ActionResult move(long profileId, Content content, Step step, Target expectedTarget);
 
+	default org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Options travelOptions(long profileId, Content content, long remainingMillis) { return null; }
+	default java.util.List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> approaches(long profileId, Content content, Step step, Target target, double requiredDistance, int arrivalRadius)
+	{
+		return java.util.List.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId()));
+	}
+	default ActionResult gatekeeper(long profileId, Content content, org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg leg, String expectedFingerprint) { return new ActionResult(ActionStatus.REJECTED, null, "questinstance.gatekeeper.unsupported"); }
+	default String travelEvidence(long profileId) { return ""; }
+	default void clearTravelEvidence() { }
+
 	enum QuestStatus
 	{
 		ABSENT,

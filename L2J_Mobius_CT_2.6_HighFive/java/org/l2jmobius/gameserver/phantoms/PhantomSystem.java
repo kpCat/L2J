@@ -2296,6 +2296,7 @@ public final class PhantomSystem
 		{
 			result.put("career", configured._questInstanceService.autonomousIntent(profileId).toString());
 			result.put("career.native", configured._questInstanceService.autonomousObservation(profileId).toString());
+			result.put("career.travel", configured._questInstanceService.autonomousTravelEvidence(profileId));
 		}
 		return Map.copyOf(result);
 	}
