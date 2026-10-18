@@ -216,6 +216,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("09-farm-decision-autonomous-career-intent061", this::autonomousCareer061);
 			registry.add("10-native-career-gludin-gludio-travel061", context -> careerTravel061(context, true));
 			registry.add("11-native-career-paid-gk-conservation061", context -> careerTravel061(context, false));
+			registry.add("12-native-career-nearest-supported-spawn061", this::careerNearestSpawn061);
 			return;
 		}
 		registry.add("01-strict-catalog-and-fail-closed-dispatch", this::strictCatalog);
@@ -358,6 +359,19 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(forwardFee > 0 && returnFee > 0 && _player.getAdena() == adena - forwardFee - returnFee, "Native paid bidirectional fee conservation failed.");
 		final var after = _backend.observe(_profile.profileId(), content);
 		PhantomAssertions.assertTrue(exp == _player.getExp() && sp == _player.getSp() && before.quest().equals(after.quest()) && before.itemCounts().equals(after.itemCounts()) && _player.getActiveClass() == 0, "Native travel changed career rewards/quest/class.");
+	}
+
+	private void careerNearestSpawn061(PhantomTestContext context) throws Exception
+	{
+		preparePlayer(0, 0, 19);
+		_player.decayMe(); _player.setXYZInvisible(-15208, 123208, -3112); _player.spawnMe(); _player.revalidateZone(true); // New finite TEST input, not the retained ordinary actor.
+		final var content = _catalog.content("class.warrior-q401").orElseThrow();
+		final var step = content.step("collect.skeleton").orElseThrow();
+		final var expected = step.npcIds().stream().flatMap(npcId -> _knowledge.query().snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of()).stream())
+			.filter(fact -> fact.instanceId() == 0 && fact.amount() > 0).min(Comparator.comparingDouble(fact -> _player.calculateDistance3D(fact.x(), fact.y(), fact.z()))).orElseThrow();
+		final var actual = _backend.locate(_profile.profileId(), content, step);
+		context.record("career061.nearestSpawn", "actual=" + actual + ";expected=" + expected);
+		PhantomAssertions.assertTrue(actual != null && actual.distance() <= _player.calculateDistance3D(expected.x(), expected.y(), expected.z()) + 1, "Q401 chose an arbitrary early spawn page instead of its nearest supported native source.");
 	}
 
 	private void strictCatalog(PhantomTestContext context) throws Exception

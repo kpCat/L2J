@@ -205,7 +205,11 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 			final List<SpawnFact> facts = new ArrayList<>();
 			for (int npcId : step.npcIds())
 			{
-				facts.addAll(knowledge.spawnFacts(npcId, PageRequest.first(SPAWN_FACT_LIMIT)).values().stream().filter(fact -> (fact.instanceId() == 0) && (fact.amount() > 0)).toList());
+				// Career combat needs the nearest supported source, not an arbitrary ordinal page.
+				final List<SpawnFact> sources = (content.kind() == PhantomQuestInstanceCatalog.Kind.CLASS_PATH) && (step.operation() == Operation.COMBAT)
+					? knowledge.snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of())
+					: knowledge.spawnFacts(npcId, PageRequest.first(SPAWN_FACT_LIMIT)).values();
+				facts.addAll(sources.stream().filter(fact -> (fact.instanceId() == 0) && (fact.amount() > 0)).toList());
 			}
 			final SpawnFact fact = facts.stream().min(Comparator.comparingDouble((SpawnFact value) -> player.calculateDistance3D(value.x(), value.y(), value.z())).thenComparing(SpawnFact::stableKey)).orElse(null);
 			return fact == null ? null : new Target(0, fact.npcId(), fact.x(), fact.y(), fact.z(), fact.instanceId(), player.calculateDistance3D(fact.x(), fact.y(), fact.z()), false);
