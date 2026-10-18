@@ -630,6 +630,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.EARNED_LEARNING_058)
 		{
+			if (Boolean.getBoolean("phantom.test.areaAggro060")) { registry.add("36-native-area-aggro-recipient-refusals", context -> testNativeAreaAggro060(context, true)); registry.add("37-native-area-aggro-real-party-threat", context -> testNativeAreaAggro060(context, false)); return; }
 			if (Boolean.getBoolean("phantom.test.petSupport060")) { registry.add("30-native-owned-buffalo-heal-and-control-lifecycle", context -> { prepareLearningField059(context); PhantomPet060NativeSupport.directHeal(context, _player); }); registry.add("32-production-native-kookaburra-recharge-and-food", context -> { _player.setCurrentHp(_player.getMaxHp()); prepareLearningField059(context); PhantomPet060NativeSupport.automaticMana(context, _player, _backend, _profile.profileId()); }); return; }
 			if (Boolean.getBoolean("phantom.test.paidAutoGetGuards060"))
 			{
@@ -1297,6 +1298,100 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			{
 				throw new AssertionError("Native companion did not rejoin its exact human: profile=" + profileId + "; claim=" + party.claim(profileId) + "; pending=" + party.pendingInvitation(profileId) + "; party=" + party.snapshot() + "; goal=" + new PhantomGoalStateStore(PhantomProfileRepository.open()).load(profileId) + "; dead=" + actors.get(index).isDead() + "; distance=" + actors.get(index).calculateDistance3D(human));
 			}
+		}
+	}
+
+
+	private void testNativeAreaAggro060(PhantomTestContext context, boolean negative) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final var field = prepareLearningField059(context);
+		final Player human = ensureObserver();
+		prepareCompanionCombatAtLevel058(_player, 90, 2500, 0, 79, 6373, 6374, 6375, 6376, 6377, 6378);
+		final Skill aura = SkillData.getInstance().getSkill(18, 37);
+		PhantomAssertions.assertTrue(aura != null && _progression.classSkillLearns(90).stream().anyMatch(learn -> learn.skillId() == 18 && learn.skillLevel() == 37 && learn.minimumCharacterLevel() <= 79), "Declared Aura rank is absent from the native tank tree.");
+		_player.addSkill(aura, false); _player.removeSkill(28, false);
+		human.getStat().setExp(human.getStat().getExpForLevel(5)); human.setBaseClass(0); human.setPlayerClass(0); human.getStat().setLevel((byte) 5);
+		human.setInvul(false); human.setCurrentHp(human.getMaxHp()); human.setCurrentMp(human.getMaxMp()); human.setCurrentCp(human.getMaxCp());
+		placeInstanceInput058(human, field.x() + 30, field.y(), field.z());
+		final Party party = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(party); human.joinParty(party);
+		final List<Monster> enemies = new ArrayList<>();
+		Player foreign = null;
+		try
+		{
+			for (int offset : new int[] {-65,65})
+			{
+				final Monster enemy = new Monster(NpcData.getInstance().getTemplate(20120));
+				PhantomAssertions.assertTrue(enemy.getTemplate().getClans() == null || enemy.getTemplate().getClans().isEmpty(), "Declared stock Wolf has native clan assist.");
+				enemy.setCurrentHp(enemy.getMaxHp()); enemy.setCurrentMp(enemy.getMaxMp()); _worldFixtures.add(enemy); enemies.add(enemy);
+				enemy.spawnMe(field.x() + 65, field.y() + offset, field.z());
+			}
+			context.record("group060.area.input", "Independent " + (negative ? "negative controls" : "positive episode") + "; prepared tank90/79/native18:37/finiteMP; human0/5/native initial gear; fixed native party; two full stock Wolf20120/4/noClans; human ATTACK creates actual hate before enrollment; area range=" + aura.getAffectRange() + "; reuse=" + aura.getReuseDelay() + "; no HP/MP/hate/XYZ writes after boundary; ordinary NPC only, no raid claim");
+			for (Monster enemy : enemies)
+			{
+				human.setTarget(enemy); human.getAI().setIntention(Intention.ATTACK, enemy);
+				PhantomAssertions.assertTrue(waitFor(() -> enemy.getHating(human) > 0 || enemy.isDead(), 8000) && !enemy.isDead(), "BLOCKED_INPUT: native human first hit did not establish a living stock recipient.");
+				human.abortAttack(); human.getAI().setIntention(Intention.IDLE);
+				PhantomAssertions.assertTrue(waitFor(() -> !human.isAttackingNow(), 3000), "Human native first-hit action did not retire.");
+			}
+			PhantomAssertions.assertTrue(enemies.stream().allMatch(enemy -> enemy.getMostHated() == human && !enemy.isDead()), "BLOCKED_INPUT: initial recipients are not attacking the declared native party member.");
+			if (negative)
+			{
+				final Monster idle = new Monster(NpcData.getInstance().getTemplate(20120)); idle.setCurrentHp(idle.getMaxHp()); idle.setCurrentMp(idle.getMaxMp()); _worldFixtures.add(idle); idle.spawnMe(field.x() - 65, field.y(), field.z());
+				try (var lease = _backend.tryAcquireActor(_profile.profileId()))
+				{
+					PhantomAssertions.assertTrue(lease != null, "Area negative lacks the existing actor lease.");
+					final double mp = _player.getCurrentMp();
+					PhantomAssertions.assertTrue(aura.getTargetList(_player, false, enemies.getFirst()).contains(idle), "Idle native recipient was absent from the actual area list.");
+					PhantomAssertions.assertTrue(lease.npcAggroSkill(enemies.getFirst().getObjectId()).isEmpty(), "Area aggression admitted a fresh unrelated pull.");
+					PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castNpcAggro(enemies.getFirst().getObjectId(), new SelectedSkill(18,37)), "Area aggression cast onto an idle recipient.");
+					PhantomAssertions.assertTrue(_player.getCurrentMp() == mp && idle.getMostHated() == null, "Rejected idle-recipient control changed native MP or hate.");
+				}
+				idle.deleteMe();
+				final var fixture = _environment.createCampaign058Companion(context, 1); foreign = Player.load(fixture.objectId());
+				PhantomAssertions.assertTrue(foreign != null, "Owned foreign TEST player did not load.");
+				foreign.setInvul(false); foreign.setPvpFlag(1); foreign.setPvpFlagLasts(System.currentTimeMillis() + PvpConfig.PVP_PVP_TIME); placeInstanceInput058(foreign, field.x() - 50, field.y(), field.z());
+				PhantomAssertions.assertTrue(aura.getTargetList(_player, false, enemies.getFirst()).contains(foreign), "BLOCKED_INPUT: native Aura did not include the flagged foreign TEST player.");
+				try (var lease = _backend.tryAcquireActor(_profile.profileId()))
+				{
+					final double mp = _player.getCurrentMp(); final var humanTarget = foreign.getTarget();
+					PhantomAssertions.assertTrue(lease != null && lease.npcAggroSkill(enemies.getFirst().getObjectId()).isEmpty(), "Native area selected a list containing a foreign player.");
+					PhantomAssertions.assertEquals(ActionOutcome.REJECTED, lease.castNpcAggro(enemies.getFirst().getObjectId(), new SelectedSkill(18,37)), "Area aggression forced a foreign player's target.");
+					PhantomAssertions.assertTrue(foreign.getTarget() == humanTarget && _player.getCurrentMp() == mp && !_player.isSkillDisabled(aura), "Rejected foreign-recipient control changed target, MP or reuse.");
+				}
+				context.record("group060.area.negative", "actual native idle Monster and flagged foreign Player recipients each refused as a whole list; no MP/reuse/hate/forced-target effect");
+				return;
+			}
+			final var nativeTargets = aura.getTargetList(_player, false, enemies.getFirst());
+			PhantomAssertions.assertTrue(nativeTargets.size() == 2 && nativeTargets.containsAll(enemies), "BLOCKED_INPUT: native positive recipients differ from the declared two stock monsters: " + nativeTargets);
+			final double mp = _player.getCurrentMp(); final var humanTarget = human.getTarget();
+			final long beforeHate = enemies.stream().mapToLong(enemy -> enemy.getHating(_player)).sum();
+			try (var lease = _backend.tryAcquireActor(_profile.profileId()))
+			{
+				PhantomAssertions.assertTrue(lease != null, "Area positive lacks the existing actor lease.");
+				final var selected = lease.npcAggroSkill(enemies.getFirst().getObjectId());
+				context.record("group060.area.selection", "nativeRecipients=" + nativeTargets.size() + "; selected=" + selected + "; beforeHate=" + beforeHate + "; beforeMP=" + mp);
+				PhantomAssertions.assertEquals(java.util.Optional.of(new SelectedSkill(18,37)), selected, "Existing NPC tactics did not select the lawful learned native area aggression.");
+				PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.castNpcAggro(enemies.getFirst().getObjectId(), selected.orElseThrow()), "Lawful native area cast was not issued.");
+				long heldSince = 0; boolean redirected = false;
+				final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(8);
+				while (System.nanoTime() < deadline)
+				{
+					final boolean controls = !_player.isCastingNow() && enemies.stream().allMatch(enemy -> enemy.getMostHated() == _player && (enemy.getTarget() == _player || (enemy.hasAI() && enemy.getAI().getAttackTarget() == _player)));
+					if (controls) { if (heldSince == 0) { heldSince = System.nanoTime(); } if (System.nanoTime() - heldSince >= TimeUnit.SECONDS.toNanos(2)) { redirected = true; break; } } else { heldSince = 0; }
+					Thread.sleep(20);
+				}
+				final long afterHate = enemies.stream().mapToLong(enemy -> enemy.getHating(_player)).sum();
+				context.record("group060.area.effect", "actualAIRecipients=" + enemies.stream().map(enemy -> enemy.getObjectId() + "/" + (enemy.hasAI() && enemy.getAI().getAttackTarget() == _player)).toList() + "; redirected=" + redirected + "; hate=" + beforeHate + "->" + afterHate + "; MP=" + mp + "->" + _player.getCurrentMp() + "; nativeReuse=" + _player.isSkillDisabled(aura) + "; humanTargetUnchanged=" + (human.getTarget() == humanTarget));
+				PhantomAssertions.assertTrue(redirected && _player.getCurrentMp() < mp && _player.isSkillDisabled(aura) && human.getTarget() == humanTarget && enemies.stream().noneMatch(Monster::isDead), "Area CAST lacks both native NPC retarget effects/cost/reuse or changed the human target.");
+			}
+		}
+		finally
+		{
+			for (Monster enemy : enemies) { enemy.abortAttack(); enemy.getAI().setIntention(Intention.IDLE); enemy.deleteMe(); }
+			human.abortAttack(); human.getAI().setIntention(Intention.IDLE); human.setTarget(null);
+			if (foreign != null) { foreign.setPvpFlag(0); foreign.setPvpFlagLasts(0); _environment.cleanupLoadedPlayer(foreign); }
+			if (human.isInParty()) { PartyInvitationService.getInstance().leave(human); } if (_player.isInParty()) { PartyInvitationService.getInstance().leave(_player); }
 		}
 	}
 

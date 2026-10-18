@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import org.l2jmobius.gameserver.model.effects.EffectType;
 import org.l2jmobius.gameserver.model.skill.Skill;
+import org.l2jmobius.gameserver.model.skill.EffectScope;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
 
 public final class PhantomCombatSkillSafety
@@ -25,6 +26,29 @@ public final class PhantomCombatSkillSafety
 	{
 		Objects.requireNonNull(skill, "skill");
 		return supportsNpcAggro(facts(skill, actorTransformed), skill.hasEffectType(EffectType.AGGRESSION));
+	}
+
+	public static boolean supportsNpcAreaAggro(Skill skill, boolean actorTransformed)
+	{
+		Objects.requireNonNull(skill, "skill");
+		if (!ordinaryAction(facts(skill, actorTransformed)) || (skill.getTargetType() != TargetType.AURA) || (skill.getAffectRange() <= 0) || (skill.getAffectRange() > 600) || skill.isChanneling() || skill.isSimultaneousCast())
+		{
+			return false;
+		}
+		boolean aggression = false;
+		for (EffectScope scope : EffectScope.values())
+		{
+			final var effects = skill.getEffects(scope);
+			if ((effects == null) || effects.isEmpty()) { continue; }
+			if (scope != EffectScope.GENERAL) { return false; }
+			for (var effect : effects)
+			{
+				final String handler = effect.getClass().getName();
+				if ("handlers.skill.effects.GetAgro".equals(handler)) { aggression = true; }
+				else if (!"handlers.skill.effects.TargetMe".equals(handler)) { return false; }
+			}
+		}
+		return aggression;
 	}
 
 	public static boolean supportsNpcAggro(Facts facts, boolean aggressionEffect)
@@ -51,7 +75,12 @@ public final class PhantomCombatSkillSafety
 
 	private static boolean ordinaryOneTargetAction(Facts facts)
 	{
-		return facts.active() && !facts.passive() && !facts.toggle() && facts.oneTarget() && facts.negative() && !facts.pvpOnly() && !facts.suicide() && !facts.hero() && !facts.gameMaster() && !facts.sevenSigns() && !facts.transformationSkill() && !facts.actorTransformed();
+		return facts.oneTarget() && ordinaryAction(facts);
+	}
+
+	private static boolean ordinaryAction(Facts facts)
+	{
+		return facts.active() && !facts.passive() && !facts.toggle() && facts.negative() && !facts.pvpOnly() && !facts.suicide() && !facts.hero() && !facts.gameMaster() && !facts.sevenSigns() && !facts.transformationSkill() && !facts.actorTransformed();
 	}
 
 	public record Facts(boolean active, boolean passive, boolean toggle, boolean oneTarget, boolean negative, boolean physical, boolean magic, boolean pvpOnly, boolean suicide, boolean hero, boolean gameMaster, boolean sevenSigns, boolean transformationSkill, boolean actorTransformed)

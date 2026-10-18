@@ -581,9 +581,26 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			{
 				return Optional.empty();
 			}
-			return _player.getAllSkills().stream().filter(skill -> PhantomCombatSkillSafety.supportsNpcAggro(skill, _player.isTransformed()))
+			return _player.getAllSkills().stream().filter(skill -> PhantomCombatSkillSafety.supportsNpcAggro(skill, _player.isTransformed()) || !npcAreaAggroTargets(skill, target, actor).isEmpty())
 				.filter(skill -> !_player.isSkillDisabled(skill) && (_player.getCurrentMp() >= Math.max(skill.getMpInitialConsume() + skill.getMpConsume(), _player.getStat().getMpInitialConsume(skill) + _player.getStat().getMpConsume(skill))) && (_player.getCharges() >= skill.getChargeConsumeCount()) && ((skill.getItemConsumeCount() <= 0) || (_player.getInventory().getInventoryItemCount(skill.getItemConsumeId(), -1) >= skill.getItemConsumeCount())) && skill.checkCondition(_player, target, false))
-				.sorted(Comparator.comparingInt(Skill::getEffectPoint).thenComparing(Comparator.comparingInt(Skill::getLevel).reversed()).thenComparingInt(Skill::getId)).findFirst().map(skill -> new SelectedSkill(skill.getId(), skill.getLevel()));
+				.sorted(Comparator.<Skill>comparingInt(skill -> PhantomCombatSkillSafety.supportsNpcAreaAggro(skill, _player.isTransformed()) ? 0 : 1).thenComparingInt(Skill::getEffectPoint).thenComparing(Comparator.comparingInt(Skill::getLevel).reversed()).thenComparingInt(Skill::getId)).findFirst().map(skill -> new SelectedSkill(skill.getId(), skill.getLevel()));
+		}
+
+		private List<WorldObject> npcAreaAggroTargets(Skill skill, Monster primary, ActorSnapshot actor)
+		{
+			if (!PhantomCombatSkillSafety.supportsNpcAreaAggro(skill, _player.isTransformed())) { return List.of(); }
+			final List<WorldObject> recipients = skill.getTargetList(_player, false, primary);
+			if ((recipients == null) || (recipients.size() < 2) || (recipients.size() > 16) || !recipients.contains(primary)) { return List.of(); }
+			for (WorldObject recipient : recipients)
+			{
+				if (!(recipient instanceof Monster monster) || !isNormalMonster(monster) || !targetSnapshot(monster).validFor(actor, MAXIMUM_ACQUISITION_DISTANCE) || (World.getInstance().findObject(monster.getObjectId()) != monster)) { return List.of(); }
+				// Native GetAgro also calls clan assistance beyond the Aura recipients. Keep that unsupported.
+				final var clans = monster.getTemplate().getClans();
+				if ((clans != null) && !clans.isEmpty()) { return List.of(); }
+				final Creature victim = monster.getMostHated();
+				if ((victim == null) || ((victim != _player) && ((victim.asPlayer() == null) || (_player.getParty() == null) || (victim.asPlayer().getParty() != _player.getParty()))) || ((monster.getTarget() != victim) && (!monster.hasAI() || (monster.getAI().getAttackTarget() != victim)))) { return List.of(); }
+			}
+			return recipients;
 		}
 
 		@Override
@@ -602,6 +619,18 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			if ((skill == null) || (skill.getLevel() != selected.skillLevel()))
 			{
 				return ActionOutcome.REJECTED;
+			}
+			if (PhantomCombatSkillSafety.supportsNpcAreaAggro(skill, _player.isTransformed()))
+			{
+				final List<WorldObject> recipients = npcAreaAggroTargets(skill, (Monster) target, actorSnapshot());
+				if (recipients.isEmpty()) { return ActionOutcome.REJECTED; }
+				if (!_player.checkDoCastConditions(skill) || !skill.checkCondition(_player, target, false)) { return ActionOutcome.UNAVAILABLE; }
+				_player.setTarget(target);
+				_player.setCurrentSkill(skill, false, false);
+				// Keep the exact unfiltered native recipient list: later entrants cannot acquire forced targets.
+				// Native cast launch still owns range/LOS, MP/items, reuse, effects and callback retirement.
+				_player.doCast(skill, _player, new ArrayList<>(recipients));
+				return ActionOutcome.ISSUED;
 			}
 			_player.setTarget(target);
 			if (!_player.checkDoCastConditions(skill))
