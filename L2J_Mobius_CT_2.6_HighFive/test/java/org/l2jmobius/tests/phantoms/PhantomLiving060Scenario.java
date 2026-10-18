@@ -69,6 +69,8 @@ final class PhantomLiving060Scenario
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		PhantomAssertions.assertTrue(java.util.Set.of(0, 10, 25, 44, 53).contains(classId), "Unsupported declared Living060 starter input.");
 		final boolean relocation = Boolean.getBoolean("phantom.test.livingRelocate060");
+		final boolean supply = Boolean.getBoolean("phantom.test.livingSupply060");
+		PhantomAssertions.assertTrue(!supply || !relocation && (classId == 0 || classId == 10), "Supply060 requires a separate declared Fighter or Human Mystic scene.");
 		PhantomAssertions.assertTrue(!relocation || classId == 0, "Relocation060 requires its separately declared Fighter input.");
 		final boolean mage = classId == 10 || classId == 25, dwarf = classId == 53, orc = classId == 44;
 		final var fixture = environment.createCampaign058Companion(context, mage ? 2 : 1);
@@ -92,6 +94,13 @@ final class PhantomLiving060Scenario
 			PhantomAssertions.assertEquals(classId, setup.getLearningClass().getId(), "INVALID_INPUT: premeasurement learning class differs from the declared main class.");
 			setup.getStat().setExp(setup.getStat().getExpForLevel(threshold) - 1); setup.getStat().setLevel((byte) (threshold - 1));
 			setup.setSp(classId == 10 ? 239 : mage ? 259 : dwarf ? 309 : orc ? 59 : 49); setup.rewardSkills();
+			if (supply)
+			{
+				setup.setSp(0);
+				PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, mage ? 2509 : 1835, 16, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial charges unavailable.");
+				PhantomAssertions.assertTrue(setup.getInventory().addItem(ItemProcessType.REWARD, 57, 10_000, null, PhantomLiving060Scenario.class) != null, "Supply060 finite initial funds unavailable.");
+				context.record("life060.supplyInput", "PREMEASUREMENT finite16 native compatible NG charges and10000 owned Adena; initial SP0; all later stock/funds changes through native combat and NPC purchase");
+			}
 			for (int itemId : mage ? new int[] {8, 24, 31} : new int[] {68, 24, 31})
 			{
 				final var item = setup.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, PhantomLiving060Scenario.class);
@@ -169,6 +178,7 @@ final class PhantomLiving060Scenario
 			final var sensor = player.getNativeWorkOwner().evidence();
 			final var baseline = sensor.snapshot();
 			final var relocationProof = relocation ? new PhantomRelocation060Input.Observation(initial.goal(), player, threshold) : null;
+			final var supplyProof = supply ? new PhantomSupply060Observation(profiles, id, player, baseline, mage ? 2509 : 1835) : null;
 			long tick = 0, nextReport = 0, completedAtCycle = -1;
 			long completedExp = -1, completedKills = -1, completedDamage = -1, completedEarnedExp = -1, completedEarnedSp = -1;
 			PhantomGoal completed = null;
@@ -181,11 +191,12 @@ final class PhantomLiving060Scenario
 				final var intent = journey.automaticIntent(id).orElse(null);
 				final var sample = sensor.snapshot();
 				if (relocationProof != null && relocationProof.advance(context, id, player, goals.load(id).orElseThrow().goal(), background, history, travel, sample, now)) { break; }
+				if (supplyProof != null && supplyProof.advance(context, player, sample, now)) { break; }
 				if (intent != null && intent.status() == PhantomGoalStatus.COMPLETED && completed == null)
 				{
 					completed = intent; completedAtCycle = sample.farmCycleSequence(); completedExp = player.getExp(); completedKills = sample.killSequence(); completedDamage = sample.damageSequence(); completedEarnedExp = sample.expGained(); completedEarnedSp = sample.spGained();
 				}
-				if (completed != null && sample.killSequence() > completedKills && sample.damageSequence() > completedDamage && sample.expGained() > completedEarnedExp && sample.spGained() > completedEarnedSp && player.getExp() > completedExp && player.getLevel() >= threshold) { break; }
+				if (!supply && completed != null && sample.killSequence() > completedKills && sample.damageSequence() > completedDamage && sample.expGained() > completedEarnedExp && sample.spGained() > completedEarnedSp && player.getExp() > completedExp && player.getLevel() >= threshold) { break; }
 				if (now >= nextReport)
 				{
 					System.out.println("LIFE060_COMPOSED class=" + classId + "; xyz=" + player.getX() + ',' + player.getY() + ',' + player.getZ() + "; level=" + player.getLevel() + "; EXP=" + player.getExp() + "; SP=" + player.getSp() + "; cycles=" + (sample.farmCycleSequence() - baseline.farmCycleSequence()) + "; intent=" + intent + "; runtime=" + engine.find(id) + "; travel=" + travel.reason(id));
@@ -196,6 +207,7 @@ final class PhantomLiving060Scenario
 			}
 			final var sample = sensor.snapshot();
 			if (relocationProof != null) { relocationProof.verify(context, player, sample); }
+			else if (supplyProof != null) { supplyProof.verify(context, player, sample); }
 			else
 			{
 				context.record("life060.result." + classId, "EXP=" + startExp + "->" + player.getExp() + "; SP input=" + startSp + "; SP current=" + player.getSp() + "; cycles=" + (sample.farmCycleSequence() - baseline.farmCycleSequence()) + "; completed=" + completed + "; cyclesAfterReturn=" + (completedAtCycle < 0 ? 0 : sample.farmCycleSequence() - completedAtCycle) + "; newKills=" + (sample.killSequence() - completedKills) + "; newDamage=" + (sample.damageSequence() - completedDamage) + "; postReturnEXP=" + completedExp + "->" + player.getExp() + "; postReturnEarnedEXP=" + (sample.expGained() - completedEarnedExp) + "; postReturnEarnedSP=" + (sample.spGained() - completedEarnedSp) + "; actualXYZ=" + player.getX() + ',' + player.getY() + ',' + player.getZ() + "; current root=" + goals.load(id));

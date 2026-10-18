@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<autonomousSupplyPolicy id="high-five-autonomous-supply-v1" version="1" enabled="true" lowWaterHits="3" targetHits="60" minimumAdenaReserve="500" retrySeconds="30" journeyMinutes="8" maximumProfiles="128" />
