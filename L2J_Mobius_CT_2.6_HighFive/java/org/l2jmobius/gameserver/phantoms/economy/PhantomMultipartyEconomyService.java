@@ -53,6 +53,7 @@ import org.l2jmobius.gameserver.network.holders.TradeList;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOffer.CounterpartyKind;
 import org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOffer.State;
@@ -83,7 +84,7 @@ public final class PhantomMultipartyEconomyService
 	private final PhantomEconomyReservationService _reservations;
 	private final PhantomEconomyOfferService _offers;
 	private final PhantomMaterializationService _materialization;
-	private final PhantomGoalStateStore _goals;
+	private final PhantomGoalStore _goals;
 	private final PhantomProfileRepository _profiles;
 	private final FaultInjector _faults;
 	private final ConcurrentHashMap<String, AutoCloseable> _observerLeases = new ConcurrentHashMap<>();
@@ -92,12 +93,12 @@ public final class PhantomMultipartyEconomyService
 	private final LongAdder _committed = new LongAdder();
 	private final LongAdder _inconsistent = new LongAdder();
 
-	public PhantomMultipartyEconomyService(PhantomEconomyPolicy policy, PhantomEconomyReservationService reservations, PhantomEconomyOfferService offers, PhantomMaterializationService materialization, PhantomGoalStateStore goals, PhantomProfileRepository profiles)
+	public PhantomMultipartyEconomyService(PhantomEconomyPolicy policy, PhantomEconomyReservationService reservations, PhantomEconomyOfferService offers, PhantomMaterializationService materialization, PhantomGoalStore goals, PhantomProfileRepository profiles)
 	{
 		this(policy, reservations, offers, materialization, goals, profiles, FaultInjector.none());
 	}
 
-	public PhantomMultipartyEconomyService(PhantomEconomyPolicy policy, PhantomEconomyReservationService reservations, PhantomEconomyOfferService offers, PhantomMaterializationService materialization, PhantomGoalStateStore goals, PhantomProfileRepository profiles, FaultInjector faults)
+	public PhantomMultipartyEconomyService(PhantomEconomyPolicy policy, PhantomEconomyReservationService reservations, PhantomEconomyOfferService offers, PhantomMaterializationService materialization, PhantomGoalStore goals, PhantomProfileRepository profiles, FaultInjector faults)
 	{
 		_policy = Objects.requireNonNull(policy);
 		_reservations = Objects.requireNonNull(reservations);
@@ -1205,7 +1206,7 @@ public final class PhantomMultipartyEconomyService
 		{
 			throw new IllegalStateException("Social economy Goal authority changed after canonical mutation.");
 		}
-		final PhantomGoal completed = new PhantomGoal(expected.goalId(), expected.goalType(), PhantomGoalStatus.COMPLETED, expected.subject(), expected.target(), expected.requiredAmount(), expected.requiredAmount(), expected.acquisitionMethod(), expected.validSources(), expected.selectedAnchor(), expected.purposeKey(), expected.priority(), expected.riskBudget(), expected.expenseBudget(), expected.deadlineEpochMillis(), expected.constraints(), "economy.social.committed", Math.addExact(expected.revision(), 1));
+		final PhantomGoal completed = new PhantomGoal(expected.goalId(), expected.goalType(), PhantomGoalStatus.COMPLETED, expected.subject(), expected.target(), expected.requiredAmount(), expected.requiredAmount(), expected.acquisitionMethod(), expected.validSources(), expected.selectedAnchor(), expected.purposeKey(), expected.priority(), expected.riskBudget(), expected.expenseBudget(), expected.deadlineEpochMillis(), expected.constraints(), "economy.social.committed", Math.addExact(expected.revision(), 1), expected.payloadText());
 		_goals.replace(profileId, stored.rowVersion(), completed);
 		_faults.inject(FaultPoint.AFTER_GOAL_WRITE);
 	}

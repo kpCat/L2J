@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards,[switch]$LivingRelocate,[switch]$LivingSupply,[switch]$SupplyGuards)
+param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards,[switch]$LivingRelocate,[switch]$LivingSupply,[switch]$SupplyGuards,[switch]$LivingOfflineStore,[switch]$SupplyReturnGuards)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -40,6 +40,8 @@ if ($LivingSupply) {
  if (!$Living -or $LivingRelocate) {throw 'Supply requires a separate declared living input'}
  $args059+='-Dphantom.test.livingSupply060=true'
 }
+if ($LivingOfflineStore) { if (!$LivingSupply -or !$Campaign060 -or $LivingClass -notin @(0,53) -or $LivingMage) {throw 'Offline store requires declared Fighter or Dwarf supply scene'}; $args059+='-Dphantom.test.livingOfflineStore060=true' }
+if ($SupplyReturnGuards) { if (!$SupplyGuards) {throw 'Native supply return control requires exact separate SupplyGuards input'}; $args059+='-Dphantom.test.supplyReturnGuards060=true' }
 if ($SupplyGuards) {
  if (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833 -or $Living -or $AutonomousLearning) {throw 'Supply contracts require exact separate060 mode/seed'}
  $args059+='-Dphantom.test.supplyGuards060=true'

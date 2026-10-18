@@ -23,6 +23,13 @@ final class PhantomSupply060Observation
 		final var codec = new PhantomGoalStateCodec();
 		PhantomAssertions.assertEquals(child, codec.decode(codec.encode(child)), "Supply child did not roundtrip the existing bounded Goal codec.");
 		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.bound(child, root), "Exact supply child lost its farm root.");
+		for (String family : java.util.List.of("private.store.buy", "manufacture.item"))
+		{
+			final var social = modelGoal(family, family, 0, binding.encode());
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.bound(social, root), "Exact paid supply dependency lost its farm binding: " + family);
+			PhantomAssertions.assertEquals(social, codec.decode(codec.encode(social)), "Paid supply binding did not survive the Goal codec.");
+		}
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.bound(modelGoal("trade.exchange", "trade.exchange", 0, binding.encode()), root), "Supply binding admitted unrelated direct trade.");
 		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.bound(child, modelGoal("farm.background", "farm.background", 4, null)), "Old child authorized a newer root revision.");
 		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.bound(child, modelGoal("private.store.buy", "private.store.buy", 3, null)), "Supply child authorized a different root family.");
 		PhantomAssertions.assertThrows(IllegalArgumentException.class, () -> org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding.parse(modelGoal("maintain.supplies", "supplies.autonomous", 0, binding.encode().replace("s1:", "s2:"))), "Unknown binding version accepted.");
@@ -89,9 +96,17 @@ final class PhantomSupply060Observation
 	private PhantomGoal _completed;
 	private PhantomCommerceReceipt _purchase;
 	private boolean _done;
+	private final PhantomOfflineSupply060Fixture _offline;
+	private final org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService _reservations;
+	private boolean _offlinePaid;
 
 	PhantomSupply060Observation(PhantomProfileRepository profiles, long profileId, Player player, PlayerNativeEvidence.Snapshot baseline, int itemId)
 	{
+		this(profiles, profileId, player, baseline, itemId, null, null);
+	}
+	PhantomSupply060Observation(PhantomProfileRepository profiles, long profileId, Player player, PlayerNativeEvidence.Snapshot baseline, int itemId, PhantomOfflineSupply060Fixture offline, org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService reservations)
+	{
+		_offline = offline; _reservations = reservations;
 		_profiles = profiles; _profileId = profileId; _itemId = itemId; _baseline = baseline; _startExp = player.getExp();
 		_lowWater = (long) (player.isMageClass() ? player.getActiveWeaponItem().getSpiritShotCount() : player.getActiveWeaponItem().getSoulShotCount()) * org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy.load(java.nio.file.Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml")).lowWaterHits();
 		_receipts = new PhantomCommerceReceiptStore(profiles);
@@ -118,18 +133,23 @@ final class PhantomSupply060Observation
 			PhantomAssertions.assertTrue(_earnedAt != 0 && player.getExp() > _startExp, "Supply was paid before the measured native earned farm event.");
 			PhantomAssertions.assertTrue(receipt.request().kind() == PhantomCommerceReceipt.OperationKind.BUY && receipt.request().itemId() == _itemId && receipt.request().amount() > 0 && receipt.before().primaryCount() - receipt.expectedAfter().primaryCount() == receipt.request().amount() && receipt.expectedAfter().secondaryCount() - receipt.before().secondaryCount() == receipt.request().count(), "Supply must preserve exact real NPC payment/item conservation.");
 		}
-		if (_completed == null && intent != null && intent.status() == PhantomGoalStatus.COMPLETED)
+		if (_offline != null && !_offlinePaid && intent != null && org.l2jmobius.gameserver.phantoms.commerce.PhantomOfflineSupply.returning(intent))
+		{
+			PhantomAssertions.assertTrue(_earnedAt != 0 && player.getExp() > _startExp, "Offline purchase preceded actual farm consumption/earned EXP.");
+			_offlinePaid = _offline.observePaid(context, _profileId, player, intent, _reservations);
+		}
+		if (_completed == null && intent != null && intent.status() == PhantomGoalStatus.COMPLETED && org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding.parse(intent).retryAfterEpochMillis() > 0)
 		{
 			_completed = intent; _returned = sample; _returnedExp = player.getExp(); _returnedStock = stock;
 			context.record("life060.supplyReturned", "intent=" + intent + "; stock=" + stock + "; actual XYZ=" + player.getX() + ',' + player.getY() + ',' + player.getZ());
 		}
-		_done = _purchase != null && _completed != null && sample.killSequence() > _returned.killSequence() && sample.damageSequence() > _returned.damageSequence() && sample.expGained() > _returned.expGained() && sample.spGained() > _returned.spGained() && player.getExp() > _returnedExp && stock < _returnedStock;
+		_done = (_offline == null ? _purchase != null : _offlinePaid) && _completed != null && sample.killSequence() > _returned.killSequence() && sample.damageSequence() > _returned.damageSequence() && sample.expGained() > _returned.expGained() && sample.spGained() > _returned.spGained() && player.getExp() > _returnedExp && stock < _returnedStock;
 		return _done;
 	}
 
 	void verify(PhantomTestContext context, Player player, PlayerNativeEvidence.Snapshot sample)
 	{
 		context.record("life060.supplyResult", "completed=" + _done + "; purchase=" + _purchase + "; returned=" + _completed + "; stockAtReturn=" + _returnedStock + "; currentStock=" + player.getInventory().getInventoryItemCount(_itemId, -1) + "; EXP=" + _startExp + "->" + player.getExp() + "; sample=" + sample);
-		PhantomAssertions.assertTrue(_done, "Production farm consumption -> paid compatible NPC restock -> return -> NEW kill/earned EXP/SP and purchased charge consumption did not complete.");
+		PhantomAssertions.assertTrue(_done, "Production farm consumption -> paid compatible restock -> return -> NEW kill/earned EXP/SP and purchased charge consumption did not complete.");
 	}
 }

@@ -441,13 +441,13 @@ public final class PhantomSystem
 				PhantomEconomyConflictPort.install(_economyReservations);
 				_economyOffers = new PhantomEconomyOfferService();
 				_economyService = new PhantomEconomyService(economyPolicy, _economyReservations, new PhantomEconomyBackgroundTransaction(_economyReservations, economyPolicy), _materializationService, acquisitionStore, productionGoals, productionProfiles);
-				_multipartyEconomyService = new PhantomMultipartyEconomyService(economyPolicy, _economyReservations, _economyOffers, _materializationService, productionGoals, productionProfiles);
+				final var commerceGoals = new PhantomSupplyIntentStore(productionProfiles, productionGoals);
+				_multipartyEconomyService = new PhantomMultipartyEconomyService(economyPolicy, _economyReservations, _economyOffers, _materializationService, commerceGoals, productionProfiles);
 				_multipartyEconomyService.reconcileStartup(System.currentTimeMillis());
 				_phantomStoreService = new PhantomStoreService(productionProfiles, _materializationService, () -> new PhantomPrivateMarketPricingAuthority(_gameKnowledgeService.query().snapshot(), _commerceService.catalog(), PhantomRateAwareLootFairValue.Rates.capture(), PhantomMarketConfig.policy().orElseThrow(), World.getInstance().getVisibleObjects()));
 				PhantomMarketConfig.autonomousPolicy().ifPresent(policy -> _autonomousMarketProducer = new PhantomAutonomousMarketProducer(_materializationService, _scheduler, _phantomStoreService, productionGoals, acquisitionStore, _economyReservations, () -> _decisionEngine, policy));
 				final PhantomCommerceCatalogLoader.LoadResult commerceCatalog = new PhantomCommerceCatalogLoader(ServerConfig.DATAPACK_ROOT.toPath()).load();
 				_commerceReceiptStore = new PhantomCommerceReceiptStore(productionProfiles);
-				final var commerceGoals = new PhantomSupplyIntentStore(productionProfiles, productionGoals);
 				_commerceService = new PhantomCommerceService(commerceCatalog, _commerceReceiptStore, commerceGoals, new L2jCommerceBackend(_materializationService, commerceCatalog.catalog(), Clock.systemDefaultZone()));
 				_economicAuditView = new PhantomEconomicAuditView(_economyReservations, _commerceReceiptStore);
 				if (!_commerceService.start())
@@ -677,6 +677,7 @@ public final class PhantomSystem
 				_learningJourney = new L2jPhantomLearningJourney(productionGoals, _materializationService, _progressionService, _navigationService, _gameKnowledgeService::query, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)));
 				_learningJourney.enableAutonomous(productionProfiles, _visibleAutoPlay::yieldAfterCurrentTarget, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
 				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), _visibleAutoPlay::yieldAfterCurrentTarget, _learningJourney::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
+				_supplyJourney.useOfflineSupply(_multipartyEconomyService);
 				_learningJourney.deferAutomaticWhen(_supplyJourney::needsOrOwns);
 				supplyLifecycleBridge.install(_supplyJourney);
 				if (!_learningJourney.start()) { throw new IllegalStateException("Phantom learning journey could not enter the running state."); }

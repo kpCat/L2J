@@ -51,7 +51,7 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 
 	public static boolean bound(PhantomGoal child, PhantomGoal root)
 	{
-		return child != null && PhantomCommerceDecision.MAINTAIN_SUPPLIES.equals(child.goalType()) && "supplies.autonomous".equals(child.purposeKey()) && root != null && root.status() == PhantomGoalStatus.ACTIVE && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
+		return supported(child) && root != null && root.status() == PhantomGoalStatus.ACTIVE && PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())
 			&& child.goalId() == root.goalId() && Objects.equals(child.subject(), root.subject()) && Binding.parse(child).rootRevision() == root.revision();
 	}
 
@@ -59,7 +59,7 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 	{
 		if (component.componentSchemaVersion() != 1) { throw new IllegalArgumentException("Unknown supply.intent component version."); }
 		final var goal = _codec.decode(component.payload());
-		if (!PhantomCommerceDecision.MAINTAIN_SUPPLIES.equals(goal.goalType()) || !"supplies.autonomous".equals(goal.purposeKey())) { throw new IllegalArgumentException("Unknown supply intent goal."); }
+		if (!supported(goal)) { throw new IllegalArgumentException("Unknown supply intent goal."); }
 		Binding.parse(goal);
 		return new StoredGoal(goal, component.rowVersion());
 	}
@@ -70,8 +70,25 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 		if (_roots.load(profileId).map(value -> PhantomBackgroundGoalSpec.GOAL_TYPE.equals(value.goal().goalType())).orElse(false)) { throw new IllegalStateException("Supply view cannot mutate a farm root."); }
 	}
 	@Override public StoredGoal insert(long profileId, PhantomGoal goal) { requireExplicit(profileId); return _roots.insert(profileId, goal); }
-	@Override public StoredGoal replace(long profileId, long expectedRowVersion, PhantomGoal goal) { requireExplicit(profileId); return _roots.replace(profileId, expectedRowVersion, goal); }
+	@Override public StoredGoal replace(long profileId, long expectedRowVersion, PhantomGoal goal)
+	{
+		final var root = _roots.load(profileId).orElse(null);
+		if (root == null || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goal().goalType())) { return _roots.replace(profileId, expectedRowVersion, goal); }
+		final var previous = load(profileId).orElseThrow(() -> new IllegalStateException("No active bound supply operation."));
+		final var old = previous.goal();
+		if (previous.rowVersion() != expectedRowVersion || !social(old) || goal.status() != PhantomGoalStatus.COMPLETED || goal.goalId() != old.goalId() || goal.revision() != Math.addExact(old.revision(), 1) || !Objects.equals(old.target(), goal.target()) || !Objects.equals(old.payloadText(), goal.payloadText()) || !old.goalType().equals(goal.goalType())) { throw new IllegalArgumentException("Supply operation completion authority changed."); }
+		return saveIntent(profileId, root.goal(), expectedRowVersion, goal);
+	}
 	@Override public void delete(long profileId, long expectedRowVersion) { requireExplicit(profileId); _roots.delete(profileId, expectedRowVersion); }
+
+	public static boolean social(PhantomGoal goal)
+	{
+		return goal != null && ("private.store.buy".equals(goal.goalType()) || "manufacture.item".equals(goal.goalType())) && goal.goalType().equals(goal.purposeKey());
+	}
+	private static boolean supported(PhantomGoal goal)
+	{
+		return goal != null && ((PhantomCommerceDecision.MAINTAIN_SUPPLIES.equals(goal.goalType()) && "supplies.autonomous".equals(goal.purposeKey())) || social(goal));
+	}
 
 	/** Small typed ownership context inside the existing versioned Goal codec; no second schema/AI. */
 	public record Binding(long rootRevision, int actorObjectId, int classId, int classIndex, int weaponObjectId, PhantomNavigationPoint field, long retryAfterEpochMillis)

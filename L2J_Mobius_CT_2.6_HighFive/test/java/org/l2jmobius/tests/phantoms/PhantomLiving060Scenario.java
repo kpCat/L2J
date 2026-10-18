@@ -75,6 +75,8 @@ final class PhantomLiving060Scenario
 		PhantomAssertions.assertTrue(java.util.Set.of(0, 10, 25, 44, 53).contains(classId), "Unsupported declared Living060 starter input.");
 		final boolean relocation = Boolean.getBoolean("phantom.test.livingRelocate060");
 		final boolean supply = Boolean.getBoolean("phantom.test.livingSupply060");
+		final boolean offlineStore = Boolean.getBoolean("phantom.test.livingOfflineStore060");
+		PhantomAssertions.assertTrue(!offlineStore || supply && (classId == 0 || classId == 53), "Offline supply requires a declared Fighter or Dwarf supply scene.");
 		PhantomAssertions.assertTrue(!supply || !relocation, "Supply060 requires a separately declared scene.");
 		PhantomAssertions.assertTrue(!relocation || classId == 0, "Relocation060 requires its separately declared Fighter input.");
 		final boolean mage = classId == 10 || classId == 25, dwarf = classId == 53, orc = classId == 44;
@@ -141,10 +143,23 @@ final class PhantomLiving060Scenario
 			}
 		}
 
+		final PhantomOfflineSupply060Fixture offlineFixture;
+		try { offlineFixture = offlineStore ? PhantomOfflineSupply060Fixture.create(context, environment, setup, knowledge) : null; }
+		catch (Throwable failure)
+		{
+			final var own = profiles.find(id).orElseThrow();
+			PhantomAssertions.assertEquals(fixture.objectId(), own.characterObjectId(), "Offline premeasurement profile ownership changed; cleanup refused.");
+			profiles.delete(id, own.rowVersion()); throw failure;
+		}
 		final var metrics = new PhantomMetrics();
 		final var lifecycle = new PhantomMaterializationLifecycleBridge();
 		final var materialization = new PhantomMaterializationService(profiles, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), 1, _ -> {}, lifecycle, 5_000, 10_000);
 		final var commerceGoals = new PhantomSupplyIntentStore(profiles, goals);
+		final var economyPolicy = org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPolicy.load(Path.of("data/phantoms/economy/high-five-economy-v1.xml"));
+		final var reservations = new org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService(economyPolicy);
+		PhantomAssertions.assertTrue(reservations.start(), "Living060 ordinary economy reservations did not start.");
+		org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort.install(reservations);
+		final var socialEconomy = new org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService(economyPolicy, reservations, new org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOfferService(), materialization, commerceGoals, profiles);
 		final var receipts = new PhantomCommerceReceiptStore(profiles);
 		final var commerceService = new PhantomCommerceService(commerceResult, receipts, commerceGoals, new L2jCommerceBackend(materialization, commerce, java.time.Clock.systemDefaultZone()));
 		final var background = new PhantomBackgroundService(profiles, goals, PhantomIdentityLeaseRegistry.getInstance(), transaction, authority, new PhantomBackgroundCompetitionRegistry(), signals(), () -> materialization);
@@ -157,6 +172,7 @@ final class PhantomLiving060Scenario
 		final var journey = new L2jPhantomLearningJourney(goals, materialization, progression, navigation, () -> knowledge, history::permitsDecision);
 		journey.enableAutonomous(profiles, autoPlay::yieldAfterCurrentTarget, PhantomAutonomousLearningPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-learning-v1.xml")));
 		final var supplies = new L2jPhantomSupplyJourney(commerceGoals, goals, materialization, commerceService, receipts, navigation, () -> knowledge, routes, history::permitsDecision, autoPlay::yieldAfterCurrentTarget, journey::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml")));
+		supplies.useOfflineSupply(socialEconomy);
 		journey.deferAutomaticWhen(supplies::needsOrOwns);
 		history.bindVisibleIntent((profileId, root) -> journey.ownsAutomaticIntent(profileId, root) || supplies.ownsAutomaticIntent(profileId, root));
 		lifecycle.install(PhantomMaterializationLifecyclePort.chain(supplies, PhantomMaterializationLifecyclePort.chain(PhantomMaterializationLifecyclePort.chain(history, background), PhantomMaterializationLifecyclePort.chain(autoPlay, travel))));
@@ -190,7 +206,7 @@ final class PhantomLiving060Scenario
 			final var sensor = player.getNativeWorkOwner().evidence();
 			final var baseline = sensor.snapshot();
 			final var relocationProof = relocation ? new PhantomRelocation060Input.Observation(initial.goal(), player, threshold, 200) : null;
-			final var supplyProof = supply ? new PhantomSupply060Observation(profiles, id, player, baseline, mage ? 2509 : 1835) : null;
+			final var supplyProof = supply ? new PhantomSupply060Observation(profiles, id, player, baseline, mage ? 2509 : 1835, offlineFixture, reservations) : null;
 			long tick = 0, nextReport = 0, completedAtCycle = -1;
 			long completedExp = -1, completedKills = -1, completedDamage = -1, completedEarnedExp = -1, completedEarnedSp = -1;
 			PhantomGoal completed = null;
@@ -231,10 +247,15 @@ final class PhantomLiving060Scenario
 		}
 		finally
 		{
+			if (supply && player != null) { context.record("life060.supplyNativeFinal", "intent=" + supplies.automaticIntent(id) + "; reason=" + supplies.reason(id) + "; actual=" + player.getX() + ',' + player.getY() + ',' + player.getZ()); }
 			engine.beginStop(); final long drain = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (engine.snapshot().state() != PhantomDecisionEngine.State.STOPPED && !engine.finishStop() && System.nanoTime() < drain) { Thread.sleep(20); }
 			autoPlay.stop(id); journey.beginStop(); journey.finishStop();
 			supplies.beginStop(); PhantomAssertions.assertTrue(supplies.finishStop(), "Living060 supply owner did not drain.");
 			commerceService.beginStop(); PhantomAssertions.assertTrue(commerceService.finishStop(), "Living060 commerce owner did not drain.");
+			PhantomAssertions.assertTrue(socialEconomy.shutdown(System.currentTimeMillis()).successful(), "Living060 native social economy did not drain.");
+			reservations.shutdown(System.currentTimeMillis());
+			org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyConflictPort.uninstall(reservations);
+			if (offlineFixture != null) { offlineFixture.close(); }
 			if (player != null) { player.abortAttack(); player.abortCast(); player.stopMove(null); player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE); }
 			for (var monster : monsters) { if (monster != null && monster.isSpawned()) { monster.deleteMe(); } }
 			navigation.beginStop(); while (navigation.snapshot().state() != PhantomNavigationService.ServiceState.STOPPED && !navigation.finishStop() && System.nanoTime() < drain) { Thread.sleep(20); }

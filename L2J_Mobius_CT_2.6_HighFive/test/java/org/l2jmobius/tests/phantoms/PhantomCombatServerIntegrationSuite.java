@@ -167,6 +167,8 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.knowledge.L2jGameKnowledgeBackend;
@@ -637,6 +639,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (Boolean.getBoolean("phantom.test.supplyGuards060"))
 			{
+				if (Boolean.getBoolean("phantom.test.supplyReturnGuards060")) { registry.add("21-native-paid-supply-return-corridor", this::testSupplyReturn060); return; }
 				registry.add("16-supply-bound-child-model", PhantomSupply060Observation::bindingModels);
 				registry.add("17-supply-policy-bounds", PhantomSupply060Observation::policyModels);
 				registry.add("18-native-npc-supply-source-readiness", context -> PhantomSupply060Observation.nativeSources(context, _query));
@@ -650,7 +653,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			if (Boolean.getBoolean("phantom.test.living060"))
 			{
 				final int classId = Integer.getInteger("phantom.test.livingClass060", Boolean.getBoolean("phantom.test.livingMage060") ? 25 : Boolean.getBoolean("phantom.test.livingDwarf060") ? 53 : 0);
-				registry.add(Boolean.getBoolean("phantom.test.livingSupply060") ? "15-production-farm-paid-npc-supply-and-farm" : Boolean.getBoolean("phantom.test.livingRelocate060") ? "11-production-earned-threshold-farm-relocation" : classId == 25 ? "07-production-mystic-farm-learning-and-farm" : classId == 53 ? "08-production-dwarf-farm-learning-and-farm" : classId == 10 ? "09-production-human-mystic-farm-learning-and-farm" : classId == 44 ? "10-production-orc-farm-learning-and-farm" : "06-production-fighter-farm-learning-and-farm", context ->
+				registry.add(Boolean.getBoolean("phantom.test.livingOfflineStore060") ? "20-production-farm-paid-offline-store-and-farm" : Boolean.getBoolean("phantom.test.livingSupply060") ? "15-production-farm-paid-npc-supply-and-farm" : Boolean.getBoolean("phantom.test.livingRelocate060") ? "11-production-earned-threshold-farm-relocation" : classId == 25 ? "07-production-mystic-farm-learning-and-farm" : classId == 53 ? "08-production-dwarf-farm-learning-and-farm" : classId == 10 ? "09-production-human-mystic-farm-learning-and-farm" : classId == 44 ? "10-production-orc-farm-learning-and-farm" : "06-production-fighter-farm-learning-and-farm", context ->
 					PhantomLiving060Scenario.run(context, _environment, _repository, _query, _topology, _progression, new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load(), classId));
 				return;
 			}
@@ -4175,6 +4178,65 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		finally
 		{
 			_player.getAI().setIntention(Intention.IDLE);
+		}
+	}
+
+	private void testSupplyReturn060(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		_player.setBaseClass(0); _player.setPlayerClass(0); _player.setLearningClass(_player.getPlayerClass()); _player.getStat().setLevel((byte) 5); _player.setSp(0);
+		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, null, this); _player.getInventory().equipItem(weapon);
+		_player.setRunning(); _player.standUp(); _player.setInvul(false); _player.refreshExpertisePenalty(); _player.refreshOverloaded();
+		placeInstanceInput058(_player, 115778, -177473, GeoEngine.getInstance().getHeight(115778, -177473, -880));
+		final var from = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player);
+		final var goals = new PhantomGoalStateStore(_repository);
+		PhantomAssertions.assertTrue(goals.load(_profile.profileId()).isEmpty(), "Return control refuses an existing root.");
+		final var anchor = _topology.findAnchor("generated.farm.ea72d768f3c8ec3d79c1a530.anchor").orElseThrow();
+		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", "20539"), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20539@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture.return.corridor", 1);
+		goals.insert(_profile.profileId(), root);
+		final var store = new org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore(_repository, goals);
+		final var field = new PhantomNavigationPoint(116731, -174686, -967, 0);
+		final var binding = new org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding(root.revision(), _player.getObjectId(), _player.getActiveClass(), _player.getClassIndex(), weapon.getObjectId(), field, 0);
+		final String key = _environment.observer().objectId() + ";0;" + org.l2jmobius.gameserver.services.PrivateStoreService.listingHash(_player.getSellList()) + ";0;696;B:" + weapon.getObjectId() + ":116:6:1835";
+		final var prepared = new PhantomGoal(root.goalId(), "private.store.buy", PhantomGoalStatus.COMPLETED, root.subject(), new PhantomDomainRef("economy.offer", key), 1, 1, null, List.of(), null, "private.store.buy", 700, 0, 696, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(8), Map.of(), "fixture.return.only", 1, binding.encode());
+		store.saveIntent(_profile.profileId(), root, -1, prepared);
+		final var loaded = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load();
+		final var receipts = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceiptStore(_repository);
+		final var commerce = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceService(loaded, receipts, store, new org.l2jmobius.gameserver.phantoms.commerce.L2jCommerceBackend(_materialization, loaded.catalog(), java.time.Clock.systemDefaultZone()));
+		final var policy = org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyPolicy.load(Path.of("data/phantoms/economy/high-five-economy-v1.xml"));
+		final var reservations = new org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyReservationService(policy); reservations.start();
+		final var social = new org.l2jmobius.gameserver.phantoms.economy.PhantomMultipartyEconomyService(policy, reservations, new org.l2jmobius.gameserver.phantoms.economy.PhantomEconomyOfferService(), _materialization, store, _repository);
+		final var navigation = new PhantomNavigationService(new PhantomMetrics());
+		final var routes = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), _topology);
+		final var journey = new org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney(store, goals, _materialization, commerce, receipts, navigation, () -> _query, routes, _ -> true, (_, _) -> true, (_, _) -> false, org.l2jmobius.gameserver.phantoms.commerce.PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml")));
+		journey.useOfflineSupply(social); navigation.start(); commerce.start(); journey.start();
+		final long exp = _player.getExp(), sp = _player.getSp(), adena = _player.getAdena();
+		context.record("supply060.returnInput", "PREMEASUREMENT prepared COMPLETED binding, return-only geometry control; no payment/autonomous choice/full life claim; from=" + from + "; captured field=" + field);
+		try
+		{
+			final var candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal();
+			final var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
+			final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(125); long sequence = 0;
+			while (System.nanoTime() < until && org.l2jmobius.gameserver.phantoms.commerce.PhantomOfflineSupply.returning(store.intent(_profile.profileId()).orElseThrow().goal()))
+			{
+				final var planning = new PhantomPlanningContext(_profile.profileId(), root, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), ++sequence);
+				final var candidate = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate();
+				PhantomAssertions.assertTrue(candidate != null, "Prepared return lost its owning candidate.");
+				final var plan = candidate.planFactory().create(planning);
+				handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, 1, sequence, System.nanoTime(), 1, () -> false));
+				Thread.sleep(100);
+			}
+			final var result = store.intent(_profile.profileId()).orElseThrow().goal();
+			context.record("supply060.nativeReturn", "result=" + result + "; reason=" + journey.reason(_profile.profileId()) + "; actual=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ());
+			PhantomAssertions.assertTrue(result.status() == PhantomGoalStatus.COMPLETED && org.l2jmobius.gameserver.phantoms.commerce.PhantomSupplyIntentStore.Binding.parse(result).retryAfterEpochMillis() > 0 && _player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius() + 1 && _player.calculateDistance3D(from.x(), from.y(), from.z()) > 1000, "Paid-return corridor did not finish ordinary native WALK: " + journey.reason(_profile.profileId()));
+			PhantomAssertions.assertTrue(_player.getExp() == exp && _player.getSp() == sp && _player.getAdena() == adena && receipts.find(_profile.profileId()).isEmpty() && reservations.findAudit(_profile.profileId(), 16).isEmpty(), "Return-only control created a reward/payment.");
+		}
+		finally
+		{
+			journey.beginStop(); journey.finishStop(); social.shutdown(System.currentTimeMillis()); reservations.shutdown(System.currentTimeMillis()); commerce.beginStop(); commerce.finishStop();
+			navigation.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (!navigation.finishStop() && System.nanoTime() < until) { Thread.sleep(20); }
+			final var child = _repository.findComponent(_profile.profileId(), "supply.intent").orElseThrow(); _repository.deleteComponent(_profile.profileId(), "supply.intent", child.rowVersion());
+			final var current = goals.load(_profile.profileId()).orElseThrow(); PhantomAssertions.assertEquals(root, current.goal(), "Return control root drift; cleanup refused."); goals.delete(_profile.profileId(), current.rowVersion());
 		}
 	}
 
