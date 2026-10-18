@@ -96,7 +96,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 				_deaths.compute(snapshot.profileId(), (key, previous) ->
 				{
 					if ((previous != null) && (previous.observation() != null)) { previous.observation().retire(); }
-					return new Death(snapshot.characterObjectId(), _clock.getAsLong(), new AtomicBoolean(), new AtomicBoolean(), nativeDeath, new AtomicLong(), new AtomicReference<>());
+					return new Death(snapshot.characterObjectId(), _clock.getAsLong(), new AtomicBoolean(), new AtomicBoolean(), nativeDeath, new AtomicLong(), new AtomicReference<>(), new AtomicReference<>("death.waiting_native_window"));
 				});
 			}
 		});
@@ -119,6 +119,8 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 			catch (RuntimeException exception)
 			{
 				// Keep the native death timestamp and retry on the next bounded pulse.
+				final String reason = "death.native_exception:" + exception.getClass().getName() + ":" + exception.getMessage();
+				entry.getValue().nativeReason().set(reason.substring(0, Math.min(256, reason.length())));
 			}
 		}
 	}
@@ -138,7 +140,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 				if ((observation == null) || (observation.epoch != snapshot.materializedAtNanos())
 					|| !observation.matches(player) || !observation.owner.nativeObservationHealthy()) { continue; }
 				// Loading a saved corpse emits no death event. Start at observation, without backdating or replacing a native timer.
-				_deaths.putIfAbsent(snapshot.profileId(), new Death(player.getObjectId(), now, new AtomicBoolean(), new AtomicBoolean(), observation, new AtomicLong(), new AtomicReference<>()));
+				_deaths.putIfAbsent(snapshot.profileId(), new Death(player.getObjectId(), now, new AtomicBoolean(), new AtomicBoolean(), observation, new AtomicLong(), new AtomicReference<>(), new AtomicReference<>("death.waiting_native_window")));
 			}
 			catch (RuntimeException exception)
 			{
@@ -186,6 +188,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 				return;
 			}
 			final var nativeResult = _background.recoverOrdinaryNativeCorpse(profileId, death.characterObjectId());
+			death.nativeReason().set(nativeResult.reason());
 			if (!nativeResult.successful())
 			{
 				if ("death.resurrected".equals(nativeResult.reason()))
@@ -266,6 +269,13 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 
 	public record Snapshot(boolean closing, int acceptedReconciliations, int runningReconciliations, int observedDeaths, String firstFailure) { }
 	public Snapshot snapshot() { return new Snapshot(_closing, _acceptedReconciliations.get(), _runningReconciliations.get(), _deaths.size(), _firstFailure.get()); }
+	/** Reads the last real owner attempt; does not sample a random town or invoke recovery. */
+	public java.util.Map<String, String> observation(long profileId)
+	{
+		final var death = _deaths.get(profileId);
+		return death == null ? java.util.Map.of() : java.util.Map.of("objectId", Integer.toString(death.characterObjectId()), "ageMillis", Long.toString(Math.max(0, _clock.getAsLong() - death.atNanos()) / 1_000_000),
+			"nativeReason", death.nativeReason().get(), "nativeRecovery", Boolean.toString(death.nativeRecovery().get()), "reconciling", Boolean.toString(death.reconciliation().get()));
+	}
 
 	@Override
 	public synchronized void close()
@@ -328,7 +338,7 @@ public final class PhantomOrdinaryDeathRecovery implements AutoCloseable
 		}
 	}
 	
-	private record Death(int characterObjectId, long atNanos, AtomicBoolean nativeRecovery, AtomicBoolean reconciliation, NativeDeath observation, AtomicLong deadline, AtomicReference<PhantomGoal> goal)
+	private record Death(int characterObjectId, long atNanos, AtomicBoolean nativeRecovery, AtomicBoolean reconciliation, NativeDeath observation, AtomicLong deadline, AtomicReference<PhantomGoal> goal, AtomicReference<String> nativeReason)
 	{
 	}
 }

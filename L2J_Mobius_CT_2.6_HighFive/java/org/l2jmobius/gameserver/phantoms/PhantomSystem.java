@@ -2279,6 +2279,11 @@ public final class PhantomSystem
 		if (configured == null || configured._state != State.RUNNING) { return Map.of(); }
 		final Map<String, String> result = new java.util.LinkedHashMap<>();
 		operatorM1TargetSnapshot(profileId).ifPresent(snapshot -> result.put("native", snapshot.toString()));
+		if (configured._ordinaryDeathRecovery != null)
+		{
+			result.put("recovery", configured._ordinaryDeathRecovery.observation(profileId).toString());
+			result.put("recovery.owner", configured._ordinaryDeathRecovery.snapshot().toString());
+		}
 		if (configured._decisionEngine != null) { result.put("decision", configured._decisionEngine.find(profileId).toString()); }
 		if (configured._learningJourney != null) { result.put("learning", configured._learningJourney.automaticIntent(profileId).toString()); }
 		if (configured._supplyJourney != null) { result.put("supply", configured._supplyJourney.automaticIntent(profileId).toString()); }
