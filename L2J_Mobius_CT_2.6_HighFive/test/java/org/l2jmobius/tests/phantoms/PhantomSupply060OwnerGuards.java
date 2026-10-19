@@ -140,6 +140,12 @@ final class PhantomSupply060OwnerGuards
 			final var planning = new PhantomPlanningContext(profileId, replacement, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
 			final var selected = new PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate();
 			PhantomAssertions.assertTrue(selected != null, "New root lost its supply offer.");
+			for (var activity : PhantomActivityState.values())
+			{
+				final var statePlanning = new PhantomPlanningContext(profileId, replacement, PhantomCapabilitySet.empty(), activity, System.nanoTime(), 2);
+				final boolean selectable = new PhantomUtilitySelector().select(candidates.snapshot(), statePlanning).candidate() != null;
+				PhantomAssertions.assertTrue(selectable == activity.requiresMaterialization(), "Supply native Decision admission disagrees with materialization state " + activity + ": selected=" + selectable);
+			}
 			final var plan = selected.planFactory().create(planning);
 			final var step = new PhantomStepContext(profileId, replacement, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
 			final var result = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);

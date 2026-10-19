@@ -198,7 +198,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 
 	public void registerCandidates(PhantomCandidateRegistry registry)
 	{
-		registry.register(new PhantomDecisionCandidate("candidate.autonomous.supplies", Set.of(PhantomBackgroundGoalSpec.GOAL_TYPE), Set.of(PhantomActivityState.ACTIVE), List.of(), List.of(new PhantomWeightedConsideration("score.autonomous.supplies", 1, context -> new PhantomConsideration.Evaluation(needsOrOwns(context.profileId(), context.goal()) ? 1000 : 0, "supplies.native.need"))), 1000,
+		registry.register(new PhantomDecisionCandidate("candidate.autonomous.supplies", Set.of(PhantomBackgroundGoalSpec.GOAL_TYPE), Set.copyOf(java.util.EnumSet.allOf(PhantomActivityState.class).stream().filter(PhantomActivityState::requiresMaterialization).toList()), List.of(), List.of(new PhantomWeightedConsideration("score.autonomous.supplies", 1, context -> new PhantomConsideration.Evaluation(needsOrOwns(context.profileId(), context.goal()) ? 1000 : 0, "supplies.native.need"))), 1000,
 			context -> new PhantomPlan(context.decisionSequence(), context.goal().goalId(), "candidate.autonomous.supplies", List.of(new PhantomPlanStep(0, ACTION, null, Map.of(), 60_000, 10, "supplies.native.advance")), 60_000, context.logicalNowNanos())));
 	}
 	public void registerHandlers(PhantomStepHandlerRegistry registry) { registry.register(ACTION, this::advance); }
