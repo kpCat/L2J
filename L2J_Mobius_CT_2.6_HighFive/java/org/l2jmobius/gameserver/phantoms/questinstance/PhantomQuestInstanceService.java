@@ -501,6 +501,11 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 			}
 			return terminal.result() == PhantomCombatResult.VICTORY ? progress("questinstance.combat.victory") : terminal.result() == PhantomCombatResult.CANCELLED ? new AdvanceResult(Status.CANCELLED, "questinstance.combat.cancelled") : retry("questinstance.combat.retry");
 		}
+		if (content.kind() == Kind.CLASS_PATH)
+		{
+			final var readiness = _backend.prepareCombat(profileId, content, step, observation.fingerprint());
+			if (readiness.status() != ActionStatus.IDEMPOTENT) { return retry(readiness.reasonKey()); }
+		}
 		final Target target = _backend.locate(profileId, content, step);
 		if (target == null)
 		{

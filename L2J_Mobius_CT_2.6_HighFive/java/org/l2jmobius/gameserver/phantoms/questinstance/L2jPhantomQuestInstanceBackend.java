@@ -287,6 +287,35 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 	}
 
 	@Override
+	public ActionResult prepareCombat(long profileId, Content content, Step step, String expectedFingerprint)
+	{
+		if (!current(content) || content.kind() != PhantomQuestInstanceCatalog.Kind.CLASS_PATH || step.operation() != Operation.COMBAT
+			|| !content.step(step.id()).filter(step::equals).isPresent()) { return result(ActionStatus.REJECTED, null, "questinstance.combat.unsupported"); }
+		try (ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (lease == null) { return result(ActionStatus.UNAVAILABLE, null, "questinstance.actor.unavailable"); }
+			final Player player = lease.player();
+			final Observation before = observe(player, content);
+			if (!before.fingerprint().equals(expectedFingerprint)) { return result(ActionStatus.STALE, before, "questinstance.combat.stale"); }
+			if (player.isAlikeDead() || player.isInParty() || player.isTeleporting() || player.isInStoreMode() || player.hasPendingOwnedStore()
+				|| player.getInstanceId() != 0 || player.isTransformed() || player.isMounted()) { return result(ActionStatus.UNAVAILABLE, before, "questinstance.combat.actor"); }
+			final boolean sitting = player.isSitting();
+			if (!sitting && player.getCurrentHp() >= player.getMaxHp() * 0.60) { return result(ActionStatus.IDEMPOTENT, before, "questinstance.combat.ready"); }
+			final boolean threatened = World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.Creature.class, 2000).stream()
+				.anyMatch(creature -> creature.isAttackable() && !creature.isAlikeDead() && creature.getInstanceId() == player.getInstanceId() && creature.getTarget() == player);
+			if (threatened || player.getCurrentHp() >= player.getMaxHp() * 0.80)
+			{
+				if (!sitting) { return result(ActionStatus.IDEMPOTENT, before, "questinstance.combat.ready"); }
+				player.standUp();
+				return result(ActionStatus.ISSUED, before, "questinstance.combat.native_stand_pending");
+			}
+			if (player.isInCombat() || player.isAttackingNow() || player.isCastingNow() || player.isMoving()) { return result(ActionStatus.UNAVAILABLE, before, "questinstance.combat.native_settle"); }
+			if (!sitting) { player.sitDown(); }
+			return result(ActionStatus.ISSUED, before, "questinstance.combat.native_rest");
+		}
+	}
+
+	@Override
 	public ActionResult move(long profileId, Content content, Step step, Target expectedTarget)
 	{
 		if (!current(content) || !content.step(step.id()).filter(step::equals).isPresent() || (expectedTarget == null) || !step.npcIds().contains(expectedTarget.npcId()))

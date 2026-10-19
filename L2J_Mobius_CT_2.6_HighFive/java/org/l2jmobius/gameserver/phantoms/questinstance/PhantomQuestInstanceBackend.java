@@ -29,6 +29,8 @@ public interface PhantomQuestInstanceBackend
 	default java.util.List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> walkApproaches(long profileId, Content content, Step step, Target target, double requiredDistance, int arrivalRadius) { return java.util.List.of(); }
 	default String travelEvidence(long profileId) { return ""; }
 	default void clearTravelEvidence() { }
+	/** Native resource preparation before a new class-path fight; never heals or changes quest state. */
+	default ActionResult prepareCombat(long profileId, Content content, Step step, String expectedFingerprint) { return new ActionResult(ActionStatus.IDEMPOTENT, null, "questinstance.combat.ready"); }
 
 	enum QuestStatus
 	{

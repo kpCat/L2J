@@ -244,6 +244,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("16a-native-career-finish-checkpoint061", this::careerFinishCheckpoint061);
 			registry.add("16a2-native-career-missing-return-weapon061", context -> careerFinishCheckpoint061(context, true));
 			registry.add("16b-native-accepted-career-cold-resume061", this::careerColdResume061);
+			registry.add("16c-native-career-rest-before-next-combat061", this::careerNativeRest061);
 			registry.add("17-native-career-combat-stock-drain061", this::careerCombatStop061);
 			return;
 		}
@@ -321,6 +322,32 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			if (completed.get().route() != null) { found = true; break; }
 		}
 		PhantomAssertions.assertTrue(found, "The observed Q401 field has no complete reverse native WALK corridor to any supported Simplon approach within existing bounds.");
+	}
+
+	private void careerNativeRest061(PhantomTestContext context) throws Exception
+	{
+		restartService();
+		preparePlayer(0, 0, 20);
+		final var home = _knowledge.query().snapshot().spawnFactsByNpc().getOrDefault(30253, List.of()).stream()
+			.filter(value -> value.instanceId() == 0 && value.pointKind() == SpawnPointKind.EXACT).findFirst().orElseThrow();
+		_player.decayMe(); _player.setXYZInvisible(home.x() + 64, home.y(), home.z()); _player.spawnMe(); _player.revalidateZone(true);
+		final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
+		quest.setState(org.l2jmobius.gameserver.model.script.State.STARTED); quest.setCond(2, false);
+		_player.setCurrentHp(_player.getMaxHp() * 0.4);
+		installGoal("class.warrior-q401", PhantomQuestInstanceService.CLASS_GOAL_TYPE);
+		final long exp = _player.getExp(), sp = _player.getSp(), adena = itemCount(57);
+		final double hp = _player.getCurrentHp();
+		advance(PhantomActivityState.BACKGROUND);
+		PhantomAssertions.assertFalse(_player.isSitting(), "BACKGROUND content invoked native rest.");
+		final var result = advance(PhantomActivityState.ACTIVE);
+		context.record("career061.rest.input", "Independent mechanism-only TEST: safe native Simplon; cond2/no collection grants; initial40%HP before measurement; natural regeneration only after advance; not full Q401.");
+		PhantomAssertions.assertTrue(result.reasonKey().equals("questinstance.combat.native_rest") && _player.isSitting(), "Career started another combat/navigation instead of native resource rest: " + result);
+		Thread.sleep(8_000);
+		PhantomAssertions.assertTrue(_player.getCurrentHp() > hp, "Stock seated regeneration did not recover native HP.");
+		PhantomAssertions.assertTrue(_combat.find(_profile.profileId()).isEmpty() && _player.getExp() == exp && _player.getSp() == sp && itemCount(57) == adena && quest.getCond() == 2, "Rest created combat/rewards/quest progress or currency changes.");
+		context.record("career061.rest", "actual stock sit; HP=" + hp + "->" + _player.getCurrentHp() + "; no combat/quest/EXP/SP/A changes; BACKGROUND refused");
+		_player.standUp();
+		await(() -> !_player.isSitting(), "Native rest cleanup did not finish its stock stand animation.");
 	}
 
 	private void fullCareer061(PhantomTestContext context) throws Exception
