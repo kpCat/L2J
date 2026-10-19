@@ -92,5 +92,35 @@ public final class RuntimeCampaign058GuardTest
 			}
 		}
 		System.out.println("TASK060_JAVA_OWNERSHIP_PASS=" + count060 + "; DB_WRITES=0; PROCESS_ACTIONS=0");
+		int count061 = 0;
+		for (String login : new String[] {"2106", "2141"})
+		{
+			final Path root061 = Path.of("D:/PhantomWorld/World-Career-061-candidate");
+			final String schema061 = "l2jmobiush5_phantom_release_061a";
+			final Properties next = new Properties(); next.putAll(owner);
+			next.setProperty("owner", "TASK061_CAMPAIGN"); next.setProperty("role", "RELEASE_CANDIDATE"); next.setProperty("schema", schema061); next.setProperty("runtimeRoot", root061.toString());
+			next.setProperty("layout", "LOGIN" + login); next.setProperty("clientLoginPort", login); next.setProperty("gamePort", "7841"); next.setProperty("controlPort", "9141");
+			RuntimeCampaign058Guard.validateIdentity(root061, schema061, next); count061++;
+			for (String variant : new String[] {"root", "schema", "role", "owner", "layout", "login", "game", "control"})
+			{
+				final Properties changed = new Properties(); changed.putAll(next); Path root = root061; String schema = schema061;
+				switch (variant)
+				{
+					case "root" -> root = RuntimeCampaign058Guard.RELEASE060_ROOT;
+					case "schema" -> schema = RuntimeCampaign058Guard.RELEASE060;
+					case "role" -> changed.setProperty("role", "CUMULATIVE_INTEGRATION");
+					case "owner" -> changed.setProperty("owner", "TASK060_CAMPAIGN");
+					case "layout" -> changed.setProperty("layout", "LOGIN2140");
+					case "login" -> changed.setProperty("clientLoginPort", login.equals("2106") ? "2141" : "2106");
+					case "game" -> changed.setProperty("gamePort", "7840");
+					case "control" -> changed.setProperty("controlPort", "9140");
+				}
+				boolean rejected = false;
+				try { RuntimeCampaign058Guard.validateIdentity(root, schema, changed); } catch (IllegalArgumentException expected) { rejected = true; }
+				if (!rejected) { throw new AssertionError("TASK061 layout negative failed: " + variant + '/' + login); }
+				count061++;
+			}
+		}
+		System.out.println("TASK061_JAVA_OWNERSHIP_PASS=" + count061 + "; DB_WRITES=0; PROCESS_ACTIONS=0");
 	}
 }

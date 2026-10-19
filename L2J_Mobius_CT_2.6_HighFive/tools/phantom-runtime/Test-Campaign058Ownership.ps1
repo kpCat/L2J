@@ -90,3 +90,28 @@ foreach ($login060 in @('2106','2140')) {
     }
 }
 Write-Output "TASK060_OWNERSHIP_PASS=$count060; DB_WRITES=0; PROCESS_ACTIONS=0"
+
+$count061=0
+foreach ($login061 in @('2106','2141')) {
+    $release061=@{version='1';owner='TASK061_CAMPAIGN';role='RELEASE_CANDIDATE';schema='l2jmobiush5_phantom_release_061a';runtimeRoot='D:\PhantomWorld\World-Career-061-candidate';layout=('LOGIN'+$login061);clientLoginPort=$login061;gamePort='7841';controlPort='9141'}
+    Assert-Campaign058Binding $release061.runtimeRoot $release061.schema $release061
+    $count061++
+    foreach ($variant061 in @('root','schema','role','owner','layout','login','game','control')) {
+        $changed061=$release061.Clone(); $root061=$release061.runtimeRoot; $schema061=$release061.schema
+        switch ($variant061) {
+            'root' {$root061='D:\PhantomWorld\Living-060-candidate'}
+            'schema' {$schema061='l2jmobiush5_phantom_release_060a'}
+            'role' {$changed061.role='CUMULATIVE_INTEGRATION'}
+            'owner' {$changed061.owner='TASK060_CAMPAIGN'}
+            'layout' {$changed061.layout='LOGIN2140'}
+            'login' {$changed061.clientLoginPort=$(if($login061 -ceq '2106'){'2141'}else{'2106'})}
+            'game' {$changed061.gamePort='7840'}
+            'control' {$changed061.controlPort='9140'}
+        }
+        $rejected061=$false
+        try {Assert-Campaign058Binding $root061 $schema061 $changed061} catch {$rejected061=$true}
+        if(!$rejected061){throw "TASK061 exact layout negative failed: $variant061/$login061"}
+        $count061++
+    }
+}
+Write-Output "TASK061_OWNERSHIP_PASS=$count061; DB_WRITES=0; PROCESS_ACTIONS=0"
