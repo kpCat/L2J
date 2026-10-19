@@ -225,6 +225,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("14-native-career-existing-goal-travel-deadline061", this::careerGoalTravelDeadline061);
 			registry.add("15-native-career-child-combat-plan-lifetime061", this::careerCombatLifetime061);
 			registry.add("16-native-warrior-owned-store-boundary061", this::careerClassStore061);
+			registry.add("16a-native-career-finish-checkpoint061", this::careerFinishCheckpoint061);
 			registry.add("16b-native-accepted-career-cold-resume061", this::careerColdResume061);
 			registry.add("17-native-career-combat-stock-drain061", this::careerCombatStop061);
 			return;
@@ -582,6 +583,42 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			rematerialize();
 			PhantomAssertions.assertTrue(_player.getActiveClass() == 1 && _player.getBaseClass() == 1 && _player.getSp() == sp && _player.getExp() == exp && itemCount(1145) == 0 && itemCount(8869) == coupons + 15, "SameDB native Warrior reload lost or duplicated earned state.");
 			context.record("career061.classStore", "secondary fixture nativeMaster->ownedprepare/nativeStore/finalize->sameDBreload; class1/base1;15coupons once; EXP/SP conserved; not ordinary B");
+		}
+	}
+
+	private void careerFinishCheckpoint061(PhantomTestContext context) throws Exception
+	{
+		rematerialize(); // Independent finish input after the real native master/store result in16.
+		final long id = _profile.profileId();
+		final var root = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore(_profiles).load(id).orElseThrow().goal();
+		final var original = _profiles.findComponent(id, "career.intent").orElseThrow();
+		_goals.store(id, root);
+		PhantomAssertions.assertTrue(_player.getActiveClass() == 1 && _player.getQuestState("Q00401_PathOfTheWarrior").isCompleted(), "Native finish input is not the earned Warrior result.");
+		final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry();
+		final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry();
+		final var decision = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision(_service);
+		decision.registerCandidates(candidates); candidates.seal(); decision.registerHandlers(handlers); handlers.seal();
+		final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(id, root, org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
+		final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning);
+		PhantomAssertions.assertTrue(selected.candidate() != null, "Native earned class has no production finish candidate.");
+		final var plan = selected.candidate().planFactory().create(planning);
+		final var step = plan.steps().getFirst();
+		final var stores = new java.util.concurrent.atomic.AtomicInteger();
+		final long exp = _player.getExp(), sp = _player.getSp();
+		try (var boundary = _player.attachOwnedStoreBoundary(new Player.OwnedStoreBoundary()
+		{
+			@Override public Player.OwnedStoreSnapshot beforeStore() { stores.incrementAndGet(); return null; }
+			@Override public void afterStore(boolean completed) { PhantomAssertions.assertTrue(completed, "Native finish store did not complete."); }
+		}))
+		{
+			final var result = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(id, root, plan, step, PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, () -> false));
+			context.record("career061.finishCheckpoint", "actualProductionHandler=" + result + ";nativeStores=" + stores.get());
+			PhantomAssertions.assertTrue(result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.SUCCESS && stores.get() == 1, "Production class finish cannot perform its own native checkpoint.");
+			PhantomAssertions.assertTrue(_player.getExp() == exp && _player.getSp() == sp, "Native finish changed earned EXP/SP.");
+		}
+		finally
+		{
+			final var row = _profiles.findComponent(id, "career.intent").orElseThrow(); _profiles.updateComponent(id, "career.intent", row.rowVersion(), 1, original.payload()); // Next independent cold fixture retains its declared ACTIVE child.
 		}
 	}
 
