@@ -83,6 +83,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		{
 			if (_state != State.NEW || _automatic != null) { throw new IllegalStateException("Autonomous career must be installed once before start."); }
 			_automatic = new PhantomAutonomousCareer(profiles, materialization, this, _catalog, _progression, pauseFarm, allowed, preference, policy);
+			_backend.avoidCombatArea(_automatic::avoidedCell);
 		}
 	}
 
@@ -96,7 +97,11 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 			&& (_automatic.owns(profileId, root) || _automatic.needsOrOwns(profileId, root));
 	}
 	public boolean needsOrOwnsAutonomousIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.needsOrOwns(profileId, root); }
-	public String autonomousTravelEvidence(long profileId) { return _backend.travelEvidence(profileId); }
+	public String autonomousTravelEvidence(long profileId)
+	{
+		final CombatOperation owned; synchronized (_monitor) { owned = _combats.get(profileId); }
+		return _backend.travelEvidence(profileId) + (owned == null ? "" : ";combat.step=" + owned.stepId() + ";npc=" + owned.npcId() + ";target=" + owned.targetObjectId() + ";cell=" + owned.cell() + ";session=" + _combat.find(profileId).orElse(null));
+	}
 	public Optional<PhantomGoal> autonomousIntent(long profileId) { return _automatic == null ? Optional.empty() : _automatic.intent(profileId); }
 	public Optional<Observation> autonomousObservation(long profileId)
 	{
@@ -122,8 +127,24 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	}
 
 	boolean hasOwnedWork(long profileId) { synchronized (_monitor) { return _travels.containsKey(profileId) || _combats.containsKey(profileId); } }
+	PhantomGoal currentRoot(long profileId) { return _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null); }
+	void finishAutonomousJourney(long profileId) { cleanup(profileId); }
 
-	@Override public void onPulse() { resumeAcceptedIntents(System.currentTimeMillis()); }
+	@Override public void onPulse()
+	{
+		if (_state == State.RUNNING && _automatic != null)
+		{
+			final Map<Long, CombatOperation> owned; synchronized (_monitor) { owned = Map.copyOf(_combats); }
+			for (var entry : owned.entrySet())
+			{
+				if (_combat.find(entry.getKey()).map(value -> value.result() == PhantomCombatResult.PLAYER_DEAD).orElse(false))
+				{
+					_automatic.observeUnsafe(entry.getKey(), new CombatFailure(PhantomCombatResult.PLAYER_DEAD, entry.getValue().cell(), entry.getValue().npcId()));
+				}
+			}
+		}
+		resumeAcceptedIntents(System.currentTimeMillis());
+	}
 	@Override public Set<Long> acceptedProfiles() { synchronized (_monitor) { return Set.copyOf(_signalSequences.keySet()); } }
 	@Override public boolean requiresNativeContext(long profileId, long rootId, long rootRevision)
 	{
@@ -136,6 +157,15 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	@Override public void beforeStore(long profileId, org.l2jmobius.gameserver.model.actor.Player player)
 	{
 		final var root = _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		final CombatOperation owned; synchronized (_monitor) { owned = _combats.get(profileId); }
+		if (_automatic != null && root != null && owned != null)
+		{
+			final var session = _combat.find(profileId).orElse(null);
+			if (session != null && (unsafe(session.result()) || session.phase() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPhase.RETREATING))
+			{
+				_automatic.recordUnsafe(profileId, root, player, new CombatFailure(unsafe(session.result()) ? session.result() : PhantomCombatResult.LOW_HP_STOPPED, owned.cell(), owned.npcId()));
+			}
+		}
 		if (_automatic != null && root != null) { _automatic.pause(profileId, root, player); }
 		cleanup(profileId);
 	}
@@ -303,7 +333,39 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		{
 			_combats.remove(profileId, owned);
 		}
-		return terminal.result() == PhantomCombatResult.VICTORY ? progress("questinstance.combat.victory") : terminal.result() == PhantomCombatResult.CANCELLED ? new AdvanceResult(Status.CANCELLED, "questinstance.combat.cancelled") : retry("questinstance.combat.retry");
+		return combatOutcome(owned, terminal.result());
+	}
+
+	private static boolean unsafe(PhantomCombatResult result)
+	{
+		return result == PhantomCombatResult.PLAYER_DEAD || result == PhantomCombatResult.LOW_HP_STOPPED || result == PhantomCombatResult.TIMEOUT || result == PhantomCombatResult.TARGET_LOST || result == PhantomCombatResult.UNSUPPORTED_LOADOUT;
+	}
+
+	private static AdvanceResult combatOutcome(CombatOperation owned, PhantomCombatResult result)
+	{
+		return result.victory() ? progress("questinstance.combat.victory") : result == PhantomCombatResult.CANCELLED ? new AdvanceResult(Status.CANCELLED, "questinstance.combat.cancelled")
+			: new AdvanceResult(Status.RETRY, "questinstance.combat." + result.name().toLowerCase(java.util.Locale.ROOT), unsafe(result) ? new CombatFailure(result, owned.cell(), owned.npcId()) : null);
+	}
+
+	/** An unsafe career returns through the existing journey adapter, settling its combat first. */
+	AdvanceResult prepareReturn(long profileId, PhantomGoal root, PhantomGoal intent, PhantomCancellationToken token)
+	{
+		if (!reserve(profileId)) { return retry("questinstance.operation.busy"); }
+		try
+		{
+			if (token.isCancelled() || validChild(profileId, root, intent) == null || _automatic == null || !_automatic.permitsOwnedCombat(profileId, root, intent)) { return new AdvanceResult(Status.CANCELLED, "career.native.preparation_owner_pending"); }
+			final Content content = _catalog.content(intent.target().key()).orElseThrow();
+			final var settlement = settleOwnedCombat(profileId, content);
+			if (settlement != null) { return settlement.status() == Status.CANCELLED ? retry("career.native.previous_combat_settled") : settlement; }
+			final var actor = _backend.observe(profileId, content);
+			if (actor == null || actor.dead()) { return retry("career.native.recovery_pending"); }
+			final var pursuer = _combat.observeNativePursuer(profileId).orElse(null);
+			if (pursuer == null) { return null; }
+			cancelTravel(profileId);
+			return startCombat(profileId, content, "preparation.retreat", pursuer.objectId(), pursuer.npcId(), actor,
+				() -> token.isCancelled() || _state != State.RUNNING || _automatic == null || !_automatic.permitsOwnedCombat(profileId, root, intent), true);
+		}
+		finally { release(profileId); }
 	}
 
 	private AdvanceResult q102(long profileId, Content content, Observation observation, long now, PhantomCancellationToken token)
@@ -361,9 +423,9 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 			{
 				cancelTravel(profileId);
 				final var readiness = _backend.prepareCombat(profileId, content, content.step("collect.skeleton").orElseThrow(), observation.fingerprint());
-				if ("questinstance.combat.retreat_required".equals(readiness.reasonKey())) { return startCombat(profileId, content, "travel.retreat", pursuer.objectId(), token, true); }
+				if ("questinstance.combat.retreat_required".equals(readiness.reasonKey())) { return startCombat(profileId, content, "travel.retreat", pursuer.objectId(), pursuer.npcId(), observation, token, true); }
 				if (readiness.status() != ActionStatus.IDEMPOTENT) { return retry(readiness.reasonKey()); }
-				return startCombat(profileId, content, "travel.defense", pursuer.objectId(), token);
+				return startCombat(profileId, content, "travel.defense", pursuer.objectId(), pursuer.npcId(), observation, token, false);
 			}
 		}
 		return switch (observation.quest().status())
@@ -539,7 +601,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 			{
 				_combats.remove(profileId, owned);
 			}
-			return terminal.result() == PhantomCombatResult.VICTORY ? progress("questinstance.combat.victory") : terminal.result() == PhantomCombatResult.CANCELLED ? new AdvanceResult(Status.CANCELLED, "questinstance.combat.cancelled") : retry("questinstance.combat.retry");
+			return combatOutcome(owned, terminal.result());
 		}
 		if (content.kind() == Kind.CLASS_PATH)
 		{
@@ -560,15 +622,10 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		{
 			return retry("questinstance.combat.target_pending");
 		}
-		return startCombat(profileId, content, step.id(), target.objectId(), token);
+		return startCombat(profileId, content, step.id(), target.objectId(), target.npcId(), observation, token, false);
 	}
 
-	private AdvanceResult startCombat(long profileId, Content content, String stepId, int targetObjectId, PhantomCancellationToken token)
-	{
-		return startCombat(profileId, content, stepId, targetObjectId, token, false);
-	}
-
-	private AdvanceResult startCombat(long profileId, Content content, String stepId, int targetObjectId, PhantomCancellationToken token, boolean retreat)
+	private AdvanceResult startCombat(long profileId, Content content, String stepId, int targetObjectId, int npcId, Observation observation, PhantomCancellationToken token, boolean retreat)
 	{
 		final String owner = combatOwner(content);
 		final var request = new PhantomCombatRequest(profileId, targetObjectId, PhantomCombatMode.MELEE_PHYSICAL, !retreat, false, COMBAT_TIMEOUT_MILLIS, token);
@@ -582,7 +639,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 					_combat.cancel(profileId);
 					return retry("questinstance.operation.capacity");
 				}
-				_combats.put(profileId, new CombatOperation(content.id(), stepId, targetObjectId));
+				_combats.put(profileId, new CombatOperation(content.id(), stepId, targetObjectId, npcId, PhantomAutonomousCareer.cell(observation.x(), observation.y())));
 			}
 			return progress("questinstance.combat.started");
 		}
@@ -987,8 +1044,10 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		CANCELLED
 	}
 
-	public record AdvanceResult(Status status, String reasonKey)
+	public record CombatFailure(PhantomCombatResult result, long cell, int npcId) { }
+	public record AdvanceResult(Status status, String reasonKey, CombatFailure combatFailure)
 	{
+		public AdvanceResult(Status status, String reasonKey) { this(status, reasonKey, null); }
 		public AdvanceResult
 		{
 			Objects.requireNonNull(status, "status");
@@ -1028,7 +1087,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		private Travel withStage(int replacement) { return new Travel(contentId, stepId, target, origin, requestId, List.of(), 0, mode, plan, replacement, destinations, destinationIndex); }
 	}
 
-	private record CombatOperation(String contentId, String stepId, int targetObjectId)
+	private record CombatOperation(String contentId, String stepId, int targetObjectId, int npcId, long cell)
 	{
 	}
 }

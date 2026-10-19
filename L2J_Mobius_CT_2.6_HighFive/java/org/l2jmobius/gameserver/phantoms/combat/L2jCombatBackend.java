@@ -106,12 +106,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	public static boolean useOwnedHealingPotion(Player player)
 	{
 		if (player == null || player.isAlikeDead() || player.isTeleporting() || player.getEffectList().getBuffs().stream().anyMatch(info -> info.getSkill().isHealingPotionSkill())) { return false; }
-		final var candidates = player.getInventory().getItems().stream().filter(item -> item.getCount() > 0 && item.getOwnerId() == player.getObjectId() && item.getItemLocation() == ItemLocation.INVENTORY
-			&& item.getEtcItem() != null && "ItemSkills".equals(item.getEtcItem().getHandlerName()) && item.getTemplate().getSkills() != null
-			&& java.util.Arrays.stream(item.getTemplate().getSkills()).allMatch(holder -> holder.getSkillLevel() > 0 && holder.getSkillLevel() <= org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getMaxLevel(holder.getSkillId()))
-			&& java.util.Arrays.stream(item.getTemplate().getSkills()).anyMatch(holder -> holder.getSkill() != null && holder.getSkill().isHealingPotionSkill()))
-			.sorted(Comparator.comparingInt((Item item) -> java.util.Arrays.stream(item.getTemplate().getSkills()).map(SkillHolder::getSkill).filter(Objects::nonNull).filter(Skill::isHealingPotionSkill).mapToInt(Skill::getAbnormalLevel).max().orElse(0)).reversed().thenComparingInt(Item::getId)).limit(32).toList();
-		for (var item : candidates)
+		for (var item : ownedHealingPotions(player))
 		{
 			final var skill = java.util.Arrays.stream(item.getTemplate().getSkills()).map(SkillHolder::getSkill).filter(Objects::nonNull).filter(Skill::isHealingPotionSkill).findFirst().orElseThrow();
 			if (player.getItemRemainingReuseTime(item.getObjectId()) > 0 || player.getReuseDelayOnGroup(item.getSharedReuseGroup()) > 0 || player.getSkillRemainingReuseTime(skill.getReuseHashCode()) > 0
@@ -125,6 +120,20 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			if (used) { return false; }
 		}
 		return false;
+	}
+
+	public static long ownedHealingStock(Player player)
+	{
+		return ownedHealingPotions(player).stream().mapToLong(item -> Math.min(31, item.getCount())).sum();
+	}
+
+	private static List<Item> ownedHealingPotions(Player player)
+	{
+		return player.getInventory().getItems().stream().filter(item -> item.getCount() > 0 && item.getOwnerId() == player.getObjectId() && item.getItemLocation() == ItemLocation.INVENTORY
+			&& item.getEtcItem() != null && "ItemSkills".equals(item.getEtcItem().getHandlerName()) && item.getTemplate().getSkills() != null
+			&& java.util.Arrays.stream(item.getTemplate().getSkills()).allMatch(holder -> holder.getSkillLevel() > 0 && holder.getSkillLevel() <= org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getMaxLevel(holder.getSkillId()))
+			&& java.util.Arrays.stream(item.getTemplate().getSkills()).anyMatch(holder -> holder.getSkill() != null && holder.getSkill().isHealingPotionSkill()))
+			.sorted(Comparator.comparingInt((Item item) -> java.util.Arrays.stream(item.getTemplate().getSkills()).map(SkillHolder::getSkill).filter(Objects::nonNull).filter(Skill::isHealingPotionSkill).mapToInt(Skill::getAbnormalLevel).max().orElse(0)).reversed().thenComparingInt(Item::getId)).limit(32).toList();
 	}
 
 	private static final int MAXIMUM_ACQUISITION_DISTANCE = 2000;

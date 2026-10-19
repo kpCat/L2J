@@ -51,6 +51,8 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 	private final PhantomQuestInstanceCatalog _catalog;
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledge;
 	private final Map<Long, String> _travelEvidence = new java.util.LinkedHashMap<>();
+	private java.util.function.ToLongBiFunction<Long, String> _avoidedCell = (_, _) -> Long.MIN_VALUE;
+	@Override public void avoidCombatArea(java.util.function.ToLongBiFunction<Long, String> areas) { _avoidedCell = Objects.requireNonNull(areas); }
 
 	public L2jPhantomQuestInstanceBackend(PhantomMaterializationService materialization, PhantomQuestInstanceCatalog catalog, Supplier<PhantomGameKnowledgeQuery> knowledge)
 	{
@@ -186,10 +188,15 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 		try (ActionLease lease = acquired.orElseThrow())
 		{
 			final Player player = lease.player();
+			final boolean careerCombat = content.kind() == PhantomQuestInstanceCatalog.Kind.CLASS_PATH && step.operation() == Operation.COMBAT;
+			final long avoided = careerCombat ? _avoidedCell.applyAsLong(profileId, content.id()) : Long.MIN_VALUE;
+			final var localMonsters = careerCombat ? World.getInstance().getVisibleObjectsInRange(player, Monster.class, 2000) : List.<Monster>of();
 			final Npc nearby = World.getInstance().getVisibleObjects(player, Npc.class).stream()
 				.filter(npc -> step.npcIds().contains(npc.getId()) && (npc.getInstanceId() == player.getInstanceId()) && npc.isSpawned() && !npc.isAlikeDead() && ((step.operation() != Operation.COMBAT) || (npc instanceof Monster)))
 				.filter(npc -> nativeQuestTargetUsable(player, content, step, npc))
-				.min(Comparator.comparingDouble((Npc npc) -> player.calculateDistance3D(npc)).thenComparingInt(Npc::getObjectId)).orElse(null);
+				.filter(npc -> !careerCombat || PhantomAutonomousCareer.cell(npc.getX(), npc.getY()) != avoided && combatAreaDanger(player, npc.getX(), npc.getY(), npc.getZ(), npc, localMonsters) < 10_000)
+				.min(Comparator.comparingInt((Npc npc) -> careerCombat ? npc.getLevel() + combatAreaDanger(player, npc.getX(), npc.getY(), npc.getZ(), npc, localMonsters) : 0)
+					.thenComparingDouble(npc -> player.calculateDistance3D(npc)).thenComparingInt(Npc::getObjectId)).orElse(null);
 			if (nearby != null)
 			{
 				return target(player, nearby, content);
@@ -210,11 +217,25 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 				final List<SpawnFact> sources = (content.kind() == PhantomQuestInstanceCatalog.Kind.CLASS_PATH) && (step.operation() == Operation.COMBAT)
 					? knowledge.snapshot().spawnFactsByNpc().getOrDefault(npcId, List.of())
 					: knowledge.spawnFacts(npcId, PageRequest.first(SPAWN_FACT_LIMIT)).values();
-				facts.addAll(sources.stream().filter(fact -> (fact.instanceId() == 0) && (fact.amount() > 0)).toList());
+				facts.addAll(sources.stream().filter(fact -> (fact.instanceId() == 0) && (fact.amount() > 0))
+					.filter(fact -> !careerCombat || PhantomAutonomousCareer.cell(fact.x(), fact.y()) != avoided && combatAreaDanger(player, fact.x(), fact.y(), fact.z(), null, localMonsters) < 10_000).toList());
 			}
 			final SpawnFact fact = facts.stream().min(Comparator.comparingDouble((SpawnFact value) -> player.calculateDistance3D(value.x(), value.y(), value.z())).thenComparing(SpawnFact::stableKey)).orElse(null);
 			return fact == null ? null : new Target(0, fact.npcId(), fact.x(), fact.y(), fact.z(), fact.instanceId(), player.calculateDistance3D(fact.x(), fact.y(), fact.z()), false);
 		}
+	}
+
+	private static int combatAreaDanger(Player player, int x, int y, int z, Npc target, List<Monster> nearby)
+	{
+		int danger = 0;
+		for (var other : nearby)
+		{
+			if (other == target || other.isAlikeDead() || other.getInstanceId() != player.getInstanceId() || Math.abs((long) other.getZ() - z) > 256) { continue; }
+			final double distance = Math.hypot((long) other.getX() - x, (long) other.getY() - y);
+			if (distance < Math.max(500, other.getAggroRange() + 100) && other.getLevel() > player.getLevel() + 5) { return 10_000; }
+			if (distance < Math.max(300, other.getTemplate().getClanHelpRange()) && (other.isAggressive() || target != null && target.isInMyClan(other))) { danger += 2; }
+		}
+		return danger;
 	}
 
 	/** Read the audited quest's native per-monster eligibility; never repair its flags or quest state. */
@@ -320,10 +341,13 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 			if (player.isAlikeDead() || player.isInParty() || player.isTeleporting() || player.isInStoreMode() || player.hasPendingOwnedStore()
 				|| player.getInstanceId() != 0 || player.isTransformed() || player.isMounted()) { return result(ActionStatus.UNAVAILABLE, before, "questinstance.combat.actor"); }
 			final boolean sitting = player.isSitting();
-			if (!sitting && player.getCurrentHp() >= player.getMaxHp() * 0.60) { return result(ActionStatus.IDEMPOTENT, before, "questinstance.combat.ready"); }
+			final double castCost = player.getAllSkills().stream().filter(skill -> org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supports(skill, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, player.isTransformed()))
+				.mapToDouble(skill -> player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill)).filter(value -> value > 0).min().orElse(0);
+			final boolean manaReady = player.getCurrentMp() >= Math.min(player.getMaxMp(), castCost * (sitting ? 4 : 2));
+			if (!sitting && player.getCurrentHp() >= player.getMaxHp() * 0.60 && manaReady) { return result(ActionStatus.IDEMPOTENT, before, "questinstance.combat.ready"); }
 			final boolean threatened = World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.Creature.class, 2000).stream()
 				.anyMatch(creature -> creature.isAttackable() && !creature.isAlikeDead() && creature.getInstanceId() == player.getInstanceId() && creature.getTarget() == player);
-			if (threatened || player.getCurrentHp() >= player.getMaxHp() * 0.80)
+			if (threatened || player.getCurrentHp() >= player.getMaxHp() * 0.80 && manaReady)
 			{
 				if (!sitting) { return threatened ? result(ActionStatus.UNAVAILABLE, before, "questinstance.combat.retreat_required") : result(ActionStatus.IDEMPOTENT, before, "questinstance.combat.ready"); }
 				player.standUp();

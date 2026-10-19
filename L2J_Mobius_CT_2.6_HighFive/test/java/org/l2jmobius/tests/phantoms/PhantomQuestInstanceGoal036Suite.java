@@ -225,6 +225,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("16d-native-career-defends-observed-pursuer061", this::careerNativeDefense061);
 			registry.add("16h-native-career-owned-retreat061", this::careerNativeRetreat061);
 			registry.add("16i-native-pve-walk-segment-excludes-new-threat061", this::careerNativeSegment061);
+			registry.add("16j-native-career-retains-unsafe-attempt-and-requires-preparation061", this::careerNativePreparation061);
 			registry.add("16g-native-career-rejects-spoiled-quest-target061", this::careerSpoiledTarget061);
 			return;
 		}
@@ -420,6 +421,54 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			context.record("career061.defense.observed", "hp=" + hp + "->" + _player.getCurrentHp() + ";dead=" + _player.isDead() + ";invul=" + _player.isInvul() + ";attackBy=" + _player.getAttackByList() + ";pursuerDead=" + pursuer.isDead() + ";pursuerIntention=" + pursuer.getAI().getIntention());
 			pursuer.deleteMe();
 		}
+	}
+
+	private void careerNativePreparation061(PhantomTestContext context) throws Exception
+	{
+		restartService(); preparePlayer(0, 0, 19); ensureWeapon(2499); ensureWeapon(68);
+		final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
+		quest.setState(org.l2jmobius.gameserver.model.script.State.STARTED); quest.setCond(2, false);
+		final PhantomGoal root = new PhantomGoal(++_goalId, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_normalWorldCombatPoint.npcId())), 1, 0, "background.farm", List.of(), null, "farm.background", 500, 0, 0, 0, Map.of(), "career061.preparation_contract", 1);
+		_goals.store(_profile.profileId(), root);
+		final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry();
+		final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry();
+		final var decision = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision(_service);
+		decision.registerCandidates(candidates); candidates.seal(); decision.registerHandlers(handlers); handlers.seal();
+		final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root, org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
+		final var selector = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector();
+		final var selected = selector.select(candidates.snapshot(), planning);
+		PhantomAssertions.assertTrue(selected.candidate() != null, "Preparation input has no ordinary career producer.");
+		final var plan = selected.candidate().planFactory().create(planning); final var step = plan.steps().getFirst();
+		final var execution = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, step, PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, NOT_CANCELLED);
+		final var pursuer = spawnMonster(20001);
+		final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(pursuer.getTemplate()); spawn.setXYZ(pursuer.getX(), pursuer.getY(), pursuer.getZ()); pursuer.setSpawn(spawn);
+		_player.setCurrentHp(_player.getMaxHp() * 0.55); _player.setInvul(false);
+		final double hp = _player.getCurrentHp();
+		pursuer.addDamageHate(_player, 0, 100); pursuer.setTarget(_player); pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player);
+		try
+		{
+			await(() -> _player.getCurrentHp() < hp, "Preparation contract has no real native threat.");
+			final long exp = _player.getExp(), sp = _player.getSp();
+			handlers.snapshot().get(step.actionKey()).execute(execution);
+			PhantomAssertions.assertTrue(_combat.find(_profile.profileId()).isPresent(), "Low-health career did not own its native escape.");
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(35);
+			while (_combat.find(_profile.profileId()).map(value -> !value.result().terminal()).orElse(false) && System.nanoTime() < deadline) { Thread.sleep(25); }
+			handlers.snapshot().get(step.actionKey()).execute(execution);
+			final var intent = _service.autonomousIntent(_profile.profileId()).orElseThrow();
+			PhantomAssertions.assertTrue(intent.constraints().containsKey("risk.cell") && intent.constraints().containsKey("risk.preparation") && (intent.constraints().getOrDefault("risk.history", 0L) & 255) == 1, "Unsafe native attempt disappeared instead of persisting in its existing career owner: " + intent);
+			restartService();
+			final var reloaded = _service.autonomousIntent(_profile.profileId()).orElseThrow();
+			PhantomAssertions.assertEquals(intent, reloaded, "Career restart discarded the unsafe region/preparation witness.");
+			PhantomAssertions.assertTrue(_goals.load(_profile.profileId()).orElseThrow().goal().equals(root) && _player.getExp() == exp && _player.getSp() == sp && quest.getCond() == 2 && itemCount(1140) == 0, "Unsafe-attempt memory rewrote native quest/root/earned resources.");
+			final var nextRoot = new PhantomGoal(root.goalId(), root.goalType(), root.status(), root.subject(), root.target(), root.requiredAmount(), root.currentAmount(), root.acquisitionMethod(), root.validSources(), root.selectedAnchor(), root.purposeKey(), root.priority(), root.riskBudget(), root.expenseBudget(), root.deadlineEpochMillis(), root.constraints(), "career061.preparation_next_root", root.revision() + 1);
+			_goals.store(_profile.profileId(), nextRoot);
+			PhantomAssertions.assertFalse(_service.needsOrOwnsAutonomousIntent(_profile.profileId(), nextRoot), "A fresh farm revision bypassed the unchanged-preparation guard.");
+			await(() -> !_player.isInCombat() && !_player.isAttackingNow() && !_player.isCastingNow(), "Native preparation equip did not leave combat.");
+			final var equipped = _progression.equipOwnedItem(new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipItemRequest(_profile.profileId(), _player.getInventory().getItemByItemId(2499).getObjectId(), NOT_CANCELLED));
+			PhantomAssertions.assertTrue((equipped.status() == org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.SUCCESS || equipped.status() == org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.IDEMPOTENT) && _service.needsOrOwnsAutonomousIntent(_profile.profileId(), nextRoot), "An actual native owned-equipment improvement could not release the preparation guard: " + equipped);
+			context.record("career061.preparation", "Independent contract only; premeasurement HP55%, own bag2499/68, weak native pursuer20001+Spawn; real retreat -> durable risk witness -> service reload; root/cond2/items/EXP/SP conserved; return adapter absent in this isolated service, not ordinary B");
+		}
+		finally { pursuer.deleteMe(); }
 	}
 
 	private void careerNativeSegment061(PhantomTestContext context) throws Exception

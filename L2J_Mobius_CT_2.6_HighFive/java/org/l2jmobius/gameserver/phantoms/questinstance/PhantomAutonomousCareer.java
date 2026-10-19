@@ -42,6 +42,8 @@ final class PhantomAutonomousCareer
 	static final String COMPONENT = "career.intent";
 	private static final String CANDIDATE = "candidate.autonomous.career";
 	private static final String ACTION = "career.autonomous";
+	private static final String PREPARATION_RETURN = "career.native.preparation_return.";
+	private static final Set<String> RISK_KEYS = Set.of("risk.cell", "risk.preparation", "risk.history");
 	private final PhantomProfileRepository _profiles;
 	private final PhantomMaterializationService _materialization;
 	private final PhantomQuestInstanceService _service;
@@ -123,7 +125,18 @@ final class PhantomAutonomousCareer
 				&& _catalog.content(value.contentId()).orElseThrow().eligible(player.getLevel(), player.getRace().name(), player.getActiveClass())).findFirst().orElse(null);
 			if (route == null) { return unavailable(profileId, "career.route_absent"); }
 			final var content = _catalog.content(route.contentId()).orElseThrow();
+			final var previous = cached.goal;
+			final boolean sameCareer = previous != null && previous.target() != null && route.contentId().equals(previous.target().key())
+				&& previous.constraints().getOrDefault("owner.object", -1L) == player.getObjectId() && previous.constraints().getOrDefault("class.from", -1L) == player.getActiveClass()
+				&& previous.constraints().keySet().containsAll(RISK_KEYS);
+			if (sameCareer)
+			{
+				final long prepared = preparation(player), failed = previous.constraints().get("risk.preparation");
+				final long failures = previous.constraints().get("risk.history") & 255;
+				if (prepared <= failed || failures >= 3 && (prepared >>> 16) <= (failed >>> 16)) { return unavailable(profileId, "career.native.preparation_required"); }
+			}
 			final Map<String, Long> constraints = new LinkedHashMap<>();
+			if (sameCareer) { for (String key : RISK_KEYS) { constraints.put(key, previous.constraints().get(key)); } }
 			constraints.put("owner.revision", root.revision()); constraints.put("owner.object", (long) player.getObjectId());
 			constraints.put("class.from", (long) route.fromClass()); constraints.put("class.to", (long) route.toClass()); constraints.put("class.index", (long) player.getClassIndex());
 			constraints.put("field.x", (long) player.getX()); constraints.put("field.y", (long) player.getY()); constraints.put("field.z", (long) player.getZ()); constraints.put("retry.after", 0L);
@@ -153,9 +166,21 @@ final class PhantomAutonomousCareer
 				final var resumed = PhantomJourneyLifetime.resume(intent, System.currentTimeMillis());
 				if (!resumed.equals(intent)) { store(context.profileId(), cached, resumed); intent = resumed; }
 			}
+			noticeNativeDeath(context.profileId(), context.goal(), lease.player());
+			intent = cached.goal;
 		}
 		if (!_pauseFarm.test(context.profileId(), intent.deadlineEpochMillis())) { return PhantomStepResult.retry(250, "career.native.finish_current_target"); }
+		if (intent.reasonKey().startsWith(PREPARATION_RETURN)) { return returnForPreparation(context, cached, intent); }
 		var result = _service.advanceIntent(context.profileId(), context.goal(), intent, context.effectiveState(), context.logicalNowNanos(), context.cancellationToken());
+		if (result.combatFailure() != null)
+		{
+			try (var lease = _materialization.tryAcquireAction(context.profileId()).orElse(null))
+			{
+				if (lease == null) { return PhantomStepResult.retry(500, "career.native.failure_store_pending"); }
+				recordUnsafe(context.profileId(), context.goal(), lease.player(), result.combatFailure());
+			}
+			return returnForPreparation(context, cached, cached.goal);
+		}
 		// Save an actually earned native class while its original child/root binding is still current.
 		// The existing owned boundary attests Q401; Player remains the sole class/base-class writer.
 		Player earnedClass = null;
@@ -217,6 +242,7 @@ final class PhantomAutonomousCareer
 			store(context.profileId(), cached, new PhantomGoal(intent.goalId(), intent.goalType(), complete ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.FAILED, intent.subject(), intent.target(),
 				intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(),
 				intent.deadlineEpochMillis(), constraints, result.reasonKey(), Math.addExact(intent.revision(), 1), intent.payloadText()));
+			_service.finishAutonomousJourney(context.profileId());
 			return PhantomStepResult.of(complete ? PhantomStepResult.Type.SUCCESS : PhantomStepResult.Type.REPLAN, complete ? "career.native.returned_to_life" : result.reasonKey());
 		}
 		return switch (result.status())
@@ -252,10 +278,78 @@ final class PhantomAutonomousCareer
 
 	void pause(long profileId, PhantomGoal root, Player player)
 	{
+		noticeNativeDeath(profileId, root, player);
 		final var cached = cached(profileId); final var goal = cached.goal;
 		if (!bound(goal, root, player)) { return; }
 		final var paused = PhantomJourneyLifetime.pause(goal, System.currentTimeMillis());
 		if (!paused.equals(goal)) { store(profileId, cached, paused); }
+	}
+
+	/** A bounded spatial memory stays in the same compatible Goal component. */
+	static long cell(int x, int y) { return ((long) Math.floorDiv(x, 2048) << 32) | (Math.floorDiv(y, 2048) & 0xffffffffL); }
+	long avoidedCell(long profileId, String contentId)
+	{
+		final var intent = cached(profileId).goal;
+		return intent != null && intent.target() != null && contentId.equals(intent.target().key()) && intent.constraints().containsKey("risk.history")
+			? intent.constraints().getOrDefault("risk.cell", Long.MIN_VALUE) : Long.MIN_VALUE;
+	}
+
+	private static long preparation(Player player)
+	{
+		final long skills = player.getAllSkills().stream().filter(skill -> org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supports(skill, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, player.isTransformed())).mapToLong(skill -> skill.getLevel()).sum();
+		return ((long) Math.min(127, player.getLevel()) << 56) | (Math.min(0xffffffL, Math.max(0, Math.round(player.getPAtk(null) * 10))) << 32)
+			| (Math.min(0xffffL, Math.max(0, Math.round(player.getPDef(null) * 10))) << 16) | (Math.min(2047, skills) << 5)
+			| Math.min(31, org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend.ownedHealingStock(player));
+	}
+
+	void observeUnsafe(long profileId, PhantomQuestInstanceService.CombatFailure failure)
+	{
+		final var intent = cached(profileId).goal;
+		if (intent == null || intent.status() != PhantomGoalStatus.ACTIVE || intent.reasonKey().startsWith(PREPARATION_RETURN)) { return; }
+		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			final var root = _service.currentRoot(profileId);
+			if (lease != null && root != null && lease.player().isAlikeDead()) { recordUnsafe(profileId, root, lease.player(), failure); }
+		}
+	}
+
+	private void noticeNativeDeath(long profileId, PhantomGoal root, Player player)
+	{
+		final var intent = cached(profileId).goal;
+		if (intent != null && player.getExpBeforeDeath() > player.getExp() && player.getExpBeforeDeath() > (intent.constraints().getOrDefault("risk.history", 0L) >>> 8))
+		{
+			// Native EXP debt proves a prior death, but its position may already be a recovery point.
+			recordUnsafe(profileId, root, player, new PhantomQuestInstanceService.CombatFailure(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult.PLAYER_DEAD, Long.MIN_VALUE, 0));
+		}
+	}
+
+	void recordUnsafe(long profileId, PhantomGoal root, Player player, PhantomQuestInstanceService.CombatFailure failure)
+	{
+		final var cached = cached(profileId); final var intent = cached.goal;
+		if (!bound(intent, root, player) || intent.status() != PhantomGoalStatus.ACTIVE || intent.currentAmount() != 0 || player.getActiveClass() != intent.constraints().getOrDefault("class.from", -1L)
+			|| player.getBaseClass() != player.getActiveClass() || intent.reasonKey().startsWith(PREPARATION_RETURN)) { return; }
+		final var constraints = new LinkedHashMap<>(intent.constraints());
+		constraints.put("risk.cell", failure.cell()); constraints.put("risk.preparation", preparation(player));
+		final long witness = Math.min(Long.MAX_VALUE >>> 8, Math.max(player.getExpBeforeDeath(), intent.constraints().getOrDefault("risk.history", 0L) >>> 8));
+		constraints.put("risk.history", (witness << 8) | Math.min(255, (intent.constraints().getOrDefault("risk.history", 0L) & 255) + 1));
+		store(profileId, cached, new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), constraints,
+			PREPARATION_RETURN + failure.result().name().toLowerCase(java.util.Locale.ROOT), Math.addExact(intent.revision(), 1), intent.payloadText()));
+	}
+
+	private PhantomStepResult returnForPreparation(PhantomStepContext context, Cached cached, PhantomGoal intent)
+	{
+		if (intent == null || !intent.reasonKey().startsWith(PREPARATION_RETURN)) { return PhantomStepResult.of(PhantomStepResult.Type.REPLAN, "career.native.preparation_owner_changed"); }
+		final var recovery = _service.prepareReturn(context.profileId(), context.goal(), intent, context.cancellationToken());
+		if (recovery != null) { return recovery.status() == PhantomQuestInstanceService.Status.CANCELLED ? PhantomStepResult.of(PhantomStepResult.Type.CANCELLED, recovery.reasonKey()) : PhantomStepResult.retry(500, recovery.reasonKey()); }
+		_service.publishAcceptedResume(context.profileId(), intent, System.currentTimeMillis());
+		final var returned = _fieldReturn == null ? PhantomStepResult.of(PhantomStepResult.Type.FAIL_GOAL, "career.native.preparation_return_unavailable") : _fieldReturn.apply(context, intent);
+		if (returned.type() != PhantomStepResult.Type.COMPLETE_GOAL && returned.type() != PhantomStepResult.Type.FAIL_GOAL) { return returned; }
+		final var constraints = new LinkedHashMap<>(intent.constraints());
+		constraints.put("retry.after", System.currentTimeMillis() + TimeUnit.SECONDS.toMillis((long) _policy.retrySeconds() * 4));
+		final String reason = returned.type() == PhantomStepResult.Type.COMPLETE_GOAL ? "career.native.preparation_required." + intent.reasonKey().substring(PREPARATION_RETURN.length()) : returned.reasonKey();
+		store(context.profileId(), cached, new PhantomGoal(intent.goalId(), intent.goalType(), PhantomGoalStatus.FAILED, intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), constraints, reason, Math.addExact(intent.revision(), 1), intent.payloadText()));
+		_service.finishAutonomousJourney(context.profileId());
+		return PhantomStepResult.of(PhantomStepResult.Type.REPLAN, reason);
 	}
 
 	/** Native child work outlives a single Decision plan, but never its current owner or HOLD. */
