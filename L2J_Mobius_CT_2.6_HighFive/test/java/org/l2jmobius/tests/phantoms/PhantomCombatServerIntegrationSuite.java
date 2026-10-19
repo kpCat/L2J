@@ -4825,7 +4825,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var selector = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector();
 			final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root, org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
 			PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() == null, "Foreign owner/HOLD allowed a new learning root.");
+			PhantomAssertions.assertFalse(journey.permitsAutomaticVisibleDecision(_profile.profileId(), root), "HOLD opened the upstream learning Decision gate.");
 			allowed.set(true);
+			PhantomAssertions.assertTrue(journey.permitsAutomaticVisibleDecision(_profile.profileId(), root), "Fresh affordable native lesson cannot reach the upstream visible Decision gate.");
 			_player.getAI().clientStartAutoAttack();
 			PhantomAssertions.assertTrue(_player.isInCombat(), "Native combat stance control did not start.");
 			PhantomAssertions.assertTrue(selector.select(candidates.snapshot(), planning).candidate() != null, "Declared affordable native lesson was not proposed.");
@@ -4842,6 +4844,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var stored = goals.load(_profile.profileId()).orElseThrow();
 			final var replacement = root.withStatus(PhantomGoalStatus.ACTIVE);
 			goals.replace(_profile.profileId(), stored.rowVersion(), replacement);
+			PhantomAssertions.assertFalse(journey.permitsAutomaticVisibleDecision(_profile.profileId(), root), "Stale farm revision opened the upstream learning Decision gate.");
+			PhantomAssertions.assertTrue(journey.permitsAutomaticVisibleDecision(_profile.profileId(), replacement), "Current farm revision lost the upstream learning Decision gate.");
 			final var currentPlanning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), replacement, org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 2);
 			final var selected = selector.select(candidates.snapshot(), currentPlanning).candidate();
 			PhantomAssertions.assertTrue(selected != null, "Fresh root lost its eligible lesson.");

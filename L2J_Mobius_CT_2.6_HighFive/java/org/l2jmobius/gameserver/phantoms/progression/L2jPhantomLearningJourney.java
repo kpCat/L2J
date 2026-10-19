@@ -111,7 +111,12 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	{
 		if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Learning field must bind before start."); } _automatic.requireField(predicate);
 	}
-	public boolean permitsAutomaticVisibleDecision(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && (_automatic.owns(profileId, root) || _automatic.permitsSettlement(profileId, root)); }
+	/** A fresh affordable proposal must reach Decision before its accepted child can exist. */
+	public boolean permitsAutomaticVisibleDecision(long profileId, PhantomGoal root)
+	{
+		return _state == State.RUNNING && _automatic != null && _goals.load(profileId).map(stored -> stored.goal().equals(root)).orElse(false)
+			&& (_automatic.owns(profileId, root) || _automatic.permitsSettlement(profileId, root) || _automatic.needsOrOwns(profileId, root));
+	}
 	public void useRelevanceSignals(org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort signals)
 	{
 		synchronized (_monitor) { if (_state != State.NEW || _signals != null) { throw new IllegalStateException("Learning relevance must be bound once before start."); } _signals = java.util.Objects.requireNonNull(signals); }
