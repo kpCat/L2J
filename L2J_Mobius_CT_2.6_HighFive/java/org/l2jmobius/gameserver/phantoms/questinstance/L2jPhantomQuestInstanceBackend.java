@@ -351,9 +351,16 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 			final double castCost = player.getAllSkills().stream().filter(skill -> org.l2jmobius.gameserver.phantoms.combat.PhantomCombatSkillSafety.supports(skill, org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, player.isTransformed()))
 				.mapToDouble(skill -> player.getStat().getMpInitialConsume(skill) + player.getStat().getMpConsume(skill)).filter(value -> value > 0).min().orElse(0);
 			final boolean manaReady = player.getCurrentMp() >= Math.min(player.getMaxMp(), castCost * (sitting ? 4 : 2));
+			final var threats = World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.Creature.class, 2000).stream()
+				.filter(creature -> creature.isAttackable() && !creature.isAlikeDead() && creature.getInstanceId() == player.getInstanceId() && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(creature, player)).toList();
+			final boolean unsuitable = threats.stream().anyMatch(creature -> creature instanceof org.l2jmobius.gameserver.model.actor.Attackable npc && npc.getHating(player) > 0 && creature.getLevel() > player.getLevel() + 3);
+			if (unsuitable)
+			{
+				if (sitting) { player.standUp(); return result(ActionStatus.ISSUED, before, "questinstance.combat.native_stand_pending"); }
+				return result(ActionStatus.UNAVAILABLE, before, "questinstance.combat.retreat_required");
+			}
 			if (!sitting && player.getCurrentHp() >= player.getMaxHp() * 0.60 && manaReady) { return result(ActionStatus.IDEMPOTENT, before, "questinstance.combat.ready"); }
-			final boolean threatened = World.getInstance().getVisibleObjectsInRange(player, org.l2jmobius.gameserver.model.actor.Creature.class, 2000).stream()
-				.anyMatch(creature -> creature.isAttackable() && !creature.isAlikeDead() && creature.getInstanceId() == player.getInstanceId() && creature.getTarget() == player);
+			final boolean threatened = !threats.isEmpty();
 			if (threatened || player.getCurrentHp() >= player.getMaxHp() * 0.80 && manaReady)
 			{
 				if (!sitting) { return threatened ? result(ActionStatus.UNAVAILABLE, before, "questinstance.combat.retreat_required") : result(ActionStatus.IDEMPOTENT, before, "questinstance.combat.ready"); }

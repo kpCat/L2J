@@ -360,7 +360,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		final double maximumMp = player.getMaxMp();
 		final boolean sitting = player.isSitting();
 		final boolean threatened = World.getInstance().getVisibleObjectsInRange(player, Creature.class, AutoPlayConfig.AUTO_PLAY_LONG_RANGE).stream()
-			.anyMatch(creature -> creature.isAttackable() && !creature.isAlikeDead() && creature.getInstanceId() == player.getInstanceId() && creature.getTarget() == player);
+			.anyMatch(creature -> creature.isAttackable() && !creature.isAlikeDead() && creature.getInstanceId() == player.getInstanceId() && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(creature, player));
 		final boolean sit, stand, pause;
 		synchronized (session)
 		{

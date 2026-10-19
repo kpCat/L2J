@@ -226,6 +226,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("16h-native-career-owned-retreat061", this::careerNativeRetreat061);
 			registry.add("16i-native-pve-walk-segment-excludes-new-threat061", this::careerNativeSegment061);
 			registry.add("16j-native-career-retains-unsafe-attempt-and-requires-preparation061", this::careerNativePreparation061);
+			registry.add("16k-native-career-refuses-overlevel-native-pursuer061", this::careerNativeOverlevel061);
 			registry.add("16g-native-career-rejects-spoiled-quest-target061", this::careerSpoiledTarget061);
 			return;
 		}
@@ -397,11 +398,12 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		}
 		_player.setInvul(false);
 		final double hp = _player.getCurrentHp();
-		pursuer.addDamageHate(_player, 0, 100); pursuer.setTarget(_player); pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player);
+		pursuer.addDamageHate(_player, 0, 100); pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player);
 		pursuer.doAttack(_player);
 		try
 		{
-			await(() -> _player.getCurrentHp() < hp && pursuer.getTarget() == _player && pursuer.getHating(_player) > 0, "Independent native pursuer did not produce actual damage/target/hate evidence.");
+			await(() -> _player.getCurrentHp() < hp && pursuer.getAI().getAttackTarget() == _player && pursuer.getHating(_player) > 0, "Independent native pursuer did not produce actual damage/AI target/hate evidence.");
+			context.record("career061.defense.nativeTargets", "Creature target=" + pursuer.getTarget() + "; native AI attack target=" + pursuer.getAI().getAttackTarget() + "; hate=" + pursuer.getHating(_player) + "; actual HP=" + hp + "->" + _player.getCurrentHp() + "; no Monster.setTarget input");
 			try (var actor = nativeBackend.tryAcquireActor(_profile.profileId()))
 			{
 				PhantomAssertions.assertTrue(actor != null && actor.observedAttackers(16).stream().anyMatch(value -> value.targetObjectId() == pursuer.getObjectId()), "Native Combat missed a real damage/target/hate pursuer because Player attackBy is empty.");
@@ -421,6 +423,24 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			context.record("career061.defense.observed", "hp=" + hp + "->" + _player.getCurrentHp() + ";dead=" + _player.isDead() + ";invul=" + _player.isInvul() + ";attackBy=" + _player.getAttackByList() + ";pursuerDead=" + pursuer.isDead() + ";pursuerIntention=" + pursuer.getAI().getIntention());
 			pursuer.deleteMe();
 		}
+	}
+
+	private void careerNativeOverlevel061(PhantomTestContext context) throws Exception
+	{
+		restartService(); preparePlayer(0, 0, 19); ensureWeapon(68);
+		final var content = _catalog.content("class.warrior-q401").orElseThrow();
+		final var pursuer = spawnMonster(20927);
+		_player.setInvul(false); _player.setCurrentHp(_player.getMaxHp());
+		pursuer.addDamageHate(_player, 0, 100); pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player);
+		try
+		{
+			PhantomAssertions.assertTrue(pursuer.getLevel() > _player.getLevel() + 3 && pursuer.getAI().getAttackTarget() == _player, "Independent native overlevel threat is unavailable.");
+			final var observed = _backend.observe(_profile.profileId(), content);
+			final var readiness = _backend.prepareCombat(_profile.profileId(), content, content.step("collect.skeleton").orElseThrow(), observed.fingerprint());
+			context.record("career061.overlevelReadiness", "Independent TEST Fighter19/native68; native20927/27 with AI ATTACK/hate; no Creature target input, quest/class/items grants or HP changes after enrollment; result=" + readiness);
+			PhantomAssertions.assertEquals("questinstance.combat.retreat_required", readiness.reasonKey(), "A healthy career accepted an unsuitable native pursuer as the next fight.");
+		}
+		finally { pursuer.deleteMe(); }
 	}
 
 	private void careerNativePreparation061(PhantomTestContext context) throws Exception
@@ -444,10 +464,17 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(pursuer.getTemplate()); spawn.setXYZ(pursuer.getX(), pursuer.getY(), pursuer.getZ()); pursuer.setSpawn(spawn);
 		_player.setCurrentHp(_player.getMaxHp() * 0.55); _player.setInvul(false);
 		final double hp = _player.getCurrentHp();
-		pursuer.addDamageHate(_player, 0, 100); pursuer.setTarget(_player); pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player);
+		final var actualDamage = new java.util.concurrent.atomic.AtomicBoolean();
+		final var damageListener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(_player, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_DAMAGE_RECEIVED, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageReceived event) ->
+		{
+			if (event.getTarget() == _player && event.getAttacker() == pursuer && event.getDamage() > 0) { actualDamage.set(true); }
+		}, this);
+		_player.addListener(damageListener);
+		pursuer.addDamageHate(_player, 0, 100); pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player);
 		try
 		{
-			await(() -> _player.getCurrentHp() < hp, "Preparation contract has no real native threat.");
+			await(actualDamage::get, "Preparation contract has no real native threat.");
+			context.record("career061.preparation.nativeDamage", "Native positive damage event from20001; HP=" + hp + "->" + _player.getCurrentHp() + "; regeneration may exceed this weak NPC damage; no Monster.setTarget input");
 			final long exp = _player.getExp(), sp = _player.getSp();
 			handlers.snapshot().get(step.actionKey()).execute(execution);
 			PhantomAssertions.assertTrue(_combat.find(_profile.profileId()).isPresent(), "Low-health career did not own its native escape.");
@@ -468,7 +495,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			PhantomAssertions.assertTrue((equipped.status() == org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.SUCCESS || equipped.status() == org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus.IDEMPOTENT) && _service.needsOrOwnsAutonomousIntent(_profile.profileId(), nextRoot), "An actual native owned-equipment improvement could not release the preparation guard: " + equipped);
 			context.record("career061.preparation", "Independent contract only; premeasurement HP55%, own bag2499/68, weak native pursuer20001+Spawn; real retreat -> durable risk witness -> service reload; root/cond2/items/EXP/SP conserved; return adapter absent in this isolated service, not ordinary B");
 		}
-		finally { pursuer.deleteMe(); }
+		finally { _player.removeListener(damageListener); pursuer.deleteMe(); }
 	}
 
 	private void careerNativeSegment061(PhantomTestContext context) throws Exception
@@ -507,7 +534,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			if (event.getTarget() == _player && event.getAttacker() instanceof Npc npc && incoming.size() < 16) { incoming.put(npc.getObjectId(), "npc=" + npc.getId() + ";level=" + npc.getLevel() + ";damage=" + event.getDamage() + ";skill=" + (event.getSkill() == null ? "physical" : event.getSkill().getId()) + ";crit=" + event.isCritical()); }
 		}, this);
 		_player.addListener(damageListener);
-		pursuer.addDamageHate(_player, 0, 100); pursuer.setTarget(_player);
+		pursuer.addDamageHate(_player, 0, 100);
 		pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player);
 		try
 		{

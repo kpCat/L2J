@@ -10,6 +10,7 @@ import org.l2jmobius.gameserver.config.PlayerConfig;
 import org.l2jmobius.gameserver.data.xml.MapRegionData;
 import org.l2jmobius.gameserver.geoengine.GeoEngine;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Npc;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeWork;
@@ -25,6 +26,11 @@ public final class PhantomNativeTravelActions
 	public record GatekeeperResult(Status status, long fee, long adenaBefore, long adenaAfter, PhantomNavigationPoint before, PhantomNavigationPoint after) { }
 	public record OwnedWalk(Player player, PlayerNativeWork.Owner owner, PhantomNavigationPoint destination) { }
 	private PhantomNativeTravelActions() { }
+	/** Native physical AI keeps its attack target independently of Creature's cast/selection target. */
+	public static boolean targetsForCombat(Creature attacker, Creature target)
+	{
+		return attacker != null && target != null && (attacker.getTarget() == target || attacker.hasAI() && attacker.getAI().getAttackTarget() == target);
+	}
 	/** Physical ownership witness only; the journey keeps its existing Goal and scheduler. */
 	public static OwnedWalk captureWalk(Player player)
 	{

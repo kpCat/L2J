@@ -616,7 +616,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				return Optional.empty();
 			}
 			final Creature victim = target.getMostHated();
-			if ((victim == _player) && ((target.getTarget() == _player) || (target.hasAI() && (target.getAI().getAttackTarget() == _player))))
+			if ((victim == _player) && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(target, _player))
 			{
 				return Optional.empty();
 			}
@@ -820,7 +820,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final List<Monster> nearby = World.getInstance().getVisibleObjectsInRange(_player, Monster.class, MAXIMUM_ACQUISITION_DISTANCE);
 			for (Monster monster : nearby)
 			{
-				if (!monster.isDead() && !monster.isAlikeDead() && !monster.isRaid() && monster.getInstanceId() == actor.instanceId() && monster.getTarget() == _player && (monster.getHating(_player) > 0 || _player.getAttackByList().contains(monster)))
+				if (!monster.isDead() && !monster.isAlikeDead() && !monster.isRaid() && monster.getInstanceId() == actor.instanceId() && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(monster, _player) && (monster.getHating(_player) > 0 || _player.getAttackByList().contains(monster)))
 				{
 					pursuers.add(monster);
 				}
@@ -920,7 +920,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final ActorSnapshot actor = actorSnapshot();
 			for (Creature creature : World.getInstance().getVisibleObjectsInRange(_player, Monster.class, MAXIMUM_ACQUISITION_DISTANCE))
 			{
-				if ((creature instanceof Monster monster) && (monster.getTarget() == _player) && (monster.getHating(_player) > 0 || _player.getAttackByList().contains(monster)))
+				if ((creature instanceof Monster monster) && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(monster, _player) && (monster.getHating(_player) > 0 || _player.getAttackByList().contains(monster)))
 				{
 					final TargetSnapshot target = targetSnapshot(monster);
 					if ((target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
@@ -952,7 +952,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final ActorSnapshot actor = actorSnapshot();
 			for (Creature creature : World.getInstance().getVisibleObjectsInRange(protectedPlayer, Monster.class, MAXIMUM_ACQUISITION_DISTANCE))
 			{
-				if ((creature instanceof Monster monster) && (monster.getTarget() == protectedPlayer) && (monster.getHating(protectedPlayer) > 0 || protectedPlayer.getAttackByList().contains(monster)))
+				if ((creature instanceof Monster monster) && org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(monster, protectedPlayer) && (monster.getHating(protectedPlayer) > 0 || protectedPlayer.getAttackByList().contains(monster)))
 				{
 					final TargetSnapshot target = targetSnapshot(monster);
 					if ((target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
@@ -989,7 +989,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 				{
 					continue;
 				}
-				final boolean currentAttack = (attacker.getTarget() == protectedPlayer) || (attacker.hasAI() && (attacker.getAI().getAttackTarget() == protectedPlayer));
+				final boolean currentAttack = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.targetsForCombat(attacker, protectedPlayer);
 				final PvpTargetSnapshot target = pvpTargetSnapshot(attacker.getObjectId());
 				if (currentAttack && (target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
 				{
