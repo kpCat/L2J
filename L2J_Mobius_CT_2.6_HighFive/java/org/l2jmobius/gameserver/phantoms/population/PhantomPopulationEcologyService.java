@@ -883,6 +883,16 @@ public final class PhantomPopulationEcologyService
 			if (targetMinute > entry._requestedMinute) { entry._requestedMinute = targetMinute; entry._readinessRevision++; }
 			final var state = entry._stored == null ? null : entry._stored.state();
 			final var historical = entry._historicalSnapshot == null ? null : entry._historicalSnapshot.state();
+			// begin() can require a Player before claiming its next window. There is then no historical
+			// owner to hand off: NORMAL admission rechecks that no concurrent claim has appeared.
+			if (materializationDue && _currentDemand.test(profileId) && !entry._terminal && (_wakeFailure == null) && _populationPlanApplied && _inventoryReady && !_metadataDraining
+				&& (state != null) && (state.disposition() == Disposition.MANAGED) && state.initialCatchupComplete() && !state.requestPending()
+				&& ((historical == null) || ((historical.status() == Status.COMPLETE) && (historical.targetEpochMinute() <= state.calendarCursorEpochMinute())))
+				&& PhantomHistoricalBackgroundService.requiresNativeMaterialization(entry._lastReportedFailure))
+			{
+				entry._materializationDemand = true;
+				return new DueReconciliation(true, 0, "ecology.native_materialization_required");
+			}
 			// Foreground supplies the missing native context; the pending history remains fenced.
 			if (materializationDue && _currentDemand.test(profileId) && !entry._terminal && (_wakeFailure == null) && _populationPlanApplied && _inventoryReady && !_metadataDraining
 				&& (state != null) && (state.disposition() == Disposition.MANAGED) && state.requestPending() && (historical != null)

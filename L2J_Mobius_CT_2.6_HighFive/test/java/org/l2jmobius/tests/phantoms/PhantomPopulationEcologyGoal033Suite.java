@@ -118,11 +118,53 @@ public final class PhantomPopulationEcologyGoal033Suite implements PhantomTestSu
 		registry.add("18-native-context-releases-only-materialization-gate", this::testNativeMaterializationReadiness);
 		registry.add("19-live-capacity-release-catchup-reopens-current-admission", this::testLiveCapacityReleaseAdmission);
 		registry.add("20-native-release-priority-survives-minute-refresh", this::testNativeReleaseAcrossMinute);
+		registry.add("21-native-context-before-new-history-claim", this::testNativeContextBeforeClaim061);
 		for (int control = 1; control <= 12; control++)
 		{
 			final int selected = control;
 			registry.add("O%02d-orphan-ownership-contract".formatted(control), context -> testOrphanOwnership(context, selected));
 		}
+	}
+
+	private void testNativeContextBeforeClaim061(PhantomTestContext context)
+	{
+		final Instant now = Instant.parse("2026-01-05T20:30:00Z");
+		final long from = minute(now) - 1;
+		for (boolean completed : List.of(false, true))
+		{
+			final var population = new PhantomPopulationTestDoubles.MemoryStore(_population.hash()).seedReady(1, 1);
+			final EcologyMemoryStore store = new EcologyMemoryStore(null);
+			final var original = store.insert(1, stateAt(from, Pace.OUTLIER, 10_000, population.state().scheduleTemplate()));
+			final var hashes = new PhantomBackgroundState.Hashes("knowledge", "topology", "progression", "commerce");
+			final Snapshot previous = completed ? new Snapshot(new PhantomBackgroundCatchupState(Status.COMPLETE, "e".repeat(64), 1, from - 1, from, from, 0, 0, 1, 1, 1, 1, 0, "f".repeat(64), PhantomBackgroundState.MODEL_VERSION, hashes, ""), 0) : null;
+			final HistoricalPort historical = new HistoricalPort()
+			{
+				@Override public Optional<Snapshot> status(long id) { return Optional.ofNullable(previous); }
+				@Override public PhantomHistoricalBackgroundService.Result begin(long id, long start, long end, long seed)
+				{
+					return PhantomHistoricalBackgroundService.Result.rejected(PhantomHistoricalBackgroundService.ResultStatusCode.REPLAN_REQUIRED, "native_context.required:accepted_journey", previous);
+				}
+				@Override public PhantomHistoricalBackgroundService.Result advance(long id, int intervals, int minutes) { throw new AssertionError("No new history claim exists."); }
+			};
+			final AtomicBoolean demand = new AtomicBoolean();
+			final var service = service(store, historical, new AtomicBoolean(), new AtomicReference<>(""), new PhantomPopulationTestDoubles.MutableClock(now), Preset.LIVING, 0, 1);
+			service.enablePeriodicDueMode();
+			service.installMaterializationDemand(id -> demand.get());
+			service.installRuntime(id -> id == 1 ? Optional.of(population) : Optional.empty(), noEvents());
+			service.register(population); loadMetadata(service, 1); service.onPopulationPulse();
+			PhantomAssertions.assertFalse(service.requestMaterializationDue(1).complete(), "Absent demand bypassed the native context fence.");
+			demand.set(true);
+			final var ready = service.requestMaterializationDue(1);
+			PhantomAssertions.assertTrue(ready.complete(), "Native context rejected before begin cannot resume in World; previousComplete=" + completed);
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.activity.PhantomActivityMaterializationPort.MaterializationRequest.Kind.NORMAL, ready.request().kind(), "No pending historical owner exists to hand off.");
+			PhantomAssertions.assertEquals(0, ready.advancedIntervals(), "Native preparation fabricated history.");
+			PhantomAssertions.assertFalse(service.requestBackgroundReadiness(1).complete() || service.permitsScheduling(1), "Native admission opened simulated background work.");
+			demand.set(false);
+			PhantomAssertions.assertFalse(service.requestMaterializationDue(1).complete(), "Withdrawn demand retained native permission.");
+			PhantomAssertions.assertEquals(original, store.require(1), "Native admission modified the history cursor or owner.");
+			PhantomAssertions.assertEquals(Optional.ofNullable(previous), historical.status(1), "Native admission replaced historical evidence.");
+		}
+		context.record("task061.preclaimNative", "absent/completed history; exact current demand; NORMAL admission only; no cursor/claim writes");
 	}
 
 	private void testNativeReleaseAcrossMinute(PhantomTestContext context)
