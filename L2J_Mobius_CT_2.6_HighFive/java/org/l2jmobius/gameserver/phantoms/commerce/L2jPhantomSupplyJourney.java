@@ -396,7 +396,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 				final boolean returning = sameReceipt && receipt.state() == PhantomCommerceReceipt.State.COMMITTED;
 				if (returning && returnDestination(binding.field()).map(point -> player.calculateDistance3D(point.x(), point.y(), point.z()) <= _navigation.arrivalRadius()).orElse(false))
 				{
-					return player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) ? terminal(profileId, context.goal(), cached, false, "supplies.field.peace") : terminal(profileId, context.goal(), cached, true, "supplies.native.returned_to_farm");
+					if (player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) && !PhantomNativeTravelActions.safePreparationTown(player)) { return terminal(profileId, context.goal(), cached, false, "supplies.field.peace"); }
+					return terminal(profileId, context.goal(), cached, true, PhantomNativeTravelActions.safePreparationTown(player) ? "supplies.native.returned_to_base" : "supplies.native.returned_to_farm");
 				}
 				final Merchant merchant = returning ? null : merchant(source);
 				if (!returning && merchant == null) { return alternative(profileId, context.goal(), cached, "supplies.merchant.unavailable", false); }
@@ -474,7 +475,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			if (!PhantomNativeTravelActions.ordinary(player) || player.hasPendingOwnedStore() || player.isChangingClass() || player.isTransformed() || player.isMounted()) { cleanup(profileId); return retry("supplies.native.busy"); }
 			if (returning && returnDestination(binding.field()).map(point -> player.calculateDistance3D(point.x(), point.y(), point.z()) <= _navigation.arrivalRadius()).orElse(false))
 			{
-				return player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) ? terminal(profileId, context.goal(), cached, false, "supplies.field.peace") : terminal(profileId, context.goal(), cached, true, "supplies.offline.returned_to_farm");
+				if (player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) && !PhantomNativeTravelActions.safePreparationTown(player)) { return terminal(profileId, context.goal(), cached, false, "supplies.field.peace"); }
+				return terminal(profileId, context.goal(), cached, true, PhantomNativeTravelActions.safePreparationTown(player) ? "supplies.offline.returned_to_base" : "supplies.offline.returned_to_farm");
 			}
 			if (!returning && (!PhantomOfflineSupply.offline(owner) || owner.getInstanceId() != player.getInstanceId())) { return retry("supplies.offline.owner_unavailable"); }
 			final int interactionDistance = spec instanceof org.l2jmobius.gameserver.phantoms.economy.PhantomSocialEconomyGoalSpec.Manufacture ? 150 : Npc.INTERACTION_DISTANCE;
@@ -509,7 +511,8 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 		if (!returning && next < intent.validSources().size())
 		{
 			final long amount = Long.parseLong(intent.validSources().get((int) next).key().split(":", -1)[5]);
-			final var replacement = new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), amount, 0, intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), Map.of("source.index", next), reason, Math.addExact(intent.revision(), 1), intent.payloadText());
+			final var constraints = new LinkedHashMap<>(intent.constraints()); constraints.put("source.index", next);
+			final var replacement = new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), amount, 0, intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), constraints, reason, Math.addExact(intent.revision(), 1), intent.payloadText());
 			save(profileId, root, cached, replacement);
 			return retry("supplies.native.alternative_source");
 		}
@@ -668,7 +671,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private static Source source(PhantomGoal goal)
 	{
 		final long index = goal.constraints().getOrDefault("source.index", -1L);
-		if (!PhantomCommerceDecision.MAINTAIN_SUPPLIES.equals(goal.goalType()) || !ACTION.equals(goal.purposeKey()) || goal.target() == null || !"item".equals(goal.target().namespace()) || goal.validSources().isEmpty() || goal.validSources().size() > 3 || goal.constraints().size() != 1 || index < 0 || index >= goal.validSources().size()) { throw new IllegalArgumentException("Invalid bounded NPC supply intent."); }
+		final var expected = new HashSet<>(Set.of("source.index"));
+		if (goal.constraints().keySet().containsAll(org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.KEYS)) { expected.addAll(org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.KEYS); }
+		if (!PhantomCommerceDecision.MAINTAIN_SUPPLIES.equals(goal.goalType()) || !ACTION.equals(goal.purposeKey()) || goal.target() == null || !"item".equals(goal.target().namespace()) || goal.validSources().isEmpty() || goal.validSources().size() > 3 || !goal.constraints().keySet().equals(expected) || !org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.valid(goal) || index < 0 || index >= goal.validSources().size()) { throw new IllegalArgumentException("Invalid bounded NPC supply intent."); }
 		final var ref = goal.validSources().get((int) index); final var fields = ref.key().split(":", -1);
 		if (!"supply.npc".equals(ref.namespace()) || fields.length != 6 || Integer.parseInt(fields[0]) != index) { throw new IllegalArgumentException("Invalid selected NPC supply source."); }
 		final var source = new Source(Integer.parseInt(fields[1]), Integer.parseInt(fields[2]), Integer.parseInt(fields[3]), Integer.parseInt(fields[4]), Long.parseLong(fields[5]));

@@ -132,6 +132,13 @@ final class PhantomSupply060OwnerGuards
 			PhantomAssertions.assertEquals(adena, player.getAdena(), "Combat guard charged Adena.");
 			PhantomAssertions.assertEquals(stock, player.getInventory().getInventoryItemCount(supplyItemId, -1), "Combat guard supplied free charges.");
 			PhantomAssertions.assertTrue(!player.isMoving() && player.getX() == x && player.getY() == y && player.getZ() == z && receipts.find(profileId).isEmpty(), "Guard created movement/payment receipt.");
+			player.getAI().clientStopAutoAttack();
+			final long stanceEnd = System.nanoTime() + TimeUnit.SECONDS.toNanos(25);
+			while (player.isInCombat() && System.nanoTime() < stanceEnd) { Thread.sleep(100); }
+			PhantomAssertions.assertFalse(player.isInCombat(), "Native combat stance did not end before source measurement.");
+			final var sourceReady = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
+			PhantomAssertions.assertFalse("supplies.native.busy".equals(sourceReady.reasonKey()), "Native source continuation remained in the ended combat stance.");
+			context.record("supply061.clockSource", "Actual production handler parsed the accepted clock-bearing NPC source: " + sourceReady + "; no fixture success replacement");
 			journey.beginStop(); PhantomAssertions.assertTrue(journey.finishStop(), "First supply owner did not stop.");
 			final var component = profiles.findComponent(profileId, PhantomSupplyIntentStore.COMPONENT).orElseThrow();
 			final var expired = new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), System.currentTimeMillis() - 1, intent.constraints(), intent.reasonKey(), intent.revision(), intent.payloadText());

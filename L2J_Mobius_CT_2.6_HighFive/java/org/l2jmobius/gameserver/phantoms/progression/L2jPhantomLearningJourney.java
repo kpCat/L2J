@@ -44,6 +44,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomWeightedConsideration;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnFact;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeModel.SpawnPointKind;
 import org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeQuery;
+import org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationRequest;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationResult;
@@ -235,7 +236,8 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 				if (returning && player.calculateDistance3D(request.field().x(), request.field().y(), request.field().z()) <= _navigation.arrivalRadius())
 				{
 					cleanup(profileId);
-					return player.isInsideZone(ZoneId.PEACE) ? fail("learning.field.peace") : PhantomStepResult.of(Type.COMPLETE_GOAL, "learning.field.returned");
+					if (player.isInsideZone(ZoneId.PEACE) && !PhantomNativeTravelActions.safePreparationTown(player)) { return fail("learning.field.peace"); }
+					return PhantomStepResult.of(Type.COMPLETE_GOAL, PhantomNativeTravelActions.safePreparationTown(player) ? "learning.base.returned" : "learning.field.returned");
 				}
 				Travel travel;
 				synchronized (_monitor) { travel = _travels.get(profileId); }

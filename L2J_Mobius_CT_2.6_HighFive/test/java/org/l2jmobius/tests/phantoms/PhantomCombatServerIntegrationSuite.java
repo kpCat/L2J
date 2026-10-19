@@ -677,6 +677,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					registry.add("061-native-town-preparation-without-false-farm-arrival", this::testNativePreparationTown061);
 					registry.add("061-failed-native-journey-returns-without-erasing-failure", this::testFailedLearningReturn061);
 					registry.add("061-career-native-field-return-without-learning-or-class-grant", context -> testNativeReturn061(context, true));
+					registry.add("061-career-native-town-return-without-class-grant", context -> testNativeReturn061(context, true, true));
 				}
 				registry.add("03-autonomous-earned-learning-through-farm-decision", this::testAutonomousLearning060);
 				if (!Boolean.getBoolean("phantom.test.autonomousLearningGuards060")) { registry.add("04-native-earned-autonomous-paid-walk-return-and-resume", context ->
@@ -4621,8 +4622,19 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testNativeReturn061(PhantomTestContext context, boolean career) throws Exception
 	{
+		testNativeReturn061(context, career, false);
+	}
+
+	private void testNativeReturn061(PhantomTestContext context, boolean career, boolean townBase) throws Exception
+	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
-		final var field = prepareLearningField059(context);
+		final var field = townBase ? new PhantomNavigationPoint(-12787, 122779, GeoEngine.getInstance().getHeight(-12787, 122779, -3112), 0) : prepareLearningField059(context);
+		if (townBase)
+		{
+			placeInstanceInput058(_player, field.x(), field.y(), field.z());
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePreparationTown(_player), "INVALID_INPUT: native town return base unavailable.");
+			context.record("journey061.townReturnInput", "SEPARATE premeasurement native Gludio base; no ordinary actor/item/quest/class/SP mutation");
+		}
 		final var nativeNavigation = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
 		PhantomNavigationPoint away = null;
 		for (int[] offset : new int[][] {{256,0},{-256,0},{0,256},{0,-256}})
@@ -4660,19 +4672,22 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate();
 			PhantomAssertions.assertTrue(career || journey.permitsAutomaticVisibleDecision(_profile.profileId(), root) && selected != null, "A failed native trip stranded its actor outside the farm gate instead of proposing bounded return.");
 			final var plan = career ? null : selected.planFactory().create(planning); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+			org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult returnResult = null;
 			do
 			{
-				if (career) { journey.returnCareerToField(_profile.profileId(), root, failed, () -> false, System.nanoTime()); }
+				if (career) { returnResult = journey.returnCareerToField(_profile.profileId(), root, failed, () -> false, System.nanoTime()); }
 				else
 				{
 					final var step = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
 					handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
 				}
-				if (_player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius() && !journey.ownsAutomaticIntent(_profile.profileId(), root)) { break; }
+				if (career && returnResult.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.FAIL_GOAL) { break; }
+				if (_player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius() && (career ? returnResult.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL : !journey.ownsAutomaticIntent(_profile.profileId(), root))) { break; }
 				Thread.sleep(100);
 			} while (System.nanoTime() < until);
 			final var terminal = career ? new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(_repository.findComponent(_profile.profileId(), componentType).orElseThrow().payload()) : journey.automaticIntent(_profile.profileId()).orElseThrow();
 			PhantomAssertions.assertTrue(_player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius(), "Failed trip did not physically return through native WALK.");
+			PhantomAssertions.assertTrue(!career || returnResult != null && returnResult.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL, "Native career return did not complete its accepted field/town contract: " + returnResult);
 			PhantomAssertions.assertTrue((career ? terminal.equals(failed) && _player.getActiveClass() == values.get("class.from") : terminal.status() == PhantomGoalStatus.FAILED && terminal.reasonKey().equals("learning.route.deadline")) && _player.getSp() == sp && _player.getExp() == exp && _player.getSkillLevel(3) == rank, "Return changed its accepted authority, class, FAIL or paid lesson.");
 			context.record(career ? "journey061.careerReturn" : "journey061.failedReturn", "native WALK256 then product return; original child retained; no SP/EXP/rank/class changes; one bounded settlement, not Q401/B or a lesson PASS");
 		}
