@@ -217,6 +217,26 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 	}
 
 	@Override
+	public List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> walkApproaches(long profileId, Content content, Step step, Target target, double requiredDistance, int arrivalRadius)
+	{
+		if (!current(content) || content.kind() != PhantomQuestInstanceCatalog.Kind.CLASS_PATH || target == null
+			|| !content.step(step.id()).filter(step::equals).isPresent() || !step.npcIds().contains(target.npcId())) { return List.of(); }
+		try (ActionLease lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (lease == null || lease.player().getInstanceId() != target.instanceId()) { return List.of(); }
+			final Player player = lease.player();
+			final double dx = (double) target.x() - player.getX(), dy = (double) target.y() - player.getY(), distance = Math.hypot(dx, dy);
+			if (distance <= 3000) { return List.of(); }
+			final int x = player.getX() + (int) Math.round(3000 * dx / distance), y = player.getY() + (int) Math.round(3000 * dy / distance);
+			final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
+			if (!geo.hasGeo(x, y)) { return List.of(); }
+			final int z = geo.getHeight(x, y, player.getZ());
+			final var waypoint = new Target(0, target.npcId(), x, y, z, target.instanceId(), player.calculateDistance3D(x, y, z), false);
+			return approaches(profileId, content, step, waypoint, requiredDistance, arrivalRadius);
+		}
+	}
+
+	@Override
 	public ActionResult invoke(long profileId, Content content, Step step, String expectedFingerprint)
 	{
 		if (!current(content) || !content.step(step.id()).filter(step::equals).isPresent() || ((step.operation() != Operation.EVENT) && (step.operation() != Operation.TALK)))

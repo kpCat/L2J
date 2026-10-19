@@ -572,7 +572,17 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 			if (options != null && origin.distanceTo(destinations.getFirst()) > _navigation.policy().maximumLocalStraightDistance())
 			{
 				final var leg = nearbyGatekeeper(options, origin, target);
-				if (leg == null) { mode = TravelMode.PROVEN_WALK; }
+				if (leg == null)
+				{
+					mode = TravelMode.PROVEN_WALK;
+					// A free long journey may advance through separately proven local WALK corridors.
+					// Its original career deadline and every native search/geo bound remain unchanged.
+					if (remainingMillis > TimeUnit.NANOSECONDS.toMillis(NAVIGATION_DEADLINE_NANOS))
+					{
+						final var local = _backend.walkApproaches(profileId, content, step, target, requiredDistance, _navigation.arrivalRadius());
+						if (!local.isEmpty() && local.size() <= 17) { destinations = local; }
+					}
+				}
 				else
 				{
 					final var source = new PhantomNavigationPoint(leg.sourceX(), leg.sourceY(), leg.sourceZ(), 0);

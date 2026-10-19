@@ -19,6 +19,7 @@ public final class PhantomCampaign058PersistenceSnapshot
 	public static void main(String[] args) throws Exception
 	{
 		if (args.length == 2 && args[0].equals("--decode061-components")) { decodeCareer061(Path.of(args[1])); return; }
+		if (args.length == 3 && args[0].equals("--decode061-components") && args[2].matches("11|21|22|35|36")) { decodeCareer061(Path.of(args[1]), Integer.parseInt(args[2])); return; }
 		if ((args.length != 1) || !args[0].matches("[a-z0-9-]{1,40}") || !PhantomCampaign058PersistentLane.enabled())
 		{
 			throw new IllegalArgumentException("Explicit persistent058a snapshot label required.");
@@ -92,11 +93,16 @@ public final class PhantomCampaign058PersistenceSnapshot
 	/** Offline decoder for the bounded SELECT receipt: no JDBC, Player, World or fixture startup. */
 	private static void decodeCareer061(Path input) throws Exception
 	{
+		decodeCareer061(input, 35);
+	}
+
+	private static void decodeCareer061(Path input, int profile) throws Exception
+	{
 		final Path directory = PhantomCampaign058PersistentLane.LANE.resolve("task061").toRealPath();
 		if (Files.isSymbolicLink(input) || !input.toRealPath().getParent().equals(directory) || !input.getFileName().toString().matches("career061-components-[a-z0-9-]{1,30}\\.tsv") || Files.size(input) > 262_144) { throw new IllegalArgumentException("Exact bounded TASK061 saved-component receipt required."); }
 		final var lines = Files.readAllLines(input, StandardCharsets.UTF_8);
 		if (lines.size() < 2 || lines.size() > 25 || !lines.getFirst().replace("\uFEFF", "").equals("component_type\trow_version\tHEX(payload)")) { throw new IllegalArgumentException("Unknown saved-component receipt shape."); }
-		System.out.println("OFFLINE_DECODE_ONLY; JDBC=0; WORLD=0; WRITES=0; profile=35; input=" + input.getFileName());
+		System.out.println("OFFLINE_DECODE_ONLY; JDBC=0; WORLD=0; WRITES=0; declaredProfile=" + profile + "; input=" + input.getFileName());
 		for (String line : lines.subList(1, lines.size()))
 		{
 			final var columns = line.split("\t", -1);

@@ -25,6 +25,8 @@ public interface PhantomQuestInstanceBackend
 		return java.util.List.of(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId()));
 	}
 	default ActionResult gatekeeper(long profileId, Content content, org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.Leg leg, String expectedFingerprint) { return new ActionResult(ActionStatus.REJECTED, null, "questinstance.gatekeeper.unsupported"); }
+	/** Free local WALK candidates; the navigation owner must still prove every actual corridor. */
+	default java.util.List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> walkApproaches(long profileId, Content content, Step step, Target target, double requiredDistance, int arrivalRadius) { return java.util.List.of(); }
 	default String travelEvidence(long profileId) { return ""; }
 	default void clearTravelEvidence() { }
 
