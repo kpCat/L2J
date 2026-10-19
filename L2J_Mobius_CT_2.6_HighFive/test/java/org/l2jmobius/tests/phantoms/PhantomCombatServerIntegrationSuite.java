@@ -540,7 +540,15 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			{
 				prepareAcquisitionActor();
 			}
-			relocateToCombatPoint();
+			if (Boolean.getBoolean("phantom.test.loadoutGuards061"))
+			{
+				// Declare the whole independent loadout input before its first case. The
+				// generic lowest-level NPC may be a Scarecrow inside a level83 stock area.
+				_player.setPlayerClass(0); _player.getStat().setLevel((byte) 19);
+				_player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp());
+				prepareLearningField059(context);
+			}
+			else { relocateToCombatPoint(); }
 			if (_mode == Mode.MANOR)
 			{
 				prepareManorActor();
@@ -643,6 +651,15 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (Boolean.getBoolean("phantom.test.supplyGuards060"))
 			{
+				if (Boolean.getBoolean("phantom.test.loadoutGuards061"))
+				{
+					registry.add("04-canonical-shot-conservation-and-discharge", _ -> testCanonicalShot());
+					registry.add("05-missing-shot-does-not-fabricate", _ -> testMissingShot());
+					registry.add("061-native-continuous-physical-shots-and-owned-cleanup", this::testContinuousShots061);
+					registry.add("061-native-blessed-magic-shots-prefer-exact-weapon-grade", this::testBlessedShots061);
+					registry.add("061-native-supply-prefers-blessed-despite-regular-stock", context -> { PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous native shot control did not leave combat stance."); prepareLearningField059(context); PhantomSupply060OwnerGuards.blessed(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
+					return;
+				}
 				if (Boolean.getBoolean("phantom.test.supplyAmmunitionGuards060")) { registry.add("33-native-ammunition-grade-owner-and-stock-guards", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.run(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId(), true); }); registry.add("34-unmodeled-ammunition-requires-native-farm", context -> PhantomSupply060OwnerGuards.ammunitionPolicy(context, _player, _query, _topology, _progression, new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog())); return; }
 				if (Boolean.getBoolean("phantom.test.supplyResumeGuards060")) { registry.add("27-two-jvm-resume-receipt-authority", PhantomLiving060ResumeReceipt::models); return; }
 				if (Boolean.getBoolean("phantom.test.supplyGatekeeperGuards060"))
@@ -6005,6 +6022,76 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		consumeTerminal();
 	}
 
+	private void testContinuousShots061(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 19);
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous native CAST did not leave combat stance.");
+		for (int id : new int[] {68, 24, 31}) { final var item = _player.getInventory().addItem(ItemProcessType.REWARD, id, 1, _player, this); _player.getInventory().equipItem(item); }
+		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setCurrentHp(_player.getMaxHp());
+		prepareLearningField059(context);
+		final var shots = _player.getInventory().addItem(ItemProcessType.REWARD, 1835, 30, _player, this);
+		final var wrong = _player.getInventory().addItem(ItemProcessType.REWARD, 1463, 30, _player, this);
+		final var target = spawnExactPointMonster(20035, Double.MAX_VALUE);
+		final long before = shots.getCount(), wrongBefore = wrong.getCount(); final double hp = target.getCurrentHp();
+		final int perHit = _player.getActiveWeaponItem().getSoulShotCount();
+		context.record("loadout061.physicalInput", "Independent TEST Fighter19/native68+24+31; native20035/Spawn; finite30 no-grade/30 D shots before measurement; one ATTACK, no pulse recharge by test");
+		try
+		{
+			try (var lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				PhantomAssertions.assertEquals(ShotOutcome.ACTIVATED, lease.activateShot(PhantomCombatMode.MELEE_PHYSICAL), "Physical native charge failed.");
+				PhantomAssertions.assertTrue(_player.getAutoSoulShot().contains(1835) && !_player.getAutoSoulShot().contains(1463), "Product did not register native continuous shots for the exact weapon grade.");
+				PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.attack(target.getObjectId()), "Continuous native attack was not issued.");
+				PhantomAssertions.assertTrue(waitFor(() -> shots.getCount() <= before - 3L * perHit && target.getCurrentHp() < hp, 12_000), "One continuous native ATTACK did not recharge shots across two real hits.");
+				PhantomAssertions.assertEquals(wrongBefore, wrong.getCount(), "Wrong-grade shots were consumed.");
+				lease.cancelOwnedAction(new PhantomOwnedAction(1, target.getObjectId(), null, 0));
+			}
+			PhantomAssertions.assertFalse(_player.getAutoSoulShot().contains(1835), "Closed Combat lease left its auto-shot preference running.");
+			context.record("loadout061.physicalObserved", "stock=" + before + "->" + shots.getCount() + "; targetHP=" + hp + "->" + target.getCurrentHp() + "; native auto-shot and wrong-grade conservation; no added charge after ATTACK");
+		}
+		finally { _player.abortAttack(); _player.getAI().setIntention(Intention.IDLE); target.deleteMe(); destroyInventoryItem(shots); destroyInventoryItem(wrong); }
+	}
+
+	private void testBlessedShots061(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true); _player.setPlayerClass(10); _player.getStat().setLevel((byte) 20);
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous native physical shot control did not leave combat stance.");
+		final var catalog = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog();
+		final var grade = org.l2jmobius.gameserver.model.item.type.CrystalType.D;
+		final var weapon = catalog.buyOffers().stream().map(offer -> org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(offer.itemId())).filter(item -> item instanceof org.l2jmobius.gameserver.model.item.Weapon value && value.isMagicWeapon() && value.getCrystalType() == grade && value.getSpiritShotCount() > 0).map(item -> (org.l2jmobius.gameserver.model.item.Weapon) item).distinct().min(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.ItemTemplate::getId)).orElseThrow();
+		final var equipped = _player.getInventory().addItem(ItemProcessType.REWARD, weapon.getId(), 1, _player, this); _player.getInventory().equipItem(equipped);
+		final var items = catalog.supplies().stream().map(supply -> org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> item instanceof org.l2jmobius.gameserver.model.item.EtcItem && item.getDefaultAction() == org.l2jmobius.gameserver.model.item.type.ActionType.SPIRITSHOT && item.getCrystalType() == grade).toList();
+		final var blessed = items.stream().filter(item -> ((org.l2jmobius.gameserver.model.item.EtcItem) item).isBlessed()).min(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.ItemTemplate::getId)).orElseThrow();
+		final var regular = items.stream().filter(item -> !((org.l2jmobius.gameserver.model.item.EtcItem) item).isBlessed()).min(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.ItemTemplate::getId)).orElseThrow();
+		final var blessedStock = _player.getInventory().addItem(ItemProcessType.REWARD, blessed.getId(), 30, _player, this);
+		final var regularStock = _player.getInventory().addItem(ItemProcessType.REWARD, regular.getId(), 30, _player, this);
+		final var skill = SkillData.getInstance().getSkill(1177, 1); _player.addSkill(skill, false);
+		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); _player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp());
+		prepareLearningField059(context);
+		final var target = spawnExactPointMonster(20001, Double.MAX_VALUE);
+		final long before = blessedStock.getCount(), regularBefore = regularStock.getCount();
+		final double hpBefore = target.getCurrentHp(), mpBefore = _player.getCurrentMp();
+		_player.addAutoSoulShot(regular.getId());
+		context.record("loadout061.magicInput", "Independent native HumanMystic20; D magic weapon=" + weapon.getId() + "; blessed=" + blessed.getId() + "; regular=" + regular.getId() + "; finite30 each; preexisting regular auto-shot; native1177:1 before measurement");
+		try
+		{
+			try (var lease = Optional.ofNullable(_backend.tryAcquireActor(_profile.profileId())).orElseThrow())
+			{
+				PhantomAssertions.assertEquals(ShotOutcome.ACTIVATED, lease.activateShot(PhantomCombatMode.RANGED_MAGIC), "Native magic charge failed.");
+				PhantomAssertions.assertTrue(_player.isChargedShot(ShotType.BLESSED_SPIRITSHOTS) && _player.getAutoSoulShot().contains(blessed.getId()) && !_player.getAutoSoulShot().contains(regular.getId()), "Regular native auto-shot masked the preferred exact-grade blessed spiritshot.");
+				PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.cast(target.getObjectId(), new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatLoadout.SelectedSkill(1177, 1), PhantomCombatMode.RANGED_MAGIC), "Native blessed-backed CAST was not issued.");
+				PhantomAssertions.assertTrue(waitFor(() -> blessedStock.getCount() <= before - 2L * weapon.getSpiritShotCount() && target.getCurrentHp() < hpBefore && _player.getCurrentMp() < mpBefore, 12_000), "Native CAST did not damage its target, spend MP and recharge the blessed spiritshot.");
+				PhantomAssertions.assertEquals(regularBefore, regularStock.getCount(), "Preferred blessed selection consumed regular spiritshots.");
+				lease.cancelOwnedAction(new PhantomOwnedAction(1, target.getObjectId(), null, 0));
+			}
+			PhantomAssertions.assertTrue(!_player.getAutoSoulShot().contains(blessed.getId()) && _player.getAutoSoulShot().contains(regular.getId()), "Combat cleanup lost the preexisting native shot preference.");
+			context.record("loadout061.magicObserved", "blessed=" + before + "->" + blessedStock.getCount() + "; regular=" + regularBefore + "->" + regularStock.getCount() + "; targetHP=" + hpBefore + "->" + target.getCurrentHp() + "; MP=" + mpBefore + "->" + _player.getCurrentMp() + "; preexisting auto-shot restored");
+		}
+		finally { _player.removeAutoSoulShot(regular.getId()); _player.abortCast(); _player.getAI().setIntention(Intention.IDLE); target.deleteMe(); destroyInventoryItem(blessedStock); destroyInventoryItem(regularStock); }
+	}
+
 	private void testCanonicalShot() throws Exception
 	{
 		resetActor(true);
@@ -6019,9 +6106,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(before - 1, _player.getInventory().getInventoryItemCount(SOULSHOT_ITEM_ID, -1), "Canonical soulshot activation consumed an unexpected count.");
 			PhantomAssertions.assertTrue(_player.isChargedShot(ShotType.SOULSHOTS), "Canonical soulshot handler did not charge the weapon.");
 			PhantomAssertions.assertEquals(ActionOutcome.ISSUED, lease.attack(target.getObjectId()), "Canonical shot-backed attack was not issued.");
-			await(() -> !_player.isChargedShot(ShotType.SOULSHOTS), "Canonical attack did not discharge the soulshot.");
+			await(() -> _player.getInventory().getInventoryItemCount(SOULSHOT_ITEM_ID, -1) <= before - 2 && target.getCurrentHp() < target.getMaxHp(), "Canonical attack did not discharge and natively recharge the soulshot.");
 			lease.cancelOwnedAction(new PhantomOwnedAction(1, target.getObjectId(), null, 0));
 		}
+		target.deleteMe();
 		destroyInventoryItem(shots);
 		PhantomAssertions.assertTrue(weapon.isEquipped(), "Shot test unexpectedly unequipped its weapon.");
 	}
@@ -6030,6 +6118,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		resetActor(true);
 		ensureWeapon();
+		// Independent missing-stock input; the previous real hit may have recharged its last paid shot.
+		_player.setChargedShot(ShotType.SOULSHOTS, false);
 		final Item lingeringShots = _player.getInventory().getItemByItemId(SOULSHOT_ITEM_ID);
 		if (lingeringShots != null)
 		{

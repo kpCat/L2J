@@ -71,12 +71,31 @@ final class PhantomSupply060OwnerGuards
 	static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
 			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition) throws Exception
 	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, ammunition, false);
+	}
+
+	static void blessed(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, false, true);
+	}
+
+	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed) throws Exception
+	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final long baselineAdena = player.getAdena();
-		player.setBaseClass(0); player.setPlayerClass(0); player.setLearningClass(player.getPlayerClass()); player.getStat().setLevel((byte) 5); player.setSp(0);
-		final var weapon = player.getInventory().addItem(ItemProcessType.REWARD, ammunition ? 14 : 68, 1, null, PhantomSupply060OwnerGuards.class);
+		player.setBaseClass(blessed ? 10 : 0); player.setPlayerClass(blessed ? 10 : 0); player.setLearningClass(player.getPlayerClass()); player.getStat().setLevel((byte) 5); player.setSp(0);
+		final var weapon = player.getInventory().addItem(ItemProcessType.REWARD, ammunition ? 14 : blessed ? 6 : 68, 1, null, PhantomSupply060OwnerGuards.class);
 		PhantomAssertions.assertTrue(weapon != null, "Finite owner-guard weapon unavailable."); player.getInventory().equipItem(weapon);
-		final int supplyItemId = ammunition ? 17 : 1835;
+		final int supplyItemId = ammunition ? 17 : blessed ? 3947 : 1835;
+		if (blessed)
+		{
+			player.getInventory().addItem(ItemProcessType.REWARD, 2509, 100, null, PhantomSupply060OwnerGuards.class);
+			final var data = org.l2jmobius.gameserver.data.xml.ItemData.getInstance();
+			PhantomAssertions.assertTrue(L2jPhantomSupplyJourney.compatible(player, data.getTemplate(3947)), "Native NG blessed spiritshot is unavailable.");
+			PhantomAssertions.assertFalse(L2jPhantomSupplyJourney.compatible(player, data.getTemplate(3948)), "No-grade mage weapon accepted D-grade blessed spiritshot.");
+		}
 		if (ammunition)
 		{
 			player.getInventory().addItem(ItemProcessType.REWARD, 1835, 600, null, PhantomSupply060OwnerGuards.class);
@@ -107,7 +126,7 @@ final class PhantomSupply060OwnerGuards
 		PhantomAssertions.assertTrue(navigation.start() && commerce.start() && journey.start(), "Supply owner guards did not start.");
 		final long adena = player.getAdena(), stock = player.getInventory().getInventoryItemCount(supplyItemId, -1);
 		final int x = player.getX(), y = player.getY(), z = player.getZ();
-		context.record("supply060.ownerInput", "SEPARATE PREMEASUREMENT own finite " + (ammunition ? "NG Bow14/arrows2/NGshots600" : "NG68") + " and10000 Adena; class0/5/SP0; root=" + root + "; guard calls only, no full farm/command claim");
+		context.record("supply060.ownerInput", "SEPARATE PREMEASUREMENT own finite " + (ammunition ? "NG Bow14/arrows2/NGshots600/class0" : blessed ? "Mystic10/NG6/regular2509x100/blessed0" : "NG68/class0") + " and10000 Adena; level5/SP0; root=" + root + "; guard calls only, no full farm/command claim");
 		try
 		{
 			PhantomAssertions.assertFalse(journey.needsOrOwns(profileId, root), "Foreign owner/HOLD port allowed a supply need.");
@@ -125,7 +144,7 @@ final class PhantomSupply060OwnerGuards
 			final var step = new PhantomStepContext(profileId, replacement, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
 			final var result = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
 			final var intent = journey.automaticIntent(profileId).orElseThrow();
-			PhantomAssertions.assertEquals(Integer.toString(supplyItemId), intent.target().key(), "Low native ammunition did not win independently of sufficient shot stock.");
+			PhantomAssertions.assertEquals(Integer.toString(supplyItemId), intent.target().key(), "Preferred native supply did not win independently of other compatible stock.");
 			PhantomAssertions.assertEquals("supplies.native.busy", result.reasonKey(), "Native combat allowed travel/payment.");
 			PhantomAssertions.assertEquals(replacement.revision(), PhantomSupplyIntentStore.Binding.parse(intent).rootRevision(), "Cached old revision created a stale supply intent.");
 			PhantomAssertions.assertTrue(store.load(profileId).isPresent(), "Exact active child was not visible to Commerce.");

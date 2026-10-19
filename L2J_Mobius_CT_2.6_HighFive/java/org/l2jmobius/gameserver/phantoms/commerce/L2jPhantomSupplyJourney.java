@@ -238,14 +238,25 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final boolean healingNeeded = player.getLevel() >= 18 && healingStock < 3;
 			final int perHit = healingNeeded || ammunitionNeeded ? 1 : player.isMageClass() ? player.getActiveWeaponItem().getSpiritShotCount() : player.getActiveWeaponItem().getSoulShotCount();
 			if (perHit <= 0 || perHit > 100) { return Optional.empty(); }
-			final var items = healingNeeded ? _healingItems.stream().filter(item -> compatible(player, item)).toList() : ammunitionNeeded ? ammunition : _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
-			final long stock = items.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
+			final var compatibleItems = healingNeeded ? _healingItems.stream().filter(item -> compatible(player, item)).toList() : ammunitionNeeded ? ammunition : _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.SHOT)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
+			final var blessed = !healingNeeded && !ammunitionNeeded && player.isMageClass() ? compatibleItems.stream().filter(item -> item instanceof EtcItem etc && etc.isBlessed()).toList() : List.<ItemTemplate>of();
+			var items = blessed.isEmpty() ? compatibleItems : blessed;
+			long stock = items.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
 			if (stock >= (long) perHit * _policy.lowWaterHits()) { return Optional.empty(); }
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getActiveWeaponInstance().getObjectId() + ':' + stock + ':' + player.getAdena();
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return Optional.ofNullable(cached.offer); }
 			cached.facts = facts; cached.nextCheck = now + TimeUnit.SECONDS.toMillis(_policy.retrySeconds()); cached.offer = null;
 			final long targetStock = healingNeeded ? 20 : Math.min(600, (long) perHit * _policy.targetHits());
-			final var choices = choices(player, items, stock, perHit, targetStock);
+			var choices = choices(player, items, stock, perHit, targetStock);
+			if (choices.isEmpty() && !blessed.isEmpty())
+			{
+				final long fallbackStock = compatibleItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
+				if (fallbackStock < (long) perHit * _policy.lowWaterHits())
+				{
+					final var fallback = choices(player, compatibleItems, fallbackStock, perHit, targetStock);
+					if (!fallback.isEmpty()) { items = compatibleItems; stock = fallbackStock; choices = fallback; }
+				}
+			}
 			final var sources = new ArrayList<PhantomDomainRef>();
 			for (int index = 0; index < choices.size(); index++) { final var choice = choices.get(index); sources.add(new PhantomDomainRef("supply.npc", index + ":" + choice.npcId + ':' + choice.objectId + ':' + choice.listId + ':' + choice.itemId + ':' + choice.count)); }
 			final var binding = new Binding(root.revision(), player.getObjectId(), player.getActiveClass(), player.getClassIndex(), player.getActiveWeaponInstance().getObjectId(), PhantomNativeTravelActions.point(player), 0);
