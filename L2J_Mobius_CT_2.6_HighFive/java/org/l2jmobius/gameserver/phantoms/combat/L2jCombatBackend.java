@@ -128,7 +128,12 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 	@Override
 	public PhantomCombatActorLease tryAcquireActor(long profileId)
 	{
-		return _materializationService.tryAcquireAction(profileId).map(lease -> new L2jActorLease(lease, _knowledgeSupplier, _progressionCatalog)).orElse(null);
+		return _materializationService.tryAcquireAction(profileId).map(lease ->
+		{
+			final L2jActorLease actor = new L2jActorLease(lease, _knowledgeSupplier, _progressionCatalog);
+			lease.detachContext();
+			return actor;
+		}).orElse(null);
 	}
 
 	private static final class L2jActorLease implements PhantomCombatActorLease

@@ -672,6 +672,7 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 		private final AtomicBoolean _closed = new AtomicBoolean();
 		private final PlayerNativeWork.Ticket _ticket;
 		private final PlayerNativeWork.Context _context;
+		private final AtomicBoolean _contextAttached = new AtomicBoolean(true);
 
 		private ActionLease(PhantomMaterializedPlayer owner, Player player, long generation, PlayerNativeWork.Ticket ticket)
 		{
@@ -692,12 +693,26 @@ public final class PhantomMaterializedPlayer implements AutoCloseable
 			return _closed.get();
 		}
 
+		/** Leave the acquiring thread before transferring this lease; its native ticket remains owned. */
+		public void detachContext()
+		{
+			if (_contextAttached.compareAndSet(true, false))
+			{
+				try { _context.close(); }
+				catch (RuntimeException | Error failure)
+				{
+					_contextAttached.set(true);
+					throw failure;
+				}
+			}
+		}
+
 		@Override
 		public void close()
 		{
 			if (_closed.compareAndSet(false, true))
 			{
-				try { _context.close(); }
+				try { detachContext(); }
 				finally { _ticket.complete(null); }
 			}
 		}

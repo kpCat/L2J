@@ -48,6 +48,12 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 	@Override public void register(PhantomTestRegistry registry)
 	{
 		final String focus = System.getProperty("phantom.m1.native.focus", "all");
+		if (focus.equals("career061"))
+		{
+			registry.add("C60-transferred-native-actor-lease-context", this::transferredLease061);
+			registry.add("C61-owned-native-combat-stock-stop", this::careerOwnedStop061);
+			return;
+		}
 		if (focus.equals("capacity049"))
 		{
 			registry.add("S06-post-store-capacity-retains-recovery-before-stop", this::capacityRecovery);
@@ -368,6 +374,92 @@ public final class PhantomLifecycleCompletion027Suite implements PhantomTestSuit
 			f.removeCatchup();
 			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Native diagnostic lifetime.");
 			org.l2jmobius.gameserver.phantoms.player.PhantomLifecycleDispatch027Checks.enteredBeforeOwnerMonitor(context, World.getInstance().getPlayer(f.objectId));
+		}
+	}
+
+	private void transferredLease061(PhantomTestContext context) throws Exception
+	{
+		final var field = PhantomNativeContextHandoffSuite.class.getDeclaredField("_production"); field.setAccessible(true);
+		final var production = (PhantomBackgroundSuite.ProductionAuthorityFixture) field.get(_handoff);
+		try (var f = _handoff.new Fixture(true))
+		{
+			f.removeCatchup();
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Transferred lease fixture did not materialize.");
+			final var player = World.getInstance().getPlayer(f.objectId);
+			final var scope = (PhantomNativeWorkScope) player.getNativeWorkOwner();
+			final var before = PlayerNativeWork.current(scope);
+			final var backend = new org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend(f.materialization, production::knowledge, production::progression);
+			final var lease = backend.tryAcquireActor(f.id);
+			PhantomAssertions.assertTrue(lease != null, "Transferred native lease is absent.");
+			try
+			{
+				context.record("career061.transferredLease", "callerContextRetained=" + (PlayerNativeWork.current(scope) != before) + ";owner=" + scope.snapshot());
+				PhantomAssertions.assertTrue(PlayerNativeWork.current(scope) == before, "A transferred Combat lease retained a thread-local native ACTION on its caller.");
+				final var failure = new AtomicReference<Throwable>(); final var done = new java.util.concurrent.CountDownLatch(1);
+				ThreadPool.executeOrThrow(() -> { try { lease.close(); } catch (Throwable thrown) { failure.set(thrown); } finally { done.countDown(); } });
+				PhantomAssertions.assertTrue(done.await(5, java.util.concurrent.TimeUnit.SECONDS) && failure.get() == null, "Transferred Combat lease failed to close on its actual worker: " + failure.get());
+				PhantomAssertions.assertTrue(PlayerNativeWork.current(scope) == before && scope.outstanding() == 0, "Transferred lease leaked its caller context or native ticket.");
+			}
+			finally { lease.close(); }
+		}
+	}
+
+	private void careerOwnedStop061(PhantomTestContext context) throws Exception
+	{
+		final var environmentField = PhantomNativeContextHandoffSuite.class.getDeclaredField("_environment"); environmentField.setAccessible(true);
+		final var environment = (PhantomHeadlessPlayerTestEnvironment) environmentField.get(_handoff);
+		final var productionField = PhantomNativeContextHandoffSuite.class.getDeclaredField("_production"); productionField.setAccessible(true);
+		final var production = (PhantomBackgroundSuite.ProductionAuthorityFixture) productionField.get(_handoff);
+		final Player setup = Player.load(environment.primary().objectId());
+		try
+		{
+			// Independent finite TEST input before any measured combat/Stop, never ordinary058a progress.
+			setup.getStat().setExp(setup.getStat().getExpForLevel(20)); setup.getStat().setLevel((byte) 20); setup.setSp(0); setup.rewardSkills();
+			for (int item : new int[] {129, 352, 380, 2412, 61, 2428}) { setup.getInventory().equipItem(setup.getInventory().addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD, item, 1, null, this)); }
+			setup.getInventory().addItem(org.l2jmobius.gameserver.model.item.enums.ItemProcessType.REWARD, 1463, 200, null, this);
+			setup.setCurrentHp(setup.getMaxHp()); setup.setCurrentMp(setup.getMaxMp()); setup.storeMe();
+		}
+		finally { environment.cleanupLoadedPlayer(setup); }
+		try (var f = _handoff.new Fixture(true, false, 0, org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction.FaultInjector.none(), false, "generated.farm.187426bb30110951b41e0ba9.anchor", 21208))
+		{
+			f.removeCatchup();
+			PhantomAssertions.assertEquals(PhantomMaterializationService.ResultStatus.SUCCESS, f.materialization.materialize(f.id).status(), "Owned native stop input did not materialize.");
+			final var player = World.getInstance().getPlayer(f.objectId); player.setInvul(true);
+			PhantomAssertions.assertTrue(player.hasOwnedStoreBoundary(), "This composed stop must use the actual background owned-store boundary.");
+			final var scope = (PhantomNativeWorkScope) player.getNativeWorkOwner();
+			final var combat = new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService(new org.l2jmobius.gameserver.phantoms.combat.L2jCombatBackend(f.materialization, () -> production.knowledge(), () -> production.progression()),
+				org.l2jmobius.gameserver.phantoms.combat.PhantomCombatCapabilityResolver.fromProgression(production::progression), org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPolicy.productionDefaults(1));
+			combat.start();
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.ServiceState.RUNNING, combat.snapshot().state(), "Owned stop Combat did not start.");
+			final var system = configure(f);
+			final var combatField = PhantomSystem.class.getDeclaredField("_combatService"); combatField.setAccessible(true); combatField.set(system, combat);
+			final var monster = new Monster(org.l2jmobius.gameserver.data.xml.NpcData.getInstance().getTemplate(20042));
+			monster.spawnMe(player.getX() + 40, player.getY(), player.getZ());
+			try
+			{
+				final long exp = player.getExp();
+				final var started = combat.startContentSession(new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest(f.id, monster.getObjectId(), org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, true, false, 120_000, () -> false), "career061.owned_stop");
+				PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.combat.PhantomCombatService.StartStatus.ACCEPTED, started.status(), "Owned native Combat was not admitted.");
+				final long deadline = System.nanoTime() + 30_000_000_000L;
+				while ((!monster.isDead() || player.getExp() <= exp) && System.nanoTime() < deadline) { Thread.sleep(20); }
+				PhantomAssertions.assertTrue(monster.isDead() && player.getExp() > exp, "Owned stop input has no genuine native kill/reward.");
+				context.record("career061.ownedStopBefore", "exp=" + exp + "->" + player.getExp() + ";owner=" + scope.snapshot());
+				boolean stopped = PhantomSystem.shutdownIfStarted();
+				if (!stopped)
+				{
+					final long controlDeadline = System.nanoTime() + 12_000_000_000L; // Observe the existing10s attempt, never renew it.
+					while (System.nanoTime() < controlDeadline)
+					{
+						final var progress = system.shutdownProgress();
+						if (progress != null && progress.outcome() != PhantomSystem.StopOutcome.PENDING) { stopped = progress.outcome() == PhantomSystem.StopOutcome.COMPLETE; break; }
+						Thread.sleep(10);
+					}
+				}
+				context.record("career061.ownedStop", "result=" + stopped + ";progress=" + system.shutdownProgress() + ";blockers=" + f.materialization.cleanupBlockers() + ";owner=" + scope.snapshot());
+				PhantomAssertions.assertTrue(stopped, "Actual owned background/native combat Stop did not complete.");
+				PhantomAssertions.assertEquals(player.getExp(), f.transactions.load(f.id).state().progress().experience(), "Owned normal Stop lost real earned EXP.");
+			}
+			finally { if (monster.isSpawned()) { monster.deleteMe(); } }
 		}
 	}
 

@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
 if ($Mode -cnotmatch '^[a-z0-9-]+$' -or $Label -cnotmatch '^[a-z0-9-]+$' -or $Seed -le 0) { throw 'Invalid exact test arguments' }
 if ((Get-Location).Path -ine (Join-Path $hf059 '.phantom-local/contract058t/runtime/game')) { throw 'Exact058t native cwd required' }
-if ($Campaign061 -and ($Campaign060 -or $CleanCandidate -or !(($CareerProducer -and $Mode -ceq 'quest-instance-goal036' -and $Seed -eq 36003601) -or (($AutonomousLearning -and $AutonomousLearningGuards -or $PaidAutoGetGuards) -and $Mode -ceq 'earned-learning-native058' -and $Seed -eq 58005833)))) {throw 'TASK061 requires an exact producer or learning continuation mode/seed/build'}
+if ($Campaign061 -and ($Campaign060 -or $CleanCandidate -or !(($CareerProducer -and $Mode -ceq 'quest-instance-goal036' -and $Seed -eq 36003601) -or ($Mode -ceq 'lifecycle-completion027' -and $Seed -eq 27002701) -or (($AutonomousLearning -and $AutonomousLearningGuards -or $PaidAutoGetGuards) -and $Mode -ceq 'earned-learning-native058' -and $Seed -eq 58005833)))) {throw 'TASK061 requires an exact producer, owned lifecycle or learning continuation mode/seed/build'}
 if ($CareerProducer -and !$Campaign061) {throw 'Career061 input requires explicit TASK061 authority'}
 if ($Campaign061 -and (Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object CommandLine -Match 'World-Career-061-candidate|Living-060-candidate|M3-M7-059-candidate|task061')) {throw 'Own061 or protected059/060 JVM active; sequential only'}
 if ($AutonomousLearning -and ((!$Campaign060 -and !$Campaign061) -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)) {throw 'Autonomous learning requires exact060/061 continuation of native058 mode/seed'}
@@ -36,6 +36,10 @@ $classpath059="$jar059;$testBuild059\phantom-test\bin;$testBuild059\phantom-test
 $args059=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Dstderr.encoding=UTF-8',"-Dphantom.module.root=$hf059","-Dphantom.contract058.semantic.jar=$jar059","-Dphantom.test.reports=$report059","-Dphantom.test.config=$hf059\.phantom-local\contract058t\test\Database.test.ini","-Dphantom.contract058.manifest=$hf059\.phantom-local\contract058t\test\owned.properties")
 $args059+='-Dphantom.test.freshIdentities059=true'
 if ($CareerProducer) {$args059+='-Dphantom.test.careerProducer061=true'}
+if ($Mode -ceq 'lifecycle-completion027') {
+ if (!$Campaign061 -or $Seed -ne 27002701) {throw 'Owned career lifecycle requires exact061 mode/seed'}
+ $args059+='-Dphantom.m1.native.focus=career061'
+}
 if ($Campaign061 -and $AutonomousLearning) {$args059+='-Dphantom.test.nearbyLife061=true'}
 if ($Campaign061 -and $PaidAutoGetGuards) {$args059+='-Dphantom.test.retainedAutoGet061=true'}
 if ($SupplyAmmunitionGuards) { if (!$Campaign060 -or !$SupplyGuards -or $Living -or $PetSupport -or $SupplyGatekeeperGuards -or $SupplyManufactureGuards -or $SupplyReturnGuards -or $SupplyResumeGuards) {throw 'Ammunition guards require separate exact060 SupplyGuards'}; $args059+='-Dphantom.test.supplyAmmunitionGuards060=true' }
@@ -104,7 +108,9 @@ Write-Output ('TEST059 '+$Label+'; mode='+$Mode+'; seed='+$Seed+'; GameSHA='+(Ge
 $nativePreference059=$ErrorActionPreference
 try {
     $ErrorActionPreference='Continue'
-    if ($Campaign060) {
+    if ($Mode -ceq 'lifecycle-completion027') {
+        & 'C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot\bin\java.exe' @args059 -cp $classpath059 org.l2jmobius.tests.phantoms.PhantomLifecycleCompletion027Suite $hf059 $report059 *> $log059
+    } elseif ($Campaign060) {
         & 'C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot\bin\java.exe' @args059 -cp $classpath059 org.l2jmobius.tests.phantoms.PhantomTestLauncher $Mode $Seed 2>&1 | Out-File -LiteralPath $log059 -Encoding utf8 -Width 4096
     } else {
         & 'C:\Program Files\Eclipse Adoptium\jdk-25.0.4.101-hotspot\bin\java.exe' @args059 -cp $classpath059 org.l2jmobius.tests.phantoms.PhantomTestLauncher $Mode $Seed *> $log059
