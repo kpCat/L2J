@@ -167,6 +167,11 @@ final class PhantomAutonomousCareer
 				&& lease.player().getBaseClass() == lease.player().getActiveClass())
 			{
 				earnedClass = lease.player(); earnedOwner = earnedClass.getNativeWorkOwner();
+				// Native ClassMaster owns the transfer; align only its transient trainer context afterwards.
+				if (earnedClass.getLearningClass() != earnedClass.getPlayerClass())
+				{
+					earnedClass.setLearningClass(earnedClass.getPlayerClass());
+				}
 				final long weapon = intent.constraints().getOrDefault("weapon.object", 0L);
 				if (weapon > 0 && earnedClass.getActiveWeaponInstance() == null)
 				{

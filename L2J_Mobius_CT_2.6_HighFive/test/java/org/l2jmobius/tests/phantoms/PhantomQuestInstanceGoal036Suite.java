@@ -905,6 +905,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			_profiles.updateComponent(id, "career.intent", original.rowVersion(), 1, codec.encode(missing));
 		}
 		_player.getInventory().unEquipItemInSlot(org.l2jmobius.gameserver.model.itemcontainer.Inventory.PAPERDOLL_RHAND);
+		// Stock ClassMaster changes active/base class without resetting this transient trainer context.
+		_player.setLearningClass(org.l2jmobius.gameserver.model.actor.enums.player.PlayerClass.getPlayerClass(0));
 		PhantomAssertions.assertTrue(_player.getActiveWeaponInstance() == null, "Declared post-trial native finish input is not unarmed.");
 		final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry();
 		final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry();
@@ -925,6 +927,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		{
 			final var result = handlers.snapshot().get(step.actionKey()).execute(new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(id, root, plan, step, PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, () -> false));
 			context.record("career061.finishCheckpoint", "actualProductionHandler=" + result + ";nativeStores=" + stores.get());
+			PhantomAssertions.assertEquals(_player.getActiveClass(), _player.getLearningClass().getId(), "Native earned-class checkpoint retained the old trainer class and blocks post-career learning/return.");
 			PhantomAssertions.assertTrue(result.type() == (missingWeapon ? org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.REPLAN : org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.SUCCESS) && stores.get() == 1, "Production class finish cannot preserve its own native checkpoint/equip refusal.");
 			PhantomAssertions.assertTrue(_player.getExp() == exp && _player.getSp() == sp, "Native finish changed earned EXP/SP.");
 			PhantomAssertions.assertTrue(missingWeapon ? _player.getActiveWeaponInstance() == null : _player.getActiveWeaponInstance() != null && _player.getActiveWeaponInstance().getObjectId() == originalWeapon, "Production finish did not preserve the exact original-weapon/native-refusal boundary.");
