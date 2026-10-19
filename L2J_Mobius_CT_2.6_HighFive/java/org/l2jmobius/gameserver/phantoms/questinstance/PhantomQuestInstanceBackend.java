@@ -18,6 +18,7 @@ public interface PhantomQuestInstanceBackend
 	ActionResult invoke(long profileId, Content content, Step step, String expectedFingerprint);
 
 	ActionResult move(long profileId, Content content, Step step, Target expectedTarget);
+	default void cancelMove(long profileId) { }
 
 	default org.l2jmobius.gameserver.phantoms.navigation.PhantomTravelStrategy.Options travelOptions(long profileId, Content content, long remainingMillis) { return null; }
 	default java.util.List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> approaches(long profileId, Content content, Step step, Target target, double requiredDistance, int arrivalRadius)

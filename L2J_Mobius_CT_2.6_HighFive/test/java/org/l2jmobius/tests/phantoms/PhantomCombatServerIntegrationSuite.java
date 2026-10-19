@@ -678,6 +678,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					registry.add("061-failed-native-journey-returns-without-erasing-failure", this::testFailedLearningReturn061);
 					registry.add("061-career-native-field-return-without-learning-or-class-grant", context -> testNativeReturn061(context, true));
 					registry.add("061-career-native-town-return-without-class-grant", context -> testNativeReturn061(context, true, true));
+					registry.add("061-native-owned-walk-lifecycle-handoff-preserves-foreign-movement", context -> testNativeReturn061(context, true, false, true));
 				}
 				registry.add("03-autonomous-earned-learning-through-farm-decision", this::testAutonomousLearning060);
 				if (!Boolean.getBoolean("phantom.test.autonomousLearningGuards060")) { registry.add("04-native-earned-autonomous-paid-walk-return-and-resume", context ->
@@ -4627,6 +4628,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testNativeReturn061(PhantomTestContext context, boolean career, boolean townBase) throws Exception
 	{
+		testNativeReturn061(context, career, townBase, false);
+	}
+
+	private void testNativeReturn061(PhantomTestContext context, boolean career, boolean townBase, boolean handoff) throws Exception
+	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final var field = townBase ? new PhantomNavigationPoint(-12787, 122779, GeoEngine.getInstance().getHeight(-12787, 122779, -3112), 0) : prepareLearningField059(context);
 		if (townBase)
@@ -4646,8 +4652,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		PhantomAssertions.assertTrue(away != null, "INVALID_INPUT: failed-return control needs a real local native corridor.");
 		final var target = away;
+		final String walkInput = "field=" + field + "; target=" + target + "; intention=" + _player.getAI().getIntention() + "; moving=" + _player.isMoving() + "; sitting=" + _player.isSitting() + "; disabled=" + _player.isMovementDisabled() + "; speed=" + _player.getMoveSpeed() + "; teleporting=" + _player.isTeleporting();
 		_player.getAI().setIntention(Intention.MOVE_TO, new Location(target.x(), target.y(), target.z()));
-		PhantomAssertions.assertTrue(waitFor(() -> !_player.isMoving() && _player.calculateDistance3D(target.x(), target.y(), target.z()) < 60, 10_000), "Native preparation WALK did not reach the declared failed-trip position.");
+		final boolean prepared = waitFor(() -> !_player.isMoving() && _player.calculateDistance3D(target.x(), target.y(), target.z()) < 60, 10_000);
+		context.record("journey061.preparationWalk." + townBase + '.' + handoff, walkInput + "; reached=" + prepared + "; actual=" + org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player) + "; intentionAfter=" + _player.getAI().getIntention() + "; movingAfter=" + _player.isMoving());
+		PhantomAssertions.assertTrue(prepared, "Native preparation WALK did not reach the declared failed-trip position: " + walkInput + "; actual=" + org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.point(_player));
 		final var anchor = _topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING && value.point().instanceId() == 0).min(Comparator.comparingDouble(value -> Math.hypot(value.point().x() - field.x(), value.point().y() - field.y()))).orElseThrow();
 		final var goals = new PhantomGoalStateStore(_repository);
 		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_combatPoint.npcId())), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, _combatPoint.npcId() + "@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture.failed_return061", 1);
@@ -4673,6 +4682,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(career || journey.permitsAutomaticVisibleDecision(_profile.profileId(), root) && selected != null, "A failed native trip stranded its actor outside the farm gate instead of proposing bounded return.");
 			final var plan = career ? null : selected.planFactory().create(planning); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
 			org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult returnResult = null;
+			boolean handedOff = false;
 			do
 			{
 				if (career) { returnResult = journey.returnCareerToField(_profile.profileId(), root, failed, () -> false, System.nanoTime()); }
@@ -4681,12 +4691,24 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					final var step = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
 					handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
 				}
+				if (handoff && !handedOff && _player.isMoving())
+				{
+					PhantomAssertions.assertTrue(waitFor(() -> _player.calculateDistance3D(target.x(), target.y(), target.z()) >= 80, 5000), "Owned handoff input never physically moved.");
+					journey.beforeStore(_profile.profileId(), _player);
+					PhantomAssertions.assertFalse(_player.isMoving(), "Journey cancelled only its path request and left its own native MOVE_TO running.");
+					_player.getAI().setIntention(Intention.MOVE_TO, new Location(target.x(), target.y(), target.z()));
+					PhantomAssertions.assertTrue(_player.isMoving(), "Foreign movement control was not admitted.");
+					journey.beforeStore(_profile.profileId(), _player);
+					PhantomAssertions.assertTrue(_player.isMoving() && _player.getXdestination() == target.x() && _player.getYdestination() == target.y(), "Old journey cleanup stopped a foreign native move.");
+					handedOff = true;
+				}
 				if (career && returnResult.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.FAIL_GOAL) { break; }
 				if (_player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius() && (career ? returnResult.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL : !journey.ownsAutomaticIntent(_profile.profileId(), root))) { break; }
 				Thread.sleep(100);
 			} while (System.nanoTime() < until);
 			final var terminal = career ? new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(_repository.findComponent(_profile.profileId(), componentType).orElseThrow().payload()) : journey.automaticIntent(_profile.profileId()).orElseThrow();
 			PhantomAssertions.assertTrue(_player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius(), "Failed trip did not physically return through native WALK.");
+			PhantomAssertions.assertTrue(!handoff || handedOff, "Native movement handoff contract never exercised a real issued move.");
 			PhantomAssertions.assertTrue(!career || returnResult != null && returnResult.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL, "Native career return did not complete its accepted field/town contract: " + returnResult);
 			PhantomAssertions.assertTrue((career ? terminal.equals(failed) && _player.getActiveClass() == values.get("class.from") : terminal.status() == PhantomGoalStatus.FAILED && terminal.reasonKey().equals("learning.route.deadline")) && _player.getSp() == sp && _player.getExp() == exp && _player.getSkillLevel(3) == rank, "Return changed its accepted authority, class, FAIL or paid lesson.");
 			context.record(career ? "journey061.careerReturn" : "journey061.failedReturn", "native WALK256 then product return; original child retained; no SP/EXP/rank/class changes; one bounded settlement, not Q401/B or a lesson PASS");

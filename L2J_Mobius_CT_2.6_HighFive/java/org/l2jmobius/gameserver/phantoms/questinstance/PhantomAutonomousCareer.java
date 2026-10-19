@@ -229,6 +229,8 @@ final class PhantomAutonomousCareer
 				store(context.profileId(), cached, intent);
 			}
 			_service.publishAcceptedResume(context.profileId(), intent, System.currentTimeMillis());
+			final var recovery = _service.prepareReturn(context.profileId(), context.goal(), intent, context.cancellationToken());
+			if (recovery != null) { return recovery.status() == PhantomQuestInstanceService.Status.CANCELLED ? PhantomStepResult.of(PhantomStepResult.Type.CANCELLED, recovery.reasonKey()) : PhantomStepResult.retry(500, recovery.reasonKey()); }
 			final var returned = _fieldReturn.apply(context, intent);
 			if (returned.type() == PhantomStepResult.Type.FAIL_GOAL) { result = new PhantomQuestInstanceService.AdvanceResult(PhantomQuestInstanceService.Status.FAIL, returned.reasonKey()); }
 			else if (returned.type() != PhantomStepResult.Type.COMPLETE_GOAL) { return returned; }

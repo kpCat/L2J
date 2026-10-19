@@ -51,6 +51,13 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 	private final PhantomQuestInstanceCatalog _catalog;
 	private final Supplier<PhantomGameKnowledgeQuery> _knowledge;
 	private final Map<Long, String> _travelEvidence = new java.util.LinkedHashMap<>();
+	private final Map<Long, org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.OwnedWalk> _issuedWalks = new java.util.LinkedHashMap<>();
+	@Override public void cancelMove(long profileId)
+	{
+		final org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.OwnedWalk issued;
+		synchronized (_issuedWalks) { issued = _issuedWalks.remove(profileId); }
+		org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.cancelWalk(issued);
+	}
 	private java.util.function.ToLongBiFunction<Long, String> _avoidedCell = (_, _) -> Long.MIN_VALUE;
 	@Override public void avoidCombatArea(java.util.function.ToLongBiFunction<Long, String> areas) { _avoidedCell = Objects.requireNonNull(areas); }
 
@@ -391,7 +398,21 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 			{
 				return result(ActionStatus.IDEMPOTENT, before, "questinstance.move.arrived");
 			}
-			player.getAI().setIntention(Intention.MOVE_TO, new Location(expectedTarget.x(), expectedTarget.y(), expectedTarget.z()));
+			synchronized (_issuedWalks)
+			{
+				final var previous = _issuedWalks.get(profileId);
+				if (player.isMoving())
+				{
+					final var current = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.captureWalk(player);
+					if (previous == null || !previous.equals(current)) { return result(ActionStatus.UNAVAILABLE, before, "questinstance.move.foreign"); }
+					if (previous.destination().x() == expectedTarget.x() && previous.destination().y() == expectedTarget.y() && previous.destination().z() == expectedTarget.z()) { return result(ActionStatus.IDEMPOTENT, before, "questinstance.move.active"); }
+					org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.cancelWalk(previous);
+				}
+				if (_issuedWalks.size() >= 128 && !_issuedWalks.containsKey(profileId)) { return result(ActionStatus.UNAVAILABLE, before, "questinstance.move.capacity"); }
+				player.getAI().setIntention(Intention.MOVE_TO, new Location(expectedTarget.x(), expectedTarget.y(), expectedTarget.z()));
+				final var issued = org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.captureWalk(player);
+				if (issued != null) { _issuedWalks.put(profileId, issued); }
+			}
 			return result(ActionStatus.ISSUED, before, "questinstance.move.issued");
 		}
 		catch (RuntimeException exception)

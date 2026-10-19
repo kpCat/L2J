@@ -685,7 +685,7 @@ public final class PhantomSystem
 				_questInstanceService.requireField(_historicalBackgroundService::canStartNativeJourney);
 				_questInstanceService.deferAutonomousWhen((profileId, root) -> _supplyJourney.needsOrOwns(profileId, root) || !_questInstanceService.ownsAutonomousIntent(profileId, root) && _learningJourney.needsOrOwnsAutomaticIntent(profileId, root));
 				_questInstanceService.useOnlineResume(_populationManager.presence()::isOnline);
-				_questInstanceService.useFieldReturn((context, intent) -> _learningJourney.returnCareerToField(context.profileId(), context.goal(), intent, context.cancellationToken(), context.logicalNowNanos()));
+				_questInstanceService.useFieldReturn((context, intent) -> _learningJourney.returnCareerToField(context.profileId(), context.goal(), intent, context.cancellationToken(), context.logicalNowNanos()), _learningJourney::suspendCareerReturn);
 				_learningJourney.deferAutomaticWhen((profileId, root) -> _supplyJourney.needsOrOwns(profileId, root) || _questInstanceService.ownsAutonomousIntent(profileId, root));
 				supplyLifecycleBridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_supplyJourney, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_learningJourney, _questInstanceService)));
 				if (!_questInstanceService.start()) { throw new IllegalStateException("Phantom quest and instance service could not enter the running state."); }

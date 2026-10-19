@@ -23,7 +23,25 @@ public final class PhantomNativeTravelActions
 	private static final ThreadLocal<ReturnOperation> RETURN_GUARD = new ThreadLocal<>();
 	public enum Status { ARRIVED, UNAVAILABLE, INSUFFICIENT_RESOURCES, NATIVE_REJECTED, PAID_WITHOUT_ARRIVAL }
 	public record GatekeeperResult(Status status, long fee, long adenaBefore, long adenaAfter, PhantomNavigationPoint before, PhantomNavigationPoint after) { }
+	public record OwnedWalk(Player player, PlayerNativeWork.Owner owner, PhantomNavigationPoint destination) { }
 	private PhantomNativeTravelActions() { }
+	/** Physical ownership witness only; the journey keeps its existing Goal and scheduler. */
+	public static OwnedWalk captureWalk(Player player)
+	{
+		final var owner = player.getNativeWorkOwner();
+		return owner != null && owner.isCurrent() && World.getInstance().getPlayer(player.getObjectId()) == player && player.isMoving() && player.hasAI() && player.getAI().getIntention() == org.l2jmobius.gameserver.ai.Intention.MOVE_TO
+			? new OwnedWalk(player, owner, new PhantomNavigationPoint(player.getXdestination(), player.getYdestination(), player.getZdestination(), player.getInstanceId())) : null;
+	}
+	public static boolean cancelWalk(OwnedWalk issued)
+	{
+		if (issued == null) { return false; }
+		final var player = issued.player(); final var destination = issued.destination();
+		if (issued.owner() == null || player.getNativeWorkOwner() != issued.owner() || !issued.owner().isCurrent() || World.getInstance().getPlayer(player.getObjectId()) != player
+			|| !player.isMoving() || !player.hasAI() || player.getAI().getIntention() != org.l2jmobius.gameserver.ai.Intention.MOVE_TO || player.getInstanceId() != destination.instanceId()
+			|| player.getXdestination() != destination.x() || player.getYdestination() != destination.y() || player.getZdestination() != destination.z()) { return false; }
+		player.stopMove(null); player.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.IDLE);
+		return true;
+	}
 	/** A native town can prepare a journey even when its certified farm topology has no local target. */
 	public static boolean safePreparationTown(Player player)
 	{

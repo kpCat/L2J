@@ -698,11 +698,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private static void stopOwnedMove(Trip trip)
 	{
 		final Player player = trip.player; final var issued = trip.issued;
-		if (issued != null && player.getNativeWorkOwner() == trip.owner && trip.owner.isCurrent() && World.getInstance().getPlayer(player.getObjectId()) == player && player.isMoving() && player.getXdestination() == issued.x() && player.getYdestination() == issued.y() && player.getZdestination() == issued.z())
-		{
-			player.stopMove(null);
-			if (player.hasAI() && player.getAI().getIntention() == Intention.MOVE_TO) { player.getAI().setIntention(Intention.IDLE); }
-		}
+		if (issued != null) { org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.cancelWalk(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.OwnedWalk(player, trip.owner, issued)); }
 		trip.issued = null;
 	}
 

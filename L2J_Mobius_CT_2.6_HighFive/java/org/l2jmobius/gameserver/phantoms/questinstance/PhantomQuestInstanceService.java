@@ -74,6 +74,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	private final Map<Long, Long> _signalSequences = new HashMap<>();
 	private volatile State _state = State.NEW;
 	private PhantomAutonomousCareer _automatic;
+	private java.util.function.BiConsumer<Long, PhantomGoal> _suspendReturn = (_, _) -> { };
 
 	public void enableAutonomous(org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository profiles,
 		org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService materialization, java.util.function.BiPredicate<Long, Long> pauseFarm,
@@ -119,7 +120,11 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	}
 	public void useFieldReturn(java.util.function.BiFunction<org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext, PhantomGoal, org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult> action)
 	{
-		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career return must bind before start."); } _automatic.useFieldReturn(action); }
+		useFieldReturn(action, (_, _) -> { });
+	}
+	public void useFieldReturn(java.util.function.BiFunction<org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext, PhantomGoal, org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult> action, java.util.function.BiConsumer<Long, PhantomGoal> suspend)
+	{
+		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career return must bind before start."); } _automatic.useFieldReturn(action); _suspendReturn = Objects.requireNonNull(suspend); }
 	}
 	public void requireField(java.util.function.BiPredicate<PhantomGoal, org.l2jmobius.gameserver.model.actor.Player> predicate)
 	{
@@ -278,8 +283,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 				return retry("questinstance.actor.busy");
 			}
 			// The durable child owns native Combat across ordinary Decision replans/retry exhaustion.
-			final PhantomCancellationToken combatToken = intent == null ? token : () -> _state != State.RUNNING || _automatic == null
-				|| !_automatic.permitsOwnedCombat(profileId, root, intent) || validChild(profileId, root, intent) == null;
+			final PhantomCancellationToken combatToken = ownedCombatToken(profileId, root, intent, token);
 			return switch (content.kind())
 			{
 				case QUEST -> "quest.102".equals(content.id()) ? q102(profileId, content, observation, logicalNowNanos, token) : q152(profileId, content, observation, logicalNowNanos, token);
@@ -341,6 +345,11 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		return result == PhantomCombatResult.PLAYER_DEAD || result == PhantomCombatResult.LOW_HP_STOPPED || result == PhantomCombatResult.TIMEOUT || result == PhantomCombatResult.TARGET_LOST || result == PhantomCombatResult.UNSUPPORTED_LOADOUT;
 	}
 
+	private PhantomCancellationToken ownedCombatToken(long profileId, PhantomGoal root, PhantomGoal intent, PhantomCancellationToken fallback)
+	{
+		return intent == null ? fallback : () -> _state != State.RUNNING || _automatic == null || !_automatic.permitsOwnedCombat(profileId, root, intent) || validChild(profileId, root, intent) == null;
+	}
+
 	private static AdvanceResult combatOutcome(CombatOperation owned, PhantomCombatResult result)
 	{
 		return result.victory() ? progress("questinstance.combat.victory") : result == PhantomCombatResult.CANCELLED ? new AdvanceResult(Status.CANCELLED, "questinstance.combat.cancelled")
@@ -362,8 +371,9 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 			final var pursuer = _combat.observeNativePursuer(profileId).orElse(null);
 			if (pursuer == null) { return null; }
 			cancelTravel(profileId);
+			_suspendReturn.accept(profileId, intent);
 			return startCombat(profileId, content, "preparation.retreat", pursuer.objectId(), pursuer.npcId(), actor,
-				() -> token.isCancelled() || _state != State.RUNNING || _automatic == null || !_automatic.permitsOwnedCombat(profileId, root, intent), true);
+				ownedCombatToken(profileId, root, intent, token), true);
 		}
 		finally { release(profileId); }
 	}
@@ -984,6 +994,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 
 	private void cancelTravel(long profileId)
 	{
+		_backend.cancelMove(profileId);
 		final Travel travel;
 		synchronized (_monitor)
 		{
