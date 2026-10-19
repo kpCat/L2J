@@ -795,6 +795,7 @@ public final class PhantomSystem
 				conversationGoalRuntime.install(PhantomConversationGoalRuntimePort.decisionEngine(_decisionEngine));
 				_populationManager.installDecisionEngine(_decisionEngine);
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
+				controlPorts.add(_questInstanceService);
 				if (_autonomousMarketProducer != null)
 				{
 					controlPorts.add(_autonomousMarketProducer);

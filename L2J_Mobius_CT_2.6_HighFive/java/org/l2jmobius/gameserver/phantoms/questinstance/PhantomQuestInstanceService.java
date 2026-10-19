@@ -44,7 +44,7 @@ import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatal
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 
 /** Caller-driven bounded coordinator. Native scripts remain the only mutation owners. */
-public final class PhantomQuestInstanceService
+public final class PhantomQuestInstanceService implements org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort
 {
 	public static final String QUEST_GOAL_TYPE = "quest.play";
 	public static final String CLASS_GOAL_TYPE = "class.transfer";
@@ -110,6 +110,21 @@ public final class PhantomQuestInstanceService
 	}
 
 	boolean hasOwnedWork(long profileId) { synchronized (_monitor) { return _travels.containsKey(profileId) || _combats.containsKey(profileId); } }
+
+	@Override public void onPulse() { resumeAcceptedIntents(System.currentTimeMillis()); }
+	public void resumeAcceptedIntents(long nowEpochMillis)
+	{
+		if (_state == State.RUNNING && _automatic != null) { _automatic.resumeAccepted(nowEpochMillis); }
+	}
+
+	void publishAcceptedResume(long profileId, PhantomGoal intent, long nowEpochMillis)
+	{
+		final var root = _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		if (_state == State.RUNNING && root != null && intent.deadlineEpochMillis() > nowEpochMillis && validChild(profileId, root, intent) != null)
+		{
+			publishActive(profileId, Math.max(1, System.nanoTime()));
+		}
+	}
 
 	public PhantomQuestInstanceService(PhantomGoalStore goals, PhantomQuestInstanceCatalog catalog, PhantomAcquisitionQuestCatalog acquisitions, PhantomQuestInstanceBackend backend, PhantomCombatService combat, PhantomNavigationService navigation, PhantomProgressionService progression, PhantomRelevanceSignalPort signals)
 	{

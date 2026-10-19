@@ -51,6 +51,8 @@ final class PhantomAutonomousCareer
 	private final PhantomGoalStateCodec _codec = new PhantomGoalStateCodec();
 	private final Map<Long, Cached> _cache = new LinkedHashMap<>();
 	private BiPredicate<Long, PhantomGoal> _defer = (_, _) -> false;
+	private final org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction _resumeTransactions = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction();
+	private long _resumeCursor, _nextResumeMillis;
 
 	PhantomAutonomousCareer(PhantomProfileRepository profiles, PhantomMaterializationService materialization, PhantomQuestInstanceService service,
 		PhantomQuestInstanceCatalog catalog, PhantomProgressionService progression, BiPredicate<Long, Long> pauseFarm, LongPredicate allowed,
@@ -198,6 +200,37 @@ final class PhantomAutonomousCareer
 			&& intent.constraints().getOrDefault("owner.revision", -1L) == root.revision() && intent.constraints().getOrDefault("owner.object", -1L) == player.getObjectId()
 			&& intent.constraints().getOrDefault("class.index", -1L) == player.getClassIndex()
 			&& (intent.constraints().getOrDefault("class.from", -1L) == player.getActiveClass() || intent.constraints().getOrDefault("class.to", -1L) == player.getActiveClass());
+	}
+
+	/** Resume only already native-started work; a sleeping fresh proposal is never activated here. */
+	synchronized void resumeAccepted(long now)
+	{
+		if (!_policy.enabled() || now < _nextResumeMillis) { return; }
+		_nextResumeMillis = now + TimeUnit.SECONDS.toMillis(30);
+		final var page = _profiles.listManagedAfter(COMPONENT, _resumeCursor, 8);
+		_resumeCursor = page.size() < 8 ? 0 : page.getLast().profile().profileId();
+		for (var row : page)
+		{
+			final long id = row.profile().profileId();
+			if (row.component().componentSchemaVersion() != 1 || row.profile().characterObjectId() == null || !_allowed.test(id) || _materialization.find(id).isPresent()) { continue; }
+			try
+			{
+				final var intent = _codec.decode(row.component().payload());
+				if (intent.status() != PhantomGoalStatus.ACTIVE || intent.deadlineEpochMillis() <= now || !"career.autonomous".equals(intent.purposeKey())
+					|| intent.constraints().getOrDefault("owner.object", -1L) != row.profile().characterObjectId().longValue()
+					|| intent.constraints().getOrDefault("class.from", -1L) != 0 || intent.constraints().getOrDefault("class.to", -1L) != 1 || intent.constraints().getOrDefault("class.index", -1L) != 0) { continue; }
+				final var loaded = _resumeTransactions.load(id);
+				if (!loaded.successful() || loaded.state().state() == org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.INCONSISTENT) { continue; }
+				final var identity = loaded.state().identity();
+				if (identity.characterObjectId() != row.profile().characterObjectId() || identity.classIndex() != 0 || identity.raceOrdinal() != 0 || (identity.activeClassId() != 0 && identity.activeClassId() != 1)) { continue; }
+				final var witness = _resumeTransactions.readAcquisitionQuestRows(id, identity.characterObjectId(), 0, identity.activeClassId(), List.of("Q00401_PathOfTheWarrior"), loaded.state().hashes());
+				if (!witness.successful()) { continue; }
+				final var quest = witness.snapshot().rows().get("Q00401_PathOfTheWarrior");
+				final boolean started = "Started".equals(quest.get("<state>")) && Integer.parseInt(quest.getOrDefault("cond", "0")) > 0;
+				if ("Completed".equals(quest.get("<state>")) || started) { _service.publishAcceptedResume(id, intent, now); }
+			}
+			catch (IllegalArgumentException invalid) { /* Malformed persisted input cannot activate a Player. */ }
+		}
 	}
 
 	private synchronized Cached cached(long profileId)

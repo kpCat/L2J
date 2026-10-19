@@ -225,6 +225,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("14-native-career-existing-goal-travel-deadline061", this::careerGoalTravelDeadline061);
 			registry.add("15-native-career-child-combat-plan-lifetime061", this::careerCombatLifetime061);
 			registry.add("16-native-warrior-owned-store-boundary061", this::careerClassStore061);
+			registry.add("16b-native-accepted-career-cold-resume061", this::careerColdResume061);
 			registry.add("17-native-career-combat-stock-drain061", this::careerCombatStop061);
 			return;
 		}
@@ -581,6 +582,58 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			rematerialize();
 			PhantomAssertions.assertTrue(_player.getActiveClass() == 1 && _player.getBaseClass() == 1 && _player.getSp() == sp && _player.getExp() == exp && itemCount(1145) == 0 && itemCount(8869) == coupons + 15, "SameDB native Warrior reload lost or duplicated earned state.");
 			context.record("career061.classStore", "secondary fixture nativeMaster->ownedprepare/nativeStore/finalize->sameDBreload; class1/base1;15coupons once; EXP/SP conserved; not ordinary B");
+		}
+	}
+
+	private void careerColdResume061(PhantomTestContext context) throws Exception
+	{
+		rematerialize();
+		final long id = _profile.profileId();
+		final var root = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateStore(_profiles).load(id).orElseThrow().goal();
+		final var component = _profiles.findComponent(id, "career.intent").orElseThrow();
+		final var codec = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec();
+		final var child = codec.decode(component.payload());
+		_goals.store(id, root);
+		PhantomAssertions.assertTrue(_player.getQuestState("Q00401_PathOfTheWarrior").isCompleted(), "Cold accepted fixture must have real native quest progress, not a fresh proposal.");
+		PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(id).status(), "Cold accepted fixture did not save its existing native progress.");
+		try
+		{
+			final int before = _signals.submits;
+			final long now = System.currentTimeMillis();
+			final var disabledSignals = new RecordingSignals();
+			final var disabled = new PhantomQuestInstanceService(_goals, _catalog, _acquisitions, _backend, _combat, _navigation, _progression, disabledSignals);
+			disabled.enableAutonomous(_profiles, _materialization, (_, _) -> true, _ -> true, _ -> org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype.DAMAGE,
+				new org.l2jmobius.gameserver.phantoms.questinstance.PhantomAutonomousCareerPolicy(false, 30, 90, 128, _careerPolicy.routes()));
+			PhantomAssertions.assertTrue(disabled.start(), "Disabled policy control did not start.");
+			try { disabled.resumeAcceptedIntents(now); PhantomAssertions.assertEquals(0, disabledSignals.submits, "Disabled career policy resumed a Player."); }
+			finally { disabled.beginStop(); disabled.finishStop(); }
+			_service.resumeAcceptedIntents(now);
+			PhantomAssertions.assertEquals(before + 1, _signals.submits, "An existing bound native quest journey lost its ACTIVE relevance after sameDB cold reload.");
+			_goals.store(id, root.withStatus(PhantomGoalStatus.ACTIVE)); // Revision changes; existing child cannot own it.
+			_service.resumeAcceptedIntents(now + 30_001);
+			PhantomAssertions.assertEquals(before + 1, _signals.submits, "Cold resume woke a replaced root.");
+			_goals.store(id, root);
+			final var expired = new PhantomGoal(child.goalId(), child.goalType(), child.status(), child.subject(), child.target(), child.requiredAmount(), child.currentAmount(), child.acquisitionMethod(), child.validSources(), child.selectedAnchor(), child.purposeKey(), child.priority(), child.riskBudget(), child.expenseBudget(), now - 1, child.constraints(), child.reasonKey(), child.revision(), child.payloadText());
+			var row = _profiles.findComponent(id, "career.intent").orElseThrow(); _profiles.updateComponent(id, "career.intent", row.rowVersion(), 1, codec.encode(expired));
+			_service.resumeAcceptedIntents(now + 60_002);
+			PhantomAssertions.assertEquals(before + 1, _signals.submits, "Cold resume woke an expired journey.");
+			row = _profiles.findComponent(id, "career.intent").orElseThrow(); _profiles.updateComponent(id, "career.intent", row.rowVersion(), 1, component.payload());
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(id).status(), "Independent ABSENT-quest control could not restore its native body.");
+			_player = World.getInstance().getPlayer(_environment.primary().objectId());
+			_player.getQuestState("Q00401_PathOfTheWarrior").setState(org.l2jmobius.gameserver.model.script.State.STARTED); // Independent negative fixture: exitQuest ignores COMPLETED states.
+			_player.getQuestState("Q00401_PathOfTheWarrior").exitQuest(true, true);
+			PhantomAssertions.assertTrue(_player.getQuestState("Q00401_PathOfTheWarrior") == null, "ABSENT control still has a native QuestState.");
+			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(id).status(), "Independent ABSENT-quest control did not save.");
+			_service.resumeAcceptedIntents(now + 90_003);
+			PhantomAssertions.assertEquals(before + 1, _signals.submits, "A fresh ABSENT quest bypassed ordinary calendar sleep.");
+			context.record("career061.coldResume", "existing native Q401 completion/current ACTIVE child/root signal restored without Player or new proposal; replaced root/expired refused; no calendar mutation");
+		}
+		finally
+		{
+			_goals.store(id, root);
+			final var row = _profiles.findComponent(id, "career.intent").orElseThrow(); _profiles.updateComponent(id, "career.intent", row.rowVersion(), 1, component.payload());
+			if (_materialization.find(id).isEmpty()) { PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(id).status(), "Independent native fixture did not restore its saved body."); }
+			_player = World.getInstance().getPlayer(_environment.primary().objectId());
 		}
 	}
 
