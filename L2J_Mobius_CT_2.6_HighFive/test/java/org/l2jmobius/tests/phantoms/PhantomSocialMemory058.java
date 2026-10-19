@@ -73,14 +73,16 @@ public final class PhantomSocialMemory058
 
 	public static void main(String[] args) throws Exception
 	{
-		if ((args.length != 2) || !List.of("prepare059", "prepare-raid059", "record", "recall", "recall-legacy").contains(args[0]) || !args[1].matches("[a-z0-9-]{1,30}") || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a record/recall and unique episode label required."); }
+		if ((args.length != 2) || !List.of("prepare059", "prepare-raid059", "upgrade-career061", "record", "recall", "recall-legacy").contains(args[0]) || !args[1].matches("[a-z0-9-]{1,30}") || !PhantomCampaign058PersistentLane.enabled()) { throw new IllegalArgumentException("Explicit persistent058a record/recall and unique episode label required."); }
 		final boolean record = args[0].equals("record");
 		final boolean prepare059 = args[0].equals("prepare059") || args[0].equals("prepare-raid059");
 		final boolean production059 = Boolean.getBoolean("phantom.test.productionGrounding059");
 		final Path lane = PhantomCampaign058PersistentLane.LANE;
 		final boolean continuation = Boolean.getBoolean("phantom.test.continuation059");
 		final boolean continuation061 = Boolean.getBoolean("phantom.test.continuation061");
-		if (continuation061 && (!continuation || !args[0].equals("recall-legacy"))) { throw new IllegalArgumentException("TASK061 permits only original memory recall without setup."); }
+		final boolean upgrade061 = args[0].equals("upgrade-career061");
+		if (upgrade061 && (!continuation061 || !production059)) { throw new IllegalArgumentException("Exact061 known-generation upgrade requires production grounding."); }
+		if (continuation061 && (!continuation || (!args[0].equals("recall-legacy") && !upgrade061))) { throw new IllegalArgumentException("TASK061 permits original recall or its exact known-generation upgrade only."); }
 		if (args[0].equals("recall-legacy") && !continuation) { throw new IllegalArgumentException("Legacy recall requires explicit continuation evidence scope."); }
 		final Path evidence = continuation061 ? lane.resolve("task061/m3-memory-" + args[1]) : continuation ? lane.resolve("task059/m3-memory-" + args[1]) : lane;
 		if (continuation061) { PhantomAssertions.assertFalse(Files.exists(evidence), "TASK061 recall evidence cannot be replayed."); }
@@ -89,7 +91,7 @@ public final class PhantomSocialMemory058
 		for (int port : List.of(2138, 7838, 9138)) { try (var socket = new ServerSocket(port)) { PhantomAssertions.assertTrue(socket.isBound(), "Own058a must be stopped."); } }
 		final Path receipt = (args[0].equals("recall-legacy") ? lane : evidence).resolve("m3-social-memory.record");
 		if (record) { PhantomAssertions.assertFalse(Files.exists(receipt), "M3 recorded episode cannot be replayed."); Files.createDirectories(evidence); Files.createFile(evidence.resolve("m3-social-memory-" + args[1] + ".started")); }
-		else if (!prepare059) { PhantomAssertions.assertTrue(Files.isRegularFile(receipt), "M3 original native episode is missing."); }
+		else if (!prepare059 && !upgrade061) { PhantomAssertions.assertTrue(Files.isRegularFile(receipt), "M3 original native episode is missing."); }
 		if (prepare059) { PhantomAssertions.assertTrue(continuation && production059, "Exact TEST context preparation requires production grounding and059 evidence."); }
 		final var context = new PhantomTestContext(58005828, PhantomCampaign058PersistentLane.MODULE, evidence.resolve("reports/m3-" + args[0]));
 		PhantomCombatServerIntegrationSuite.assertCampaign058Jar(context);
@@ -132,6 +134,12 @@ public final class PhantomSocialMemory058
 			PhantomAssertions.assertTrue(social.start(), "M3 social start failed.");
 			final var personal = PhantomPersonalConversationStore.production(profiles);
 			final var humanized = new PhantomHumanizedConversationService(PhantomHumanizedCatalog.loadV3(Path.of("data/phantoms"), true), personal, social, new PhantomHumanizedConversationService.Settings(true, Register.CASUAL, ProfanityMode.CONTEXTUAL, Variation.HIGH, false));
+			if (upgrade061)
+			{
+				upgradeCareerContext061(profiles, knowledge, topology, socialCatalog, evidence);
+				progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Upgrade progression did not stop.");
+				return;
+			}
 			if (prepare059)
 			{
 				if (args[0].equals("prepare-raid059")) { prepareRaidKnowledgeContext059(profiles, knowledge, topology, socialCatalog, evidence); }
@@ -286,6 +294,84 @@ public final class PhantomSocialMemory058
 		PhantomAssertions.assertEquals(old.sessions().size(), saved.state().sessions().size(), "Migration lost counterpart sessions.");
 		Files.writeString(marker, "profile=" + PROFILE + "; oldRow=" + before.rowVersion() + "; newRow=" + saved.rowVersion() + "; reconstructedOldKnowledge=" + previousKnowledge.combinedHash() + "; current=" + hashes + "; memory/execution unchanged; replay/cooldowns retained; pending cleared", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
 		System.out.println("M3_KNOWN_GENERATION_MIGRATED " + Files.readString(marker));
+	}
+
+	/** Versioned additive topology upgrade, atomically limited to the two stopped owned schemas. */
+	private static void upgradeCareerContext061(PhantomProfileRepository profiles, PhantomGameKnowledgeService knowledge, PhantomTopologyQuery topology, PhantomSocialCatalog socialCatalog, Path evidence) throws Exception
+	{
+		Files.createDirectories(evidence);
+		final Path release = Path.of("D:/PhantomWorld/World-Career-061-candidate");
+		PhantomAssertions.assertTrue(Files.isRegularFile(PhantomCampaign058PersistentLane.LANE.resolve("m3-social-memory.record")), "Original memory receipt required; no bootstrap.");
+		final var owner = new java.util.Properties();
+		try (var reader = Files.newBufferedReader(release.resolve("ownership061.properties"), StandardCharsets.UTF_8)) { owner.load(reader); }
+		PhantomAssertions.assertTrue("TASK061_CAMPAIGN".equals(owner.getProperty("owner")) && "RELEASE_CANDIDATE".equals(owner.getProperty("role")) && "l2jmobiush5_phantom_release_061a".equals(owner.getProperty("schema")) && release.equals(Path.of(owner.getProperty("runtimeRoot", ""))), "Exact061 release binding required.");
+		for (int port : List.of(Integer.parseInt(owner.getProperty("clientLoginPort")), 7841, 9141)) { try (var socket = new ServerSocket(port)) { PhantomAssertions.assertTrue(socket.isBound(), "Release061 must remain stopped during versioned upgrade."); } }
+		PhantomAssertions.assertTrue(Files.isRegularFile(PhantomCampaign058PersistentLane.LANE.resolve("task061/release061-export.complete")) && !Files.exists(release.resolve("local-play/pids/GameServer.json")), "Upgrade requires the one final export and no prior release boot.");
+		for (String file : List.of("data/Seeds.xml", "data/phantoms/knowledge/high-five-core-v1.xml", "data/phantoms/knowledge/high-five-supported-raids-v1.xml", "data/phantoms/party/high-five-party-roles-v1.xml"))
+		{ PhantomAssertions.assertTrue(Files.readString(Path.of(file), StandardCharsets.UTF_8).replace("\r\n", "\n").equals(Files.readString(release.resolve("game").resolve(file), StandardCharsets.UTF_8).replace("\r\n", "\n")), "Source/release authority text differs beyond CRLF: " + file); }
+		try (var sourceFiles = Files.list(Path.of("data/phantoms/topology")); var releaseFiles = Files.list(release.resolve("game/data/phantoms/topology")))
+		{
+			PhantomAssertions.assertEquals(sourceFiles.filter(path -> path.toString().endsWith(".xml")).map(path -> path.getFileName().toString()).collect(java.util.stream.Collectors.toSet()), releaseFiles.filter(path -> path.toString().endsWith(".xml")).map(path -> path.getFileName().toString()).collect(java.util.stream.Collectors.toSet()), "Source/release topology inventory differs.");
+		}
+		final Path prior = evidence.resolve("prior-topology"); Files.createDirectory(prior);
+		try (var files = Files.list(Path.of("data/phantoms/topology")))
+		{
+			for (Path file : files.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".xml")).toList())
+			{
+				final String name = file.getFileName().toString();
+				PhantomAssertions.assertTrue(Files.readString(file, StandardCharsets.UTF_8).replace("\r\n", "\n").equals(Files.readString(release.resolve("game/data/phantoms/topology").resolve(name), StandardCharsets.UTF_8).replace("\r\n", "\n")), "Source/release topology differs beyond CRLF.");
+				if (!name.equals("high-five-career-recovery.xml")) { Files.copy(file, prior.resolve(name)); }
+			}
+		}
+		final var backend = new L2jTopologyValidationBackend();
+		final var oldTopology = new PhantomTopologyQuery(new PhantomTopologyLoader(prior, backend, PhantomTopologyPolicy.productionDefaults()).load(1), backend, new PhantomTopologyMetrics());
+		PhantomAssertions.assertTrue("CFF8CC0C758E460FE05752211258EF64F416F9DA86E6F47FCAFAA0F322CB51AC".equalsIgnoreCase(oldTopology.snapshot().canonicalHash()), "Exact prior topology reconstruction failed.");
+		final var policy = PhantomGameKnowledgePolicy.productionDefaults();
+		final var oldKnowledge = new PhantomGameKnowledgeBuilder(new L2jGameKnowledgeBackend(), new PhantomStaticManorParser(Path.of("data/Seeds.xml"), policy), new PhantomCuratedKnowledgeParser(Path.of("data/phantoms/knowledge"), new L2jGameKnowledgeBackend(), policy), oldTopology, policy).build();
+		final var before = new PhantomConversationStore(profiles).load(PROFILE).orElseThrow(); final var old = before.state();
+		PhantomAssertions.assertTrue(old.knowledgeHash().equalsIgnoreCase(oldKnowledge.combinedHash()) && old.knowledgeHash().equals("AD040BF1FE1784F3061044A7D4B8940BF7F51C37AB28A59F63FBACC944D51508") && old.topologyHash().equalsIgnoreCase(oldTopology.snapshot().canonicalHash()) && old.socialHash().equals(socialCatalog.hash()), "Unknown old context refused.");
+		final var executionCatalog = org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-execution-v4.xml"));
+		new org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationExecutionStore(profiles, executionCatalog).load(PROFILE).ifPresent(value -> PhantomAssertions.assertTrue(value.state().entries().stream().allMatch(entry -> entry.terminal()), "Pending execution upgrade refused."));
+		final var grounding = PhantomSemanticGrounding.production(knowledge.query(), topology, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml")));
+		final var hashes = grounding.hashes();
+		PhantomAssertions.assertEquals(old.roleHash(), hashes.partyRoleHash(), "Role generation upgrade refused.");
+		final var releaseTopology = new PhantomTopologyQuery(new PhantomTopologyLoader(release.resolve("game/data/phantoms/topology"), backend, PhantomTopologyPolicy.productionDefaults()).load(1), backend, new PhantomTopologyMetrics());
+		final var releaseKnowledge = new PhantomGameKnowledgeBuilder(new L2jGameKnowledgeBackend(), new PhantomStaticManorParser(release.resolve("game/data/Seeds.xml"), policy), new PhantomCuratedKnowledgeParser(release.resolve("game/data/phantoms/knowledge"), new L2jGameKnowledgeBackend(), policy), releaseTopology, policy).build();
+		PhantomAssertions.assertEquals(topology.snapshot().canonicalHash(), releaseTopology.snapshot().canonicalHash(), "Release native topology generation differs.");
+		PhantomAssertions.assertEquals(knowledge.query().snapshot().combinedHash(), releaseKnowledge.combinedHash(), "Release native knowledge generation differs.");
+		final var pack = PhantomSemanticPack.load(Path.of("data/phantoms/semantic/high-five-ru-semantic-v3.xml"), Path.of("data/phantoms/semantic/high-five-ru-corpus-v3.tsv"), grounding);
+		final var catalog = PhantomConversationCatalog.load(Path.of("data/phantoms/conversation/high-five-ru-conversation-v3.xml"), Path.of("data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv"));
+		final var releasePack = PhantomSemanticPack.load(release.resolve("game/data/phantoms/semantic/high-five-ru-semantic-v3.xml"), release.resolve("game/data/phantoms/semantic/high-five-ru-corpus-v3.tsv"), grounding);
+		PhantomAssertions.assertTrue(pack.packHash().equals(releasePack.packHash()) && pack.corpusHash().equals(releasePack.corpusHash()) && catalog.hash().equals(PhantomConversationCatalog.load(release.resolve("game/data/phantoms/conversation/high-five-ru-conversation-v3.xml"), release.resolve("game/data/phantoms/conversation/high-five-ru-conversation-corpus-v1.tsv")).hash()) && socialCatalog.hash().equals(PhantomSocialCatalog.load(release.resolve("game/data/phantoms/social/high-five-social-v1.xml")).hash()), "Release native conversation authority generation differs.");
+		final var language = catalog.upgradeLanguageState(old, new ConversationState(catalog.hash(), pack.packHash(), pack.corpusHash(), old.knowledgeHash(), old.topologyHash(), old.roleHash(), old.socialHash(), old.logicalMinute(), List.of(), List.of())).orElseThrow();
+		final var target = new ConversationState(catalog.hash(), pack.packHash(), pack.corpusHash(), hashes.knowledgeHash(), hashes.topologyHash(), old.roleHash(), old.socialHash(), language.logicalMinute(), language.sessions(), language.recentObservationHashes());
+		PhantomAssertions.assertEquals(old.recentObservationHashes(), target.recentObservationHashes(), "Replay history lost.");
+		PhantomAssertions.assertEquals(old.sessions().size(), target.sessions().size(), "Counterpart sessions lost.");
+		final var codec = new org.l2jmobius.gameserver.phantoms.conversation.PhantomConversationStateCodec();
+		final byte[] preimage = codec.encode(old); final byte[] upgraded = codec.encode(target);
+		Files.write(evidence.resolve("conversation-context-preimage.bin"), preimage, StandardOpenOption.CREATE_NEW);
+		Files.write(evidence.resolve("conversation-context-upgraded.bin"), upgraded, StandardOpenOption.CREATE_NEW);
+		try (var connection = DatabaseFactory.getConnection())
+		{
+			connection.setAutoCommit(false);
+			try
+			{
+				for (String schema : List.of("l2jmobiush5_phantom_test_058a", "l2jmobiush5_phantom_release_061a"))
+				{
+					try (var check = connection.prepareStatement("SELECT row_version,payload FROM " + schema + ".phantom_profile_components WHERE profile_id=11 AND component_type='conversation.state' FOR UPDATE"); var rows = check.executeQuery())
+					{ PhantomAssertions.assertTrue(rows.next() && rows.getLong(1) == before.rowVersion() && java.util.Arrays.equals(preimage, rows.getBytes(2)) && !rows.next(), "Exact exported context preimage differs; no upgrade."); }
+				}
+				for (String schema : List.of("l2jmobiush5_phantom_test_058a", "l2jmobiush5_phantom_release_061a"))
+				{
+					try (var update = connection.prepareStatement("UPDATE " + schema + ".phantom_profile_components SET payload=?,row_version=row_version+1 WHERE profile_id=11 AND component_type='conversation.state' AND row_version=? AND payload=?"))
+					{ update.setBytes(1, upgraded); update.setLong(2, before.rowVersion()); update.setBytes(3, preimage); PhantomAssertions.assertEquals(1, update.executeUpdate(), "Versioned upgrade CAS failed."); }
+				}
+				connection.commit();
+			}
+			catch (Throwable failure) { connection.rollback(); throw failure; }
+		}
+		Files.writeString(evidence.resolve("context-upgrade061.complete"), "source058a+release061a; profile11 only; old generation reconstructed; rowVersion=" + before.rowVersion() + "->" + (before.rowVersion() + 1) + "; no other columns/rows; memory/execution/earned untouched; current=" + hashes, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+		System.out.println("M3_KNOWN_GENERATION_UPGRADE061 " + Files.readString(evidence.resolve("context-upgrade061.complete")));
 	}
 
 	/** Explicit TEST setup migration, before a new episode; never a product authority bypass. */
