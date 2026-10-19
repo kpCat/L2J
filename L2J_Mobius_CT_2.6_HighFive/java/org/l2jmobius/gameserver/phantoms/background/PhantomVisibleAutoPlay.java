@@ -3,7 +3,6 @@
  */
 package org.l2jmobius.gameserver.phantoms.background;
 
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,7 +20,6 @@ import org.l2jmobius.gameserver.model.actor.Creature;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.actor.PlayerNativeEvidence;
 import org.l2jmobius.gameserver.model.item.instance.Item;
-import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.skill.AbnormalType;
 import org.l2jmobius.gameserver.model.skill.Skill;
 import org.l2jmobius.gameserver.model.skill.targets.TargetType;
@@ -29,6 +27,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionEngine;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.actions.PhantomEngagementController;
+import org.l2jmobius.gameserver.phantoms.combat.PhantomNativeShotControl;
 import org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationService;
 import org.l2jmobius.gameserver.taskmanagers.AutoPlayTaskManager.TargetDirective;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort;
@@ -136,6 +135,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			try
 			{
 				stopRegistrations(replaced);
+				session._shots.activate(player.isMageClass());
 				if (session._engagement != null)
 				{
 					session._engagement.advance(profileId, player, goal, spec.npcId(), policy::targetSelectionLoad, _clock.getAsLong());
@@ -232,7 +232,11 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			finally { session._commandGate.set(false); }
 		}
 		try { AutoUseTaskManager.getInstance().stopPhantomAutoUse(session.player(), session._policy); }
-		finally { AutoPlayTaskManager.getInstance().stopPhantomAutoPlay(session.player(), session._policy); }
+		finally
+		{
+			try { AutoPlayTaskManager.getInstance().stopPhantomAutoPlay(session.player(), session._policy); }
+			finally { session._shots.close(); }
+		}
 	}
 
 	private Object owner(long profileId)
@@ -508,14 +512,6 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 				}
 			}
 		}
-		if (player.getActiveWeaponItem() != player.getFistsWeaponItem())
-		{
-			player.getInventory().getItems().stream()
-				.filter(item -> item.isEtcItem() && (item.getTemplate().getCrystalType() == player.getActiveWeaponItem().getCrystalTypePlus()) && ((item.getTemplate().getDefaultAction() == ActionType.SOULSHOT) || (item.getTemplate().getDefaultAction() == ActionType.SPIRITSHOT)))
-				.sorted(Comparator.comparingInt(Item::getId))
-				.forEach(item -> player.addAutoSoulShot(item.getId()));
-			player.rechargeShots(true, true);
-		}
 	}
 
 	public static boolean autoBuffEligible(Skill skill)
@@ -599,6 +595,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 					lease.close(); publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "resource_paused"));
 					return new TickAdmission(TickStatus.PAUSED, null, "resource_recovery");
 				}
+				if (session != null && session._policy == this && "AutoPlay".equals(source)) { session._shots.activate(player.isMageClass()); }
 				publishTick(source, new TickObservation(sequence, started, 0, "acquired"));
 				return new TickAdmission(TickStatus.ACQUIRED, () -> { try { lease.close(); } finally { publishTick(source, new TickObservation(sequence, started, System.nanoTime(), "completed")); } }, "acquired");
 			}
@@ -749,6 +746,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 		private final AtomicBoolean _current = new AtomicBoolean(true);
 		private final AtomicBoolean _commandGate;
 		private final PhantomEngagementController _engagement;
+		private final PhantomNativeShotControl _shots;
 		private long nextTargetCheck;
 		private long noTargetSince = -1;
 		private long _usefulSince;
@@ -774,6 +772,7 @@ public final class PhantomVisibleAutoPlay implements PhantomMaterializationLifec
 			_commandGate = commandGate;
 			_engagement = navigation == null ? null : new PhantomEngagementController(navigation, () -> _current.get() && permits.getAsBoolean());
 			_player = player;
+			_shots = new PhantomNativeShotControl(player);
 			_profileId = ((Policy) policy)._profileId;
 			_goalId = goalId;
 			_revision = revision;

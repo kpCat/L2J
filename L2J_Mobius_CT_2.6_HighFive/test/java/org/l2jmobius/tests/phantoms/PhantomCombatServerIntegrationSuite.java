@@ -657,6 +657,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					registry.add("05-missing-shot-does-not-fabricate", _ -> testMissingShot());
 					registry.add("061-native-continuous-physical-shots-and-owned-cleanup", this::testContinuousShots061);
 					registry.add("061-native-blessed-magic-shots-prefer-exact-weapon-grade", this::testBlessedShots061);
+					registry.add("061-native-ordinary-autoplay-shares-shot-type-grade-and-quality", this::testOrdinaryShots061);
 					registry.add("061-native-supply-prefers-blessed-despite-regular-stock", context -> { PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous native shot control did not leave combat stance."); prepareLearningField059(context); PhantomSupply060OwnerGuards.blessed(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
 					return;
 				}
@@ -6107,6 +6108,42 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			context.record("loadout061.magicObserved", "blessed=" + before + "->" + blessedStock.getCount() + "; regular=" + regularBefore + "->" + regularStock.getCount() + "; targetHP=" + hpBefore + "->" + target.getCurrentHp() + "; MP=" + mpBefore + "->" + _player.getCurrentMp() + "; preexisting auto-shot restored");
 		}
 		finally { _player.removeAutoSoulShot(regular.getId()); _player.abortCast(); _player.getAI().setIntention(Intention.IDLE); target.deleteMe(); destroyInventoryItem(blessedStock); destroyInventoryItem(regularStock); }
+	}
+
+	private void testOrdinaryShots061(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true); _player.setPlayerClass(10); _player.getStat().setLevel((byte) 7);
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous native shot control did not leave combat stance.");
+		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 6, 1, _player, this); _player.getInventory().equipItem(weapon);
+		final var stock = new ArrayList<Item>();
+		for (int id : new int[] {1835, 2509, 3947, 3948}) { stock.add(_player.getInventory().addItem(ItemProcessType.REWARD, id, 30, _player, this)); }
+		_player.refreshExpertisePenalty(); _player.refreshOverloaded(); prepareLearningField059(context);
+		_player.addAutoSoulShot(2509);
+		final var goals = new PhantomGoalStateStore(_repository);
+		final var anchor = _topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING && value.point().instanceId() == 0).min(Comparator.comparingDouble(value -> Math.hypot(value.point().x() - _player.getX(), value.point().y() - _player.getY()))).orElseThrow();
+		final var farm = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_combatPoint.npcId())), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, _combatPoint.npcId() + "@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture061.ordinary_shots", 1);
+		goals.insert(_profile.profileId(), farm);
+		final var candidates = new PhantomCandidateRegistry(); final var handlers = new PhantomStepHandlerRegistry(); candidates.seal(); handlers.seal();
+		final var engine = new PhantomDecisionEngine(goals, candidates, handlers, new PhantomMetrics(), 1); engine.start();
+		PhantomAssertions.assertEquals(PhantomDecisionEngine.AttachResult.ATTACHED, engine.attach(_profile.profileId()), "Ordinary shot input did not attach its real farm root.");
+		final var autoPlay = new PhantomVisibleAutoPlay(_materialization, () -> engine, _ -> true);
+		context.record("loadout061.ordinaryInput", "Independent native Mage7/NG wand6; finite30 physical, regular magic, blessed NG and blessed D; preexisting regular auto-shot; real Decision/AutoPlay pools; no monster or combat progress claimed");
+		try
+		{
+			PhantomAssertions.assertTrue(autoPlay.start(_profile.profileId(), farm), "Ordinary native AutoPlay registration failed.");
+			PhantomAssertions.assertTrue(_player.getAutoSoulShot().contains(3947) && !_player.getAutoSoulShot().contains(1835) && !_player.getAutoSoulShot().contains(2509) && !_player.getAutoSoulShot().contains(3948), "Ordinary AutoPlay registered the wrong shot type, grade or regular quality: " + _player.getAutoSoulShot());
+			autoPlay.stop(_profile.profileId());
+			PhantomAssertions.assertTrue(_player.getAutoSoulShot().contains(2509) && !_player.getAutoSoulShot().contains(3947), "Ordinary stop lost the preexisting native shot preference.");
+			context.record("loadout061.ordinaryObserved", "Real AutoPlay selected exact NG blessed only; stop restored the prior regular preference; physical and wrong-grade stocks=" + stock.get(0).getCount() + "," + stock.get(3).getCount());
+		}
+		finally
+		{
+			autoPlay.stop(_profile.profileId()); engine.beginStop(); engine.finishStop();
+			final var saved = goals.load(_profile.profileId()).orElseThrow(); goals.delete(_profile.profileId(), saved.rowVersion());
+			for (var item : stock) { _player.removeAutoSoulShot(item.getId()); destroyInventoryItem(item); }
+			destroyInventoryItem(weapon);
+		}
 	}
 
 	private void testCanonicalShot() throws Exception

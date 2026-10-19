@@ -47,9 +47,7 @@ import org.l2jmobius.gameserver.model.item.Weapon;
 import org.l2jmobius.gameserver.model.item.EtcItem;
 import org.l2jmobius.gameserver.model.item.enums.ItemLocation;
 import org.l2jmobius.gameserver.model.spawns.Spawn;
-import org.l2jmobius.gameserver.model.item.enums.ShotType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
-import org.l2jmobius.gameserver.model.item.type.ActionType;
 import org.l2jmobius.gameserver.model.item.type.WeaponType;
 import org.l2jmobius.gameserver.model.zone.type.PeaceZone;
 import org.l2jmobius.gameserver.model.zone.type.NoPvPZone;
@@ -177,9 +175,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		private final Supplier<PhantomGameKnowledgeQuery> _knowledgeSupplier;
 		private final Supplier<PhantomProgressionCatalog> _progressionCatalog;
 		private final AtomicBoolean _closed = new AtomicBoolean();
-		private final Set<Integer> _addedAutoShots = new java.util.HashSet<>();
-		private final Set<Integer> _suspendedAutoShots = new java.util.HashSet<>();
-		private int _shotWeaponObjectId;
+		private final PhantomNativeShotControl _shots;
 		private long _nextResummonAttemptNanos;
 		private long _nextSupportPetScanNanos;
 		private long _nextServitorSkillAttemptNanos;
@@ -194,6 +190,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			_materializationLease = materializationLease;
 			_player = materializationLease.player();
+			_shots = new PhantomNativeShotControl(_player);
 			_knowledgeSupplier = knowledgeSupplier;
 			_progressionCatalog = progressionCatalog;
 		}
@@ -1128,57 +1125,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		@Override
 		public ShotOutcome activateShot(PhantomCombatMode mode)
 		{
-			final boolean magic = mode.magic();
-			try
-			{
-				final Weapon weapon = _player.getActiveWeaponItem();
-				final Item equipped = _player.getActiveWeaponInstance();
-				if (weapon == null || equipped == null || _closed.get())
-				{
-					return ShotOutcome.UNAVAILABLE;
-				}
-				if (_shotWeaponObjectId != equipped.getObjectId()) { releaseAutoShots(); _shotWeaponObjectId = equipped.getObjectId(); }
-				final int perHit = magic ? weapon.getSpiritShotCount() : weapon.getSoulShotCount();
-				if (perHit <= 0) { return ShotOutcome.UNAVAILABLE; }
-				final List<Item> inventory = new ArrayList<>(_player.getInventory().getItems());
-				inventory.sort(Comparator.comparing((Item item) -> (item.getEtcItem() == null) || !item.getEtcItem().isBlessed()).thenComparingInt(Item::getId).thenComparingInt(Item::getObjectId));
-				for (Item item : inventory)
-				{
-					if ((item.getCount() < perHit) || (item.getEtcItem() == null) || !_player.getInventory().canManipulateWithItemId(item.getId()) || (item.getTemplate().getCrystalType() != weapon.getCrystalTypePlus()))
-					{
-						continue;
-					}
-					final ActionType action = item.getTemplate().getDefaultAction();
-					if ((magic && (action != ActionType.SPIRITSHOT)) || (!magic && (action != ActionType.SOULSHOT)))
-					{
-						continue;
-					}
-					final IItemHandler handler = ItemHandler.getInstance().getHandler(item.getEtcItem());
-					if (handler == null) { continue; }
-					final boolean preferredCharged = magic && item.getEtcItem().isBlessed() ? _player.isChargedShot(ShotType.BLESSED_SPIRITSHOTS) : charged(magic);
-					if (preferredCharged || handler.onItemUse(_player, item, false) && charged(magic))
-					{
-						// Creature.onHitTimer / native CAST own each following discharge and recharge.
-						// A preexisting regular shot must not race the preferred blessed handler.
-						for (int active : List.copyOf(_player.getAutoSoulShot()))
-						{
-							if (active == item.getId()) { continue; }
-							final var template = org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(active);
-							if (template != null && template.getDefaultAction() == action && _player.removeAutoSoulShot(active))
-							{
-								if (!_addedAutoShots.remove(active)) { _suspendedAutoShots.add(active); }
-							}
-						}
-						if (!_player.getAutoSoulShot().contains(item.getId())) { _player.addAutoSoulShot(item.getId()); _addedAutoShots.add(item.getId()); }
-						return ShotOutcome.ACTIVATED;
-					}
-				}
-				return charged(magic) ? ShotOutcome.ACTIVATED : ShotOutcome.UNAVAILABLE;
-			}
-			catch (RuntimeException e)
-			{
-				return ShotOutcome.FAILED;
-			}
+			return _closed.get() ? ShotOutcome.UNAVAILABLE : _shots.activate(mode.magic());
 		}
 
 		@Override
@@ -1958,16 +1905,9 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			if (_closed.compareAndSet(false, true))
 			{
-				releaseAutoShots();
+				_shots.close();
 				_materializationLease.close();
 			}
-		}
-
-		private void releaseAutoShots()
-		{
-			for (int itemId : _addedAutoShots) { _player.removeAutoSoulShot(itemId); }
-			for (int itemId : _suspendedAutoShots) { if (_player.getInventory().getInventoryItemCount(itemId, -1) > 0) { _player.addAutoSoulShot(itemId); } }
-			_addedAutoShots.clear(); _suspendedAutoShots.clear();
 		}
 
 		private boolean eligibleLoot(Item item, int maximumDistance)
@@ -1975,10 +1915,6 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			return item.isSpawned() && (item.getItemLocation() == ItemLocation.VOID) && (item.getInstanceId() == _player.getInstanceId()) && (distance(_player, item) <= maximumDistance) && (!item.isProtected() || (item.getOwnerId() == _player.getObjectId()));
 		}
 
-		private boolean charged(boolean magic)
-		{
-			return magic ? (_player.isChargedShot(ShotType.SPIRITSHOTS) || _player.isChargedShot(ShotType.BLESSED_SPIRITSHOTS)) : _player.isChargedShot(ShotType.SOULSHOTS);
-		}
 	}
 
 	private static boolean isNormalMonster(Monster monster)
