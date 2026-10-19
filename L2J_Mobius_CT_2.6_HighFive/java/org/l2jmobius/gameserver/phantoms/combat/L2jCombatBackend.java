@@ -108,6 +108,7 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		if (player == null || player.isAlikeDead() || player.isTeleporting() || player.getEffectList().getBuffs().stream().anyMatch(info -> info.getSkill().isHealingPotionSkill())) { return false; }
 		final var candidates = player.getInventory().getItems().stream().filter(item -> item.getCount() > 0 && item.getOwnerId() == player.getObjectId() && item.getItemLocation() == ItemLocation.INVENTORY
 			&& item.getEtcItem() != null && "ItemSkills".equals(item.getEtcItem().getHandlerName()) && item.getTemplate().getSkills() != null
+			&& java.util.Arrays.stream(item.getTemplate().getSkills()).allMatch(holder -> holder.getSkillLevel() > 0 && holder.getSkillLevel() <= org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getMaxLevel(holder.getSkillId()))
 			&& java.util.Arrays.stream(item.getTemplate().getSkills()).anyMatch(holder -> holder.getSkill() != null && holder.getSkill().isHealingPotionSkill()))
 			.sorted(Comparator.comparingInt((Item item) -> java.util.Arrays.stream(item.getTemplate().getSkills()).map(SkillHolder::getSkill).filter(Objects::nonNull).filter(Skill::isHealingPotionSkill).mapToInt(Skill::getAbnormalLevel).max().orElse(0)).reversed().thenComparingInt(Item::getId)).limit(32).toList();
 		for (var item : candidates)

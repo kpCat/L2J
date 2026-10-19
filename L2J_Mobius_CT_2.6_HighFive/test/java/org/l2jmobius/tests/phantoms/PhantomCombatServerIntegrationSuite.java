@@ -675,6 +675,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				{
 					registry.add("061-accepted-journey-active-clock-and-native-distance-budget", this::testJourneyLifetime061);
 					registry.add("061-failed-native-journey-returns-without-erasing-failure", this::testFailedLearningReturn061);
+					registry.add("061-career-native-field-return-without-learning-or-class-grant", context -> testNativeReturn061(context, true));
 				}
 				registry.add("03-autonomous-earned-learning-through-farm-decision", this::testAutonomousLearning060);
 				if (!Boolean.getBoolean("phantom.test.autonomousLearningGuards060")) { registry.add("04-native-earned-autonomous-paid-walk-return-and-resume", context ->
@@ -4614,6 +4615,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testFailedLearningReturn061(PhantomTestContext context) throws Exception
 	{
+		testNativeReturn061(context, false);
+	}
+
+	private void testNativeReturn061(PhantomTestContext context, boolean career) throws Exception
+	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final var field = prepareLearningField059(context);
 		final var nativeNavigation = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
@@ -4636,8 +4642,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var values = new java.util.LinkedHashMap<String, Long>();
 		values.put("owner.revision", root.revision()); values.put("owner.object", (long) _player.getObjectId()); values.put("class.id", (long) _player.getActiveClass()); values.put("class.index", (long) _player.getClassIndex());
 		values.put("field.x", (long) field.x()); values.put("field.y", (long) field.y()); values.put("field.z", (long) field.z()); values.put("field.instance", 0L); values.put("retry.after", System.currentTimeMillis() + 120_000);
-		final var failed = new PhantomGoal(root.goalId(), "skill.learn", PhantomGoalStatus.FAILED, root.subject(), new PhantomDomainRef("skill", "3:1"), 1, 0, null, List.of(), root.selectedAnchor(), "learning.autonomous", 600, 0, 0, System.currentTimeMillis() - 1, values, "learning.route.deadline", 1);
-		_repository.insertComponent(_profile.profileId(), "learning.intent", 1, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(failed));
+		if (career) { values.put("class.from", (long) _player.getActiveClass()); values.put("class.to", (long) _player.getActiveClass() + 1); }
+		final var failed = new PhantomGoal(root.goalId(), career ? "class.transfer" : "skill.learn", career ? PhantomGoalStatus.ACTIVE : PhantomGoalStatus.FAILED, root.subject(), career ? new PhantomDomainRef("supported.content", "class.warrior-q401") : new PhantomDomainRef("skill", "3:1"), 1, 0, null, List.of(), root.selectedAnchor(), career ? "career.autonomous" : "learning.autonomous", 600, 0, 0, System.currentTimeMillis() + (career ? 120_000 : -1), values, career ? "fixture.career_return_only" : "learning.route.deadline", 1);
+		final String componentType = career ? "career.intent" : "learning.intent";
+		_repository.insertComponent(_profile.profileId(), componentType, 1, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(failed));
 		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
 		final var navigation = new PhantomNavigationService(new PhantomMetrics()); navigation.start();
 		final var journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> true);
@@ -4649,25 +4657,29 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
 			final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
 			final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate();
-			PhantomAssertions.assertTrue(journey.permitsAutomaticVisibleDecision(_profile.profileId(), root) && selected != null, "A failed native trip stranded its actor outside the farm gate instead of proposing bounded return.");
-			final var plan = selected.planFactory().create(planning); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+			PhantomAssertions.assertTrue(career || journey.permitsAutomaticVisibleDecision(_profile.profileId(), root) && selected != null, "A failed native trip stranded its actor outside the farm gate instead of proposing bounded return.");
+			final var plan = career ? null : selected.planFactory().create(planning); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
 			do
 			{
-				final var step = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
-				handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
+				if (career) { journey.returnCareerToField(_profile.profileId(), root, failed, () -> false, System.nanoTime()); }
+				else
+				{
+					final var step = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
+					handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
+				}
 				if (_player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius() && !journey.ownsAutomaticIntent(_profile.profileId(), root)) { break; }
 				Thread.sleep(100);
 			} while (System.nanoTime() < until);
-			final var terminal = journey.automaticIntent(_profile.profileId()).orElseThrow();
+			final var terminal = career ? new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().decode(_repository.findComponent(_profile.profileId(), componentType).orElseThrow().payload()) : journey.automaticIntent(_profile.profileId()).orElseThrow();
 			PhantomAssertions.assertTrue(_player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius(), "Failed trip did not physically return through native WALK.");
-			PhantomAssertions.assertTrue(terminal.status() == PhantomGoalStatus.FAILED && terminal.reasonKey().equals("learning.route.deadline") && _player.getSp() == sp && _player.getExp() == exp && _player.getSkillLevel(3) == rank, "Compensation erased FAIL or retried the paid lesson.");
-			context.record("journey061.failedReturn", "native WALK256 then product return; original FAILED/learning.route.deadline retained; no SP/EXP/rank changes; one bounded settlement, not a lesson PASS");
+			PhantomAssertions.assertTrue((career ? terminal.equals(failed) && _player.getActiveClass() == values.get("class.from") : terminal.status() == PhantomGoalStatus.FAILED && terminal.reasonKey().equals("learning.route.deadline")) && _player.getSp() == sp && _player.getExp() == exp && _player.getSkillLevel(3) == rank, "Return changed its accepted authority, class, FAIL or paid lesson.");
+			context.record(career ? "journey061.careerReturn" : "journey061.failedReturn", "native WALK256 then product return; original child retained; no SP/EXP/rank/class changes; one bounded settlement, not Q401/B or a lesson PASS");
 		}
 		finally
 		{
 			journey.beginStop(); journey.finishStop(); progression.beginStop(); progression.finishStop(); navigation.beginStop();
 			final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (!navigation.finishStop() && System.nanoTime() < until) { Thread.sleep(20); }
-			_player.stopMove(null); final var component = _repository.findComponent(_profile.profileId(), "learning.intent").orElseThrow(); _repository.deleteComponent(_profile.profileId(), "learning.intent", component.rowVersion());
+			_player.stopMove(null); final var component = _repository.findComponent(_profile.profileId(), componentType).orElseThrow(); _repository.deleteComponent(_profile.profileId(), componentType, component.rowVersion());
 			final var saved = goals.load(_profile.profileId()).orElseThrow(); goals.delete(_profile.profileId(), saved.rowVersion());
 		}
 	}
@@ -4761,8 +4773,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					PhantomAssertions.assertTrue(journey.ownsAutomaticIntent(_profile.profileId(), replacement), "Accepted durable child lost authority solely because its native Player was stored.");
 					allowed.set(false);
 					PhantomAssertions.assertFalse(journey.ownsAutomaticIntent(_profile.profileId(), replacement), "HOLD retained native journey authority.");
+					PhantomAssertions.assertTrue(journey.protectsAutomaticRoot(_profile.profileId(), replacement), "HOLD allowed a background replan to discard the finite accepted root.");
 					allowed.set(true);
 					PhantomAssertions.assertFalse(journey.ownsAutomaticIntent(_profile.profileId(), replacement.withStatus(PhantomGoalStatus.ACTIVE)), "Replacement root inherited an old child's authority.");
+					PhantomAssertions.assertFalse(journey.protectsAutomaticRoot(_profile.profileId(), replacement.withStatus(PhantomGoalStatus.ACTIVE)), "A replacement root inherited old acceptance protection.");
 					context.record("journey061.storedAuthority", "same component/root/class/object; native save; owner reconstructed; stored continuation retained; HOLD/replaced root refused; no SP or quest grants");
 				}
 				finally

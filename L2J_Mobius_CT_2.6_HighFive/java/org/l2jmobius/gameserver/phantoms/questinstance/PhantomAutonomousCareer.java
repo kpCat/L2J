@@ -54,6 +54,8 @@ final class PhantomAutonomousCareer
 	private final PhantomGoalStateCodec _codec = new PhantomGoalStateCodec();
 	private final Map<Long, Cached> _cache = new LinkedHashMap<>();
 	private BiPredicate<Long, PhantomGoal> _defer = (_, _) -> false;
+	private BiPredicate<PhantomGoal, Player> _fieldReady = (_, _) -> true;
+	private java.util.function.BiFunction<PhantomStepContext, PhantomGoal, PhantomStepResult> _fieldReturn;
 	private java.util.function.LongPredicate _onlineResume = _ -> false;
 	private final org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction _resumeTransactions = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction();
 	private long _resumeCursor, _nextResumeMillis;
@@ -89,6 +91,8 @@ final class PhantomAutonomousCareer
 
 	void registerHandlers(PhantomStepHandlerRegistry registry) { registry.register(ACTION, this::advance); }
 	void deferWhen(BiPredicate<Long, PhantomGoal> predicate) { _defer = Objects.requireNonNull(predicate); }
+	void requireField(BiPredicate<PhantomGoal, Player> predicate) { _fieldReady = Objects.requireNonNull(predicate); }
+	void useFieldReturn(java.util.function.BiFunction<PhantomStepContext, PhantomGoal, PhantomStepResult> action) { _fieldReturn = Objects.requireNonNull(action); }
 	void useOnlineResume(java.util.function.LongPredicate online) { _onlineResume = Objects.requireNonNull(online); }
 	boolean needsOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root).isPresent(); }
 	Optional<PhantomGoal> intent(long profileId) { return Optional.ofNullable(cached(profileId).goal); }
@@ -114,6 +118,7 @@ final class PhantomAutonomousCareer
 				if (cached.goal.constraints().getOrDefault("retry.after", 0L) > now) { return unavailable(profileId, "career.retry_after"); }
 			}
 			final var archetype = _preference.apply(profileId);
+			if (!_fieldReady.test(root, player)) { return unavailable(profileId, "career.preparation_field_pending"); }
 			final var route = _policy.routes().stream().filter(value -> value.fromClass() == player.getActiveClass() && value.fromClass() == player.getBaseClass() && value.archetype() == archetype
 				&& _catalog.content(value.contentId()).orElseThrow().eligible(player.getLevel(), player.getRace().name(), player.getActiveClass())).findFirst().orElse(null);
 			if (route == null) { return unavailable(profileId, "career.route_absent"); }
@@ -180,11 +185,23 @@ final class PhantomAutonomousCareer
 		if (earnedClass != null)
 		{
 			if (earnedOwner == null || !earnedOwner.isCurrent() || earnedClass.getNativeWorkOwner() != earnedOwner) { return PhantomStepResult.retry(500, "career.native.store_owner_pending"); }
-			try { if (earnedClass.hasOwnedStoreBoundary()) { earnedClass.storeMe(); } }
+			try { if ((_fieldReturn == null || intent.currentAmount() == 0) && earnedClass.hasOwnedStoreBoundary()) { earnedClass.storeMe(); } }
 			catch (RuntimeException failure) { return PhantomStepResult.retry(500, "career.native.store_pending"); }
 			// Always preserve the earned class checkpoint, even if a separate native equip was refused.
 			if (weaponPending == OperationStatus.CANCELLED) { return PhantomStepResult.of(PhantomStepResult.Type.CANCELLED, "career.native.return_weapon_cancelled"); }
 			if (weaponPending != null) { return PhantomStepResult.retry(500, "career.native.return_weapon_pending." + weaponPending.name().toLowerCase(java.util.Locale.ROOT)); }
+		}
+		if (_fieldReturn != null && earnedClass != null && result.status() == PhantomQuestInstanceService.Status.COMPLETE)
+		{
+			if (intent.currentAmount() == 0)
+			{
+				intent = new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), intent.requiredAmount(), 1, intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), intent.constraints(), "career.native.class_checkpoint", Math.addExact(intent.revision(), 1), intent.payloadText());
+				store(context.profileId(), cached, intent);
+			}
+			_service.publishAcceptedResume(context.profileId(), intent, System.currentTimeMillis());
+			final var returned = _fieldReturn.apply(context, intent);
+			if (returned.type() == PhantomStepResult.Type.FAIL_GOAL) { result = new PhantomQuestInstanceService.AdvanceResult(PhantomQuestInstanceService.Status.FAIL, returned.reasonKey()); }
+			else if (returned.type() != PhantomStepResult.Type.COMPLETE_GOAL) { return returned; }
 		}
 		if (result.status() == PhantomQuestInstanceService.Status.COMPLETE || result.status() == PhantomQuestInstanceService.Status.FAIL)
 		{

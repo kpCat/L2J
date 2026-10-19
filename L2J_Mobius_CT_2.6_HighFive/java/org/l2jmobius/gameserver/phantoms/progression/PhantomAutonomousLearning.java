@@ -56,6 +56,7 @@ final class PhantomAutonomousLearning
 	private final PhantomGoalStateCodec _codec = new PhantomGoalStateCodec();
 	private final Map<Long, Cached> _cache = new LinkedHashMap<>();
 	private BiPredicate<Long, PhantomGoal> _defer = (_, _) -> false;
+	private BiPredicate<PhantomGoal, Player> _fieldReady = (_, _) -> true;
 	private final org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction _resumeTransactions = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction();
 	private long _resumeCursor, _nextResumeMillis;
 
@@ -81,6 +82,8 @@ final class PhantomAutonomousLearning
 
 	void registerHandlers(PhantomStepHandlerRegistry registry) { registry.register(ACTION, this::advance); }
 	void deferWhen(BiPredicate<Long, PhantomGoal> predicate) { _defer = Objects.requireNonNull(predicate); }
+	void requireField(BiPredicate<PhantomGoal, Player> predicate) { _fieldReady = Objects.requireNonNull(predicate); }
+	boolean needsOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root).isPresent(); }
 
 	private Optional<PhantomGoal> proposal(long profileId, PhantomGoal root)
 	{
@@ -102,6 +105,7 @@ final class PhantomAutonomousLearning
 			// A future need may be selected during farming; its executor still waits for native combat to settle.
 			if (_defer.test(profileId, root)) { return Optional.empty(); }
 			if (player.isInsideZone(ZoneId.PEACE)) { return Optional.empty(); }
+			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getSp();
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return Optional.ofNullable(cached.offer); }
 			cached.facts = facts;
@@ -185,7 +189,13 @@ final class PhantomAutonomousLearning
 
 	boolean owns(long profileId, PhantomGoal root)
 	{
-		if (!_policy.enabled() || !_allowed.test(profileId) || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return false; }
+		return _allowed.test(profileId) && protectsRoot(profileId, root);
+	}
+
+	/** Observational acceptance survives HOLD; this never permits actions, materialization or payment. */
+	boolean protectsRoot(long profileId, PhantomGoal root)
+	{
+		if (!_policy.enabled() || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return false; }
 		final var goal = cached(profileId).goal;
 		if (goal == null || !PhantomJourneyLifetime.alive(goal, System.currentTimeMillis()) || !boundRoot(goal, root)) { return false; }
 		try (var action = _materialization.tryAcquireAction(profileId).orElse(null))

@@ -223,6 +223,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		if (Boolean.getBoolean("phantom.test.careerDefense061"))
 		{
 			registry.add("16d-native-career-defends-observed-pursuer061", this::careerNativeDefense061);
+			registry.add("16g-native-career-rejects-spoiled-quest-target061", this::careerSpoiledTarget061);
 			return;
 		}
 		if (Boolean.getBoolean("phantom.test.careerRouteProbe061"))
@@ -417,6 +418,25 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			context.record("career061.defense.observed", "hp=" + hp + "->" + _player.getCurrentHp() + ";dead=" + _player.isDead() + ";invul=" + _player.isInvul() + ";attackBy=" + _player.getAttackByList() + ";pursuerDead=" + pursuer.isDead() + ";pursuerIntention=" + pursuer.getAI().getIntention());
 			pursuer.deleteMe();
 		}
+	}
+
+	private void careerSpoiledTarget061(PhantomTestContext context) throws Exception
+	{
+		restartService(); preparePlayer(0, 0, 20); ensureWeapon(68);
+		// Independent negative native protocol input, never a positive Q401 episode or class-transfer proof.
+		final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
+		quest.setState(org.l2jmobius.gameserver.model.script.State.STARTED); quest.setCond(5, false);
+		final var spoiled = spawnMonster(20038); spoiled.setScriptValue(2);
+		final long exp = _player.getExp(), sp = _player.getSp(), adena = _player.getAdena();
+		try
+		{
+			final var content = _catalog.content("class.warrior-q401").orElseThrow();
+			final var target = _backend.locate(_profile.profileId(), content, content.step("collect.spider").orElseThrow());
+			context.record("career061.spoiledTarget", "independent negative Q401 cond5/native20038 scriptValue2 before observation; selected=" + target + "; no kill, quest items, payment or class transfer supplied");
+			PhantomAssertions.assertTrue(target == null || target.objectId() != spoiled.getObjectId(), "Career chose a native Q401 spider whose own script rejects every quest drop.");
+			PhantomAssertions.assertTrue(quest.getCond() == 5 && itemCount(1144) == 0 && exp == _player.getExp() && sp == _player.getSp() && adena == _player.getAdena(), "Target observation changed native quest/resources.");
+		}
+		finally { spoiled.deleteMe(); }
 	}
 
 	private void careerNativeRest061(PhantomTestContext context) throws Exception

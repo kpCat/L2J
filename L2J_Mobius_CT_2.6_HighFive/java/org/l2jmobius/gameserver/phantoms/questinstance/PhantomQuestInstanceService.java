@@ -112,6 +112,14 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	{
 		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career presence must bind before start."); } _automatic.useOnlineResume(online); }
 	}
+	public void useFieldReturn(java.util.function.BiFunction<org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext, PhantomGoal, org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult> action)
+	{
+		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career return must bind before start."); } _automatic.useFieldReturn(action); }
+	}
+	public void requireField(java.util.function.BiPredicate<PhantomGoal, org.l2jmobius.gameserver.model.actor.Player> predicate)
+	{
+		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career field must bind before start."); } _automatic.requireField(predicate); }
+	}
 
 	boolean hasOwnedWork(long profileId) { synchronized (_monitor) { return _travels.containsKey(profileId) || _combats.containsKey(profileId); } }
 

@@ -74,11 +74,18 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 	private volatile PhantomVisibleFarmTravel _visibleTravel;
 	private volatile PhantomVisibleAutoPlay _visibleAutoPlay;
 	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _visibleIntent = (_, _) -> false;
+	private volatile java.util.function.BiPredicate<Long, PhantomGoal> _acceptedIntent = (_, _) -> false;
 
 	/** A child intent retains the exact farm root while its existing native owners travel. */
 	public void bindVisibleIntent(java.util.function.BiPredicate<Long, PhantomGoal> intent)
 	{
 		_visibleIntent = Objects.requireNonNull(intent);
+	}
+
+	/** A finite accepted child retains its exact root; HOLD still blocks all native actions separately. */
+	public void bindAcceptedIntent(java.util.function.BiPredicate<Long, PhantomGoal> intent)
+	{
+		_acceptedIntent = Objects.requireNonNull(intent);
 	}
 
 	public PhantomHistoricalBackgroundService(PhantomProfileRepository profiles, PhantomGoalStateStore goals, PhantomHistoricalBackgroundPlanner planner, PhantomBackgroundService background, PhantomMaterializationService materialization)
@@ -903,6 +910,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 
 	private PhantomHistoricalBackgroundPlanner.Result planOrIdle(long profileId, PhantomBackgroundState state, PhantomGoal previous, long seed, long ordinal, Set<String> excludedTargets)
 	{
+		if (_acceptedIntent.test(profileId, previous)) { return PhantomHistoricalBackgroundPlanner.Result.blocked("native_context.required:accepted_journey"); }
 		var plan = excludedTargets.isEmpty() ? _planner.replaceFromState(profileId, state, previous, seed, ordinal) : _planner.replan(profileId, state, previous, seed, ordinal, excludedTargets, Set.of());
 		if ("planner.target_or_route.absent".equals(plan.reasonKey())) { plan = _planner.idleFromState(profileId, state, previous, seed, ordinal); }
 		return plan;
@@ -1137,6 +1145,19 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		return visibleFarmResult(profileId, goal, epoch, ready, ready ? "visible.ready" : "visible.stored_goal_mismatch");
 	}
 
+	/** Fresh trips start at a local farm or an accepted native dependency's field; existing children keep their saved origin. */
+	public boolean canStartNativeJourney(PhantomGoal root, Player player)
+	{
+		if (root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || player.isMoving()
+			|| player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) || player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.WATER)) { return false; }
+		try
+		{
+			return _planner.isVisibleLocal(root, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))
+				|| root.subject() != null && "profile".equals(root.subject().namespace()) && _acceptedIntent.test(Long.parseLong(root.subject().key()), root);
+		}
+		catch (IllegalArgumentException invalidRoot) { return false; }
+	}
+
 	private boolean freshLocalAction(long profileId, PhantomGoal goal, long epoch)
 	{
 		return _visibleTravel != null && Objects.equals(_goals.load(profileId).map(StoredGoal::goal).orElse(null), goal)
@@ -1246,6 +1267,7 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 					: (_visibleTravel != null) && _visibleTravel.permitsCurrentAnchorReturn(baseline.position().committedAnchorId(), live, player)
 						&& baseline.position().committedAnchorId().equals(PhantomBackgroundGoalSpec.parse(stored.goal()).anchorId()) && _planner.remainsSuitable(projected, stored.goal())) { return true; }
 			}
+			if (_acceptedIntent.test(profileId, stored.goal())) { return false; }
 			if ((_visibleTravel != null) && !_visibleTravel.stopForRecovery(profileId, stored.goal(), player.getObjectId(), lifetime.materializedAtNanos())) { return false; }
 			if (_visibleAutoPlay != null) { _visibleAutoPlay.stop(profileId); }
 			if (!visibleActorQuiet(profileId, player, lifetime.materializedAtNanos())) { return false; }

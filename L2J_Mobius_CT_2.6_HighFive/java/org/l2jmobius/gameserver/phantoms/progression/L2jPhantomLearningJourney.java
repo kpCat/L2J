@@ -104,6 +104,12 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	}
 
 	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }
+	public boolean protectsAutomaticRoot(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.protectsRoot(profileId, root); }
+	public boolean needsOrOwnsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.needsOrOwns(profileId, root); }
+	public void requireField(java.util.function.BiPredicate<PhantomGoal, Player> predicate)
+	{
+		if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Learning field must bind before start."); } _automatic.requireField(predicate);
+	}
 	public boolean permitsAutomaticVisibleDecision(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && (_automatic.owns(profileId, root) || _automatic.permitsSettlement(profileId, root)); }
 	public void useRelevanceSignals(org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort signals)
 	{
@@ -184,11 +190,34 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 
 	PhantomStepResult advanceIntent(long profileId, PhantomGoal goal, PhantomGoal intent, PhantomCancellationToken token, long now)
 	{
+		return advanceIntent(profileId, goal, intent, token, now, request(intent).orElse(null));
+	}
+
+	/** Shared native WALK only: the existing Career child remains its owner; no learning goal or skill operation is created. */
+	public PhantomStepResult returnCareerToField(long profileId, PhantomGoal root, PhantomGoal intent, PhantomCancellationToken token, long now)
+	{
+		if (intent == null || root == null || root.status() != PhantomGoalStatus.ACTIVE || !org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || !java.util.Objects.equals(root.subject(), intent.subject()) || !"class.transfer".equals(intent.goalType()) || !"career.autonomous".equals(intent.purposeKey()) || !PhantomJourneyLifetime.alive(intent, System.currentTimeMillis())) { return fail("career.return.intent_invalid"); }
+		if (PhantomJourneyLifetime.paused(intent)) { return retry("career.return.paused"); }
+		final Request request;
+		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
+		{
+			if (lease == null) { return retry("career.return.actor_pending"); }
+			final var values = intent.constraints(); final int classId = lease.player().getActiveClass();
+			if (!values.keySet().containsAll(Set.of("field.x", "field.y", "field.z", "class.index"))) { return fail("career.return.binding_invalid"); }
+			if (values.getOrDefault("class.from", -1L) != classId && values.getOrDefault("class.to", -1L) != classId) { return fail("career.return.class_changed"); }
+			final var field = new PhantomNavigationPoint(Math.toIntExact(values.get("field.x")), Math.toIntExact(values.get("field.y")), Math.toIntExact(values.get("field.z")), 0);
+			request = new Request(classId, Math.toIntExact(values.get("class.index")), 0, 0, field, true);
+		}
+		catch (IllegalArgumentException | ArithmeticException invalid) { return fail("career.return.binding_invalid"); }
+		return advanceIntent(profileId, root, intent, token, now, request);
+	}
+
+	private PhantomStepResult advanceIntent(long profileId, PhantomGoal goal, PhantomGoal intent, PhantomCancellationToken token, long now, Request request)
+	{
 		if (profileId <= 0 || now < 0) { return fail("learning.request.invalid"); }
 		synchronized (_monitor) { if (_state != State.RUNNING || _active.size() >= LIMIT || !_active.add(profileId)) { return retry("learning.busy"); } }
 		try
 		{
-			final Request request = request(intent).orElse(null);
 			if (token.isCancelled()) { cleanup(profileId); return PhantomStepResult.of(Type.CANCELLED, "learning.cancelled"); }
 			if (request == null || !current(profileId, goal)) { cleanup(profileId); return fail("learning.goal.stale"); }
 			if (!_actionAllowed.test(profileId)) { return retry("learning.owner.busy"); }
@@ -198,11 +227,11 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 			try (var lease = acquired.orElseThrow())
 			{
 				final Player player = lease.player();
-				if (!intent.equals(goal) && (!"learning.autonomous".equals(intent.purposeKey()) || intent.goalId() != goal.goalId() || intent.constraints().getOrDefault("owner.revision", -1L) != goal.revision() || intent.constraints().getOrDefault("owner.object", -1L) != player.getObjectId())) { cleanup(profileId); return fail("learning.intent.owner_changed"); }
+				if (!intent.equals(goal) && (!(request.returnOnly() ? "career.autonomous" : "learning.autonomous").equals(intent.purposeKey()) || intent.goalId() != goal.goalId() || intent.constraints().getOrDefault("owner.revision", -1L) != goal.revision() || intent.constraints().getOrDefault("owner.object", -1L) != player.getObjectId())) { cleanup(profileId); return fail("learning.intent.owner_changed"); }
 				if (player.getActiveClass() != request.classId() || player.getClassIndex() != request.classIndex() || player.getLearningClass().getId() != request.classId() || player.getInstanceId() != 0) { cleanup(profileId); return fail("learning.class_or_instance.changed"); }
 				if (player.isAlikeDead()) { cleanup(profileId); return retry("learning.actor.recovery_pending"); }
 				if (player.isInParty() || player.isInCombat() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.isChangingClass() || player.isMounted() || player.isTransformed()) { return retry("learning.actor.busy"); }
-				final boolean returning = PhantomJourneyLifetime.returningFailure(intent) || player.getSkillLevel(request.skillId()) >= request.skillLevel();
+				final boolean returning = request.returnOnly() || PhantomJourneyLifetime.returningFailure(intent) || player.getSkillLevel(request.skillId()) >= request.skillLevel();
 				if (returning && player.calculateDistance3D(request.field().x(), request.field().y(), request.field().z()) <= _navigation.arrivalRadius())
 				{
 					cleanup(profileId);
@@ -437,11 +466,12 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	@Override public void afterStore(long profileId, Player player) { }
 	private record Demand(long rootId, long rootRevision, PhantomGoal intent, long until, long sequence) { }
 
-	public record Request(int classId, int classIndex, int skillId, int skillLevel, PhantomNavigationPoint field)
+	public record Request(int classId, int classIndex, int skillId, int skillLevel, PhantomNavigationPoint field, boolean returnOnly)
 	{
+		public Request(int classId, int classIndex, int skillId, int skillLevel, PhantomNavigationPoint field) { this(classId, classIndex, skillId, skillLevel, field, false); }
 		public Request
 		{
-			if (PlayerClass.getPlayerClass(classId) == null || classIndex < 0 || classIndex > 3 || skillId <= 0 || skillLevel <= 0 || skillLevel > 65535 || field == null || field.instanceId() != 0 || field.x() < -1_000_000 || field.x() > 1_000_000 || field.y() < -1_000_000 || field.y() > 1_000_000 || field.z() < -32768 || field.z() > 32767) { throw new IllegalArgumentException("Invalid class-bound learning journey."); }
+			if (PlayerClass.getPlayerClass(classId) == null || classIndex < 0 || classIndex > 3 || (returnOnly ? skillId != 0 || skillLevel != 0 : skillId <= 0 || skillLevel <= 0 || skillLevel > 65535) || field == null || field.instanceId() != 0 || field.x() < -1_000_000 || field.x() > 1_000_000 || field.y() < -1_000_000 || field.y() > 1_000_000 || field.z() < -32768 || field.z() > 32767) { throw new IllegalArgumentException("Invalid class-bound learning journey."); }
 		}
 	}
 

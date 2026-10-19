@@ -188,6 +188,7 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 			final Player player = lease.player();
 			final Npc nearby = World.getInstance().getVisibleObjects(player, Npc.class).stream()
 				.filter(npc -> step.npcIds().contains(npc.getId()) && (npc.getInstanceId() == player.getInstanceId()) && npc.isSpawned() && !npc.isAlikeDead() && ((step.operation() != Operation.COMBAT) || (npc instanceof Monster)))
+				.filter(npc -> nativeQuestTargetUsable(player, content, step, npc))
 				.min(Comparator.comparingDouble((Npc npc) -> player.calculateDistance3D(npc)).thenComparingInt(Npc::getObjectId)).orElse(null);
 			if (nearby != null)
 			{
@@ -214,6 +215,13 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 			final SpawnFact fact = facts.stream().min(Comparator.comparingDouble((SpawnFact value) -> player.calculateDistance3D(value.x(), value.y(), value.z())).thenComparing(SpawnFact::stableKey)).orElse(null);
 			return fact == null ? null : new Target(0, fact.npcId(), fact.x(), fact.y(), fact.z(), fact.instanceId(), player.calculateDistance3D(fact.x(), fact.y(), fact.z()), false);
 		}
+	}
+
+	/** Read the audited quest's native per-monster eligibility; never repair its flags or quest state. */
+	private static boolean nativeQuestTargetUsable(Player player, Content content, Step step, Npc npc)
+	{
+		return content.questId() != 401 || !"collect.spider".equals(step.id())
+			|| npc.isScriptValue(0) || npc.isScriptValue(1) && npc.getVariables().getInt("lastAttacker", 0) == player.getObjectId();
 	}
 
 	@Override

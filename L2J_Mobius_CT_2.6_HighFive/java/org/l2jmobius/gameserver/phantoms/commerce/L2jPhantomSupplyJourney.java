@@ -87,6 +87,11 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private String _knowledgeHash;
 	private volatile State _state = State.NEW;
 	private PhantomOfflineSupply _offline;
+	private java.util.function.BiPredicate<PhantomGoal, Player> _fieldReady = (_, _) -> true;
+	public void requireField(java.util.function.BiPredicate<PhantomGoal, Player> predicate)
+	{
+		if (_state != State.NEW) { throw new IllegalStateException("Supply field must bind before start."); } _fieldReady = java.util.Objects.requireNonNull(predicate);
+	}
 	private org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository _profiles;
 	private org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort _signals;
 	private final Map<Long, Long> _demands = new LinkedHashMap<>();
@@ -226,6 +231,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 				if (Binding.parse(cached.goal).retryAfterEpochMillis() > now) { return Optional.empty(); }
 			}
 			if (_learningOwns.test(profileId, root) || player.getActiveWeaponItem() == null || player.getActiveWeaponInstance() == null || player.getActiveWeaponItem() == player.getFistsWeaponItem()) { return Optional.empty(); }
+			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
 			final var ammunition = _commerce.catalog().supplies().stream().filter(supply -> supply.kinds().contains(PhantomCommerceCatalog.SupplyKind.AMMUNITION)).map(supply -> ItemData.getInstance().getTemplate(supply.itemId())).filter(item -> compatible(player, item)).toList();
 			final boolean ammunitionNeeded = !ammunition.isEmpty() && ammunition.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum() < _policy.lowWaterHits();
 			final long healingStock = _healingItems.stream().mapToLong(item -> player.getInventory().getInventoryItemCount(item.getId(), -1)).sum();
@@ -281,6 +287,7 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 	private static boolean healingPotion(ItemTemplate item)
 	{
 		return item instanceof EtcItem etc && item.isStackable() && "ItemSkills".equals(etc.getHandlerName()) && item.getSkills() != null
+			&& java.util.Arrays.stream(item.getSkills()).allMatch(holder -> holder.getSkillLevel() > 0 && holder.getSkillLevel() <= org.l2jmobius.gameserver.data.xml.SkillData.getInstance().getMaxLevel(holder.getSkillId()))
 			&& java.util.Arrays.stream(item.getSkills()).anyMatch(holder -> holder.getSkill() != null && holder.getSkill().isHealingPotionSkill());
 	}
 
