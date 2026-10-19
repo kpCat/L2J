@@ -40,6 +40,7 @@ import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBacke
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceBackend.Target;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Content;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Kind;
+import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Operation;
 import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatalog.Step;
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 
@@ -372,8 +373,17 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 			if (pursuer == null) { return null; }
 			cancelTravel(profileId);
 			_suspendReturn.accept(profileId, intent);
-			return startCombat(profileId, content, "preparation.retreat", pursuer.objectId(), pursuer.npcId(), actor,
-				ownedCombatToken(profileId, root, intent, token), true);
+			final var combatStep = content.steps().stream().filter(step -> step.operation() == Operation.COMBAT).findFirst().orElse(null);
+			boolean retreat = true;
+			if (combatStep != null)
+			{
+				final var readiness = _backend.prepareCombat(profileId, content, combatStep, actor.fingerprint());
+				if (readiness.status() == ActionStatus.IDEMPOTENT) { retreat = false; }
+				else if (!"questinstance.combat.retreat_required".equals(readiness.reasonKey())) { return retry(readiness.reasonKey()); }
+			}
+			// Recovery can make defense viable; never restart unconditional escape from the same pursuer.
+			return startCombat(profileId, content, retreat ? "preparation.retreat" : "preparation.defense", pursuer.objectId(), pursuer.npcId(), actor,
+				ownedCombatToken(profileId, root, intent, token), retreat);
 		}
 		finally { release(profileId); }
 	}

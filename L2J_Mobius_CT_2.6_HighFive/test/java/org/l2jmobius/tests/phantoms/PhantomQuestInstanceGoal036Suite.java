@@ -227,6 +227,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("16i-native-pve-walk-segment-excludes-new-threat061", this::careerNativeSegment061);
 			registry.add("16j-native-career-retains-unsafe-attempt-and-requires-preparation061", this::careerNativePreparation061);
 			registry.add("16k-native-career-refuses-overlevel-native-pursuer061", this::careerNativeOverlevel061);
+			registry.add("16l-native-preparation-return-defends-a-manageable-pursuer061", this::careerPreparationDefense061);
+			registry.add("16m-native-preparation-return-still-refuses-overlevel-pursuer061", context -> careerPreparationDefense061(context, true));
 			registry.add("16g-native-career-rejects-spoiled-quest-target061", this::careerSpoiledTarget061);
 			return;
 		}
@@ -423,6 +425,55 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			context.record("career061.defense.observed", "hp=" + hp + "->" + _player.getCurrentHp() + ";dead=" + _player.isDead() + ";invul=" + _player.isInvul() + ";attackBy=" + _player.getAttackByList() + ";pursuerDead=" + pursuer.isDead() + ";pursuerIntention=" + pursuer.getAI().getIntention());
 			pursuer.deleteMe();
 		}
+	}
+
+	private void careerPreparationDefense061(PhantomTestContext context) throws Exception
+	{
+		careerPreparationDefense061(context, false);
+	}
+
+	private void careerPreparationDefense061(PhantomTestContext context, boolean overlevel) throws Exception
+	{
+		restartService(); preparePlayer(0, 0, 19); ensureWeapon(2499); _player.rewardSkills();
+		final var content = _catalog.content("class.warrior-q401").orElseThrow();
+		final var root = new PhantomGoal(++_goalId, "farm.background", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_normalWorldCombatPoint.npcId())), 1, 0, "background.farm", List.of(), null, "farm.background", 500, 0, 0, 0, Map.of(), "career061.return_defense_input", 1);
+		_goals.store(_profile.profileId(), root);
+		final var constraints = Map.ofEntries(Map.entry("owner.object", (long) _player.getObjectId()), Map.entry("owner.revision", root.revision()), Map.entry("class.from", 0L), Map.entry("class.to", 1L), Map.entry("class.index", 0L), Map.entry("weapon.object", (long) _player.getActiveWeaponInstance().getObjectId()), Map.entry("field.x", (long) _player.getX()), Map.entry("field.y", (long) _player.getY()), Map.entry("field.z", (long) _player.getZ()), Map.entry("risk.cell", Long.MIN_VALUE), Map.entry("risk.history", 1L), Map.entry("risk.preparation", 1L));
+		final var child = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), "class.transfer", PhantomGoalStatus.ACTIVE, root.subject(), new PhantomDomainRef("supported.content", content.id()), 1, 0, null, List.of(), null, "career.autonomous", 700, 0, 0, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(90), constraints, "career.native.preparation_return.low_hp_stopped", 1, content.contentHash()), System.currentTimeMillis());
+		final var previous = _profiles.findComponent(_profile.profileId(), "career.intent").orElse(null);
+		final byte[] bytes = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(child);
+		if (previous == null) { _profiles.insertComponent(_profile.profileId(), "career.intent", 1, bytes); }
+		else { _profiles.updateComponent(_profile.profileId(), "career.intent", previous.rowVersion(), 1, bytes); }
+		restartService();
+		final var candidates = new org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry(); final var handlers = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry();
+		final var decision = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision(_service); decision.registerCandidates(candidates); candidates.seal(); decision.registerHandlers(handlers); handlers.seal();
+		final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root, org.l2jmobius.gameserver.phantoms.decision.PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
+		final var plan = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate().planFactory().create(planning);
+		final var pursuer = spawnMonster(overlevel ? 20927 : 20035);
+		final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(pursuer.getTemplate()); spawn.setXYZ(pursuer.getX(), pursuer.getY(), pursuer.getZ()); pursuer.setSpawn(spawn);
+		_player.setInvul(false); _player.setCurrentHp(_player.getMaxHp());
+		final double hp = _player.getCurrentHp(); final long exp = _player.getExp(), sp = _player.getSp();
+		context.record("career061.returnDefenseInput", "Independent saved preparation-return fixture, not Q401 progress evidence; Fighter19/native owned2499/native skills/full HP before measurement, one real" + pursuer.getId() + " pursuer; no changed quest stage/items/class during measurement; no Monster.setTarget");
+		pursuer.addDamageHate(_player, 0, 100); pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player); pursuer.doAttack(_player);
+		try
+		{
+			await(() -> _player.getCurrentHp() < hp && pursuer.getAI().getAttackTarget() == _player, "Return defense input lacks real native damage/pursuit.");
+			final var execution = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, 1, 1, System.nanoTime(), 1, NOT_CANCELLED);
+			final var result = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(execution);
+			final var combat = _combat.find(_profile.profileId()).orElseThrow();
+			if (overlevel)
+			{
+				PhantomAssertions.assertTrue(combat.targetObjectId() == pursuer.getObjectId() && combat.phase() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPhase.RETREATING, "Preparation return attacked an overlevel native pursuer: " + result + "; " + combat);
+				context.record("career061.returnOverlevelObserved", "Independent native20927/27 and Fighter19; actual damage/pursuit; same preparation owner chose retreat, no native stats or quest progress bypass");
+				return;
+			}
+			PhantomAssertions.assertTrue(combat.targetObjectId() == pursuer.getObjectId() && combat.phase() != org.l2jmobius.gameserver.phantoms.combat.PhantomCombatPhase.RETREATING, "Recovered preparation return still runs from a manageable native pursuer: " + result + "; " + combat);
+			await(() -> pursuer.isDead() && _player.getExp() > exp && _player.getSp() > sp, "Return defense did not finish a real native pursuer.");
+			PhantomAssertions.assertEquals(root, _goals.load(_profile.profileId()).orElseThrow().goal(), "Return defense replaced its current farm root.");
+			PhantomAssertions.assertTrue(_player.getActiveClass() == 0 && itemCount(1145) == 0, "Preparation defense granted a class or quest mark.");
+			context.record("career061.returnDefenseObserved", "Native pursuer killed, EXP=" + exp + "->" + _player.getExp() + "; SP=" + sp + "->" + _player.getSp() + "; same root=true; no class/mark grant; not full career/ordinary A/B");
+		}
+		finally { pursuer.deleteMe(); restartService(); }
 	}
 
 	private void careerNativeOverlevel061(PhantomTestContext context) throws Exception
