@@ -31,6 +31,8 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomWeightedConsideration;
 import org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService;
 import org.l2jmobius.gameserver.phantoms.population.PhantomPopulationCatalog.CareerArchetype;
 import org.l2jmobius.gameserver.phantoms.profile.PhantomProfileRepository;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.EquipItemRequest;
+import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.OperationStatus;
 import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService;
 
 /** One persistent child selected by the ordinary farm Decision; QuestInstance remains the executor. */
@@ -140,25 +142,41 @@ final class PhantomAutonomousCareer
 			}
 		}
 		if (!_pauseFarm.test(context.profileId(), intent.deadlineEpochMillis())) { return PhantomStepResult.retry(250, "career.native.finish_current_target"); }
-		final var result = _service.advanceIntent(context.profileId(), context.goal(), intent, context.effectiveState(), context.logicalNowNanos(), context.cancellationToken());
+		var result = _service.advanceIntent(context.profileId(), context.goal(), intent, context.effectiveState(), context.logicalNowNanos(), context.cancellationToken());
 		// Save an actually earned native class while its original child/root binding is still current.
 		// The existing owned boundary attests Q401; Player remains the sole class/base-class writer.
 		Player earnedClass = null;
 		org.l2jmobius.gameserver.model.actor.PlayerNativeWork.Owner earnedOwner = null;
+		OperationStatus weaponPending = null;
 		try (var lease = _materialization.tryAcquireAction(context.profileId()).orElse(null))
 		{
 			if (lease != null && lease.player().getActiveClass() == intent.constraints().getOrDefault("class.to", -1L)
-				&& lease.player().getBaseClass() == lease.player().getActiveClass() && lease.player().hasOwnedStoreBoundary())
+				&& lease.player().getBaseClass() == lease.player().getActiveClass())
 			{
 				earnedClass = lease.player(); earnedOwner = earnedClass.getNativeWorkOwner();
+				final long weapon = intent.constraints().getOrDefault("weapon.object", 0L);
+				if (weapon > 0 && earnedClass.getActiveWeaponInstance() == null)
+				{
+					final var status = weapon > Integer.MAX_VALUE ? OperationStatus.INVALID_REQUEST
+						: _progression.equipOwnedItem(new EquipItemRequest(context.profileId(), (int) weapon, context.cancellationToken())).status();
+					switch (status)
+					{
+						case SUCCESS, IDEMPOTENT -> { }
+						case CANCELLED, SERVICE_NOT_RUNNING, OPERATION_IN_PROGRESS, ACTOR_NOT_MATERIALIZED, ACTOR_STATE_REJECTED -> weaponPending = status;
+						default -> result = new PhantomQuestInstanceService.AdvanceResult(PhantomQuestInstanceService.Status.FAIL, "career.native.return_weapon_rejected." + status.name().toLowerCase(java.util.Locale.ROOT));
+					}
+				}
 			}
 		}
 		// A blocking native checkpoint cannot drain its own ACTION ticket.
 		if (earnedClass != null)
 		{
 			if (earnedOwner == null || !earnedOwner.isCurrent() || earnedClass.getNativeWorkOwner() != earnedOwner) { return PhantomStepResult.retry(500, "career.native.store_owner_pending"); }
-			try { earnedClass.storeMe(); }
+			try { if (earnedClass.hasOwnedStoreBoundary()) { earnedClass.storeMe(); } }
 			catch (RuntimeException failure) { return PhantomStepResult.retry(500, "career.native.store_pending"); }
+			// Always preserve the earned class checkpoint, even if a separate native equip was refused.
+			if (weaponPending == OperationStatus.CANCELLED) { return PhantomStepResult.of(PhantomStepResult.Type.CANCELLED, "career.native.return_weapon_cancelled"); }
+			if (weaponPending != null) { return PhantomStepResult.retry(500, "career.native.return_weapon_pending." + weaponPending.name().toLowerCase(java.util.Locale.ROOT)); }
 		}
 		if (result.status() == PhantomQuestInstanceService.Status.COMPLETE || result.status() == PhantomQuestInstanceService.Status.FAIL)
 		{
