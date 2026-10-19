@@ -201,7 +201,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 				if (player.getActiveClass() != request.classId() || player.getClassIndex() != request.classIndex() || player.getLearningClass().getId() != request.classId() || player.getInstanceId() != 0) { cleanup(profileId); return fail("learning.class_or_instance.changed"); }
 				if (player.isAlikeDead()) { cleanup(profileId); return retry("learning.actor.recovery_pending"); }
 				if (player.isInParty() || player.isInCombat() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.isChangingClass() || player.isMounted() || player.isTransformed()) { return retry("learning.actor.busy"); }
-				final boolean returning = player.getSkillLevel(request.skillId()) >= request.skillLevel();
+				final boolean returning = PhantomJourneyLifetime.returningFailure(intent) || player.getSkillLevel(request.skillId()) >= request.skillLevel();
 				if (returning && player.calculateDistance3D(request.field().x(), request.field().y(), request.field().z()) <= _navigation.arrivalRadius())
 				{
 					cleanup(profileId);
@@ -377,7 +377,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 	/** Durable intent binds the exact class/index and a normal-world return anchor. */
 	public static Optional<Request> request(PhantomGoal goal)
 	{
-		if (goal == null || !GOAL_TYPE.equals(goal.goalType()) || goal.status() != PhantomGoalStatus.ACTIVE || goal.target() == null || !"skill".equals(goal.target().namespace()) || !validConstraints(goal) || !PhantomJourneyLifetime.alive(goal, System.currentTimeMillis()) || goal.deadlineEpochMillis() > System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(30)) { return Optional.empty(); }
+		if (goal == null || !GOAL_TYPE.equals(goal.goalType()) || !PhantomJourneyLifetime.continuing(goal) || goal.target() == null || !"skill".equals(goal.target().namespace()) || !validConstraints(goal) || !PhantomJourneyLifetime.alive(goal, System.currentTimeMillis()) || goal.deadlineEpochMillis() > System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(30)) { return Optional.empty(); }
 		try
 		{
 			final String[] skill = goal.target().key().split(":", -1);
@@ -394,7 +394,21 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 		final var expected = new HashSet<>(CONSTRAINTS);
 		expected.addAll(Set.of("owner.revision", "owner.object", "retry.after"));
 		if (goal.constraints().keySet().containsAll(PhantomJourneyLifetime.KEYS)) { expected.addAll(PhantomJourneyLifetime.KEYS); }
+		if (goal.constraints().containsKey("journey.return")) { if (goal.constraints().get("journey.return") < 1 || goal.constraints().get("journey.return") > 2) { return false; } expected.add("journey.return"); }
 		return "learning.autonomous".equals(goal.purposeKey()) && goal.constraints().keySet().equals(expected) && goal.constraints().get("owner.revision") >= 0 && goal.constraints().get("owner.object") > 0 && goal.constraints().get("retry.after") >= 0;
+	}
+
+	/** Compensation is a separate bounded return of a FAILED episode, never another paid attempt or a PASS conversion. */
+	Optional<PhantomGoal> failedReturnOffer(PhantomGoal failed, Player player)
+	{
+		if (failed.status() != PhantomGoalStatus.FAILED || failed.constraints().getOrDefault("journey.return", 0L) != 0 || !validConstraints(failed)
+			|| player.isAlikeDead() || player.getInstanceId() != 0 || player.isInParty() || failed.constraints().get("class.id") != player.getActiveClass() || failed.constraints().get("class.index") != player.getClassIndex()) { return Optional.empty(); }
+		final double distance = player.calculateDistance3D(failed.constraints().get("field.x").intValue(), failed.constraints().get("field.y").intValue(), failed.constraints().get("field.z").intValue());
+		if (distance <= _navigation.arrivalRadius()) { return Optional.empty(); }
+		final long now = System.currentTimeMillis(); final var values = new java.util.LinkedHashMap<>(failed.constraints());
+		PhantomJourneyLifetime.KEYS.forEach(values::remove); values.put("journey.return", 1L);
+		final var recovery = new PhantomGoal(failed.goalId(), failed.goalType(), PhantomGoalStatus.FAILED, failed.subject(), failed.target(), failed.requiredAmount(), failed.currentAmount(), failed.acquisitionMethod(), failed.validSources(), failed.selectedAnchor(), failed.purposeKey(), failed.priority(), failed.riskBudget(), failed.expenseBudget(), now + walkingBudgetMillis(distance, player.getRunSpeed()), values, failed.reasonKey(), Math.addExact(failed.revision(), 1), failed.payloadText());
+		return Optional.of(PhantomJourneyLifetime.start(recovery, now));
 	}
 
 	long roundTripBudgetMillis(Player player, long minimum)

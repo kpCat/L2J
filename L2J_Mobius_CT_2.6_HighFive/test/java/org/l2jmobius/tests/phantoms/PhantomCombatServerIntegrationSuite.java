@@ -671,7 +671,11 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (Boolean.getBoolean("phantom.test.autonomousLearning060"))
 			{
-				if (Boolean.getBoolean("phantom.test.journeyLifecycle061")) { registry.add("061-accepted-journey-active-clock-and-native-distance-budget", this::testJourneyLifetime061); }
+				if (Boolean.getBoolean("phantom.test.journeyLifecycle061"))
+				{
+					registry.add("061-accepted-journey-active-clock-and-native-distance-budget", this::testJourneyLifetime061);
+					registry.add("061-failed-native-journey-returns-without-erasing-failure", this::testFailedLearningReturn061);
+				}
 				registry.add("03-autonomous-earned-learning-through-farm-decision", this::testAutonomousLearning060);
 				if (!Boolean.getBoolean("phantom.test.autonomousLearningGuards060")) { registry.add("04-native-earned-autonomous-paid-walk-return-and-resume", context ->
 				{
@@ -4606,6 +4610,66 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertEquals(false, check.invoke(null, foreign, Map.of(1177, 2)), "Foreign class tree authorized the higher paid rank.");
 		}
 		context.record("career060.autoGetFloor." + positive, "PURE validator against actual HumanMystic native skill tree/level7; no Player skill/SP/EXP or canonical writes; real paid retained failure is profile883/1177:2");
+	}
+
+	private void testFailedLearningReturn061(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		final var field = prepareLearningField059(context);
+		final var nativeNavigation = new org.l2jmobius.gameserver.phantoms.navigation.L2jNavigationBackend();
+		PhantomNavigationPoint away = null;
+		for (int[] offset : new int[][] {{256,0},{-256,0},{0,256},{0,-256}})
+		{
+			final int x = field.x() + offset[0], y = field.y() + offset[1];
+			if (!GeoEngine.getInstance().hasGeo(x, y)) { continue; }
+			final var point = new PhantomNavigationPoint(x, y, GeoEngine.getInstance().getHeight(x, y, field.z()), 0);
+			if (nativeNavigation.canWalkDirect(field, point)) { away = point; break; }
+		}
+		PhantomAssertions.assertTrue(away != null, "INVALID_INPUT: failed-return control needs a real local native corridor.");
+		final var target = away;
+		_player.getAI().setIntention(Intention.MOVE_TO, new Location(target.x(), target.y(), target.z()));
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isMoving() && _player.calculateDistance3D(target.x(), target.y(), target.z()) < 60, 10_000), "Native preparation WALK did not reach the declared failed-trip position.");
+		final var anchor = _topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING && value.point().instanceId() == 0).min(Comparator.comparingDouble(value -> Math.hypot(value.point().x() - field.x(), value.point().y() - field.y()))).orElseThrow();
+		final var goals = new PhantomGoalStateStore(_repository);
+		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_combatPoint.npcId())), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, _combatPoint.npcId() + "@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture.failed_return061", 1);
+		goals.insert(_profile.profileId(), root);
+		final var values = new java.util.LinkedHashMap<String, Long>();
+		values.put("owner.revision", root.revision()); values.put("owner.object", (long) _player.getObjectId()); values.put("class.id", (long) _player.getActiveClass()); values.put("class.index", (long) _player.getClassIndex());
+		values.put("field.x", (long) field.x()); values.put("field.y", (long) field.y()); values.put("field.z", (long) field.z()); values.put("field.instance", 0L); values.put("retry.after", System.currentTimeMillis() + 120_000);
+		final var failed = new PhantomGoal(root.goalId(), "skill.learn", PhantomGoalStatus.FAILED, root.subject(), new PhantomDomainRef("skill", "3:1"), 1, 0, null, List.of(), root.selectedAnchor(), "learning.autonomous", 600, 0, 0, System.currentTimeMillis() - 1, values, "learning.route.deadline", 1);
+		_repository.insertComponent(_profile.profileId(), "learning.intent", 1, new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec().encode(failed));
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+		final var navigation = new PhantomNavigationService(new PhantomMetrics()); navigation.start();
+		final var journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> true);
+		journey.enableAutonomous(_repository, (profile, deadline) -> true, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults()); journey.start();
+		final long sp = _player.getSp(), exp = _player.getExp(); final int rank = _player.getSkillLevel(3);
+		try
+		{
+			final var candidates = new PhantomCandidateRegistry(); journey.registerCandidates(candidates); candidates.seal();
+			final var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
+			final var planning = new org.l2jmobius.gameserver.phantoms.decision.PhantomPlanningContext(_profile.profileId(), root, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
+			final var selected = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector().select(candidates.snapshot(), planning).candidate();
+			PhantomAssertions.assertTrue(journey.permitsAutomaticVisibleDecision(_profile.profileId(), root) && selected != null, "A failed native trip stranded its actor outside the farm gate instead of proposing bounded return.");
+			final var plan = selected.planFactory().create(planning); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+			do
+			{
+				final var step = new org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext(_profile.profileId(), root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
+				handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
+				if (_player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius() && !journey.ownsAutomaticIntent(_profile.profileId(), root)) { break; }
+				Thread.sleep(100);
+			} while (System.nanoTime() < until);
+			final var terminal = journey.automaticIntent(_profile.profileId()).orElseThrow();
+			PhantomAssertions.assertTrue(_player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius(), "Failed trip did not physically return through native WALK.");
+			PhantomAssertions.assertTrue(terminal.status() == PhantomGoalStatus.FAILED && terminal.reasonKey().equals("learning.route.deadline") && _player.getSp() == sp && _player.getExp() == exp && _player.getSkillLevel(3) == rank, "Compensation erased FAIL or retried the paid lesson.");
+			context.record("journey061.failedReturn", "native WALK256 then product return; original FAILED/learning.route.deadline retained; no SP/EXP/rank changes; one bounded settlement, not a lesson PASS");
+		}
+		finally
+		{
+			journey.beginStop(); journey.finishStop(); progression.beginStop(); progression.finishStop(); navigation.beginStop();
+			final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (!navigation.finishStop() && System.nanoTime() < until) { Thread.sleep(20); }
+			_player.stopMove(null); final var component = _repository.findComponent(_profile.profileId(), "learning.intent").orElseThrow(); _repository.deleteComponent(_profile.profileId(), "learning.intent", component.rowVersion());
+			final var saved = goals.load(_profile.profileId()).orElseThrow(); goals.delete(_profile.profileId(), saved.rowVersion());
+		}
 	}
 
 	private void testJourneyLifetime061(PhantomTestContext context)

@@ -15,11 +15,18 @@ public final class PhantomJourneyLifetime
 
 	public static boolean alive(PhantomGoal goal, long now)
 	{
-		if (goal == null || goal.status() != PhantomGoalStatus.ACTIVE || !valid(goal)) { return false; }
+		if (goal == null || !continuing(goal) || !valid(goal)) { return false; }
 		final long started = goal.constraints().getOrDefault("journey.started", 0L);
 		if (started > now || goal.constraints().getOrDefault("journey.paused", 0L) > now || started > 0 && now - started >= MAXIMUM_CALENDAR_MILLIS) { return false; }
 		return paused(goal) ? started > 0 && goal.constraints().getOrDefault("journey.remaining", 0L) > 0 : goal.deadlineEpochMillis() > now;
 	}
+
+	/** A failed learning episode can own one compensation trip; its FAILED status and original cause stay durable. */
+	public static boolean returningFailure(PhantomGoal goal)
+	{
+		return goal != null && goal.status() == PhantomGoalStatus.FAILED && "skill.learn".equals(goal.goalType()) && "learning.autonomous".equals(goal.purposeKey()) && goal.constraints().getOrDefault("journey.return", 0L) == 1;
+	}
+	public static boolean continuing(PhantomGoal goal) { return goal != null && (goal.status() == PhantomGoalStatus.ACTIVE || returningFailure(goal)); }
 
 	public static boolean valid(PhantomGoal goal)
 	{

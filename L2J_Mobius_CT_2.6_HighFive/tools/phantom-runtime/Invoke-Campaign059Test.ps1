@@ -16,7 +16,7 @@ if($frozen061){
  $frozenMatch061=@($frozenRows061 | Where-Object {$_.mode -ceq $Mode -and [long]$_.seed -eq $Seed}).Count -eq 1
  if(!$frozenMatch061){throw 'Mode/seed is not in frozen111 inventory'}
 }
-if ($Campaign061 -and ($Campaign060 -or !($frozenMatch061 -or ($Mode -ceq 'quest-instance-goal036' -and $Seed -eq 36003601) -or ($Mode -ceq 'lifecycle-completion027' -and $Seed -eq 27002701) -or (($AutonomousLearning -and $AutonomousLearningGuards -or $PaidAutoGetGuards -or $SupplyGuards) -and $Mode -ceq 'earned-learning-native058' -and $Seed -eq 58005833)))) {throw 'TASK061 requires an exact frozen111, quest controls/producer, owned lifecycle, supply or learning continuation mode/seed/build'}
+if ($Campaign061 -and ($Campaign060 -or !($frozenMatch061 -or ($Mode -ceq 'quest-instance-goal036' -and $Seed -eq 36003601) -or ($Mode -ceq 'lifecycle-completion027' -and $Seed -eq 27002701) -or (($AutonomousLearning -or $PaidAutoGetGuards -or $SupplyGuards) -and $Mode -ceq 'earned-learning-native058' -and $Seed -eq 58005833)))) {throw 'TASK061 requires an exact frozen111, quest controls/producer, owned lifecycle, supply or learning continuation mode/seed/build'}
 if ($Campaign061 -and $SupplyGuards -and @($PSBoundParameters.Keys | Where-Object {$_ -cnotin @('Mode','Seed','Label','Campaign061','CleanCandidate','SupplyGuards','SupplyAmmunitionGuards','SupplyReturnGuards','SupplyResumeGuards','SupplyManufactureGuards','SupplyGatekeeperGuards')}).Count) {throw 'TASK061 supply continuation has an unrelated flag'}
 if ($CareerProducer -and !$Campaign061) {throw 'Career061 input requires explicit TASK061 authority'}
 if($LearningLong061 -and (!$Campaign061 -or !$PaidAutoGetGuards -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)){throw 'Observed learning route requires separate exact061 paid guard mode/seed'}
@@ -53,7 +53,7 @@ if ($Campaign061) {
   $compiledRoot061=Join-Path $hf059 '.phantom-local/contract058a/build/release061/compiled'
   $package061=Get-Content -LiteralPath 'D:\PhantomWorld\World-Career-061-candidate\BUILD_INFO.json' -Raw | ConvertFrom-Json
   if($null -ne $package061.PSObject.Properties['cleanCompiledRoot061']){
-   $allowedRoots061=@((Join-Path $hf059 '.phantom-local/contract058a/build/release061-correction1/compiled'),(Join-Path $hf059 '.phantom-local/contract058a/build/release061-correction2/compiled'))
+   $allowedRoots061=@('correction1','correction2','lifecycle1','career1','career2','career3','final1','final2') | ForEach-Object {Join-Path $hf059 ('.phantom-local/contract058a/build/release061-'+$_+'/compiled')}
    if($package061.cleanCompiledRoot061 -cnotin $allowedRoots061){throw 'Unknown corrective clean061 build root'}
    $compiledRoot061=$package061.cleanCompiledRoot061
   }

@@ -93,7 +93,9 @@ final class PhantomAutonomousLearning
 			final long now = System.currentTimeMillis();
 			if (bound(cached.goal, root, player))
 			{
-				if (cached.goal.status() == PhantomGoalStatus.ACTIVE) { return Optional.of(cached.goal); }
+				if (PhantomJourneyLifetime.continuing(cached.goal)) { return Optional.of(cached.goal); }
+				final var returning = _journey.failedReturnOffer(cached.goal, player);
+				if (returning.isPresent()) { return returning; }
 				if (cached.goal.constraints().getOrDefault("retry.after", 0L) > now) { return Optional.empty(); }
 			}
 			if (player.isAlikeDead() || player.isInParty() || player.isTeleporting() || player.hasPendingOwnedStore() || player.getInstanceId() != 0 || player.isChangingClass() || player.isTransformed() || player.isMounted()) { return Optional.empty(); }
@@ -138,7 +140,7 @@ final class PhantomAutonomousLearning
 		try (var action = _materialization.tryAcquireAction(context.profileId()).orElse(null))
 		{
 			if (action == null) { return PhantomStepResult.retry(500, "learning.native.actor_pending"); }
-			if (!bound(intent, context.goal(), action.player()) || intent.status() != PhantomGoalStatus.ACTIVE)
+			if (!bound(intent, context.goal(), action.player()) || !PhantomJourneyLifetime.continuing(intent))
 			{
 				intent = proposal(context.profileId(), context.goal()).orElse(null);
 				if (intent == null) { return PhantomStepResult.of(Type.REPLAN, "learning.native.no_need"); }
@@ -161,12 +163,22 @@ final class PhantomAutonomousLearning
 		}
 		if (result.type() == Type.COMPLETE_GOAL || result.type() == Type.FAIL_GOAL)
 		{
+			final boolean settling = PhantomJourneyLifetime.returningFailure(intent);
 			final Map<String, Long> constraints = new LinkedHashMap<>(intent.constraints());
 			constraints.put("retry.after", System.currentTimeMillis() + TimeUnit.SECONDS.toMillis((long) _policy.retrySeconds() * (result.type() == Type.COMPLETE_GOAL ? 1 : 4)));
-			final var terminal = new PhantomGoal(intent.goalId(), intent.goalType(), result.type() == Type.COMPLETE_GOAL ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.FAILED, intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), constraints, result.reasonKey(), Math.addExact(intent.revision(), 1));
+			if (settling) { constraints.put("journey.return", 2L); }
+			final var terminal = new PhantomGoal(intent.goalId(), intent.goalType(), !settling && result.type() == Type.COMPLETE_GOAL ? PhantomGoalStatus.COMPLETED : PhantomGoalStatus.FAILED, intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), intent.deadlineEpochMillis(), constraints, settling ? intent.reasonKey() : result.reasonKey(), Math.addExact(intent.revision(), 1));
 			store(context.profileId(), cached, terminal);
 			_journey.finished(context.profileId());
-			return PhantomStepResult.of(result.type() == Type.COMPLETE_GOAL ? Type.SUCCESS : Type.REPLAN, result.type() == Type.COMPLETE_GOAL ? "learning.native.returned_to_farm" : result.reasonKey());
+			if (!settling && result.type() == Type.FAIL_GOAL)
+			{
+				try (var action = _materialization.tryAcquireAction(context.profileId()).orElse(null))
+				{
+					final var returning = action == null ? Optional.<PhantomGoal>empty() : _journey.failedReturnOffer(terminal, action.player());
+					if (returning.isPresent()) { store(context.profileId(), cached, returning.orElseThrow()); _journey.accepted(context.profileId(), context.goal(), cached.goal); }
+				}
+			}
+			return PhantomStepResult.of(result.type() == Type.COMPLETE_GOAL ? Type.SUCCESS : Type.REPLAN, result.type() == Type.COMPLETE_GOAL ? settling ? "learning.native.failed_returned_to_farm" : "learning.native.returned_to_farm" : result.reasonKey());
 		}
 		return result;
 	}
@@ -187,7 +199,9 @@ final class PhantomAutonomousLearning
 	{
 		if (!_allowed.test(profileId) || root.status() != PhantomGoalStatus.ACTIVE) { return false; }
 		final var goal = cached(profileId).goal;
-		return goal != null && boundRoot(goal, root) && goal.status() == PhantomGoalStatus.ACTIVE;
+		if (goal == null || !boundRoot(goal, root)) { return false; }
+		if (PhantomJourneyLifetime.continuing(goal)) { return true; }
+		try (var action = _materialization.tryAcquireAction(profileId).orElse(null)) { return action != null && bound(goal, root, action.player()) && _journey.failedReturnOffer(goal, action.player()).isPresent(); }
 	}
 
 	void pause(long profileId, PhantomGoal root, Player player)
