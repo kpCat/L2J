@@ -887,6 +887,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	static boolean campaign058JarAllowed(Path supplied)
 	{
 		if (PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task061/build/dist/libs/GameServer.jar").equals(supplied)) { return true; }
+		if (Path.of("D:/PhantomWorld/World-Career-061-candidate/libs/GameServer.jar").equals(supplied)) { return true; }
 		return List.of(PhantomCampaign058PersistentLane.RUNTIME.resolve("libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/native-current058/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task059/build/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release059/compiled/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/task060/build/dist/libs/GameServer.jar"), PhantomCampaign058DatabaseLane.MODULE.resolve(".phantom-local/contract058a/build/release060/compiled/dist/libs/GameServer.jar"), Path.of("D:/PhantomWorld/M2-M7-058-candidate/libs/GameServer.jar")).contains(supplied);
 	}
 

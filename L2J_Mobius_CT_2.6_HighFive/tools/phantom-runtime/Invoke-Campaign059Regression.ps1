@@ -1,10 +1,11 @@
 ﻿[CmdletBinding()]
-param([ValidatePattern('^[a-z0-9-]{1,45}$')][string]$Label='final-current059',[switch]$ValidateOnly,[switch]$Campaign060,[switch]$Campaign061)
+param([ValidatePattern('^[a-z0-9-]{1,45}$')][string]$Label='final-current059',[switch]$ValidateOnly,[switch]$Campaign060,[switch]$Campaign061,[switch]$CleanCandidate)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 if($hf059 -ine 'D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'){throw 'Exact OWN High Five required'}
 if($Campaign060 -and $Campaign061){throw 'One exact campaign required'}
+if($CleanCandidate -and !$Campaign061){throw 'Explicit current-package override requires exact061 authority'}
 $frozen059=Join-Path $hf059 $(if($Campaign061){'.phantom-local/contract058a/task060/final-current060-r2.tsv'}else{'.phantom-local/contract058a/final-selected058b.tsv'})
 $expectedHash059=if($Campaign061){'40751731BE90EEF4DAC76C055AF28B98D95D1D825B106F8AB77AE9F6B83C890F'}else{'0A1BB702F06047C6A36967799B7CD01FA6EC55DE49583DA85BAB7C1B664332A0'}
 if((Get-FileHash -LiteralPath $frozen059).Hash -cne $expectedHash059){throw 'Historical selection changed'}
@@ -29,7 +30,7 @@ $runner059=Join-Path $PSScriptRoot 'Invoke-Campaign059Test.ps1'
 $cwd059=Join-Path $hf059 '.phantom-local/contract058t/runtime/game'
 $failures059=0
 $campaignArgs060=@(); if($Campaign060){$campaignArgs060+='-Campaign060'}
-if($Campaign061){$campaignArgs060=@('-Campaign061','-Frozen061')}else{$campaignArgs060+='-CleanCandidate'}
+if($Campaign061){$campaignArgs060=@('-Campaign061','-Frozen061');if($CleanCandidate){$campaignArgs060+='-CleanCandidate'}}else{$campaignArgs060+='-CleanCandidate'}
 Push-Location $cwd059
 try {
  foreach($row059 in $selection059){

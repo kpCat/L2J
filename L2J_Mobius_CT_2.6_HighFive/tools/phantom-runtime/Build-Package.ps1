@@ -138,7 +138,10 @@ $patches=@{
 if ($Profile -in @('Campaign058','Campaign059','Campaign060','Campaign061')) {
     $patches['game/config/Custom/PhantomPlayers.ini']['MaxMaterializedPhantoms']='16'
     $patches['game/config/Custom/PhantomPlayers.ini']['PhantomPopulationTarget']='32'
-    if ($Profile -ceq 'Campaign061') {$patches['game/config/Custom/PhantomPlayers.ini']['PhantomPopulationTarget']='36'}
+    if ($Profile -ceq 'Campaign061') {
+        $patches['game/config/Custom/PhantomPlayers.ini']['PhantomPopulationTarget']='36'
+        $patches['game/config/Custom/LocalPlayPilot.ini']['LocalPlayObserverProfileIds']='8,12,18,21,22,29,35,36'
+    }
     $patches['game/config/Rates.ini']=@{RateXp='1';RateSp='1';RatePartyXp='1';RatePartySp='1'}
     $patches['game/config/Custom/LocalPlayPilot.ini']['LocalPlayPilotAutoAttachCharacters']='TestAdmin,kpCat'
     Copy-Item -LiteralPath $OwnershipManifest -Destination (Join-Path $output $(if($Profile -ceq 'Campaign061'){'ownership061.properties'}elseif($Profile -ceq 'Campaign060'){'ownership060.properties'}elseif($Profile -ceq 'Campaign059'){'ownership059.properties'}else{'ownership058.properties'}))

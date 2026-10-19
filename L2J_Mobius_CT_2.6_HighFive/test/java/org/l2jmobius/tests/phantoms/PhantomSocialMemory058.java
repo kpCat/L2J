@@ -79,8 +79,11 @@ public final class PhantomSocialMemory058
 		final boolean production059 = Boolean.getBoolean("phantom.test.productionGrounding059");
 		final Path lane = PhantomCampaign058PersistentLane.LANE;
 		final boolean continuation = Boolean.getBoolean("phantom.test.continuation059");
+		final boolean continuation061 = Boolean.getBoolean("phantom.test.continuation061");
+		if (continuation061 && (!continuation || !args[0].equals("recall-legacy"))) { throw new IllegalArgumentException("TASK061 permits only original memory recall without setup."); }
 		if (args[0].equals("recall-legacy") && !continuation) { throw new IllegalArgumentException("Legacy recall requires explicit continuation evidence scope."); }
-		final Path evidence = continuation ? lane.resolve("task059/m3-memory-" + args[1]) : lane;
+		final Path evidence = continuation061 ? lane.resolve("task061/m3-memory-" + args[1]) : continuation ? lane.resolve("task059/m3-memory-" + args[1]) : lane;
+		if (continuation061) { PhantomAssertions.assertFalse(Files.exists(evidence), "TASK061 recall evidence cannot be replayed."); }
 		PhantomCampaign058PersistentLane.validateFiles(PhantomCampaign058PersistentLane.MODULE, Path.of(System.getProperty("phantom.test.config", "")), true);
 		// Reuse the existing exact ordinary-JAR allowlist and four-owner provenance check; never overlay product classes.
 		for (int port : List.of(2138, 7838, 9138)) { try (var socket = new ServerSocket(port)) { PhantomAssertions.assertTrue(socket.isBound(), "Own058a must be stopped."); } }
@@ -119,6 +122,12 @@ public final class PhantomSocialMemory058
 			final var progression = new PhantomProgressionService(new L2jProgressionBackend(materialization, Path.of("."), knowledge::query), PhantomProgressionPolicy.productionDefaults());
 			progression.start();
 			final var socialCatalog = PhantomSocialCatalog.load(Path.of("data/phantoms/social/high-five-social-v1.xml"));
+			if (continuation061)
+			{
+				final var stored = new PhantomConversationStore(profiles).load(PROFILE).orElseThrow().state();
+				final var current = PhantomSemanticGrounding.production(knowledge.query(), topology, PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml"))).hashes();
+				System.out.println("M3_GROUNDING061 production=" + production059 + "; storedKnowledge=" + stored.knowledgeHash() + "; storedTopology=" + stored.topologyHash() + "; storedRole=" + stored.roleHash() + "; current=" + current);
+			}
 			social = new PhantomSocialService(socialCatalog, new PhantomSocialStore(profiles, socialCatalog), 58005823, 32);
 			PhantomAssertions.assertTrue(social.start(), "M3 social start failed.");
 			final var personal = PhantomPersonalConversationStore.production(profiles);
