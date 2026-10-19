@@ -1156,6 +1156,7 @@ public final class PhantomSystem
 	{
 		if ((_stopProgress.phase() == StopPhase.DRAIN_PLAYERS) && (_materializationService != null)) { _materializationService.retainFailedShutdown(); }
 		_stopProgress = new StopProgress(_stopProgress.phase(), StopOutcome.FAILED, reason, _stopProgress.deadlineNanos());
+		java.util.logging.Logger.getLogger(PhantomSystem.class.getName()).warning("Phantom World stop failed: " + reason);
 		_metrics.recordShutdownFailure(); _state = State.FAILED;
 		return false;
 	}
@@ -2279,6 +2280,22 @@ public final class PhantomSystem
 		if (configured == null || configured._state != State.RUNNING) { return Map.of(); }
 		final Map<String, String> result = new java.util.LinkedHashMap<>();
 		operatorM1TargetSnapshot(profileId).ifPresent(snapshot -> result.put("native", snapshot.toString()));
+		if (configured._materializationService != null)
+		{
+			final var entry = configured._materializationService.find(profileId).orElse(null);
+			final var player = entry == null ? null : World.getInstance().getPlayer(entry.characterObjectId());
+			if (player != null && player.getNativeWorkOwner() instanceof org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope scope
+				&& scope.isCurrent() && scope.epoch() == entry.materializedAtNanos())
+			{
+				final var fields = scope.diagnosticScalars();
+				final var bounded = new java.util.LinkedHashMap<String, String>();
+				for (String key : java.util.List.of("nativeOwnerOutstanding", "nativeOwnerPendingTimers", "nativeOwnerWork", "nativeOwnerState", "nativeOwnerFailure", "nativeOwnerCheckpoint", "nativeCheckpointStage", "nativeCheckpointOutcome", "nativeCheckpointReason", "nativeCheckpointFirstClass", "nativeCheckpointFirstMessage"))
+				{
+					final String value = fields.getOrDefault(key, ""); bounded.put(key, value.substring(0, Math.min(256, value.length())));
+				}
+				result.put("native.owner", bounded.toString());
+			}
+		}
 		if (configured._ordinaryDeathRecovery != null)
 		{
 			result.put("recovery", configured._ordinaryDeathRecovery.observation(profileId).toString());

@@ -225,6 +225,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("14-native-career-existing-goal-travel-deadline061", this::careerGoalTravelDeadline061);
 			registry.add("15-native-career-child-combat-plan-lifetime061", this::careerCombatLifetime061);
 			registry.add("16-native-warrior-owned-store-boundary061", this::careerClassStore061);
+			registry.add("17-native-career-combat-stock-drain061", this::careerCombatStop061);
 			return;
 		}
 		registry.add("01-strict-catalog-and-fail-closed-dispatch", this::strictCatalog);
@@ -581,6 +582,28 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(_player.getActiveClass() == 1 && _player.getBaseClass() == 1 && _player.getSp() == sp && _player.getExp() == exp && itemCount(1145) == 0 && itemCount(8869) == coupons + 15, "SameDB native Warrior reload lost or duplicated earned state.");
 			context.record("career061.classStore", "secondary fixture nativeMaster->ownedprepare/nativeStore/finalize->sameDBreload; class1/base1;15coupons once; EXP/SP conserved; not ordinary B");
 		}
+	}
+
+	private void careerCombatStop061(PhantomTestContext context) throws Exception
+	{
+		rematerialize(); preparePlayer(0, 0, 20); ensureWeapon(129);
+		final Monster first = spawnMonster(20035);
+		final long before = _player.getExp();
+		final long id = _profile.profileId();
+		final var owner = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) _player.getNativeWorkOwner();
+		final var started = _combat.startContentSession(new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest(id, first.getObjectId(), org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, true, false, 120_000, () -> false), "career061.stop.fixture");
+		PhantomAssertions.assertEquals(PhantomCombatService.StartStatus.ACCEPTED, started.status(), "Native stop fixture did not start actual Combat.");
+		await(() -> first.isDead() && _player.getExp() > before, "Native stop fixture has no earned kill/reward.");
+		context.record("career061.normalCombatStopBefore", "earned=" + before + "->" + _player.getExp() + ";combat=" + _combat.find(id) + ";native=" + owner.snapshot());
+		_service.beginStop(); _combat.beginStop(); _navigation.beginStop();
+		try { await(_combat::finishStop, "Shared Combat did not stop its actual native action."); }
+		finally { context.record("career061.normalCombatStopSettlement", "combat=" + _combat.find(id) + ";native=" + owner.snapshot()); }
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+		org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationService.ShutdownResult result;
+		do { result = _materialization.requestShutdown(deadline); if (result.state() != PhantomMaterializationService.ServiceState.STOPPING) { break; } Thread.sleep(10); } while (System.nanoTime() < deadline);
+		context.record("career061.normalCombatStop", "result=" + result + ";blockers=" + _materialization.cleanupBlockers() + ";native=" + owner.snapshot());
+		PhantomAssertions.assertEquals(PhantomMaterializationService.ServiceState.STOPPED, result.state(), "Normal native combat Stop did not drain/save its earned result.");
+		PhantomAssertions.assertEquals(_player.getExp(), scalar("SELECT exp FROM characters WHERE charId=?", _player.getObjectId()), "Normal Stop lost actual earned EXP.");
 	}
 
 	private void strictCatalog(PhantomTestContext context) throws Exception
