@@ -223,6 +223,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		if (Boolean.getBoolean("phantom.test.careerDefense061"))
 		{
 			registry.add("16d-native-career-defends-observed-pursuer061", this::careerNativeDefense061);
+			registry.add("16h-native-career-owned-retreat061", this::careerNativeRetreat061);
+			registry.add("16i-native-pve-walk-segment-excludes-new-threat061", this::careerNativeSegment061);
 			registry.add("16g-native-career-rejects-spoiled-quest-target061", this::careerSpoiledTarget061);
 			return;
 		}
@@ -416,6 +418,70 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		finally
 		{
 			context.record("career061.defense.observed", "hp=" + hp + "->" + _player.getCurrentHp() + ";dead=" + _player.isDead() + ";invul=" + _player.isInvul() + ";attackBy=" + _player.getAttackByList() + ";pursuerDead=" + pursuer.isDead() + ";pursuerIntention=" + pursuer.getAI().getIntention());
+			pursuer.deleteMe();
+		}
+	}
+
+	private void careerNativeSegment061(PhantomTestContext context) throws Exception
+	{
+		restartService(); preparePlayer(0, 0, 20);
+		final var hazard = spawnMonster(18910);
+		hazard.decayMe(); hazard.spawnMe(_player.getX() + 500, _player.getY(), _player.getZ());
+		try
+		{
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePveWalkSegment(_player, _player.getX() + 1000, _player.getY(), _player.getZ(), List.of(hazard), Set.of()), "A safe endpoint admitted a walk through a native level83 threat.");
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePveWalkSegment(_player, _player.getX() - 500, _player.getY(), _player.getZ(), List.of(hazard), Set.of()), "The same native threat incorrectly blocked movement away from danger.");
+			context.record("career061.safeSegment", "native18910/level83 observed only; endpoint outside radius but crossing segment rejected; opposite escape accepted; no damage/quest/reward mutation");
+		}
+		finally { hazard.deleteMe(); }
+	}
+
+	private void careerNativeRetreat061(PhantomTestContext context) throws Exception
+	{
+		restartService(); preparePlayer(0, 0, 20); ensureWeapon(68);
+		// A separate mechanism scene has ordinary owned armor and a real spawn/home
+		// before measurement; a spawnless Monster cannot exercise Mobius pursuit limits.
+		for (int item : new int[] {24, 31})
+		{
+			final Item armor = _player.getInventory().getItemByItemId(item);
+			_player.getInventory().equipItem(armor == null ? _player.getInventory().addItem(ItemProcessType.REWARD, item, 1, _player, this) : armor);
+		}
+		final var pursuer = spawnMonster(20035);
+		final var spawn = new org.l2jmobius.gameserver.model.spawns.Spawn(pursuer.getTemplate());
+		spawn.setXYZ(pursuer.getX(), pursuer.getY(), pursuer.getZ()); pursuer.setSpawn(spawn);
+		_player.setInvul(false);
+		final double hp = _player.getCurrentHp();
+		context.record("career061.retreat.input", "Independent native contract only; own premeasurement armor24/31, native spawn/home; HP=" + hp + ";PDef=" + _player.getPDef(null) + ";speed=" + _player.getRunSpeed() + ";pursuerSpeed=" + pursuer.getRunSpeed() + ";nativeChase=" + org.l2jmobius.gameserver.config.NpcConfig.AGGRO_DISTANCE_CHECK_RANGE + ";spawnless/unarmored FAIL remains raw");
+		final var incoming = new java.util.concurrent.ConcurrentHashMap<Integer, String>();
+		final var damageListener = new org.l2jmobius.gameserver.model.events.listeners.ConsumerEventListener(_player, org.l2jmobius.gameserver.model.events.EventType.ON_CREATURE_DAMAGE_RECEIVED, (org.l2jmobius.gameserver.model.events.holders.actor.creature.OnCreatureDamageReceived event) ->
+		{
+			if (event.getTarget() == _player && event.getAttacker() instanceof Npc npc && incoming.size() < 16) { incoming.put(npc.getObjectId(), "npc=" + npc.getId() + ";level=" + npc.getLevel() + ";damage=" + event.getDamage() + ";skill=" + (event.getSkill() == null ? "physical" : event.getSkill().getId()) + ";crit=" + event.isCritical()); }
+		}, this);
+		_player.addListener(damageListener);
+		pursuer.addDamageHate(_player, 0, 100); pursuer.setTarget(_player);
+		pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player);
+		try
+		{
+			await(() -> _player.getCurrentHp() < hp, "Retreat input has no actual native pursuer damage.");
+			final int x = _player.getX(), y = _player.getY();
+			final long exp = _player.getExp(), sp = _player.getSp();
+			final var started = _combat.startContentRetreatSession(new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest(_profile.profileId(), pursuer.getObjectId(), org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, false, false, 120_000, NOT_CANCELLED), "questinstance.class.warrior-q401");
+			PhantomAssertions.assertTrue(started.accepted(), "Native recovery did not use the existing Combat admission.");
+			await(() -> Math.hypot((long) _player.getX() - x, (long) _player.getY() - y) >= 200, "Native Geo-proved retreat issued no actual Player movement.");
+			final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(35);
+			while (_combat.find(_profile.profileId()).map(value -> !value.result().terminal()).orElse(false) && System.nanoTime() < deadline) { Thread.sleep(25); }
+			final var terminal = _combat.find(_profile.profileId()).orElseThrow();
+			PhantomAssertions.assertTrue(terminal.result() == org.l2jmobius.gameserver.phantoms.combat.PhantomCombatResult.LOW_HP_STOPPED && !_player.isAlikeDead() && !pursuer.isDead() && _player.getExp() == exp && _player.getSp() == sp, "Retreat became a victory/reward or unsafe death: " + terminal);
+			context.record("career061.retreat", "Mechanism-only independent TEST; real damage then owned native Geo/Player MOVE; from=" + x + "," + y + ";to=" + _player.getX() + "," + _player.getY() + ";result=" + terminal.result() + ";HP=" + hp + "->" + _player.getCurrentHp() + ";EXP/SP conserved; no quest/class proof");
+		}
+		finally
+		{
+			context.record("career061.retreat.final", "HP=" + _player.getCurrentHp() + ";dead=" + _player.isAlikeDead() + ";xyz=" + _player.getX() + "," + _player.getY() + "," + _player.getZ() + ";pursuerDistance=" + _player.calculateDistance3D(pursuer) + ";pursuerHomeDistance=" + pursuer.calculateDistance2D(spawn.getLocation()));
+			context.record("career061.retreat.damageSources", incoming);
+			_player.removeListener(damageListener);
+			_combat.cancel(_profile.profileId());
+			await(() -> _combat.find(_profile.profileId()).map(value -> value.result().terminal()).orElse(true), "Retreat cleanup did not settle.");
+			for (int attempt = 0; attempt < 10 && _combat.find(_profile.profileId()).isPresent(); attempt++) { _combat.consumeTerminal(_profile.profileId()); Thread.sleep(25); }
 			pursuer.deleteMe();
 		}
 	}
@@ -1519,11 +1585,15 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	private SpawnFact selectNormalWorldCombatPoint()
 	{
 		final Set<Integer> reservedTargets = Set.of(18554, 18607, 18608, 18609, 18610, 18620, 20013, 20016, 20019, 20035, 20038, 20042, 20043);
+		final var knowledge = _knowledge.query().snapshot();
+		final var dangerous = knowledge.npcById().values().stream().filter(fact -> fact.kind() == NpcKind.MONSTER && fact.attackable() && fact.level() > 25)
+			.flatMap(fact -> knowledge.spawnFactsByNpc().getOrDefault(fact.npcId(), List.of()).stream()).filter(fact -> fact.instanceId() == 0).toList();
 		return _knowledge.query().snapshot().npcById().values().stream()
 			.filter(fact -> (fact.kind() == NpcKind.MONSTER) && fact.attackable() && fact.targetable() && !reservedTargets.contains(fact.npcId()))
 			.sorted(Comparator.comparingInt(NpcFact::level).thenComparingInt(NpcFact::npcId))
 			.flatMap(fact -> _knowledge.query().snapshot().spawnFactsByNpc().getOrDefault(fact.npcId(), List.of()).stream())
 			.filter(fact -> (fact.pointKind() == SpawnPointKind.EXACT) && (fact.instanceId() == 0))
+			.filter(fact -> dangerous.stream().noneMatch(other -> Math.abs((long) other.z() - fact.z()) < 256 && Math.hypot((long) other.x() - fact.x(), (long) other.y() - fact.y()) < 3000))
 			.findFirst().orElseThrow(() -> new AssertionError("No isolated normal-world Goal036 combat point is available."));
 	}
 

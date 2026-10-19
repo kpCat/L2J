@@ -316,6 +316,16 @@ public final class PhantomCombatService
 		return startOwnedSession(request, operationOwner, "content");
 	}
 
+	/** Recovery shares combat admission, ownership, cancellation and the pulse deadline. */
+	public StartResult startContentRetreatSession(PhantomCombatRequest request, String operationOwner)
+	{
+		if ((operationOwner == null) || operationOwner.isBlank() || (operationOwner.length() > 128))
+		{
+			throw new IllegalArgumentException("Invalid content combat operation owner.");
+		}
+		return startSession(request, operationOwner, null, null, null, true, true);
+	}
+
 	public StartResult startPvpSession(PhantomPvpCombatRequest request)
 	{
 		Objects.requireNonNull(request, "request");
@@ -350,6 +360,11 @@ public final class PhantomCombatService
 
 	private StartResult startSession(PhantomCombatRequest request, String operationOwner, PhantomPvpCombatRequest pvpRequest, PhantomRaidCombatRequest raidRequest, PhantomSiegeCombatRequest siegeRequest, boolean contentBasicMelee)
 	{
+		return startSession(request, operationOwner, pvpRequest, raidRequest, siegeRequest, contentBasicMelee, false);
+	}
+
+	private StartResult startSession(PhantomCombatRequest request, String operationOwner, PhantomPvpCombatRequest pvpRequest, PhantomRaidCombatRequest raidRequest, PhantomSiegeCombatRequest siegeRequest, boolean contentBasicMelee, boolean retreatOnly)
+	{
 		Objects.requireNonNull(request, "request");
 		_metrics.sessionRequested();
 		final long now = now();
@@ -370,7 +385,7 @@ public final class PhantomCombatService
 			if (existing != null)
 			{
 				final boolean sameOperation = siegeRequest != null ? (existing._siegeRequest != null) && existing._siegeRequest.sameOperation(siegeRequest) : raidRequest != null ? (existing._raidRequest != null) && existing._raidRequest.sameOperation(raidRequest) : pvpRequest != null ? (existing._pvpRequest != null) && existing._pvpRequest.sameOperation(pvpRequest) : (existing._pvpRequest == null) && (existing._raidRequest == null) && (existing._siegeRequest == null) && existing._request.sameOperation(request);
-				if (!existing._result.terminal() && sameOperation && operationOwner.equals(_sessionOperationOwners.getOrDefault(request.profileId(), "")))
+				if (!existing._result.terminal() && sameOperation && (existing._retreatOnly == retreatOnly) && operationOwner.equals(_sessionOperationOwners.getOrDefault(request.profileId(), "")))
 				{
 					return new StartResult(StartStatus.IDEMPOTENT, existing.snapshot());
 				}
@@ -489,7 +504,9 @@ public final class PhantomCombatService
 				reserved._actorLease = lease;
 				reserved._loadout = resolvedLoadout;
 				reserved._contentBasicMelee = contentBasicMelee;
-				reserved._phase = PhantomCombatPhase.ENGAGING;
+				reserved._retreatOnly = retreatOnly;
+				reserved._retreatStartedNanos = now;
+				reserved._phase = retreatOnly ? PhantomCombatPhase.RETREATING : PhantomCombatPhase.ENGAGING;
 				final long evictions = reserved._threatTable.evictions();
 				reserved._threatTable.observe(request.targetObjectId(), PhantomCombatThreatTable.EXPLICIT_TARGET_BASE_THREAT, now, true);
 				_metrics.threatObserved(reserved._threatTable.evictions() - evictions);
@@ -1313,21 +1330,43 @@ public final class PhantomCombatService
 				finish(session, PhantomCombatResult.CANCELLED);
 				return;
 			}
-			final ActorSnapshot actor = session._actorLease.actorSnapshot();
+			ActorSnapshot actor = session._actorLease.actorSnapshot();
 			session._lastPulseLogicalNanos = now;
 			if (actor.dead() || actor.alikeDead())
 			{
 				finish(session, PhantomCombatResult.PLAYER_DEAD);
 				return;
 			}
-			if (percent(actor.currentHp(), actor.maximumHp()) <= _policy.lowHpPercent())
+			final boolean nativePve = session._pvpRequest == null && session._raidRequest == null && session._siegeRequest == null;
+			if (nativePve && percent(actor.currentHp(), actor.maximumHp()) <= 70 && session._actorLease.useHealingPotion())
+			{
+				actor = session._actorLease.actorSnapshot();
+			}
+			final boolean lowHp = percent(actor.currentHp(), actor.maximumHp()) <= _policy.lowHpPercent();
+			final boolean surrounded = nativePve && percent(actor.currentHp(), actor.maximumHp()) <= 70 && boundedAttackers(session._actorLease.observedAttackers(_policy.maximumObservedAttackers())).size() > 1;
+			if (nativePve && (lowHp || surrounded || session._phase == PhantomCombatPhase.RETREATING))
+			{
+				if (session._phase != PhantomCombatPhase.RETREATING)
+				{
+					session._phase = PhantomCombatPhase.RETREATING;
+					session._retreatStartedNanos = now;
+				}
+				// Six native 500-unit legs fit within this local escape budget. The
+				// original session deadline remains an independent upper bound.
+				if (elapsed(now, session._retreatStartedNanos) >= TimeUnit.SECONDS.toNanos(30) || elapsed(now, session._startedLogicalNanos) >= TimeUnit.MILLISECONDS.toNanos(session._request.timeoutMillis()) || session._actorLease.retreatFrom(session._request.targetObjectId()) != ActionOutcome.ISSUED)
+				{
+					finish(session, PhantomCombatResult.LOW_HP_STOPPED);
+				}
+				else
+				{
+					requeue(session);
+				}
+				return;
+			}
+			if (lowHp)
 			{
 				finish(session, PhantomCombatResult.LOW_HP_STOPPED);
 				return;
-			}
-			if (session._pvpRequest == null && session._raidRequest == null && session._siegeRequest == null && percent(actor.currentHp(), actor.maximumHp()) <= 70)
-			{
-				session._actorLease.useHealingPotion();
 			}
 			if (session._phase == PhantomCombatPhase.LOOTING)
 			{

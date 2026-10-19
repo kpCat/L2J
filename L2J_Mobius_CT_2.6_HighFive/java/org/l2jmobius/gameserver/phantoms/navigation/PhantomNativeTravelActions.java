@@ -30,6 +30,25 @@ public final class PhantomNativeTravelActions
 		return player.getInstanceId() == 0 && player.isInsideZone(ZoneId.PEACE) && !player.isInsideZone(ZoneId.WATER)
 			&& GeoEngine.getInstance().hasGeo(player.getX(), player.getY());
 	}
+	/** Geo proves ground; this separately excludes crossing a new native PvE threat. */
+	public static boolean safePveWalkSegment(Player player, int x, int y, int z, List<org.l2jmobius.gameserver.model.actor.instance.Monster> visible, java.util.Set<Integer> engaged)
+	{
+		final double dx = (double) x - player.getX(), dy = (double) y - player.getY(), lengthSquared = dx * dx + dy * dy;
+		if (lengthSquared == 0) { return false; }
+		for (var monster : visible)
+		{
+			if (engaged.contains(monster.getObjectId()) || monster.isAlikeDead() || monster.getInstanceId() != player.getInstanceId() || Math.abs((long) monster.getZ() - player.getZ()) > 256
+				|| !monster.isAggressive() && monster.getLevel() <= player.getLevel() + 3) { continue; }
+			final double mx = (double) monster.getX() - player.getX(), my = (double) monster.getY() - player.getY();
+			final double projection = Math.clamp((mx * dx + my * dy) / lengthSquared, 0, 1);
+			final double closest = Math.hypot(mx - projection * dx, my - projection * dy);
+			final double before = Math.hypot(mx, my), after = Math.hypot((double) x - monster.getX(), (double) y - monster.getY());
+			final double radius = Math.max(300, monster.getAggroRange() + 100);
+			// An actor already inside danger may leave it, but must not move closer.
+			if (closest < Math.min(radius, before) - 16 || before < radius && after < before + 32) { return false; }
+		}
+		return true;
+	}
 	public static boolean ordinary(Player player)
 	{
 		final var owner = player.getNativeWorkOwner();

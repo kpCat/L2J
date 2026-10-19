@@ -325,7 +325,7 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 				.anyMatch(creature -> creature.isAttackable() && !creature.isAlikeDead() && creature.getInstanceId() == player.getInstanceId() && creature.getTarget() == player);
 			if (threatened || player.getCurrentHp() >= player.getMaxHp() * 0.80)
 			{
-				if (!sitting) { return result(ActionStatus.IDEMPOTENT, before, "questinstance.combat.ready"); }
+				if (!sitting) { return threatened ? result(ActionStatus.UNAVAILABLE, before, "questinstance.combat.retreat_required") : result(ActionStatus.IDEMPOTENT, before, "questinstance.combat.ready"); }
 				player.standUp();
 				return result(ActionStatus.ISSUED, before, "questinstance.combat.native_stand_pending");
 			}

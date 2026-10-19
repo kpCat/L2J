@@ -796,6 +796,95 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			return ActionOutcome.ISSUED;
 		}
 
+		@Override
+		public ActionOutcome retreatFrom(int targetObjectId)
+		{
+			final ActorSnapshot actor = actorSnapshot();
+			if (actor.dead() || actor.alikeDead() || actor.casting())
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final List<Monster> pursuers = new ArrayList<>();
+			final List<Monster> nearby = World.getInstance().getVisibleObjectsInRange(_player, Monster.class, MAXIMUM_ACQUISITION_DISTANCE);
+			for (Monster monster : nearby)
+			{
+				if (!monster.isDead() && !monster.isAlikeDead() && !monster.isRaid() && monster.getInstanceId() == actor.instanceId() && monster.getTarget() == _player && (monster.getHating(_player) > 0 || _player.getAttackByList().contains(monster)))
+				{
+					pursuers.add(monster);
+				}
+			}
+			if (pursuers.isEmpty())
+			{
+				return ActionOutcome.ALREADY_OWNED;
+			}
+			if (_ownedSpacingTargetObjectId == targetObjectId && ownsSpacingDestination())
+			{
+				if (System.nanoTime() - _spacingStartedNanos < 5_000_000_000L)
+				{
+					return ActionOutcome.ISSUED;
+				}
+				_player.getAI().setIntention(Intention.IDLE);
+			}
+			_ownedSpacing = null;
+			_ownedSpacingTargetObjectId = 0;
+			if (_player.hasAI() && _player.getAI().getIntention() == Intention.ATTACK && ownedCombatTarget(_player.getAI().getAttackTarget(), targetObjectId))
+			{
+				_player.abortAttack();
+				_player.getAI().setIntention(Intention.IDLE);
+			}
+			if (_player.isMoving() || _player.isAttackingNow() || _spacingAttempts >= 6)
+			{
+				return ActionOutcome.REJECTED;
+			}
+			final GeoEngine geo = GeoEngine.getInstance();
+			if (!geo.hasGeo(_player.getX(), _player.getY()))
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			Location destination = null;
+			double best = Double.NEGATIVE_INFINITY;
+			final Set<Integer> engaged = pursuers.stream().map(Monster::getObjectId).collect(java.util.stream.Collectors.toSet());
+			for (int direction = 0; direction < 8; direction++)
+			{
+				final double angle = direction * Math.PI / 4;
+				final int x = _player.getX() + (int) Math.round(500 * Math.cos(angle));
+				final int y = _player.getY() + (int) Math.round(500 * Math.sin(angle));
+				if (!geo.hasGeo(x, y))
+				{
+					continue;
+				}
+				final int z = geo.getHeight(x, y, _player.getZ());
+				if (Math.abs((long) z - _player.getZ()) > 64 || ZoneManager.getInstance().getZone(x, y, z, WaterZone.class) != null || !geo.canMoveToTarget(_player.getX(), _player.getY(), _player.getZ(), x, y, z, actor.instanceId()))
+				{
+					continue;
+				}
+				if (!org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePveWalkSegment(_player, x, y, z, nearby, engaged)) { continue; }
+				double clearance = Double.POSITIVE_INFINITY;
+				for (Monster pursuer : pursuers)
+				{
+					final var home = pursuer.getSpawn();
+					// Keep progressing beyond the native chase boundary instead of
+					// reversing direction when a faster pursuer crosses the actor.
+					clearance = Math.min(clearance, Math.hypot((long) x - (home == null ? pursuer.getX() : home.getX()), (long) y - (home == null ? pursuer.getY() : home.getY())));
+				}
+				if (clearance > best)
+				{
+					best = clearance;
+					destination = new Location(x, y, z);
+				}
+			}
+			if (destination == null)
+			{
+				return ActionOutcome.UNAVAILABLE;
+			}
+			_ownedSpacing = destination;
+			_ownedSpacingTargetObjectId = targetObjectId;
+			_spacingStartedNanos = System.nanoTime();
+			_spacingAttempts++;
+			_player.getAI().setIntention(Intention.MOVE_TO, destination);
+			return ActionOutcome.ISSUED;
+		}
+
 		private boolean validNpcTacticTarget(Monster target, ActorSnapshot actor)
 		{
 			if (!target.isRaid())

@@ -104,6 +104,12 @@ public interface PhantomCombatActorLease extends AutoCloseable
 
 	default boolean useHealingPotion() { return false; }
 
+	/** Continue an owned native escape; ALREADY_OWNED means no pursuer remains. */
+	default ActionOutcome retreatFrom(int targetObjectId)
+	{
+		return ActionOutcome.REJECTED;
+	}
+
 	default AcquisitionTargetSnapshot acquisitionTargetSnapshot(int targetObjectId)
 	{
 		return null;

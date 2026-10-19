@@ -22,6 +22,8 @@ public final class PhantomCombatSession
 	PhantomCombatActorLease _actorLease;
 	PhantomCombatLoadout _loadout;
 	boolean _contentBasicMelee;
+	boolean _retreatOnly;
+	long _retreatStartedNanos;
 	PhantomCombatPhase _phase = PhantomCombatPhase.RESERVED;
 	PhantomCombatResult _result = PhantomCombatResult.ACTIVE;
 	long _lastPulseLogicalNanos;

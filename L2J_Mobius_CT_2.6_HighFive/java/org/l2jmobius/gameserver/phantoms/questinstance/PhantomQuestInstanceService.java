@@ -361,6 +361,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 			{
 				cancelTravel(profileId);
 				final var readiness = _backend.prepareCombat(profileId, content, content.step("collect.skeleton").orElseThrow(), observation.fingerprint());
+				if ("questinstance.combat.retreat_required".equals(readiness.reasonKey())) { return startCombat(profileId, content, "travel.retreat", pursuer.objectId(), token, true); }
 				if (readiness.status() != ActionStatus.IDEMPOTENT) { return retry(readiness.reasonKey()); }
 				return startCombat(profileId, content, "travel.defense", pursuer.objectId(), token);
 			}
@@ -564,8 +565,14 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 
 	private AdvanceResult startCombat(long profileId, Content content, String stepId, int targetObjectId, PhantomCancellationToken token)
 	{
+		return startCombat(profileId, content, stepId, targetObjectId, token, false);
+	}
+
+	private AdvanceResult startCombat(long profileId, Content content, String stepId, int targetObjectId, PhantomCancellationToken token, boolean retreat)
+	{
 		final String owner = combatOwner(content);
-		final var started = _combat.startContentSession(new PhantomCombatRequest(profileId, targetObjectId, PhantomCombatMode.MELEE_PHYSICAL, true, false, COMBAT_TIMEOUT_MILLIS, token), owner);
+		final var request = new PhantomCombatRequest(profileId, targetObjectId, PhantomCombatMode.MELEE_PHYSICAL, !retreat, false, COMBAT_TIMEOUT_MILLIS, token);
+		final var started = retreat ? _combat.startContentRetreatSession(request, owner) : _combat.startContentSession(request, owner);
 		if ((started.status() == StartStatus.ACCEPTED) || (started.status() == StartStatus.IDEMPOTENT))
 		{
 			synchronized (_monitor)

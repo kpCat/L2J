@@ -9,5 +9,6 @@ public enum PhantomCombatPhase
 	ENGAGING,
 	FIGHTING,
 	LOOTING,
-	TERMINAL
+	TERMINAL,
+	RETREATING
 }

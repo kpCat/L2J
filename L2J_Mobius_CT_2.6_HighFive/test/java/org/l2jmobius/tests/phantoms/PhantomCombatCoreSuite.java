@@ -249,6 +249,34 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			final ActorSnapshot snapshot = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 150, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
 			PhantomAssertions.assertTrue(Double.compare(snapshot.currentCp(), 150) == 0, "Snapshot normalized exact canonical CP.");
 		});
+		registry.add("061-content-critical-health-retains-owned-care-and-bounded-retreat", _ ->
+		{
+			final Fixture escaping = fixture(1);
+			try
+			{
+				escaping.lease.actor = actor(15, false);
+				escaping.lease.retreatOutcome = ActionOutcome.ISSUED;
+				PhantomAssertions.assertTrue(escaping.service.startContentSession(new PhantomCombatRequest(1, 100, PhantomCombatMode.MELEE_PHYSICAL, false, false, 120_000, escaping.token), "questinstance.class.warrior-q401").accepted(), "Recovery input did not start.");
+				escaping.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, escaping.lease.healingCalls, "Critical content health dropped ownership before trying its owned native healing item.");
+				PhantomAssertions.assertEquals("RETREATING", escaping.service.find(1).orElseThrow().phase().name(), "Low-health content stopped passively under its pursuer.");
+				PhantomAssertions.assertEquals(0, escaping.lease.attackCount + escaping.lease.castCount, "Retreat issued another offensive action.");
+				PhantomAssertions.assertEquals(0, escaping.lease.closeCount, "Retreat lost its existing action lease before native settlement.");
+				escaping.lease.retreatOutcome = ActionOutcome.ALREADY_OWNED; escaping.dispatcher.runNext();
+				PhantomAssertions.assertEquals(PhantomCombatResult.LOW_HP_STOPPED, escaping.service.find(1).orElseThrow().result(), "A completed retreat became combat victory.");
+			}
+			finally { escaping.stop(); }
+			final Fixture bounded = fixture(1);
+			try
+			{
+				bounded.lease.actor = actor(15, false);
+				bounded.lease.retreatOutcome = ActionOutcome.ISSUED;
+				PhantomAssertions.assertTrue(bounded.service.startContentSession(new PhantomCombatRequest(1, 100, PhantomCombatMode.MELEE_PHYSICAL, false, false, 120_000, bounded.token), "questinstance.class.warrior-q401").accepted(), "Bounded recovery input did not start.");
+				bounded.dispatcher.runNext(); bounded.clock.set(TimeUnit.SECONDS.toNanos(31) + 1); bounded.dispatcher.runNext();
+				PhantomAssertions.assertEquals(PhantomCombatResult.LOW_HP_STOPPED, bounded.service.find(1).orElseThrow().result(), "Local retreat prolonged the whole combat deadline indefinitely.");
+			}
+			finally { bounded.stop(); }
+		});
 		registry.add("061-content-combat-stall-is-bounded-by-real-damage-progress", _ ->
 		{
 			final Fixture stalled = fixture(1);
@@ -1073,6 +1101,11 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 		private SelectedSkill lastCast;
 		private ActionOutcome spacingOutcome = ActionOutcome.UNAVAILABLE;
 		private int spacingCount;
+		private int healingCalls;
+		private ActionOutcome retreatOutcome = ActionOutcome.REJECTED;
+
+		@Override public boolean useHealingPotion() { healingCalls++; return false; }
+		public ActionOutcome retreatFrom(int targetObjectId) { return retreatOutcome; }
 
 		@Override
 		public ActionOutcome maintainRangedSpacing(int targetObjectId, SelectedSkill skill, PhantomCombatMode mode)
