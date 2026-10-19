@@ -676,6 +676,7 @@ public final class PhantomSystem
 				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), _visibleAutoPlay::yieldAfterCurrentTarget, _learningJourney::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
 				_supplyJourney.useNativeResume(productionProfiles, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService);
+				_supplyJourney.useEquipment(_progressionService, _questInstanceService::ownsAutonomousIntent);
 				_questInstanceService.enableAutonomous(productionProfiles, _materializationService, _visibleAutoPlay::yieldAfterCurrentTarget,
 					profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)),
 					profileId -> _populationManager.careerArchetype(profileId).orElse(null),

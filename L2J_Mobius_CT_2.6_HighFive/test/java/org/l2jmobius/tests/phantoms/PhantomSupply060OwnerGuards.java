@@ -83,8 +83,32 @@ final class PhantomSupply060OwnerGuards
 	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
 			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed) throws Exception
 	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, ammunition, blessed, false);
+	}
+	static void equipment(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, false, false, true);
+	}
+	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed, boolean equipment) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, ammunition, blessed, equipment, false);
+	}
+	static void equipmentPaid(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, false, false, true, true);
+	}
+	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed, boolean equipment, boolean paid) throws Exception
+	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final long baselineAdena = player.getAdena();
+		final var initialObjects = equipment ? player.getInventory().getItems().stream().map(item -> item.getObjectId()).collect(java.util.stream.Collectors.toSet()) : java.util.Set.<Integer>of();
+		final var initialEquipment = equipment ? player.getInventory().getItems().stream().filter(item -> item.isEquipped()).map(item -> item.getObjectId()).toList() : List.<Integer>of();
+		final var initialSupplies = new java.util.LinkedHashMap<Integer, Long>();
+		if (equipment) { for (int itemId : new int[] {57, 1835, 3947, 1061}) { initialSupplies.put(itemId, player.getInventory().getInventoryItemCount(itemId, -1)); } }
 		player.setBaseClass(blessed ? 10 : 0); player.setPlayerClass(blessed ? 10 : 0); player.setLearningClass(player.getPlayerClass()); player.getStat().setLevel((byte) 5); player.setSp(0);
 		final var weapon = player.getInventory().addItem(ItemProcessType.REWARD, ammunition ? 14 : blessed ? 6 : 68, 1, null, PhantomSupply060OwnerGuards.class);
 		PhantomAssertions.assertTrue(weapon != null, "Finite owner-guard weapon unavailable."); player.getInventory().equipItem(weapon);
@@ -108,6 +132,26 @@ final class PhantomSupply060OwnerGuards
 		}
 		player.getInventory().addItem(ItemProcessType.REWARD, 57, 10_000, null, PhantomSupply060OwnerGuards.class);
 		player.refreshExpertisePenalty(); player.refreshOverloaded(); player.setRunning(); player.standUp();
+		if (equipment)
+		{
+			player.setBaseClass(10); player.setPlayerClass(10); player.setLearningClass(player.getPlayerClass()); player.getStat().setExp(player.getStat().getExpForLevel(7)); player.getStat().setLevel((byte) 7); player.removeSkill(239); player.giveAvailableAutoGetSkills();
+			for (int itemId : new int[] {1, 24, 31, 6, 425, 461}) { final var item = player.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, player, PhantomSupply060OwnerGuards.class); if (itemId == 1 || itemId == 24 || itemId == 31) { player.getInventory().equipItem(item); } }
+			player.getInventory().addItem(ItemProcessType.REWARD, 3947, 100, player, PhantomSupply060OwnerGuards.class);
+			player.refreshExpertisePenalty(); player.refreshOverloaded(); player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp());
+			PhantomAssertions.assertFalse(player.getActiveWeaponItem().isMagicWeapon(), "Owned equipment input is already a magic weapon.");
+			context.record("equipment061.ownedInput", "Independent native Mystic7, equipped physical ShortSword1/Bone24+31, added owned Wand6/robe425+461/BSS3947x100; other native fixture inventory retained; all input before measurement; no ordinary actor changed");
+			if (paid)
+			{
+				player.setBaseClass(0); player.setPlayerClass(0); player.setLearningClass(player.getPlayerClass()); player.getStat().setExp(player.getStat().getExpForLevel(19)); player.getStat().setLevel((byte) 19); player.removeSkill(239); player.giveAvailableAutoGetSkills();
+				player.getInventory().addItem(ItemProcessType.REWARD, 1835, 600, player, PhantomSupply060OwnerGuards.class); player.getInventory().addItem(ItemProcessType.REWARD, 1061, 3, player, PhantomSupply060OwnerGuards.class); player.getInventory().addItem(ItemProcessType.REWARD, 57, 40_000, player, PhantomSupply060OwnerGuards.class);
+				final var shop = knowledge.snapshot().spawnFactsByNpc().values().stream().flatMap(List::stream).filter(spawn -> spawn.instanceId() == 0 && Math.hypot((long) spawn.x() + 12787, (long) spawn.y() - 122779) < 4000).map(spawn -> org.l2jmobius.gameserver.model.World.getInstance().getRegion(spawn.x(), spawn.y(), spawn.z())).filter(java.util.Objects::nonNull).distinct().flatMap(region -> region.getVisibleObjects().stream()).filter(object -> object instanceof org.l2jmobius.gameserver.model.actor.instance.Merchant).map(object -> (org.l2jmobius.gameserver.model.actor.instance.Merchant) object).min(java.util.Comparator.comparingInt(org.l2jmobius.gameserver.model.actor.instance.Merchant::getObjectId)).orElseThrow();
+				final int ground = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance().getHeight(-12787, 122779, -3112);
+				PhantomCombatServerIntegrationSuite.placeInstanceInput058(player, -12787, 122779, ground);
+				PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePreparationTown(player), "Paid equipment input requires the existing verified native Gludio base.");
+				player.refreshExpertisePenalty(); player.refreshOverloaded(); player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp());
+				context.record("equipment061.paidInput", "Independent native Fighter19/NG expertise, additional40000 finite Adena/600NGshots/3potions before measurement; reuse verified native Gludio(-12787,122779," + ground + ") from town/lifecycle controls, rather than an elevated merchant spawn; nearby Merchant=" + shop.getId() + '/' + shop.getObjectId() + "; product chooses actual item/source; no quest items/stages/class/SP grants during measurement");
+			}
+		}
 		final var goals = new PhantomGoalStateStore(profiles);
 		PhantomAssertions.assertTrue(goals.load(profileId).isEmpty(), "Supply guard refuses an existing root.");
 		final var anchor = topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == PhantomTopologyAnchorRole.FARMING && value.point().instanceId() == 0).min(java.util.Comparator.comparingDouble(value -> Math.hypot(value.point().x() - player.getX(), value.point().y() - player.getY()))).orElseThrow();
@@ -117,18 +161,63 @@ final class PhantomSupply060OwnerGuards
 		final var catalog = new PhantomCommerceCatalogLoader(Path.of(".")).load();
 		if (ammunition) { PhantomAssertions.assertTrue(catalog.catalog().findSupply(17) != null && catalog.catalog().findSupply(17).kinds().stream().anyMatch(kind -> kind.name().equals("AMMUNITION")), "Native arrow source classification is missing."); }
 		final var receipts = new PhantomCommerceReceiptStore(profiles);
+		final var initialReceipt = receipts.find(profileId);
 		final var commerce = new PhantomCommerceService(catalog, receipts, store, new L2jCommerceBackend(materialization, catalog.catalog(), Clock.systemDefaultZone()));
 		final var navigation = new PhantomNavigationService(new PhantomMetrics());
 		final var routes = PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), topology);
 		final var policy = PhantomAutonomousSupplyPolicy.load(Path.of("data/phantoms/life/high-five-autonomous-supply-v1.xml"));
 		final var allowed = new AtomicBoolean(false);
 		var journey = new L2jPhantomSupplyJourney(store, goals, materialization, commerce, receipts, navigation, () -> knowledge, routes, _ -> allowed.get(), (_, _) -> true, (_, _) -> false, policy);
+		final var progression = equipment ? new org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionService(new org.l2jmobius.gameserver.phantoms.progression.L2jProgressionBackend(materialization, Path.of("."), () -> knowledge), org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionPolicy.productionDefaults()) : null;
+		if (progression != null) { progression.start(); journey.useEquipment(progression, (_, _) -> false); }
 		PhantomAssertions.assertTrue(navigation.start() && commerce.start() && journey.start(), "Supply owner guards did not start.");
 		final long adena = player.getAdena(), stock = player.getInventory().getInventoryItemCount(supplyItemId, -1);
 		final int x = player.getX(), y = player.getY(), z = player.getZ();
 		context.record("supply060.ownerInput", "SEPARATE PREMEASUREMENT own finite " + (ammunition ? "NG Bow14/arrows2/NGshots600/class0" : blessed ? "Mystic10/NG6/regular2509x100/blessed0" : "NG68/class0") + " and10000 Adena; level5/SP0; root=" + root + "; guard calls only, no full farm/command claim");
 		try
 		{
+			if (equipment)
+			{
+				final long exp = player.getExp(), sp = player.getSp();
+				PhantomAssertions.assertFalse(journey.needsOrOwns(profileId, root), "HOLD proposed equipment."); allowed.set(true);
+				final var registry = new PhantomCandidateRegistry(); journey.registerCandidates(registry); registry.seal();
+				final var handlers = new PhantomStepHandlerRegistry(); journey.registerHandlers(handlers); handlers.seal();
+				final var equipmentJourney = journey;
+				final var phases = new java.util.ArrayList<String>();
+				final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(paid ? 90 : 50);
+				while (System.nanoTime() < deadline && (paid ? receipts.find(profileId).map(value -> value.receipt().state() != org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.COMMITTED || player.getInventory().getItems().stream().noneMatch(item -> item.isEquipped() && item.getId() == value.receipt().request().itemId()) || equipmentJourney.automaticIntent(profileId).orElseThrow().status() != PhantomGoalStatus.COMPLETED).orElse(true) : !(player.getActiveWeaponItem().isMagicWeapon() && player.getInventory().getItems().stream().anyMatch(item -> item.isEquipped() && item.getTemplate() instanceof org.l2jmobius.gameserver.model.item.Armor armor && armor.getItemType() == org.l2jmobius.gameserver.model.item.type.ArmorType.MAGIC))))
+				{
+					final var planning = new PhantomPlanningContext(profileId, root, PhantomCapabilitySet.empty(), PhantomActivityState.ACTIVE, System.nanoTime(), 1);
+					final var selected = new PhantomUtilitySelector().select(registry.snapshot(), planning).candidate();
+					if (selected != null)
+					{
+						final var plan = selected.planFactory().create(planning); final var step = new PhantomStepContext(profileId, root, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false);
+						final var result = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
+						if (phases.size() < 24 && (phases.isEmpty() || !phases.getLast().equals(result.reasonKey()))) { phases.add(result.reasonKey()); }
+						if (journey.automaticIntent(profileId).map(goal -> goal.status() == PhantomGoalStatus.FAILED).orElse(false)) { break; }
+					}
+					Thread.sleep(500);
+				}
+				if (paid)
+				{
+					context.record("equipment061.paidTrace", "phases=" + phases + "; final=" + journey.automaticIntent(profileId) + "; actual=" + player.getX() + ',' + player.getY() + ',' + player.getZ() + "; safeTown=" + org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePreparationTown(player));
+					final var paidReceipt = receipts.find(profileId).orElseThrow().receipt();
+					PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.State.COMMITTED, paidReceipt.state(), "Native gear payment did not commit.");
+					PhantomAssertions.assertTrue(player.getAdena() < adena && player.getInventory().getItems().stream().anyMatch(item -> item.isEquipped() && item.getId() == paidReceipt.request().itemId()), "Native paid gear is not equipped: " + journey.reason(profileId));
+					PhantomAssertions.assertEquals(PhantomGoalStatus.COMPLETED, journey.automaticIntent(profileId).orElseThrow().status(), "Paid gear trip did not return.");
+					context.record("equipment061.paidNative", "native NPC=" + paidReceipt.request().npcTemplateId() + "; item=" + paidReceipt.request().itemId() + "; A=" + adena + "->" + player.getAdena() + "; receipt=" + paidReceipt.state() + "; native equipped; trip completed");
+				}
+				else
+				{
+					PhantomAssertions.assertTrue(player.getActiveWeaponItem().isMagicWeapon(), "Owned weapon remained inappropriate for native mage class: " + journey.reason(profileId));
+					PhantomAssertions.assertTrue(player.getInventory().getItems().stream().anyMatch(item -> item.isEquipped() && item.getTemplate() instanceof org.l2jmobius.gameserver.model.item.Armor armor && armor.getItemType() == org.l2jmobius.gameserver.model.item.type.ArmorType.MAGIC), "Owned robe was not equipped through Progression: " + journey.reason(profileId));
+					PhantomAssertions.assertTrue(player.getAdena() == adena && receipts.find(profileId).isEmpty(), "Owned native equipment fabricated commerce.");
+				}
+				PhantomAssertions.assertTrue(player.getExp() == exp && player.getSp() == sp, "Equipment fabricated progression.");
+				PhantomAssertions.assertEquals(root, goals.load(profileId).orElseThrow().goal(), "Equipment replaced the farm root.");
+				if (!paid) { context.record("equipment061.ownedNative", "actual weapon=" + player.getActiveWeaponItem().getId() + "; armor=" + player.getInventory().getItems().stream().filter(item -> item.isEquipped()).map(item -> item.getId()).toList() + "; EXP/SP/A unchanged; Commerce receipt absent; root unchanged; " + journey.reason(profileId)); }
+				return;
+			}
 			PhantomAssertions.assertFalse(journey.needsOrOwns(profileId, root), "Foreign owner/HOLD port allowed a supply need.");
 			allowed.set(true); player.getAI().clientStartAutoAttack();
 			PhantomAssertions.assertTrue(player.isInCombat(), "Native combat stance did not start.");
@@ -164,6 +253,17 @@ final class PhantomSupply060OwnerGuards
 			final var sourceReady = handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
 			PhantomAssertions.assertFalse("supplies.native.busy".equals(sourceReady.reasonKey()), "Native source continuation remained in the ended combat stance.");
 			context.record("supply061.clockSource", "Actual production handler parsed the accepted clock-bearing NPC source: " + sourceReady + "; no fixture success replacement");
+			if (blessed)
+			{
+				final long routeEnd = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+				while (System.nanoTime() < routeEnd && !journey.reason(profileId).startsWith("supplies.native.walking") && !journey.reason(profileId).startsWith("supplies.navigation.ready"))
+				{
+					Thread.sleep(250);
+					handlers.snapshot().get(plan.steps().getFirst().actionKey()).execute(new PhantomStepContext(profileId, replacement, plan, plan.steps().getFirst(), PhantomActivityState.ACTIVE, System.nanoTime(), 1, () -> false));
+				}
+				context.record("supply061.nativeRouteBudget", journey.reason(profileId));
+				PhantomAssertions.assertTrue(journey.reason(profileId).startsWith("supplies.native.walking") || journey.reason(profileId).startsWith("supplies.navigation.ready"), "Accepted eight-minute supply journey did not obtain a native travel plan: " + journey.reason(profileId));
+			}
 			journey.beginStop(); PhantomAssertions.assertTrue(journey.finishStop(), "First supply owner did not stop.");
 			final var component = profiles.findComponent(profileId, PhantomSupplyIntentStore.COMPONENT).orElseThrow();
 			final var expired = new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), System.currentTimeMillis() - 1, intent.constraints(), intent.reasonKey(), intent.revision(), intent.payloadText());
@@ -182,8 +282,22 @@ final class PhantomSupply060OwnerGuards
 		{
 			journey.beginStop(); PhantomAssertions.assertTrue(journey.finishStop(), "Supply guard journey did not drain.");
 			commerce.beginStop(); PhantomAssertions.assertTrue(commerce.finishStop(), "Supply guard Commerce did not drain.");
+			if (progression != null) { progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Equipment native Progression did not drain."); }
 			navigation.beginStop(); final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (!navigation.finishStop() && System.nanoTime() < deadline) { Thread.sleep(20); }
 			PhantomAssertions.assertEquals(PhantomNavigationService.ServiceState.STOPPED, navigation.snapshot().state(), "Supply guard Navigation did not drain.");
+			if (equipment)
+			{
+				if (initialReceipt.isEmpty())
+				{
+					final var ownReceipt = receipts.find(profileId).orElse(null);
+					if (ownReceipt != null) { PhantomAssertions.assertTrue(ownReceipt.receipt().goalId() == root.goalId() && ownReceipt.receipt().state().terminal(), "Foreign or pending equipment TEST receipt; cleanup refused."); profiles.deleteComponent(profileId, org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceReceipt.COMPONENT_TYPE, ownReceipt.rowVersion()); }
+				}
+				final var created = player.getInventory().getItems().stream().filter(item -> !initialObjects.contains(item.getObjectId()) && (item.getTemplate() instanceof org.l2jmobius.gameserver.model.item.Weapon || item.getTemplate() instanceof org.l2jmobius.gameserver.model.item.Armor)).toList();
+				PhantomAssertions.assertTrue(created.size() <= 24, "Equipment fixture cleanup exceeded its bounded new-item receipt.");
+				for (var item : created) { if (item.isEquipped()) { player.getInventory().unEquipItemInSlot(item.getLocationSlot()); } PhantomAssertions.assertTrue(player.getInventory().destroyItem(ItemProcessType.DESTROY, item, 1, player, PhantomSupply060OwnerGuards.class) != null, "Own new TEST equipment cleanup failed."); }
+				for (int objectId : initialEquipment) { final var item = player.getInventory().getItemByObjectId(objectId); if (item != null && !item.isEquipped()) { player.getInventory().equipItem(item); } }
+				for (var entry : initialSupplies.entrySet()) { final long excess = player.getInventory().getInventoryItemCount(entry.getKey(), -1) - entry.getValue(); if (excess > 0) { PhantomAssertions.assertTrue(player.getInventory().destroyItem(ItemProcessType.DESTROY, player.getInventory().getItemByItemId(entry.getKey()), excess, player, PhantomSupply060OwnerGuards.class) != null, "Own TEST supply excess cleanup failed."); } }
+			}
 			org.l2jmobius.gameserver.taskmanagers.AttackStanceTaskManager.getInstance().removeAttackStanceTask(player); player.getAI().clientStopAutoAttack();
 			final var component = profiles.findComponent(profileId, PhantomSupplyIntentStore.COMPONENT).orElse(null);
 			if (component != null)

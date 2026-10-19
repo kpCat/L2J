@@ -658,6 +658,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					registry.add("061-native-continuous-physical-shots-and-owned-cleanup", this::testContinuousShots061);
 					registry.add("061-native-blessed-magic-shots-prefer-exact-weapon-grade", this::testBlessedShots061);
 					registry.add("061-native-ordinary-autoplay-shares-shot-type-grade-and-quality", this::testOrdinaryShots061);
+					registry.add("061-native-equipment-aspiration-respects-expertise-and-style", this::testEquipmentEligibility061);
+					registry.add("061-native-equipment-owned-role-and-armor-through-progression", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.equipment(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
+					registry.add("061-native-equipment-paid-npc-receipt-and-equip", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.equipmentPaid(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
 					registry.add("061-native-supply-prefers-blessed-despite-regular-stock", context -> { PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous native shot control did not leave combat stance."); prepareLearningField059(context); PhantomSupply060OwnerGuards.blessed(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
 					return;
 				}
@@ -5294,7 +5297,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		actor.setCurrentHp(actor.getMaxHp()); actor.setCurrentMp(actor.getMaxMp()); actor.setCurrentCp(actor.getMaxCp());
 	}
 
-	private static void placeInstanceInput058(Player actor, int x, int y, int z)
+	static void placeInstanceInput058(Player actor, int x, int y, int z)
 	{
 		actor.decayMe(); actor.setXYZInvisible(x, y, z); actor.spawnMe(); actor.revalidateZone(true);
 	}
@@ -6108,6 +6111,27 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			context.record("loadout061.magicObserved", "blessed=" + before + "->" + blessedStock.getCount() + "; regular=" + regularBefore + "->" + regularStock.getCount() + "; targetHP=" + hpBefore + "->" + target.getCurrentHp() + "; MP=" + mpBefore + "->" + _player.getCurrentMp() + "; preexisting auto-shot restored");
 		}
 		finally { _player.removeAutoSoulShot(regular.getId()); _player.abortCast(); _player.getAI().setIntention(Intention.IDLE); target.deleteMe(); destroyInventoryItem(blessedStock); destroyInventoryItem(regularStock); }
+	}
+
+	private void testEquipmentEligibility061(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
+		resetActor(true); _player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setExp(_player.getStat().getExpForLevel(20)); _player.getStat().setLevel((byte) 20); _player.removeSkill(239); _player.giveAvailableAutoGetSkills();
+		PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Equipment control did not leave native combat stance.");
+		prepareLearningField059(context);
+		final var catalog = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog();
+		final var nativeItems = catalog.buyOffers().stream().map(offer -> org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(offer.itemId())).distinct().toList();
+		final var weapon = nativeItems.stream().filter(item -> item instanceof org.l2jmobius.gameserver.model.item.Weapon value && !value.isMagicWeapon() && value.getItemType() == org.l2jmobius.gameserver.model.item.type.WeaponType.SWORD && value.getCrystalType() == org.l2jmobius.gameserver.model.item.type.CrystalType.D && value.checkCondition(_player, _player, false)).min(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.ItemTemplate::getId)).orElseThrow();
+		final var armor = nativeItems.stream().filter(item -> item instanceof org.l2jmobius.gameserver.model.item.Armor value && value.getBodyPart() == org.l2jmobius.gameserver.model.item.enums.BodyPart.CHEST && value.getItemType() == org.l2jmobius.gameserver.model.item.type.ArmorType.LIGHT && value.getCrystalType() == org.l2jmobius.gameserver.model.item.type.CrystalType.D && value.checkCondition(_player, _player, false)).min(Comparator.comparingInt(org.l2jmobius.gameserver.model.item.ItemTemplate::getId)).orElseThrow();
+		final var overgrade = nativeItems.stream().filter(item -> item instanceof org.l2jmobius.gameserver.model.item.Weapon value && value.getCrystalType().getLevel() > _player.getExpertiseLevel()).findFirst().orElseThrow();
+		final long exp = _player.getExp(), sp = _player.getSp(), adena = _player.getAdena();
+		PhantomAssertions.assertEquals(1, _player.getExpertiseLevel(), "Declared native20 input has no free D expertise.");
+		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.power(_player, weapon) > 0 && org.l2jmobius.gameserver.phantoms.progression.PhantomNativeEquipmentPolicy.power(_player, armor) > 0, "Equipment preference did not read actual native item combat stats.");
+		context.record("equipment061.eligibilityInput", "Independent native Fighter20/expertise1; real NPC-catalog D weapon=" + weapon.getId() + "; D light chest=" + armor.getId() + "; overgrade=" + overgrade.getId() + "; eligibility reads only, no ordinary equipment/quest/SP grants");
+		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.compatible(_player, weapon), "Supply cannot prepare a native expertise-legal weapon.");
+		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.compatible(_player, armor), "Supply cannot prepare native expertise-legal armor.");
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.compatible(_player, overgrade), "Equipment aspiration bypassed native expertise.");
+		PhantomAssertions.assertTrue(_player.getExp() == exp && _player.getSp() == sp && _player.getAdena() == adena, "Read-only equipment eligibility changed earned resources.");
 	}
 
 	private void testOrdinaryShots061(PhantomTestContext context) throws Exception
