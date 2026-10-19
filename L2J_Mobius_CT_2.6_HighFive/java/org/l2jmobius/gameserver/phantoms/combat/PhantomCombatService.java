@@ -1325,6 +1325,10 @@ public final class PhantomCombatService
 				finish(session, PhantomCombatResult.LOW_HP_STOPPED);
 				return;
 			}
+			if (session._pvpRequest == null && session._raidRequest == null && session._siegeRequest == null && percent(actor.currentHp(), actor.maximumHp()) <= 70)
+			{
+				session._actorLease.useHealingPotion();
+			}
 			if (session._phase == PhantomCombatPhase.LOOTING)
 			{
 				processLoot(session, now);
@@ -1370,6 +1374,20 @@ public final class PhantomCombatService
 			{
 				finish(session, PhantomCombatResult.TARGET_LOST);
 				return;
+			}
+			if (session._contentBasicMelee)
+			{
+				if (target.currentHp() < session._contentBestHp - 0.5 || target.distance() < session._contentBestDistance - 64)
+				{
+					session._contentProgressNanos = now;
+					session._contentBestHp = Math.min(session._contentBestHp, target.currentHp());
+					session._contentBestDistance = Math.min(session._contentBestDistance, target.distance());
+				}
+				if (elapsed(now, session._contentProgressNanos) >= TimeUnit.SECONDS.toNanos(20))
+				{
+					finish(session, PhantomCombatResult.TARGET_LOST);
+					return;
+				}
 			}
 
 			for (ThreatObservation observation : boundedAttackers(session._actorLease.observedAttackers(_policy.maximumObservedAttackers())))

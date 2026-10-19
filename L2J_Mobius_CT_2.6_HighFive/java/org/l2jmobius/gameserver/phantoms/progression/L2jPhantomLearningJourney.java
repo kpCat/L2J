@@ -58,7 +58,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Lea
  * and paid Progression owners. Learned native ranks determine the restart phase;
  * this adapter never grants skills, directly writes positions or owns a second AI pulse.
  */
-public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort
+public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort, org.l2jmobius.gameserver.phantoms.activity.PhantomNativeJourneyDemand
 {
 	public static final String GOAL_TYPE = "skill.learn";
 	public static final String CANDIDATE = "candidate.learning.journey";
@@ -135,6 +135,7 @@ public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver
 				&& (rootId == 0 || demand.rootId == rootId && demand.rootRevision == rootRevision);
 		}
 	}
+	@Override public Set<Long> acceptedProfiles() { synchronized (_monitor) { return Set.copyOf(_demands.keySet()); } }
 	private void releaseDemand(long profileId)
 	{
 		synchronized (_monitor) { final var demand = _demands.remove(profileId); if (demand != null && _signals != null) { _signals.withdraw(profileId, SIGNAL_SOURCE, demand.sequence); } }

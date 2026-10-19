@@ -22,6 +22,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomPlan;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomPlanStep;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext;
@@ -53,6 +54,7 @@ final class PhantomAutonomousCareer
 	private final PhantomGoalStateCodec _codec = new PhantomGoalStateCodec();
 	private final Map<Long, Cached> _cache = new LinkedHashMap<>();
 	private BiPredicate<Long, PhantomGoal> _defer = (_, _) -> false;
+	private java.util.function.LongPredicate _onlineResume = _ -> false;
 	private final org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction _resumeTransactions = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction();
 	private long _resumeCursor, _nextResumeMillis;
 
@@ -87,6 +89,7 @@ final class PhantomAutonomousCareer
 
 	void registerHandlers(PhantomStepHandlerRegistry registry) { registry.register(ACTION, this::advance); }
 	void deferWhen(BiPredicate<Long, PhantomGoal> predicate) { _defer = Objects.requireNonNull(predicate); }
+	void useOnlineResume(java.util.function.LongPredicate online) { _onlineResume = Objects.requireNonNull(online); }
 	boolean needsOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root).isPresent(); }
 	Optional<PhantomGoal> intent(long profileId) { return Optional.ofNullable(cached(profileId).goal); }
 
@@ -107,7 +110,7 @@ final class PhantomAutonomousCareer
 			if (!_service.hasOwnedWork(profileId) && _defer.test(profileId, root)) { return unavailable(profileId, "career.supply_priority"); }
 			if (bound(cached.goal, root, player))
 			{
-				if (cached.goal.status() == PhantomGoalStatus.ACTIVE && cached.goal.deadlineEpochMillis() > now) { return Optional.of(cached.goal); }
+				if (PhantomJourneyLifetime.alive(cached.goal, now)) { return Optional.of(cached.goal); }
 				if (cached.goal.constraints().getOrDefault("retry.after", 0L) > now) { return unavailable(profileId, "career.retry_after"); }
 			}
 			final var archetype = _preference.apply(profileId);
@@ -120,9 +123,9 @@ final class PhantomAutonomousCareer
 			constraints.put("class.from", (long) route.fromClass()); constraints.put("class.to", (long) route.toClass()); constraints.put("class.index", (long) player.getClassIndex());
 			constraints.put("field.x", (long) player.getX()); constraints.put("field.y", (long) player.getY()); constraints.put("field.z", (long) player.getZ()); constraints.put("retry.after", 0L);
 			final var weapon = player.getActiveWeaponInstance(); constraints.put("weapon.object", weapon == null ? 0L : (long) weapon.getObjectId());
-			return Optional.of(new PhantomGoal(root.goalId(), PhantomQuestInstanceService.CLASS_GOAL_TYPE, PhantomGoalStatus.ACTIVE, root.subject(),
+			return Optional.of(PhantomJourneyLifetime.start(new PhantomGoal(root.goalId(), PhantomQuestInstanceService.CLASS_GOAL_TYPE, PhantomGoalStatus.ACTIVE, root.subject(),
 				new PhantomDomainRef(PhantomQuestInstanceService.TARGET_NAMESPACE, route.contentId()), 1, 0, null, List.of(), root.selectedAnchor(), "career.autonomous", 700, 0, 0,
-				now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), constraints, "career.native.eligible", cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1), content.contentHash()));
+				now + TimeUnit.MINUTES.toMillis(_policy.journeyMinutes()), constraints, "career.native.eligible", cached.goal == null ? 0 : Math.addExact(cached.goal.revision(), 1), content.contentHash()), now));
 		}
 	}
 
@@ -139,6 +142,11 @@ final class PhantomAutonomousCareer
 				intent = proposal(context.profileId(), context.goal()).orElse(null);
 				if (intent == null) { return PhantomStepResult.of(PhantomStepResult.Type.REPLAN, "career.native.no_need"); }
 				store(context.profileId(), cached, intent);
+			}
+			else if (PhantomJourneyLifetime.paused(intent) && !lease.player().isAlikeDead())
+			{
+				final var resumed = PhantomJourneyLifetime.resume(intent, System.currentTimeMillis());
+				if (!resumed.equals(intent)) { store(context.profileId(), cached, resumed); intent = resumed; }
 			}
 		}
 		if (!_pauseFarm.test(context.profileId(), intent.deadlineEpochMillis())) { return PhantomStepResult.retry(250, "career.native.finish_current_target"); }
@@ -200,19 +208,38 @@ final class PhantomAutonomousCareer
 
 	boolean owns(long profileId, PhantomGoal root)
 	{
-		if (!PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return false; }
+		// Preserve the existing HOLD contract: this read reports accepted authority, not permission to act.
+		// proposal, advance, requiresNativeContext and permitsOwnedCombat separately retain their _allowed gates.
+		if (!_policy.enabled() || root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType())) { return false; }
+		final var intent = cached(profileId).goal;
+		if (!boundRoot(intent, root) || !PhantomJourneyLifetime.alive(intent, System.currentTimeMillis())) { return false; }
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
-			if (lease == null) { return false; }
-			final var intent = cached(profileId).goal;
-			return bound(intent, root, lease.player()) && intent.status() == PhantomGoalStatus.ACTIVE && intent.deadlineEpochMillis() > System.currentTimeMillis();
+			if (lease != null) { return bound(intent, root, lease.player()); }
+			return _profiles.find(profileId).map(profile -> profile.characterObjectId() != null && intent.constraints().get("owner.object").longValue() == profile.characterObjectId().longValue()).orElse(false);
 		}
+	}
+
+	boolean requiresNativeContext(long profileId, long rootId, long rootRevision)
+	{
+		final Cached current; synchronized (this) { current = _cache.get(profileId); }
+		final var intent = current == null ? null : current.goal;
+		return _policy.enabled() && _allowed.test(profileId) && intent != null && "career.autonomous".equals(intent.purposeKey()) && PhantomJourneyLifetime.alive(intent, System.currentTimeMillis())
+			&& (rootId == 0 || intent.goalId() == rootId && intent.constraints().getOrDefault("owner.revision", -1L) == rootRevision);
+	}
+
+	void pause(long profileId, PhantomGoal root, Player player)
+	{
+		final var cached = cached(profileId); final var goal = cached.goal;
+		if (!bound(goal, root, player)) { return; }
+		final var paused = PhantomJourneyLifetime.pause(goal, System.currentTimeMillis());
+		if (!paused.equals(goal)) { store(profileId, cached, paused); }
 	}
 
 	/** Native child work outlives a single Decision plan, but never its current owner or HOLD. */
 	boolean permitsOwnedCombat(long profileId, PhantomGoal root, PhantomGoal intent)
 	{
-		if (!_allowed.test(profileId) || intent.status() != PhantomGoalStatus.ACTIVE || intent.deadlineEpochMillis() <= System.currentTimeMillis()) { return false; }
+		if (!_allowed.test(profileId) || !PhantomJourneyLifetime.alive(intent, System.currentTimeMillis()) || PhantomJourneyLifetime.paused(intent)) { return false; }
 		try (var lease = _materialization.tryAcquireAction(profileId).orElse(null))
 		{
 			if (lease == null || !bound(intent, root, lease.player())) { return false; }
@@ -220,15 +247,19 @@ final class PhantomAutonomousCareer
 		}
 	}
 
-	private static boolean bound(PhantomGoal intent, PhantomGoal root, Player player)
+	private static boolean boundRoot(PhantomGoal intent, PhantomGoal root)
 	{
 		return intent != null && "career.autonomous".equals(intent.purposeKey()) && intent.goalId() == root.goalId()
-			&& intent.constraints().getOrDefault("owner.revision", -1L) == root.revision() && intent.constraints().getOrDefault("owner.object", -1L) == player.getObjectId()
+			&& java.util.Objects.equals(intent.subject(), root.subject()) && intent.constraints().getOrDefault("owner.revision", -1L) == root.revision() && intent.constraints().getOrDefault("owner.object", -1L) > 0;
+	}
+	private static boolean bound(PhantomGoal intent, PhantomGoal root, Player player)
+	{
+		return boundRoot(intent, root) && intent.constraints().getOrDefault("owner.object", -1L) == player.getObjectId()
 			&& intent.constraints().getOrDefault("class.index", -1L) == player.getClassIndex()
 			&& (intent.constraints().getOrDefault("class.from", -1L) == player.getActiveClass() || intent.constraints().getOrDefault("class.to", -1L) == player.getActiveClass());
 	}
 
-	/** Resume only already native-started work; a sleeping fresh proposal is never activated here. */
+	/** Resume an accepted compatible child; this never proposes new work for a stored Player. */
 	synchronized void resumeAccepted(long now)
 	{
 		if (!_policy.enabled() || now < _nextResumeMillis) { return; }
@@ -238,13 +269,15 @@ final class PhantomAutonomousCareer
 		for (var row : page)
 		{
 			final long id = row.profile().profileId();
-			if (row.component().componentSchemaVersion() != 1 || row.profile().characterObjectId() == null || !_allowed.test(id) || _materialization.find(id).isPresent()) { continue; }
+			if (row.component().componentSchemaVersion() != 1 || row.profile().characterObjectId() == null || !_allowed.test(id) || _materialization.find(id).map(entry -> entry.worldPresent()).orElse(false)) { continue; }
 			try
 			{
 				final var intent = _codec.decode(row.component().payload());
-				if (intent.status() != PhantomGoalStatus.ACTIVE || intent.deadlineEpochMillis() <= now || !"career.autonomous".equals(intent.purposeKey())
+				if (!PhantomJourneyLifetime.alive(intent, now) || !"career.autonomous".equals(intent.purposeKey())
 					|| intent.constraints().getOrDefault("owner.object", -1L) != row.profile().characterObjectId().longValue()
 					|| intent.constraints().getOrDefault("class.from", -1L) != 0 || intent.constraints().getOrDefault("class.to", -1L) != 1 || intent.constraints().getOrDefault("class.index", -1L) != 0) { continue; }
+				if (!_cache.containsKey(id) && _cache.size() >= _policy.maximumProfiles()) { _cache.remove(_cache.keySet().iterator().next()); }
+				_cache.put(id, new Cached(intent, row.component().rowVersion()));
 				final var loaded = _resumeTransactions.load(id);
 				if (!loaded.successful() || loaded.state().state() == org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.State.INCONSISTENT) { continue; }
 				final var identity = loaded.state().identity();
@@ -253,7 +286,10 @@ final class PhantomAutonomousCareer
 				if (!witness.successful()) { continue; }
 				final var quest = witness.snapshot().rows().get("Q00401_PathOfTheWarrior");
 				final boolean started = "Started".equals(quest.get("<state>")) && Integer.parseInt(quest.getOrDefault("cond", "0")) > 0;
-				if ("Completed".equals(quest.get("<state>")) || started) { _service.publishAcceptedResume(id, intent, now); }
+				// Legacy intent alone cannot prove a fresh accepted trip. New finite acceptance also requires current online presence.
+				final boolean acceptedTrip = _onlineResume.test(id) && intent.constraints().keySet().containsAll(PhantomJourneyLifetime.KEYS)
+					&& (quest.isEmpty() || "Created".equals(quest.get("<state>")));
+				if (acceptedTrip || "Completed".equals(quest.get("<state>")) || started) { _service.publishAcceptedResume(id, intent, now); }
 			}
 			catch (IllegalArgumentException invalid) { /* Malformed persisted input cannot activate a Player. */ }
 		}

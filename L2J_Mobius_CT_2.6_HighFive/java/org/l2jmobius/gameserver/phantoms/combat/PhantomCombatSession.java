@@ -25,6 +25,9 @@ public final class PhantomCombatSession
 	PhantomCombatPhase _phase = PhantomCombatPhase.RESERVED;
 	PhantomCombatResult _result = PhantomCombatResult.ACTIVE;
 	long _lastPulseLogicalNanos;
+	long _contentProgressNanos;
+	double _contentBestHp = Double.POSITIVE_INFINITY;
+	double _contentBestDistance = Double.POSITIVE_INFINITY;
 	long _lootStartedLogicalNanos;
 	int _nextSkill;
 	int _lootPickupsIssued;

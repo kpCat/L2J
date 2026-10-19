@@ -48,11 +48,18 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 
 	public void installPopulationReadiness(PhantomPresenceRegistry presence, PhantomHumanLocalityControl locality, PhantomPopulationEcologyService ecology)
 	{
+		installPopulationReadiness(presence, locality, ecology, _ -> false);
+	}
+
+	public void installPopulationReadiness(PhantomPresenceRegistry presence, PhantomHumanLocalityControl locality, PhantomPopulationEcologyService ecology, LongPredicate acceptedJourney)
+	{
+		Objects.requireNonNull(acceptedJourney);
 		installReadiness(profileId ->
 		{
 			final var recorder = PhantomRuntimeFlightRecorder.getInstance();
 			final boolean online = presence.isOnline(profileId);
-			final boolean local = online && locality.isLocal(profileId);
+			final boolean continuation = acceptedJourney.test(profileId);
+			final boolean local = online && (locality.isLocal(profileId) || continuation);
 			if (!online || !local)
 			{
 				recorder.record(profileId, online ? "READY_NOT_LOCAL" : "READY_PRESENCE_OFFLINE", online ? "ONLINE" : "OFFLINE", "DEFERRED", "presence.no_current_local_demand", 0, 0, 0);
@@ -68,7 +75,7 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 				if (!due.complete()) { return TransitionOutcome.deferred(due.reason()); }
 				request = due.request();
 			}
-			final boolean currentLocal = locality.isCurrentLocal(profileId);
+			final boolean currentLocal = continuation || locality.isCurrentLocal(profileId);
 			recorder.record(profileId, currentLocal ? "READY_PASS" : "READY_CURRENT_LOCAL_FALSE", "LOCAL", currentLocal ? "SUCCESS" : "DEFERRED", currentLocal ? "" : "presence.committed_position_not_local", 0, 0, 0);
 			return currentLocal ? TransitionOutcome.success(request) : TransitionOutcome.deferred("presence.committed_position_not_local");
 		});

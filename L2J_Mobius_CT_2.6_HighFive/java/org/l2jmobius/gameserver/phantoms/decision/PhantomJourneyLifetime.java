@@ -69,6 +69,6 @@ public final class PhantomJourneyLifetime
 
 	private static PhantomGoal copy(PhantomGoal goal, long deadline, java.util.Map<String, Long> values)
 	{
-		return new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), goal.target(), goal.requiredAmount(), goal.currentAmount(), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), deadline, values, goal.reasonKey(), Math.addExact(goal.revision(), 1), goal.payloadText());
+		return new PhantomGoal(goal.goalId(), goal.goalType(), goal.status(), goal.subject(), goal.target(), goal.requiredAmount(), goal.currentAmount(), goal.acquisitionMethod(), goal.validSources(), goal.selectedAnchor(), goal.purposeKey(), goal.priority(), goal.riskBudget(), goal.expenseBudget(), deadline, values, goal.reasonKey(), goal.revision(), goal.payloadText());
 	}
 }

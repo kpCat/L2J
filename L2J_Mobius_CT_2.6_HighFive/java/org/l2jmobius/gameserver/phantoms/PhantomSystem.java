@@ -616,22 +616,22 @@ public final class PhantomSystem
 				final PhantomPopulationEcologyService periodicEcology = _populationEcology;
 				if (periodicEcology != null)
 				{
-					periodicEcology.installMaterializationDemand(profileId -> _populationManager.presence().isOnline(profileId) && _humanLocality.isCurrentLocal(profileId));
-					_humanLocality.installPreparationDemand(periodicEcology::updateMaterializationDemand, () ->
+					periodicEcology.installMaterializationDemand(profileId -> _populationManager.presence().isOnline(profileId) && (_humanLocality.isCurrentLocal(profileId) || hasAcceptedNativeJourney(profileId)));
+					_humanLocality.installPreparationDemand((facts, slots) -> periodicEcology.updateMaterializationDemand(withAcceptedNativeJourneys(facts), slots), () ->
 					{
 						final var capacity = _materializationService.snapshot();
 						final long soft = capacity.materializations().stream().filter(entry -> entry.worldPresent() && (_materializationRetention != null) && _materializationRetention.observe(entry.profileId()).reclaimable()).count();
 						return Math.min(8, capacity.availablePermits() + Math.toIntExact(soft));
 					});
 				}
-				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology);
+				_reconcileMaterializationActivity.installPopulationReadiness(_populationManager.presence(), _humanLocality, periodicEcology, this::hasAcceptedNativeJourney);
 				_materializationRetention = new PhantomMaterializationRetentionPolicy(this::retentionFacts, System::nanoTime, 60_000);
 				_backgroundService.installNativeContextDemand(this::nativeContextDemand);
 				_populationManager.installRetirementProtection(profileId -> _materializationRetention.observe(profileId).hard() || ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId))) || ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId)) || ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent()));
 				_reconcileMaterializationActivity.installRetention(profileId -> (_scheduler.snapshot().state() == PhantomScheduler.SchedulerState.RUNNING) && _materializationRetention.observe(profileId).retained());
 				_reconcileMaterializationActivity.installSoftReclamation(requestingProfileId ->
 				{
-					if (!_humanLocality.isLocal(requestingProfileId))
+					if (!_humanLocality.isLocal(requestingProfileId) && !hasAcceptedNativeJourney(requestingProfileId))
 					{
 						return 0;
 					}
@@ -674,14 +674,16 @@ public final class PhantomSystem
 				_learningJourney.enableAutonomous(productionProfiles, _visibleAutoPlay::yieldAfterCurrentTarget, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-learning-v1.xml").toPath()));
 				_learningJourney.useRelevanceSignals(new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				_supplyJourney = new L2jPhantomSupplyJourney(commerceGoals, productionGoals, _materializationService, _commerceService, _commerceReceiptStore, _navigationService, _gameKnowledgeService::query, travel, profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)), _visibleAutoPlay::yieldAfterCurrentTarget, _learningJourney::ownsAutomaticIntent, PhantomAutonomousSupplyPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-supply-v1.xml").toPath()));
+				_supplyJourney.useNativeResume(productionProfiles, new PhantomSchedulerRelevanceSignalPort(_scheduler));
 				_supplyJourney.useOfflineSupply(_multipartyEconomyService);
 				_questInstanceService.enableAutonomous(productionProfiles, _materializationService, _visibleAutoPlay::yieldAfterCurrentTarget,
 					profileId -> ((_partyCoordinator == null) || !_partyCoordinator.blocksBackground(profileId)) && ((_phantomStoreService == null) || !_phantomStoreService.blocksDecision(profileId)),
 					profileId -> _populationManager.careerArchetype(profileId).orElse(null),
 					org.l2jmobius.gameserver.phantoms.questinstance.PhantomAutonomousCareerPolicy.load(new File(ServerConfig.DATAPACK_ROOT, "data/phantoms/life/high-five-autonomous-career-v1.xml").toPath()));
 				_questInstanceService.deferAutonomousWhen(_supplyJourney::needsOrOwns);
+				_questInstanceService.useOnlineResume(_populationManager.presence()::isOnline);
 				_learningJourney.deferAutomaticWhen((profileId, root) -> _supplyJourney.needsOrOwns(profileId, root) || _questInstanceService.needsOrOwnsAutonomousIntent(profileId, root));
-				supplyLifecycleBridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_supplyJourney, _learningJourney));
+				supplyLifecycleBridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_supplyJourney, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_learningJourney, _questInstanceService)));
 				if (!_questInstanceService.start()) { throw new IllegalStateException("Phantom quest and instance service could not enter the running state."); }
 				if (!_learningJourney.start()) { throw new IllegalStateException("Phantom learning journey could not enter the running state."); }
 				if (!_supplyJourney.start()) { throw new IllegalStateException("Phantom supply journey could not enter the running state."); }
@@ -798,6 +800,7 @@ public final class PhantomSystem
 				final var controlPorts = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort>(java.util.List.of(_populationManager, _partyCoordinator, _conversationService, _conversationExecutionService, _pvpService));
 				controlPorts.add(_questInstanceService);
 				controlPorts.add(_learningJourney);
+				controlPorts.add(_supplyJourney);
 				if (_autonomousMarketProducer != null)
 				{
 					controlPorts.add(_autonomousMarketProducer);
@@ -3003,8 +3006,7 @@ public final class PhantomSystem
 	private boolean nativeContextDemand(long profileId)
 	{
 		if ((_materializationRetention == null) || (_humanLocality == null)) { return true; }
-		final var runtime = _decisionEngine == null ? null : _decisionEngine.find(profileId).orElse(null);
-		if (_learningJourney != null && _learningJourney.requiresNativeContext(profileId, runtime == null ? 0 : runtime.goalId(), runtime == null ? 0 : runtime.goalRevision())) { return true; }
+		if (hasAcceptedNativeJourney(profileId)) { return true; }
 		final var entry = _materializationService.find(profileId).orElse(null);
 		if ((entry != null) && (entry.firstCleanupIncident() != null)) { return true; }
 		if ((entry != null) && entry.worldPresent())
@@ -3020,6 +3022,39 @@ public final class PhantomSystem
 			|| ((_partyCoordinator != null) && (_partyCoordinator.committed(profileId) || _partyCoordinator.blocksBackground(profileId)))
 			|| ((_phantomStoreService != null) && _phantomStoreService.blocksDecision(profileId))
 			|| ((_economyReservations != null) && _economyReservations.findActive(profileId).isPresent());
+	}
+
+	private java.util.List<org.l2jmobius.gameserver.phantoms.activity.PhantomNativeJourneyDemand> nativeJourneys()
+	{
+		final var owners = new java.util.ArrayList<org.l2jmobius.gameserver.phantoms.activity.PhantomNativeJourneyDemand>(2);
+		if (_learningJourney != null) { owners.add(_learningJourney); }
+		if (_questInstanceService != null) { owners.add(_questInstanceService); }
+		if (_supplyJourney != null) { owners.add(_supplyJourney); }
+		return owners;
+	}
+
+	private boolean hasAcceptedNativeJourney(long profileId)
+	{
+		final var root = _decisionEngine == null ? null : _decisionEngine.find(profileId).orElse(null);
+		if (root != null && root.goalStatus() != org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus.ACTIVE) { return false; }
+		return nativeJourneys().stream().anyMatch(owner -> owner.requiresNativeContext(profileId, root == null ? 0 : root.goalId(), root == null ? 0 : root.goalRevision()));
+	}
+
+	private java.util.List<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact> withAcceptedNativeJourneys(java.util.List<org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact> local)
+	{
+		final var facts = new java.util.LinkedHashMap<Long, org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact>();
+		local.forEach(fact -> facts.put(fact.profileId(), fact));
+		for (var owner : nativeJourneys())
+		{
+			for (long id : owner.acceptedProfiles())
+			{
+				if (_populationManager.presence().isOnline(id) && hasAcceptedNativeJourney(id))
+				{
+					facts.putIfAbsent(id, new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact(id, 0, false, Long.MAX_VALUE, System.nanoTime()));
+				}
+			}
+		}
+		return java.util.List.copyOf(facts.values());
 	}
 
 	private PhantomMaterializationRetentionPolicy.Facts retentionFacts(long profileId)

@@ -44,7 +44,7 @@ import org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceCatal
 import org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort;
 
 /** Caller-driven bounded coordinator. Native scripts remain the only mutation owners. */
-public final class PhantomQuestInstanceService implements org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort
+public final class PhantomQuestInstanceService implements org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort, org.l2jmobius.gameserver.phantoms.activity.PhantomNativeJourneyDemand, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort
 {
 	public static final String QUEST_GOAL_TYPE = "quest.play";
 	public static final String CLASS_GOAL_TYPE = "class.transfer";
@@ -108,10 +108,30 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	{
 		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career priority must be bound before start."); } _automatic.deferWhen(predicate); }
 	}
+	public void useOnlineResume(java.util.function.LongPredicate online)
+	{
+		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career presence must bind before start."); } _automatic.useOnlineResume(online); }
+	}
 
 	boolean hasOwnedWork(long profileId) { synchronized (_monitor) { return _travels.containsKey(profileId) || _combats.containsKey(profileId); } }
 
 	@Override public void onPulse() { resumeAcceptedIntents(System.currentTimeMillis()); }
+	@Override public Set<Long> acceptedProfiles() { synchronized (_monitor) { return Set.copyOf(_signalSequences.keySet()); } }
+	@Override public boolean requiresNativeContext(long profileId, long rootId, long rootRevision)
+	{
+		return _state == State.RUNNING && _automatic != null && _automatic.requiresNativeContext(profileId, rootId, rootRevision);
+	}
+	@Override public void beforeMaterialize(long profileId, int objectId) { }
+	@Override public void afterPlayerLoad(long profileId, org.l2jmobius.gameserver.model.actor.Player player) { }
+	@Override public void materializeSucceeded(long profileId, int objectId) { }
+	@Override public void materializeAborted(long profileId, int objectId) { }
+	@Override public void beforeStore(long profileId, org.l2jmobius.gameserver.model.actor.Player player)
+	{
+		final var root = _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
+		if (_automatic != null && root != null) { _automatic.pause(profileId, root, player); }
+		cleanup(profileId);
+	}
+	@Override public void afterStore(long profileId, org.l2jmobius.gameserver.model.actor.Player player) { }
 	public void resumeAcceptedIntents(long nowEpochMillis)
 	{
 		if (_state == State.RUNNING && _automatic != null) { _automatic.resumeAccepted(nowEpochMillis); }
@@ -120,7 +140,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	void publishAcceptedResume(long profileId, PhantomGoal intent, long nowEpochMillis)
 	{
 		final var root = _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null);
-		if (_state == State.RUNNING && root != null && intent.deadlineEpochMillis() > nowEpochMillis && validChild(profileId, root, intent) != null)
+		if (_state == State.RUNNING && root != null && org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.alive(intent, nowEpochMillis) && validChild(profileId, root, intent) != null)
 		{
 			publishActive(profileId, Math.max(1, System.nanoTime()));
 		}

@@ -114,6 +114,33 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		registry.add("05-active-nearby-canonical-materialization", _ -> testMaterializationBoundary());
 		registry.add("06-clean-transition-block-bounded-retry", _ -> testTransientRetry());
 		registry.add("07-retained-failure-explicit-retry", _ -> testRetainedFailure());
+		registry.add("061-journey-clock-preserves-semantic-effect-revision", _ ->
+		{
+			final var goal = new PhantomGoal(61, "skill.learn", PhantomGoalStatus.ACTIVE, new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("profile", "61"), new org.l2jmobius.gameserver.phantoms.decision.PhantomDomainRef("skill", "3:1"), 1, 0, null, List.of(), null, "learning.autonomous", 600, 0, 0, 11_000, Map.of(), "clock.identity061", 7);
+			final var started = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.start(goal, 1000);
+			final var paused = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.pause(started, 2000);
+			final var resumed = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.resume(paused, 602_000);
+			PhantomAssertions.assertTrue(started.revision() == 7 && paused.revision() == 7 && resumed.revision() == 7, "Clock-only CAS updates changed an accepted operation's semantic revision and orphaned its payment receipt.");
+			PhantomAssertions.assertEquals(611_000L, resumed.deadlineEpochMillis(), "Clock metadata did not preserve nine remaining active seconds.");
+		});
+		registry.add("061-released-lifecycle-resumes-without-forcing-cleanup", _ ->
+		{
+			final Fixture released = fixture(2, 2);
+			try
+			{
+				released.port().materializeOutcomes.add(Outcome.RETAINED_FAILURE);
+				released.scheduler().register(1); released.scheduler().submitSignal(1, signal("journey", 1, PhantomActivityState.ACTIVE, 100)); released.scheduler().pulse();
+				released.clock().advanceMillis(20); released.scheduler().pulse();
+				PhantomAssertions.assertEquals(1, released.port().materializeCalls, "Still-owned lifecycle was materialized again.");
+				PhantomAssertions.assertEquals(0, released.port().retryCalls, "Automatic observation forced native cleanup of retained ownership.");
+				// The accepted lifecycle owner completed its own cleanup; no scheduler/operator cleanup request.
+				released.port().lifecycleOwned.remove(1L); released.clock().advanceMillis(20); released.scheduler().pulse(); released.scheduler().pulse();
+				PhantomAssertions.assertEquals(PhantomActivityState.ACTIVE, released.scheduler().find(1).orElseThrow().effectiveState(), "Released native ownership left an accepted journey permanently waiting for an explicit operator retry.");
+				PhantomAssertions.assertEquals(2, released.port().materializeCalls, "Released lifecycle did not pass through a fresh normal materialization boundary.");
+				PhantomAssertions.assertEquals(0, released.port().retryCalls, "Released lifecycle used forced cleanup instead of read-only ownership observation.");
+			}
+			finally { stop(released.scheduler()); }
+		});
 		registry.add("08-work-cadence-sleeping-and-sink-isolation", _ -> testWorkCadence());
 		registry.add("09-fair-cohort-and-once-per-pulse", _ -> testFairness());
 		registry.add("10-overload-cadence-only-no-demotion", _ -> testOverload());

@@ -116,6 +116,7 @@ public final class PhantomScheduler
 		MATERIALIZE,
 		DEMATERIALIZE,
 		RECLAIM_SOFT,
+		OBSERVE_LIFECYCLE_RELEASE,
 		RETRY_MATERIALIZATION_CLEANUP,
 		RETRY_DEMATERIALIZATION_CLEANUP
 	}
@@ -1025,7 +1026,9 @@ public final class PhantomScheduler
 			if (!slot._explicitRetry)
 			{
 				slot._transitionStatus = PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY;
-				return null;
+				// Native ownership may finish its own accepted cleanup after this boundary failed.
+				// Observe release on the existing bounded retry cadence; never request cleanup automatically.
+				return logicalNow >= slot._retryDueNanos ? new TransitionPlan(slot._profileId, slot._generation, requested, BoundaryAction.OBSERVE_LIFECYCLE_RELEASE) : null;
 			}
 			final BoundaryAction retryAction = slot._retainedFailureKind == RetainedFailureKind.MATERIALIZATION ? BoundaryAction.RETRY_MATERIALIZATION_CLEANUP : BoundaryAction.RETRY_DEMATERIALIZATION_CLEANUP;
 			slot._explicitRetry = false;
@@ -1108,6 +1111,8 @@ public final class PhantomScheduler
 				}
 				case DEMATERIALIZE -> _materializationPort.dematerialize(plan._profileTargetId);
 				case RECLAIM_SOFT -> _materializationPort.reclaimSoft(plan._profileTargetId);
+				case OBSERVE_LIFECYCLE_RELEASE -> !_materializationPort.hasLifecycleOwnership(plan._profileTargetId) && !_materializationPort.isMaterialized(plan._profileTargetId)
+					? TransitionOutcome.success() : TransitionOutcome.deferred("lifecycle.still_owned");
 				case RETRY_MATERIALIZATION_CLEANUP, RETRY_DEMATERIALIZATION_CLEANUP ->
 				{
 					final TransitionOutcome outcome = _materializationPort.retryCleanup(plan._profileTargetId);
@@ -1141,10 +1146,16 @@ public final class PhantomScheduler
 		{
 			outcome = TransitionOutcome.transientBlock();
 		}
+		if (plan._action == BoundaryAction.OBSERVE_LIFECYCLE_RELEASE && outcome.outcome() != Outcome.SUCCESS)
+		{
+			slot._transitionStatus = PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY;
+			slot._retryDueNanos = saturatingAdd(logicalNow, millisToNanos(_policy.transitionRetryMaximumMillis()));
+			return;
+		}
 		slot._lastTransitionReason = outcome.reason();
 		if (outcome.outcome() == Outcome.SUCCESS)
 		{
-			if ((plan._action == BoundaryAction.RETRY_MATERIALIZATION_CLEANUP) || (plan._action == BoundaryAction.RETRY_DEMATERIALIZATION_CLEANUP))
+			if ((plan._action == BoundaryAction.RETRY_MATERIALIZATION_CLEANUP) || (plan._action == BoundaryAction.RETRY_DEMATERIALIZATION_CLEANUP) || (plan._action == BoundaryAction.OBSERVE_LIFECYCLE_RELEASE))
 			{
 				final PhantomActivityState previous = slot._effectiveState;
 				final PhantomActivityState currentRequestedState = slot._unregisterRequested ? PhantomActivityState.SLEEPING : requestedStateLocked(slot);
@@ -1197,7 +1208,7 @@ public final class PhantomScheduler
 			slot._retainedFailureKind = ((plan._action == BoundaryAction.MATERIALIZE) || (plan._action == BoundaryAction.RETRY_MATERIALIZATION_CLEANUP)) ? RetainedFailureKind.MATERIALIZATION : RetainedFailureKind.DEMATERIALIZATION;
 			slot._transitionStatus = PhantomActivityTransitionStatus.RETAINED_FAILURE_REQUIRES_EXPLICIT_RETRY;
 			slot._lastResult = PhantomActivityResultCategory.TRANSITION_RETAINED_FAILURE;
-			slot._retryDueNanos = 0;
+			slot._retryDueNanos = saturatingAdd(logicalNow, millisToNanos(_policy.transitionRetryMaximumMillis()));
 			_metrics.recordActivityTransitionRetainedFailure();
 			return;
 		}
@@ -1260,7 +1271,7 @@ public final class PhantomScheduler
 			return;
 		}
 		long nextDue = Long.MAX_VALUE;
-		if (((slot._transitionStatus == PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED) || (slot._transitionStatus == PhantomActivityTransitionStatus.DEFERRED)) && (slot._retryDueNanos > 0))
+		if (((slot._transitionStatus == PhantomActivityTransitionStatus.TRANSIENTLY_BLOCKED) || (slot._transitionStatus == PhantomActivityTransitionStatus.DEFERRED) || (slot._retainedFailureKind != RetainedFailureKind.NONE)) && (slot._retryDueNanos > 0))
 		{
 			nextDue = Math.min(nextDue, slot._retryDueNanos);
 		}

@@ -102,6 +102,30 @@ import org.l2jmobius.gameserver.taskmanagers.GameTimeTaskManager;
 
 public final class L2jCombatBackend implements PhantomCombatBackend
 {
+	/** The same native ItemSkills boundary as manual potion use; no direct vitality mutation. */
+	public static boolean useOwnedHealingPotion(Player player)
+	{
+		if (player == null || player.isAlikeDead() || player.isTeleporting() || player.getEffectList().getBuffs().stream().anyMatch(info -> info.getSkill().isHealingPotionSkill())) { return false; }
+		final var candidates = player.getInventory().getItems().stream().filter(item -> item.getCount() > 0 && item.getOwnerId() == player.getObjectId() && item.getItemLocation() == ItemLocation.INVENTORY
+			&& item.getEtcItem() != null && "ItemSkills".equals(item.getEtcItem().getHandlerName()) && item.getTemplate().getSkills() != null
+			&& java.util.Arrays.stream(item.getTemplate().getSkills()).anyMatch(holder -> holder.getSkill() != null && holder.getSkill().isHealingPotionSkill()))
+			.sorted(Comparator.comparingInt((Item item) -> java.util.Arrays.stream(item.getTemplate().getSkills()).map(SkillHolder::getSkill).filter(Objects::nonNull).filter(Skill::isHealingPotionSkill).mapToInt(Skill::getAbnormalLevel).max().orElse(0)).reversed().thenComparingInt(Item::getId)).limit(32).toList();
+		for (var item : candidates)
+		{
+			final var skill = java.util.Arrays.stream(item.getTemplate().getSkills()).map(SkillHolder::getSkill).filter(Objects::nonNull).filter(Skill::isHealingPotionSkill).findFirst().orElseThrow();
+			if (player.getItemRemainingReuseTime(item.getObjectId()) > 0 || player.getReuseDelayOnGroup(item.getSharedReuseGroup()) > 0 || player.getSkillRemainingReuseTime(skill.getReuseHashCode()) > 0
+				|| !player.getInventory().canManipulateWithItemId(item.getId()) || !item.getTemplate().checkCondition(player, player, false)) { continue; }
+			final var handler = ItemHandler.getInstance().getHandler(item.getEtcItem());
+			if (handler == null || !"ItemSkills".equals(handler.getClass().getSimpleName())) { continue; }
+			final long before = player.getInventory().getInventoryItemCount(item.getId(), -1);
+			final boolean used = handler.onItemUse(player, item, false);
+			if (used && item.getReuseDelay() > 0) { player.addTimeStampItem(item, item.getReuseDelay()); }
+			if (used && player.getInventory().getInventoryItemCount(item.getId(), -1) < before && player.isAffectedBySkill(skill.getId())) { return true; }
+			if (used) { return false; }
+		}
+		return false;
+	}
+
 	private static final int MAXIMUM_ACQUISITION_DISTANCE = 2000;
 	private static final int MAXIMUM_LOOT_DISTANCE = 300;
 	private static final long MINIMUM_SERVITOR_SKILL_ATTEMPT_NANOS = 3_000_000_000L;
@@ -996,6 +1020,8 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			final CpPotionOutcome outcome = used && (countAfter < countBefore) && ((cpAfter > cpBefore) || (observedReuse > 0)) ? CpPotionOutcome.OBSERVED_SUCCESS : CpPotionOutcome.REJECTED;
 			return new CpPotionUse(outcome, itemId, countBefore, countAfter, cpBefore, cpAfter, observedReuse);
 		}
+
+		@Override public boolean useHealingPotion() { return useOwnedHealingPotion(_player); }
 
 		@Override
 		public ShotOutcome activateShot(PhantomCombatMode mode)

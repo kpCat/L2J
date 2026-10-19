@@ -102,6 +102,8 @@ public interface PhantomCombatActorLease extends AutoCloseable
 		return null;
 	}
 
+	default boolean useHealingPotion() { return false; }
+
 	default AcquisitionTargetSnapshot acquisitionTargetSnapshot(int targetObjectId)
 	{
 		return null;

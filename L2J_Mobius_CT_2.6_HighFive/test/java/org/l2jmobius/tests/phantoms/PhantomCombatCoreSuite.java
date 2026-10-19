@@ -249,6 +249,27 @@ public final class PhantomCombatCoreSuite implements PhantomTestSuite
 			final ActorSnapshot snapshot = new ActorSnapshot(10, 88, 0, 100, 100, 100, 100, 150, 100, false, false, false, false, false, 0, "IDLE", 0, 0);
 			PhantomAssertions.assertTrue(Double.compare(snapshot.currentCp(), 150) == 0, "Snapshot normalized exact canonical CP.");
 		});
+		registry.add("061-content-combat-stall-is-bounded-by-real-damage-progress", _ ->
+		{
+			final Fixture stalled = fixture(1);
+			try
+			{
+				PhantomAssertions.assertTrue(stalled.service.startContentSession(new PhantomCombatRequest(1, 100, PhantomCombatMode.MELEE_PHYSICAL, false, false, 120_000, stalled.token), "questinstance.class.warrior-q401").accepted(), "Stall input did not start.");
+				stalled.dispatcher.runNext(); stalled.clock.set(TimeUnit.SECONDS.toNanos(21) + 1); stalled.dispatcher.runNext();
+				PhantomAssertions.assertEquals(PhantomCombatResult.TARGET_LOST, stalled.service.find(1).orElseThrow().result(), "Content repeated ineffective attacks for its full timeout instead of yielding the unreachable target.");
+			}
+			finally { stalled.stop(); }
+			final Fixture productive = fixture(1);
+			try
+			{
+				PhantomAssertions.assertTrue(productive.service.startContentSession(new PhantomCombatRequest(1, 100, PhantomCombatMode.MELEE_PHYSICAL, false, false, 120_000, productive.token), "questinstance.class.warrior-q401").accepted(), "Productive control did not start.");
+				productive.dispatcher.runNext(); productive.clock.set(TimeUnit.SECONDS.toNanos(19) + 1);
+				productive.lease.target = new TargetSnapshot(100, 20001, 0, 99, 100, false, false, true, true, false, true, true, 10, false, true);
+				productive.dispatcher.runNext(); productive.clock.set(TimeUnit.SECONDS.toNanos(38) + 1); productive.dispatcher.runNext();
+				PhantomAssertions.assertEquals(PhantomCombatResult.ACTIVE, productive.service.find(1).orElseThrow().result(), "Actual native HP progress did not renew the bounded encounter progress window.");
+			}
+			finally { productive.stop(); }
+		});
 	}
 
 	private static void testModeMapping()

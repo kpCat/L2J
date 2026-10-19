@@ -255,6 +255,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			registry.add("16a2-native-career-missing-return-weapon061", context -> careerFinishCheckpoint061(context, true));
 			registry.add("16b-native-accepted-career-cold-resume061", this::careerColdResume061);
 			registry.add("16c-native-career-rest-before-next-combat061", this::careerNativeRest061);
+			registry.add("16e-native-career-healing-supply-compatibility061", this::careerHealingSupply061);
+			registry.add("16f-native-career-consumes-owned-healing-potion061", this::careerHealingCombat061);
 			registry.add("17-native-career-combat-stock-drain061", this::careerCombatStop061);
 			return;
 		}
@@ -336,6 +338,44 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			if (completed.get().route() != null) { found = true; break; }
 		}
 		PhantomAssertions.assertTrue(found, "The observed Q401 field has no complete reverse native WALK corridor to any supported Simplon approach within existing bounds.");
+	}
+
+	private void careerHealingSupply061(PhantomTestContext context)
+	{
+		final var catalog = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog();
+		final var potion = org.l2jmobius.gameserver.data.xml.ItemData.getInstance().getTemplate(1539);
+		PhantomAssertions.assertTrue(potion != null && java.util.Arrays.stream(potion.getSkills()).anyMatch(holder -> holder.getSkill() != null && holder.getSkill().isHealingPotionSkill())
+			&& org.l2jmobius.gameserver.phantoms.commerce.L2jPhantomSupplyJourney.compatible(_player, potion), "Stock native HP_RECOVER potion is rejected by production HP preparation.");
+		PhantomAssertions.assertFalse(catalog.findBuyOffers(1539, 0, 256).values().isEmpty(), "Stock healing preparation has no native buy source.");
+		context.record("career061.healingSupply", "native1539/2037 HP_RECOVER/ItemTemplate/ItemSkills is compatible with production preparation and actual buy source; immutable Commerce hash unchanged; no inventory/quest/SP changes");
+	}
+
+	private void careerHealingCombat061(PhantomTestContext context) throws Exception
+	{
+		restartService(); preparePlayer(0, 0, 20); ensureWeapon(68);
+		_player.getInventory().addItem(ItemProcessType.REWARD, 1539, 2, _player, this); // Separate finite native mechanism fixture, declared before combat; never B proof.
+		_player.setCurrentHp(_player.getMaxHp() * 0.55); _player.setInvul(false);
+		final var target = spawnMonster(20035); final long stock = itemCount(1539), exp = _player.getExp(), sp = _player.getSp();
+		try
+		{
+			final var started = _combat.startContentSession(new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest(_profile.profileId(), target.getObjectId(), org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, true, false, 30_000, NOT_CANCELLED), "questinstance.class.warrior-q401");
+			PhantomAssertions.assertTrue(started.status() == PhantomCombatService.StartStatus.ACCEPTED, "Independent healing combat fixture was not admitted.");
+			await(() -> itemCount(1539) == stock - 1 && _player.getEffectList().getBuffInfoBySkillId(2037) != null, "Career Combat ignored its owned native healing potion at55%HP.");
+			Thread.sleep(1500);
+			PhantomAssertions.assertEquals(stock - 1, itemCount(1539), "Active HP_RECOVER or native item/skill reuse consumed another potion.");
+			PhantomAssertions.assertFalse(_player.isDead(), "Native healing control died before observation.");
+			context.record("career061.healingCombat", "independent native20035/weapon68/Fighter20/55%HP/finite2x1539 before measurement; product ItemSkills consumed exactly1 and applied native2037; no direct HP grant; EXP=" + exp + "->" + _player.getExp() + ";SP=" + sp + "->" + _player.getSp() + "; mechanism only, not Q401/B");
+		}
+		finally
+		{
+			// Measurement has ended. Restore the next independent invulnerable fixture before waiting for natural effect expiry.
+			_player.setInvul(true);
+			_combat.cancel(_profile.profileId());
+			await(() -> _combat.find(_profile.profileId()).map(value -> value.result().terminal()).orElse(true), "Healing combat terminal cleanup did not settle.");
+			for (int attempt = 0; attempt < 10 && _combat.find(_profile.profileId()).isPresent(); attempt++) { _combat.consumeTerminal(_profile.profileId()); Thread.sleep(25); }
+			target.deleteMe();
+			await(() -> _player.getEffectList().getBuffInfoBySkillId(2037) == null, "Earned native healing effect did not expire naturally before fixture save.");
+		}
 	}
 
 	private void careerNativeDefense061(PhantomTestContext context) throws Exception
@@ -902,6 +942,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 			PhantomAssertions.assertTrue(disabled.start(), "Disabled policy control did not start.");
 			try { disabled.resumeAcceptedIntents(now); PhantomAssertions.assertEquals(0, disabledSignals.submits, "Disabled career policy resumed a Player."); }
 			finally { disabled.beginStop(); disabled.finishStop(); }
+			PhantomAssertions.assertTrue(_service.ownsAutonomousIntent(id, root), "Accepted career authority disappeared solely because its native Player was saved.");
 			_service.resumeAcceptedIntents(now);
 			PhantomAssertions.assertEquals(before + 1, _signals.submits, "An existing bound native quest journey lost its ACTIVE relevance after sameDB cold reload.");
 			_goals.store(id, root.withStatus(PhantomGoalStatus.ACTIVE)); // Revision changes; existing child cannot own it.
@@ -941,7 +982,11 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		final var owner = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) _player.getNativeWorkOwner();
 		final var started = _combat.startContentSession(new org.l2jmobius.gameserver.phantoms.combat.PhantomCombatRequest(id, first.getObjectId(), org.l2jmobius.gameserver.phantoms.combat.PhantomCombatMode.MELEE_PHYSICAL, true, false, 120_000, () -> false), "career061.stop.fixture");
 		PhantomAssertions.assertEquals(PhantomCombatService.StartStatus.ACCEPTED, started.status(), "Native stop fixture did not start actual Combat.");
-		await(() -> first.isDead() && _player.getExp() > before, "Native stop fixture has no earned kill/reward.");
+		try { await(() -> first.isDead() && _player.getExp() > before, "Native stop fixture has no earned kill/reward."); }
+		finally
+		{
+			context.record("career061.stopCombatObservation", "EXP=" + before + "->" + _player.getExp() + ";actorDead=" + _player.isAlikeDead() + ";sitting=" + _player.isSitting() + ";hp=" + _player.getCurrentHp() + ";nativeIntention=" + _player.getAI().getIntention() + ";targetHp=" + first.getCurrentHp() + ";targetDead=" + first.isDead() + ";targetDistance=" + _player.calculateDistance3D(first) + ";combat=" + _combat.find(id));
+		}
 		context.record("career061.normalCombatStopBefore", "earned=" + before + "->" + _player.getExp() + ";combat=" + _combat.find(id) + ";native=" + owner.snapshot());
 		_service.beginStop(); _combat.beginStop(); _navigation.beginStop();
 		try { await(_combat::finishStop, "Shared Combat did not stop its actual native action."); }
