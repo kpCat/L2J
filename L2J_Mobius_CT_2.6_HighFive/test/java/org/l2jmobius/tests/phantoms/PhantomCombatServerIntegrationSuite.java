@@ -696,6 +696,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					registry.add("061-career-native-field-return-without-learning-or-class-grant", context -> testNativeReturn061(context, true));
 					registry.add("061-career-native-town-return-without-class-grant", context -> testNativeReturn061(context, true, true));
 					registry.add("061-native-owned-walk-lifecycle-handoff-preserves-foreign-movement", context -> testNativeReturn061(context, true, false, true));
+					registry.add("061-native-town-learning-producer-retains-owner-and-sp-guards", context -> testAutonomousLearning060(context, true));
 				}
 				registry.add("03-autonomous-earned-learning-through-farm-decision", this::testAutonomousLearning060);
 				if (!Boolean.getBoolean("phantom.test.autonomousLearningGuards060")) { registry.add("04-native-earned-autonomous-paid-walk-return-and-resume", context ->
@@ -4786,11 +4787,22 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 
 	private void testAutonomousLearning060(PhantomTestContext context) throws Exception
 	{
+		testAutonomousLearning060(context, false);
+	}
+
+	private void testAutonomousLearning060(PhantomTestContext context, boolean townBase) throws Exception
+	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final var goals = new PhantomGoalStateStore(_repository);
 		_player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 20); _player.setSp(100);
 		_player.setCurrentHp(_player.getMaxHp()); _player.setCurrentMp(_player.getMaxMp());
-		prepareLearningField059(context);
+		if (townBase)
+		{
+			placeInstanceInput058(_player, -12787, 122779, GeoEngine.getInstance().getHeight(-12787, 122779, -3112));
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePreparationTown(_player), "Native learning preparation base is unavailable.");
+			context.record("journey061.townLearningInput", "Independent premeasurement native Gludio base, matching ordinary35 stuck condition; reuse existing HOLD/root/deadline/native store/SP conservation guards; no paid lesson or ordinary B claim");
+		}
+		else { prepareLearningField059(context); }
 		final var anchor = _topology.snapshot().anchorsByNode().values().stream().flatMap(List::stream).filter(value -> value.role() == org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.FARMING && value.point().instanceId() == 0).min(Comparator.comparingDouble(value -> Math.hypot(value.point().x() - _player.getX(), value.point().y() - _player.getY()))).orElseThrow();
 		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", Integer.toString(_combatPoint.npcId())), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, _combatPoint.npcId() + "@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture.learning.owner_guards", 1);
 		goals.insert(_profile.profileId(), root);
@@ -4802,6 +4814,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue(navigation.start(), "Autonomous learning navigation did not start.");
 		var journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> allowed.get());
 		journey.enableAutonomous(_repository, (profile, pauseDeadline) -> true, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults());
+		if (townBase) { journey.requireField((_, player) -> org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePreparationTown(player)); }
 		PhantomAssertions.assertTrue(journey.start(), "Autonomous learning journey did not start.");
 		try
 		{

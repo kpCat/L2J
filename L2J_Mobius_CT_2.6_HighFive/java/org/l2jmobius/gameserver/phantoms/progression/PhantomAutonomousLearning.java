@@ -17,7 +17,6 @@ import java.util.function.LongPredicate;
 import org.l2jmobius.gameserver.data.xml.SkillTreeData;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.skill.holders.SkillLearn;
-import org.l2jmobius.gameserver.model.zone.ZoneId;
 import org.l2jmobius.gameserver.phantoms.activity.PhantomActivityState;
 import org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundGoalSpec;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomCandidateRegistry;
@@ -104,7 +103,7 @@ final class PhantomAutonomousLearning
 			if (player.isAlikeDead() || player.isInParty() || player.isTeleporting() || player.hasPendingOwnedStore() || player.getInstanceId() != 0 || player.isChangingClass() || player.isTransformed() || player.isMounted()) { return Optional.empty(); }
 			// A future need may be selected during farming; its executor still waits for native combat to settle.
 			if (_defer.test(profileId, root)) { return Optional.empty(); }
-			if (player.isInsideZone(ZoneId.PEACE)) { return Optional.empty(); }
+			// The shared field admission also owns legitimate native preparation bases.
 			if (!_fieldReady.test(root, player)) { return Optional.empty(); }
 			final String facts = root.goalId() + ":" + root.revision() + ':' + player.getObjectId() + ':' + player.getActiveClass() + ':' + player.getClassIndex() + ':' + player.getLevel() + ':' + player.getSp();
 			if (facts.equals(cached.facts) && cached.nextCheck > now) { return Optional.ofNullable(cached.offer); }
