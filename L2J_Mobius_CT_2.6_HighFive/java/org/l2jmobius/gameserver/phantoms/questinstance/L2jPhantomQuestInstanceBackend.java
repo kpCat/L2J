@@ -227,12 +227,24 @@ public final class L2jPhantomQuestInstanceBackend implements PhantomQuestInstanc
 			final Player player = lease.player();
 			final double dx = (double) target.x() - player.getX(), dy = (double) target.y() - player.getY(), distance = Math.hypot(dx, dy);
 			if (distance <= 3000) { return List.of(); }
-			final int x = player.getX() + (int) Math.round(3000 * dx / distance), y = player.getY() + (int) Math.round(3000 * dy / distance);
 			final var geo = org.l2jmobius.gameserver.geoengine.GeoEngine.getInstance();
-			if (!geo.hasGeo(x, y)) { return List.of(); }
-			final int z = geo.getHeight(x, y, player.getZ());
-			final var waypoint = new Target(0, target.npcId(), x, y, z, target.instanceId(), player.calculateDistance3D(x, y, z), false);
-			return approaches(profileId, content, step, waypoint, requiredDistance, arrivalRadius);
+			final double bearing = Math.atan2(dy, dx);
+			final List<org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint> points = new ArrayList<>();
+			// A refused long projection must not keep selecting the same distant obstruction.
+			// Every alternative remains a free forward step proved by the existing native corridor.
+			for (int stride : new int[] {3000, 1500, 750, 375, 187})
+			{
+				for (double turn : stride >= 750 ? new double[] {0, -Math.PI / 6, Math.PI / 6, -Math.PI / 3, Math.PI / 3} : new double[] {0})
+				{
+					final int x = player.getX() + (int) Math.round(stride * Math.cos(bearing + turn)), y = player.getY() + (int) Math.round(stride * Math.sin(bearing + turn));
+					if (!geo.hasGeo(x, y)) { continue; }
+					final int z = geo.getHeight(x, y, player.getZ());
+					if (player.calculateDistance3D(x, y, z) > 3200 || Math.sqrt(Math.pow((double) target.x() - x, 2) + Math.pow((double) target.y() - y, 2) + Math.pow((double) target.z() - z, 2)) >= player.calculateDistance3D(target.x(), target.y(), target.z())) { continue; }
+					final var point = new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(x, y, z, target.instanceId());
+					if (!points.contains(point)) { points.add(point); }
+				}
+			}
+			return List.copyOf(points);
 		}
 	}
 

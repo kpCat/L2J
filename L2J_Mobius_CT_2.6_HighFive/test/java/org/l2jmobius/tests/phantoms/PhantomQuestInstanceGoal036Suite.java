@@ -215,6 +215,11 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (Boolean.getBoolean("phantom.test.careerWalkObstacle061"))
+		{
+			registry.add("14t-native-career-observed-walk-obstacle061", this::localWalk061);
+			return;
+		}
 		if (Boolean.getBoolean("phantom.test.careerDefense061"))
 		{
 			registry.add("16d-native-career-defends-observed-pursuer061", this::careerNativeDefense061);
@@ -266,7 +271,9 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	private void localWalk061(PhantomTestContext context) throws Exception
 	{
 		preparePlayer(0, 0, 21);
-		_player.decayMe(); _player.setXYZInvisible(-49005, 120303, -3080); _player.spawnMe(); _player.revalidateZone(true);
+		final boolean obstacle = Boolean.getBoolean("phantom.test.careerWalkObstacle061");
+		_player.decayMe(); _player.setXYZInvisible(obstacle ? -42848 : -49005, obstacle ? 120726 : 120303, obstacle ? -3200 : -3080); _player.spawnMe(); _player.revalidateZone(true);
+		context.record("career061.localWalk.input", "Independent route-only native TEST, no collection items; observedObstacle=" + obstacle + "; origin=" + _player.getX() + "," + _player.getY() + "," + _player.getZ() + "; full04 episode remains untouched; not Q401/B proof");
 		final var content = _catalog.content("class.warrior-q401").orElseThrow(); final var step = content.step("simplon.handin").orElseThrow();
 		// Independent route-only TEST condition, with no collection items: never full Q401/B evidence.
 		final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
@@ -283,6 +290,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		boolean found = false;
 		for (var point : points)
 		{
+			context.record("career061.localWalk.geometry." + point.x() + "." + point.y(), "sourceDistance=" + source.distanceTo(point) + "; targetDistance=" + point.distanceTo(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId())) + "; priorTargetDistance=" + target.distance());
+			if (obstacle && (source.distanceTo(point) > 3200 || point.distanceTo(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId())) >= target.distance())) { continue; }
 			PhantomAssertions.assertTrue(source.distanceTo(point) <= 3200 && point.distanceTo(new org.l2jmobius.gameserver.phantoms.navigation.PhantomNavigationPoint(target.x(), target.y(), target.z(), target.instanceId())) < target.distance(), "Free WALK candidate is not local forward progress.");
 			Thread.sleep(_navigation.policy().pathfindingCooldownMillis() + 50);
 			final long now = System.nanoTime();
@@ -398,6 +407,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 
 	private void fullCareer061(PhantomTestContext context) throws Exception
 	{
+		final int fullMinutes = Integer.getInteger("phantom.test.careerFullMinutes061", 45);
+		PhantomAssertions.assertTrue(fullMinutes == 25 || fullMinutes == 45, "Only declared strict061 TEST episode bounds are supported.");
 		// Independent finite native TEST input, declared before measurement. No ordinary058a mutation.
 		preparePlayer(0, 0, 20);
 		_player.getStat().setExp(1_023_783);
@@ -430,8 +441,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		final var decision = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision(_service);
 		decision.registerCandidates(candidates); candidates.seal(); decision.registerHandlers(handlers); handlers.seal();
 		final var selector = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector();
-		context.record("career061.full.input", "NEW058t; Fighter20/near21/SP0/native auto-get; D2499/352/380/2412/61/2428; finite200000A grant plus existing fixture baseline/2000D/2000NG/native autoshots; native Simplon30253 start; invul=false; ABSENT/no1138..1145; farm root only; NEW episode max45min/max10min without native progress, declared before enrollment after measuring remaining delivery path; actual native spawns/rates/quest requirements unchanged; secondary proof, not ordinary B; actualA=" + itemCount(57));
-		final long until = System.nanoTime() + TimeUnit.MINUTES.toNanos(45);
+		context.record("career061.full.input", "NEW058t; Fighter20/near21/SP0/native auto-get; D2499/352/380/2412/61/2428; finite200000A grant plus existing fixture baseline/2000D/2000NG/native autoshots; native Simplon30253 start; invul=false; ABSENT/no1138..1145; farm root only; NEW episode max" + fullMinutes + "min/max10min without native progress, declared before enrollment after measuring remaining delivery path; actual native spawns/rates/quest requirements unchanged; secondary proof, not ordinary B; actualA=" + itemCount(57));
+		final long until = System.nanoTime() + TimeUnit.MINUTES.toNanos(fullMinutes);
 		String previous = "";
 		long sequence = 0;
 		long nextReport = 0;

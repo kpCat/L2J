@@ -1,5 +1,5 @@
 param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards,[switch]$LivingRelocate,[switch]$LivingSupply,[switch]$SupplyGuards,[switch]$LivingOfflineStore,[switch]$SupplyReturnGuards,[switch]$SupplyManufactureGuards,[switch]$LivingManufacture,[switch]$LivingGatekeeper,[switch]$SupplyGatekeeperGuards,[switch]$SupplyResumeGuards,[switch]$LivingResumeSave,[switch]$LivingResumeContinue,[ValidatePattern('^living-resume060-[1-9][0-9]?$')][string]$ResumeReceipt='living-resume060-1',[switch]$DeathCpGuards,[switch]$PetSupport,[switch]$SupplyAmmunitionGuards,[switch]$LivingBow,[switch]$AreaAggro,[switch]$AggroReadiness,[switch]$Campaign061,[switch]$CareerProducer,[switch]$Frozen061,
- [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061)
+ [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061,[switch]$CareerWalkObstacle061,[ValidateSet(25,45)][int]$CareerFullMinutes061=45)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -20,8 +20,10 @@ if ($Campaign061 -and ($Campaign060 -or !($frozenMatch061 -or ($Mode -ceq 'quest
 if ($Campaign061 -and $SupplyGuards -and @($PSBoundParameters.Keys | Where-Object {$_ -cnotin @('Mode','Seed','Label','Campaign061','CleanCandidate','SupplyGuards','SupplyAmmunitionGuards','SupplyReturnGuards','SupplyResumeGuards','SupplyManufactureGuards','SupplyGatekeeperGuards')}).Count) {throw 'TASK061 supply continuation has an unrelated flag'}
 if ($CareerProducer -and !$Campaign061) {throw 'Career061 input requires explicit TASK061 authority'}
 if ($CareerFull061 -and (!$Campaign061 -or !$CareerProducer -or $Mode -cne 'quest-instance-goal036' -or $Seed -ne 36003601)) {throw 'Full career requires separate exact061 producer mode/seed'}
+if($PSBoundParameters.ContainsKey('CareerFullMinutes061') -and !$CareerFull061){throw 'Strict new episode bound requires full061 TEST mode'}
 if ($CareerRouteProbe061 -and (!$Campaign061 -or !$CareerProducer -or $CareerFull061 -or $Mode -cne 'quest-instance-goal036' -or $Seed -ne 36003601)) {throw 'Route probe requires separate exact061 producer mode/seed'}
 if ($CareerWalkStep061 -and !$CareerRouteProbe061) {throw 'Walk step requires exact061 separate route probe'}
+if ($CareerWalkObstacle061 -and (!$CareerWalkStep061 -or $CareerDefense061 -or $CleanCandidate)) {throw 'Observed obstacle requires separate focused061 local walk TEST build'}
 if ($CareerDefense061 -and (!$Campaign061 -or !$CareerProducer -or $CareerFull061 -or $CareerRouteProbe061 -or $CareerWalkStep061 -or $Mode -cne 'quest-instance-goal036' -or $Seed -ne 36003601)) {throw 'Native defense requires separate exact061 producer mode/seed'}
 if ($Campaign061 -and (Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object CommandLine -Match 'World-Career-061-candidate|Living-060-candidate|M3-M7-059-candidate|task061')) {throw 'Own061 or protected059/060 JVM active; sequential only'}
 if ($AutonomousLearning -and ((!$Campaign060 -and !$Campaign061) -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)) {throw 'Autonomous learning requires exact060/061 continuation of native058 mode/seed'}
@@ -46,21 +48,34 @@ if ($Campaign061) {
  $jar059=Join-Path $build059 'dist/libs/GameServer.jar'
  if ($CleanCandidate) {
   $jar059='D:\PhantomWorld\World-Career-061-candidate\libs\GameServer.jar'
-  $compiled061=Join-Path $hf059 '.phantom-local/contract058a/build/release061/compiled/dist/libs/GameServer.jar'
+  $compiledRoot061=Join-Path $hf059 '.phantom-local/contract058a/build/release061/compiled'
+  $package061=Get-Content -LiteralPath 'D:\PhantomWorld\World-Career-061-candidate\BUILD_INFO.json' -Raw | ConvertFrom-Json
+  if($null -ne $package061.PSObject.Properties['cleanCompiledRoot061']){
+   $allowedRoot061=Join-Path $hf059 '.phantom-local/contract058a/build/release061-correction1/compiled'
+   if($package061.cleanCompiledRoot061 -cne $allowedRoot061){throw 'Unknown corrective clean061 build root'}
+   $compiledRoot061=$allowedRoot061
+  }
+  $compiled061=Join-Path $compiledRoot061 'dist/libs/GameServer.jar'
   if((Get-FileHash -LiteralPath $jar059).Hash -cne (Get-FileHash -LiteralPath $compiled061).Hash){throw 'Exact061 candidate is not its clean whole compiled JAR'}
  }
  $report059=Join-Path $hf059 ('.phantom-local/contract058t/reports/task061/'+$Label)
  $log059=Join-Path $hf059 ('.phantom-local/contract058a/task061/'+$Label+'.log')
 }
 if ((Test-Path -LiteralPath $report059) -or (Test-Path -LiteralPath $log059)) { throw 'Evidence exists; no overwrite' }
-$testBuild059=if($Campaign061 -and $CleanCandidate){Join-Path $hf059 '.phantom-local/contract058a/build/release061/compiled'}elseif($Campaign061){Join-Path $hf059 '.phantom-local/contract058a/task061/build'}elseif($CleanCandidate -and $PvpFlowOnly -and !$Campaign060){Join-Path $hf059 '.phantom-local/contract058a/task059/build'}else{$build059}
+$testBuild059=if($Campaign061 -and $CleanCandidate){$compiledRoot061}elseif($Campaign061){Join-Path $hf059 '.phantom-local/contract058a/task061/build'}elseif($CleanCandidate -and $PvpFlowOnly -and !$Campaign060){Join-Path $hf059 '.phantom-local/contract058a/task059/build'}else{$build059}
 $classpath059="$jar059;$testBuild059\phantom-test\bin;$testBuild059\phantom-test\resources;$hf059\dist\libs\*"
+if($CareerWalkObstacle061){
+ $focused061=Join-Path $hf059 '.phantom-local/contract058a/task061/route-obstacle-bin'
+ if(!(Test-Path -LiteralPath (Join-Path $focused061 'source.sha256')) -or [IO.File]::ReadAllText((Join-Path $focused061 'source.sha256')).Trim() -cne (Get-FileHash -LiteralPath (Join-Path $hf059 'test/java/org/l2jmobius/tests/phantoms/PhantomQuestInstanceGoal036Suite.java')).Hash){throw 'Focused route helper source provenance differs'}
+ $classpath059="$jar059;$focused061;$testBuild059\phantom-test\bin;$testBuild059\phantom-test\resources;$hf059\dist\libs\*"
+}
 $args059=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Dstderr.encoding=UTF-8',"-Dphantom.module.root=$hf059","-Dphantom.contract058.semantic.jar=$jar059","-Dphantom.test.reports=$report059","-Dphantom.test.config=$hf059\.phantom-local\contract058t\test\Database.test.ini","-Dphantom.contract058.manifest=$hf059\.phantom-local\contract058t\test\owned.properties")
 $args059+='-Dphantom.test.freshIdentities059=true'
 if ($CareerProducer) {$args059+='-Dphantom.test.careerProducer061=true'}
-if ($CareerFull061) {$args059+='-Dphantom.test.careerFull061=true'}
+if ($CareerFull061) {$args059+='-Dphantom.test.careerFull061=true';$args059+=('-Dphantom.test.careerFullMinutes061='+$CareerFullMinutes061)}
 if ($CareerRouteProbe061) {$args059+='-Dphantom.test.careerRouteProbe061=true'}
 if ($CareerWalkStep061) {$args059+='-Dphantom.test.careerWalkStep061=true'}
+if ($CareerWalkObstacle061) {$args059+='-Dphantom.test.careerWalkObstacle061=true'}
 if ($CareerDefense061) {$args059+='-Dphantom.test.careerDefense061=true'}
 if ($Mode -ceq 'lifecycle-completion027') {
  if (!$Campaign061 -or $Seed -ne 27002701) {throw 'Owned career lifecycle requires exact061 mode/seed'}
