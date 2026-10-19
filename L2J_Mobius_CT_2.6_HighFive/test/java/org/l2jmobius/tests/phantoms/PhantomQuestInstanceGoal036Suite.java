@@ -215,6 +215,11 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 	@Override
 	public void register(PhantomTestRegistry registry)
 	{
+		if (Boolean.getBoolean("phantom.test.careerDefense061"))
+		{
+			registry.add("16d-native-career-defends-observed-pursuer061", this::careerNativeDefense061);
+			return;
+		}
 		if (Boolean.getBoolean("phantom.test.careerRouteProbe061"))
 		{
 			if (Boolean.getBoolean("phantom.test.careerWalkStep061"))
@@ -324,6 +329,47 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		PhantomAssertions.assertTrue(found, "The observed Q401 field has no complete reverse native WALK corridor to any supported Simplon approach within existing bounds.");
 	}
 
+	private void careerNativeDefense061(PhantomTestContext context) throws Exception
+	{
+		restartService(); preparePlayer(0, 0, 20); ensureWeapon(2499); _player.rewardSkills();
+		PhantomAssertions.assertFalse(_player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE), "Native pursuer fixture must be outside peace.");
+		final var quest = ScriptManager.getInstance().getQuest(401).getQuestState(_player, true);
+		quest.setState(org.l2jmobius.gameserver.model.script.State.STARTED); quest.setCond(3, false);
+		installGoal("class.warrior-q401", PhantomQuestInstanceService.CLASS_GOAL_TYPE);
+		final var pursuer = spawnMonster(20035);
+		final var nativeBackend = new L2jCombatBackend(_materialization, () -> _knowledge.query(), () -> _progression.catalog());
+		try (var actor = nativeBackend.tryAcquireActor(_profile.profileId()))
+		{
+			PhantomAssertions.assertTrue(actor != null && actor.observedAttackers(16).stream().noneMatch(value -> value.targetObjectId() == pursuer.getObjectId()), "An idle native Monster was mislabeled as a pursuer.");
+		}
+		_player.setInvul(false);
+		final double hp = _player.getCurrentHp();
+		pursuer.addDamageHate(_player, 0, 100); pursuer.setTarget(_player); pursuer.getAI().setIntention(org.l2jmobius.gameserver.ai.Intention.ATTACK, _player);
+		pursuer.doAttack(_player);
+		try
+		{
+			await(() -> _player.getCurrentHp() < hp && pursuer.getTarget() == _player && pursuer.getHating(_player) > 0, "Independent native pursuer did not produce actual damage/target/hate evidence.");
+			try (var actor = nativeBackend.tryAcquireActor(_profile.profileId()))
+			{
+				PhantomAssertions.assertTrue(actor != null && actor.observedAttackers(16).stream().anyMatch(value -> value.targetObjectId() == pursuer.getObjectId()), "Native Combat missed a real damage/target/hate pursuer because Player attackBy is empty.");
+			}
+			final long exp = _player.getExp(), sp = _player.getSp();
+			final var root = _goals.load(_profile.profileId()).orElseThrow();
+			final var result = advance(PhantomActivityState.ACTIVE);
+			context.record("career061.defense.input", "Independent mechanism-only native TEST: own new20035 on the existing non-peace field; real native damage/target/hate before measurement; declared cond3/no quest collection grants; no new goal after enrollment; not full Q401.");
+			PhantomAssertions.assertTrue(_combat.find(_profile.profileId()).filter(value -> value.targetObjectId() == pursuer.getObjectId()).isPresent(), "Class journey ignored its actual native pursuer and continued navigation: " + result);
+			await(() -> pursuer.isDead() && _player.getExp() > exp, "Defensive native Combat did not earn a real kill/reward.");
+			drainCombat("career061 native travel defense");
+			PhantomAssertions.assertTrue(quest.getCond() == 3 && itemCount(1140) == 0 && _player.getSp() > sp && _goals.load(_profile.profileId()).orElseThrow().equals(root), "Defensive continuation rewrote quest/root or synthesized quest swords.");
+			context.record("career061.defense", "actual native damage -> current pursuer Combat -> kill/reward; EXP=" + exp + "->" + _player.getExp() + "; SP=" + sp + "->" + _player.getSp() + "; cond3/root/swords0 conserved");
+		}
+		finally
+		{
+			context.record("career061.defense.observed", "hp=" + hp + "->" + _player.getCurrentHp() + ";dead=" + _player.isDead() + ";invul=" + _player.isInvul() + ";attackBy=" + _player.getAttackByList() + ";pursuerDead=" + pursuer.isDead() + ";pursuerIntention=" + pursuer.getAI().getIntention());
+			pursuer.deleteMe();
+		}
+	}
+
 	private void careerNativeRest061(PhantomTestContext context) throws Exception
 	{
 		restartService();
@@ -384,8 +430,8 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 		final var decision = new org.l2jmobius.gameserver.phantoms.questinstance.PhantomQuestInstanceDecision(_service);
 		decision.registerCandidates(candidates); candidates.seal(); decision.registerHandlers(handlers); handlers.seal();
 		final var selector = new org.l2jmobius.gameserver.phantoms.decision.PhantomUtilitySelector();
-		context.record("career061.full.input", "NEW058t; Fighter20/near21/SP0/native auto-get; D2499/352/380/2412/61/2428; finite200000A grant plus existing fixture baseline/2000D/2000NG/native autoshots; native Simplon30253 start; invul=false; ABSENT/no1138..1145; farm root only; max92min/max10min without native progress; actual native spawns/rates/quest requirements unchanged; secondary proof, not ordinary B; actualA=" + itemCount(57));
-		final long until = System.nanoTime() + TimeUnit.MINUTES.toNanos(92);
+		context.record("career061.full.input", "NEW058t; Fighter20/near21/SP0/native auto-get; D2499/352/380/2412/61/2428; finite200000A grant plus existing fixture baseline/2000D/2000NG/native autoshots; native Simplon30253 start; invul=false; ABSENT/no1138..1145; farm root only; NEW episode max45min/max10min without native progress, declared before enrollment after measuring remaining delivery path; actual native spawns/rates/quest requirements unchanged; secondary proof, not ordinary B; actualA=" + itemCount(57));
+		final long until = System.nanoTime() + TimeUnit.MINUTES.toNanos(45);
 		String previous = "";
 		long sequence = 0;
 		long nextReport = 0;
@@ -899,6 +945,7 @@ public final class PhantomQuestInstanceGoal036Suite implements PhantomTestSuite
 
 	private void strictCatalog(PhantomTestContext context) throws Exception
 	{
+		Files.createDirectories(context.reportsDirectory());
 		final Path catalogPath = context.moduleRoot().resolve("dist/game/data/phantoms/quests/high-five-supported-content-v1.xml");
 		final Path sourceRoot = context.moduleRoot().resolve("dist/game");
 		final PhantomQuestInstanceCatalog catalog = PhantomQuestInstanceCatalog.load(catalogPath, sourceRoot);

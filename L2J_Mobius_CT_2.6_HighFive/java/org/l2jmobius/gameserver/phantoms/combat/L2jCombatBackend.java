@@ -792,9 +792,9 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			final TreeMap<Integer, ThreatObservation> observations = new TreeMap<>();
 			final ActorSnapshot actor = actorSnapshot();
-			for (Creature creature : _player.getAttackByList())
+			for (Creature creature : World.getInstance().getVisibleObjectsInRange(_player, Monster.class, MAXIMUM_ACQUISITION_DISTANCE))
 			{
-				if ((creature instanceof Monster monster) && (monster.getTarget() == _player))
+				if ((creature instanceof Monster monster) && (monster.getTarget() == _player) && (monster.getHating(_player) > 0 || _player.getAttackByList().contains(monster)))
 				{
 					final TargetSnapshot target = targetSnapshot(monster);
 					if ((target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))
@@ -824,9 +824,9 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 			}
 			final TreeMap<Integer, ThreatObservation> observations = new TreeMap<>();
 			final ActorSnapshot actor = actorSnapshot();
-			for (Creature creature : protectedPlayer.getAttackByList())
+			for (Creature creature : World.getInstance().getVisibleObjectsInRange(protectedPlayer, Monster.class, MAXIMUM_ACQUISITION_DISTANCE))
 			{
-				if ((creature instanceof Monster monster) && (monster.getTarget() == protectedPlayer))
+				if ((creature instanceof Monster monster) && (monster.getTarget() == protectedPlayer) && (monster.getHating(protectedPlayer) > 0 || protectedPlayer.getAttackByList().contains(monster)))
 				{
 					final TargetSnapshot target = targetSnapshot(monster);
 					if ((target != null) && target.validFor(actor, MAXIMUM_ACQUISITION_DISTANCE))

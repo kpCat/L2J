@@ -717,7 +717,18 @@ public final class PhantomCombatService
 	/** Read-only native legality before a party yields its own route to an offensive intent. */
 	public Optional<TargetSnapshot> observeNormalTarget(long profileId, int targetObjectId)
 	{
-		if ((profileId <= 0) || (targetObjectId <= 0))
+		return observeNormalTarget(profileId, targetObjectId, false);
+	}
+
+	/** Same short native observation boundary, using an actually observed PvE pursuer. */
+	public Optional<TargetSnapshot> observeNativePursuer(long profileId)
+	{
+		return observeNormalTarget(profileId, 0, true);
+	}
+
+	private Optional<TargetSnapshot> observeNormalTarget(long profileId, int targetObjectId, boolean selectPursuer)
+	{
+		if ((profileId <= 0) || (!selectPursuer && targetObjectId <= 0))
 		{
 			return Optional.empty();
 		}
@@ -745,7 +756,8 @@ public final class PhantomCombatService
 			counted = true;
 			_metrics.leaseAcquired();
 			final ActorSnapshot actor = lease.actorSnapshot();
-			final TargetSnapshot target = lease.targetSnapshot(targetObjectId);
+			final int selected = selectPursuer ? boundedAttackers(lease.observedAttackers(_policy.maximumObservedAttackers())).stream().mapToInt(ThreatObservation::targetObjectId).findFirst().orElse(0) : targetObjectId;
+			final TargetSnapshot target = selected > 0 ? lease.targetSnapshot(selected) : null;
 			return (actor != null) && !actor.dead() && !actor.alikeDead() && (target != null) && target.validFor(actor, _policy.maximumAcquisitionDistance()) ? Optional.of(target) : Optional.empty();
 		}
 		catch (RuntimeException exception)

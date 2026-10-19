@@ -326,6 +326,17 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		{
 			return fail("questinstance.warrior.class.invalid");
 		}
+		if (observation.quest().status() == QuestStatus.STARTED)
+		{
+			final var pursuer = _combat.observeNativePursuer(profileId).orElse(null);
+			if (pursuer != null)
+			{
+				cancelTravel(profileId);
+				final var readiness = _backend.prepareCombat(profileId, content, content.step("collect.skeleton").orElseThrow(), observation.fingerprint());
+				if (readiness.status() != ActionStatus.IDEMPOTENT) { return retry(readiness.reasonKey()); }
+				return startCombat(profileId, content, "travel.defense", pursuer.objectId(), token);
+			}
+		}
 		return switch (observation.quest().status())
 		{
 			case ABSENT -> interact(profileId, content, "prepare.auron", observation, now, remainingMillis);
@@ -520,8 +531,13 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 		{
 			return retry("questinstance.combat.target_pending");
 		}
+		return startCombat(profileId, content, step.id(), target.objectId(), token);
+	}
+
+	private AdvanceResult startCombat(long profileId, Content content, String stepId, int targetObjectId, PhantomCancellationToken token)
+	{
 		final String owner = combatOwner(content);
-		final var started = _combat.startContentSession(new PhantomCombatRequest(profileId, target.objectId(), PhantomCombatMode.MELEE_PHYSICAL, true, false, COMBAT_TIMEOUT_MILLIS, token), owner);
+		final var started = _combat.startContentSession(new PhantomCombatRequest(profileId, targetObjectId, PhantomCombatMode.MELEE_PHYSICAL, true, false, COMBAT_TIMEOUT_MILLIS, token), owner);
 		if ((started.status() == StartStatus.ACCEPTED) || (started.status() == StartStatus.IDEMPOTENT))
 		{
 			synchronized (_monitor)
@@ -531,7 +547,7 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 					_combat.cancel(profileId);
 					return retry("questinstance.operation.capacity");
 				}
-				_combats.put(profileId, new CombatOperation(content.id(), step.id(), target.objectId()));
+				_combats.put(profileId, new CombatOperation(content.id(), stepId, targetObjectId));
 			}
 			return progress("questinstance.combat.started");
 		}
