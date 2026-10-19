@@ -1,5 +1,5 @@
 param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards,[switch]$LivingRelocate,[switch]$LivingSupply,[switch]$SupplyGuards,[switch]$LivingOfflineStore,[switch]$SupplyReturnGuards,[switch]$SupplyManufactureGuards,[switch]$LivingManufacture,[switch]$LivingGatekeeper,[switch]$SupplyGatekeeperGuards,[switch]$SupplyResumeGuards,[switch]$LivingResumeSave,[switch]$LivingResumeContinue,[ValidatePattern('^living-resume060-[1-9][0-9]?$')][string]$ResumeReceipt='living-resume060-1',[switch]$DeathCpGuards,[switch]$PetSupport,[switch]$SupplyAmmunitionGuards,[switch]$LivingBow,[switch]$AreaAggro,[switch]$AggroReadiness,[switch]$Campaign061,[switch]$CareerProducer,[switch]$Frozen061,
- [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061,[switch]$CareerWalkObstacle061,[ValidateSet(25,45)][int]$CareerFullMinutes061=45)
+ [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061,[switch]$CareerWalkObstacle061,[ValidateSet(25,45)][int]$CareerFullMinutes061=45,[switch]$LearningLong061)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -19,6 +19,7 @@ if($frozen061){
 if ($Campaign061 -and ($Campaign060 -or !($frozenMatch061 -or ($Mode -ceq 'quest-instance-goal036' -and $Seed -eq 36003601) -or ($Mode -ceq 'lifecycle-completion027' -and $Seed -eq 27002701) -or (($AutonomousLearning -and $AutonomousLearningGuards -or $PaidAutoGetGuards -or $SupplyGuards) -and $Mode -ceq 'earned-learning-native058' -and $Seed -eq 58005833)))) {throw 'TASK061 requires an exact frozen111, quest controls/producer, owned lifecycle, supply or learning continuation mode/seed/build'}
 if ($Campaign061 -and $SupplyGuards -and @($PSBoundParameters.Keys | Where-Object {$_ -cnotin @('Mode','Seed','Label','Campaign061','CleanCandidate','SupplyGuards','SupplyAmmunitionGuards','SupplyReturnGuards','SupplyResumeGuards','SupplyManufactureGuards','SupplyGatekeeperGuards')}).Count) {throw 'TASK061 supply continuation has an unrelated flag'}
 if ($CareerProducer -and !$Campaign061) {throw 'Career061 input requires explicit TASK061 authority'}
+if($LearningLong061 -and (!$Campaign061 -or !$PaidAutoGetGuards -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)){throw 'Observed learning route requires separate exact061 paid guard mode/seed'}
 if ($CareerFull061 -and (!$Campaign061 -or !$CareerProducer -or $Mode -cne 'quest-instance-goal036' -or $Seed -ne 36003601)) {throw 'Full career requires separate exact061 producer mode/seed'}
 if($PSBoundParameters.ContainsKey('CareerFullMinutes061') -and !$CareerFull061){throw 'Strict new episode bound requires full061 TEST mode'}
 if ($CareerRouteProbe061 -and (!$Campaign061 -or !$CareerProducer -or $CareerFull061 -or $Mode -cne 'quest-instance-goal036' -or $Seed -ne 36003601)) {throw 'Route probe requires separate exact061 producer mode/seed'}
@@ -51,9 +52,9 @@ if ($Campaign061) {
   $compiledRoot061=Join-Path $hf059 '.phantom-local/contract058a/build/release061/compiled'
   $package061=Get-Content -LiteralPath 'D:\PhantomWorld\World-Career-061-candidate\BUILD_INFO.json' -Raw | ConvertFrom-Json
   if($null -ne $package061.PSObject.Properties['cleanCompiledRoot061']){
-   $allowedRoot061=Join-Path $hf059 '.phantom-local/contract058a/build/release061-correction1/compiled'
-   if($package061.cleanCompiledRoot061 -cne $allowedRoot061){throw 'Unknown corrective clean061 build root'}
-   $compiledRoot061=$allowedRoot061
+   $allowedRoots061=@((Join-Path $hf059 '.phantom-local/contract058a/build/release061-correction1/compiled'),(Join-Path $hf059 '.phantom-local/contract058a/build/release061-correction2/compiled'))
+   if($package061.cleanCompiledRoot061 -cnotin $allowedRoots061){throw 'Unknown corrective clean061 build root'}
+   $compiledRoot061=$package061.cleanCompiledRoot061
   }
   $compiled061=Join-Path $compiledRoot061 'dist/libs/GameServer.jar'
   if((Get-FileHash -LiteralPath $jar059).Hash -cne (Get-FileHash -LiteralPath $compiled061).Hash){throw 'Exact061 candidate is not its clean whole compiled JAR'}
@@ -83,6 +84,7 @@ if ($Mode -ceq 'lifecycle-completion027') {
 }
 if ($Campaign061 -and $AutonomousLearning) {$args059+='-Dphantom.test.nearbyLife061=true'}
 if ($Campaign061 -and $PaidAutoGetGuards) {$args059+='-Dphantom.test.retainedAutoGet061=true'}
+if ($LearningLong061) {$args059+='-Dphantom.test.learningLong061=true'}
 if ($SupplyAmmunitionGuards) { if ((!$Campaign060 -and !$Campaign061) -or !$SupplyGuards -or $Living -or $PetSupport -or $SupplyGatekeeperGuards -or $SupplyManufactureGuards -or $SupplyReturnGuards -or $SupplyResumeGuards) {throw 'Ammunition guards require separate exact060/061 SupplyGuards'}; $args059+='-Dphantom.test.supplyAmmunitionGuards060=true' }
 if ($LivingBow) { if (!$Campaign060 -or !$Living -or !$LivingSupply -or $LivingClass -notin @(0,53) -or $LivingMage -or $LivingResumeSave -or $LivingResumeContinue -or $LivingGatekeeper -or $LivingOfflineStore -or $LivingManufacture) {throw 'Bow requires separate declared Fighter/Dwarf NPC supply scene'}; $args059+='-Dphantom.test.livingBow060=true' }
 if ($AggroReadiness) { if (!$Campaign060 -or $Mode -cne 'companion-npc-aggro058' -or $Seed -ne 58005817 -or $Living -or $AreaAggro -or $PetSupport -or $SupplyGuards) {throw 'Aggro readiness requires separate exact060 native NPC scene'}; $args059+='-Dphantom.test.aggroReadiness060=true' }

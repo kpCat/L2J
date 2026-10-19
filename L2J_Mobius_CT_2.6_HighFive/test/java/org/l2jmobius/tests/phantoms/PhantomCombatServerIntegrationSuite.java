@@ -634,6 +634,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			if (Boolean.getBoolean("phantom.test.petSupport060")) { registry.add("30-native-owned-buffalo-heal-and-control-lifecycle", context -> { prepareLearningField059(context); PhantomPet060NativeSupport.directHeal(context, _player); }); registry.add("32-production-native-kookaburra-recharge-and-food", context -> { _player.setCurrentHp(_player.getMaxHp()); prepareLearningField059(context); PhantomPet060NativeSupport.automaticMana(context, _player, _backend, _profile.profileId()); }); return; }
 			if (Boolean.getBoolean("phantom.test.paidAutoGetGuards060"))
 			{
+				if (Boolean.getBoolean("phantom.test.learningLong061")) { registry.add("15-native-observed-elf-learning-local-walk061", this::testLearningLongWalk061); }
 				registry.add("12-paid-native-rank-covers-autoget-floor", context -> testPaidAutoGetFloor060(context, true));
 				registry.add("13-missing-or-unattainable-rank-does-not-cover-floor", context -> testPaidAutoGetFloor060(context, false));
 				registry.add("14-native-return-normalizes-captured-feet", this::testLearningReturnFloor060);
@@ -4434,6 +4435,33 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final var child = _repository.findComponent(_profile.profileId(), "supply.intent").orElseThrow(); _repository.deleteComponent(_profile.profileId(), "supply.intent", child.rowVersion());
 			final var current = goals.load(_profile.profileId()).orElseThrow(); PhantomAssertions.assertEquals(root, current.goal(), "Return control root drift; cleanup refused."); goals.delete(_profile.profileId(), current.rowVersion());
 		}
+	}
+
+	private void testLearningLongWalk061(PhantomTestContext context) throws Exception
+	{
+		PhantomCampaign058DatabaseLane.assertActiveFixture(context); prepareLearningField059(context); _player.rewardSkills();
+		final var known = _player.getSkills().values().stream().filter(skill -> skill.getLevel() > 0).findFirst().orElseThrow();
+		_player.decayMe(); _player.setXYZInvisible(48947, 42009, -3488); _player.spawnMe(); _player.revalidateZone(true);
+		final var from = new PhantomNavigationPoint(_player.getX(), _player.getY(), _player.getZ(), 0);
+		final var field = new PhantomNavigationPoint(45688, 44386, -3704, 0);
+		final var goals = new PhantomGoalStateStore(_repository);
+		final var goal = new PhantomGoal(context.seed(), "skill.learn", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("skill", known.getId() + ":" + known.getLevel()), 1, 0, null, List.of(), null, "learning.observed.route061", 600, 0, 0, System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(8), Map.of("class.id", (long) _player.getActiveClass(), "class.index", (long) _player.getClassIndex(), "field.x", (long) field.x(), "field.y", (long) field.y(), "field.z", (long) field.z(), "field.instance", 0L), "fixture.native.observed.route061", 1);
+		goals.insert(_profile.profileId(), goal);
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+		final var navigation = new PhantomNavigationService(new PhantomMetrics()); navigation.start();
+		final var journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> true); journey.start();
+		final long sp = _player.getSp(), exp = _player.getExp(), adena = _player.getAdena(); boolean local = false;
+		org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult result = null;
+		try
+		{
+			context.record("learning061.route.input", "Independent native route-only TEST; observed elf field points; already-owned native skill; no lesson/payment/quest grant; original2min trip cap; not ordinary A/B");
+			final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(110);
+			do { result = journey.advance(_profile.profileId(), goal, () -> false, System.nanoTime()); local |= result.reasonKey().equals("learning.navigation.local_arrived"); if (result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL || result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.FAIL_GOAL) { break; } Thread.sleep(100); } while (System.nanoTime() < until);
+			PhantomAssertions.assertTrue(local && result != null && result.type() == org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult.Type.COMPLETE_GOAL && _player.calculateDistance3D(field.x(), field.y(), field.z()) <= navigation.arrivalRadius(), "Observed long learning WALK did not complete through proven local segments: " + result);
+			PhantomAssertions.assertTrue(_player.getSp() == sp && _player.getExp() == exp && _player.getAdena() == adena && !_player.isInsideZone(ZoneId.PEACE), "Free local learning WALK changed earned resources or destination contract.");
+			context.record("learning061.route.green", "actual native movement=" + from.distanceTo(field) + "; local boundary=true; original2min cap; completeGoal; SP/EXP/A unchanged");
+		}
+		finally { journey.beginStop(); journey.finishStop(); progression.beginStop(); progression.finishStop(); navigation.beginStop(); final long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20); while (!navigation.finishStop() && System.nanoTime() < until) { Thread.sleep(20); } _player.stopMove(null); final var saved = goals.load(_profile.profileId()).orElseThrow(); goals.delete(_profile.profileId(), saved.rowVersion()); }
 	}
 
 	private void testLearningReturnFloor060(PhantomTestContext context) throws Exception
