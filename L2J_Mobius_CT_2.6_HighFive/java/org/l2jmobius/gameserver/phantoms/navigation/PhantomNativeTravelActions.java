@@ -24,6 +24,12 @@ public final class PhantomNativeTravelActions
 	public enum Status { ARRIVED, UNAVAILABLE, INSUFFICIENT_RESOURCES, NATIVE_REJECTED, PAID_WITHOUT_ARRIVAL }
 	public record GatekeeperResult(Status status, long fee, long adenaBefore, long adenaAfter, PhantomNavigationPoint before, PhantomNavigationPoint after) { }
 	private PhantomNativeTravelActions() { }
+	/** A native town can prepare a journey even when its certified farm topology has no local target. */
+	public static boolean safePreparationTown(Player player)
+	{
+		return player.getInstanceId() == 0 && player.isInsideZone(ZoneId.PEACE) && !player.isInsideZone(ZoneId.WATER)
+			&& GeoEngine.getInstance().hasGeo(player.getX(), player.getY());
+	}
 	public static boolean ordinary(Player player)
 	{
 		final var owner = player.getNativeWorkOwner();

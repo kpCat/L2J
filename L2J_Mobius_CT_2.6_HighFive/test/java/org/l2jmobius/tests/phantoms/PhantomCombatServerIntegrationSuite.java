@@ -674,6 +674,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				if (Boolean.getBoolean("phantom.test.journeyLifecycle061"))
 				{
 					registry.add("061-accepted-journey-active-clock-and-native-distance-budget", this::testJourneyLifetime061);
+					registry.add("061-native-town-preparation-without-false-farm-arrival", this::testNativePreparationTown061);
 					registry.add("061-failed-native-journey-returns-without-erasing-failure", this::testFailedLearningReturn061);
 					registry.add("061-career-native-field-return-without-learning-or-class-grant", context -> testNativeReturn061(context, true));
 				}
@@ -4682,6 +4683,34 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			_player.stopMove(null); final var component = _repository.findComponent(_profile.profileId(), componentType).orElseThrow(); _repository.deleteComponent(_profile.profileId(), componentType, component.rowVersion());
 			final var saved = goals.load(_profile.profileId()).orElseThrow(); goals.delete(_profile.profileId(), saved.rowVersion());
 		}
+	}
+
+	private void testNativePreparationTown061(PhantomTestContext context) throws Exception
+	{
+		final var commerce = new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog();
+		final var routes = org.l2jmobius.gameserver.phantoms.background.PhantomNormalGatekeeperTravel.load(Path.of("data/phantoms/travel/high-five-normal-gk.xml"), _topology);
+		final var authority = new org.l2jmobius.gameserver.phantoms.background.L2jPhantomBackgroundAuthority(() -> _query, () -> _topology, () -> _progression, () -> commerce, routes);
+		final var planner = new org.l2jmobius.gameserver.phantoms.background.PhantomHistoricalBackgroundPlanner(_query, _topology, authority);
+		final var anchor = _topology.findAnchor("population.farming.human-mystic.20481").orElseThrow();
+		final var base = PhantomBackgroundSuite.productionState(anchor, authority.hashes());
+		final var state = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState(base.state(), base.identity(), new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundState.Progress(19, 755866, 388, 0), base.vitals(), base.position(), base.combat(), base.loadout(), base.inventory(), base.autoGetSkills(), base.clock(), base.receipt(), base.hashes());
+		final var root = new PhantomGoal(context.seed(), PhantomBackgroundGoalSpec.GOAL_TYPE, PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", Long.toString(_profile.profileId())), new PhantomDomainRef("npc", "20120"), 1, 0, "background.farm", List.of(new PhantomDomainRef(PhantomBackgroundGoalSpec.SOURCE_NAMESPACE, "20120@" + anchor.id())), new PhantomDomainRef(PhantomBackgroundGoalSpec.ANCHOR_NAMESPACE, anchor.id()), "farm.background", 500, 0, 0, 0, Map.of(), "fixture.regional061", 1);
+		// Read-only planning at the observed ordinary35 position; no Player, quest or resource mutation.
+		final var live = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(-12787, 122779, -3112, 0);
+		final var local = planner.replanVisibleLocal(_profile.profileId(), state, root, context.seed(), 1, live, java.util.Set.of(), java.util.Set.of());
+		PhantomAssertions.assertFalse(local.ready(), "Observed no-local-farm input unexpectedly acquired a local field.");
+		final int x = _player.getX(), y = _player.getY(), z = _player.getZ();
+		try
+		{
+			// Separate TEST zone input before measurement; no ordinary actor, quest, level or resource mutation.
+			_player.setXYZInvisible(_combatPoint.x(), _combatPoint.y(), _combatPoint.z()); _player.revalidateZone(true);
+			PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePreparationTown(_player), "An ordinary combat field was mislabeled a safe town.");
+			_player.setXYZInvisible(live.x(), live.y(), live.z()); _player.revalidateZone(true);
+			PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePreparationTown(_player), "Native Gludio peace/geo cannot serve as an autonomous preparation base.");
+			PhantomAssertions.assertFalse(planner.isVisibleLocal(root, live), "Town preparation fabricated arrival at the saved farm anchor.");
+			context.record("preparationTown061", "native Gludio PEACE/geo accepted; actual field rejected as town; local farm still absent; no farm arrival/quest/SP/level/class grant");
+		}
+		finally { _player.setXYZInvisible(x, y, z); _player.revalidateZone(true); }
 	}
 
 	private void testJourneyLifetime061(PhantomTestContext context)

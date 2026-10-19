@@ -1145,14 +1145,15 @@ public final class PhantomHistoricalBackgroundService implements PhantomMaterial
 		return visibleFarmResult(profileId, goal, epoch, ready, ready ? "visible.ready" : "visible.stored_goal_mismatch");
 	}
 
-	/** Fresh trips start at a local farm or an accepted native dependency's field; existing children keep their saved origin. */
+	/** Fresh trips start at a native town, local farm or accepted dependency; existing children keep their saved origin. */
 	public boolean canStartNativeJourney(PhantomGoal root, Player player)
 	{
 		if (root.status() != PhantomGoalStatus.ACTIVE || !PhantomBackgroundGoalSpec.GOAL_TYPE.equals(root.goalType()) || player.isMoving()
-			|| player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.PEACE) || player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.WATER)) { return false; }
+			|| player.isInsideZone(org.l2jmobius.gameserver.model.zone.ZoneId.WATER)) { return false; }
 		try
 		{
-			return _planner.isVisibleLocal(root, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))
+			return org.l2jmobius.gameserver.phantoms.navigation.PhantomNativeTravelActions.safePreparationTown(player)
+				|| _planner.isVisibleLocal(root, new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(player.getX(), player.getY(), player.getZ(), player.getInstanceId()))
 				|| root.subject() != null && "profile".equals(root.subject().namespace()) && _acceptedIntent.test(Long.parseLong(root.subject().key()), root);
 		}
 		catch (IllegalArgumentException invalidRoot) { return false; }
