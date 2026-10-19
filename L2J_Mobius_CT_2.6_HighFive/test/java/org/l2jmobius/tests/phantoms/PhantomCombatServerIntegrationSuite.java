@@ -671,6 +671,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (Boolean.getBoolean("phantom.test.autonomousLearning060"))
 			{
+				if (Boolean.getBoolean("phantom.test.journeyLifecycle061")) { registry.add("061-accepted-journey-active-clock-and-native-distance-budget", this::testJourneyLifetime061); }
 				registry.add("03-autonomous-earned-learning-through-farm-decision", this::testAutonomousLearning060);
 				if (!Boolean.getBoolean("phantom.test.autonomousLearningGuards060")) { registry.add("04-native-earned-autonomous-paid-walk-return-and-resume", context ->
 				{
@@ -4607,6 +4608,23 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		context.record("career060.autoGetFloor." + positive, "PURE validator against actual HumanMystic native skill tree/level7; no Player skill/SP/EXP or canonical writes; real paid retained failure is profile883/1177:2");
 	}
 
+	private void testJourneyLifetime061(PhantomTestContext context)
+	{
+		final var legacy = new PhantomGoal(61, "skill.learn", PhantomGoalStatus.ACTIVE, new PhantomDomainRef("profile", "61"), new PhantomDomainRef("skill", "3:1"), 1, 0, null, List.of(), null, "learning.autonomous", 600, 0, 0, 1_010_000, Map.of(), "fixture.clock061", 1);
+		final var active = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.start(legacy, 1_000_000);
+		final var paused = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.pause(active, 1_001_000);
+		final var codec = new org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStateCodec();
+		final var loaded = codec.decode(codec.encode(paused));
+		PhantomAssertions.assertTrue(org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.alive(loaded, 4_601_000), "A stored one-hour wait consumed the remaining active journey budget.");
+		final var resumed = org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.resume(loaded, 4_601_000);
+		PhantomAssertions.assertEquals(4_610_000L, resumed.deadlineEpochMillis(), "Resume did not preserve the nine remaining active seconds.");
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.alive(resumed, 4_610_000), "Spent active journey budget was extended again.");
+		PhantomAssertions.assertFalse(org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.alive(loaded, 87_400_000), "Repeated suspension bypassed the finite calendar bound.");
+		PhantomAssertions.assertEquals(legacy, org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime.pause(legacy, 1_020_000), "An expired historical episode was revived during migration.");
+		PhantomAssertions.assertEquals(680_000L, org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney.walkingBudgetMillis(30_000, 100), "A thirty-kilometer native WALK still uses a fixed two-minute deadline.");
+		context.record("journey061.clock", "compatible Goal codec; one-hour offline wait preserves9000ms; active exhaustion and24h calendar refused; expired legacy unchanged;30000distance/100speed budget680000ms");
+	}
+
 	private void testAutonomousLearning060(PhantomTestContext context) throws Exception
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
@@ -4665,6 +4683,31 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertFalse(_player.isMoving(), "Combat stance control started trainer travel.");
 			PhantomAssertions.assertEquals(replacement.revision(), intent.constraints().get("owner.revision").longValue(), "A cached offer from an old root revision created a stale learning intent.");
 			PhantomAssertions.assertEquals(100L, _player.getSp(), "Owner guard control spent SP before any trainer effect.");
+			if (Boolean.getBoolean("phantom.test.journeyLifecycle061"))
+			{
+				_player.getAI().clientStopAutoAttack(); _player.abortAttack(); _player.stopMove(null); _player.getAI().setIntention(Intention.IDLE);
+				journey.beginStop(); PhantomAssertions.assertTrue(journey.finishStop(), "Accepted learning owner did not drain before normal save.");
+				final int objectId = _player.getObjectId();
+				PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.dematerialize(_profile.profileId()).status(), "Accepted journey did not save through native materialization.");
+				try
+				{
+					journey = new org.l2jmobius.gameserver.phantoms.progression.L2jPhantomLearningJourney(goals, _materialization, progression, navigation, () -> _query, profile -> allowed.get());
+					journey.enableAutonomous(_repository, (profile, pauseDeadline) -> true, org.l2jmobius.gameserver.phantoms.progression.PhantomAutonomousLearningPolicy.defaults());
+					PhantomAssertions.assertTrue(journey.start(), "Recreated stored-journey owner did not start.");
+					PhantomAssertions.assertTrue(journey.ownsAutomaticIntent(_profile.profileId(), replacement), "Accepted durable child lost authority solely because its native Player was stored.");
+					allowed.set(false);
+					PhantomAssertions.assertFalse(journey.ownsAutomaticIntent(_profile.profileId(), replacement), "HOLD retained native journey authority.");
+					allowed.set(true);
+					PhantomAssertions.assertFalse(journey.ownsAutomaticIntent(_profile.profileId(), replacement.withStatus(PhantomGoalStatus.ACTIVE)), "Replacement root inherited an old child's authority.");
+					context.record("journey061.storedAuthority", "same component/root/class/object; native save; owner reconstructed; stored continuation retained; HOLD/replaced root refused; no SP or quest grants");
+				}
+				finally
+				{
+					allowed.set(true);
+					PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Stored journey actor did not reload after the authority control.");
+					_player = World.getInstance().getPlayer(objectId);
+				}
+			}
 			journey.beginStop(); PhantomAssertions.assertTrue(journey.finishStop(), "Old learning owner did not drain before deadline reconstruction.");
 			final var component = _repository.findComponent(_profile.profileId(), "learning.intent").orElseThrow();
 			final var expired = new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), System.currentTimeMillis() - 1, intent.constraints(), intent.reasonKey(), intent.revision());

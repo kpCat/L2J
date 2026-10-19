@@ -1,5 +1,5 @@
 param([Parameter(Mandatory=$true)][string]$Mode,[Parameter(Mandatory=$true)][long]$Seed,[Parameter(Mandatory=$true)][string]$Label,[switch]$Commands,[switch]$Authority,[switch]$BusyHold,[switch]$SupportRequests,[switch]$SupportKinds,[switch]$CardinalBuff,[switch]$SocialContexts,[switch]$PvpFlow,[switch]$PvpFlowOnly,[switch]$PvpGuardsOnly,[switch]$RaidFlow,[switch]$RaidStaging,[switch]$RaidLevelGuard,[switch]$RaidMinionGuard,[switch]$RaidTriggerGuard,[switch]$KamalokaFlow,[switch]$RiftFlow,[switch]$LearningJourney,[switch]$CleanCandidate,[switch]$Campaign060,[switch]$AutonomousLearning,[switch]$AutonomousLearningGuards,[switch]$Living,[switch]$LivingMage,[switch]$LivingDwarf,[int]$LivingClass=0,[switch]$PaidAutoGetGuards,[switch]$LivingRelocate,[switch]$LivingSupply,[switch]$SupplyGuards,[switch]$LivingOfflineStore,[switch]$SupplyReturnGuards,[switch]$SupplyManufactureGuards,[switch]$LivingManufacture,[switch]$LivingGatekeeper,[switch]$SupplyGatekeeperGuards,[switch]$SupplyResumeGuards,[switch]$LivingResumeSave,[switch]$LivingResumeContinue,[ValidatePattern('^living-resume060-[1-9][0-9]?$')][string]$ResumeReceipt='living-resume060-1',[switch]$DeathCpGuards,[switch]$PetSupport,[switch]$SupplyAmmunitionGuards,[switch]$LivingBow,[switch]$AreaAggro,[switch]$AggroReadiness,[switch]$Campaign061,[switch]$CareerProducer,[switch]$Frozen061,
- [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061,[switch]$CareerWalkObstacle061,[ValidateSet(25,45)][int]$CareerFullMinutes061=45,[switch]$LearningLong061)
+ [switch]$CareerFull061,[switch]$CareerRouteProbe061,[switch]$CareerWalkStep061,[switch]$CareerDefense061,[switch]$CareerWalkObstacle061,[ValidateSet(25,45)][int]$CareerFullMinutes061=45,[switch]$LearningLong061,[switch]$JourneyLifecycle061)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $hf059='D:\Codex\worktrees\phantom-dev\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive'
@@ -29,6 +29,7 @@ if ($CareerDefense061 -and (!$Campaign061 -or !$CareerProducer -or $CareerFull06
 if ($Campaign061 -and (Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object CommandLine -Match 'World-Career-061-candidate|Living-060-candidate|M3-M7-059-candidate|task061')) {throw 'Own061 or protected059/060 JVM active; sequential only'}
 if ($AutonomousLearning -and ((!$Campaign060 -and !$Campaign061) -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833)) {throw 'Autonomous learning requires exact060/061 continuation of native058 mode/seed'}
 if ($AutonomousLearningGuards -and !$AutonomousLearning) {throw 'Learning guards require the exact060 autonomous learning input'}
+if ($JourneyLifecycle061 -and (!$Campaign061 -or !$AutonomousLearningGuards -or !$AutonomousLearning)) {throw 'Journey lifecycle requires the exact061 autonomous learning guards'}
 if ($Living -and (!$Campaign060 -or $Mode -cne 'earned-learning-native058' -or $Seed -ne 58005833 -or $AutonomousLearning)) {throw 'Living composition requires exact060 native058 mode/seed and a separate scene'}
 if (($LivingMage -or $LivingDwarf -or $LivingClass -ne 0) -and !$Living) {throw 'Living mage requires the full living composition'}
 if ($Campaign060 -and (Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" | Where-Object CommandLine -Match 'Living-060-candidate|M3-M7-059-candidate|task060')) {throw 'Own060 or protected059 JVM active; sequential only'}
@@ -72,6 +73,7 @@ if($CareerWalkObstacle061){
 }
 $args059=@('-Xmx8192m','-Dfile.encoding=UTF-8','-Dstdout.encoding=UTF-8','-Dstderr.encoding=UTF-8',"-Dphantom.module.root=$hf059","-Dphantom.contract058.semantic.jar=$jar059","-Dphantom.test.reports=$report059","-Dphantom.test.config=$hf059\.phantom-local\contract058t\test\Database.test.ini","-Dphantom.contract058.manifest=$hf059\.phantom-local\contract058t\test\owned.properties")
 $args059+='-Dphantom.test.freshIdentities059=true'
+if ($JourneyLifecycle061) {$args059+='-Dphantom.test.journeyLifecycle061=true'}
 if ($CareerProducer) {$args059+='-Dphantom.test.careerProducer061=true'}
 if ($CareerFull061) {$args059+='-Dphantom.test.careerFull061=true';$args059+=('-Dphantom.test.careerFullMinutes061='+$CareerFullMinutes061)}
 if ($CareerRouteProbe061) {$args059+='-Dphantom.test.careerRouteProbe061=true'}

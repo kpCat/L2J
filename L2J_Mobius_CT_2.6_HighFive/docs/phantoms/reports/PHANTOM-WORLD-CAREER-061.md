@@ -2,11 +2,15 @@
 
 **Статус: CORE_INCOMPLETE.** Исторический A/source доказан; на конечном продукте actual World/earned actions/полезный sameDB resume подтверждены, полная paid-learning-return цепочка A не доказана. Полный ordinary B не доказан. М7 не закрыта. Технический остаток не передаётся OWNER_QA_PENDING.
 
-- Начало: 2026-10-18T17:10:31Z; deadline: 2026-10-19T07:10:31Z. Бюджет не сбрасывается после compaction.
+- Исходный бюджет: 2026-10-18T17:10:31Z–2026-10-19T07:10:31Z. Пользователь разрешил ещё16 часов с 2026-10-19T14:47:00Z: новый deadline 2026-10-20T06:47:00Z, резерв не менее90 минут с05:17:00Z. Это продолжение TASK061; часы не сбрасываются после compaction.
 - OWN: `D:\Codex\worktrees\phantom-dev\L2J_Mobius`, только High Five; BASE `18a5c70839a7b1a4f7ca2c57c717820b9c6c26db`; detached HEAD разрешён. Целевая ветка `experiment/m1-candidate007-observe008`.
 - Пакет отсутствовал в OWN: шесть утверждённых документов и manifest скопированы из MAIN после совпадения всех SHA256. MAIN не изменялся.
 - Прочитаны локальный `Agents.md`, README, master plan, workflow/package/release contracts, пакет061, RESULT060 и адресные owners. Корневые AGENTS и H5 README.md не найдены. SOURCE_MAP061 присутствует. Дополнительные code-map/pattern файлы не требуются для этих адресных изменений.
 - Аналоги: exact runtime ownership058/059/060, штатные Start/Status/Stop, существующий пассивный observer и operator readiness APIs; career reuse исследуется через Learning/Supply/QuestInstance.
+
+Архитектурный разбор дополнительного бюджета: принятый child сохранялся, но его ownership зависел от живого Player; между native действиями materialization мог завершиться, а farm-first foreground gate препятствовал продолжению поездки после рестарта. Фиксированные две минуты на всю learning-поездку не учитывали расстояние и скорость. Независимая причина повторных смертей B — quest combat выбирал ближайшую цель без исключения повторной неудачи и не имел полного цикла восстановления/опасности.
+
+Первый проверенный этап061: совместимый active-time lifetime в существующем Goal payload, durable learning authority, bounded resume/relevance на общем scheduler, finite native-context demand и distance/speed WALK budget. Native RED `journey-lifecycle061-red01`: сохранённый child терял authority после штатного save. Native GREEN `journey-lifecycle061-green01` и окончательный после self-review `journey-lifecycle061-green02` (GameSHA5986EAB4):3/3 каждый, включая HOLD/replaced-root отказы, codec/пауза/исчерпание активного бюджета/24h предел; build успешен, два прежних предупреждения `System.runFinalization`. Это проверка контракта, не доказательство A/B; текущая standalone061 пока содержит предыдущий GameServer.jar. Обе отдельные проверки текста: mojibake0 и escaped Cyrillic0,78 файлов.
 - Java25/Ant/WinPS5.1/MariaDB сохранены; новые библиотеки/движки не добавлены. Утверждённое исключение по числу файлов: неизменный пакет7 файлов плюс текущие связанные source/report/matrix, без расширения продуктового scope.
 
 ## Выполненное и причинные факты

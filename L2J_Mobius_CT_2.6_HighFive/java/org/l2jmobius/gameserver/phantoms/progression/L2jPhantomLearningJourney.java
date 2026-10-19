@@ -34,6 +34,7 @@ import org.l2jmobius.gameserver.phantoms.decision.PhantomDecisionCandidate;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoal;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStatus;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomGoalStore;
+import org.l2jmobius.gameserver.phantoms.decision.PhantomJourneyLifetime;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomPlan;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomPlanStep;
 import org.l2jmobius.gameserver.phantoms.decision.PhantomStepHandlerRegistry;
@@ -57,7 +58,7 @@ import org.l2jmobius.gameserver.phantoms.progression.PhantomProgressionModel.Lea
  * and paid Progression owners. Learned native ranks determine the restart phase;
  * this adapter never grants skills, directly writes positions or owns a second AI pulse.
  */
-public final class L2jPhantomLearningJourney
+public final class L2jPhantomLearningJourney implements org.l2jmobius.gameserver.phantoms.activity.PhantomSchedulerControlPort, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort
 {
 	public static final String GOAL_TYPE = "skill.learn";
 	public static final String CANDIDATE = "candidate.learning.journey";
@@ -77,6 +78,10 @@ public final class L2jPhantomLearningJourney
 	private String _knowledgeHash;
 	private volatile State _state = State.NEW;
 	private PhantomAutonomousLearning _automatic;
+	private org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort _signals;
+	private final Map<Long, Demand> _demands = new HashMap<>();
+	private static final String SIGNAL_SOURCE = "learning.journey";
+	private static final long SIGNAL_TTL = TimeUnit.MINUTES.toMillis(5);
 
 	public L2jPhantomLearningJourney(PhantomGoalStore goals, PhantomMaterializationService materialization, PhantomProgressionService progression, PhantomNavigationService navigation, Supplier<PhantomGameKnowledgeQuery> knowledge, LongPredicate actionAllowed)
 	{
@@ -99,6 +104,42 @@ public final class L2jPhantomLearningJourney
 	}
 
 	public boolean ownsAutomaticIntent(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && _automatic.owns(profileId, root); }
+	public boolean permitsAutomaticVisibleDecision(long profileId, PhantomGoal root) { return _state == State.RUNNING && _automatic != null && (_automatic.owns(profileId, root) || _automatic.permitsSettlement(profileId, root)); }
+	public void useRelevanceSignals(org.l2jmobius.gameserver.phantoms.topology.PhantomRelevanceSignalPort signals)
+	{
+		synchronized (_monitor) { if (_state != State.NEW || _signals != null) { throw new IllegalStateException("Learning relevance must be bound once before start."); } _signals = java.util.Objects.requireNonNull(signals); }
+	}
+	@Override public void onPulse() { if (_state == State.RUNNING && _automatic != null) { _automatic.resumeAccepted(System.currentTimeMillis()); } }
+	PhantomGoal root(long profileId) { return _goals.load(profileId).map(PhantomGoalStore.StoredGoal::goal).orElse(null); }
+	void accepted(long profileId, PhantomGoal root, PhantomGoal intent)
+	{
+		final long now = System.currentTimeMillis();
+		if (_state != State.RUNNING || !PhantomJourneyLifetime.alive(intent, now) || !_actionAllowed.test(profileId)) { return; }
+		synchronized (_monitor)
+		{
+			final var previous = _demands.get(profileId);
+			if (previous != null && previous.rootId == root.goalId() && previous.rootRevision == root.revision() && previous.intent.equals(intent) && previous.until - now > SIGNAL_TTL - 30_000) { return; }
+			if (_demands.size() >= LIMIT && previous == null) { return; }
+			final long sequence = Math.max(Math.max(1, System.nanoTime()), previous == null ? 1 : previous.sequence + 1);
+			_demands.put(profileId, new Demand(root.goalId(), root.revision(), intent, now + SIGNAL_TTL, sequence));
+			if (_signals != null) { _signals.submit(profileId, new org.l2jmobius.gameserver.phantoms.activity.PhantomRelevanceSignal(SIGNAL_SOURCE, sequence, PhantomActivityState.ACTIVE, SIGNAL_TTL)); }
+		}
+	}
+	/** Only an accepted finite child requests native context; the scheduler still applies its capacity and admission policy. */
+	public boolean requiresNativeContext(long profileId, long rootId, long rootRevision)
+	{
+		synchronized (_monitor)
+		{
+			final var demand = _demands.get(profileId); final long now = System.currentTimeMillis();
+			return _state == State.RUNNING && demand != null && demand.until > now && _actionAllowed.test(profileId) && PhantomJourneyLifetime.alive(demand.intent, now)
+				&& (rootId == 0 || demand.rootId == rootId && demand.rootRevision == rootRevision);
+		}
+	}
+	private void releaseDemand(long profileId)
+	{
+		synchronized (_monitor) { final var demand = _demands.remove(profileId); if (demand != null && _signals != null) { _signals.withdraw(profileId, SIGNAL_SOURCE, demand.sequence); } }
+	}
+	void finished(long profileId) { cleanup(profileId); releaseDemand(profileId); }
 	public void deferAutomaticWhen(BiPredicate<Long, PhantomGoal> predicate)
 	{
 		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Life priority must be bound before start."); } _automatic.deferWhen(predicate); }
@@ -158,7 +199,7 @@ public final class L2jPhantomLearningJourney
 				final Player player = lease.player();
 				if (!intent.equals(goal) && (!"learning.autonomous".equals(intent.purposeKey()) || intent.goalId() != goal.goalId() || intent.constraints().getOrDefault("owner.revision", -1L) != goal.revision() || intent.constraints().getOrDefault("owner.object", -1L) != player.getObjectId())) { cleanup(profileId); return fail("learning.intent.owner_changed"); }
 				if (player.getActiveClass() != request.classId() || player.getClassIndex() != request.classIndex() || player.getLearningClass().getId() != request.classId() || player.getInstanceId() != 0) { cleanup(profileId); return fail("learning.class_or_instance.changed"); }
-				if (player.isAlikeDead()) { cleanup(profileId); return fail("learning.actor.dead"); }
+				if (player.isAlikeDead()) { cleanup(profileId); return retry("learning.actor.recovery_pending"); }
 				if (player.isInParty() || player.isInCombat() || player.isAttackingNow() || player.isCastingNow() || player.isCastingSimultaneouslyNow() || player.isChangingClass() || player.isMounted() || player.isTransformed()) { return retry("learning.actor.busy"); }
 				final boolean returning = player.getSkillLevel(request.skillId()) >= request.skillLevel();
 				if (returning && player.calculateDistance3D(request.field().x(), request.field().y(), request.field().z()) <= _navigation.arrivalRadius())
@@ -179,7 +220,9 @@ public final class L2jPhantomLearningJourney
 					if (returning && field == null) { return fail("learning.field.floor_unavailable"); }
 					final var destinations = returning ? List.of(field) : approaches(player, trainer);
 					if (destinations.isEmpty()) { return fail("learning.trainer.no_approach"); }
-					travel = new Travel(player, goal.goalId(), goal.revision(), request, returning, trainer == null ? 0 : trainer.npcId(), destinations, 0, now + TimeUnit.MINUTES.toNanos(2), 0, List.of(), 0, trainerOptions, 0, 0);
+					final long remaining = PhantomJourneyLifetime.remaining(intent, System.currentTimeMillis());
+					final long budget = Math.min(remaining, walkingBudgetMillis(player.calculateDistance3D(destinations.getFirst().x(), destinations.getFirst().y(), destinations.getFirst().z()), player.getRunSpeed()));
+					travel = new Travel(player, goal.goalId(), goal.revision(), request, returning, trainer == null ? 0 : trainer.npcId(), destinations, 0, now + TimeUnit.MILLISECONDS.toNanos(Math.max(1, budget)), 0, List.of(), 0, trainerOptions, 0, 0);
 					if (!put(profileId, travel)) { return retry("learning.capacity"); }
 				}
 				if (!returning)
@@ -247,7 +290,7 @@ public final class L2jPhantomLearningJourney
 	/** No JDBC here: the existing Decision token supplies in-flight goal authority inside the SP transaction. */
 	private boolean cancelled(PhantomGoal goal, Request request, Player player, PhantomCancellationToken token)
 	{
-		return _state != State.RUNNING || token.isCancelled() || goal.deadlineEpochMillis() <= System.currentTimeMillis() || player.getActiveClass() != request.classId() || player.getClassIndex() != request.classIndex() || player.getLearningClass().getId() != request.classId() || player.getInstanceId() != 0 || player.isInParty();
+		return _state != State.RUNNING || token.isCancelled() || !PhantomJourneyLifetime.alive(goal, System.currentTimeMillis()) || PhantomJourneyLifetime.paused(goal) || player.getActiveClass() != request.classId() || player.getClassIndex() != request.classIndex() || player.getLearningClass().getId() != request.classId() || player.getInstanceId() != 0 || player.isInParty();
 	}
 
 	private boolean current(long profileId, PhantomGoal goal) { return _goals.load(profileId).map(stored -> stored.goal().equals(goal)).orElse(false); }
@@ -325,6 +368,7 @@ public final class L2jPhantomLearningJourney
 		final List<Map.Entry<Long, Travel>> owned;
 		synchronized (_monitor) { if (_state == State.STOPPED) { return; } _state = State.STOPPING; owned = new ArrayList<>(_travels.entrySet()); _travels.clear(); }
 		for (var entry : owned) { if (entry.getValue().requestId() > 0) { _navigation.cancel(entry.getKey(), entry.getValue().requestId()); } }
+		final List<Long> demands; synchronized (_monitor) { demands = List.copyOf(_demands.keySet()); } demands.forEach(this::releaseDemand);
 		if (_automatic != null) { _automatic.clear(); }
 	}
 
@@ -333,7 +377,7 @@ public final class L2jPhantomLearningJourney
 	/** Durable intent binds the exact class/index and a normal-world return anchor. */
 	public static Optional<Request> request(PhantomGoal goal)
 	{
-		if (goal == null || !GOAL_TYPE.equals(goal.goalType()) || goal.status() != PhantomGoalStatus.ACTIVE || goal.target() == null || !"skill".equals(goal.target().namespace()) || !validConstraints(goal) || goal.deadlineEpochMillis() <= System.currentTimeMillis() || goal.deadlineEpochMillis() > System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(30)) { return Optional.empty(); }
+		if (goal == null || !GOAL_TYPE.equals(goal.goalType()) || goal.status() != PhantomGoalStatus.ACTIVE || goal.target() == null || !"skill".equals(goal.target().namespace()) || !validConstraints(goal) || !PhantomJourneyLifetime.alive(goal, System.currentTimeMillis()) || goal.deadlineEpochMillis() > System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(30)) { return Optional.empty(); }
 		try
 		{
 			final String[] skill = goal.target().key().split(":", -1);
@@ -349,8 +393,34 @@ public final class L2jPhantomLearningJourney
 		if (goal.constraints().keySet().equals(CONSTRAINTS)) { return true; }
 		final var expected = new HashSet<>(CONSTRAINTS);
 		expected.addAll(Set.of("owner.revision", "owner.object", "retry.after"));
+		if (goal.constraints().keySet().containsAll(PhantomJourneyLifetime.KEYS)) { expected.addAll(PhantomJourneyLifetime.KEYS); }
 		return "learning.autonomous".equals(goal.purposeKey()) && goal.constraints().keySet().equals(expected) && goal.constraints().get("owner.revision") >= 0 && goal.constraints().get("owner.object") > 0 && goal.constraints().get("retry.after") >= 0;
 	}
+
+	long roundTripBudgetMillis(Player player, long minimum)
+	{
+		final double distance = _trainers.stream().filter(spawn -> NpcData.getInstance().getTemplate(spawn.npcId()).canTeach(player.getLearningClass())).mapToDouble(spawn -> player.calculateDistance3D(spawn.x(), spawn.y(), spawn.z())).min().orElse(0);
+		return Math.min(TimeUnit.MINUTES.toMillis(30), Math.max(minimum, 2 * walkingBudgetMillis(distance, player.getRunSpeed()) + 60_000));
+	}
+
+	/** Two traversals of the straight distance allow a bounded detour; each native local leg also costs decision/arrival work. */
+	public static long walkingBudgetMillis(double distance, double runSpeed)
+	{
+		if (!Double.isFinite(distance) || distance < 0 || !Double.isFinite(runSpeed) || runSpeed <= 0) { throw new IllegalArgumentException("Invalid native journey distance or speed."); }
+		return Math.min(TimeUnit.MINUTES.toMillis(30), Math.max(30_000, (long) Math.ceil(2000 * distance / runSpeed) + 5000L * (long) Math.ceil(distance / 3000) + 30_000));
+	}
+
+	@Override public void beforeMaterialize(long profileId, int objectId) { }
+	@Override public void afterPlayerLoad(long profileId, Player player) { }
+	@Override public void materializeSucceeded(long profileId, int objectId) { }
+	@Override public void materializeAborted(long profileId, int objectId) { }
+	@Override public void beforeStore(long profileId, Player player)
+	{
+		cleanup(profileId); releaseDemand(profileId);
+		final var root = root(profileId); if (_automatic != null && root != null) { _automatic.pause(profileId, root, player); }
+	}
+	@Override public void afterStore(long profileId, Player player) { }
+	private record Demand(long rootId, long rootRevision, PhantomGoal intent, long until, long sequence) { }
 
 	public record Request(int classId, int classIndex, int skillId, int skillLevel, PhantomNavigationPoint field)
 	{
