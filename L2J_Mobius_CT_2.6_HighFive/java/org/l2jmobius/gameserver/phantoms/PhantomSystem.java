@@ -616,7 +616,7 @@ public final class PhantomSystem
 				final PhantomPopulationEcologyService periodicEcology = _populationEcology;
 				if (periodicEcology != null)
 				{
-					periodicEcology.installMaterializationDemand(profileId -> _populationManager.presence().isOnline(profileId) && (_humanLocality.isCurrentLocal(profileId) || hasAcceptedNativeJourney(profileId)));
+					periodicEcology.installMaterializationDemand(profileId -> hasAcceptedNativeJourney(profileId) || _populationManager.presence().isOnline(profileId) && _humanLocality.isCurrentLocal(profileId));
 					_humanLocality.installPreparationDemand((facts, slots) -> periodicEcology.updateMaterializationDemand(withAcceptedNativeJourneys(facts), slots), () ->
 					{
 						final var capacity = _materializationService.snapshot();
@@ -685,7 +685,6 @@ public final class PhantomSystem
 				_supplyJourney.requireField(_historicalBackgroundService::canStartNativeJourney);
 				_questInstanceService.requireField(_historicalBackgroundService::canStartNativeJourney);
 				_questInstanceService.deferAutonomousWhen((profileId, root) -> _supplyJourney.needsOrOwns(profileId, root) || !_questInstanceService.ownsAutonomousIntent(profileId, root) && _learningJourney.needsOrOwnsAutomaticIntent(profileId, root));
-				_questInstanceService.useOnlineResume(_populationManager.presence()::isOnline);
 				_questInstanceService.useFieldReturn((context, intent) -> _learningJourney.returnCareerToField(context.profileId(), context.goal(), intent, context.cancellationToken(), context.logicalNowNanos()), _learningJourney::suspendCareerReturn);
 				_learningJourney.deferAutomaticWhen((profileId, root) -> _supplyJourney.needsOrOwns(profileId, root) || _questInstanceService.ownsAutonomousIntent(profileId, root));
 				supplyLifecycleBridge.install(org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_supplyJourney, org.l2jmobius.gameserver.phantoms.player.PhantomMaterializationLifecyclePort.chain(_learningJourney, _questInstanceService)));
@@ -3053,7 +3052,7 @@ public final class PhantomSystem
 		{
 			for (long id : owner.acceptedProfiles())
 			{
-				if (_populationManager.presence().isOnline(id) && hasAcceptedNativeJourney(id))
+				if (hasAcceptedNativeJourney(id))
 				{
 					facts.putIfAbsent(id, new org.l2jmobius.gameserver.phantoms.population.PhantomPopulationEcologyService.DemandFact(id, 0, false, Long.MAX_VALUE, System.nanoTime()));
 				}

@@ -203,7 +203,8 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 		final var humans = new java.util.concurrent.atomic.AtomicReference<List<PhantomTopologyPoint>>(List.of(PhantomTopologyCoreSuite.LEFT_POINT));
 		final var locality = new org.l2jmobius.gameserver.phantoms.topology.PhantomHumanLocalityControl(topology, signals, humans::get, () -> clock.nanoTime() / 1_000_000L, population.presence()::isOnline);
 		final var retention = new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy(id -> new org.l2jmobius.gameserver.phantoms.activity.PhantomMaterializationRetentionPolicy.Facts(delegate.isMaterialized(id), locality.isLocal(id), false, false, false), clock::nanoTime, 60_000);
-		port.installPopulationReadiness(population.presence(), locality, null);
+		final var accepted = new java.util.concurrent.atomic.AtomicBoolean();
+		port.installPopulationReadiness(population.presence(), locality, null, _ -> accepted.get());
 		port.installRetention(id -> retention.observe(id).retained());
 		PhantomAssertions.assertTrue(population.start(), "Calendar population did not start.");
 		try
@@ -222,6 +223,14 @@ public final class PhantomActivitySchedulerSuite implements PhantomTestSuite
 				PhantomAssertions.assertTrue(scheduler.signalSources(1).isEmpty(), "Sleeping calendar retained a work source.");
 				PhantomAssertions.assertEquals(PhantomActivityState.SLEEPING, scheduler.find(1).orElseThrow().effectiveState(), "Sleeping calendar started work.");
 				PhantomAssertions.assertTrue(work.isEmpty(), "Sleeping calendar dispatched background work.");
+				accepted.set(true);
+				PhantomAssertions.assertEquals(Outcome.SUCCESS, port.materialize(1).outcome(), "A previously accepted finite journey cannot resume after a JVM restart across its calendar boundary.");
+				PhantomAssertions.assertTrue(delegate.isMaterialized(1), "Accepted continuation did not reach the native delegate.");
+				PhantomAssertions.assertFalse(population.presence().permitsOrdinaryFarm(1), "Accepted continuation changed calendar eligibility for ordinary farming.");
+				accepted.set(false);
+				PhantomAssertions.assertEquals(Outcome.DEFERRED, port.materialize(2).outcome(), "Finished or invalid continuation opened a sleeping actor.");
+				delegate.dematerialize(1);
+				context.record("journey061.offlineContinuation", "sleeping/no work remains negative; exact accepted finite owner resumes through the existing delegate; calendar farm permission unchanged; withdrawal closes gate");
 				return;
 			}
 			PhantomAssertions.assertTrue(population.presence().permitsOrdinaryFarm(admitted), "Active calendar lost logical farm eligibility.");

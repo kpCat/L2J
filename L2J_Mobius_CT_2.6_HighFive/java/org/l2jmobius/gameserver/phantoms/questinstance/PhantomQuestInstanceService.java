@@ -115,10 +115,6 @@ public final class PhantomQuestInstanceService implements org.l2jmobius.gameserv
 	{
 		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career priority must be bound before start."); } _automatic.deferWhen(predicate); }
 	}
-	public void useOnlineResume(java.util.function.LongPredicate online)
-	{
-		synchronized (_monitor) { if (_state != State.NEW || _automatic == null) { throw new IllegalStateException("Career presence must bind before start."); } _automatic.useOnlineResume(online); }
-	}
 	public void useFieldReturn(java.util.function.BiFunction<org.l2jmobius.gameserver.phantoms.decision.PhantomStepContext, PhantomGoal, org.l2jmobius.gameserver.phantoms.decision.PhantomStepResult> action)
 	{
 		useFieldReturn(action, (_, _) -> { });

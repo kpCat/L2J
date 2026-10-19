@@ -59,8 +59,10 @@ public final class PhantomReconcileFirstActivityPort implements PhantomActivityM
 			final var recorder = PhantomRuntimeFlightRecorder.getInstance();
 			final boolean online = presence.isOnline(profileId);
 			final boolean continuation = acceptedJourney.test(profileId);
-			final boolean local = online && (locality.isLocal(profileId) || continuation);
-			if (!online || !local)
+			// An accepted finite owner finishes through the same gate after a cold load as while live.
+			// Calendar/locality still control new demand; the delegate still owns all capacity checks.
+			final boolean local = continuation || online && locality.isLocal(profileId);
+			if (!local)
 			{
 				recorder.record(profileId, online ? "READY_NOT_LOCAL" : "READY_PRESENCE_OFFLINE", online ? "ONLINE" : "OFFLINE", "DEFERRED", "presence.no_current_local_demand", 0, 0, 0);
 				if (ecology != null) { ecology.withdrawMaterializationDue(profileId); }

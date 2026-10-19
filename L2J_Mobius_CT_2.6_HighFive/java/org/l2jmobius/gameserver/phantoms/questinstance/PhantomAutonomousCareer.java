@@ -58,7 +58,6 @@ final class PhantomAutonomousCareer
 	private BiPredicate<Long, PhantomGoal> _defer = (_, _) -> false;
 	private BiPredicate<PhantomGoal, Player> _fieldReady = (_, _) -> true;
 	private java.util.function.BiFunction<PhantomStepContext, PhantomGoal, PhantomStepResult> _fieldReturn;
-	private java.util.function.LongPredicate _onlineResume = _ -> false;
 	private final org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction _resumeTransactions = new org.l2jmobius.gameserver.phantoms.background.PhantomBackgroundTransaction();
 	private long _resumeCursor, _nextResumeMillis;
 
@@ -95,7 +94,6 @@ final class PhantomAutonomousCareer
 	void deferWhen(BiPredicate<Long, PhantomGoal> predicate) { _defer = Objects.requireNonNull(predicate); }
 	void requireField(BiPredicate<PhantomGoal, Player> predicate) { _fieldReady = Objects.requireNonNull(predicate); }
 	void useFieldReturn(java.util.function.BiFunction<PhantomStepContext, PhantomGoal, PhantomStepResult> action) { _fieldReturn = Objects.requireNonNull(action); }
-	void useOnlineResume(java.util.function.LongPredicate online) { _onlineResume = Objects.requireNonNull(online); }
 	boolean needsOrOwns(long profileId, PhantomGoal root) { return proposal(profileId, root).isPresent(); }
 	Optional<PhantomGoal> intent(long profileId) { return Optional.ofNullable(cached(profileId).goal); }
 
@@ -404,8 +402,9 @@ final class PhantomAutonomousCareer
 				if (!witness.successful()) { continue; }
 				final var quest = witness.snapshot().rows().get("Q00401_PathOfTheWarrior");
 				final boolean started = "Started".equals(quest.get("<state>")) && Integer.parseInt(quest.getOrDefault("cond", "0")) > 0;
-				// Legacy intent alone cannot prove a fresh accepted trip. New finite acceptance also requires current online presence.
-				final boolean acceptedTrip = _onlineResume.test(id) && intent.constraints().keySet().containsAll(PhantomJourneyLifetime.KEYS)
+				// Legacy intent alone cannot prove a fresh accepted trip. Valid finite acceptance survives
+				// the calendar boundary; root/class/object/quest witnesses are rechecked before publication.
+				final boolean acceptedTrip = intent.constraints().keySet().containsAll(PhantomJourneyLifetime.KEYS)
 					&& (quest.isEmpty() || "Created".equals(quest.get("<state>")));
 				if (acceptedTrip || "Completed".equals(quest.get("<state>")) || started) { _service.publishAcceptedResume(id, intent, now); }
 			}
