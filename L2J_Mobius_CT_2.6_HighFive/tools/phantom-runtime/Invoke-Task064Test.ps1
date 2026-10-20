@@ -27,9 +27,10 @@ $lines064=@(foreach($tree064 in @('bin','resources')){
 $sha064=[Security.Cryptography.SHA256]::Create()
 try{$tests064=([BitConverter]::ToString($sha064.ComputeHash([Text.Encoding]::UTF8.GetBytes(($lines064 -join "`n"))))).Replace('-','')}finally{$sha064.Dispose()}
 if($info064.testTreeSha256 -ine $tests064){throw 'Actual test binaries/resources differ from clean committed build receipt.'}
+if('PvpTownOutcome' -in $Features -and ($Mode -cne 'pvp-current-native058' -or 'PvpTowns' -notin $Features)){throw 'PvpTownOutcome requires the separate current native town scenario.'}
 if($ValidateOnly){Write-Output "TASK064_TEST_BINDING_PASS commit=$($info064.codeCommit); jar=$hash064; DB_WRITES=0; PROCESS_ACTIONS=0";return}
 $flags064=@{
-    PvpFlow='pvpFlow059';PvpFlowOnly='pvpFlowOnly059';PvpGuardsOnly='pvpGuardsOnly059';PvpRouteProbe='pvpRouteProbe064';PvpPerimeter='pvpPerimeter064';PvpTowns='pvpTownPerimeter064';
+    PvpFlow='pvpFlow059';PvpFlowOnly='pvpFlowOnly059';PvpGuardsOnly='pvpGuardsOnly059';PvpRouteProbe='pvpRouteProbe064';PvpPerimeter='pvpPerimeter064';PvpTowns='pvpTownPerimeter064';PvpTownOutcome='pvpTownOutcome064';
     RaidFlow='raidFlow059';RaidStaging='raidStagingOnly059';RaidLevelGuard='raidLevelGuard059';RaidMinionGuard='raidMinionGuard059';RaidTriggerGuard='raidTriggerGuard059';
     KamalokaFlow='kamalokaFlow059';RiftFlow='riftFlow059';RiftLifecycle='riftLifecycle064';PailakaOnly='pailakaOnly064';LearningJourney='learningJourney059';
     CareerProducer='careerProducer061';AutoProfessions061='autoProfessions061';

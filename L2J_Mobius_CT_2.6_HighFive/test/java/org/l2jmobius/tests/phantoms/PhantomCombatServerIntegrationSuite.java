@@ -852,7 +852,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				registry.add("06-native-clan-war-eligibility-and-instance-guards", this::testPvpAffiliations059);
 				return;
 			}
-			if (Boolean.getBoolean("phantom.test.pvpTownPerimeter064")) { registry.add("08-canonical-town-native-defense-retreat-and-continuation064", this::testPvpFlow059); return; }
+			if (Boolean.getBoolean("phantom.test.pvpTownPerimeter064")) { registry.add(Boolean.getBoolean("phantom.test.pvpTownOutcome064") ? "09-canonical-town-native-conflict-outcome-and-continuation064" : "08-canonical-town-native-defense-retreat-and-continuation064", this::testPvpFlow059); return; }
 			if (Boolean.getBoolean("phantom.test.pvpPerimeter064")) { registry.add("07-supported-perimeter-native-defense-retreat-and-continuation064", this::testPvpFlow059); return; }
 			if (Boolean.getBoolean("phantom.test.pvpFlowOnly059")) { registry.add("04-native-defense-resource-retreat-regroup-and-durable-end", this::testPvpFlow059); return; }
 			registry.add("01-native-no-pvp-zone-refuses-enemy-ownership", this::testNoPvpZone058);
@@ -3931,6 +3931,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		Location flowInput = null;
 		final List<int[]> preparedInputs064 = new ArrayList<>();
 		final boolean townPerimeter064 = Boolean.getBoolean("phantom.test.pvpTownPerimeter064");
+		final boolean outcome064 = townPerimeter064 && Boolean.getBoolean("phantom.test.pvpTownOutcome064");
 		if (Boolean.getBoolean("phantom.test.pvpPerimeter064") || townPerimeter064)
 		{
 			final var centre064 = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(78900, 150200, GeoEngine.getInstance().getHeight(78900, 150200, -3560), 0);
@@ -4042,6 +4043,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final double retreatHp = Math.max(_player.getMaxHp() * policy.limits().retreatHpPercent() / 100.0, (_player.getMaxHp() + _player.getMaxCp()) * policy.limits().retreatEffectivePoolPercent() / 100.0);
 			PhantomAssertions.assertTrue(_player.getCurrentHp() > retreatHp, "INVALID_INPUT: defender already below the declared native retreat threshold.");
 			context.record("pvp059.flowInput", "INDEPENDENT stock Giran input; Mage94/80/1339:101/Sgear HP55% CP0; human Knight5/80/full; enemy Archer92/80/S7575+343/Draconic armor/Sarrows1345x200/full; native party-defense first, enemy then targets mage until native HP/effective-pool threshold=" + retreatHp + ", voluntarily withdraws; no refill/TP/stat edit during measurement; native policy45s combat/30s retreat; actual input=" + nativeOrigin + "; planned safe=" + safe + "; source Game=" + System.getProperty("phantom.contract058.semantic.jar"));
+			if (outcome064) { context.record("pvp064.declaredOutcome", "INDEPENDENT case09 accepts actual native VICTORY or resource RETREAT before protected regroup and useful FOLLOW; original retreat-only04/07/08 and raw FAIL retained; identical actor/resource/skill inputs and policy deadlines"); }
 			enemy.setTarget(human); human.onForcedAttack(enemy);
 			await(() -> (human.getCurrentHp() + human.getCurrentCp()) < humanPool, "Flow enemy did not actually damage the protected human.");
 			final long engageDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
@@ -4059,7 +4061,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			enemy.setTarget(_player); _player.onForcedAttack(enemy);
 			final long resourceDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
 			boolean riskWitness = false;
-			while (!_player.isDead() && pvp.snapshot().retreats() == 0 && System.nanoTime() < resourceDeadline)
+			while (!_player.isDead() && pvp.snapshot().retreats() == 0 && !(outcome064 && enemy.isDead()) && System.nanoTime() < resourceDeadline)
 			{
 				topology.updateProfile(_profile.profileId(), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(_player.getX(), _player.getY(), _player.getZ(), 0), ++positionSequence);
 				riskWitness |= Math.round(_player.getCurrentHp() * 100 / _player.getMaxHp()) <= policy.limits().retreatHpPercent() || Math.round((_player.getCurrentHp() + _player.getCurrentCp()) * 100 / (_player.getMaxHp() + _player.getMaxCp())) <= policy.limits().retreatEffectivePoolPercent();
@@ -4072,6 +4074,23 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final var ai = actor.getAI(); final var attackTarget = ai.getAttackTarget(); final var selected = actor.getTarget();
 				return actor.getObjectId() + ":xyz=" + actor.getX() + ',' + actor.getY() + ',' + actor.getZ() + ":HP=" + actor.getCurrentHp() + ":CP=" + actor.getCurrentCp() + ":AI=" + ai.getIntention() + ":attackTarget=" + (attackTarget == null ? 0 : attackTarget.getObjectId()) + ":selected=" + (selected == null ? 0 : selected.getObjectId()) + ":peace=" + actor.isInsideZone(ZoneId.PEACE) + ":arrows=" + actor.getInventory().getInventoryItemCount(1345, -1);
 			}).toList());
+			final boolean victory064 = outcome064 && enemy.isDead() && !_player.isDead() && !human.isDead();
+			final org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Encounter terminal;
+			if (victory064)
+			{
+				final long victoryDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+				while (pvpStore.load(_profile.profileId()).orElseThrow().encounter().stage() != org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpModel.Stage.COOLDOWN && System.nanoTime() < victoryDeadline) { pvp.onPulse(); composition.pulsePvp059(); Thread.sleep(20); }
+				terminal = pvpStore.load(_profile.profileId()).orElseThrow().encounter();
+				PhantomAssertions.assertTrue(terminal.terminalReason().equals("pvp.combat.victory") && pvp.snapshot().retreats() == 0 && !_combat.hasClaim(_profile.profileId()), "Actual native victory did not release its exact combat owner/cooldown.");
+				final int victoryX = _player.getX(), victoryY = _player.getY();
+				PhantomAssertions.assertTrue(composition.command059(context, human, _player, org.l2jmobius.gameserver.network.enums.ChatType.WHISPER, "иди за мной", party), "Victorious helper did not receive FOLLOW for the protected regroup.");
+				final var victoriousPvp = pvp;
+				composition.walkAndRegroup059(context, human, List.of(_player), party, safe.x(), safe.y(), safe.z(), () -> { victoriousPvp.onPulse(); composition.pulsePvp059(); });
+				PhantomAssertions.assertTrue(Math.hypot(_player.getX() - victoryX, _player.getY() - victoryY) > 64 && !_player.isDead() && !human.isDead(), "Victorious helper did not physically regroup through native movement.");
+				context.record("pvp064.victoryRecovery", "enemy native death/cooldown=" + terminal + "; protected native FOLLOW displacement=" + Math.hypot(_player.getX() - victoryX, _player.getY() - victoryY) + "; exact combat released; no HP/MP/item/position rescue");
+			}
+			else
+			{
 			PhantomAssertions.assertTrue(!_player.isDead() && riskWitness && _player.getCurrentHp() > _player.getMaxHp() * .15, "Declared resource transition did not enter the native rounded risk/combat15% interval; HP=" + _player.getCurrentHp() + '/' + _player.getMaxHp() + "; CP=" + _player.getCurrentCp());
 			enemy.getAI().setIntention(Intention.MOVE_TO, new Location(enemy.getX() - 600, enemy.getY(), enemy.getZ()));
 			final int retreatX = _player.getX(), retreatY = _player.getY();
@@ -4089,9 +4108,10 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				topology.updateProfile(_profile.profileId(), new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(_player.getX(), _player.getY(), _player.getZ(), 0), ++positionSequence);
 				pvp.onPulse(); composition.pulsePvp059(); Thread.sleep(20);
 			}
-			final var terminal = pvpStore.load(_profile.profileId()).orElseThrow().encounter();
+			terminal = pvpStore.load(_profile.profileId()).orElseThrow().encounter();
 			context.record("pvp059.flowRetreat", "terminal=" + terminal + "; actual=" + _player.getX() + ',' + _player.getY() + ',' + _player.getZ() + "; displacement=" + Math.hypot(_player.getX() - retreatX, _player.getY() - retreatY) + "; HP=" + _player.getCurrentHp() + "; service=" + pvp.snapshot());
 			PhantomAssertions.assertTrue(terminal.terminalReason().equals("pvp.retreat.arrived") && Math.hypot(_player.getX() - retreatX, _player.getY() - retreatY) > 64 && nativeWalk && maximumStep < 100 && !_combat.hasClaim(_profile.profileId()) && !_player.isDead(), "Native retreat did not really walk/arrive/release ownership; walk=" + nativeWalk + "; maximumStep=" + maximumStep);
+			}
 			PhantomAssertions.assertTrue(_player.isInsideZone(ZoneId.PEACE) || _player.isInsideZone(ZoneId.NO_PVP), "Retreat arrival is not a factual native protected surface.");
 			human.getAI().setIntention(Intention.MOVE_TO, new Location(_player.getX(), _player.getY(), _player.getZ()));
 			PhantomAssertions.assertTrue(waitFor(() -> human.calculateDistance3D(_player) < 350, 35_000), "Native human did not walk to the completed retreat regroup.");
@@ -4111,12 +4131,12 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(composition.command059(context, human, _player, org.l2jmobius.gameserver.network.enums.ChatType.WHISPER, "иди за мной", party), "Post-conflict FOLLOW had no delivered reply.");
 			final var resumedPvp = pvp;
 			composition.walkAndRegroup059(context, human, List.of(_player), party, continuation.getX(), continuation.getY(), continuation.getZ(), () -> { resumedPvp.onPulse(); composition.pulsePvp059(); });
-			PhantomAssertions.assertTrue(Math.hypot(_player.getX() - followX, _player.getY() - followY) > 64 && pvp.snapshot().engagements() == engagements && !_player.isDead() && !human.isDead() && !enemy.isDead(), "Useful native follow did not resume or stale conflict replayed after regroup.");
-			context.record("pvp059.followContinuation", "same native Party; delivered FOLLOW; actual helper displacement=" + Math.hypot(_player.getX() - followX, _player.getY() - followY) + "; all3 alive; engagements=" + engagements + "; remaining native arrows=" + enemy.getInventory().getInventoryItemCount(1345, -1) + "; no resource reset");
+			PhantomAssertions.assertTrue(Math.hypot(_player.getX() - followX, _player.getY() - followY) > 64 && pvp.snapshot().engagements() == engagements && !_player.isDead() && !human.isDead() && (victory064 ? enemy.isDead() : !enemy.isDead()), "Useful native follow did not resume or stale conflict replayed after regroup.");
+			context.record("pvp059.followContinuation", "same native Party; delivered FOLLOW; actual helper displacement=" + Math.hypot(_player.getX() - followX, _player.getY() - followY) + "; native participants alive; enemyDead=" + enemy.isDead() + "; engagements=" + engagements + "; remaining native arrows=" + enemy.getInventory().getInventoryItemCount(1345, -1) + "; no resource reset");
 			_player.storeMe();
 			final var reloaded = new org.l2jmobius.gameserver.phantoms.pvp.PhantomPvpStore(_repository).load(_profile.profileId()).orElseThrow().encounter();
 			PhantomAssertions.assertEquals(terminal, reloaded, "Ordinary save changed terminal conflict/cooldown identity.");
-			context.record("pvp059.flowResult", "actual defense effect+cost; native policy retreat/movement; voluntary enemy withdrawal; native human walking regroup; same Party; cooldown durable/reloaded; no actor rescue; owner UI unverified");
+			context.record("pvp059.flowResult", "actual defense effect+cost; native outcome=" + (victory064 ? "VICTORY" : "RETREAT") + "; native protected regroup and FOLLOW; same Party; cooldown durable/reloaded; no actor rescue; owner UI unverified");
 		}
 		finally
 		{
@@ -5931,7 +5951,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				final double hpBefore = boss.getCurrentHp(); final long expBefore = roster.stream().mapToLong(Player::getExp).sum();
 				final long tankExpBefore = _player.getExp();
 				final double totalHpBefore = hpBefore + initialMinions.stream().mapToDouble(Monster::getCurrentHp).sum();
-				context.record("raid059.supportPreparation", "NEW independent episode: current native learned MajorHeal1401/Bishop, Might1068/Shield1040/Haste1086/Prophet and physical dances271/274/275/BladeDancer; existing support owner prepares<=120s before offense, incoming damage starts defense immediately; TEST human waits for first accepted combat; no direct effects/cost/HP/MP writes inside measurement");
+				context.record("raid059.supportPreparation", "NEW independent episode: current native learned MajorHeal1401/Bishop, Might1068/Shield1040/Haste1086/MagicBarrier1036/ResistWind1189/Prophet and physical dances271/274/275/BladeDancer; existing support owner prepares<=120s before offense, incoming damage starts defense immediately; TEST human waits for first accepted combat; no direct effects/cost/HP/MP writes inside measurement");
 				final long[] damage = new long[actors.size()]; final boolean[] spentMp = new boolean[actors.size()];
 				final double[] previousMp = actors.stream().mapToDouble(Player::getCurrentMp).toArray();
 				double previousTankHp = _player.getCurrentHp(), previousTankMax = _player.getMaxHp(), previousHealerMaxMp = actors.get(3).getMaxMp();
@@ -5982,6 +6002,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 						System.out.println("RAID059_MINIONS remaining=" + liveMinions.stream().map(value -> value.getId() + ":" + value.getObjectId() + ":HP" + (int) value.getCurrentHp()).toList() + "; combinedHP=" + totalHp + '/' + totalHpBefore + "; combinedDPS=" + combinedDps + "; combinedETA=" + (combinedDps > 0 ? totalHp / combinedDps : -1));
 						System.out.println("RAID064_SUPPORT " + List.of(actors.get(3), actors.get(4), actors.get(6), actors.get(7)).stream().map(actor -> actor.getObjectId() + ":AI=" + actor.getAI().getIntention() + ":casting=" + actor.isCastingNow() + ":moving=" + actor.isMoving() + ":target=" + (actor.getTarget() == null ? 0 : actor.getTarget().getObjectId()) + ":lastSkill=" + (actor.getLastSkillCast() == null ? "none" : actor.getLastSkillCast().getId() + ":" + actor.getLastSkillCast().getLevel())).toList());
 						System.out.println("RAID064_TANK lastSkill=" + (_player.getLastSkillCast() == null ? "none" : _player.getLastSkillCast().getId() + ":" + _player.getLastSkillCast().getLevel()) + "; liveMinionVictims=" + liveMinions.stream().map(value -> value.getId() + ":" + (value.getMostHated() == null ? 0 : value.getMostHated().getObjectId())).toList());
+						System.out.println("RAID064_MAGIC_DEFENSE tankMDef=" + _player.getMDef(boss, null) + "; native effects=" + java.util.stream.IntStream.of(1036, 1189).mapToObj(id -> { final Skill skill = actors.get(6).getKnownSkill(id); return id + ":" + (skill == null ? "NOT_LEARNED" : org.l2jmobius.gameserver.phantoms.combat.PhantomSupportEffectAuthority.status(_player, skill, 0)); }).toList());
 						System.out.println("RAID064_HEAL_CAPABILITIES " + backend.capabilities(MemberRef.phantom(profileIds.get(3), actors.get(3).getObjectId()), _player.getObjectId()).stream().filter(value -> value.capabilityKey().equals("combat.heal")).map(value -> value.variantKey() + ':' + value.actionSkillId() + ':' + value.actionSkillLevel() + ':' + value.readyNow() + ':' + value.readinessReason()).toList());
 						System.out.flush(); nextProgress = now + TimeUnit.SECONDS.toNanos(30);
 					}
