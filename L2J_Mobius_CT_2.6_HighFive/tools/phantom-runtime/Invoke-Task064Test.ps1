@@ -28,9 +28,9 @@ try{$tests064=([BitConverter]::ToString($sha064.ComputeHash([Text.Encoding]::UTF
 if($info064.testTreeSha256 -ine $tests064){throw 'Actual test binaries/resources differ from clean committed build receipt.'}
 if($ValidateOnly){Write-Output "TASK064_TEST_BINDING_PASS commit=$($info064.codeCommit); jar=$hash064; DB_WRITES=0; PROCESS_ACTIONS=0";return}
 $flags064=@{
-    PvpFlow='pvpFlow059';PvpFlowOnly='pvpFlowOnly059';PvpGuardsOnly='pvpGuardsOnly059';PvpRouteProbe='pvpRouteProbe064';PvpPerimeter='pvpPerimeter064';
+    PvpFlow='pvpFlow059';PvpFlowOnly='pvpFlowOnly059';PvpGuardsOnly='pvpGuardsOnly059';PvpRouteProbe='pvpRouteProbe064';PvpPerimeter='pvpPerimeter064';PvpTowns='pvpTownPerimeter064';
     RaidFlow='raidFlow059';RaidStaging='raidStagingOnly059';RaidLevelGuard='raidLevelGuard059';RaidMinionGuard='raidMinionGuard059';RaidTriggerGuard='raidTriggerGuard059';
-    KamalokaFlow='kamalokaFlow059';RiftFlow='riftFlow059';PailakaOnly='pailakaOnly064';LearningJourney='learningJourney059';
+    KamalokaFlow='kamalokaFlow059';RiftFlow='riftFlow059';RiftLifecycle='riftLifecycle064';PailakaOnly='pailakaOnly064';LearningJourney='learningJourney059';
     CareerProducer='careerProducer061';AutoProfessions061='autoProfessions061';
     AutonomousLearning='autonomousLearning060';AutonomousLearningGuards='autonomousLearningGuards060';JourneyLifecycle061='journeyLifecycle061';LearningLong061='learningLong061';
     Living='living060';LivingMage='livingMage060';LivingDwarf='livingDwarf060';LivingSupply='livingSupply060';LivingRelocate='livingRelocate060';
@@ -46,6 +46,7 @@ if($NativeFocus){
     $options064+=('-Dphantom.m1.native.focus='+$NativeFocus)
 }
 if('PvpFlowOnly' -in $Features){$options064+='-Dphantom.test.pvpFlow059=true'}
+if('RiftLifecycle' -in $Features){$options064+='-Dphantom.test.riftFlow059=true'}
 if(@($Features | Where-Object {$_ -in @('RaidStaging','RaidLevelGuard','RaidMinionGuard','RaidTriggerGuard')}).Count){$options064+='-Dphantom.test.raidFlow059=true'}
 New-Item -ItemType Directory -Path $report064 | Out-Null
 [ordered]@{format=1;sourceCommit=$info064.codeCommit;sourceArchiveSha256=$info064.sourceArchiveSha256;testTreeSha256=$tests064;buildReceiptSha256=(Get-FileHash -LiteralPath $receipt064).Hash;jar=$jar064;jarSha256=$hash064;schema='l2jmobiush5_phantom_test_064';owner='TASK064_CAMPAIGN';mode=$Mode;seed=$Seed;features=$Features;nativeFocus=$NativeFocus;startedUtc=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $report064 'EPISODE064.json') -Encoding UTF8

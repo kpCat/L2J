@@ -744,7 +744,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		}
 		if (_mode == Mode.RIFT_NATIVE_058)
 		{
-			registry.add(Boolean.getBoolean("phantom.test.riftFlow059") ? "02-legal-four-member-native-rift-reward-and-leave-control" : "01-mixed-native-rift-fee-room-combat-and-last-human-leave", this::testRift058);
+			registry.add(Boolean.getBoolean("phantom.test.riftLifecycle064") ? "03-canonical-consent-readiness-native-timed-rift-and-exit064" : Boolean.getBoolean("phantom.test.riftFlow059") ? "02-legal-four-member-native-rift-reward-and-leave-control" : "01-mixed-native-rift-fee-room-combat-and-last-human-leave", this::testRift058);
 			return;
 		}
 		if (_mode == Mode.INSTANCES_058)
@@ -852,6 +852,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				registry.add("06-native-clan-war-eligibility-and-instance-guards", this::testPvpAffiliations059);
 				return;
 			}
+			if (Boolean.getBoolean("phantom.test.pvpTownPerimeter064")) { registry.add("08-canonical-town-native-defense-retreat-and-continuation064", this::testPvpFlow059); return; }
 			if (Boolean.getBoolean("phantom.test.pvpPerimeter064")) { registry.add("07-supported-perimeter-native-defense-retreat-and-continuation064", this::testPvpFlow059); return; }
 			if (Boolean.getBoolean("phantom.test.pvpFlowOnly059")) { registry.add("04-native-defense-resource-retreat-regroup-and-durable-end", this::testPvpFlow059); return; }
 			registry.add("01-native-no-pvp-zone-refuses-enemy-ownership", this::testNoPvpZone058);
@@ -3928,14 +3929,23 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		};
 		Location flowInput = null;
 		final List<int[]> preparedInputs064 = new ArrayList<>();
-		if (Boolean.getBoolean("phantom.test.pvpPerimeter064"))
+		final boolean townPerimeter064 = Boolean.getBoolean("phantom.test.pvpTownPerimeter064");
+		if (Boolean.getBoolean("phantom.test.pvpPerimeter064") || townPerimeter064)
 		{
 			final var centre064 = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(78900, 150200, GeoEngine.getInstance().getHeight(78900, 150200, -3560), 0);
-			final var respawns064 = _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, 1, 100_000);
+			final var respawns064 = _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, townPerimeter064 ? 8 : 1, 100_000);
 			final var landmarks064 = respawns064.isEmpty() ? _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000) : respawns064;
 			PhantomAssertions.assertTrue(!landmarks064.isEmpty(), "INVALID_INPUT: no canonical protected landmark for the independent perimeter control.");
-			final var anchor064 = landmarks064.getFirst().point();
-			for (int radius064 : new int[] {1800, 2400, 3000})
+			final var selected064 = new ArrayList<org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint>();
+			for (var landmark064 : landmarks064)
+			{
+				final var point064 = landmark064.point();
+				if (townPerimeter064 && selected064.stream().anyMatch(value -> Math.hypot((long) value.x() - point064.x(), (long) value.y() - point064.y()) < 10_000)) { continue; }
+				selected064.add(point064); if (selected064.size() >= (townPerimeter064 ? 3 : 1)) { break; }
+			}
+			for (var anchor064 : selected064)
+			{
+			for (int radius064 : townPerimeter064 ? new int[] {1800} : new int[] {1800, 2400, 3000})
 			{
 				for (int direction064 = 0; direction064 < 8; direction064++)
 				{
@@ -3943,7 +3953,8 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 					preparedInputs064.add(new int[] {anchor064.x() + (int) Math.round(radius064 * Math.cos(angle064)), anchor064.y() + (int) Math.round(radius064 * Math.sin(angle064))});
 				}
 			}
-			context.record("pvp064.preparedGeometry", "Independent supported-perimeter TEST; canonical anchor=" + anchor064 + "; at most24 pre-measurement native candidates; original78900/150200 FAIL retained; unchanged actors/resources/policy30s; no geometry change during measurement");
+			}
+			context.record("pvp064.preparedGeometry", "Independent supported-perimeter TEST; canonical anchors=" + selected064 + "; at most24 pre-measurement native candidates; original04 and Giran07 FAIL retained; unchanged actors/resources/policy30s; no geometry change during measurement");
 		}
 		else { preparedInputs064.add(new int[] {78900, 150200}); }
 		// The original04 input stays fixed; the opt-in07 control declares its geometry before measurement.
@@ -3972,7 +3983,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (flowInput != null) { break; }
 		}
-		PhantomAssertions.assertTrue(flowInput != null, Boolean.getBoolean("phantom.test.pvpPerimeter064") ? "BLOCKED_NATIVE_ROUTE: no declared perimeter candidate has a proven native route within the unchanged30s window; original Giran FAIL retained." : "BLOCKED_NATIVE_ROUTE: declared Giran input has no proven protected native route within the unchanged30s window; full P4 remains PARTIAL.");
+		PhantomAssertions.assertTrue(flowInput != null, Boolean.getBoolean("phantom.test.pvpPerimeter064") || townPerimeter064 ? "BLOCKED_NATIVE_ROUTE: no declared perimeter candidate has a proven native route within the unchanged30s window; original Giran FAIL retained." : "BLOCKED_NATIVE_ROUTE: declared Giran input has no proven protected native route within the unchanged30s window; full P4 remains PARTIAL.");
 		int flowOffset = 0;
 		for (Player actor : List.of(_player, human, enemy)) { actor.setInvul(false); actor.setRunning(); actor.standUp(); actor.decayMe(); actor.setXYZInvisible(flowInput.getX() + flowOffset, flowInput.getY(), flowInput.getZ()); actor.spawnMe(); actor.revalidateZone(true); flowOffset += 30; }
 		_player.setCurrentCp(0); _player.setCurrentHp(_player.getMaxHp() * .55);
@@ -5563,6 +5574,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final boolean legal059 = Boolean.getBoolean("phantom.test.riftFlow059");
+		final boolean lifecycle064 = Boolean.getBoolean("phantom.test.riftLifecycle064");
 		final Player human = ensureObserver(); final List<Player> actors = new ArrayList<>(List.of(_player));
 		final List<Long> profiles059 = new ArrayList<>(List.of(_profile.profileId()));
 		if (legal059)
@@ -5574,7 +5586,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		{
 			for (Player actor : actors)
 			{
-				prepareInstanceActor058(actor, actor == human ? 15 : actor == _player ? 4 : 1, 30);
+				prepareInstanceActor058(actor, actor == human ? 15 : actor == _player ? 4 : 1, lifecycle064 ? 34 : 30);
 				for (int itemId : new int[] {2411,913,850,850,881,881}) { final Item item = actor.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, this); PhantomAssertions.assertTrue(item != null, "Rift059 legal D equipment unavailable."); actor.getInventory().equipItem(item); }
 				if (actor == human) { for (int itemId : new int[] {188,437,470,2450}) { final Item item = actor.getInventory().addItem(ItemProcessType.REWARD, itemId, 1, null, this); PhantomAssertions.assertTrue(item != null, "Rift059 native Cleric equipment unavailable."); actor.getInventory().equipItem(item); } actor.getInventory().addItem(ItemProcessType.REWARD, 3948, 1000, null, this); actor.addAutoSoulShot(3948); }
 				if (actor == _player) { final Item shield = actor.getInventory().addItem(ItemProcessType.REWARD, 2493, 1, null, this); actor.getInventory().equipItem(shield); }
@@ -5587,13 +5599,16 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		final var manager = DimensionalRiftManager.getInstance(); final var entry = manager.entryReadiness((byte) 1);
 		PhantomAssertions.assertTrue(entry.supported() && entry.entryCapacityAvailable() && entry.minimumPartySize() <= 2, "INVALID_INPUT: current native Rift1 entry is unavailable for the declared pair.");
 		for (Player actor : actors) { placeInstanceInput058(actor, entry.destinationX(), entry.destinationY(), entry.destinationZ()); }
-		final Party party = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(party); for (Player actor : actors.subList(1, actors.size())) { actor.joinParty(party); }
+		final Party party;
+		if (lifecycle064) { party = canonicalRiftParty064(context, actors, human); }
+		else { party = new Party(_player, PartyDistributionType.FINDERS_KEEPERS); _player.setParty(party); for (Player actor : actors.subList(1, actors.size())) { actor.joinParty(party); } }
 		final Npc npc = World.getInstance().getVisibleObjects(_player, Npc.class).stream().filter(value -> (value.getId() == 31488) && manager.checkIfInPeaceZone(value.getX(), value.getY(), value.getZ())).min(Comparator.comparingDouble(value -> _player.calculateDistance3D(value))).orElseThrow(() -> new AssertionError("INVALID_INPUT: no native Rift Recruit in waiting room."));
 		for (Player actor : actors) { placeInstanceInput058(actor, npc.getX() + 20, npc.getY(), npc.getZ()); }
 		PhantomAssertions.assertTrue(npc.canInteract(_player) && manager.checkIfInPeaceZone(_player.getX(), _player.getY(), _player.getZ()), "INVALID_INPUT: native Rift Recruit approach is illegal.");
 		final var handler = BypassHandler.getInstance().getHandler("enterrift"); PhantomAssertions.assertTrue(handler != null, "Native Rift bypass handler absent.");
 		context.record("instance058.rift.input", "TEST roster=" + actors.stream().map(actor -> actor.getObjectId() + ":class" + actor.getActiveClass() + ":level" + actor.getLevel()).toList() + "; native Rift1/minParty=" + entry.minimumPartySize() + "; native class-tree/D gear; normal room instance0; stock fees7079; one native room kill<=90s then canonical leave; no clock/rate changes");
-		if (legal059) { context.record("rift059.declaredInput", "Independent four-member native control: Knight4/two Warrior1/TEST Cleric15, all30/current learned class tree; unenchanted D equipment and native grade-matched shots; no overlevel EXP bypass; native handler owns entry/fees, common Combat owns three Phantom sessions, human native heal/buff; this does NOT prove product readiness-to-entry consent or a full timed Rift cycle. Old058 raw retained."); }
+		if (legal059 && !lifecycle064) { context.record("rift059.declaredInput", "Independent four-member native control: Knight4/two Warrior1/TEST Cleric15, all30/current learned class tree; unenchanted D equipment and native grade-matched shots; no overlevel EXP bypass; native handler owns entry/fees, common Combat owns three Phantom sessions, human native heal/buff; this does NOT prove product readiness-to-entry consent or a full timed Rift cycle. Old058 raw retained."); }
+		if (lifecycle064) { context.record("rift064.declaredInput", "Independent extended TEST: same four native roles, all34 before measurement/current class-tree/D gear/finite SS and BSS; canonical invitations explicitly accepted with exact identities; live product readiness then native handler entry; unchanged480..600s room timer; no resource/stat/clock changes during measurement; no autonomous rift.play owner claim"); }
 		try
 		{
 			handler.onCommand("enterrift 1", human, npc);
@@ -5602,7 +5617,9 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertFalse(party.isInDimensionalRift(), "Missing fragments entered Rift.");
 			// Preparation for the separate positive entry, before enrollment; not post-outcome rescue.
 			for (Player actor : actors) { actor.getInventory().addItem(ItemProcessType.REWARD, 7079, entry.entryItemCount() + 1, null, this); }
+			if (lifecycle064) { assertRiftReadiness064(context); }
 			handler.onCommand("enterrift 1", _player, npc); acknowledgeInstance058(actors);
+			final long entered064 = System.nanoTime();
 			PhantomAssertions.assertTrue(party.isInDimensionalRift(), "Native guarded Rift entry failed.");
 			final var rift = party.getDimensionalRift(); final var room = manager.getRoom(rift.getType(), rift.getCurrentRoom());
 			PhantomAssertions.assertTrue(actors.stream().allMatch(actor -> (actor.getInstanceId() == 0) && room.checkIfInZone(actor.getX(), actor.getY(), actor.getZ()) && (actor.getInventory().getInventoryItemCount(7079, -1) == 1)), "Native Rift room/fee/identity mismatch.");
@@ -5625,9 +5642,18 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			PhantomAssertions.assertTrue(target.isDead() && (_player.getExp() > exp) && !_player.isDead() && !human.isDead(), "Declared native Rift room combat/reward failed.");
 			if (legal059) { PhantomAssertions.assertTrue(actors.stream().allMatch(actor -> !actor.isDead() && actor.getExp() > expBefore059.get(actor.getObjectId())), "Rift059 legal roster did not earn native EXP for every exact member."); context.record("rift059.nativeRewards", actors.stream().map(actor -> actor.getObjectId() + ":EXP" + expBefore059.get(actor.getObjectId()) + "->" + actor.getExp()).toList()); }
 			for (long profile : profiles059) { _combat.cancel(profile); } consumeTerminal();
+			if (lifecycle064) { observeRiftTransition064(context, actors, profiles059, party, rift, room, entered064); }
 			PartyInvitationService.getInstance().leave(human); if (legal059) { for (Player actor : actors.subList(1, actors.size() - 1)) { if (actor.isInParty()) { PartyInvitationService.getInstance().leave(actor); } } } acknowledgeInstance058(actors);
+			if (lifecycle064) { PhantomAssertions.assertTrue(waitFor(() -> { acknowledgeInstance058(actors); return !party.isInDimensionalRift() && actors.stream().allMatch(actor -> !actor.isTeleporting() && manager.checkIfInPeaceZone(actor.getX(), actor.getY(), actor.getZ())); }, 10_000), "Canonical Rift return did not settle every exact native teleport."); }
 			context.record("rift059.leaveBoundary", "nativePartyRift=" + party.isInDimensionalRift() + "; roomOccupied=" + room.isPartyInside() + "; actors=" + actors.stream().map(actor -> actor.getObjectId() + ":managed=" + actor.isNativeWorkManaged() + ":instance=" + actor.getInstanceId() + ":waiting=" + manager.checkIfInPeaceZone(actor.getX(), actor.getY(), actor.getZ()) + ":xyz=" + actor.getX() + ',' + actor.getY() + ',' + actor.getZ()).toList());
 			PhantomAssertions.assertTrue(!party.isInDimensionalRift() && actors.stream().allMatch(actor -> manager.checkIfInPeaceZone(actor.getX(), actor.getY(), actor.getZ())) && !room.isPartyInside(), "Last human leave did not release native Rift room/return every exact actor.");
+			if (lifecycle064)
+			{
+				PhantomAssertions.assertFalse(manager.getRoom(rift.getType(), rift.getCurrentRoom()).isPartyInside(), "Canonical timed Rift exit retained its final room claim.");
+				for (Player actor : actors) { actor.storeMe(); }
+				PhantomAssertions.assertTrue(actors.stream().allMatch(actor -> actor.getInventory().getInventoryItemCount(7079, -1) == 1), "Timed Rift changed its exact once-only entry debit.");
+				context.record("rift064.result", "canonical consent/live READY/native fee/combat/all4EXP/stock timed room transition/canonical leave/all waiting/room released/native save; Rift is open instance0 without dungeon reuse; autonomous entry/death/logout/full multi-room closing remain open");
+			}
 			context.record("instance058.rift.result", "native room instance0 (not instanced dungeon); exact fee debit; stock kill/reward; canonical leave→native return/room released; auto-readiness-to-entry consent and full timed/death/logout cycle remain open");
 		}
 		finally
@@ -5635,6 +5661,78 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			for (long profile : profiles059) { _combat.cancel(profile); } consumeTerminal();
 			for (Player actor : actors) { if (actor.isInParty()) { PartyInvitationService.getInstance().leave(actor); } }
 		}
+	}
+
+	private Party canonicalRiftParty064(PhantomTestContext context, List<Player> actors, Player human)
+	{
+		try (var output = human.attachOutboundSession(new org.l2jmobius.gameserver.phantoms.player.HeadlessPlayerOutboundSession(16, 128)))
+		{
+			for (Player actor : actors.subList(1, actors.size()))
+			{
+				final var invitation = PartyInvitationService.getInstance().invite(_player, actor, PartyDistributionType.FINDERS_KEEPERS.getId());
+				PhantomAssertions.assertTrue(invitation.delivered(), "Rift TEST canonical invitation was not delivered: " + invitation);
+				PhantomAssertions.assertTrue(PartyInvitationService.getInstance().respond(actor, PartyInvitationService.Response.ACCEPT, invitation.identity()).accepted(), "Rift TEST exact consent was not accepted.");
+				context.record("rift064.consent." + actor.getObjectId(), invitation.identity());
+			}
+		}
+		PhantomAssertions.assertTrue(_player.getParty() != null && _player.getParty().getLeader() == _player && _player.getParty().getMemberCount() == actors.size(), "Canonical Rift Party differs from the declared roster.");
+		return _player.getParty();
+	}
+
+	private void assertRiftReadiness064(PhantomTestContext context)
+	{
+		final var progression = new PhantomProgressionService(new L2jProgressionBackend(_materialization, Path.of("."), () -> _query), PhantomProgressionPolicy.productionDefaults()); progression.start();
+		try
+		{
+			final var roles = PhantomPartyRoleCatalog.load(Path.of("data/phantoms/party/high-five-party-roles-v1.xml"));
+			final var backend = new org.l2jmobius.gameserver.phantoms.rift.L2jPhantomRiftBackend(new L2jPhantomPartyBackend(_repository, _materialization, progression), _repository, _materialization, progression, new org.l2jmobius.gameserver.phantoms.commerce.PhantomCommerceCatalogLoader(Path.of(".")).load().catalog());
+			final var catalog = org.l2jmobius.gameserver.phantoms.rift.PhantomRiftCatalog.load(Path.of("data/DimensionalRift.xml"), backend);
+			final var policy = org.l2jmobius.gameserver.phantoms.rift.PhantomRiftPolicy.load(Path.of("data/phantoms/rift/high-five-rift-policy-v1.xml"), catalog, roles);
+			final var ready = new org.l2jmobius.gameserver.phantoms.rift.PhantomRiftReadinessService(backend, catalog, policy, new org.l2jmobius.gameserver.phantoms.party.PhantomPartyRoleMatcher(roles)).evaluate(_profile.profileId(), 1);
+			context.record("rift064.readiness", ready.status() + "; reasons=" + ready.reasonKeys() + "; required=" + ready.requiredVacancies() + "; evidence=" + ready.evidenceHash());
+			PhantomAssertions.assertEquals(org.l2jmobius.gameserver.phantoms.rift.PhantomRiftModel.Status.READY_TO_ENTER, ready.status(), "Extended Rift native roster did not satisfy the unchanged product readiness.");
+		}
+		finally { progression.beginStop(); PhantomAssertions.assertTrue(progression.finishStop(), "Rift readiness progression did not drain."); }
+	}
+
+	private void observeRiftTransition064(PhantomTestContext context, List<Player> actors, List<Long> profiles, Party party, org.l2jmobius.gameserver.model.sevensigns.DimensionalRift rift, org.l2jmobius.gameserver.model.sevensigns.DimensionalRiftRoom firstRoom, long entered) throws Exception
+	{
+		final byte initialRoom = rift.getCurrentRoom();
+		final long deadline = entered + TimeUnit.SECONDS.toNanos(org.l2jmobius.gameserver.config.GeneralConfig.RIFT_AUTO_JUMPS_TIME_MAX + 30L);
+		long nextProgress = 0; final Player healer = actors.getLast(); final Skill heal = healer.getKnownSkill(1011);
+		while (party.isInDimensionalRift() && rift.getCurrentRoom() == initialRoom && actors.stream().noneMatch(Player::isDead) && System.nanoTime() < deadline)
+		{
+			for (long profile : profiles) { _combat.consumeTerminal(profile); }
+			final Monster target = firstRoom.getSpawns().stream().map(Spawn::getLastSpawn).filter(value -> value instanceof Monster monster && !monster.isDead() && !monster.isRaid() && _query.findNpc(monster.getId()).filter(fact -> fact.kind() == NpcKind.MONSTER && fact.exp() > 0 && fact.sp() > 0).isPresent()).map(value -> (Monster) value).min(Comparator.comparingDouble(_player::calculateDistance3D)).orElse(null);
+			if (target != null)
+			{
+				for (long profile : profiles) { if (_combat.find(profile).isEmpty()) { _combat.startContentSession(new PhantomCombatRequest(profile, target.getObjectId(), PhantomCombatMode.MELEE_PHYSICAL, true, false, 90_000, () -> false), "rift064.timed.combat"); } }
+			}
+			if (!healer.isCastingNow()) { final Player injured = actors.stream().filter(actor -> actor.getCurrentHp() < actor.getMaxHp() * .75).min(Comparator.comparingDouble(actor -> actor.getCurrentHp() / actor.getMaxHp())).orElse(null); if (injured != null) { healer.setTarget(injured); healer.useMagic(heal, false, false); } }
+			acknowledgeInstance058(actors);
+			if (System.nanoTime() >= nextProgress) { System.out.println("RIFT064_TIMED elapsed=" + TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - entered) + "; room=" + rift.getCurrentRoom() + "; actors=" + actors.stream().map(actor -> actor.getObjectId() + ":hp=" + (int) actor.getCurrentHp() + ":mp=" + (int) actor.getCurrentMp() + ":exp=" + actor.getExp()).toList()); System.out.flush(); nextProgress = System.nanoTime() + TimeUnit.SECONDS.toNanos(60); }
+			Thread.sleep(100);
+		}
+		for (long profile : profiles) { _combat.cancel(profile); }
+		PhantomAssertions.assertTrue(waitFor(() -> { for (long profile : profiles) { _combat.consumeTerminal(profile); } return profiles.stream().allMatch(profile -> _combat.find(profile).isEmpty()); }, 10_000), "Timed Rift Combat claims did not settle.");
+		PhantomAssertions.assertTrue(waitFor(() ->
+		{
+			acknowledgeInstance058(actors);
+			final byte roomId = rift.getCurrentRoom();
+			if (!party.isInDimensionalRift() || roomId < 0 || roomId == initialRoom) { return false; }
+			final var observedRoom = DimensionalRiftManager.getInstance().getRoom(rift.getType(), roomId);
+			return observedRoom != null && observedRoom.isPartyInside() && actors.stream().allMatch(actor -> !actor.isDead() && !actor.isTeleporting() && actor.getParty() == party && actor.getInstanceId() == 0 && observedRoom.checkIfInZone(actor.getX(), actor.getY(), actor.getZ()));
+		}, 10_000), "Stock timed Rift transition did not settle the exact living Party in its native room.");
+		final var nextRoom = DimensionalRiftManager.getInstance().getRoom(rift.getType(), rift.getCurrentRoom());
+		PhantomAssertions.assertTrue(waitFor(() -> nextRoom.getSpawns().stream().anyMatch(spawn -> spawn.getLastSpawn() != null && spawn.getLastSpawn().isSpawned() && World.getInstance().findObject(spawn.getLastSpawn().getObjectId()) == spawn.getLastSpawn()), 20_000), "The next Rift room's stock spawn timer did not complete publication before canonical leave.");
+		final var spawnCompleted = new java.util.concurrent.CountDownLatch(1);
+		// TEST-only serial witness after the already running stock spawn body; no timer deadline is changed.
+		rift.getSpawnTimer().schedule(new java.util.TimerTask() { @Override public void run() { spawnCompleted.countDown(); } }, 0);
+		PhantomAssertions.assertTrue(spawnCompleted.await(10, TimeUnit.SECONDS), "The stock Rift room spawn body did not settle before canonical leave.");
+		PhantomAssertions.assertTrue(party.isInDimensionalRift() && rift.getCurrentRoom() != initialRoom && actors.stream().noneMatch(Player::isDead), "Stock timed Rift transition did not preserve the living Party.");
+		PhantomAssertions.assertTrue(!firstRoom.isPartyInside() && nextRoom.isPartyInside() && actors.stream().allMatch(actor -> actor.getParty() == party && actor.getInstanceId() == 0 && nextRoom.checkIfInZone(actor.getX(), actor.getY(), actor.getZ())), "Timed Rift room ownership/physical identity mismatch.");
+		PhantomAssertions.assertTrue(System.nanoTime() - entered >= TimeUnit.SECONDS.toNanos(org.l2jmobius.gameserver.config.GeneralConfig.RIFT_AUTO_JUMPS_TIME_MIN - 1L), "Native Rift clock was shortened.");
+		context.record("rift064.timed", "native room=" + initialRoom + "->" + rift.getCurrentRoom() + "; elapsedSeconds=" + TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - entered) + "; initial room released; exact4 living sameParty in next room");
 	}
 
 	private void testRaidTrigger059(PhantomTestContext context) throws Exception
