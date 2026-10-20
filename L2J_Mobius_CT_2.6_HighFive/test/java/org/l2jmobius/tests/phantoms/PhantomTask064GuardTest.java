@@ -7,7 +7,7 @@ import java.util.Properties;
 /** No JDBC or processes: the new fixture lane must not inherit historical authority. */
 public final class PhantomTask064GuardTest
 {
-	public static void main(String[] args)
+	public static void main(String[] args) throws Exception
 	{
 		final Path module = Path.of(System.getProperty("phantom.module.root")).toAbsolutePath().normalize();
 		final Path lane = module.resolve(".phantom-local/task064");
@@ -31,7 +31,16 @@ public final class PhantomTask064GuardTest
 		System.out.println("PASS task064.foreign-owner-role-schema");
 		reject(() -> PhantomCampaign058DatabaseLane.validateIdentity(module, lane.resolve("test/Database.test.ini"), lane.resolve("test/owned.properties"), module.resolve("dist/game"), owner, settings));
 		reject(() -> PhantomCampaign058DatabaseLane.validateIdentity(module, lane.resolve("foreign/Database.test.ini"), lane.resolve("test/owned.properties"), lane.resolve("runtime/game"), owner, settings));
-		System.out.println("PASS task064.wrong-root-config");
+		System.setProperty("phantom.task064.persistent", "true");
+		try
+		{
+			boolean refused = false;
+			try { new PhantomHeadlessPlayerTestEnvironment().initialize(new PhantomTestContext(64006401, module, lane.resolve("unused")), 0L); }
+			catch (IllegalArgumentException expected) { refused = true; }
+			if (!refused) { throw new AssertionError("Persistent064 inherited mutable fixture cleanup authority."); }
+		}
+		finally { System.clearProperty("phantom.task064.persistent"); }
+		System.out.println("PASS task064.wrong-root-config-and-persistent-fence");
 	}
 
 	private static void reject(Runnable action)

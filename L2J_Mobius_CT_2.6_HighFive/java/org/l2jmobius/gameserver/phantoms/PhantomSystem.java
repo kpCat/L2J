@@ -2292,6 +2292,7 @@ public final class PhantomSystem
 		if (configured == null || configured._state != State.RUNNING) { return Map.of(); }
 		final Map<String, String> result = new java.util.LinkedHashMap<>();
 		operatorM1TargetSnapshot(profileId).ifPresent(snapshot -> result.put("native", snapshot.toString()));
+		if (configured._visibleAutoPlay != null) { result.put("native.autoplay", configured._visibleAutoPlay.snapshotContinuation(profileId).scalarMap().toString()); }
 		if (configured._materializationService != null)
 		{
 			final var entry = configured._materializationService.find(profileId).orElse(null);

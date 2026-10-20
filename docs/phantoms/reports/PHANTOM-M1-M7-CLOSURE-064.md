@@ -12,7 +12,21 @@ Baseline/local/live remote: `fe2a24d389ed4af622cb14bc15a615b4b69e28f1`, `feature
 
 Для обычного START/STOP добавлен выключенный по умолчанию local operator transport: проверка физического root, schema, JAR, PID incarnation и deadline; затем штатный shutdown. Attach и force fallback отсутствуют. Используется существующий shared ThreadPool, без gameplay scheduler/owner. Три pure contract-проверки прошли; отдельные WinPS5.1 проверки root/schema/owner/port/JDBC/JAR прошли. Первая попытка WinPS обнаружила отсутствие UTF-8 BOM у нового кириллического скрипта; исправлено, исходный FAIL сохранён.
 
-Production/test compilation и JAR прошли. Два прежних warning о `System.runFinalization()` сохранены. Bootstrap, ordinary/native gameplay, affected111 и конечная поставка пока NOT_RUN.
+Production/test compilation, clean committed archive/JAR и ant unit66/66 прошли. Два прежних warning о `System.runFinalization()` сохранены. Первый checkpoint `04f54d6babcc2710a2c8876f1489bf56b754e186` опубликован normal push.
+
+Обе собственные064 схемы созданы однократно:124 таблицы/121 stock script, aggregate`2CD503128136E3E854F9EFF24236DD9F286CA58D9E950ACB9B2842E78B910E28`. Test-runtime изолирован, release candidate64 использует2144/7844/9144. Копии203 GeoData проверены побайтовыми SHA;45 защищённых config/manifest hashes сохранены. Из68 старых semantic XML65 отличаются только EOL,3 старых варианта изолированы приватно; современный pack не заменялся.
+
+Native M2 composition на clean04 JAR`7A0D00D4C00F506C67B5A8AA3CEF35DD1B786667554F2381091C3A45AED5E790`:1/1 exit0, delivered speech→Party→WALK/follow/assist/partychat. Это TEST actors, не сетевой human QA. Исходные111 case IDs/23 suites сохранены в versioned baseline; финальный cumulative пока NOT_RUN.
+
+M4 full-flow воспроизведён на том же JAR:0/1 exit1, Giran→safe anchor SEARCH_LIMIT до начала боя. Общий planner не пробовал полный native path в пределах12k перед coarse1024 overlay. Focused lawful-path RED→GREEN, wrong-instance/local-limit и fallback/budget controls3/3; существующий navigation-core51/51. Лимиты12k/32queries/128nodes/512edges/4096labels не повышались. Native проверка нового planner ещё предстоит.
+
+Новый обычный level1/access0 Task064View создан штатным Player.create; отдельные credentials приватны. Собственный candidate64: population12/ACTIVE6/cap16, FRESH age0, synthetic OFF. Pilot mailbox user-only DACL подтверждён; Set-Acl требовал SeSecurityPrivilege, вместо изменения OS privileges применён адресный icacls только собственных путей. PREPARED passive viewpoint не является реальным клиентом.
+
+Два обычных START/STATUS/STOP из C:/Windows прошли через stock shutdown, без Attach/force. Первая пара Game30936/Login38196; вторая Game37028/Login12012. Обе пары завершены, порты свободны. SameDB сохранил Spoilerso268484890/profile5/level2/EXP70/SP4. В новой эпохе damage/reward counters оставались0: техническое отсутствие полезного продолжения М1 открыто, EXP не превращается в недоказанные kill counts. Для причины расширен существующий пассивный life snapshot готовыми AutoPlay continuation facts; новая диагностика не управляет Player.
+
+М1–М7 не объявлены завершёнными. Проверка нового JAR, М5/М6/М7 и конечный cumulative/поставка продолжаются в исходном бюджете.
+
+Read-only review второго checkpoint обнаружил JDBC `DBNAME` override и ошибочную attribution нового test JAR старому runtime commit. Оба исправлены до публикации: закрытый список JDBC параметров переиспользован из fixture guard; сохранены RED и GREEN Java/WinPS controls без JDBC. Новый clean-build receipt связывает committed archive, фактический JAR и полный test binary/resource tree; runner проверяет их до native запуска. Положительный и отрицательные tampered JAR/test tree/missing receipt controls прошли. Текущий ant unit66/66 также прошёл.
 
 Приватный план/ledger/raw: `L2J_Mobius_CT_2.6_HighFive/.phantom-local/task064`. Финальные матрица, статусы, команды, hashes и ограничения будут записаны здесь после выполнения оставшегося разрешённого scope.
 

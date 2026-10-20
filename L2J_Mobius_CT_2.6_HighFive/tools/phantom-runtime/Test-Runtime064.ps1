@@ -23,6 +23,7 @@ $manifest064.Remove('codeSha');$manifest064.codeCommit='a'*40
 Write064 'BUILD_INFO.json' ($manifest064 | ConvertTo-Json)
 $runner064=Join-Path $PSScriptRoot 'Runtime064.ps1'
 & $runner064 -Action Validate -RuntimeRoot $root064
+& $runner064 -Action VALIDATE -RuntimeRoot $root064
 Write-Output 'PASS runtime064.exact-config-jars-no-process'
 function Reject064{
     $rejected064=$false
@@ -34,6 +35,9 @@ foreach($replacement064 in @(@('TASK064_CAMPAIGN','TASK061_CAMPAIGN'),@('schema=
 }
 Write064 'ownership064.properties' $owner064
 Write-Output 'PASS runtime064.wrong-owner-schema-root'
+Write064 'game/config/Database.ini' "URL=jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test_064?useSSL=false&DBNAME=l2jmobiush5`n";Reject064
+Write064 'game/config/Database.ini' "URL=jdbc:mysql://127.0.0.1:3308/l2jmobiush5_phantom_test_064?useSSL=false`n"
+Write-Output 'PASS runtime064.jdbc-dbname-override-rejected'
 Write064 'login/config/Server.ini' "LoginserverPort=2138`nLoginPort=9244`n";Reject064
 Write064 'login/config/Server.ini' "LoginserverPort=2244`nLoginPort=9244`n"
 Write064 'game/config/Database.ini' "URL=jdbc:mysql://127.0.0.1:3308/l2jmobiush5?useSSL=false`n";Reject064

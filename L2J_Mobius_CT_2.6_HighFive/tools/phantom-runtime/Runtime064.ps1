@@ -3,6 +3,7 @@ param([Parameter(Mandatory)][ValidateSet('Validate','Start','Status','Stop')][st
       [Parameter(Mandatory)][string]$RuntimeRoot)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+$Action=$Action.Substring(0,1).ToUpperInvariant()+$Action.Substring(1).ToLowerInvariant()
 Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1') -ErrorAction Stop
 $helper064=Join-Path $PSScriptRoot 'LocalPlay-Ownership.ps1'
 if(!(Test-Path -LiteralPath $helper064)){$helper064=Join-Path $PSScriptRoot '../phantom-local-play/LocalPlay-Ownership.ps1'}
@@ -39,7 +40,7 @@ $settings064=Join-Path $runtime064 'runtime.local.ini'
 if((Read-Field064 $settings064 'DatabaseName') -cne $schema064 -or $manifest064.databaseName -cne $schema064 -or $build064.databaseName -cne $schema064 -or $manifest064.databaseConfig -cne 'USER_CONFIRMED_EXISTING' -or $manifest064.codeSha -cne $build064.codeCommit -or $build064.codeCommit -cnotmatch '^[0-9a-f]{40}$'){throw 'TASK064: source/schema manifests mismatch.'}
 foreach($kind064 in @('game','login')){
     $url064=Read-Field064 (Join-Path $runtime064 "$kind064/config/Database.ini") 'URL'
-    if($url064 -cnotmatch ('^jdbc:(mysql|mariadb)://127\.0\.0\.1:3308/'+$schema064+'\?useSSL=false(?:&[A-Za-z0-9=:-]+)*$')){throw 'TASK064: JDBC endpoint mismatch.'}
+    if($url064 -cnotmatch ('^jdbc:(mysql|mariadb)://127\.0\.0\.1:3308/'+$schema064+'\?useSSL=false(?:&allowPublicKeyRetrieval=true)?(?:&serverTimezone=UTC)?(?:&characterEncoding=UTF-8)?$')){throw 'TASK064: JDBC endpoint mismatch.'}
 }
 $gameConfig064=Join-Path $runtime064 'game/config/Server.ini'
 $loginConfig064=Join-Path $runtime064 'login/config/Server.ini'

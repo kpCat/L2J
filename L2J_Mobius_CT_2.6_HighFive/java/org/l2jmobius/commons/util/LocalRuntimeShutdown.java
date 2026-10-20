@@ -39,7 +39,7 @@ public final class LocalRuntimeShutdown
 			throw new IllegalArgumentException("TASK064 runtime root/schema/owner mismatch.");
 		}
 		final Properties database = read(Path.of("config/Database.ini").toAbsolutePath());
-		if (!database.getProperty("URL", "").matches("jdbc:(?:mysql|mariadb)://127\\.0\\.0\\.1:3308/" + schema + "\\?useSSL=false(?:&[A-Za-z0-9=:-]+)*"))
+		if (!validJdbc(database.getProperty("URL", ""), schema))
 		{
 			throw new IllegalArgumentException("TASK064 JDBC endpoint mismatch.");
 		}
@@ -86,6 +86,12 @@ public final class LocalRuntimeShutdown
 			}
 			catch (Exception exception) { LOGGER.fine("TASK064 shutdown request rejected: " + exception.getClass().getSimpleName()); }
 		}, 500, 500);
+	}
+
+	static boolean validJdbc(String url, String schema)
+	{
+		return schema.matches("l2jmobiush5_phantom_(test_064|release_064a)")
+			&& url.matches("jdbc:(?:mysql|mariadb)://127\\.0\\.0\\.1:3308/" + schema + "\\?useSSL=false(?:&allowPublicKeyRetrieval=true)?(?:&serverTimezone=UTC)?(?:&characterEncoding=UTF-8)?");
 	}
 
 	static boolean validRequest(Properties request, String runtime, String role, long pid, long ticks, long now)

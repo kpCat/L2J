@@ -74,6 +74,29 @@ public final class PhantomWalkCorridorPlanner
 				final Status interrupted = interrupted();
 				return result(interrupted == null ? Status.FOUND : interrupted, interrupted == null ? List.of(request.destination()) : List.of());
 			}
+			// A narrow native passage need not contain any point of the coarse overlay grid.
+			// Try the complete local query once, retaining the same shared budget and proof contract.
+			if (request.origin().distanceTo(request.destination()) <= policy.maximumLocalStraightDistance() && budget.queries < MAX_QUERIES)
+			{
+				queries++; budget.queries++;
+				final var nativePath = _oracle.path(request.origin(), request.destination());
+				final var proof = PhantomNativeRouteContract.normalize(request.origin(), request.destination(), nativePath, policy, request.maximumRouteDistance(), _oracle::direct, () ->
+				{
+					final Status status = interrupted();
+					return status == Status.CANCELLED ? PhantomNavigationResult.Status.CANCELLED : status == Status.DEADLINE_EXPIRED ? PhantomNavigationResult.Status.DEADLINE_EXPIRED : PhantomNavigationResult.Status.PATH_FOUND;
+				});
+				if (interrupted() != null) { return result(interrupted(), List.of()); }
+				if (proof.status() == PhantomNavigationResult.Status.PATH_FOUND && proof.waypoints().size() <= policy.maximumWaypoints())
+				{
+					if (budget.edges >= MAX_EDGES || budget.nodes >= MAX_NODES || budget.labels >= MAX_LABELS) { return result(Status.SEARCH_LIMIT, List.of()); }
+					double distance = 0; var previous = request.origin();
+					for (var point : proof.waypoints()) { distance += previous.distanceTo(point); previous = point; }
+					edges++; budget.edges++;
+					add(request.destination(), distance, best.get(request.origin()), proof.waypoints());
+					return result(Status.FOUND, proof.waypoints());
+				}
+				if (proof.status() == PhantomNavigationResult.Status.ROUTE_BUDGET_EXCEEDED) { limited = true; }
+			}
 			while (!open.isEmpty())
 			{
 				final Status interrupted = interrupted();

@@ -8,6 +8,14 @@ public final class LocalRuntimeShutdownTest
 {
 	public static void main(String[] args)
 	{
+		final String schema = "l2jmobiush5_phantom_release_064a";
+		final String jdbc = "jdbc:mysql://127.0.0.1:3308/" + schema + "?useSSL=false";
+		if (!LocalRuntimeShutdown.validJdbc(jdbc, schema)) { throw new AssertionError("Own JDBC rejected."); }
+		for (String suffix : new String[] {"&DBNAME=l2jmobiush5", "&dbname=l2jmobiush5", "&user=foreign", "&socketFactory=foreign", "&allowPublicKeyRetrieval=true&DBNAME=l2jmobiush5"})
+		{
+			if (LocalRuntimeShutdown.validJdbc(jdbc + suffix, schema)) { throw new AssertionError("JDBC override accepted: " + suffix); }
+		}
+		System.out.println("PASS runtime064.jdbc-override-rejected-before-connection");
 		final Properties request = new Properties();
 		request.setProperty("version", "1"); request.setProperty("owner", "TASK064_CAMPAIGN");
 		request.setProperty("runtime", "a".repeat(64)); request.setProperty("role", "GameServer");
