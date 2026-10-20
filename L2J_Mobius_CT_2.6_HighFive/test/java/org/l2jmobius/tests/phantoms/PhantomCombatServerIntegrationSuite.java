@@ -852,6 +852,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				registry.add("06-native-clan-war-eligibility-and-instance-guards", this::testPvpAffiliations059);
 				return;
 			}
+			if (Boolean.getBoolean("phantom.test.pvpPerimeter064")) { registry.add("07-supported-perimeter-native-defense-retreat-and-continuation064", this::testPvpFlow059); return; }
 			if (Boolean.getBoolean("phantom.test.pvpFlowOnly059")) { registry.add("04-native-defense-resource-retreat-regroup-and-durable-end", this::testPvpFlow059); return; }
 			registry.add("01-native-no-pvp-zone-refuses-enemy-ownership", this::testNoPvpZone058);
 			registry.add("02-current-enhanced-native-retaliation-and-party-negative", this::testCurrentPvp058);
@@ -3926,8 +3927,27 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 		};
 		Location flowInput = null;
-		// Retain the blocked full-flow contract. No runtime navigation changes are justified by an unproven route.
-		for (int[] input : new int[][] {{78900,150200}})
+		final List<int[]> preparedInputs064 = new ArrayList<>();
+		if (Boolean.getBoolean("phantom.test.pvpPerimeter064"))
+		{
+			final var centre064 = new org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyPoint(78900, 150200, GeoEngine.getInstance().getHeight(78900, 150200, -3560), 0);
+			final var respawns064 = _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.RESPAWN, 1, 100_000);
+			final var landmarks064 = respawns064.isEmpty() ? _topology.nearestAnchors(centre064, org.l2jmobius.gameserver.phantoms.topology.PhantomTopologyAnchorRole.CITY_CENTER, 1, 100_000) : respawns064;
+			PhantomAssertions.assertTrue(!landmarks064.isEmpty(), "INVALID_INPUT: no canonical protected landmark for the independent perimeter control.");
+			final var anchor064 = landmarks064.getFirst().point();
+			for (int radius064 : new int[] {1800, 2400, 3000})
+			{
+				for (int direction064 = 0; direction064 < 8; direction064++)
+				{
+					final double angle064 = Math.PI * direction064 / 4;
+					preparedInputs064.add(new int[] {anchor064.x() + (int) Math.round(radius064 * Math.cos(angle064)), anchor064.y() + (int) Math.round(radius064 * Math.sin(angle064))});
+				}
+			}
+			context.record("pvp064.preparedGeometry", "Independent supported-perimeter TEST; canonical anchor=" + anchor064 + "; at most24 pre-measurement native candidates; original78900/150200 FAIL retained; unchanged actors/resources/policy30s; no geometry change during measurement");
+		}
+		else { preparedInputs064.add(new int[] {78900, 150200}); }
+		// The original04 input stays fixed; the opt-in07 control declares its geometry before measurement.
+		for (int[] input : preparedInputs064)
 		{
 			final int x = input[0], y = input[1];
 			{
@@ -3952,7 +3972,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			}
 			if (flowInput != null) { break; }
 		}
-		PhantomAssertions.assertTrue(flowInput != null, "BLOCKED_NATIVE_ROUTE: declared Giran input has no proven protected native route within the unchanged30s window; full P4 remains PARTIAL.");
+		PhantomAssertions.assertTrue(flowInput != null, Boolean.getBoolean("phantom.test.pvpPerimeter064") ? "BLOCKED_NATIVE_ROUTE: no declared perimeter candidate has a proven native route within the unchanged30s window; original Giran FAIL retained." : "BLOCKED_NATIVE_ROUTE: declared Giran input has no proven protected native route within the unchanged30s window; full P4 remains PARTIAL.");
 		int flowOffset = 0;
 		for (Player actor : List.of(_player, human, enemy)) { actor.setInvul(false); actor.setRunning(); actor.standUp(); actor.decayMe(); actor.setXYZInvisible(flowInput.getX() + flowOffset, flowInput.getY(), flowInput.getZ()); actor.spawnMe(); actor.revalidateZone(true); flowOffset += 30; }
 		_player.setCurrentCp(0); _player.setCurrentHp(_player.getMaxHp() * .55);
