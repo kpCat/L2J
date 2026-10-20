@@ -38,6 +38,8 @@ public final class PlayerNativeWork
 		default PlayerNativeEvidence evidence() { return null; }
 		default long epoch() { return -1; }
 		default boolean nativeObservationHealthy() { return true; }
+		default boolean requiresOffensiveShots() { return false; }
+		default boolean prepareOffensiveShot(boolean magic) { return !requiresOffensiveShots(); }
 		TimerRegistration registerTimer(Ticket parent, String kind, boolean repeating, Runnable stop);
 	}
 	public interface Ticket
@@ -341,6 +343,14 @@ public final class PlayerNativeWork
 		return List.copyOf(recipients);
 	}
 	public enum Origin { NEW_NATIVE_ACTION, DELAYED_CONTINUATION }
+
+	/** Only explicitly configured Phantom owners require a paid native charge. Ordinary actors bypass this policy. */
+	public static boolean prepareOffensiveShot(Creature actor, boolean magic)
+	{
+		if (!(actor instanceof Player player)) { return true; }
+		final Owner owner = player.getNativeWorkOwner();
+		return owner == null || !owner.requiresOffensiveShots() || owner.isCurrent() && owner.prepareOffensiveShot(magic);
+	}
 
 	/** A new stock attack/cast cannot borrow another running callback's drain admission. */
 	public static void runOriginalCombat(Creature actor, Collection<? extends WorldObject> targets, String kind, Runnable action)

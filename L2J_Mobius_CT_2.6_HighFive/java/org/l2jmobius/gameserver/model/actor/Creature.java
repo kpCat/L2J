@@ -1036,7 +1036,11 @@ public abstract class Creature extends WorldObject
 	 */
 	public void doAttack(Creature target)
 	{
-		PlayerNativeWork.runOriginalCombat(this, Collections.singletonList(target), "attack-frontend", () -> doAttackNative(target));
+		PlayerNativeWork.runOriginalCombat(this, Collections.singletonList(target), "attack-frontend", () ->
+		{
+			if (!PlayerNativeWork.prepareOffensiveShot(this, false)) { if (hasAI()) { getAI().setIntention(Intention.IDLE); } return; }
+			doAttackNative(target);
+		});
 	}
 
 	private void doAttackNative(Creature target)
@@ -1876,7 +1880,11 @@ public abstract class Creature extends WorldObject
 	{
 		final List<WorldObject> participants = targets == null ? new ArrayList<>() : new ArrayList<>(targets);
 		participants.add(target);
-		PlayerNativeWork.runOriginalCombat(this, participants, "cast-frontend", () -> beginCastNative(skill, simultaneously, target, targets));
+		PlayerNativeWork.runOriginalCombat(this, participants, "cast-frontend", () ->
+		{
+			if ((skill.isDamage() || skill.hasNegativeEffect()) && !PlayerNativeWork.prepareOffensiveShot(this, skill.isMagic())) { if (hasAI()) { getAI().setIntention(Intention.IDLE); } return; }
+			beginCastNative(skill, simultaneously, target, targets);
+		});
 	}
 
 	private void beginCastNative(Skill skill, boolean simultaneously, Creature target, List<WorldObject> targets)

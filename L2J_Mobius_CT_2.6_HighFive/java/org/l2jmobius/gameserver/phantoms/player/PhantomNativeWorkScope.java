@@ -35,6 +35,7 @@ public final class PhantomNativeWorkScope implements Owner
 	private volatile String _failure = "";
 	private volatile Thread _checkpointThread;
 	private volatile boolean _permanentSeal;
+	private volatile boolean _requiresOffensiveShots;
 	private boolean _pendingResumeEligible;
 	private long _incidentSequence;
 	private volatile PhantomCleanupIncident _firstNativeIncident;
@@ -193,6 +194,17 @@ public final class PhantomNativeWorkScope implements Owner
 		return !_identity.isClosed() && (_player.getObjectId() == _identity.objectId()) && (_player.getNativeWorkOwner() == this);
 	}
 	@Override public Player player() { return _player; }
+	@Override public boolean requiresOffensiveShots() { return _requiresOffensiveShots; }
+	public void requireOffensiveShots(boolean required) { _requiresOffensiveShots = required; }
+	@Override public boolean prepareOffensiveShot(boolean magic)
+	{
+		if (!_requiresOffensiveShots) { return true; }
+		if (!isCurrent() || _player.hasPendingOwnedStore()) { return false; }
+		// Charging belongs to the existing Combat/AutoPlay controllers and native recharge.
+		// This constant-time admission only reads the current weapon's already paid charge.
+		return magic ? _player.isChargedShot(org.l2jmobius.gameserver.model.item.enums.ShotType.SPIRITSHOTS) || _player.isChargedShot(org.l2jmobius.gameserver.model.item.enums.ShotType.BLESSED_SPIRITSHOTS)
+			: _player.isChargedShot(org.l2jmobius.gameserver.model.item.enums.ShotType.SOULSHOTS);
+	}
 	@Override public PlayerNativeEvidence evidence() { return _evidence; }
 	@Override public boolean nativeObservationHealthy() { return _failure.isEmpty() && !_player.hasPendingOwnedStore(); }
 	/** Only an exact healthy control checkpoint is temporary; shutdown and native failure never are. */

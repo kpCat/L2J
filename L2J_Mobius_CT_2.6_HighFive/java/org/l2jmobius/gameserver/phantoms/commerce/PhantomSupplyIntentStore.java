@@ -95,7 +95,7 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 	{
 		public Binding
 		{
-			if (rootRevision < 0 || actorObjectId <= 0 || classId < 0 || classId > 255 || classIndex < 0 || classIndex > 255 || weaponObjectId <= 0 || field == null || field.instanceId() != 0 || retryAfterEpochMillis < 0) { throw new IllegalArgumentException("Invalid supply ownership binding."); }
+			if (rootRevision < 0 || actorObjectId <= 0 || classId < 0 || classId > 255 || classIndex < 0 || classIndex > 255 || weaponObjectId < 0 || field == null || field.instanceId() != 0 || retryAfterEpochMillis < 0) { throw new IllegalArgumentException("Invalid supply ownership binding."); }
 		}
 
 		public String encode()
@@ -116,7 +116,8 @@ public final class PhantomSupplyIntentStore implements PhantomGoalStore
 
 		public boolean matches(Player player)
 		{
-			return player != null && actorObjectId == player.getObjectId() && classId == player.getActiveClass() && classIndex == player.getClassIndex() && player.getInstanceId() == 0 && player.getActiveWeaponInstance() != null && weaponObjectId == player.getActiveWeaponInstance().getObjectId();
+			return player != null && actorObjectId == player.getObjectId() && classId == player.getActiveClass() && classIndex == player.getClassIndex() && player.getInstanceId() == 0
+				&& (weaponObjectId == 0 ? player.getActiveWeaponInstance() == null : player.getActiveWeaponInstance() != null && weaponObjectId == player.getActiveWeaponInstance().getObjectId());
 		}
 	}
 }

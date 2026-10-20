@@ -366,6 +366,7 @@ public final class PhantomSystem
 				goalStateStore = new PhantomGoalStateStore(profileRepository);
 				lifecycleBridge = new PhantomMaterializationLifecycleBridge();
 				_materializationService = new PhantomMaterializationService(profileRepository, PhantomIdentityLeaseRegistry.getInstance(), _metrics, _trace, _settings.maxMaterializedPhantoms(), lifecycleBridge);
+				_materializationService.requireOffensiveShots();
 				if (!_materializationService.start())
 				{
 					throw new IllegalStateException("Phantom materialization service could not enter the running state.");

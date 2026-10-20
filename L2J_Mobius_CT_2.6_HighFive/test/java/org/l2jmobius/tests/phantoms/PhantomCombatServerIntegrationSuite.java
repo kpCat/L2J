@@ -532,6 +532,7 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 			final PhantomMetrics metrics = new PhantomMetrics();
 			final int actorCapacity = (_mode == Mode.RAID_TACTICS_058) && Boolean.getBoolean("phantom.test.raidFlow059") ? 8 : (_mode == Mode.INSTANCES_058) && Boolean.getBoolean("phantom.test.kamalokaFlow059") ? 5 : (_mode == Mode.RIFT_NATIVE_058) && Boolean.getBoolean("phantom.test.riftFlow059") ? 3 : Set.of(Mode.INSTANCES_058, Mode.RAID_TACTICS_058, Mode.COMPANION_MOVING_FOLLOW_058, Mode.COMPANION_DEPARTURE_058, Mode.COMPANION_ASSIST_058, Mode.COMPANION_NPC_AGGRO_058, Mode.COMPANION_RANGED_SPACING_058, Mode.COMPANION_FULL_COMPOSITION_058).contains(_mode) ? 3 : 1;
 			_materialization = new PhantomMaterializationService(_repository, PhantomIdentityLeaseRegistry.getInstance(), metrics, new PhantomDiagnosticTrace(false, 0, 0, metrics), actorCapacity);
+			if (Boolean.getBoolean("phantom.test.loadoutGuards061")) { _materialization.requireOffensiveShots(); }
 			PhantomAssertions.assertTrue(_materialization.start(), "Materialization service did not start.");
 			PhantomAssertions.assertEquals(ResultStatus.SUCCESS, _materialization.materialize(_profile.profileId()).status(), "Test actor did not materialize.");
 			_player = World.getInstance().getPlayer(_environment.primary().objectId());
@@ -655,11 +656,13 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 				{
 					registry.add("04-canonical-shot-conservation-and-discharge", _ -> testCanonicalShot());
 					registry.add("05-missing-shot-does-not-fabricate", _ -> testMissingShot());
+					registry.add("061-native-mandatory-shots-refuse-unpaid-attack-and-cast", this::testMandatoryShots061);
 					registry.add("061-native-continuous-physical-shots-and-owned-cleanup", this::testContinuousShots061);
 					registry.add("061-native-blessed-magic-shots-prefer-exact-weapon-grade", this::testBlessedShots061);
 					registry.add("061-native-ordinary-autoplay-shares-shot-type-grade-and-quality", this::testOrdinaryShots061);
 					registry.add("061-native-equipment-aspiration-respects-expertise-and-style", this::testEquipmentEligibility061);
 					registry.add("061-native-equipment-owned-role-and-armor-through-progression", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.equipment(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
+					registry.add("061-native-unarmed-preparation-precedes-shot-stock", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.unarmed(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
 					registry.add("061-native-equipment-paid-npc-receipt-and-equip", context -> { prepareLearningField059(context); PhantomSupply060OwnerGuards.equipmentPaid(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
 					registry.add("061-native-supply-prefers-blessed-despite-regular-stock", context -> { PhantomAssertions.assertTrue(waitFor(() -> !_player.isInCombat(), 20_000), "Previous native shot control did not leave combat stance."); prepareLearningField059(context); PhantomSupply060OwnerGuards.blessed(context, _player, _profile.profileId(), _repository, _materialization, _query, _topology, _combatPoint.npcId()); });
 					return;
@@ -6070,6 +6073,31 @@ public final class PhantomCombatServerIntegrationSuite implements PhantomTestSui
 		PhantomAssertions.assertTrue((_player.getCurrentMp() <= initialMp) && (target.getCurrentHp() <= initialHp), "Canonical cast fabricated HP or MP.");
 		_combat.cancel(_profile.profileId());
 		consumeTerminal();
+	}
+
+	private void testMandatoryShots061(PhantomTestContext context) throws Exception
+	{
+		resetActor(true); _player.setBaseClass(0); _player.setPlayerClass(0); _player.getStat().setLevel((byte) 19);
+		prepareLearningField059(context);
+		final var weapon = _player.getInventory().addItem(ItemProcessType.REWARD, 68, 1, _player, this); _player.getInventory().equipItem(weapon);
+		final var preferences = List.copyOf(_player.getAutoSoulShot()); for (int item : preferences) { _player.removeAutoSoulShot(item); }
+		_player.setChargedShot(ShotType.SOULSHOTS, false); _player.setChargedShot(ShotType.SPIRITSHOTS, false); _player.setChargedShot(ShotType.BLESSED_SPIRITSHOTS, false);
+		final var scope = (org.l2jmobius.gameserver.phantoms.player.PhantomNativeWorkScope) _player.getNativeWorkOwner(); final boolean previousPolicy = scope.requiresOffensiveShots(); scope.requireOffensiveShots(true);
+		final var target = spawnExactPointMonster(20035, Double.MAX_VALUE); final double hp = target.getCurrentHp();
+		try
+		{
+			_player.setTarget(target); _player.doAttack(target);
+			Thread.sleep(2500);
+			PhantomAssertions.assertTrue(target.getCurrentHp() == hp && !_player.isAttackingNow(), "Phantom started an uncharged native ATTACK.");
+			_player.setBaseClass(10); _player.setPlayerClass(10); _player.setLearningClass(_player.getPlayerClass());
+			final var skill = SkillData.getInstance().getSkill(1177, 1); _player.addSkill(skill, false);
+			_player.setCurrentMp(_player.getMaxMp()); // Separate negative CAST input, before its measurement.
+			final double mp = _player.getCurrentMp(); _player.setTarget(target); _player.doCast(skill);
+			Thread.sleep(2500);
+			PhantomAssertions.assertTrue(target.getCurrentHp() == hp && _player.getCurrentMp() == mp && !_player.isCastingNow(), "Phantom started an uncharged native CAST or paid MP for a refused cast.");
+			context.record("shots061.mandatory", "real native attack/cast without a paid charge refused; no target damage/MP cost; native earned actions were not cancelled");
+		}
+		finally { scope.requireOffensiveShots(previousPolicy); _player.abortAttack(); _player.abortCast(); _player.getAI().setIntention(Intention.IDLE); target.deleteMe(); for (int item : preferences) { _player.addAutoSoulShot(item); } }
 	}
 
 	private void testContinuousShots061(PhantomTestContext context) throws Exception

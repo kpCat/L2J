@@ -113,6 +113,7 @@ public final class PhantomMaterializationService
 	private final long _actionDrainTimeoutMillis;
 	private final long _shutdownTimeoutMillis;
 	private volatile ServiceState _state = ServiceState.NEW;
+	private boolean _requiresOffensiveShots;
 	private DrainAttempt _drainAttempt;
 
 	public PhantomMaterializationService(PhantomProfileRepository profileRepository, PhantomIdentityLeaseRegistry identityRegistry, PhantomMetrics metrics, PhantomDiagnosticTrace trace, int maximumMaterialized)
@@ -155,6 +156,15 @@ public final class PhantomMaterializationService
 		_lifecyclePort = Objects.requireNonNull(lifecyclePort, "lifecyclePort");
 		_actionDrainTimeoutMillis = actionDrainTimeoutMillis;
 		_shutdownTimeoutMillis = shutdownTimeoutMillis;
+	}
+
+	public void requireOffensiveShots()
+	{
+		synchronized (_stateMonitor)
+		{
+			if (_state != ServiceState.NEW) { throw new IllegalStateException("Shot policy must be bound before materialization starts."); }
+			_requiresOffensiveShots = true;
+		}
 	}
 
 	public boolean start()
@@ -249,6 +259,7 @@ public final class PhantomMaterializationService
 			@Override
 			public void afterPlayerLoad(Player player)
 			{
+				if (_requiresOffensiveShots && player.getNativeWorkOwner() instanceof PhantomNativeWorkScope scope) { scope.requireOffensiveShots(true); }
 				_lifecyclePort.afterPlayerLoad(profileId, player);
 			}
 

@@ -103,6 +103,16 @@ final class PhantomSupply060OwnerGuards
 	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
 			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed, boolean equipment, boolean paid) throws Exception
 	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, ammunition, blessed, equipment, paid, false);
+	}
+	static void unarmed(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId) throws Exception
+	{
+		run(context, player, profileId, profiles, materialization, knowledge, topology, npcId, false, false, true, false, true);
+	}
+	private static void run(PhantomTestContext context, Player player, long profileId, PhantomProfileRepository profiles,
+			PhantomMaterializationService materialization, PhantomGameKnowledgeQuery knowledge, PhantomTopologyQuery topology, int npcId, boolean ammunition, boolean blessed, boolean equipment, boolean paid, boolean unarmed) throws Exception
+	{
 		PhantomCampaign058DatabaseLane.assertActiveFixture(context);
 		final long baselineAdena = player.getAdena();
 		final var initialObjects = equipment ? player.getInventory().getItems().stream().map(item -> item.getObjectId()).collect(java.util.stream.Collectors.toSet()) : java.util.Set.<Integer>of();
@@ -144,6 +154,12 @@ final class PhantomSupply060OwnerGuards
 			player.refreshExpertisePenalty(); player.refreshOverloaded(); player.setCurrentHp(player.getMaxHp()); player.setCurrentMp(player.getMaxMp());
 			PhantomAssertions.assertFalse(player.getActiveWeaponItem().isMagicWeapon(), "Owned equipment input is already a magic weapon.");
 			context.record("equipment061.ownedInput", "Independent native Mystic7, equipped physical ShortSword1/Bone24+31, added owned Wand6/robe425+461/BSS3947x100; other native fixture inventory retained; all input before measurement; no ordinary actor changed");
+			if (unarmed)
+			{
+				player.useEquippableItem(player.getActiveWeaponInstance(), false);
+				PhantomAssertions.assertTrue(player.getActiveWeaponInstance() == null, "Independent unarmed input still has an equipped weapon.");
+				context.record("equipment061.unarmedInput", "Independent native Mystic7 begins unarmed, owns compatible Wand6 and robes; preparation must reach Progression before checking shots");
+			}
 			if (paid)
 			{
 				player.setBaseClass(0); player.setPlayerClass(0); player.setLearningClass(player.getPlayerClass()); player.getStat().setExp(player.getStat().getExpForLevel(19)); player.getStat().setLevel((byte) 19); player.removeSkill(239); player.giveAvailableAutoGetSkills();
