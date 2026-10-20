@@ -4,7 +4,7 @@ namespace PhantomSemanticStudio.Core;
 
 public sealed class StudioSettings
 {
-    public string HighFiveRoot { get; set; } = @"C:\Users\ZBook\L2J_Mobius\L2J_Mobius_CT_2.6_HighFive";
+    public string HighFiveRoot { get; set; } = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../../L2J_Mobius_CT_2.6_HighFive"));
     public string Endpoint { get; set; } = "http://127.0.0.1:1234/v1";
     public string ModelId { get; set; } = "gemma-4-26b-a4b-it-ultra-uncensored-heretic";
     public double Temperature { get; set; } = 0.7;

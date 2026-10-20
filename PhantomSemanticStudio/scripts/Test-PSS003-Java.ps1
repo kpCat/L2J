@@ -1,7 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$StageRoot, [string]$JdkBin = '', [string]$AntPath = '')
 $ErrorActionPreference = 'Stop'
 $studio = [IO.Path]::GetFullPath((Split-Path $PSScriptRoot -Parent)).TrimEnd('\')
-$protected = 'C:\Users\ZBook\L2J_Mobius'
+$protected = [IO.Path]::GetFullPath((Join-Path $studio '..')).TrimEnd('\')
 $scratch = $null
 $result = [ordered]@{ Version = 1; JavaStatus = 'BLOCKED_JAVA'; Status = 'STAGED_UNVALIDATED'; AntExitCode = $null; ProbeExitCode = $null; Reason = $null }
 

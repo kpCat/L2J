@@ -1,7 +1,7 @@
 param([switch]$CoreOnly)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-if ($root -match '[\\/]L2J_Mobius([\\/]|$)|[\\/]L2J_Mobius_CT_2\.6_HighFive([\\/]|$)') { throw 'Extract Studio OUTSIDE the L2J checkout first.' }
+if (-not (Test-Path -LiteralPath (Join-Path $root 'PhantomSemanticStudio.sln') -PathType Leaf)) { throw 'Run from the Studio source tree.' }
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { throw '.NET SDK 10 is required.' }
 Push-Location $root
 try {

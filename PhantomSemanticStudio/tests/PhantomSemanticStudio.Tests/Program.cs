@@ -13,6 +13,8 @@ internal static partial class Program
     [STAThread]
     private static async Task<int> Main(string[] args)
     {
+        if (args.Length > 0 && args[0] == "--task062")
+        { Task062(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }
         if (args.Length > 0 && args[0] == "--pss-010-source") return Pss010Source(args);
         if (args.Length > 0 && args[0] == "--pss-010")
         { Pss010(); Console.WriteLine($"RESULT: {passed} PASS; {failed} FAIL"); return failed == 0 ? 0 : 1; }

@@ -203,7 +203,9 @@ internal static partial class Program
     {
         if (args.Length != 3) throw new ArgumentException("--pss-008-source <HighFive> <own ignored workspace>");
         var studio = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
-        True(PathSafety.IsWithin(args[2], Path.Combine(studio, "artifacts")) && Path.GetFileName(args[2]) == "workspace");
+        var localWorkspace = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhantomSemanticStudio", "workspace");
+        True((PathSafety.IsWithin(args[2], Path.Combine(studio, "artifacts")) || PathSafety.IsWithin(args[2], localWorkspace))
+            && Path.GetFileName(args[2]) == "workspace" && !Directory.Exists(args[2]));
         var pack = new PackReader().Load(args[1]); var report = PackCoverageAnalyzer.Analyze(pack);
         using var store = new WorkspaceStore(args[2], pack.ModuleRoot);
         var pair = V3ProposalContract.GetPairs(pack).Single(p => p.Category == "social.friendly");
@@ -215,7 +217,7 @@ internal static partial class Program
         var stage = new IsolatedV3ProposalStager().Create(store, pack, peers, peers.Select(c => c.Id).ToArray(), pair, true, true);
         var after = new PackReader().Load(pack.ModuleRoot); True(pack.Files.SequenceEqual(after.Files));
         File.WriteAllText(Path.Combine(store.Root, "test-v3-stage-path.txt"), stage.Root);
-        File.WriteAllText(Path.Combine(studio, "reports/PSS-008-source.json"), JsonSerializer.Serialize(new
+        File.WriteAllText(Path.Combine(store.Root, "PSS-008-source.json"), JsonSerializer.Serialize(new
         {
             pack.Fingerprint, Before = pack.Files, After = after.Files, SourceEqual = true, Segments = report.Capacities.Single(c => c.Name == "V3_SEGMENTS").Used,
             Patterns = pack.Entries.Count(e => e.Kind == "PATTERN"), Templates = pack.Entries.Count(e => e.Kind == "TEMPLATE"),
