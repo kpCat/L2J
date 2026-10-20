@@ -162,6 +162,17 @@ public final class PhantomGameKnowledgeParitySuite implements PhantomTestSuite
 		registry.add("20-service-component-hashes-exact", _ -> testServiceHashes());
 		registry.add("21-query-source-seam-stable", _ -> testNoQuerySourceAccess());
 		registry.add("22-loaded-territory-boundary-and-feasible-coverage", this::testTerritoryCoverage);
+		registry.add("23-supported-first-profession-rift-role-evidence064", _ ->
+		{
+			final int[][] evidence = {{1, 3, 1}, {4, 28, 1}, {15, 1011, 7}};
+			final String[] keys = {"combat.melee_damage", "combat.tank", "combat.heal"};
+			for (int index = 0; index < evidence.length; index++)
+			{
+				final int[] expected = evidence[index]; final String key = keys[index];
+				final var facts = _fixture.query().classCapabilities(expected[0], PageRequest.first(256)).values();
+				PhantomAssertions.assertTrue(facts.stream().anyMatch(fact -> fact.capabilityKey().equals(key) && fact.evidenceSkills().stream().anyMatch(skill -> skill.skillId() == expected[1] && skill.skillLevel() == expected[2])), "Supported first-profession role has no native learned-tree evidence: class=" + expected[0] + "; capability=" + key);
+			}
+		});
 	}
 
 	private void testItems()

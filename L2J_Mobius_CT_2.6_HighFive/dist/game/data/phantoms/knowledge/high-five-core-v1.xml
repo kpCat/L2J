@@ -4,6 +4,19 @@
 		<skill id="3" level="1" />
 		<source path="data/stats/players/skillTrees/StartingClass/HumanFighter.xml" />
 	</classCapability>
+	<classCapability classId="1" capabilityKey="combat.melee_damage" rank="100">
+		<skill id="3" level="1" />
+		<source path="data/stats/players/skillTrees/StartingClass/HumanFighter.xml" />
+		<source path="data/stats/players/skillTrees/1stClass/Warrior.xml" />
+	</classCapability>
+	<classCapability classId="4" capabilityKey="combat.tank" rank="100">
+		<skill id="28" level="1" />
+		<source path="data/stats/players/skillTrees/1stClass/HumanKnight.xml" />
+	</classCapability>
+	<classCapability classId="15" capabilityKey="combat.heal" rank="100">
+		<skill id="1011" level="7" />
+		<source path="data/stats/players/skillTrees/1stClass/Cleric.xml" />
+	</classCapability>
 	<classCapability classId="88" capabilityKey="combat.melee_damage" rank="850">
 		<skill id="345" level="1" />
 		<source path="data/stats/players/skillTrees/3rdClass/Duelist.xml" />

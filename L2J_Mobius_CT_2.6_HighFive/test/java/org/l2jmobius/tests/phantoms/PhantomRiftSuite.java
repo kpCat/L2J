@@ -111,6 +111,20 @@ public final class PhantomRiftSuite implements PhantomTestSuite
 				registry.add("solo-minimum-mixed-full", this::rosterSizes);
 				registry.add("stale-and-duplicate-evidence", this::rosterNegative);
 				registry.add("full-equipment-evidence-remains-bounded064", this::fullEquipmentEvidence064);
+				registry.add("curated-first-profession-roles064", context ->
+				{
+					final Path game = context.moduleRoot().resolve("dist/game");
+					final var source = new org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgeBackend()
+					{
+						@Override public BackendData load(org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy policy) { throw new AssertionError("Curated input check must not load native managers."); }
+						@Override public boolean sourceExists(String relative) { return Files.isRegularFile(game.resolve(relative)); }
+					};
+					final var facts = new org.l2jmobius.gameserver.phantoms.knowledge.PhantomCuratedKnowledgeParser(game.resolve("data/phantoms/knowledge"), source, org.l2jmobius.gameserver.phantoms.knowledge.PhantomGameKnowledgePolicy.productionDefaults()).parse().classCapabilities();
+					for (var expected : Map.of(1, "combat.melee_damage", 4, "combat.tank", 15, "combat.heal").entrySet())
+					{
+						assertTrue(facts.stream().anyMatch(fact -> fact.classId() == expected.getKey() && fact.capabilityKey().equals(expected.getValue())), "Declared first-profession Rift role has no curated native evidence: " + expected);
+					}
+				});
 			}
 			case ROLE_COMPOSITION ->
 			{
