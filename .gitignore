@@ -14,3 +14,8 @@ L2J_Mobius_CT_2.6_HighFive/dist/login/log/
 L2J_Mobius_CT_2.6_HighFive/artifacts/local-play/
 
 *.l2j
+
+# Compiled local probes and Python cache; source files remain visible.
+*.class
+*.pyc
+/.phantom-local/task015/components-private.tsv
