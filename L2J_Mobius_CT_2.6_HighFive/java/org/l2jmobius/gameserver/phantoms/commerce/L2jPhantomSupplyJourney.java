@@ -236,7 +236,9 @@ public final class L2jPhantomSupplyJourney implements PhantomMaterializationLife
 			final Cached cached = cached(profileId); final long now = System.currentTimeMillis();
 			if (PhantomSupplyIntentStore.bound(cached.goal, root) && matches(cached.goal, player))
 			{
-				if (alive(cached.goal, now)) { return Optional.of(cached.goal); }
+				// An expired ACTIVE child still needs the existing executor's terminal settlement.
+				// This requires the matching live action lease above; it never requests admission.
+				if (cached.goal.status() == PhantomGoalStatus.ACTIVE || alive(cached.goal, now)) { return Optional.of(cached.goal); }
 				if (Binding.parse(cached.goal).retryAfterEpochMillis() > now) { return Optional.empty(); }
 			}
 			if (_learningOwns.test(profileId, root)) { return Optional.empty(); }

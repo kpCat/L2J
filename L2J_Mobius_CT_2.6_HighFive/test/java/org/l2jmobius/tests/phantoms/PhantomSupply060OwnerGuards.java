@@ -320,7 +320,10 @@ final class PhantomSupply060OwnerGuards
 			final var expired = new PhantomGoal(intent.goalId(), intent.goalType(), intent.status(), intent.subject(), intent.target(), intent.requiredAmount(), intent.currentAmount(), intent.acquisitionMethod(), intent.validSources(), intent.selectedAnchor(), intent.purposeKey(), intent.priority(), intent.riskBudget(), intent.expenseBudget(), System.currentTimeMillis() - 1, intent.constraints(), intent.reasonKey(), intent.revision(), intent.payloadText());
 			profiles.updateComponent(profileId, PhantomSupplyIntentStore.COMPONENT, component.rowVersion(), 1, new PhantomGoalStateCodec().encode(expired));
 			journey = new L2jPhantomSupplyJourney(store, goals, materialization, commerce, receipts, navigation, () -> knowledge, routes, _ -> allowed.get(), (_, _) -> false, (_, _) -> false, policy);
+			journey.requireField((_, _) -> false);
 			PhantomAssertions.assertTrue(journey.start(), "Reconstructed supply owner did not start.");
+			PhantomAssertions.assertTrue(journey.needsOrOwns(profileId, replacement), "Expired bound supply intent could not reach terminal settlement outside the farm field.");
+			PhantomAssertions.assertFalse(journey.ownsAutomaticIntent(profileId, replacement), "Expired settlement requested continuing materialization ownership.");
 			final var renewed = new PhantomStepHandlerRegistry(); journey.registerHandlers(renewed); renewed.seal();
 			final var expiredResult = renewed.snapshot().get(plan.steps().getFirst().actionKey()).execute(step);
 			PhantomAssertions.assertEquals("supplies.deadline", expiredResult.reasonKey(), "Expired restored intent waited for yield.");

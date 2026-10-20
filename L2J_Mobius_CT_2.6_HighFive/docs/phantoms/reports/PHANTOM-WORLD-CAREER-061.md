@@ -9,7 +9,7 @@ Ordinary final22 дал actual World2, но наблюдавшиеся6/21 ос�
 ## Поставка и сохранность
 
 - `D:\PhantomWorld\World-Career-061-candidate`, `l2jmobiush5_phantom_release_061a`, Login2106/Game7841/control9141.
-- Functional commit `d96f0c258a3b0e6c1c75747f84b7965bd12e36c9`, clean whole GameSHA `5358204F424C291E7BC2E537378713786C68F74C55A87781712E2EEECC98CE6A`. Все4482 production class bytes равны native-проверенному Task JAR. Build input — committed archive, без overlays; прежние manifest/preimages сохранены, DB_WRITES=0.
+- Functional commit `bbdbdc335def25354efea3cac9fa1814f3ae4ed8`, clean whole GameSHA `E106909061BC4EB199C8FB85ED4960F3CE4F4F87C4E300F80CC1B6DC27DA93B2`. Все4482 production class bytes равны native-проверенному Task JAR. Build input — committed archive, без overlays; прежние manifest/preimages сохранены, DB_WRITES=0.
 - База получена одним consistent stopped export058a:124 таблицы, проверенные engine/counter/collation/checksum. Повторного reset/bootstrap/reimport нет; дальнейшие изменения — штатная жизнь и ранее проверенные неразрушающие owned-context миграции.
 - Защищённые057–060, MAIN/PLAY/прочие worktrees, backups, общая MariaDB, клиент и OS settings не менялись. Старые orphan/quarantine/raw/FAIL сохранены. Attach/jcmd/jstack/jmap, kill/crash/platform bypass не применялись.
 - Финальные HEAD=remote, CMD receipts и STOPPED состояния фиксируются после завершающей ordinary проверки в BUILD_INFO/ACCEPTANCE_STATUS и этой матрице.
@@ -35,7 +35,7 @@ Ordinary final22 дал actual World2, но наблюдавшиеся6/21 ос�
 
 **Текущий закрытый эпизод12.** Whole21/0524bb12, START20октября03:46:57Z47.966s/exit0/Main28012, SyntheticOFF, passive12. Kentdobr12/268436873, Kamael Soldier, сам купил60NG Soulshot у Nika32167, вернулся, получил6 native kills/rewards/+174EXP/+12SP. Следующая покупка ShortSword1 у Erinu32164 отказала на navigation.route_budget_exceeded/ecology_fenced. STOP04:03:25.904Z10.167s/exit0/force0 сохранил EXP2253/SP442/43Soulshot/Adena1793 и старые предметы/skills. Полного обучения в этом эпизоде нет.
 
-**Вход следующего независимого final22 эпизода.** После подтверждённого STOP изменён только passive viewpoint21. Dobriyneo21: Elf Mystic7/SP328/A215/NG6; Thor66 (профиль6): Elf Fighter5/SP92/A126/2369; DuskForge26: Elf Mystic6/SP724/A888/сохранённая смерть. Актёры, уровни, кошельки, предметы, календарь и caps не менялись. SyntheticOFF; существующая061a. CURRENT_ORDINARY_PENDING_FINAL_CHECK.
+**Вход следующего независимого final22 эпизода.** После подтверждённого STOP изменён только passive viewpoint21. Dobriyneo21: Elf Mystic7/SP328/A215/NG6; Thor66 (профиль6): Elf Fighter5/SP92/A126/2369; DuskForge26: Elf Mystic6/SP724/A888/сохранённая смерть. Актёры, уровни, кошельки, предметы, календарь и caps не менялись. SyntheticOFF; существующая061a. Whole24:6 сам оплатил3:1/50SP, вернулся, получил2 native rewards/+418EXP/+10SP, израсходовал7SS; skill и EXP3314/SP52/SS4 сохранены actual STOP. Следующий самостоятельный3:2 сохранён; проверка sameDB продолжения и полного W1 продолжается.
 
 ## Native проверки и границы доказательства
 
