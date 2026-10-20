@@ -138,6 +138,37 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 			}
 			finally { fixture.stop(); }
 		});
+		registry.add("10-raid-defense-can-replace-only-its-issued-attack064", _ ->
+		{
+			final Fixture fixture = new Fixture();
+			try
+			{
+				fixture.lease.sustainAttack = true;
+				PhantomAssertions.assertTrue(fixture.service.startRaidSession(fixture.request(1, false, 48)).accepted(), "Raid sustained-attack input did not start.");
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.raidAttacks, "Fixture did not issue its own native attack.");
+				fixture.lease.aggroReady = true;
+				fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.raidAggroCasts, "Owned repeated ATTACK starved current legal party defense.");
+				PhantomAssertions.assertEquals(1, fixture.lease.cancelCalls, "Defense did not cancel its own exact attack once.");
+				PhantomAssertions.assertEquals(7001, fixture.lease.lastCancelled.combatTargetObjectId(), "Defense cancelled a different combat target.");
+				fixture.lease.busy = true; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(1, fixture.lease.raidAggroCasts, "Defense interrupted an existing cast.");
+				fixture.lease.busy = false; fixture.lease.aggroReady = false; fixture.dispatcher.runNext();
+				PhantomAssertions.assertEquals(2, fixture.lease.raidAttacks, "Defense did not resume ordinary native offense.");
+			}
+			finally { fixture.stop(); }
+			final Fixture unissued = new Fixture();
+			try
+			{
+				unissued.lease.attacking = true; unissued.lease.aggroReady = true;
+				PhantomAssertions.assertTrue(unissued.service.startRaidSession(unissued.request(1, false, 48)).accepted(), "Unissued attack negative did not start.");
+				unissued.dispatcher.runNext();
+				PhantomAssertions.assertEquals(0, unissued.lease.raidAggroCasts, "Defense displaced an attack never issued by this session.");
+				PhantomAssertions.assertEquals(0, unissued.lease.cancelCalls, "Defense cancelled an unissued native attack.");
+			}
+			finally { unissued.stop(); }
+		});
 	}
 
 	private static void exactLiveDeathVictory()
@@ -351,6 +382,10 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		private int raidAttacks;
 		private int learnedRank = 1;
 		private boolean busy;
+		private boolean attacking;
+		private boolean sustainAttack;
+		private int cancelCalls;
+		private PhantomOwnedAction lastCancelled;
 		private boolean aggroReady;
 		private int aggroCasts;
 		private int raidAggroCasts;
@@ -363,7 +398,7 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		@Override
 		public ActorSnapshot actorSnapshot()
 		{
-			return new ActorSnapshot(9001, 88, 0, 100, 100, 100, 100, 100, 100, false, false, false, busy, false, 0, busy ? "CAST" : "IDLE", busy ? 123 : 0, busy ? learnedRank : 0);
+			return new ActorSnapshot(9001, 88, 0, 100, 100, 100, 100, 100, 100, false, false, attacking, busy, false, attacking ? 7001 : 0, busy ? "CAST" : attacking ? "ATTACK" : "IDLE", busy ? 123 : 0, busy ? learnedRank : 0);
 		}
 
 		@Override
@@ -432,6 +467,7 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		public ActionOutcome attackRaid(int targetObjectId, PhantomRaidCombatRequest request)
 		{
 			raidAttacks++;
+			attacking = sustainAttack;
 			return ActionOutcome.ISSUED;
 		}
 
@@ -450,6 +486,7 @@ public final class PhantomRaidCombatDynamicGoal026Checkpoint5Suite implements Ph
 		@Override
 		public void cancelOwnedAction(PhantomOwnedAction action)
 		{
+			cancelCalls++; lastCancelled = action; attacking = false;
 		}
 
 		@Override

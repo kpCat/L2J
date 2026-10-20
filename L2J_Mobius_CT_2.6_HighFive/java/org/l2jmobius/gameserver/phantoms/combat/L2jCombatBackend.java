@@ -619,10 +619,11 @@ public final class L2jCombatBackend implements PhantomCombatBackend
 		{
 			final WorldObject object = World.getInstance().findObject(targetObjectId);
 			final ActorSnapshot actor = actorSnapshot();
-			if (actor.dead() || actor.alikeDead() || actor.casting() || actor.attacking() || !(object instanceof Monster target) || !(request == null ? validNpcTacticTarget(target, actor) : validRaidAggroRecipient(target, actor, request)))
+			if (actor.dead() || actor.alikeDead() || actor.casting() || !(object instanceof Monster target) || !(request == null ? validNpcTacticTarget(target, actor) : validRaidAggroRecipient(target, actor, request)))
 			{
 				return Optional.empty();
 			}
+			if (actor.attacking() && (request == null || !_player.hasAI() || _player.getAI().getIntention() != Intention.ATTACK || _player.getAI().getAttackTarget() != target || _player.getTarget() != target)) { return Optional.empty(); }
 			// GetAgro can recruit a native clan beyond the admitted encounter, even for ONE.
 			if (request != null && target.getTemplate().getClans() != null && !target.getTemplate().getClans().isEmpty()) { return Optional.empty(); }
 			final Creature victim = target.getMostHated();

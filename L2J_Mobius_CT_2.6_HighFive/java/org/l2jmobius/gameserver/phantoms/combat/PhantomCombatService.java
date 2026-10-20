@@ -1542,7 +1542,7 @@ public final class PhantomCombatService
 
 	private void issueRaidAction(PhantomCombatSession session, ActorSnapshot actor)
 	{
-		if (actor.casting() || actor.attacking())
+		if (actor.casting() || (actor.attacking() && !session._raidAttackIssued))
 		{
 			return;
 		}
@@ -1563,9 +1563,17 @@ public final class PhantomCombatService
 		final Optional<SelectedSkill> aggression = session._actorLease.npcRaidAggroSkill(session._raidRequest);
 		if (aggression.isPresent())
 		{
+			if (actor.attacking())
+			{
+				session._actorLease.cancelOwnedAction(session._ownedAction);
+				session._raidAttackIssued = false;
+				final ActorSnapshot afterCancel = session._actorLease.actorSnapshot();
+				if (afterCancel.attacking() || afterCancel.casting()) { return; }
+			}
 			final ActionOutcome outcome = session._actorLease.castNpcRaidAggro(session._raidRequest, aggression.orElseThrow());
 			if (outcome == ActionOutcome.ISSUED)
 			{
+				session._raidAttackIssued = false;
 				session._ownedAction = session._ownedAction.withSelectedSkill(aggression.orElseThrow());
 				_metrics.castIssued();
 				return;
@@ -1575,6 +1583,7 @@ public final class PhantomCombatService
 				return;
 			}
 		}
+		if (actor.attacking()) { return; }
 		SelectedSkill selected = null;
 		if (!session._loadout.selectedSkills().isEmpty() && (percent(actor.currentMp(), actor.maximumMp()) > _policy.minimumMpReservePercent()))
 		{
@@ -1602,6 +1611,7 @@ public final class PhantomCombatService
 			final ActionOutcome outcome = session._actorLease.castRaid(session._request.targetObjectId(), selected, session._raidRequest);
 			if (outcome == ActionOutcome.ISSUED)
 			{
+				session._raidAttackIssued = false;
 				session._ownedAction = session._ownedAction.withSelectedSkill(selected);
 				_metrics.castIssued();
 				return;
@@ -1618,6 +1628,7 @@ public final class PhantomCombatService
 		final ActionOutcome outcome = session._actorLease.attackRaid(session._request.targetObjectId(), session._raidRequest);
 		if (outcome == ActionOutcome.ISSUED)
 		{
+			session._raidAttackIssued = true;
 			session._ownedAction = session._ownedAction.withSelectedSkill(null);
 			_metrics.attackIssued();
 		}
