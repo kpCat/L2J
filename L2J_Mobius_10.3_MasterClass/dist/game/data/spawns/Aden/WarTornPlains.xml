@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="24_18">
-		<group>
-			<npc id="34523" x="159589" y="21317" z="-3688" heading="18541" respawnTime="30sec" /> <!-- Evan Graham -->
-		</group>
-	</spawn>
-</list>

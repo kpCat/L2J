@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="PlunderousPlains">
-		<group>
-			<npc id="32666" x="112471" y="-154358" z="-1536" heading="21708" respawnTime="60sec" /> <!-- Obi - Railroad Worker -->
-			<npc id="19723" x="112529" y="-154447" z="-1536" heading="21416" respawnTime="60sec" /> <!-- Decoration - Campfire -->
-		</group>
-	</spawn>
-</list>

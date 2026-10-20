@@ -1,1 +1,0 @@
-REPLACE INTO grandboss_data VALUES(29045, 0, 0, 0, 0, 0, 1216600, 11100, 0);

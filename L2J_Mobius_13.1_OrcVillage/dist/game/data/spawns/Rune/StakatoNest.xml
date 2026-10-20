@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="StakatoNest">
-		<group>
-			<npc id="32015" x="89872" y="-44896" z="-2136" heading="33000" respawnTime="60sec" /> <!-- Scout's Corpse -->
-			<npc id="32640" x="89480" y="-44457" z="-2136" heading="43316" respawnTime="60sec" /> <!-- Kintaijin - Bounty Hunter -->
-		</group>
-	</spawn>
-</list>

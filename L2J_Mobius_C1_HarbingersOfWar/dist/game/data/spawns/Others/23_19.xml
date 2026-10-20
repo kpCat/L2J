@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list enabled="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="23_19">
-		<npc id="30747" x="110395" y="41625" z="-4619" heading="0" respawnDelay="60" /> <!-- Mymyu -->
-	</spawn>
-</list>

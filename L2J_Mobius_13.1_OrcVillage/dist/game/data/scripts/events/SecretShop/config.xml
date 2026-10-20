@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<event name="Secret Shop" active="25 10 2023-01 11 2023" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../xsd/eventConfig.xsd">
-	<messages>
-		<add type="onEnd" text="Secret Shop: Event end!" />
-		<add type="onEnter" text="Secret Shop: Event ongoing!" />
-	</messages>
-</event>

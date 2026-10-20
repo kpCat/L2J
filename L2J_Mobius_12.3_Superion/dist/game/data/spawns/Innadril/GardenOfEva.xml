@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="GardenOfEva">
-		<group>
-			<npc id="33783" x="82628" y="241593" z="-6712" heading="3980" respawnTime="60sec" /> <!-- Lanya - Eva's Spirit -->
-			<npc id="33784" x="82578" y="252072" z="-7718" heading="11206" respawnTime="60sec" /> <!-- Heine Water Source -->
-		</group>
-	</spawn>
-</list>

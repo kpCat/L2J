@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="SilentValley">
-		<group>
-			<npc id="34424" x="172047" y="55797" z="-5922" heading="50874" respawnTime="60sec" /> <!-- Corzet -->
-		</group>
-	</spawn>
-</list>

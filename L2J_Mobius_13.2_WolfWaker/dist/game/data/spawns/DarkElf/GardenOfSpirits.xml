@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="GardenOfSpirits">
-		<group>
-			<npc id="34239" x="-40585" y="79861" z="-3968" heading="30212" respawnTime="60sec" /> <!-- Rotoeh -->
-			<npc id="34238" x="-59396" y="79855" z="-4061" heading="40205" respawnTime="60sec" /> <!-- Eubina -->
-		</group>
-	</spawn>
-</list>

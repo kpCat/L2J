@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="RedRockRidge">
-		<group>
-			<npc id="30638" x="-23896" y="207797" z="-3176" heading="16384" respawnTime="60sec" /> <!-- Basilla - Summoner -->
-			<npc id="30653" x="-6774" y="202086" z="-3648" respawnTime="60sec" /> <!-- Sir Aron Tanford -->
-		</group>
-	</spawn>
-</list>

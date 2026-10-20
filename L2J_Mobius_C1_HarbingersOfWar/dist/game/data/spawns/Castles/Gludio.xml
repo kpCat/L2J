@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list enabled="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="GludioCastle">
-		<npc id="35063" x="-18113" y="107972" z="-2480" heading="16384" respawnDelay="60" /> <!-- Gludio Holy Artifact -->
-		<npc id="35100" x="-18212" y="108827" z="-2472" heading="16384" respawnDelay="60" /> <!-- Sayres -->
-		<npc id="35102" x="-17876" y="108944" z="-2485" heading="16384" respawnDelay="60" /> <!-- Greenspan -->
-		<npc id="35104" x="-15172" y="116723" z="-3216" heading="16384" respawnDelay="60" /> <!-- Tyron -->
-	</spawn>
-</list>

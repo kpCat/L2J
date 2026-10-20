@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="OutlawForestMonsters">
-		<group>
-			<npc id="20574" x="100026" y="-321" z="-3624" heading="10518" respawnTime="41sec" /> <!-- Elder Tarlk Basilisk -->
-			<npc id="20574" x="98566" y="-17327" z="-2792" heading="34108" respawnTime="41sec" /> <!-- Elder Tarlk Basilisk -->
-		</group>
-	</spawn>
-</list>

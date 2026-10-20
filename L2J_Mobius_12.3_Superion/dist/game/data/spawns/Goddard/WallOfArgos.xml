@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="25_16">
-		<group>
-			<npc id="31920" x="164327" y="-47576" z="-3533" heading="38539" respawnTime="60sec" /> <!-- Elmoreden Servant's Ghost -->
-			<npc id="31616" x="164464" y="-48890" z="-3578" heading="32342" respawnTime="60sec" /> <!-- Hermit -->
-		</group>
-	</spawn>
-</list>

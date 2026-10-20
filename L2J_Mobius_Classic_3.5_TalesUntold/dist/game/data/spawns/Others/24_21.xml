@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="24_21">
-		<group>
-			<npc id="30938" x="132398" y="114330" z="-3720" heading="8338" respawnTime="60sec" /> <!-- Vanutu - Priest -->
-		</group>
-	</spawn>
-</list>

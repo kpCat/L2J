@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list enabled="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/MapRegion.xsd">
-	<region name="conquest_fire_area" town="Kellond's Secret Barracks" castle="0" locId="5225" bbs="30">
-		<respawnPoint X="20830" Y="-225445" Z="-3789" />
-		<respawnPoint X="20830" Y="-225445" Z="-3789" isChaotic="true" />
-		<map X="20" Y="11" />
-	</region>
-</list>

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/buylist.xsd">
-	<npcs>
-		<npc>31756</npc> <!-- Mr. Cat -->
-	</npcs>
-	<item id="3956" price="300000" /> <!-- Recipe: Blessed Spiritshot A -->
-	<item id="1807" price="300000" /> <!-- Recipe: Soulshot: A Grade -->
-	<item id="3035" price="300000" /> <!-- Recipe: Spiritshot A -->
-</list>

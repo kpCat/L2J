@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="24_18">
-		<group>
-			<npc id="34523" x="159589" y="21317" z="-3688" heading="18541" respawnTime="30sec" /> <!-- Evan Graham -->
-			<npc id="30766" x="160611" y="21236" z="-3712" heading="32768" respawnTime="60sec" /> <!-- Cleo - Witch -->
-		</group>
-	</spawn>
-</list>

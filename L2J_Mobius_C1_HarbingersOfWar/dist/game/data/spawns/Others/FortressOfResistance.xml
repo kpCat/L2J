@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list enabled="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="FortressOfResistance">
-		<npc id="35382" x="50343" y="111282" z="-1976" heading="0" respawnDelay="60" /> <!-- Brakel -->
-		<npc id="35383" x="43129" y="108841" z="-1984" heading="0" respawnDelay="60" /> <!-- Tamutak -->
-	</spawn>
-</list>

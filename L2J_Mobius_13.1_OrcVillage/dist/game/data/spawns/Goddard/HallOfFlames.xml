@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="HallOfFlames">
-		<group>
-			<npc id="31385" x="189872" y="-105152" z="-720" heading="49000" respawnTime="2sec" /> <!-- Heart of Volcano - Hall of Flames -->
-		</group>
-	</spawn>
-</list>

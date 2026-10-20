@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/buylist.xsd">
-	<item id="1538" price="0" /> <!-- Blessed Scroll of Escape -->
-	<item id="736" price="0" /> <!-- Scroll of Escape -->
-	<item id="1830" price="0" /> <!-- Scroll of Escape: Castle -->
-	<item id="1829" price="0" /> <!-- Scroll of Escape: Clan Hall -->
-	<item id="737" price="0" /> <!-- Scroll of Resurrection -->
-	<item id="3936" price="0" /> <!-- Blessed Scroll of Resurrection -->
-</list>

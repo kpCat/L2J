@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list enabled="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/MapRegion.xsd">
-	<region name="conquest_water_area" town="ConquestTown" castle="0" locId="5225" bbs="30">
-		<respawnPoint X="-16330" Y="-189326" Z="-4005" />
-		<respawnPoint X="-16330" Y="-189326" Z="-4005" isChaotic="true" />
-		<map X="19" Y="11" />
-		<map X="19" Y="12" />
-	</region>
-</list>

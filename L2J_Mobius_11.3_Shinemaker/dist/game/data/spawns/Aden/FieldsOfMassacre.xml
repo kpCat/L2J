@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/spawns.xsd">
-	<spawn name="FieldsOfMassacre">
-		<group>
-			<npc id="31101" x="171960" y="-17592" z="-4904" heading="33922" respawnTime="30sec" /> <!-- Gatekeeper Ziggurat -->
-			<npc id="33867" x="183529" y="-16020" z="-2712" heading="11151" respawnTime="30sec" /> <!-- Shuvann -->
-		</group>
-	</spawn>
-</list>

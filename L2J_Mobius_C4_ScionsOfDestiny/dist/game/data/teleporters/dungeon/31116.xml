@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<list xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../xsd/teleporterData.xsd">
-	<npc id="31116"> <!-- Gatekeeper Ziggurat -->
-		<teleport type="OTHER">
-			<location x="77924" y="78406" z="-5149" /> <!-- Catacomb Apostate Entrance -->
-		</teleport>
-	</npc>
-</list>
